@@ -31,6 +31,7 @@ import type { KNode } from "@km/core"
 import { SCHEMA } from "../schema.ts"
 import { runWithDb } from "../db-instance.ts"
 import { runWithKmDir } from "../emit.ts"
+import { createEmitter, type Emitter } from "../emitter.ts"
 import { getNode, getNodeByPath } from "../db-queries/core-lookup.ts"
 import {
   getChildren,
@@ -134,6 +135,8 @@ export interface TestEnv {
    * Access raw db via data.database when needed.
    */
   data: DataStore & HasDatabase
+  /** Emitter domain object for event emission */
+  emitter: Emitter
 }
 
 /**
@@ -216,7 +219,20 @@ export async function withTestEnv<T>(
   // Use storageMode so DB→FS sync events fire when appropriate
   const data = createDBDataStore(db, storageMode)
 
-  const env: TestEnv = { testId, testDir, kmDir, repoDir, db, mode, repo, data }
+  // Create emitter for event emission (with db for applying events)
+  const emitter = createEmitter({ kmDir, db })
+
+  const env: TestEnv = {
+    testId,
+    testDir,
+    kmDir,
+    repoDir,
+    db,
+    mode,
+    repo,
+    data,
+    emitter,
+  }
 
   try {
     // Run with both context-local db and kmDir
@@ -289,7 +305,20 @@ export function withTestEnvSync<T>(
   // Use storageMode so DB→FS sync events fire when appropriate
   const data = createDBDataStore(db, storageMode)
 
-  const env: TestEnv = { testId, testDir, kmDir, repoDir, db, mode, repo, data }
+  // Create emitter for event emission (with db for applying events)
+  const emitter = createEmitter({ kmDir, db })
+
+  const env: TestEnv = {
+    testId,
+    testDir,
+    kmDir,
+    repoDir,
+    db,
+    mode,
+    repo,
+    data,
+    emitter,
+  }
 
   try {
     // Run with both context-local db and kmDir

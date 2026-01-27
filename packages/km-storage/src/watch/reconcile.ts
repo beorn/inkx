@@ -13,7 +13,12 @@ import { realFs } from "./writequeue.ts"
 import { dirname, basename } from "path"
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
-import { emitNodeCreated, emitNodeUpdated, emitNodeDeleted } from "../emit.ts"
+import {
+  emitNodeCreated,
+  emitNodeUpdated,
+  emitNodeDeleted,
+  type Emitter,
+} from "../emitter.ts"
 import {
   getNodeByPath,
   getNodesUnderPath,
@@ -218,6 +223,7 @@ export function applyReconcileOps(
   db: Database,
   ops: ReconcileOp[],
   repoRoot: string,
+  emitter: Emitter,
   fs: FileSystemOps = realFs,
 ): void {
   debug("applying %d reconcile ops", ops.length)
@@ -227,16 +233,16 @@ export function applyReconcileOps(
     debug("applying op: %s %s", op.type, op.path)
     switch (op.type) {
       case "create":
-        handleCreate(db, op, repoRoot, fs)
+        handleCreate(db, op, repoRoot, emitter, fs)
         break
       case "update":
-        handleUpdate(db, op, repoRoot, fs)
+        handleUpdate(db, op, repoRoot, emitter, fs)
         break
       case "rename":
-        handleRename(op)
+        handleRename(emitter, op)
         break
       case "delete":
-        handleDelete(op)
+        handleDelete(emitter, op)
         break
     }
   }
@@ -252,6 +258,7 @@ function ensureFolderHierarchy(
   db: Database,
   path: string,
   repoRoot: string,
+  emitter: Emitter,
   fs: FileSystemOps = realFs,
 ): string | null {
   const parentPath = dirname(path)
@@ -272,13 +279,19 @@ function ensureFolderHierarchy(
   }
 
   // Recursively ensure grandparent exists first
-  const grandparentId = ensureFolderHierarchy(db, parentPath, repoRoot, fs)
+  const grandparentId = ensureFolderHierarchy(
+    db,
+    parentPath,
+    repoRoot,
+    emitter,
+    fs,
+  )
 
   // Create the parent folder node
   try {
     const stat = fs.statSync(parentPath)
     const folderId = ulid()
-    emitNodeCreated("fs-watch", {
+    emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
       type: "folder",
       fs_path: parentPath,
@@ -302,16 +315,17 @@ function handleCreate(
   db: Database,
   op: ReconcileOp,
   repoRoot: string,
+  emitter: Emitter,
   fs: FileSystemOps = realFs,
 ): void {
   const stat = fs.statSync(op.path)
 
   // Ensure all parent folders exist as nodes
-  const parentId = ensureFolderHierarchy(db, op.path, repoRoot, fs)
+  const parentId = ensureFolderHierarchy(db, op.path, repoRoot, emitter, fs)
 
   if (stat.isDirectory()) {
     // Create folder node
-    emitNodeCreated("fs-watch", {
+    emitNodeCreated(emitter, "fs-watch", {
       id: ulid(),
       type: "folder",
       fs_path: op.path,
@@ -342,7 +356,11 @@ function handleCreate(
 
     // Emit creation events for all nodes
     for (const node of nodes) {
-      emitNodeCreated("fs-watch", node as unknown as Record<string, unknown>)
+      emitNodeCreated(
+        emitter,
+        "fs-watch",
+        node as unknown as Record<string, unknown>,
+      )
     }
 
     // Store wikilinks and try to resolve them
@@ -376,7 +394,7 @@ function handleCreate(
     }
   } else {
     // Non-markdown file - create simple file node
-    emitNodeCreated("fs-watch", {
+    emitNodeCreated(emitter, "fs-watch", {
       id: ulid(),
       type: "file",
       fs_path: op.path,
@@ -400,6 +418,7 @@ function handleUpdate(
   db: Database,
   op: ReconcileOp,
   _repoRoot: string,
+  emitter: Emitter,
   fs: FileSystemOps = realFs,
 ): void {
   if (!op.nodeId) {
@@ -412,7 +431,7 @@ function handleUpdate(
     if (op.ino !== undefined) {
       updates.fs_ino = op.ino
     }
-    emitNodeUpdated("fs-watch", op.nodeId, updates)
+    emitNodeUpdated(emitter, "fs-watch", op.nodeId, updates)
     return
   }
 
@@ -467,6 +486,7 @@ function handleUpdate(
       case "created":
         if (change.node) {
           emitNodeCreated(
+            emitter,
             "fs-watch",
             change.node as unknown as Record<string, unknown>,
           )
@@ -474,11 +494,11 @@ function handleUpdate(
         break
       case "updated":
         if (change.nodeId && change.changes) {
-          emitNodeUpdated("fs-watch", change.nodeId, change.changes)
+          emitNodeUpdated(emitter, "fs-watch", change.nodeId, change.changes)
         }
         break
       case "deleted":
-        if (change.nodeId) emitNodeDeleted("fs-watch", change.nodeId)
+        if (change.nodeId) emitNodeDeleted(emitter, "fs-watch", change.nodeId)
         break
     }
   }
@@ -494,7 +514,7 @@ function handleUpdate(
     if (op.ino !== undefined) {
       updates.fs_ino = op.ino
     }
-    emitNodeUpdated("fs-watch", op.nodeId, updates)
+    emitNodeUpdated(emitter, "fs-watch", op.nodeId, updates)
   }
 
   // Update wikilinks: remove old links from EXISTING nodes (not new ones)
@@ -536,10 +556,10 @@ function handleUpdate(
 /**
  * Handle file/folder rename
  */
-function handleRename(op: ReconcileOp): void {
+function handleRename(emitter: Emitter, op: ReconcileOp): void {
   if (!op.nodeId) return
 
-  emitNodeUpdated("fs-watch", op.nodeId, {
+  emitNodeUpdated(emitter, "fs-watch", op.nodeId, {
     fs_path: op.path,
   })
 }
@@ -547,10 +567,10 @@ function handleRename(op: ReconcileOp): void {
 /**
  * Handle file/folder deletion
  */
-function handleDelete(op: ReconcileOp): void {
+function handleDelete(emitter: Emitter, op: ReconcileOp): void {
   if (!op.nodeId) return
 
-  emitNodeDeleted("fs-watch", op.nodeId)
+  emitNodeDeleted(emitter, "fs-watch", op.nodeId)
 }
 
 /**

@@ -57,14 +57,14 @@ describe("reconcile.ts", () => {
       }))
 
     test("detects deleted files", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const filePath = join(repoDir, "delete-me.md")
         writeFileSync(filePath, "# Delete Me")
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
         expect(createOps.length).toBe(1)
 
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         const node = getNodeByPath(db, filePath)
         expect(node).not.toBeNull()
@@ -79,12 +79,12 @@ describe("reconcile.ts", () => {
       }))
 
     test("detects modified files by mtime (forward)", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const filePath = join(repoDir, "modify-me.md")
         writeFileSync(filePath, "# Original")
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         const node = getNodeByPath(db, filePath)
         expect(node).not.toBeNull()
@@ -101,12 +101,12 @@ describe("reconcile.ts", () => {
       }))
 
     test("detects modified files by mtime (backward - restored from backup)", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const filePath = join(repoDir, "backup-restore.md")
         writeFileSync(filePath, "# Original")
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         const node = getNodeByPath(db, filePath)
         expect(node).not.toBeNull()
@@ -124,12 +124,12 @@ describe("reconcile.ts", () => {
       }))
 
     test("detects renamed files by inode", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const oldPath = join(repoDir, "old-name.md")
         writeFileSync(oldPath, "# Content")
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         const node = getNodeByPath(db, oldPath)
         expect(node).not.toBeNull()
@@ -151,12 +151,12 @@ describe("reconcile.ts", () => {
       }))
 
     test("returns empty array when nothing changed", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const filePath = join(repoDir, "stable.md")
         writeFileSync(filePath, "# Stable")
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         const ops = reconcileDirectory(db, repoDir, repoDir)
         expect(ops.length).toBe(0)
@@ -177,14 +177,14 @@ describe("reconcile.ts", () => {
 
   describe("applyReconcileOps", () => {
     test("creates file node from markdown", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const filePath = join(repoDir, "new-file.md")
         writeFileSync(filePath, "# New File\n\n- [ ] Task 1\n- [x] Task 2")
 
         const ops = reconcileDirectory(db, repoDir, repoDir)
         expect(ops.length).toBe(1)
 
-        await applyReconcileOps(db, ops, repoDir)
+        await applyReconcileOps(db, ops, repoDir, emitter)
 
         const fileNode = getNodeByPath(db, filePath)
         expect(fileNode).not.toBeNull()
@@ -196,12 +196,12 @@ describe("reconcile.ts", () => {
       }))
 
     test("creates folder node", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const folderPath = join(repoDir, "new-folder")
         mkdirSync(folderPath)
 
         const ops = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, ops, repoDir)
+        await applyReconcileOps(db, ops, repoDir, emitter)
 
         const folderNode = getNodeByPath(db, folderPath)
         expect(folderNode).not.toBeNull()
@@ -209,29 +209,29 @@ describe("reconcile.ts", () => {
       }))
 
     test("deletes node on delete op", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const filePath = join(repoDir, "to-delete.md")
         writeFileSync(filePath, "# To Delete")
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         expect(getNodeByPath(db, filePath)).not.toBeNull()
 
         rmSync(filePath)
         const deleteOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, deleteOps, repoDir)
+        await applyReconcileOps(db, deleteOps, repoDir, emitter)
 
         expect(getNodeByPath(db, filePath)).toBeNull()
       }))
 
     test("handles rename operations", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const oldPath = join(repoDir, "rename-old.md")
         writeFileSync(oldPath, "# Rename Me")
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         const originalNode = getNodeByPath(db, oldPath)
         expect(originalNode).not.toBeNull()
@@ -249,24 +249,24 @@ describe("reconcile.ts", () => {
       }))
 
     test("creates folder hierarchy for nested files", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const nestedDir = join(repoDir, "level1", "level2")
         mkdirSync(nestedDir, { recursive: true })
         const filePath = join(nestedDir, "nested.md")
         writeFileSync(filePath, "# Nested File")
 
         const rootOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, rootOps, repoDir)
+        await applyReconcileOps(db, rootOps, repoDir, emitter)
 
         const level1Ops = reconcileDirectory(
           db,
           join(repoDir, "level1"),
           repoDir,
         )
-        await applyReconcileOps(db, level1Ops, repoDir)
+        await applyReconcileOps(db, level1Ops, repoDir, emitter)
 
         const level2Ops = reconcileDirectory(db, nestedDir, repoDir)
-        await applyReconcileOps(db, level2Ops, repoDir)
+        await applyReconcileOps(db, level2Ops, repoDir, emitter)
 
         const fileNode = getNodeByPath(db, filePath)
         expect(fileNode).not.toBeNull()
@@ -280,7 +280,7 @@ describe("reconcile.ts", () => {
 
   describe("update preserves nested nodes", () => {
     test("file update does not duplicate or delete nested tasks", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const filePath = join(repoDir, "nested-tasks.md")
         const originalContent = `# Board
 
@@ -297,7 +297,7 @@ describe("reconcile.ts", () => {
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
         expect(createOps.length).toBe(1)
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         const fileNode = getNodeByPath(db, filePath)
         expect(fileNode).not.toBeNull()
@@ -321,7 +321,7 @@ describe("reconcile.ts", () => {
         expect(updateOps.length).toBe(1)
         expect(updateOps[0]?.type).toBe("update")
 
-        await applyReconcileOps(db, updateOps, repoDir)
+        await applyReconcileOps(db, updateOps, repoDir, emitter)
 
         const newNodeCount = getNodeCount(db)
         expect(newNodeCount).toBe(originalNodeCount)
@@ -344,7 +344,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("file update with content change correctly diffs nodes", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const filePath = join(repoDir, "diff-test.md")
         const originalContent = `# Test
 
@@ -354,7 +354,7 @@ describe("reconcile.ts", () => {
         writeFileSync(filePath, originalContent)
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         const fileNode = getNodeByPath(db, filePath)
         const originalTasks = getChildren(db, fileNode!.id).filter(
@@ -383,7 +383,7 @@ describe("reconcile.ts", () => {
         expect(updateOps.length).toBe(1)
         expect(updateOps[0]?.type).toBe("update")
 
-        await applyReconcileOps(db, updateOps, repoDir)
+        await applyReconcileOps(db, updateOps, repoDir, emitter)
 
         const fileNodeAfter = getNodeByPath(db, filePath)
         const tasksAfter = getChildren(db, fileNodeAfter!.id).filter(
@@ -405,7 +405,7 @@ describe("reconcile.ts", () => {
 
   describe("TUI refresh scenario", () => {
     test("folder children remain visible after file touch in subfolder", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const issueFolder = join(repoDir, "issue")
         mkdirSync(issueFolder)
 
@@ -415,10 +415,10 @@ describe("reconcile.ts", () => {
         writeFileSync(task2Path, "# Task 2\n\n- [ ] Do something else")
 
         const rootOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, rootOps, repoDir)
+        await applyReconcileOps(db, rootOps, repoDir, emitter)
 
         const issueOps = reconcileDirectory(db, issueFolder, repoDir)
-        await applyReconcileOps(db, issueOps, repoDir)
+        await applyReconcileOps(db, issueOps, repoDir, emitter)
 
         const folderNode = getNodeByPath(db, issueFolder)
         expect(folderNode).not.toBeNull()
@@ -435,7 +435,7 @@ describe("reconcile.ts", () => {
         expect(updateOps.length).toBe(1)
         expect(updateOps[0]?.type).toBe("update")
 
-        await applyReconcileOps(db, updateOps, repoDir)
+        await applyReconcileOps(db, updateOps, repoDir, emitter)
 
         const folderNodeAfter = getNodeByPath(db, issueFolder)
         expect(folderNodeAfter).not.toBeNull()
@@ -450,7 +450,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("nested tasks remain visible after parent file touch", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const issueFolder = join(repoDir, "issue")
         mkdirSync(issueFolder)
 
@@ -471,10 +471,10 @@ describe("reconcile.ts", () => {
         )
 
         const rootOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, rootOps, repoDir)
+        await applyReconcileOps(db, rootOps, repoDir, emitter)
 
         const issueOps = reconcileDirectory(db, issueFolder, repoDir)
-        await applyReconcileOps(db, issueOps, repoDir)
+        await applyReconcileOps(db, issueOps, repoDir, emitter)
 
         const folderNode = getNodeByPath(db, issueFolder)
         expect(folderNode).not.toBeNull()
@@ -505,7 +505,7 @@ describe("reconcile.ts", () => {
         expect(updateOps.length).toBe(1)
         expect(updateOps[0]?.type).toBe("update")
 
-        await applyReconcileOps(db, updateOps, repoDir)
+        await applyReconcileOps(db, updateOps, repoDir, emitter)
 
         const folderNodeAfter = getNodeByPath(db, issueFolder)
         expect(folderNodeAfter!.id).toBe(folderId)
@@ -530,24 +530,24 @@ describe("reconcile.ts", () => {
 
   describe("getParentNodeId", () => {
     test("returns null for repo root files", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const filePath = join(repoDir, "root-file.md")
         writeFileSync(filePath, "# Root")
 
         const createOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, createOps, repoDir)
+        await applyReconcileOps(db, createOps, repoDir, emitter)
 
         const parentId = getParentNodeId(db, filePath)
         expect(parentId).toBeNull()
       }))
 
     test("returns folder node ID for nested files", () =>
-      withTestEnv(async ({ db, repoDir }) => {
+      withTestEnv(async ({ db, repoDir, emitter }) => {
         const folderPath = join(repoDir, "parent-folder")
         mkdirSync(folderPath)
 
         const folderOps = reconcileDirectory(db, repoDir, repoDir)
-        await applyReconcileOps(db, folderOps, repoDir)
+        await applyReconcileOps(db, folderOps, repoDir, emitter)
 
         const folderNode = getNodeByPath(db, folderPath)
         expect(folderNode).not.toBeNull()

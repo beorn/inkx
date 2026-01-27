@@ -48,10 +48,14 @@ export interface EmitOptions {
 export interface EmitterOptions {
   /** Path to .km directory (required) */
   kmDir: string
+  /** Database to apply events to (optional - events only written to file if not provided) */
+  db?: Database
   /** Optional event hub for real-time broadcasting */
   eventHub?: EventHub
   /** Optional filesystem sync callback */
   fsSync?: FsSync
+  /** Skip persisting events to filesystem by default (useful for mock fs tests) */
+  skipPersist?: boolean
 }
 
 /** Emitter domain object - owns event emission lifecycle */
@@ -98,6 +102,8 @@ export interface Emitter {
  */
 export function createEmitter(options: EmitterOptions): Emitter {
   const { kmDir } = options
+  const defaultDb = options.db ?? null
+  const defaultSkipPersist = options.skipPersist ?? false
   let eventHub: EventHub | null = options.eventHub ?? null
   let fsSync: FsSync | null = options.fsSync ?? null
 
@@ -126,15 +132,17 @@ export function createEmitter(options: EmitterOptions): Emitter {
 
       debug("emit: %s target=%s", event.type, event.target ?? "(none)")
 
-      // 1. Persist to events.jsonl
-      if (!emitOptions.skipPersist) {
+      // 1. Persist to events.jsonl (unless skipPersist is set per-call or as default)
+      const shouldPersist = !(emitOptions.skipPersist ?? defaultSkipPersist)
+      if (shouldPersist) {
         ensureKmDir()
         appendFileSync(eventsPath, JSON.stringify(event) + "\n")
       }
 
-      // 2. Apply to database (if provided)
-      if (emitOptions.db) {
-        applyEventWithDb(emitOptions.db, event)
+      // 2. Apply to database (use per-call db or default db from options)
+      const db = emitOptions.db ?? defaultDb
+      if (db) {
+        applyEventWithDb(db, event)
       }
 
       // 3. Broadcast via event hub

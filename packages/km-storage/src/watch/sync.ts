@@ -19,7 +19,7 @@ import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 import { getIgnorePatterns } from "../ignore.ts"
 import type { Event, KNode } from "@km/core"
-import { runWithKmDir } from "../emit.ts"
+import { createEmitter, type Emitter } from "../emitter.ts"
 
 /** Progress info for sync operations */
 export interface SyncProgress {
@@ -98,7 +98,8 @@ export class SyncManager extends EventEmitter {
   private writeQueue: WriteQueue
   private state: SyncState = "idle"
   private ignorePatterns: string[] = []
-  private kmDir: string // Stored for async handlers that run outside initial context
+  private kmDir: string
+  private emitter: Emitter // Emitter domain object for event emission
 
   // Heartbeat reconciliation
   private heartbeatConfig: HeartbeatConfig
@@ -112,6 +113,7 @@ export class SyncManager extends EventEmitter {
     this.db = config.db
     this.config = { ...DEFAULT_CONFIG, ...config } as SyncConfig
     this.kmDir = join(this.config.repoPath, ".km")
+    this.emitter = createEmitter({ kmDir: this.kmDir, db: this.db })
 
     // Initialize heartbeat config
     this.heartbeatConfig = {
@@ -229,9 +231,6 @@ export class SyncManager extends EventEmitter {
 
   /**
    * Run heartbeat reconciliation if idle
-   *
-   * Note: This runs within runWithKmDir context because it's triggered by
-   * setInterval, which doesn't inherit AsyncLocalStorage context.
    */
   private runHeartbeat(): void {
     const now = Date.now()
@@ -268,38 +267,36 @@ export class SyncManager extends EventEmitter {
     try {
       this.setState("reconciling")
 
-      runWithKmDir(this.kmDir, () => {
-        // Scan entire repo for changes
-        const ops = reconcileDirectory(
-          this.db,
-          this.config.repoPath,
-          this.config.repoPath,
-          this.ignorePatterns,
-        )
+      // Scan entire repo for changes
+      const ops = reconcileDirectory(
+        this.db,
+        this.config.repoPath,
+        this.config.repoPath,
+        this.ignorePatterns,
+      )
 
-        if (ops.length > 0) {
-          debug("heartbeat: found %d changes (drift detected)", ops.length)
-          this.heartbeatDrift += ops.length
+      if (ops.length > 0) {
+        debug("heartbeat: found %d changes (drift detected)", ops.length)
+        this.heartbeatDrift += ops.length
 
-          this.setState("emitting")
-          applyReconcileOps(this.db, ops, this.config.repoPath)
+        this.setState("emitting")
+        applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
 
-          // Emit event so consumers know about drift
-          this.emit("heartbeat:drift", {
-            opsCount: ops.length,
-            totalDrift: this.heartbeatDrift,
-          })
-        }
-
-        debug(
-          "heartbeat: completed in %dms, ops=%d",
-          Date.now() - start,
-          ops.length,
-        )
-        this.emit("heartbeat:complete", {
-          duration: Date.now() - start,
+        // Emit event so consumers know about drift
+        this.emit("heartbeat:drift", {
           opsCount: ops.length,
+          totalDrift: this.heartbeatDrift,
         })
+      }
+
+      debug(
+        "heartbeat: completed in %dms, ops=%d",
+        Date.now() - start,
+        ops.length,
+      )
+      this.emit("heartbeat:complete", {
+        duration: Date.now() - start,
+        opsCount: ops.length,
       })
     } catch (error) {
       debug("heartbeat: error %O", error)
@@ -311,31 +308,26 @@ export class SyncManager extends EventEmitter {
 
   /**
    * Force a heartbeat reconciliation now (for testing/debugging)
-   *
-   * Note: This runs within runWithKmDir context because it may be called
-   * from contexts that don't have AsyncLocalStorage setup.
    */
   forceHeartbeat(): { opsCount: number; duration: number } {
     const start = Date.now()
     this.setState("reconciling")
 
     try {
-      return runWithKmDir(this.kmDir, () => {
-        const ops = reconcileDirectory(
-          this.db,
-          this.config.repoPath,
-          this.config.repoPath,
-          this.ignorePatterns,
-        )
+      const ops = reconcileDirectory(
+        this.db,
+        this.config.repoPath,
+        this.config.repoPath,
+        this.ignorePatterns,
+      )
 
-        if (ops.length > 0) {
-          this.setState("emitting")
-          applyReconcileOps(this.db, ops, this.config.repoPath)
-          this.heartbeatDrift += ops.length
-        }
+      if (ops.length > 0) {
+        this.setState("emitting")
+        applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
+        this.heartbeatDrift += ops.length
+      }
 
-        return { opsCount: ops.length, duration: Date.now() - start }
-      })
+      return { opsCount: ops.length, duration: Date.now() - start }
     } finally {
       this.setState("idle")
     }
@@ -367,9 +359,6 @@ export class SyncManager extends EventEmitter {
 
   /**
    * Handle filesystem sync event
-   *
-   * Note: This runs within runWithKmDir context because it's triggered by
-   * worker thread messages, which don't inherit AsyncLocalStorage context.
    */
   private handleFsSync(data: { paths: string[]; directories: string[] }): void {
     debug(
@@ -381,22 +370,20 @@ export class SyncManager extends EventEmitter {
     this.setState("reconciling")
 
     try {
-      runWithKmDir(this.kmDir, () => {
-        for (const dir of data.directories) {
-          const ops = reconcileDirectory(
-            this.db,
-            dir,
-            this.config.repoPath,
-            this.ignorePatterns,
-          )
-          debug("reconciled %s: %d ops", dir, ops.length)
+      for (const dir of data.directories) {
+        const ops = reconcileDirectory(
+          this.db,
+          dir,
+          this.config.repoPath,
+          this.ignorePatterns,
+        )
+        debug("reconciled %s: %d ops", dir, ops.length)
 
-          if (ops.length > 0) {
-            this.setState("emitting")
-            applyReconcileOps(this.db, ops, this.config.repoPath)
-          }
+        if (ops.length > 0) {
+          this.setState("emitting")
+          applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
         }
-      })
+      }
     } catch (error) {
       debug("fs sync error: %O", error)
       this.emit("error", error)
@@ -503,7 +490,7 @@ export class SyncManager extends EventEmitter {
         if (ops.length > 0) {
           debug("reconcile-before-write: applying %d ops", ops.length)
           // Apply synchronously to ensure DB is updated before we regenerate
-          void applyReconcileOps(this.db, ops, this.config.repoPath)
+          applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
         }
       }
     } catch (err) {
@@ -590,111 +577,104 @@ export class SyncManager extends EventEmitter {
     debug("syncFromFs: scanning %s", this.config.repoPath)
     const start = Date.now()
 
-    // Run within kmDir context so database operations use correct path
-    const kmDir = join(this.config.repoPath, ".km")
+    // Load ignore patterns for this repo
+    const ignorePatterns = getIgnorePatterns(this.config.repoPath)
 
-    return runWithKmDir(kmDir, async () => {
-      // Event application handled via context-local database in emit.ts
+    // Phase 1: Scanning
+    onProgress?.({ phase: "scanning", current: 0, total: 1 })
 
-      // Load ignore patterns for this repo
-      const ignorePatterns = getIgnorePatterns(this.config.repoPath)
+    const entries = scanDirectoryRecursive(
+      this.config.repoPath,
+      (path) => path.endsWith(".md"),
+      ignorePatterns,
+    )
 
-      // Phase 1: Scanning
-      onProgress?.({ phase: "scanning", current: 0, total: 1 })
+    debug("syncFromFs: found %d entries", entries.length)
 
-      const entries = scanDirectoryRecursive(
+    // Group by directory
+    const dirs = new Set<string>()
+
+    for (const entry of entries) {
+      dirs.add(dirname(entry.path))
+    }
+
+    onProgress?.({ phase: "scanning", current: 1, total: 1 })
+
+    // Phase 2: Reconciling
+    const dirArray = Array.from(dirs)
+    const totalDirs = dirArray.length
+    let processed = 0
+
+    for (const [i, dir] of dirArray.entries()) {
+      const ops = reconcileDirectory(
+        this.db,
+        dir,
         this.config.repoPath,
-        (path) => path.endsWith(".md"),
         ignorePatterns,
       )
+      applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
+      processed += ops.length
 
-      debug("syncFromFs: found %d entries", entries.length)
+      // Report progress for each directory
+      onProgress?.({
+        phase: "reconciling",
+        current: i + 1,
+        total: totalDirs,
+      })
+    }
 
-      // Group by directory
-      const dirs = new Set<string>()
+    // Phase 3: Evaluate rules (add= materialization)
+    const ruleCtx = createRuleContext()
+    for (const progress of evaluateAllRules(this.db, ruleCtx)) {
+      onProgress?.({
+        phase: "rules",
+        current: progress.current,
+        total: progress.total,
+      })
+    }
 
-      for (const entry of entries) {
-        dirs.add(dirname(entry.path))
-      }
-
-      onProgress?.({ phase: "scanning", current: 1, total: 1 })
-
-      // Phase 2: Reconciling
-      const dirArray = Array.from(dirs)
-      const totalDirs = dirArray.length
-      let processed = 0
-
-      for (const [i, dir] of dirArray.entries()) {
-        const ops = reconcileDirectory(
-          this.db,
-          dir,
-          this.config.repoPath,
-          ignorePatterns,
-        )
-        applyReconcileOps(this.db, ops, this.config.repoPath)
-        processed += ops.length
-
-        // Report progress for each directory
-        onProgress?.({
-          phase: "reconciling",
-          current: i + 1,
-          total: totalDirs,
-        })
-      }
-
-      // Phase 3: Evaluate rules (add= materialization)
-      const ruleCtx = createRuleContext()
-      for (const progress of evaluateAllRules(this.db, ruleCtx)) {
-        onProgress?.({
-          phase: "rules",
-          current: progress.current,
-          total: progress.total,
-        })
-      }
-
-      // Write back any files that were modified by rule evaluation
-      // SAFETY: Only write .md files to prevent corruption of source code/config files
-      const pendingFiles = Array.from(ruleCtx.pendingWriteBack)
-      if (pendingFiles.length > 0) {
-        debug(
-          "syncFromFs: writing back %d files after rule evaluation",
-          pendingFiles.length,
-        )
-        for (const filePath of pendingFiles) {
-          // CRITICAL: Skip non-.md files to prevent corruption
-          if (!filePath.endsWith(".md")) {
-            debug("syncFromFs: SKIPPING non-.md file in write-back", {
-              filePath,
-            })
-            continue
-          }
-
-          // Find the file node and regenerate its content
-          const fileNode = getAllNodes(this.db).find(
-            (n) => n.fs_path === filePath,
-          )
-          if (fileNode) {
-            const subtree = getSubtree(this.db, fileNode.id)
-            const content = nodesToMarkdown(subtree)
-            this.writeQueue.queue({
-              path: filePath,
-              content,
-              sourceEventId: "rule-evaluation",
-            })
-          }
-        }
-        await this.writeQueue.forceFlush()
-      }
-
-      const duration = Date.now() - start
+    // Write back any files that were modified by rule evaluation
+    // SAFETY: Only write .md files to prevent corruption of source code/config files
+    const pendingFiles = Array.from(ruleCtx.pendingWriteBack)
+    if (pendingFiles.length > 0) {
       debug(
-        "syncFromFs: processed %d ops in %d dirs in %dms",
-        processed,
-        totalDirs,
-        duration,
+        "syncFromFs: writing back %d files after rule evaluation",
+        pendingFiles.length,
       )
-      return { processed, directories: totalDirs, duration }
-    })
+      for (const filePath of pendingFiles) {
+        // CRITICAL: Skip non-.md files to prevent corruption
+        if (!filePath.endsWith(".md")) {
+          debug("syncFromFs: SKIPPING non-.md file in write-back", {
+            filePath,
+          })
+          continue
+        }
+
+        // Find the file node and regenerate its content
+        const fileNode = getAllNodes(this.db).find(
+          (n) => n.fs_path === filePath,
+        )
+        if (fileNode) {
+          const subtree = getSubtree(this.db, fileNode.id)
+          const content = nodesToMarkdown(subtree)
+          this.writeQueue.queue({
+            path: filePath,
+            content,
+            sourceEventId: "rule-evaluation",
+          })
+        }
+      }
+      await this.writeQueue.forceFlush()
+    }
+
+    const duration = Date.now() - start
+    debug(
+      "syncFromFs: processed %d ops in %d dirs in %dms",
+      processed,
+      totalDirs,
+      duration,
+    )
+    return { processed, directories: totalDirs, duration }
   }
 
   /**
@@ -707,39 +687,34 @@ export class SyncManager extends EventEmitter {
     debug("syncToFs: starting")
     const start = Date.now()
 
-    // Run within kmDir context so database operations use correct path
-    const kmDir = join(this.config.repoPath, ".km")
+    const nodes = getAllNodes(this.db)
+    // CRITICAL: Only sync .md files to prevent corruption of source code/config files
+    const fileNodes = nodes.filter(
+      (n) => n.type === "file" && n.fs_path?.endsWith(".md"),
+    )
 
-    return runWithKmDir(kmDir, async () => {
-      const nodes = getAllNodes(this.db)
-      // CRITICAL: Only sync .md files to prevent corruption of source code/config files
-      const fileNodes = nodes.filter(
-        (n) => n.type === "file" && n.fs_path?.endsWith(".md"),
-      )
+    debug("syncToFs: writing %d files", fileNodes.length)
 
-      debug("syncToFs: writing %d files", fileNodes.length)
+    for (const fileNode of fileNodes) {
+      if (!fileNode.fs_path) continue
+      const subtree = getSubtree(this.db, fileNode.id)
+      const content = nodesToMarkdown(subtree)
 
-      for (const fileNode of fileNodes) {
-        if (!fileNode.fs_path) continue
-        const subtree = getSubtree(this.db, fileNode.id)
-        const content = nodesToMarkdown(subtree)
+      this.writeQueue.queue({
+        path: fileNode.fs_path,
+        content,
+        sourceEventId: "sync-to-fs",
+      })
+    }
 
-        this.writeQueue.queue({
-          path: fileNode.fs_path,
-          content,
-          sourceEventId: "sync-to-fs",
-        })
-      }
+    await this.writeQueue.forceFlush()
 
-      await this.writeQueue.forceFlush()
-
-      debug(
-        "syncToFs: wrote %d files in %dms",
-        fileNodes.length,
-        Date.now() - start,
-      )
-      return { written: fileNodes.length }
-    })
+    debug(
+      "syncToFs: wrote %d files in %dms",
+      fileNodes.length,
+      Date.now() - start,
+    )
+    return { written: fileNodes.length }
   }
 
   /**

@@ -20,6 +20,7 @@ import { Verifier } from "./verifier.ts"
 import { runWithKmDir } from "../../../src/emit.ts"
 import { resetDb, closeDb, getDb } from "../../../src/db.ts"
 import { runWithDb } from "../../../src/db-instance.ts"
+import { createEmitter } from "../../../src/emitter.ts"
 import {
   reconcileDirectory,
   reconcileDirectoryRecursive,
@@ -100,6 +101,7 @@ async function runChaosTestWithMockFs(
 
       const scanner = mockFs.createScanner()
       const db = getDb()
+      const emitter = createEmitter({ kmDir, db })
       // Wrap in runWithDb so emitNodeCreated applies to db
       // Use reconcileDirectoryRecursive to handle subdirectories
       runWithDb(db, () => {
@@ -110,7 +112,7 @@ async function runChaosTestWithMockFs(
           undefined,
           scanner,
         )
-        applyReconcileOps(db, ops, repoDir, mockFs)
+        applyReconcileOps(db, ops, repoDir, emitter, mockFs)
       })
 
       // ─────────────────────────────────────────────────────────────
@@ -154,7 +156,7 @@ async function runChaosTestWithMockFs(
                         undefined,
                         scanner,
                       )
-                applyReconcileOps(db, dirOps, repoDir, mockFs)
+                applyReconcileOps(db, dirOps, repoDir, emitter, mockFs)
               }
             })
           })()
@@ -242,6 +244,7 @@ async function runChaosTestWithRealFs(
     try {
       resetDb()
       const db = getDb()
+      const emitter = createEmitter({ kmDir, db })
 
       for (const file of config.setup) {
         const fullPath = join(repoDir, file.path)
@@ -256,7 +259,7 @@ async function runChaosTestWithRealFs(
       // Use reconcileDirectoryRecursive to handle subdirectories
       runWithDb(db, () => {
         const ops = reconcileDirectoryRecursive(db, repoDir, repoDir)
-        applyReconcileOps(db, ops, repoDir)
+        applyReconcileOps(db, ops, repoDir, emitter)
       })
 
       // Chaos Injection Phase
@@ -290,7 +293,7 @@ async function runChaosTestWithRealFs(
                   dir === repoDir
                     ? reconcileDirectory(db, dir, repoDir)
                     : reconcileDirectoryRecursive(db, dir, repoDir)
-                applyReconcileOps(db, dirOps, repoDir)
+                applyReconcileOps(db, dirOps, repoDir, emitter)
               }
             })
           })()

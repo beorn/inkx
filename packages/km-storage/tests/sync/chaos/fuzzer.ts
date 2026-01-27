@@ -20,6 +20,7 @@ import { Verifier } from "./verifier.ts"
 import { runWithKmDir } from "../../../src/emit.ts"
 import { resetDb, closeDb, getAllNodes, getDb } from "../../../src/db.ts"
 import { runWithDb } from "../../../src/db-instance.ts"
+import { createEmitter } from "../../../src/emitter.ts"
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../../../src/schema.ts"
 import {
@@ -483,8 +484,9 @@ async function runSingleIteration(
 
       // Initial reconciliation - use recursive to handle files in subdirectories
       const db = getDb()
+      const emitter = createEmitter({ kmDir, db })
       const ops = reconcileDirectoryRecursive(db, repoDir, repoDir)
-      applyReconcileOps(db, ops, repoDir)
+      applyReconcileOps(db, ops, repoDir, emitter)
 
       // Create watcher with combined scenarios
       const combinedScenario =
@@ -522,7 +524,7 @@ async function runSingleIteration(
                 dir === repoDir
                   ? reconcileDirectory(db, dir, repoDir)
                   : reconcileDirectoryRecursive(db, dir, repoDir)
-              applyReconcileOps(db, dirOps, repoDir)
+              applyReconcileOps(db, dirOps, repoDir, emitter)
             }
           })()
         },
@@ -640,13 +642,18 @@ async function runSingleIterationWithMockFs(
   const start = Date.now()
   const mockFs = createMockFileSystem()
   const repoDir = "/repo"
+  const kmDir = "/repo/.km"
 
   // Use in-memory database for parallel isolation
   const db = new Database(":memory:")
   db.exec(SCHEMA)
 
+  // Create emitter for event emission (skip persist since we're using mock fs)
+  const emitter = createEmitter({ kmDir, db, skipPersist: true })
+
   // Setup - create virtual directories
   mockFs.mkdirSync(repoDir, { recursive: true })
+  mockFs.mkdirSync(kmDir, { recursive: true })
 
   // Declare outside runWithDb so catch/finally can access
   const violations: InvariantViolation[] = []
@@ -674,7 +681,7 @@ async function runSingleIterationWithMockFs(
         undefined,
         scanner,
       )
-      applyReconcileOps(db, ops, repoDir, mockFs)
+      applyReconcileOps(db, ops, repoDir, emitter, mockFs)
 
       // Create watcher with combined scenarios
       const combinedScenario =
@@ -718,7 +725,7 @@ async function runSingleIterationWithMockFs(
                       undefined,
                       scanner,
                     )
-              applyReconcileOps(db, dirOps, repoDir, mockFs)
+              applyReconcileOps(db, dirOps, repoDir, emitter, mockFs)
             }
           })()
         },
