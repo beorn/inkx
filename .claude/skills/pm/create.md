@@ -201,7 +201,7 @@ bd update <id> --claim --status in_progress
 
 #### For BUGS:
 
-Load [workflows/implementation.md](workflows/implementation.md) bug section.
+Load [workflows/bugs.md](workflows/bugs.md).
 
 **Summary:**
 
@@ -216,7 +216,7 @@ Load [workflows/implementation.md](workflows/implementation.md) bug section.
 
 #### For FEATURES:
 
-Load [workflows/implementation.md](workflows/implementation.md) feature section.
+Load [workflows/features.md](workflows/features.md).
 
 **Assess complexity:**
 
@@ -233,7 +233,7 @@ Load [workflows/implementation.md](workflows/implementation.md) feature section.
 
 #### For TASKS:
 
-Load [workflows/implementation.md](workflows/implementation.md) task section.
+Load [workflows/tasks.md](workflows/tasks.md).
 
 **Determine if tests needed:**
 
@@ -266,7 +266,7 @@ Task({
     <suggested approach based on type>
 
     ## Instructions
-    Follow [workflows/implementation.md] for <type> workflow:
+    Follow workflows/bugs.md, workflows/features.md, or workflows/tasks.md for <type> workflow:
     1. <type-specific steps>
     2. Run test:fast frequently
     3. Close bead when complete: bd close <id> --reason "<evidence>"
@@ -313,7 +313,7 @@ Update status as work progresses.
 
 **Before creating bead:**
 
-- [ ] ID follows [naming.md](naming.md) conventions
+- [ ] ID follows [beads-ids.md](beads-ids.md) conventions
 - [ ] Sequence number correct
 - [ ] Priority has rationale
 - [ ] Description actionable
@@ -387,10 +387,12 @@ Total: ~18 minutes
 
 **References:**
 
-- [bd.md](bd.md) - All bd CLI commands
-- [naming.md](naming.md) - ID conventions and scope tokens
-- [workflows/implementation.md](workflows/implementation.md) - Type-specific implementation workflows
-- [review-beads.md](review-beads.md) - Backlog grooming if cleanup needed
+- [beads.md](beads.md) - All bd CLI commands
+- [beads-ids.md](beads-ids.md) - ID conventions and scope tokens
+- [workflows/bugs.md](workflows/bugs.md) - Bug fix workflow
+- [workflows/features.md](workflows/features.md) - Feature implementation workflow
+- [workflows/tasks.md](workflows/tasks.md) - Task completion workflow
+- [workflows/review.md](workflows/review.md) - Backlog grooming if cleanup needed
 
 **Tools:**
 

@@ -10,11 +10,11 @@ allowed-tools: Bash, Read, TodoWrite
 
 Issue tracking using beads. Coordinates work across Claude sessions.
 
-**IMPORTANT**: Read [bd.md](bd.md) for full CLI reference before running commands.
+**IMPORTANT**: Read [beads.md](beads.md) for full CLI reference before running commands.
 
 ## Current State
 
-!`bun ./.claude/skills/pm/scripts/bd.ts 2>/dev/null || echo "Run /pm to see dashboard"`
+!`bd list --status open --limit 10`
 
 ## Command Mapping
 
@@ -33,7 +33,7 @@ When user says `/pm <action>`, run these commands:
 | `/pm sync`         | `git add .beads && git commit -m "chore: sync beads"` |
 | `/pm my`           | `bd list --assignee $(bd whoami)`                     |
 | `/pm new <id> "t"` | `bd create --id km-<id> --title "t"`                  |
-| `/pm create ...`   | See [bd.md](bd.md) for full create syntax             |
+| `/pm create ...`   | See [beads.md](beads.md) for full create syntax       |
 
 ## Workflow
 
@@ -45,19 +45,29 @@ When user says `/pm <action>`, run these commands:
 
 ## Session Coordination
 
-- Claims expire after **30 minutes** of inactivity
-- Stale claims can be taken over
-- Use `bd list --assignee $(bd whoami)` to see your claims
+**Actor tracking** (automatic):
+- Each Claude session has unique actor ID: `claude:abc12345` (from $BD_ACTOR)
+- User operations use actor: `beorn` (from $USER)
+- See [beads.md Actor Attribution](beads.md#actor-attribution-audit-trail) for details
+
+**Claim management** (manual):
+- Claims don't auto-expire - use `bd list --status in_progress` to see active work
+- **Stale claim guidelines** (check age with `bd show <id> --json | jq -r '.[0].updated_at'`):
+  - **Agent claims** (actor=`claude:*`): Stale after **20 minutes** of inactivity, safe to reclaim
+  - **User claims** (actor=`beorn`): Stale after **24 hours** of inactivity, check before reclaiming
+- Take over stale work: `bd update <id> --claim` (forcibly claims, updates assignee)
+- View your claims: `bd list --assignee $(bd whoami)`
+- Actor field shows who last worked on each bead (audit trail)
 
 ## Sub-Skills
 
-| File                                                           | Purpose                                    |
-| -------------------------------------------------------------- | ------------------------------------------ |
-| [create.md](create.md)                                         | Create bugs/features/tasks, optionally fix |
-| [workflows/bug-workflow.md](workflows/bug-workflow.md)         | Bug fix workflow (reproduce, test, fix)    |
-| [workflows/feature-workflow.md](workflows/feature-workflow.md) | Feature implementation (assess, plan, TDD) |
-| [workflows/task-workflow.md](workflows/task-workflow.md)       | Task completion (refactoring, cleanup)     |
-| [bd.md](bd.md)                                                 | Full CLI reference, all subcommands        |
-| [naming.md](naming.md)                                         | Bead ID conventions, scope tokens          |
-| [review-beads.md](review-beads.md)                             | Backlog grooming (infrequent)              |
-| [upstream-bug.md](upstream-bug.md)                             | External dependency bugs                   |
+| File                                           | Purpose                                    |
+| ---------------------------------------------- | ------------------------------------------ |
+| [create.md](create.md)                         | Create bugs/features/tasks, optionally fix |
+| [workflows/bugs.md](workflows/bugs.md)         | Bug fix workflow (reproduce, test, fix)    |
+| [workflows/features.md](workflows/features.md) | Feature implementation (assess, plan, TDD) |
+| [workflows/tasks.md](workflows/tasks.md)       | Task completion (refactoring, cleanup)     |
+| [workflows/review.md](workflows/review.md)     | Backlog grooming (infrequent)              |
+| [workflows/upstream.md](workflows/upstream.md) | External dependency bugs                   |
+| [beads.md](beads.md)                           | Full CLI reference, all subcommands        |
+| [beads-ids.md](beads-ids.md)                   | Bead ID conventions, scope tokens          |
