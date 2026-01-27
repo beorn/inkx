@@ -109,9 +109,6 @@ describe("useScreenRectCallback integration", () => {
     // (stacked vertically means increasing Y)
     expect(positions[0]!.y).toBeLessThan(positions[1]!.y)
     expect(positions[1]!.y).toBeLessThan(positions[2]!.y)
-
-    // Log actual values for debugging
-    console.log("Card positions:", positions)
   })
 
   test("cards in same row have same Y position", () => {

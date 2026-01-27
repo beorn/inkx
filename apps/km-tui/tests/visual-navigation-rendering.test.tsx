@@ -104,12 +104,6 @@ describe("Visual navigation integration: card position registration", () => {
     const card2 = registry.getCard(0, 1)
     const card3 = registry.getCard(0, 2)
 
-    console.log("Card positions:", {
-      card1: { y: card1.layout.y, height: card1.layout.cardHeight },
-      card2: { y: card2.layout.y, height: card2.layout.cardHeight },
-      card3: { y: card3.layout.y, height: card3.layout.cardHeight },
-    })
-
     expect(card1.layout.y).toBeLessThan(card2.layout.y)
     expect(card2.layout.y).toBeLessThan(card3.layout.y)
   })
@@ -151,11 +145,6 @@ describe("Visual navigation integration: card position registration", () => {
     // First cards in each column should have similar Y positions
     const cardA1 = registry.getCard(0, 0)
     const cardB1 = registry.getCard(1, 0)
-
-    console.log("Cross-column positions:", {
-      cardA1: { y: cardA1.layout.y },
-      cardB1: { y: cardB1.layout.y },
-    })
 
     // Cards at same position in different columns should have same Y
     // (within a small tolerance for borders)
@@ -199,13 +188,6 @@ describe("Visual navigation integration: card position registration", () => {
 
     // Find the card at that Y in column 1
     const foundIdx = registry.findCardAtYVisual(1, targetY)
-
-    console.log("findCardAtYVisual:", {
-      targetY,
-      foundIdx,
-      cardB1Y: registry.getCard(1, 0).layout.y,
-      cardB2Y: registry.getCard(1, 1).layout.y,
-    })
 
     // Should find card-b2 (index 1) since it's at similar Y to card-a2
     expect(foundIdx).toBe(1)
