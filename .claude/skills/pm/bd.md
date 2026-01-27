@@ -104,3 +104,13 @@ bd ready --unassigned
 | `issue_type`  | bug, feature, task, epic, chore              |
 | `assignee`    | Session ID or username                       |
 | `parent`      | Parent bead ID                               |
+
+## Common Mistakes
+
+These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
+
+| Wrong                  | Correct                       |
+| ---------------------- | ----------------------------- |
+| `bd close --note "x"`  | `bd close --reason "x"`       |
+| `bd update --id km-x`  | `bd update km-x` (positional) |
+| `bd create --name "x"` | `bd create --title "x"`       |

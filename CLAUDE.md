@@ -40,7 +40,7 @@ See [docs/principles.md](docs/principles.md) for philosophy.
 ## Issue Tracking
 
 We use `bd` which calls the issues/tasks/epics/features **beads**.
-Use `/pm` to learn about bd, beads, backlog management, bug reporting.
+**Load `/pm` before using bd commands** - it has full CLI reference and common mistakes.
 Always `bd work <id>` to claim a bead before starting, `bd close <id>` when done.
 
 ## Commits
@@ -53,13 +53,13 @@ Before ending: `bun fix && bun run test:all && git push`. Propose next steps wit
 
 ## Skills (load when needed)
 
-| Skill                                   | Use When               |
-| --------------------------------------- | ---------------------- |
-| [pm/](.claude/skills/pm/)               | Issue tracking (beads) |
-| [tests/](.claude/skills/tests/)         | Writing/running tests  |
-| [code/](.claude/skills/code/)           | Code quality/review    |
-| [tui/](.claude/skills/tui/)             | TUI development        |
-| [git/](.claude/skills/git/)             | Commits and releases   |
-| [claude/](.claude/skills/claude/)       | Claude Code config     |
-| [logging.md](.claude/skills/logging.md) | Debug output           |
-| [max.md](.claude/skills/max.md)         | Parallel agents        |
+| Skill                               | Use When               |
+| ----------------------------------- | ---------------------- |
+| [pm/](.claude/skills/pm/)           | Issue tracking (beads) |
+| [tests/](.claude/skills/tests/)     | Writing/running tests  |
+| [code/](.claude/skills/code/)       | Code quality/review    |
+| [tui/](.claude/skills/tui/)         | TUI development        |
+| [git/](.claude/skills/git/)         | Commits and releases   |
+| [claude/](.claude/skills/claude/)   | Claude Code config     |
+| [logging/](.claude/skills/logging/) | Debug output           |
+| [max/](.claude/skills/max/)         | Parallel agents        |
