@@ -14,7 +14,6 @@ import { getAllNodes, updateNode, applyEventWithDb } from "@km/storage"
 import { setFsSync } from "../../../src/emit.ts"
 import { SyncManager } from "../../../src/watch/sync.ts"
 import { withTestEnv } from "@km/storage"
-import { getDb } from "../../../src/db-instance.ts"
 
 /** Helper to set up sync manager with automatic cleanup via AsyncDisposableStack */
 function setupSyncManager(
@@ -33,9 +32,9 @@ function setupSyncManager(
 describe("DB → File Sync Tests", () => {
   describe("Task Status Updates", () => {
     test("marking task as done updates file", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
@@ -54,13 +53,13 @@ describe("DB → File Sync Tests", () => {
         await syncManager.syncFromFs()
 
         // Find the task
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("todo")
 
         // Update task status
-        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
+        updateNode(db, task!.id, { task_status: "done" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 200))
@@ -72,9 +71,9 @@ describe("DB → File Sync Tests", () => {
       }))
 
     test("marking task as todo updates file", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
@@ -93,13 +92,13 @@ describe("DB → File Sync Tests", () => {
         await syncManager.syncFromFs()
 
         // Find the task
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("done")
 
         // Update task status back to todo
-        updateNode(getDb(), task!.id, { task_status: "todo" }, "disk")
+        updateNode(db, task!.id, { task_status: "todo" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 200))
@@ -113,9 +112,9 @@ describe("DB → File Sync Tests", () => {
 
   describe("Task Content Updates", () => {
     test("editing task content updates file", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
@@ -134,12 +133,12 @@ describe("DB → File Sync Tests", () => {
         await syncManager.syncFromFs()
 
         // Find the task
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
 
         // Update task content
-        updateNode(getDb(), task!.id, { content: "Updated text" }, "disk")
+        updateNode(db, task!.id, { content: "Updated text" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 200))
@@ -153,9 +152,9 @@ describe("DB → File Sync Tests", () => {
 
   describe("Multiple Rapid Updates", () => {
     test("rapid updates coalesce correctly", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
@@ -174,13 +173,13 @@ describe("DB → File Sync Tests", () => {
         await syncManager.syncFromFs()
 
         // Find the task
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
 
         // Make 5 rapid updates
         for (let i = 1; i <= 5; i++) {
-          updateNode(getDb(), task!.id, { content: `Update ${i}` }, "disk")
+          updateNode(db, task!.id, { content: `Update ${i}` }, "disk")
         }
 
         // Wait for write queue to flush
@@ -193,9 +192,9 @@ describe("DB → File Sync Tests", () => {
       }))
 
     test("alternating status updates result in final state", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
@@ -214,16 +213,16 @@ describe("DB → File Sync Tests", () => {
         await syncManager.syncFromFs()
 
         // Find the task
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
 
         // Toggle status rapidly
-        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
-        updateNode(getDb(), task!.id, { task_status: "todo" }, "disk")
-        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
-        updateNode(getDb(), task!.id, { task_status: "todo" }, "disk")
-        updateNode(getDb(), task!.id, { task_status: "done" }, "disk") // Final: done
+        updateNode(db, task!.id, { task_status: "done" }, "disk")
+        updateNode(db, task!.id, { task_status: "todo" }, "disk")
+        updateNode(db, task!.id, { task_status: "done" }, "disk")
+        updateNode(db, task!.id, { task_status: "todo" }, "disk")
+        updateNode(db, task!.id, { task_status: "done" }, "disk") // Final: done
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 300))
@@ -236,9 +235,9 @@ describe("DB → File Sync Tests", () => {
 
   describe("Multiple Files", () => {
     test("updates to different files are independent", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
@@ -259,7 +258,7 @@ describe("DB → File Sync Tests", () => {
         await syncManager.syncFromFs()
 
         // Find tasks
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const tasks = allNodes.filter((n) => n.type === "task")
         expect(tasks.length).toBe(2)
 
@@ -269,8 +268,8 @@ describe("DB → File Sync Tests", () => {
         expect(task2).toBeDefined()
 
         // Update both tasks
-        updateNode(getDb(), task1!.id, { task_status: "done" }, "disk")
-        updateNode(getDb(), task2!.id, { content: "Modified Task 2" }, "disk")
+        updateNode(db, task1!.id, { task_status: "done" }, "disk")
+        updateNode(db, task2!.id, { content: "Modified Task 2" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 300))
@@ -288,9 +287,9 @@ describe("DB → File Sync Tests", () => {
 
   describe("Error Handling", () => {
     test("update to non-existent node is handled gracefully", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
@@ -310,12 +309,7 @@ describe("DB → File Sync Tests", () => {
 
         // Try to update a non-existent node
         expect(() => {
-          updateNode(
-            getDb(),
-            "non-existent-id",
-            { task_status: "done" },
-            "disk",
-          )
+          updateNode(db, "non-existent-id", { task_status: "done" }, "disk")
         }).not.toThrow()
 
         // File should be unchanged
@@ -327,9 +321,9 @@ describe("DB → File Sync Tests", () => {
 
   describe("Data Preservation", () => {
     test("non-task content is preserved during task update", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 100,
           debounceApply: 50,
@@ -362,12 +356,12 @@ More content that should be preserved.
         await syncManager.syncFromFs()
 
         // Find the task
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
 
         // Update task
-        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
+        updateNode(db, task!.id, { task_status: "done" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 200))

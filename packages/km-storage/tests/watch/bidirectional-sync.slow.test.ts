@@ -15,7 +15,7 @@ import { rmSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { EventEmitter } from "events"
 
-import { getNodeByPath, getAllNodes, updateNode, getDb } from "@km/storage"
+import { getNodeByPath, getAllNodes, updateNode } from "@km/storage"
 
 import { setFsSync } from "../../src/emit.ts"
 import { SyncManager } from "../../src/watch/sync.ts"
@@ -34,10 +34,10 @@ function setupSyncManager(
 describe("Bidirectional Sync E2E", () => {
   describe("TUI → Filesystem", () => {
     test("editing task status in model writes to file", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
           repoPath: repoDir,
-          db: getDb(),
+          db: db,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -55,13 +55,13 @@ describe("Bidirectional Sync E2E", () => {
         await syncManager.syncFromFs()
 
         // Find the task
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("todo")
 
         // Update task status (simulating TUI edit)
-        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
+        updateNode(db, task!.id, { task_status: "done" }, "disk")
 
         // Wait for write queue to flush
         await Bun.sleep(200)
@@ -73,10 +73,10 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("creating new task in model creates file entry", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
           repoPath: repoDir,
-          db: getDb(),
+          db: db,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -94,21 +94,16 @@ describe("Bidirectional Sync E2E", () => {
         await syncManager.syncFromFs()
 
         // Find the file node
-        const fileNode = getNodeByPath(getDb(), testFile)
+        const fileNode = getNodeByPath(db, testFile)
         expect(fileNode).toBeDefined()
 
         // Find the task
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
 
         // Update task text (simulating TUI edit)
-        updateNode(
-          getDb(),
-          task!.id,
-          { content: "Updated task content" },
-          "disk",
-        )
+        updateNode(db, task!.id, { content: "Updated task content" }, "disk")
 
         // Wait for write
         await Bun.sleep(200)
@@ -121,11 +116,11 @@ describe("Bidirectional Sync E2E", () => {
 
   describe("Filesystem → Model", () => {
     test("external file edit triggers state-change event", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const events = new EventEmitter()
         const syncManager = new SyncManager({
           repoPath: repoDir,
-          db: getDb(),
+          db: db,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -178,17 +173,17 @@ describe("Bidirectional Sync E2E", () => {
         await Promise.race([stateChanged, timeout])
 
         // Verify new task was synced
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const tasks = allNodes.filter((n) => n.type === "task")
         expect(tasks.length).toBe(2)
       }))
 
     test("external file edit updates database", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const events = new EventEmitter()
         const syncManager = new SyncManager({
           repoPath: repoDir,
-          db: getDb(),
+          db: db,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -210,7 +205,7 @@ describe("Bidirectional Sync E2E", () => {
         await syncManager.syncFromFs()
 
         // Verify initial state
-        let allNodes = getAllNodes(getDb())
+        let allNodes = getAllNodes(db)
         let task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
         expect(task!.content).toContain("Original task")
@@ -248,18 +243,18 @@ describe("Bidirectional Sync E2E", () => {
         ])
 
         // Verify database was updated
-        allNodes = getAllNodes(getDb())
+        allNodes = getAllNodes(db)
         task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
         expect(task!.content).toContain("Modified task")
       }))
 
     test("external file delete removes from database", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const events = new EventEmitter()
         const syncManager = new SyncManager({
           repoPath: repoDir,
-          db: getDb(),
+          db: db,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -281,7 +276,7 @@ describe("Bidirectional Sync E2E", () => {
         await syncManager.syncFromFs()
 
         // Verify file exists in DB
-        let fileNode = getNodeByPath(getDb(), testFile)
+        let fileNode = getNodeByPath(db, testFile)
         expect(fileNode).toBeDefined()
 
         // Start watching and wait for ready
@@ -317,18 +312,18 @@ describe("Bidirectional Sync E2E", () => {
         ])
 
         // Verify removed from database
-        fileNode = getNodeByPath(getDb(), testFile)
+        fileNode = getNodeByPath(db, testFile)
         expect(fileNode).toBeNull()
       }))
   })
 
   describe("Race Conditions", () => {
     test("rapid external edits are coalesced", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const events = new EventEmitter()
         const syncManager = new SyncManager({
           repoPath: repoDir,
-          db: getDb(),
+          db: db,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -374,17 +369,17 @@ describe("Bidirectional Sync E2E", () => {
         expect(idleCount).toBeLessThanOrEqual(2)
 
         // Final content should be the last edit
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
         expect(task!.content).toContain("Task 4")
       }))
 
     test("TUI edit during filesystem sync doesn't cause data loss", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const syncManager = new SyncManager({
           repoPath: repoDir,
-          db: getDb(),
+          db: db,
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -407,7 +402,7 @@ describe("Bidirectional Sync E2E", () => {
         })
 
         // Get task node
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.type === "task")
         expect(task).toBeDefined()
 
@@ -419,7 +414,7 @@ describe("Bidirectional Sync E2E", () => {
         writeFileSync(testFile, "# Conflict\n\n- [ ] Task A\n- [ ] Task B\n")
 
         // Immediately do TUI edit on original task
-        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
+        updateNode(db, task!.id, { task_status: "done" }, "disk")
 
         // Wait for everything to settle (needs to account for chokidar's awaitWriteFinish)
         await Bun.sleep(1000)
@@ -427,7 +422,7 @@ describe("Bidirectional Sync E2E", () => {
         // Verify both changes are present
         // Note: The exact behavior depends on conflict resolution strategy
         // With last_write_wins, the TUI edit should persist
-        const finalNodes = getAllNodes(getDb())
+        const finalNodes = getAllNodes(db)
         const tasks = finalNodes.filter((n) => n.type === "task")
 
         // Should have 2 tasks
