@@ -28,6 +28,7 @@ describe("BottomBar", () => {
     showHelp: false,
     showProjectPicker: false,
     showNewItemDialog: false,
+    showSearchDialog: false,
 
     // Selection state
     subIndex: 0,
@@ -131,6 +132,7 @@ describe("BottomBar", () => {
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
+        moveMode={false}
       />,
     )
     const output = lastFrameText() || ""
@@ -151,6 +153,7 @@ describe("BottomBar", () => {
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
+        moveMode={false}
       />,
     )
     const output = lastFrameText() || ""
@@ -165,6 +168,7 @@ describe("BottomBar", () => {
         termWidth={80}
         storageMode="disk"
         nodeCount={123}
+        moveMode={false}
       />,
     )
     const output = lastFrameText() || ""
@@ -179,6 +183,7 @@ describe("BottomBar", () => {
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
+        moveMode={false}
       />,
     )
     const output = lastFrameText() || ""
@@ -193,6 +198,7 @@ describe("BottomBar", () => {
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
+        moveMode={false}
       />,
     )
     const output = lastFrameText() || ""
@@ -211,6 +217,7 @@ describe("BottomBar", () => {
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
+        moveMode={false}
       />,
     )
     const output = lastFrameText() || ""
@@ -225,6 +232,7 @@ describe("BottomBar", () => {
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
+        moveMode={false}
       />,
     )
     const output = lastFrameText() || ""
@@ -250,6 +258,7 @@ describe("BottomBar", () => {
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
+        moveMode={false}
       />,
     )
     const output = lastFrameText() || ""
@@ -264,9 +273,60 @@ describe("BottomBar", () => {
         termWidth={80}
         storageMode="memory"
         nodeCount={42}
+        moveMode={false}
       />,
     )
     const output = lastFrameText() || ""
     expect(output).toContain("MEM")
+  })
+
+  it("shows move mode indicator when in move mode", () => {
+    const { lastFrameText } = render(
+      <BottomBar
+        ui={mockUIState}
+        state={mockBoardState}
+        termWidth={80}
+        storageMode="disk"
+        nodeCount={42}
+        moveMode={true}
+      />,
+    )
+    const output = lastFrameText() || ""
+    expect(output).toContain("[MOVE]")
+  })
+
+  it("does not show move mode indicator when not in move mode", () => {
+    const { lastFrameText } = render(
+      <BottomBar
+        ui={mockUIState}
+        state={mockBoardState}
+        termWidth={80}
+        storageMode="disk"
+        nodeCount={42}
+        moveMode={false}
+      />,
+    )
+    const output = lastFrameText() || ""
+    expect(output).not.toContain("[MOVE]")
+  })
+
+  it("hides move mode indicator when status message is shown", () => {
+    const uiWithStatus: UIState = {
+      ...mockUIState,
+      status: { level: "info", message: "Test message", timestamp: Date.now() },
+    }
+    const { lastFrameText } = render(
+      <BottomBar
+        ui={uiWithStatus}
+        state={mockBoardState}
+        termWidth={80}
+        storageMode="disk"
+        nodeCount={42}
+        moveMode={true}
+      />,
+    )
+    const output = lastFrameText() || ""
+    expect(output).toContain("Test message")
+    expect(output).not.toContain("[MOVE]")
   })
 })

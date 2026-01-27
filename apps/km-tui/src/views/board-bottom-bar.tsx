@@ -42,6 +42,8 @@ interface BottomBarProps {
   storageMode: "memory" | "disk"
   /** Total node count in database */
   nodeCount: number
+  /** Move mode active (from board state) */
+  moveMode: boolean
 }
 
 /**
@@ -53,6 +55,7 @@ export function BottomBar({
   termWidth,
   storageMode,
   nodeCount,
+  moveMode,
 }: BottomBarProps): React.ReactElement {
   const homeDir = process.env.HOME || ""
 
@@ -85,6 +88,7 @@ export function BottomBar({
     statusParts.push(`${icon} ${ui.status.message}`)
   } else {
     // Normal status indicators (only when no status message)
+    if (moveMode) statusParts.push("[MOVE]")
     if (ui.showHelp) statusParts.push("[?]")
     if (ui.showProjectPicker) statusParts.push("[PROJ]")
     if (ui.showNewItemDialog) statusParts.push("[NEW]")

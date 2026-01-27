@@ -32,6 +32,7 @@ export interface UIState {
   showHelp: boolean
   showProjectPicker: boolean
   showNewItemDialog: boolean
+  showSearchDialog: boolean
 
   // Selection state (selectionLevel is now derived from cursor depth in Board.tsx)
   subIndex: number
@@ -111,6 +112,7 @@ export function createInitialUIState(
     showHelp: false,
     showProjectPicker: false,
     showNewItemDialog: false,
+    showSearchDialog: false,
 
     subIndex: 0,
     inOutlineMode: false,
@@ -188,6 +190,12 @@ const uiSlice = createSlice({
     },
     hideNewItemDialog: (state) => {
       state.showNewItemDialog = false
+    },
+    showSearchDialog: (state) => {
+      state.showSearchDialog = true
+    },
+    hideSearchDialog: (state) => {
+      state.showSearchDialog = false
     },
 
     // Detail pane

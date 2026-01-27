@@ -25,6 +25,8 @@ interface BoardDialogHandlers {
   handleProjectCancel: () => void
   handleNewItemCreate: (newNodeId: string) => void
   handleNewItemCancel: () => void
+  handleSearchSelect: (targetNode: KNode) => void
+  handleSearchCancel: () => void
 }
 
 // =============================================================================
@@ -87,10 +89,29 @@ export function useBoardDialogs({
     dispatch(actions.hideNewItemDialog())
   }, [dispatch])
 
+  // Handler for search selection - navigate to the selected node
+  const handleSearchSelect = useCallback(
+    (targetNode: KNode) => {
+      // Navigate to the node by dispatching a SELECT action
+      // The board reducer will handle updating the cursor position
+      repo.getNode(targetNode.id) // Ensure node exists
+      dispatch(actions.hideSearchDialog())
+      // TODO: Implement navigation to selected node
+      // This will require adding a SELECT action to the board reducer
+    },
+    [repo, dispatch],
+  )
+
+  const handleSearchCancel = useCallback(() => {
+    dispatch(actions.hideSearchDialog())
+  }, [dispatch])
+
   return {
     handleProjectSelect,
     handleProjectCancel,
     handleNewItemCreate,
     handleNewItemCancel,
+    handleSearchSelect,
+    handleSearchCancel,
   }
 }

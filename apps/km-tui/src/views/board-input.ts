@@ -33,13 +33,14 @@ export function handleBoardKeyInput(
   ui: {
     showNewItemDialog: boolean
     showProjectPicker: boolean
+    showSearchDialog: boolean
     showHelp: boolean
   },
   dispatch: Dispatch<UIAction>,
   exit: () => void,
 ): boolean {
   // Dialog modes have their own input handling via dialog components
-  if (ui.showNewItemDialog || ui.showProjectPicker) {
+  if (ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog) {
     return false
   }
 

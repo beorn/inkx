@@ -199,7 +199,12 @@ export const MemoizedColumnHeader = React.memo(
     const headerPadding = " ".repeat(Math.max(0, width - headerContentLen))
 
     return (
-      <Box flexDirection="column" width={width}>
+      <Box
+        flexDirection="column"
+        width={width}
+        id={column.node.id}
+        {...(isColSelected && { "data-cursor": true })}
+      >
         {/* Blank line above (except first header in list view) */}
         {showTopSpacer && (
           <Box height={1}>

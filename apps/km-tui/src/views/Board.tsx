@@ -27,6 +27,7 @@ import { DetailPane } from "./DetailPane.tsx"
 import { ProjectPicker } from "./ProjectPicker.tsx"
 import { HelpOverlay } from "./HelpOverlay.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
+import { SearchDialog } from "./SearchDialog.tsx"
 import { Column } from "./CardColumn.tsx"
 import {
   VerticalScrollIndicator,
@@ -92,13 +93,17 @@ export interface BoardCoreProps {
   layoutRegistry: LayoutRegistry
   /** Dispatch to UI reducer */
   dispatch: React.Dispatch<UIAction>
-  /** Dialog handlers (types match ProjectPicker and NewItemDialog props) */
+  /** Dialog handlers (types match ProjectPicker, NewItemDialog, and SearchDialog props) */
   dialogHandlers: {
     handleProjectSelect: (targetNode: KNode) => void
     handleProjectCancel: () => void
     handleNewItemCreate: (newNodeId: string) => void
     handleNewItemCancel: () => void
+    handleSearchSelect: (targetNode: KNode) => void
+    handleSearchCancel: () => void
   }
+  /** Move mode active (from board state) */
+  moveMode: boolean
 }
 
 /**
@@ -113,6 +118,7 @@ export function BoardCore({
   layoutRegistry,
   dispatch,
   dialogHandlers,
+  moveMode,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
   const termWidth = dimensions.columns
@@ -360,6 +366,21 @@ export function BoardCore({
                   />
                 </Box>
               )}
+              {/* Search dialog modal */}
+              {ui.showSearchDialog && (
+                <Box
+                  position="absolute"
+                  marginLeft={Math.floor(termWidth / 4)}
+                  marginTop={Math.floor(contentHeight / 4)}
+                >
+                  <SearchDialog
+                    onSelect={dialogHandlers.handleSearchSelect}
+                    onCancel={dialogHandlers.handleSearchCancel}
+                    width={Math.floor(termWidth / 2)}
+                    height={Math.floor(contentHeight / 2)}
+                  />
+                </Box>
+              )}
               {/* Help overlay */}
               {ui.showHelp && (
                 <HelpOverlay width={termWidth} height={contentHeight} />
@@ -378,6 +399,7 @@ export function BoardCore({
               termWidth={termWidth}
               storageMode={repo.mode}
               nodeCount={repo.stats.nodeCount}
+              moveMode={moveMode}
             />
             {/* Bell indicator - hidden element for test detection */}
             {ui.bellState && (
@@ -595,6 +617,7 @@ export function Board({
       {
         showNewItemDialog: ui.showNewItemDialog,
         showProjectPicker: ui.showProjectPicker,
+        showSearchDialog: ui.showSearchDialog,
         showHelp: ui.showHelp,
       },
       dispatch,
@@ -629,6 +652,7 @@ export function Board({
       layoutRegistry={layoutRegistry}
       dispatch={dispatch}
       dialogHandlers={dialogHandlers}
+      moveMode={boardState.moveMode}
     />
   )
 }

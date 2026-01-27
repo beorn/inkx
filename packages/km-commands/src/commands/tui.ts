@@ -44,6 +44,16 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "SHOW_PROJECT_PICKER" }),
   },
 
+  // Search dialog
+  {
+    id: "search",
+    name: "Search",
+    description: "Open search dialog",
+    category: "Navigation",
+    shortcuts: ["/"],
+    execute: (): CommandAction => ({ type: "SHOW_SEARCH_DIALOG" }),
+  },
+
   // Favorites (1-9)
   {
     id: "favorite_1",

@@ -29,6 +29,7 @@ export { TabsView } from "./TabsView.tsx"
 export { DetailPane } from "./DetailPane.tsx"
 export { HelpOverlay } from "./HelpOverlay.tsx"
 export { ProjectPicker } from "./ProjectPicker.tsx"
+export { SearchDialog } from "./SearchDialog.tsx"
 export { TreeNode } from "./TreeNode.tsx"
 export type { TreeNodeProps } from "./TreeNode.tsx"
 

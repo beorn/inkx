@@ -96,6 +96,13 @@ export function handleCommandAction(
         dispatch(actions.setDetailPane(false))
       }
       return ok()
+    case "SHOW_SEARCH_DIALOG":
+      dispatch(actions.showSearchDialog())
+      dispatch(actions.exitOutlineMode())
+      dispatch(actions.setSubIndex(0))
+      clearSelection(ctx)
+      dispatch(actions.setDetailPane(false))
+      return ok()
     case "JUMP_TO_FAVORITE":
       handleJumpToFavorite(ctx, action.favoriteNumber)
       return ok()
@@ -250,7 +257,25 @@ export function handleCommandAction(
     // === Move mode actions ===
     // Commands return minimal actions; TUI augments with context before dispatching
     case "ENTER_MOVE_MODE": {
-      const nodeIds = Array.from(ctx.boardState.selectedNodes)
+      // Convert ui.multiSelected (SelectionKey format) to node IDs
+      // TODO: Unify selection systems - boardState.selectedNodes vs ui.multiSelected
+      const nodeIds: string[] = []
+      if (ctx.ui.multiSelected.size > 0) {
+        for (const selKey of ctx.ui.multiSelected) {
+          const [colStr, cardStr] = selKey.split(":")
+          const colIdx = parseInt(colStr ?? "0", 10)
+          const cardIdx = parseInt(cardStr ?? "0", 10)
+          const col = ctx.layout.columns[colIdx]
+          const card = col?.cards[cardIdx]
+          if (card?.node.id && !nodeIds.includes(card.node.id)) {
+            nodeIds.push(card.node.id)
+          }
+        }
+      }
+      // Fall back to cursor node if no selection
+      if (nodeIds.length === 0 && ctx.boardState.cursorNodeId) {
+        nodeIds.push(ctx.boardState.cursorNodeId)
+      }
       const cursorNodeId = ctx.boardState.cursorNodeId
       ctx.dispatchBoard({ type: "ENTER_MOVE_MODE", nodeIds, cursorNodeId })
       return ok()

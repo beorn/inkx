@@ -36,8 +36,9 @@ export function processKeyWithContext(
 
   const kbCtx = buildKeybindingContext({
     inMoveMode: boardState.moveMode,
-    inSearchMode: false,
-    inInputMode: ui.showNewItemDialog || ui.showProjectPicker,
+    inSearchMode: ui.showSearchDialog,
+    inInputMode:
+      ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog,
     hasSelection:
       boardState.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.showDetailPane,

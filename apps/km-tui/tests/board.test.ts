@@ -45,6 +45,8 @@ function renderBoardCore(
       handleProjectCancel: () => {},
       handleNewItemCreate: () => {},
       handleNewItemCancel: () => {},
+      handleSearchSelect: () => {},
+      handleSearchCancel: () => {},
     },
   })
   return React.createElement(RepoProvider, {

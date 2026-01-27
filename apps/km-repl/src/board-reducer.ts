@@ -20,16 +20,25 @@ import type {
  * Get node at a given path in the tree
  */
 export function getNodeAtPath(nodes: TNode[], path: TPath): TNode | null {
+  if (path.length === 0) return null
+
   let current = nodes
-  for (const idx of path) {
-    if (idx < 0 || idx >= current.length) return null
+  for (let i = 0; i < path.length; i++) {
+    const idx = path[i]
+    if (idx === undefined || idx < 0 || idx >= current.length) return null
     const node = current[idx]
     if (!node) return null
+
+    // If this is the last index in the path, return this node
+    if (i === path.length - 1) {
+      return node
+    }
+
+    // Otherwise, descend into children for next iteration
     current = node.children
   }
-  return current.length > 0
-    ? (current[0] ?? null)
-    : (nodes[path[path.length - 1] ?? 0] ?? null)
+
+  return null
 }
 
 /**

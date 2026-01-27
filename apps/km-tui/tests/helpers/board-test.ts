@@ -158,10 +158,19 @@ export function standardBoard() {
  *   )
  * );
  * board.press("j").expect("#1b[data-cursor]").toExist();
+ *
+ * // Test with specific view mode
+ * const { board: listBoard } = testEnv(() => item("board", item("col1", item("1a"))), {
+ *   viewMode: "list"
+ * });
  */
 export function testEnv(
   treeBuilder: () => KNode[],
-  options?: { columns?: number; rows?: number },
+  options?: {
+    columns?: number
+    rows?: number
+    viewMode?: "cards" | "columns" | "list" | "tabs"
+  },
 ) {
   const nodes = treeBuilder()
   const repo = createFakeRepo({ nodes })
@@ -180,10 +189,11 @@ export function testEnv(
   // Render the full Board component (not BoardCore) for keyboard navigation + id attributes
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
+  const viewMode = options?.viewMode ?? "cards"
   const render = createTestRenderer({ columns, rows })
   const boardElement = React.createElement(Board, {
     initialState,
-    initialViewMode: "cards" as const,
+    initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},
     layoutRegistry: createLayoutRegistry(),
@@ -846,6 +856,8 @@ export function renderBoard(
       handleProjectCancel: () => {},
       handleNewItemCreate: () => {},
       handleNewItemCancel: () => {},
+      handleSearchSelect: () => {},
+      handleSearchCancel: () => {},
     },
   })
   const result = render(

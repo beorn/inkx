@@ -416,9 +416,99 @@ describe("Cursoring", () => {
     })
   }) // End Cards View
 
-  // TODO: Add view mode variations (List, Columns, Tabs)
+  // View mode variations
   describe("List View", () => {
-    // Repeat key cursoring tests in list view
+    test("vertical (j/k): navigation same as cards view", () => {
+      const { board } = testEnv(
+        () =>
+          item("board", item("col1", item("1a"), item("1b"), item("1c"))),
+        { viewMode: "list" },
+      )
+      // j down through cards
+      board.expect("#1a[data-cursor]").toExist()
+      board.press("j")
+      board.expect("#1b[data-cursor]").toExist()
+      board.press("j")
+      board.expect("#1c[data-cursor]").toExist()
+
+      // j at bottom stops (boundary)
+      board.press("j")
+      board.expect("#1c[data-cursor]").toExist()
+
+      // k up through cards → column → board → boundary
+      board.press("k")
+      board.expect("#1b[data-cursor]").toExist()
+      board.press("k")
+      board.expect("#1a[data-cursor]").toExist()
+      board.press("k")
+      board.expect("#col1[data-cursor]").toExist()
+      board.press("k")
+      board.expect("#board[data-cursor]").toExist()
+
+      // k at top stops (boundary)
+      board.press("k")
+      board.expect("#board[data-cursor]").toExist()
+    })
+
+    test("horizontal (h/l): moves between columns", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("1a")),
+            item("col2", item("2a")),
+            item("col3", item("3a")),
+          ),
+        { viewMode: "list" },
+      )
+
+      // l right through columns (same as cards view)
+      board.expect("#1a[data-cursor]").toExist()
+      board.press("l")
+      board.expect("#2a[data-cursor]").toExist()
+      board.press("l")
+      board.expect("#3a[data-cursor]").toExist()
+
+      // l at right boundary stops
+      board.press("l")
+      board.expect("#3a[data-cursor]").toExist()
+
+      // h back left through columns
+      board.press("h")
+      board.expect("#2a[data-cursor]").toExist()
+      board.press("h")
+      board.expect("#1a[data-cursor]").toExist()
+
+      // h at left boundary stops
+      board.press("h")
+      board.expect("#1a[data-cursor]").toExist()
+    })
+
+    test("g/G: jump to first/last in column", () => {
+      const { board } = testEnv(
+        () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
+        { viewMode: "list" },
+      )
+      // Start at middle
+      board.press("j")
+      board.expect("#1b[data-cursor]").toExist()
+
+      // G to last in column
+      board.press("G")
+      board.expect("#1c[data-cursor]").toExist()
+
+      // G at last does nothing
+      board.press("G")
+      board.expect("#1c[data-cursor]").toExist()
+
+      // g to first in column
+      board.press("g")
+      board.expect("#1a[data-cursor]").toExist()
+
+      // g at first does nothing
+      board.press("g")
+      board.expect("#1a[data-cursor]").toExist()
+    })
   })
 
   describe("Columns View", () => {
@@ -426,7 +516,152 @@ describe("Cursoring", () => {
   })
 
   describe("Tabs View", () => {
-    // Repeat key cursoring tests in tabs view
+    test("vertical (j/k): cards within active tab → boundary", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("1a"), item("1b"), item("1c")),
+            item("col2", item("2a"), item("2b")),
+          ),
+        { viewMode: "tabs" },
+      )
+      // Start at first card in first tab (col1)
+      board.expect("#1a[data-cursor]").toExist()
+
+      // j down through cards in active tab
+      board.press("j")
+      board.expect("#1b[data-cursor]").toExist()
+      board.press("j")
+      board.expect("#1c[data-cursor]").toExist()
+
+      // j at bottom stops (boundary)
+      board.press("j")
+      board.expect("#1c[data-cursor]").toExist()
+
+      // k up through cards → column header (check via path) → board
+      board.press("k")
+      board.expect("#1b[data-cursor]").toExist()
+      board.press("k")
+      board.expect("#1a[data-cursor]").toExist()
+      // At column header level - verify via path (tabs don't have id attrs)
+      board.press("k")
+      const output = board.screenshot()
+      expect(output).toContain("/ board / col1")
+      expect(output).not.toContain("/ col1 / 1a")
+      // Move to board level
+      board.press("k")
+      board.expect("#board[data-cursor]").toExist()
+    })
+
+    test("horizontal (h/l): switch between tabs", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("1a")),
+            item("col2", item("2a")),
+            item("col3", item("3a")),
+          ),
+        { viewMode: "tabs" },
+      )
+      // Start in col1 tab
+      board.expect("#1a[data-cursor]").toExist()
+
+      // l switches to col2 tab
+      board.press("l")
+      board.expect("#2a[data-cursor]").toExist()
+      // col1 content should not be visible
+      board.expect("#1a").not.toExist()
+
+      // l switches to col3 tab
+      board.press("l")
+      board.expect("#3a[data-cursor]").toExist()
+      board.expect("#2a").not.toExist()
+
+      // l at right boundary stops
+      board.press("l")
+      board.expect("#3a[data-cursor]").toExist()
+
+      // h back to col2
+      board.press("h")
+      board.expect("#2a[data-cursor]").toExist()
+      board.expect("#3a").not.toExist()
+
+      // h back to col1
+      board.press("h")
+      board.expect("#1a[data-cursor]").toExist()
+
+      // h at left boundary stops
+      board.press("h")
+      board.expect("#1a[data-cursor]").toExist()
+    })
+
+    test("cursor position when switching tabs", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("1a"), item("1b"), item("1c")),
+            item("col2", item("2a"), item("2b"), item("2c")),
+          ),
+        { viewMode: "tabs" },
+      )
+      // Navigate to second card in col1
+      board.press("j")
+      board.expect("#1b[data-cursor]").toExist()
+
+      // Switch to col2 tab - goes to first card by default
+      board.press("l")
+      board.expect("#2a[data-cursor]").toExist()
+
+      // Navigate within col2
+      board.press("j")
+      board.expect("#2b[data-cursor]").toExist()
+
+      // Switch back to col1 - returns to first card
+      board.press("h")
+      board.expect("#1a[data-cursor]").toExist()
+    })
+
+    test("tab header selection with k", () => {
+      const { board } = testEnv(
+        () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
+        { viewMode: "tabs" },
+      )
+      // Start at card level
+      board.expect("#1a[data-cursor]").toExist()
+
+      // k to tab header level
+      board.press("k")
+      let output = board.screenshot()
+      expect(output).toContain("/ board / col1")
+
+      // l switches tabs at header level
+      board.press("l")
+      output = board.screenshot()
+      expect(output).toContain("/ board / col2")
+
+      // j returns to card level in active tab
+      board.press("j")
+      board.expect("#2a[data-cursor]").toExist()
+    })
+
+    test("empty tab shows placeholder", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("1a")),
+            item("col2"), // Empty tab
+          ),
+        { viewMode: "tabs" },
+      )
+      // Switch to empty tab
+      board.press("l")
+      const output = board.screenshot()
+      expect(output).toContain("(empty)")
+    })
   })
 })
 

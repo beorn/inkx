@@ -119,6 +119,10 @@ export interface ShowProjectPickerAction {
   type: "SHOW_PROJECT_PICKER"
 }
 
+export interface ShowSearchDialogAction {
+  type: "SHOW_SEARCH_DIALOG"
+}
+
 export interface JumpToFavoriteAction {
   type: "JUMP_TO_FAVORITE"
   favoriteNumber: number // 1-9
@@ -190,6 +194,7 @@ export type TUIAction =
   | QuitAction
   | ShowNewItemDialogAction
   | ShowProjectPickerAction
+  | ShowSearchDialogAction
   | JumpToFavoriteAction
   | JumpToColumnAction
   | CloseOrQuitAction

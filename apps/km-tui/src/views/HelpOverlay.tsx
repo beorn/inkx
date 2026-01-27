@@ -19,6 +19,7 @@ const shortcuts = [
     keys: [
       { key: "h/l or ←/→", desc: "Move between columns" },
       { key: "j/k or ↓/↑", desc: "Move between cards" },
+      { key: "/", desc: "Search items (by content or #tags)" },
       { key: "Shift+1-9", desc: "Jump to column 1-9" },
       { key: "1-9", desc: "Jump to favorite (@inbox, @next, ...)" },
       { key: "g/G", desc: "Go to first/last card" },
