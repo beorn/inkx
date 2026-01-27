@@ -87,7 +87,7 @@ Software is built from composable pieces. Both **structures** (objects) and **fl
 
 Domain objects are plain objects created by factory functions. They compose via explicit dependencies, enabling testing, swapping, and isolation.
 
-**Minimize types, maximize interoperability**: Use the fewest possible building blocks (plain objects, functions, async generators). Every additional abstraction type (classes, custom containers, specialized patterns) creates friction—objects and classes don't compose, you can't serialize class instances, you can't spread them without losing methods. Plain objects work everywhere: JSON, IPC, spread operators, Object.assign, testing, debugging. Fewer types means less cognitive overhead and more natural composition.
+**Minimize types, maximize interoperability**: Use the fewest possible building blocks (plain objects, functions, async generators). Every additional abstraction type (classes, custom containers, specialized patterns) creates impedance mismatch—objects and classes don't compose, you can't serialize class instances, you can't spread them without losing methods. Plain objects work everywhere: JSON, IPC, spread operators, Object.assign, testing, debugging. Fewer types means less cognitive overhead and more natural composition.
 
 **Use the end-user's domain language**: Names for objects, types, and flows should come from the problem domain, not the implementation. A narrative written using actual type names should read naturally: "A Repo loads Nodes from files. The Board displays Nodes and handles Commands. The Watcher detects file changes and triggers sync." If your narrative needs technical jargon to make sense, the names are wrong.
 
@@ -185,6 +185,8 @@ export class SyncManager extends EventEmitter {
   }
 }
 ```
+
+**Method count guidance**: Infrastructure classes can have many methods when they're implementing a well-defined API contract (e.g., Yoga flexbox API with 40+ property setter/getter pairs). The key question is **coherence**: do all methods serve the same narrow purpose? A 65-method layout engine is acceptable if all methods are layout-related. A 20-method class handling authentication, logging, and file I/O would not be.
 
 Domain objects (Repo, Board, Watcher) must still use factory functions.
 
@@ -686,26 +688,30 @@ Code Quality      ╱
 
 ### Principles That Matter More with LLMs
 
-**Composability** — When pieces compose cleanly, LLMs can combine them correctly. When composition is implicit or has multiple paths, LLMs guess wrong.
+These principles exist in Parts 1-3 because they're universal. But LLMs suffer MORE from violations because of their specific constraints: no persistent memory, limited context, and pure pattern matching.
 
-**Quarantine and Delete** — If old patterns exist, LLMs will use them. The only way to prevent old patterns is to make them impossible.
+**[Principle: Plain Objects, Factory Functions](#principle-plain-objects-factory-functions)** — LLMs can't track hidden state or method inheritance across files. Plain objects with explicit dependencies are self-documenting.
 
-**5-Second Test Loops** — LLMs iterate extremely quickly. A 5-second test loop means an agent can try 100 approaches in the time a human tries 10. Fast feedback is a force multiplier.
+**[Principle: No Magic, No Globals](#principle-no-magic-no-globals)** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` works without hidden context.
 
-**Obvious right way** — When there's one clear pattern, LLMs follow it. When there are multiple ways, they guess. Consolidate patterns so the right way is obvious from any file.
+**[Principle: Quarantine and Delete](#principle-quarantine-and-delete)** — If old patterns exist, LLMs will use them. With no memory of "this is deprecated," the only way to prevent old patterns is to make them impossible.
 
-**Fail Loud, Fail Now** — Silent failures compound across sessions. If something's wrong, it must fail loudly NOW so the agent can fix it, not silently corrupt state for a future session to discover.
+**[Principle: 5-Second Test Loops](#principle-5-second-test-loops)** — LLMs iterate extremely quickly. A 5-second test loop means an agent can try 100 approaches in the time a human tries 10. Fast feedback is a force multiplier.
 
-**No Magic, No Globals** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` is self-documenting and works without hidden context.
+**[Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now)** — Silent failures compound across sessions. LLMs have no persistent memory, so if something's wrong, it must fail loudly NOW so the current agent can fix it, not silently corrupt state for a future session to discover.
+
+**One obvious way** (from [The Quality Plateau](#the-quality-plateau)) — When there's one clear pattern, LLMs follow it. When there are multiple ways, they guess. Pattern matching requires pattern consistency.
 
 ### The LLM-Friendly Codebase
 
-- One obvious way to do each thing (quality plateau)
-- Fast feedback loops (<5s tests)
-- Loud failures (throw, don't log)
-- No legacy patterns (quarantined/deleted)
-- Self-documenting APIs (explicit deps, no magic)
-- Continuous merciless refactoring (maintain the plateau)
+A codebase optimized for LLM agents has:
+
+- **One obvious way** to do each thing ([The Quality Plateau](#the-quality-plateau))
+- **Fast feedback loops** (<5s tests - [Principle: 5-Second Test Loops](#principle-5-second-test-loops))
+- **Loud failures** (throw, don't log - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now))
+- **No legacy patterns** (quarantined/deleted - [Principle: Quarantine and Delete](#principle-quarantine-and-delete))
+- **Self-documenting APIs** (explicit deps - [Principle: No Magic, No Globals](#principle-no-magic-no-globals))
+- **Continuous merciless refactoring** to maintain the plateau
 
 ---
 
