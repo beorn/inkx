@@ -125,7 +125,7 @@ When you run `km` on a repo path:
 
 1. **If `.km/` exists:**
    - Load config via cosmicconfig rooted at repo path
-   - Open DataStore from `.km/cache/` (database, blobs) + replay `.km/events.jsonl`
+   - Open DataStore from `.km/` (database: `state.db`, events: `events.jsonl`)
    - Sync is **opt-in** — call `repo.sync()` or `repo.watch()` to start
    - Both data and files persist independently
 
@@ -148,9 +148,7 @@ When you run `km` on a repo path:
 ├── notes/meeting.md          ┘
 └── .km/                      ← km dir (created by `km init`)
     ├── events.jsonl          ← canonical event log (git-tracked)
-    └── cache/                ← derived (gitignored: .km/cache/)
-        ├── data.db           ← nodes + sync metadata
-        └── blobs/            ← content-addressable storage
+    └── state.db              ← nodes + sync metadata (derived, gitignored)
 ```
 
 > **Event sourcing:** `events.jsonl` is canonical. Everything in `cache/` can be rebuilt from events.
@@ -660,14 +658,14 @@ bun km view /tmp/repo   # TUI works
 
 ### Completed
 
-- **Phase 2: DataStore** (pre-existing) — `data-store.ts` with `createMapDataStore()`, `createMemDataStore()`, `createDBDataStore()`
-- **Phase 3: FileTree** — `file-tree.ts` with `createDiskFileTree()`, `createMemFileTree()` (58 tests)
-- **Phase 4: Repo** — `repo.ts` with `createRepo()`, `createBareRepo()`, `createTestRepo()` (25 tests)
+- **Phase 2: DataStore** — `data-store.ts` with `createMapDataStore()`, `createMemDataStore()`, `createDBDataStore()`
+- **Phase 3: FileTree** — `file-tree.ts` with `createDiskFileTree()`, `createMemFileTree()`
+- **Phase 4: Repo** — `repo.ts` with `createRepo()`, `createBareRepo()`, `createTestRepo()`
 
-### In Progress
+### Remaining
 
-- **Phase 1: Singleton Removal** — `getDb()`, `setDb()`, `isMemoryMode()` still used in 50+ places
-- **Repo → Repo Migration** — Current `Vault` (vault.ts) coexists with new `Repo` (repo.ts)
+- **Phase 1: Singleton Removal** — `getDb()`, `setDb()` still used in tests (not blocking)
+- **Board Migration** — Current `createBoardState()` + `boardReducer()` works; ADR-002's `createBoard(data, root)` is aspirational
 
 ### Migration Path
 

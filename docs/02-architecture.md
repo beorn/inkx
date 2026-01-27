@@ -47,7 +47,7 @@ Functionality is exposed through **domain objects created by factory functions**
 │  Application Code                                                   │
 │                                                                     │
 │    using repo = runGenerator(createRepo(path))                      │
-│    using board = createBoard(repo)                                  │
+│    const board = createBoardState(repo.data, rootId)                │
 │    await using watcher = repo.watch()                               │
 │                                                                     │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -66,7 +66,7 @@ Functionality is exposed through **domain objects created by factory functions**
 │  Factory Functions                                                  │
 │                                                                     │
 │    createRepo(path, options)    → Repo                              │
-│    createBoard(repo, options)   → Board                             │
+│    createBoardState(data, root) → BoardState                             │
 │    repo.watch()                 → Watcher (Service)                 │
 │    loadConfigObject(repoPath)   → Config                            │
 └─────────────────────────────────────────────────────────────────────┘
@@ -77,11 +77,11 @@ Functionality is exposed through **domain objects created by factory functions**
 | Object    | Factory            | Lifecycle    | Purpose                                    |
 | --------- | ------------------ | ------------ | ------------------------------------------ |
 | `Repo`    | `createRepo()`     | `Disposable` | DataStore + FileTree + Config              |
-| `Board`   | `createBoard()`    | plain object | Navigation state (cursor, selection, zoom) |
+| `Board`   | `createBoardState()` | plain object | Navigation state (cursor, selection, zoom) |
 | `Watcher` | `repo.watch()`     | `Service`    | File sync (start/stop lifecycle)           |
 | `Config`  | `loadConfigObject` | plain object | Repository configuration                   |
 
-> **Deprecated:** `Repo` / `createRepo()` is the legacy API. Use `Repo` / `createRepo()` for new code.
+> **Current API:** Use `Repo` / `createRepo()` for all new code.
 
 ### Service Interface
 
@@ -98,10 +98,10 @@ interface Service extends AsyncDisposable {
 ### Composition Example
 
 ```typescript
-async function runTui(path: string) {
+async function runTui(path: string, rootId: string) {
   // Create domain objects with explicit dependencies
   using repo = runGenerator(createRepo(path))
-  using board = createBoard(repo)
+  const board = createBoardState(repo.data, rootId)
   await using watcher = repo.watch()
 
   // Start file watching

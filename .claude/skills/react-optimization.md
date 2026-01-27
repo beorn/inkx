@@ -262,9 +262,9 @@ Don't optimize until you have evidence of a problem. Profile first:
 
 ## Files to Check in This Codebase
 
-- `apps/km-tui/packages/km-ink/src/views/TreeNode.tsx` - Main tree node with memoization
-- `apps/km-tui/packages/km-ink/src/views/CardColumn.tsx` - Card/Column with React.memo
-- `apps/km-tui/packages/km-ink/src/views/ListView.tsx` - Stable callback pattern
+- `apps/km-tui/src/views/TreeNode.tsx` - Main tree node with memoization
+- `apps/km-tui/src/views/CardColumn.tsx` - Card/Column with React.memo
+- `apps/km-tui/src/views/ListView.tsx` - Stable callback pattern
 
 ## Reference: Bead km-8mp9
 

@@ -158,10 +158,12 @@ bun fix              # MUST pass - auto-fix lint + format
 bun run test:all     # MUST pass - all tests including mdtest
 ```
 
+**Checking lint results:** Just run `bun fix` and check exit code. Exit 0 = pass. Don't try to grep/parse lint output - the summary is at the end if you need it (`tail -3`).
+
 **During development:**
 
 ```bash
-bun run test:fast    # Run this frequently - 24 second feedback loop
+bun run test:fast    # Run this frequently - <5 second feedback loop
 ```
 
 **When implementing features:**
@@ -545,15 +547,14 @@ All major functionality MUST be exposed through **domain objects created by fact
 | Object    | Factory                   | Lifecycle    | Purpose                             |
 | --------- | ------------------------- | ------------ | ----------------------------------- |
 | `Repo`    | `createRepo()`            | `Disposable` | DataStore + FileTree + Config       |
-| `Board`   | `createBoard(data, root)` | plain object | Navigation state (see note)         |
+| `Board`   | `createBoardState()`      | plain object | Navigation state (see note)         |
 | `Watcher` | `repo.watch()`            | `Service`    | File sync                           |
 | `Config`  | `loadConfigObject()`      | plain object | Repository configuration            |
 
-> **Deprecated:** `Repo` / `createRepo()` is the legacy API. Use `Repo` / `createRepo()` for new code.
-> See [ADR-002](docs/adr/002-domain-objects-refactor.md) for migration details.
+> **Current API:** Use `Repo` / `createRepo()` for all new code.
+> See [ADR-002](docs/adr/002-domain-objects-refactor.md) for architecture details.
 
-> **Board note:** ADR-002 specifies `createBoard(data: DataStore, rootId)`. Current implementation
-> uses `createBoardState()` + `boardReducer()` pattern pending migration.
+> **Board note:** Current implementation uses `createBoardState()` + `boardReducer()` pattern.
 
 See [.claude/skills/domain-objects-patterns.md](.claude/skills/domain-objects-patterns.md) for code examples and [docs/adr/002-domain-objects-refactor.md](docs/adr/002-domain-objects-refactor.md) for architecture details
 
