@@ -12,7 +12,11 @@
 import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { ulid } from "ulid"
-import { queryTasks, resolvePathArg, emitNodeCreated } from "@km/storage"
+import {
+  queryTasks,
+  resolvePathArg,
+  emitNodeCreatedWithEmitter,
+} from "@km/storage"
 import type { KNode } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -135,7 +139,7 @@ export const addCommand = new Command("add")
     for (const task of tasksToAdd) {
       // Create a link node that points to the original task
       const linkId = ulid()
-      emitNodeCreated("cli:add", {
+      emitNodeCreatedWithEmitter(repo.emitter, "cli:add", {
         id: linkId,
         type: "task",
         parent_id: actualTarget.id,

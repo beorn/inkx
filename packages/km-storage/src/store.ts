@@ -25,7 +25,8 @@ import type { KNode, TaskStatus } from "@km/core"
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA } from "./schema.ts"
-import { addLink, setDb } from "./db.ts"
+import { addLink } from "./db.ts"
+import { setDb } from "./internal/db-instance.ts"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import {
   findChildByContent,

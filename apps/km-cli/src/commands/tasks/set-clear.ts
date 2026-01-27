@@ -6,7 +6,7 @@
 
 import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
-import { resolvePathArg, emitNodeUpdated } from "@km/storage"
+import { resolvePathArg, emitNodeUpdatedWithEmitter } from "@km/storage"
 import { getMarkForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
@@ -86,7 +86,12 @@ export function createSetCommand() {
         process.exit(1)
       }
 
-      emitNodeUpdated(process.env.USER ?? "user", task.id, updates)
+      emitNodeUpdatedWithEmitter(
+        repo.emitter,
+        process.env.USER ?? "user",
+        task.id,
+        updates,
+      )
 
       if (options.json) {
         console.log(JSON.stringify({ id: task.id, updates }))
@@ -160,7 +165,12 @@ export function createClearCommand() {
         process.exit(1)
       }
 
-      emitNodeUpdated(process.env.USER ?? "user", task.id, updates)
+      emitNodeUpdatedWithEmitter(
+        repo.emitter,
+        process.env.USER ?? "user",
+        task.id,
+        updates,
+      )
 
       if (options.json) {
         console.log(JSON.stringify({ id: task.id, cleared: fields }))

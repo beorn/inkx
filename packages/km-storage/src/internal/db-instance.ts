@@ -24,7 +24,7 @@ const debug = createDebug("km:storage:db:instance")
 import { join } from "path"
 import { existsSync, mkdirSync } from "fs"
 import { getKmDir } from "./emit.ts"
-import { SCHEMA } from "./schema.ts"
+import { SCHEMA } from "../schema.ts"
 
 // Singleton database instance
 

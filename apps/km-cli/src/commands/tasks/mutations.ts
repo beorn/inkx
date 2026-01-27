@@ -8,10 +8,10 @@ import chalk from "chalk"
 import { ulid } from "ulid"
 import {
   resolvePathArg,
-  emitNodeCreated,
-  emitNodeUpdated,
   parseTaskMetadata,
   extractTags,
+  emitNodeCreatedWithEmitter,
+  emitNodeUpdatedWithEmitter,
 } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
 import type { TaskStatus } from "@km/core"
@@ -45,18 +45,22 @@ export async function createTask(
   }
 
   const nodeId = ulid()
-  const event = emitNodeCreated(process.env.USER ?? "user", {
-    id: nodeId,
-    type: "task",
-    parent_id: parentId,
-    content: content,
-    task_status: "todo" as TaskStatus,
-    task_mark: " ",
-    due_date: metadata.dueDate,
-    scheduled_date: metadata.scheduledDate,
-    priority: metadata.priority,
-    data: tags.length > 0 ? { tags } : {},
-  })
+  const event = emitNodeCreatedWithEmitter(
+    repo.emitter,
+    process.env.USER ?? "user",
+    {
+      id: nodeId,
+      type: "task",
+      parent_id: parentId,
+      content: content,
+      task_status: "todo" as TaskStatus,
+      task_mark: " ",
+      due_date: metadata.dueDate,
+      scheduled_date: metadata.scheduledDate,
+      priority: metadata.priority,
+      data: tags.length > 0 ? { tags } : {},
+    },
+  )
 
   if (options.json) {
     console.log(JSON.stringify({ id: nodeId, event: event.id }))
@@ -87,10 +91,15 @@ export async function markDone(
     process.exit(1)
   }
 
-  emitNodeUpdated(process.env.USER ?? "user", task.id, {
-    task_status: "done",
-    task_mark: "x",
-  })
+  emitNodeUpdatedWithEmitter(
+    repo.emitter,
+    process.env.USER ?? "user",
+    task.id,
+    {
+      task_status: "done",
+      task_mark: "x",
+    },
+  )
 
   if (options.json) {
     console.log(JSON.stringify({ id: task.id, status: "done" }))
@@ -122,7 +131,7 @@ export async function claimTask(
   }
 
   const actor = process.env.USER ?? "user"
-  emitNodeUpdated(actor, task.id, {
+  emitNodeUpdatedWithEmitter(repo.emitter, actor, task.id, {
     assigned_to: actor,
     task_status: "wip",
     task_mark: "/",
@@ -163,11 +172,16 @@ export async function releaseTask(
     process.exit(1)
   }
 
-  emitNodeUpdated(process.env.USER ?? "user", task.id, {
-    assigned_to: null,
-    task_status: "todo" as TaskStatus,
-    task_mark: " ",
-  })
+  emitNodeUpdatedWithEmitter(
+    repo.emitter,
+    process.env.USER ?? "user",
+    task.id,
+    {
+      assigned_to: null,
+      task_status: "todo" as TaskStatus,
+      task_mark: " ",
+    },
+  )
 
   if (options.json) {
     console.log(
@@ -201,9 +215,14 @@ export async function assignTask(
     process.exit(1)
   }
 
-  emitNodeUpdated(process.env.USER ?? "user", task.id, {
-    assigned_to: user,
-  })
+  emitNodeUpdatedWithEmitter(
+    repo.emitter,
+    process.env.USER ?? "user",
+    task.id,
+    {
+      assigned_to: user,
+    },
+  )
 
   if (options.json) {
     console.log(JSON.stringify({ id: task.id, assigned_to: user }))

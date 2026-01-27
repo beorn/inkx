@@ -19,7 +19,7 @@ import { ulid } from "ulid"
 import { join } from "path"
 import type { Event } from "@km/core"
 import { tryGetContextDb } from "./db-instance.ts"
-import { applyEventWithDb } from "./db-events.ts"
+import { applyEventWithDb } from "../db-events.ts"
 
 // Event hub for real-time broadcasting (set by km-code)
 let eventHub: { broadcast: (event: Event) => void } | null = null

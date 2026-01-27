@@ -28,10 +28,9 @@ export type { FileTree } from "./file-tree.ts"
 // Database operations (db-accepting functions for internal use)
 // All application code should use Repo domain object (createRepo) instead
 export {
-  // Path utility
+  // Path utility (non-deprecated - still useful for getting .km/state.db path)
   getDbPath,
   closeDb,
-  getDb, // Deprecated singleton - use Repo.rawQuery() instead
 
   // Query operations (require Database parameter)
   getNode,
@@ -255,9 +254,10 @@ export type {
   SyncFromFsResult,
 } from "./watch/index.ts"
 
-// Event emission (moved from @km/core)
-// NOTE: runWithKmDir is deprecated - prefer Repo.emitter or pass kmDir explicitly.
-// Kept for CLI commands that need to establish context for legacy APIs.
+// Event emission - DEPRECATED singletons (quarantined in internal/)
+// NOTE: All of these are deprecated - use Repo.emitter or createEmitter() instead.
+// Kept for backward compatibility with CLI commands and legacy code.
+// DO NOT use in new code - these will be removed in a future version.
 export {
   emit,
   runWithKmDir,
@@ -275,7 +275,7 @@ export {
   emitSessionMessage,
   emitSessionToolCall,
   emitSessionEnded,
-} from "./emit.ts"
+} from "./internal/emit.ts"
 
 // Recurrence utilities (moved from @km/core)
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
@@ -304,7 +304,21 @@ export type { Config } from "./config-object.ts"
 // Emitter domain object - owns event emission lifecycle
 // Replaces global singletons in emit.ts with explicit ownership
 // See: docs/00-principles.md
-export { createEmitter } from "./emitter.ts"
+export {
+  createEmitter,
+  // Helper functions that take emitter as first parameter (PREFERRED)
+  emitNodeCreated as emitNodeCreatedWithEmitter,
+  emitNodeUpdated as emitNodeUpdatedWithEmitter,
+  emitNodeMoved as emitNodeMovedWithEmitter,
+  emitNodeDeleted as emitNodeDeletedWithEmitter,
+  emitTaskClaimed as emitTaskClaimedWithEmitter,
+  emitTaskReleased as emitTaskReleasedWithEmitter,
+  emitTaskCompleted as emitTaskCompletedWithEmitter,
+  emitSessionStarted as emitSessionStartedWithEmitter,
+  emitSessionMessage as emitSessionMessageWithEmitter,
+  emitSessionToolCall as emitSessionToolCallWithEmitter,
+  emitSessionEnded as emitSessionEndedWithEmitter,
+} from "./emitter.ts"
 
 export type {
   Emitter,
@@ -333,10 +347,6 @@ export type {
   SyncResult as RepoSyncResult,
   SyncConflict,
   RepoStats,
-  RepoHooks,
-  MutationContext,
-  MutationType,
-  BeforeMutationResult,
 } from "./repo.ts"
 
 // Testing utilities
