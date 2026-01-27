@@ -75,7 +75,7 @@ export function configureProgram(): Command {
       "-r, --repo <path>",
       "Repository directory to operate on (overrides KM_ROOT env var)",
     )
-    .option("--silent", "Suppress output except errors")
+    .option("-s, --silent", "Suppress output except errors")
     .option(
       "-v, --verbose",
       "Increase verbosity (-v, -vv, -vvv)",
