@@ -399,6 +399,7 @@ export function BoardCore({
             <BottomBar
               ui={ui}
               state={state}
+              layout={layout}
               termWidth={termWidth}
               storageMode={repo.mode}
               nodeCount={repo.stats.nodeCount}

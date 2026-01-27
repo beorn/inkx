@@ -2,7 +2,7 @@
  * Tests for text wrapping (Layer 2)
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { wrapText } from "@beorn/tui-measure"
 
 describe("wrapText", () => {

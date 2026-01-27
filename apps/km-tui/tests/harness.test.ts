@@ -2,7 +2,7 @@
  * BoardTestHarness Integration Tests
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { mkdir, rm, writeFile } from "fs/promises"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 

@@ -21,12 +21,8 @@ import { join, dirname } from "path"
 import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { Database } from "bun:sqlite"
-import {
-  SyncManager,
-  findKmRootFromPath,
-  setEventHub,
-  setFsSync,
-} from "@km/storage"
+import { SyncManager, findKmRootFromPath } from "@km/storage"
+import { setEventHub, setFsSync } from "@km/storage/internal/emit.ts"
 import type { Event } from "@km/core"
 import { EventEmitter } from "events"
 
@@ -96,6 +92,7 @@ class KmDaemon extends EventEmitter {
     })
 
     this.sync.on("write-complete", (data) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- EventEmitter data payload is untyped
       this.log(`Wrote ${data.count} file(s)`)
     })
 

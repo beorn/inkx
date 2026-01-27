@@ -110,7 +110,7 @@
  * through the public interface (keyboard input → visual output).
  */
 
-import { describe, test, expect, afterEach } from "bun:test"
+import { describe, test, expect, afterEach } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { toastQueue } from "@km/core"
 

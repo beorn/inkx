@@ -10,10 +10,20 @@
  */
 
 import type { CommandAction } from "@km/commands"
-import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
+import {
+  type ActionResult,
+  boundary,
+  ok,
+  precondition,
+  unimplemented,
+} from "@km/commands"
 import createDebug from "debug"
 import { assertNever } from "./action-handlers.ts"
-import { outdentNode } from "./keyboard-card-ops.ts"
+import {
+  outdentNode,
+  moveCardInColumn,
+  moveCardToColumn,
+} from "./keyboard-card-ops.ts"
 import {
   clearSelection,
   progressiveSelectAll,
@@ -525,11 +535,13 @@ function handleZoomInwards(ctx: TUIContext): ActionResult {
       dispatch(actions.setSubIndex(0))
 
       // Get first child of zoom target for cursor initialization
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access -- targetChild from flatChildren array
       const targetChildChildren = ctx.repo.getChildren(targetChild.node.id)
       const firstChild = targetChildChildren[0]
 
       dispatchBoard({
         type: "ZOOM_IN",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- targetChild from flatChildren array
         nodeId: targetChild.node.id,
         cursorNodeId: firstChild?.id ?? null,
       })

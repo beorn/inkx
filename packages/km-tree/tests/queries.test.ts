@@ -4,7 +4,7 @@
  * Tests for tree navigation and query functions.
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import {
   getNodeAtPath,
   getSiblingCount,

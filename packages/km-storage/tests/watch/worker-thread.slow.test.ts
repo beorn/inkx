@@ -1,7 +1,7 @@
 /**
  * Worker Thread Integration Test
  *
- * This is the ONLY test file using describe.serial for watcher tests - it tests
+ * This is the ONLY test file using describe.sequential for watcher tests - it tests
  * the actual worker thread watcher which can't use AsyncLocalStorage context.
  *
  * All other watcher tests use useWorker: false for parallel execution.
@@ -12,7 +12,9 @@
  * the same database during async operations.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+/* eslint-disable @typescript-eslint/no-unsafe-call -- Vitest test functions return any */
+
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { EventEmitter } from "events"
@@ -23,7 +25,7 @@ import type { Repo } from "../../src/repo.ts"
 const TEST_DIR = "/tmp/kmtest-worker-thread"
 const REPO_DIR = join(TEST_DIR, "repo")
 
-describe.serial("Worker Thread Integration", () => {
+describe.sequential("Worker Thread Integration", () => {
   let repo: Repo | undefined
 
   beforeEach(() => {

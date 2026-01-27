@@ -8,7 +8,9 @@
  * setDb() call would overwrite the ALS context. Must remain serial.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+/* eslint-disable @typescript-eslint/no-unsafe-call -- Vitest test functions return any */
+
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { runGenerator } from "@km/core"
@@ -16,14 +18,14 @@ import {
   createRepo,
   createChaosHooks,
   createSeededRandom,
-  closeDb,
 } from "../../src/index.ts"
 import type { ChaosEvent, ChaosHooks } from "../../src/index.ts"
+import { closeDb } from "../../src/internal/db-instance.ts"
 
 const TEST_DIR = "/tmp/kmtest-chaos-hooks"
 const REPO_DIR = join(TEST_DIR, "repo")
 
-describe.serial("createChaosHooks", () => {
+describe.sequential("createChaosHooks", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
     mkdirSync(REPO_DIR, { recursive: true })

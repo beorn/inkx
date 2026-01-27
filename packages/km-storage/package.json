@@ -4,7 +4,9 @@
   "type": "module",
   "module": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./internal/emit.ts": "./src/internal/emit.ts",
+    "./internal/db-instance.ts": "./src/internal/db-instance.ts"
   },
   "private": true,
   "dependencies": {

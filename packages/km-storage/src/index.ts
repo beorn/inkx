@@ -28,10 +28,6 @@ export type { FileTree } from "./file-tree.ts"
 // Database operations (db-accepting functions for internal use)
 // All application code should use Repo domain object (createRepo) instead
 export {
-  // Path utility (non-deprecated - still useful for getting .km/state.db path)
-  getDbPath,
-  closeDb,
-
   // Query operations (require Database parameter)
   getNode,
   getNodeByIdPrefix,
@@ -101,11 +97,13 @@ export {
 export type { RebuildResult, SyncResult } from "./rebuild.ts"
 
 // Unified repo loading (the ONE function for loading repos)
+/* eslint-disable @typescript-eslint/no-deprecated -- Re-exporting deprecated loadRepo for backward compatibility */
 export {
   loadRepo,
   resolveLinksAsync,
   parseDeferredAsync,
 } from "./repo-loader.ts"
+/* eslint-enable @typescript-eslint/no-deprecated */
 
 export type {
   LoadResult,
@@ -254,33 +252,15 @@ export type {
   SyncFromFsResult,
 } from "./watch/index.ts"
 
-// Event emission - DEPRECATED singletons (quarantined in internal/)
-// NOTE: All of these are deprecated - use Repo.emitter or createEmitter() instead.
-// Kept for backward compatibility with CLI commands and legacy code.
-// DO NOT use in new code - these will be removed in a future version.
-export {
-  emit,
-  runWithKmDir,
-  setEventHub,
-  setFsSync,
-  getEventsPath,
-  emitNodeCreated,
-  emitNodeUpdated,
-  emitNodeMoved,
-  emitNodeDeleted,
-  emitTaskClaimed,
-  emitTaskReleased,
-  emitTaskCompleted,
-  emitSessionStarted,
-  emitSessionMessage,
-  emitSessionToolCall,
-  emitSessionEnded,
-} from "./internal/emit.ts"
+// Event emission singletons REMOVED - use Repo.emitter or createEmitter() instead.
+// Legacy consumers can import directly from "./internal/emit.ts" if absolutely necessary,
+// but should migrate to dependency injection patterns.
 
 // Recurrence utilities (moved from @km/core)
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
 
 // Configuration
+/* eslint-disable @typescript-eslint/no-deprecated -- Re-exporting deprecated config functions for backward compatibility */
 export {
   loadConfig,
   clearConfigCache,
@@ -288,6 +268,7 @@ export {
   getOriginalBeadsConfig,
   getOriginalBeadsConfigPath,
 } from "./config.ts"
+/* eslint-enable @typescript-eslint/no-deprecated */
 
 export type {
   KmConfig,

@@ -26,6 +26,7 @@ export function toFts5Query(query: string): string {
   // Extract quoted phrases and replace with placeholders
   const phrases: string[] = []
   const remaining = query.replace(/"([^"]+)"/g, (_, phrase) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Regex capture group is string
     phrases.push(phrase)
     return `__PHRASE_${phrases.length - 1}__`
   })

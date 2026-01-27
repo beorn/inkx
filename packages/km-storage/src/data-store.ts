@@ -298,7 +298,7 @@ export function createMemDataStore(): DataStore & HasDatabase {
   const db = new Database(":memory:")
 
   // Initialize schema
-  db.exec(SCHEMA)
+  db.run(SCHEMA)
 
   // Memory mode - no emitter, direct SQL
   const ops = createDbOps(db)

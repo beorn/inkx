@@ -4,7 +4,7 @@
  * Tests for watcher.ts - directory scanning and symlink detection.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync, symlinkSync } from "fs"
 import { join } from "path"
 import {

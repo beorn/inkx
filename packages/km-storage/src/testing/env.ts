@@ -207,7 +207,7 @@ function setupTestEnv(options?: { mode?: TestMode }): TestEnv {
   // Create database: disk for real mode, memory otherwise
   const dbPath = mode === "real" ? join(kmDir, "state.db") : ":memory:"
   const db = new Database(dbPath)
-  db.exec(SCHEMA)
+  db.run(SCHEMA)
 
   // Use createTestEnvRepo to wire everything together
   // skipPersist: true for non-real mode avoids writing events.jsonl to /tmp

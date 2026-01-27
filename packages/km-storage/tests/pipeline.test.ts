@@ -4,7 +4,7 @@
  * Tests for the composable async generator pipeline stages.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../src/schema.ts"
 import {
@@ -26,7 +26,7 @@ import type { ResolvedLink } from "../src/markdown-processing.ts"
 
 function createTestDb(): Database {
   const db = new Database(":memory:")
-  db.exec(SCHEMA)
+  db.run(SCHEMA)
   return db
 }
 

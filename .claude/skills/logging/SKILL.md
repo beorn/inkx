@@ -1,5 +1,7 @@
 ---
 description: Logging patterns - debug(), logger, worker threads. Use when adding debug output or configuring loggers.
+argument-hint: [debug|logger|worker]
+allowed-tools: Read, Glob, Grep, Task
 ---
 
 # Logging Patterns

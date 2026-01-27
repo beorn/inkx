@@ -3,7 +3,9 @@
  * Run with: bun run test:all (includes slow tests)
  */
 
-import { describe, test, expect } from "bun:test"
+/* eslint-disable @typescript-eslint/no-unsafe-call -- Vitest test functions return any */
+
+import { describe, test, expect } from "vitest"
 import { createTestRenderer } from "inkx/testing"
 const render = createTestRenderer()
 import React from "react"

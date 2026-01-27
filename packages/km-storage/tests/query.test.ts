@@ -2,7 +2,7 @@
  * Query Language Tests
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { Database } from "bun:sqlite"
 import {
   parseQuery,
@@ -231,7 +231,7 @@ describe("Query Executor", () => {
   beforeEach(() => {
     // Create in-memory database
     db = new Database(":memory:")
-    db.exec(`
+    db.run(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
@@ -387,7 +387,7 @@ describe("Path Pattern Query Execution", () => {
   beforeEach(() => {
     // Create in-memory database with fs_path
     db = new Database(":memory:")
-    db.exec(`
+    db.run(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
@@ -610,7 +610,7 @@ describe("Date Query Execution", () => {
 
   beforeEach(() => {
     db = new Database(":memory:")
-    db.exec(`
+    db.run(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
@@ -799,7 +799,7 @@ describe("Full-text Search with Phrases", () => {
 
   beforeEach(() => {
     db = new Database(":memory:")
-    db.exec(`
+    db.run(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
@@ -947,7 +947,7 @@ describe("Status on Any Node Type", () => {
 
   beforeEach(() => {
     db = new Database(":memory:")
-    db.exec(`
+    db.run(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
@@ -1296,7 +1296,7 @@ describe("Property Query Execution", () => {
 
   beforeEach(() => {
     db = new Database(":memory:")
-    db.exec(`
+    db.run(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,

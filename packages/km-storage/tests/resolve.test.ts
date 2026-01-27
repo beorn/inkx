@@ -9,7 +9,7 @@
  * Uses isolated temp directories for parallel test execution.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { join } from "path"
 import { ulid } from "ulid"
 

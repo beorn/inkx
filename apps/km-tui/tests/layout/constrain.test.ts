@@ -2,7 +2,7 @@
  * Tests for text constraining (Layer 2)
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { constrainText, displayLength } from "@beorn/tui-measure"
 
 describe("constrainText", () => {

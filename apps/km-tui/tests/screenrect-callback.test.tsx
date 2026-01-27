@@ -5,7 +5,7 @@
  * This is a minimal integration test to verify the inkx hook works.
  */
 
-import { describe, test, expect, beforeEach } from "bun:test"
+import { describe, test, expect, beforeEach } from "vitest"
 import React, { useCallback, useRef } from "react"
 import { createTestRenderer, normalizeFrame } from "inkx/testing"
 import { Box, Text, useScreenRectCallback } from "inkx"

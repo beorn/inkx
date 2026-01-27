@@ -4,7 +4,7 @@
  * Tests for display name computation and ancestor collapsing functions.
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import type { KNode } from "@km/core"
 import {
   getNodeDisplayName,

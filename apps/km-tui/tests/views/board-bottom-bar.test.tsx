@@ -4,7 +4,7 @@
  * Tests the bottom status bar including render loop regression.
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import React from "react"
 import { createTestRenderer } from "inkx/testing"
 import { BottomBar } from "../../src/views/board-bottom-bar.tsx"

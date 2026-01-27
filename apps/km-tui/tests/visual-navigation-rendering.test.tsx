@@ -9,7 +9,7 @@
  * Uses DI to inject a layoutRegistry that we can inspect.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import React from "react"
 import { createTestRenderer } from "inkx/testing"
 import { Board } from "../src/views/Board.tsx"

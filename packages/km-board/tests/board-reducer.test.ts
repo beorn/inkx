@@ -6,7 +6,7 @@
  * zoom behavior, navigation history, move mode, and edge cases.
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { boardReducer, createBoardState } from "../src/board-reducer.ts"
 import type { BoardAction } from "../src/board-types.ts"
 

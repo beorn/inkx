@@ -5,7 +5,7 @@
  * and files during sync/watch operations.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { writeFileSync } from "fs"
 import { join } from "path"
 

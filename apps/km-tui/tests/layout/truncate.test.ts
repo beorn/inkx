@@ -2,7 +2,7 @@
  * Tests for text truncation and padding (Layer 2)
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { truncateText, padText, displayLength } from "@beorn/tui-measure"
 
 describe("truncateText", () => {

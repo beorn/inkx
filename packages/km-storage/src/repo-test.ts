@@ -99,7 +99,7 @@ export function createTestEnvRepo(
   // Create or use provided database
   const db = options.db ?? new Database(":memory:")
   if (!options.db) {
-    db.exec(SCHEMA)
+    db.run(SCHEMA)
   }
 
   // Create emitter with db wired for event application

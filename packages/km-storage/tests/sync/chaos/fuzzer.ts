@@ -464,7 +464,7 @@ async function runSingleIteration(
 
   // Create in-memory database for parallel isolation (no shared state)
   const db = new Database(":memory:")
-  db.exec(SCHEMA)
+  db.run(SCHEMA)
 
   // Create emitter with db wired for event application
   const emitter = createEmitter({ kmDir, db })
@@ -644,7 +644,7 @@ async function runSingleIterationWithMockFs(
 
   // Use in-memory database for parallel isolation
   const db = new Database(":memory:")
-  db.exec(SCHEMA)
+  db.run(SCHEMA)
 
   // Create emitter for event emission (skip persist since we're using mock fs)
   const emitter = createEmitter({ kmDir, db, skipPersist: true })

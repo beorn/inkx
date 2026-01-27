@@ -60,7 +60,7 @@ import {
   type InkxLocator,
   type RenderResult,
 } from "inkx/testing"
-import { expect } from "bun:test"
+import { expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import type { KNode, NodeRules } from "@km/core"
 
@@ -324,7 +324,7 @@ export function testEnv(
 // Custom Matchers
 // =============================================================================
 
-declare module "bun:test" {
+declare module "vitest" {
   interface Matchers<T> {
     toExist(): void
     toHaveCount(expected: number): void

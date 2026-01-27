@@ -4,7 +4,7 @@
  * km-disposable.3: Service factory pattern tests
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { mkdirSync, writeFileSync, rmSync } from "fs"
 import { join } from "path"
 import { createParsePool } from "../src/parse-pool.ts"

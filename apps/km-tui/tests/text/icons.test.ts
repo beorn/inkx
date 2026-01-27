@@ -2,7 +2,7 @@
  * Tests for icon utilities (Layer 1)
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { getStatusIcon, getTypeIcon, type StatusIcon } from "../../src/index.ts"
 
 describe("getStatusIcon", () => {

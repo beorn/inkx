@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { createChaosFakeRepo } from "../../src/testing/chaos-fake-repo.ts"
 import type { KNode } from "@km/core"
 

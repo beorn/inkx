@@ -5,7 +5,7 @@
  * Uses isolated test environments for parallel execution.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { mkdirSync, rmSync, writeFileSync, statSync, utimesSync } from "fs"
 import { join } from "path"
 import {

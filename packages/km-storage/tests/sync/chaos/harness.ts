@@ -73,7 +73,7 @@ async function runChaosTestWithMockFs(
 
   // Create in-memory database for parallel isolation (no shared state)
   const db = new Database(":memory:")
-  db.exec(SCHEMA)
+  db.run(SCHEMA)
 
   // Create emitter with skipPersist since we're using mock fs
   const emitter = createEmitter({ kmDir, db, skipPersist: true })
@@ -221,7 +221,7 @@ async function runChaosTestWithRealFs(
 
   // Create in-memory database for parallel isolation (no shared state)
   const db = new Database(":memory:")
-  db.exec(SCHEMA)
+  db.run(SCHEMA)
 
   // Create emitter with db wired for event application
   const emitter = createEmitter({ kmDir, db })

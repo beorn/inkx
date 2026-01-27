@@ -7,7 +7,7 @@
  * Critical safety test for km-me0n bug.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { SyncManager } from "../../src/watch/sync.ts"

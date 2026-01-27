@@ -28,7 +28,7 @@
  * See regressions/README.md for file format details.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { readdirSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { parse as parseYaml } from "yaml"
@@ -50,7 +50,10 @@ interface RegressionFile {
 // Load Regression Scenarios
 // ─────────────────────────────────────────────────────────────────────────────
 
-const REGRESSIONS_DIR = join(import.meta.dir, "regressions")
+const REGRESSIONS_DIR = join(
+  import.meta.dirname ?? import.meta.dir!,
+  "regressions",
+)
 
 /**
  * Parse a markdown file with YAML frontmatter
@@ -127,6 +130,7 @@ describe("Chaos Regression Tests", () => {
   for (const { metadata, scenario } of scenarios) {
     test(
       `${metadata.beadId}: ${metadata.description}`,
+      { timeout: 5000 },
       async () => {
         // Replay the exact stored scenario (not regenerate from seed)
         const result = await replayScenario(scenario, 100)
@@ -145,7 +149,6 @@ describe("Chaos Regression Tests", () => {
           }
         }
       },
-      { timeout: 5000 },
     )
   }
 })

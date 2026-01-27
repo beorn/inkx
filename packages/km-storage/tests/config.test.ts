@@ -13,7 +13,9 @@
  * Uses isolated temp directories for cleaner test setup.
  */
 
-import { describe, test, expect } from "bun:test"
+/* eslint-disable @typescript-eslint/no-deprecated -- Testing deprecated config APIs */
+
+import { describe, test, expect } from "vitest"
 import { join } from "path"
 import { mkdirSync, writeFileSync } from "fs"
 

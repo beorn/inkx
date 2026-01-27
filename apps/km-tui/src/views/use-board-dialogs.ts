@@ -41,7 +41,7 @@ interface BoardDialogHandlers {
  */
 export function useBoardDialogs({
   repo,
-  state,
+  state: _state,
   dispatch,
   cursorNodeId,
 }: UseBoardDialogsParams): BoardDialogHandlers {

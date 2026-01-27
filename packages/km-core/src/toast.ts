@@ -95,8 +95,10 @@ export class ToastQueue {
     const key = toast.batchKey
 
     // Cancel existing batch timer
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Timer ID from Map<string, any>
     const existingTimer = this.batchTimers.get(key)
     if (existingTimer) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
       clearTimeout(existingTimer)
     }
 
@@ -175,6 +177,7 @@ export class ToastQueue {
     this.toasts = []
     // Clear all batch timers
     for (const timer of this.batchTimers.values()) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
       clearTimeout(timer)
     }
     this.batchTimers.clear()

@@ -4,7 +4,7 @@
  * Tests the StatusBar component's rendering behavior with different
  * status levels and message lengths.
  */
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import React from "react"
 import { createTestRenderer, createLocator } from "inkx/testing"
 import { StatusBar } from "../src/views/StatusBar.tsx"

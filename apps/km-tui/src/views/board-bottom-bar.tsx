@@ -37,6 +37,7 @@ function useSpinnerFrame(enabled: boolean): string {
 interface BottomBarProps {
   ui: UIState
   state: TUIBoardState
+  layout: { colIndex: number; cardIndex: number }
   termWidth: number
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
   storageMode: "memory" | "disk"
@@ -52,6 +53,7 @@ interface BottomBarProps {
 export function BottomBar({
   ui,
   state,
+  layout,
   termWidth,
   storageMode,
   nodeCount,
@@ -165,6 +167,7 @@ export function BottomBar({
             <>
               {"   "}
               <Text id="column-position">
+                {}
                 col {layout.colIndex + 1}/{state.columns.length}
               </Text>
             </>

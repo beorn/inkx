@@ -9,7 +9,7 @@
  * Uses createFakeRepo for fast in-memory testing.
  */
 
-import { describe, test, expect, afterEach } from "bun:test"
+import { describe, test, expect, afterEach } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { BODY_CONTENT_BOARD } from "./fixtures/body-content-fixture.ts"

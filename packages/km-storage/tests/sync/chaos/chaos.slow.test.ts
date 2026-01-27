@@ -4,7 +4,9 @@
  * Test suite for file watcher robustness using chaos simulation.
  */
 
-import { describe, test, expect } from "bun:test"
+/* eslint-disable @typescript-eslint/no-unsafe-call -- Vitest test functions return any */
+
+import { describe, test, expect } from "vitest"
 import {
   runChaosTest,
   createTestConfig,
@@ -12,8 +14,8 @@ import {
 } from "./harness.ts"
 import { CHAOS_SCENARIOS, NO_CHAOS } from "./scenarios.ts"
 
-describe.serial("Chaos Tests", () => {
-  describe.serial("Baseline (No Chaos)", () => {
+describe.sequential("Chaos Tests", () => {
+  describe.sequential("Baseline (No Chaos)", () => {
     test("handles single file change", async () => {
       const result = await runChaosTest(
         createTestConfig("baseline-single-change", NO_CHAOS, {
@@ -59,7 +61,7 @@ describe.serial("Chaos Tests", () => {
     })
   })
 
-  describe.serial("Event Timing Issues", () => {
+  describe.sequential("Event Timing Issues", () => {
     test("handles event reordering", async () => {
       const result = await runChaosTest({
         name: "reorder-events",
@@ -117,7 +119,7 @@ describe.serial("Chaos Tests", () => {
     })
   })
 
-  describe.serial("Queue/Buffer Issues", () => {
+  describe.sequential("Queue/Buffer Issues", () => {
     test("handles queue overflow (dropped events)", async () => {
       const result = await runChaosTest({
         name: "queue-overflow",
@@ -161,7 +163,7 @@ describe.serial("Chaos Tests", () => {
     })
   })
 
-  describe.serial("Write Pattern Issues", () => {
+  describe.sequential("Write Pattern Issues", () => {
     test("handles atomic writes (editor save pattern)", async () => {
       const result = await runChaosTest({
         name: "atomic-writes",
@@ -211,7 +213,7 @@ describe.serial("Chaos Tests", () => {
     })
   })
 
-  describe.serial("Platform Quirks", () => {
+  describe.sequential("Platform Quirks", () => {
     test("handles FSEvents coalescing (parent dir event)", async () => {
       const result = await runChaosTest({
         name: "fsevents-coalesce",
@@ -241,7 +243,7 @@ describe.serial("Chaos Tests", () => {
     })
   })
 
-  describe.serial("Rename Operations", () => {
+  describe.sequential("Rename Operations", () => {
     test("handles rename storm", async () => {
       const result = await runChaosTest({
         name: "rename-storm",
@@ -262,7 +264,7 @@ describe.serial("Chaos Tests", () => {
     })
   })
 
-  describe.serial("Initialization Issues", () => {
+  describe.sequential("Initialization Issues", () => {
     test("handles init gap (events during watcher startup)", async () => {
       const result = await runChaosTest({
         name: "init-gap",
@@ -289,7 +291,7 @@ describe.serial("Chaos Tests", () => {
     })
   })
 
-  describe.serial("Stress Tests", () => {
+  describe.sequential("Stress Tests", () => {
     test("handles 50 files with queue overflow", async () => {
       const fileCount = 50
       const result = await runChaosTest({
@@ -395,7 +397,7 @@ describe.serial("Chaos Tests", () => {
     })
   })
 
-  describe.serial("Combined Scenarios", () => {
+  describe.sequential("Combined Scenarios", () => {
     test("handles multiple files with various changes", async () => {
       const result = await runChaosTest({
         name: "multi-file-changes",
@@ -421,8 +423,8 @@ describe.serial("Chaos Tests", () => {
   })
 })
 
-describe.serial("Chaos Scenario Unit Tests", () => {
-  describe.serial("SeededRandom", () => {
+describe.sequential("Chaos Scenario Unit Tests", () => {
+  describe.sequential("SeededRandom", () => {
     test("produces reproducible results", async () => {
       const { SeededRandom } = await import("./seeded-random.ts")
 
@@ -447,7 +449,7 @@ describe.serial("Chaos Scenario Unit Tests", () => {
     })
   })
 
-  describe.serial("Scenario Transformer", () => {
+  describe.sequential("Scenario Transformer", () => {
     test("slow_disk adds delays", async () => {
       const { applyScenario } = await import("./scenario-transformer.ts")
       const { SeededRandom } = await import("./seeded-random.ts")
@@ -521,7 +523,7 @@ describe.serial("Chaos Scenario Unit Tests", () => {
   })
 })
 
-describe.serial("Parallel Suite Runner", () => {
+describe.sequential("Parallel Suite Runner", () => {
   test("runs multiple repos with single scenario", async () => {
     const result = await runChaosSuiteParallel({
       repoCount: 3,

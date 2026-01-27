@@ -31,7 +31,7 @@
  * See bead km-nav-visual-scroll for full investigation.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach } from "vitest"
 import {
   createLayoutRegistry,
   getCardMidY,

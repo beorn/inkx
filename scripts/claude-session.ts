@@ -82,7 +82,7 @@ interface SessionRecord {
 
 function getDb(): Database {
   const db = new Database(DB_PATH)
-  db.exec(SCHEMA)
+  db.run(SCHEMA)
   return db
 }
 
@@ -348,8 +348,8 @@ async function cmdIndex(): Promise<void> {
   const db = getDb()
 
   // Clear existing data
-  db.exec("DELETE FROM writes")
-  db.exec("DELETE FROM index_meta")
+  db.run("DELETE FROM writes")
+  db.run("DELETE FROM index_meta")
 
   const insertStmt = db.prepare(`
     INSERT INTO writes (session_id, session_file, tool_use_id, timestamp, file_path, content_hash, content_size, content)

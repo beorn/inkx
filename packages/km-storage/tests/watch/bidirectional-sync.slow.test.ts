@@ -10,7 +10,7 @@
  * Worker thread integration is tested separately.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { rmSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { EventEmitter } from "events"

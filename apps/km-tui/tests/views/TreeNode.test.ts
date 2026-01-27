@@ -5,7 +5,7 @@
  * These tests cover the helper functions and selection key logic.
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { makeSelectionKey } from "../../src/types.ts"
 
 describe("makeSelectionKey", () => {

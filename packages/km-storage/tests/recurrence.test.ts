@@ -4,7 +4,7 @@
  * Tests for recurrence.ts functions.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import {
   parseRRule,
   getNextOccurrence,

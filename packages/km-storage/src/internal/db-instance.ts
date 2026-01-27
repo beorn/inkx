@@ -16,6 +16,8 @@
  * and test infrastructure that haven't been migrated yet.
  */
 
+/* eslint-disable @typescript-eslint/no-deprecated -- This file contains deprecated singleton implementation */
+
 import createDebug from "debug"
 import { Database } from "bun:sqlite"
 import { AsyncLocalStorage } from "async_hooks"
@@ -69,7 +71,7 @@ export function getDb(): Database {
   dbInstance = new Database(dbPath)
 
   // Initialize schema
-  dbInstance.exec(SCHEMA)
+  dbInstance.run(SCHEMA)
   debug("database initialized")
 
   return dbInstance
@@ -115,12 +117,12 @@ export function isMemoryMode(): boolean {
  */
 export function resetDb(): void {
   const db = getDb()
-  db.exec(`
+  db.run(`
     DROP TABLE IF EXISTS nodes_fts;
     DROP TABLE IF EXISTS nodes;
     DROP TABLE IF EXISTS meta;
   `)
-  db.exec(SCHEMA)
+  db.run(SCHEMA)
 }
 
 /**
@@ -134,7 +136,7 @@ export function resetDb(): void {
  *
  * @example
  * const db = new Database(":memory:");
- * db.exec(SCHEMA);
+ * db.run(SCHEMA);
  * runWithDb(db, () => {
  *   // All getDb() calls within this function return the context database
  *   resetDb();

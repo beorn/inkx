@@ -4,7 +4,7 @@
  * Tests the unified overflow indicator used by all views.
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import React from "react"
 import { createTestRenderer } from "inkx/testing"
 

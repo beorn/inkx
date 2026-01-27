@@ -5,7 +5,7 @@
  * These tests run in parallel and are much faster than tests requiring SQLite setup.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 
 import { createEmptyState } from "../src/state.ts"
 import {

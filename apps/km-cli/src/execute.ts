@@ -37,6 +37,8 @@ export async function executeKmCommand(
   let stderr = ""
   let exitCode = 0
 
+  /* eslint-disable promise/prefer-await-to-callbacks, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+  // Node.js Writable stream API requires callback-based write method
   const stdoutStream = new Writable({
     write(chunk, _encoding, callback) {
       stdout += chunk.toString()
@@ -50,6 +52,7 @@ export async function executeKmCommand(
       callback()
     },
   })
+  /* eslint-enable promise/prefer-await-to-callbacks, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 
   // Save original process state
   const originalCwd = process.cwd()

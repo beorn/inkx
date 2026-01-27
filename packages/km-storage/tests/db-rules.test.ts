@@ -8,7 +8,7 @@
  * then MemoryStore parses them, and test runs within runWithDb context.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"

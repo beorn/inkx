@@ -10,6 +10,8 @@
  * that haven't been migrated yet. New code should use Emitter.
  */
 
+/* eslint-disable @typescript-eslint/no-deprecated -- This file contains deprecated singleton implementation */
+
 import createDebug from "debug"
 import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { AsyncLocalStorage } from "async_hooks"

@@ -136,17 +136,19 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       return [] // FakeRepo never has deferred files
     },
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- FakeRepo returns null as any for database stub
     get database() {
       // FakeRepo doesn't have a real database - return null
       // Tests that need database access should use a real repo
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
       return null as any
     },
 
     // Repo-specific properties (stubs for FakeRepo)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- FakeRepo returns null as any for data stub
     get data() {
       // FakeRepo doesn't have a real DataStore
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
       return null as any
     },
 
@@ -155,9 +157,10 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       return null
     },
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- FakeRepo returns empty object as any for config stub
     get config() {
       // FakeRepo returns minimal config
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
       return {} as any
     },
 

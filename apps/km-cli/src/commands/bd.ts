@@ -20,7 +20,8 @@ import {
   type Issue,
   type IssueFilter,
 } from "@km/beads"
-import { getDbPath, resolvePathArg, loadConfigObject } from "@km/storage"
+import { resolvePathArg, loadConfigObject } from "@km/storage"
+import { getDbPath } from "@km/storage/internal/db-instance.ts"
 import { loadRepo } from "../load-repo.ts"
 import { join } from "path"
 import { existsSync } from "fs"

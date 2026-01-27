@@ -5,7 +5,7 @@
  * These are unit tests that verify the interface contracts without external dependencies.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { Database } from "bun:sqlite"
 import {
   createMapDataStore,
@@ -248,7 +248,7 @@ describe("createDBDataStore", () => {
 
   beforeEach(() => {
     db = new Database(":memory:")
-    db.exec(SCHEMA)
+    db.run(SCHEMA)
     store = createDBDataStore(db)
   })
 
@@ -260,7 +260,7 @@ describe("createDBDataStore", () => {
   // Run the shared tests
   testDataStore("createDBDataStore (shared)", () => {
     const testDb = new Database(":memory:")
-    testDb.exec(SCHEMA)
+    testDb.run(SCHEMA)
     return createDBDataStore(testDb)
   })
 
@@ -273,6 +273,6 @@ describe("createDBDataStore", () => {
   test("does not close caller's database on close", () => {
     store.close()
     // Caller's db should still be open
-    expect(() => db.exec("SELECT 1")).not.toThrow()
+    expect(() => db.run("SELECT 1")).not.toThrow()
   })
 })

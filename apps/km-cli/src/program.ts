@@ -124,11 +124,13 @@ export function configureProgram(): Command {
     let logLevelOption: string | undefined
 
     while (cmd) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- Commander.js Command.opts() returns any
       const opts = cmd.opts() as GlobalOptions
       rootOption ??= opts.repo
       silentOption ??= opts.silent
       verboseOption ??= opts.verbose
       logLevelOption ??= opts.logLevel
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- Commander.js Command.parent is any
       cmd = cmd.parent
     }
 

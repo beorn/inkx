@@ -5,7 +5,7 @@
  * properly propagate back to the filesystem under various conditions.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 

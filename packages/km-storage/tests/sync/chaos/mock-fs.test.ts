@@ -2,7 +2,7 @@
  * MockFileSystem Tests
  */
 
-import { describe, test, expect, beforeEach } from "bun:test"
+import { describe, test, expect, beforeEach } from "vitest"
 import { MockFileSystem, createMockFileSystem } from "./mock-fs.ts"
 
 describe("MockFileSystem", () => {

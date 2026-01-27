@@ -4,7 +4,9 @@
  * Tests for chaos test report generation and formatting.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+/* eslint-disable @typescript-eslint/no-unsafe-call -- Vitest test functions return any */
+
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { runGenerator } from "@km/core"
@@ -17,9 +19,9 @@ import {
   formatChaosReport,
   formatChaosReportJson,
   formatChaosReportMarkdown,
-  closeDb,
 } from "../../src/index.ts"
 import type { ChaosReport, ChaosScenario } from "../../src/index.ts"
+import { closeDb } from "../../src/internal/db-instance.ts"
 
 // Tests that don't use createRepo can run in parallel
 describe("generateChaosReport", () => {
@@ -325,7 +327,7 @@ describe("formatChaosReportMarkdown", () => {
 const TEST_DIR = "/tmp/kmtest-chaos-report"
 const REPO_DIR = join(TEST_DIR, "repo")
 
-describe.serial("integration with real repo", () => {
+describe.sequential("integration with real repo", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
     mkdirSync(REPO_DIR, { recursive: true })

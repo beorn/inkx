@@ -163,6 +163,14 @@ export async function createBoardTest(
   // Render the board using BoardCore (pure rendering) wrapped in RepoProvider
   const boardCoreElement = React.createElement(BoardCore, {
     state,
+    layout: {
+      columns: state.columns,
+      colIndex: 0,
+      cardIndex: 0,
+      subPath: [],
+      isAtCardLevel: true,
+      isInOutlineMode: false,
+    },
     ui: createInitialUIState("cards", [], { columns: width, rows: height }),
     derivedSelectionLevel: "card",
     dimensions: { columns: width, rows: height },
@@ -173,7 +181,10 @@ export async function createBoardTest(
       handleProjectCancel: () => {},
       handleNewItemCreate: () => {},
       handleNewItemCancel: () => {},
+      handleSearchSelect: () => {},
+      handleSearchCancel: () => {},
     },
+    moveMode: false,
   })
 
   const result = render(
@@ -299,8 +310,10 @@ export async function createBoardTest(
 
     getSelectedNode() {
       const s = this.getState()
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Test helper accessing board state indices
       const col = s.columns[s.colIndex]
       if (!col) return null
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Test helper accessing board state indices
       const card = col.cards[s.cardIndex]
       return card?.node ?? null
     },

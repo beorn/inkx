@@ -13,7 +13,7 @@
  * 3. To get deterministic behavior, we manually trigger sync events after writes
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { writeFileSync, readFileSync } from "fs"
 import { join, dirname } from "path"
 import { EventEmitter } from "events"

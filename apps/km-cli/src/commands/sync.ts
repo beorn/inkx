@@ -12,13 +12,8 @@ import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
 const debug = createDebug("km:cli:sync")
-import {
-  SyncManager,
-  findKmRootFromPath,
-  runWithKmDir,
-  syncState,
-  SCHEMA,
-} from "@km/storage"
+import { SyncManager, findKmRootFromPath, syncState, SCHEMA } from "@km/storage"
+import { runWithKmDir } from "@km/storage/internal/emit.ts"
 import { formatPath } from "../utils/format-path.ts"
 
 /**
@@ -47,15 +42,18 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   })
 
   manager.on("write-complete", (data) => {
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access -- EventEmitter data payload is untyped */
     console.log(
       chalk.green("✓"),
       `Wrote ${data.count} file(s)`,
       data.errors > 0 ? chalk.red(`(${data.errors} error(s))`) : "",
     )
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
   })
 
   manager.on("write-errors", (errors) => {
     for (const { path, error } of errors) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- EventEmitter error payload is untyped
       console.error(chalk.red("✗"), path, error.message)
     }
   })
@@ -190,7 +188,7 @@ export const syncCommand = new Command("sync")
 
     // Open database directly from kmRoot and ensure schema exists
     const db = new Database(join(kmRoot, "state.db"))
-    db.exec(SCHEMA)
+    db.run(SCHEMA)
 
     if (options.watch) {
       const debounceMs = parseInt(options.debounce, 10)

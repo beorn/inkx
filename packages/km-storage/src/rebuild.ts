@@ -7,6 +7,8 @@
  * For the generator helpers (runGenerator, runWithProgress), import from @km/core instead.
  */
 
+/* eslint-disable @typescript-eslint/no-deprecated -- This file contains deprecated rebuild implementation */
+
 import createDebug from "debug"
 import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs"
 import type { Database } from "bun:sqlite"

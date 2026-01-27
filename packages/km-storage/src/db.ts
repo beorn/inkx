@@ -5,18 +5,9 @@
  * All code should use Repo domain object (createRepo) instead of these functions.
  */
 
-// Database path utility and global instance management
-// NOTE: These are deprecated singletons quarantined in internal/
-// For legacy test code, import directly from ./internal/db-instance.ts
-export {
-  getDbPath,
-  closeDb,
-  getDb,
-  setDb,
-  resetDb,
-  isMemoryMode,
-  tryGetContextDb,
-} from "./internal/db-instance.ts"
+// Database singleton functions REMOVED - use createRepo() or pass db explicitly.
+// Legacy consumers can import directly from "./internal/db-instance.ts" if absolutely necessary,
+// but should migrate to dependency injection patterns.
 
 // Re-export db-accepting query functions
 export {

@@ -26,7 +26,6 @@ import type { KNode, TaskStatus } from "@km/core"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA } from "./schema.ts"
 import { addLink } from "./db.ts"
-import { setDb } from "./internal/db-instance.ts"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import {
   findChildByContent,
@@ -41,7 +40,7 @@ export interface NodeStore extends Disposable {
   readonly mode: "memory" | "disk"
   readonly rootPath: string
 
-  // Internal database access (for setDb() calls that configure global state)
+  // Internal database access (for raw queries or DI)
   getDatabase(): Database
 
   // Read operations
@@ -331,11 +330,9 @@ export class MemoryStore extends BaseStore {
       this.initialized = true // Already populated by caller
     } else {
       this.db = new Database(":memory:")
-      this.db.exec(SCHEMA)
-      // Only set the db singleton if not lazy - in lazy mode, the db is managed elsewhere
-      // (e.g., by repo-loader.ts which may have already set up a database)
+      this.db.run(SCHEMA)
+      // Scan filesystem unless lazy mode
       if (!options?.lazy) {
-        setDb(this.db)
         this.scanFilesystem()
       }
     }

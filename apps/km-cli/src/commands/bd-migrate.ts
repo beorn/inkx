@@ -50,6 +50,7 @@ export const migrateCommand = new Command("migrate")
 
     // Read original beads config for issue prefix
     const originalConfig = getOriginalBeadsConfig(resolved.repoRoot)
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- CLI migration command needs legacy config access
     const originalConfigPath = getOriginalBeadsConfigPath()
 
     // Show stats first

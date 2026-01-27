@@ -15,13 +15,12 @@ import {
   rebuildState,
   fullReset,
   freshStart,
-  getDbPath,
   getLastEventId,
-  getEventsPath,
   findKmRootFromPath,
-  runWithKmDir,
   SCHEMA,
 } from "@km/storage"
+import { getDbPath } from "@km/storage/internal/db-instance.ts"
+import { getEventsPath, runWithKmDir } from "@km/storage/internal/emit.ts"
 import { Database } from "bun:sqlite"
 import { existsSync, statSync } from "fs"
 import { join } from "path"
@@ -74,7 +73,7 @@ export const rebuildCommand = new Command("rebuild")
 
       // Open database for rebuild operations
       const db = new Database(join(kmRoot, "state.db"))
-      db.exec(SCHEMA)
+      db.run(SCHEMA)
 
       try {
         if (options.full) {

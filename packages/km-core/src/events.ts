@@ -98,6 +98,7 @@ const _emitter = createNanoEvents<KmEvents>()
  *   unsub()  // Clean unsubscribe
  */
 export const kmEvents = {
+  // eslint-disable-next-line promise/prefer-await-to-callbacks -- Event listener callback pattern
   on<K extends keyof KmEvents>(event: K, cb: KmEvents[K]): Subscription {
     const unbind = _emitter.on(event, cb)
     return createSubscription(unbind)

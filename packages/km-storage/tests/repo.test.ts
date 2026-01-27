@@ -5,7 +5,7 @@
  * See: docs/00-principles.md
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs"
 import { join } from "path"
 

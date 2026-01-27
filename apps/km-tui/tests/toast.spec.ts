@@ -1,7 +1,7 @@
 /**
  * Toast rendering tests - acceptance level UI tests
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { toast, toastQueue } from "@km/core"
 import { testEnv, item } from "./helpers/board-test.ts"
 

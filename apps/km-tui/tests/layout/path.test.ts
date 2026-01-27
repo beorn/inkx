@@ -2,7 +2,7 @@
  * Tests for path rendering (Layer 2)
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import {
   calcPathLength,
   renderPath,

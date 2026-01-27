@@ -5,7 +5,7 @@
  * Uses isolated temp directories for parallel test execution.
  */
 
-import { describe, test, expect, spyOn } from "bun:test"
+import { describe, test, expect, vi } from "vitest"
 import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
 import {
@@ -86,7 +86,7 @@ describe("rebuild.ts", () => {
         )
 
         // Spy on console.warn since readEvents warns about malformed lines
-        const warnSpy = spyOn(console, "warn").mockImplementation(() => {})
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
 
         const events = readEvents(kmDir)
         expect(events.length).toBe(2)

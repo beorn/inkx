@@ -407,13 +407,14 @@ export function* createRepo(
       }
       const dbPath = join(kmDir, "state.db")
       db = new Database(dbPath)
-      db.exec(SCHEMA)
+      db.run(SCHEMA)
     } else {
       db = new Database(":memory:")
-      db.exec(SCHEMA)
+      db.run(SCHEMA)
     }
 
     // Now call loadRepo with OUR db (avoids singleton)
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here
     const loadResult = yield* loadRepo(rootPath, {
       searchAncestors: false, // rootPath is already the repo root
       skipLinkResolution: options.skipLinkResolution,
@@ -469,12 +470,12 @@ export function* createRepo(
 
       const dbPath = join(kmDir, "state.db")
       db = new Database(dbPath)
-      db.exec(SCHEMA)
+      db.run(SCHEMA)
       dataStore = createDBDataStore(db, { emitter })
     } else {
       // Memory mode - ephemeral (no emitter = direct SQL)
       db = new Database(":memory:")
-      db.exec(SCHEMA)
+      db.run(SCHEMA)
       dataStore = createDBDataStore(db)
     }
 

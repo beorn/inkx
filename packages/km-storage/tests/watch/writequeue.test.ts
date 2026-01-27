@@ -5,7 +5,7 @@
  * and permission error handling
  */
 
-import { describe, test, expect, beforeEach } from "bun:test"
+import { describe, test, expect, beforeEach } from "vitest"
 import {
   WriteQueue,
   classifyError,
@@ -721,7 +721,9 @@ describe("Permission Error Handling", () => {
 
     let permissionEvent: PermissionError[] | null = null
     let errorsEvent: unknown[] | null = null
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment -- Test event handler assigns any to typed variable
     queue.on("permission-denied", (e) => (permissionEvent = e))
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment -- Test event handler assigns any to typed variable
     queue.on("errors", (e) => (errorsEvent = e))
 
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })

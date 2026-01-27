@@ -23,7 +23,7 @@ import type {
   ReplResult,
 } from "../../../vendor/beorn-mdtest/src/types.js"
 import { executeKmCommand } from "../src/execute.ts"
-import { closeDb } from "@km/storage"
+import { closeDb } from "@km/storage/internal/db-instance.ts"
 
 interface Opts {
   fixture?: string

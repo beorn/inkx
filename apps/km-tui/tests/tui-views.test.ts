@@ -11,7 +11,7 @@
  * Uses createFakeRepo for fast in-memory testing.
  */
 
-import { describe, test, expect, afterEach } from "bun:test"
+import { describe, test, expect, afterEach } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { GENERIC_BOARD } from "./fixtures/generic-board-fixture.ts"

@@ -2,7 +2,7 @@
  * Tests for rich text rendering (Layer 1)
  */
 
-import { describe, it, expect, beforeAll } from "bun:test"
+import { describe, it, expect, beforeAll } from "vitest"
 import chalk from "chalk"
 import {
   ANSI_REGEX,

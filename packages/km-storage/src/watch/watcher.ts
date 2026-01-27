@@ -20,7 +20,6 @@ import {
 import { EventEmitter } from "events"
 import {
   DEFAULT_IGNORE_PATTERNS,
-  getIgnorePatterns,
   createIgnoreMatcher,
   shouldIgnore,
   isHiddenFile,

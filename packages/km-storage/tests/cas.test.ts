@@ -4,7 +4,7 @@
  * Tests for cas.ts functions.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { existsSync } from "fs"
 import { join } from "path"
 import {

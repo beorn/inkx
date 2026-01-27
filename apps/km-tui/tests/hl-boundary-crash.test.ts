@@ -1,7 +1,7 @@
 /**
  * Test for h/l boundary crash (km-cwn2)
  */
-import { test, expect } from "bun:test"
+import { test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 test("h/l at right boundary doesn't crash", () => {

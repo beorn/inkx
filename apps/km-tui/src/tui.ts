@@ -11,7 +11,8 @@ import type { TUIBoardState, TuiOptions } from "./types.ts"
 import type { Repo } from "./repo-context.tsx"
 import { renderBoardStatic } from "./render.ts"
 import { renderInkxBoard } from "./views/index.ts"
-import { setFsSync, SyncManager } from "@km/storage"
+import { SyncManager } from "@km/storage"
+import { setFsSync } from "@km/storage/internal/emit.ts"
 
 const debug = createDebug("km:tui")
 

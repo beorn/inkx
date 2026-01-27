@@ -65,6 +65,7 @@ export function loadHarness(
  */
 export function loadHarnessFromPath(path: string): Harness {
   const content = readFileSync(path, "utf-8")
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- YAML parser returns any
   const parsed = parseYaml(content)
 
   if (!validateHarness(parsed)) {

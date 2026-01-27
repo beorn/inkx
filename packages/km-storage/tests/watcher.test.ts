@@ -4,7 +4,7 @@
  * Tests for createWatcher factory and Service interface implementation.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
 import { createWatcher } from "../src/index.ts"

@@ -4,7 +4,7 @@
  * Tests that move mode shows visual indicators in the status bar.
  */
 
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Move Mode UI", () => {

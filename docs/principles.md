@@ -21,11 +21,12 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 ## Overview
 
 1. **Composable Domain Objects & Flows** — Build from simple, reusable pieces
-   - Principle: Plain Objects, Factory Functions
-   - Principle: No Magic, No Globals
-   - Principle: The Layer Cake
-   - Principle: `using` for Cleanup
-   - Flows: Generators All The Way Down
+   - Principle: Plain Language
+   - Principle: Plain Objects
+   - Principle: Lego Blocks
+   - Principle: Inject All Dependencies
+   - Principle: Organize Objects Into Layers
+   - Principle: Organize Flows Too
 2. **The Fast Feedback Loop** — Keep the loop tight to maintain extreme quality
    - Principle: Fail Loud, Fail Now
    - Principle: 5-Second Test Loops
@@ -48,11 +49,11 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 
 - [Overview](#overview)
 - [Part 1: Composable Domain Objects & Flows](#part-1-composable-domain-objects--flows)
+  - [Principle: Plain Language](#principle-plain-language)
+  - [Principle: Lego Blocks](#principle-lego-blocks)
   - [Principle: Plain Objects, Factory Functions](#principle-plain-objects-factory-functions)
-  - [Principle: No Magic, No Globals](#principle-no-magic-no-globals)
-  - [Principle: The Layer Cake](#principle-the-layer-cake)
-  - [Principle: `using` for Cleanup](#principle-using-for-cleanup)
-  - [Flows: Generators All The Way Down](#flows-generators-all-the-way-down)
+  - [Principle: Organize Objects Into Layers](#principle-organize-objects-into-layers)
+  - [Principle: Compose Flows using Generators](#principle-compose-flows-using-generators)
 - [Part 2: The Fast Feedback Loop](#part-2-the-fast-feedback-loop)
   - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now)
   - [Principle: 5-Second Test Loops](#principle-5-second-test-loops)
@@ -98,26 +99,6 @@ Domain objects are plain objects created by factory functions. They compose via 
 If your narrative needs technical jargon to make sense, the names are wrong.
 
 **Why**: Domain language makes code self-documenting and reduces onboarding time. New contributors (human or AI) can understand the system by reading type names.
-
----
-
-### Principle: Lego Blocks
-
-**The insight**: Use the fewest possible building blocks. Every additional abstraction type creates impedance mismatch.
-
-**The pattern**: Stick to plain objects, functions, and async generators.
-
-**Why types create friction**:
-
-- Classes don't compose with plain objects
-- Can't JSON.stringify class instances
-- Can't spread without losing methods
-- Can't pass through IPC without custom serialization
-- Need special handling for cloning, merging, debugging
-
-**Plain objects work everywhere**: JSON, IPC, spread operators, Object.assign, testing, debugging.
-
-**Why**: Fewer types means less cognitive overhead and more natural composition.
 
 ---
 
@@ -222,11 +203,29 @@ Domain objects (Repo, Board, Watcher) must still use factory functions.
 
 ---
 
-### Principle: Inject All Dependencies
+### Principle: Lego Blocks
 
-**The insight**: If you need something, pass it in. No magic, no globals, no singletons.
+**The insight**: Use the fewest possible building blocks to maximize interoperability. Every additional abstraction type creates impedance mismatch.
 
-**The pattern**: Dependencies via options, with defaults for production.
+**The pattern**: Stick to plain objects, functions, and async generators. Inject all dependencies explicitly.
+
+**Minimize types, maximize interoperability**:
+
+Every type you add creates friction:
+
+- Classes don't compose with plain objects
+- Can't JSON.stringify class instances
+- Can't spread without losing methods
+- Can't pass through IPC without custom serialization
+- Need special handling for cloning, merging, debugging
+
+**Plain objects work everywhere**: JSON, IPC, spread operators, Object.assign, testing, debugging.
+
+**Why**: Fewer types means less cognitive overhead and more natural composition.
+
+**No magic, no globals, no singletons**:
+
+If you need something, pass it in explicitly:
 
 ```typescript
 // Dependencies are explicit and swappable
@@ -331,9 +330,9 @@ async function watchRepo(path: string) {
 
 ---
 
-### Principle: Organize Flows Too
+### Principle: Compose Flows using Generators
 
-Like objects, flows benefit from organization. Async generators make multi-stage data processing composable—each stage is a function that yields items, and stages compose like building blocks.
+Like objects, flows benefit from composition. Async generators make multi-stage data processing composable—each stage is a function that yields items, and stages compose like building blocks.
 
 **The insight**: Multi-stage data processing composes naturally with async generators.
 
@@ -722,7 +721,7 @@ These principles exist in Parts 1-3 because they're universal. But LLMs suffer M
 
 **[Principle: Plain Objects, Factory Functions](#principle-plain-objects-factory-functions)** — LLMs can't track hidden state or method inheritance across files. Plain objects with explicit dependencies are self-documenting.
 
-**[Principle: No Magic, No Globals](#principle-no-magic-no-globals)** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` works without hidden context.
+**[Principle: Lego Blocks](#principle-lego-blocks)** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` works without hidden context. Minimal types (plain objects, functions, generators) reduce impedance mismatch.
 
 **[Principle: Quarantine and Delete](#principle-quarantine-and-delete)** — If old patterns exist, LLMs will use them. With no memory of "this is deprecated," the only way to prevent old patterns is to make them impossible.
 
@@ -740,7 +739,7 @@ A codebase optimized for LLM agents has:
 - **Fast feedback loops** (<5s tests - [Principle: 5-Second Test Loops](#principle-5-second-test-loops))
 - **Loud failures** (throw, don't log - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now))
 - **No legacy patterns** (quarantined/deleted - [Principle: Quarantine and Delete](#principle-quarantine-and-delete))
-- **Self-documenting APIs** (explicit deps - [Principle: No Magic, No Globals](#principle-no-magic-no-globals))
+- **Self-documenting APIs** (explicit deps - [Principle: Lego Blocks](#principle-lego-blocks))
 - **Continuous merciless refactoring** to maintain the plateau
 
 ---

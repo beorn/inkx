@@ -161,19 +161,19 @@ export function* loadRepo(
     db = options.db
     if (options?.force) {
       // Reset database tables (inline to avoid singleton dependency)
-      db.exec(`
+      db.run(`
         DROP TABLE IF EXISTS nodes_fts;
         DROP TABLE IF EXISTS nodes;
         DROP TABLE IF EXISTS links;
         DROP TABLE IF EXISTS meta;
       `)
-      db.exec(SCHEMA)
+      db.run(SCHEMA)
     }
   } else {
     // No db provided - create in-memory database
     // This is for memory mode when caller doesn't need to retain db reference
     db = new Database(":memory:")
-    db.exec(SCHEMA)
+    db.run(SCHEMA)
   }
 
   // 3. Mode-specific event source (yield* chains progress)

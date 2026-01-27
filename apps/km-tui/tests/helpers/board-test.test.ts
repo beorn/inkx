@@ -4,7 +4,7 @@
  * Verifies the board-test helper works correctly.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { renderBoard, board, column, SIMPLE_BOARD } from "./board-test.ts"
 
 describe("board-test helper", () => {

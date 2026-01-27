@@ -5,7 +5,7 @@
  * This is critical for ensuring no silent data loss during sync operations.
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { parseMarkdownToNodes, nodesToMarkdown } from "@km/markdown"
 import { SeededRandom } from "./seeded-random.ts"
 

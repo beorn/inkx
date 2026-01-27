@@ -5,7 +5,7 @@
  * Uses isolated temp directories per test for parallelization.
  */
 
-import { describe, test, expect, afterEach } from "bun:test"
+import { describe, test, expect, afterEach } from "vitest"
 import { mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"

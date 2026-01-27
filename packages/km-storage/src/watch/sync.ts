@@ -151,6 +151,7 @@ export class SyncManager extends EventEmitter {
     this.writeQueue.setWatcher(this.watcher)
 
     // Wire up events
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Watcher event data is untyped
     this.watcher.on("sync", (data) => void this.handleFsSync(data))
     this.watcher.on("error", (error) => this.emit("error", error))
     this.watcher.on("ready", () => this.emit("ready"))
