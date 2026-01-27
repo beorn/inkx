@@ -9,7 +9,6 @@
   "private": true,
   "dependencies": {
     "@beorn/chalkx": "workspace:*",
-    "@beorn/inkx-ui": "workspace:*",
     "@beorn/tui-measure": "workspace:*",
     "@km/board": "workspace:*",
     "@km/commands": "workspace:*",
@@ -18,11 +17,8 @@
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "chalk": "^5.4.1",
-    "fullscreen-ink": "^0.1.0",
-    "ink": "^6.0.0",
     "inkx": "workspace:*",
-    "react": "catalog:",
-    "wrap-ansi": "^9.0.2"
+    "react": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",

@@ -7,8 +7,5 @@
     ".": "./src/index.ts"
   },
   "private": true,
-  "dependencies": {
-    "@km/core": "workspace:*",
-    "@km/storage": "workspace:*"
-  }
+  "dependencies": {}
 }
