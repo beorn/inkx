@@ -15,8 +15,6 @@ import {
   initBoardState,
   buildBoardState,
   getNodeDisplayName,
-  getCurrentCard,
-  getCurrentColumn,
 } from "../src/state.ts"
 import { renderBoardStatic, renderCard } from "../src/render.ts"
 import type { CardState } from "../src/types.ts"
@@ -35,6 +33,14 @@ function renderBoardCore(
   const { width = 80, height = 24 } = options
   const boardCoreElement = React.createElement(BoardCore, {
     state,
+    layout: {
+      columns: state.columns,
+      colIndex: 0,
+      cardIndex: 0,
+      subPath: [],
+      isAtCardLevel: true,
+      isInOutlineMode: false,
+    },
     ui: createInitialUIState("cards", [], { columns: width, rows: height }),
     derivedSelectionLevel: "card" as const,
     dimensions: { columns: width, rows: height },
@@ -48,6 +54,7 @@ function renderBoardCore(
       handleSearchSelect: () => {},
       handleSearchCancel: () => {},
     },
+    moveMode: false,
   })
   return React.createElement(RepoProvider, {
     repo,
@@ -160,33 +167,6 @@ describe.serial("State", () => {
     })
     const node = repo.getNode("folder1")!
     expect(getNodeDisplayName(repo, node)).toBe("My Folder")
-  })
-
-  test("getCurrentCard returns current card", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("board", "board", "Board", null, 0),
-        makeNode("col", "folder", "Column", "board", 0),
-        makeNode("card", "task", "Card", "col", 0),
-      ],
-    })
-    const state = buildBoardState(repo, "board")
-    const card = getCurrentCard(state)
-    expect(card).not.toBeNull()
-    expect(card!.node.id).toBe("card")
-  })
-
-  test("getCurrentColumn returns current column", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("board", "board", "Board", null, 0),
-        makeNode("col", "folder", "Column", "board", 0),
-      ],
-    })
-    const state = buildBoardState(repo, "board")
-    const col = getCurrentColumn(state)
-    expect(col).not.toBeNull()
-    expect(col!.node.id).toBe("col")
   })
 
   test("buildBoardState filters out paragraph nodes as columns (km-1tho)", () => {

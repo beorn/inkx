@@ -83,6 +83,8 @@ export { makeSelectionKey } from "../types.ts"
 export interface BoardCoreProps {
   /** Legacy column-based state for rendering */
   state: TUIBoardState
+  /** Derived columns layout (includes colIndex/cardIndex derived from cursorNodeId) */
+  layout: ColumnsLayout
   /** UI state (dialogs, view mode, etc.) */
   ui: UIState
   /** Derived selection level from cursor depth */
@@ -112,6 +114,7 @@ export interface BoardCoreProps {
  */
 export function BoardCore({
   state,
+  layout,
   ui,
   derivedSelectionLevel,
   dimensions,
@@ -133,14 +136,14 @@ export function BoardCore({
   const colScrollOffset = Math.max(
     0,
     Math.min(
-      state.colIndex - Math.floor(maxCols / 2),
+      layout.colIndex - Math.floor(maxCols / 2),
       Math.max(0, state.columns.length - maxCols),
     ),
   )
 
   // Build selected item path segments for colorized top bar
-  const selectedCol = state.columns[state.colIndex]
-  const selectedCard = selectedCol?.cards[state.cardIndex]
+  const selectedCol = state.columns[layout.colIndex]
+  const selectedCard = selectedCol?.cards[layout.cardIndex]
 
   // Determine which node to show path to based on selection level
   const pathNodeId =
@@ -167,7 +170,7 @@ export function BoardCore({
     : maxCols
   const effectiveScrollOffset = ui.showDetailPane
     ? calcEdgeBasedColumnScrollOffset(
-        state.colIndex,
+        layout.colIndex,
         colScrollOffset,
         effectiveMaxCols,
         state.columns.length,
@@ -267,11 +270,11 @@ export function BoardCore({
                             <Column
                               column={col}
                               colIndex={actualColIndex}
-                              isSelected={actualColIndex === state.colIndex}
+                              isSelected={actualColIndex === layout.colIndex}
                               isCollapsed={ui.collapsedColumns.has(
                                 actualColIndex,
                               )}
-                              selectedCardIndex={state.cardIndex}
+                              selectedCardIndex={layout.cardIndex}
                               selectedSubIndex={
                                 ui.inOutlineMode ? ui.subIndex : -1
                               }
@@ -297,8 +300,8 @@ export function BoardCore({
                   state={state}
                   width={boardWidth}
                   height={contentHeight}
-                  colIndex={state.colIndex}
-                  cardIndex={state.cardIndex}
+                  colIndex={layout.colIndex}
+                  cardIndex={layout.cardIndex}
                   subIndex={ui.subIndex}
                   effectiveScrollOffset={effectiveScrollOffset}
                   effectiveMaxCols={effectiveMaxCols}
@@ -310,8 +313,8 @@ export function BoardCore({
                   state={state}
                   width={boardWidth}
                   height={contentHeight}
-                  colIndex={state.colIndex}
-                  cardIndex={state.cardIndex}
+                  colIndex={layout.colIndex}
+                  cardIndex={layout.cardIndex}
                   subIndex={ui.subIndex}
                   selectionLevel={derivedSelectionLevel}
                 />
@@ -320,8 +323,8 @@ export function BoardCore({
                   state={state}
                   width={boardWidth}
                   height={contentHeight}
-                  colIndex={state.colIndex}
-                  cardIndex={state.cardIndex}
+                  colIndex={layout.colIndex}
+                  cardIndex={layout.cardIndex}
                   subIndex={ui.subIndex}
                   selectionLevel={derivedSelectionLevel}
                 />
@@ -469,14 +472,15 @@ export function Board({
   )
 
   // Derive initial cursorNodeId from initialState
+  // Select the first card in the first column as the initial cursor position
   const initialCursorNodeId = useMemo(() => {
-    if (initialState.colIndex >= 0) {
-      const col = initialState.columns[initialState.colIndex]
-      if (col && initialState.cardIndex >= 0) {
-        const card = col.cards[initialState.cardIndex]
-        return card?.node.id ?? col.node.id
+    if (initialState.columns.length > 0) {
+      const firstCol = initialState.columns[0]
+      if (firstCol && firstCol.cards.length > 0) {
+        const firstCard = firstCol.cards[0]
+        return firstCard?.node.id ?? firstCol.node.id
       }
-      return col?.node.id ?? null
+      return firstCol?.node.id ?? null
     }
     return null
   }, [initialState])
@@ -537,8 +541,6 @@ export function Board({
       rootId: boardState.rootId,
       rootPath: boardState.rootPath,
       columns: columnsLayout.columns,
-      colIndex: columnsLayout.colIndex,
-      cardIndex: columnsLayout.cardIndex,
       selectedCards: new Set<string>(),
       visualMode: false,
       foldedCards: boardState.foldedNodes,
@@ -555,6 +557,7 @@ export function Board({
     repo,
     state,
     dispatch,
+    cursorNodeId: boardState.cursorNodeId,
   })
 
   // Calculate visible columns for scroll offset tracking
@@ -566,7 +569,7 @@ export function Board({
 
   // Update scroll offset ref
   const colScrollOffset = calcEdgeBasedColumnScrollOffset(
-    state.colIndex,
+    columnsLayout.colIndex,
     colScrollOffsetRef.current,
     maxCols,
     state.columns.length,
@@ -646,6 +649,7 @@ export function Board({
   return (
     <BoardCore
       state={state}
+      layout={columnsLayout}
       ui={ui}
       derivedSelectionLevel={derivedSelectionLevel}
       dimensions={ui.dimensions}

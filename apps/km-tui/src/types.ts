@@ -16,8 +16,6 @@ export interface TUIBoardState {
   rootId: string | null
   rootPath: string | null // Filesystem path to the board root (for display)
   columns: ColumnState[]
-  colIndex: number
-  cardIndex: number
   selectedCards: Set<string>
   visualMode: boolean
   foldedCards: Set<string>

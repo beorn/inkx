@@ -94,8 +94,8 @@ export function handleZoomOutwards(ctx: TUIContext): ActionResult {
  */
 export function handleZoomIn(ctx: TUIContext): ActionResult {
   const { state, boardState, ui, dispatch, dispatchBoard, layout } = ctx
-  const col = state.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const col = state.columns[state.colIndex]
+  const card = col?.cards[state.cardIndex]
 
   if (!card) return precondition("card")
 
@@ -173,8 +173,8 @@ export function handleZoomInNode(
  */
 export function handleZoomInwards(ctx: TUIContext): ActionResult {
   const { state, boardState, ui, dispatch, dispatchBoard, layout } = ctx
-  const col = state.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const col = state.columns[state.colIndex]
+  const card = col?.cards[state.cardIndex]
 
   if (!card) {
     return precondition("card")

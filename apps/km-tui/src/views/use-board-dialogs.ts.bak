@@ -18,8 +18,6 @@ interface UseBoardDialogsParams {
   repo: Repo
   state: TUIBoardState
   dispatch: (action: ReturnType<(typeof actions)[keyof typeof actions]>) => void
-  /** Current cursor node ID (from board state) */
-  cursorNodeId: string | null
 }
 
 interface BoardDialogHandlers {
@@ -43,26 +41,19 @@ export function useBoardDialogs({
   repo,
   state,
   dispatch,
-  cursorNodeId,
 }: UseBoardDialogsParams): BoardDialogHandlers {
   // Handle project picker selection
   // For linked nodes (transclusions), re-parent the TARGET node, not the link
   const handleProjectSelect = useCallback(
     (targetNode: KNode) => {
-      if (!cursorNodeId) {
-        dispatch(actions.hideProjectPicker())
-        return
-      }
-
-      // Get the node at the cursor
-      const cursorNode = repo.getNode(cursorNodeId)
-      if (!cursorNode) {
+      const card = state.columns[state.colIndex]?.cards[state.cardIndex]
+      if (!card) {
         dispatch(actions.hideProjectPicker())
         return
       }
 
       // Resolve link target: if this is a link, operate on the target
-      const nodeToMove = cursorNode.link_to || cursorNode.id
+      const nodeToMove = card.node.link_to || card.node.id
 
       // Calculate sort order (add at end of target)
       const targetChildren = repo.getChildren(targetNode.id)
@@ -78,7 +69,7 @@ export function useBoardDialogs({
       // Close picker - columns will be re-derived from repo on next render
       dispatch(actions.hideProjectPicker())
     },
-    [repo, cursorNodeId, dispatch],
+    [repo, state, dispatch],
   )
 
   const handleProjectCancel = useCallback(() => {

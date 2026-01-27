@@ -36,11 +36,16 @@ export function defaultRenderOptions(): RenderOptions {
 
 /**
  * Render the entire board to a string
+ *
+ * NOTE: This is legacy rendering code used only in tests.
+ * Production code uses React-based BoardCore component.
  */
 export function renderBoard(
   repo: Repo,
   state: TUIBoardState,
   opts: RenderOptions,
+  colIndex = 0,
+  cardIndex = 0,
 ): string {
   const lines: string[] = []
   const { width, height } = opts
@@ -73,7 +78,7 @@ export function renderBoard(
     const name = getNodeDisplayName(repo, col.node)
     const count = col.cards.length
     const header = ` ${name} (${count}) `
-    const isSelected = i === state.colIndex
+    const isSelected = i === colIndex
     const padded = header.padEnd(colWidth - 1).slice(0, colWidth - 1)
     return isSelected ? chalk.bold.bgBlue.white(padded) : chalk.bold(padded)
   })
@@ -90,7 +95,7 @@ export function renderBoard(
         return " ".repeat(colWidth - 1)
       }
 
-      const isCurrentCard = ci === state.colIndex && row === state.cardIndex
+      const isCurrentCard = ci === colIndex && row === cardIndex
       const isSelected = state.selectedCards.has(card.node.id)
       const isFolded = state.foldedCards.has(card.node.id)
 

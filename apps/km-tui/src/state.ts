@@ -48,8 +48,6 @@ export function createEmptyState(): TUIBoardState {
     rootId: null,
     rootPath: null,
     columns: [],
-    colIndex: 0,
-    cardIndex: 0,
     selectedCards: new Set(),
     visualMode: false,
     foldedCards: new Set(),
@@ -139,8 +137,6 @@ export function initBoardState(
     rootId: null, // null means "root level"
     rootPath: null,
     columns,
-    colIndex: 0,
-    cardIndex: 0,
     selectedCards: new Set(),
     visualMode: false,
     foldedCards: new Set(),
@@ -235,8 +231,6 @@ export function* initBoardStateGenerator(
     rootId: null,
     rootPath: null,
     columns,
-    colIndex: 0,
-    cardIndex: 0,
     selectedCards: new Set(),
     visualMode: false,
     foldedCards: new Set(),
@@ -375,8 +369,6 @@ export function* buildBoardStateGenerator(
     rootId,
     rootPath: null,
     columns,
-    colIndex: 0,
-    cardIndex: 0,
     selectedCards: new Set(),
     visualMode: false,
     foldedCards: new Set(),
@@ -580,8 +572,6 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
     rootId,
     rootPath: null, // Will be set by caller if needed
     columns,
-    colIndex: 0,
-    cardIndex: 0,
     selectedCards: new Set(),
     visualMode: false,
     foldedCards: new Set(),
@@ -590,21 +580,6 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
     searchMode: false,
     helpMode: false,
   }
-}
-
-/**
- * Get the current card (if any)
- */
-export function getCurrentCard(state: TUIBoardState): CardState | null {
-  const col = state.columns[state.colIndex]
-  return col?.cards[state.cardIndex] ?? null
-}
-
-/**
- * Get the current column (if any)
- */
-export function getCurrentColumn(state: TUIBoardState): ColumnState | null {
-  return state.columns[state.colIndex] ?? null
 }
 
 function hasSearchMatches(state: TUIBoardState): boolean {

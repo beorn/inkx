@@ -87,9 +87,39 @@ Software is built from composable pieces. Both **structures** (objects) and **fl
 
 Domain objects are plain objects created by factory functions. They compose via explicit dependencies, enabling testing, swapping, and isolation.
 
-**Minimize types, maximize interoperability**: Use the fewest possible building blocks (plain objects, functions, async generators). Every additional abstraction type (classes, custom containers, specialized patterns) creates impedance mismatch—objects and classes don't compose, you can't serialize class instances, you can't spread them without losing methods. Plain objects work everywhere: JSON, IPC, spread operators, Object.assign, testing, debugging. Fewer types means less cognitive overhead and more natural composition.
+### Principle: Plain Language
 
-**Use the end-user's domain language**: Names for objects, types, and flows should come from the problem domain, not the implementation. A narrative written using actual type names should read naturally: "A Repo loads Nodes from files. The Board displays Nodes and handles Commands. The Watcher detects file changes and triggers sync." If your narrative needs technical jargon to make sense, the names are wrong.
+**The insight**: Names should come from the problem domain, not the implementation.
+
+**The pattern**: A narrative written using actual type names should read naturally.
+
+**Example narrative**: "A Repo loads Nodes from files. The Board displays Nodes and handles Commands. The Watcher detects file changes and triggers sync."
+
+If your narrative needs technical jargon to make sense, the names are wrong.
+
+**Why**: Domain language makes code self-documenting and reduces onboarding time. New contributors (human or AI) can understand the system by reading type names.
+
+---
+
+### Principle: Lego Blocks
+
+**The insight**: Use the fewest possible building blocks. Every additional abstraction type creates impedance mismatch.
+
+**The pattern**: Stick to plain objects, functions, and async generators.
+
+**Why types create friction**:
+
+- Classes don't compose with plain objects
+- Can't JSON.stringify class instances
+- Can't spread without losing methods
+- Can't pass through IPC without custom serialization
+- Need special handling for cloning, merging, debugging
+
+**Plain objects work everywhere**: JSON, IPC, spread operators, Object.assign, testing, debugging.
+
+**Why**: Fewer types means less cognitive overhead and more natural composition.
+
+---
 
 ### Principle: Plain Objects, Factory Functions
 
@@ -192,9 +222,9 @@ Domain objects (Repo, Board, Watcher) must still use factory functions.
 
 ---
 
-### Principle: No Magic, No Globals
+### Principle: Inject All Dependencies
 
-**The insight**: If you need something, it must be passed in.
+**The insight**: If you need something, pass it in. No magic, no globals, no singletons.
 
 **The pattern**: Dependencies via options, with defaults for production.
 
@@ -240,39 +270,9 @@ export function getDb() {
 // ✅ GOOD - explicit dependency (see above)
 ```
 
----
+#### Technique: `using` for Cleanup
 
-### Principle: The Layer Cake
-
-```
-┌─────────────────────────────────────────────────┐
-│  APP        apps/ (TUI, CLI, REPL)              │
-├─────────────────────────────────────────────────┤
-│  BOARD      @km/board (cursor, selection, zoom) │
-├─────────────────────────────────────────────────┤
-│  TREE       @km/tree (queries, display names)   │
-├─────────────────────────────────────────────────┤
-│  STORAGE    @km/storage (SQLite, events, sync)  │
-├─────────────────────────────────────────────────┤
-│  PARSER     @km/markdown (markdown ↔ KNode)     │
-├─────────────────────────────────────────────────┤
-│  FILESYSTEM .md files (source of truth)         │
-└─────────────────────────────────────────────────┘
-```
-
-**Rules**:
-
-- Each layer calls only the layer directly below
-- UI never touches filesystem directly
-- All mutations flow through emit() (enables sync, undo, multi-window)
-
-**Why**: Testable in isolation, clear boundaries, replaceable implementations.
-
----
-
-### Principle: `using` for Cleanup
-
-**The insight**: Resources acquired = resources released. If you create something, you must clean it up.
+When you inject dependencies, you own their lifecycle. The `using` keyword ensures automatic cleanup.
 
 **The pattern**: `using` / `await using` for automatic cleanup.
 
@@ -299,11 +299,41 @@ async function watchRepo(path: string) {
 - Clear ownership (creator is responsible for cleanup)
 - Predictable teardown order (reverse of creation)
 
+**Why this relates to DI**: Resources you create are dependencies you manage. Lifecycle management is part of dependency management.
+
 ---
 
-Async generators make multi-stage data processing composable. Each stage is a function that yields items, and stages compose like building blocks.
+### Principle: Organize Objects Into Layers
 
-### Flows: Generators All The Way Down
+```
+┌─────────────────────────────────────────────────┐
+│  APP        apps/ (TUI, CLI, REPL)              │
+├─────────────────────────────────────────────────┤
+│  BOARD      @km/board (cursor, selection, zoom) │
+├─────────────────────────────────────────────────┤
+│  TREE       @km/tree (queries, display names)   │
+├─────────────────────────────────────────────────┤
+│  STORAGE    @km/storage (SQLite, events, sync)  │
+├─────────────────────────────────────────────────┤
+│  PARSER     @km/markdown (markdown ↔ KNode)     │
+├─────────────────────────────────────────────────┤
+│  FILESYSTEM .md files (source of truth)         │
+└─────────────────────────────────────────────────┘
+```
+
+**Rules**:
+
+- Each layer calls only the layer directly below
+- UI never touches filesystem directly
+- All mutations flow through emit() (enables sync, undo, multi-window)
+
+**Why**: Testable in isolation, clear boundaries, replaceable implementations. Each layer can be understood independently, reducing cognitive overhead.
+
+---
+
+### Principle: Organize Flows Too
+
+Like objects, flows benefit from organization. Async generators make multi-stage data processing composable—each stage is a function that yields items, and stages compose like building blocks.
 
 **The insight**: Multi-stage data processing composes naturally with async generators.
 

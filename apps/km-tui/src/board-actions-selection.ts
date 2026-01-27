@@ -20,9 +20,9 @@ export function handleExtendSelectVertical(
   ctx: TUIContext,
   direction: "up" | "down",
 ): void {
-  const { state, ui, dispatch, dispatchBoard } = ctx
-  const col = state.columns[state.colIndex]
-  const card = col?.cards[state.cardIndex]
+  const { state, layout, ui, dispatch, dispatchBoard } = ctx
+  const col = state.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
 
   if (!card || !col) return
 
@@ -30,13 +30,13 @@ export function handleExtendSelectVertical(
   if (ui.multiSelected.size === 0) {
     dispatch(
       actions.setSelectionAnchor({
-        col: state.colIndex,
-        card: state.cardIndex,
+        col: layout.colIndex,
+        card: layout.cardIndex,
         sub: 0,
       }),
     )
     const newSelected = new Set(ui.multiSelected)
-    newSelected.add(makeSelectionKey(state.colIndex, state.cardIndex, 0))
+    newSelected.add(makeSelectionKey(layout.colIndex, layout.cardIndex, 0))
     dispatch(actions.setMultiSelected(newSelected))
     dispatch(
       actions.setStatus({
@@ -49,10 +49,10 @@ export function handleExtendSelectVertical(
   // Calculate target
   const targetIdx =
     direction === "up"
-      ? Math.max(0, state.cardIndex - 1)
-      : Math.min(col.cards.length - 1, state.cardIndex + 1)
+      ? Math.max(0, layout.cardIndex - 1)
+      : Math.min(col.cards.length - 1, layout.cardIndex + 1)
 
-  if (targetIdx === state.cardIndex) return
+  if (targetIdx === layout.cardIndex) return
 
   // Move cursor
   const treeDir = direction === "up" ? "prev" : "next"
@@ -64,7 +64,7 @@ export function handleExtendSelectVertical(
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
     // Update selection range (will also set status)
-    updateSelectionRange(ctx, state.colIndex, targetIdx, 0)
+    updateSelectionRange(ctx, layout.colIndex, targetIdx, 0)
   }
 }
 

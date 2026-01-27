@@ -897,6 +897,14 @@ export function renderBoard(
   const render = createTestRenderer({ columns, rows })
   const boardCoreElement = React.createElement(BoardCore, {
     state,
+    layout: {
+      columns: state.columns,
+      colIndex: 0,
+      cardIndex: 0,
+      subPath: [],
+      isAtCardLevel: true,
+      isInOutlineMode: false,
+    },
     ui: createInitialUIState("cards", [], { columns, rows }),
     derivedSelectionLevel: "card",
     dimensions: { columns, rows },
@@ -910,6 +918,7 @@ export function renderBoard(
       handleSearchSelect: () => {},
       handleSearchCancel: () => {},
     },
+    moveMode: false,
   })
   const result = render(
     React.createElement(RepoProvider, { repo, children: boardCoreElement }),

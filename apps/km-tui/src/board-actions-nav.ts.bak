@@ -34,9 +34,9 @@ function handleHierarchicalNavigation(
   ctx: TUIContext,
   dir: "up" | "down",
 ): string | null {
-  const { state, layout, boardState, repo, positionRegistry } = ctx
+  const { state, boardState, repo, positionRegistry } = ctx
   const { cursorNodeId, rootId } = boardState
-  const col = state.columns[layout.colIndex]
+  const col = state.columns[state.colIndex]
 
   if (!cursorNodeId) {
     // No cursor - can't navigate
@@ -98,7 +98,7 @@ function handleHierarchicalNavigation(
 
     if (isAtColumnLevel) {
       // Column header → board title (save column index for return)
-      positionRegistry.setStickyX(layout.colIndex)
+      positionRegistry.setStickyX(state.colIndex)
       return rootId
     }
 
@@ -115,9 +115,9 @@ function handleHierarchicalNavigation(
  * Handle cursor movement in any direction.
  */
 export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
-  const { state, layout, ui, dispatch, dispatchBoard, positionRegistry } = ctx
-  const col = state.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const { state, ui, dispatch, dispatchBoard, positionRegistry } = ctx
+  const col = state.columns[state.colIndex]
+  const card = col?.cards[state.cardIndex]
 
   // Check for special modes first
   if (ui.inOutlineMode && (dir === "prev" || dir === "next")) {
@@ -157,10 +157,10 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
       // Vertical navigation with selection
       const targetIdx =
         dir === "prev"
-          ? Math.max(0, layout.cardIndex - 1)
-          : Math.min((col?.cards.length ?? 1) - 1, layout.cardIndex + 1)
+          ? Math.max(0, state.cardIndex - 1)
+          : Math.min((col?.cards.length ?? 1) - 1, state.cardIndex + 1)
 
-      if (targetIdx !== layout.cardIndex) {
+      if (targetIdx !== state.cardIndex) {
         const direction = dir === "prev" ? "prev" : "next"
         const targetId = handleTreeNavigation(
           direction as TreeDirection,
@@ -170,7 +170,7 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
         if (targetId) {
           dispatchBoard({ type: "SELECT", nodeId: targetId })
           if (ui.selectionAnchor !== null) {
-            updateSelectionRange(ctx, layout.colIndex, targetIdx, 0)
+            updateSelectionRange(ctx, state.colIndex, targetIdx, 0)
           }
           return ok()
         }
@@ -188,7 +188,7 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
   // Per docs/06-ui.md: curswantY = head midpoint, find card whose box intersects
   if (dir === "left" || dir === "right") {
     // Find next non-virtual column, skipping body columns
-    let targetColIndex = layout.colIndex
+    let targetColIndex = state.colIndex
     const step = dir === "left" ? -1 : 1
     do {
       targetColIndex += step
@@ -206,7 +206,7 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
 
     // No movement possible (or landed on virtual column at boundary)
     if (
-      targetColIndex === layout.colIndex ||
+      targetColIndex === state.colIndex ||
       state.columns[targetColIndex]?.isVirtual
     ) {
       return boundary(dir)
@@ -220,7 +220,7 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     }
 
     // If at column level (cardIndex < 0), move to target column's header (not a card)
-    if (layout.cardIndex < 0) {
+    if (state.cardIndex < 0) {
       dispatchBoard({ type: "SELECT", nodeId: targetCol.node.id })
       return ok()
     }
@@ -230,13 +230,13 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     // or if columns are off-screen (virtualized).
     // Fallback: navigate to first card in target column if positions unavailable.
     const hasCurrentPositions = positionRegistry.hasCardsInColumn(
-      layout.colIndex,
+      state.colIndex,
     )
     const hasTargetPositions = positionRegistry.hasCardsInColumn(targetColIndex)
 
     debug(
       "h/l nav: curCol=%d hasCur=%s, targetCol=%d hasTgt=%s",
-      layout.colIndex,
+      state.colIndex,
       hasCurrentPositions,
       targetColIndex,
       hasTargetPositions,
@@ -260,7 +260,7 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     if (!hasCurrentPositions) {
       debug(
         "h/l nav: current column %d has no positions, can't get curswantY. Falling back to first card. Registry:\n%s",
-        layout.colIndex,
+        state.colIndex,
         positionRegistry.dump(),
       )
       const firstCard = targetCol.cards[0]
@@ -276,13 +276,13 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     if (curswantY === null) {
       // First h/l move - get head midpoint of current card from measured position
       const currentLayout = positionRegistry.getCard(
-        layout.colIndex,
-        layout.cardIndex,
+        state.colIndex,
+        state.cardIndex,
       )
       debug(
         "h/l: getting curswantY from current card col=%d idx=%d layout=%O",
-        layout.colIndex,
-        layout.cardIndex,
+        state.colIndex,
+        state.cardIndex,
         currentLayout.layout,
       )
       curswantY = getCardMidY(currentLayout.layout)
@@ -479,8 +479,8 @@ export function handlePageJump(
   ctx: TUIContext,
   direction: "up" | "down",
 ): void {
-  const { state, layout, ui, dispatchBoard } = ctx
-  const col = state.columns[layout.colIndex]
+  const { state, ui, dispatchBoard } = ctx
+  const col = state.columns[state.colIndex]
 
   if (!col) return
 
@@ -489,10 +489,10 @@ export function handlePageJump(
 
   const targetIdx =
     direction === "up"
-      ? Math.max(0, layout.cardIndex - pageSize)
-      : Math.min(col.cards.length - 1, layout.cardIndex + pageSize)
+      ? Math.max(0, state.cardIndex - pageSize)
+      : Math.min(col.cards.length - 1, state.cardIndex + pageSize)
 
-  if (targetIdx !== layout.cardIndex) {
+  if (targetIdx !== state.cardIndex) {
     const targetCard = col.cards[targetIdx]
     if (targetCard) {
       dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })

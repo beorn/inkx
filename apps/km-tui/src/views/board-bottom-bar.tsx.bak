@@ -118,7 +118,7 @@ export function BottomBar({
   const rightParts: string[] = [dbFilesGroup]
   // Show column position (only meaningful in columns view)
   if (ui.viewMode === "columns" && state.columns.length > 1) {
-    rightParts.push(`col ${layout.colIndex + 1}/${state.columns.length}`)
+    rightParts.push(`col ${state.colIndex + 1}/${state.columns.length}`)
   }
   // Always show view mode with VIEW suffix
   const viewModeStr = (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW"
@@ -165,7 +165,7 @@ export function BottomBar({
             <>
               {"   "}
               <Text id="column-position">
-                col {layout.colIndex + 1}/{state.columns.length}
+                col {state.colIndex + 1}/{state.columns.length}
               </Text>
             </>
           )}

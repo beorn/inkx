@@ -76,9 +76,9 @@ export function handleCommandAction(
   ctx: TUIContext,
   action: CommandAction,
 ): ActionResult {
-  const { state, dispatch, exit } = ctx
-  const col = state.columns[state.colIndex]
-  const card = col?.cards[state.cardIndex]
+  const { state, layout, dispatch, exit } = ctx
+  const col = state.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
 
   switch (action.type) {
     // === TUI-specific actions ===
@@ -138,13 +138,13 @@ export function handleCommandAction(
       return ok()
     case "OPEN_DETAIL_PANE": {
       // If current node has children, zoom into it instead of opening detail pane
-      const curCol = state.columns[state.colIndex]
-      const curCard = curCol?.cards[state.cardIndex]
+      const curCol = state.columns[layout.colIndex]
+      const curCard = curCol?.cards[layout.cardIndex]
       const curNodeId = curCard?.node.id ?? curCol?.node.id
       debug(
         "OPEN_DETAIL_PANE: colIndex=%d cardIndex=%d curNodeId=%s",
-        state.colIndex,
-        state.cardIndex,
+        layout.colIndex,
+        layout.cardIndex,
         curNodeId,
       )
       if (curNodeId) {
@@ -193,7 +193,7 @@ export function handleCommandAction(
       if (col) dispatch(actions.unfoldAll(col.cards.map((c) => c.node.id)))
       return ok()
     case "TOGGLE_COLLAPSE":
-      dispatch(actions.toggleColumnCollapse(state.colIndex))
+      dispatch(actions.toggleColumnCollapse(layout.colIndex))
       return ok()
     case "NAV_BACK":
       return handleNavBack(ctx)
@@ -302,9 +302,9 @@ export function handleCommandAction(
 // =============================================================================
 
 function handleToggleFold(ctx: TUIContext): ActionResult {
-  const { state, dispatch, repo } = ctx
-  const col = state.columns[state.colIndex]
-  const card = col?.cards[state.cardIndex]
+  const { state, layout, dispatch, repo } = ctx
+  const col = state.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
 
   if (!card) return boundary("fold", "no card selected")
 
@@ -413,9 +413,9 @@ function handleShiftCard(
   ctx: TUIContext,
   direction: "up" | "down" | "left" | "right",
 ): void {
-  const { state } = ctx
-  const col = state.columns[state.colIndex]
-  const card = col?.cards[state.cardIndex]
+  const { state, layout } = ctx
+  const col = state.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
 
   if (!card) return
 
@@ -478,8 +478,8 @@ function handleNavSiblingBoard(
 
 function handleZoomInwards(ctx: TUIContext): ActionResult {
   const { state, boardState, ui, dispatch, dispatchBoard, layout } = ctx
-  const col = state.columns[state.colIndex]
-  const card = col?.cards[state.cardIndex]
+  const col = state.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
 
   if (!card) {
     return precondition("card")
@@ -544,8 +544,8 @@ function handleZoomInwards(ctx: TUIContext): ActionResult {
 }
 
 function handlePageJump(ctx: TUIContext, direction: "up" | "down"): void {
-  const { state, ui, dispatchBoard } = ctx
-  const col = state.columns[state.colIndex]
+  const { state, layout, ui, dispatchBoard } = ctx
+  const col = state.columns[layout.colIndex]
 
   if (!col) return
 
@@ -554,10 +554,10 @@ function handlePageJump(ctx: TUIContext, direction: "up" | "down"): void {
 
   const targetIdx =
     direction === "up"
-      ? Math.max(0, state.cardIndex - pageSize)
-      : Math.min(col.cards.length - 1, state.cardIndex + pageSize)
+      ? Math.max(0, layout.cardIndex - pageSize)
+      : Math.min(col.cards.length - 1, layout.cardIndex + pageSize)
 
-  if (targetIdx !== state.cardIndex) {
+  if (targetIdx !== layout.cardIndex) {
     const targetCard = col.cards[targetIdx]
     if (targetCard) {
       dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })

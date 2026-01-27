@@ -13,15 +13,15 @@ import type { TUIContext } from "./tui-context.ts"
  * Delete the selected node.
  */
 export function handleDeleteNode(ctx: TUIContext): void {
-  const { state } = ctx
-  const col = state.columns[state.colIndex]
-  const card = col?.cards[state.cardIndex]
+  const { state, layout } = ctx
+  const col = state.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
 
   if (!card) return
   ctx.repo.deleteNode(card.node.id)
   refreshBoardState(ctx, {
     cardIndex: (c) =>
-      Math.min(state.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
+      Math.min(layout.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
   })
 }
 
@@ -53,9 +53,9 @@ export function handleConfirmMove(ctx: TUIContext): void {
  * Cycle task status (todo → wip → blocked → done → dropped).
  */
 export function handleTaskStatusCycle(ctx: TUIContext): void {
-  const { state } = ctx
-  const col = state.columns[state.colIndex]
-  const card = col?.cards[state.cardIndex]
+  const { state, layout } = ctx
+  const col = state.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
 
   if (!card) return
   const targetId = card.node.link_to || card.node.id
@@ -95,9 +95,9 @@ export function handleShiftCard(
   ctx: TUIContext,
   direction: "up" | "down" | "left" | "right",
 ): void {
-  const { state } = ctx
-  const col = state.columns[state.colIndex]
-  const card = col?.cards[state.cardIndex]
+  const { state, layout } = ctx
+  const col = state.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
 
   if (!card) return
 
