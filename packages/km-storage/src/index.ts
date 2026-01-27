@@ -226,6 +226,8 @@ export type {
 } from "./watch/index.ts"
 
 // Event emission (moved from @km/core)
+// NOTE: runWithKmDir is deprecated - prefer Repo.emitter or pass kmDir explicitly.
+// Kept for CLI commands that need to establish context for legacy APIs.
 export {
   emit,
   runWithKmDir,

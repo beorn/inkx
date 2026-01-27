@@ -18,7 +18,8 @@ import type {
 import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
 import { runWithKmDir } from "../../../src/emit.ts"
-import { resetDb, closeDb, getDb, runWithDb } from "../../../src/db.ts"
+import { resetDb, closeDb, getDb } from "../../../src/db.ts"
+import { runWithDb } from "../../../src/db-instance.ts"
 import {
   reconcileDirectory,
   reconcileDirectoryRecursive,

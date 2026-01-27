@@ -6,6 +6,8 @@
  */
 
 // Database path utility and global instance management
+// NOTE: runWithDb removed from exports - use Repo domain object instead.
+// For legacy test code, import directly from ./db-instance.ts
 export {
   getDbPath,
   closeDb,
@@ -13,7 +15,6 @@ export {
   setDb,
   resetDb,
   isMemoryMode,
-  runWithDb,
   tryGetContextDb,
 } from "./db-instance.ts"
 
