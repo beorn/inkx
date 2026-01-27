@@ -4,6 +4,22 @@ argument-hint: [focus] (layers|tests|org|docs|beads|all)
 allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion
 ---
 
+## Usage
+
+```bash
+/code review              # Review all areas (layers, tests, specs, beads, code smells)
+/code review all          # Same as above (explicit)
+/code review layers       # Architecture and layer violations only
+/code review tests        # Test suite health only
+/code review org          # File organization (large files, naming)
+/code review specs        # Documentation drift (specs/*.md vs implementation)
+/code review beads        # Bead health (.beads/*.md issues)
+```
+
+**Arguments**: `[focus]` - one of: `all`, `layers`, `tests`, `org`, `specs`, `beads` (defaults to `all`)
+
+---
+
 # Code Review
 
 Systematically review km codebase: Survey → Filter → Present → (optionally) Create Beads.

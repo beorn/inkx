@@ -4,6 +4,18 @@ argument-hint: [scope] (file path, package name, or blank for full scan)
 allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion, Edit
 ---
 
+## Usage
+
+```bash
+/code types                        # Review entire codebase for type issues
+/code types packages/km-storage    # Review specific package
+/code types src/watch/sync.ts      # Review single file
+```
+
+**Arguments**: `[scope]` - file path, package name, or blank for full scan (defaults to full codebase)
+
+---
+
 # Type Safety Review
 
 Find type issues, fix quick wins, track larger refactors.
@@ -129,6 +141,119 @@ bd create --id "km-rev-types-$DATE_SUFFIX" --type=task --priority=2 \
 bd create --id "km-rev-types-$DATE_SUFFIX.a" --title="<finding 1>" \
   --type=task --parent "km-rev-types-$DATE_SUFFIX"
 ```
+
+---
+
+## Retrospective: Type System Learnings
+
+After completing type safety review and fixes, analyze patterns for future improvements.
+
+### 1. Pattern Recognition
+
+Review type issues found to identify recurring themes:
+
+**Key questions:**
+
+- Which type safety issues were most common? (`any`, casts, non-null assertions, etc.)
+- Were issues clustered in specific areas (FFI boundaries, error handling, legacy code)?
+- Did ergonomic issues suggest missing type utilities or patterns?
+- Were multiple type issues symptoms of a deeper design problem?
+
+### 2. Root Cause Analysis
+
+For each pattern, identify why it occurred:
+
+| Pattern Example           | Root Cause Hypothesis          | Evidence/Context                     |
+| ------------------------- | ------------------------------ | ------------------------------------ |
+| Many `any` in one file    | FFI boundary without wrapper   | File deals with external API         |
+| `as` casts without guards | Trusting upstream without test | No validation after JSON.parse       |
+| Non-null assertions       | Control flow not provable      | TypeScript can't infer preconditions |
+| Explicit return types     | Auto-generated code            | Pattern seen in migration scripts    |
+| Repeated inline types     | Missing shared type definition | Same shape in 5+ places              |
+
+### 3. Process Improvements
+
+Propose concrete improvements based on root causes:
+
+**Type infrastructure:**
+
+- Add runtime validation helpers (e.g., type guards for common patterns)
+- Create type utilities for repeated patterns (e.g., `DeepReadonly<T>`)
+- Document type patterns in docs/ (e.g., discriminated unions, branded types)
+- Add examples showing `satisfies` vs `as` vs explicit types
+
+**Tooling enhancements:**
+
+- Add ESLint rules for type safety (e.g., `no-explicit-any` in production code)
+- Enable stricter TypeScript checks incrementally (e.g., `strictNullChecks`)
+- Add type coverage to CI (e.g., require 90%+ type coverage)
+- Create shared type definitions package to reduce duplication
+
+**Documentation:**
+
+- Document FFI boundary patterns (how to wrap external APIs safely)
+- Add error handling type patterns (discriminated unions for Result types)
+- Show before/after examples for common type improvements
+- Create "Type Safety Checklist" for new code
+
+### 4. Self-Assessment
+
+Evaluate review effectiveness:
+
+| Dimension        | Assessment                                         |
+| ---------------- | -------------------------------------------------- |
+| Bug detection    | Did we find real bugs hiding in types?             |
+| Ergonomic impact | Did fixes reduce code size or improve readability? |
+| Coverage         | Did we check all critical paths and boundaries?    |
+| Actionability    | Were findings concrete and fixable?                |
+| Type-check speed | Did changes affect compilation time?               |
+| False positives  | How many "issues" were intentional design choices? |
+
+### 5. Create Process Improvement Beads (Optional)
+
+For significant gaps identified:
+
+```bash
+DATE_SUFFIX=$(date +%m%d)
+
+# Example: Missing type infrastructure
+bd create --id "km-proc-types-utils-$DATE_SUFFIX" --type=task --priority=3 \
+  --title="Create type utilities package" \
+  --body="Review found repeated inline types. Add shared utilities for common patterns."
+
+# Example: Documentation gap
+bd create --id "km-proc-types-docs-$DATE_SUFFIX" --type=task --priority=3 \
+  --title="Document type safety patterns" \
+  --body="Add FFI boundary examples, Result type patterns, and type guard recipes to docs/"
+
+# Example: Tooling improvement
+bd create --id "km-proc-type-coverage-$DATE_SUFFIX" --type=task --priority=3 \
+  --title="Add type-coverage to CI" \
+  --body="Enforce 90%+ type coverage to prevent regression"
+```
+
+### 6. Update Type Review Workflow
+
+If the review revealed gaps in this review process itself, consider updating [review-types.md](review-types.md):
+
+**New safety patterns to detect:**
+
+- Example: "Unchecked array access (should use .at() or bounds check)"
+- Example: "Promise rejection without typed catch (should use typed error)"
+
+**Ergonomic patterns to add:**
+
+- Example: "Type parameters that match defaults (can be inferred)"
+- Example: "`Record<string, X>` that should be `Map<string, X>` for iteration"
+
+**Workflow improvements:**
+
+- Example: "Check inference in both directions: param → return and return → param"
+- Example: "Add automated check for type complexity (deeply nested generics)"
+
+Make edits directly to this file or create a process improvement bead.
+
+**This creates a continuous learning loop for type system mastery.**
 
 ---
 

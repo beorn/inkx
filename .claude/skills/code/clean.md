@@ -3,6 +3,20 @@ description: Systematic code simplification and consistency review
 argument-hint: [file-or-directory] [--dry-run]
 ---
 
+## Usage
+
+```bash
+/code clean                           # Review recently modified files or prompt for scope
+/code clean packages/km-storage       # Review all files in directory
+/code clean src/watch/sync.ts         # Review single file
+/code clean --dry-run                 # Analyze only, don't implement changes
+/code clean packages/km-storage --dry-run  # Dry run on directory
+```
+
+**Arguments**: `[file-or-directory]` `[--dry-run]` (optional, defaults to recent files)
+
+---
+
 # Clean
 
 Systematic simplification for conciseness and consistency.
