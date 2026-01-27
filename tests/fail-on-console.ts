@@ -19,6 +19,11 @@ import { afterEach, beforeEach, spyOn } from "bun:test"
 // Skip output checking if explicitly disabled
 const SKIP_OUTPUT_CHECK = process.env.SKIP_OUTPUT_CHECK === "1"
 
+// Disable TTY detection to prevent spinner/progress output during tests
+// Code like bootstrap.ts and load-repo.ts check isTTY before showing spinners
+process.stdout.isTTY = false
+process.stderr.isTTY = false
+
 // =============================================================================
 // TUI Event Emitter Cleanup
 // =============================================================================
@@ -175,33 +180,21 @@ afterEach(() => {
     }
 
     // Check stdout/stderr
-    // Filter out terminal control sequences (ANSI escape codes, bell, etc.)
-    // These aren't meaningful test output - they're TTY control
-    const isControlSequence = (s: string) => {
-      // ANSI escape sequences: \x1b[...
-      // Bell: \x07
-      // Carriage return only: \r
-      // Pure whitespace
+    // Only filter pure terminal control sequences (ANSI codes with no content)
+    // Real output like spinners should FAIL - tests must capture it themselves
+    const isPureControlSequence = (s: string) => {
+      // Strip ANSI escape sequences and check if anything meaningful remains
       const stripped = s
         .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, "") // ANSI CSI sequences
         .replace(/\x1b\][^\x07]*\x07/g, "") // OSC sequences
         .replace(/\x07/g, "") // Bell
         .replace(/\r/g, "") // CR
         .trim()
-      if (stripped.length === 0) return true
-
-      // Filter spinner/progress indicators (braille spinner chars + simple text)
-      // These typically start with \r and contain braille spinner characters
-      if (s.startsWith("\r") || s.includes("\r")) {
-        // Braille spinner characters: ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏
-        if (/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/.test(stripped)) return true
-      }
-
-      return false
+      return stripped.length === 0
     }
 
     const allOutput = [...stdoutCalls, ...stderrCalls].filter(
-      (s) => s.trim().length > 0 && !isControlSequence(s),
+      (s) => s.trim().length > 0 && !isPureControlSequence(s),
     )
     if (allOutput.length > 0) {
       const summary = allOutput.map((s) => `  ${JSON.stringify(s)}`).join("\n")
