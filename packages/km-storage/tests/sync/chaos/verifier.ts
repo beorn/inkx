@@ -13,9 +13,9 @@ import {
   getNodeByPath,
   getChildren,
   getNode,
-  getDb,
 } from "../../../src/index.ts"
 import type { MockFileSystem } from "./mock-fs.ts"
+import type { Database } from "bun:sqlite"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Filesystem Abstraction
@@ -70,16 +70,18 @@ function createMockFsOps(mockFs: MockFileSystem): FsOps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export class Verifier implements IVerifier {
+  private db: Database
   private fsOps: FsOps
 
-  constructor(mockFs?: MockFileSystem) {
+  constructor(db: Database, mockFs?: MockFileSystem) {
+    this.db = db
     this.fsOps = mockFs ? createMockFsOps(mockFs) : realFsOps
   }
 
   verifyState(expected: ExpectedState): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
-    const db = getDb()
+    const db = this.db
     const nodes = getAllNodes(db)
 
     // Check expected files exist as nodes
@@ -163,7 +165,7 @@ export class Verifier implements IVerifier {
   }
 
   verifyNoDuplicates(): VerificationResult {
-    const db = getDb()
+    const db = this.db
     const nodes = getAllNodes(db)
     const errors: string[] = []
     const pathCounts = new Map<string, number>()
@@ -198,7 +200,7 @@ export class Verifier implements IVerifier {
   }
 
   verifyParentIntegrity(): VerificationResult {
-    const db = getDb()
+    const db = this.db
     const nodes = getAllNodes(db)
     const errors: string[] = []
     const nodeIds = new Set(nodes.map((n) => n.id))
@@ -237,7 +239,7 @@ export class Verifier implements IVerifier {
   }
 
   verifyFilePaths(): VerificationResult {
-    const db = getDb()
+    const db = this.db
     const nodes = getAllNodes(db)
     const errors: string[] = []
 
@@ -289,7 +291,7 @@ export class Verifier implements IVerifier {
   verifyFsDbSync(repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
-    const db = getDb()
+    const db = this.db
 
     // Scan filesystem for markdown files
     const fsFiles = new Set<string>()
@@ -338,7 +340,7 @@ export class Verifier implements IVerifier {
   verifyContentSync(_repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
-    const db = getDb()
+    const db = this.db
     const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
@@ -408,7 +410,7 @@ export class Verifier implements IVerifier {
   verifyMetadataSync(_repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
-    const db = getDb()
+    const db = this.db
     const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
@@ -523,14 +525,17 @@ export class Verifier implements IVerifier {
 /**
  * Create a verifier instance
  */
-export function createVerifier(mockFs?: MockFileSystem): Verifier {
-  return new Verifier(mockFs)
+export function createVerifier(
+  db: Database,
+  mockFs?: MockFileSystem,
+): Verifier {
+  return new Verifier(db, mockFs)
 }
 
 /**
  * Quick verification - just check no duplicates and tree consistency
  */
-export function quickVerify(): VerificationResult {
-  const verifier = new Verifier()
+export function quickVerify(db: Database): VerificationResult {
+  const verifier = new Verifier(db)
   return verifier.verifyTreeConsistency()
 }

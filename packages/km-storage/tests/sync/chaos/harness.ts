@@ -7,6 +7,7 @@
 
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs"
 import { join, dirname } from "path"
+import { Database } from "bun:sqlite"
 import type {
   ChaosTestConfig,
   ChaosTestResult,
@@ -21,6 +22,7 @@ import { runWithKmDir } from "../../../src/emit.ts"
 import { resetDb, closeDb, getDb } from "../../../src/db.ts"
 import { runWithDb } from "../../../src/db-instance.ts"
 import { createEmitter } from "../../../src/emitter.ts"
+import { SCHEMA } from "../../../src/schema.ts"
 import {
   reconcileDirectory,
   reconcileDirectoryRecursive,
@@ -66,157 +68,140 @@ async function runChaosTestWithMockFs(
   const start = Date.now()
   const mockFs = createMockFileSystem()
   const repoDir = "/repo"
-  const kmDir = "/tmp/.km" // SQLite still needs real path
+  const kmDir = "/repo/.km"
 
-  // Create real .km directory for SQLite
-  mkdirSync(kmDir, { recursive: true })
+  // Create directories in mock filesystem
+  mockFs.mkdirSync(repoDir, { recursive: true })
+  mockFs.mkdirSync(kmDir, { recursive: true })
 
-  // Wrap in runWithKmDir for context-local kmDir (enables parallel test isolation)
-  return runWithKmDir(kmDir, async () => {
-    let chaosWatcher: ChaosWatcher | null = null
+  // Create in-memory database for parallel isolation (no shared state)
+  const db = new Database(":memory:")
+  db.exec(SCHEMA)
 
-    try {
-      // ─────────────────────────────────────────────────────────────
-      // Setup Phase (in-memory)
-      // ─────────────────────────────────────────────────────────────
+  // Create emitter with skipPersist since we're using mock fs
+  const emitter = createEmitter({ kmDir, db, skipPersist: true })
 
-      // Create directories in mock filesystem
-      mockFs.mkdirSync(repoDir, { recursive: true })
+  let chaosWatcher: ChaosWatcher | null = null
 
-      resetDb()
+  try {
+    // ─────────────────────────────────────────────────────────────
+    // Setup Phase (in-memory)
+    // ─────────────────────────────────────────────────────────────
 
-      // Create initial files in mock filesystem
-      for (const file of config.setup) {
-        const fullPath = join(repoDir, file.path)
-        const fileDir = dirname(fullPath)
-        if (!mockFs.existsSync(fileDir)) {
-          mockFs.mkdirSync(fileDir, { recursive: true })
-        }
-        mockFs.writeFileSync(fullPath, file.content)
+    // Create initial files in mock filesystem
+    for (const file of config.setup) {
+      const fullPath = join(repoDir, file.path)
+      const fileDir = dirname(fullPath)
+      if (!mockFs.existsSync(fileDir)) {
+        mockFs.mkdirSync(fileDir, { recursive: true })
       }
-
-      // ─────────────────────────────────────────────────────────────
-      // Initial Sync Phase
-      // ─────────────────────────────────────────────────────────────
-
-      const scanner = mockFs.createScanner()
-      const db = getDb()
-      const emitter = createEmitter({ kmDir, db })
-      // Wrap in runWithDb so emitNodeCreated applies to db
-      // Use reconcileDirectoryRecursive to handle subdirectories
-      runWithDb(db, () => {
-        const ops = reconcileDirectoryRecursive(
-          db,
-          repoDir,
-          repoDir,
-          undefined,
-          scanner,
-        )
-        applyReconcileOps(db, ops, repoDir, emitter, mockFs)
-      })
-
-      // ─────────────────────────────────────────────────────────────
-      // Chaos Injection Phase
-      // ─────────────────────────────────────────────────────────────
-
-      chaosWatcher = createChaosWatcher({
-        debounceMs: 50,
-        scenario: config.scenario,
-        seed: 12345,
-      })
-
-      chaosWatcher.start(repoDir)
-
-      await new Promise<void>((resolve) => {
-        if (config.scenario.type === "init_gap") {
-          chaosWatcher!.once("ready", resolve)
-          void chaosWatcher!.advanceTime(
-            (config.scenario.params.initDurationMs as number) ?? 2000,
-          )
-        } else {
-          chaosWatcher!.once("ready", resolve)
-        }
-      })
-
-      // Wire up sync handler with mock fs
-      chaosWatcher.on(
-        "sync",
-        (data: { paths: string[]; directories: string[] }) => {
-          void (async () => {
-            // Wrap in runWithDb so emitNodeCreated applies to db
-            runWithDb(db, () => {
-              for (const dir of data.directories) {
-                const dirOps =
-                  dir === repoDir
-                    ? reconcileDirectory(db, dir, repoDir, undefined, scanner)
-                    : reconcileDirectoryRecursive(
-                        db,
-                        dir,
-                        repoDir,
-                        undefined,
-                        scanner,
-                      )
-                applyReconcileOps(db, dirOps, repoDir, emitter, mockFs)
-              }
-            })
-          })()
-        },
-      )
-
-      // Inject events
-      const absoluteEvents: FsEvent[] = config.events.map((e) => ({
-        ...e,
-        path: join(repoDir, e.path),
-      }))
-
-      chaosWatcher.injectBatch(absoluteEvents)
-      await chaosWatcher.flush()
-
-      // Minimal wait (no real I/O needed)
-      await new Promise((r) => setTimeout(r, config.timeout ?? 10))
-
-      // ─────────────────────────────────────────────────────────────
-      // Verification Phase
-      // ─────────────────────────────────────────────────────────────
-
-      const verifier = new Verifier(mockFs)
-
-      const expectedWithAbsolutePaths: ExpectedState = {
-        ...config.expected,
-        files: config.expected.files.map((f) => join(repoDir, f)),
-        deletedFiles: config.expected.deletedFiles?.map((f) =>
-          join(repoDir, f),
-        ),
-        nodes: config.expected.nodes?.map((n) => ({
-          ...n,
-          path: join(repoDir, n.path),
-        })),
-      }
-
-      const verification = verifier.verifyAll(
-        expectedWithAbsolutePaths,
-        repoDir,
-      )
-
-      return {
-        name: config.name,
-        passed: verification.passed,
-        verification,
-        duration: Date.now() - start,
-        eventsEmitted: chaosWatcher.getEmittedEvents().length,
-        eventsDropped: chaosWatcher.getDroppedEvents().length,
-      }
-    } finally {
-      if (chaosWatcher) {
-        await chaosWatcher.stop()
-      }
-      closeDb()
-      // Clean up real .km directory
-      if (existsSync(kmDir)) {
-        rmSync(kmDir, { recursive: true })
-      }
+      mockFs.writeFileSync(fullPath, file.content)
     }
-  })
+
+    // ─────────────────────────────────────────────────────────────
+    // Initial Sync Phase
+    // ─────────────────────────────────────────────────────────────
+
+    const scanner = mockFs.createScanner()
+    // Use reconcileDirectoryRecursive to handle subdirectories
+    const ops = reconcileDirectoryRecursive(
+      db,
+      repoDir,
+      repoDir,
+      undefined,
+      scanner,
+    )
+    applyReconcileOps(db, ops, repoDir, emitter, mockFs)
+
+    // ─────────────────────────────────────────────────────────────
+    // Chaos Injection Phase
+    // ─────────────────────────────────────────────────────────────
+
+    chaosWatcher = createChaosWatcher({
+      debounceMs: 50,
+      scenario: config.scenario,
+      seed: 12345,
+    })
+
+    chaosWatcher.start(repoDir)
+
+    await new Promise<void>((resolve) => {
+      if (config.scenario.type === "init_gap") {
+        chaosWatcher!.once("ready", resolve)
+        void chaosWatcher!.advanceTime(
+          (config.scenario.params.initDurationMs as number) ?? 2000,
+        )
+      } else {
+        chaosWatcher!.once("ready", resolve)
+      }
+    })
+
+    // Wire up sync handler with mock fs
+    chaosWatcher.on(
+      "sync",
+      (data: { paths: string[]; directories: string[] }) => {
+        void (async () => {
+          for (const dir of data.directories) {
+            const dirOps =
+              dir === repoDir
+                ? reconcileDirectory(db, dir, repoDir, undefined, scanner)
+                : reconcileDirectoryRecursive(
+                    db,
+                    dir,
+                    repoDir,
+                    undefined,
+                    scanner,
+                  )
+            applyReconcileOps(db, dirOps, repoDir, emitter, mockFs)
+          }
+        })()
+      },
+    )
+
+    // Inject events
+    const absoluteEvents: FsEvent[] = config.events.map((e) => ({
+      ...e,
+      path: join(repoDir, e.path),
+    }))
+
+    chaosWatcher.injectBatch(absoluteEvents)
+    await chaosWatcher.flush()
+
+    // Minimal wait (no real I/O needed)
+    await new Promise((r) => setTimeout(r, config.timeout ?? 10))
+
+    // ─────────────────────────────────────────────────────────────
+    // Verification Phase
+    // ─────────────────────────────────────────────────────────────
+
+    const verifier = new Verifier(db, mockFs)
+
+    const expectedWithAbsolutePaths: ExpectedState = {
+      ...config.expected,
+      files: config.expected.files.map((f) => join(repoDir, f)),
+      deletedFiles: config.expected.deletedFiles?.map((f) => join(repoDir, f)),
+      nodes: config.expected.nodes?.map((n) => ({
+        ...n,
+        path: join(repoDir, n.path),
+      })),
+    }
+
+    const verification = verifier.verifyAll(expectedWithAbsolutePaths, repoDir)
+
+    return {
+      name: config.name,
+      passed: verification.passed,
+      verification,
+      duration: Date.now() - start,
+      eventsEmitted: chaosWatcher.getEmittedEvents().length,
+      eventsDropped: chaosWatcher.getDroppedEvents().length,
+    }
+  } finally {
+    if (chaosWatcher) {
+      await chaosWatcher.stop()
+    }
+    db.close()
+  }
 }
 
 /**
@@ -310,7 +295,7 @@ async function runChaosTestWithRealFs(
       await new Promise((r) => setTimeout(r, config.timeout ?? 100))
 
       // Verification Phase
-      const verifier = new Verifier()
+      const verifier = new Verifier(db)
 
       const expectedWithAbsolutePaths: ExpectedState = {
         ...config.expected,

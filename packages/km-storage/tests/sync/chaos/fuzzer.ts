@@ -541,7 +541,7 @@ async function runSingleIteration(
       await new Promise((r) => setTimeout(r, timeout))
 
       // Verify invariants
-      const verifier = new Verifier()
+      const verifier = new Verifier(db)
 
       // Check all invariants
       const duplicates = verifier.verifyNoDuplicates()
@@ -742,7 +742,7 @@ async function runSingleIterationWithMockFs(
       await new Promise((r) => setTimeout(r, timeout))
 
       // Verify invariants with mock fs
-      const verifier = new Verifier(mockFs)
+      const verifier = new Verifier(db, mockFs)
 
       // Check all invariants
       const duplicates = verifier.verifyNoDuplicates()
