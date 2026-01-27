@@ -16,12 +16,12 @@ import {
   fullReset,
   freshStart,
   getDbPath,
-  getDb,
   getLastEventId,
   getEventsPath,
   findKmRootFromPath,
   runWithKmDir,
 } from "@km/storage"
+import { Database } from "bun:sqlite"
 import { existsSync, statSync } from "fs"
 import { formatPath } from "../utils/format-path.ts"
 
@@ -120,7 +120,9 @@ function showStatus(): void {
     console.log(chalk.dim("  Size:"), formatSize(stat.size))
     console.log(chalk.dim("  Modified:"), new Date(stat.mtimeMs).toISOString())
 
-    const lastEvent = getLastEventId(getDb())
+    const db = new Database(dbPath, { readonly: true })
+    const lastEvent = getLastEventId(db)
+    db.close()
     console.log(chalk.dim("  Last event:"), lastEvent?.slice(0, 13) ?? "(none)")
   } else {
     console.log(chalk.yellow("Database:"), "Not found")

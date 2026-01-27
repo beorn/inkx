@@ -110,6 +110,7 @@ export const viewCommand = new Command("view")
           const { parsed, pendingLinks } =
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
             await storageModule!.parseDeferredAsync(
+              createdRepo.database,
               deferredFiles,
               () => aborted, // Check abort on each batch
             )
@@ -121,7 +122,7 @@ export const viewCommand = new Command("view")
           if (pendingLinks.length > 0) {
             const resolved =
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              await storageModule!.resolveLinksAsync(pendingLinks)
+              await storageModule!.resolveLinksAsync(createdRepo.database, pendingLinks)
             debug("background link resolution complete: %d resolved", resolved)
           }
         } catch (err) {

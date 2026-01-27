@@ -85,6 +85,11 @@ export interface LoadOptions {
    * Call parseDeferredAsync() afterward to fill in content.
    */
   discoverOnly?: boolean
+  /**
+   * Database to use instead of singleton (ADR-002).
+   * When provided, avoids getDb() and uses this database directly.
+   */
+  db?: Database
 }
 
 /** Files pending deferred parsing (for discoverOnly mode) */
@@ -155,7 +160,11 @@ export function* loadRepo(
 
   // 2. Set up database based on mode
   let db: Database
-  if (mode === "disk" && kmDir) {
+  if (options?.db) {
+    // Use provided database (ADR-002: avoid singletons)
+    db = options.db
+    if (kmDir) setKmDir(kmDir)
+  } else if (mode === "disk" && kmDir) {
     setKmDir(kmDir)
     db = getDb()
     if (options?.force) {
@@ -180,7 +189,7 @@ export function* loadRepo(
       ? discoverOnly
         ? yield* discoverFilesOnly(repoRoot, errors)
         : yield* discoverFromFilesystem(repoRoot, errors)
-      : yield* discoverFromEvents(kmDir ?? "", options?.force ?? false, errors)
+      : yield* discoverFromEvents(db, kmDir ?? "", options?.force ?? false, errors)
 
   // 4. Shared pipeline (SAME for both modes)
   yield* applyEvents(db, source.events, errors)
@@ -605,6 +614,7 @@ function generateId(
 // --- Disk Mode Discovery ---
 
 function* discoverFromEvents(
+  db: Database,
   _kmDir: string,
   force: boolean,
   _errors: LoadError[],
@@ -645,7 +655,6 @@ function* discoverFromEvents(
   if (force) {
     events = allEvents
   } else {
-    const db = getDb()
     const lastApplied = db
       .prepare("SELECT value FROM meta WHERE key = ?")
       .get("last_event") as { value: string } | undefined
@@ -895,10 +904,10 @@ function* resolveLinks(
  * @returns Number of successfully resolved links
  */
 export async function resolveLinksAsync(
+  db: Database,
   pendingLinks: PendingLink[],
   onProgress?: (current: number, total: number) => void,
 ): Promise<number> {
-  const db = getDb()
   const total = pendingLinks.length
   if (total === 0) return 0
 
@@ -1074,14 +1083,13 @@ function* materializeRules(db: Database): Generator<StepYield, void, unknown> {
  * @returns Object with parsed count and pending links for resolution
  */
 export async function parseDeferredAsync(
+  db: Database,
   deferredFiles: DeferredFile[],
   shouldAbort?: () => boolean,
   options?: { useWorkerPool?: boolean },
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
   const total = deferredFiles.length
   if (total === 0) return { parsed: 0, pendingLinks: [] }
-
-  const db = getDb()
 
   // km-fast-md.6: Use worker pool for parallel parsing (default: true)
   const useWorkerPool = options?.useWorkerPool ?? true

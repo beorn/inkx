@@ -9,6 +9,7 @@
 
 import createDebug from "debug"
 import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs"
+import type { Database } from "bun:sqlite"
 
 const debug = createDebug("km:storage:rebuild")
 import { join, dirname } from "path"
@@ -114,17 +115,28 @@ export interface SyncResult {
   duration: number
 }
 
+/** Options for syncState */
+export interface SyncStateOptions {
+  /** Database to use (avoids singleton). If not provided, falls back to getDb() */
+  db?: Database
+}
+
 /**
  * Incremental sync - apply only new events
  * Yields progress info for each step.
  *
  * Now delegates to loadRepo() (which handles incremental sync internally).
+ *
+ * @param options.db - Optional database to use (avoids singleton)
  */
-export function* syncState(): Generator<StepYield, SyncResult, unknown> {
+export function* syncState(
+  options?: SyncStateOptions,
+): Generator<StepYield, SyncResult, unknown> {
   debug("syncState: delegating to loadRepo")
 
   // Get current state to calculate how many events were applied
-  const db = getDb()
+  // Use provided db or fall back to singleton (deprecated path)
+  const db = options?.db ?? getDb()
   const lastApplied = db
     .prepare("SELECT value FROM meta WHERE key = ?")
     .get("last_event") as { value: string } | undefined
@@ -138,7 +150,8 @@ export function* syncState(): Generator<StepYield, SyncResult, unknown> {
   const repoRoot = dirname(kmDir)
 
   // Delegate to loadRepo (incremental mode)
-  const result = yield* loadRepo(repoRoot, { searchAncestors: false })
+  // Pass db to avoid singleton (ADR-002)
+  const result = yield* loadRepo(repoRoot, { searchAncestors: false, db })
 
   return {
     applied: newEvents.length,

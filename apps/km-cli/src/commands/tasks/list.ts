@@ -42,7 +42,7 @@ export async function listTasks(
   pathOrId: string | undefined,
   options: ListTasksOptions,
 ): Promise<void> {
-  const resolved = resolvePathArg(process.cwd(), getRootPath())
+  const resolved = resolvePathArg(undefined, getRootPath() || process.cwd())
   using repo = await loadRepo(resolved.repoRoot)
 
   let tasks: KNode[]

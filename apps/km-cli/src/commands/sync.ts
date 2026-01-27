@@ -17,6 +17,7 @@ import {
   findKmRootFromPath,
   runWithKmDir,
   syncState,
+  SCHEMA,
 } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 
@@ -108,8 +109,11 @@ async function runSync(
   await runWithKmDir(kmRoot, async () => {
     try {
       // Step 1: Apply any pending events from events.jsonl to state.db
+      // Pass db to avoid singleton (ADR-002)
       const eventResults = await steps({
-        syncState,
+        syncState: function* () {
+          return yield* syncState({ db })
+        },
       }).run({ clear: true })
 
       const eventResult = eventResults.syncState as unknown as {
@@ -184,8 +188,9 @@ export const syncCommand = new Command("sync")
     const repoPath = dirname(kmRoot)
     debug("resolved repo path: %s (from kmRoot: %s)", repoPath, kmRoot)
 
-    // Open database directly from kmRoot
+    // Open database directly from kmRoot and ensure schema exists
     const db = new Database(join(kmRoot, "state.db"))
+    db.exec(SCHEMA)
 
     if (options.watch) {
       const debounceMs = parseInt(options.debounce, 10)

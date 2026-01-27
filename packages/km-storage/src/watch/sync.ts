@@ -21,6 +21,7 @@ import { getIgnorePatterns } from "../ignore.ts"
 import type { Event, KNode } from "@km/core"
 import type { ProgressCallback } from "@beorn/inkx-ui"
 import { runWithKmDir } from "../emit.ts"
+import { runWithDb } from "../db-instance.ts"
 import {
   getAllNodes,
   getNode,
@@ -608,27 +609,30 @@ export class SyncManager extends EventEmitter {
       onProgress?.({ phase: "scanning", current: 1, total: 1 })
 
       // Phase 2: Reconciling
+      // Wrap in runWithDb so emit() calls apply events to state.db
       const dirArray = Array.from(dirs)
       const totalDirs = dirArray.length
       let processed = 0
 
-      for (const [i, dir] of dirArray.entries()) {
-        const ops = reconcileDirectory(
-          this.db,
-          dir,
-          this.config.repoPath,
-          ignorePatterns,
-        )
-        applyReconcileOps(this.db, ops, this.config.repoPath)
-        processed += ops.length
+      runWithDb(this.db, () => {
+        for (const [i, dir] of dirArray.entries()) {
+          const ops = reconcileDirectory(
+            this.db,
+            dir,
+            this.config.repoPath,
+            ignorePatterns,
+          )
+          applyReconcileOps(this.db, ops, this.config.repoPath)
+          processed += ops.length
 
-        // Report progress for each directory
-        onProgress?.({
-          phase: "reconciling",
-          current: i + 1,
-          total: totalDirs,
-        })
-      }
+          // Report progress for each directory
+          onProgress?.({
+            phase: "reconciling",
+            current: i + 1,
+            total: totalDirs,
+          })
+        }
+      })
 
       // Phase 3: Evaluate rules (add= materialization)
       for (const progress of evaluateAllRules(this.db)) {

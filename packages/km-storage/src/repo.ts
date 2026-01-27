@@ -414,16 +414,35 @@ export function* createRepo(
 
   if (options.loadFiles) {
     // =========================================================================
-    // File loading mode - use loadRepo to discover, parse, and populate
+    // File loading mode - create db first, then use loadRepo to populate
+    // ADR-002: Create our own db instead of relying on singleton
     // =========================================================================
+
+    // Detect mode and create database BEFORE calling loadRepo
+    const kmDir = join(rootPath, ".km")
+    const hasKmDir = existsSync(kmDir) && !options.forceMemory
+    mode = hasKmDir ? "disk" : "memory"
+
+    if (mode === "disk") {
+      if (!existsSync(kmDir)) {
+        mkdirSync(kmDir, { recursive: true })
+      }
+      const dbPath = join(kmDir, "state.db")
+      db = new Database(dbPath)
+      db.exec(SCHEMA)
+    } else {
+      db = new Database(":memory:")
+      db.exec(SCHEMA)
+    }
+
+    // Now call loadRepo with OUR db (avoids singleton)
     const loadResult = yield* loadRepo(rootPath, {
       searchAncestors: false, // rootPath is already the repo root
       skipLinkResolution: options.skipLinkResolution,
       discoverOnly: options.discoverOnly,
+      db, // ADR-002: pass db to avoid singleton
     })
 
-    db = loadResult.database
-    mode = loadResult.mode
     dataStore = createDBDataStore(db, mode)
 
     // Capture loading results
