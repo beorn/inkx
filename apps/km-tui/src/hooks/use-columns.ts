@@ -99,8 +99,8 @@ function kNodeToColumnState(
   wipLimits: Map<string, number>,
   foldedNodes: Set<string>,
 ): ColumnState {
-  // Parse column rules from node content
-  const rules: ColumnRules = parseColumnRules(node.title || "")
+  // Use node.rules if available, otherwise parse from title
+  const rules: ColumnRules = node.rules ?? parseColumnRules(node.title || "")
 
   // Look up WIP limit
   const normalizedName = (node.name || node.title || "")

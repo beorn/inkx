@@ -62,7 +62,7 @@ import {
 } from "inkx/testing"
 import { expect } from "bun:test"
 import { createFakeRepo } from "@km/storage"
-import type { KNode } from "@km/core"
+import type { KNode, NodeRules } from "@km/core"
 
 import { BoardCore, Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
@@ -98,21 +98,72 @@ import {
  *     item("2a")
  *   )
  * );
+ *
+ * // With WIP limits
+ * const nodes = item("board",
+ *   item("col1 limit=3",
+ *     item("1a"),
+ *     item("1b")
+ *   )
+ * );
  */
 export function item(content: string, ...childArrays: KNode[][]): KNode[] {
   // Nodes with children become folders (columns), leaf nodes become tasks (cards)
   const hasChildren = childArrays.length > 0
+
+  // Parse rules from content (e.g., "col1 limit=3" -> name="col1", rules={limit:3})
+  let cleanContent = content
+  let rules: NodeRules | undefined
+
+  if (hasChildren) {
+    // Extract rules from column name
+    const limitMatch = content.match(/\blimit=(\d+)\b/)
+    const collapseMatch = content.match(/\bcollapse=(true|false)\b/)
+    const defaultMatch = content.match(/\bdefault=(true|false)\b/)
+    const syncMatch = content.match(/\bsync=([^\s]+)\b/)
+    const addMatch = content.match(/\badd=([^\s]+)\b/)
+    const colorMatch = content.match(/\bcolor=([^\s]+)\b/)
+
+    if (
+      limitMatch ||
+      collapseMatch ||
+      defaultMatch ||
+      syncMatch ||
+      addMatch ||
+      colorMatch
+    ) {
+      rules = {}
+      if (limitMatch) rules.limit = Number.parseInt(limitMatch[1] ?? "0", 10)
+      if (collapseMatch) rules.collapse = collapseMatch[1] === "true"
+      if (defaultMatch) rules.default = defaultMatch[1] === "true"
+      if (syncMatch) rules.sync = syncMatch[1] ?? ""
+      if (addMatch) rules.add = addMatch[1] ?? ""
+      if (colorMatch) rules.color = colorMatch[1] ?? ""
+
+      // Remove rules from content to get clean name
+      cleanContent = content
+        .replace(/\blimit=\d+\b/, "")
+        .replace(/\bcollapse=(true|false)\b/, "")
+        .replace(/\bdefault=(true|false)\b/, "")
+        .replace(/\bsync=[^\s]+\b/, "")
+        .replace(/\badd=[^\s]+\b/, "")
+        .replace(/\bcolor=[^\s]+\b/, "")
+        .trim()
+    }
+  }
+
   const node: KNode = {
     id: content,
     type: hasChildren ? "folder" : "task",
-    content: hasChildren ? undefined : content,
-    data: hasChildren ? { name: content } : {},
+    content: hasChildren ? undefined : cleanContent,
+    data: hasChildren ? { name: cleanContent } : {},
     parent_id: null,
     parent_idx: 0,
     link_to: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
+    ...(rules ? { rules } : {}),
   }
 
   // Process each child array (each call to item())
