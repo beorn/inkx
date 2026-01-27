@@ -500,35 +500,30 @@ See [chaos-testing.md](chaos-testing.md) for detailed reference.
 
 ---
 
-## Infrastructure Modes
+## TEST_MODE
 
-All tests default to lightweight infrastructure. Use `TEST_MODE` to switch:
+Controls test infrastructure via environment variable.
 
-| Mode         | Database | Filesystem | Speed   | Use Case                      |
-| ------------ | -------- | ---------- | ------- | ----------------------------- |
-| **standard** | Memory   | Real /tmp  | ~24s    | Default, everyday testing     |
-| **mock**     | Memory   | Real /tmp  | ~20s    | Skip watcher/sync tests       |
-| **real**     | Disk     | Real /tmp  | ~3-5min | CI, releases, drift detection |
+| Mode      | Database | When to Use                         |
+| --------- | -------- | ----------------------------------- |
+| (default) | :memory: | Normal development                  |
+| `mock`    | :memory: | Skip watcher tests (~20s faster)    |
+| `real`    | Disk     | CI, releases, debugging disk issues |
 
-All modes create filesystem for compatibility. Speed differences:
+All modes use `/tmp/kmtest-*` filesystem. The difference is database.
 
-- **mock** vs **standard**: Skip slow watcher/sync tests with `test.skipIf(isMockMode())`
-- **standard** vs **real**: Memory DB is faster than disk DB operations
-
-**Commands**:
+**Usage**:
 
 ```bash
-bun run test:fast    # Standard mode (default)
-bun run test:mock    # Mock mode - skips watcher tests
-bun run test:real    # Real mode - disk DB + all tests
+bun run test:fast                     # Default (memory DB)
+TEST_MODE=mock bun run test:fast      # Skip watcher tests
+TEST_MODE=real bun run test:all       # Disk DB, full infrastructure
 ```
-
-**Environment variable**: `TEST_MODE=mock|standard|real`
 
 **In test code**:
 
 ```typescript
-import { getTestMode, isMockMode, isRealMode } from "@km/storage";
+import { isMockMode, isRealMode } from "@km/storage";
 
 // Skip slow infrastructure tests in mock mode
 test.skipIf(isMockMode())("file watcher syncs", () => { ... });
@@ -537,7 +532,9 @@ test.skipIf(isMockMode())("file watcher syncs", () => { ... });
 test.skipIf(!isRealMode())("disk db behavior", () => { ... });
 ```
 
-**Mock drift detection**: Periodic `test:real` runs catch when mocks diverge from reality.
+**mock vs default**: Same infrastructure, but `isMockMode()` returns true so tests can skip themselves.
+
+**Drift detection**: Periodic `TEST_MODE=real` runs catch when mocks diverge from reality.
 
 ---
 
@@ -597,6 +594,37 @@ pkill -f ttyd
 
 ## Quick Reference
 
+### Workflows
+
+**Coding Iteration** (every change):
+
+```bash
+bun run test:fast          # ~5s - run after each change
+```
+
+**Before Commit**:
+
+```bash
+bun fix                    # Lint + format (must pass)
+bun run test:all           # Full suite (must pass)
+```
+
+**Working on Specific Areas**:
+
+| Working on...        | Run during iteration  |
+| -------------------- | --------------------- |
+| Sync, watcher, chaos | `bun run test:slow`   |
+| CLI commands         | `bun run test:mdtest` |
+| Everything else      | `bun run test:fast`   |
+
+Still run `test:all` before commit.
+
+**CI / Release**:
+
+```bash
+TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
+```
+
 ### File Naming
 
 | Suffix          | Purpose                         | Included in           |
@@ -625,14 +653,16 @@ pkill -f ttyd
 - Test files should focus on a single logical concern
 - Example: `query-filters.test.ts`, `query-execution.test.ts` > one monolithic `query.test.ts`
 
-### Commands
+### Test Commands
 
-```bash
-bun run test:fast       # Fast iteration (~24s)
-bun run test:all        # Full suite including mdtest
-bun run test:mdtest     # Only mdtest
-TEST_MODE=real bun test # Real infrastructure
-```
+| Command       | What it runs                              | Use case             |
+| ------------- | ----------------------------------------- | -------------------- |
+| `test:fast`   | `*.test.ts` + `*.spec.ts` (excludes slow) | Default iteration    |
+| `test:slow`   | `*.slow.test.ts` only                     | Sync/chaos iteration |
+| `test:mdtest` | `*.test.md` only                          | CLI iteration        |
+| `test:all`    | `test:fast` + `test:slow` + `test:mdtest` | Before commit        |
+
+**Primary workflow**: `test:fast` (iterate) → `test:all` (commit)
 
 ### When to Use What
 

@@ -59,7 +59,9 @@
       "Skill(architect-review)",
       "Skill(architect-review:*)",
       "Skill(max)",
-      "Skill(max:*)"
+      "Skill(max:*)",
+      "Skill(git)",
+      "Skill(git:*)"
     ],
     "deny": [],
     "ask": []

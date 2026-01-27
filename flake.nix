@@ -23,7 +23,6 @@
             bun
             nodejs_22
             nixfmt
-            zig_0_14 # Required for OpenTUI build
             tmux
             lnav # Log viewer for debug script
           ];

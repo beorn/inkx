@@ -85,4 +85,4 @@ Acceptance tests at outermost level:
 
 - **TUI**: `board.spec.ts` - CSS selectors, interactions
 - **CLI**: `km-*.test.md` - shell commands via mdtest
-- Run with `bun run test:mock` for faster iteration (~20s)
+- Run with `TEST_MODE=mock bun run test:fast` to skip watcher tests (~20s faster)

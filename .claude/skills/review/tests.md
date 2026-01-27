@@ -73,6 +73,10 @@ done
 # Sync tests using real watcher (should use useWorker: false)
 echo "=== Real Watcher Usage ==="
 grep -r "useWorker: true" packages/*/tests/*.test.ts 2>/dev/null | grep -v ".slow." | wc -l
+
+# Tests with console output (should be silent on success)
+echo "=== Console Output in Tests ==="
+grep -rn "console\.\(log\|info\|warn\|debug\)" packages/*/tests/*.test.ts apps/*/tests/*.test.ts 2>/dev/null | grep -v ".slow." | wc -l
 ```
 
 **Expected results:**
@@ -81,6 +85,7 @@ grep -r "useWorker: true" packages/*/tests/*.test.ts 2>/dev/null | grep -v ".slo
 - Raw Database in fast tests: 0
 - mdtests without memory: 0
 - Real watcher in fast tests: 0
+- Console output in fast tests: 0 (tests should be silent on success)
 
 ## Phase 2: Layer Analysis
 
@@ -128,6 +133,10 @@ Apply checklist from `docs/dev/test-review.md`:
 - Flaky tests
 - Covered by types
 
+**Fix candidates**:
+
+- Console output (tests should be silent on success)
+
 **Merge candidates**:
 
 - Same setup, different assertions
@@ -166,6 +175,7 @@ Output structured findings:
 | Raw Database in fast tests    | N     | 0      | ✅/❌  |
 | mdtests without memory: true  | N     | 0      | ✅/❌  |
 | Real watcher in fast tests    | N     | 0      | ✅/❌  |
+| Console output in fast tests  | N     | 0      | ✅/❌  |
 
 ### Performance
 
@@ -192,6 +202,10 @@ Output structured findings:
 #### C. Move (N)
 
 | File:Line | From | To | Reason |
+
+#### D. Fix (N)
+
+| File:Line | Issue | Fix |
 ```
 
 **Stop here if `--dry-run`**.

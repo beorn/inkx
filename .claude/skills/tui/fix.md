@@ -30,7 +30,7 @@ Debug and fix TUI rendering issues through inkx tests and visual inspection.
 // apps/km-tui/tests/board.spec.ts
 test("task text should not overflow", () => {
   const { board } = testEnv(() =>
-    item("board", item("col", item("very long task text here")))
+    item("board", item("col", item("very long task text here"))),
   )
   const box = board.q("#col").boundingBox()
   // Assert text doesn't overflow column width
@@ -67,13 +67,13 @@ pkill -f ttyd
 
 **Quick check**: If `bun storybook` shows the bug → rendering code issue.
 
-| Symptom                 | Layer | Files to Check               |
-| ----------------------- | ----- | ---------------------------- |
-| Text not styled         | 1     | `src/text/rich.ts`           |
-| Wrong status icon/color | 1     | `src/text/icons.ts`          |
-| Text overlap            | 2     | `src/layout/truncate.ts`     |
-| Selection not visible   | 3     | `src/views/TreeNode.tsx`     |
-| View layout broken      | 3     | `src/views/*.tsx`            |
+| Symptom                 | Layer | Files to Check           |
+| ----------------------- | ----- | ------------------------ |
+| Text not styled         | 1     | `src/text/rich.ts`       |
+| Wrong status icon/color | 1     | `src/text/icons.ts`      |
+| Text overlap            | 2     | `src/layout/truncate.ts` |
+| Selection not visible   | 3     | `src/views/TreeNode.tsx` |
+| View layout broken      | 3     | `src/views/*.tsx`        |
 
 ## Step 3: Fix
 
