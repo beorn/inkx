@@ -10,6 +10,7 @@ Review tests for pruning, overlap, and architecture alignment.
 
 **Target**: $ARGUMENTS
 **Reference**: See `docs/dev/test-review.md` for full checklist and guidelines.
+**Related**: `/review-code` (architecture), `/review-types` (type safety)
 
 ## Modes
 

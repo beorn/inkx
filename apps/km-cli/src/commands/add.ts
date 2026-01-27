@@ -12,15 +12,10 @@
 import { Command } from "commander"
 import chalk from "chalk"
 import { ulid } from "ulid"
-import {
-  queryTasks,
-  resolvePathArg,
-  createRepo,
-  runGenerator,
-  emitNodeCreated,
-} from "@km/storage"
+import { queryTasks, resolvePathArg, emitNodeCreated } from "@km/storage"
 import type { KNode } from "@km/core"
 import { getRootPath } from "../program.ts"
+import { loadRepo } from "../load-repo.ts"
 
 export const addCommand = new Command("add")
   .description("Add tasks to a board or list")
@@ -28,12 +23,10 @@ export const addCommand = new Command("add")
   .argument("<source...>", "Task IDs or query (e.g., ./inbox/**, status:todo)")
   .option("--dry-run", "Preview without making changes")
   .option("--json", "Output as JSON")
-  .action((target, sources, options) => {
+  .action(async (target, sources, options) => {
     // Resolve target path argument - may detect repo root
     const resolvedTarget = resolvePathArg(target, getRootPath())
-    using repo = runGenerator(
-      createRepo(resolvedTarget.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolvedTarget.repoRoot)
 
     if (!resolvedTarget.nodeRef) {
       console.error(chalk.red(`Cannot add to a directory`))

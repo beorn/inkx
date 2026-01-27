@@ -6,7 +6,8 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import { runGenerator, createRepo, type Repo } from "@km/storage"
+import type { Repo } from "@km/storage"
+import { loadRepo } from "../load-repo.ts"
 import * as readline from "readline"
 
 /**
@@ -21,8 +22,8 @@ function getInboxNode(repo: Repo) {
 export const inboxCommand = new Command("inbox")
   .description("GTD-style inbox processing")
   .option("--json", "Output as JSON")
-  .action((options: { json?: boolean }) => {
-    using repo = runGenerator(createRepo(".", { loadFiles: true }))
+  .action(async (options: { json?: boolean }) => {
+    using repo = await loadRepo(process.cwd())
 
     // List inbox items
     const inbox = getInboxNode(repo)
@@ -67,7 +68,7 @@ inboxCommand
   .command("process")
   .description("Interactive inbox processing")
   .action(async () => {
-    using repo = runGenerator(createRepo(".", { loadFiles: true }))
+    using repo = await loadRepo(process.cwd())
     const inbox = getInboxNode(repo)
 
     if (!inbox) {
@@ -184,8 +185,8 @@ inboxCommand
   .description("Quick add item to inbox")
   .argument("<content...>", "Task content")
   .option("--json", "Output as JSON")
-  .action((content: string[], options: { json?: boolean }) => {
-    using repo = runGenerator(createRepo(".", { loadFiles: true }))
+  .action(async (content: string[], options: { json?: boolean }) => {
+    using repo = await loadRepo(process.cwd())
     const inbox = getInboxNode(repo)
 
     if (!inbox) {

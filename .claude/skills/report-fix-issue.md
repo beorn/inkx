@@ -1,115 +1,176 @@
-# Report and Fix Issue Skill
+---
+name: report-issue
+description: Spawn a sub-agent to report and optionally fix an unrelated bug discovered during other work. Use when you find pre-existing bugs, TypeScript errors in untouched code, or technical debt that's not your current focus.
+user-invocable: false
+---
 
-When you discover a bug or issue during development, use this workflow to properly track and fix it.
+# Report/Fix Issue
+
+Spawn a sub-agent to handle a bug you discovered while working on something else.
 
 ## When to Use
 
-- You encounter a test failure caused by a pre-existing bug (not your changes)
-- You discover TypeScript errors in existing code
-- You find incomplete/broken functionality
-- You notice technical debt that blocks your work
+- Pre-existing bug blocking your tests (not caused by your changes)
+- TypeScript errors in code you didn't touch
+- Incomplete functionality you stumbled upon
+- Technical debt that's not your current focus
 
-## Workflow
+**Don't use for:** Issues that ARE your current task—just fix those directly.
 
-### Phase 1: Check for Existing Issue
+## Bead ID Naming
 
-```bash
-# Search for related issues
-bd list --all | grep -i "<keyword>"
-```
+**See [bd/naming.md](bd/naming.md) for full conventions.**
 
-If found:
-```bash
-bd update <id> --priority P0
-bd update <id> --status ready  # Unclaim if someone else had it
-bd show <id>
-```
+Quick reference:
+- Package-specific: `km-<scope>.<type>-<N>-<slug>` (e.g., `km-storage.bug-3-core-dump`)
+- Cross-cutting: `km-<type>-<slug>` (e.g., `km-bug-watcher-race`)
+- Subtasks: parent + `.a`, `.b`, `.c` (e.g., `km-storage.feat-1.a`)
 
-### Phase 2: Create Issue if Not Found
+Always check existing: `bd list --all | grep "km-<scope>"` to find next number.
 
-```bash
-bd create --type=bug --title="<Clear title describing the bug>" --body="<Description with:
-- What's broken
-- Where (file paths, line numbers)
-- How to reproduce (commands to run)
-- Expected vs actual behavior>"
+## Modes
 
-bd update <new-id> --priority P0
-```
+| Mode | Use Case |
+|------|----------|
+| **report-only** | Record for later; you have other priorities |
+| **report-and-fix** | Outsource full fix to sub-agent |
+| **report-blocked** | Depends on another bead first |
 
-### Phase 3: Claim and Fix
-
-```bash
-bd work <id>  # Claims the issue for your session
-```
-
-Then fix the bug:
-1. Read the relevant files to understand the issue
-2. Make the minimal fix needed
-3. Run tests to verify: `bun test <specific-test-file>`
-4. Run typecheck if relevant: `bun typecheck 2>&1 | grep "<package>"`
-
-### Phase 4: Close When Fixed
-
-```bash
-bd close <id>
-```
-
-## Priority Guidelines
-
-| Priority | When to Use |
-|----------|-------------|
-| P0 | Blocks current work, breaks tests/build |
-| P1 | Important but has workaround |
-| P2 | Nice to fix, not urgent |
-
-## Example: TypeScript Error
-
-```bash
-# 1. Check existing
-bd list --all | grep -i "typescript"
-
-# 2. Create if needed
-bd create --type=bug --title="TypeScript errors in km-storage tests" \
-  --body="bun typecheck shows errors in:
-- fake-repo.ts:10 - LoadError not exported
-- fuzzer.ts:490 - Wrong argument count
-
-Run: bun typecheck 2>&1 | grep km-storage"
-
-bd update km-xxxx --priority P0
-
-# 3. Claim and fix
-bd work km-xxxx
-# ... make fixes ...
-bun typecheck 2>&1 | grep km-storage | wc -l  # Should be 0
-
-# 4. Close
-bd close km-xxxx
-```
-
-## Spawning Sub-Agents
-
-When you have multiple independent issues, spawn parallel agents:
+## Mode 1: Report Only
 
 ```typescript
-// In your prompt to the Task tool:
 Task({
-  description: "Fix <issue> (report+fix)",
-  prompt: `Fix <description>.
+  description: "Report issue: <brief>",
+  prompt: `Report this issue as a bead. Do NOT fix.
 
-## PHASE 1: Report
-1. bd list --all | grep -i "<keyword>"
-2. If found: bd update <id> --priority P0
-3. If not: bd create --type=bug --title="..." --body="..."
-4. bd work <id>
+## Issue
+<what's broken, where, repro steps>
 
-## PHASE 2: Fix
-<specific fix instructions>
+## Bead ID
+1. Check existing: bd list --all | grep "km-<scope>"
+2. Use pattern: km-<scope>.<type>-<N>-<slug> (e.g., km-storage.bug-3-sync-race)
+3. For cross-cutting: km-<type>-<slug> (e.g., km-bug-test-flaky)
 
-## PHASE 3: Close
+## Instructions
+1. Search existing: bd list --all | grep -i "<keyword>"
+2. If found: bd update <id> --priority P1
+3. If not: bd create --id <id> --type bug --title "<title>" --description "<description>"
+4. Report back the bead ID
+
+Do NOT claim (no bd work). Do NOT fix.`,
+  subagent_type: "general-purpose",
+  model: "haiku"
+})
+```
+
+## Mode 2: Report and Fix
+
+```typescript
+Task({
+  description: "Fix issue: <brief>",
+  prompt: `Report and fix this issue.
+
+## Issue
+<what's broken, where, repro steps>
+
+## Bead ID
+1. Check existing: bd list --all | grep "km-<scope>"
+2. Use: km-<scope>.<type>-<N>-<slug> or km-<type>-<slug>
+
+## Phase 1: Report
+1. Search existing: bd list --all | grep -i "<keyword>"
+2. If found: note ID
+3. If not: bd create --id <id> --type bug --title "<title>" --description "<description>"
+
+## Phase 2: Fix
+1. bd work <id>
+2. Read relevant files
+3. Make minimal fix
+4. Verify: <specific test command>
+
+## Phase 3: Close
 bd close <id>`,
   subagent_type: "general-purpose",
   run_in_background: true
 })
+```
+
+## Mode 3: Report as Blocked
+
+```typescript
+Task({
+  description: "Report blocked issue: <brief>",
+  prompt: `Report this issue as blocked by another bead.
+
+## Issue
+<what's broken>
+
+## Blocked By
+Bead: <blocker-id>
+Reason: <why this can't proceed>
+
+## Bead ID
+Use: km-<scope>.<type>-<N>-<slug> or km-<type>-<slug>
+
+## Instructions
+1. Search existing: bd list --all | grep -i "<keyword>"
+2. If not: bd create --id <id> --type bug --title "<title>" \
+     --description "<description>" --deps "blocks:<blocker-id>"
+3. Report back the bead ID
+
+Do NOT claim or fix.`,
+  subagent_type: "general-purpose",
+  model: "haiku"
+})
+```
+
+## Priority
+
+| Priority | When |
+|----------|------|
+| P0 | Blocks current work, breaks tests/build |
+| P1 | Important but has workaround |
+| P2 | Nice to fix, not urgent |
+
+## Example: TypeScript Errors in km-storage
+
+```typescript
+// Check existing beads first
+// $ bd list --all | grep "km-storage"
+// km-storage.bug-1  Fix watcher race condition
+// km-storage.bug-2  Handle empty directories
+// → Next ID: km-storage.bug-3
+
+Task({
+  description: "Report TS errors in km-storage",
+  prompt: `Report TypeScript errors. Do NOT fix.
+
+## Issue
+bun typecheck shows errors:
+- fake-repo.ts:10 - LoadError not exported
+- fuzzer.ts:490 - Wrong argument count
+
+Repro: bun typecheck 2>&1 | grep km-storage
+
+## Bead ID
+Use: km-storage.bug-3 (continues existing pattern)
+
+## Instructions
+1. bd list --all | grep -i "typescript"
+2. If not found: bd create --id km-storage.bug-3 --type=bug --title="TypeScript errors in km-storage tests" --body="..."
+3. bd update km-storage.bug-3 --priority P1
+4. Report: km-storage.bug-3`,
+  subagent_type: "general-purpose",
+  model: "haiku"
+})
+```
+
+## Parallel Issues
+
+Spawn multiple agents in one message:
+
+```typescript
+Task({ description: "Fix issue A", ... })
+Task({ description: "Fix issue B", ... })
+Task({ description: "Report issue C", ... })
 ```

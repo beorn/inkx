@@ -6,7 +6,8 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import { createRepo, runGenerator, resolvePathArg } from "@km/storage"
+import { resolvePathArg } from "@km/storage"
+import { loadRepo } from "../../load-repo.ts"
 import { getMarkForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
@@ -20,9 +21,9 @@ export function createStatusCommand(): Command {
     .argument("<id>", "Task ID or prefix")
     .argument("[new-status]", "New status (todo, wip, blocked, done, dropped)")
     .option("--json", "Output as JSON")
-    .action((id, newStatus, options) => {
+    .action(async (id, newStatus, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
-      using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
+      using repo = await loadRepo(resolved.repoRoot)
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {

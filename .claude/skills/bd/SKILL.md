@@ -1,8 +1,7 @@
 ---
-description: Beads issue tracker. Use when user asks "what should I work on?", "show available tasks", "claim this issue", "find work", or wants to coordinate work between sessions.
-argument-hint: [ready|show|work|claim|release|close|sync|my] [id]
-allowed-tools: Bash, Read
-disable-model-invocation: true
+description: Beads issue tracker with session coordination. Use when user asks "what should I work on?", "show available tasks", "claim this issue", "find work", or wants to coordinate work between sessions.
+argument-hint: [ready|show|work|claim|release|close|sync|my|create|list] [id]
+allowed-tools: Bash, Read, TodoWrite
 ---
 
 # /bd - Beads Issue Tracker
@@ -135,16 +134,24 @@ bd list --json | jq -r '.[] | "\(.id) \(.title)"'
 
 ### Creating Beads
 
+**See [naming.md](naming.md) for ID conventions.** Use meaningful IDs, not random ones.
+
 ```bash
-# Basic create
+# With explicit ID (preferred)
+bd create --id km-storage.bug-3-sync-race --type bug --title "Race in file sync"
+
+# Basic create (auto-generated ID)
 bd create "Fix the bug" --type bug
 
 # With description and priority
-bd create "Add feature X" --type feature --priority 1 \
+bd create --id km-tui.feat-1-vim-mode --type feature --priority 1 \
+  --title "Add vim keybindings" \
   --description "Full description here"
 
 # With parent (creates child bead)
-bd create "Sub-task" --parent km-epic123
+bd create --id km-tui.feat-1-vim-mode.a --type task \
+  --title "Normal mode navigation" \
+  --parent km-tui.feat-1-vim-mode
 
 # Quick capture (outputs only ID)
 bd q "Quick note about issue"

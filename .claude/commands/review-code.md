@@ -12,6 +12,8 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 
 **Architecture**: See CLAUDE.md §1 "Clear Layering". Rules: layers call only below, UI never touches fs, parser is stateless.
 
+**Related**: `/review-types` (type safety), `/review-tests` (test suite)
+
 ## Finding Types
 
 | Type             | Signal                                                                      |

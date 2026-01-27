@@ -6,10 +6,11 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import { createRepo, runGenerator, emitNodeUpdated } from "@km/storage"
+import { resolvePathArg, emitNodeUpdated } from "@km/storage"
 import { getMarkForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
+import { loadRepo } from "../../load-repo.ts"
 
 /**
  * Create the set subcommand
@@ -27,8 +28,9 @@ export function createSetCommand(): Command {
       "Field:value pairs (due:2025-01-20, p:1, status:todo)",
     )
     .option("--json", "Output as JSON")
-    .action((id, fields, options) => {
-      using repo = runGenerator(createRepo(getRootPath(), { loadFiles: true }))
+    .action(async (id, fields, options) => {
+      const resolved = resolvePathArg(process.cwd(), getRootPath())
+      using repo = await loadRepo(resolved.repoRoot)
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {
@@ -114,8 +116,9 @@ export function createClearCommand(): Command {
       "Fields to clear (due, priority, scheduled, assigned)",
     )
     .option("--json", "Output as JSON")
-    .action((id, fields, options) => {
-      using repo = runGenerator(createRepo(getRootPath(), { loadFiles: true }))
+    .action(async (id, fields, options) => {
+      const resolved = resolvePathArg(process.cwd(), getRootPath())
+      using repo = await loadRepo(resolved.repoRoot)
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {

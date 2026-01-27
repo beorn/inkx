@@ -17,7 +17,8 @@ import {
   type Agent,
 } from "@km/agent"
 import { queryReady, getIssue } from "@km/beads"
-import { createRepo, runGenerator, resolvePathArg } from "@km/storage"
+import { resolvePathArg } from "@km/storage"
+import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 
 export const bdAgentCommand = new Command("agent")
@@ -41,9 +42,9 @@ bdAgentCommand
   .command("ls")
   .description("List all agents")
   .option("--json", "Output as JSON")
-  .action((opts) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agents = queryAgents(repo)
 
     if (opts.json) {
@@ -68,9 +69,9 @@ bdAgentCommand
   .command("queue <agent-id>")
   .description("Show agent's assigned issues")
   .option("--json", "Output as JSON")
-  .action((agentId, opts) => {
+  .action(async (agentId, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))
@@ -122,9 +123,9 @@ bdAgentCommand
 bdAgentCommand
   .command("assign <agent-id> <issue-id>")
   .description("Assign an issue to an agent's queue")
-  .action((agentId, issueId) => {
+  .action(async (agentId, issueId) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))
@@ -154,9 +155,9 @@ bdAgentCommand
 bdAgentCommand
   .command("unassign <agent-id> <issue-id>")
   .description("Remove an issue from agent's queue")
-  .action((agentId, issueId) => {
+  .action(async (agentId, issueId) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))
@@ -188,9 +189,9 @@ bdAgentCommand
   .command("claim <agent-id>")
   .description("Agent claims the next ready issue from the backlog")
   .option("--json", "Output as JSON")
-  .action((agentId, opts) => {
+  .action(async (agentId, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))
@@ -238,9 +239,9 @@ bdAgentCommand
   .description("Run agent on its work queue (continuous mode)")
   .option("--max-tasks <n>", "Maximum tasks to process", parseInt)
   .option("--dry-run", "Show what would be done")
-  .action((agentId, opts) => {
+  .action(async (agentId, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${agentId}`))

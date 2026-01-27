@@ -12,6 +12,8 @@ Find type issues, fix quick wins, track larger refactors.
 
 **Decision rule**: Every change must catch a real bug OR reduce boilerplate. Otherwise skip.
 
+**Related**: `/review-code` (architecture), `/review-tests` (test suite)
+
 ---
 
 ## What to Find
@@ -109,6 +111,24 @@ AskUserQuestion: "Fix quick wins now?"
 2. Fix one file at a time
 3. After each: `bun tsc --noEmit`
 4. After all: `bun run test:fast`
+
+---
+
+## Follow-up: Create Beads
+
+If larger refactors identified, track in beads:
+
+```bash
+DATE_SUFFIX=$(date +%m%d)
+
+# Create review bead with findings
+bd create --id "km-rev-types-$DATE_SUFFIX" --type=task --priority=2 \
+  --title="Type safety review findings" --body-file /tmp/review.md
+
+# Child beads for each refactor
+bd create --id "km-rev-types-$DATE_SUFFIX.a" --title="<finding 1>" \
+  --type=task --parent "km-rev-types-$DATE_SUFFIX"
+```
 
 ---
 

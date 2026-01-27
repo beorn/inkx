@@ -7,14 +7,13 @@
 import chalk from "chalk"
 import { ulid } from "ulid"
 import {
-  createRepo,
-  runGenerator,
   resolvePathArg,
   emitNodeCreated,
   emitNodeUpdated,
   parseTaskMetadata,
   extractTags,
 } from "@km/storage"
+import { loadRepo } from "../../load-repo.ts"
 import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
 import { findNodeByPathOrId } from "./queries.ts"
@@ -22,13 +21,13 @@ import { findNodeByPathOrId } from "./queries.ts"
 /**
  * Add a task under a parent
  */
-export function addTask(
+export async function addTask(
   pathOrId: string | undefined,
   content: string,
   options: { json?: boolean },
-): void {
+): Promise<void> {
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
+  using repo = await loadRepo(resolved.repoRoot)
 
   // Parse metadata from content
   const metadata = parseTaskMetadata(content)
@@ -70,17 +69,17 @@ export function addTask(
 /**
  * Mark a task as done
  */
-export function markDone(
+export async function markDone(
   pathOrId: string | undefined,
   options: { json?: boolean },
-): void {
+): Promise<void> {
   if (!pathOrId) {
     console.error(chalk.red("Task ID or path required"))
     process.exit(1)
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
+  using repo = await loadRepo(resolved.repoRoot)
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
@@ -104,17 +103,17 @@ export function markDone(
 /**
  * Claim a task (assign to yourself)
  */
-export function claimTask(
+export async function claimTask(
   pathOrId: string | undefined,
   options: { json?: boolean },
-): void {
+): Promise<void> {
   if (!pathOrId) {
     console.error(chalk.red("Task ID or path required"))
     process.exit(1)
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
+  using repo = await loadRepo(resolved.repoRoot)
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
@@ -146,17 +145,17 @@ export function claimTask(
 /**
  * Release a claimed task
  */
-export function releaseTask(
+export async function releaseTask(
   pathOrId: string | undefined,
   options: { json?: boolean },
-): void {
+): Promise<void> {
   if (!pathOrId) {
     console.error(chalk.red("Task ID or path required"))
     process.exit(1)
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
+  using repo = await loadRepo(resolved.repoRoot)
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
@@ -183,18 +182,18 @@ export function releaseTask(
 /**
  * Assign a task to a user
  */
-export function assignTask(
+export async function assignTask(
   pathOrId: string | undefined,
   user: string,
   options: { json?: boolean },
-): void {
+): Promise<void> {
   if (!pathOrId) {
     console.error(chalk.red("Task ID or path required"))
     process.exit(1)
   }
 
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
+  using repo = await loadRepo(resolved.repoRoot)
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {

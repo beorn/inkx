@@ -5,7 +5,8 @@
  */
 
 import chalk from "chalk"
-import { createRepo, runGenerator, resolvePathArg, type Repo } from "@km/storage"
+import { resolvePathArg, type Repo } from "@km/storage"
+import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
 import type { KNode, TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
@@ -37,12 +38,12 @@ export interface ListTasksOptions {
 /**
  * List tasks (optionally scoped to a root node or filtered by path/query)
  */
-export function listTasks(
+export async function listTasks(
   pathOrId: string | undefined,
   options: ListTasksOptions,
-): void {
+): Promise<void> {
   const resolved = resolvePathArg(process.cwd(), getRootPath())
-  using repo = runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
+  using repo = await loadRepo(resolved.repoRoot)
 
   let tasks: KNode[]
   let rootNode: KNode | null = null

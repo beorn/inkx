@@ -20,13 +20,8 @@ import {
   type Issue,
   type IssueFilter,
 } from "@km/beads"
-import {
-  getDbPath,
-  resolvePathArg,
-  loadConfigObject,
-  createRepo,
-  runGenerator,
-} from "@km/storage"
+import { getDbPath, resolvePathArg, loadConfigObject } from "@km/storage"
+import { loadRepo } from "../load-repo.ts"
 import { join } from "path"
 import { existsSync } from "fs"
 
@@ -169,16 +164,14 @@ const showCmd = bdCommand
   .command("show [id]")
   .description("Show issue details")
   .option("--json", "Output as JSON")
-  .action((id, opts) => {
+  .action(async (id, opts) => {
     if (!id) {
       showCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
-    using repo = runGenerator(
-      createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
 
     if (!issue) {
@@ -243,16 +236,14 @@ const updateCmd = bdCommand
   .option("-p, --priority <n>", "Set priority (0-4)", parseInt)
   .option("-a, --assignee <name>", "Set assignee")
   .option("-t, --title <title>", "Set title")
-  .action((id, opts) => {
+  .action(async (id, opts) => {
     if (!id) {
       updateCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
-    using repo = runGenerator(
-      createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
@@ -287,16 +278,14 @@ const closeCmd = bdCommand
   .command("close [id]")
   .description("Close an issue (mark as done)")
   .option("-r, --reason <reason>", "Close reason")
-  .action((id, opts) => {
+  .action(async (id, opts) => {
     if (!id) {
       closeCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
-    using repo = runGenerator(
-      createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
@@ -319,16 +308,14 @@ const dropCmd = bdCommand
   .command("drop [id]")
   .description("Drop an issue (mark as won't do)")
   .option("-r, --reason <reason>", "Drop reason")
-  .action((id, opts) => {
+  .action(async (id, opts) => {
     if (!id) {
       dropCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
-    using repo = runGenerator(
-      createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
@@ -352,16 +339,14 @@ const depCommand = new Command("dep").description("Manage issue dependencies")
 const depAddCmd = depCommand
   .command("add [id] [depends-on]")
   .description("Add a dependency (issue is blocked by depends-on)")
-  .action((id, dependsOn) => {
+  .action(async (id, dependsOn) => {
     if (!id || !dependsOn) {
       depAddCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
-    using repo = runGenerator(
-      createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
@@ -383,16 +368,14 @@ const depAddCmd = depCommand
 const depRemoveCmd = depCommand
   .command("remove [id] [depends-on]")
   .description("Remove a dependency")
-  .action((id, dependsOn) => {
+  .action(async (id, dependsOn) => {
     if (!id || !dependsOn) {
       depRemoveCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
-    using repo = runGenerator(
-      createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
@@ -421,16 +404,14 @@ const depRemoveCmd = depCommand
 const depListCmd = depCommand
   .command("list [id]")
   .description("List dependencies for an issue")
-  .action((id) => {
+  .action(async (id) => {
     if (!id) {
       depListCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
-    using repo = runGenerator(
-      createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
       console.error(chalk.red(`Issue not found: ${id}`))
@@ -460,14 +441,12 @@ bdCommand.addCommand(bdAgentCommand)
 bdCommand
   .command("info [scope]")
   .description("Show beads configuration and statistics")
-  .action((scope) => {
+  .action(async (scope) => {
     const resolved = resolvePathArg(scope)
     const kmDir = join(resolved.repoRoot, ".km")
 
     // Load repo to set up context for getDbPath()
-    using repo = runGenerator(
-      createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolved.repoRoot)
     const scopePath = resolved.nodeRef ?? undefined
     const configObj = loadConfigObject(resolved.repoRoot)
     const config = configObj.beads
@@ -573,12 +552,12 @@ bdCommand
 bdCommand
   .command("where [scope]")
   .description("Show beads paths and configuration")
-  .action((scope) => {
+  .action(async (scope) => {
     const resolved = resolvePathArg(scope)
     const kmDir = join(resolved.repoRoot, ".km")
 
     // Load repo to set up global state for getDbPath()
-    runGenerator(createRepo(resolved.repoRoot, { loadFiles: true }))
+    using _repo = await loadRepo(resolved.repoRoot)
     const dbPath = getDbPath()
     const configObj = loadConfigObject(resolved.repoRoot)
 

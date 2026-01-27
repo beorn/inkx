@@ -8,14 +8,13 @@ import { Command } from "commander"
 import chalk from "chalk"
 import { join } from "path"
 import {
-  createRepo,
   parseTaskMetadata,
   extractTags,
   extractMentions,
   resolvePathArg,
-  runGenerator,
 } from "@km/storage"
 import { getRootPath } from "../program.ts"
+import { loadRepo } from "../load-repo.ts"
 
 /**
  * Format task metadata as inline fields
@@ -64,9 +63,9 @@ export const newCommand = new Command("new")
   .option("-o, --owner <user>", "Assign to user")
   .option("-P, --priority <n>", "Set priority (1-5)")
   .option("--json", "Output as JSON")
-  .action((content, options) => {
-    const rootPath = getRootPath()
-    using repo = runGenerator(createRepo(rootPath, { loadFiles: true }))
+  .action(async (content, options) => {
+    const rootPath = getRootPath() ?? process.cwd()
+    using repo = await loadRepo(rootPath)
     const text = content.join(" ")
 
     // Parse any metadata already in the content

@@ -12,8 +12,10 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import { createRepo, runGenerator, type Repo } from "@km/storage"
+import { resolvePathArg, type Repo } from "@km/storage"
 import type { KNode } from "@km/core"
+import { loadRepo } from "../load-repo.ts"
+import { getRootPath } from "../program.ts"
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
 import { formatNode, formatCollapsedAncestor } from "@km/tui"
 
@@ -192,8 +194,28 @@ export const listCommand = new Command("list")
   .option("-i, --id", "Show node IDs")
   .option("-f, --flat", "Flat output with path prefixes")
   .option("--json", "Output as JSON")
-  .action((query, options) => {
-    using repo = runGenerator(createRepo(undefined, { loadFiles: true }))
+  .action(async (queryOrPath, options) => {
+    // Check if argument looks like a path
+    let repoRoot: string
+    let query: string | undefined
+
+    if (
+      queryOrPath &&
+      (queryOrPath.startsWith("/") ||
+        queryOrPath.startsWith(".") ||
+        queryOrPath.startsWith("~"))
+    ) {
+      // It's a path - use as repo root
+      const resolved = resolvePathArg(queryOrPath, getRootPath())
+      repoRoot = resolved.repoRoot
+      query = undefined
+    } else {
+      // It's a query - use default root
+      repoRoot = getRootPath() ?? process.cwd()
+      query = queryOrPath
+    }
+
+    using repo = await loadRepo(repoRoot)
 
     const nodes = getFilteredNodesWithQuery(repo, {
       type: options.type,

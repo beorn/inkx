@@ -10,14 +10,9 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import {
-  resolveNode,
-  resolvePathArg,
-  runGenerator,
-  createRepo,
-  findProject,
-} from "@km/storage"
+import { resolveNode, resolvePathArg, findProject } from "@km/storage"
 import { getRootPath } from "../program.ts"
+import { loadRepo } from "../load-repo.ts"
 import { getNodeDisplayName } from "@km/tree"
 import type { KNode } from "@km/core"
 
@@ -28,12 +23,10 @@ export const moveCommand = new Command("move")
   .option("-p, --project <name>", "Move to project by name")
   .option("--to-root", "Move to root level (no parent)")
   .option("--json", "Output as JSON")
-  .action((nodeArg, parentArg, options) => {
+  .action(async (nodeArg, parentArg, options) => {
     // Resolve the node argument - may detect repo root from path
     const resolvedNode = resolvePathArg(nodeArg, getRootPath())
-    using repo = runGenerator(
-      createRepo(resolvedNode.repoRoot, { loadFiles: true }),
-    )
+    using repo = await loadRepo(resolvedNode.repoRoot)
 
     const nodeRef = resolvedNode.nodeRef
     if (!nodeRef) {
