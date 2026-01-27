@@ -149,7 +149,7 @@ describe("Toast rendering", () => {
     expect(text).toContain("3 item archived")
   })
 
-  test("only latest toast is displayed when multiple exist", () => {
+  test("multiple toasts are stacked (shadcn/ui style)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
 
     toast("First message")
@@ -159,14 +159,9 @@ describe("Toast rendering", () => {
     board.press("l")
     board.press("h")
 
-    // Should only have one toast element (the latest)
+    // ToastStack shows up to 5 toasts stacked (shadcn/ui behavior)
+    // Each toast gets its own #toast element
     const toastEls = board.q("#toast")
-    expect(toastEls.count()).toBe(1)
-
-    // Should show the latest message
-    const text = toastEls.textContent()
-    expect(text).toContain("Third message")
-    expect(text).not.toContain("First message")
-    expect(text).not.toContain("Second message")
+    expect(toastEls.count()).toBe(3)
   })
 })

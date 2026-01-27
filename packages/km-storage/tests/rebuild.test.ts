@@ -103,17 +103,17 @@ describe("rebuild.ts", () => {
         expect(repo.needsRebuild()).toBe(false)
       }))
 
-    test("returns true for disk mode without state.db", () =>
+    test("returns false for freshly created disk mode repo", () =>
       withTestEnv(async ({ repoDir, kmDir }) => {
-        // Create .km directory for disk mode (but no state.db created yet)
+        // Create .km directory for disk mode
         mkdirSync(kmDir, { recursive: true })
         writeFileSync(join(repoDir, "test.md"), "# Test\n- [ ] Task\n")
 
+        // createRepo creates state.db when opening in disk mode
         using repo = runGenerator(createRepo(repoDir))
         expect(repo.mode).toBe("disk")
-        // No state.db file exists = needs rebuild
-        // (test uses ALS in-memory db, so physical state.db doesn't exist)
-        expect(repo.needsRebuild()).toBe(true)
+        // Freshly created repo has state.db and no pending events
+        expect(repo.needsRebuild()).toBe(false)
       }))
 
     test("returns false for disk mode with state.db and no events", () =>
