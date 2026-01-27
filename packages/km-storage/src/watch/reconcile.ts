@@ -25,14 +25,10 @@ import {
   getFileWithChildren,
   getNodeContentHash,
 } from "../db-queries/core-lookup.ts"
-import {
-  findFileByName,
-  findChildByContent,
-} from "../db-queries/wikilink-resolver.ts"
+// Removed: findFileByName, findChildByContent - no longer needed with LinkResolver
 import {
   addLink,
   removeLinksFromSource,
-  resolveLinks,
   resolveLinksBatch,
 } from "../db-links.ts"
 import { createLinkResolver, type LinkResolver } from "../link-resolver.ts"
@@ -410,53 +406,27 @@ function handleCreate(
     }
 
     // Store wikilinks - use resolver for efficient lookup (avoids O(n²) DB queries)
-    if (ctx?.resolver) {
-      // Use data layer transform for batch resolution
-      const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
-      for (const link of resolvedLinks) {
-        addLink(db, link)
-      }
-    } else {
-      // Fallback for single-file creation (no ctx) - use DB queries
-      for (const { nodeId, link, relationship } of processed.wikilinks) {
-        let targetId: string | null = null
-        const targetFileNode = findNodeByName(db, link.target)
-        if (targetFileNode) {
-          targetId = targetFileNode.id
-          if (link.section) {
-            const childNode = findChildByContent(
-              db,
-              targetFileNode.id,
-              link.section,
-            )
-            if (childNode) {
-              targetId = childNode.id
-            }
-          }
-        }
-
-        addLink(db, {
-          source_id: nodeId,
-          target_name: link.target,
-          target_id: targetId,
-          section: link.section ?? null,
-          block_id: link.blockId ?? null,
-          alias: link.alias ?? null,
-          embedded: link.embedded ?? false,
-          relationship: relationship ?? null,
-        })
-      }
+    // Context is always provided by applyReconcileOps, so we can assume ctx.resolver exists
+    if (!ctx?.resolver) {
+      throw new Error("handleCreate called without resolver context")
+    }
+    const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
+    for (const link of resolvedLinks) {
+      addLink(db, link)
     }
 
     // Collect new file for batch link resolution and update resolver map
+    // Context is always provided by applyReconcileOps, so we can assume ctx exists
+    if (!ctx) {
+      throw new Error(
+        "handleCreate called without context for batch link resolution",
+      )
+    }
     const fileName = basename(op.path).replace(/\.md$/, "")
-    if (fileNode && ctx) {
+    if (fileNode) {
       ctx.newFiles.push({ id: fileNode.id, name: fileName })
       // Update resolver so subsequent files can link to this one
       ctx.resolver.addFile(fileNode.id, fileName)
-    } else if (fileNode) {
-      // Fallback for single-file creation (no ctx) - resolve immediately
-      resolveLinks(db, fileNode.id, fileName)
     }
   } else {
     // Non-markdown file - create simple file node
@@ -474,8 +444,7 @@ function handleCreate(
   }
 }
 
-// Use km-storage's findFileByName for link resolution (aliased as findNodeByName for local use)
-const findNodeByName = findFileByName
+// Removed: findNodeByName alias - no longer needed with LinkResolver
 
 /**
  * Apply reconciliation operations with parallel parsing.
@@ -657,59 +626,33 @@ function handleCreateWithParsed(
   }
 
   // Store wikilinks - use resolver for efficient lookup
-  if (ctx?.resolver) {
-    const processed: ProcessedMarkdown = {
-      path: op.path,
-      hash: parsed.hash,
-      nodes,
-      wikilinks,
-      warnings: [],
-    }
-    const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
-    for (const link of resolvedLinks) {
-      addLink(db, link)
-    }
-  } else {
-    // Fallback - use DB queries for target resolution
-    for (const { nodeId, link, relationship } of wikilinks) {
-      let targetId: string | null = null
-      const targetFileNode = findNodeByName(db, link.target)
-      if (targetFileNode) {
-        targetId = targetFileNode.id
-        if (link.section) {
-          const childNode = findChildByContent(
-            db,
-            targetFileNode.id,
-            link.section,
-          )
-          if (childNode) {
-            targetId = childNode.id
-          }
-        }
-      }
-
-      addLink(db, {
-        source_id: nodeId,
-        target_name: link.target,
-        target_id: targetId,
-        section: link.section ?? null,
-        block_id: link.blockId ?? null,
-        alias: link.alias ?? null,
-        embedded: link.embedded ?? false,
-        relationship: relationship ?? null,
-      })
-    }
+  if (!ctx?.resolver) {
+    throw new Error("handleCreateWithParsed called without resolver context")
+  }
+  const processed: ProcessedMarkdown = {
+    path: op.path,
+    hash: parsed.hash,
+    nodes,
+    wikilinks,
+    warnings: [],
+  }
+  const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
+  for (const link of resolvedLinks) {
+    addLink(db, link)
   }
 
   // Collect new file for batch link resolution and update resolver map
+  // Context is always provided by applyReconcileOpsAsync, so we can assume ctx exists
+  if (!ctx) {
+    throw new Error(
+      "handleCreateWithParsed called without context for batch link resolution",
+    )
+  }
   const fileName = basename(op.path).replace(/\.md$/, "")
-  if (fileNode && ctx) {
+  if (fileNode) {
     ctx.newFiles.push({ id: fileNode.id, name: fileName })
     // Update resolver so subsequent files can link to this one
     ctx.resolver.addFile(fileNode.id, fileName)
-  } else if (fileNode) {
-    // Fallback for single-file creation (no ctx) - resolve immediately
-    resolveLinks(db, fileNode.id, fileName)
   }
 }
 
@@ -787,49 +730,22 @@ function handleUpdateWithParsed(
 
   // Add new links with source ID remapping (new parser IDs → existing DB IDs)
   const wikilinks = parsed.wikilinks as WikilinkRef[]
-  if (ctx?.resolver) {
-    const processed: ProcessedMarkdown = {
-      path: op.path,
-      hash: parsed.hash,
-      nodes: newNodes,
-      wikilinks,
-      warnings: [],
-    }
-    const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
-    for (const link of resolvedLinks) {
-      addLink(db, {
-        ...link,
-        source_id: idMap.get(link.source_id) ?? link.source_id,
-      })
-    }
-  } else {
-    // Fallback - use DB queries for target resolution
-    for (const { nodeId, link, relationship } of wikilinks) {
-      const mappedSourceId = idMap.get(nodeId) ?? nodeId
-
-      let targetId: string | null = null
-      const fileNode = findNodeByName(db, link.target)
-      if (fileNode) {
-        targetId = fileNode.id
-        if (link.section) {
-          const childNode = findChildByContent(db, fileNode.id, link.section)
-          if (childNode) {
-            targetId = childNode.id
-          }
-        }
-      }
-
-      addLink(db, {
-        source_id: mappedSourceId,
-        target_name: link.target,
-        target_id: targetId,
-        section: link.section ?? null,
-        block_id: link.blockId ?? null,
-        alias: link.alias ?? null,
-        embedded: link.embedded ?? false,
-        relationship: relationship ?? null,
-      })
-    }
+  if (!ctx?.resolver) {
+    throw new Error("handleUpdateWithParsed called without resolver context")
+  }
+  const processed: ProcessedMarkdown = {
+    path: op.path,
+    hash: parsed.hash,
+    nodes: newNodes,
+    wikilinks,
+    warnings: [],
+  }
+  const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
+  for (const link of resolvedLinks) {
+    addLink(db, {
+      ...link,
+      source_id: idMap.get(link.source_id) ?? link.source_id,
+    })
   }
 }
 
@@ -950,43 +866,15 @@ function handleUpdate(
   }
 
   // Add new links with source ID remapping (new parser IDs → existing DB IDs)
-  if (ctx?.resolver) {
-    // Use data layer transform for batch resolution, then remap source IDs
-    const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
-    for (const link of resolvedLinks) {
-      addLink(db, {
-        ...link,
-        source_id: idMap.get(link.source_id) ?? link.source_id,
-      })
-    }
-  } else {
-    // Fallback - use DB queries for target resolution
-    for (const { nodeId, link, relationship } of processed.wikilinks) {
-      const mappedSourceId = idMap.get(nodeId) ?? nodeId
-
-      let targetId: string | null = null
-      const fileNode = findNodeByName(db, link.target)
-      if (fileNode) {
-        targetId = fileNode.id
-        if (link.section) {
-          const childNode = findChildByContent(db, fileNode.id, link.section)
-          if (childNode) {
-            targetId = childNode.id
-          }
-        }
-      }
-
-      addLink(db, {
-        source_id: mappedSourceId,
-        target_name: link.target,
-        target_id: targetId,
-        section: link.section ?? null,
-        block_id: link.blockId ?? null,
-        alias: link.alias ?? null,
-        embedded: link.embedded ?? false,
-        relationship: relationship ?? null,
-      })
-    }
+  if (!ctx?.resolver) {
+    throw new Error("handleUpdate called without resolver context")
+  }
+  const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
+  for (const link of resolvedLinks) {
+    addLink(db, {
+      ...link,
+      source_id: idMap.get(link.source_id) ?? link.source_id,
+    })
   }
 }
 
