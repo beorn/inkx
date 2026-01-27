@@ -25,8 +25,9 @@ Syncing .km/state.db with files (repo ...)
 ```console
 $ km sh board.md -c 'z; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
+folded: 1 nodes
 ```
 
 ### Z unfolds all
@@ -34,7 +35,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'z; Z; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -43,8 +44,9 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'fold_level 1; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
+folded: 3 nodes
 ```
 
 ### unfold_level command unfolds specific depth
@@ -52,7 +54,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'fold_level 1; unfold_level 1; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -63,7 +65,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'decrease_outline_depth; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -72,7 +74,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'increase_outline_depth; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -81,7 +83,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c '<; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -90,7 +92,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c '<; >; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -101,7 +103,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'increase_content_lines; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -110,7 +112,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'decrease_content_lines; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -119,7 +121,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c '+; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -128,7 +130,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c '+; -; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -146,7 +148,7 @@ error: toggle_fold requires a nodeId argument
 ```console
 $ km sh board.md -c 'toggle_fold test-id; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 folded: 1 nodes
 ```
@@ -156,7 +158,7 @@ folded: 1 nodes
 ```console
 $ km sh board.md -c 'toggle_fold test-id; toggle_fold test-id; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -174,7 +176,7 @@ error: toggle_collapse requires a nodeId argument
 ```console
 $ km sh board.md -c 'toggle_collapse test-id; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 collapsed: 1 nodes
 ```
@@ -184,6 +186,6 @@ collapsed: 1 nodes
 ```console
 $ km sh board.md -c 'toggle_collapse test-id; toggle_collapse test-id; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```

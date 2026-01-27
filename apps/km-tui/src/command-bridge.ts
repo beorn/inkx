@@ -16,13 +16,8 @@ import {
 } from "@km/commands"
 import type { TUIContext } from "./tui-context.ts"
 
-let initialized = false
-
 export function ensureCommandSystemInitialized(): void {
-  if (!initialized) {
-    initCommandSystem()
-    initialized = true
-  }
+  initCommandSystem()
 }
 
 export function processKeyWithContext(

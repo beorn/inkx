@@ -51,12 +51,12 @@ $ state
 $ j
 $ state
 /board/tasks> cursor: [0]
-node: Task Alpha
+node: Tasks
 topLevel: 1 nodes
 /board/tasks>
 /board/tasks>
 cursor: [0]
-node: Task Alpha
+node: Tasks
 topLevel: 1 nodes
 /board/tasks>
 ```

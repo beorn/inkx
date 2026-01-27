@@ -31,14 +31,14 @@ The cursor starts at the first top-level item (the first task).
 ```console
 $ km sh board.md -c 'state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
 ```console
 $ km sh board.md -c 'set_status done; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 

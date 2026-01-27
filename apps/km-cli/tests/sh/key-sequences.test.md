@@ -27,7 +27,7 @@ Move down twice using "jj" (j moves between top-level nodes):
 ```console
 $ km sh board.md -c '"jj"; state'
 cursor: [1]
-node: Task B1
+node: Section B
 topLevel: 2 nodes
 ```
 
@@ -38,7 +38,7 @@ Move down twice then back up with 'jjk':
 ```console
 $ km sh board.md -c "'jjk'; state"
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
@@ -49,7 +49,7 @@ Move down twice then jump to top with "jjg":
 ```console
 $ km sh board.md -c '"jjg"; state'
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
@@ -60,7 +60,7 @@ The key command also accepts quoted sequences:
 ```console
 $ km sh board.md -c 'key "jjk"; state'
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
@@ -71,7 +71,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'key enter; state'
 cursor: [0,0]
-node: Section A
+node: Task A1
 topLevel: 2 nodes
 ```
 
@@ -80,7 +80,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'A; key esc; state'
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
@@ -89,7 +89,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'key backspace; state'
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 

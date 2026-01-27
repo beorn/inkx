@@ -24,7 +24,7 @@ Syncing .km/state.db with files (repo ...)
 ```console
 $ km sh board.md -c 'state'
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
@@ -33,7 +33,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'nav_to_path 1; state'
 cursor: [1]
-node: Task B1
+node: Section B
 topLevel: 2 nodes
 ```
 
@@ -42,7 +42,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'nav_to_path 0,1; state'
 cursor: [0,1]
-node: Section B
+node: Task A2
 topLevel: 2 nodes
 ```
 
@@ -51,7 +51,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'nav_to_path 1,0; state'
 cursor: [1,0]
-node: Section A
+node: Task B1
 topLevel: 2 nodes
 ```
 
@@ -73,8 +73,8 @@ error: nav_to_path requires comma-separated numeric indices
 
 ```console
 $ km sh board.md -c 'select_position 0,2; state'
-cursor: [0]
-node: Task A1
+cursor: [0,2]
+node: Task A3
 topLevel: 2 nodes
 ```
 
@@ -83,7 +83,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'cursor_next; state'
 cursor: [1]
-node: Task B1
+node: Section B
 topLevel: 2 nodes
 ```
 
@@ -92,7 +92,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'cursor_next; cursor_prev; state'
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
@@ -101,7 +101,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'h; cursor_in; state'
 cursor: [0,0]
-node: Section A
+node: Task A1
 topLevel: 2 nodes
 ```
 
@@ -110,7 +110,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'nav_to_path 1; cursor_in; state'
 cursor: [1,0]
-node: Section A
+node: Task B1
 topLevel: 2 nodes
 ```
 
@@ -119,7 +119,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'cursor_out; state'
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
@@ -128,7 +128,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'h; state'
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
@@ -137,7 +137,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'h; l; state'
 cursor: [0,0]
-node: Section A
+node: Task A1
 topLevel: 2 nodes
 ```
 
@@ -146,7 +146,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'h; h; state'
 cursor: [0]
-node: Task A1
+node: Section A
 topLevel: 2 nodes
 ```
 
@@ -155,7 +155,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'l; state'
 cursor: [0,0]
-node: Section A
+node: Task A1
 topLevel: 2 nodes
 ```
 
@@ -164,6 +164,6 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'h; cursor_next; state'
 cursor: [1]
-node: Task B1
+node: Section B
 topLevel: 2 nodes
 ```

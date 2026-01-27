@@ -87,6 +87,39 @@ grep -rn "console\.\(log\|info\|warn\|debug\)" packages/*/tests/*.test.ts apps/*
 - Real watcher in fast tests: 0
 - Console output in fast tests: 0 (tests should be silent on success)
 
+## Phase 1.6: Test Setup Complexity Check
+
+Look for test helpers that duplicate production setup patterns:
+
+```bash
+# Large test helper files (>100 lines may duplicate domain logic)
+echo "=== Large Test Helpers ==="
+find packages apps -path "*/tests/*" -name "*.ts" ! -name "*.test.ts" ! -name "*.spec.ts" -exec wc -l {} \; 2>/dev/null | \
+  awk '$1 > 100 {print}' | sort -rn
+
+# Complex setup functions
+echo "=== Setup/TestEnv Functions ==="
+grep -rn "^export \(function\|const\) \(setup\|createTest\|withTest\|testEnv\|makeTest\)" packages/*/tests apps/*/tests 2>/dev/null
+
+# Test-specific factories that may duplicate production factories
+echo "=== Test Factory Functions ==="
+grep -rn "^export \(function\|const\) create.*\(For\|In\)Test" packages/*/tests apps/*/tests 2>/dev/null
+```
+
+**Red flags to investigate:**
+
+- **Helper >150 lines**: May be reimplementing domain logic
+- **`createTest*` paralleling `create*`**: Should compose production factory instead
+- **`withTestEnv` doing more than DI**: Should only inject dependencies, not construct domain objects
+- **Multiple packages with similar test setup**: Extract to shared test utilities or fix production composability
+
+**Resolution pattern:**
+
+1. Identify what the test setup is constructing
+2. Check if production code offers equivalent composition
+3. If not, refactor production to expose composable construction
+4. Simplify test setup to call production factories with test dependencies
+
 ## Phase 2: Layer Analysis
 
 Use Task agents in parallel to analyze each layer:
@@ -147,6 +180,13 @@ Apply checklist from `docs/dev/test-review.md`:
 - > 10 mocks → move up
 - Pure function with database → move down
 
+**Refactor candidates** (test setup complexity):
+
+- Test helper that mirrors production factory (e.g., `createTestRepo` vs `createRepo`)
+- Setup function >50 lines constructing domain objects
+- Multiple test files with similar boilerplate setup
+- Test-only abstractions that should be production composability
+
 ## Phase 5: Report
 
 Output structured findings:
@@ -166,6 +206,7 @@ Output structured findings:
 | Chaos tests       | N     |
 | Delete candidates | N     |
 | Merge candidates  | N     |
+| Refactor setup    | N     |
 
 ### DI Compliance
 
@@ -176,6 +217,7 @@ Output structured findings:
 | mdtests without memory: true  | N     | 0      | ✅/❌  |
 | Real watcher in fast tests    | N     | 0      | ✅/❌  |
 | Console output in fast tests  | N     | 0      | ✅/❌  |
+| Test helpers >150 lines       | N     | 0      | ✅/❌  |
 
 ### Performance
 
@@ -206,6 +248,12 @@ Output structured findings:
 #### D. Fix (N)
 
 | File:Line | Issue | Fix |
+
+#### E. Refactor Setup (N)
+
+| Test Helper | Production Gap | Proposed Change |
+
+_For each refactor: identify what production composability is missing, then simplify test setup to use production factories with injected test dependencies._
 ```
 
 **Stop here if `--dry-run`**.

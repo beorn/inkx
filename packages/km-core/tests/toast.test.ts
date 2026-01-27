@@ -1,7 +1,7 @@
 /**
  * Toast System Tests
  */
-import { describe, test, expect, beforeEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { toast, toastQueue, ToastQueue } from "../src/toast.ts"
 
 describe("ToastQueue", () => {
@@ -97,6 +97,10 @@ describe("ToastQueue", () => {
 
 describe("toast API", () => {
   beforeEach(() => {
+    toastQueue.dismissAll()
+  })
+
+  afterEach(() => {
     toastQueue.dismissAll()
   })
 

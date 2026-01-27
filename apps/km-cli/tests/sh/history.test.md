@@ -26,7 +26,7 @@ At initial cursor [0] on Tasks section, nav_back has no effect.
 ```console
 $ km sh board.md -c 'nav_back; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -35,7 +35,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'nav_forward; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -44,7 +44,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c '[; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -53,7 +53,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c ']; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -66,7 +66,7 @@ Enter into Tasks, then u goes back up to Tasks section level.
 ```console
 $ km sh board.md -c 'key enter; u; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -75,7 +75,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'key enter; h; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -84,7 +84,7 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'key enter; cursor_out; state'
 cursor: [0]
-node: Task A
+node: Tasks
 topLevel: 2 nodes
 ```
 
@@ -93,6 +93,6 @@ topLevel: 2 nodes
 ```console
 $ km sh board.md -c 'cursor_in; state'
 cursor: [0,0]
-node: Tasks
+node: Task A
 topLevel: 2 nodes
 ```
