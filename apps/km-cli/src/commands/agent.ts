@@ -18,7 +18,8 @@ import {
   type Agent,
   type AgentStatus,
 } from "@km/agent"
-import { createRepo, runGenerator, resolvePathArg } from "@km/storage"
+import { resolvePathArg } from "@km/storage"
+import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 
 export const agentCommand = new Command("agent")
@@ -81,9 +82,9 @@ agentCommand
   )
   .option("--harness <name>", "Filter by harness")
   .option("--json", "Output as JSON")
-  .action((opts) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
 
     const filter: { status?: AgentStatus; harness?: string } = {}
     if (opts.status) filter.status = opts.status as AgentStatus
@@ -157,9 +158,9 @@ agentCommand
 agentCommand
   .command("stop <id>")
   .description("Stop an agent gracefully")
-  .action((id) => {
+  .action(async (id) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
@@ -180,9 +181,9 @@ agentCommand
 agentCommand
   .command("kill <id>")
   .description("Force kill an agent")
-  .action((id) => {
+  .action(async (id) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
@@ -209,9 +210,9 @@ agentCommand
   .command("show <id>")
   .description("Show agent details")
   .option("--json", "Output as JSON")
-  .action((id, opts) => {
+  .action(async (id, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))
@@ -317,9 +318,9 @@ agentCommand
   .option("--continuous", "Process work queue continuously")
   .option("--max-tasks <n>", "Max tasks in continuous mode", parseInt)
   .option("--dry-run", "Show plan without executing")
-  .action((id, prompt, opts) => {
+  .action(async (id, prompt, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
-    using repo = runGenerator(createRepo(pathResolved.repoRoot, { loadFiles: true }))
+    using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)
     if (!agent) {
       console.error(chalk.red(`Agent not found: ${id}`))

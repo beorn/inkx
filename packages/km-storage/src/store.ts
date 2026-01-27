@@ -637,9 +637,10 @@ export class MemoryStore extends BaseStore {
    */
   private scanFilesystem(): void {
     this.parseErrors = []
+    const ignorePatterns = getIgnorePatterns(this.rootPath)
     this.db.run("BEGIN IMMEDIATE")
     try {
-      for (const _ of this.scanDirectoryAsync(this.rootPath, null, 0, 0)) {
+      for (const _ of this.scanDirectoryAsync(this.rootPath, null, 0, 0, ignorePatterns)) {
         // Consume generator without progress reporting
       }
       this.db.run("COMMIT")
@@ -693,7 +694,7 @@ export class MemoryStore extends BaseStore {
         })
 
         // Recurse
-        yield* this.scanDirectoryAsync(fullPath, folderId, 0, total)
+        yield* this.scanDirectoryAsync(fullPath, folderId, 0, total, ignorePatterns)
       } else if (entry.isFile()) {
         const isMarkdown = entry.name.endsWith(".md")
 
