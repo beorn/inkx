@@ -1,11 +1,19 @@
 /**
  * Database Instance - Singleton database management
  *
+ * @deprecated This module contains global singletons. Use Repo domain object instead:
+ *   const repo = createRepo(rootPath)
+ *   repo.rawQuery(sql, params)  // For raw SQL
+ *   repo.data.getNode(id)       // For typed queries
+ *
  * This module manages the database connection lifecycle:
  * - Singleton instance management
  * - Memory mode for testing
  * - Database initialization and reset
  * - AsyncLocalStorage for parallel test isolation
+ *
+ * Functions in this module are kept for backward compatibility with CLI commands
+ * and test infrastructure that haven't been migrated yet.
  */
 
 import createDebug from "debug"
@@ -120,6 +128,10 @@ export function resetDb(): void {
  * This enables parallel test isolation - each test can have its own in-memory
  * database without affecting other concurrent tests.
  *
+ * @deprecated Use createRepo() or createTestRepo() which manage db lifecycle.
+ * Tests should use withTestEnv() which provides an isolated db via TestEnv.
+ * This ALS wrapper exists to support legacy code using getDb() singleton.
+ *
  * @example
  * const db = new Database(":memory:");
  * db.exec(SCHEMA);
@@ -139,8 +151,10 @@ export function runWithDb<T>(db: Database, fn: () => T): T {
  * Get the context-local database if running within runWithDb, otherwise undefined.
  * Unlike getDb(), this does NOT create a database if none exists.
  * Use this when you want to check for a context without side effects.
+ *
+ * @deprecated Used by legacy emit() to apply events to context db.
+ * New code should use Emitter domain object with explicit db parameter.
  */
-
 export function tryGetContextDb(): Database | undefined {
   return dbContext.getStore()
 }

@@ -27,11 +27,11 @@ import {
 describe("Bidirectional Sync E2E", () => {
   describe("TUI → Filesystem", () => {
     test("editing task status in model writes to file", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create test file with a task
         const testFile = join(repoDir, "tasks.md")
@@ -59,11 +59,11 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("creating new task in model creates file entry", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create file first
         const testFile = join(repoDir, "new-tasks.md")
@@ -95,7 +95,7 @@ describe("Bidirectional Sync E2E", () => {
 
   describe("Filesystem → Model", () => {
     test("external file edit triggers state-change event", () =>
-      withTestEnv(async ({ repoDir, db }) => {
+      withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
 
@@ -104,7 +104,7 @@ describe("Bidirectional Sync E2E", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "watch-test.md")
@@ -133,7 +133,7 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("external file edit updates database", () =>
-      withTestEnv(async ({ repoDir, db }) => {
+      withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
 
@@ -142,7 +142,7 @@ describe("Bidirectional Sync E2E", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "external-edit.md")
@@ -178,7 +178,7 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("external file delete removes from database", () =>
-      withTestEnv(async ({ repoDir, db }) => {
+      withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
 
@@ -187,7 +187,7 @@ describe("Bidirectional Sync E2E", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "to-delete.md")
@@ -221,7 +221,7 @@ describe("Bidirectional Sync E2E", () => {
 
   describe("Race Conditions", () => {
     test("rapid external edits are coalesced", () =>
-      withTestEnv(async ({ repoDir, db }) => {
+      withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
 
@@ -230,7 +230,7 @@ describe("Bidirectional Sync E2E", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "rapid.md")
@@ -269,11 +269,11 @@ describe("Bidirectional Sync E2E", () => {
       }))
 
     test("TUI edit during filesystem sync doesn't cause data loss", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "conflict.md")

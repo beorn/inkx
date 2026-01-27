@@ -183,11 +183,12 @@ export async function withTestEnv<T>(
   db.exec(SCHEMA)
 
   // Create emitter for event emission (with db for applying events)
-  const emitter = createEmitter({ kmDir, db })
-
-  // Create db ops - pass emitter for disk mode (events), omit for memory mode (direct SQL)
+  // skipPersist: true for non-real mode avoids writing events.jsonl to /tmp
   const isDiskMode = mode === "real"
-  const ops = createDbOps(db, isDiskMode ? emitter : undefined)
+  const emitter = createEmitter({ kmDir, db, skipPersist: !isDiskMode })
+
+  // Create db ops - always pass emitter so events flow to fsSync for sync tests
+  const ops = createDbOps(db, emitter)
 
   // Create repo wrapping db functions with db pre-bound
   const repo: TestRepo = {
@@ -213,8 +214,8 @@ export async function withTestEnv<T>(
   }
 
   // Create DataStore wrapping the test db for ergonomic access
-  // Pass emitter for disk mode so DB→FS sync events fire when appropriate
-  const data = createDBDataStore(db, isDiskMode ? { emitter } : undefined)
+  // Always pass emitter so events flow to fsSync for sync tests
+  const data = createDBDataStore(db, { emitter })
 
   const env: TestEnv = {
     testId,
@@ -271,11 +272,12 @@ export function withTestEnvSync<T>(
   db.exec(SCHEMA)
 
   // Create emitter for event emission (with db for applying events)
-  const emitter = createEmitter({ kmDir, db })
-
-  // Create db ops - pass emitter for disk mode (events), omit for memory mode (direct SQL)
+  // skipPersist: true for non-real mode avoids writing events.jsonl to /tmp
   const isDiskMode = mode === "real"
-  const ops = createDbOps(db, isDiskMode ? emitter : undefined)
+  const emitter = createEmitter({ kmDir, db, skipPersist: !isDiskMode })
+
+  // Create db ops - always pass emitter so events flow to fsSync for sync tests
+  const ops = createDbOps(db, emitter)
 
   // Create repo wrapping db functions with db pre-bound
   const repo: TestRepo = {
@@ -301,8 +303,8 @@ export function withTestEnvSync<T>(
   }
 
   // Create DataStore wrapping the test db for ergonomic access
-  // Pass emitter for disk mode so DB→FS sync events fire when appropriate
-  const data = createDBDataStore(db, isDiskMode ? { emitter } : undefined)
+  // Always pass emitter so events flow to fsSync for sync tests
+  const data = createDBDataStore(db, { emitter })
 
   const env: TestEnv = {
     testId,

@@ -22,11 +22,11 @@ import {
 describe("DB → File Sync Tests", () => {
   describe("Task Status Updates", () => {
     test("marking task as done updates file", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -54,11 +54,11 @@ describe("DB → File Sync Tests", () => {
       }))
 
     test("marking task as todo updates file", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create test file with completed task
         const testFile = join(repoDir, "tasks.md")
@@ -88,11 +88,11 @@ describe("DB → File Sync Tests", () => {
 
   describe("Task Content Updates", () => {
     test("editing task content updates file", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -121,11 +121,11 @@ describe("DB → File Sync Tests", () => {
 
   describe("Multiple Rapid Updates", () => {
     test("rapid updates coalesce correctly", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -154,11 +154,11 @@ describe("DB → File Sync Tests", () => {
       }))
 
     test("alternating status updates result in final state", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -190,11 +190,11 @@ describe("DB → File Sync Tests", () => {
 
   describe("Multiple Files", () => {
     test("updates to different files are independent", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create test files
         const file1 = join(repoDir, "file1.md")
@@ -235,11 +235,11 @@ describe("DB → File Sync Tests", () => {
 
   describe("Error Handling", () => {
     test("update to non-existent node is handled gracefully", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -262,11 +262,11 @@ describe("DB → File Sync Tests", () => {
 
   describe("Data Preservation", () => {
     test("non-task content is preserved during task update", () =>
-      withTestEnv(async ({ repoDir, db, data }) => {
+      withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager)
+        setupSyncManager(stack, syncManager, emitter)
 
         // Create test file with mixed content
         const testFile = join(repoDir, "mixed.md")

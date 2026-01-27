@@ -38,7 +38,7 @@ import { rowToNode } from "./db-queries/utils.ts"
 import type { KNode } from "@km/core"
 import { evaluateAllRules, createRuleContext } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
-import { DiskStore, MemoryStore, type NodeStore } from "./store.ts"
+import { MemoryStore, type NodeStore } from "./store.ts"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 
 const debug = createDebug("km:storage:repo-loader")
@@ -234,11 +234,11 @@ export function* loadRepo(
   const duration = Date.now() - start
   debug("loadRepo complete", { mode, nodeCount, linkCount, duration })
 
-  // Create the appropriate store with the database we just set up
-  const store: NodeStore =
-    mode === "disk" && kmDir
-      ? new DiskStore(kmDir, { inject: { database: db } })
-      : new MemoryStore(repoRoot, { inject: { database: db } })
+  // Create store for backward compatibility (callers should use DataStore instead)
+  // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
+  const store: NodeStore = new MemoryStore(repoRoot, {
+    inject: { database: db },
+  })
 
   return {
     mode,

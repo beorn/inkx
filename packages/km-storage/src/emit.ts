@@ -1,5 +1,13 @@
 /**
  * Event emission - append events to events.jsonl
+ *
+ * @deprecated This module contains global singletons. Use Emitter domain object instead:
+ *   import { createEmitter } from "./emitter.ts"
+ *   const emitter = createEmitter({ kmDir, db })
+ *   emitter.emit({ type: "node_created", actor: "user", data: {...} })
+ *
+ * The functions in this file are kept for backward compatibility with CLI commands
+ * that haven't been migrated yet. New code should use Emitter.
  */
 
 import createDebug from "debug"
@@ -96,6 +104,9 @@ export function getEventsPath(): string {
 
 /**
  * Emit an event - append to events.jsonl and optionally broadcast
+ *
+ * @deprecated Use Emitter domain object: `emitter.emit({ type, actor, data })`.
+ * This function uses global singletons (kmDir, db) which break test isolation.
  */
 export function emit(
   event: Omit<Event, "id" | "ts">,
@@ -139,6 +150,7 @@ export function emit(
 
 /**
  * Helper to emit node_created event
+ * @deprecated Use emitter.emit() or createDbOps(db, emitter).addNode()
  */
 export function emitNodeCreated(
   actor: string,
@@ -153,6 +165,7 @@ export function emitNodeCreated(
 
 /**
  * Helper to emit node_updated event
+ * @deprecated Use emitter.emit() or createDbOps(db, emitter).updateNode()
  */
 export function emitNodeUpdated(
   actor: string,
@@ -169,6 +182,7 @@ export function emitNodeUpdated(
 
 /**
  * Helper to emit node_moved event
+ * @deprecated Use emitter.emit() or createDbOps(db, emitter).moveNode()
  */
 export function emitNodeMoved(
   actor: string,
@@ -185,6 +199,7 @@ export function emitNodeMoved(
 
 /**
  * Helper to emit node_deleted event
+ * @deprecated Use emitter.emit() or createDbOps(db, emitter).deleteNode()
  */
 export function emitNodeDeleted(
   actor: string,
@@ -201,6 +216,7 @@ export function emitNodeDeleted(
 
 /**
  * Helper to emit task_claimed event
+ * @deprecated Use emitter.emit({ type: "task_claimed", ... })
  */
 export function emitTaskClaimed(target: string, actor: string): Event {
   return emit({
@@ -213,6 +229,7 @@ export function emitTaskClaimed(target: string, actor: string): Event {
 
 /**
  * Helper to emit task_released event
+ * @deprecated Use emitter.emit({ type: "task_released", ... })
  */
 export function emitTaskReleased(
   target: string,
@@ -229,6 +246,7 @@ export function emitTaskReleased(
 
 /**
  * Helper to emit task_completed event
+ * @deprecated Use emitter.emit({ type: "task_completed", ... })
  */
 export function emitTaskCompleted(
   target: string,
@@ -245,6 +263,7 @@ export function emitTaskCompleted(
 
 /**
  * Helper to emit session_started event
+ * @deprecated Use emitter.emit({ type: "session_started", ... })
  */
 export function emitSessionStarted(
   actor: string,
@@ -267,6 +286,7 @@ export function emitSessionStarted(
 
 /**
  * Helper to emit session_message event
+ * @deprecated Use emitter.emit({ type: "session_message", ... })
  */
 export function emitSessionMessage(
   actor: string,
@@ -289,6 +309,7 @@ export function emitSessionMessage(
 
 /**
  * Helper to emit session_tool_call event
+ * @deprecated Use emitter.emit({ type: "session_tool_call", ... })
  */
 export function emitSessionToolCall(
   actor: string,
@@ -313,6 +334,7 @@ export function emitSessionToolCall(
 
 /**
  * Helper to emit session_ended event
+ * @deprecated Use emitter.emit({ type: "session_ended", ... })
  */
 export function emitSessionEnded(
   actor: string,

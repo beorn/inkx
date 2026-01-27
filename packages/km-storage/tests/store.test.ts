@@ -6,11 +6,10 @@
  */
 
 import { describe, test, expect, afterEach } from "bun:test"
-import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "fs"
+import { mkdirSync, rmSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
-import { MemoryStore, DiskStore } from "../src/store.ts"
-import { withTestEnvSync } from "@km/storage"
+import { MemoryStore } from "../src/store.ts"
 
 // Track created directories for cleanup
 const createdDirs: string[] = []
@@ -276,24 +275,5 @@ describe("MemoryStore", () => {
   })
 })
 
-describe("DiskStore", () => {
-  test("should use disk mode", () =>
-    withTestEnvSync(({ testDir }) => {
-      const kmDir = join(testDir, ".km")
-      mkdirSync(kmDir, { recursive: true })
-
-      using store = new DiskStore(kmDir)
-      expect(store.mode).toBe("disk")
-    }))
-
-  test("should use state.db in .km directory", () =>
-    withTestEnvSync(({ testDir }) => {
-      const kmDir = join(testDir, ".km")
-      mkdirSync(kmDir, { recursive: true })
-
-      using _store = new DiskStore(kmDir)
-      expect(existsSync(join(kmDir, "state.db"))).toBe(true)
-    }))
-})
-
+// NOTE: DiskStore tests removed - use createRepo() for disk mode
 // NOTE: Mode detection tests removed - use createRepo() for automatic mode detection

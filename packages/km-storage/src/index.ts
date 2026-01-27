@@ -83,7 +83,8 @@ export {
 export type { Link, SearchResult, QueryAST, DbOps } from "./db.ts"
 
 // Store abstraction
-export { DiskStore, MemoryStore } from "./store.ts"
+// NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
+export { MemoryStore } from "./store.ts"
 
 export type { NodeStore } from "./store.ts"
 

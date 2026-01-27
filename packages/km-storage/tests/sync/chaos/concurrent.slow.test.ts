@@ -132,7 +132,7 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
 
 import { withTestEnv, type DataStore, type HasDatabase } from "@km/storage"
 
-import { setFsSync } from "../../../src/emit.ts"
+import type { Emitter } from "../../../src/emitter.ts"
 import { SyncManager } from "../../../src/watch/sync.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,7 +171,7 @@ async function withConcurrentTestEnv(
   try {
     // Use "real" mode to get disk storage mode, which triggers DB→FS sync events
     await withTestEnv(
-      async ({ repoDir, data }) => {
+      async ({ repoDir, data, emitter }) => {
         // Create event emitter for test observation
         const events = new EventEmitter()
 
@@ -190,8 +190,8 @@ async function withConcurrentTestEnv(
           watcher: testWatcher, // Inject our controllable watcher
         })
 
-        // Wire up filesystem sync
-        setFsSync(syncManager)
+        // Wire up filesystem sync via emitter
+        emitter.setFsSync(syncManager)
 
         // Track state changes
         syncManager.on("state-change", (state) => {
@@ -223,7 +223,7 @@ async function withConcurrentTestEnv(
             writeAndTrigger,
           })
         } finally {
-          setFsSync(null)
+          emitter.setFsSync(null)
           await syncManager.stop()
         }
       },
