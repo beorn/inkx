@@ -252,8 +252,9 @@ async function runChaosTestWithRealFs(
       }
 
       // Initial Sync Phase - wrap in runWithDb so emitNodeCreated applies to db
+      // Use reconcileDirectoryRecursive to handle subdirectories
       runWithDb(db, () => {
-        const ops = reconcileDirectory(db, repoDir, repoDir)
+        const ops = reconcileDirectoryRecursive(db, repoDir, repoDir)
         applyReconcileOps(db, ops, repoDir)
       })
 
