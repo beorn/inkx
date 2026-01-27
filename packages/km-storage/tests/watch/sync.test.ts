@@ -13,10 +13,15 @@ import { join } from "path"
 import {
   getNodeByPath,
   getAllNodes,
-  applyEvent,
   getAncestors,
   getDb,
 } from "@km/storage"
+
+interface ParsedEvent {
+  type: string
+  actor: string
+  data: Record<string, unknown>
+}
 
 import { SyncManager } from "../../src/watch/sync.ts"
 import { withTestEnv } from "@km/storage"
@@ -300,7 +305,7 @@ code
           const lines = content.trim().split("\n")
 
           for (const line of lines) {
-            const event = JSON.parse(line)
+            const event = JSON.parse(line) as ParsedEvent
 
             expect(typeof event.actor).toBe("string")
             expect(typeof event.data).toBe("object")

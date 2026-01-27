@@ -264,7 +264,7 @@ describe("formatChaosReportJson", () => {
     }
 
     const json = formatChaosReportJson(report)
-    const parsed = JSON.parse(json)
+    const parsed = JSON.parse(json) as ChaosReport
 
     expect(parsed.scenario.name).toBe("json-test")
     expect(parsed.passed).toBe(true)

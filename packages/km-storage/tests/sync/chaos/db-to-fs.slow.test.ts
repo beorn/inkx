@@ -60,7 +60,7 @@ describe("DB → File Sync Tests", () => {
         expect(task!.task_status).toBe("todo")
 
         // Update task status
-        updateNode(getDb(), task!.id, { task_status: "done" })
+        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 200))
@@ -99,7 +99,7 @@ describe("DB → File Sync Tests", () => {
         expect(task!.task_status).toBe("done")
 
         // Update task status back to todo
-        updateNode(getDb(), task!.id, { task_status: "todo" })
+        updateNode(getDb(), task!.id, { task_status: "todo" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 200))
@@ -139,7 +139,7 @@ describe("DB → File Sync Tests", () => {
         expect(task).toBeDefined()
 
         // Update task content
-        updateNode(getDb(), task!.id, { content: "Updated text" })
+        updateNode(getDb(), task!.id, { content: "Updated text" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 200))
@@ -180,7 +180,7 @@ describe("DB → File Sync Tests", () => {
 
         // Make 5 rapid updates
         for (let i = 1; i <= 5; i++) {
-          updateNode(getDb(), task!.id, { content: `Update ${i}` })
+          updateNode(getDb(), task!.id, { content: `Update ${i}` }, "disk")
         }
 
         // Wait for write queue to flush
@@ -219,11 +219,11 @@ describe("DB → File Sync Tests", () => {
         expect(task).toBeDefined()
 
         // Toggle status rapidly
-        updateNode(getDb(), task!.id, { task_status: "done" })
-        updateNode(getDb(), task!.id, { task_status: "todo" })
-        updateNode(getDb(), task!.id, { task_status: "done" })
-        updateNode(getDb(), task!.id, { task_status: "todo" })
-        updateNode(getDb(), task!.id, { task_status: "done" }) // Final: done
+        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
+        updateNode(getDb(), task!.id, { task_status: "todo" }, "disk")
+        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
+        updateNode(getDb(), task!.id, { task_status: "todo" }, "disk")
+        updateNode(getDb(), task!.id, { task_status: "done" }, "disk") // Final: done
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 300))
@@ -269,8 +269,8 @@ describe("DB → File Sync Tests", () => {
         expect(task2).toBeDefined()
 
         // Update both tasks
-        updateNode(getDb(), task1!.id, { task_status: "done" })
-        updateNode(getDb(), task2!.id, { content: "Modified Task 2" })
+        updateNode(getDb(), task1!.id, { task_status: "done" }, "disk")
+        updateNode(getDb(), task2!.id, { content: "Modified Task 2" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 300))
@@ -310,7 +310,7 @@ describe("DB → File Sync Tests", () => {
 
         // Try to update a non-existent node
         expect(() => {
-          updateNode(getDb(), "non-existent-id", { task_status: "done" })
+          updateNode(getDb(), "non-existent-id", { task_status: "done" }, "disk")
         }).not.toThrow()
 
         // File should be unchanged
@@ -362,7 +362,7 @@ More content that should be preserved.
         expect(task).toBeDefined()
 
         // Update task
-        updateNode(getDb(), task!.id, { task_status: "done" })
+        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
 
         // Wait for write queue to flush
         await new Promise((r) => setTimeout(r, 200))

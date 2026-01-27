@@ -124,7 +124,7 @@ async function parseSessionFile(
     if (!line.trim()) continue
 
     try {
-      const record: SessionRecord = JSON.parse(line)
+      const record = JSON.parse(line) as SessionRecord
 
       if (record.type !== "assistant" || !record.message?.content) continue
 
@@ -187,7 +187,7 @@ async function getSessionInfo(filePath: string): Promise<SessionInfo> {
   for await (const line of rl) {
     if (!line.trim()) continue
     try {
-      const record = JSON.parse(line)
+      const record = JSON.parse(line) as SessionRecord
       if (record.sessionId) sessionId = record.sessionId
       if (record.timestamp) {
         if (!firstTimestamp) firstTimestamp = record.timestamp
@@ -686,10 +686,10 @@ async function cmdGrep(
       if (!line?.trim()) continue
 
       try {
-        const record = JSON.parse(line)
+        const record = JSON.parse(line) as SessionRecord
 
         // Extract text content from the record
-        const textContent = extractTextContent(record)
+        const textContent = extractTextContent(record as unknown as Record<string, unknown>)
         if (!textContent) continue
 
         // Check if pattern matches

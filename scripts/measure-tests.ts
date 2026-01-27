@@ -64,7 +64,7 @@ async function runTest(file: string): Promise<TestResult> {
 function parseTestCount(output: string): number {
   // Parse "Ran 123 tests across 5 files" or "7 pass"
   const match = output.match(/Ran (\d+) test/) || output.match(/(\d+) pass/)
-  return match ? parseInt(match[1], 10) : 0
+  return match?.[1] ? parseInt(match[1], 10) : 0
 }
 
 async function main() {

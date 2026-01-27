@@ -18,7 +18,6 @@ import { EventEmitter } from "events"
 import {
   getNodeByPath,
   getAllNodes,
-  applyEvent,
   updateNode,
   getDb,
 } from "@km/storage"
@@ -67,7 +66,7 @@ describe("Bidirectional Sync E2E", () => {
         expect(task!.task_status).toBe("todo")
 
         // Update task status (simulating TUI edit)
-        updateNode(getDb(), task!.id, { task_status: "done" })
+        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
 
         // Wait for write queue to flush
         await Bun.sleep(200)
@@ -100,7 +99,7 @@ describe("Bidirectional Sync E2E", () => {
         await syncManager.syncFromFs()
 
         // Find the file node
-        const fileNode = getNodeByPath(testFile)
+        const fileNode = getNodeByPath(getDb(), testFile)
         expect(fileNode).toBeDefined()
 
         // Find the task
@@ -109,7 +108,7 @@ describe("Bidirectional Sync E2E", () => {
         expect(task).toBeDefined()
 
         // Update task text (simulating TUI edit)
-        updateNode(getDb(), task!.id, { content: "Updated task content" })
+        updateNode(getDb(), task!.id, { content: "Updated task content" }, "disk")
 
         // Wait for write
         await Bun.sleep(200)
@@ -282,7 +281,7 @@ describe("Bidirectional Sync E2E", () => {
         await syncManager.syncFromFs()
 
         // Verify file exists in DB
-        let fileNode = getNodeByPath(testFile)
+        let fileNode = getNodeByPath(getDb(), testFile)
         expect(fileNode).toBeDefined()
 
         // Start watching and wait for ready
@@ -318,7 +317,7 @@ describe("Bidirectional Sync E2E", () => {
         ])
 
         // Verify removed from database
-        fileNode = getNodeByPath(testFile)
+        fileNode = getNodeByPath(getDb(), testFile)
         expect(fileNode).toBeNull()
       }))
   })
@@ -420,7 +419,7 @@ describe("Bidirectional Sync E2E", () => {
         writeFileSync(testFile, "# Conflict\n\n- [ ] Task A\n- [ ] Task B\n")
 
         // Immediately do TUI edit on original task
-        updateNode(getDb(), task!.id, { task_status: "done" })
+        updateNode(getDb(), task!.id, { task_status: "done" }, "disk")
 
         // Wait for everything to settle (needs to account for chokidar's awaitWriteFinish)
         await Bun.sleep(1000)
