@@ -42,10 +42,7 @@ export function getOwnColor(node: KNode): string | undefined {
  *
  * Note: For file nodes, H1 rules are stored in node.data.rules (not node.rules)
  */
-export function getInheritedColor(
-  repo: Repo,
-  node: KNode,
-): string | undefined {
+export function getInheritedColor(repo: Repo, node: KNode): string | undefined {
   // Check node's own color first
   const ownColor = getOwnColor(node)
   if (ownColor) {

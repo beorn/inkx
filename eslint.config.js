@@ -13,6 +13,20 @@ export default [
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
+      globals: {
+        // Bun/Node globals - ESLint projectService doesn't resolve these from @types/bun
+        process: "readonly",
+        console: "readonly",
+        Buffer: "readonly",
+        global: "readonly",
+        Bun: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+        setTimeout: "readonly",
+        setInterval: "readonly",
+        clearTimeout: "readonly",
+        clearInterval: "readonly",
+      },
     },
   },
   {

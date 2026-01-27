@@ -54,6 +54,7 @@ When multiple Claude Code sessions work on the same codebase:
 Use standalone `bd` CLI (not `/bd` skill or `bun km bd`) for detailed queries and updates.
 
 **Important:** There are two `bd` commands with different syntax:
+
 - `bd` (standalone, installed via nix) - **Use this!** Has `--type`, `--description`, `--parent`, etc.
 - `bun km bd` (CLI wrapper) - Different flags (`-t`, `-p`), limited options, creates in-memory only
 
@@ -62,6 +63,7 @@ Always prefer the standalone `bd` command for creating and updating beads.
 ### JSON Field Reference
 
 `bd show <id> --json` returns array with these fields:
+
 - `id` - Bead ID (e.g., "km-abc123")
 - `title` - Short summary
 - `description` - Full description (markdown)
@@ -220,28 +222,33 @@ bd ready --unassigned
 ## Common Patterns
 
 ### Find work by keyword
+
 ```bash
 bd list --title "mdtest"          # Find beads with "mdtest" in title
 bd list --title "sync" --type bug # Find sync-related bugs
 ```
 
 ### Check what's assigned to me
+
 ```bash
 bd list --assignee $USER --status in_progress
 ```
 
 ### Get full context before starting
+
 ```bash
 bd show km-abc123              # Human-readable details
 bd show km-abc123 --json | jq  # Full JSON for inspection
 ```
 
 ### Atomic claim (safe for multi-session)
+
 ```bash
 bd update km-abc123 --claim    # Fails if already claimed
 ```
 
 ### Track progress with notes
+
 ```bash
 bd update km-abc123 --notes "Completed X, working on Y"
 ```

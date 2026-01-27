@@ -106,7 +106,9 @@ async function main() {
 
   // Report findings
   if (findings.length === 0) {
-    console.log("✅ Migration complete! No unexpected 'vault' mentions found.\n")
+    console.log(
+      "✅ Migration complete! No unexpected 'vault' mentions found.\n",
+    )
     console.log(`   (${allowed.length} allowed mentions skipped)`)
     process.exit(0)
   }
@@ -119,11 +121,17 @@ async function main() {
   }
 
   if (showFix) {
-    console.log("\nTo fix, update these comments/code to use 'Repo' instead of 'Vault'.")
-    console.log("If a mention should be allowed, add a pattern to ALLOWED_PATTERNS.")
+    console.log(
+      "\nTo fix, update these comments/code to use 'Repo' instead of 'Vault'.",
+    )
+    console.log(
+      "If a mention should be allowed, add a pattern to ALLOWED_PATTERNS.",
+    )
   }
 
-  console.log(`\n${allowed.length} allowed mentions (deprecated exports, Obsidian refs, etc.)`)
+  console.log(
+    `\n${allowed.length} allowed mentions (deprecated exports, Obsidian refs, etc.)`,
+  )
 
   process.exit(1)
 }

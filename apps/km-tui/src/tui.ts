@@ -87,7 +87,9 @@ export async function runBoard(
 
   if (state.rootPath) {
     if (!options?.repo) {
-      throw new Error("Repo required for SyncManager - cannot sync without database")
+      throw new Error(
+        "Repo required for SyncManager - cannot sync without database",
+      )
     }
     debug("Creating SyncManager", {
       rootPath: state.rootPath,

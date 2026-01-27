@@ -10,15 +10,16 @@ This document defines the ID structure for beads in the km project. All skills t
 km-<scope>.<type>-<N>-<slug>
 ```
 
-| Component | Description | Example |
-|-----------|-------------|---------|
-| `km` | Project prefix | `km` |
-| `<scope>` | Package/area (see table below) | `storage` |
-| `<type>` | Issue type | `bug`, `feat`, `task` |
-| `<N>` | Auto-incremented number | `3` |
-| `<slug>` | Descriptive kebab-case | `core-dump` |
+| Component | Description                    | Example               |
+| --------- | ------------------------------ | --------------------- |
+| `km`      | Project prefix                 | `km`                  |
+| `<scope>` | Package/area (see table below) | `storage`             |
+| `<type>`  | Issue type                     | `bug`, `feat`, `task` |
+| `<N>`     | Auto-incremented number        | `3`                   |
+| `<slug>`  | Descriptive kebab-case         | `core-dump`           |
 
 **Examples:**
+
 - `km-storage.bug-3-core-dump`
 - `km-tui.feat-1-vim-mode`
 - `km-board.task-2-cleanup-reducer`
@@ -32,33 +33,34 @@ km-<type>-<slug>
 ```
 
 **Examples:**
+
 - `km-bug-watcher-race`
 - `km-feat-dark-mode`
 - `km-epic-domain-refactor`
 
 ## Scope Tokens
 
-| Short | Package/Location |
-|-------|------------------|
-| `storage` | @km/storage |
-| `board` | @km/board |
-| `tree` | @km/tree |
-| `tui` | apps/km-tui |
-| `cli` | apps/km-cli |
-| `core` | @km/core |
-| `markdown` | @km/markdown |
-| `beads` | @km/beads |
-| `agent` | @km/agent |
+| Short      | Package/Location |
+| ---------- | ---------------- |
+| `storage`  | @km/storage      |
+| `board`    | @km/board        |
+| `tree`     | @km/tree         |
+| `tui`      | apps/km-tui      |
+| `cli`      | apps/km-cli      |
+| `core`     | @km/core         |
+| `markdown` | @km/markdown     |
+| `beads`    | @km/beads        |
+| `agent`    | @km/agent        |
 
 ## Type Tokens
 
-| Type | When to Use |
-|------|-------------|
-| `bug` | Something is broken |
-| `feat` | New functionality |
-| `task` | Work item (refactor, docs, chore) |
-| `epic` | Large initiative with subtasks |
-| `chore` | Maintenance, cleanup |
+| Type    | When to Use                       |
+| ------- | --------------------------------- |
+| `bug`   | Something is broken               |
+| `feat`  | New functionality                 |
+| `task`  | Work item (refactor, docs, chore) |
+| `epic`  | Large initiative with subtasks    |
+| `chore` | Maintenance, cleanup              |
 
 ## Subtasks (Dot Notation)
 
@@ -72,6 +74,7 @@ km-storage.feat-1-file-watcher.c    # Subtask: write tests
 ```
 
 **Rules:**
+
 - Subtasks use the parent ID + `.` + letter
 - Letters are sequential: a, b, c, ... z
 - For 26+ subtasks, continue: aa, ab, ...
@@ -80,10 +83,12 @@ km-storage.feat-1-file-watcher.c    # Subtask: write tests
 ## Epic Children
 
 **Small subtasks:** Use dot notation (`.a`, `.b`, `.c`)
+
 - Quick wins, tightly coupled to parent
 - Complete within same session
 
 **Large subtasks:** Create as own beads
+
 - Significant work (hours+)
 - Could be worked independently
 - Use `--deps blocks:<epic-id>` to link
@@ -116,16 +121,16 @@ bd list --all | grep "km-storage"
 
 Use ID encoding for primary classification; use fields for additional metadata.
 
-| Aspect | Encode in ID | Use Field |
-|--------|--------------|-----------|
-| Scope/package | Yes | - |
-| Type (bug/feat) | Yes | Also set `--type` |
-| Sequence number | Yes | - |
-| Priority | No | `--priority P0-P4` |
-| Labels/tags | No | `--labels sync,phase:testing` |
-| Assignee | No | `--assignee name` |
-| Parent | No | `--parent <id>` |
-| Dependencies | No | `--deps blocks:<id>` |
+| Aspect          | Encode in ID | Use Field                     |
+| --------------- | ------------ | ----------------------------- |
+| Scope/package   | Yes          | -                             |
+| Type (bug/feat) | Yes          | Also set `--type`             |
+| Sequence number | Yes          | -                             |
+| Priority        | No           | `--priority P0-P4`            |
+| Labels/tags     | No           | `--labels sync,phase:testing` |
+| Assignee        | No           | `--assignee name`             |
+| Parent          | No           | `--parent <id>`               |
+| Dependencies    | No           | `--deps blocks:<id>`          |
 
 ## Complete Examples
 

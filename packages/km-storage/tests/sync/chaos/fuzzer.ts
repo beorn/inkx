@@ -18,12 +18,7 @@ import { combineScenarios } from "./scenario-transformer.ts"
 import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
 import { runWithKmDir } from "../../../src/emit.ts"
-import {
-  resetDb,
-  closeDb,
-  getAllNodes,
-  getDb,
-} from "../../../src/db.ts"
+import { resetDb, closeDb, getAllNodes, getDb } from "../../../src/db.ts"
 import { runWithDb } from "../../../src/db-instance.ts"
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../../../src/schema.ts"

@@ -841,8 +841,8 @@ export async function executeCommand(
     // would need different key bindings in a real TUI
 
     // View controls (fold only - outline depth is app-level)
-    z: { type: "FOLD_LEVEL", depth: 1 },
-    Z: { type: "UNFOLD_LEVEL", depth: 1 },
+    z: { type: "TOGGLE_FOLD_CURRENT" },
+    Z: { type: "UNFOLD_ALL" },
 
     // Moving (m + destination)
     m: { type: "ENTER_MOVE_MODE" },

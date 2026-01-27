@@ -315,7 +315,8 @@ export const shCommand = new Command("sh")
     const db = repo.database
 
     // Initialize bound helper functions
-    getNodeDisplayName = (node) => getNodeDisplayNameBase(node, (parentId) => getChildren(db, parentId))
+    getNodeDisplayName = (node) =>
+      getNodeDisplayNameBase(node, (parentId) => getChildren(db, parentId))
 
     // Resolve the node reference if provided
     let resolvedNodeId: string | null = null
@@ -374,7 +375,12 @@ export const shCommand = new Command("sh")
     const initialState = createBoardState(nodes, resolvedNodeId, repo.path)
 
     // Create mutation handler for storage operations
-    const onMutation = createMutationHandler(db, repo, resolvedNodeId, repo.path)
+    const onMutation = createMutationHandler(
+      db,
+      repo,
+      resolvedNodeId,
+      repo.path,
+    )
 
     // Output function
     const output = (event: OutputEvent | string) => {

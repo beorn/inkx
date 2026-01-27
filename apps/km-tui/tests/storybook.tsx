@@ -1341,6 +1341,12 @@ function ToastAndStatusSection(): React.ReactElement {
     },
   ]
 
+  function getToast(index: number): Toast {
+    const toast = mockToasts[index]
+    if (!toast) throw new Error(`mockToasts[${index}] is undefined`)
+    return toast
+  }
+
   const demoTermWidth = 100
   const demoTermHeight = 30
 
@@ -1365,7 +1371,7 @@ function ToastAndStatusSection(): React.ReactElement {
       <ViewBox title="Info Toast">
         <Box width={demoTermWidth} height={10} position="relative">
           <ToastStack
-            toasts={[mockToasts[0]!]}
+            toasts={[getToast(0)]}
             termWidth={demoTermWidth}
             termHeight={10}
           />
@@ -1375,7 +1381,7 @@ function ToastAndStatusSection(): React.ReactElement {
       <ViewBox title="Success Toast">
         <Box width={demoTermWidth} height={10} position="relative">
           <ToastStack
-            toasts={[mockToasts[1]!]}
+            toasts={[getToast(1)]}
             termWidth={demoTermWidth}
             termHeight={10}
           />
@@ -1385,7 +1391,7 @@ function ToastAndStatusSection(): React.ReactElement {
       <ViewBox title="Warning Toast with Description">
         <Box width={demoTermWidth} height={10} position="relative">
           <ToastStack
-            toasts={[mockToasts[2]!]}
+            toasts={[getToast(2)]}
             termWidth={demoTermWidth}
             termHeight={10}
           />
@@ -1395,7 +1401,7 @@ function ToastAndStatusSection(): React.ReactElement {
       <ViewBox title="Error Toast with Description">
         <Box width={demoTermWidth} height={10} position="relative">
           <ToastStack
-            toasts={[mockToasts[3]!]}
+            toasts={[getToast(3)]}
             termWidth={demoTermWidth}
             termHeight={10}
           />
@@ -1405,7 +1411,7 @@ function ToastAndStatusSection(): React.ReactElement {
       <ViewBox title="Toast with Action Button">
         <Box width={demoTermWidth} height={10} position="relative">
           <ToastStack
-            toasts={[mockToasts[4]!]}
+            toasts={[getToast(4)]}
             termWidth={demoTermWidth}
             termHeight={10}
           />

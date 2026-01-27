@@ -10,13 +10,13 @@ When modifying TUI styling (colors, selection states, visual hierarchy), follow 
 
 ## Quick Reference
 
-| Element | Color/Style |
-|---------|-------------|
-| Selection | `cyan` bg + `black` fg (NEVER blue/white) |
-| Input cursor | `inverse` (reserved for this only) |
-| Selected header | `yellow` |
-| Unselected header | `yellowBright` + dim |
-| Status icons | Color AND shape (colorblind-safe) |
+| Element           | Color/Style                               |
+| ----------------- | ----------------------------------------- |
+| Selection         | `cyan` bg + `black` fg (NEVER blue/white) |
+| Input cursor      | `inverse` (reserved for this only)        |
+| Selected header   | `yellow`                                  |
+| Unselected header | `yellowBright` + dim                      |
+| Status icons      | Color AND shape (colorblind-safe)         |
 
 ## Selection States
 
@@ -31,12 +31,13 @@ When modifying TUI styling (colors, selection states, visual hierarchy), follow 
 ```
 
 **Reserved colors:**
+
 - `cyan` background = selection only
 - `inverse` = input cursor only
 
 ## Background Colors
 
-Use inkx `backgroundColor` OR chalk.bg*, never both on same element (throws by default):
+Use inkx `backgroundColor` OR chalk.bg\*, never both on same element (throws by default):
 
 ```tsx
 // ✅ CORRECT - inkx style
@@ -53,13 +54,13 @@ Use inkx `backgroundColor` OR chalk.bg*, never both on same element (throws by d
 
 Icons MUST use both color AND shape for accessibility:
 
-| Status | Icon | Color |
-|--------|------|-------|
-| todo | ○ | gray |
-| done | ✓ | green |
-| wip | ◐ | yellow |
-| blocked | ⊘ | red |
-| dropped | ∅ | gray (dim) |
+| Status  | Icon | Color      |
+| ------- | ---- | ---------- |
+| todo    | ○    | gray       |
+| done    | ✓    | green      |
+| wip     | ◐    | yellow     |
+| blocked | ⊘    | red        |
+| dropped | ∅    | gray (dim) |
 
 ## Headers
 
@@ -83,6 +84,7 @@ When working on TUI code using Ink, you MUST read @docs/dev/ink-patterns.md. Cri
 ## Visual Testing
 
 For testing TUI appearance, see the visual-test.md skill:
+
 - ttyd + Playwright for headless capture
 - Storybook for component isolation
 - DEBUG_LOG for correlating state with visuals

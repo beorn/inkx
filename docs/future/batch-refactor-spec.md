@@ -7,6 +7,7 @@
 ## Vision
 
 A smart batch refactoring tool that:
+
 1. Finds all occurrences of a pattern across **any text** (code, markdown, comments, notes)
 2. Lets Claude review and score confidence for each match
 3. Auto-applies high-confidence changes, asks about uncertain ones
@@ -26,35 +27,38 @@ A smart batch refactoring tool that:
 ## Tools Landscape
 
 ### Text-Based (works on any file)
-| Tool | Status | Strength |
-|------|--------|----------|
-| **ripgrep/Grep** | ✅ Built-in | Fast text search with context |
-| **Fastmod** (Rust) | Consider | Interactive regex replace, `e` to edit |
-| **Repgrep (rgr)** | Consider | TUI for batch selection |
-| **rep** | Consider | Diff-first review pattern |
+
+| Tool               | Status      | Strength                               |
+| ------------------ | ----------- | -------------------------------------- |
+| **ripgrep/Grep**   | ✅ Built-in | Fast text search with context          |
+| **Fastmod** (Rust) | Consider    | Interactive regex replace, `e` to edit |
+| **Repgrep (rgr)**  | Consider    | TUI for batch selection                |
+| **rep**            | Consider    | Diff-first review pattern              |
 
 ### AST-Aware (code-specific bonus)
-| Tool | Status | Strength |
-|------|--------|----------|
-| **ast-grep** | ✅ Installed | Structural patterns, tree-sitter based |
-| **Comby** | Consider | Language-agnostic structural matching |
-| **cclsp** | ✅ Installed | LSP wrapper for type-safe operations |
-| **mcp-refactor-typescript** | ✅ Configured | Rename, move, organize imports |
+
+| Tool                        | Status        | Strength                               |
+| --------------------------- | ------------- | -------------------------------------- |
+| **ast-grep**                | ✅ Installed  | Structural patterns, tree-sitter based |
+| **Comby**                   | Consider      | Language-agnostic structural matching  |
+| **cclsp**                   | ✅ Installed  | LSP wrapper for type-safe operations   |
+| **mcp-refactor-typescript** | ✅ Configured | Rename, move, organize imports         |
 
 ### Key Insight from Research
+
 > "No refactoring tool guarantees behavior preservation. Your test suite does."
 
 ## Current Implementation
 
-| Component | Status | Location |
-|-----------|--------|----------|
-| ast-grep | ✅ Installed | `nix profile` |
-| cclsp | ✅ Installed | `bun global` |
-| mcp-refactor-typescript | ✅ Configured | `.mcp.json` |
-| /batch command | ✅ Plugin | `batch@beorn-claude-tools` |
-| Confidence scoring | 📝 Documented | In command instructions |
-| Plugin packaging | ✅ Complete | `vendor/beorn-claude-tools/plugins/batch` |
-| Marketplace | ✅ Configured | `beorn-claude-tools` |
+| Component               | Status        | Location                                  |
+| ----------------------- | ------------- | ----------------------------------------- |
+| ast-grep                | ✅ Installed  | `nix profile`                             |
+| cclsp                   | ✅ Installed  | `bun global`                              |
+| mcp-refactor-typescript | ✅ Configured | `.mcp.json`                               |
+| /batch command          | ✅ Plugin     | `batch@beorn-claude-tools`                |
+| Confidence scoring      | 📝 Documented | In command instructions                   |
+| Plugin packaging        | ✅ Complete   | `vendor/beorn-claude-tools/plugins/batch` |
+| Marketplace             | ✅ Configured | `beorn-claude-tools`                      |
 
 ### Installation
 
@@ -69,20 +73,25 @@ claude plugin install batch@beorn-claude-tools
 ## Architecture Options
 
 ### Option A: Skill Only (Current)
+
 ```
 User → /batch skill → Claude interprets instructions → uses ast-grep + Edit
 ```
+
 - **Pros:** Simple, works today, no code to maintain
 - **Cons:** Re-interprets each time, slower, can't share easily
 
 ### Option B: MCP Server + Skill
+
 ```
 User → /batch skill → MCP server (search/apply) → Claude (analyze/decide)
 ```
+
 - **Pros:** Fast operations, stateful, programmatic
 - **Cons:** More code to maintain
 
 ### Option C: Plugin (Recommended for Sharing)
+
 ```
 batch-plugin/
 ├── .claude-plugin/plugin.json    # Manifest
@@ -90,45 +99,56 @@ batch-plugin/
 ├── .mcp.json                     # MCP server config
 └── servers/batch-server.ts       # Heavy operations
 ```
+
 - **Pros:** Shareable via marketplace, versioned, namespaced
 - **Cons:** More structure to set up
 
 ## UX Patterns (from research)
 
 ### Pattern A: Sequential Prompts (codemod/fastmod)
+
 ```
 Show one match → y/n/e/q → next match → ...
 ```
+
 - **Pros:** Simple, careful consideration per change
 - **Cons:** Tedious for 100+ matches
 
 ### Pattern B: Batch Multi-Select (repgrep)
+
 ```
 Show ALL matches in TUI → toggle selection → apply selected
 ```
+
 - **Pros:** Overview of all changes, quick selection
 - **Cons:** Needs TUI, harder to show full context
 
 ### Pattern C: Diff-First Review (rep)
+
 ```
 Generate unified diff of ALL changes → user reviews → apply if OK
 ```
+
 - **Pros:** Familiar diff format, can use external tools
 - **Cons:** All-or-nothing (no per-match selection)
 
 ### Pattern D: Confidence-Based Auto (our approach)
+
 ```
 Claude scores each → auto-apply HIGH → ask about MEDIUM → skip LOW
 ```
+
 - **Pros:** Leverages AI judgment, minimal user decisions
 - **Cons:** Trust threshold, may need tuning
 
 ### Hybrid Approach (Recommended)
+
 Combine D + C: Claude scores and categorizes, then present uncertain ones as a diff for review.
 
 ## Workflow Design
 
 ### Core Flow
+
 ```
 1. SEARCH    → ripgrep (text) or ast-grep (code) → structured matches
 2. ANALYZE   → Claude scores each: HIGH/MEDIUM/LOW confidence
@@ -138,19 +158,21 @@ Combine D + C: Claude scores and categorizes, then present uncertain ones as a d
 ```
 
 **Search tool selection:**
+
 - `.md`, `.txt`, comments → ripgrep (text-based)
 - `.ts`, `.tsx`, `.js` → ast-grep (AST-aware) or ripgrep
 - User can force either with `--mode text|ast`
 
 ### Confidence Scoring
 
-| Confidence | Criteria | Action |
-|------------|----------|--------|
-| HIGH | Code context (call site, import, type ref) | Auto-apply |
-| MEDIUM | String, comment, or ambiguous | Ask user |
-| LOW | Partial match, different meaning | Skip |
+| Confidence | Criteria                                   | Action     |
+| ---------- | ------------------------------------------ | ---------- |
+| HIGH       | Code context (call site, import, type ref) | Auto-apply |
+| MEDIUM     | String, comment, or ambiguous              | Ask user   |
+| LOW        | Partial match, different meaning           | Skip       |
 
 ### Example Session
+
 ```
 /batch rename "createRepo" "createRepo" --glob "packages/**/*.ts"
 
@@ -182,6 +204,7 @@ vendor/beorn-claude-tools/
 ```
 
 **Installation:**
+
 ```bash
 # Add marketplace (one-time)
 claude plugin marketplace add github:beorn/beorn-claude-tools
@@ -193,6 +216,7 @@ claude plugin install batch@beorn-claude-tools
 ## Data Structures & Export Formats
 
 ### Internal Representation
+
 ```typescript
 interface RefactorMatch {
   file: string
@@ -201,9 +225,9 @@ interface RefactorMatch {
   endLine: number
   endColumn: number
   matchText: string
-  contextBefore: string[]  // 3-5 lines
+  contextBefore: string[] // 3-5 lines
   contextAfter: string[]
-  confidence: 'high' | 'medium' | 'low'
+  confidence: "high" | "medium" | "low"
   reason: string
   selected: boolean
 }
@@ -212,13 +236,14 @@ interface RefactorPlan {
   pattern: string
   replacement: string
   matches: RefactorMatch[]
-  stats: { high: number, medium: number, low: number }
+  stats: { high: number; medium: number; low: number }
 }
 ```
 
 ### Export Formats
 
 **1. Unified Diff (--dry-run)**
+
 ```diff
 --- a/src/foo.ts
 +++ b/src/foo.ts
@@ -226,24 +251,33 @@ interface RefactorPlan {
 -  const repo = createRepo(path)
 +  const repo = createRepo(path)
 ```
+
 - Human readable, can be reviewed externally
 - Apply with `git apply` or `patch`
 
 **2. JSON Edits (--json)**
+
 ```json
 {
   "changes": {
     "src/foo.ts": [
-      { "range": { "start": { "line": 45, "character": 16 }, "end": { "line": 45, "character": 27 } },
-        "newText": "createRepo" }
+      {
+        "range": {
+          "start": { "line": 45, "character": 16 },
+          "end": { "line": 45, "character": 27 }
+        },
+        "newText": "createRepo"
+      }
     ]
   }
 }
 ```
+
 - Machine readable (LSP WorkspaceEdit format)
 - Good for programmatic workflows
 
 **3. Branch/PR Export**
+
 - Apply changes to a new branch
 - Create PR for team review
 - Integrates with normal code review flow
@@ -285,11 +319,13 @@ interface RefactorPlan {
 <!-- Add your ideas here -->
 
 ### From initial discussion:
+
 - Threshold-based auto (HIGH auto-apply, MEDIUM ask, LOW skip)
 - Want to preview ALL changes at once, not one-by-one
 - Should be packagable/shareable as Claude Code plugin
 
 ### From ChatGPT research (2026-01-26):
+
 - Consider **Comby** for language-agnostic structural matching
 - **Unified diff as interchange format** - familiar, tool-friendly
 - **$EDITOR escape hatch** - let user manually tweak individual matches
@@ -299,6 +335,7 @@ interface RefactorPlan {
 - Incremental apply + test pattern for extra safety
 
 ### Future ideas:
+
 - Integration with PR review workflow (export to branch)
 - Learn from user selections to improve confidence scoring
 - Support for multi-step refactors (rename A→B, then update callers)

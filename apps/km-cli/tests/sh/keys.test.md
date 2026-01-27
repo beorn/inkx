@@ -145,7 +145,7 @@ Syncing .km/state.db with files (repo ...)
 
 L into empty column shows the column header.
 
-```console
+```console fixture=empty-column
 $ km sh empty-col.md -c 'L; state'
 cursor: [1]
 node: Empty
@@ -268,14 +268,13 @@ topLevel: 2 nodes
 selected: 2 nodes
 ```
 
-z toggles fold.
+z toggles fold (no-op on leaf nodes).
 
 ```console
 $ km sh board.md -c 'z; state'
 cursor: [0]
 node: Task A
 topLevel: 2 nodes
-folded: 2 nodes
 ```
 
 Z unfolds all.
@@ -303,7 +302,7 @@ node: Task A
 topLevel: 2 nodes
 ```
 
-+ and - for zoom level adjustment.
+- and - for zoom level adjustment.
 
 ```console
 $ km sh board.md -c '+; state'

@@ -88,7 +88,9 @@ function getGitInfo() {
  */
 function getVersion() {
   const packageJsonPath = join(PROJECT_ROOT, "package.json")
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string }
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as {
+    version: string
+  }
   return packageJson.version
 }
 

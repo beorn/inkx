@@ -10,11 +10,11 @@
  */
 
 import createDebug from "debug"
-import { createWriteStream, type WriteStream } from "fs"
+import { createWriteStream } from "fs"
 import { relative } from "path"
 import { homedir } from "os"
 
-let stream: WriteStream | null = null
+let stream: ReturnType<typeof createWriteStream> | null = null
 
 // Optional repo root for formatting paths relative to repo
 let repoRoot: string | null = null

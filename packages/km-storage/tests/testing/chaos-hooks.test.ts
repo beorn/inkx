@@ -307,7 +307,9 @@ describe.serial("createChaosHooks", () => {
         random,
       })
 
-      using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
+      using repo = runGenerator(
+        createRepo(REPO_DIR, { hooks, loadFiles: true }),
+      )
 
       const tasks = repo.getAllTasks()
       for (const task of tasks) {

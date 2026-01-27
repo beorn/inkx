@@ -19,6 +19,7 @@ import { getKmDir } from "./emit.ts"
 import { SCHEMA } from "./schema.ts"
 
 // Singleton database instance
+
 let dbInstance: Database | null = null
 
 // Flag to track if db was injected externally (e.g., from MemoryStore)
@@ -139,6 +140,7 @@ export function runWithDb<T>(db: Database, fn: () => T): T {
  * Unlike getDb(), this does NOT create a database if none exists.
  * Use this when you want to check for a context without side effects.
  */
+
 export function tryGetContextDb(): Database | undefined {
   return dbContext.getStore()
 }

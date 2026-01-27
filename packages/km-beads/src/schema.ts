@@ -82,8 +82,8 @@ export function parseBeadsIssuesJsonl(content: string): {
   const issues: BeadsIssue[] = []
   const errors: Array<{ line: number; error: string }> = []
 
-  for (let i = 0; i < lines.length; i++) {
-    const result = parseBeadsIssueLine(lines[i]!)
+  for (const [i, line] of lines.entries()) {
+    const result = parseBeadsIssueLine(line)
     if (result.success) {
       issues.push(result.data)
     } else {

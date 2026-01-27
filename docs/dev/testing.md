@@ -229,13 +229,13 @@ test("creates node", async () => {
 
 **What `withTestEnv` provides**:
 
-| Property   | Description                                    |
-| ---------- | ---------------------------------------------- |
+| Property  | Description                                   |
+| --------- | --------------------------------------------- |
 | `repo`    | Repo-like object wrapping DB-bound singletons |
-| `db`       | In-memory SQLite with schema initialized       |
+| `db`      | In-memory SQLite with schema initialized      |
 | `repoDir` | Isolated `/tmp/kmtest-{id}/repo/`             |
-| `kmDir`    | Isolated `/tmp/kmtest-{id}/repo/.km/`         |
-| `testId`   | Unique ULID for this test                      |
+| `kmDir`   | Isolated `/tmp/kmtest-{id}/repo/.km/`         |
+| `testId`  | Unique ULID for this test                     |
 
 The `repo` object provides these methods (typed as `TestRepo`):
 
@@ -278,11 +278,11 @@ test("renders board component", async () => {
 
 **When to use which**:
 
-| Scenario                                           | Fixture                     |
-| -------------------------------------------------- | --------------------------- |
-| Tests calling `buildBoardState`, `handleKey`, etc. | `withTestEnv` → `env.repo`  |
+| Scenario                                           | Fixture                    |
+| -------------------------------------------------- | -------------------------- |
+| Tests calling `buildBoardState`, `handleKey`, etc. | `withTestEnv` → `env.repo` |
 | Ink component rendering (no DB mutations)          | `createFakeRepo()`         |
-| Pure function tests (no DB)                        | None needed                 |
+| Pure function tests (no DB)                        | None needed                |
 
 **When NOT to use withTestEnv**:
 
@@ -295,7 +295,7 @@ Each domain object gets its own test file testing the **public API**:
 
 | Domain Object | Test File        | What to Test                     |
 | ------------- | ---------------- | -------------------------------- |
-| `Repo`       | `repo.test.ts`  | CRUD, queries, lifecycle         |
+| `Repo`        | `repo.test.ts`   | CRUD, queries, lifecycle         |
 | `Board`       | `board.test.ts`  | State machine, reducers, actions |
 | `Config`      | `config.test.ts` | Loading, validation, defaults    |
 

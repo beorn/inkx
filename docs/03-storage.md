@@ -535,8 +535,8 @@ interface LoadResult {
 
 The old functions still work but delegate to `loadRepo()`:
 
-| Old Function        | New Equivalent                     |
-| ------------------- | ---------------------------------- |
+| Old Function        | New Equivalent                    |
+| ------------------- | --------------------------------- |
 | `ensureState(root)` | `loadRepo(root)`                  |
 | `rebuildState()`    | `loadRepo(root, { force: true })` |
 | `syncState()`       | `loadRepo(root)`                  |
@@ -547,7 +547,7 @@ The old functions still work but delegate to `loadRepo()`:
 
 | Path       | Function       | When                           |
 | ---------- | -------------- | ------------------------------ |
-| Cold start | `loadRepo()`  | CLI startup, initial load      |
+| Cold start | `loadRepo()`   | CLI startup, initial load      |
 | Hot path   | `applyEvent()` | Real-time file watcher changes |
 
 The `SyncManager` handles the hot path via file watching → `reconcileDirectory()` → `applyEvent()`.

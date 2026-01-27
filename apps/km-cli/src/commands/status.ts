@@ -11,11 +11,7 @@
 
 import { Command } from "commander"
 import chalk from "chalk"
-import {
-  resolvePathArg,
-  getNextOccurrence,
-  naturalToRRule,
-} from "@km/storage"
+import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import type { TaskStatus, TaskMark } from "@km/core"

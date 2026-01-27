@@ -17,10 +17,7 @@ import { getNodeDisplayName as getNodeDisplayNameWithRepo } from "./formatters.t
  * Find a node by path or ID prefix/suffix
  * Returns the node if found, null otherwise
  */
-export function findNodeByPathOrId(
-  repo: Repo,
-  pathOrId: string,
-): KNode | null {
+export function findNodeByPathOrId(repo: Repo, pathOrId: string): KNode | null {
   // Try ID match via resolveNode (handles prefixes)
   const node = repo.resolveNode(pathOrId)
   if (node) return node
@@ -66,10 +63,7 @@ function getAncestorKey(repo: Repo, ca: CollapsedAncestor): string {
 /**
  * Build task tree data (ancestors, keys) for a list of tasks
  */
-export function buildTaskTree(
-  repo: Repo,
-  tasks: KNode[],
-): TaskWithAncestors[] {
+export function buildTaskTree(repo: Repo, tasks: KNode[]): TaskWithAncestors[] {
   return tasks.map((task) => {
     const rawAncestors = repo.getAncestors(task.id)
     const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)

@@ -74,12 +74,12 @@ Functionality is exposed through **domain objects created by factory functions**
 
 ### Key Domain Objects
 
-| Object    | Factory            | Lifecycle    | Purpose                                    |
-| --------- | ------------------ | ------------ | ------------------------------------------ |
-| `Repo`    | `createRepo()`     | `Disposable` | DataStore + FileTree + Config              |
+| Object    | Factory              | Lifecycle    | Purpose                                    |
+| --------- | -------------------- | ------------ | ------------------------------------------ |
+| `Repo`    | `createRepo()`       | `Disposable` | DataStore + FileTree + Config              |
 | `Board`   | `createBoardState()` | plain object | Navigation state (cursor, selection, zoom) |
-| `Watcher` | `repo.watch()`     | `Service`    | File sync (start/stop lifecycle)           |
-| `Config`  | `loadConfigObject` | plain object | Repository configuration                   |
+| `Watcher` | `repo.watch()`       | `Service`    | File sync (start/stop lifecycle)           |
+| `Config`  | `loadConfigObject`   | plain object | Repository configuration                   |
 
 > **Current API:** Use `Repo` / `createRepo()` for all new code.
 

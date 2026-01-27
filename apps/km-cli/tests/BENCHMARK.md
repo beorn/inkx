@@ -7,14 +7,15 @@ Comparison of subprocess (bunShell) vs in-process (km-repl) execution.
 ### Test Setup
 
 **Workload:** 21 km commands (1 sync + 20 list)
+
 - Subprocess: bunShell spawns `bun km` for each command
 - In-process: executeKmCommand() calls km CLI directly
 
 ### Results (2026-01-26)
 
-| Approach | Time | Speedup |
-|----------|------|---------|
-| Subprocess (bunShell) | 3.992s | baseline |
+| Approach                 | Time       | Speedup      |
+| ------------------------ | ---------- | ------------ |
+| Subprocess (bunShell)    | 3.992s     | baseline     |
 | **In-Process (km-repl)** | **0.246s** | **16.2x** ⚡ |
 
 ✅ **EXCEEDED TARGET:** 8-15x speedup goal
@@ -39,6 +40,7 @@ time bun run vendor/beorn-mdtest/src/index.ts /tmp/benchmark-inprocess.test.md
 ### Breakdown
 
 Per-command overhead reduction:
+
 - Subprocess: ~190ms per command (includes Bun startup, module load, exec)
 - In-process: ~12ms per command (function call only)
 

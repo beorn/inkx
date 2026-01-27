@@ -301,7 +301,7 @@ export interface OperationResult {
 
 export class WriteQueue extends EventEmitter {
   private pending: Map<string, WriteOperation> = new Map()
-  private debounceTimer: NodeJS.Timeout | null = null
+  private debounceTimer: ReturnType<typeof setTimeout> | undefined
   private config: WriteQueueConfig
   private retryConfig: RetryConfig
   private conflictStrategy: ConflictStrategy
@@ -547,7 +547,7 @@ export class WriteQueue extends EventEmitter {
   async flush(): Promise<void> {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
-      this.debounceTimer = null
+      this.debounceTimer = undefined
     }
 
     const writes = [...this.pending.values()]
@@ -701,7 +701,7 @@ export class WriteQueue extends EventEmitter {
   clear(): void {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
-      this.debounceTimer = null
+      this.debounceTimer = undefined
     }
     this.pending.clear()
   }

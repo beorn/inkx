@@ -39,13 +39,23 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("adds a node with specified ID", () => {
-        const id = store.addNode(null, { id: "custom-id", type: "task", content: "Test" })
+        const id = store.addNode(null, {
+          id: "custom-id",
+          type: "task",
+          content: "Test",
+        })
         expect(id).toBe("custom-id")
       })
 
       test("adds a node under parent", () => {
-        const parentId = store.addNode(null, { type: "section", content: "Parent" })
-        const childId = store.addNode(parentId, { type: "task", content: "Child" })
+        const parentId = store.addNode(null, {
+          type: "section",
+          content: "Parent",
+        })
+        const childId = store.addNode(parentId, {
+          type: "task",
+          content: "Child",
+        })
 
         const child = store.getNode(childId)
         expect(child?.parent_id).toBe(parentId)
@@ -124,7 +134,11 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("preserves unmodified properties", () => {
-        const id = store.addNode(null, { type: "task", content: "Test", priority: 1 })
+        const id = store.addNode(null, {
+          type: "task",
+          content: "Test",
+          priority: 1,
+        })
         store.updateNode(id, { content: "Updated" })
 
         const node = store.getNode(id)

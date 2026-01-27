@@ -136,8 +136,8 @@ const SINGLE_CHAR_MAP: Record<string, BoardAction | "KEY"> = {
   A: { type: "SELECT_ALL_SIBLINGS" },
 
   // Fold controls
-  z: { type: "FOLD_LEVEL", depth: 1 },
-  Z: { type: "UNFOLD_LEVEL", depth: 1 },
+  z: { type: "TOGGLE_FOLD_CURRENT" },
+  Z: { type: "UNFOLD_ALL" },
 
   // View configuration
   "<": { type: "DECREASE_OUTLINE_DEPTH" },

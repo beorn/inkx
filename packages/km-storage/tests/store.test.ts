@@ -11,7 +11,6 @@ import { join } from "path"
 import { ulid } from "ulid"
 import { initStore, closeStore, MemoryStore, DiskStore } from "../src/store.ts"
 import { withTestEnvSync } from "@km/storage"
-import { getDb } from "../src/db.ts"
 
 // Track created directories for cleanup
 const createdDirs: string[] = []

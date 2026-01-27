@@ -113,6 +113,8 @@ export type BoardAction =
   | { type: "FOLD_LEVEL"; depth: number }
   | { type: "UNFOLD_LEVEL"; depth: number }
   | { type: "TOGGLE_FOLD"; nodeId: string }
+  | { type: "TOGGLE_FOLD_CURRENT" } // Toggle fold on cursor node
+  | { type: "UNFOLD_ALL" } // Unfold all nodes
   | { type: "TOGGLE_COLLAPSE"; nodeId: string }
   // Move mode
   | { type: "ENTER_MOVE_MODE" }

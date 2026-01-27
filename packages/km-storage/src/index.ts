@@ -150,14 +150,12 @@ export type { Watcher, WatcherOptions } from "./watcher.ts"
 export {
   evaluateAllRules,
   evaluateNodeRules,
-  getPendingWriteBack,
-  setBulkMode,
-  isBulkMode,
   onNodeChanged,
   onNodeDeleted,
+  createRuleContext,
 } from "./db-rules.ts"
 
-export type { RulesProgress } from "./db-rules.ts"
+export type { RulesProgress, RuleContext } from "./db-rules.ts"
 
 // Content-addressable store
 export {
@@ -281,6 +279,19 @@ export type {
 export { loadConfigObject } from "./config-object.ts"
 
 export type { Config } from "./config-object.ts"
+
+// Emitter domain object - owns event emission lifecycle
+// Replaces global singletons in emit.ts with explicit ownership
+// See: docs/adr/002-domain-objects-refactor.md
+export { createEmitter } from "./emitter.ts"
+
+export type {
+  Emitter,
+  EmitterOptions,
+  EmitOptions,
+  EventHub,
+  FsSync,
+} from "./emitter.ts"
 
 // Repo domain object - PREFERRED API for new code
 // Composed: DataStore + FileTree + Config

@@ -1014,7 +1014,10 @@ describe.serial("km done", () => {
     const doneResult = await km(["status", task!.id, "done", "--json"])
     expect(doneResult.exitCode).toBe(0)
 
-    const output = JSON.parse(doneResult.stdout) as { id: string; status: string }
+    const output = JSON.parse(doneResult.stdout) as {
+      id: string
+      status: string
+    }
     expect(output.id).toBe(task!.id)
     expect(output.status).toBe("done")
   })
@@ -1330,7 +1333,12 @@ describe.serial("Query language integration - km task with queries", () => {
 
   test("should exclude with negation -status:done", async () => {
     // Use --query= syntax to avoid -status:done being interpreted as a flag
-    const result = await km(["tasks", "--all", "--query=-status:done", "--json"])
+    const result = await km([
+      "tasks",
+      "--all",
+      "--query=-status:done",
+      "--json",
+    ])
     expect(result.exitCode).toBe(0)
     const tasks = JSON.parse(result.stdout) as TaskJson[]
 
@@ -1356,7 +1364,9 @@ describe.serial("Query language integration - km task with queries", () => {
 
     // Should match only todo tasks with @bjorn
     expect(
-      tasks.every((t) => t.content.includes("@bjorn") && t.task_status === "todo"),
+      tasks.every(
+        (t) => t.content.includes("@bjorn") && t.task_status === "todo",
+      ),
     ).toBe(true)
   })
 
@@ -1426,7 +1436,10 @@ describe.serial("km move - re-parent nodes", () => {
     const moveResult = await km(["move", inboxTask!.id, workFile!.id, "--json"])
     expect(moveResult.exitCode).toBe(0)
 
-    const output = JSON.parse(moveResult.stdout) as { id: string; parent_id: string | null }
+    const output = JSON.parse(moveResult.stdout) as {
+      id: string
+      parent_id: string | null
+    }
     expect(output.id).toBe(inboxTask!.id)
     expect(output.parent_id).toBe(workFile!.id)
   })
@@ -1442,7 +1455,10 @@ describe.serial("km move - re-parent nodes", () => {
     const moveResult = await km(["move", task!.id, "--to-root", "--json"])
     expect(moveResult.exitCode).toBe(0)
 
-    const output = JSON.parse(moveResult.stdout) as { id: string; parent_id: string | null }
+    const output = JSON.parse(moveResult.stdout) as {
+      id: string
+      parent_id: string | null
+    }
     expect(output.parent_id).toBeNull()
   })
 

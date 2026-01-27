@@ -22,6 +22,45 @@ import { resolvePathArg } from "@km/storage"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 
+// Commander option interfaces
+interface LsOptions {
+  status?: string
+  harness?: string
+  json?: boolean
+}
+
+interface SpawnOptions {
+  model?: string
+  harness?: string
+  id?: string
+  workdir?: string
+  json?: boolean
+}
+
+interface ShowOptions {
+  json?: boolean
+}
+
+interface HarnessesOptions {
+  json?: boolean
+}
+
+interface SessionsOptions {
+  limit?: number
+  json?: boolean
+}
+
+interface SessionOptions {
+  json?: boolean
+}
+
+interface RunOptions {
+  target?: string
+  continuous?: boolean
+  maxTasks?: number
+  dryRun?: boolean
+}
+
 export const agentCommand = new Command("agent")
   .description(
     `AI agent lifecycle and runtime management
@@ -82,7 +121,7 @@ agentCommand
   )
   .option("--harness <name>", "Filter by harness")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .action(async (opts: LsOptions) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
 
@@ -117,7 +156,7 @@ agentCommand
   .option("--id <custom>", "Custom short ID")
   .option("--workdir <path>", "Working directory")
   .option("--json", "Output as JSON")
-  .action((name, opts) => {
+  .action((name: string, opts: SpawnOptions) => {
     // Validate harness exists
     if (opts.harness) {
       const harness = loadHarness(opts.harness)
@@ -210,7 +249,7 @@ agentCommand
   .command("show <id>")
   .description("Show agent details")
   .option("--json", "Output as JSON")
-  .action(async (id, opts) => {
+  .action(async (id: string, opts: ShowOptions) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)
@@ -233,7 +272,7 @@ agentCommand
   .command("harnesses")
   .description("List available harnesses")
   .option("--json", "Output as JSON")
-  .action((opts) => {
+  .action((opts: HarnessesOptions) => {
     const harnesses = listHarnesses()
 
     if (opts.json) {
@@ -261,7 +300,7 @@ agentCommand
   .description("List sessions (optionally for a specific agent)")
   .option("-n, --limit <n>", "Limit results", parseInt)
   .option("--json", "Output as JSON")
-  .action((agentId, opts) => {
+  .action((agentId: string | undefined, opts: SessionsOptions) => {
     const sessions = agentId ? getAgentSessions(agentId, opts.limit) : []
 
     if (opts.json) {
@@ -286,7 +325,7 @@ agentCommand
   .command("session <session-id>")
   .description("View session transcript")
   .option("--json", "Output as JSON")
-  .action((sessionId, opts) => {
+  .action((sessionId: string, opts: SessionOptions) => {
     const session = getSession(sessionId)
 
     if (!session) {
@@ -318,7 +357,7 @@ agentCommand
   .option("--continuous", "Process work queue continuously")
   .option("--max-tasks <n>", "Max tasks in continuous mode", parseInt)
   .option("--dry-run", "Show plan without executing")
-  .action(async (id, prompt, opts) => {
+  .action(async (id: string, prompt: string | undefined, opts: RunOptions) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)

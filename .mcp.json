@@ -3,9 +3,7 @@
     "refactor-typescript": {
       "type": "stdio",
       "command": "bunx",
-      "args": [
-        "mcp-refactor-typescript"
-      ],
+      "args": ["mcp-refactor-typescript"],
       "env": {}
     }
   }

@@ -10,7 +10,6 @@ import { mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
 import { MemoryStore } from "../src/store.ts"
-import { getDb } from "../src/db.ts"
 
 // Track created directories for cleanup
 const createdDirs: string[] = []

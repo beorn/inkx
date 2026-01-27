@@ -38,7 +38,7 @@ import { findChildByContent } from "./db-queries/index.ts"
 import { rowToNode } from "./db-queries/utils.ts"
 import type { KNode } from "@km/core"
 import { getEventsPath, setKmDir } from "./emit.ts"
-import { evaluateAllRules, setBulkMode } from "./db-rules.ts"
+import { evaluateAllRules, createRuleContext } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { DiskStore, MemoryStore, type NodeStore } from "./store.ts"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
@@ -189,7 +189,12 @@ export function* loadRepo(
       ? discoverOnly
         ? yield* discoverFilesOnly(repoRoot, errors)
         : yield* discoverFromFilesystem(repoRoot, errors)
-      : yield* discoverFromEvents(db, kmDir ?? "", options?.force ?? false, errors)
+      : yield* discoverFromEvents(
+          db,
+          kmDir ?? "",
+          options?.force ?? false,
+          errors,
+        )
 
   // 4. Shared pipeline (SAME for both modes)
   yield* applyEvents(db, source.events, errors)
@@ -683,9 +688,7 @@ function* applyEvents(
   const total = events.length
   if (total === 0) return
 
-  // Enable bulk mode to suppress incremental rule evaluation
-  setBulkMode(true)
-
+  // Bulk operations: events are applied here, rules are evaluated after via evaluateAllRules
   db.run("BEGIN IMMEDIATE")
   try {
     // km-load-perf.2: Batch INSERT for node_created events using prepared statement
@@ -756,11 +759,8 @@ function* applyEvents(
     db.run("COMMIT")
   } catch (error) {
     db.run("ROLLBACK")
-    setBulkMode(false)
     throw error
   }
-
-  setBulkMode(false)
 }
 
 function* resolveLinks(
@@ -1066,9 +1066,12 @@ function buildFileIndex(db: Database): Map<string, KNode> {
 
 function* materializeRules(db: Database): Generator<StepYield, void, unknown> {
   yield "Evaluating rules"
-  for (const progress of evaluateAllRules(db)) {
+  const ctx = createRuleContext()
+  for (const progress of evaluateAllRules(db, ctx)) {
     yield { current: progress.current, total: progress.total }
   }
+  // Note: ctx.pendingWriteBack contains files that need write-back after materialization
+  // This is handled by the sync layer after loadRepo completes
 }
 
 /**

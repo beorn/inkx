@@ -59,7 +59,8 @@ function testFileTree(
       })
 
       test("handles unicode content", () => {
-        const content = "# Unicode Test\n- Task with emoji: \u2705\n- Japanese: \u3053\u3093\u306b\u3061\u306f"
+        const content =
+          "# Unicode Test\n- Task with emoji: \u2705\n- Japanese: \u3053\u3093\u306b\u3061\u306f"
         tree.write("unicode.md", content)
         expect(tree.read("unicode.md")).toBe(content)
       })

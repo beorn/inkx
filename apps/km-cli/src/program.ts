@@ -147,8 +147,10 @@ export function configureProgram(): Command {
       const firstArg = cmdArgs[0] as string
       // Only treat it as a path if it looks like one (starts with . or / or ~)
       // Don't treat @tags, +projects, query strings as paths
+      // Don't treat glob patterns (containing *) as paths - they're query patterns
       if (
         typeof firstArg === "string" &&
+        !firstArg.includes("*") &&
         (firstArg.startsWith(".") ||
           firstArg.startsWith("/") ||
           firstArg.startsWith("~"))

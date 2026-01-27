@@ -183,8 +183,12 @@ function handleCrossColumn(
   const newColumn = nodes[newColIdx]
   if (!newColumn) return state
 
-  // Navigate to first card in new column
-  return { ...state, cursor: [newColIdx, 0] }
+  // Navigate to first card if column has children, else stay at column level
+  if (newColumn.children.length > 0) {
+    return { ...state, cursor: [newColIdx, 0] }
+  }
+  // Column is empty - stay at column level
+  return { ...state, cursor: [newColIdx] }
 }
 
 /**
@@ -223,8 +227,12 @@ function handleExtendSelectDown(state: BoardState): BoardState {
   const newSelected = new Set(selectedNodes)
   newSelected.add(currentNode.id)
 
-  // Move cursor down
+  // Move cursor down and add destination to selection
   const newState = handleCursorMove(state, "next")
+  const destNode = getNodeAtPath(newState.nodes, newState.cursor)
+  if (destNode) {
+    newSelected.add(destNode.id)
+  }
   return { ...newState, selectedNodes: newSelected }
 }
 
@@ -236,8 +244,12 @@ function handleExtendSelectUp(state: BoardState): BoardState {
   const newSelected = new Set(selectedNodes)
   newSelected.add(currentNode.id)
 
-  // Move cursor up
+  // Move cursor up and add destination to selection
   const newState = handleCursorMove(state, "prev")
+  const destNode = getNodeAtPath(newState.nodes, newState.cursor)
+  if (destNode) {
+    newSelected.add(destNode.id)
+  }
   return { ...newState, selectedNodes: newSelected }
 }
 
@@ -370,6 +382,26 @@ export function boardReducer(
         newFolded.add(action.nodeId)
       }
       return { ...state, foldedNodes: newFolded }
+    }
+
+    case "TOGGLE_FOLD_CURRENT": {
+      // Toggle fold on the node at cursor (no-op for leaf nodes)
+      const currentNode = getNodeAtPath(state.nodes, state.cursor)
+      if (!currentNode) return state
+      // Only fold nodes that have children
+      if (currentNode.children.length === 0) return state
+      const newFolded = new Set(state.foldedNodes)
+      if (newFolded.has(currentNode.id)) {
+        newFolded.delete(currentNode.id)
+      } else {
+        newFolded.add(currentNode.id)
+      }
+      return { ...state, foldedNodes: newFolded }
+    }
+
+    case "UNFOLD_ALL": {
+      // Clear all folded nodes
+      return { ...state, foldedNodes: new Set() }
     }
 
     case "TOGGLE_COLLAPSE": {

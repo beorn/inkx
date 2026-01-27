@@ -44,7 +44,7 @@ export interface FileChange {
 export class FileSystemWatcher extends EventEmitter {
   private watcher: FSWatcher | null = null
   private pendingPaths: Set<string> = new Set()
-  private debounceTimer: NodeJS.Timeout | null = null
+  private debounceTimer: ReturnType<typeof setTimeout> | undefined
   private config: WatcherConfig
   private repoPath: string = ""
   private inFlightWrites: Set<string> = new Set()
@@ -120,7 +120,7 @@ export class FileSystemWatcher extends EventEmitter {
     debug("stopping watcher")
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
-      this.debounceTimer = null
+      this.debounceTimer = undefined
     }
 
     if (this.watcher) {
@@ -204,7 +204,7 @@ export class FileSystemWatcher extends EventEmitter {
   forceSync(): void {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
-      this.debounceTimer = null
+      this.debounceTimer = undefined
     }
     this.sync()
   }

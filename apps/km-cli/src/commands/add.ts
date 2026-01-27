@@ -17,13 +17,18 @@ import type { KNode } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 
+interface AddOptions {
+  dryRun?: boolean
+  json?: boolean
+}
+
 export const addCommand = new Command("add")
   .description("Add tasks to a board or list")
   .argument("<target>", "Target board/list (ID, path, or filename like @next)")
   .argument("<source...>", "Task IDs or query (e.g., ./inbox/**, status:todo)")
   .option("--dry-run", "Preview without making changes")
   .option("--json", "Output as JSON")
-  .action(async (target, sources, options) => {
+  .action(async (target: string, sources: string[], options: AddOptions) => {
     // Resolve target path argument - may detect repo root
     const resolvedTarget = resolvePathArg(target, getRootPath())
     using repo = await loadRepo(resolvedTarget.repoRoot)
@@ -51,7 +56,7 @@ export const addCommand = new Command("add")
       const resolvedSource = resolvePathArg(source, resolvedTarget.repoRoot)
 
       // Try as node ID/path first
-      const nodeRef = resolvedSource.nodeRef || source
+      const nodeRef = resolvedSource.nodeRef ?? source
       const node = repo.resolveNode(nodeRef, "task")
       if (node) {
         tasksToAdd.push(node)

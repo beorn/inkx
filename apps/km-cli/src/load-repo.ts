@@ -33,7 +33,8 @@ export async function loadRepo(
   options: LoadRepoOptions = {},
 ): Promise<Repo> {
   // Auto-detect TTY: show progress in interactive mode, silent in scripts/pipes
-  const { showProgress = process.stdout.isTTY === true, ...createOptions } = options
+  const { showProgress = process.stdout.isTTY === true, ...createOptions } =
+    options
 
   // Ensure loadFiles is set (default behavior)
   if (createOptions.loadFiles === undefined) {
@@ -46,7 +47,7 @@ export async function loadRepo(
     // Use steps runner for progress display
     const { steps } = await import("@beorn/inkx-ui/progress")
 
-    let repo: Repo
+    let repo: Repo | undefined
 
     await steps({
       loadRepo: function* () {
@@ -55,7 +56,10 @@ export async function loadRepo(
       },
     }).run({ clear: true })
 
-    return repo!
+    if (!repo) {
+      throw new Error("Failed to load repo")
+    }
+    return repo
   } else {
     // Silent loading
     return runGenerator(createRepo(rootPath, createOptions))

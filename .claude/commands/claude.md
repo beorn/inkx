@@ -12,16 +12,16 @@ Help with Claude Code configuration: slash commands, CLAUDE.md, MCP servers, plu
 
 ## Quick Reference
 
-| Config               | Location                        | Purpose                          |
-| -------------------- | ------------------------------- | -------------------------------- |
-| Slash commands       | `.claude/commands/*.md`         | Custom `/command` prompts        |
-| Personal commands    | `~/.claude/commands/*.md`       | User-wide commands (not in git)  |
-| Project instructions | `CLAUDE.md`                     | Always-loaded context            |
-| Settings             | `.claude/settings.json`         | Hooks, permissions               |
-| Local overrides      | `.claude/settings.local.json`   | Gitignored personal settings     |
-| MCP servers          | `.mcp.json`                     | Project MCP servers              |
-| Plugins              | `~/.claude/plugins/`            | Installed plugins                |
-| Plugin manifest      | `.claude-plugin/plugin.json`    | Plugin definition                |
+| Config               | Location                      | Purpose                         |
+| -------------------- | ----------------------------- | ------------------------------- |
+| Slash commands       | `.claude/commands/*.md`       | Custom `/command` prompts       |
+| Personal commands    | `~/.claude/commands/*.md`     | User-wide commands (not in git) |
+| Project instructions | `CLAUDE.md`                   | Always-loaded context           |
+| Settings             | `.claude/settings.json`       | Hooks, permissions              |
+| Local overrides      | `.claude/settings.local.json` | Gitignored personal settings    |
+| MCP servers          | `.mcp.json`                   | Project MCP servers             |
+| Plugins              | `~/.claude/plugins/`          | Installed plugins               |
+| Plugin manifest      | `.claude-plugin/plugin.json`  | Plugin definition               |
 
 ## Slash Command Format
 
@@ -151,16 +151,17 @@ MCP servers are configured in `.mcp.json` (project root):
 }
 ```
 
-| Scope   | Location        | Purpose                          |
-| ------- | --------------- | -------------------------------- |
-| Project | `.mcp.json`     | Shared with team via git         |
-| User    | `~/.claude.json`| Available across all projects    |
+| Scope   | Location         | Purpose                       |
+| ------- | ---------------- | ----------------------------- |
+| Project | `.mcp.json`      | Shared with team via git      |
+| User    | `~/.claude.json` | Available across all projects |
 
 ### This Project's MCP Servers
 
 Check current servers: `claude mcp list`
 
 Configured in `.mcp.json`:
+
 - **refactor-typescript** - Type-safe renames, move files, update imports
 - **peekaboo** - macOS UI automation and screenshots
 
@@ -171,9 +172,7 @@ Add to `.claude/settings.json` or `.claude/settings.local.json`:
 ```json
 {
   "permissions": {
-    "allow": [
-      "mcp__server-name__tool-name"
-    ]
+    "allow": ["mcp__server-name__tool-name"]
   }
 }
 ```
@@ -182,9 +181,9 @@ Add to `.claude/settings.json` or `.claude/settings.local.json`:
 
 ### Standalone vs Plugin - When to Use Each
 
-| Approach | Command names | Best for |
-|----------|---------------|----------|
-| **Standalone** (`.claude/commands/`) | `/hello` | Project-specific, quick iteration |
+| Approach                             | Command names        | Best for                              |
+| ------------------------------------ | -------------------- | ------------------------------------- |
+| **Standalone** (`.claude/commands/`) | `/hello`             | Project-specific, quick iteration     |
 | **Plugins** (with `.claude-plugin/`) | `/plugin-name:hello` | Sharing across projects, distribution |
 
 **Plugin commands are NAMESPACED**: A plugin named `batch` with `commands/batch.md` becomes `/batch:batch`, not `/batch`.
@@ -214,6 +213,7 @@ claude plugin uninstall plugin-name
 ```
 
 **Using plugin commands:**
+
 ```bash
 # Plugin commands use namespace:command format
 /my-plugin:hello
@@ -256,10 +256,10 @@ my-plugin/
 
 ### Commands vs Skills (Important Difference!)
 
-| Type | Location | Invocation | Use case |
-|------|----------|------------|----------|
-| **Commands** | `commands/*.md` | User types `/plugin:cmd` | Interactive workflows |
-| **Skills** | `skills/*/SKILL.md` | Model auto-invokes based on context | Background capabilities |
+| Type         | Location            | Invocation                          | Use case                |
+| ------------ | ------------------- | ----------------------------------- | ----------------------- |
+| **Commands** | `commands/*.md`     | User types `/plugin:cmd`            | Interactive workflows   |
+| **Skills**   | `skills/*/SKILL.md` | Model auto-invokes based on context | Background capabilities |
 
 **Commands** are user-triggered slash commands.
 **Skills** are model-triggered - Claude uses them automatically when relevant.
@@ -405,6 +405,7 @@ Add to `.claude/settings.local.json`:
 ### Plugin command not found
 
 Plugin commands are namespaced! Use `/plugin-name:command-name`:
+
 - Plugin `batch` with `commands/batch.md` → `/batch:batch`
 - Plugin `tools` with `commands/review.md` → `/tools:review`
 

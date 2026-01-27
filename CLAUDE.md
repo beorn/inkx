@@ -158,7 +158,12 @@ bun fix              # MUST pass - auto-fix lint + format
 bun run test:all     # MUST pass - all tests including mdtest
 ```
 
-**Checking lint results:** Just run `bun fix` and check exit code. Exit 0 = pass. Don't try to grep/parse lint output - the summary is at the end if you need it (`tail -3`).
+**Checking lint for lint errors and warnings:**
+
+```bash
+bun lint | tail -100         # see lint warnings & errors
+bun lint:errors | tail -100  # see lint errors only
+```
 
 **During development:**
 
@@ -285,6 +290,7 @@ When you run a command incorrectly (wrong flags, wrong field names, unexpected o
 - docs/ files - for detailed guides
 
 Examples of when to update:
+
 - You use `jq '.title'` but the actual field is `.id` → document correct field name
 - You try `--filter` but the flag is `--title` → document the correct flag
 - A command has options you discover → add them to the docs
@@ -300,10 +306,10 @@ This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for
 
 **When user mentions beads, bd, or issue tracking → use `/bd` command.**
 
-| Context | Command | Notes |
-|---------|---------|-------|
+| Context     | Command        | Notes                                     |
+| ----------- | -------------- | ----------------------------------------- |
 | Claude Code | `/bd <action>` | Slash command (invokes bd CLI internally) |
-| Bash | `bd <action>` | Direct CLI usage |
+| Bash        | `bd <action>`  | Direct CLI usage                          |
 
 **Run `/bd` for the full command reference.**
 
@@ -315,6 +321,7 @@ This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for
 - **NEVER** use bare `bd update --status in_progress` — it breaks session coordination
 
 **Common operations:**
+
 ```bash
 /bd list              # Show open beads
 /bd work <id>         # Claim and start working
@@ -544,12 +551,12 @@ All major functionality MUST be exposed through **domain objects created by fact
 
 **Core domain objects:**
 
-| Object    | Factory                   | Lifecycle    | Purpose                             |
-| --------- | ------------------------- | ------------ | ----------------------------------- |
-| `Repo`    | `createRepo()`            | `Disposable` | DataStore + FileTree + Config       |
-| `Board`   | `createBoardState()`      | plain object | Navigation state (see note)         |
-| `Watcher` | `repo.watch()`            | `Service`    | File sync                           |
-| `Config`  | `loadConfigObject()`      | plain object | Repository configuration            |
+| Object    | Factory              | Lifecycle    | Purpose                       |
+| --------- | -------------------- | ------------ | ----------------------------- |
+| `Repo`    | `createRepo()`       | `Disposable` | DataStore + FileTree + Config |
+| `Board`   | `createBoardState()` | plain object | Navigation state (see note)   |
+| `Watcher` | `repo.watch()`       | `Service`    | File sync                     |
+| `Config`  | `loadConfigObject()` | plain object | Repository configuration      |
 
 > **Current API:** Use `Repo` / `createRepo()` for all new code.
 > See [ADR-002](docs/adr/002-domain-objects-refactor.md) for architecture details.

@@ -25,17 +25,13 @@ export const viewCommand = new Command("view")
     `Initial view mode: ${VIEW_MODES.join(", ")} (default: cards)`,
     "cards",
   )
-  .option(
-    "--no-watch",
-    "Disable file watching (faster startup on large repos)",
-  )
+  .option("--no-watch", "Disable file watching (faster startup on large repos)")
   .action(async (root, options) => {
     debug("view command", { root, as: options.as, watch: options.watch })
 
     // Clear the "Loading..." line from bootstrap.ts
-    const { CURSOR_TO_START, CLEAR_LINE_END } = await import(
-      "@beorn/inkx-ui/cli"
-    )
+    const { CURSOR_TO_START, CLEAR_LINE_END } =
+      await import("@beorn/inkx-ui/cli")
     process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
 
     // Import modules
@@ -122,7 +118,10 @@ export const viewCommand = new Command("view")
           if (pendingLinks.length > 0) {
             const resolved =
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              await storageModule!.resolveLinksAsync(createdRepo.database, pendingLinks)
+              await storageModule!.resolveLinksAsync(
+                createdRepo.database,
+                pendingLinks,
+              )
             debug("background link resolution complete: %d resolved", resolved)
           }
         } catch (err) {

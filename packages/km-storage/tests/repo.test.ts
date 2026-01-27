@@ -24,7 +24,10 @@ import {
 // =============================================================================
 
 function createTempDir(): string {
-  const dir = join("/tmp", `km-repo-test-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const dir = join(
+    "/tmp",
+    `km-repo-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  )
   mkdirSync(dir, { recursive: true })
   return dir
 }
@@ -187,13 +190,19 @@ describe("createRepo", () => {
     using repo = runGenerator(createRepo(tempDir, { forceMemory: true }))
 
     // Should work even with .km dir present
-    const id = repo.data.addNode(null, { type: "task", content: "Forced memory" })
+    const id = repo.data.addNode(null, {
+      type: "task",
+      content: "Forced memory",
+    })
     expect(repo.data.getNode(id)).toBeDefined()
   })
 
   test("loadFiles option parses markdown files", () => {
     // Create a markdown file with tasks
-    writeFileSync(join(tempDir, "test.md"), "# Test\n- [ ] Task 1\n- [x] Task 2")
+    writeFileSync(
+      join(tempDir, "test.md"),
+      "# Test\n- [ ] Task 1\n- [x] Task 2",
+    )
 
     using repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
 

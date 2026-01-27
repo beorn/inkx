@@ -17,23 +17,23 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { EventEmitter } from "events"
 import { SyncManager } from "../../src/watch/sync.ts"
-import { getAllNodes } from "../../src/index.ts"
-import { closeDb, getDb } from "../../src/db-instance.ts"
-import { runWithKmDir } from "../../src/emit.ts"
+import { getAllNodes, createRepo, runGenerator } from "../../src/index.ts"
+import type { Repo } from "../../src/repo.ts"
 
 const TEST_DIR = "/tmp/kmtest-worker-thread"
 const REPO_DIR = join(TEST_DIR, "repo")
-const KM_DIR = join(REPO_DIR, ".km")
 
 describe.serial("Worker Thread Integration", () => {
+  let repo: Repo | undefined
+
   beforeEach(() => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
     mkdirSync(REPO_DIR, { recursive: true })
-    mkdirSync(KM_DIR, { recursive: true })
   })
 
   afterEach(() => {
-    closeDb()
+    repo?.[Symbol.dispose]()
+    repo = undefined
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
   })
 
@@ -43,10 +43,15 @@ describe.serial("Worker Thread Integration", () => {
     // Create initial file
     writeFileSync(join(REPO_DIR, "test.md"), "# Test\n\n- [ ] Task\n")
 
-    // Create SyncManager with default useWorker: true
+    // Create repo which owns the database
+    // This creates .km/state.db on disk for the worker thread to share
+    repo = runGenerator(createRepo(REPO_DIR, { loadFiles: false }))
+    const db = repo.database
+
+    // Create SyncManager with the repo's database
     // SyncManager handles its own runWithKmDir internally for async operations
     await using syncManager = new SyncManager({
-      db: getDb(),
+      db,
       repoPath: REPO_DIR,
       debounceFs: 100,
       debounceApply: 50,
@@ -93,8 +98,8 @@ describe.serial("Worker Thread Integration", () => {
       ),
     ])
 
-    // Verify the change was synced (need runWithKmDir for getAllNodes)
-    const nodes = runWithKmDir(KM_DIR, () => getAllNodes(getDb()))
+    // Verify the change was synced
+    const nodes = getAllNodes(db)
     const task = nodes.find((n) => n.type === "task")
     expect(task).toBeDefined()
     expect(task!.task_status).toBe("done")

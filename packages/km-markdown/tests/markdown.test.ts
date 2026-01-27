@@ -630,7 +630,6 @@ describe("Nodes to Markdown", () => {
       expect(md).toContain("---")
     })
   })
-
 })
 
 // NOTE: Round-trip and fixture file tests are in roundtrip.test.ts to avoid duplication

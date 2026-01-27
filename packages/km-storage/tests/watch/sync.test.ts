@@ -10,12 +10,7 @@ import { describe, test, expect } from "bun:test"
 import { mkdirSync, existsSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 
-import {
-  getNodeByPath,
-  getAllNodes,
-  getAncestors,
-  getDb,
-} from "@km/storage"
+import { getNodeByPath, getAllNodes, getAncestors } from "@km/storage"
 
 interface ParsedEvent {
   type: string
@@ -29,7 +24,7 @@ import { withTestEnv } from "@km/storage"
 describe("Sync Integration", () => {
   describe("syncFromFs", () => {
     test("should sync a simple markdown file to database", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const testFile = join(repoDir, "test.md")
         writeFileSync(
           testFile,
@@ -43,7 +38,7 @@ This is a paragraph.
         )
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -53,10 +48,10 @@ This is a paragraph.
         const result = await manager.syncFromFs()
         expect(result.processed).toBeGreaterThan(0)
 
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         expect(allNodes.length).toBeGreaterThan(0)
 
-        const fileNode = getNodeByPath(getDb(), testFile)
+        const fileNode = getNodeByPath(db, testFile)
         expect(fileNode).not.toBeNull()
         expect(fileNode!.type).toBe("file")
         expect(fileNode!.fs_path).toBe(testFile)
@@ -71,7 +66,7 @@ This is a paragraph.
       }))
 
     test("should sync files in subdirectories", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const subFolder = join(repoDir, "subfolder")
         mkdirSync(subFolder)
 
@@ -79,7 +74,7 @@ This is a paragraph.
         writeFileSync(testFile, "# Nested File\n\nContent here.")
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -89,7 +84,7 @@ This is a paragraph.
         const result = await manager.syncFromFs()
         expect(result.processed).toBeGreaterThan(0)
 
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const fileNodes = allNodes.filter((n) => n.type === "file")
         expect(fileNodes.length).toBeGreaterThan(0)
 
@@ -98,7 +93,7 @@ This is a paragraph.
       }))
 
     test("should sync file with frontmatter correctly", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const testFile = join(repoDir, "frontmatter.md")
         writeFileSync(
           testFile,
@@ -115,7 +110,7 @@ Some content here.
         )
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -124,7 +119,7 @@ Some content here.
 
         await manager.syncFromFs()
 
-        const fileNode = getNodeByPath(getDb(), testFile)
+        const fileNode = getNodeByPath(db, testFile)
         expect(fileNode).not.toBeNull()
         expect(fileNode!.type).toBe("file")
         expect(fileNode!.data).toBeDefined()
@@ -133,7 +128,7 @@ Some content here.
       }))
 
     test("should sync tasks with Obsidian metadata", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const testFile = join(repoDir, "tasks.md")
         writeFileSync(
           testFile,
@@ -147,7 +142,7 @@ Some content here.
         )
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -156,7 +151,7 @@ Some content here.
 
         await manager.syncFromFs()
 
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const tasks = allNodes.filter((n) => n.type === "task")
 
         expect(tasks.length).toBe(4)
@@ -174,12 +169,12 @@ Some content here.
       }))
 
     test("should create nodes with valid IDs", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const testFile = join(repoDir, "ids.md")
         writeFileSync(testFile, "# Test\n\n- [ ] Task\n")
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -188,7 +183,7 @@ Some content here.
 
         await manager.syncFromFs()
 
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
 
         for (const node of allNodes) {
           expect(node.id).toBeDefined()
@@ -198,7 +193,7 @@ Some content here.
       }))
 
     test("should create nodes with valid types", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const testFile = join(repoDir, "types.md")
         writeFileSync(
           testFile,
@@ -218,7 +213,7 @@ code
         )
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -227,7 +222,7 @@ code
 
         await manager.syncFromFs()
 
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
 
         const validTypes = [
           "folder",
@@ -253,7 +248,7 @@ code
       }))
 
     test("should handle nested task structure", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const testFile = join(repoDir, "nested-tasks.md")
         writeFileSync(
           testFile,
@@ -266,7 +261,7 @@ code
         )
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -275,7 +270,7 @@ code
 
         await manager.syncFromFs()
 
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const tasks = allNodes.filter((n) => n.type === "task")
 
         expect(tasks.length).toBe(3)
@@ -284,12 +279,12 @@ code
 
   describe("Event format validation", () => {
     test("events should have actor as string, not object", () =>
-      withTestEnv(async ({ repoDir, kmDir }) => {
+      withTestEnv(async ({ repoDir, kmDir, db }) => {
         const testFile = join(repoDir, "event-test.md")
         writeFileSync(testFile, "# Test\n")
 
         const manager = new SyncManager({
-          db: getDb(),
+          db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -323,7 +318,7 @@ code
 
   describe("Folder hierarchy", () => {
     test("should create folder nodes for parent directories", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const subFolder = join(repoDir, "projects")
         const deepFolder = join(subFolder, "active")
         mkdirSync(deepFolder, { recursive: true })
@@ -332,7 +327,7 @@ code
         writeFileSync(testFile, "# Task\n\n- [ ] Do something\n")
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -341,13 +336,13 @@ code
 
         await manager.syncFromFs()
 
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
 
         const folderNodes = allNodes.filter((n) => n.type === "folder")
         expect(folderNodes.length).toBeGreaterThanOrEqual(2)
 
-        const projectsFolder = getNodeByPath(getDb(), subFolder)
-        const activeFolder = getNodeByPath(getDb(), deepFolder)
+        const projectsFolder = getNodeByPath(db, subFolder)
+        const activeFolder = getNodeByPath(db, deepFolder)
 
         expect(projectsFolder).not.toBeNull()
         expect(projectsFolder!.type).toBe("folder")
@@ -357,7 +352,7 @@ code
       }))
 
     test("should link files to their parent folder via parent_id", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const subFolder = join(repoDir, "docs")
         mkdirSync(subFolder)
 
@@ -365,7 +360,7 @@ code
         writeFileSync(testFile, "# Documentation\n\nSome content.\n")
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -374,8 +369,8 @@ code
 
         await manager.syncFromFs()
 
-        const fileNode = getNodeByPath(getDb(), testFile)
-        const folderNode = getNodeByPath(getDb(), subFolder)
+        const fileNode = getNodeByPath(db, testFile)
+        const folderNode = getNodeByPath(db, subFolder)
 
         expect(fileNode).not.toBeNull()
         expect(folderNode).not.toBeNull()
@@ -384,7 +379,7 @@ code
       }))
 
     test("should create parent chain from nested folders to repo root", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const level1 = join(repoDir, "level1")
         const level2 = join(level1, "level2")
         const level3 = join(level2, "level3")
@@ -394,7 +389,7 @@ code
         writeFileSync(testFile, "# Deep File\n")
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -403,10 +398,10 @@ code
 
         await manager.syncFromFs()
 
-        const folder1 = getNodeByPath(getDb(), level1)
-        const folder2 = getNodeByPath(getDb(), level2)
-        const folder3 = getNodeByPath(getDb(), level3)
-        const file = getNodeByPath(getDb(), testFile)
+        const folder1 = getNodeByPath(db, level1)
+        const folder2 = getNodeByPath(db, level2)
+        const folder3 = getNodeByPath(db, level3)
+        const file = getNodeByPath(db, testFile)
 
         expect(folder1).not.toBeNull()
         expect(folder2).not.toBeNull()
@@ -420,7 +415,7 @@ code
       }))
 
     test("getAncestors should return full path from root to parent", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const subFolder = join(repoDir, "work")
         mkdirSync(subFolder)
 
@@ -436,7 +431,7 @@ code
         )
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -445,11 +440,11 @@ code
 
         await manager.syncFromFs()
 
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
         const taskNode = allNodes.find((n) => n.type === "task")
         expect(taskNode).toBeDefined()
 
-        const ancestors = getAncestors(getDb(), taskNode!.id)
+        const ancestors = getAncestors(db, taskNode!.id)
 
         expect(ancestors.length).toBeGreaterThanOrEqual(3)
 
@@ -466,7 +461,7 @@ code
       }))
 
     test("should handle multiple files in same folder efficiently", () =>
-      withTestEnv(async ({ repoDir }) => {
+      withTestEnv(async ({ repoDir, db }) => {
         const subFolder = join(repoDir, "multi")
         mkdirSync(subFolder)
 
@@ -475,7 +470,7 @@ code
         writeFileSync(join(subFolder, "file3.md"), "# File 3\n")
 
         const manager = new SyncManager({
-          db: getDb(),
+          db: db,
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -484,7 +479,7 @@ code
 
         await manager.syncFromFs()
 
-        const allNodes = getAllNodes(getDb())
+        const allNodes = getAllNodes(db)
 
         const folderNodes = allNodes.filter(
           (n) => n.type === "folder" && n.fs_path === subFolder,

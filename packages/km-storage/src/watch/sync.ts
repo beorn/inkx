@@ -21,14 +21,13 @@ import { getIgnorePatterns } from "../ignore.ts"
 import type { Event, KNode } from "@km/core"
 import type { ProgressCallback } from "@beorn/inkx-ui"
 import { runWithKmDir } from "../emit.ts"
-import { runWithDb } from "../db-instance.ts"
 import {
   getAllNodes,
   getNode,
   getSubtree,
   nodesToMarkdown,
   evaluateAllRules,
-  getPendingWriteBack,
+  createRuleContext,
 } from "../index.ts"
 
 /** Result from syncFromFs */
@@ -94,7 +93,8 @@ export class SyncManager extends EventEmitter {
 
   // Heartbeat reconciliation
   private heartbeatConfig: HeartbeatConfig
-  private heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  // Timer ID type - Bun returns number, Node returns Timeout object
+  private heartbeatTimer: number | undefined
   private lastActivityTime: number = Date.now()
   private heartbeatDrift: number = 0 // Changes found during heartbeat
 
@@ -213,7 +213,7 @@ export class SyncManager extends EventEmitter {
   private stopHeartbeat(): void {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer)
-      this.heartbeatTimer = null
+      this.heartbeatTimer = undefined
       debug("heartbeat stopped")
     }
   }
@@ -609,33 +609,31 @@ export class SyncManager extends EventEmitter {
       onProgress?.({ phase: "scanning", current: 1, total: 1 })
 
       // Phase 2: Reconciling
-      // Wrap in runWithDb so emit() calls apply events to state.db
       const dirArray = Array.from(dirs)
       const totalDirs = dirArray.length
       let processed = 0
 
-      runWithDb(this.db, () => {
-        for (const [i, dir] of dirArray.entries()) {
-          const ops = reconcileDirectory(
-            this.db,
-            dir,
-            this.config.repoPath,
-            ignorePatterns,
-          )
-          applyReconcileOps(this.db, ops, this.config.repoPath)
-          processed += ops.length
+      for (const [i, dir] of dirArray.entries()) {
+        const ops = reconcileDirectory(
+          this.db,
+          dir,
+          this.config.repoPath,
+          ignorePatterns,
+        )
+        applyReconcileOps(this.db, ops, this.config.repoPath)
+        processed += ops.length
 
-          // Report progress for each directory
-          onProgress?.({
-            phase: "reconciling",
-            current: i + 1,
-            total: totalDirs,
-          })
-        }
-      })
+        // Report progress for each directory
+        onProgress?.({
+          phase: "reconciling",
+          current: i + 1,
+          total: totalDirs,
+        })
+      }
 
       // Phase 3: Evaluate rules (add= materialization)
-      for (const progress of evaluateAllRules(this.db)) {
+      const ruleCtx = createRuleContext()
+      for (const progress of evaluateAllRules(this.db, ruleCtx)) {
         onProgress?.({
           phase: "rules",
           current: progress.current,
@@ -645,7 +643,7 @@ export class SyncManager extends EventEmitter {
 
       // Write back any files that were modified by rule evaluation
       // SAFETY: Only write .md files to prevent corruption of source code/config files
-      const pendingFiles = getPendingWriteBack()
+      const pendingFiles = Array.from(ruleCtx.pendingWriteBack)
       if (pendingFiles.length > 0) {
         debug(
           "syncFromFs: writing back %d files after rule evaluation",

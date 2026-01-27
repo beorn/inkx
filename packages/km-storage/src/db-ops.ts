@@ -42,7 +42,13 @@ export function moveNode(
   newParentIdx: number,
   mode: StorageMode,
 ): void {
-  debug("moveNode: %s → parent=%s idx=%d mode=%s", nodeId, newParentId, newParentIdx, mode)
+  debug(
+    "moveNode: %s → parent=%s idx=%d mode=%s",
+    nodeId,
+    newParentId,
+    newParentIdx,
+    mode,
+  )
   if (mode === "memory") {
     db.run(
       "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
@@ -121,7 +127,11 @@ export function updateNode(
  * @param nodeId - Node to delete
  * @param mode - Storage mode (memory = direct SQL, disk = emit event)
  */
-export function deleteNode(db: Database, nodeId: string, mode: StorageMode): void {
+export function deleteNode(
+  db: Database,
+  nodeId: string,
+  mode: StorageMode,
+): void {
   debug("deleteNode: %s mode=%s", nodeId, mode)
   if (mode === "memory") {
     db.run("DELETE FROM nodes WHERE id = ?", [nodeId])
@@ -155,7 +165,13 @@ export function addNode(
   mode: StorageMode,
 ): string {
   const nodeId = node.id ?? ulid()
-  debug("addNode: %s type=%s parent=%s mode=%s", nodeId, node.type ?? "task", parentId, mode)
+  debug(
+    "addNode: %s type=%s parent=%s mode=%s",
+    nodeId,
+    node.type ?? "task",
+    parentId,
+    mode,
+  )
   const now = Date.now()
 
   const nodeData = {

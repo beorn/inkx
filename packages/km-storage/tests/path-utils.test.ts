@@ -103,9 +103,7 @@ describe("findKmRootFromPath", () => {
     mkdirSync(join(testDir, "repo/.km"), { recursive: true })
     writeFileSync(join(testDir, "repo/deep/nested/file.md"), "# Test")
 
-    const result = findKmRootFromPath(
-      join(testDir, "repo/deep/nested/file.md"),
-    )
+    const result = findKmRootFromPath(join(testDir, "repo/deep/nested/file.md"))
     expect(result).toBe(join(testDir, "repo/.km"))
   })
 

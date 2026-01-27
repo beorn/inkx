@@ -59,7 +59,7 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 
 | File               | Tests | Lines | Type | Speed | Disposition |
 | ------------------ | ----- | ----- | ---- | ----- | ----------- |
-| repo.test.ts      | 25    | 638   | core | fast  | keep        |
+| repo.test.ts       | 25    | 638   | core | fast  | keep        |
 | query.test.ts      | 106   | 1,635 | core | fast  | keep        |
 | config.test.ts     | 19    | 326   | core | fast  | keep        |
 | cas.test.ts        | 20    | 197   | core | fast  | keep        |
@@ -88,17 +88,17 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 
 ### Chaos/Fuzzer Tests
 
-| File                                  | Tests | Lines | Type       | Speed | Disposition         |
-| ------------------------------------- | ----- | ----- | ---------- | ----- | ------------------- |
-| sync/chaos/chaos.slow.test.ts         | 29    | 641   | chaos      | slow  | keep                |
-| sync/chaos/concurrent.slow.test.ts    | 12    | 657   | chaos      | slow  | keep                |
-| sync/chaos/db-to-fs.slow.test.ts      | 8     | 384   | chaos      | slow  | keep                |
-| sync/chaos/mock-fs.test.ts            | 26    | 272   | chaos      | fast  | keep                |
-| sync/chaos/regression.test.ts         | 2     | 170   | regression | fast  | keep (never delete) |
-| sync/chaos/roundtrip.test.ts          | 23    | 418   | chaos      | fast  | keep                |
+| File                                 | Tests | Lines | Type       | Speed | Disposition         |
+| ------------------------------------ | ----- | ----- | ---------- | ----- | ------------------- |
+| sync/chaos/chaos.slow.test.ts        | 29    | 641   | chaos      | slow  | keep                |
+| sync/chaos/concurrent.slow.test.ts   | 12    | 657   | chaos      | slow  | keep                |
+| sync/chaos/db-to-fs.slow.test.ts     | 8     | 384   | chaos      | slow  | keep                |
+| sync/chaos/mock-fs.test.ts           | 26    | 272   | chaos      | fast  | keep                |
+| sync/chaos/regression.test.ts        | 2     | 170   | regression | fast  | keep (never delete) |
+| sync/chaos/roundtrip.test.ts         | 23    | 418   | chaos      | fast  | keep                |
 | testing/chaos-fake-repo.slow.test.ts | 21    | 307   | chaos      | slow  | keep                |
-| testing/chaos-hooks.slow.test.ts      | 8     | 326   | chaos      | slow  | keep                |
-| testing/chaos-report.slow.test.ts     | 10    | 386   | chaos      | slow  | keep                |
+| testing/chaos-hooks.slow.test.ts     | 8     | 326   | chaos      | slow  | keep                |
+| testing/chaos-report.slow.test.ts    | 10    | 386   | chaos      | slow  | keep                |
 | testing/fake-repo.test.ts            | 23    | 302   | chaos      | fast  | keep                |
 
 ## Board Layer (@km/board)

@@ -37,25 +37,33 @@ const debug = createDebug("km:storage:db:rules")
 export const ADD_RULE_RELATIONSHIP = "query:add"
 
 // =============================================================================
-// Bulk Mode - Suppresses incremental rule evaluation during rebuild
+// Rule Context - Replaces global state with explicit context passing
 // =============================================================================
 
-let bulkMode = false
-
 /**
- * Enable bulk mode - suppresses incremental rule evaluation.
- * Call evaluateAllRules() after bulk operations complete.
+ * Context for rule evaluation operations.
+ * Replaces global singletons (bulkMode, fileAncestorCache) with explicit DI.
+ *
+ * Usage:
+ *   const ctx = createRuleContext()
+ *   evaluateAllRules(db, ctx)
+ *   const filesToWrite = ctx.pendingWriteBack
  */
-export function setBulkMode(enabled: boolean): void {
-  debug("setBulkMode: %s", enabled)
-  bulkMode = enabled
+export interface RuleContext {
+  /** Cache for file ancestors - populated during evaluateAllRules for O(1) lookup */
+  fileAncestorCache: Map<string, KNode | null> | null
+  /** Files pending write-back after materialization */
+  pendingWriteBack: Set<string>
 }
 
 /**
- * Check if bulk mode is enabled.
+ * Create a new RuleContext for rule evaluation operations.
  */
-export function isBulkMode(): boolean {
-  return bulkMode
+export function createRuleContext(): RuleContext {
+  return {
+    fileAncestorCache: null,
+    pendingWriteBack: new Set(),
+  }
 }
 
 // =============================================================================
@@ -65,8 +73,16 @@ export function isBulkMode(): boolean {
 /**
  * Evaluate a single node's rules and update links accordingly.
  * Call this after a node with rules is created or updated.
+ *
+ * @param db - Database instance
+ * @param nodeId - ID of node to evaluate
+ * @param ctx - Rule context for caching and tracking pending writes
  */
-export function evaluateNodeRules(db: Database, nodeId: string): void {
+export function evaluateNodeRules(
+  db: Database,
+  nodeId: string,
+  ctx: RuleContext,
+): void {
   const row = db
     .query("SELECT * FROM nodes WHERE id = ?")
     .get(nodeId) as Record<string, unknown> | null
@@ -81,38 +97,29 @@ export function evaluateNodeRules(db: Database, nodeId: string): void {
     return
   }
 
-  evaluateRulesForNode(db, node)
+  evaluateRulesForNode(db, node, ctx)
 }
 
 /**
  * Evaluate rules for a node object (internal helper).
  */
-function evaluateRulesForNode(db: Database, node: KNode): void {
+function evaluateRulesForNode(
+  db: Database,
+  node: KNode,
+  ctx: RuleContext,
+): void {
   const rules = node.rules
   if (!rules) return
 
   // Evaluate add= rule
   if (rules.add) {
-    evaluateAddRule(db, node.id, rules.add)
+    evaluateAddRule(db, node.id, rules.add, ctx)
   }
 
   // Future: evaluate sync= rule
   // if (rules.sync) {
-  //   evaluateSyncRule(db, node.id, rules.sync);
+  //   evaluateSyncRule(db, node.id, rules.sync, ctx);
   // }
-}
-
-/** Files that need to be written back after materialization */
-const pendingWriteBack = new Set<string>()
-
-/**
- * Get files pending write-back and clear the set.
- * Called by sync after rule evaluation to write materialized embeds to disk.
- */
-export function getPendingWriteBack(): string[] {
-  const files = Array.from(pendingWriteBack)
-  pendingWriteBack.clear()
-  return files
 }
 
 /**
@@ -120,7 +127,12 @@ export function getPendingWriteBack(): string[] {
  * Creates embed nodes as children of the section, which get written back to markdown.
  * Removes embeds that no longer match the query (e.g., after status change).
  */
-function evaluateAddRule(db: Database, sectionId: string, query: string): void {
+function evaluateAddRule(
+  db: Database,
+  sectionId: string,
+  query: string,
+  ctx: RuleContext,
+): void {
   debug("evaluateAddRule: section=%s query=%s", sectionId, query)
 
   const section = getNode(db, sectionId)
@@ -221,9 +233,9 @@ function evaluateAddRule(db: Database, sectionId: string, query: string): void {
 
   // Mark the file for write-back if we added or removed any embeds
   if (addedCount > 0 || removedCount > 0) {
-    const fileNode = findFileAncestor(db, sectionId)
+    const fileNode = findFileAncestor(db, sectionId, ctx)
     if (fileNode?.fs_path) {
-      pendingWriteBack.add(fileNode.fs_path)
+      ctx.pendingWriteBack.add(fileNode.fs_path)
       debug("evaluateAddRule: marked %s for write-back", fileNode.fs_path)
     }
   }
@@ -233,10 +245,14 @@ function evaluateAddRule(db: Database, sectionId: string, query: string): void {
  * Find the file ancestor of a node (the nearest ancestor with type='file')
  * Uses cached lookup during bulk evaluation for O(1) access.
  */
-function findFileAncestor(db: Database, nodeId: string): KNode | null {
+function findFileAncestor(
+  db: Database,
+  nodeId: string,
+  ctx: RuleContext,
+): KNode | null {
   // km-load-perf.3: Use cache if available (during evaluateAllRules)
-  if (fileAncestorCache) {
-    return fileAncestorCache.get(nodeId) ?? null
+  if (ctx.fileAncestorCache) {
+    return ctx.fileAncestorCache.get(nodeId) ?? null
   }
 
   // Fallback to tree walk for incremental updates
@@ -314,9 +330,6 @@ export interface RulesProgress {
   total: number
 }
 
-// km-load-perf.3: Cache for file ancestors to avoid repeated tree walks
-let fileAncestorCache: Map<string, KNode | null> | null = null
-
 /**
  * Build a cache mapping all nodes to their file ancestor.
  * This avoids O(depth) tree walks per rule evaluation.
@@ -392,9 +405,13 @@ function buildFileAncestorCache(db: Database): Map<string, KNode | null> {
  * Evaluate all rules in the database.
  * Call this on startup/migration to ensure all computed links are current.
  * Yields progress updates as each rule is evaluated.
+ *
+ * @param db - Database instance
+ * @param ctx - Rule context for caching and tracking pending writes
  */
 export function* evaluateAllRules(
   db: Database,
+  ctx: RuleContext,
 ): Generator<RulesProgress, void, unknown> {
   debug("evaluateAllRules: starting")
   const start = Date.now()
@@ -405,19 +422,19 @@ export function* evaluateAllRules(
   yield { current: 0, total: nodesWithRules.length }
 
   // km-load-perf.3: Build file ancestor cache before evaluation
-  fileAncestorCache = buildFileAncestorCache(db)
+  ctx.fileAncestorCache = buildFileAncestorCache(db)
 
   try {
     for (let i = 0; i < nodesWithRules.length; i++) {
       const node = nodesWithRules[i]
       if (node) {
-        evaluateRulesForNode(db, node)
+        evaluateRulesForNode(db, node, ctx)
       }
       yield { current: i + 1, total: nodesWithRules.length }
     }
   } finally {
     // Clear cache after evaluation completes
-    fileAncestorCache = null
+    ctx.fileAncestorCache = null
   }
 
   debug("evaluateAllRules: completed in %dms", Date.now() - start)
@@ -427,12 +444,15 @@ export function* evaluateAllRules(
  * Called when any node changes to re-evaluate rules that might be affected.
  * This is the incremental update path - more efficient than evaluateAllRules.
  *
+ * @param db - Database instance
  * @param changedNodeId - The ID of the node that changed
+ * @param ctx - Rule context for caching and tracking pending writes
  * @param changes - What changed on the node (for optimization)
  */
 export function onNodeChanged(
   db: Database,
   changedNodeId: string,
+  ctx: RuleContext,
   changes?: Record<string, unknown>,
 ): void {
   debug("onNodeChanged: %s changes=%O", changedNodeId, changes)
@@ -448,7 +468,7 @@ export function onNodeChanged(
 
   for (const node of nodesWithAddRule) {
     if (node.rules?.add) {
-      evaluateAddRule(db, node.id, node.rules.add)
+      evaluateAddRule(db, node.id, node.rules.add, ctx)
     }
   }
 }

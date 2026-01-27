@@ -81,14 +81,15 @@ export type WorkerMessage =
 // Worker state
 let watcher: FSWatcher | null = null
 const pendingPaths: Set<string> = new Set()
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
 const inFlightWrites: Set<string> = new Set()
 let currentDebounceMs = 5000
 let currentState: WatcherState = "stopped"
 let watchedPathCount = 0
 let lastSyncTime: number | undefined
 let lastError: string | undefined
-let statusInterval: ReturnType<typeof setInterval> | null = null
+// Timer ID type - Bun returns number, Node returns Timeout object
+let statusInterval: number | undefined
 
 /**
  * Check if path should be ignored based on patterns
@@ -291,12 +292,12 @@ async function stopWatcher(): Promise<void> {
   // Stop status interval
   if (statusInterval) {
     clearInterval(statusInterval)
-    statusInterval = null
+    statusInterval = undefined
   }
 
   if (debounceTimer) {
     clearTimeout(debounceTimer)
-    debounceTimer = null
+    debounceTimer = undefined
   }
 
   if (watcher) {
@@ -344,7 +345,7 @@ function scheduleSync(): void {
 function emitSync(): void {
   const paths = [...pendingPaths]
   pendingPaths.clear()
-  debounceTimer = null
+  debounceTimer = undefined
 
   if (paths.length === 0) {
     debug("worker: sync: no pending paths")
@@ -380,11 +381,7 @@ function emitSync(): void {
 function handleMessage(command: WorkerCommand): void {
   switch (command.type) {
     case "start":
-      startWatcher(
-        command.repoPath,
-        command.ignorePatterns,
-        command.debounceMs,
-      )
+      startWatcher(command.repoPath, command.ignorePatterns, command.debounceMs)
       break
 
     case "stop":
@@ -405,7 +402,7 @@ function handleMessage(command: WorkerCommand): void {
     case "forceSync":
       if (debounceTimer) {
         clearTimeout(debounceTimer)
-        debounceTimer = null
+        debounceTimer = undefined
       }
       emitSync()
       break

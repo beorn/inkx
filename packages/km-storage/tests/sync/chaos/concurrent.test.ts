@@ -175,57 +175,57 @@ async function withConcurrentTestEnv(
         // Create event emitter for test observation
         const events = new EventEmitter()
 
-      // Create our controllable test watcher
-      const testWatcher = new TestWatcher(100) // 100ms debounce
+        // Create our controllable test watcher
+        const testWatcher = new TestWatcher(100) // 100ms debounce
 
-      // Create sync manager with our test watcher injected
-      // This bypasses chokidar entirely, giving us deterministic control
-      const syncManager = new SyncManager({
-        db: data.database, // Use raw db from DataStore's HasDatabase capability
-        repoPath: repoDir,
-        debounceFs: 100,
-        debounceApply: 50,
-        conflictStrategy: "last_write_wins",
-        heartbeat: { enabled: false },
-        watcher: testWatcher, // Inject our controllable watcher
-      })
-
-      // Wire up filesystem sync
-      setFsSync(syncManager)
-
-      // Track state changes
-      syncManager.on("state-change", (state) => {
-        events.emit("state-change", state)
-      })
-
-      const advanceTime = async (ms: number): Promise<void> => {
-        await clock.tickAsync(ms)
-      }
-
-      const flushTimers = async (): Promise<void> => {
-        await clock.tickAsync(1000)
-      }
-
-      const writeAndTrigger = (path: string, content: string): void => {
-        writeFileSync(path, content)
-        testWatcher.triggerChange(path)
-      }
-
-      try {
-        await fn({
-          repoDir,
-          data,
-          syncManager,
-          testWatcher,
-          events,
-          advanceTime,
-          flushTimers,
-          writeAndTrigger,
+        // Create sync manager with our test watcher injected
+        // This bypasses chokidar entirely, giving us deterministic control
+        const syncManager = new SyncManager({
+          db: data.database, // Use raw db from DataStore's HasDatabase capability
+          repoPath: repoDir,
+          debounceFs: 100,
+          debounceApply: 50,
+          conflictStrategy: "last_write_wins",
+          heartbeat: { enabled: false },
+          watcher: testWatcher, // Inject our controllable watcher
         })
-      } finally {
-        setFsSync(null)
-        await syncManager.stop()
-      }
+
+        // Wire up filesystem sync
+        setFsSync(syncManager)
+
+        // Track state changes
+        syncManager.on("state-change", (state) => {
+          events.emit("state-change", state)
+        })
+
+        const advanceTime = async (ms: number): Promise<void> => {
+          await clock.tickAsync(ms)
+        }
+
+        const flushTimers = async (): Promise<void> => {
+          await clock.tickAsync(1000)
+        }
+
+        const writeAndTrigger = (path: string, content: string): void => {
+          writeFileSync(path, content)
+          testWatcher.triggerChange(path)
+        }
+
+        try {
+          await fn({
+            repoDir,
+            data,
+            syncManager,
+            testWatcher,
+            events,
+            advanceTime,
+            flushTimers,
+            writeAndTrigger,
+          })
+        } finally {
+          setFsSync(null)
+          await syncManager.stop()
+        }
       },
       { mode: "real" },
     )

@@ -866,7 +866,11 @@ describe("Zooming", () => {
           "board",
           item(
             "col",
-            item("parent", item("child1", item("c1")), item("child2", item("c2"))),
+            item(
+              "parent",
+              item("child1", item("c1")),
+              item("child2", item("c2")),
+            ),
           ),
         ),
       )

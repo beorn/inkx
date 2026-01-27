@@ -103,7 +103,10 @@ export const screenshotCommand = new Command("screenshot")
 
     // Render the board wrapped in RepoProvider
     const { lastBuffer, lastFrameText } = render(
-      React.createElement(RepoProvider, { repo: repo, children: boardCoreElement }),
+      React.createElement(RepoProvider, {
+        repo: repo,
+        children: boardCoreElement,
+      }),
     )
 
     // Generate output based on format

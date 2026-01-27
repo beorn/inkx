@@ -310,7 +310,12 @@ describe("DB → File Sync Tests", () => {
 
         // Try to update a non-existent node
         expect(() => {
-          updateNode(getDb(), "non-existent-id", { task_status: "done" }, "disk")
+          updateNode(
+            getDb(),
+            "non-existent-id",
+            { task_status: "done" },
+            "disk",
+          )
         }).not.toThrow()
 
         // File should be unchanged

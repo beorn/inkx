@@ -274,7 +274,8 @@ export function createMemFileTree(initialRoot = "/mem"): FileTree {
           const remainder = normalized === "" ? path : path.slice(prefix.length)
           // Get the first segment (immediate child)
           const firstSlash = remainder.indexOf("/")
-          const entry = firstSlash === -1 ? remainder : remainder.slice(0, firstSlash)
+          const entry =
+            firstSlash === -1 ? remainder : remainder.slice(0, firstSlash)
           if (entry) {
             entries.add(entry)
           }

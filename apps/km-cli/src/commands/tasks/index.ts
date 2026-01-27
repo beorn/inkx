@@ -54,34 +54,34 @@ export const taskCommand = new Command("tasks")
 
     // Handle mutation operations first
     if (options.add) {
-      addTask(firstArg, options.add, options)
+      void addTask(firstArg, options.add, options)
       return
     }
 
     if (options.done !== undefined) {
       // --done can be used with path-or-id or standalone with value
       const taskId = options.done === true ? firstArg : options.done
-      markDone(taskId, options)
+      void markDone(taskId, options)
       return
     }
 
     if (options.claim) {
-      claimTask(firstArg, options)
+      void claimTask(firstArg, options)
       return
     }
 
     if (options.release) {
-      releaseTask(firstArg, options)
+      void releaseTask(firstArg, options)
       return
     }
 
     if (options.assign) {
-      assignTask(firstArg, options.assign, options)
+      void assignTask(firstArg, options.assign, options)
       return
     }
 
     // Default: list tasks
-    listTasks(queryStr, options)
+    void listTasks(queryStr, options)
   })
 
 // Add subcommands
@@ -96,7 +96,7 @@ taskCommand
   .argument("<id>", "Task ID or prefix")
   .option("--json", "Output as JSON")
   .action((id, options) => {
-    claimTask(id, options)
+    void claimTask(id, options)
   })
 
 // Add release subcommand
@@ -106,5 +106,5 @@ taskCommand
   .argument("<id>", "Task ID or prefix")
   .option("--json", "Output as JSON")
   .action((id, options) => {
-    releaseTask(id, options)
+    void releaseTask(id, options)
   })

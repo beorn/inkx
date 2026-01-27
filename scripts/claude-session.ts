@@ -689,7 +689,9 @@ async function cmdGrep(
         const record = JSON.parse(line) as SessionRecord
 
         // Extract text content from the record
-        const textContent = extractTextContent(record as unknown as Record<string, unknown>)
+        const textContent = extractTextContent(
+          record as unknown as Record<string, unknown>,
+        )
         if (!textContent) continue
 
         // Check if pattern matches

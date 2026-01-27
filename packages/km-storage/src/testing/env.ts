@@ -40,8 +40,18 @@ import {
 import { getAllNodes } from "../db-queries/utils.ts"
 import { getLinksTo } from "../db-queries/task-queries.ts"
 import { getBacklinks, type Link } from "../db-links.ts"
-import { moveNode, updateNode, deleteNode, addNode, type StorageMode } from "../db-ops.ts"
-import { createDBDataStore, type DataStore, type HasDatabase } from "../data-store.ts"
+import {
+  moveNode,
+  updateNode,
+  deleteNode,
+  addNode,
+  type StorageMode,
+} from "../db-ops.ts"
+import {
+  createDBDataStore,
+  type DataStore,
+  type HasDatabase,
+} from "../data-store.ts"
 
 // =============================================================================
 // Types
@@ -192,7 +202,8 @@ export async function withTestEnv<T>(
       moveNode(db, id, newParentId, position, storageMode),
     updateNode: (id, changes) => updateNode(db, id, changes, storageMode),
     deleteNode: (id) => deleteNode(db, id, storageMode),
-    addNode: (parentId, nodeData) => addNode(db, parentId, nodeData, storageMode),
+    addNode: (parentId, nodeData) =>
+      addNode(db, parentId, nodeData, storageMode),
     rawQuery: <T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],
@@ -264,7 +275,8 @@ export function withTestEnvSync<T>(
       moveNode(db, id, newParentId, position, storageMode),
     updateNode: (id, changes) => updateNode(db, id, changes, storageMode),
     deleteNode: (id) => deleteNode(db, id, storageMode),
-    addNode: (parentId, nodeData) => addNode(db, parentId, nodeData, storageMode),
+    addNode: (parentId, nodeData) =>
+      addNode(db, parentId, nodeData, storageMode),
     rawQuery: <T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],

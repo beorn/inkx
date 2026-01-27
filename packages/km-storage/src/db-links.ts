@@ -73,10 +73,15 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
       source: link.source_id,
       target: link.target_id,
     })
-    updateNode(db, link.source_id, {
-      link_to: link.target_id,
-      link_alias: link.alias ?? undefined,
-    }, "memory")
+    updateNode(
+      db,
+      link.source_id,
+      {
+        link_to: link.target_id,
+        link_alias: link.alias ?? undefined,
+      },
+      "memory",
+    )
   }
 }
 
@@ -167,10 +172,15 @@ export function resolveLinks(
         source: link.source_id,
         target: actualTargetId,
       })
-      updateNode(db, link.source_id, {
-        link_to: actualTargetId,
-        link_alias: link.alias ?? undefined,
-      }, "memory")
+      updateNode(
+        db,
+        link.source_id,
+        {
+          link_to: actualTargetId,
+          link_alias: link.alias ?? undefined,
+        },
+        "memory",
+      )
     }
   }
 

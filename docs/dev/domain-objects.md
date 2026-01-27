@@ -143,7 +143,9 @@ export function* createRepo(
   options?: RepoOptions,
 ): Generator<StepYield, Repo, unknown> {
   // Declare all steps upfront (for progress UI)
-  yield { declare: ["Detecting mode", "Initializing database", "Scanning files"] }
+  yield {
+    declare: ["Detecting mode", "Initializing database", "Scanning files"],
+  }
 
   // Phase 1: Detect mode
   yield "Detecting mode"
@@ -227,7 +229,7 @@ The `using` and `await using` declarations provide automatic cleanup at scope ex
 | Object        | Disposable Type   | Cleanup Action             |
 | ------------- | ----------------- | -------------------------- |
 | `Repo`        | `Disposable`      | Closes database connection |
-| `FakeRepo`   | `Disposable`      | Closes in-memory database  |
+| `FakeRepo`    | `Disposable`      | Closes in-memory database  |
 | `MemoryStore` | `Disposable`      | Closes database            |
 | `DiskStore`   | `Disposable`      | Closes database            |
 | `Watcher`     | `AsyncDisposable` | Stops file watchers        |
@@ -578,7 +580,9 @@ describe("Repo", () => {
       INSERT INTO nodes VALUES ('1', 'Test node');
     `)
 
-    using repo = runGenerator(createRepo("/test", { inject: { database: mockDb } }))
+    using repo = runGenerator(
+      createRepo("/test", { inject: { database: mockDb } }),
+    )
 
     expect(repo.data.getNode("1")?.content).toBe("Test node")
     expect(repo.data.getNode("999")).toBeNull()

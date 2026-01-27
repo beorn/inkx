@@ -18,6 +18,7 @@ import {
   evaluateAllRules,
   getNodesWithRules,
   getNodesWithRule,
+  createRuleContext,
 } from "../src/db-rules.ts"
 import { getChildren, getChildCountsBatch } from "../src/db-queries/index.ts"
 import { runWithDb } from "../src/db-instance.ts"
@@ -169,7 +170,11 @@ describe("Database Rules", () => {
           )
           expect(openSection).toBeDefined()
 
-          evaluateNodeRules(store.getDatabase(), openSection!.id)
+          evaluateNodeRules(
+            store.getDatabase(),
+            openSection!.id,
+            createRuleContext(),
+          )
 
           const children = getChildren(store.getDatabase(), openSection!.id)
           const embeds = children.filter((c) => c.type === "embed")
@@ -206,7 +211,11 @@ describe("Database Rules", () => {
           )
           expect(openSection).toBeDefined()
 
-          evaluateNodeRules(store.getDatabase(), openSection!.id)
+          evaluateNodeRules(
+            store.getDatabase(),
+            openSection!.id,
+            createRuleContext(),
+          )
 
           const children = getChildren(store.getDatabase(), openSection!.id)
           const embeds = children.filter((c) => c.type === "embed")
@@ -243,7 +252,10 @@ describe("Database Rules", () => {
           )
         },
         ({ store }) => {
-          for (const _ of evaluateAllRules(store.getDatabase())) {
+          for (const _ of evaluateAllRules(
+            store.getDatabase(),
+            createRuleContext(),
+          )) {
             /* exhaust generator */
           }
 
@@ -304,7 +316,11 @@ describe("Database Rules", () => {
           )
           expect(openSection).toBeDefined()
 
-          evaluateNodeRules(store.getDatabase(), openSection!.id)
+          evaluateNodeRules(
+            store.getDatabase(),
+            openSection!.id,
+            createRuleContext(),
+          )
 
           const children = getChildren(store.getDatabase(), openSection!.id)
 
@@ -334,7 +350,11 @@ describe("Database Rules", () => {
           )
           expect(openSection).toBeDefined()
 
-          evaluateNodeRules(store.getDatabase(), openSection!.id)
+          evaluateNodeRules(
+            store.getDatabase(),
+            openSection!.id,
+            createRuleContext(),
+          )
 
           const children = getChildren(store.getDatabase(), openSection!.id)
           expect(children.length).toBe(1)
@@ -366,7 +386,10 @@ describe("Database Rules", () => {
           )
         },
         ({ store }) => {
-          for (const _ of evaluateAllRules(store.getDatabase())) {
+          for (const _ of evaluateAllRules(
+            store.getDatabase(),
+            createRuleContext(),
+          )) {
             /* exhaust generator */
           }
 
@@ -394,7 +417,10 @@ describe("Database Rules", () => {
 
           store.updateNode(taskA!.id, { task_status: "done", task_mark: "x" })
 
-          for (const _ of evaluateAllRules(store.getDatabase())) {
+          for (const _ of evaluateAllRules(
+            store.getDatabase(),
+            createRuleContext(),
+          )) {
             /* exhaust generator */
           }
 
@@ -430,7 +456,10 @@ describe("Database Rules", () => {
           )
         },
         ({ store }) => {
-          for (const _ of evaluateAllRules(store.getDatabase())) {
+          for (const _ of evaluateAllRules(
+            store.getDatabase(),
+            createRuleContext(),
+          )) {
             /* exhaust generator */
           }
 

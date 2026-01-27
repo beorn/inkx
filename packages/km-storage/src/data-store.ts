@@ -212,8 +212,11 @@ export function createMapDataStore(): MapDataStore {
         md_pos: nodeData.md_pos,
         md_line: nodeData.md_line,
         md_slug: nodeData.md_slug,
-        task_status: nodeData.task_status ?? (nodeData.type === "task" ? "todo" : undefined),
-        task_mark: nodeData.task_mark ?? (nodeData.type === "task" ? " " : undefined),
+        task_status:
+          nodeData.task_status ??
+          (nodeData.type === "task" ? "todo" : undefined),
+        task_mark:
+          nodeData.task_mark ?? (nodeData.type === "task" ? " " : undefined),
         assigned_to: nodeData.assigned_to,
         due_date: nodeData.due_date,
         scheduled_date: nodeData.scheduled_date,

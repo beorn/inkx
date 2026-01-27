@@ -55,9 +55,9 @@ export async function executeKmCommand(
   const originalCwd = process.cwd()
   const originalArgv = process.argv
   const originalEnv = process.env
-  const originalStdout = process.stdout.write
-  const originalStderr = process.stderr.write
-  const originalExit = process.exit
+  const originalStdout = process.stdout.write.bind(process.stdout)
+  const originalStderr = process.stderr.write.bind(process.stderr)
+  const originalExit = process.exit.bind(process)
   const originalConsoleLog = console.log
   const originalConsoleError = console.error
   const originalConsoleWarn = console.warn
@@ -147,7 +147,8 @@ function parseCommandLine(cmdLine: string): string[] {
   let quoteChar = ""
 
   for (let i = 0; i < cmdLine.length; i++) {
-    const char = cmdLine[i]!
+    const char = cmdLine[i]
+    if (char === undefined) continue
     const nextChar = cmdLine[i + 1]
 
     if ((char === '"' || char === "'") && !inQuotes) {

@@ -382,11 +382,7 @@ export function deriveCursorPosition(
 /**
  * Check if nodeId is a descendant of ancestorId.
  */
-function isDescendant(
-  nodeId: string,
-  ancestorId: string,
-  repo: Repo,
-): boolean {
+function isDescendant(nodeId: string, ancestorId: string, repo: Repo): boolean {
   let current = repo.getNode(nodeId)
   while (current && current.parent_id) {
     if (current.parent_id === ancestorId) {

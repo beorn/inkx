@@ -15,12 +15,7 @@ import { rmSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { EventEmitter } from "events"
 
-import {
-  getNodeByPath,
-  getAllNodes,
-  updateNode,
-  getDb,
-} from "@km/storage"
+import { getNodeByPath, getAllNodes, updateNode, getDb } from "@km/storage"
 
 import { setFsSync } from "../../src/emit.ts"
 import { SyncManager } from "../../src/watch/sync.ts"
@@ -108,7 +103,12 @@ describe("Bidirectional Sync E2E", () => {
         expect(task).toBeDefined()
 
         // Update task text (simulating TUI edit)
-        updateNode(getDb(), task!.id, { content: "Updated task content" }, "disk")
+        updateNode(
+          getDb(),
+          task!.id,
+          { content: "Updated task content" },
+          "disk",
+        )
 
         // Wait for write
         await Bun.sleep(200)

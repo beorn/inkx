@@ -53,11 +53,11 @@ The original design treated FileTree and DataStore as peers implementing the sam
 
 2. **Semantic mismatch** — Files don't naturally have node IDs, parent_idx, or other Repo metadata. FileTree must synthesize these.
 
-3. **Sync becomes too generic** — If both are "stores", sync is a generic store-to-store operation. But file↔data sync is really *translation* between formats.
+3. **Sync becomes too generic** — If both are "stores", sync is a generic store-to-store operation. But file↔data sync is really _translation_ between formats.
 
 4. **API surface problem** — FileTree implementing `search()` means parsing all files — expensive and rarely useful.
 
-The git analogy helped: git doesn't treat the working tree as a repository. It's a *representation* of repo state.
+The git analogy helped: git doesn't treat the working tree as a repository. It's a _representation_ of repo state.
 
 ---
 
@@ -75,16 +75,17 @@ Refactor to **composable domain objects** with clear separation of concerns:
 
 ## Terminology
 
-| Name | What it is |
-|------|------------|
-| **Repo** | Composed domain object (DataStore + FileTree? + ConfigStore) |
-| **DataStore** | Indexed tree of nodes (database + blobs + events) |
-| **FileTree** | Simple file I/O abstraction (read, write, watch) |
-| **sync** | Translation layer between FileTree and DataStore |
-| **config** | Settings (cosmicconfig: `km.config.yaml`, `.kmrc`, etc.) |
-| **km dir** | km's internal directory `.km/` (events, cache, config, hooks) |
+| Name          | What it is                                                    |
+| ------------- | ------------------------------------------------------------- |
+| **Repo**      | Composed domain object (DataStore + FileTree? + ConfigStore)  |
+| **DataStore** | Indexed tree of nodes (database + blobs + events)             |
+| **FileTree**  | Simple file I/O abstraction (read, write, watch)              |
+| **sync**      | Translation layer between FileTree and DataStore              |
+| **config**    | Settings (cosmicconfig: `km.config.yaml`, `.kmrc`, etc.)      |
+| **km dir**    | km's internal directory `.km/` (events, cache, config, hooks) |
 
 **Key distinction:**
+
 - FileTree and DataStore are NOT peers implementing the same interface
 - FileTree is simple I/O; DataStore is indexed storage
 - Sync translates between formats, doesn't copy store-to-store
@@ -97,14 +98,14 @@ Refactor to **composable domain objects** with clear separation of concerns:
 
 ## Core Architecture (Git-Inspired)
 
-| Git Concept | km Equivalent | Description |
-|-------------|---------------|-------------|
-| Repository | Repo | The composed whole |
-| .git/ | km dir (`.km/`) | Internal directory (events, cache, config, hooks) |
-| Objects + index | DataStore | Indexed storage with fast queries |
-| Working Tree | FileTree | Human-editable file representation |
-| `git checkout` | sync (data → files) | Materialize data state to files |
-| `git add/commit` | sync (files → data) | Capture file changes into data |
+| Git Concept      | km Equivalent       | Description                                       |
+| ---------------- | ------------------- | ------------------------------------------------- |
+| Repository       | Repo                | The composed whole                                |
+| .git/            | km dir (`.km/`)     | Internal directory (events, cache, config, hooks) |
+| Objects + index  | DataStore           | Indexed storage with fast queries                 |
+| Working Tree     | FileTree            | Human-editable file representation                |
+| `git checkout`   | sync (data → files) | Materialize data state to files                   |
+| `git add/commit` | sync (files → data) | Capture file changes into data                    |
 
 **FileTree is NOT a DataStore.** It's a human-editable representation that syncs with the data store. Sync is translation, not generic store-to-store operation.
 
@@ -137,6 +138,7 @@ When you run `km` on a repo path:
    - `km init` creates `.km/` for persistent DataStore
 
 **Key distinction:**
+
 - **With `.km/`**: DataStore persists independently, files sync bidirectionally
 - **Without `.km/`**: Files are authoritative; DataStore is an ephemeral cache
 
@@ -154,11 +156,13 @@ When you run `km` on a repo path:
 > **Event sourcing:** `events.jsonl` is canonical. Everything in `cache/` can be rebuilt from events.
 
 **For "canonical" to hold:**
+
 1. All mutations MUST emit events (no direct db writes that skip events)
 2. File-originated changes MUST be representable as events
 3. Rebuild from events MUST produce identical state
 
 **Three sync modes** (don't conflate them):
+
 1. **Snapshot import** — `createRepo()` parses files once to populate DataStore
 2. **Manual sync** — explicit `repo.sync()` calls
 3. **Continuous sync** — `repo.watch()` keeps them in sync
@@ -174,7 +178,7 @@ interface DataStore extends Disposable {
   // Query
   getNode(id: string): Node | null
   getChildren(parentId: string | null): Node[]
-  search(query: string): Node[]  // km query language
+  search(query: string): Node[] // km query language
 
   // Mutate
   addNode(parentId: string | null, data: NodeData): string
@@ -182,7 +186,7 @@ interface DataStore extends Disposable {
   deleteNode(id: string): void
 
   // Watch for changes in THIS store
-  watch(): Watcher  // AsyncDisposable, emits Change events
+  watch(): Watcher // AsyncDisposable, emits Change events
 }
 ```
 
@@ -203,12 +207,12 @@ interface EventSourced {
 }
 
 interface HasDatabase {
-  readonly database: Database  // Raw SQLite access
+  readonly database: Database // Raw SQLite access
 }
 
 // Concrete implementations compose capabilities
 type DBDataStore = DataStore & EventSourced & HasDatabase
-type MapDataStore = DataStore  // Pure in-memory, no extras
+type MapDataStore = DataStore // Pure in-memory, no extras
 
 // Usage: infrastructure code can require specific capabilities
 function rebuildFromEvents(store: DataStore & EventSourced) {
@@ -220,6 +224,7 @@ function createBoard(data: DataStore, rootId: string): Board
 ```
 
 **Why layered capabilities:**
+
 - DataStore interface stays pure and minimal
 - Infrastructure code declares what it needs via types
 - Easy to add new capabilities without bloating base interface
@@ -238,11 +243,12 @@ interface FileTree extends Disposable {
   write(relativePath: string, content: string): void
   exists(relativePath: string): boolean
   list(relativePath?: string): string[]
-  watch(): FSWatcher  // Raw file system events
+  watch(): FSWatcher // Raw file system events
 }
 ```
 
 **Why FileTree is not a DataStore:**
+
 - Files have O(n) performance for queries (must parse all)
 - DataStore semantics (getNode by ID) require indexing files don't have
 - Sync translates between formats, doesn't copy store-to-store
@@ -263,13 +269,13 @@ Repo composes DataStore + optional FileTree + Config + sync:
 
 ```typescript
 interface Repo extends Disposable {
-  readonly data: DataStore        // indexed storage (always present)
-  readonly files?: FileTree      // human-editable files (optional)
+  readonly data: DataStore // indexed storage (always present)
+  readonly files?: FileTree // human-editable files (optional)
   readonly config: ConfigStore
 
   // Sync operations (only meaningful when files exists)
-  sync(): Promise<SyncResult>  // One-shot reconciliation
-  watch(): Watcher             // Ongoing bidirectional sync
+  sync(): Promise<SyncResult> // One-shot reconciliation
+  watch(): Watcher // Ongoing bidirectional sync
 }
 ```
 
@@ -279,12 +285,12 @@ interface Repo extends Disposable {
 
 **DataStore** is the simpler interface — use it when you only need tree operations:
 
-| Use DataStore when... | Use Repo when... |
-|-----------------------|------------------|
-| Unit testing tree logic | Need sync between files ↔ data |
-| Components that query/mutate | Need config (TUI settings, etc.) |
-| Board navigation logic | CLI commands on full repos |
-| Pure data transformations | File watching / watcher lifecycle |
+| Use DataStore when...        | Use Repo when...                  |
+| ---------------------------- | --------------------------------- |
+| Unit testing tree logic      | Need sync between files ↔ data    |
+| Components that query/mutate | Need config (TUI settings, etc.)  |
+| Board navigation logic       | CLI commands on full repos        |
+| Pure data transformations    | File watching / watcher lifecycle |
 
 ```typescript
 // Board only needs DataStore (tree operations)
@@ -320,33 +326,35 @@ interface Repo {
   sync(): Promise<SyncResult>
 
   // Ongoing: watch both, keep them in sync
-  watch(): Watcher  // AsyncDisposable
+  watch(): Watcher // AsyncDisposable
 }
 
 // SyncResult from one-shot sync
 interface SyncResult {
-  fromFiles: number  // Changes applied from files → data
-  fromData: number   // Changes applied from data → files
+  fromFiles: number // Changes applied from files → data
+  fromData: number // Changes applied from data → files
   conflicts: Conflict[]
 }
 ```
 
 **Current implementation (to be refactored):**
 
-| Direction | Current | Target |
-|-----------|---------|--------|
+| Direction    | Current                                         | Target                          |
+| ------------ | ----------------------------------------------- | ------------------------------- |
 | Files → Data | `reconcileDirectory()` (inode/mtime comparison) | `files.watch()` → apply to data |
-| Data → Files | `applyEventToFs()` (event-driven regeneration) | `data.watch()` → apply to files |
+| Data → Files | `applyEventToFs()` (event-driven regeneration)  | `data.watch()` → apply to files |
 
 **Key insight:** The current `reconcileDirectory()` is really `diff(files, data)` but with FS-specific optimizations (inode tracking, mtime comparison).
 
 **Loop-safe requirement:** When sync writes to files, that write must NOT re-trigger sync back to data (echo loop suppression).
 
 **Conflict resolution:**
+
 - Default: last-write-wins (compare updated_at)
 - Option: `"files_wins"` or `"data_wins"` for deterministic resolution
 
 **Sync is a first-class subsystem**, not a utility. It does semantic lifting on the file side:
+
 - Debounce rapid file changes
 - Parse markdown to extract nodes
 - Coalesce multiple FS events into logical changes
@@ -387,16 +395,16 @@ createMemFileTree(): FileTree                // memfs
 
 **Naming convention:**
 
-| Creates | Factory name |
-|---------|--------------|
-| Repo with files | `createRepo()` |
-| Repo (bare, no files) | `createBareRepo()` |
-| DBDataStore (low-level) | `createDBDataStore()` |
-| DBDataStore (disk) | `createDiskDataStore()` |
-| DBDataStore (memory) | `createMemDataStore()` |
-| DataStore (maps) | `createMapDataStore()` |
-| FileTree (disk) | `createDiskFileTree()` |
-| FileTree (mem) | `createMemFileTree()` |
+| Creates                 | Factory name            |
+| ----------------------- | ----------------------- |
+| Repo with files         | `createRepo()`          |
+| Repo (bare, no files)   | `createBareRepo()`      |
+| DBDataStore (low-level) | `createDBDataStore()`   |
+| DBDataStore (disk)      | `createDiskDataStore()` |
+| DBDataStore (memory)    | `createMemDataStore()`  |
+| DataStore (maps)        | `createMapDataStore()`  |
+| FileTree (disk)         | `createDiskFileTree()`  |
+| FileTree (mem)          | `createMemFileTree()`   |
 
 ---
 
@@ -410,7 +418,7 @@ interface ConfigStore {
 }
 
 interface BlobStore {
-  store(content: string): string  // Returns hash
+  store(content: string): string // Returns hash
   load(hash: string): string | null
   has(hash: string): boolean
   delete(hash: string): void
@@ -428,6 +436,7 @@ interface EventLog {
 ## Pluggability
 
 DataStore bundles nodes + blobs + events because they need transactional consistency:
+
 - Nodes reference `content_hash` → blobs store content by hash
 - Replaying events rebuilds both nodes and blobs
 - Swapping SQLite → PostgreSQL swaps all three together
@@ -468,8 +477,8 @@ interface DBDataStore extends DataStore {
 ```typescript
 // Config doesn't change when swapping data backends
 interface Repo {
-  config: ConfigStore    // Independent
-  data: DataStore        // Bundled (nodes + blobs + events)
+  config: ConfigStore // Independent
+  data: DataStore // Bundled (nodes + blobs + events)
 }
 ```
 
@@ -477,8 +486,8 @@ interface Repo {
 
 ```typescript
 interface Repo {
-  files?: FileTree  // null = no file sync (daemon, API)
-  data: DataStore    // Always required
+  files?: FileTree // null = no file sync (daemon, API)
+  data: DataStore // Always required
 }
 ```
 
@@ -486,11 +495,11 @@ interface Repo {
 
 ```typescript
 // Pattern: create{Implementation}{DomainObject}()
-createDiskDataStore(path)    // SQLite + filesystem blobs
-createMemDataStore()         // SQLite :memory: + Map blobs
-createMapDataStore()         // Pure Maps (fastest)
-createDiskFileTree(root)    // node:fs
-createMemFileTree()         // memfs
+createDiskDataStore(path) // SQLite + filesystem blobs
+createMemDataStore() // SQLite :memory: + Map blobs
+createMapDataStore() // Pure Maps (fastest)
+createDiskFileTree(root) // node:fs
+createMemFileTree() // memfs
 ```
 
 ---
@@ -507,6 +516,7 @@ id: abc123
 ```
 
 **ID lifecycle:**
+
 1. **Creation**: When a node is created (TUI or CLI), km generates a unique ID
 2. **FileTree**: IDs are embedded in frontmatter; files without IDs get one on first sync
 3. **DataStore**: IDs are the primary key in the `nodes` table
@@ -628,13 +638,13 @@ id: abc123
 
 ## Files to Remove/Consolidate
 
-| File | Action |
-|------|--------|
-| `db-instance.ts` | Keep only `getDbPath()`, `closeDb()` |
-| `store.ts` | Delete — replaced by DataStore |
-| Singleton exports in `db.ts` | Remove |
-| `isMemoryMode()` | Delete — use explicit mode |
-| `runWithDb()` | Delete — tests use env.db |
+| File                         | Action                               |
+| ---------------------------- | ------------------------------------ |
+| `db-instance.ts`             | Keep only `getDbPath()`, `closeDb()` |
+| `store.ts`                   | Delete — replaced by DataStore       |
+| Singleton exports in `db.ts` | Remove                               |
+| `isMemoryMode()`             | Delete — use explicit mode           |
+| `runWithDb()`                | Delete — tests use env.db            |
 
 ---
 
@@ -674,7 +684,7 @@ The new `Repo` interface aligns with ADR-002's composition pattern:
 ```typescript
 // New pattern (ADR-002 compliant)
 using repo = createRepo("/path/to/repo")
-const tasks = repo.data.getAllNodes().filter(n => n.type === "task")
+const tasks = repo.data.getAllNodes().filter((n) => n.type === "task")
 
 // Bare repo for daemon/API (no files)
 using repo = createBareRepo(dataStore)
@@ -685,31 +695,32 @@ using repo = createTestRepo()
 
 Existing `Repo` (createRepo) remains for backwards compatibility during migration. The key differences:
 
-| Aspect | Repo (legacy) | Repo (ADR-002) |
-|--------|----------------|----------------|
-| Data access | `repo.getNode()` | `repo.data.getNode()` |
-| File access | N/A | `repo.files?.read()` |
-| Composition | Monolithic | DataStore + FileTree + Config |
-| Testing | Requires full load | `createTestRepo()` instant |
+| Aspect      | Repo (legacy)      | Repo (ADR-002)                |
+| ----------- | ------------------ | ----------------------------- |
+| Data access | `repo.getNode()`   | `repo.data.getNode()`         |
+| File access | N/A                | `repo.files?.read()`          |
+| Composition | Monolithic         | DataStore + FileTree + Config |
+| Testing     | Requires full load | `createTestRepo()` instant    |
 
 ### Phase 5 Audit Findings
 
 **Repo methods used across codebase:**
 
-| Method | DataStore? | Usage Pattern |
-|--------|------------|---------------|
-| `getNode(id)` | ✅ Yes | Basic lookup |
-| `getChildren(parentId)` | ✅ Yes | Tree traversal |
-| `getAllNodes()` | ✅ Yes | Bulk operations |
-| `search(query)` | ✅ Yes | Full-text search |
-| `addNode/updateNode/deleteNode/moveNode` | ✅ Yes | Mutations |
-| `getChildCounts(parentIds)` | ❌ Vault only | Batch optimization |
-| `resolveNode(query)` | ❌ Vault only | Smart resolution |
-| `query(expression)` | ❌ Vault only | Query language |
-| `getSubtree/getAncestors` | ❌ Vault only | Tree queries |
-| `appendTaskToFile` | ❌ Vault only | File mutation |
+| Method                                   | DataStore?    | Usage Pattern      |
+| ---------------------------------------- | ------------- | ------------------ |
+| `getNode(id)`                            | ✅ Yes        | Basic lookup       |
+| `getChildren(parentId)`                  | ✅ Yes        | Tree traversal     |
+| `getAllNodes()`                          | ✅ Yes        | Bulk operations    |
+| `search(query)`                          | ✅ Yes        | Full-text search   |
+| `addNode/updateNode/deleteNode/moveNode` | ✅ Yes        | Mutations          |
+| `getChildCounts(parentIds)`              | ❌ Vault only | Batch optimization |
+| `resolveNode(query)`                     | ❌ Vault only | Smart resolution   |
+| `query(expression)`                      | ❌ Vault only | Query language     |
+| `getSubtree/getAncestors`                | ❌ Vault only | Tree queries       |
+| `appendTaskToFile`                       | ❌ Vault only | File mutation      |
 
 **Conclusion:** Most code genuinely needs Repo features. Pure DataStore usage is rare.
 The pattern should be:
+
 - Use `DataStore` for pure tree operations in isolated components
 - Use `Repo` for full application features

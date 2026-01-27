@@ -5,7 +5,8 @@
  */
 
 import createDebug from "debug"
-import { createServer, connect, type Server, type Socket } from "net"
+import { createServer, connect } from "net"
+import type { Socket } from "net"
 
 const debug = createDebug("km:cli:daemon")
 import {
@@ -65,7 +66,7 @@ interface DaemonStatus {
  */
 class KmDaemon extends EventEmitter {
   private sync: SyncManager
-  private server: Server | null = null
+  private server?: ReturnType<typeof createServer>
   private startTime: number = 0
   private eventsProcessed: number = 0
   private subscribers: Set<Socket> = new Set()
@@ -334,7 +335,7 @@ class KmDaemon extends EventEmitter {
     // Close server
     if (this.server) {
       this.server.close()
-      this.server = null
+      this.server = undefined
     }
 
     // Clean up files
@@ -377,7 +378,7 @@ async function sendToDaemon(
     })
 
     socket.on("error", (error) => {
-      reject(error)
+      reject(error instanceof Error ? error : new Error(String(error)))
     })
 
     socket.on("close", () => {

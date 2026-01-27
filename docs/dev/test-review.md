@@ -48,7 +48,7 @@ Reference for reviewing, pruning, and organizing the km test suite.
 
 | Should Test                     | Should NOT Test   |
 | ------------------------------- | ----------------- |
-| CRUD operations via Repo API   | UI rendering      |
+| CRUD operations via Repo API    | UI rendering      |
 | Query parsing & evaluation      | Navigation state  |
 | Sync correctness (file ↔ DB)    | Visual appearance |
 | Event sourcing & replay         |                   |
@@ -320,11 +320,11 @@ emitNodeUpdated("user", id, { task_status: "done" }) // Internal function
 
 ## Known Duplication (km-specific)
 
-| Files                                                                            | Issue                        | Resolution                                           |
-| -------------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------- |
-| `repo.test.ts` + `node-crud.test.ts`                                            | Both test mutations          | Keep repo tests (public API), consolidate node-crud |
-| `navigation.test.ts` + `cursor-navigation.test.ts` + `visual-navigation.test.ts` | Overlapping cursor logic     | Clarify ownership or merge                           |
-| `markdown.test.ts`                                                               | Mixes parser + tree concerns | Split by layer                                       |
+| Files                                                                            | Issue                        | Resolution                                          |
+| -------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------- |
+| `repo.test.ts` + `node-crud.test.ts`                                             | Both test mutations          | Keep repo tests (public API), consolidate node-crud |
+| `navigation.test.ts` + `cursor-navigation.test.ts` + `visual-navigation.test.ts` | Overlapping cursor logic     | Clarify ownership or merge                          |
+| `markdown.test.ts`                                                               | Mixes parser + tree concerns | Split by layer                                      |
 
 ---
 
@@ -389,8 +389,8 @@ emitNodeUpdated("user", id, { task_status: "done" }) // Internal function
 
 #### C. Move Layer (N tests)
 
-| File:Line           | From    | To    | Reason                       |
-| ------------------- | ------- | ----- | ---------------------------- |
+| File:Line          | From    | To    | Reason                       |
+| ------------------ | ------- | ----- | ---------------------------- |
 | `repo.test.ts:100` | Storage | Board | Tests state, not persistence |
 
 #### D. Refactor (N tests)

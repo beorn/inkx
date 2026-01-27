@@ -18,7 +18,10 @@
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "fs"
 import { tmpdir } from "os"
 import { join } from "path"
-import type { Plugin, ReplResult } from "../../../vendor/beorn-mdtest/src/types.js"
+import type {
+  Plugin,
+  ReplResult,
+} from "../../../vendor/beorn-mdtest/src/types.js"
 import { executeKmCommand } from "../src/execute.ts"
 import { closeDb } from "@km/storage"
 
@@ -106,8 +109,19 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
       const opts = { ...fileOpts, ...blockOpts } as Opts
 
       // Handle reset or fixture change
-      const shouldReset =
-        opts.reset || opts.fixture !== currentFixture || !repoPath
+      // Only reset on EXPLICIT fixture change at block level
+      // If block specifies reset=true, use block's fixture (or file's if not specified)
+      // If block specifies fixture=X, switch to X
+      // Otherwise, inherit the current fixture (don't reset)
+      const blockFixture = blockOpts.fixture as string | undefined
+      const fixtureChanged =
+        blockFixture !== undefined && blockFixture !== currentFixture
+      const explicitReset = !!blockOpts.reset
+      const shouldReset = !repoPath || explicitReset || fixtureChanged
+
+      // When reset is requested, use block's fixture or file's fixture
+      const targetFixture =
+        blockFixture ?? (explicitReset ? fileOpts.fixture : currentFixture)
 
       if (shouldReset) {
         // Clean up old repo - must close database before deleting directory
@@ -121,8 +135,8 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
         }
 
         // Create new repo with fixture
-        repoPath = setupFixture(opts.fixture)
-        currentFixture = opts.fixture ?? null
+        repoPath = setupFixture(targetFixture ?? undefined)
+        currentFixture = targetFixture ?? null
 
         // Set environment variable for memory mode
         if (opts.memory) {
@@ -148,6 +162,12 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
         }
 
         try {
+          // Debug: log what we're executing
+          const { readdirSync } = await import("fs")
+          console.error(
+            `[km-repl] cmd="${cmd}" cwd="${repoPath}" files=${readdirSync(repoPath!).join(",")}`,
+          )
+
           // Execute in-process with repo path as cwd
           const result = await executeKmCommand(cmd, {
             cwd: repoPath!,

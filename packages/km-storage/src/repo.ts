@@ -46,7 +46,11 @@ import {
   getLinksTo as dbGetLinksTo,
 } from "./db-queries/task-queries.ts"
 import { resolveNode as dbResolveNode } from "./db-queries/smart-resolver.ts"
-import { getOutgoingLinks as dbGetOutgoingLinks, getBacklinks as dbGetBacklinks, type Link } from "./db-links.ts"
+import {
+  getOutgoingLinks as dbGetOutgoingLinks,
+  getBacklinks as dbGetBacklinks,
+  type Link,
+} from "./db-links.ts"
 import { parseQuery, executeQuery } from "./query.ts"
 
 const debug = createDebug("km:storage:repo")
@@ -454,14 +458,20 @@ export function* createRepo(
     }
     deferredFiles = loadResult.deferredFiles ?? []
 
-    debug("loaded files: %d nodes, %d links, %d errors",
-      stats.nodeCount, stats.linkCount, loadErrors.length)
+    debug(
+      "loaded files: %d nodes, %d links, %d errors",
+      stats.nodeCount,
+      stats.linkCount,
+      loadErrors.length,
+    )
   } else {
     // =========================================================================
     // Empty database mode - no file loading
     // =========================================================================
     // Declare all sub-steps upfront so they appear as pending
-    yield { declare: ["Detecting mode", "Initializing database", "Scanning files"] }
+    yield {
+      declare: ["Detecting mode", "Initializing database", "Scanning files"],
+    }
 
     // Step 1: Detect mode
     yield "Detecting mode"
@@ -635,13 +645,22 @@ export function* createRepo(
 
     moveNode(id, newParentId, position) {
       ensureOpen()
-      let ctx: MutationContext = { type: "move", nodeId: id, newParentId, position }
+      let ctx: MutationContext = {
+        type: "move",
+        nodeId: id,
+        newParentId,
+        position,
+      }
       if (hooks?.beforeMutation) {
         const result = hooks.beforeMutation(ctx)
         if (result?.cancel) throw new Error("Mutation cancelled by hook")
         if (result?.context) ctx = result.context
       }
-      dataStore.moveNode(ctx.nodeId, ctx.newParentId ?? newParentId, ctx.position ?? position)
+      dataStore.moveNode(
+        ctx.nodeId,
+        ctx.newParentId ?? newParentId,
+        ctx.position ?? position,
+      )
       hooks?.afterMutation?.(ctx)
     },
 
@@ -701,7 +720,9 @@ export function* createRepo(
     appendTaskToFile(filePath, content, options) {
       ensureOpen()
       if (!fileTree) {
-        throw new Error("Cannot appendTaskToFile: repo has no files (bare repo)")
+        throw new Error(
+          "Cannot appendTaskToFile: repo has no files (bare repo)",
+        )
       }
 
       const relativePath = filePath.startsWith("/")
@@ -734,7 +755,10 @@ export function* createRepo(
       return fileTree.exists(relativePath)
     },
 
-    rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
+    rawQuery<T = Record<string, unknown>>(
+      sql: string,
+      params?: unknown[],
+    ): T[] {
       ensureOpen()
       const stmt = db.prepare(sql)
       return (
@@ -1069,13 +1093,22 @@ export function createBareRepo(
 
     moveNode(id, newParentId, position) {
       ensureOpen()
-      let ctx: MutationContext = { type: "move", nodeId: id, newParentId, position }
+      let ctx: MutationContext = {
+        type: "move",
+        nodeId: id,
+        newParentId,
+        position,
+      }
       if (hooks?.beforeMutation) {
         const result = hooks.beforeMutation(ctx)
         if (result?.cancel) throw new Error("Mutation cancelled by hook")
         if (result?.context) ctx = result.context
       }
-      data.moveNode(ctx.nodeId, ctx.newParentId ?? newParentId, ctx.position ?? position)
+      data.moveNode(
+        ctx.nodeId,
+        ctx.newParentId ?? newParentId,
+        ctx.position ?? position,
+      )
       hooks?.afterMutation?.(ctx)
     },
 
@@ -1142,7 +1175,10 @@ export function createBareRepo(
       return existsSync(join(repoPath, relativePath))
     },
 
-    rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
+    rawQuery<T = Record<string, unknown>>(
+      sql: string,
+      params?: unknown[],
+    ): T[] {
       ensureOpen()
       const stmt = db.prepare(sql)
       return (

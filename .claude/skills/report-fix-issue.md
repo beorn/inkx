@@ -22,6 +22,7 @@ Spawn a sub-agent to handle a bug you discovered while working on something else
 **See [bd/naming.md](bd/naming.md) for full conventions.**
 
 Quick reference:
+
 - Package-specific: `km-<scope>.<type>-<N>-<slug>` (e.g., `km-storage.bug-3-core-dump`)
 - Cross-cutting: `km-<type>-<slug>` (e.g., `km-bug-watcher-race`)
 - Subtasks: parent + `.a`, `.b`, `.c` (e.g., `km-storage.feat-1.a`)
@@ -30,11 +31,11 @@ Always check existing: `bd list --all | grep "km-<scope>"` to find next number.
 
 ## Modes
 
-| Mode | Use Case |
-|------|----------|
-| **report-only** | Record for later; you have other priorities |
-| **report-and-fix** | Outsource full fix to sub-agent |
-| **report-blocked** | Depends on another bead first |
+| Mode               | Use Case                                    |
+| ------------------ | ------------------------------------------- |
+| **report-only**    | Record for later; you have other priorities |
+| **report-and-fix** | Outsource full fix to sub-agent             |
+| **report-blocked** | Depends on another bead first               |
 
 ## Mode 1: Report Only
 
@@ -59,7 +60,7 @@ Task({
 
 Do NOT claim (no bd work). Do NOT fix.`,
   subagent_type: "general-purpose",
-  model: "haiku"
+  model: "haiku",
 })
 ```
 
@@ -91,7 +92,7 @@ Task({
 ## Phase 3: Close
 bd close <id>`,
   subagent_type: "general-purpose",
-  run_in_background: true
+  run_in_background: true,
 })
 ```
 
@@ -120,17 +121,17 @@ Use: km-<scope>.<type>-<N>-<slug> or km-<type>-<slug>
 
 Do NOT claim or fix.`,
   subagent_type: "general-purpose",
-  model: "haiku"
+  model: "haiku",
 })
 ```
 
 ## Priority
 
-| Priority | When |
-|----------|------|
-| P0 | Blocks current work, breaks tests/build |
-| P1 | Important but has workaround |
-| P2 | Nice to fix, not urgent |
+| Priority | When                                    |
+| -------- | --------------------------------------- |
+| P0       | Blocks current work, breaks tests/build |
+| P1       | Important but has workaround            |
+| P2       | Nice to fix, not urgent                 |
 
 ## Example: TypeScript Errors in km-storage
 
@@ -161,7 +162,7 @@ Use: km-storage.bug-3 (continues existing pattern)
 3. bd update km-storage.bug-3 --priority P1
 4. Report: km-storage.bug-3`,
   subagent_type: "general-purpose",
-  model: "haiku"
+  model: "haiku",
 })
 ```
 

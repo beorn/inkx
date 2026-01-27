@@ -14,7 +14,6 @@ import {
 import {
   setDb,
   closeDb,
-  getDb,
   toFts5Query,
   search,
   searchWithSnippet,
@@ -233,9 +232,11 @@ describe("Query Parser", () => {
 })
 
 describe("Query Executor", () => {
+  let db: Database
+
   beforeEach(() => {
     // Create in-memory database
-    const db = new Database(":memory:")
+    db = new Database(":memory:")
     db.exec(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
@@ -323,75 +324,77 @@ describe("Query Executor", () => {
 
   test("filters by status", () => {
     const ast = parseQuery("status:todo")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(2)
     expect(results.every((r) => r.task_status === "todo")).toBe(true)
   })
 
   test("filters by priority", () => {
     const ast = parseQuery("p:1")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task1")
   })
 
   test("filters by @mention", () => {
     const ast = parseQuery("@bjorn")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task1")
   })
 
   test("filters by #tag", () => {
     const ast = parseQuery("#urgent")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task1")
   })
 
   test("filters by +project", () => {
     const ast = parseQuery("+project-alpha")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task3")
   })
 
   test("excludes with negation", () => {
     const ast = parseQuery("-status:done")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(2)
     expect(results.every((r) => r.task_status !== "done")).toBe(true)
   })
 
   test("combines conditions", () => {
     const ast = parseQuery("status:todo @bjorn")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task1")
   })
 
   test("queryTasks helper works", () => {
-    const results = queryTasks(getDb(), "status:todo")
+    const results = queryTasks(db, "status:todo")
     expect(results.length).toBe(2)
   })
 
   test("filters with comma-separated values (IN clause)", () => {
     // task1 is todo, task2 is done, task3 is todo
-    const results = queryTasks(getDb(), "status:todo,done")
+    const results = queryTasks(db, "status:todo,done")
     expect(results.length).toBe(3) // Should match all tasks (todo OR done)
   })
 
   test("excludes with negated comma-separated values (NOT IN clause)", () => {
     // task1 is todo, task2 is done, task3 is todo
-    const results = queryTasks(getDb(), "-status:todo,done")
+    const results = queryTasks(db, "-status:todo,done")
     expect(results.length).toBe(0) // Nothing left after excluding todo and done
   })
 })
 
 describe("Path Pattern Query Execution", () => {
+  let db: Database
+
   beforeEach(() => {
     // Create in-memory database with fs_path
-    const db = new Database(":memory:")
+    db = new Database(":memory:")
     db.exec(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
@@ -511,28 +514,28 @@ describe("Path Pattern Query Execution", () => {
 
   test("filters by recursive path pattern (./inbox/**)", () => {
     const ast = parseQuery("./inbox/**")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(2)
     expect(results.every((r) => r.fs_path?.includes("/inbox"))).toBe(true)
   })
 
   test("filters by absolute path pattern", () => {
     const ast = parseQuery("/projects/")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("project-task1")
   })
 
   test("filters with recursive nested path pattern", () => {
     const ast = parseQuery("./archive/**")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("archive-task1")
   })
 
   test("excludes with negated path pattern", () => {
     const ast = parseQuery("-./inbox/**")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     // Should exclude both inbox tasks
     expect(results.length).toBe(3)
     expect(results.every((r) => !r.fs_path?.includes("/inbox/"))).toBe(true)
@@ -540,7 +543,7 @@ describe("Path Pattern Query Execution", () => {
 
   test("combines path pattern with status filter", () => {
     const ast = parseQuery("./inbox/** status:todo")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(2)
     expect(results.every((r) => r.task_status === "todo")).toBe(true)
     expect(results.every((r) => r.fs_path?.includes("/inbox"))).toBe(true)
@@ -613,8 +616,10 @@ describe("Date Query Resolution", () => {
 })
 
 describe("Date Query Execution", () => {
+  let db: Database
+
   beforeEach(() => {
-    const db = new Database(":memory:")
+    db = new Database(":memory:")
     db.exec(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
@@ -731,31 +736,31 @@ describe("Date Query Execution", () => {
   })
 
   test("filters by due:today", () => {
-    const results = queryTasks(getDb(), "due:today")
+    const results = queryTasks(db, "due:today")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task-today")
   })
 
   test("filters by due:tomorrow", () => {
-    const results = queryTasks(getDb(), "due:tomorrow")
+    const results = queryTasks(db, "due:tomorrow")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task-tomorrow")
   })
 
   test("filters by due:past (overdue)", () => {
-    const results = queryTasks(getDb(), "due:past")
+    const results = queryTasks(db, "due:past")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task-overdue")
   })
 
   test("filters by due:overdue", () => {
-    const results = queryTasks(getDb(), "due:overdue")
+    const results = queryTasks(db, "due:overdue")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task-overdue")
   })
 
   test("filters by due:week includes today and tomorrow", () => {
-    const results = queryTasks(getDb(), "due:week")
+    const results = queryTasks(db, "due:week")
     expect(results.length).toBe(2)
     const ids = results.map((r) => r.id)
     expect(ids).toContain("task-today")
@@ -763,7 +768,7 @@ describe("Date Query Execution", () => {
   })
 
   test("negated due:today excludes today's tasks", () => {
-    const results = queryTasks(getDb(), "-due:today")
+    const results = queryTasks(db, "-due:today")
     expect(results.length).toBe(3)
     expect(results.every((r) => r.id !== "task-today")).toBe(true)
   })
@@ -952,8 +957,10 @@ describe("Full-text Search with Phrases", () => {
  * participate in status-based workflows.
  */
 describe("Status on Any Node Type", () => {
+  let db: Database
+
   beforeEach(() => {
-    const db = new Database(":memory:")
+    db = new Database(":memory:")
     db.exec(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
@@ -1078,7 +1085,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:todo matches only nodes with that status, any type", () => {
     const ast = parseQuery("status:todo")
-    const results = executeQuery(getDb(), ast)
+    const results = executeQuery(db, ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task1")
     expect(results[0]!.type).toBe("task")
@@ -1086,7 +1093,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:wip matches section with status", () => {
     const ast = parseQuery("status:wip")
-    const results = executeQuery(getDb(), ast)
+    const results = executeQuery(db, ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("section1")
     expect(results[0]!.type).toBe("section")
@@ -1094,7 +1101,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:done matches file with status", () => {
     const ast = parseQuery("status:done")
-    const results = executeQuery(getDb(), ast)
+    const results = executeQuery(db, ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("file1")
     expect(results[0]!.type).toBe("file")
@@ -1102,7 +1109,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:blocked matches paragraph with status", () => {
     const ast = parseQuery("status:blocked")
-    const results = executeQuery(getDb(), ast)
+    const results = executeQuery(db, ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("para1")
     expect(results[0]!.type).toBe("paragraph")
@@ -1110,14 +1117,14 @@ describe("Status on Any Node Type", () => {
 
   test("type:task only matches checkbox-originated nodes", () => {
     const ast = parseQuery("type:task")
-    const results = executeQuery(getDb(), ast)
+    const results = executeQuery(db, ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task1")
   })
 
   test("type:section matches sections regardless of status", () => {
     const ast = parseQuery("type:section")
-    const results = executeQuery(getDb(), ast)
+    const results = executeQuery(db, ast)
     expect(results.length).toBe(2)
     const ids = results.map((r) => r.id)
     expect(ids).toContain("section1") // has status
@@ -1126,21 +1133,21 @@ describe("Status on Any Node Type", () => {
 
   test("combining type and status filters", () => {
     const ast = parseQuery("type:section status:wip")
-    const results = executeQuery(getDb(), ast)
+    const results = executeQuery(db, ast)
     expect(results.length).toBe(1)
     expect(results[0]?.id).toBe("section1")
   })
 
   test("queryTasks only returns type:task nodes", () => {
     // queryTasks passes type:"task" to executeQuery
-    const results = queryTasks(getDb(), "status:todo")
+    const results = queryTasks(db, "status:todo")
     expect(results.length).toBe(1)
     expect(results[0]?.type).toBe("task")
   })
 
   test("-status:done excludes nodes with that status, any type", () => {
     const ast = parseQuery("-status:done")
-    const results = executeQuery(getDb(), ast)
+    const results = executeQuery(db, ast)
     // Should include task1, section1, para1, section2 (no status counts as not done)
     expect(results.length).toBe(4)
     expect(results.every((r) => r.task_status !== "done")).toBe(true)
@@ -1148,7 +1155,7 @@ describe("Status on Any Node Type", () => {
 
   test("status:todo,wip matches multiple statuses across types", () => {
     const ast = parseQuery("status:todo,wip")
-    const results = executeQuery(getDb(), ast)
+    const results = executeQuery(db, ast)
     expect(results.length).toBe(2)
     const ids = results.map((r) => r.id)
     expect(ids).toContain("task1") // todo
@@ -1301,8 +1308,10 @@ describe("Property Query Parser", () => {
 })
 
 describe("Property Query Execution", () => {
+  let db: Database
+
   beforeEach(() => {
-    const db = new Database(":memory:")
+    db = new Database(":memory:")
     db.exec(`
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
@@ -1526,7 +1535,7 @@ describe("Property Query Execution", () => {
 
   test("prop::* matches nodes with any value for that property", () => {
     const ast = parseQuery("rating::*")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(2)
     const ids = results.map((r) => r.id)
     expect(ids).toContain("task-rated")
@@ -1535,7 +1544,7 @@ describe("Property Query Execution", () => {
 
   test("-prop::* excludes nodes with that property", () => {
     const ast = parseQuery("-rating::*")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     // Should exclude task-rated and task-low-rated
     expect(results.every((r) => r.id !== "task-rated")).toBe(true)
     expect(results.every((r) => r.id !== "task-low-rated")).toBe(true)
@@ -1543,48 +1552,48 @@ describe("Property Query Execution", () => {
 
   test("prop::N matches exact numeric value", () => {
     const ast = parseQuery("rating::5")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task-rated")
   })
 
   test("prop::>N matches greater than", () => {
     const ast = parseQuery("rating::>3")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task-rated") // rating 5 > 3
   })
 
   test("prop::<N matches less than", () => {
     const ast = parseQuery("rating::<3")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task-low-rated") // rating 2 < 3
   })
 
   test("prop::>=N matches greater than or equal", () => {
     const ast = parseQuery("rating::>=2")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(2) // Both 5 and 2 are >= 2
   })
 
   test("prop::<=N matches less than or equal", () => {
     const ast = parseQuery("rating::<=2")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task-low-rated") // rating 2 <= 2
   })
 
   test("prop::text matches text property value", () => {
     const ast = parseQuery("author::alice")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task-authored")
   })
 
   test("prop::target matches link property target", () => {
     const ast = parseQuery("blocked-by::blocker-task")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     // Should match task-blocked (single link) and task-multi-blocked (list containing it)
     expect(results.length).toBeGreaterThanOrEqual(1)
     expect(results.some((r) => r.id === "task-blocked")).toBe(true)
@@ -1592,7 +1601,7 @@ describe("Property Query Execution", () => {
 
   test("blocked:true matches tasks with unresolved blockers", () => {
     const ast = parseQuery("blocked:true")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     // task-blocked is blocked by blocker-task (todo)
     // task-multi-blocked is blocked by blocker-task (todo) and done-blocker (done)
     // task-unblocked is blocked by done-blocker (done) - should NOT match
@@ -1605,7 +1614,7 @@ describe("Property Query Execution", () => {
 
   test("blocked:false matches tasks without blockers or with all blockers done", () => {
     const ast = parseQuery("blocked:false")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     const ids = results.map((r) => r.id)
     // task-unblocked: blocker is done, so not blocked
     // task-plain: no blocked-by property
@@ -1618,14 +1627,14 @@ describe("Property Query Execution", () => {
 
   test("combines property query with status filter", () => {
     const ast = parseQuery("status:todo rating::>3")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(1)
     expect(results[0]?.id).toBe("task-rated")
   })
 
   test("combines blocked:false with status:todo", () => {
     const ast = parseQuery("status:todo blocked:false")
-    const results = executeQuery(getDb(), ast, "task")
+    const results = executeQuery(db, ast, "task")
     // Should return todo tasks that are not blocked
     expect(results.every((r) => r.task_status === "todo")).toBe(true)
     expect(

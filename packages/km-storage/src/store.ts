@@ -572,7 +572,13 @@ export class MemoryStore extends BaseStore {
     this.fileCount = 0
     this.db.run("BEGIN IMMEDIATE")
     try {
-      yield* this.scanDirectoryAsync(this.rootPath, null, 0, total, ignorePatterns)
+      yield* this.scanDirectoryAsync(
+        this.rootPath,
+        null,
+        0,
+        total,
+        ignorePatterns,
+      )
       this.db.run("COMMIT")
     } catch (error) {
       this.db.run("ROLLBACK")
@@ -613,7 +619,10 @@ export class MemoryStore extends BaseStore {
   /**
    * Count markdown files for progress reporting
    */
-  private countMarkdownFiles(dirPath: string, ignorePatterns: string[]): number {
+  private countMarkdownFiles(
+    dirPath: string,
+    ignorePatterns: string[],
+  ): number {
     if (!existsSync(dirPath)) return 0
 
     let count = 0
@@ -640,7 +649,13 @@ export class MemoryStore extends BaseStore {
     const ignorePatterns = getIgnorePatterns(this.rootPath)
     this.db.run("BEGIN IMMEDIATE")
     try {
-      for (const _ of this.scanDirectoryAsync(this.rootPath, null, 0, 0, ignorePatterns)) {
+      for (const _ of this.scanDirectoryAsync(
+        this.rootPath,
+        null,
+        0,
+        0,
+        ignorePatterns,
+      )) {
         // Consume generator without progress reporting
       }
       this.db.run("COMMIT")
@@ -694,7 +709,13 @@ export class MemoryStore extends BaseStore {
         })
 
         // Recurse
-        yield* this.scanDirectoryAsync(fullPath, folderId, 0, total, ignorePatterns)
+        yield* this.scanDirectoryAsync(
+          fullPath,
+          folderId,
+          0,
+          total,
+          ignorePatterns,
+        )
       } else if (entry.isFile()) {
         const isMarkdown = entry.name.endsWith(".md")
 

@@ -36,6 +36,55 @@ import { resolveIssueArg } from "./bd-query-helpers.ts"
 import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
 
+// Commander option interfaces
+interface ReadyOptions {
+  type?: string
+  assignee?: string
+  priority?: number
+  all?: boolean
+  json?: boolean
+}
+
+interface ListOptions {
+  status?: string
+  type?: string
+  assignee?: string
+  priority?: number
+  blocked?: boolean
+  unblocked?: boolean
+  all?: boolean
+  json?: boolean
+}
+
+interface ShowOptions {
+  json?: boolean
+}
+
+interface CreateOptions {
+  type?: string
+  priority?: number
+  assignee?: string
+  label?: string[]
+  id?: string
+  parent?: string
+  json?: boolean
+}
+
+interface UpdateOptions {
+  status?: string
+  priority?: number
+  assignee?: string
+  title?: string
+}
+
+interface CloseOptions {
+  reason?: string
+}
+
+interface DropOptions {
+  reason?: string
+}
+
 export const bdCommand = new Command("bd")
   .description(
     `Issue tracking (beads-compatible)
@@ -55,7 +104,7 @@ bdCommand
   .option("-p, --priority <n>", "Filter by priority (0-4)", parseInt)
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
-  .action((scope, opts) => {
+  .action((scope: string | undefined, opts: ReadyOptions) => {
     const resolved = resolvePathArg(scope)
     const scopePath = resolved.nodeRef ?? undefined
     const configObj = loadConfigObject(resolved.repoRoot)
@@ -67,7 +116,7 @@ bdCommand
 
     // Use board filter from config unless --all or explicit scope given
     const boardTag =
-      opts.all || scope ? undefined : configObj.beads.board || undefined
+      (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
     const issues = queryReady(filter, scopePath, boardTag)
 
     if (opts.json) {
@@ -115,7 +164,7 @@ bdCommand
   .option("--unblocked", "Show only unblocked issues")
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
-  .action((scope, opts) => {
+  .action((scope: string | undefined, opts: ListOptions) => {
     const resolved = resolvePathArg(scope)
     const scopePath = resolved.nodeRef ?? undefined
     const configObj = loadConfigObject(resolved.repoRoot)
@@ -130,7 +179,7 @@ bdCommand
 
     // Use board filter from config unless --all or explicit scope given
     const boardTag =
-      opts.all || scope ? undefined : configObj.beads.board || undefined
+      (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
     const issues = queryIssues(filter, scopePath, boardTag)
 
     if (opts.json) {

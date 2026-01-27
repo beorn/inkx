@@ -106,7 +106,9 @@ export const showCommand = new Command("show")
     ) {
       console.log(
         chalk.bold("Refs:"),
-        (data.mentions as string[]).map((m) => chalk.magenta(`@${m}`)).join(" "),
+        (data.mentions as string[])
+          .map((m) => chalk.magenta(`@${m}`))
+          .join(" "),
       )
     }
     if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
