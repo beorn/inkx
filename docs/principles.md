@@ -1,27 +1,82 @@
-# Architectural Principles
+# How km Works
 
 > **The thesis**: Build from composable pieces. Maintain quality through fast feedback. Write for humans and LLMs.
+
+## How to Use This Doc
+
+If you're new, read Part 1 (Composability) and Part 2 (The Fast Feedback Loop) to understand the foundation. If you're implementing, follow Part 3 (Code for Humans) while coding. If you're using AI agents, read Part 5 (Coding with AI Agents) so you know what patterns must stay unique. If you're proposing changes, use Part 4 (In Practice) for the decision rubric and enforcement checklist. If you want history, read Part 6 (Where We Came From).
+
+The principles reinforce each other: composable pieces enable fast tests, fast tests protect quality, and quality makes AI-assisted development safe.
 
 ---
 
 ## Overview
 
 1. **Composability** — Build from simple, reusable pieces
-   - Domain Objects via Composition
-   - Explicit Dependencies
-   - Layered Architecture
-   - Disposable Lifecycle
-   - Async Generator Pipelines
-2. **Fast Feedback Enables Quality** — Keep the loop tight to maintain extreme quality
-   - Fail Fast
-   - Fast Tests by Default
-   - Delete First, Fix Second
-3. **Readability Matters** — Make the "right way" locally obvious
-   - Important Logic First
-4. **Building for LLMs** — Why these principles matter even more with AI agents
-5. **Context** — Industry comparison and lessons learned
+   - Plain Objects, Factory Functions
+   - No Magic, No Globals
+   - The Layer Cake
+   - `using` for Cleanup
+   - Generators All The Way Down
+2. **The Fast Feedback Loop** — Keep the loop tight to maintain extreme quality
+   - Fail Loud, Fail Now
+   - 5-Second Test Loops
+   - Quarantine and Delete
+3. **Code for Humans** — Make the "right way" locally obvious
+   - Start at the Top
+   - Naming Conventions
+   - No Hidden Side Effects
+   - Local Reasoning
+   - API Boundaries
+4. **In Practice** — How we keep principles alive
+   - What We're NOT Doing
+   - Before You Add Something New
+   - How We Keep This Real
+5. **Coding with AI Agents** — Why these principles matter more with AI
+6. **Where We Came From** — Industry comparison and lessons learned
 
-These principles reinforce each other: composable pieces enable fast tests, fast tests protect quality, and quality makes LLM-assisted development safe.
+---
+
+## Contents
+
+- [Overview](#overview)
+- [Part 1: Composability](#part-1-composability)
+  - [Objects](#objects)
+  - [1. Plain Objects, Factory Functions](#1-plain-objects-factory-functions)
+  - [2. No Magic, No Globals](#2-no-magic-no-globals)
+  - [Rejected Patterns](#rejected-patterns)
+  - [3. The Layer Cake](#3-the-layer-cake)
+  - [4. `using` for Cleanup](#4-using-for-cleanup)
+  - [Flows](#flows)
+  - [5. Generators All The Way Down](#5-generators-all-the-way-down)
+- [Part 2: The Fast Feedback Loop](#part-2-the-fast-feedback-loop)
+  - [6. Fail Loud, Fail Now](#6-fail-loud-fail-now)
+  - [7. 5-Second Test Loops](#7-5-second-test-loops)
+  - [8. Quarantine and Delete](#8-quarantine-and-delete)
+- [Part 3: Code for Humans](#part-3-code-for-humans)
+  - [9. Start at the Top](#9-start-at-the-top)
+  - [Naming Conventions](#naming-conventions)
+  - [No Hidden Side Effects](#no-hidden-side-effects)
+  - [Local Reasoning](#local-reasoning)
+  - [API Boundaries](#api-boundaries)
+- [Part 4: In Practice](#part-4-in-practice)
+  - [What We're NOT Doing](#what-were-not-doing)
+  - [Before You Add Something New](#before-you-add-something-new)
+  - [How We Keep This Real](#how-we-keep-this-real)
+- [Part 5: Coding with AI Agents](#part-5-coding-with-ai-agents)
+  - [Why LLMs Amplify Architecture Problems](#why-llms-amplify-architecture-problems)
+  - [Legacy Code as Virus](#legacy-code-as-virus)
+  - [The Quality Plateau](#the-quality-plateau)
+  - [Principles That Matter More with LLMs](#principles-that-matter-more-with-llms)
+  - [The LLM-Friendly Codebase](#the-llm-friendly-codebase)
+- [Part 6: Where We Came From](#part-6-where-we-came-from)
+  - [Why These Choices](#why-these-choices)
+  - [Lessons Learned](#lessons-learned)
+- [Quick Reference](#quick-reference)
+  - [Do](#do)
+  - [Don't](#dont)
+  - [Test Commands](#test-commands)
+- [See Also](#see-also)
 
 ---
 
@@ -33,7 +88,7 @@ Software is built from composable pieces. Both **structures** (objects) and **fl
 
 Domain objects are plain objects created by factory functions. They compose via explicit dependencies, enabling testing, swapping, and isolation.
 
-### 1. Domain Objects via Composition
+### 1. Plain Objects, Factory Functions
 
 **The insight**: All functionality lives in domain objects (Repo, Board, Watcher).
 
@@ -82,7 +137,7 @@ const repo = createRepo(path, {
 
 ---
 
-### 2. Explicit Dependencies
+### 2. No Magic, No Globals
 
 **The insight**: If you need something, it must be passed in.
 
@@ -151,7 +206,7 @@ export function createRepo(path: string, options?: RepoOptions): Repo
 
 ---
 
-### 3. Layered Architecture
+### 3. The Layer Cake
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -179,7 +234,7 @@ export function createRepo(path: string, options?: RepoOptions): Repo
 
 ---
 
-### 4. Disposable Lifecycle
+### 4. `using` for Cleanup
 
 **The insight**: Resources acquired = resources released. If you create something, you must clean it up.
 
@@ -214,7 +269,7 @@ async function watchRepo(path: string) {
 
 Async generators make multi-stage data processing composable. Each stage is a function that yields items, and stages compose like building blocks.
 
-### 5. Async Generator Pipelines
+### 5. Generators All The Way Down
 
 **The insight**: Multi-stage data processing composes naturally with async generators.
 
@@ -291,13 +346,13 @@ for await (const item of pipeline) { ... }
 
 ---
 
-## Part 2: Fast Feedback Enables Quality
+## Part 2: The Fast Feedback Loop
 
 Fast feedback enables extreme quality: tests run in <5s, programming errors throw loudly, and failures happen at the call site—not in production.
 
 Bad quality propagates and multiplies, especially with LLMs. Fast feedback is how you keep the codebase clean.
 
-### 6. Fail Fast
+### 6. Fail Loud, Fail Now
 
 **The insight**: Programming errors should throw immediately. No defensive fallbacks for internal code.
 
@@ -329,7 +384,7 @@ function getNode(id: string) {
 
 ---
 
-### 7. Fast Tests by Default
+### 7. 5-Second Test Loops
 
 **The insight**: Tests use in-memory infrastructure unless you explicitly opt into real.
 
@@ -350,7 +405,7 @@ const db = new Database("/tmp/test.db")
 
 ---
 
-### 8. Delete First, Fix Second
+### 8. Quarantine and Delete
 
 **The insight**: Remove old patterns, then fix all consumers. Don't add backwards compatibility shims.
 
@@ -378,11 +433,11 @@ export function getDb() { ... }
 
 ---
 
-## Part 3: Readability Matters
+## Part 3: Code for Humans
 
 Code is read more than written.
 
-### 9. Important Logic First
+### 9. Start at the Top
 
 **The insight**: Main flow at top of file/function, helpers after return.
 
@@ -422,7 +477,213 @@ function formatDate(d: Date): string {
 
 ---
 
-## Part 4: Building for LLMs
+### Naming Conventions
+
+**Domain objects**: `createX()` factory functions, always return plain objects.
+
+**Options shape**: `XOptions` type with optional `inject` field for dependencies.
+
+**Inject fields**: Match the dependency name (`db`, `fileTree`, `emitter`).
+
+```typescript
+// ✅ GOOD - consistent naming
+function createRepo(path: string, options?: RepoOptions): Repo
+function createWatcher(repo: Repo, options?: WatcherOptions): Watcher
+
+interface RepoOptions {
+  inject?: {
+    db?: Database
+    fileTree?: FileTree
+  }
+}
+```
+
+---
+
+### No Hidden Side Effects
+
+**The rule**: Module initialization must not perform work.
+
+Imports should be side-effect free. No "magic" happens just from importing a module.
+
+```typescript
+// ❌ BAD - side effect on import
+let _globalState = initializeExpensiveState()
+
+export function useGlobal() {
+  return _globalState
+}
+
+// ✅ GOOD - explicit initialization
+export function createGlobalState() {
+  return initializeExpensiveState()
+}
+```
+
+**Why**: Hidden initialization makes testing hard and violates explicit dependencies.
+
+---
+
+### Local Reasoning
+
+**The rule**: Reading one function should not require understanding distant code.
+
+- No action-at-a-distance (globals, shared mutable state)
+- No implicit preconditions (functions document what they need)
+- Contracts are explicit (TypeScript types + runtime checks)
+
+```typescript
+// ❌ BAD - requires understanding global state
+function processNode() {
+  const db = getCurrentDb() // Where? When initialized?
+  // ...
+}
+
+// ✅ GOOD - dependencies are parameters
+function processNode(db: Database, node: KNode) {
+  if (!node.id) throw new Error("node.id required")
+  // ...
+}
+```
+
+---
+
+### API Boundaries
+
+**The rule**: Validate at public API boundaries, throw on internal invariants.
+
+Public APIs (functions called from outside your package) should validate inputs gracefully. Internal functions should fail fast.
+
+```typescript
+// ❌ BAD - validates everywhere
+export function processNode(db: Database, node?: KNode) {
+  if (!node) return null // Defensive
+  if (!node.id) return null // Defensive
+  return db.get(node.id)
+}
+
+function applyNode(db: Database, node?: KNode) {
+  if (!node) return // Defensive internally too
+  // ...
+}
+
+// ✅ GOOD - validate at boundary, throw internally
+export function processNode(db: Database, node?: KNode): KNode | null {
+  if (!node) return null // Public API: graceful
+  return applyNode(db, node)
+}
+
+function applyNode(db: Database, node: KNode) {
+  if (!node.id) throw new Error("node.id required") // Internal: fail fast
+  return db.get(node.id)
+}
+```
+
+**Where to validate vs throw**:
+
+| Layer          | Validation Strategy          |
+| -------------- | ---------------------------- |
+| Public API     | Validate, return null/error  |
+| Internal       | Throw on missing/invalid     |
+| Cross-package  | Validate at package boundary |
+| Within-package | Throw on programmer errors   |
+
+**Why**: External callers get graceful errors. Internal bugs surface immediately.
+
+---
+
+## Part 4: In Practice
+
+How we keep principles alive over time.
+
+### What We're NOT Doing
+
+What we're **not** optimizing for. These clarify tradeoffs and prevent endless debates.
+
+- **Not optimizing for**: OO purity or class-based patterns — We use factories and plain objects
+- **Not optimizing for**: Zero allocations / micro-optimizations — Clarity over micro-performance
+- **Not optimizing for**: Framework compatibility at all costs — Choose patterns that fit our needs
+- **Not optimizing for**: Backwards compatibility inside the codebase — Quarantine and Delete
+- **Not optimizing for**: Maximum generality — Solve today's problems, not hypothetical futures
+- **Not optimizing for**: Minimal lines of code — Explicit and clear beats clever and terse
+
+---
+
+### Before You Add Something New
+
+Before adding a new domain object or subsystem, answer these questions:
+
+**Composability**:
+
+- What explicit dependencies does it need?
+- What other objects does it compose with?
+- Can it be tested in isolation?
+
+**Lifecycle**:
+
+- How is it created? (factory function)
+- How is it cleaned up? (disposable)
+- What resources does it own?
+
+**Failure modes**:
+
+- What happens if dependencies are missing? (throw)
+- What happens if used after disposal? (throw)
+- What invariants must hold? (assert/throw)
+
+**Testing**:
+
+- Can tests use in-memory infrastructure?
+- Does it support dependency injection?
+- Can it run in <100ms per test?
+
+**Async generators** (if applicable):
+
+- Which stages are streaming? (yield as items arrive)
+- Which stages are buffering? (exhaust upstream first)
+- Where are transaction boundaries?
+
+If you can't answer these clearly, the design needs more work.
+
+---
+
+### How We Keep This Real
+
+How we keep principles true over time.
+
+**Automated checks**:
+
+- `bun run test:fast` must stay <5s (enforced in CI)
+- ESLint rules: no deprecated code allowed in-tree
+- TypeScript strict mode: catch type errors early
+
+**Code review checklist**:
+
+- [ ] Uses factory functions, not classes or singletons
+- [ ] Dependencies passed explicitly via `inject` option
+- [ ] Disposable resources use `Symbol.dispose`
+- [ ] Programming errors throw immediately (fail loud, fail now)
+- [ ] Tests use `withTestEnv()` for in-memory infrastructure
+- [ ] No backwards compatibility shims or deprecated code
+- [ ] Important logic at top of file, helpers after
+
+**One-way doors** (delete, don't deprecate):
+
+- Old patterns are commented out with stern warnings, not soft-deprecated
+- No `getX()` singleton fallbacks allowed
+- If a pattern is wrong, remove it completely—don't add a "better" alternative alongside it
+
+**Templates** (make the right thing easy):
+
+- `createX()` factory with `XOptions` type
+- `Symbol.dispose` for cleanup
+- `withTestEnv()` for tests
+
+When reviewing PRs, the question is: "Does this follow the principles?" If not, either fix the code or update the principles—but don't compromise.
+
+---
+
+## Part 5: Coding with AI Agents
 
 These principles matter MORE when working with AI coding agents.
 
@@ -445,7 +706,7 @@ When an LLM sees two ways to do something, it may copy either. If one is legacy/
 Legacy pattern exists → LLM copies it → More legacy code → More likely to be copied
 ```
 
-This is why "delete first" isn't optional—it's **quarantine**. Deprecation warnings don't work because LLMs don't read warnings, they read code.
+This is why "Quarantine and Delete" isn't optional—it's **quarantine**. Deprecation warnings don't work because LLMs don't read warnings, they read code.
 
 ### The Quality Plateau
 
@@ -474,15 +735,15 @@ Code Quality      ╱
 
 **Composability** — When pieces compose cleanly, LLMs can combine them correctly. When composition is implicit or has multiple paths, LLMs guess wrong.
 
-**Delete first, fix second** — If old patterns exist, LLMs will use them. The only way to prevent old patterns is to make them impossible.
+**Quarantine and Delete** — If old patterns exist, LLMs will use them. The only way to prevent old patterns is to make them impossible.
 
-**Fast tests** — LLMs iterate extremely quickly. A 5-second test loop means an agent can try 100 approaches in the time a human tries 10. Fast feedback is a force multiplier.
+**5-Second Test Loops** — LLMs iterate extremely quickly. A 5-second test loop means an agent can try 100 approaches in the time a human tries 10. Fast feedback is a force multiplier.
 
 **Obvious right way** — When there's one clear pattern, LLMs follow it. When there are multiple ways, they guess. Consolidate patterns so the right way is obvious from any file.
 
-**Fail fast** — Silent failures compound across sessions. If something's wrong, it must fail loudly NOW so the agent can fix it, not silently corrupt state for a future session to discover.
+**Fail Loud, Fail Now** — Silent failures compound across sessions. If something's wrong, it must fail loudly NOW so the agent can fix it, not silently corrupt state for a future session to discover.
 
-**Explicit dependencies** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` is self-documenting and works without hidden context.
+**No Magic, No Globals** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` is self-documenting and works without hidden context.
 
 ### The LLM-Friendly Codebase
 
@@ -495,19 +756,19 @@ Code Quality      ╱
 
 ---
 
-## Part 5: Context
+## Part 6: Where We Came From
 
-### Industry Comparison
+### Why These Choices
 
-| km Principle      | Common Alternative   | Why We Chose Differently                             |
-| ----------------- | -------------------- | ---------------------------------------------------- |
-| Factory functions | Classes              | Classes have `this` binding issues, harder to mock   |
-| No singletons     | Service locator      | Singletons hide dependencies, block parallel tests   |
-| Composition       | Peer stores          | Peers make sync generic when it's really translation |
-| Fail fast         | Defensive coding     | Defensive coding masks bugs until production         |
-| Delete first      | Deprecation warnings | Warnings are ignored forever (especially by LLMs)    |
-| In-memory tests   | Real infrastructure  | Real infra is slow, flaky, blocks parallel execution |
-| Async generators  | Promise.all chains   | Generators compose, arrays don't                     |
+| km Principle          | Common Alternative   | Why We Chose Differently                             |
+| --------------------- | -------------------- | ---------------------------------------------------- |
+| Factory functions     | Classes              | Classes have `this` binding issues, harder to mock   |
+| No singletons         | Service locator      | Singletons hide dependencies, block parallel tests   |
+| Composition           | Peer stores          | Peers make sync generic when it's really translation |
+| Fail Loud, Fail Now   | Defensive coding     | Defensive coding masks bugs until production         |
+| Quarantine and Delete | Deprecation warnings | Warnings are ignored forever (especially by LLMs)    |
+| In-memory tests       | Real infrastructure  | Real infra is slow, flaky, blocks parallel execution |
+| Async generators      | Promise.all chains   | Generators compose, arrays don't                     |
 
 ---
 
@@ -515,7 +776,7 @@ Code Quality      ╱
 
 Real stories from km development that shaped these principles.
 
-- **The Backwards Compatibility Trap** — Singleton wrappers for "backwards compatibility" prevented migration from ever completing. The lesson: delete first, fix second. See [lesson-backwards-compatibility.md](ref/lesson-backwards-compatibility.md)
+- **The Backwards Compatibility Trap** — Singleton wrappers for "backwards compatibility" prevented migration from ever completing. The lesson: quarantine and delete. See [lesson-backwards-compatibility.md](ref/lesson-backwards-compatibility.md)
 
 - **FileTree as Peer DataStore** — Treating FileTree and DataStore as interchangeable peers led to performance asymmetry, semantic mismatch, and overly generic sync logic. The lesson: identify representation vs peer. See [lesson-filetree-as-peer.md](ref/lesson-filetree-as-peer.md)
 

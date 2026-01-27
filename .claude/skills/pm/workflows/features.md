@@ -6,6 +6,22 @@ description: Feature implementation workflow - assess, plan, test, implement
 
 Test-driven feature development following TDD principles.
 
+## Contents
+
+- [Common TDD Cycle](#common-tdd-cycle)
+- [Step 1: Assess Complexity](#step-1-assess-complexity)
+- [Step 2: If Planning Needed](#step-2-if-planning-needed)
+- [Step 3: Write Acceptance Test](#step-3-write-acceptance-test)
+- [Step 4: Implement Incrementally](#step-4-implement-incrementally)
+- [Step 5: Verify & Close](#step-5-verify--close)
+- [Feature Types](#feature-types)
+- [Creating Epics](#creating-epics)
+- [Sub-Agent Spawn](#sub-agent-spawn)
+- [Anti-Patterns](#anti-patterns)
+- [Quality Checklist](#quality-checklist)
+
+---
+
 ## Common TDD Cycle
 
 All features follow this pattern:

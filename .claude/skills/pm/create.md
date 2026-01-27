@@ -16,6 +16,17 @@ Intelligent issue creation with duplicate detection, proper ID generation, and o
 
 **Keywords**: create issue, report bug, request feature, new task
 
+## Contents
+
+- [Workflow Overview](#workflow-overview)
+- [Phase 1: Context Understanding](#phase-1-context-understanding)
+- [Phase 2: Bead Check (Duplicate Detection)](#phase-2-bead-check-duplicate-detection)
+- [Phase 3: Bead Management](#phase-3-bead-management)
+- [Phase 4: Action Decision](#phase-4-action-decision)
+- [Phase 5: Implementation](#phase-5-implementation)
+- [Error Handling](#error-handling)
+- [Quality Gates](#quality-gates)
+
 ---
 
 ## Workflow Overview
@@ -73,18 +84,14 @@ Phase 5: Implementation (if "work now" chosen)
 
 ## Phase 2: Bead Check (Duplicate Detection)
 
-### Run searches in parallel:
+### Run searches
 
 ```bash
-# Search 1: Keyword search
+# Keyword search in all beads (open + closed)
 bd search "<key terms from description>" | head -20
-
-# Search 2: Open beads in scope
-bd list --status open --json | jq -r '.[] | select(.id | test("km-<scope>"))' | head -20
-
-# Search 3: User's claimed beads
-bd list --assignee $(bd whoami) --json
 ```
+
+**Note**: We don't have many beads yet, so checking all beads is fast. No need to filter by scope or status.
 
 ### Analyze results:
 
@@ -197,99 +204,27 @@ Use AskUserQuestion with two options.
 bd update <id> --claim --status in_progress
 ```
 
-### Branch by type and complexity:
+### Delegate by type
 
-#### For BUGS:
-
-Load [workflows/bugs.md](workflows/bugs.md).
-
-**Summary:**
-
-1. Verify reproduction steps (ask if unclear)
-2. Reproduce bug (headless capture for TUI, test for logic)
-3. Write failing test
-4. Implement minimal fix
-5. Verify with test:fast
-6. Close with evidence
-
-**If can't reproduce:** Update bead with notes, ask user for more info, STOP.
-
-#### For FEATURES:
-
-Load [workflows/features.md](workflows/features.md).
-
-**Assess complexity:**
-
-- **Trivial/Simple** → Implement inline
-- **Moderate/Complex** → EnterPlanMode first
-
-**Summary:**
-
-1. Assess complexity
-2. If complex → EnterPlanMode (full planning session)
-3. Write acceptance test (.spec.ts for TUI, .test.ts for logic)
-4. Implement incrementally with test:fast
-5. Verify & close
-
-#### For TASKS:
-
-Load [workflows/tasks.md](workflows/tasks.md).
-
-**Determine if tests needed:**
-
-- Refactoring/move/rename → Yes (preserve behavior)
-- Docs/cleanup → No
-- Dependency update → Maybe (run test:fast to verify)
-
-**Summary:**
-
-1. Determine test needs
-2. If tests → refactor incrementally, keep test:fast green
-3. If no tests → implement, run bun fix
-4. Close
-
-### Sub-Agent Spawn (for non-trivial work):
-
-If implementation is non-trivial but doesn't need full planning:
-
-```typescript
-Task({
-  description: "Implement <bead-id>",
-  prompt: `
-    Implement bead: <bead-id>
-    Type: <bug|feature|task>
-
-    ## Requirement
-    <full description from bead>
-
-    ## Approach
-    <suggested approach based on type>
-
-    ## Instructions
-    Follow workflows/bugs.md, workflows/features.md, or workflows/tasks.md for <type> workflow:
-    1. <type-specific steps>
-    2. Run test:fast frequently
-    3. Close bead when complete: bd close <id> --reason "<evidence>"
-    4. Report: summary + test results
-
-    ## Context
-    <relevant files, patterns to follow>
-  `,
-  subagent_type: "general-purpose",
-})
-```
+- **BUGS**: Load [workflows/bugs.md](workflows/bugs.md) - reproduce, write test, fix minimally
+- **FEATURES**: Load [workflows/features.md](workflows/features.md) - assess complexity, plan if needed, TDD
+- **TASKS**: Load [workflows/tasks.md](workflows/tasks.md) - determine test needs, refactor incrementally
 
 ### Use TodoWrite for progress tracking:
 
 ```javascript
 TodoWrite([
   {
-    content: "<phase 1>",
+    content: "Reproduce bug",
     status: "in_progress",
-    activeForm: "<doing phase 1>",
+    activeForm: "Reproducing bug",
   },
-  { content: "<phase 2>", status: "pending", activeForm: "<doing phase 2>" },
-  // ...
+  { content: "Write test", status: "pending", activeForm: "Writing test" },
+  {
+    content: "Implement fix",
+    status: "pending",
+    activeForm: "Implementing fix",
+  },
 ])
 ```
 
@@ -332,91 +267,8 @@ Update status as work progresses.
 
 ---
 
-## Example Flow
-
-```
-User: /pm bug the progress reporting is slow in km-view
-
-Phase 1:
-- Type: bug
-- Scope: tui (km-view is TUI)
-- Priority: P2 (annoying but not blocking)
-- Description: "Progress reporting slow in km-view"
-
-Phase 2:
-[3 parallel searches]
-- No exact matches
-- km-tui.bug-1-render-perf (closed 20 days ago) - related?
-- Decision: Create new (different issue)
-
-Phase 3:
-- Next number for km-tui.bug: 2
-- Slug: "progress-slow"
-- ID: km-tui.bug-2-progress-slow
-bd create --id km-tui.bug-2-progress-slow \
-  --type bug \
-  --title "Progress reporting slow in km-view" \
-  --priority 2
-
-Phase 4:
-User chooses: "Work on it now"
-
-Phase 5:
-bd update km-tui.bug-2-progress-slow --claim --status in_progress
-
-TodoWrite([
-  "Reproduce slowness",
-  "Profile to find bottleneck",
-  "Write test for performance",
-  "Optimize",
-  "Verify improved"
-])
-
-[Follow bug workflow from implementation.md]
-[Fix implemented, test passes]
-
-bd close km-tui.bug-2-progress-slow \
-  --reason "Fixed render throttling. Test: 'progress updates < 100ms' passes."
-
-Total: ~18 minutes
-```
-
----
-
 ## Integration Points
-
-**References:**
 
 - [beads.md](beads.md) - All bd CLI commands
 - [beads-ids.md](beads-ids.md) - ID conventions and scope tokens
-- [workflows/bugs.md](workflows/bugs.md) - Bug fix workflow
-- [workflows/features.md](workflows/features.md) - Feature implementation workflow
-- [workflows/tasks.md](workflows/tasks.md) - Task completion workflow
-- [workflows/review.md](workflows/review.md) - Backlog grooming if cleanup needed
-
-**Tools:**
-
-- Bash for bd commands
-- Read for checking existing beads
-- AskUserQuestion for user decisions
-- TodoWrite for progress tracking
-- Task for spawning sub-agents
-- EnterPlanMode for complex features
-
----
-
-## Tips
-
-**For users:**
-
-- No quotes needed: `/pm bug the sync crashes` works
-- Be specific: Include scope hints (storage, tui) for better ID generation
-- Mention files: "in reconcile.ts" helps with scoping
-
-**For Claude:**
-
-- Default to creating new bead if unsure (better than missing issues)
-- Always verify reproduction for bugs before fixing
-- Use test:fast for tight iteration
-- Keep implementation minimal and focused
-- Update bead with progress if session ends mid-work
+- [workflows/bugs.md](workflows/bugs.md), [workflows/features.md](workflows/features.md), [workflows/tasks.md](workflows/tasks.md) - Implementation workflows
