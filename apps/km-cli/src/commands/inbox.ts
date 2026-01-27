@@ -179,10 +179,10 @@ inboxCommand
     console.log(chalk.green("\n✓ Inbox processing complete!"))
   })
 
-// Subcommand: inbox add <content> - quick add to inbox
+// Subcommand: inbox new <content> - create new item in inbox
 inboxCommand
-  .command("add")
-  .description("Quick add item to inbox")
+  .command("new")
+  .description("Create new item in inbox")
   .argument("<content...>", "Task content")
   .option("--json", "Output as JSON")
   .action(async (content: string[], options: { json?: boolean }) => {
@@ -207,8 +207,8 @@ inboxCommand
     repo.appendTaskToFile(inboxPath, taskContent)
 
     if (options.json) {
-      console.log(JSON.stringify({ added: true, content: taskContent }))
+      console.log(JSON.stringify({ created: true, content: taskContent }))
     } else {
-      console.log(chalk.green("+ Added to inbox:"), taskContent)
+      console.log(chalk.green("+ Created in inbox:"), taskContent)
     }
   })

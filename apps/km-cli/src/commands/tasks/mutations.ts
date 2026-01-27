@@ -1,7 +1,7 @@
 /**
  * Task Mutations
  *
- * Functions for modifying tasks: add, claim, release, assign, markDone.
+ * Functions for modifying tasks: create, claim, release, assign, markDone.
  */
 
 import chalk from "chalk"
@@ -19,9 +19,9 @@ import { getRootPath } from "../../program.ts"
 import { findNodeByPathOrId } from "./queries.ts"
 
 /**
- * Add a task under a parent
+ * Create a task under a parent
  */
-export async function addTask(
+export async function createTask(
   pathOrId: string | undefined,
   content: string,
   options: { json?: boolean },

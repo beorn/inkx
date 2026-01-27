@@ -7,7 +7,7 @@
 import { Command } from "@commander-js/extra-typings"
 import { listTasks } from "./list.ts"
 import {
-  addTask,
+  createTask,
   markDone,
   claimTask,
   releaseTask,
@@ -20,7 +20,7 @@ import { createSetCommand, createClearCommand } from "./set-clear.ts"
  * Task command - unified task management
  */
 export const taskCommand = new Command("tasks")
-  .description("Task management - list, add, complete, and assign tasks")
+  .description("Task management - list, create, complete, and assign tasks")
   .argument(
     "[query...]",
     "Query terms: @person, #tag, +project, status:todo, -status:done",
@@ -39,7 +39,7 @@ export const taskCommand = new Command("tasks")
   .option("-f, --flat", "Show path on single line")
   .option("-i, --id", "Show task IDs")
   .option("--json", "Output as JSON")
-  .option("--add <content>", "Add a new task")
+  .option("--new <content>", "Create a new task")
   .option(
     "--done [id]",
     "Mark task as done (use with path-or-id or provide task id)",
@@ -53,8 +53,8 @@ export const taskCommand = new Command("tasks")
     const firstArg = queryArgs[0]
 
     // Handle mutation operations first
-    if (options.add) {
-      void addTask(firstArg, options.add, options)
+    if (options.new) {
+      void createTask(firstArg, options.new, options)
       return
     }
 

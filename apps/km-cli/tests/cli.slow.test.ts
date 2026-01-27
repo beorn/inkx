@@ -230,14 +230,14 @@ describe.serial("CLI Integration", () => {
     })
   })
 
-  describe("km tasks --add", () => {
+  describe("km tasks --new", () => {
     beforeEach(async () => {
       writeFileSync(join(REPO_DIR, "inbox.md"), "# Inbox\n")
       await km(["sync"])
     })
 
-    test("should add a new task", async () => {
-      const result = await km(["tasks", "--add", "New test task"])
+    test("should create a new task", async () => {
+      const result = await km(["tasks", "--new", "New test task"])
       expect(result.exitCode).toBe(0)
       expect(result.stdout).toContain("Created task")
 
@@ -246,8 +246,8 @@ describe.serial("CLI Integration", () => {
       expect(listResult.stdout).toContain("New test task")
     })
 
-    test("should add task with metadata", async () => {
-      const result = await km(["tasks", "--add", "Task with due 📅 2025-12-25"])
+    test("should create task with metadata", async () => {
+      const result = await km(["tasks", "--new", "Task with due 📅 2025-12-25"])
       expect(result.exitCode).toBe(0)
 
       // Verify task with verbose output
