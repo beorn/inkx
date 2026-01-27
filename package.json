@@ -24,6 +24,7 @@
     "update-all": "bun upgrade && nix flake update && bun update && bun test",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:errors": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "lint:unused": "knip",
     "format": "prettier --check .",
