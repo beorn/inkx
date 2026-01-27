@@ -41,6 +41,7 @@ import { getEventsPath, setKmDir } from "./emit.ts"
 import { evaluateAllRules, setBulkMode } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { DiskStore, MemoryStore, type NodeStore } from "./store.ts"
+import { getIgnorePatterns, shouldIgnore } from "./watch/ignore.ts"
 
 const debug = createDebug("km:storage:repo-loader")
 
@@ -305,9 +306,10 @@ function* discoverFilesOnly(
   const events: Event[] = []
   const deferredFiles: DeferredFile[] = []
   const now = Date.now()
+  const ignorePatterns = getIgnorePatterns(repoRoot)
 
   // Count files for progress
-  const total = countMarkdownFilesFast(repoRoot)
+  const total = countMarkdownFilesFast(repoRoot, ignorePatterns)
   yield { current: 0, total }
 
   let current = 0
@@ -323,11 +325,8 @@ function* discoverFilesOnly(
   ): Generator<StepYield, void, unknown> {
     if (!existsSync(dirPath)) return
 
-    const dirName = basename(dirPath)
-    if (
-      parentId !== null &&
-      (dirName.startsWith(".") || dirName === "node_modules")
-    ) {
+    // Skip ignored directories (except root)
+    if (parentId !== null && shouldIgnore(dirPath, ignorePatterns, repoRoot)) {
       return
     }
 
@@ -335,9 +334,10 @@ function* discoverFilesOnly(
     let order = 0
 
     for (const entry of entries) {
-      if (entry.name.startsWith(".")) continue
-
       const fullPath = join(dirPath, entry.name)
+
+      // Skip ignored entries BEFORE creating nodes
+      if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
 
       if (entry.isDirectory()) {
         // Create folder node
@@ -422,10 +422,11 @@ function* discoverFromFilesystem(
   const events: Event[] = []
   const pendingLinks: PendingLink[] = []
   const now = Date.now()
+  const ignorePatterns = getIgnorePatterns(repoRoot)
 
   // First pass: count markdown files (fast - no parsing)
   // Use a stack-based iteration to count without recursion overhead
-  const total = countMarkdownFilesFast(repoRoot)
+  const total = countMarkdownFilesFast(repoRoot, ignorePatterns)
   yield { current: total, total }
 
   // Parse - scan filesystem and generate events
@@ -444,11 +445,8 @@ function* discoverFromFilesystem(
   ): Generator<StepYield, void, unknown> {
     if (!existsSync(dirPath)) return
 
-    const dirName = basename(dirPath)
-    if (
-      parentId !== null &&
-      (dirName.startsWith(".") || dirName === "node_modules")
-    ) {
+    // Skip ignored directories (except root)
+    if (parentId !== null && shouldIgnore(dirPath, ignorePatterns, repoRoot)) {
       return
     }
 
@@ -456,9 +454,10 @@ function* discoverFromFilesystem(
     let order = 0
 
     for (const entry of entries) {
-      if (entry.name.startsWith(".")) continue
-
       const fullPath = join(dirPath, entry.name)
+
+      // Skip ignored entries BEFORE creating nodes
+      if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
 
       if (entry.isDirectory()) {
         // Create folder node
@@ -550,7 +549,10 @@ function* discoverFromFilesystem(
  * Fast markdown file count using stack-based iteration (no recursion).
  * This is used for progress display only - minimal overhead.
  */
-function countMarkdownFilesFast(rootPath: string): number {
+function countMarkdownFilesFast(
+  rootPath: string,
+  ignorePatterns: string[],
+): number {
   if (!existsSync(rootPath)) return 0
 
   let count = 0
@@ -559,12 +561,11 @@ function countMarkdownFilesFast(rootPath: string): number {
   while (stack.length > 0) {
     const dirPath = stack.pop()
     if (!dirPath) continue
-    const dirName = basename(dirPath)
 
-    // Skip hidden dirs and node_modules (except root)
+    // Skip ignored directories (except root)
     if (
       dirPath !== rootPath &&
-      (dirName.startsWith(".") || dirName === "node_modules")
+      shouldIgnore(dirPath, ignorePatterns, rootPath)
     ) {
       continue
     }
@@ -573,9 +574,11 @@ function countMarkdownFilesFast(rootPath: string): number {
       const entries = readdirSync(dirPath, { withFileTypes: true })
 
       for (const entry of entries) {
-        if (entry.name.startsWith(".")) continue
-
         const fullPath = join(dirPath, entry.name)
+
+        // Skip ignored entries
+        if (shouldIgnore(fullPath, ignorePatterns, rootPath)) continue
+
         if (entry.isDirectory()) {
           stack.push(fullPath)
         } else if (entry.isFile() && entry.name.endsWith(".md")) {

@@ -13,6 +13,7 @@ import {
   getNodeByPath,
   getChildren,
   getNode,
+  getDb,
 } from "../../../src/index.ts"
 import type { MockFileSystem } from "./mock-fs.ts"
 
@@ -78,11 +79,12 @@ export class Verifier implements IVerifier {
   verifyState(expected: ExpectedState): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
-    const nodes = getAllNodes(getDb())
+    const db = getDb()
+    const nodes = getAllNodes(db)
 
     // Check expected files exist as nodes
     for (const filePath of expected.files) {
-      const node = getNodeByPath(filePath)
+      const node = getNodeByPath(db, filePath)
       if (!node) {
         errors.push(`Missing expected file node: ${filePath}`)
       }
@@ -90,7 +92,7 @@ export class Verifier implements IVerifier {
 
     // Check deleted files don't exist as nodes
     for (const filePath of expected.deletedFiles ?? []) {
-      const node = getNodeByPath(filePath)
+      const node = getNodeByPath(db, filePath)
       if (node) {
         errors.push(`Node still exists for deleted file: ${filePath}`)
       }
@@ -107,7 +109,7 @@ export class Verifier implements IVerifier {
 
     // Check specific node properties
     for (const spec of expected.nodes ?? []) {
-      const node = getNodeByPath(spec.path)
+      const node = getNodeByPath(db, spec.path)
       if (!node) {
         errors.push(`Missing node: ${spec.path}`)
         continue
@@ -135,7 +137,7 @@ export class Verifier implements IVerifier {
       }
 
       if (spec.children !== undefined) {
-        const children = getChildren(getDb(), node.id)
+        const children = getChildren(db, node.id)
         if (children.length !== spec.children) {
           errors.push(
             `Children count mismatch for ${spec.path}: expected ${spec.children}, got ${children.length}`,
@@ -161,7 +163,8 @@ export class Verifier implements IVerifier {
   }
 
   verifyNoDuplicates(): VerificationResult {
-    const nodes = getAllNodes(getDb())
+    const db = getDb()
+    const nodes = getAllNodes(db)
     const errors: string[] = []
     const pathCounts = new Map<string, number>()
 
@@ -195,7 +198,8 @@ export class Verifier implements IVerifier {
   }
 
   verifyParentIntegrity(): VerificationResult {
-    const nodes = getAllNodes(getDb())
+    const db = getDb()
+    const nodes = getAllNodes(db)
     const errors: string[] = []
     const nodeIds = new Set(nodes.map((n) => n.id))
     let missingParents = 0
@@ -233,7 +237,8 @@ export class Verifier implements IVerifier {
   }
 
   verifyFilePaths(): VerificationResult {
-    const nodes = getAllNodes(getDb())
+    const db = getDb()
+    const nodes = getAllNodes(db)
     const errors: string[] = []
 
     const fsNodes = nodes.filter(
@@ -284,13 +289,14 @@ export class Verifier implements IVerifier {
   verifyFsDbSync(repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
+    const db = getDb()
 
     // Scan filesystem for markdown files
     const fsFiles = new Set<string>()
     this.scanDir(repoPath, fsFiles)
 
     // Get database file nodes
-    const nodes = getAllNodes(getDb())
+    const nodes = getAllNodes(db)
     const dbFiles = new Set(
       nodes
         .filter((n) => n.type === "file" && n.fs_path)
@@ -332,7 +338,8 @@ export class Verifier implements IVerifier {
   verifyContentSync(_repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
-    const nodes = getAllNodes(getDb())
+    const db = getDb()
+    const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
     const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path)
@@ -360,7 +367,7 @@ export class Verifier implements IVerifier {
         // Check for truncation (empty file when it shouldn't be)
         if (fsContent.length === 0) {
           // Check if node has children - if so, file should have content
-          const children = getChildren(getDb(), node.id)
+          const children = getChildren(db, node.id)
           if (children.length > 0) {
             errors.push(
               `Content mismatch: ${fsPath} - File is empty but has ${children.length} child nodes in DB`,
@@ -401,7 +408,8 @@ export class Verifier implements IVerifier {
   verifyMetadataSync(_repoPath: string): VerificationResult {
     const errors: string[] = []
     const warnings: string[] = []
-    const nodes = getAllNodes(getDb())
+    const db = getDb()
+    const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
     const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path)

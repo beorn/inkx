@@ -18,7 +18,7 @@ import type {
 import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
 import { runWithKmDir } from "../../../src/emit.ts"
-import { resetDb, closeDb, applyEventWithDb } from "../../../src/db.ts"
+import { resetDb, closeDb, getDb } from "../../../src/db.ts"
 import {
   reconcileDirectory,
   reconcileDirectoryRecursive,
@@ -98,8 +98,9 @@ async function runChaosTestWithMockFs(
       // ─────────────────────────────────────────────────────────────
 
       const scanner = mockFs.createScanner()
-      const ops = reconcileDirectory(repoDir, repoDir, undefined, scanner)
-      await applyReconcileOps(ops, repoDir, mockFs)
+      const db = getDb()
+      const ops = reconcileDirectory(db, repoDir, repoDir, undefined, scanner)
+      applyReconcileOps(db, ops, repoDir, mockFs)
 
       // ─────────────────────────────────────────────────────────────
       // Chaos Injection Phase
@@ -132,14 +133,15 @@ async function runChaosTestWithMockFs(
             for (const dir of data.directories) {
               const dirOps =
                 dir === repoDir
-                  ? reconcileDirectory(dir, repoDir, undefined, scanner)
+                  ? reconcileDirectory(db, dir, repoDir, undefined, scanner)
                   : reconcileDirectoryRecursive(
+                      db,
                       dir,
                       repoDir,
                       undefined,
                       scanner,
                     )
-              await applyReconcileOps(dirOps, repoDir, mockFs)
+              applyReconcileOps(db, dirOps, repoDir, mockFs)
             }
           })()
         },
@@ -236,8 +238,9 @@ async function runChaosTestWithRealFs(
       }
 
       // Initial Sync Phase
-      const ops = reconcileDirectory(repoDir, repoDir)
-      await applyReconcileOps(ops, repoDir)
+      const db = getDb()
+      const ops = reconcileDirectory(db, repoDir, repoDir)
+      applyReconcileOps(db, ops, repoDir)
 
       // Chaos Injection Phase
       chaosWatcher = createChaosWatcher({
@@ -266,9 +269,9 @@ async function runChaosTestWithRealFs(
             for (const dir of data.directories) {
               const dirOps =
                 dir === repoDir
-                  ? reconcileDirectory(dir, repoDir)
-                  : reconcileDirectoryRecursive(dir, repoDir)
-              await applyReconcileOps(dirOps, repoDir)
+                  ? reconcileDirectory(db, dir, repoDir)
+                  : reconcileDirectoryRecursive(db, dir, repoDir)
+              applyReconcileOps(db, dirOps, repoDir)
             }
           })()
         },

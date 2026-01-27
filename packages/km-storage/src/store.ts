@@ -659,13 +659,16 @@ export class MemoryStore extends BaseStore {
     parentId: string | null,
     sortOrder: number,
     total: number,
+    ignorePatterns: string[],
   ): Generator<{ phase: string; current: number; total: number }> {
     if (!existsSync(dirPath)) return
 
-    // Skip hidden directories and common excludes (but not the root directory)
-    if (parentId !== null) {
-      const name = basename(dirPath)
-      if (name.startsWith(".") || name === "node_modules") return
+    // Skip ignored directories (but not the root directory)
+    if (
+      parentId !== null &&
+      shouldIgnore(dirPath, ignorePatterns, this.rootPath)
+    ) {
+      return
     }
 
     const entries = readdirSync(dirPath, { withFileTypes: true })
@@ -674,8 +677,8 @@ export class MemoryStore extends BaseStore {
     for (const entry of entries) {
       const fullPath = join(dirPath, entry.name)
 
-      // Skip hidden files
-      if (entry.name.startsWith(".")) continue
+      // Skip ignored entries BEFORE creating nodes
+      if (shouldIgnore(fullPath, ignorePatterns, this.rootPath)) continue
 
       if (entry.isDirectory()) {
         // Create folder node

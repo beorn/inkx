@@ -21,8 +21,8 @@ import { runWithKmDir } from "../../../src/emit.ts"
 import {
   resetDb,
   closeDb,
-  applyEventWithDb,
   getAllNodes,
+  getDb,
 } from "../../../src/db.ts"
 import { runWithDb } from "../../../src/db-instance.ts"
 import { Database } from "bun:sqlite"
@@ -487,8 +487,9 @@ async function runSingleIteration(
       }
 
       // Initial reconciliation - use recursive to handle files in subdirectories
-      const ops = reconcileDirectoryRecursive(repoDir, repoDir)
-      await applyReconcileOps(ops, repoDir)
+      const db = getDb()
+      const ops = reconcileDirectoryRecursive(db, repoDir, repoDir)
+      applyReconcileOps(db, ops, repoDir)
 
       // Create watcher with combined scenarios
       const combinedScenario =
@@ -524,9 +525,9 @@ async function runSingleIteration(
             for (const dir of data.directories) {
               const dirOps =
                 dir === repoDir
-                  ? reconcileDirectory(dir, repoDir)
-                  : reconcileDirectoryRecursive(dir, repoDir)
-              await applyReconcileOps(dirOps, repoDir)
+                  ? reconcileDirectory(db, dir, repoDir)
+                  : reconcileDirectoryRecursive(db, dir, repoDir)
+              applyReconcileOps(db, dirOps, repoDir)
             }
           })()
         },
@@ -672,12 +673,13 @@ async function runSingleIterationWithMockFs(
       // Initial reconciliation with mock scanner
       const scanner = mockFs.createScanner()
       const ops = reconcileDirectoryRecursive(
+        db,
         repoDir,
         repoDir,
         undefined,
         scanner,
       )
-      await applyReconcileOps(ops, repoDir, mockFs)
+      applyReconcileOps(db, ops, repoDir, mockFs)
 
       // Create watcher with combined scenarios
       const combinedScenario =
@@ -713,14 +715,15 @@ async function runSingleIterationWithMockFs(
             for (const dir of data.directories) {
               const dirOps =
                 dir === repoDir
-                  ? reconcileDirectory(dir, repoDir, undefined, scanner)
+                  ? reconcileDirectory(db, dir, repoDir, undefined, scanner)
                   : reconcileDirectoryRecursive(
+                      db,
                       dir,
                       repoDir,
                       undefined,
                       scanner,
                     )
-              await applyReconcileOps(dirOps, repoDir, mockFs)
+              applyReconcileOps(db, dirOps, repoDir, mockFs)
             }
           })()
         },
