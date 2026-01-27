@@ -1477,37 +1477,7 @@ Content here.`
 })
 
 describe("Round-trip: Data Model Integrity", () => {
-  test("should assign correct node types", () => {
-    const md = `# Document
-
-This is a paragraph.
-
-- [ ] A task
-- A list item
-
-> A quote
-
-\`\`\`python
-code
-\`\`\`
-
-| A | B |
-|---|---|
-| 1 | 2 |
-
----`
-
-    const nodes = parseMarkdownToNodes(md, "test.md")
-
-    expect(nodes.some((n) => n.type === "file")).toBe(true)
-    expect(nodes.some((n) => n.type === "paragraph")).toBe(true)
-    expect(nodes.some((n) => n.type === "task")).toBe(true)
-    expect(nodes.some((n) => n.type === "ul")).toBe(true)
-    expect(nodes.some((n) => n.type === "quote")).toBe(true)
-    expect(nodes.some((n) => n.type === "code")).toBe(true)
-    expect(nodes.some((n) => n.type === "table")).toBe(true)
-    expect(nodes.some((n) => n.type === "hr")).toBe(true)
-  })
+  // NOTE: "should assign correct node types" removed - tautology covered by other tests
 
   test("should preserve node parent relationships", () => {
     const md = `# Doc

@@ -68,52 +68,7 @@ import { UIProvider } from "../src/ui-context.tsx"
 import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createFakeRepo } from "@km/storage"
-import Database from "bun:sqlite"
 import type { Toast } from "@km/core"
-
-// Initialize an empty in-memory database for storybook rendering
-// This is still needed for functions like getBoardPills() that query the DB.
-// TreeNode's children/parentContext use DI props instead.
-const db = new Database(":memory:")
-db.exec(`
-  CREATE TABLE IF NOT EXISTS nodes (
-    id TEXT PRIMARY KEY,
-    type TEXT NOT NULL,
-    parent_id TEXT,
-    link_to TEXT,
-    link_alias TEXT,
-    parent_idx REAL DEFAULT 0,
-    fs_path TEXT,
-    fs_ino INTEGER,
-    md_line INTEGER,
-    name TEXT,
-    title TEXT,
-    md_pos INTEGER,
-    md_slug TEXT,
-    task_status TEXT,
-    task_mark TEXT,
-    assigned_to TEXT,
-    due_date TEXT,
-    scheduled_date TEXT,
-    priority INTEGER,
-    content TEXT,
-    data TEXT DEFAULT '{}',
-    created_at INTEGER,
-    updated_at INTEGER,
-    version TEXT DEFAULT '1'
-  );
-  CREATE TABLE IF NOT EXISTS meta (
-    key TEXT PRIMARY KEY,
-    value TEXT
-  );
-  CREATE TABLE IF NOT EXISTS links (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    source_id TEXT NOT NULL,
-    target_name TEXT NOT NULL,
-    alias TEXT,
-    UNIQUE(source_id, target_name)
-  );
-`)
 
 // In-memory node store for storybook - supplements the DB for DI props
 // TreeNode now accepts children/getChildren props for DI
