@@ -23,10 +23,10 @@
  * and the storybook gives false confidence that things work correctly.
  *
  * If a component is hard to use here, refactor it to be more reusable.
- * See: docs/dev/ink-patterns.md, bead km-80j2
+ * See: docs/dev/ink-patterns.md, bead km-board-2
  *
  * TODO: Several sections still use chalk directly and need refactoring.
- * See bead km-80j2 for the full plan.
+ * See bead km-board-2 for the full plan.
  */
 
 import React from "react"

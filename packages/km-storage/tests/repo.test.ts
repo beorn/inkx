@@ -26,7 +26,7 @@ import {
 function createTempDir(): string {
   const dir = join(
     "/tmp",
-    `km-repo-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    `kmtest-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   )
   mkdirSync(dir, { recursive: true })
   return dir

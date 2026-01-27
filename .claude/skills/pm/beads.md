@@ -19,29 +19,31 @@ Always prefer standalone `bd` for creating and updating beads.
 
 A **bead** is an issue/task/bug with these core fields:
 
-| Field          | Type               | Description                                               |
-| -------------- | ------------------ | --------------------------------------------------------- |
-| `id`           | string (required)  | Unique ID - see [beads-ids.md](beads-ids.md) for conventions |
-| `title`        | string (required)  | Short summary (< 80 chars)                                |
-| `issue_type`   | enum (required)    | `bug`, `feature`, `task`, `epic`, `chore`                 |
-| `status`       | enum               | `open` (default), `in_progress`, `blocked`, `deferred`, `closed` |
-| `priority`     | int (0-4)          | 0=P0 (highest), 4=P4 (lowest), default=2                  |
-| `description`  | string             | Full description (markdown supported)                     |
-| `notes`        | string             | Status updates, progress notes                            |
-| `assignee`     | string             | Who is responsible (session ID or username)               |
-| `actor`        | string             | Who performed last action (audit trail)                   |
-| `parent`       | string             | Parent bead ID (for hierarchical tracking)                |
-| `created_at`   | timestamp          | When created                                              |
-| `created_by`   | string             | Who created it                                            |
-| `updated_at`   | timestamp          | Last update time                                          |
+| Field         | Type              | Description                                                      |
+| ------------- | ----------------- | ---------------------------------------------------------------- |
+| `id`          | string (required) | Unique ID - see [beads-ids.md](beads-ids.md) for conventions     |
+| `title`       | string (required) | Short summary (< 80 chars)                                       |
+| `issue_type`  | enum (required)   | `bug`, `feature`, `task`, `epic`, `chore`                        |
+| `status`      | enum              | `open` (default), `in_progress`, `blocked`, `deferred`, `closed` |
+| `priority`    | int (0-4)         | 0=P0 (highest), 4=P4 (lowest), default=2                         |
+| `description` | string            | Full description (markdown supported)                            |
+| `notes`       | string            | Status updates, progress notes                                   |
+| `assignee`    | string            | Who is responsible (session ID or username)                      |
+| `actor`       | string            | Who performed last action (audit trail)                          |
+| `parent`      | string            | Parent bead ID (for hierarchical tracking)                       |
+| `created_at`  | timestamp         | When created                                                     |
+| `created_by`  | string            | Who created it                                                   |
+| `updated_at`  | timestamp         | Last update time                                                 |
 
 **Storage**: SQLite database at `.beads/beads.db`, synced to `.beads/issues.jsonl` for git tracking.
 
 **Actor vs Assignee**:
+
 - `assignee` = who owns the work (current responsibility)
 - `actor` = who performed the last action (audit trail)
 
 **Typical lifecycle**:
+
 ```
 open (no assignee)
   → in_progress (assignee set via --claim)
@@ -75,21 +77,37 @@ bd list --json | jq -r '.[] | "\(.id) \(.title)"'
 
 ## Creating Beads
 
-**See [beads-ids.md](beads-ids.md) for ID conventions.**
+**See [beads-ids.md](beads-ids.md) for full ID conventions.**
+
+### ID Pattern
+
+```text
+km-<scope>.<type>-<N>-<slug>    # Package-specific
+km-<type>-<slug>                # Cross-cutting
+```
+
+**Scope tokens**: storage, board, tree, tui, cli, markdown, beads, agent
+
+**Examples:**
 
 ```bash
-# With explicit ID (preferred)
+# Find next number for scope
+bd list --all | grep "km-storage.bug" | tail -1
+
+# Package-specific bug
 bd create --id km-storage.bug-3-sync-race --type bug --title "Race in file sync"
 
-# With description and priority
+# Feature with subtasks
 bd create --id km-tui.feat-1-vim-mode --type feature --priority 1 \
   --title "Add vim keybindings" \
   --description "Full description here"
 
-# With parent (creates child bead)
 bd create --id km-tui.feat-1-vim-mode.a --type task \
   --title "Normal mode navigation" \
   --parent km-tui.feat-1-vim-mode
+
+# Cross-cutting issue (no scope)
+bd create --id km-bug-watcher-race --type bug --title "Watcher race condition"
 
 # Quick capture (outputs only ID)
 bd q "Quick note about issue"

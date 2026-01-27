@@ -27,7 +27,8 @@ createDebug.log = (...args: unknown[]) => {
 }
 
 // Now import modules - their debug() calls will use our intercepted logger
-import { readFileSync } from "fs"
+import { readFileSync, statSync } from "fs"
+import { createHash } from "crypto"
 import { parseMarkdownWithLinks } from "@km/markdown"
 
 // Create debug instance using the intercepted createDebug
@@ -47,6 +48,12 @@ export interface ParseResponse {
   fsPath: string
   nodes: unknown[]
   wikilinks: unknown[]
+  /** SHA-256 hash of file content (for change detection) */
+  hash: string
+  /** Filesystem inode */
+  ino: number
+  /** Filesystem mtime in ms */
+  mtime: number
   error?: string
 }
 
@@ -71,10 +78,14 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
   if (message.type === "parse") {
     try {
       debug("parsing %s", message.fsPath)
+      const stat = statSync(message.fsPath)
       const content = readFileSync(message.fsPath, "utf-8")
+      const hash = createHash("sha256").update(content, "utf-8").digest("hex")
       const { nodes, wikilinks } = parseMarkdownWithLinks(
         content,
         message.fsPath,
+        stat.ino,
+        stat.mtimeMs,
       )
 
       debug(
@@ -90,6 +101,9 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         fsPath: message.fsPath,
         nodes,
         wikilinks,
+        hash,
+        ino: stat.ino,
+        mtime: stat.mtimeMs,
       } satisfies ParseResponse)
     } catch (err) {
       debug(
@@ -104,6 +118,9 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         fsPath: message.fsPath,
         nodes: [],
         wikilinks: [],
+        hash: "",
+        ino: 0,
+        mtime: 0,
         error: err instanceof Error ? err.message : String(err),
       } satisfies ParseResponse)
     }

@@ -123,17 +123,18 @@ See [principles.md](principles.md) for the philosophy and patterns
 ## Data Types
 
 ```
-FS → Storage:    File content  → KNode         (parse markdown)
+FS → Storage:    File content  → ProcessedMarkdown → KNode (parse + transform)
 Storage → App:   repo.data.getChildren() → KNode[] (on-demand tree queries)
 App Render:      repo + state → columns       (derived at render time)
 ```
 
-| Type                   | Package   | Description                                |
-| ---------------------- | --------- | ------------------------------------------ |
-| `KNode`                | @km/core  | Flat record with `parent_id` (SQLite)      |
-| `TNode`                | @km/core  | Recursive with `children[]` (legacy paths) |
-| `SimplifiedBoardState` | @km/board | cursorNodeId, fold, zoom (no tree data)    |
-| `UIState`              | apps/     | Dialogs, view mode, dimensions             |
+| Type                   | Package     | Description                                 |
+| ---------------------- | ----------- | ------------------------------------------- |
+| `KNode`                | @km/core    | Flat record with `parent_id` (SQLite)       |
+| `TNode`                | @km/core    | Recursive with `children[]` (legacy paths)  |
+| `ProcessedMarkdown`    | @km/storage | Parsed file + hash (intermediate data type) |
+| `SimplifiedBoardState` | @km/board   | cursorNodeId, fold, zoom (no tree data)     |
+| `UIState`              | apps/       | Dialogs, view mode, dimensions              |
 
 **Key design:** No tree data in board state. Navigation uses `repo.getChildren()` directly. Columns are derived at render time via `useColumns()`, cursor position via `useCursorPosition()`.
 

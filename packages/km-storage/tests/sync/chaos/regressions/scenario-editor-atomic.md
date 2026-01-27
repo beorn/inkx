@@ -1,6 +1,6 @@
 ---
 type: chaos-test
-beadId: km-sync-m5.0
+beadId: km-test-1.0
 createdAt: 2026-01-23T23:00:00.000Z
 description: Editor atomic writes - temp file rename pattern
 invariantsViolated: []

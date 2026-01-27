@@ -184,8 +184,34 @@ The `/ .md #` suffix shows what was collapsed. See [ref/ui.md](ref/ui.md).
 
 ---
 
+## Glossary
+
+| Term                | Definition                                                                  |
+| ------------------- | --------------------------------------------------------------------------- |
+| **KNode**           | Flat record with `parent_id`. Stored in SQLite.                             |
+| **TNode**           | Recursive tree with `children[]`. For navigation.                           |
+| **BoardState**      | Visual state: cursor, selection, fold, zoom.                                |
+| **memory mode**     | No `.km/`. SQLite in RAM. Ephemeral IDs.                                    |
+| **disk mode**       | `.km/` exists. SQLite on disk. Stable IDs, events, sync.                    |
+| **domain object**   | Plain object created by factory function with explicit dependencies.        |
+| **async generator** | Function that yields values over time. Composes into pipelines.             |
+| **composability**   | Ability to build complex systems from simple, reusable pieces.              |
+| **collapsing**      | Merging same-named folder/file/H1 into one display line.                    |
+| **cursoring**       | Moving to adjacent block (hjkl).                                            |
+| **navigating**      | Changing board root via zoom (u/Enter).                                     |
+| **shifting**        | Moving selected nodes in direction (opt+hjkl).                              |
+| **representation**  | One storage form translates to another (FileTree represents DataStore).     |
+| **fail fast**       | Throw immediately on programming errors, no defensive fallbacks.            |
+| **disposable**      | Object with `Symbol.dispose` for automatic cleanup via `using` keyword.     |
+| **pipeline**        | Composable sequence of async generator stages for data processing.          |
+| **buffering stage** | Async generator that exhausts upstream before yielding (for transactions).  |
+| **streaming stage** | Async generator that yields items as they arrive (for parallel processing). |
+
+---
+
 ## See Also
 
 - [architecture.md](architecture.md) — Package structure, data flow, event system
 - [storage.md](storage.md) — Mode detection, SQLite schema, sync
 - [guides/tasks.md](guides/tasks.md) — Task management, GTD workflow
+- [principles.md](principles.md) — Composability and architectural principles

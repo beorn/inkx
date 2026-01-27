@@ -8,18 +8,7 @@
 import { describe, test, expect } from "bun:test"
 import { parseMarkdownToNodes } from "../src/ast2nodes.ts"
 import { nodesToMarkdown } from "../src/nodes2md.ts"
-
-/**
- * Helper to normalize whitespace for comparison
- */
-function normalizeMarkdown(md: string): string {
-  return md
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
-}
+import { normalizeMarkdown } from "./helpers/test-utils.ts"
 
 describe("Round-trip: Single Property", () => {
   test("preserves single link property", () => {

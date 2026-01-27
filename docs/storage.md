@@ -554,6 +554,76 @@ The `SyncManager` handles the hot path via file watching → `reconcileDirectory
 
 ---
 
+## Markdown Data Layer
+
+The `ProcessedMarkdown` type sits between the parser (@km/markdown) and storage/application layers. It provides a canonical representation of a parsed markdown file that is independent of storage concerns.
+
+### Data Flow
+
+```
+Filesystem
+    ↓
+Parser (parseMarkdownWithLinks)
+    ↓
+ProcessedMarkdown  ← Canonical parsed file type
+    ↓
+Transforms (toNodeEvents, toResolvedLinks)
+    ↓
+Storage (DataStore, links table)
+```
+
+### ProcessedMarkdown Type
+
+```typescript
+interface ProcessedMarkdown {
+  path: string // File path
+  ino?: number // Inode (rename detection)
+  mtime?: number // Mtime (change detection)
+  hash: string // Content hash
+  nodes: KNode[] // Parsed nodes
+  wikilinks: WikilinkRef[] // Extracted links
+  warnings: ParseWarning[]
+}
+```
+
+### Transform Functions
+
+Transform functions convert `ProcessedMarkdown` to different formats for different use cases:
+
+| Function            | Purpose                         | Used By      |
+| ------------------- | ------------------------------- | ------------ |
+| `toNodeEvents()`    | Convert to node_created events  | Loading path |
+| `toPendingLinks()`  | Extract links for batch resolve | Loading path |
+| `toResolvedLinks()` | Resolve links via LinkResolver  | Syncing path |
+
+### Usage Example
+
+```typescript
+import { processMarkdownFile, toResolvedLinks, toNodeEvents } from "@km/storage"
+
+// Parse a markdown file
+const content = fs.readFileSync(path, "utf-8")
+const processed = processMarkdownFile(content, path, ino, mtime)
+
+// Loading path: convert to events for batch application
+const events = toNodeEvents(processed, "fs-scan")
+
+// Syncing path: resolve wikilinks immediately
+const resolver = createLinkResolver(db)
+const links = toResolvedLinks(processed, resolver)
+```
+
+### Type Hierarchy
+
+```
+KNode             = one node (file, section, task)
+TNode             = KNode + children[] (for tree traversal)
+ParseResult       = KNode[] + wikilinks (parser output)
+ProcessedMarkdown = ParseResult + fs context (parsed file ready for storage)
+```
+
+---
+
 ## Store Interface
 
 ```typescript

@@ -37,6 +37,7 @@ export {
   reconcileDirectory,
   reconcileDirectoryRecursive,
   applyReconcileOps,
+  applyReconcileOpsAsync,
   getParentNodeId,
 } from "./reconcile.ts"
 

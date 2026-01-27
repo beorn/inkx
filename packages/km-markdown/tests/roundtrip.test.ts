@@ -13,21 +13,7 @@ import type { KNode } from "@km/core"
 import { parseMarkdownToNodes } from "../src/ast2nodes.ts"
 import { nodesToMarkdown } from "../src/nodes2md.ts"
 import { extractFrontmatter } from "../src/parser.ts"
-
-/**
- * Helper to normalize whitespace for comparison
- * - Trims trailing whitespace from lines
- * - Collapses multiple blank lines to single blank line
- * - Trims leading/trailing whitespace from document
- */
-function normalizeMarkdown(md: string): string {
-  return md
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
-}
+import { normalizeMarkdown } from "./helpers/test-utils.ts"
 
 /**
  * Helper to compare markdown semantically
@@ -837,44 +823,20 @@ Content at deepest level.`
 })
 
 describe("Round-trip: Wiki Link Embeddings", () => {
-  test("should preserve simple embedding", () => {
-    const md = `![[Target Page]]`
+  test.each([
+    { desc: "simple embedding", md: "![[Target Page]]" },
+    { desc: "embedding with section anchor", md: "![[Target Page#Section]]" },
+    { desc: "embedding with block ID", md: "![[Target Page^block123]]" },
+    { desc: "embedding with alias", md: "![[Target Page|Display Text]]" },
+    {
+      desc: "embedding with section and alias",
+      md: "![[Projects/API#Auth|API Authentication]]",
+    },
+  ])("should preserve $desc", ({ md }) => {
     const nodes = parseMarkdownToNodes(md, "test.md")
     const output = nodesToMarkdown(nodes)
 
-    expect(output).toContain("![[Target Page]]")
-  })
-
-  test("should preserve embedding with section anchor", () => {
-    const md = `![[Target Page#Section]]`
-    const nodes = parseMarkdownToNodes(md, "test.md")
-    const output = nodesToMarkdown(nodes)
-
-    expect(output).toContain("![[Target Page#Section]]")
-  })
-
-  test("should preserve embedding with block ID", () => {
-    const md = `![[Target Page^block123]]`
-    const nodes = parseMarkdownToNodes(md, "test.md")
-    const output = nodesToMarkdown(nodes)
-
-    expect(output).toContain("![[Target Page^block123]]")
-  })
-
-  test("should preserve embedding with alias", () => {
-    const md = `![[Target Page|Display Text]]`
-    const nodes = parseMarkdownToNodes(md, "test.md")
-    const output = nodesToMarkdown(nodes)
-
-    expect(output).toContain("![[Target Page|Display Text]]")
-  })
-
-  test("should preserve embedding with section and alias", () => {
-    const md = `![[Projects/API#Auth|API Authentication]]`
-    const nodes = parseMarkdownToNodes(md, "test.md")
-    const output = nodesToMarkdown(nodes)
-
-    expect(output).toContain("![[Projects/API#Auth|API Authentication]]")
+    expect(output).toContain(md)
   })
 
   test("should NOT convert regular wikilink to embedding", () => {

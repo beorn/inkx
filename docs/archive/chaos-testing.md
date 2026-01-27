@@ -614,7 +614,7 @@ See beads for implementation status:
 | ✅ M2: Full FS Mocking     | km-sync-m2 | MockFileSystem class for fast testing |
 | ✅ M3: Invariant Framework | km-sync-m3 | Verifier class, structured reports    |
 | ✅ M4: Chaos Fuzzer        | km-sync-m4 | Property-based fuzzing, CLI commands  |
-| 🚧 M5: Regression Suite    | km-sync-m5 | Named cases, CI integration           |
+| 🚧 M5: Regression Suite    | km-test-1  | Named cases, CI integration           |
 
 **Performance:** With `--mock-fs` flag, chaos tests run ~9x faster (~60ms vs ~560ms/iteration).
 

@@ -1,6 +1,6 @@
 ---
 description: Issue tracking with beads. Use when creating, claiming, closing issues or coordinating work across sessions.
-argument-hint: [ready|work|show|close|sync|my|create|list] [id]
+argument-hint: [ready|work|do|show|close|sync|my|create|list] [id]
 allowed-tools: Bash, Read, TodoWrite
 ---
 
@@ -28,10 +28,11 @@ When user says `/pm <action>`, run these commands:
 | `/pm feat <desc>`  | Load [create.md](create.md) for feature creation      |
 | `/pm task <desc>`  | Load [create.md](create.md) for task creation         |
 | `/pm work <id>`    | `bd update <id> --claim --status in_progress`         |
+| `/pm do <id>`      | `bd update <id> --claim --status in_progress`         |
 | `/pm show <id>`    | `bd show <id>`                                        |
 | `/pm close <id>`   | `bd close <id>`                                       |
 | `/pm sync`         | `git add .beads && git commit -m "chore: sync beads"` |
-| `/pm my`           | `bd list --assignee $(bd whoami)`                     |
+| `/pm my`           | `bd list --assignee $USER`                            |
 | `/pm new <id> "t"` | `bd create --id km-<id> --title "t"`                  |
 | `/pm create ...`   | See [beads.md](beads.md) for full create syntax       |
 
@@ -46,17 +47,19 @@ When user says `/pm <action>`, run these commands:
 ## Session Coordination
 
 **Actor tracking** (automatic):
+
 - Each Claude session has unique actor ID: `claude:abc12345` (from $BD_ACTOR)
 - User operations use actor: `beorn` (from $USER)
 - See [beads.md Actor Attribution](beads.md#actor-attribution-audit-trail) for details
 
 **Claim management** (manual):
+
 - Claims don't auto-expire - use `bd list --status in_progress` to see active work
 - **Stale claim guidelines** (check age with `bd show <id> --json | jq -r '.[0].updated_at'`):
   - **Agent claims** (actor=`claude:*`): Stale after **20 minutes** of inactivity, safe to reclaim
   - **User claims** (actor=`beorn`): Stale after **24 hours** of inactivity, check before reclaiming
 - Take over stale work: `bd update <id> --claim` (forcibly claims, updates assignee)
-- View your claims: `bd list --assignee $(bd whoami)`
+- View your claims: `bd list --assignee $USER`
 - Actor field shows who last worked on each bead (audit trail)
 
 ## Sub-Skills
@@ -71,3 +74,4 @@ When user says `/pm <action>`, run these commands:
 | [workflows/upstream.md](workflows/upstream.md) | External dependency bugs                   |
 | [beads.md](beads.md)                           | Full CLI reference, all subcommands        |
 | [beads-ids.md](beads-ids.md)                   | Bead ID conventions, scope tokens          |
+| [labels.md](labels.md)                         | Label taxonomy and usage guidelines        |

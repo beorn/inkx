@@ -52,7 +52,7 @@ km provides beads-compatible issue tracking by treating issues as **tasks with l
 ### Related Issues
 
 - **km-props** (P1): Inline properties system - required for `blocks::` / `blocked-by::` syntax
-- **km-supertags** (P4): Optional schema validation for @issue
+- **km-storage-8** (P4): Optional schema validation for @issue
 - **km-beads** (P2): This implementation - the CLI commands
   | Close reason | Event + node field | `data.close_reason` for quick access |
 

@@ -47,12 +47,12 @@ km init                    # Enable persistence (stable IDs, history)
 
 ### Understanding (Start Here)
 
-| Doc                                | Description                            |
-| ---------------------------------- | -------------------------------------- |
-| [principles.md](principles.md)     | **Start here.** Why we build this way  |
-| [concepts.md](concepts.md)         | Core concepts: nodes, modes, status    |
-| [architecture.md](architecture.md) | System layers, data flow, event system |
-| [storage.md](storage.md)           | SQLite schema, two modes, sync         |
+| Doc                                | Description                                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| [principles.md](principles.md)     | **Start here.** How km works: composability, fast feedback, code for humans, governance, and AI agents |
+| [concepts.md](concepts.md)         | Core concepts: nodes, modes, status, glossary                                                          |
+| [architecture.md](architecture.md) | System layers, data flow, event system                                                                 |
+| [storage.md](storage.md)           | SQLite schema, two modes, sync                                                                         |
 
 ### User Guides
 
@@ -64,22 +64,26 @@ km init                    # Enable persistence (stable IDs, history)
 
 ### Reference
 
-| Doc                                  | Description                 |
-| ------------------------------------ | --------------------------- |
-| [ref/ui.md](ref/ui.md)               | Views, navigation, design   |
-| [ref/commands.md](ref/commands.md)   | Command system, keybindings |
-| [ref/query.md](ref/query.md)         | Query language              |
-| [ref/markdown.md](ref/markdown.md)   | Markdown parsing            |
-| [ref/prior-art.md](ref/prior-art.md) | Research notes              |
+| Doc                                                                            | Description                              |
+| ------------------------------------------------------------------------------ | ---------------------------------------- |
+| [ref/ui.md](ref/ui.md)                                                         | Views, navigation, design                |
+| [ref/commands.md](ref/commands.md)                                             | Command system, keybindings              |
+| [ref/query.md](ref/query.md)                                                   | Query language                           |
+| [ref/markdown.md](ref/markdown.md)                                             | Markdown parsing                         |
+| [ref/pipelines.md](ref/pipelines.md)                                           | Async generator pipelines (complete)     |
+| [ref/prior-art.md](ref/prior-art.md)                                           | Research notes                           |
+| [ref/lesson-backwards-compatibility.md](ref/lesson-backwards-compatibility.md) | Lesson: The Backwards Compatibility Trap |
+| [ref/lesson-filetree-as-peer.md](ref/lesson-filetree-as-peer.md)               | Lesson: FileTree as Peer DataStore       |
+| [ref/lesson-km-me0n.md](ref/lesson-km-me0n.md)                                 | Lesson: The km-me0n Incident             |
 
 ### Developer Guides
 
-| Doc                                        | Description                |
-| ------------------------------------------ | -------------------------- |
-| [dev/testing.md](dev/testing.md)           | Testing strategy           |
-| [dev/debugging.md](dev/debugging.md)       | Debugging workflow         |
-| [dev/ink-patterns.md](dev/ink-patterns.md) | Ink TUI framework patterns |
-| [dev/releasing.md](dev/releasing.md)       | Versioning and releases    |
+| Doc                                        | Description                         |
+| ------------------------------------------ | ----------------------------------- |
+| [dev/testing.md](dev/testing.md)           | Testing strategy and test types     |
+| [dev/debugging.md](dev/debugging.md)       | Debugging TUI, storage, sync, tests |
+| [dev/ink-patterns.md](dev/ink-patterns.md) | Ink TUI framework patterns          |
+| [dev/releasing.md](dev/releasing.md)       | Versioning and releases             |
 
 ### Future
 
@@ -103,10 +107,10 @@ See [principles.md](principles.md) for the full architectural philosophy. In bri
 
 **Engineering principles:**
 
-- Domain objects via factory functions (not classes, not singletons)
-- Explicit dependencies (pass them in, don't reach for globals)
-- Fail fast (throw on programming errors, no defensive fallbacks)
-- Fast tests (<5s feedback loop via in-memory infrastructure)
+- **Composability** — Domain objects and async generators make structures and flows composable
+- **Quality enables fast feedback** — Fast tests (<5s) and fail-fast errors maintain the quality plateau
+- **Readability matters** — Important logic first, implementation details after
+- **Built for LLMs** — Delete legacy patterns (they're viral), maintain one obvious way to do things
 
 ---
 

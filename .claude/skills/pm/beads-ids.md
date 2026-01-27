@@ -6,116 +6,198 @@ description: Bead ID conventions and scope tokens
 
 This document defines the ID structure for beads in the km project. All skills that create beads should follow these conventions.
 
+## Philosophy: Metadata First
+
+Beads have rich metadata fields (`issue_type`, `labels`, `priority`, `assignee`, `dependencies`) that should carry classification details rather than encoding everything in IDs. IDs should be **short, memorable prefixes** for grouping related work.
+
 ## Contents
 
 - [ID Patterns](#id-patterns)
+- [Choosing an ID Pattern](#choosing-an-id-pattern)
 - [Scope Tokens](#scope-tokens)
-- [Type Tokens](#type-tokens)
 - [Subtasks (Dot Notation)](#subtasks-dot-notation)
-- [Epic Children](#epic-children)
+- [Metadata Usage Guide](#metadata-usage-guide)
 - [Auto-Increment Guidance](#auto-increment-guidance)
-- [Fields vs ID Encoding](#fields-vs-id-encoding)
 - [Complete Examples](#complete-examples)
+- [Migration Strategy](#migration-strategy)
 
 ## ID Patterns
 
-### Package-Specific Issues
+### Pattern 1: Project-Scoped Sequential (Recommended)
 
 ```
-km-<scope>.<type>-<N>-<slug>
+km-<scope>-<N>
 ```
 
-| Component | Description                    | Example               |
-| --------- | ------------------------------ | --------------------- |
-| `km`      | Project prefix                 | `km`                  |
-| `<scope>` | Package/area (see table below) | `storage`             |
-| `<type>`  | Issue type                     | `bug`, `feat`, `task` |
-| `<N>`     | Auto-incremented number        | `3`                   |
-| `<slug>`  | Descriptive kebab-case         | `core-dump`           |
+**When to use**: Most work items scoped to a specific package or area.
 
 **Examples:**
 
-- `km-storage.bug-3-core-dump`
-- `km-tui.feat-1-vim-mode`
-- `km-board.task-2-cleanup-reducer`
+- `km-storage-15` - Storage package work #15
+- `km-tui-42` - TUI work #42
+- `km-board-3` - Board package work #3
 
-### Cross-Cutting Issues
+**Metadata carries classification:**
 
-For issues that span multiple packages or don't fit a single scope:
+```bash
+bd create --id km-storage-15 \
+  --type bug \
+  --title "Race condition in file sync" \
+  --priority 0 \
+  --labels sync,phase:testing
+```
+
+### Pattern 2: Hierarchical (For Epic Decomposition)
 
 ```
-km-<type>-<slug>
+km-<scope>-<N>        # Parent
+km-<scope>-<N>.<N>    # Subtask (numeric, not letters)
 ```
+
+**When to use**: Breaking down epics or large features into subtasks.
 
 **Examples:**
 
-- `km-bug-watcher-race`
-- `km-feat-dark-mode`
-- `km-epic-domain-refactor`
-
-## Scope Tokens
-
-| Short      | Package/Location |
-| ---------- | ---------------- |
-| `storage`  | @km/storage      |
-| `board`    | @km/board        |
-| `tree`     | @km/tree         |
-| `tui`      | apps/km-tui      |
-| `cli`      | apps/km-cli      |
-| `core`     | @km/core         |
-| `markdown` | @km/markdown     |
-| `beads`    | @km/beads        |
-| `agent`    | @km/agent        |
-
-## Type Tokens
-
-| Type    | When to Use                       |
-| ------- | --------------------------------- |
-| `bug`   | Something is broken               |
-| `feat`  | New functionality                 |
-| `task`  | Work item (refactor, docs, chore) |
-| `epic`  | Large initiative with subtasks    |
-| `chore` | Maintenance, cleanup              |
-
-## Subtasks (Dot Notation)
-
-Use `.a`, `.b`, `.c` (letters) for subtasks under a parent:
-
 ```
-km-storage.feat-1-file-watcher      # Parent
-km-storage.feat-1-file-watcher.a    # Subtask: implement debouncing
-km-storage.feat-1-file-watcher.b    # Subtask: add ignore patterns
-km-storage.feat-1-file-watcher.c    # Subtask: write tests
+km-test-1          # Test milestone epic
+km-test-1.1        # CI integration subtask
+km-test-1.2        # Coverage tracking subtask
+
+km-storage-8       # Supertags epic
+km-storage-8.1     # Test specifications subtask
+km-storage-8.2     # Package structure subtask
 ```
 
 **Rules:**
 
-- Subtasks use the parent ID + `.` + letter
-- Letters are sequential: a, b, c, ... z
-- For 26+ subtasks, continue: aa, ab, ...
-- All subtasks should have `--parent <parent-id>`
+- Subtasks use parent ID + `.` + number
+- Numbers are sequential: 1, 2, 3, ...
+- Create dependency with `--deps parent-child:<parent-id>`
 
-## Epic Children
+### Pattern 3: Keyword-Based (For Named Initiatives)
 
-**Small subtasks:** Use dot notation (`.a`, `.b`, `.c`)
+```
+km-<keyword>
+km-<multi-word-keyword>
+```
 
-- Quick wins, tightly coupled to parent
-- Complete within same session
+**When to use**: Named epics, cross-cutting concerns, memorable initiatives that span multiple packages.
 
-**Large subtasks:** Create as own beads
+**Examples:**
 
-- Significant work (hours+)
-- Could be worked independently
-- Use `--deps blocks:<epic-id>` to link
+- `km-domain` - Domain objects epic
+- `km-lint-cleanup` - Lint cleanup task
+- `km-board-persist` - Board state persistence
+
+### Pattern 4: Opaque Short IDs (Quick Capture)
+
+```
+km-<4-5 char random>
+```
+
+**When to use**: Quick capture, temporary tracking, scope unknown yet.
+
+**Examples:**
+
+- `km-5vsut` - Quick bug capture
+- `km-2eh2` - Investigation task
+
+**Note**: Most historical beads use this pattern. It's valid for quick capture but prefer Pattern 1 for organized work.
+
+## Choosing an ID Pattern
+
+| Scenario              | Pattern         | Example                          | Notes                      |
+| --------------------- | --------------- | -------------------------------- | -------------------------- |
+| Package-specific bug  | 1: Scoped       | `km-storage-15`                  | Find next N with `bd list` |
+| Feature in a package  | 1: Scoped       | `km-tui-8`                       | Clear scope                |
+| Epic with subtasks    | 2: Hierarchical | `km-storage-8`, `km-storage-8.1` | Use dot notation           |
+| Cross-package feature | 3: Keyword      | `km-dark-mode`                   | Memorable name             |
+| Quick bug capture     | 4: Opaque       | `km-5vsut`                       | Auto-generated             |
+| Unknown scope yet     | 4: Opaque       | `km-a1b2c`                       | Refine later               |
+
+## Scope Tokens
+
+| Scope      | Package/Location    |
+| ---------- | ------------------- |
+| `storage`  | @km/storage         |
+| `board`    | @km/board           |
+| `tree`     | @km/tree            |
+| `tui`      | apps/km-tui         |
+| `cli`      | apps/km-cli         |
+| `markdown` | @km/markdown        |
+| `flexx`    | vendor/beorn-flexx  |
+| `test`     | Test infrastructure |
+| `sync`     | Sync/watcher system |
+| `commands` | Command system      |
+| `chore`    | Maintenance         |
+| `misc`     | Miscellaneous       |
+
+## Subtasks (Dot Notation)
+
+Use `.1`, `.2`, `.3` (numbers) for subtasks under a parent:
+
+```
+km-storage-8          # Parent
+km-storage-8.1        # Subtask 1
+km-storage-8.2        # Subtask 2
+km-storage-8.3        # Subtask 3
+```
+
+**Rules:**
+
+- Subtasks use the parent ID + `.` + number
+- Numbers are sequential: 1, 2, 3, ... (not letters)
+- For 10+ subtasks, continue: 10, 11, 12, ...
+- Create with `--deps parent-child:<parent-id>`
+
+**Query subtasks:**
 
 ```bash
-# Epic
-bd create --id km-epic-domain-refactor --type epic --title "Domain object refactor"
+bd list | grep "km-storage-8"     # Prefix match
+```
 
-# Large child (own bead, blocked by epic planning)
-bd create --id km-storage.feat-1-repo-object --type feat \
-  --title "Create Repo domain object" \
-  --deps "blocks:km-epic-domain-refactor"
+## Metadata Usage Guide
+
+### What Goes Where
+
+| Aspect          | ID           | Metadata Field | Query Method                     |
+| --------------- | ------------ | -------------- | -------------------------------- |
+| Project/Epic    | Prefix       | -              | `bd list \| grep "km-storage"`   |
+| Sequence        | Number       | -              | Auto-increment                   |
+| Hierarchy       | Dot notation | `dependencies` | `bd list \| grep "km-storage-8"` |
+| Type (bug/feat) | **NO**       | `issue_type`   | `bd list --type bug`             |
+| Scope detail    | **NO**       | `labels`       | `bd list --label storage,sync`   |
+| Priority        | **NO**       | `priority`     | `bd list --priority-max 1`       |
+| Phase/Status    | **NO**       | `labels`       | `bd list --label phase:testing`  |
+| Owner           | **NO**       | `assignee`     | `bd list --assignee beorn`       |
+
+### Recommended Label Conventions
+
+**Scope labels** (when not in prefix):
+
+```bash
+--label storage     # Package scope
+--label tui
+--label cross-pkg   # Spans packages
+```
+
+**Domain labels**:
+
+```bash
+--label sync        # Sync system
+--label parser      # Parser
+--label watcher     # File watcher
+--label flexx       # Layout engine
+```
+
+**Phase labels** (for epics):
+
+```bash
+--label phase:planning
+--label phase:infrastructure
+--label phase:testing
+--label phase:quality
+--label phase:components
 ```
 
 ## Auto-Increment Guidance
@@ -127,25 +209,18 @@ Before creating a bead, find the next number:
 bd list --all | grep "km-storage"
 
 # Example output:
-# km-storage.bug-1  Fix watcher race
-# km-storage.bug-2  Handle empty dirs
-# → Next bug: km-storage.bug-3-<slug>
+# km-storage-1  Full event sourcing architecture
+# km-storage-2  Remove singletons
+# → Next: km-storage-3
 ```
 
-## Fields vs ID Encoding
+**Efficient lookup** (direct database query):
 
-Use ID encoding for primary classification; use fields for additional metadata.
-
-| Aspect          | Encode in ID | Use Field                     |
-| --------------- | ------------ | ----------------------------- |
-| Scope/package   | Yes          | -                             |
-| Type (bug/feat) | Yes          | Also set `--type`             |
-| Sequence number | Yes          | -                             |
-| Priority        | No           | `--priority P0-P4`            |
-| Labels/tags     | No           | `--labels sync,phase:testing` |
-| Assignee        | No           | `--assignee name`             |
-| Parent          | No           | `--parent <id>`               |
-| Dependencies    | No           | `--deps blocks:<id>`          |
+```bash
+sqlite3 .beads/beads.db "SELECT MAX(CAST(SUBSTR(id, LENGTH('km-storage-')+1) AS INTEGER)) FROM issues WHERE id LIKE 'km-storage-%'"
+# Output: 9
+# → Next: 10
+```
 
 ## Complete Examples
 
@@ -153,15 +228,15 @@ Use ID encoding for primary classification; use fields for additional metadata.
 
 ```bash
 # 1. Find next number
-bd list --all | grep "km-storage.bug"
-# km-storage.bug-1, km-storage.bug-2 exist
+bd list --all | grep "km-storage-"
+# km-storage-1, km-storage-2 exist
 
 # 2. Create with full ID
-bd create --id km-storage.bug-3-sync-race \
+bd create --id km-storage-10 \
   --type bug \
   --title "Race condition in file sync" \
   --description "Files occasionally not written when..." \
-  --priority P0 \
+  --priority 0 \
   --labels sync
 ```
 
@@ -169,42 +244,57 @@ bd create --id km-storage.bug-3-sync-race \
 
 ```bash
 # Parent feature
-bd create --id km-tui.feat-1-vim-mode \
+bd create --id km-tui-8 \
   --type feat \
   --title "Add vim keybindings"
 
 # Subtasks
-bd create --id km-tui.feat-1-vim-mode.a \
+bd create --id km-tui-8.1 \
   --type task \
   --title "Normal mode navigation" \
-  --parent km-tui.feat-1-vim-mode
+  --deps "parent-child:km-tui-8"
 
-bd create --id km-tui.feat-1-vim-mode.b \
+bd create --id km-tui-8.2 \
   --type task \
   --title "Visual selection mode" \
-  --parent km-tui.feat-1-vim-mode
+  --deps "parent-child:km-tui-8"
 ```
 
 ### Cross-Cutting Epic
 
 ```bash
-# Epic (no scope prefix)
-bd create --id km-epic-dark-mode \
+# Epic (keyword-based, no scope number)
+bd create --id km-dark-mode \
   --type epic \
   --title "Dark mode support"
 
 # Related feature in specific package
-bd create --id km-tui.feat-2-theme-toggle \
+bd create --id km-tui-9 \
   --type feat \
   --title "Theme toggle component" \
-  --deps "blocks:km-epic-dark-mode"
+  --deps "blocks:km-dark-mode"
 ```
 
-### Quick Bug Report (Minimal)
+### Quick Bug Capture
 
 ```bash
-bd create --id km-cli.bug-1-help-crash \
+# Let bd generate opaque ID
+bd create --type bug \
+  --title "CLI crashes on --help" \
+  --priority 0
+# → Creates km-xxxxx
+
+# Or specify a keyword
+bd create --id km-help-crash \
   --type bug \
   --title "CLI crashes on --help" \
-  --priority P0
+  --priority 0
 ```
+
+## Migration Strategy
+
+**Active beads** (open + in_progress): All 49 active beads migrated to Pattern 1 (km-<scope>-N) on 2026-01-27.
+
+**Closed beads**: Historical IDs (opaque, keyword, hierarchical) remain unchanged. References in comments/docs preserved for historical context.
+
+**Going forward**: Prefer Pattern 1 (project-scoped) for most work. Use Pattern 2 (hierarchical) for epic decomposition, Pattern 3 (keyword) for memorable cross-cutting initiatives, and Pattern 4 (opaque) for quick capture only.

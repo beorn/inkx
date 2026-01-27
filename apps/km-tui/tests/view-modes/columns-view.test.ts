@@ -11,8 +11,14 @@
  * - Virtualization handles large card lists efficiently
  */
 
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect, afterEach } from "bun:test"
 import { item, testEnv } from "../helpers/board-test.ts"
+import { toastQueue } from "@km/core"
+
+// Clean up global state after each test to prevent pollution
+afterEach(() => {
+  toastQueue.dismissAll()
+})
 
 describe("Columns View", () => {
   describe("Basic Rendering", () => {

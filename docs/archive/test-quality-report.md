@@ -104,11 +104,11 @@ Reviewed 9 representative test files from different layers (2,714 tests total ac
 
 1. **Investigate splitting query.test.ts** (1635 lines, 106 tests)
    - Consider: query-filters.test.ts, query-execution.test.ts, query-syntax.test.ts
-   - Bead: km-test-split-query
+   - Bead: km-test-2
 
 2. **Investigate splitting roundtrip.test.ts** (1800 lines, 104 tests)
    - Consider splitting by markdown feature
-   - Bead: km-test-split-roundtrip
+   - Bead: km-markdown-3
 
 ### Priority 2 (Documentation)
 
