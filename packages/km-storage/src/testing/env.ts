@@ -215,12 +215,15 @@ export async function withTestEnv<T>(
     },
   }
 
-  // Create DataStore wrapping the test db for ergonomic access
-  // Use storageMode so DB→FS sync events fire when appropriate
-  const data = createDBDataStore(db, storageMode)
-
   // Create emitter for event emission (with db for applying events)
   const emitter = createEmitter({ kmDir, db })
+
+  // Create DataStore wrapping the test db for ergonomic access
+  // Pass emitter for disk mode so DB→FS sync events fire when appropriate
+  const data = createDBDataStore(
+    db,
+    storageMode === "disk" ? { emitter } : undefined,
+  )
 
   const env: TestEnv = {
     testId,
@@ -303,12 +306,15 @@ export function withTestEnvSync<T>(
     },
   }
 
-  // Create DataStore wrapping the test db for ergonomic access
-  // Use storageMode so DB→FS sync events fire when appropriate
-  const data = createDBDataStore(db, storageMode)
-
   // Create emitter for event emission (with db for applying events)
   const emitter = createEmitter({ kmDir, db })
+
+  // Create DataStore wrapping the test db for ergonomic access
+  // Pass emitter for disk mode so DB→FS sync events fire when appropriate
+  const data = createDBDataStore(
+    db,
+    storageMode === "disk" ? { emitter } : undefined,
+  )
 
   const env: TestEnv = {
     testId,

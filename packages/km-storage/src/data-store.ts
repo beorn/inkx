@@ -21,13 +21,8 @@ import {
   getChildren as dbGetChildren,
   getAllNodes as dbGetAllNodes,
 } from "./db-queries/index.ts"
-import {
-  addNode as dbAddNode,
-  updateNode as dbUpdateNode,
-  deleteNode as dbDeleteNode,
-  moveNode as dbMoveNode,
-  type StorageMode,
-} from "./db-ops.ts"
+import { createDbOps } from "./db-ops.ts"
+import type { Emitter } from "./emitter.ts"
 import { search as dbSearch } from "./db-queries/full-text-search.ts"
 
 // =============================================================================
@@ -305,6 +300,8 @@ export function createMemDataStore(): DataStore & HasDatabase {
   // Initialize schema
   db.exec(SCHEMA)
 
+  // Memory mode - no emitter, direct SQL
+  const ops = createDbOps(db)
   let closed = false
 
   return {
@@ -335,22 +332,22 @@ export function createMemDataStore(): DataStore & HasDatabase {
 
     addNode(parentId, node) {
       ensureOpen()
-      return dbAddNode(db, parentId, node, "memory")
+      return ops.addNode(parentId, node)
     },
 
     updateNode(id, changes) {
       ensureOpen()
-      dbUpdateNode(db, id, changes, "memory")
+      ops.updateNode(id, changes)
     },
 
     deleteNode(id) {
       ensureOpen()
-      dbDeleteNode(db, id, "memory")
+      ops.deleteNode(id)
     },
 
     moveNode(id, newParentId, position) {
       ensureOpen()
-      dbMoveNode(db, id, newParentId, position, "memory")
+      ops.moveNode(id, newParentId, position)
     },
 
     close() {
@@ -373,6 +370,12 @@ export function createMemDataStore(): DataStore & HasDatabase {
 // Factory: createDBDataStore
 // =============================================================================
 
+/** Options for createDBDataStore */
+export interface DBDataStoreOptions {
+  /** Optional emitter for disk mode (events emitted instead of direct SQL) */
+  emitter?: Emitter
+}
+
 /**
  * Create a DataStore from an existing database instance.
  *
@@ -381,13 +384,15 @@ export function createMemDataStore(): DataStore & HasDatabase {
  * or createDiskDataStore() instead.
  *
  * @param db - SQLite database instance (caller manages lifecycle)
- * @param mode - Storage mode for mutations ("memory" skips events, "disk" emits events for sync)
+ * @param options - Optional emitter for disk mode
  * @returns DataStore + HasDatabase (no event sourcing - caller manages)
  */
 export function createDBDataStore(
   db: Database,
-  mode: StorageMode = "memory",
+  options?: DBDataStoreOptions,
 ): DataStore & HasDatabase {
+  // Create ops with optional emitter - if emitter provided, events are emitted
+  const ops = createDbOps(db, options?.emitter)
   let closed = false
 
   return {
@@ -418,22 +423,22 @@ export function createDBDataStore(
 
     addNode(parentId, node) {
       ensureOpen()
-      return dbAddNode(db, parentId, node, mode)
+      return ops.addNode(parentId, node)
     },
 
     updateNode(id, changes) {
       ensureOpen()
-      dbUpdateNode(db, id, changes, mode)
+      ops.updateNode(id, changes)
     },
 
     deleteNode(id) {
       ensureOpen()
-      dbDeleteNode(db, id, mode)
+      ops.deleteNode(id)
     },
 
     moveNode(id, newParentId, position) {
       ensureOpen()
-      dbMoveNode(db, id, newParentId, position, mode)
+      ops.moveNode(id, newParentId, position)
     },
 
     close() {

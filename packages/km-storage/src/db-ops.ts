@@ -2,9 +2,11 @@
  * Database Operations - Write operations
  *
  * This module contains all write operations that modify the database.
- * Operations handle both memory mode (direct SQL) and disk mode (via emit).
  *
- * Mode is now passed explicitly to each function (no singleton).
+ * Primary API: createDbOps(db, emitter?) returns operations bound to dependencies.
+ * If emitter is provided, mutations emit events; otherwise direct SQL.
+ *
+ * Legacy API: Individual functions with StorageMode parameter (deprecated).
  */
 
 import type { Database } from "bun:sqlite"
@@ -13,49 +15,75 @@ import { ulid } from "ulid"
 
 const debug = createDebug("km:storage:db:ops")
 import type { KNode } from "@km/core"
-import { emit } from "./emit.ts"
+import type { Emitter } from "./emitter.ts"
 
-/** Storage mode: memory (ephemeral) or disk (persistent with file sync) */
+/** @deprecated Use createDbOps() factory instead */
 export type StorageMode = "memory" | "disk"
 
 // =============================================================================
-// Node Operations
+// Factory: createDbOps
 // =============================================================================
 
 /**
- * Move a node to a new parent with a new sort order.
- * Handles both memory mode (direct SQL) and disk mode (via emit).
- *
- * This is the proper store-layer API for moving nodes.
- * UI components should use this instead of raw SQL.
- *
- * @param db - Database instance
- * @param nodeId - Node to move
- * @param newParentId - New parent node ID
- * @param newParentIdx - New sort index under parent
- * @param mode - Storage mode (memory = direct SQL, disk = emit event)
+ * Database operations interface returned by createDbOps.
  */
-export function moveNode(
+export interface DbOps {
+  addNode(parentId: string | null, node: Partial<KNode>): string
+  updateNode(nodeId: string, updates: Record<string, unknown>): void
+  deleteNode(nodeId: string): void
+  moveNode(nodeId: string, newParentId: string, newParentIdx: number): void
+}
+
+/**
+ * Create database operations bound to a database and optional emitter.
+ *
+ * If emitter is provided, mutations emit events (disk mode).
+ * If emitter is not provided, mutations use direct SQL (memory mode).
+ *
+ * @param db - Database instance for direct SQL operations
+ * @param emitter - Optional emitter for disk mode (emit events instead of direct SQL)
+ * @returns DbOps with addNode, updateNode, deleteNode, moveNode
+ *
+ * @example
+ * // Memory mode - direct SQL
+ * const ops = createDbOps(db)
+ * ops.addNode(null, { type: "task", content: "Test" })
+ *
+ * // Disk mode - emit events
+ * const ops = createDbOps(db, emitter)
+ * ops.addNode(null, { type: "task", content: "Test" })  // emits node_created
+ */
+export function createDbOps(db: Database, emitter?: Emitter): DbOps {
+  return {
+    addNode: (parentId, node) => addNodeImpl(db, parentId, node, emitter),
+    updateNode: (nodeId, updates) =>
+      updateNodeImpl(db, nodeId, updates, emitter),
+    deleteNode: (nodeId) => deleteNodeImpl(db, nodeId, emitter),
+    moveNode: (nodeId, newParentId, newParentIdx) =>
+      moveNodeImpl(db, nodeId, newParentId, newParentIdx, emitter),
+  }
+}
+
+// =============================================================================
+// Implementation Functions (internal)
+// =============================================================================
+
+function moveNodeImpl(
   db: Database,
   nodeId: string,
   newParentId: string,
   newParentIdx: number,
-  mode: StorageMode,
+  emitter?: Emitter,
 ): void {
   debug(
-    "moveNode: %s → parent=%s idx=%d mode=%s",
+    "moveNode: %s → parent=%s idx=%d emitter=%s",
     nodeId,
     newParentId,
     newParentIdx,
-    mode,
+    !!emitter,
   )
-  if (mode === "memory") {
-    db.run(
-      "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-      [newParentId, newParentIdx, Date.now(), nodeId],
-    )
-  } else {
-    emit({
+  if (emitter) {
+    emitter.emit({
       type: "node_moved",
       actor: "user",
       target: nodeId,
@@ -64,34 +92,34 @@ export function moveNode(
         parent_idx: newParentIdx,
       },
     })
+  } else {
+    db.run(
+      "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
+      [newParentId, newParentIdx, Date.now(), nodeId],
+    )
   }
 }
 
-/**
- * Update a node's properties.
- * Handles both memory mode (direct SQL) and disk mode (via emit).
- *
- * This is the proper store-layer API for updating nodes.
- * UI components should use this instead of raw SQL.
- *
- * @param db - Database instance
- * @param nodeId - Node to update
- * @param updates - Properties to update
- * @param mode - Storage mode (memory = direct SQL, disk = emit event)
- */
-export function updateNode(
+function updateNodeImpl(
   db: Database,
   nodeId: string,
   updates: Record<string, unknown>,
-  mode: StorageMode,
+  emitter?: Emitter,
 ): void {
   if (!updates) {
     throw new Error(
       `updateNode called with undefined updates for node ${nodeId}`,
     )
   }
-  debug("updateNode: %s keys=%o mode=%s", nodeId, Object.keys(updates), mode)
-  if (mode === "memory") {
+  debug("updateNode: %s keys=%o emitter=%s", nodeId, Object.keys(updates), !!emitter)
+  if (emitter) {
+    emitter.emit({
+      type: "node_updated",
+      actor: "user",
+      target: nodeId,
+      data: updates,
+    })
+  } else {
     const sets: string[] = []
     const values: (string | number | null)[] = []
 
@@ -106,71 +134,40 @@ export function updateNode(
 
     const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`
     db.run(sql, values)
-  } else {
-    emit({
-      type: "node_updated",
-      actor: "user",
-      target: nodeId,
-      data: updates,
-    })
   }
 }
 
-/**
- * Delete a node from the database.
- * Handles both memory mode (direct SQL) and disk mode (via emit).
- *
- * This is the proper store-layer API for deleting nodes.
- * UI components should use this instead of raw SQL.
- *
- * @param db - Database instance
- * @param nodeId - Node to delete
- * @param mode - Storage mode (memory = direct SQL, disk = emit event)
- */
-export function deleteNode(
+function deleteNodeImpl(
   db: Database,
   nodeId: string,
-  mode: StorageMode,
+  emitter?: Emitter,
 ): void {
-  debug("deleteNode: %s mode=%s", nodeId, mode)
-  if (mode === "memory") {
-    db.run("DELETE FROM nodes WHERE id = ?", [nodeId])
-  } else {
-    emit({
+  debug("deleteNode: %s emitter=%s", nodeId, !!emitter)
+  if (emitter) {
+    emitter.emit({
       type: "node_deleted",
       actor: "user",
       target: nodeId,
       data: {},
     })
+  } else {
+    db.run("DELETE FROM nodes WHERE id = ?", [nodeId])
   }
 }
 
-/**
- * Add a new node to the database.
- * Handles both memory mode (direct SQL) and disk mode (via emit).
- *
- * This is the proper store-layer API for creating nodes.
- * UI components should use this instead of raw SQL or appendTaskToFile.
- *
- * @param db - Database instance
- * @param parentId - Parent node ID (or null for root level)
- * @param node - Partial node data (id will be generated if not provided)
- * @param mode - Storage mode (memory = direct SQL, disk = emit event)
- * @returns The created node's ID
- */
-export function addNode(
+function addNodeImpl(
   db: Database,
   parentId: string | null,
   node: Partial<KNode>,
-  mode: StorageMode,
+  emitter?: Emitter,
 ): string {
   const nodeId = node.id ?? ulid()
   debug(
-    "addNode: %s type=%s parent=%s mode=%s",
+    "addNode: %s type=%s parent=%s emitter=%s",
     nodeId,
     node.type ?? "task",
     parentId,
-    mode,
+    !!emitter,
   )
   const now = Date.now()
 
@@ -201,7 +198,13 @@ export function addNode(
     updated_at: now,
   }
 
-  if (mode === "memory") {
+  if (emitter) {
+    emitter.emit({
+      type: "node_created",
+      actor: "user",
+      data: nodeData,
+    })
+  } else {
     db.run(
       `INSERT INTO nodes (
         id, type, parent_id, parent_idx, link_to, link_alias,
@@ -241,13 +244,117 @@ export function addNode(
         nodeData.updated_at,
       ],
     )
-  } else {
-    emit({
-      type: "node_created",
-      actor: "user",
-      data: nodeData,
-    })
   }
 
   return nodeId
+}
+
+// =============================================================================
+// Legacy API (deprecated - use createDbOps instead)
+// =============================================================================
+
+/**
+ * @deprecated Use createDbOps() factory instead
+ */
+export function moveNode(
+  db: Database,
+  nodeId: string,
+  newParentId: string,
+  newParentIdx: number,
+  mode: StorageMode,
+): void {
+  // Legacy: convert mode to emitter presence
+  // Note: This still uses global emit() - callers should migrate to createDbOps
+  if (mode === "disk") {
+    // For legacy callers, we need the global emit
+    // This will be removed once all callers migrate
+    const { emit } = require("./emit.ts")
+    emit({
+      type: "node_moved",
+      actor: "user",
+      target: nodeId,
+      data: { parent_id: newParentId, parent_idx: newParentIdx },
+    })
+  } else {
+    moveNodeImpl(db, nodeId, newParentId, newParentIdx, undefined)
+  }
+}
+
+/**
+ * @deprecated Use createDbOps() factory instead
+ */
+export function updateNode(
+  db: Database,
+  nodeId: string,
+  updates: Record<string, unknown>,
+  mode: StorageMode,
+): void {
+  if (mode === "disk") {
+    const { emit } = require("./emit.ts")
+    emit({ type: "node_updated", actor: "user", target: nodeId, data: updates })
+  } else {
+    updateNodeImpl(db, nodeId, updates, undefined)
+  }
+}
+
+/**
+ * @deprecated Use createDbOps() factory instead
+ */
+export function deleteNode(
+  db: Database,
+  nodeId: string,
+  mode: StorageMode,
+): void {
+  if (mode === "disk") {
+    const { emit } = require("./emit.ts")
+    emit({ type: "node_deleted", actor: "user", target: nodeId, data: {} })
+  } else {
+    deleteNodeImpl(db, nodeId, undefined)
+  }
+}
+
+/**
+ * @deprecated Use createDbOps() factory instead
+ */
+export function addNode(
+  db: Database,
+  parentId: string | null,
+  node: Partial<KNode>,
+  mode: StorageMode,
+): string {
+  if (mode === "disk") {
+    const nodeId = node.id ?? ulid()
+    const now = Date.now()
+    const nodeData = {
+      id: nodeId,
+      type: node.type ?? "task",
+      parent_id: parentId,
+      parent_idx: node.parent_idx ?? now,
+      link_to: node.link_to ?? null,
+      link_alias: node.link_alias ?? null,
+      fs_path: node.fs_path ?? null,
+      fs_ino: node.fs_ino ?? null,
+      name: node.name ?? null,
+      title: node.title ?? null,
+      md_pos: node.md_pos ?? null,
+      md_line: node.md_line ?? null,
+      md_slug: node.md_slug ?? null,
+      task_status: node.task_status ?? (node.type === "task" ? "todo" : null),
+      task_mark: node.task_mark ?? (node.type === "task" ? " " : null),
+      assigned_to: node.assigned_to ?? null,
+      due_date: node.due_date ?? null,
+      scheduled_date: node.scheduled_date ?? null,
+      priority: node.priority ?? null,
+      content: node.content ?? null,
+      content_hash: node.content_hash ?? null,
+      data: node.data ?? {},
+      created_at: now,
+      updated_at: now,
+    }
+    const { emit } = require("./emit.ts")
+    emit({ type: "node_created", actor: "user", data: nodeData })
+    return nodeId
+  } else {
+    return addNodeImpl(db, parentId, node, undefined)
+  }
 }

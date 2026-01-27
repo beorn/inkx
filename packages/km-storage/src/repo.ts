@@ -419,6 +419,10 @@ export function* createRepo(
   let dataStore: DataStore & HasDatabase
   let db: Database
   let mode: "memory" | "disk"
+  let emitter: Emitter
+
+  // kmDir is used for emitter and disk mode detection
+  const kmDir = join(rootPath, ".km")
 
   if (options.loadFiles) {
     // =========================================================================
@@ -427,9 +431,11 @@ export function* createRepo(
     // =========================================================================
 
     // Detect mode and create database BEFORE calling loadRepo
-    const kmDir = join(rootPath, ".km")
     const hasKmDir = existsSync(kmDir) && !options.forceMemory
     mode = hasKmDir ? "disk" : "memory"
+
+    // Create emitter early - needed for disk mode DataStore
+    emitter = createEmitter({ kmDir })
 
     if (mode === "disk") {
       if (!existsSync(kmDir)) {
@@ -451,7 +457,8 @@ export function* createRepo(
       db, // ADR-002: pass db to avoid singleton
     })
 
-    dataStore = createDBDataStore(db, mode)
+    // Create DataStore - pass emitter for disk mode only
+    dataStore = createDBDataStore(db, mode === "disk" ? { emitter } : undefined)
 
     // Capture loading results
     loadErrors = loadResult.errors
@@ -479,9 +486,11 @@ export function* createRepo(
 
     // Step 1: Detect mode
     yield "Detecting mode"
-    const kmDir = join(rootPath, ".km")
     const hasKmDir = existsSync(kmDir) && !options.forceMemory
     mode = hasKmDir ? "disk" : "memory"
+
+    // Create emitter early - needed for disk mode DataStore
+    emitter = createEmitter({ kmDir })
 
     debug("detected mode: %s (hasKmDir=%s)", mode, hasKmDir)
 
@@ -497,12 +506,12 @@ export function* createRepo(
       const dbPath = join(kmDir, "state.db")
       db = new Database(dbPath)
       db.exec(SCHEMA)
-      dataStore = createDBDataStore(db, "disk")
+      dataStore = createDBDataStore(db, { emitter })
     } else {
-      // Memory mode - ephemeral
+      // Memory mode - ephemeral (no emitter = direct SQL)
       db = new Database(":memory:")
       db.exec(SCHEMA)
-      dataStore = createDBDataStore(db, "memory")
+      dataStore = createDBDataStore(db)
     }
 
     // Step 3: Scan files (for full repo)
@@ -514,10 +523,6 @@ export function* createRepo(
 
   // Load config
   const config = loadConfigObject(rootPath)
-
-  // Create Emitter (owns kmDir for event emission)
-  const kmDir = join(rootPath, ".km")
-  const emitter = createEmitter({ kmDir })
 
   // Capture hooks from options
   const hooks = options.hooks

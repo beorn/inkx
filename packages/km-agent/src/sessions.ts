@@ -14,9 +14,12 @@ import type { Session, SessionFilter, SessionStatus } from "./types.ts"
  *
  * Reads session_started and session_ended events from events.jsonl,
  * reconstructs Session objects, and applies filters.
+ *
+ * @param kmDir - Path to .km directory containing events.jsonl
+ * @param filter - Optional filter criteria
  */
-export function querySessions(filter?: SessionFilter): Session[] {
-  const events = readEvents()
+export function querySessions(kmDir: string, filter?: SessionFilter): Session[] {
+  const events = readEvents(kmDir)
 
   // Build sessions from events
   const sessionMap = new Map<string, Session>()
@@ -83,16 +86,16 @@ function mapSessionStatus(
 /**
  * Get a single session by ID.
  */
-export function getSession(sessionId: string): Session | null {
-  const sessions = querySessions()
+export function getSession(kmDir: string, sessionId: string): Session | null {
+  const sessions = querySessions(kmDir)
   return sessions.find((s) => s.id === sessionId) ?? null
 }
 
 /**
  * Get all sessions for an agent.
  */
-export function getAgentSessions(agentId: string, limit?: number): Session[] {
-  let sessions = querySessions({ agentId })
+export function getAgentSessions(kmDir: string, agentId: string, limit?: number): Session[] {
+  let sessions = querySessions(kmDir, { agentId })
 
   // Sort by startedAt descending (most recent first)
   sessions.sort((a, b) => b.startedAt - a.startedAt)
@@ -107,14 +110,14 @@ export function getAgentSessions(agentId: string, limit?: number): Session[] {
 /**
  * Get all sessions for an issue/task.
  */
-export function getTaskSessions(taskId: string): Session[] {
-  return querySessions({ taskId })
+export function getTaskSessions(kmDir: string, taskId: string): Session[] {
+  return querySessions(kmDir, { taskId })
 }
 
 /**
  * Get the currently active session for an agent, if any.
  */
-export function getActiveSession(agentId: string): Session | null {
-  const sessions = querySessions({ agentId, status: "active" })
+export function getActiveSession(kmDir: string, agentId: string): Session | null {
+  const sessions = querySessions(kmDir, { agentId, status: "active" })
   return sessions[0] ?? null
 }

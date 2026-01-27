@@ -18,7 +18,7 @@ import {
   type Agent,
   type AgentStatus,
 } from "@km/agent"
-import { resolvePathArg } from "@km/storage"
+import { resolvePathArg, findKmRootFromPath } from "@km/storage"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 
@@ -301,7 +301,13 @@ agentCommand
   .option("-n, --limit <n>", "Limit results", parseInt)
   .option("--json", "Output as JSON")
   .action((agentId: string | undefined, opts: SessionsOptions) => {
-    const sessions = agentId ? getAgentSessions(agentId, opts.limit) : []
+    const kmDir = findKmRootFromPath(process.cwd())
+    if (!kmDir) {
+      console.error(chalk.red("No .km directory found"))
+      process.exitCode = 1
+      return
+    }
+    const sessions = agentId ? getAgentSessions(kmDir, agentId, opts.limit) : []
 
     if (opts.json) {
       console.log(JSON.stringify(sessions, null, 2))
@@ -326,7 +332,13 @@ agentCommand
   .description("View session transcript")
   .option("--json", "Output as JSON")
   .action((sessionId: string, opts: SessionOptions) => {
-    const session = getSession(sessionId)
+    const kmDir = findKmRootFromPath(process.cwd())
+    if (!kmDir) {
+      console.error(chalk.red("No .km directory found"))
+      process.exitCode = 1
+      return
+    }
+    const session = getSession(kmDir, sessionId)
 
     if (!session) {
       console.error(chalk.red(`Session not found: ${sessionId}`))
