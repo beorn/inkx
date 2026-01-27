@@ -19,12 +19,12 @@ A test system that is:
 
 ### The Rule
 
-| Resource   | Default                   | Exception                                    |
-| ---------- | ------------------------- | -------------------------------------------- |
-| Database   | `:memory:` SQLite         | Worker thread tests (need disk for sharing)  |
-| Filesystem | `/tmp/kmtest-*`           | Never use real user paths                    |
-| Watchers   | Mocks                     | Worker thread integration tests              |
-| State      | Injected via DI           | Never use `getDb()`, `getKmDir()`            |
+| Resource   | Default           | Exception                                   |
+| ---------- | ----------------- | ------------------------------------------- |
+| Database   | `:memory:` SQLite | Worker thread tests (need disk for sharing) |
+| Filesystem | `/tmp/kmtest-*`   | Never use real user paths                   |
+| Watchers   | Mocks             | Worker thread integration tests             |
+| State      | Injected via DI   | Never use `getDb()`, `getKmDir()`           |
 
 ### Why This Matters
 
@@ -247,11 +247,12 @@ test("columns are horizontal", () => {
 mdtest:
   plugin: ../km-repl.ts
   fixture: two-columns
-  memory: true  # ← CRITICAL: Use in-memory database
+  memory: true # ← CRITICAL: Use in-memory database
 ---
 ```
 
 **The `memory: true` flag is required for fast tests.** Without it:
+
 - Uses disk database
 - 16x slower (190ms vs 12ms per command)
 - Creates unnecessary I/O
@@ -262,10 +263,12 @@ mdtest:
 # Navigation Test
 
 ## Setup
+
 $ km sync
 ✓ Synced ...
 
 ## Test
+
 $ km sh board.md -c 'j; state'
 cursor: [1]
 ```
@@ -280,6 +283,7 @@ cursor: [1]
 #### When to Use Subprocess Instead
 
 Use subprocess (`$ bun km ...`) only when testing:
+
 - CLI exit codes
 - Environment variable handling
 - Actual binary execution
@@ -681,10 +685,10 @@ This captures visual state + internal events for correlation.
 
 ### Speed Targets
 
-| Suite     | Target  | Rationale                 |
-| --------- | ------- | ------------------------- |
-| test:fast | <5s     | Developer iteration loop  |
-| test:all  | <2min   | Pre-commit full check     |
+| Suite     | Target | Rationale                |
+| --------- | ------ | ------------------------ |
+| test:fast | <5s    | Developer iteration loop |
+| test:all  | <2min  | Pre-commit full check    |
 
 ### Check for Violations
 
@@ -709,11 +713,11 @@ grep -L "memory: true" apps/km-cli/tests/sh/*.test.md
 
 Tests taking >1s MUST be marked `.slow.test.ts`:
 
-| Time | Action                                         |
-| ---- | ---------------------------------------------- |
-| <1s  | Keep as `.test.ts`                             |
+| Time | Action                                        |
+| ---- | --------------------------------------------- |
+| <1s  | Keep as `.test.ts`                            |
 | 1-5s | Consider optimization or mark `.slow.test.ts` |
-| >5s  | MUST be `.slow.test.ts`                        |
+| >5s  | MUST be `.slow.test.ts`                       |
 
 ---
 

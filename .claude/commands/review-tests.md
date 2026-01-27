@@ -76,6 +76,7 @@ grep -r "useWorker: true" packages/*/tests/*.test.ts 2>/dev/null | grep -v ".slo
 ```
 
 **Expected results:**
+
 - Singleton usage: 0
 - Raw Database in fast tests: 0
 - mdtests without memory: 0
@@ -159,19 +160,19 @@ Output structured findings:
 
 ### DI Compliance
 
-| Check                           | Count | Target | Status |
-| ------------------------------- | ----- | ------ | ------ |
-| Singleton usage (getDb/setDb)   | N     | 0      | ✅/❌  |
-| Raw Database in fast tests      | N     | 0      | ✅/❌  |
-| mdtests without memory: true    | N     | 0      | ✅/❌  |
-| Real watcher in fast tests      | N     | 0      | ✅/❌  |
+| Check                         | Count | Target | Status |
+| ----------------------------- | ----- | ------ | ------ |
+| Singleton usage (getDb/setDb) | N     | 0      | ✅/❌  |
+| Raw Database in fast tests    | N     | 0      | ✅/❌  |
+| mdtests without memory: true  | N     | 0      | ✅/❌  |
+| Real watcher in fast tests    | N     | 0      | ✅/❌  |
 
 ### Performance
 
-| Metric               | Value | Target | Status |
-| -------------------- | ----- | ------ | ------ |
-| test:fast time       | Xs    | <5s    | ✅/❌  |
-| Unmarked slow tests  | N     | 0      | ✅/❌  |
+| Metric              | Value | Target | Status |
+| ------------------- | ----- | ------ | ------ |
+| test:fast time      | Xs    | <5s    | ✅/❌  |
+| Unmarked slow tests | N     | 0      | ✅/❌  |
 
 ### By Layer
 
