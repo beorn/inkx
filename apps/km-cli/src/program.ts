@@ -50,7 +50,7 @@ export function getRootPath(): string | undefined {
 }
 
 /**
- * Check if root was explicitly set (via --root or KM_ROOT)
+ * Check if root was explicitly set (via --repo or KM_ROOT)
  */
 export function wasRootExplicit(): boolean {
   return rootExplicitlySet
@@ -72,8 +72,8 @@ export function configureProgram(): Command {
     .description("Knowledge Machine - The agentic work desk")
     .version("0.1.0")
     .option(
-      "-r, --root <path>",
-      "Root directory to operate on (overrides KM_ROOT env var)",
+      "-r, --repo <path>",
+      "Repository directory to operate on (overrides KM_ROOT env var)",
     )
     .option("--silent", "Suppress output except errors")
     .option(
@@ -116,7 +116,7 @@ export function configureProgram(): Command {
 
     while (cmd) {
       const opts = cmd.opts()
-      rootOption ??= opts.root
+      rootOption ??= opts.repo
       silentOption ??= opts.silent
       verboseOption ??= opts.verbose
       logLevelOption ??= opts.logLevel
@@ -136,7 +136,7 @@ export function configureProgram(): Command {
     setLogLevel(logLevel)
 
     // Resolve root path
-    // Precedence: --root flag > KM_ROOT env var > first positional arg (if path) > cwd
+    // Precedence: --repo flag > KM_ROOT env var > first positional arg (if path) > cwd
     const rootFlag = rootOption
     const rootEnv = process.env.KM_ROOT
 
@@ -193,7 +193,7 @@ export function configureProgram(): Command {
       console.error(chalk.yellow(`Using current directory: ${rootPath}`))
       console.error(
         chalk.yellow(
-          `Hint: Use --root <path> or set KM_ROOT, or run 'km init' for disk mode\n`,
+          `Hint: Use --repo <path> or set KM_ROOT, or run 'km init' for disk mode\n`,
         ),
       )
     }

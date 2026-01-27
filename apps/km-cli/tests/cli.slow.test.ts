@@ -736,7 +736,7 @@ describe.serial("CLI Error Handling", () => {
   })
 })
 
-describe.serial("Global --root option", () => {
+describe.serial("Global --repo option", () => {
   const ROOT_TEST_DIR = `/tmp/km-root-test-${process.pid}`
   const REPO_A = join(ROOT_TEST_DIR, "repo-a")
   const REPO_B = join(ROOT_TEST_DIR, "repo-b")
@@ -809,7 +809,7 @@ describe.serial("Global --root option", () => {
     expect(result.stdout).not.toContain("Task from repo B")
   })
 
-  test("should support tilde expansion in --root", async () => {
+  test("should support tilde expansion in --repo", async () => {
     // Create a test file in home directory (use a temp subdir)
     const homeSubdir = join(process.env.HOME || "", ".km-test-home")
     mkdirSync(homeSubdir, { recursive: true })
@@ -822,7 +822,7 @@ describe.serial("Global --root option", () => {
     )
 
     try {
-      const result = await km(["--root", "~/.km-test-home", "tasks"], {
+      const result = await km(["--repo", "~/.km-test-home", "tasks"], {
         cwd: "/tmp",
         env: { KM_DIR: "" },
       })
@@ -834,9 +834,9 @@ describe.serial("Global --root option", () => {
     }
   })
 
-  test("should show --root in help", async () => {
+  test("should show --repo in help", async () => {
     const result = await km(["--help"], { cwd: "/tmp" })
-    expect(result.stdout).toContain("--root")
+    expect(result.stdout).toContain("--repo")
     expect(result.stdout).toContain("-r")
   })
 })

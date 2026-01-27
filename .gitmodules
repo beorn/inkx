@@ -21,4 +21,4 @@
 	url = git@github.com:beorn/logger.git
 [submodule "vendor/beorn-claude-tools"]
 	path = vendor/beorn-claude-tools
-	url = git@github.com:beorn/beorn-claude-tools.git
+	url = git@github.com:beorn/claude-tools.git
