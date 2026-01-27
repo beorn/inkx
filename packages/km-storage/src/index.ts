@@ -294,6 +294,10 @@ export type {
   SyncResult as RepoSyncResult,
   SyncConflict,
   RepoStats,
+  RepoHooks,
+  MutationContext,
+  MutationType,
+  BeforeMutationResult,
 } from "./repo.ts"
 
 // Testing utilities

@@ -7,7 +7,7 @@
 
 import type { KNode, TaskStatus } from "@km/core"
 import type { Repo, RepoStats } from "../repo.ts"
-import type { LoadError } from "../repo.ts"
+import type { LoadError } from "../repo-loader.ts"
 import type { Link } from "../db.ts"
 import type { StepYield } from "../repo-loader.ts"
 

@@ -22,6 +22,9 @@ import type {
   BeforeMutationResult,
 } from "../repo.ts"
 
+// Re-export types for consumers
+export type { RepoHooks, MutationContext, BeforeMutationResult }
+
 /**
  * Configuration for chaos hook behavior
  */
@@ -176,7 +179,7 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
   }
 
   function getDropRateForType(type: MutationContext["type"]): number {
-    const specificRate = dropRates[type]
+    const specificRate = dropRates[type as keyof typeof dropRates]
     if (specificRate !== undefined) {
       return specificRate
     }

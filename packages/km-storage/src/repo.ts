@@ -355,6 +355,8 @@ export interface CreateRepoOptions {
    * Creates stub nodes without parsing - call parseDeferredAsync() afterward.
    */
   discoverOnly?: boolean
+  /** Lifecycle hooks for mutation interception */
+  hooks?: RepoHooks
 }
 
 /**
@@ -480,6 +482,9 @@ export function* createRepo(
   // Load config
   const config = loadConfigObject(rootPath)
 
+  // Capture hooks from options
+  const hooks = options.hooks
+
   let closed = false
 
   const repo: Repo = {
@@ -599,22 +604,53 @@ export function* createRepo(
 
     updateNode(id, changes) {
       ensureOpen()
-      dataStore.updateNode(id, changes)
+      let ctx: MutationContext = { type: "update", nodeId: id, changes }
+      if (hooks?.beforeMutation) {
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
+      }
+      dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
+      hooks?.afterMutation?.(ctx)
     },
 
     moveNode(id, newParentId, position) {
       ensureOpen()
-      dataStore.moveNode(id, newParentId, position)
+      let ctx: MutationContext = { type: "move", nodeId: id, newParentId, position }
+      if (hooks?.beforeMutation) {
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
+      }
+      dataStore.moveNode(ctx.nodeId, ctx.newParentId ?? newParentId, ctx.position ?? position)
+      hooks?.afterMutation?.(ctx)
     },
 
     deleteNode(id) {
       ensureOpen()
-      dataStore.deleteNode(id)
+      let ctx: MutationContext = { type: "delete", nodeId: id }
+      if (hooks?.beforeMutation) {
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
+      }
+      dataStore.deleteNode(ctx.nodeId)
+      hooks?.afterMutation?.(ctx)
     },
 
     addNode(parentId, node) {
       ensureOpen()
-      return dataStore.addNode(parentId, node)
+      // For add, nodeId is not known yet, use empty string as placeholder
+      let ctx: MutationContext = { type: "add", nodeId: "", node }
+      if (hooks?.beforeMutation) {
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
+      }
+      const newId = dataStore.addNode(parentId, ctx.node ?? node)
+      ctx.nodeId = newId
+      hooks?.afterMutation?.(ctx)
+      return newId
     },
 
     cloneTask(sourceId, changes) {
@@ -810,6 +846,9 @@ export function* createRepo(
       closed = true
       debug("closing repo")
 
+      // Call onClose hook
+      hooks?.onClose?.()
+
       // Close in reverse order of creation
       fileTree.close()
       dataStore.close()
@@ -838,6 +877,8 @@ export interface CreateBareRepoOptions {
   config?: Config
   /** Root path for config loading (default: cwd) */
   configPath?: string
+  /** Lifecycle hooks for mutation interception */
+  hooks?: RepoHooks
 }
 
 /**
@@ -874,6 +915,9 @@ export function createBareRepo(
   // Load or use provided config
   const config = options.config ?? loadConfigObject(options.configPath)
   const db = data.database
+
+  // Capture hooks from options
+  const hooks = options.hooks
 
   let closed = false
 
@@ -994,22 +1038,53 @@ export function createBareRepo(
 
     updateNode(id, changes) {
       ensureOpen()
-      data.updateNode(id, changes)
+      let ctx: MutationContext = { type: "update", nodeId: id, changes }
+      if (hooks?.beforeMutation) {
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
+      }
+      data.updateNode(ctx.nodeId, ctx.changes ?? {})
+      hooks?.afterMutation?.(ctx)
     },
 
     moveNode(id, newParentId, position) {
       ensureOpen()
-      data.moveNode(id, newParentId, position)
+      let ctx: MutationContext = { type: "move", nodeId: id, newParentId, position }
+      if (hooks?.beforeMutation) {
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
+      }
+      data.moveNode(ctx.nodeId, ctx.newParentId ?? newParentId, ctx.position ?? position)
+      hooks?.afterMutation?.(ctx)
     },
 
     deleteNode(id) {
       ensureOpen()
-      data.deleteNode(id)
+      let ctx: MutationContext = { type: "delete", nodeId: id }
+      if (hooks?.beforeMutation) {
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
+      }
+      data.deleteNode(ctx.nodeId)
+      hooks?.afterMutation?.(ctx)
     },
 
     addNode(parentId, node) {
       ensureOpen()
-      return data.addNode(parentId, node)
+      // For add, nodeId is not known yet, use empty string as placeholder
+      let ctx: MutationContext = { type: "add", nodeId: "", node }
+      if (hooks?.beforeMutation) {
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
+      }
+      const newId = data.addNode(parentId, ctx.node ?? node)
+      ctx.nodeId = newId
+      hooks?.afterMutation?.(ctx)
+      return newId
     },
 
     cloneTask(sourceId, changes) {
@@ -1086,6 +1161,10 @@ export function createBareRepo(
       if (closed) return
       closed = true
       debug("closing bare repo")
+
+      // Call onClose hook
+      hooks?.onClose?.()
+
       // Note: caller manages DataStore lifecycle for bare repos
     },
 

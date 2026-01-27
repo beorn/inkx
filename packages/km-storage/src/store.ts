@@ -27,6 +27,7 @@ import { setKmDir, emitNodeMoved } from "./emit.ts"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA, MIGRATIONS } from "./schema.ts"
 import { addLink, setDb } from "./db.ts"
+import { getIgnorePatterns, shouldIgnore } from "./watch/ignore.ts"
 import {
   findChildByContent,
   findFileByName,
@@ -557,9 +558,11 @@ export class MemoryStore extends BaseStore {
     current: number
     total: number
   }> {
+    const ignorePatterns = getIgnorePatterns(this.rootPath)
+
     // First pass: count files for progress reporting
     yield { phase: "scanning", current: 0, total: 0 }
-    const total = this.countMarkdownFiles(this.rootPath)
+    const total = this.countMarkdownFiles(this.rootPath, ignorePatterns)
 
     // Clear any previous errors
     this.parseErrors = []
@@ -569,7 +572,7 @@ export class MemoryStore extends BaseStore {
     this.fileCount = 0
     this.db.run("BEGIN IMMEDIATE")
     try {
-      yield* this.scanDirectoryAsync(this.rootPath, null, 0, total)
+      yield* this.scanDirectoryAsync(this.rootPath, null, 0, total, ignorePatterns)
       this.db.run("COMMIT")
     } catch (error) {
       this.db.run("ROLLBACK")
@@ -610,18 +613,18 @@ export class MemoryStore extends BaseStore {
   /**
    * Count markdown files for progress reporting
    */
-  private countMarkdownFiles(dirPath: string): number {
+  private countMarkdownFiles(dirPath: string, ignorePatterns: string[]): number {
     if (!existsSync(dirPath)) return 0
 
     let count = 0
     const entries = readdirSync(dirPath, { withFileTypes: true })
 
     for (const entry of entries) {
-      if (entry.name.startsWith(".") || entry.name === "node_modules") continue
-
       const fullPath = join(dirPath, entry.name)
+      if (shouldIgnore(fullPath, ignorePatterns, this.rootPath)) continue
+
       if (entry.isDirectory()) {
-        count += this.countMarkdownFiles(fullPath)
+        count += this.countMarkdownFiles(fullPath, ignorePatterns)
       } else if (entry.isFile() && entry.name.endsWith(".md")) {
         count++
       }
