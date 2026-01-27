@@ -1,6 +1,6 @@
 # Loading vs Syncing Unification Plan
 
-## Status: Planning
+## Status: In Progress
 
 ## Problem
 
@@ -24,15 +24,15 @@ Filesystem → discoverFromFilesystem() → Event[] → applyEvents() → resolv
                      ↓
               PendingLink[] collected
                      ↓
-              buildFileIndex() for O(1) lookup
+              LinkResolver for O(1) lookup (Phase 1 ✅)
 ```
 
 Key characteristics:
 
 - Batch mode: collects all events, applies in transaction
-- Deferred link resolution: `buildFileIndex()` after all files loaded
+- Deferred link resolution: `LinkResolver` after all files loaded
 - Creates `PendingLink[]` for batch resolution
-- No content hashing (missing optimization)
+- Memory mode only (disk mode loads from event log)
 
 ### Syncing Path (reconcile.ts)
 
@@ -57,51 +57,42 @@ Key characteristics:
 
 ## Duplication Found
 
-| Component        | Loading                                   | Syncing                                |
-| ---------------- | ----------------------------------------- | -------------------------------------- |
-| Markdown parsing | `parseMarkdownWithLinks()`                | Same                                   |
-| File index       | `buildFileIndex()` → `Map<string, KNode>` | `LinkResolver` → `Map<string, string>` |
-| Folder creation  | Implicit in event generation              | `ensureFolderHierarchy()`              |
-| Content hashing  | Missing                                   | `hashContent()` comparison             |
-| Link storage     | `linksToInsert[]` batch                   | `addLink()` per-link                   |
+| Component        | Loading                    | Syncing                         | Status       |
+| ---------------- | -------------------------- | ------------------------------- | ------------ |
+| Markdown parsing | `parseMarkdownWithLinks()` | Same                            | Duplicated   |
+| File index       | `LinkResolver`             | `LinkResolver`                  | ✅ Unified   |
+| Folder creation  | Implicit in event gen      | `ensureFolderHierarchy()`       | Duplicated   |
+| Content hashing  | N/A (see below)            | `hashContent()` comparison      | N/A          |
+| Link storage     | `linksToInsert[]` batch    | `addLink()` per-link            | Intentional  |
 
 ## Proposed Unification
 
-### 1. Consolidate File Index
+### Phase 1: Consolidate File Index ✅ COMPLETE
 
-Use `LinkResolver` pattern in both paths:
+Both paths now use `LinkResolver` from `link-resolver.ts`:
 
 ```typescript
-// Current: two implementations
-// Loading: buildFileIndex() returns Map<string, KNode>
-// Syncing: LinkResolver stores only IDs
-
-// Proposed: single LinkResolver with optional full node storage
-interface LinkResolver {
-  resolveTarget(name: string): string | null
-  resolveSection(fileId: string, section: string): string | null
-  addFile(id: string, name: string): void
-  getNode?(id: string): KNode | null // optional, for loading path
+const resolver = createLinkResolver(db)
+const targetId = resolver.resolveTarget(link.target)
+if (targetId && link.section) {
+  const sectionId = resolver.resolveSection(targetId, link.section)
 }
 ```
 
-### 2. Add Content Hashing to Loading
+**Commit**: `e3da819 refactor(storage): use shared LinkResolver in repo-loader`
 
-Loading currently parses every file on each run. Add hash-based skip:
+### ~~Phase 2: Add Content Hashing to Loading~~ REMOVED
 
-```typescript
-// In discoverFromFilesystem():
-const existingHash = getNodeContentHash(db, nodeId)
-const newHash = hashContent(content)
-if (existingHash === newHash) {
-  // Skip parsing, reuse existing nodes
-  continue
-}
-```
+**Why this doesn't apply:**
 
-Note: This only helps on subsequent runs, not first load.
+- **Memory mode** (`discoverFromFilesystem`): Always starts with empty `:memory:` database. There's no existing hash to compare against.
+- **Disk mode** (`discoverFromEvents`): Loads from the event log, doesn't scan the filesystem at all.
 
-### 3. Extract Shared File Processing
+Content hashing is only useful when comparing current file content to previously-known content. The loading path either has no previous state (memory mode) or doesn't read files (disk mode).
+
+The sync path (reconcile.ts) already has content hashing and that's where it belongs.
+
+### Phase 2: Extract Shared File Processing
 
 Create a `processMarkdownFile()` helper:
 
@@ -129,7 +120,7 @@ Both paths would call this with different options:
 - Loading: `{ pendingLinks: [] }` - collect for batch
 - Syncing: `{ resolver, emitter }` - resolve immediately, emit events
 
-### 4. Unify Event Generation
+### Phase 3: Unify Event Generation
 
 Loading generates `Event[]` then applies them.
 Syncing calls `emitNodeCreated()` which generates events.
@@ -156,20 +147,18 @@ function nodeToCreatedEvent(node: KNode, actor: string): Event {
 
 ## Migration Path
 
-1. **Phase 1**: Use `LinkResolver` in loading path (replace `buildFileIndex()`)
-2. **Phase 2**: Add content hashing to loading path
-3. **Phase 3**: Extract `processMarkdownFile()` helper
-4. **Phase 4**: Consolidate event generation
+1. ✅ **Phase 1**: Use `LinkResolver` in loading path (replace `buildFileIndex()`)
+2. **Phase 2**: Extract `processMarkdownFile()` helper
+3. **Phase 3**: Consolidate event generation
 
 Each phase should be a separate PR with tests.
 
 ## Performance Impact
 
-| Optimization               | Expected Impact              |
-| -------------------------- | ---------------------------- |
-| Shared LinkResolver        | Reduced code, no perf change |
-| Content hashing in loading | Faster subsequent runs       |
-| Shared processMarkdownFile | Reduced code, no perf change |
+| Optimization               | Expected Impact              | Status     |
+| -------------------------- | ---------------------------- | ---------- |
+| Shared LinkResolver        | Reduced code, no perf change | ✅ Done    |
+| Shared processMarkdownFile | Reduced code, no perf change | Planned    |
 
 ## Files Affected
 
@@ -180,15 +169,10 @@ Each phase should be a separate PR with tests.
 
 ## Open Questions
 
-1. Should `LinkResolver` store full `KNode` or just IDs?
-   - Full node: more memory, but loading path needs it for `findChildByContent()`
-   - Just IDs: less memory, but requires DB query for section resolution
+1. ~~Should `LinkResolver` store full `KNode` or just IDs?~~
+   **Resolved**: Just IDs. The `resolveSection()` method handles DB queries internally.
 
 2. Should we use `LinkResolver.addFile()` during loading?
    - Pro: enables forward references (file A links to file B before B is loaded)
    - Con: more complex than current batch-at-end approach
-
-3. Is content hashing worth it for loading?
-   - First run: no benefit (nothing to compare against)
-   - Memory mode: no benefit (no persisted state)
-   - Disk mode subsequent runs: significant benefit
+   - **Current**: Not used during loading; batch resolution happens after all files loaded
