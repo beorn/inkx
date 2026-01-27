@@ -1,5 +1,6 @@
 import { PassThrough, type Readable } from "node:stream"
 import { webStreamToNodeStream } from "./streams"
+import { formatMs } from "./utils"
 
 export interface NamedStream {
 	name: string
@@ -120,9 +121,4 @@ function processLine(
 	if (line.startsWith("  ") || line.startsWith("#") || line === "---" || line === "...") {
 		output.write(line + "\n")
 	}
-}
-
-function formatMs(ms: number): string {
-	if (ms < 1000) return `${Math.round(ms)}ms`
-	return `${(ms / 1000).toFixed(1)}s`
 }

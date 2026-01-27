@@ -13,6 +13,20 @@ bun km view <path>   # Run TUI
 
 **Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow.
 
+## Testing Infrastructure
+
+km uses **@beorn/tap** for parallel test orchestration:
+
+- **Fast tests** (.test.ts, .spec.ts) - Unit tests, iterate here
+- **Slow tests** (.slow.test.ts) - Integration tests, chaos tests
+- **MDTests** (.test.md) - Markdown-based functional tests (using @beorn/mdtest)
+
+All test types run in parallel via [scripts/test-all.ts](scripts/test-all.ts), which merges TAP streams for unified output.
+
+**Test patterns:** Centralized in [scripts/test-patterns.ts](scripts/test-patterns.ts) - single source of truth.
+
+**Note:** @beorn/tap includes a Playwright reporter ([vendor/beorn-tap/src/producers/playwright.ts](vendor/beorn-tap/src/producers/playwright.ts)) for E2E tests, but km currently uses Ink Testing Library for TUI tests instead.
+
 ## Architecture
 
 ```

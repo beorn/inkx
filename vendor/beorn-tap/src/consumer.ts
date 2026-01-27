@@ -1,5 +1,6 @@
 import { Parser, type Result } from "tap-parser"
 import type { Writable } from "node:stream"
+import { formatMs } from "./utils"
 
 export interface Failure {
 	name: string
@@ -17,18 +18,12 @@ export interface ConsumerOptions {
 	output?: Writable
 }
 
-export interface TimingEntry {
-	runner: string
-	ms: number
-}
-
 export interface ConsumerResult {
 	passed: number
 	failed: number
 	skipped: number
 	total: number
 	failures: Failure[]
-	timing: TimingEntry[]
 	wallTimeMs: number
 }
 
@@ -38,27 +33,17 @@ export interface ConsumerResult {
  * @param options - Configuration options
  * @param options.dots - Show colored dots during test execution (green dot for pass, red X for fail, yellow dash for skip)
  * @param options.output - Output stream for writing results (defaults to process.stdout)
- * @returns Extended tap-parser instance with addTiming() and getResults() methods
+ * @returns Extended tap-parser instance with getResults() method
  */
 export function createConsumer(options: ConsumerOptions = {}) {
 	const output = options.output ?? process.stdout
 	const parser = new Parser()
 	const failures: Failure[] = []
-	const timing: TimingEntry[] = []
 	const startTime = performance.now()
-	let currentRunner = "unknown"
 
 	let passed = 0
 	let failed = 0
 	let skipped = 0
-
-	// Track runner from subtest/comment
-	parser.on("comment", (comment: string) => {
-		const match = comment.match(/^# runner: (.+)$/)
-		if (match?.[1]) {
-			currentRunner = match[1]
-		}
-	})
 
 	parser.on("assert", (assert: Result) => {
 		if (assert.skip) {
@@ -108,18 +93,11 @@ export function createConsumer(options: ConsumerOptions = {}) {
 			`${status} ${total} tests: ${passed} passed, ${failed} failed, ${skipped} skipped\n`,
 		)
 
-		// Print timing
-		if (timing.length > 0) {
-			const timingStr = timing.map((t) => `${t.runner}: ${formatMs(t.ms)}`).join(", ")
-			output.write(`\x1b[2mTiming: ${timingStr}\x1b[0m\n`)
-		}
+		// Print total time
 		output.write(`\x1b[2mTotal: ${formatMs(wallTimeMs)}\x1b[0m\n`)
 	})
 
 	return Object.assign(parser, {
-		addTiming(runner: string, ms: number) {
-			timing.push({ runner, ms })
-		},
 		getResults(): ConsumerResult {
 			return {
 				passed,
@@ -127,14 +105,8 @@ export function createConsumer(options: ConsumerOptions = {}) {
 				skipped,
 				total: passed + failed + skipped,
 				failures,
-				timing,
 				wallTimeMs: performance.now() - startTime,
 			}
 		},
 	})
-}
-
-function formatMs(ms: number): string {
-	if (ms < 1000) return `${Math.round(ms)}ms`
-	return `${(ms / 1000).toFixed(1)}s`
 }
