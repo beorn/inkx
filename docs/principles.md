@@ -13,17 +13,19 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 ## Overview
 
 1. **Composability** — Build from simple, reusable pieces
-   - Plain Objects, Factory Functions
-   - No Magic, No Globals
-   - The Layer Cake
-   - `using` for Cleanup
-   - Generators All The Way Down
+   - Objects
+     - Principle: Plain Objects, Factory Functions
+     - Principle: No Magic, No Globals
+     - Principle: The Layer Cake
+     - Principle: `using` for Cleanup
+   - Flows
+     - Flows: Generators All The Way Down
 2. **The Fast Feedback Loop** — Keep the loop tight to maintain extreme quality
-   - Fail Loud, Fail Now
-   - 5-Second Test Loops
-   - Quarantine and Delete
+   - Principle: Fail Loud, Fail Now
+   - Principle: 5-Second Test Loops
+   - Principle: Quarantine and Delete
 3. **Code for Humans** — Make the "right way" locally obvious
-   - Start at the Top
+   - Principle: Inverted Pyramid
    - Naming Conventions
    - No Hidden Side Effects
    - Local Reasoning
@@ -42,19 +44,19 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 - [Overview](#overview)
 - [Part 1: Composability](#part-1-composability)
   - [Objects](#objects)
-  - [1. Plain Objects, Factory Functions](#1-plain-objects-factory-functions)
-  - [2. No Magic, No Globals](#2-no-magic-no-globals)
-  - [Rejected Patterns](#rejected-patterns)
-  - [3. The Layer Cake](#3-the-layer-cake)
-  - [4. `using` for Cleanup](#4-using-for-cleanup)
+  - [Principle: Plain Objects, Factory Functions](#principle-plain-objects-factory-functions)
+  - [Principle: No Magic, No Globals](#principle-no-magic-no-globals)
+  - [Disallowed Patterns](#disallowed-patterns)
+  - [Principle: The Layer Cake](#principle-the-layer-cake)
+  - [Principle: `using` for Cleanup](#principle-using-for-cleanup)
   - [Flows](#flows)
-  - [5. Generators All The Way Down](#5-generators-all-the-way-down)
+  - [Flows: Generators All The Way Down](#flows-generators-all-the-way-down)
 - [Part 2: The Fast Feedback Loop](#part-2-the-fast-feedback-loop)
-  - [6. Fail Loud, Fail Now](#6-fail-loud-fail-now)
-  - [7. 5-Second Test Loops](#7-5-second-test-loops)
-  - [8. Quarantine and Delete](#8-quarantine-and-delete)
+  - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now)
+  - [Principle: 5-Second Test Loops](#principle-5-second-test-loops)
+  - [Principle: Quarantine and Delete](#principle-quarantine-and-delete)
 - [Part 3: Code for Humans](#part-3-code-for-humans)
-  - [9. Start at the Top](#9-start-at-the-top)
+  - [Principle: Inverted Pyramid](#principle-inverted-pyramid)
   - [Naming Conventions](#naming-conventions)
   - [No Hidden Side Effects](#no-hidden-side-effects)
   - [Local Reasoning](#local-reasoning)
@@ -137,7 +139,7 @@ const repo = createRepo(path, {
 
 ---
 
-### 2. No Magic, No Globals
+### Principle: No Magic, No Globals
 
 **The insight**: If you need something, it must be passed in.
 
@@ -170,7 +172,7 @@ function processNodes(db: Database) {
 
 ---
 
-### Rejected Patterns
+### Disallowed Patterns
 
 **Why not classes**:
 
@@ -201,12 +203,37 @@ export class Repo {
 }
 
 // ✅ GOOD - factory function
-export function createRepo(path: string, options?: RepoOptions): Repo
+
+// ✅ ACCEPTABLE - infrastructure class extending EventEmitter
+export class SyncManager extends EventEmitter {
+  constructor(config: SyncConfig) {
+    super()
+    // Event-based infrastructure
+  }
+}
 ```
+
+**Infrastructure Class Exception**:
+
+Infrastructure classes that extend EventEmitter or manage low-level resources are acceptable when:
+
+- Performance-critical (worker thread management, file system operations)
+- Event-based (standard EventEmitter pattern for pub/sub)
+- Internal infrastructure (not domain objects)
+
+Examples in km:
+
+- `SyncManager extends EventEmitter` — event-based sync coordination
+- `WriteQueue extends EventEmitter` — debounced write operations
+- `FileSystemWatcher extends EventEmitter` — file system monitoring
+- `ParsePool` — worker thread pool management
+- `DisposableStore` — disposable resource container
+
+Domain objects (Repo, Board, Watcher) must still use factory functions.
 
 ---
 
-### 3. The Layer Cake
+### Principle: The Layer Cake
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -234,7 +261,7 @@ export function createRepo(path: string, options?: RepoOptions): Repo
 
 ---
 
-### 4. `using` for Cleanup
+### Principle: `using` for Cleanup
 
 **The insight**: Resources acquired = resources released. If you create something, you must clean it up.
 
@@ -269,7 +296,7 @@ async function watchRepo(path: string) {
 
 Async generators make multi-stage data processing composable. Each stage is a function that yields items, and stages compose like building blocks.
 
-### 5. Generators All The Way Down
+### Flows: Generators All The Way Down
 
 **The insight**: Multi-stage data processing composes naturally with async generators.
 
@@ -352,7 +379,7 @@ Fast feedback enables extreme quality: tests run in ~11s, programming errors thr
 
 Bad quality propagates and multiplies, especially with LLMs. Fast feedback is how you keep the codebase clean.
 
-### 6. Fail Loud, Fail Now
+### Principle: Fail Loud, Fail Now
 
 **The insight**: Programming errors should throw immediately. No defensive fallbacks for internal code.
 
@@ -384,11 +411,13 @@ function getNode(id: string) {
 
 ---
 
-### 7. 5-Second Test Loops
+### Principle: 5-Second Test Loops
 
 **The insight**: Tests use in-memory infrastructure unless you explicitly opt into real.
 
 **The pattern**: `withTestEnv()` provides isolated memory DB.
+
+Tests are **executable specifications** documenting behavior. Fast tests enable constant verification that the system works as specified.
 
 ```typescript
 // ✅ GOOD - in-memory, isolated, fast
@@ -405,7 +434,7 @@ const db = new Database("/tmp/test.db")
 
 ---
 
-### 8. Quarantine and Delete
+### Principle: Quarantine and Delete
 
 **The insight**: Remove old patterns, then fix all consumers. Don't add backwards compatibility shims.
 
@@ -437,11 +466,13 @@ export function getDb() { ... }
 
 Code is read more than written.
 
-### 9. Start at the Top
+### Principle: Inverted Pyramid
 
 **The insight**: Main flow at top of file/function, helpers after return.
 
 **The pattern**: Use JavaScript hoisting to write code in reading order.
+
+This is **literate programming**: code as narrative for humans. The most important logic appears first, implementation details follow naturally.
 
 ```typescript
 // ✅ GOOD - main logic first, helpers after return
@@ -659,7 +690,7 @@ How we keep principles true over time.
 
 **Code review checklist**:
 
-- [ ] Uses factory functions, not classes or singletons
+- [ ] Domain objects use factory functions; infrastructure classes (if needed) extend EventEmitter
 - [ ] Dependencies passed explicitly via `inject` option
 - [ ] Disposable resources use `Symbol.dispose`
 - [ ] Programming errors throw immediately (fail loud, fail now)
