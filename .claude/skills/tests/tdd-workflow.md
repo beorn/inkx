@@ -13,7 +13,7 @@ description: Test-driven development workflow for km
 ## Quick Reference
 
 ```bash
-bun run test:fast    # Fast iteration (<5s) - use frequently
+bun run test:fast    # Fast iteration (~11s) - use frequently
 bun run test:all     # Full suite (~2min) - before commit
 bun fix              # Lint + format - must pass before commit
 ```
@@ -27,7 +27,7 @@ bun fix              # Lint + format - must pass before commit
 **During iteration:**
 
 ```bash
-bun run test:fast    # <5s feedback loop
+bun run test:fast    # ~11s feedback loop
 bun lint | tail -100 # Check lint
 ```
 
@@ -58,7 +58,7 @@ bun run test:all     # MUST pass
 | Spec/acceptance  | `.spec.ts`, `.test.md` | UI behavior, CLI           |
 | Chaos            | `chaos/*.test.ts`      | Sync edge cases            |
 
-**Target**: `test:fast` < 5 seconds. Move slow tests to `.slow.test.ts`.
+**Target**: `test:fast` ~11 seconds. Move slow tests to `.slow.test.ts`.
 
 ---
 

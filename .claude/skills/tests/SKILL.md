@@ -13,7 +13,7 @@ allowed-tools: Bash, Read, Glob, Grep, Task
 ### Coding Iteration (every change)
 
 ```bash
-bun run test:fast          # ~5s - run after each change
+bun run test:fast          # ~11s - run after each change
 ```
 
 ### Before Commit

@@ -599,7 +599,7 @@ pkill -f ttyd
 **Coding Iteration** (every change):
 
 ```bash
-bun run test:fast          # ~5s - run after each change
+bun run test:fast          # ~11s - run after each change
 ```
 
 **Before Commit**:
@@ -707,7 +707,7 @@ See [debugging.md](debugging.md) for the full debugging workflow.
 
 | Suite     | Target | Rationale                |
 | --------- | ------ | ------------------------ |
-| test:fast | <5s    | Developer iteration loop |
+| test:fast | ~11s   | Developer iteration loop |
 | test:all  | <2min  | Pre-commit full check    |
 
 ### Check for Violations

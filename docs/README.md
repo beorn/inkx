@@ -108,7 +108,7 @@ See [principles.md](principles.md) for the full architectural philosophy. In bri
 **Engineering principles:**
 
 - **Composability** — Domain objects and async generators make structures and flows composable
-- **Quality enables fast feedback** — Fast tests (<5s) and fail-fast errors maintain the quality plateau
+- **Quality enables fast feedback** — Fast tests (~11s) and fail-fast errors maintain the quality plateau
 - **Readability matters** — Important logic first, implementation details after
 - **Built for LLMs** — Delete legacy patterns (they're viral), maintain one obvious way to do things
 

@@ -5,7 +5,7 @@ TypeScript, Bun, Ink (React TUI), SQLite. Bidirectional sync: TUI ↔ Model ↔ 
 ## Commands
 
 ```bash
-bun run test:fast    # Fast tests (<5s) - iterate here
+bun run test:fast    # Fast tests (~11s) - iterate here
 bun run test:all     # Full tests - before commit
 bun fix              # Lint + format - must pass
 bun km view <path>   # Run TUI

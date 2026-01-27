@@ -88,7 +88,7 @@ Software is built from composable pieces. Both **structures** (objects) and **fl
 
 Domain objects are plain objects created by factory functions. They compose via explicit dependencies, enabling testing, swapping, and isolation.
 
-### 1. Plain Objects, Factory Functions
+### Principle: Plain Objects, Factory Functions
 
 **The insight**: All functionality lives in domain objects (Repo, Board, Watcher).
 
@@ -348,7 +348,7 @@ for await (const item of pipeline) { ... }
 
 ## Part 2: The Fast Feedback Loop
 
-Fast feedback enables extreme quality: tests run in <5s, programming errors throw loudly, and failures happen at the call site—not in production.
+Fast feedback enables extreme quality: tests run in ~11s, programming errors throw loudly, and failures happen at the call site—not in production.
 
 Bad quality propagates and multiplies, especially with LLMs. Fast feedback is how you keep the codebase clean.
 
@@ -401,7 +401,7 @@ await withTestEnv(async ({ db, repo, repoDir }) => {
 const db = new Database("/tmp/test.db")
 ```
 
-**Target**: `bun run test:fast` < 5 seconds.
+**Target**: `bun run test:fast` ~11 seconds.
 
 ---
 
