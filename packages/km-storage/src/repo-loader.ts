@@ -16,7 +16,7 @@
 import createDebug from "debug"
 import { Database } from "bun:sqlite"
 import { existsSync, readdirSync, readFileSync, statSync } from "fs"
-import { join, dirname, relative, basename } from "path"
+import { join, dirname, relative } from "path"
 import type { Event } from "@km/core"
 import { ParsePool, type ParseResult } from "./parse-pool.ts"
 
@@ -33,9 +33,7 @@ export type StepYield =
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA } from "./schema.ts"
 import { applyEventWithDb } from "./db-events.ts"
-import { findChildByContent } from "./db-queries/index.ts"
-import { rowToNode } from "./db-queries/utils.ts"
-import type { KNode } from "@km/core"
+import { createLinkResolver } from "./link-resolver.ts"
 import { evaluateAllRules, createRuleContext } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { MemoryStore, type NodeStore } from "./store.ts"
@@ -770,8 +768,8 @@ function* resolveLinks(
   yield "Resolving links"
   yield { current: 0, total }
 
-  // Build file lookup index for O(1) resolution instead of O(n) SQL per link
-  const fileIndex = buildFileIndex(db)
+  // Use shared LinkResolver for O(1) lookups (same as reconcile.ts)
+  const resolver = createLinkResolver(db)
 
   // Collect all link data for batch INSERT
   const linksToInsert: Array<{
@@ -797,23 +795,19 @@ function* resolveLinks(
   // Phase 1: Build link data (O(1) lookups)
   for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
     try {
-      // Find target file by normalized name (O(1) lookup)
-      const normalizedTarget = link.target.toLowerCase().replace(/\.md$/, "")
-      const fileNode = fileIndex.get(normalizedTarget) ?? null
-
-      // If there's a section reference, try to find the specific child node
-      let targetNode = fileNode
-      if (fileNode && link.section) {
-        const childNode = findChildByContent(db, fileNode.id, link.section)
-        if (childNode) {
-          targetNode = childNode
+      // Use resolver for O(1) target and section lookup
+      let targetId = resolver.resolveTarget(link.target)
+      if (targetId && link.section) {
+        const sectionId = resolver.resolveSection(targetId, link.section)
+        if (sectionId) {
+          targetId = sectionId
         }
       }
 
       linksToInsert.push({
         source_id: nodeId,
         target_name: link.target,
-        target_id: targetNode?.id ?? null,
+        target_id: targetId,
         section: link.section ?? null,
         block_id: link.blockId ?? null,
         alias: link.alias ?? null,
@@ -822,15 +816,15 @@ function* resolveLinks(
       })
 
       // Track embedded links that need node updates
-      if (link.embedded && targetNode?.id) {
+      if (link.embedded && targetId) {
         embeddedUpdates.push({
           source_id: nodeId,
-          target_id: targetNode.id,
+          target_id: targetId,
           alias: link.alias ?? null,
         })
       }
 
-      if (targetNode) {
+      if (targetId) {
         resolved++
       }
     } catch (err) {
@@ -909,8 +903,8 @@ export async function resolveLinksAsync(
 
   debug("resolveLinksAsync: starting %d links", total)
 
-  // Build file lookup index for O(1) resolution
-  const fileIndex = buildFileIndex(db)
+  // Use shared LinkResolver for O(1) lookups (same as reconcile.ts)
+  const resolver = createLinkResolver(db)
 
   // Collect all link data for batch INSERT
   const linksToInsert: Array<{
@@ -936,23 +930,19 @@ export async function resolveLinksAsync(
 
   // Phase 1: Build link data (O(1) lookups), yielding periodically
   for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
-    // Find target file by normalized name (O(1) lookup)
-    const normalizedTarget = link.target.toLowerCase().replace(/\.md$/, "")
-    const fileNode = fileIndex.get(normalizedTarget) ?? null
-
-    // If there's a section reference, try to find the specific child node
-    let targetNode = fileNode
-    if (fileNode && link.section) {
-      const childNode = findChildByContent(db, fileNode.id, link.section)
-      if (childNode) {
-        targetNode = childNode
+    // Use resolver for O(1) target and section lookup
+    let targetId = resolver.resolveTarget(link.target)
+    if (targetId && link.section) {
+      const sectionId = resolver.resolveSection(targetId, link.section)
+      if (sectionId) {
+        targetId = sectionId
       }
     }
 
     linksToInsert.push({
       source_id: nodeId,
       target_name: link.target,
-      target_id: targetNode?.id ?? null,
+      target_id: targetId,
       section: link.section ?? null,
       block_id: link.blockId ?? null,
       alias: link.alias ?? null,
@@ -961,15 +951,15 @@ export async function resolveLinksAsync(
     })
 
     // Track embedded links that need node updates
-    if (link.embedded && targetNode?.id) {
+    if (link.embedded && targetId) {
       embeddedUpdates.push({
         source_id: nodeId,
-        target_id: targetNode.id,
+        target_id: targetId,
         alias: link.alias ?? null,
       })
     }
 
-    if (targetNode) {
+    if (targetId) {
       resolved++
     }
 
@@ -1026,38 +1016,6 @@ export async function resolveLinksAsync(
   onProgress?.(total, total)
   debug("resolveLinksAsync: completed, %d resolved", resolved)
   return resolved
-}
-
-/**
- * Build an index of file nodes by normalized name for O(1) lookup.
- * This replaces per-link SQL queries which were O(n) each.
- */
-function buildFileIndex(db: Database): Map<string, KNode> {
-  const index = new Map<string, KNode>()
-
-  const rows = db
-    .query("SELECT * FROM nodes WHERE type = 'file'")
-    .all() as Record<string, unknown>[]
-
-  for (const row of rows) {
-    const node = rowToNode(row)
-    if (node.fs_path) {
-      // Index by filename without extension (e.g., "test" for "test.md")
-      const filename = basename(node.fs_path).toLowerCase().replace(/\.md$/, "")
-      index.set(filename, node)
-
-      // Also index by full path without extension for disambiguation
-      const fullPath = node.fs_path.toLowerCase().replace(/\.md$/, "")
-      index.set(fullPath, node)
-    }
-    // Also index by data.name if present
-    const data = node.data as Record<string, unknown> | undefined
-    if (data?.name && typeof data.name === "string") {
-      index.set(data.name.toLowerCase(), node)
-    }
-  }
-
-  return index
 }
 
 function* materializeRules(db: Database): Generator<StepYield, void, unknown> {
