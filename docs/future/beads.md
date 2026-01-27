@@ -510,6 +510,6 @@ km bd migrate [--dry-run]
 
 ## See Also
 
-- [../07-tasks.md](../07-tasks.md) — Task management
-- [../08-cli.md](../08-cli.md) — CLI reference
-- [../01-concepts.md](../01-concepts.md) — Links and references
+- [../guides/tasks.md](../guides/tasks.md) — Task management
+- [../guides/cli.md](../guides/cli.md) — CLI reference
+- [../concepts.md](../concepts.md) — Links and references

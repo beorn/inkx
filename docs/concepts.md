@@ -166,7 +166,7 @@ km init               # Enable tracking (creates .km/, disk mode)
 | `blocked:true` | `blocked:true`   | Has unresolved blockers |
 | `"text"`       | `"quarterly"`    | Full-text search        |
 
-See [05-query.md](05-query.md) for full query language specification.
+See [ref/query.md](ref/query.md) for full query language specification.
 
 ---
 
@@ -180,12 +180,12 @@ Taxes/                      →    Taxes / .md #
     # Taxes
 ```
 
-The `/ .md #` suffix shows what was collapsed. See [06-ui.md](06-ui.md).
+The `/ .md #` suffix shows what was collapsed. See [ref/ui.md](ref/ui.md).
 
 ---
 
 ## See Also
 
-- [02-architecture.md](02-architecture.md) — Package structure, data flow, event system
-- [03-storage.md](03-storage.md) — Mode detection, SQLite schema, sync
-- [07-tasks.md](07-tasks.md) — Task management, GTD workflow
+- [architecture.md](architecture.md) — Package structure, data flow, event system
+- [storage.md](storage.md) — Mode detection, SQLite schema, sync
+- [guides/tasks.md](guides/tasks.md) — Task management, GTD workflow

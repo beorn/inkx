@@ -465,5 +465,5 @@ Trade-offs:
 
 ## See Also
 
-- [03-storage.md](03-storage.md) — Node storage, sync
-- [05-query.md](05-query.md) — Query language
+- [storage.md](storage.md) — Node storage, sync
+- [ref/query.md](ref/query.md) — Query language

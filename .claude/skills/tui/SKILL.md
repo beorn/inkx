@@ -44,4 +44,4 @@ bun run test:mock
 bun run test:fast 2>&1 | grep -i "act()"
 ```
 
-**Full design rationale**: [docs/06-ui.md](../../docs/06-ui.md)
+**Full design rationale**: [docs/ref/ui.md](../../docs/ref/ui.md)

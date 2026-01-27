@@ -547,7 +547,7 @@ bun fix              # Lint + format
 
 ## See Also
 
-- [01-concepts.md](01-concepts.md) — What km is (nodes, modes, status)
-- [02-architecture.md](02-architecture.md) — System architecture (layers, data flow)
+- [concepts.md](concepts.md) — What km is (nodes, modes, status)
+- [architecture.md](architecture.md) — System architecture (layers, data flow)
 - [ADR-002](adr/archive/002-domain-objects-refactor.md) — Historical context on domain object architecture
 - [dev/testing.md](dev/testing.md) — Detailed testing guide

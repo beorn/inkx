@@ -697,17 +697,7 @@ Is it end-user visible behavior?
 
 ## Debugging TUI Issues
 
-**Preferred method**: DEBUG_LOG + Visual Inspection
-
-```bash
-# Terminal 1: Run with debug logging
-DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/repo
-
-# Terminal 2: Watch log
-tail -f /tmp/km.log
-```
-
-This captures visual state + internal events for correlation.
+See [debugging.md](debugging.md) for the full debugging workflow.
 
 ---
 
@@ -751,7 +741,122 @@ Tests taking >1s MUST be marked `.slow.test.ts`:
 
 ---
 
+## Test Output Rules
+
+**Strict enforcement**: Tests must be completely silent on success. Any output to stdout/stderr fails the test.
+
+This is enforced by [`tests/fail-on-console.ts`](../../tests/fail-on-console.ts), a preload script that:
+
+1. Intercepts `console.log`, `console.info`, `console.debug`
+2. Intercepts `process.stdout.write` and `process.stderr.write`
+3. Fails the test if any output is produced
+
+### If Your Test Needs to Produce Output
+
+**Testing code that logs**: Spy on the console method:
+
+```typescript
+import { spyOn } from "bun:test"
+
+test("logs on dry-run", () => {
+  const spy = spyOn(console, "log").mockImplementation(() => {})
+
+  runDryRun()
+
+  expect(spy).toHaveBeenCalledWith(expect.stringContaining("Would create"))
+  spy.mockRestore()
+})
+```
+
+**Testing code that writes to stdout**: Capture output:
+
+```typescript
+test("shows progress", () => {
+  const output: string[] = []
+  const original = process.stdout.write.bind(process.stdout)
+  process.stdout.write = ((chunk: any) => {
+    output.push(String(chunk))
+    return true
+  }) as typeof process.stdout.write
+
+  runProgressOperation()
+
+  expect(output.join("")).toContain("Processing...")
+  process.stdout.write = original
+})
+```
+
+**Debugging**: Temporarily disable output checking:
+
+```bash
+SKIP_OUTPUT_CHECK=1 bun test path/to/test.ts
+```
+
+### What Gets Caught
+
+| Source                   | Example              | How to Fix         |
+| ------------------------ | -------------------- | ------------------ |
+| `console.log()`          | Debug statements     | Remove or spy      |
+| `process.stdout.write()` | Progress bars        | Capture in test    |
+| Node warnings            | MaxListenersExceeded | Fix the root cause |
+| Production logging       | `logger.info()`      | Inject mock logger |
+
+### What Doesn't Get Caught
+
+- `console.error()` / `console.warn()` - These indicate real problems and should be visible
+- Terminal control sequences (ANSI codes, bell) - Filtered as non-meaningful
+
+---
+
+## Chaos Testing (Sync)
+
+The sync system (file watching, reconciliation, write queue) is tested using controlled chaos injection via `@beorn/watcher-chaos`.
+
+**Key scenarios:**
+
+| Scenario            | What It Simulates                       |
+| ------------------- | --------------------------------------- |
+| `SLOW_DISK`         | Events delayed 2-5 seconds              |
+| `QUEUE_OVERFLOW`    | 20% of events dropped randomly          |
+| `EDITOR_ATOMIC`     | Write becomes delete + add pair         |
+| `EVENT_STORM`       | Bursts of 100+ events                   |
+| `FSEVENTS_COALESCE` | Parent dir event instead of file events |
+
+```typescript
+import { ChaosWatcher, queueOverflow } from "@beorn/watcher-chaos"
+
+const watcher = new ChaosWatcher({
+  scenario: queueOverflow(0.2), // 20% drop rate
+  seed: 12345, // Reproducible randomness
+})
+```
+
+**Location**: `packages/km-storage/tests/sync/chaos/`
+
+See [archive/chaos-testing.md](../archive/chaos-testing.md) for full scenario reference.
+
+---
+
+## Layer Testing Rules
+
+Guidelines for what each layer should and shouldn't test:
+
+| Layer                   | Should Test                 | Should NOT Test          |
+| ----------------------- | --------------------------- | ------------------------ |
+| Parser (`@km/markdown`) | Parse/serialize, round-trip | Storage, UI              |
+| Storage (`@km/storage`) | CRUD, queries, sync, events | UI rendering             |
+| Tree (`@km/tree`)       | Tree queries, display names | Storage mutations        |
+| Board (`@km/board`)     | Reducer state, selectors    | DB operations, rendering |
+| TUI (`apps/km-tui`)     | Component rendering, layout | Direct storage mutations |
+| CLI (`apps/km-cli`)     | Commands, workflows, errors | Internal state           |
+
+**Test distribution target**: Storage ~40%, TUI ~20%, Board ~15%, CLI ~15%, Parser ~5%, Tree ~5%
+
+See [archive/test-review.md](../archive/test-review.md) for detailed layer rules.
+
+---
+
 ## See Also
 
-- [test-review.md](test-review.md) - Pruning, overlap detection, test smells
-- [chaos-testing.md](chaos-testing.md) - Detailed chaos testing reference
+- [debugging.md](debugging.md) - Debug logging and troubleshooting
+- [../architecture.md](../architecture.md) - System layers

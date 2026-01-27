@@ -11,7 +11,7 @@ bun fix              # Lint + format - must pass
 bun km view <path>   # Run TUI
 ```
 
-**Never** use bare `bun test`. See [.claude/skills/testing/] for TDD workflow.
+**Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow.
 
 ## Architecture
 
@@ -35,11 +35,13 @@ See [docs/README.md](docs/README.md) for full architecture.
 - **Fail fast** — throw on programming errors, no defensive fallbacks
 - **Factory functions** — not classes, no singletons
 
-See [docs/00-principles.md](docs/00-principles.md) for philosophy.
+See [docs/principles.md](docs/principles.md) for philosophy.
 
 ## Issue Tracking
 
-Use `/pm` for beads. Always `bd work <id>` before starting, `bd close <id>` when done.
+We use `bd` which calls the issues/tasks/epics/features **beads**.
+Use `/pm` to learn about bd, beads, backlog management, bug reporting.
+Always `bd work <id>` to claim a bead before starting, `bd close <id>` when done.
 
 ## Commits
 
@@ -51,14 +53,13 @@ Before ending: `bun fix && bun run test:all && git push`. Propose next steps wit
 
 ## Skills (load when needed)
 
-| Skill                                     | Use When               |
-| ----------------------------------------- | ---------------------- |
-| [testing/](.claude/skills/testing/)       | Writing/running tests  |
-| [review/](.claude/skills/review/)         | Code review            |
-| [tui/](.claude/skills/tui/)               | TUI development        |
-| [pm/](.claude/skills/pm/)                 | Issue tracking (beads) |
-| [git/](.claude/skills/git/)               | Commits and releases   |
-| [claude/](.claude/skills/claude/)         | Claude Code config     |
-| [logging.md](.claude/skills/logging.md)   | Debug output           |
-| [max.md](.claude/skills/max.md)           | Parallel agents        |
-| [refactor.md](.claude/skills/refactor.md) | Code simplification    |
+| Skill                                   | Use When               |
+| --------------------------------------- | ---------------------- |
+| [pm/](.claude/skills/pm/)               | Issue tracking (beads) |
+| [tests/](.claude/skills/tests/)         | Writing/running tests  |
+| [code/](.claude/skills/code/)           | Code quality/review    |
+| [tui/](.claude/skills/tui/)             | TUI development        |
+| [git/](.claude/skills/git/)             | Commits and releases   |
+| [claude/](.claude/skills/claude/)       | Claude Code config     |
+| [logging.md](.claude/skills/logging.md) | Debug output           |
+| [max.md](.claude/skills/max.md)         | Parallel agents        |

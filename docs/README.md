@@ -45,32 +45,43 @@ km init                    # Enable persistence (stable IDs, history)
 
 ## Documentation
 
-### Understand (Start Here)
+### Understanding (Start Here)
 
-| Doc                                      | Description                                                     |
-| ---------------------------------------- | --------------------------------------------------------------- |
-| [00-principles.md](00-principles.md)     | **Start here.** Architectural principles, why we build this way |
-| [01-concepts.md](01-concepts.md)         | Core concepts: nodes, modes, status, links                      |
-| [02-architecture.md](02-architecture.md) | System architecture: layers, data flow, packages                |
+| Doc                                | Description                            |
+| ---------------------------------- | -------------------------------------- |
+| [principles.md](principles.md)     | **Start here.** Why we build this way  |
+| [concepts.md](concepts.md)         | Core concepts: nodes, modes, status    |
+| [architecture.md](architecture.md) | System layers, data flow, event system |
+| [storage.md](storage.md)           | SQLite schema, two modes, sync         |
 
-### Build (How It Works)
+### User Guides
 
-| Doc                              | Description                |
-| -------------------------------- | -------------------------- |
-| [03-storage.md](03-storage.md)   | SQLite schema, modes, sync |
-| [04-markdown.md](04-markdown.md) | Markdown parsing           |
-| [05-query.md](05-query.md)       | Query language             |
+| Doc                                        | Description                 |
+| ------------------------------------------ | --------------------------- |
+| [guides/tasks.md](guides/tasks.md)         | Tasks, boards, GTD workflow |
+| [guides/cli.md](guides/cli.md)             | CLI commands                |
+| [guides/use-cases.md](guides/use-cases.md) | Usage scenarios             |
 
-### Use (User-Facing)
+### Reference
 
-| Doc                              | Description                         |
-| -------------------------------- | ----------------------------------- |
-| [06-ui.md](06-ui.md)             | Views, navigation, design system    |
-| [07-tasks.md](07-tasks.md)       | Tasks, boards, GTD workflow         |
-| [08-cli.md](08-cli.md)           | CLI commands                        |
-| [09-commands.md](09-commands.md) | Unified command system, keybindings |
+| Doc                                  | Description                 |
+| ------------------------------------ | --------------------------- |
+| [ref/ui.md](ref/ui.md)               | Views, navigation, design   |
+| [ref/commands.md](ref/commands.md)   | Command system, keybindings |
+| [ref/query.md](ref/query.md)         | Query language              |
+| [ref/markdown.md](ref/markdown.md)   | Markdown parsing            |
+| [ref/prior-art.md](ref/prior-art.md) | Research notes              |
 
-### Extend (Future)
+### Developer Guides
+
+| Doc                                        | Description                |
+| ------------------------------------------ | -------------------------- |
+| [dev/testing.md](dev/testing.md)           | Testing strategy           |
+| [dev/debugging.md](dev/debugging.md)       | Debugging workflow         |
+| [dev/ink-patterns.md](dev/ink-patterns.md) | Ink TUI framework patterns |
+| [dev/releasing.md](dev/releasing.md)       | Versioning and releases    |
+
+### Future
 
 | Doc                                      | Description                          |
 | ---------------------------------------- | ------------------------------------ |
@@ -78,20 +89,11 @@ km init                    # Enable persistence (stable IDs, history)
 | [future/beads.md](future/beads.md)       | Beads issue tracking integration     |
 | [future/services.md](future/services.md) | CalDAV, CardDAV connectors (planned) |
 
-### Developer Guides
-
-| Doc                                        | Description                |
-| ------------------------------------------ | -------------------------- |
-| [dev/testing.md](dev/testing.md)           | Testing strategy           |
-| [dev/ink-patterns.md](dev/ink-patterns.md) | Ink TUI framework patterns |
-| [dev/prior-art.md](dev/prior-art.md)       | Research notes             |
-| [dev/use-cases.md](dev/use-cases.md)       | Test scenarios             |
-
 ---
 
 ## Key Principles
 
-See [00-principles.md](00-principles.md) for the full architectural philosophy. In brief:
+See [principles.md](principles.md) for the full architectural philosophy. In brief:
 
 **Product principles:**
 

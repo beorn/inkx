@@ -244,9 +244,9 @@ This will be resolved once Bun releases a fix.
 ## Docs
 
 - [ROADMAP.md](ROADMAP.md) — Implementation phases
-- [docs/README.md](docs/README.md) — Architecture & principles
-- [docs/01-concepts.md](docs/01-concepts.md) — Design overview
-- [docs/10-tasks.md](docs/10-tasks.md) — Task management
+- [docs/README.md](docs/README.md) — Documentation hub
+- [docs/concepts.md](docs/concepts.md) — Core concepts
+- [docs/guides/tasks.md](docs/guides/tasks.md) — Task management
 - [CLAUDE.md](CLAUDE.md) — Agent development instructions
 
 Inspired by [Beads](https://github.com/steveyegge/beads) and [Gas Town](https://github.com/steveyegge/gastown).

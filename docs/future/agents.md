@@ -374,6 +374,6 @@ km hub status               # Show status
 
 ## See Also
 
-- [../03-storage.md](../03-storage.md) — Events and storage model
-- [../07-tasks.md](../07-tasks.md) — Task management
-- [../08-cli.md](../08-cli.md) — CLI commands
+- [../storage.md](../storage.md) — Events and storage model
+- [../guides/tasks.md](../guides/tasks.md) — Task management
+- [../guides/cli.md](../guides/cli.md) — CLI commands

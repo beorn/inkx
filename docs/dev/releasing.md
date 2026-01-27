@@ -2,6 +2,32 @@
 
 km uses [release-it](https://github.com/release-it/release-it) for GitHub releases.
 
+## Versioning
+
+The version is defined in **one place only**: `package.json`
+
+At build time, `bun run build:info` generates `packages/km-core/src/build-info.gen.ts`:
+
+```typescript
+export const VERSION = "0.1.0"
+export const GIT_COMMIT = "5197ef0"
+export const GIT_BRANCH = "main"
+export const GIT_DIRTY = false
+export const BUILD_TIME = "2026-01-23T10:00:00.000Z"
+```
+
+This file is **gitignored** — regenerated on every build.
+
+**Usage:**
+
+```typescript
+import { VERSION, BUILD_INFO } from "@km/core"
+program.version(VERSION)
+console.log(`km v${VERSION} (${BUILD_INFO.gitCommit})`)
+```
+
+---
+
 ## Quick Start
 
 ```bash
@@ -102,6 +128,5 @@ git push && git push --tags
 
 ## See Also
 
-- [versioning.md](versioning.md) — How VERSION and BUILD_INFO work
 - [CHANGELOG.md](../../CHANGELOG.md) — Release history
 - [release-it docs](https://github.com/release-it/release-it)

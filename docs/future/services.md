@@ -70,5 +70,5 @@ connectors:
 
 ## See Also
 
-- [../03-storage.md](../03-storage.md) — Events and sync model
+- [../storage.md](../storage.md) — Events and sync model
 - [agents.md](agents.md) — Agent connectors

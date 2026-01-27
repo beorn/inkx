@@ -415,5 +415,5 @@ km init gtd --dry-run      # Preview what would be created
 
 ## See Also
 
-- [05-query.md](05-query.md) — Query language
-- [03-storage.md](03-storage.md) — Node schema details
+- [ref/query.md](ref/query.md) — Query language
+- [storage.md](storage.md) — Node schema details

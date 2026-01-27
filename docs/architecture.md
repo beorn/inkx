@@ -2,7 +2,7 @@
 
 km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This document covers the system architecture: layers, data flow, domain objects, and packages.
 
-> **For the "why" behind these choices**, see [00-principles.md](00-principles.md).
+> **For the "why" behind these choices**, see [principles.md](principles.md).
 
 ---
 
@@ -42,7 +42,7 @@ km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This 
 
 ## Domain Objects
 
-Functionality is exposed through **domain objects created by factory functions**. See [00-principles.md](00-principles.md) for the philosophy behind this approach.
+Functionality is exposed through **domain objects created by factory functions**. See [principles.md](principles.md) for the philosophy behind this approach.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -116,7 +116,7 @@ async function runTui(path: string, rootId: string) {
 }
 ```
 
-See [00-principles.md](00-principles.md) for the philosophy and patterns
+See [principles.md](principles.md) for the philosophy and patterns
 
 ---
 
@@ -207,7 +207,7 @@ This enables:
 - **Direct storage access**: Commands can read/write storage directly
 - **Testable**: Commands are pure functions with injectable context
 
-See [09-commands.md](09-commands.md) for full documentation.
+See [ref/commands.md](ref/commands.md) for full documentation.
 
 ### Action Types and Boundaries
 
@@ -254,7 +254,7 @@ Commands directly access storage via `ctx.storage` for mutations, and use `ctx.d
 6. App        refreshTree() → dispatch(REFRESH) → re-render
 ```
 
-See [03-storage.md](03-storage.md) for details on how @km/storage implements bidirectional sync.
+See [storage.md](storage.md) for details on how @km/storage implements bidirectional sync.
 
 ---
 
@@ -292,8 +292,128 @@ apps/
 
 ---
 
+## Event System
+
+km uses a lightweight event system for cross-layer communication and observability. Built on [nanoevents](https://github.com/ai/nanoevents) (107 bytes), it provides type-safe pub/sub with Disposable support.
+
+### Quick Start
+
+```typescript
+import { kmEvents } from "@km/core"
+
+// Subscribe
+const unsub = kmEvents.on("parse-error", (e) => {
+  console.log(`Parse error in ${e.file}:${e.line} - ${e.message}`)
+})
+
+// Emit
+kmEvents.emit("parse-error", {
+  file: "tasks.md",
+  line: 42,
+  message: "Invalid syntax",
+})
+
+// Cleanup
+unsub()
+```
+
+### Event Categories
+
+Events are organized by purpose:
+
+| Category   | Purpose          | Consumers                |
+| ---------- | ---------------- | ------------------------ |
+| **User**   | UI feedback      | TUI status bar, CLI logs |
+| **Debug**  | Internal tracing | debug() logger           |
+| **Metric** | Performance      | Monitoring, optimization |
+
+**User Events** - Cross-layer errors that need user feedback:
+
+- `parse-error` - Markdown parsing failed
+- `sync-error` - File sync issue
+- `validation-warning` - Node validation warning
+
+**Debug Events** - Internal diagnostics (used with `DEBUG=km:*`):
+
+- `command-executed` - Command timing
+- `action-handled` - Action result tracking
+
+**Metric Events** - Performance monitoring:
+
+- `repo-loaded` - Repo initialization timing
+- `file-parsed` - File parsing stats
+
+### Subscription Patterns
+
+```typescript
+// Basic subscription
+const unsub = kmEvents.on("sync-error", (e) => {
+  showStatus(`Sync error: ${e.path}`)
+})
+unsub()
+
+// React useEffect
+useEffect(() => {
+  const unsub = kmEvents.on("parse-error", (e) => {
+    toast.error(`Parse error in ${e.file}`)
+  })
+  return unsub // cleanup on unmount
+}, [])
+
+// Using keyword (TypeScript 5.2+)
+function handleScope() {
+  using sub = kmEvents.on("parse-error", handler)
+  // auto-disposed when scope exits
+}
+
+// DisposableStore (multiple subscriptions)
+const store = new DisposableStore()
+store.add(kmEvents.on("parse-error", handler1))
+store.add(kmEvents.on("sync-error", handler2))
+store.dispose() // cleans up all
+```
+
+### Adding New Events
+
+1. **Define in KmEvents interface**:
+
+```typescript
+// packages/km-core/src/events.ts
+export interface KmEvents {
+  "new-event": (e: { foo: string; bar: number }) => void
+}
+```
+
+2. **Emit from source layer**:
+
+```typescript
+kmEvents.emit("parse-error", { file, line, message })
+```
+
+3. **Subscribe in consumer**:
+
+```typescript
+kmEvents.on("parse-error", (e) => {
+  dispatch(actions.setStatus({ level: "error", message: e.message }))
+})
+```
+
+### Design Decisions
+
+Events are **synchronous** (emit → handlers run immediately → emit returns).
+
+**Benefits**:
+
+- Predictable execution order
+- Simple testing (no `await`)
+- No race conditions
+
+**Why nanoevents?** Smallest size (107b) with best TypeScript support. Returns unbind function directly (cleaner than `.off()`).
+
+---
+
 ## See Also
 
-- [00-principles.md](00-principles.md) — Architectural principles and philosophy
-- [01-concepts.md](01-concepts.md) — Core concepts
-- [03-storage.md](03-storage.md) — Storage layer, modes, sync details
+- [principles.md](principles.md) — Architectural principles and philosophy
+- [concepts.md](concepts.md) — Core concepts
+- [storage.md](storage.md) — Storage layer, modes, sync details

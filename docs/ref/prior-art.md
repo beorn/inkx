@@ -152,4 +152,4 @@ Decker (also called Boardliner) is a web-based document and project management a
 
 ## See Also
 
-- [../07-tasks.md](../07-tasks.md) — Task data model, GTD workflow
+- [../guides/tasks.md](../guides/tasks.md) — Task data model, GTD workflow

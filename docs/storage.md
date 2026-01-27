@@ -684,6 +684,6 @@ km rebuild --from-db  # Rebuild filesystem from state
 
 ## See Also
 
-- [01-concepts.md](01-concepts.md) — Core concepts, two modes overview
-- [02-architecture.md](02-architecture.md) — Event system, data flow
-- [04-markdown.md](04-markdown.md) — Parsing .md to nodes
+- [concepts.md](concepts.md) — Core concepts, two modes overview
+- [architecture.md](architecture.md) — Event system, data flow
+- [ref/markdown.md](ref/markdown.md) — Parsing .md to nodes

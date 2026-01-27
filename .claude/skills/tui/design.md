@@ -6,7 +6,7 @@ description: TUI styling rules - colors, selection states, icons
 
 **Keywords**: TUI styling, colors, selection, cyan, yellow, icons, colorblind, background color, chalk, inkx
 
-When modifying TUI styling (colors, selection states, visual hierarchy), follow these rules. See @docs/06-ui.md for the full design system.
+When modifying TUI styling (colors, selection states, visual hierarchy), follow these rules. See @docs/ref/ui.md for the full design system.
 
 ## Quick Reference
 
@@ -83,7 +83,7 @@ When working on TUI code using Ink, you MUST read @docs/dev/ink-patterns.md. Cri
 
 ## Visual Testing
 
-For testing TUI appearance, see the visual-test.md skill:
+For testing TUI appearance, see [visual.md](../tests/visual.md):
 
 - ttyd + Playwright for headless capture
 - Storybook for component isolation

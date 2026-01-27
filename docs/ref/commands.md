@@ -549,6 +549,6 @@ Add to the appropriate category table in this document.
 
 ## See Also
 
-- [02-architecture.md](02-architecture.md) - Overall system architecture
-- [06-ui.md](06-ui.md) - TUI design system and views
+- [architecture.md](architecture.md) - Overall system architecture
+- [ref/ui.md](ref/ui.md) - TUI design system and views
 - [dev/testing.md](dev/testing.md) - Testing commands with mdtest

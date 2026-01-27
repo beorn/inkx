@@ -105,5 +105,5 @@ km @next add due:week --dry-run         # preview without changes
 
 ## See Also
 
-- [../07-tasks.md](../07-tasks.md) — Task management
-- [../08-cli.md](../08-cli.md) — CLI commands
+- [../guides/tasks.md](../guides/tasks.md) — Task management
+- [../guides/cli.md](../guides/cli.md) — CLI commands

@@ -720,9 +720,107 @@ dispatch(actions.clearStatus())
 
 ---
 
+## Toast Notifications
+
+km uses a Sonner-compatible toast API for temporary notifications with optional actions (like undo).
+
+### Quick Start
+
+```typescript
+import { toast } from "@km/core"
+
+// Simple toast
+toast("Task created")
+
+// Typed variants
+toast.success("Saved successfully")
+toast.error("Failed to sync")
+toast.warning("Network connection unstable")
+toast.info("3 tasks selected")
+
+// With description
+toast.error("Failed to save", {
+  description: "Network connection lost",
+})
+
+// With action (undo, retry, etc.)
+toast("Task archived", {
+  action: { label: "Undo", trigger: "z" },
+})
+```
+
+### Toast Queue
+
+The global `toastQueue` manages all active toasts:
+
+```typescript
+import { toastQueue } from "@km/core"
+
+const allToasts = toastQueue.getAll()
+const latest = toastQueue.getLatest()
+toastQueue.dismiss(id)
+toastQueue.dismissAll()
+```
+
+### Batching
+
+Similar toasts can be automatically batched using a `batchKey`:
+
+```typescript
+toast("item archived", { batchKey: "archive" })
+toast("item archived", { batchKey: "archive" })
+toast("item archived", { batchKey: "archive" })
+// → Shows "3 item archived" (batched within 100ms window)
+```
+
+### TUI Rendering
+
+Toasts appear above the bottom bar:
+
+```
+┌────────────────────────────────────────────────────┐
+│ Board View                                         │
+│   ├─ Project A                                     │
+│   └─ Project B                                     │
+├────────────────────────────────────────────────────┤
+│ ✓ 3 tasks archived  [z] Undo  Esc                  │  ← Toast
+├────────────────────────────────────────────────────┤
+│ DISK 📁~/repo   📋123 📄45   CARDS VIEW            │  ← Bottom bar
+└────────────────────────────────────────────────────┘
+```
+
+**Display Rules:**
+
+- Only the **latest** toast is shown (not a stack)
+- Icon indicates level: ℹ (info), ✓ (success), ⚠ (warning), ✗ (error)
+- **Esc** dismisses toast
+
+### Toast Options
+
+```typescript
+interface ToastOptions {
+  description?: string // Secondary text on line 2
+  duration?: number // milliseconds (default 4000)
+  dismissible?: boolean // default true
+  action?: ToastAction // Optional action button
+  batchKey?: string // For coalescing similar toasts
+}
+```
+
+### Auto-Toasts (Event-Driven)
+
+km automatically shows toasts for certain events:
+
+- **Sync Events**: `toast.success("Synced 3 files", { batchKey: "sync" })`
+- **Parse Errors**: `toast.error("Parse error in tasks.md:42")`
+- **Sync Errors**: `toast.error("Sync error: tasks.md")`
+
+**Implementation**: API in `packages/km-core/src/toast.ts`, TUI rendering in `apps/km-tui/src/views/Toast.tsx`.
+
+---
+
 ## See Also
 
-- [02-architecture.md](02-architecture.md) — Layer responsibilities
-- [03-storage.md](03-storage.md) — Node schema
-- [dev/ink-patterns.md](dev/ink-patterns.md) — Ink framework workarounds and patterns
-- [adr/archive/001-tui-architecture.md](adr/archive/001-tui-architecture.md) — Decision to stay with Ink
+- [../architecture.md](../architecture.md) — Layer responsibilities
+- [../storage.md](../storage.md) — Node schema
+- [../dev/ink-patterns.md](../dev/ink-patterns.md) — Ink framework workarounds and patterns
