@@ -285,12 +285,19 @@ export type {
 // Repo domain object - PREFERRED API for new code
 // Composed: DataStore + FileTree + Config
 // See: docs/00-principles.md
-export { createRepo, createBareRepo, createTestRepo } from "./repo.ts"
+export {
+  createRepo,
+  createBareRepo,
+  createTestRepo,
+  createTestEnvRepo,
+} from "./repo.ts"
 
 export type {
   Repo,
   CreateRepoOptions,
   CreateBareRepoOptions,
+  CreateTestEnvRepoOptions,
+  TestEnvRepoResult,
   SyncResult as RepoSyncResult,
   SyncConflict,
   RepoStats,

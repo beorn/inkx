@@ -17,12 +17,10 @@ import { CHAOS_SCENARIOS, NO_CHAOS } from "./scenarios.ts"
 import { combineScenarios } from "./scenario-transformer.ts"
 import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
-import { runWithKmDir } from "../../../src/emit.ts"
-import { resetDb, closeDb, getAllNodes, getDb } from "../../../src/db.ts"
-import { runWithDb } from "../../../src/db-instance.ts"
 import { createEmitter } from "../../../src/emitter.ts"
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../../../src/schema.ts"
+import { getAllNodes } from "../../../src/db.ts"
 import {
   reconcileDirectory,
   reconcileDirectoryRecursive,
@@ -464,172 +462,172 @@ async function runSingleIteration(
   mkdirSync(kmDir, { recursive: true })
   mkdirSync(repoDir, { recursive: true })
 
-  // Wrap in runWithKmDir for context-local kmDir (enables parallel test isolation)
-  return runWithKmDir(kmDir, async () => {
-    let chaosWatcher: ChaosWatcher | null = null
-    const violations: InvariantViolation[] = []
+  // Create in-memory database for parallel isolation (no shared state)
+  const db = new Database(":memory:")
+  db.exec(SCHEMA)
 
-    try {
-      resetDb()
+  // Create emitter with db wired for event application
+  const emitter = createEmitter({ kmDir, db })
 
-      // Create files
-      for (const file of scenario.setup) {
-        const fullPath = join(repoDir, file.path)
-        const fileDir = dirname(fullPath)
-        if (!existsSync(fileDir)) {
-          mkdirSync(fileDir, { recursive: true })
-        }
-        writeFileSync(fullPath, file.content)
+  let chaosWatcher: ChaosWatcher | null = null
+  const violations: InvariantViolation[] = []
+
+  try {
+    // Create files
+    for (const file of scenario.setup) {
+      const fullPath = join(repoDir, file.path)
+      const fileDir = dirname(fullPath)
+      if (!existsSync(fileDir)) {
+        mkdirSync(fileDir, { recursive: true })
       }
-
-      // Initial reconciliation - use recursive to handle files in subdirectories
-      const db = getDb()
-      const emitter = createEmitter({ kmDir, db })
-      const ops = reconcileDirectoryRecursive(db, repoDir, repoDir)
-      applyReconcileOps(db, ops, repoDir, emitter)
-
-      // Create watcher with combined scenarios
-      const combinedScenario =
-        scenario.scenarios.length === 1
-          ? scenario.scenarios[0]
-          : scenario.scenarios[0] // Use first; combineScenarios handles rest
-
-      chaosWatcher = createChaosWatcher({
-        debounceMs: 50,
-        scenario: combinedScenario,
-        seed: scenario.seed,
-      })
-
-      chaosWatcher.start(repoDir)
-
-      // Wait for ready (init_gap scenarios need advanceTime)
-      await new Promise<void>((resolve) => {
-        if (combinedScenario?.type === "init_gap") {
-          chaosWatcher!.once("ready", resolve)
-          void chaosWatcher!.advanceTime(
-            (combinedScenario.params.initDurationMs as number) ?? 2000,
-          )
-        } else {
-          chaosWatcher!.once("ready", resolve)
-        }
-      })
-
-      // Wire sync handler
-      chaosWatcher.on(
-        "sync",
-        (data: { paths: string[]; directories: string[] }) => {
-          void (async () => {
-            for (const dir of data.directories) {
-              const dirOps =
-                dir === repoDir
-                  ? reconcileDirectory(db, dir, repoDir)
-                  : reconcileDirectoryRecursive(db, dir, repoDir)
-              applyReconcileOps(db, dirOps, repoDir, emitter)
-            }
-          })()
-        },
-      )
-
-      // Inject events
-      const absoluteEvents = scenario.events.map((e) => ({
-        ...e,
-        path: join(repoDir, e.path),
-      }))
-
-      chaosWatcher.injectBatch(absoluteEvents)
-      await chaosWatcher.flush()
-      await new Promise((r) => setTimeout(r, timeout))
-
-      // Verify invariants
-      const verifier = new Verifier(db)
-
-      // Check all invariants
-      const duplicates = verifier.verifyNoDuplicates()
-      if (!duplicates.passed) {
-        violations.push({
-          invariant: "no_duplicates",
-          message: "Duplicate nodes found",
-          details: { errors: duplicates.errors },
-        })
-      }
-
-      const parentIntegrity = verifier.verifyParentIntegrity()
-      if (!parentIntegrity.passed) {
-        violations.push({
-          invariant: "parent_integrity",
-          message: "Invalid parent references",
-          details: { errors: parentIntegrity.errors },
-        })
-      }
-
-      const filePaths = verifier.verifyFilePaths()
-      if (!filePaths.passed) {
-        violations.push({
-          invariant: "file_paths",
-          message: "Missing file paths",
-          details: { errors: filePaths.errors },
-        })
-      }
-
-      const fsDbSync = verifier.verifyFsDbSync(repoDir)
-      if (!fsDbSync.passed) {
-        violations.push({
-          invariant: "fs_db_sync",
-          message: "Filesystem and database out of sync",
-          details: { errors: fsDbSync.errors },
-        })
-      }
-
-      const verification = verifier.verifyTreeConsistency()
-
-      return {
-        scenario,
-        passed: violations.length === 0,
-        violations,
-        verification,
-        duration: Date.now() - start,
-        eventsEmitted: chaosWatcher.getEmittedEvents().length,
-        eventsDropped: chaosWatcher.getDroppedEvents().length,
-      }
-    } catch (error) {
-      violations.push({
-        invariant: "no_crash",
-        message: `Test crashed: ${error instanceof Error ? error.message : String(error)}`,
-        details: {
-          error: error instanceof Error ? error.stack : String(error),
-        },
-      })
-
-      return {
-        scenario,
-        passed: false,
-        violations,
-        verification: {
-          passed: false,
-          errors: [String(error)],
-          warnings: [],
-          stats: {
-            expectedFiles: 0,
-            actualFiles: 0,
-            duplicateNodes: 0,
-            orphanedNodes: 0,
-            missingParents: 0,
-          },
-        },
-        duration: Date.now() - start,
-        eventsEmitted: chaosWatcher?.getEmittedEvents().length ?? 0,
-        eventsDropped: chaosWatcher?.getDroppedEvents().length ?? 0,
-      }
-    } finally {
-      if (chaosWatcher) {
-        await chaosWatcher.stop()
-      }
-      closeDb()
-      if (existsSync(testDir)) {
-        rmSync(testDir, { recursive: true })
-      }
+      writeFileSync(fullPath, file.content)
     }
-  })
+
+    // Initial reconciliation - use recursive to handle files in subdirectories
+    const ops = reconcileDirectoryRecursive(db, repoDir, repoDir)
+    applyReconcileOps(db, ops, repoDir, emitter)
+
+    // Create watcher with combined scenarios
+    const combinedScenario =
+      scenario.scenarios.length === 1
+        ? scenario.scenarios[0]
+        : scenario.scenarios[0] // Use first; combineScenarios handles rest
+
+    chaosWatcher = createChaosWatcher({
+      debounceMs: 50,
+      scenario: combinedScenario,
+      seed: scenario.seed,
+    })
+
+    chaosWatcher.start(repoDir)
+
+    // Wait for ready (init_gap scenarios need advanceTime)
+    await new Promise<void>((resolve) => {
+      if (combinedScenario?.type === "init_gap") {
+        chaosWatcher!.once("ready", resolve)
+        void chaosWatcher!.advanceTime(
+          (combinedScenario.params.initDurationMs as number) ?? 2000,
+        )
+      } else {
+        chaosWatcher!.once("ready", resolve)
+      }
+    })
+
+    // Wire sync handler
+    chaosWatcher.on(
+      "sync",
+      (data: { paths: string[]; directories: string[] }) => {
+        void (async () => {
+          for (const dir of data.directories) {
+            const dirOps =
+              dir === repoDir
+                ? reconcileDirectory(db, dir, repoDir)
+                : reconcileDirectoryRecursive(db, dir, repoDir)
+            applyReconcileOps(db, dirOps, repoDir, emitter)
+          }
+        })()
+      },
+    )
+
+    // Inject events
+    const absoluteEvents = scenario.events.map((e) => ({
+      ...e,
+      path: join(repoDir, e.path),
+    }))
+
+    chaosWatcher.injectBatch(absoluteEvents)
+    await chaosWatcher.flush()
+    await new Promise((r) => setTimeout(r, timeout))
+
+    // Verify invariants
+    const verifier = new Verifier(db)
+
+    // Check all invariants
+    const duplicates = verifier.verifyNoDuplicates()
+    if (!duplicates.passed) {
+      violations.push({
+        invariant: "no_duplicates",
+        message: "Duplicate nodes found",
+        details: { errors: duplicates.errors },
+      })
+    }
+
+    const parentIntegrity = verifier.verifyParentIntegrity()
+    if (!parentIntegrity.passed) {
+      violations.push({
+        invariant: "parent_integrity",
+        message: "Invalid parent references",
+        details: { errors: parentIntegrity.errors },
+      })
+    }
+
+    const filePaths = verifier.verifyFilePaths()
+    if (!filePaths.passed) {
+      violations.push({
+        invariant: "file_paths",
+        message: "Missing file paths",
+        details: { errors: filePaths.errors },
+      })
+    }
+
+    const fsDbSync = verifier.verifyFsDbSync(repoDir)
+    if (!fsDbSync.passed) {
+      violations.push({
+        invariant: "fs_db_sync",
+        message: "Filesystem and database out of sync",
+        details: { errors: fsDbSync.errors },
+      })
+    }
+
+    const verification = verifier.verifyTreeConsistency()
+
+    return {
+      scenario,
+      passed: violations.length === 0,
+      violations,
+      verification,
+      duration: Date.now() - start,
+      eventsEmitted: chaosWatcher.getEmittedEvents().length,
+      eventsDropped: chaosWatcher.getDroppedEvents().length,
+    }
+  } catch (error) {
+    violations.push({
+      invariant: "no_crash",
+      message: `Test crashed: ${error instanceof Error ? error.message : String(error)}`,
+      details: {
+        error: error instanceof Error ? error.stack : String(error),
+      },
+    })
+
+    return {
+      scenario,
+      passed: false,
+      violations,
+      verification: {
+        passed: false,
+        errors: [String(error)],
+        warnings: [],
+        stats: {
+          expectedFiles: 0,
+          actualFiles: 0,
+          duplicateNodes: 0,
+          orphanedNodes: 0,
+          missingParents: 0,
+        },
+      },
+      duration: Date.now() - start,
+      eventsEmitted: chaosWatcher?.getEmittedEvents().length ?? 0,
+      eventsDropped: chaosWatcher?.getDroppedEvents().length ?? 0,
+    }
+  } finally {
+    if (chaosWatcher) {
+      await chaosWatcher.stop()
+    }
+    db.close()
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true })
+    }
+  }
 }
 
 /**
@@ -655,144 +653,140 @@ async function runSingleIterationWithMockFs(
   mockFs.mkdirSync(repoDir, { recursive: true })
   mockFs.mkdirSync(kmDir, { recursive: true })
 
-  // Declare outside runWithDb so catch/finally can access
   const violations: InvariantViolation[] = []
   let chaosWatcher: ChaosWatcher | null = null
 
-  // Use runWithDb for context-local database (parallel-safe)
   try {
-    return await runWithDb(db, async () => {
-      // Create files in mock filesystem
-      for (const file of scenario.setup) {
-        const fullPath = join(repoDir, file.path)
-        const fileDir = dirname(fullPath)
-        if (!mockFs.existsSync(fileDir)) {
-          mockFs.mkdirSync(fileDir, { recursive: true })
-        }
-        mockFs.writeFileSync(fullPath, file.content)
+    // Create files in mock filesystem
+    for (const file of scenario.setup) {
+      const fullPath = join(repoDir, file.path)
+      const fileDir = dirname(fullPath)
+      if (!mockFs.existsSync(fileDir)) {
+        mockFs.mkdirSync(fileDir, { recursive: true })
       }
+      mockFs.writeFileSync(fullPath, file.content)
+    }
 
-      // Initial reconciliation with mock scanner
-      const scanner = mockFs.createScanner()
-      const ops = reconcileDirectoryRecursive(
-        db,
-        repoDir,
-        repoDir,
-        undefined,
-        scanner,
-      )
-      applyReconcileOps(db, ops, repoDir, emitter, mockFs)
+    // Initial reconciliation with mock scanner
+    const scanner = mockFs.createScanner()
+    const ops = reconcileDirectoryRecursive(
+      db,
+      repoDir,
+      repoDir,
+      undefined,
+      scanner,
+    )
+    applyReconcileOps(db, ops, repoDir, emitter, mockFs)
 
-      // Create watcher with combined scenarios
-      const combinedScenario =
-        scenario.scenarios.length === 1
-          ? scenario.scenarios[0]
-          : scenario.scenarios[0]
+    // Create watcher with combined scenarios
+    const combinedScenario =
+      scenario.scenarios.length === 1
+        ? scenario.scenarios[0]
+        : scenario.scenarios[0]
 
-      chaosWatcher = createChaosWatcher({
-        debounceMs: 50,
-        scenario: combinedScenario,
-        seed: scenario.seed,
+    chaosWatcher = createChaosWatcher({
+      debounceMs: 50,
+      scenario: combinedScenario,
+      seed: scenario.seed,
+    })
+
+    chaosWatcher.start(repoDir)
+
+    // Wait for ready (init_gap scenarios need advanceTime)
+    await new Promise<void>((resolve) => {
+      if (combinedScenario?.type === "init_gap") {
+        chaosWatcher!.once("ready", resolve)
+        void chaosWatcher!.advanceTime(
+          (combinedScenario.params.initDurationMs as number) ?? 2000,
+        )
+      } else {
+        chaosWatcher!.once("ready", resolve)
+      }
+    })
+
+    // Wire sync handler with mock fs
+    chaosWatcher.on(
+      "sync",
+      (data: { paths: string[]; directories: string[] }) => {
+        void (async () => {
+          for (const dir of data.directories) {
+            const dirOps =
+              dir === repoDir
+                ? reconcileDirectory(db, dir, repoDir, undefined, scanner)
+                : reconcileDirectoryRecursive(
+                    db,
+                    dir,
+                    repoDir,
+                    undefined,
+                    scanner,
+                  )
+            applyReconcileOps(db, dirOps, repoDir, emitter, mockFs)
+          }
+        })()
+      },
+    )
+
+    // Inject events
+    const absoluteEvents = scenario.events.map((e) => ({
+      ...e,
+      path: join(repoDir, e.path),
+    }))
+
+    chaosWatcher.injectBatch(absoluteEvents)
+    await chaosWatcher.flush()
+    await new Promise((r) => setTimeout(r, timeout))
+
+    // Verify invariants with mock fs
+    const verifier = new Verifier(db, mockFs)
+
+    // Check all invariants
+    const duplicates = verifier.verifyNoDuplicates()
+    if (!duplicates.passed) {
+      violations.push({
+        invariant: "no_duplicates",
+        message: "Duplicate nodes found",
+        details: { errors: duplicates.errors },
       })
+    }
 
-      chaosWatcher.start(repoDir)
-
-      // Wait for ready (init_gap scenarios need advanceTime)
-      await new Promise<void>((resolve) => {
-        if (combinedScenario?.type === "init_gap") {
-          chaosWatcher!.once("ready", resolve)
-          void chaosWatcher!.advanceTime(
-            (combinedScenario.params.initDurationMs as number) ?? 2000,
-          )
-        } else {
-          chaosWatcher!.once("ready", resolve)
-        }
+    const parentIntegrity = verifier.verifyParentIntegrity()
+    if (!parentIntegrity.passed) {
+      violations.push({
+        invariant: "parent_integrity",
+        message: "Invalid parent references",
+        details: { errors: parentIntegrity.errors },
       })
+    }
 
-      // Wire sync handler with mock fs
-      chaosWatcher.on(
-        "sync",
-        (data: { paths: string[]; directories: string[] }) => {
-          void (async () => {
-            for (const dir of data.directories) {
-              const dirOps =
-                dir === repoDir
-                  ? reconcileDirectory(db, dir, repoDir, undefined, scanner)
-                  : reconcileDirectoryRecursive(
-                      db,
-                      dir,
-                      repoDir,
-                      undefined,
-                      scanner,
-                    )
-              applyReconcileOps(db, dirOps, repoDir, emitter, mockFs)
-            }
-          })()
-        },
-      )
+    const filePaths = verifier.verifyFilePaths()
+    if (!filePaths.passed) {
+      violations.push({
+        invariant: "file_paths",
+        message: "Missing file paths",
+        details: { errors: filePaths.errors },
+      })
+    }
 
-      // Inject events
-      const absoluteEvents = scenario.events.map((e) => ({
-        ...e,
-        path: join(repoDir, e.path),
-      }))
+    const fsDbSync = verifier.verifyFsDbSync(repoDir)
+    if (!fsDbSync.passed) {
+      violations.push({
+        invariant: "fs_db_sync",
+        message: "Filesystem and database out of sync",
+        details: { errors: fsDbSync.errors },
+      })
+    }
 
-      chaosWatcher.injectBatch(absoluteEvents)
-      await chaosWatcher.flush()
-      await new Promise((r) => setTimeout(r, timeout))
+    const verification = verifier.verifyTreeConsistency()
 
-      // Verify invariants with mock fs
-      const verifier = new Verifier(db, mockFs)
-
-      // Check all invariants
-      const duplicates = verifier.verifyNoDuplicates()
-      if (!duplicates.passed) {
-        violations.push({
-          invariant: "no_duplicates",
-          message: "Duplicate nodes found",
-          details: { errors: duplicates.errors },
-        })
-      }
-
-      const parentIntegrity = verifier.verifyParentIntegrity()
-      if (!parentIntegrity.passed) {
-        violations.push({
-          invariant: "parent_integrity",
-          message: "Invalid parent references",
-          details: { errors: parentIntegrity.errors },
-        })
-      }
-
-      const filePaths = verifier.verifyFilePaths()
-      if (!filePaths.passed) {
-        violations.push({
-          invariant: "file_paths",
-          message: "Missing file paths",
-          details: { errors: filePaths.errors },
-        })
-      }
-
-      const fsDbSync = verifier.verifyFsDbSync(repoDir)
-      if (!fsDbSync.passed) {
-        violations.push({
-          invariant: "fs_db_sync",
-          message: "Filesystem and database out of sync",
-          details: { errors: fsDbSync.errors },
-        })
-      }
-
-      const verification = verifier.verifyTreeConsistency()
-
-      return {
-        scenario,
-        passed: violations.length === 0,
-        violations,
-        verification,
-        duration: Date.now() - start,
-        eventsEmitted: chaosWatcher.getEmittedEvents().length,
-        eventsDropped: chaosWatcher.getDroppedEvents().length,
-      }
-    }) // End runWithDb
+    return {
+      scenario,
+      passed: violations.length === 0,
+      violations,
+      verification,
+      duration: Date.now() - start,
+      eventsEmitted: chaosWatcher.getEmittedEvents().length,
+      eventsDropped: chaosWatcher.getDroppedEvents().length,
+    }
   } catch (error: unknown) {
     violations.push({
       invariant: "no_crash",

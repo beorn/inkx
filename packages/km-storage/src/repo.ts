@@ -1301,3 +1301,85 @@ export function createTestRepo(): Repo {
   const data = createMemDataStore()
   return createBareRepo(data)
 }
+
+// =============================================================================
+// Factory: createTestEnvRepo
+// =============================================================================
+
+/** Options for createTestEnvRepo */
+export interface CreateTestEnvRepoOptions {
+  /** Database to use (creates in-memory if not provided) */
+  db?: Database
+  /** Path to repo directory (required for kmDir calculation) */
+  repoPath: string
+  /** Skip persisting events to events.jsonl (default: true for tests) */
+  skipPersist?: boolean
+}
+
+/** Result from createTestEnvRepo - all pieces for test access */
+export interface TestEnvRepoResult {
+  /** Full Repo domain object */
+  repo: Repo
+  /** Database instance (same as repo.database) */
+  db: Database
+  /** Emitter instance (same as repo.emitter) */
+  emitter: Emitter
+  /** DataStore instance (same as repo.data) */
+  data: DataStore & HasDatabase
+}
+
+/**
+ * Create a test environment with Repo and all dependencies properly wired.
+ *
+ * This factory handles the chicken-and-egg problem where:
+ * - DataStore needs emitter for mutations to emit events
+ * - Repo creates emitter internally
+ *
+ * By creating emitter first and sharing it with both DataStore and Repo,
+ * all components are properly connected.
+ *
+ * @example
+ * ```typescript
+ * const { repo, db, emitter, data } = createTestEnvRepo({
+ *   repoPath: testDir,
+ *   skipPersist: true,
+ * })
+ *
+ * // Use emitter for sync wiring
+ * emitter.setFsSync(syncManager)
+ *
+ * // Use data for mutations (events flow to emitter)
+ * data.addNode(null, { type: "task", content: "Test" })
+ *
+ * // Cleanup
+ * repo.close()
+ * ```
+ */
+export function createTestEnvRepo(
+  options: CreateTestEnvRepoOptions,
+): TestEnvRepoResult {
+  debug("createTestEnvRepo", { repoPath: options.repoPath })
+
+  const skipPersist = options.skipPersist ?? true
+  const kmDir = join(options.repoPath, ".km")
+
+  // Create or use provided database
+  const db = options.db ?? new Database(":memory:")
+  if (!options.db) {
+    db.exec(SCHEMA)
+  }
+
+  // Create emitter with db wired for event application
+  const emitter = createEmitter({ kmDir, db, skipPersist })
+
+  // Create DataStore with emitter for mutation events
+  const data = createDBDataStore(db, { emitter })
+
+  // Create Repo with shared emitter
+  const repo = createBareRepo(data, {
+    emitter,
+    configPath: options.repoPath,
+  })
+
+  return { repo, db, emitter, data }
+}

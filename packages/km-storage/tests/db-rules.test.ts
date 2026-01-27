@@ -21,7 +21,6 @@ import {
   createRuleContext,
 } from "../src/db-rules.ts"
 import { getChildren, getChildCountsBatch } from "../src/db-queries/index.ts"
-import { runWithDb } from "../src/db-instance.ts"
 
 interface TestEnv {
   store: MemoryStore
@@ -31,7 +30,6 @@ interface TestEnv {
 /**
  * Helper to run a test with an isolated MemoryStore.
  * The setup function writes files, then MemoryStore is created to parse them.
- * Test runs within runWithDb context using the store's database.
  */
 function withMemoryStore<T>(
   setup: (repoDir: string) => void,
@@ -50,8 +48,7 @@ function withMemoryStore<T>(
   using store = new MemoryStore(repoDir)
 
   try {
-    // Run within ALS context using the store's database
-    return runWithDb(store.getDatabase(), () => fn({ store, repoDir }))
+    return fn({ store, repoDir })
   } finally {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true })
