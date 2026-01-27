@@ -4,7 +4,7 @@
  * View and modify beads configuration.
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { resolvePathArg, loadConfigObject } from "@km/storage"
 

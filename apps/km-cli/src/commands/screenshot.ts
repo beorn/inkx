@@ -5,7 +5,7 @@
  * Useful for debugging, snapshot testing, and CI visual verification.
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import createDebug from "debug"
 import { setDebugRepoRoot } from "../debug-log.ts"
 

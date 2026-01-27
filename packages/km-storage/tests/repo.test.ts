@@ -2,7 +2,7 @@
  * Tests for Repo domain object
  *
  * Tests the composed domain object that combines DataStore + FileTree + Config.
- * See: docs/adr/002-domain-objects-refactor.md
+ * See: docs/00-principles.md
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"

@@ -47,10 +47,11 @@ km init                    # Enable persistence (stable IDs, history)
 
 ### Understand (Start Here)
 
-| Doc                                      | Description                                |
-| ---------------------------------------- | ------------------------------------------ |
-| [01-concepts.md](01-concepts.md)         | Core concepts: nodes, modes, status, links |
-| [02-architecture.md](02-architecture.md) | Layers, data flow, event system            |
+| Doc                                      | Description                                                     |
+| ---------------------------------------- | --------------------------------------------------------------- |
+| [00-principles.md](00-principles.md)     | **Start here.** Architectural principles, why we build this way |
+| [01-concepts.md](01-concepts.md)         | Core concepts: nodes, modes, status, links                      |
+| [02-architecture.md](02-architecture.md) | System architecture: layers, data flow, packages                |
 
 ### Build (How It Works)
 
@@ -90,11 +91,20 @@ km init                    # Enable persistence (stable IDs, history)
 
 ## Key Principles
 
-1. **Everything is a node** — folders, files, sections, tasks, paragraphs
-2. **Zero setup** — works on any markdown directory
-3. **Markdown-native** — files are the source of truth
-4. **Git-friendly** — plain text, mergeable
-5. **Progressive enhancement** — `km init` adds persistence when needed
+See [00-principles.md](00-principles.md) for the full architectural philosophy. In brief:
+
+**Product principles:**
+
+- Everything is a node — folders, files, sections, tasks
+- Zero setup — works on any markdown directory
+- Markdown-native — files are the source of truth
+
+**Engineering principles:**
+
+- Domain objects via factory functions (not classes, not singletons)
+- Explicit dependencies (pass them in, don't reach for globals)
+- Fail fast (throw on programming errors, no defensive fallbacks)
+- Fast tests (<5s feedback loop via in-memory infrastructure)
 
 ---
 

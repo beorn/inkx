@@ -4,7 +4,7 @@
  * Display details of a node
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { resolvePathArg, type Repo, type Link } from "@km/storage"
 import { getRootPath } from "../program.ts"

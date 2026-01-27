@@ -6,7 +6,7 @@
  */
 
 import createDebug from "debug"
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import { setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 

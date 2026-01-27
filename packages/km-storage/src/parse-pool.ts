@@ -336,28 +336,5 @@ export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
   }
 }
 
-// Singleton instance for convenient access
-let defaultPool: ParsePoolService | null = null
-
-/**
- * Get or create the default parse pool.
- * @deprecated Use createParsePool() for new code
- */
-export async function getParsePool(): Promise<ParsePoolService> {
-  if (!defaultPool) {
-    defaultPool = createParsePool()
-    await defaultPool.start()
-  }
-  return defaultPool
-}
-
-/**
- * Shutdown the default parse pool.
- * @deprecated Use createParsePool() with AsyncDisposable for new code
- */
-export async function shutdownParsePool(): Promise<void> {
-  if (defaultPool) {
-    await defaultPool.stop()
-    defaultPool = null
-  }
-}
+// NOTE: Singleton functions (getParsePool, shutdownParsePool) removed.
+// Use createParsePool() factory with AsyncDisposable pattern instead.

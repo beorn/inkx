@@ -7,8 +7,7 @@
 
 import createDebug from "debug"
 import {
-  loadConfig as loadRawConfig,
-  getConfigPath,
+  loadConfigWithPath,
   clearConfigCache,
   getBeadsConfig as getRawBeadsConfig,
   getTuiConfig as getRawTuiConfig,
@@ -54,9 +53,10 @@ export interface Config {
 export function loadConfigObject(searchFrom?: string): Config {
   debug("loadConfigObject", { searchFrom })
 
-  // Initial load
-  let raw = loadRawConfig(searchFrom)
-  let path = getConfigPath()
+  // Initial load - use loadConfigWithPath to get both config and path
+  let result = loadConfigWithPath(searchFrom)
+  let raw = result?.config ?? {}
+  let path = result?.filepath
   let beads = getRawBeadsConfig(searchFrom)
   let tui = getRawTuiConfig(searchFrom)
 
@@ -80,8 +80,9 @@ export function loadConfigObject(searchFrom?: string): Config {
     reload() {
       debug("reloading config")
       clearConfigCache()
-      raw = loadRawConfig(searchFrom)
-      path = getConfigPath()
+      result = loadConfigWithPath(searchFrom)
+      raw = result?.config ?? {}
+      path = result?.filepath
       beads = getRawBeadsConfig(searchFrom)
       tui = getRawTuiConfig(searchFrom)
     },

@@ -9,7 +9,7 @@
  * km add +project TASKID       # Link task to project
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { ulid } from "ulid"
 import { queryTasks, resolvePathArg, emitNodeCreated } from "@km/storage"

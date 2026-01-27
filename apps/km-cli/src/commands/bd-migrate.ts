@@ -4,7 +4,7 @@
  * Commands for migrating between .beads/issues.jsonl and markdown formats.
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import {
   queryIssues,

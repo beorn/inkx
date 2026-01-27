@@ -1,6 +1,8 @@
 # Architecture
 
-km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This document covers the five-layer architecture, data flow, and event system.
+km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This document covers the system architecture: layers, data flow, domain objects, and packages.
+
+> **For the "why" behind these choices**, see [00-principles.md](00-principles.md).
 
 ---
 
@@ -40,7 +42,7 @@ km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This 
 
 ## Domain Objects
 
-Functionality is exposed through **domain objects created by factory functions**. This replaces scattered singletons and classes with composable, testable objects.
+Functionality is exposed through **domain objects created by factory functions**. See [00-principles.md](00-principles.md) for the philosophy behind this approach.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -114,7 +116,7 @@ async function runTui(path: string, rootId: string) {
 }
 ```
 
-See [dev/domain-objects.md](dev/domain-objects.md) for complete patterns guide
+See [00-principles.md](00-principles.md) for the philosophy and patterns
 
 ---
 
@@ -292,5 +294,6 @@ apps/
 
 ## See Also
 
+- [00-principles.md](00-principles.md) — Architectural principles and philosophy
 - [01-concepts.md](01-concepts.md) — Core concepts
 - [03-storage.md](03-storage.md) — Storage layer, modes, sync details

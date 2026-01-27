@@ -23,7 +23,7 @@ import { join, dirname, basename, relative } from "path"
 import { ulid } from "ulid"
 import { getMarkForStatus } from "@km/core"
 import type { KNode, TaskStatus } from "@km/core"
-import { setKmDir, emitNodeMoved } from "./emit.ts"
+import { emitNodeMoved } from "./emit.ts"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA, MIGRATIONS } from "./schema.ts"
 import { addLink, setDb } from "./db.ts"
@@ -1045,91 +1045,5 @@ export class MemoryStore extends BaseStore {
   }
 }
 
-// Singleton store instance
-let storeInstance: NodeStore | null = null
-
-/**
- * Detect mode and initialize appropriate store
- * @param startPath - Directory to use as root
- * @param searchAncestors - If true (default), search for .km/ in ancestors.
- *                          If false, only check startPath directly for .km/
- */
-export function initStore(
-  startPath?: string,
-  searchAncestors = true,
-  options?: { lazy?: boolean },
-): NodeStore {
-  const path = startPath ?? process.cwd()
-
-  // When a path is explicitly provided, check only that directory for .km/
-  // When no path is provided (using cwd), search ancestors for .km/
-  const kmPath = searchAncestors
-    ? findKmDirectory(path)
-    : findKmDirectoryExact(path)
-
-  if (kmPath) {
-    // Update global kmDir so getKmDir() returns the correct path
-    setKmDir(kmPath)
-    storeInstance = new DiskStore(kmPath)
-  } else {
-    storeInstance = new MemoryStore(path, { lazy: options?.lazy })
-  }
-
-  return storeInstance
-}
-
-/**
- * Check if .km directory exists in the exact path (no ancestor search)
- */
-function findKmDirectoryExact(path: string): string | null {
-  const kmPath = join(path, ".km")
-  if (existsSync(kmPath) && statSync(kmPath).isDirectory()) {
-    return kmPath
-  }
-  return null
-}
-
-/**
- * Get the current store instance.
- * If no store exists, creates one in lazy mode (deferred scanning).
- * @deprecated Use createRepo() factory to create a Repo domain object instead.
- * This singleton will be removed in a future version.
- */
-export function getStore(): NodeStore {
-  if (!storeInstance) {
-    // Use lazy mode by default to avoid immediate filesystem scan
-    // Caller should call store.initialize() if they need full data
-    return initStore(undefined, true, { lazy: true })
-  }
-  return storeInstance
-}
-
-/**
- * Close and reset the store
- */
-export function closeStore(): void {
-  if (storeInstance) {
-    storeInstance.close()
-    storeInstance = null
-  }
-}
-
-/**
- * Find .km directory in path or ancestors
- */
-function findKmDirectory(startPath: string): string | null {
-  let current = startPath
-  const root = "/"
-
-  while (current !== root) {
-    const kmPath = join(current, ".km")
-    if (existsSync(kmPath) && statSync(kmPath).isDirectory()) {
-      return kmPath
-    }
-    const parent = dirname(current)
-    if (parent === current) break
-    current = parent
-  }
-
-  return null
-}
+// NOTE: Singleton functions (initStore, getStore, closeStore) removed.
+// Use createRepo() factory or instantiate MemoryStore/DiskStore directly.

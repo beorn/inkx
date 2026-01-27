@@ -9,7 +9,7 @@
  * - No internal exposure (database, blobs, events)
  * - Infrastructure code uses capability interfaces when needed
  *
- * See: docs/adr/002-domain-objects-refactor.md
+ * See: docs/00-principles.md
  */
 
 import { Database } from "bun:sqlite"

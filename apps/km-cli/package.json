@@ -15,7 +15,7 @@
   "dependencies": {
     "@beorn/chalkx": "workspace:*",
     "@beorn/inkx-ui": "workspace:*",
-    "inkx": "workspace:*",
+    "@commander-js/extra-typings": "^14.0.0",
     "@km/agent": "workspace:*",
     "@km/beads": "workspace:*",
     "@km/board": "workspace:*",
@@ -28,6 +28,7 @@
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "ink-select-input": "^6.2.0",
+    "inkx": "workspace:*",
     "react": "catalog:"
   },
   "devDependencies": {

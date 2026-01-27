@@ -4,7 +4,7 @@
  * Set or clear task field values.
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { resolvePathArg, emitNodeUpdated } from "@km/storage"
 import { getMarkForStatus } from "@km/core"

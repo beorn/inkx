@@ -10,7 +10,7 @@
  * km ls --type task --context  # With ancestor paths (= tasks)
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { resolvePathArg, type Repo } from "@km/storage"
 import type { KNode } from "@km/core"

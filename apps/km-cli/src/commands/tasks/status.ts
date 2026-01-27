@@ -4,7 +4,7 @@
  * View or set task status: km task status <id> [new-status]
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { resolvePathArg } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"

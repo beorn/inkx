@@ -6,18 +6,48 @@
  * 1. Defines codemod transformations as exports
  * 2. Reads ESLint config to determine which files to process
  * 3. Runs jscodeshift with this file as the transform
+ *
+ * jscodeshift AST manipulation is inherently dynamically typed.
+ * @types/jscodeshift exists but doesn't work well for the internal
+ * AST node access patterns. We type the public API (Transform) and
+ * use any for internal manipulation.
  */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 
 import { $ } from "bun"
-import { resolve } from "path"
+import { dirname, join } from "path"
+import { existsSync } from "fs"
+import type { Transform } from "jscodeshift"
+
+/**
+ * Find a file by walking up from startDir to root.
+ *
+ * Note: ESLint flat config (v9+) does NOT use cosmiconfig - it has its own
+ * simple lookup for eslint.config.{js,mjs,cjs}. We use a similar approach
+ * here rather than adding a cosmiconfig dependency for this single use case.
+ */
+function findUp(filename: string, startDir: string): string | null {
+  let dir = startDir
+  while (true) {
+    const candidate = join(dir, filename)
+    if (existsSync(candidate)) return candidate
+    const parent = dirname(dir)
+    if (parent === dir) return null // reached root
+    dir = parent
+  }
+}
 
 // ============================================================================
 // RUNNER (only runs when executed directly, not when imported)
 // ============================================================================
 
 if (import.meta.main) {
-  // Import ESLint config to extract ignore patterns
-  const eslintConfigPath = resolve(import.meta.dir, "../eslint.config.js")
+  // Find ESLint config by walking up from cwd
+  const eslintConfigPath = findUp("eslint.config.js", process.cwd())
+  if (!eslintConfigPath) {
+    console.error("Could not find eslint.config.js")
+    process.exit(1)
+  }
   const eslintConfig = await import(eslintConfigPath)
 
   // Extract ignore patterns from ESLint config
@@ -100,12 +130,12 @@ if (import.meta.main) {
  *   =>
  *   while (running) tick()
  */
-export default function collapseSingleLineBlocks(file: any, api: any) {
+const collapseSingleLineBlocks: Transform = (file, api) => {
   const MAX_LINE_LENGTH = 100 // tweak to taste
   const j = api.jscodeshift
   const root = j(file.source)
 
-  function hasComments(node: any) {
+  function hasComments(node: any): boolean {
     if (!node) return false
     return Boolean(
       (node.comments && node.comments.length) ||
@@ -125,7 +155,7 @@ export default function collapseSingleLineBlocks(file: any, api: any) {
     "VariableDeclaration", // but only with 1 declarator
   ])
 
-  function isAllowedSingleStatement(stmt: any) {
+  function isAllowedSingleStatement(stmt: any): boolean {
     if (!stmt) return false
     if (!ALLOWED_SIMPLE_TYPES.has(stmt.type)) return false
 
@@ -141,14 +171,13 @@ export default function collapseSingleLineBlocks(file: any, api: any) {
    * Estimate how long the final single-line construct would be.
    * Uses pretty conservative stringification via jscodeshift.
    */
-  function wouldBeTooLong(kind: any, node: any, stmt: any) {
+  function wouldBeTooLong(kind: string, node: any, stmt: any): boolean {
     try {
       let head = ""
 
       if (kind === "if") {
         const testCode = j(node.test).toSource()
         const stmtCode = j(stmt).toSource()
-        // "if (test) stmt"
         head = `if (${testCode}) ${stmtCode}`
       } else if (kind === "for" || kind === "forIn" || kind === "forOf") {
         const leftCode = j(node.left ?? node.init).toSource()
@@ -188,7 +217,7 @@ export default function collapseSingleLineBlocks(file: any, api: any) {
    * Generic helper: given a node with a .body that might be a BlockStatement,
    * see if we can safely collapse it to a single statement.
    */
-  function maybeCollapseBody(kind: any) {
+  function maybeCollapseBody(kind: string) {
     return function (path: any) {
       const node = path.node
       const bodyKey = kind === "if" ? "consequent" : "body"
@@ -252,5 +281,7 @@ export default function collapseSingleLineBlocks(file: any, api: any) {
     reuseWhitespace: false,
   })
 }
+
+export default collapseSingleLineBlocks
 
 export const parser = "tsx"

@@ -2,7 +2,7 @@
 export { SCHEMA } from "./schema.ts"
 
 // DataStore interface and factories (preferred API for tree operations)
-// See: docs/adr/002-domain-objects-refactor.md
+// See: docs/00-principles.md
 export {
   createMapDataStore,
   createMemDataStore,
@@ -20,7 +20,7 @@ export type {
 } from "./data-store.ts"
 
 // FileTree interface and factories (simple file I/O abstraction)
-// See: docs/adr/002-domain-objects-refactor.md
+// See: docs/00-principles.md
 export { createDiskFileTree, createMemFileTree } from "./file-tree.ts"
 
 export type { FileTree } from "./file-tree.ts"
@@ -86,13 +86,7 @@ export {
 export type { Link, SearchResult, QueryAST } from "./db.ts"
 
 // Store abstraction
-export {
-  DiskStore,
-  MemoryStore,
-  initStore,
-  getStore,
-  closeStore,
-} from "./store.ts"
+export { DiskStore, MemoryStore } from "./store.ts"
 
 export type { NodeStore } from "./store.ts"
 
@@ -126,14 +120,9 @@ export type {
 export type { LoadError as RepoLoaderError } from "./repo-loader.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
+/// km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
-export {
-  createParsePool,
-  getParsePool,
-  shutdownParsePool,
-  // Keep ParsePool for backwards compat during transition
-  ParsePool,
-} from "./parse-pool.ts"
+export { createParsePool, ParsePool } from "./parse-pool.ts"
 
 export type {
   ParsePoolService,
@@ -282,7 +271,7 @@ export type { Config } from "./config-object.ts"
 
 // Emitter domain object - owns event emission lifecycle
 // Replaces global singletons in emit.ts with explicit ownership
-// See: docs/adr/002-domain-objects-refactor.md
+// See: docs/00-principles.md
 export { createEmitter } from "./emitter.ts"
 
 export type {
@@ -295,7 +284,7 @@ export type {
 
 // Repo domain object - PREFERRED API for new code
 // Composed: DataStore + FileTree + Config
-// See: docs/adr/002-domain-objects-refactor.md
+// See: docs/00-principles.md
 export { createRepo, createBareRepo, createTestRepo } from "./repo.ts"
 
 export type {

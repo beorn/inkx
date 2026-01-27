@@ -8,7 +8,7 @@
  * km move <node> --root            # Move to root level
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { resolveNode, resolvePathArg, findProject } from "@km/storage"
 import { getRootPath } from "../program.ts"

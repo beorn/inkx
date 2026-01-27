@@ -5,7 +5,7 @@
  * Kept for backwards compatibility - forwards to sync --watch.
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { syncCommand } from "./sync.ts"
 

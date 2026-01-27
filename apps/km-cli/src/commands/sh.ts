@@ -11,7 +11,7 @@
  *   km sh --json @inbox.md < commands.txt
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import { createInterface } from "readline"
 import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs"
 import { homedir } from "os"

@@ -9,7 +9,7 @@ import { describe, test, expect, afterEach } from "bun:test"
 import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
-import { initStore, closeStore, MemoryStore, DiskStore } from "../src/store.ts"
+import { MemoryStore, DiskStore } from "../src/store.ts"
 import { withTestEnvSync } from "@km/storage"
 
 // Track created directories for cleanup
@@ -277,25 +277,18 @@ describe("MemoryStore", () => {
 })
 
 describe("DiskStore", () => {
-  test("should detect disk mode when .km exists", () =>
+  test("should use disk mode", () =>
     withTestEnvSync(({ testDir }) => {
-      const rootDir = testDir
-      const kmDir = join(rootDir, ".km")
+      const kmDir = join(testDir, ".km")
       mkdirSync(kmDir, { recursive: true })
 
-      const store = initStore(rootDir)
-      try {
-        expect(store.mode).toBe("disk")
-        expect(store.rootPath).toBe(rootDir)
-      } finally {
-        closeStore()
-      }
+      using store = new DiskStore(kmDir)
+      expect(store.mode).toBe("disk")
     }))
 
   test("should use state.db in .km directory", () =>
     withTestEnvSync(({ testDir }) => {
-      const rootDir = testDir
-      const kmDir = join(rootDir, ".km")
+      const kmDir = join(testDir, ".km")
       mkdirSync(kmDir, { recursive: true })
 
       using _store = new DiskStore(kmDir)
@@ -303,49 +296,4 @@ describe("DiskStore", () => {
     }))
 })
 
-describe("initStore mode detection", () => {
-  test("should return MemoryStore when no .km directory exists", () =>
-    withTestEnvSync(({ repoDir }) => {
-      // No .km directory - should use memory mode
-      // Pass false to disable ancestor search (avoid /tmp/.km pollution)
-      const store = initStore(repoDir, false)
-      try {
-        expect(store.mode).toBe("memory")
-        expect(store).toBeInstanceOf(MemoryStore)
-      } finally {
-        closeStore()
-      }
-    }))
-
-  test("should return DiskStore when .km directory exists", () =>
-    withTestEnvSync(({ repoDir }) => {
-      // Create .km to trigger disk mode
-      mkdirSync(join(repoDir, ".km"), { recursive: true })
-
-      // Pass false to disable ancestor search (test specific directory)
-      const store = initStore(repoDir, false)
-      try {
-        expect(store.mode).toBe("disk")
-        expect(store).toBeInstanceOf(DiskStore)
-      } finally {
-        closeStore()
-      }
-    }))
-
-  test("should find .km in parent directory", () =>
-    withTestEnvSync(({ repoDir }) => {
-      // Create .km in repoDir
-      mkdirSync(join(repoDir, ".km"), { recursive: true })
-      // Create subdir to test ancestor search
-      const subDir = join(repoDir, "subdir")
-      mkdirSync(subDir, { recursive: true })
-
-      const store = initStore(subDir)
-      try {
-        expect(store.mode).toBe("disk")
-        expect(store.rootPath).toBe(repoDir)
-      } finally {
-        closeStore()
-      }
-    }))
-})
+// NOTE: Mode detection tests removed - use createRepo() for automatic mode detection

@@ -113,7 +113,7 @@ describe("getConfigPath", () => {
       writeFileSync(configPath, "beads: {}\n")
 
       loadConfig(testDir)
-      expect(getConfigPath()).toBe(configPath)
+      expect(getConfigPath(testDir)).toBe(configPath)
     }))
 })
 
@@ -281,46 +281,23 @@ actor: "test-user"
       expect(config!["issue-prefix"]).toBe("parent")
     }))
 
-  test("caches result across calls", () =>
-    withTestEnvSync(({ testDir }) => {
-      clearConfigCache()
-      mkdirSync(join(testDir, ".beads"), { recursive: true })
-      writeFileSync(
-        join(testDir, ".beads/config.yaml"),
-        `issue-prefix: "first"
-`,
-      )
-
-      const config1 = getOriginalBeadsConfig(testDir)
-      expect(config1!["issue-prefix"]).toBe("first")
-
-      // Modify the file - should NOT be reflected due to caching
-      writeFileSync(
-        join(testDir, ".beads/config.yaml"),
-        `issue-prefix: "second"
-`,
-      )
-
-      const config2 = getOriginalBeadsConfig(testDir)
-      expect(config2!["issue-prefix"]).toBe("first")
-    }))
+  // NOTE: Caching test removed - caching was removed to fix path-keyed bug.
+  // Use clearConfigCache() to force reload if needed.
 })
 
 describe("getOriginalBeadsConfigPath", () => {
-  test("returns undefined before loading", () =>
-    withTestEnvSync(() => {
-      clearConfigCache()
-      expect(getOriginalBeadsConfigPath()).toBeUndefined()
+  test("returns undefined when no config exists", () =>
+    withTestEnvSync(({ testDir }) => {
+      // testDir has no .beads, so should return undefined
+      expect(getOriginalBeadsConfigPath(testDir)).toBeUndefined()
     }))
 
-  test("returns path after loading", () =>
+  test("returns path when config exists", () =>
     withTestEnvSync(({ testDir }) => {
-      clearConfigCache()
       mkdirSync(join(testDir, ".beads"), { recursive: true })
       const configPath = join(testDir, ".beads/config.yaml")
       writeFileSync(configPath, "actor: test\n")
 
-      getOriginalBeadsConfig(testDir)
-      expect(getOriginalBeadsConfigPath()).toBe(configPath)
+      expect(getOriginalBeadsConfigPath(testDir)).toBe(configPath)
     }))
 })

@@ -10,7 +10,7 @@ import "./debug-log.ts"
 
 import { existsSync, statSync } from "fs"
 import { dirname, join, resolve } from "path"
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { setLogLevel, type LogLevel } from "@km/core"
 

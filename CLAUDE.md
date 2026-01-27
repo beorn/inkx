@@ -39,51 +39,9 @@ When modifying TUI styling, see [.claude/skills/tui-design.md](.claude/skills/tu
 
 ### 4. Code Structure Style
 
-**Important logic first, details later.**
+**Important logic first, details later.** Main flow at top of file/function, helpers after return. Use JavaScript hoisting to your advantage.
 
-**CRITICAL PRINCIPLE**: When reading a file or function, the most important logic should appear first. Implementation details and helper functions belong at the bottom. This makes code self-documenting and easy to scan.
-
-#### File Layout
-
-1. Imports
-2. Exports / re-exports
-3. **Main components/functions** (core logic) ← **Reader starts here**
-4. Helper functions (pure utilities)
-5. Constants/config
-
-#### Function Layout
-
-**Use JavaScript hoisting to your advantage:**
-
-- Main logic at top, helpers after `return` (hoisting makes this work)
-- Pure functions that don't need closure → move to module level
-- Functions needing closure but not part of main flow → after return statement
-
-**Key insight**: Function declarations are hoisted, so you can call them before they're defined. This lets you write code in reading order (what → how).
-
-```tsx
-// ✅ GOOD - Main logic first, helpers after return
-function processRepo() {
-  const path = validatePath(repoPath)
-  const db = loadDatabase(path)
-  return { path, db }
-
-  // Implementation details after return (hoisted)
-  function validatePath(p: string) {
-    /* ... */
-  }
-  function loadDatabase(p: string) {
-    /* ... */
-  }
-}
-
-// Pure helpers at module level - BOTTOM of file
-function formatDate(d: Date): string {
-  /* ... */
-}
-```
-
-**Short lambdas (1-3 lines) are fine inline.** Keep functions at top only when they're the primary export or very short and used once.
+See [docs/00-principles.md](docs/00-principles.md) §9 for the full pattern with examples.
 
 #### ESM Only - No require()
 
@@ -139,41 +97,33 @@ const count: number = items.length;
 ```bash
 bun run test:fast    # ⚡ USE THIS for fast iteration (<5s target)
 bun run test:all     # ALL tests - unit + mdtest (~2min, run before committing)
-bun run test:mdtest  # Only mdtest integration tests (*.test.md)
 ```
 
-**test:fast performance target: <5 seconds**. If test:fast takes longer than 5 seconds, schedule a cleanup/pruning/optimization round. Move slow integration tests to `*.slow.test.ts` suffix to exclude them from test:fast.
+**⚠️ NEVER use bare `bun test`** - it picks up archived tests in `archive/` and takes forever. Always use the package.json scripts above.
 
-**⚠️ NEVER use bare `bun test`** - it picks up archived tests in `archive/` and takes forever. Always use the npm scripts above.
+**During development:**
 
-**⚡ IMPORTANT: Use `bun run test:fast` during development!**
+```bash
+bun run test:fast    # Run this frequently - <5 second feedback loop (do NOT run test:all - it's slow)
+bun lint | tail -100         # see lint warnings & errors
+bun lint:errors | tail -100  # see lint errors only
+```
 
-- `test:fast` should complete in <5 seconds - use this while iterating
-- Only run `test:all` before committing (~2 minutes)
+- If test:fast takes longer than 5 seconds, schedule a cleanup/pruning/optimization round.
+- Move slow integration tests to `*.slow.test.ts` suffix to exclude them from test:fast.
+- Do NOT `bun run test:all` while iterating as it's slow.
 
 **BEFORE committing any code changes:**
 
 ```bash
 bun fix              # MUST pass - auto-fix lint + format
 bun run test:all     # MUST pass - all tests including mdtest
-```
-
-**Checking lint for lint errors and warnings:**
-
-```bash
-bun lint | tail -100         # see lint warnings & errors
-bun lint:errors | tail -100  # see lint errors only
-```
-
-**During development:**
-
-```bash
-bun run test:fast    # Run this frequently - <5 second feedback loop
+bun run test:mdtest  # Only mdtest integration tests (*.test.md)
 ```
 
 **When implementing features:**
 
-1. Write acceptance test first (should fail)
+1. Write tests first (should fail)
 2. Implement feature
 3. `bun run test:fast` passes (iterate here!)
 4. `bun fix` passes
@@ -191,28 +141,19 @@ bun run test:fast    # Run this frequently - <5 second feedback loop
 
 **⚠️ CRITICAL: Test Safety - Use Isolated Test Directories**
 
-**NEVER run sync operations or tests on:**
-
-- The km source code repository itself
-- User repos with real data
-- Any directory containing non-markdown files you care about
-
-**ALWAYS use isolated test directories:**
-
+- `km sync --to-fs` once corrupted source files by converting them to markdown stubs
 - Tests use `/tmp/kmtest-*` directories that are created and destroyed per test
+- Never run sync operations or tests on directories you care about (e.g., the km source code repo, user repos with real data)
+- Any sync operation that writes to filesystem must be tested in isolation
+- E2E tests in `packages/km-storage/tests/e2e/` verify sync never touches non-.md files
 - Manual testing should use throw-away test repos:
+
   ```bash
   # Create a test repo
   rm -rf /tmp/test-repo && mkdir -p /tmp/test-repo
   echo -e "# Test\n- [ ] Task 1" > /tmp/test-repo/test.md
   bun km view /tmp/test-repo
   ```
-
-**Why this matters (km-me0n incident):**
-
-- `km sync --to-fs` once corrupted source files by converting them to markdown stubs
-- Any sync operation that writes to filesystem must be tested in isolation
-- E2E tests in `packages/km-storage/tests/e2e/` verify sync never touches non-.md files
 
 ### 6. New Package Checklist (MUST FOLLOW)
 
@@ -514,56 +455,28 @@ HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localh
 3. After fix, capture AFTER screenshot and compare
 4. For recurring bugs, wait for user confirmation before closing
 
-### 14. No Defensive Fallbacks or Compatibility Shims
+### 14. No Defensive Fallbacks
 
-**Fail fast, don't mask bugs.** Programming errors MUST throw, never log or ignore.
+**Fail fast, don't mask bugs.** Programming errors MUST throw, never fall back.
 
-**When to throw vs. handle gracefully:**
+- Missing required dependency → throw (programming error)
+- Invalid internal state → throw (invariant violation)
+- User input failure → handle gracefully
+- No backwards compat shims — delete old code, fix callers
 
-| Scenario                            | Action                                |
-| ----------------------------------- | ------------------------------------- |
-| Missing required context/dependency | **Throw** - programming error         |
-| Invalid internal state              | **Throw** - invariant violation       |
-| Missing required prop               | **Throw** - caller's mistake          |
-| User input validation failure       | Handle gracefully with error message  |
-| External API failure                | Handle gracefully with retry/fallback |
-| File not found (expected to exist)  | **Throw** - programming error         |
-| File not found (optional)           | Handle gracefully                     |
+See [docs/00-principles.md](docs/00-principles.md) §6 for full details.
 
-**Rules:**
+### 15. Domain Objects via Factory Functions
 
-- No backwards compatibility re-exports — just delete and update callers
-- No fallback chains that mask missing data — throw on invariant violations
-- No `// backwards compat` or `// legacy fallback` comments — fix it or create a bead
+All functionality exposed through **domain objects created by factory functions**.
 
-**Rule of thumb**: If you wouldn't add this fallback/compat code today from scratch, remove it or create a bead to remove it later
+- Factory functions (not classes) → plain objects with methods
+- No singletons → pass dependencies explicitly
+- Disposable lifecycle → `using repo = createRepo(path)`
 
-### 15. Domain Object Pattern (MUST FOLLOW)
+**Core objects:** `Repo`, `Board`, `Watcher`, `Config`
 
-All major functionality MUST be exposed through **domain objects created by factory functions**.
-
-**Principles:**
-
-- **Factory functions** (not classes) - return plain objects with methods
-- **No singletons** - all state owned by domain objects, passed via DI
-- **Disposable lifecycle** - `Disposable` for sync cleanup, `AsyncDisposable` for async
-- **Service interface** - for long-running objects with start/stop lifecycle
-
-**Core domain objects:**
-
-| Object    | Factory              | Lifecycle    | Purpose                       |
-| --------- | -------------------- | ------------ | ----------------------------- |
-| `Repo`    | `createRepo()`       | `Disposable` | DataStore + FileTree + Config |
-| `Board`   | `createBoardState()` | plain object | Navigation state (see note)   |
-| `Watcher` | `repo.watch()`       | `Service`    | File sync                     |
-| `Config`  | `loadConfigObject()` | plain object | Repository configuration      |
-
-> **Current API:** Use `Repo` / `createRepo()` for all new code.
-> See [ADR-002](docs/adr/002-domain-objects-refactor.md) for architecture details.
-
-> **Board note:** Current implementation uses `createBoardState()` + `boardReducer()` pattern.
-
-See [.claude/skills/domain-objects-patterns.md](.claude/skills/domain-objects-patterns.md) for code examples and [docs/adr/002-domain-objects-refactor.md](docs/adr/002-domain-objects-refactor.md) for architecture details
+See [docs/00-principles.md](docs/00-principles.md) Part 1 for the philosophy and patterns.
 
 ### 16. Version Info
 

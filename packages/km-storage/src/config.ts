@@ -63,20 +63,16 @@ const explorer = cosmiconfigSync("km", {
   ],
 })
 
-let cachedResult: { config: KmConfig; filepath: string } | null = null
-let cachedBeadsConfig: {
-  config: OriginalBeadsConfig
-  filepath: string
-} | null = null
+// NOTE: Process-wide caches removed (they were buggy - ignored searchFrom).
+// Use loadConfigObject() per Repo, or loadConfig() which uses cosmiconfig's cache.
 
 /**
  * Find and load .beads/config.yaml
+ * Returns both config and path for caller to track.
  */
-function loadOriginalBeadsConfig(
+function loadOriginalBeadsConfigWithPath(
   searchFrom?: string,
-): OriginalBeadsConfig | null {
-  if (cachedBeadsConfig) return cachedBeadsConfig.config
-
+): { config: OriginalBeadsConfig; filepath: string } | null {
   let dir = searchFrom || process.cwd()
 
   while (dir !== "/") {
@@ -85,8 +81,7 @@ function loadOriginalBeadsConfig(
       try {
         const content = readFileSync(beadsConfigPath, "utf-8")
         const config = parseYaml(content) as OriginalBeadsConfig
-        cachedBeadsConfig = { config: config || {}, filepath: beadsConfigPath }
-        return cachedBeadsConfig.config
+        return { config: config || {}, filepath: beadsConfigPath }
       } catch {
         // Invalid YAML, skip
       }
@@ -98,10 +93,13 @@ function loadOriginalBeadsConfig(
 }
 
 /**
- * Get path to .beads/config.yaml if found
+ * Get path to .beads/config.yaml if found.
+ * @deprecated Use loadOriginalBeadsConfigWithPath() which returns both config and path.
  */
-export function getOriginalBeadsConfigPath(): string | undefined {
-  return cachedBeadsConfig?.filepath
+export function getOriginalBeadsConfigPath(
+  searchFrom?: string,
+): string | undefined {
+  return loadOriginalBeadsConfigWithPath(searchFrom)?.filepath
 }
 
 /**
@@ -110,41 +108,46 @@ export function getOriginalBeadsConfigPath(): string | undefined {
 export function getOriginalBeadsConfig(
   searchFrom?: string,
 ): OriginalBeadsConfig | null {
-  return loadOriginalBeadsConfig(searchFrom)
+  return loadOriginalBeadsConfigWithPath(searchFrom)?.config ?? null
 }
 
 /**
  * Load km configuration, searching from the given directory.
- * Results are cached for performance.
+ * Uses cosmiconfig's internal cache for performance.
  */
 export function loadConfig(searchFrom?: string): KmConfig {
-  if (cachedResult) return cachedResult.config
-
   const result = explorer.search(searchFrom)
   if (result && !result.isEmpty) {
-    cachedResult = {
-      config: result.config as KmConfig,
-      filepath: result.filepath,
-    }
-    return cachedResult.config
+    return result.config as KmConfig
   }
-
   return {}
 }
 
 /**
- * Get the path to the loaded config file, if any.
+ * Load km configuration and return both config and filepath.
  */
-export function getConfigPath(): string | undefined {
-  return cachedResult?.filepath
+export function loadConfigWithPath(
+  searchFrom?: string,
+): { config: KmConfig; filepath: string } | null {
+  const result = explorer.search(searchFrom)
+  if (result && !result.isEmpty) {
+    return { config: result.config as KmConfig, filepath: result.filepath }
+  }
+  return null
+}
+
+/**
+ * Get the path to the loaded config file, if any.
+ * @deprecated Use loadConfigWithPath() which returns both config and path.
+ */
+export function getConfigPath(searchFrom?: string): string | undefined {
+  return loadConfigWithPath(searchFrom)?.filepath
 }
 
 /**
  * Clear the config cache (useful for testing or after config changes).
  */
 export function clearConfigCache(): void {
-  cachedResult = null
-  cachedBeadsConfig = null
   explorer.clearCaches()
 }
 

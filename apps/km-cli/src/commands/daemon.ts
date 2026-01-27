@@ -18,7 +18,7 @@ import {
   appendFileSync,
 } from "fs"
 import { join, dirname } from "path"
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { Database } from "bun:sqlite"
 import {

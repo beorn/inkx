@@ -14,7 +14,7 @@
  * .km/ directory before any store exists. This is the bootstrap operation.
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { steps } from "@beorn/inkx-ui/progress"
 import { existsSync, mkdirSync, writeFileSync } from "fs"

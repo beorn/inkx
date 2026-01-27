@@ -4,7 +4,7 @@
  * All task-related commands grouped under 'km task'
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import { listTasks } from "./list.ts"
 import {
   addTask,

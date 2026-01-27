@@ -5,7 +5,7 @@
  */
 
 import createDebug from "debug"
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { steps } from "@beorn/inkx-ui/progress"
 import { dirname, resolve } from "path"

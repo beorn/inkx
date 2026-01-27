@@ -4,7 +4,7 @@
  * GTD-style inbox processing
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import type { Repo } from "@km/storage"
 import { loadRepo } from "../load-repo.ts"

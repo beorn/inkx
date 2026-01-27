@@ -5,7 +5,7 @@
  * Thin CLI wrapper around @km/beads package.
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import {
   queryReady,

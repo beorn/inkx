@@ -4,7 +4,7 @@ This guide documents patterns, workarounds, and best practices for working with 
 
 **Related docs:**
 
-- [ADR 001: TUI Architecture](../adr/001-tui-architecture.md) - Decision to stay with Ink
+- [ADR 001: TUI Architecture](../adr/archive/001-tui-architecture.md) - Decision to stay with Ink
 - [TUI README](../../apps/km-tui/src/README.md) - Component hierarchy and data flow
 
 ## Known Issues and Workarounds

@@ -15,7 +15,7 @@
  * The git analogy: FileTree is like git's working tree - a human-editable
  * representation that syncs with the indexed storage (DataStore).
  *
- * See: docs/adr/002-domain-objects-refactor.md
+ * See: docs/00-principles.md
  */
 
 import {

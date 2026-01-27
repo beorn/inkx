@@ -4,7 +4,7 @@
  * Quick capture - creates new task in inbox.md file
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { join } from "path"
 import {

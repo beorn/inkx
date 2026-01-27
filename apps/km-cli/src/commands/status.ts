@@ -9,7 +9,7 @@
  * km status <id> blocked      # Mark as blocked
  */
 
-import { Command } from "commander"
+import { Command } from "@commander-js/extra-typings"
 import chalk from "chalk"
 import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"
 import { getRootPath } from "../program.ts"
