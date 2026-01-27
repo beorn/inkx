@@ -32,12 +32,10 @@ export type StepYield =
   | { declare: string[] }
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA } from "./schema.ts"
-import { getDb, resetDb, setDb, tryGetContextDb } from "./db.ts"
 import { applyEventWithDb } from "./db-events.ts"
 import { findChildByContent } from "./db-queries/index.ts"
 import { rowToNode } from "./db-queries/utils.ts"
 import type { KNode } from "@km/core"
-import { setKmDir } from "./emit.ts"
 import { evaluateAllRules, createRuleContext } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { DiskStore, MemoryStore, type NodeStore } from "./store.ts"
@@ -158,43 +156,25 @@ export function* loadRepo(
     }
   }
 
-  // 2. Set up database based on mode
+  // 2. Set up database (explicit db required - no singletons)
   let db: Database
   if (options?.db) {
-    // Use provided database (ADR-002: avoid singletons)
     db = options.db
-    // Still set kmDir for getEventsPath() in disk mode - will be removed in Phase 3
-    if (kmDir) setKmDir(kmDir)
-  } else if (mode === "disk" && kmDir) {
-    // DEPRECATED: This path uses singletons. Pass options.db instead.
-    debug(
-      "DEPRECATED: loadRepo() called without options.db in disk mode. " +
-        "Use createRepo() or pass options.db to avoid singletons.",
-    )
-    setKmDir(kmDir)
-    db = getDb()
     if (options?.force) {
-      resetDb()
+      // Reset database tables (inline to avoid singleton dependency)
+      db.exec(`
+        DROP TABLE IF EXISTS nodes_fts;
+        DROP TABLE IF EXISTS nodes;
+        DROP TABLE IF EXISTS links;
+        DROP TABLE IF EXISTS meta;
+      `)
+      db.exec(SCHEMA)
     }
   } else {
-    // Memory mode - use context db if available (enables test isolation)
-    // DEPRECATED: This path uses singletons. Pass options.db instead.
-    const contextDb = tryGetContextDb()
-    if (contextDb) {
-      debug(
-        "DEPRECATED: loadRepo() using context db from tryGetContextDb(). " +
-          "Pass options.db explicitly instead.",
-      )
-      db = contextDb
-    } else {
-      debug(
-        "DEPRECATED: loadRepo() creating new in-memory db without options.db. " +
-          "Use createRepo() or pass options.db to avoid singletons.",
-      )
-      db = new Database(":memory:")
-      db.exec(SCHEMA)
-      setDb(db)
-    }
+    // No db provided - create in-memory database
+    // This is for memory mode when caller doesn't need to retain db reference
+    db = new Database(":memory:")
+    db.exec(SCHEMA)
   }
 
   // 3. Mode-specific event source (yield* chains progress)

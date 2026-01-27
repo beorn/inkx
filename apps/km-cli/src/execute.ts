@@ -57,6 +57,7 @@ export async function executeKmCommand(
   const originalEnv = process.env
   const originalStdout = process.stdout.write.bind(process.stdout)
   const originalStderr = process.stderr.write.bind(process.stderr)
+  const originalIsTTY = process.stdout.isTTY
   const originalExit = process.exit.bind(process)
   const originalConsoleLog = console.log
   const originalConsoleError = console.error
@@ -76,6 +77,12 @@ export async function executeKmCommand(
     process.stderr.write = stderrStream.write.bind(
       stderrStream,
     ) as typeof process.stderr.write
+
+    // Disable TTY to prevent Ink progress UI during test execution
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: false,
+      writable: true,
+    })
 
     // Intercept console methods (commands use console.log, not process.stdout.write)
     console.log = (...args: unknown[]) => {
@@ -123,6 +130,10 @@ export async function executeKmCommand(
     process.argv = originalArgv
     process.stdout.write = originalStdout
     process.stderr.write = originalStderr
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: originalIsTTY,
+      writable: true,
+    })
     process.exit = originalExit
     console.log = originalConsoleLog
     console.error = originalConsoleError

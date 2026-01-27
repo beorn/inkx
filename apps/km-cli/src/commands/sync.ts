@@ -109,10 +109,10 @@ async function runSync(
   await runWithKmDir(kmRoot, async () => {
     try {
       // Step 1: Apply any pending events from events.jsonl to state.db
-      // Pass db to avoid singleton (ADR-002)
+      // Pass db and kmDir explicitly to avoid singletons (ADR-002)
       const eventResults = await steps({
         syncState: function* () {
-          return yield* syncState({ db })
+          return yield* syncState({ kmDir: kmRoot, db })
         },
       }).run({ clear: true })
 

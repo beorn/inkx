@@ -3,20 +3,21 @@
  *
  * Stores large content by SHA-256 hash for deduplication.
  * Used when content exceeds inline threshold.
+ *
+ * All functions require explicit kmDir parameter (no singletons).
  */
 
 import { createHash } from "crypto"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
-import { getKmDir } from "./emit.ts"
 
 const INLINE_THRESHOLD = 4096 // 4KB - content larger than this goes to CAS
 
 /**
- * Get the blobs directory path
+ * Get the blobs directory path for a given kmDir
  */
-export function getBlobsPath(): string {
-  return join(getKmDir(), "blobs")
+export function getBlobsPath(kmDir: string): string {
+  return join(kmDir, "blobs")
 }
 
 /**
@@ -29,21 +30,21 @@ export function hashContent(content: string): string {
 /**
  * Get the storage path for a hash (with prefix sharding)
  */
-function getBlobPath(hash: string): string {
+function getBlobPath(kmDir: string, hash: string): string {
   const prefix = hash.slice(0, 2)
-  return join(getBlobsPath(), prefix, hash.slice(2))
+  return join(getBlobsPath(kmDir), prefix, hash.slice(2))
 }
 
 /**
  * Store content in CAS
  * Returns the hash (content address)
  */
-export function storeContent(content: string): string {
+export function storeContent(kmDir: string, content: string): string {
   const hash = hashContent(content)
-  const blobPath = getBlobPath(hash)
+  const blobPath = getBlobPath(kmDir, hash)
 
   if (!existsSync(blobPath)) {
-    const dir = join(getBlobsPath(), hash.slice(0, 2))
+    const dir = join(getBlobsPath(kmDir), hash.slice(0, 2))
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true })
     }
@@ -56,8 +57,8 @@ export function storeContent(content: string): string {
 /**
  * Load content from CAS by hash
  */
-export function loadContent(hash: string): string | null {
-  const blobPath = getBlobPath(hash)
+export function loadContent(kmDir: string, hash: string): string | null {
+  const blobPath = getBlobPath(kmDir, hash)
 
   if (!existsSync(blobPath)) {
     return null
@@ -69,8 +70,8 @@ export function loadContent(hash: string): string | null {
 /**
  * Check if content exists in CAS
  */
-export function hasContent(hash: string): boolean {
-  return existsSync(getBlobPath(hash))
+export function hasContent(kmDir: string, hash: string): boolean {
+  return existsSync(getBlobPath(kmDir, hash))
 }
 
 /**
@@ -84,14 +85,17 @@ export function shouldStoreInCas(content: string): boolean {
  * Store content appropriately based on size
  * Returns { content, content_hash } where one is set based on size
  */
-export function storeContentAuto(content: string): {
+export function storeContentAuto(
+  kmDir: string,
+  content: string,
+): {
   content: string | null
   content_hash: string | null
 } {
   if (shouldStoreInCas(content)) {
     return {
       content: null,
-      content_hash: storeContent(content),
+      content_hash: storeContent(kmDir, content),
     }
   }
 
@@ -105,6 +109,7 @@ export function storeContentAuto(content: string): {
  * Load content from either inline or CAS
  */
 export function loadContentAuto(
+  kmDir: string,
   inlineContent: string | null | undefined,
   contentHash: string | null | undefined,
 ): string | null {
@@ -113,7 +118,7 @@ export function loadContentAuto(
   }
 
   if (contentHash) {
-    return loadContent(contentHash)
+    return loadContent(kmDir, contentHash)
   }
 
   return null

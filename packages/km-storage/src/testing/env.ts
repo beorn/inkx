@@ -1,8 +1,8 @@
 /**
  * Test Environment Utilities
  *
- * Provides helpers for isolated test environments using AsyncLocalStorage.
- * This enables parallel test execution without shared state conflicts.
+ * Provides helpers for isolated test environments with explicit dependency injection.
+ * Each test gets its own database, file system, and emitter - no global state.
  *
  * ## Test Modes
  *
@@ -29,8 +29,6 @@ import { join } from "path"
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
 import { SCHEMA } from "../schema.ts"
-import { runWithDb } from "../db-instance.ts"
-import { runWithKmDir } from "../emit.ts"
 import { createEmitter, type Emitter } from "../emitter.ts"
 import { getNode, getNodeByPath } from "../db-queries/core-lookup.ts"
 import {
@@ -53,6 +51,8 @@ import {
   type DataStore,
   type HasDatabase,
 } from "../data-store.ts"
+import { runWithKmDir } from "../emit.ts"
+import { runWithDb } from "../db-instance.ts"
 
 // =============================================================================
 // Types
@@ -127,7 +127,7 @@ export interface TestEnv {
   db: Database
   /** Current test mode */
   mode: TestMode
-  /** Repo-like object wrapping singleton functions bound to test DB */
+  /** Repo-like object wrapping db functions with db pre-bound */
   repo: TestRepo
   /**
    * DataStore interface for ergonomic test access.
@@ -154,10 +154,10 @@ export interface TestEnv {
  *
  * @example
  * test("my test", async () => {
- *   await withTestEnv(async ({ repoDir, kmDir }) => {
+ *   await withTestEnv(async ({ repoDir, db, emitter }) => {
  *     writeFileSync(join(repoDir, "test.md"), "# Hello");
- *     // All getDb() calls return the isolated db
- *     // All getKmDir() calls return the isolated kmDir
+ *     // Use db, emitter explicitly - no global singletons
+ *     const nodes = getAllNodes(db);
  *   });
  * });
  *
@@ -191,7 +191,7 @@ export async function withTestEnv<T>(
   // Derive StorageMode from TestMode (real → disk, otherwise → memory)
   const storageMode: StorageMode = mode === "real" ? "disk" : "memory"
 
-  // Create repo wrapping singleton functions (bound to test DB via AsyncLocalStorage)
+  // Create repo wrapping db functions with db pre-bound
   const repo: TestRepo = {
     getNode: (id) => getNode(db, id),
     getNodeByPath: (fsPath) => getNodeByPath(db, fsPath),
@@ -235,7 +235,9 @@ export async function withTestEnv<T>(
   }
 
   try {
-    // Run with both context-local db and kmDir
+    // Wrap in ALS contexts so global emit() can:
+    // - Find the test's kmDir (for writing events.jsonl)
+    // - Apply events to the test's db (for disk mode operations)
     return await runWithKmDir(kmDir, () => runWithDb(db, () => fn(env)))
   } finally {
     // Cleanup
@@ -277,7 +279,7 @@ export function withTestEnvSync<T>(
   // Derive StorageMode from TestMode (real → disk, otherwise → memory)
   const storageMode: StorageMode = mode === "real" ? "disk" : "memory"
 
-  // Create repo wrapping singleton functions (bound to test DB via AsyncLocalStorage)
+  // Create repo wrapping db functions with db pre-bound
   const repo: TestRepo = {
     getNode: (id) => getNode(db, id),
     getNodeByPath: (fsPath) => getNodeByPath(db, fsPath),
@@ -321,7 +323,9 @@ export function withTestEnvSync<T>(
   }
 
   try {
-    // Run with both context-local db and kmDir
+    // Wrap in ALS contexts so global emit() can:
+    // - Find the test's kmDir (for writing events.jsonl)
+    // - Apply events to the test's db (for disk mode operations)
     return runWithKmDir(kmDir, () => runWithDb(db, () => fn(env)))
   } finally {
     // Cleanup

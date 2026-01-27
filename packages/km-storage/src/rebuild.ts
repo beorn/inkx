@@ -14,8 +14,6 @@ import type { Database } from "bun:sqlite"
 const debug = createDebug("km:storage:rebuild")
 import { join, dirname } from "path"
 import type { Event } from "@km/core"
-import { getEventsPath, getKmDir } from "./emit.ts"
-import { getDb, getDbPath, closeDb } from "./db.ts"
 import { loadRepo, type StepYield } from "./repo-loader.ts"
 
 /** Result from rebuildState */
@@ -28,9 +26,11 @@ export interface RebuildResult {
 /**
  * Read all events from events.jsonl
  * Handles deduplication and sorting by ULID
+ *
+ * @param kmDir - Path to .km directory
  */
-export function readEvents(): Event[] {
-  const eventsPath = getEventsPath()
+export function readEvents(kmDir: string): Event[] {
+  const eventsPath = join(kmDir, "events.jsonl")
 
   if (!existsSync(eventsPath)) {
     debug("no events file at %s", eventsPath)
@@ -84,22 +84,27 @@ export function readEvents(): Event[] {
  * Yields progress info for each step.
  *
  * Now delegates to loadRepo() with force: true.
+ *
+ * @param kmDir - Path to .km directory
+ * @param db - Database instance to use
  */
-export function* rebuildState(): Generator<StepYield, RebuildResult, unknown> {
+export function* rebuildState(
+  kmDir: string,
+  db: Database,
+): Generator<StepYield, RebuildResult, unknown> {
   debug("rebuildState: delegating to loadRepo with force=true")
 
   // Count events for the return value (loadRepo doesn't track this)
-  const events = readEvents()
+  const events = readEvents(kmDir)
   const eventCount = events.length
 
-  // Get repo root from already-configured kmDir (set by setKmDir())
-  const kmDir = getKmDir()
   const repoRoot = dirname(kmDir)
 
   // Delegate to loadRepo with force flag
   const result = yield* loadRepo(repoRoot, {
     searchAncestors: false,
     force: true,
+    db,
   })
 
   return {
@@ -117,8 +122,10 @@ export interface SyncResult {
 
 /** Options for syncState */
 export interface SyncStateOptions {
-  /** Database to use (avoids singleton). If not provided, falls back to getDb() */
-  db?: Database
+  /** Path to .km directory (required) */
+  kmDir: string
+  /** Database to use (required) */
+  db: Database
 }
 
 /**
@@ -127,30 +134,28 @@ export interface SyncStateOptions {
  *
  * Now delegates to loadRepo() (which handles incremental sync internally).
  *
- * @param options.db - Optional database to use (avoids singleton)
+ * @param options.kmDir - Path to .km directory
+ * @param options.db - Database to use
  */
 export function* syncState(
-  options?: SyncStateOptions,
+  options: SyncStateOptions,
 ): Generator<StepYield, SyncResult, unknown> {
   debug("syncState: delegating to loadRepo")
 
+  const { kmDir, db } = options
+
   // Get current state to calculate how many events were applied
-  // Use provided db or fall back to singleton (deprecated path)
-  const db = options?.db ?? getDb()
   const lastApplied = db
     .prepare("SELECT value FROM meta WHERE key = ?")
     .get("last_event") as { value: string } | undefined
-  const events = readEvents()
+  const events = readEvents(kmDir)
   const newEvents = events.filter(
     (e) => !lastApplied?.value || e.id > lastApplied.value,
   )
 
-  // Get repo root from already-configured kmDir (set by setKmDir())
-  const kmDir = getKmDir()
   const repoRoot = dirname(kmDir)
 
   // Delegate to loadRepo (incremental mode)
-  // Pass db to avoid singleton (ADR-002)
   const result = yield* loadRepo(repoRoot, { searchAncestors: false, db })
 
   return {
@@ -162,11 +167,16 @@ export function* syncState(
 /**
  * Full reset - delete state.db and rebuild
  * Yields progress info for each step.
+ *
+ * @param kmDir - Path to .km directory
+ * @param db - Database instance (will be reset)
  */
-export function* fullReset(): Generator<StepYield, RebuildResult, unknown> {
-  closeDb()
-
-  const dbPath = getDbPath()
+export function* fullReset(
+  kmDir: string,
+  db: Database,
+): Generator<StepYield, RebuildResult, unknown> {
+  // Delete db files if they exist (for disk mode)
+  const dbPath = join(kmDir, "state.db")
   const walPath = dbPath + "-wal"
   const shmPath = dbPath + "-shm"
 
@@ -180,26 +190,25 @@ export function* fullReset(): Generator<StepYield, RebuildResult, unknown> {
     unlinkSync(shmPath)
   }
 
-  // Delegate to rebuildState (which now uses loadRepo)
-  return yield* rebuildState()
+  // Delegate to rebuildState
+  return yield* rebuildState(kmDir, db)
 }
 
 /**
  * Fresh start - delete entire .km directory contents
  * This removes all events, state, and blobs
+ *
+ * @param kmDir - Path to .km directory
  */
-export function freshStart(): void {
-  closeDb()
-
-  const kmPath = getKmDir()
-  if (!existsSync(kmPath)) {
+export function freshStart(kmDir: string): void {
+  if (!existsSync(kmDir)) {
     return
   }
 
   // Delete all contents of .km directory
-  const entries = readdirSync(kmPath)
+  const entries = readdirSync(kmDir)
   for (const entry of entries) {
-    const fullPath = join(kmPath, entry)
+    const fullPath = join(kmDir, entry)
     rmSync(fullPath, { recursive: true, force: true })
   }
 }

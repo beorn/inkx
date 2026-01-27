@@ -14,14 +14,17 @@ import { join } from "path"
 import { ulid } from "ulid"
 
 import { resolveNode } from "../src/db.ts"
-import { emitNodeCreated } from "../src/emit.ts"
 import { withTestEnvSync } from "@km/storage"
 
 describe("resolveNode", () => {
   test("resolves by exact ID", () =>
-    withTestEnvSync(({ db }) => {
+    withTestEnvSync(({ db, emitter }) => {
       const id = ulid()
-      emitNodeCreated("test", { id, type: "task", content: "Test task" })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id, type: "task", content: "Test task" },
+      })
 
       const node = resolveNode(db, id)
       expect(node).not.toBeNull()
@@ -29,9 +32,13 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by ID prefix", () =>
-    withTestEnvSync(({ db }) => {
+    withTestEnvSync(({ db, emitter }) => {
       const id = ulid()
-      emitNodeCreated("test", { id, type: "task", content: "Test task" })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id, type: "task", content: "Test task" },
+      })
 
       const prefix = id.slice(0, 8)
       const node = resolveNode(db, prefix)
@@ -40,9 +47,13 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by ID suffix", () =>
-    withTestEnvSync(({ db }) => {
+    withTestEnvSync(({ db, emitter }) => {
       const id = ulid()
-      emitNodeCreated("test", { id, type: "task", content: "Test task" })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id, type: "task", content: "Test task" },
+      })
 
       const suffix = id.slice(-8)
       const node = resolveNode(db, suffix)
@@ -51,9 +62,13 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by exact filesystem path", () =>
-    withTestEnvSync(({ repoDir, db }) => {
+    withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "test.md")
-      emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: ulid(), type: "file", fs_path: fsPath },
+      })
 
       const node = resolveNode(db, fsPath)
       expect(node).not.toBeNull()
@@ -61,9 +76,13 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by filename with extension", () =>
-    withTestEnvSync(({ repoDir, db }) => {
+    withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "@inbox.md")
-      emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: ulid(), type: "file", fs_path: fsPath },
+      })
 
       const node = resolveNode(db, "@inbox.md")
       expect(node).not.toBeNull()
@@ -71,9 +90,13 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by filename without extension", () =>
-    withTestEnvSync(({ repoDir, db }) => {
+    withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "@inbox.md")
-      emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: ulid(), type: "file", fs_path: fsPath },
+      })
 
       const node = resolveNode(db, "@inbox")
       expect(node).not.toBeNull()
@@ -81,9 +104,13 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by relative path ./file.md", () =>
-    withTestEnvSync(({ db }) => {
+    withTestEnvSync(({ db, emitter }) => {
       const fsPath = join(process.cwd(), "test-file.md")
-      emitNodeCreated("test", { id: ulid(), type: "file", fs_path: fsPath })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: ulid(), type: "file", fs_path: fsPath },
+      })
 
       const node = resolveNode(db, "./test-file.md")
       expect(node).not.toBeNull()
@@ -91,9 +118,13 @@ describe("resolveNode", () => {
     }))
 
   test("resolves by content match", () =>
-    withTestEnvSync(({ db }) => {
+    withTestEnvSync(({ db, emitter }) => {
       const id = ulid()
-      emitNodeCreated("test", { id, type: "section", content: "My Section" })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id, type: "section", content: "My Section" },
+      })
 
       const node = resolveNode(db, "My Section")
       expect(node).not.toBeNull()
@@ -101,14 +132,18 @@ describe("resolveNode", () => {
     }))
 
   test("filters by type when specified", () =>
-    withTestEnvSync(({ repoDir, db }) => {
+    withTestEnvSync(({ repoDir, db, emitter }) => {
       const taskId = ulid()
       const fileId = ulid()
-      emitNodeCreated("test", { id: taskId, type: "task", content: "Test" })
-      emitNodeCreated("test", {
-        id: fileId,
-        type: "file",
-        fs_path: join(repoDir, "Test.md"),
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: taskId, type: "task", content: "Test" },
+      })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: fileId, type: "file", fs_path: join(repoDir, "Test.md") },
       })
 
       // Without type filter, could match either

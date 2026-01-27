@@ -8,7 +8,6 @@
 import { describe, test, expect } from "bun:test"
 import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
-import { getEventsPath } from "../src/emit.ts"
 import {
   readEvents,
   rebuildState,
@@ -23,22 +22,22 @@ import { withTestEnvSync, withTestEnv } from "@km/storage"
 describe("rebuild.ts", () => {
   describe("readEvents", () => {
     test("returns empty array when events file doesn't exist", () =>
-      withTestEnvSync(() => {
-        const events = readEvents()
+      withTestEnvSync(({ kmDir }) => {
+        const events = readEvents(kmDir)
         expect(events).toEqual([])
       }))
 
     test("reads events from events.jsonl", () =>
       withTestEnvSync(({ kmDir }) => {
         mkdirSync(kmDir, { recursive: true })
-        const eventsPath = getEventsPath()
+        const eventsPath = join(kmDir, "events.jsonl")
         writeFileSync(
           eventsPath,
           '{"id":"01HQ1A","type":"node_created","data":{"id":"n1","type":"task"}}\n' +
             '{"id":"01HQ1B","type":"node_created","data":{"id":"n2","type":"task"}}\n',
         )
 
-        const events = readEvents()
+        const events = readEvents(kmDir)
         expect(events.length).toBe(2)
         expect(events[0]!.id).toBe("01HQ1A")
         expect(events[1]!.id).toBe("01HQ1B")
@@ -47,7 +46,7 @@ describe("rebuild.ts", () => {
     test("deduplicates events by ID", () =>
       withTestEnvSync(({ kmDir }) => {
         mkdirSync(kmDir, { recursive: true })
-        const eventsPath = getEventsPath()
+        const eventsPath = join(kmDir, "events.jsonl")
         writeFileSync(
           eventsPath,
           '{"id":"01HQ1A","type":"node_created","data":{"id":"n1","type":"task"}}\n' +
@@ -55,14 +54,14 @@ describe("rebuild.ts", () => {
             '{"id":"01HQ1B","type":"node_created","data":{"id":"n2","type":"task"}}\n',
         )
 
-        const events = readEvents()
+        const events = readEvents(kmDir)
         expect(events.length).toBe(2)
       }))
 
     test("sorts events by ULID", () =>
       withTestEnvSync(({ kmDir }) => {
         mkdirSync(kmDir, { recursive: true })
-        const eventsPath = getEventsPath()
+        const eventsPath = join(kmDir, "events.jsonl")
         // Write in reverse order
         writeFileSync(
           eventsPath,
@@ -70,7 +69,7 @@ describe("rebuild.ts", () => {
             '{"id":"01HQ1A","type":"node_created","data":{"id":"n1","type":"task"}}\n',
         )
 
-        const events = readEvents()
+        const events = readEvents(kmDir)
         expect(events[0]!.id).toBe("01HQ1A")
         expect(events[1]!.id).toBe("01HQ1B")
       }))
@@ -78,7 +77,7 @@ describe("rebuild.ts", () => {
     test("skips malformed lines", () =>
       withTestEnvSync(({ kmDir }) => {
         mkdirSync(kmDir, { recursive: true })
-        const eventsPath = getEventsPath()
+        const eventsPath = join(kmDir, "events.jsonl")
         writeFileSync(
           eventsPath,
           '{"id":"01HQ1A","type":"node_created","data":{"id":"n1","type":"task"}}\n' +
@@ -86,7 +85,7 @@ describe("rebuild.ts", () => {
             '{"id":"01HQ1B","type":"node_created","data":{"id":"n2","type":"task"}}\n',
         )
 
-        const events = readEvents()
+        const events = readEvents(kmDir)
         expect(events.length).toBe(2)
       }))
   })
@@ -131,9 +130,9 @@ describe("rebuild.ts", () => {
 
   describe("rebuildState", () => {
     test("rebuilds state from events", () =>
-      withTestEnvSync(({ kmDir }) => {
+      withTestEnvSync(({ kmDir, db }) => {
         mkdirSync(kmDir, { recursive: true })
-        const eventsPath = getEventsPath()
+        const eventsPath = join(kmDir, "events.jsonl")
         writeFileSync(
           eventsPath,
           JSON.stringify({
@@ -154,7 +153,7 @@ describe("rebuild.ts", () => {
           }) + "\n",
         )
 
-        const result = runWithProgress(rebuildState())
+        const result = runWithProgress(rebuildState(kmDir, db))
         expect(result.eventCount).toBe(1)
         expect(result.nodeCount).toBe(1)
 
@@ -165,10 +164,10 @@ describe("rebuild.ts", () => {
 
   describe("fullReset", () => {
     test("deletes state.db and rebuilds", () =>
-      withTestEnvSync(({ kmDir }) => {
+      withTestEnvSync(({ kmDir, db }) => {
         mkdirSync(kmDir, { recursive: true })
         // Create initial state
-        const eventsPath = getEventsPath()
+        const eventsPath = join(kmDir, "events.jsonl")
         writeFileSync(
           eventsPath,
           JSON.stringify({
@@ -189,10 +188,10 @@ describe("rebuild.ts", () => {
           }) + "\n",
         )
 
-        runWithProgress(rebuildState())
+        runWithProgress(rebuildState(kmDir, db))
 
         // Now do full reset
-        const result = runWithProgress(fullReset())
+        const result = runWithProgress(fullReset(kmDir, db))
         expect(result.eventCount).toBe(1)
         expect(result.nodeCount).toBe(1)
       }))
@@ -208,7 +207,7 @@ describe("rebuild.ts", () => {
         mkdirSync(join(kmDir, "blobs"))
         writeFileSync(join(kmDir, "blobs", "test"), "test")
 
-        freshStart()
+        freshStart(kmDir)
 
         // .km should exist but be empty
         expect(existsSync(kmDir)).toBe(true)

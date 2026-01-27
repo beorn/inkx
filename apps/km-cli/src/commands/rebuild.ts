@@ -20,9 +20,11 @@ import {
   getEventsPath,
   findKmRootFromPath,
   runWithKmDir,
+  SCHEMA,
 } from "@km/storage"
 import { Database } from "bun:sqlite"
 import { existsSync, statSync } from "fs"
+import { join } from "path"
 import { formatPath } from "../utils/format-path.ts"
 
 export const rebuildCommand = new Command("rebuild")
@@ -55,7 +57,7 @@ export const rebuildCommand = new Command("rebuild")
 
       if (options.fresh) {
         console.log(chalk.yellow("Fresh start - deleting all .km data..."))
-        freshStart()
+        freshStart(kmRoot)
         console.log(
           chalk.green("✓"),
           "Fresh start complete - .km directory cleared",
@@ -70,13 +72,23 @@ export const rebuildCommand = new Command("rebuild")
         chalk.dim(`(repo ${formatPath(repoPath)})`),
       )
 
+      // Open database for rebuild operations
+      const db = new Database(join(kmRoot, "state.db"))
+      db.exec(SCHEMA)
+
       try {
         if (options.full) {
           console.log(chalk.dim("Performing full reset..."))
         }
 
         const results = await steps({
-          rebuildState: options.full ? fullReset : rebuildState,
+          rebuildState: options.full
+            ? function* () {
+                return yield* fullReset(kmRoot, db)
+              }
+            : function* () {
+                return yield* rebuildState(kmRoot, db)
+              },
         }).run({ clear: true })
 
         const result = results.rebuildState as unknown as {
@@ -99,6 +111,8 @@ export const rebuildCommand = new Command("rebuild")
       } catch (error) {
         console.error(chalk.red("Rebuild failed:"), error)
         process.exit(1)
+      } finally {
+        db.close()
       }
     })
   })

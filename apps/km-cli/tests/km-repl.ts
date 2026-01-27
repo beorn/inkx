@@ -162,12 +162,6 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
         }
 
         try {
-          // Debug: log what we're executing
-          const { readdirSync } = await import("fs")
-          console.error(
-            `[km-repl] cmd="${cmd}" cwd="${repoPath}" files=${readdirSync(repoPath!).join(",")}`,
-          )
-
           // Execute in-process with repo path as cwd
           const result = await executeKmCommand(cmd, {
             cwd: repoPath!,
