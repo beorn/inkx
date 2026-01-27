@@ -1,0 +1,230 @@
+---
+description: Feature implementation workflow - assess, plan, test, implement
+---
+
+# Feature Implementation Workflow
+
+Test-driven feature development following TDD principles.
+
+## Common TDD Cycle
+
+All features follow this pattern:
+
+```
+Write/verify test
+  ↓
+Implement incrementally
+  ↓
+bun run test:fast → GREEN
+  ↓
+Refine if needed
+  ↓
+Close bead with evidence
+```
+
+**Core commands:**
+
+```bash
+bun run test:fast    # Quick iteration (<5s)
+bun fix              # Lint + format
+bd close <id> --reason "<evidence>"
+```
+
+---
+
+## Step 1: Assess Complexity
+
+**Trivial** (implement inline):
+
+- Single function, UI label, config change
+- <10 lines
+
+**Simple** (inline with tests):
+
+- Single file, clear pattern
+- 10-50 lines
+
+**Moderate** (plan then implement):
+
+- Multi-file, new component
+- Touches 2-3 packages
+- 50-200 lines
+
+**Complex** (enter plan mode or use /max):
+
+- Architecture change
+- 3+ packages → consider `/max` for parallel implementation
+- Epic scope
+- > 200 lines
+
+**Plan mode triggers:**
+
+- "refactor", "redesign", "architecture"
+- Cross-cutting concerns
+- Multiple valid approaches
+- User requests planning
+
+## Step 2: If Planning Needed
+
+For moderate/complex features:
+
+```typescript
+EnterPlanMode()
+```
+
+After plan approval, continue to step 3.
+
+## Step 3: Write Acceptance Test
+
+**For TUI features** (`.spec.ts`):
+
+```typescript
+test("feature: <description>", () => {
+  const { board } = testEnv(() => item("root", item("col1", item("item1"))))
+
+  board.press("<key>")
+  board.expect("#item1[data-state=selected]").toExist()
+})
+```
+
+**For logic** (`.test.ts`):
+
+```typescript
+test("<feature>", () => {
+  const result = newFeature(input)
+  expect(result).toBe(expected)
+})
+```
+
+Run `bun run test:fast` - should fail.
+
+## Step 4: Implement Incrementally
+
+```bash
+bun run test:fast  # Tight iteration loop (<5s)
+```
+
+**Guidelines:**
+
+- Start with happy path
+- Follow existing patterns
+- Keep it simple
+- No premature optimization
+- No extra features
+
+## Step 5: Verify & Close
+
+```bash
+bun run test:fast  # All pass
+bun fix            # Clean code
+```
+
+**Visual verification for TUI:**
+
+```bash
+bun km view <test-file>  # Manual check
+# Or headless capture (see bug-workflow.md)
+```
+
+**Close:**
+
+```bash
+bd close <id> --reason "Implemented in <files>. Tests: <names> pass."
+```
+
+---
+
+## Feature Types
+
+**UI (TUI)** - [apps/km-tui/tests/board.spec.ts](../../../apps/km-tui/tests/board.spec.ts):
+
+- Test keyboard interactions
+- Verify visual state updates
+- Check navigation behavior
+- Validate layout
+
+**Storage** - [@km/storage](../../../packages/km-storage/):
+
+- Test bidirectional sync
+- TUI changes → file updates
+- File changes → TUI updates
+- Concurrent changes handled
+
+**Board** - [@km/board](../../../packages/km-board/):
+
+- State transitions
+- History tracking
+- View modes
+
+**Parser** - [@km/markdown](../../../packages/km-markdown/):
+
+- Parse → format round-trip
+- Syntax handling
+
+---
+
+## Creating Epics
+
+For features needing 5+ subtasks:
+
+```bash
+bd create --id km-epic-<slug> --type epic --title "<name>"
+bd create --id km-epic-<slug>.a --type task --title "<first>" --parent km-epic-<slug>
+bd update km-epic-<slug>.a --claim --status in_progress
+```
+
+**Multi-package epics**: Use `/max` to parallelize subtasks across packages.
+
+---
+
+## Sub-Agent Spawn
+
+For non-trivial implementation without planning:
+
+```typescript
+Task({
+  description: "Implement <bead-id>",
+  prompt: `
+    Implement: <bead-id>
+
+    ## Requirement
+    <description>
+
+    ## Approach
+    <suggested approach>
+
+    ## Instructions
+    1. Write failing test
+    2. Implement incrementally
+    3. Run test:fast frequently
+    4. Close bead when done
+
+    ## Patterns to Follow
+    <similar implementations>
+  `,
+  subagent_type: "general-purpose",
+})
+```
+
+---
+
+## Anti-Patterns
+
+- ❌ Adding features beyond requirement
+- ❌ Premature optimization
+- ❌ Skipping tests
+- ❌ Forgetting to create/update bead
+
+---
+
+## Quality Checklist
+
+**Before closing:**
+
+- [ ] Acceptance test written
+- [ ] Tests pass
+- [ ] bun fix passes
+- [ ] No console.log left
+- [ ] Behavior correct (manual check for UI)
+- [ ] Evidence in close reason
+- [ ] No scope creep

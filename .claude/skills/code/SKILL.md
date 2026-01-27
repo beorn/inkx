@@ -1,5 +1,5 @@
 ---
-description: Code quality - architecture, types, refactoring
+description: Code quality - architecture, types, refactoring. Use when reviewing code structure, improving type safety, or simplifying code.
 argument-hint: [review|types|clean]
 allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion, Edit
 ---
@@ -20,8 +20,8 @@ Reviews for architecture violations, type safety, and code simplification.
 
 ## Sub-Skills
 
-| File                               | Purpose                                       |
-| ---------------------------------- | --------------------------------------------- |
-| [review-code.md](review-code.md)   | Layer violations, over-engineering, test gaps |
-| [review-types.md](review-types.md) | Type safety, any removal, ergonomics          |
-| [clean.md](clean.md)               | Simplification patterns                       |
+| File                               | Purpose                                         |
+| ---------------------------------- | ----------------------------------------------- |
+| [review-code.md](review-code.md)   | Layer violations, over-engineering (infrequent) |
+| [review-types.md](review-types.md) | Type safety, any removal (infrequent)           |
+| [clean.md](clean.md)               | Simplification patterns                         |

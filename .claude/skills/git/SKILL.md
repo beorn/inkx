@@ -1,5 +1,5 @@
 ---
-description: Git operations and releases
+description: Git operations and releases. Use when committing changes or creating GitHub releases.
 argument-hint: [commit|release]
 allowed-tools: Bash, Read, Write, Glob, Skill, AskUserQuestion
 ---

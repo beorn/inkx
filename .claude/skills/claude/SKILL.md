@@ -1,5 +1,5 @@
 ---
-description: Claude Code configuration - commands, plugins, MCP
+description: Claude Code configuration - commands, plugins, MCP. Use when creating skills, configuring MCP servers, or managing Claude Code settings.
 argument-hint: [create|plugin|mcp|debug]
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
@@ -57,12 +57,12 @@ Use $ARGUMENTS for all args, or $1, $2 for positional.
 
 ## Sub-Skills
 
-| File                                       | Purpose                         |
-| ------------------------------------------ | ------------------------------- |
-| [skill-format.md](skill-format.md)         | Skill format, dynamic content   |
-| [plugins.md](plugins.md)                   | Plugin creation, manifest       |
-| [mcp.md](mcp.md)                           | Server configuration            |
-| [session.md](session.md)                   | Session history recovery        |
-| [session-errors.md](session-errors.md)     | Analyze sessions for cmd errors |
-| [review-claude.md](review-claude.md)       | Audit steering docs (workflow)  |
-| [review-reference.md](review-reference.md) | Audit rules (reference only)    |
+| File                                       | Purpose                          |
+| ------------------------------------------ | -------------------------------- |
+| [skill-format.md](skill-format.md)         | Skill format, dynamic content    |
+| [plugins.md](plugins.md)                   | Plugin creation, manifest        |
+| [mcp.md](mcp.md)                           | Server configuration             |
+| [session.md](session.md)                   | Session history recovery         |
+| [session-errors.md](session-errors.md)     | Analyze sessions for cmd errors  |
+| [review-claude.md](review-claude.md)       | Audit steering docs (infrequent) |
+| [review-reference.md](review-reference.md) | Audit rules (infrequent)         |

@@ -1,12 +1,12 @@
 ---
-description: Test-driven development for km
+description: Test-driven development for km. Use when writing tests, running test suites, or following TDD workflow.
 argument-hint: [fast|all|visual|chaos]
 allowed-tools: Bash, Read, Glob, Grep, Task
 ---
 
 # Testing
 
-**Keywords**: test, TDD, bun test, test:fast, test:all, visual, chaos, inkx
+**Keywords**: test, TDD, bun test, test:fast, test:all, visual testing, chaos, inkx
 
 ## Workflows
 
@@ -96,11 +96,11 @@ See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for detai
 
 ## Sub-Skills
 
-| Need                                 | Load                               |
-| ------------------------------------ | ---------------------------------- |
-| TDD workflow, test safety            | [tdd-workflow.md](tdd-workflow.md) |
-| TUI visual testing (inkx, storybook) | [visual.md](visual.md)             |
-| Chaos/fuzz testing sync              | [chaos.md](chaos.md)               |
-| Test quality review                  | [review-tests.md](review-tests.md) |
+| Need                                 | Load                                            |
+| ------------------------------------ | ----------------------------------------------- |
+| TDD workflow, test safety            | [tdd-workflow.md](tdd-workflow.md)              |
+| TUI visual testing (inkx, storybook) | [visual.md](visual.md)                          |
+| Chaos/fuzz testing sync              | [chaos.md](chaos.md)                            |
+| Test quality review                  | [review-tests.md](review-tests.md) (infrequent) |
 
 **Full reference**: [docs/dev/testing.md](../../docs/dev/testing.md)

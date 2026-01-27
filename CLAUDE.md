@@ -11,57 +11,22 @@ bun fix              # Lint + format - must pass
 bun km view <path>   # Run TUI
 ```
 
-**Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow.
-
-## Testing Infrastructure
-
-km uses **@beorn/tap** for parallel test orchestration:
-
-- **Fast tests** (.test.ts, .spec.ts) - Unit tests, iterate here
-- **Slow tests** (.slow.test.ts) - Integration tests, chaos tests
-- **MDTests** (.test.md) - Markdown-based functional tests (using @beorn/mdtest)
-
-All test types run in parallel via [scripts/test-all.ts](scripts/test-all.ts), which merges TAP streams for unified output.
-
-**Test patterns:** Centralized in [scripts/test-patterns.ts](scripts/test-patterns.ts) - single source of truth.
-
-**Note:** @beorn/tap includes a Playwright reporter ([vendor/beorn-tap/src/producers/playwright.ts](vendor/beorn-tap/src/producers/playwright.ts)) for E2E tests, but km currently uses Ink Testing Library for TUI tests instead.
+**Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow and test types.
 
 ## Architecture
 
-```
-App (apps/) → Board (@km/board) → Tree → Storage → Parser → Filesystem
-```
-
-- Each layer calls only the layer directly below
-- UI never touches filesystem directly
-- All edits bidirectional: TUI → Model → File AND File → Model → TUI
-
-**Key objects**: `Repo` (main entry), `DataStore` (SQLite), `FileTree` (sync), `Board` (navigation)
-
-See [docs/README.md](docs/README.md) for full architecture.
+Layered: App → Board → Tree → Storage → Parser → Filesystem. Each layer calls only layer below.
+UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/README.md).
 
 ## Code Style
 
-- **ESM only** — never `require()`, always `import`
-- **Type inference** — explicit types only for exports/interfaces
-- **Important first** — main logic at top, helpers hosted in function closure after return
-- **Fail fast** — throw on programming errors, no defensive fallbacks
-- **Factory functions** — not classes, no singletons
-
-See [docs/principles.md](docs/principles.md) for philosophy.
+ESM only; type inference; important code first; fail fast; factory functions not classes.
+See [docs/principles.md](docs/principles.md).
 
 ## Issue Tracking
 
-We use `bd` which calls the issues/tasks/epics/features **beads**.
-
-**Common bd mistakes:**
-
-- `bd close --note "x"` → use `--reason "x"`
-- `bd update --comment "x"` → use `--notes "x"`
-
-Always `bd work <id>` to claim a bead before starting, `bd close <id>` when done.
-See [.claude/skills/pm/bd.md] for full CLI reference.
+Use `/pm` for beads (issues/tasks/features). Always claim before starting: `bd work <id>`.
+See [.claude/skills/pm/] for commands and common mistakes.
 
 ## Commits
 

@@ -1,5 +1,5 @@
 ---
-description: Maximize parallelization through sub-agents for research, analysis, and implementation
+description: Maximize parallelization through sub-agents. Use when you have several todos, suspect tasks can be decomposed, or user requests parallel execution.
 ---
 
 # Maximum Parallelization Mode
@@ -62,9 +62,19 @@ After agents complete:
 - ❌ Run verification steps sequentially
 - ❌ Skip TodoWrite (user can't see your parallel progress)
 
+## Sticky Mode
+
+Once `/max` is invoked or user requests parallelization:
+
+- **All subsequent work in this session should maximize parallelization**
+- Proactively decompose new tasks into parallel units
+- Continue using TodoWrite + parallel Task agents for all multi-step work
+- This mode persists until session end or user explicitly requests sequential execution
+
 ## Execute Now
 
 1. **Decompose** the user's request into work units
 2. **Create TodoWrite** with all identified work units
 3. **Launch ALL independent Task agents in ONE message**
 4. **Report** the parallel execution plan to the user
+5. **Remember**: Stay in parallel mode for rest of session

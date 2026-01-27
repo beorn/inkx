@@ -1,12 +1,12 @@
 ---
-description: TUI development - design system, debugging, performance
+description: TUI development - design system, debugging, performance. Use when building Ink components, fixing rendering bugs, or optimizing TUI performance.
 argument-hint: [fix|design|perf]
 allowed-tools: Task, Read, Glob, Grep, Bash
 ---
 
 # TUI Development
 
-**Keywords**: TUI, Ink, styling, colors, slow, visual, rendering, performance
+**Keywords**: TUI, Ink, styling, colors, slow, rendering, performance, design system
 
 Build and maintain the Ink-based TUI.
 
