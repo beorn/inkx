@@ -11,13 +11,7 @@ import {
   resolveDateQuery,
   type QueryAST,
 } from "../src/query.ts"
-import {
-  setDb,
-  closeDb,
-  toFts5Query,
-  search,
-  searchWithSnippet,
-} from "../src/db.ts"
+import { toFts5Query, search, searchWithSnippet } from "../src/db.ts"
 
 describe("Query Parser", () => {
   describe("parseQuery", () => {
@@ -314,12 +308,10 @@ describe("Query Executor", () => {
         2,
       ],
     )
-
-    setDb(db)
   })
 
   afterEach(() => {
-    closeDb()
+    db.close()
   })
 
   test("filters by status", () => {
@@ -504,12 +496,10 @@ describe("Path Pattern Query Execution", () => {
         4,
       ],
     )
-
-    setDb(db)
   })
 
   afterEach(() => {
-    closeDb()
+    db.close()
   })
 
   test("filters by recursive path pattern (./inbox/**)", () => {
@@ -727,12 +717,10 @@ describe("Date Query Execution", () => {
         3,
       ],
     )
-
-    setDb(db)
   })
 
   afterEach(() => {
-    closeDb()
+    db.close()
   })
 
   test("filters by due:today", () => {
@@ -896,12 +884,10 @@ describe("Full-text Search with Phrases", () => {
         2,
       ],
     )
-
-    setDb(db)
   })
 
   afterEach(() => {
-    closeDb()
+    db.close()
   })
 
   test("exact phrase search matches only exact phrases", () => {
@@ -1075,12 +1061,10 @@ describe("Status on Any Node Type", () => {
         4,
       ],
     )
-
-    setDb(db)
   })
 
   afterEach(() => {
-    closeDb()
+    db.close()
   })
 
   test("status:todo matches only nodes with that status, any type", () => {
@@ -1525,12 +1509,10 @@ describe("Property Query Execution", () => {
         8,
       ],
     )
-
-    setDb(db)
   })
 
   afterEach(() => {
-    closeDb()
+    db.close()
   })
 
   test("prop::* matches nodes with any value for that property", () => {
