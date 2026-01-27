@@ -3,9 +3,9 @@ description: Systematic code simplification and consistency review
 argument-hint: [file-or-directory] [--dry-run]
 ---
 
-# Refactor for Simplicity
+# Clean
 
-Systematic review and refactoring for simplicity, conciseness, and consistency.
+Systematic simplification for conciseness and consistency.
 
 ## Target
 
@@ -46,7 +46,7 @@ Catalog opportunities in these categories:
 ### Consistency Checks
 
 - Match patterns in sibling files
-- Follow design docs (e.g., @docs/08-ui.md for TUI)
+- Follow design docs (e.g., @docs/ref/ui.md for TUI)
 - Use established utilities (check imports in similar files)
 - Preserve public API (exports, function signatures)
 
@@ -108,4 +108,4 @@ If all tests pass, summarize changes:
 - Remove comments that explain "why" (keep the narrative)
 - Change behavior while simplifying (refactor ≠ rewrite)
 
-**Keywords**: refactor, simplify, cleanup, clean up, code review, consistency, refactoring, simplification
+**Keywords**: clean, simplify, cleanup, refactor, consistency

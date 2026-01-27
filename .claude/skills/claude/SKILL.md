@@ -22,12 +22,12 @@ Manage Claude Code: slash commands, plugins, MCP servers.
 
 ## Common Actions
 
-| Need                    | Load                       |
-| ----------------------- | -------------------------- |
-| Create slash command    | [commands.md](commands.md) |
-| Create/install plugin   | [plugins.md](plugins.md)   |
-| Configure MCP server    | [mcp.md](mcp.md)           |
-| Recover session history | [session.md](session.md)   |
+| Need                    | Load                               |
+| ----------------------- | ---------------------------------- |
+| Create slash command    | [skill-format.md](skill-format.md) |
+| Create/install plugin   | [plugins.md](plugins.md)           |
+| Configure MCP server    | [mcp.md](mcp.md)                   |
+| Recover session history | [session.md](session.md)           |
 
 ## Skill File Format (Quick)
 
@@ -57,9 +57,9 @@ Use $ARGUMENTS for all args, or $1, $2 for positional.
 
 ## Sub-Skills
 
-| File                       | Purpose                         |
-| -------------------------- | ------------------------------- |
-| [commands.md](commands.md) | Command format, dynamic content |
-| [plugins.md](plugins.md)   | Plugin creation, manifest       |
-| [mcp.md](mcp.md)           | Server configuration            |
-| [session.md](session.md)   | Session history recovery        |
+| File                               | Purpose                       |
+| ---------------------------------- | ----------------------------- |
+| [skill-format.md](skill-format.md) | Skill format, dynamic content |
+| [plugins.md](plugins.md)           | Plugin creation, manifest     |
+| [mcp.md](mcp.md)                   | Server configuration          |
+| [session.md](session.md)           | Session history recovery      |

@@ -10,7 +10,7 @@ Debug and fix TUI rendering issues through inkx tests and visual inspection.
 
 **Issue**: $ARGUMENTS
 
-**Reference**: `.claude/skills/visual-test.md` for testing patterns
+**Reference**: [visual.md](../tests/visual.md) for testing patterns
 
 ## The Fix Loop
 

@@ -6,7 +6,7 @@ description: Test-driven development workflow for km
 
 **Keywords**: test, testing, TDD, test-driven, bun test, test:fast, test:all
 
-**Full reference**: [docs/dev/testing.md](../docs/dev/testing.md)
+**Full reference**: [docs/dev/testing.md](../../../docs/dev/testing.md)
 
 ---
 

@@ -81,6 +81,19 @@ Example: `TEST_MODE=mock bun run test:fast`
 
 ---
 
+## Output Rules
+
+**Tests must be silent on success.** Any stdout/stderr output fails the test.
+
+- `console.log/info/debug` are intercepted and fail the test
+- `process.stdout.write` is intercepted
+- If your test needs output, use `spyOn(console, "log").mockImplementation(() => {})`
+- Debug with: `SKIP_OUTPUT_CHECK=1 bun test path/to/test.ts`
+
+See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for details.
+
+---
+
 ## Sub-Skills
 
 | Need                                 | Load                               |
@@ -88,5 +101,6 @@ Example: `TEST_MODE=mock bun run test:fast`
 | TDD workflow, test safety            | [tdd-workflow.md](tdd-workflow.md) |
 | TUI visual testing (inkx, storybook) | [visual.md](visual.md)             |
 | Chaos/fuzz testing sync              | [chaos.md](chaos.md)               |
+| Test quality review                  | [review-tests.md](review-tests.md) |
 
 **Full reference**: [docs/dev/testing.md](../../docs/dev/testing.md)

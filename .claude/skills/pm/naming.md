@@ -1,3 +1,7 @@
+---
+description: Bead ID conventions and scope tokens
+---
+
 # Bead ID Naming Convention
 
 This document defines the ID structure for beads in the km project. All skills that create beads should follow these conventions.

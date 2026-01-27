@@ -35,7 +35,7 @@ Ask if needed:
 
 **CRITICAL: You must see the bug before fixing.**
 
-For TUI bugs - use headless capture (see visual-test.md):
+For TUI bugs - use headless capture (see [visual.md](../tests/visual.md)):
 
 ```bash
 pkill -f ttyd 2>/dev/null || true

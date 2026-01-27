@@ -4,8 +4,8 @@ description: TUI testing and visual debugging
 
 # Visual Testing
 
-**Primary**: inkx createTestRenderer for automated tests
-**Secondary**: ttyd + Playwright for manual debugging/screenshots
+**Primary**: inkx createTestRenderer for automated tests (character level)
+**Secondary**: ttyd + Playwright for manual debugging/screenshots (pixel level)
 
 **Keywords**: visual test, TUI test, inkx, board.spec, testEnv, ttyd, screenshot
 

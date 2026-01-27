@@ -98,9 +98,9 @@ bun fix # Lint + format
 
 ## Skills (load when needed)
 
-| Skill                       | Use When      |
-| --------------------------- | ------------- |
-| [testing/](skills/testing/) | Writing tests |
+| Skill                   | Use When      |
+| ----------------------- | ------------- |
+| [tests/](skills/tests/) | Writing tests |
 ```
 
 **Tips:**
