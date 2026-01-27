@@ -61,7 +61,8 @@
       "Skill(max)",
       "Skill(max:*)",
       "Skill(git)",
-      "Skill(git:*)"
+      "Skill(git:*)",
+      "mcp__refactor-typescript__code_quality"
     ],
     "deny": [],
     "ask": []

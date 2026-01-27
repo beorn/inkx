@@ -2,9 +2,17 @@
 
 > **The thesis**: Build from composable pieces. Maintain quality through fast feedback. Write for humans and LLMs.
 
+## Why These Choices
+
+These principles came from building a real system—km—that needed to be maintainable by both humans and AI agents. We learned that **architectural patterns matter more** when you're iterating quickly: a bad pattern proliferates across 50 files before you notice it. We learned that **fast feedback is everything**: 5-second tests mean you can try 100 approaches while waiting for one slow test suite. We learned that **code is read more than written**: when an LLM (or new contributor) opens a file, they should immediately see what it does and how to extend it.
+
+The result is a codebase where **one obvious way** to do each thing eliminates choice paralysis. Where **composable pieces** (plain objects, factory functions, async generators) combine predictably. Where **fast tests** protect quality without slowing development. Where **failing loud** catches bugs at the call site instead of in production.
+
+These aren't theoretical ideals—they're practical tools that emerged from real problems. The "Lessons Learned" section documents the mistakes that taught us why each principle matters.
+
 ## How to Use This Doc
 
-If you're new, read Part 1 (Composability) and Part 2 (The Fast Feedback Loop) to understand the foundation. If you're implementing, follow Part 3 (Code for Humans) while coding. If you're using AI agents, read Part 5 (Coding with AI Agents) so you know what patterns must stay unique. If you're proposing changes, use Part 4 (In Practice) for the decision rubric and enforcement checklist. If you want history, read Part 6 (Where We Came From).
+If you're new, read Part 1 (Composable Domain Objects & Flows) and Part 2 (The Fast Feedback Loop) to understand the foundation. If you're implementing, follow Part 3 (Code for Humans) while coding. If you're using AI agents, read Part 4 (Coding with AI Agents) so you know what patterns must stay unique. If you're proposing changes, use Part 5 (Runbook) for the decision rubric and enforcement checklist.
 
 The principles reinforce each other: composable pieces enable fast tests, fast tests protect quality, and quality makes AI-assisted development safe.
 
@@ -12,14 +20,12 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 
 ## Overview
 
-1. **Composability** — Build from simple, reusable pieces
-   - Objects
-     - Principle: Plain Objects, Factory Functions
-     - Principle: No Magic, No Globals
-     - Principle: The Layer Cake
-     - Principle: `using` for Cleanup
-   - Flows
-     - Flows: Generators All The Way Down
+1. **Composable Domain Objects & Flows** — Build from simple, reusable pieces
+   - Principle: Plain Objects, Factory Functions
+   - Principle: No Magic, No Globals
+   - Principle: The Layer Cake
+   - Principle: `using` for Cleanup
+   - Flows: Generators All The Way Down
 2. **The Fast Feedback Loop** — Keep the loop tight to maintain extreme quality
    - Principle: Fail Loud, Fail Now
    - Principle: 5-Second Test Loops
@@ -30,26 +36,22 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
    - No Hidden Side Effects
    - Local Reasoning
    - API Boundaries
-4. **In Practice** — How we keep principles alive
+4. **Coding with AI Agents** — Why these principles matter more with AI
+5. **Runbook** — How we keep principles alive
    - What We're NOT Doing
    - Before You Add Something New
    - How We Keep This Real
-5. **Coding with AI Agents** — Why these principles matter more with AI
-6. **Where We Came From** — Industry comparison and lessons learned
 
 ---
 
 ## Contents
 
 - [Overview](#overview)
-- [Part 1: Composability](#part-1-composability)
-  - [Objects](#objects)
+- [Part 1: Composable Domain Objects & Flows](#part-1-composable-domain-objects--flows)
   - [Principle: Plain Objects, Factory Functions](#principle-plain-objects-factory-functions)
   - [Principle: No Magic, No Globals](#principle-no-magic-no-globals)
-  - [Disallowed Patterns](#disallowed-patterns)
   - [Principle: The Layer Cake](#principle-the-layer-cake)
   - [Principle: `using` for Cleanup](#principle-using-for-cleanup)
-  - [Flows](#flows)
   - [Flows: Generators All The Way Down](#flows-generators-all-the-way-down)
 - [Part 2: The Fast Feedback Loop](#part-2-the-fast-feedback-loop)
   - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now)
@@ -61,19 +63,16 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [No Hidden Side Effects](#no-hidden-side-effects)
   - [Local Reasoning](#local-reasoning)
   - [API Boundaries](#api-boundaries)
-- [Part 4: In Practice](#part-4-in-practice)
-  - [What We're NOT Doing](#what-were-not-doing)
-  - [Before You Add Something New](#before-you-add-something-new)
-  - [How We Keep This Real](#how-we-keep-this-real)
-- [Part 5: Coding with AI Agents](#part-5-coding-with-ai-agents)
+- [Part 4: Coding with AI Agents](#part-4-coding-with-ai-agents)
   - [Why LLMs Amplify Architecture Problems](#why-llms-amplify-architecture-problems)
   - [Legacy Code as Virus](#legacy-code-as-virus)
   - [The Quality Plateau](#the-quality-plateau)
   - [Principles That Matter More with LLMs](#principles-that-matter-more-with-llms)
   - [The LLM-Friendly Codebase](#the-llm-friendly-codebase)
-- [Part 6: Where We Came From](#part-6-where-we-came-from)
-  - [Why These Choices](#why-these-choices)
-  - [Lessons Learned](#lessons-learned)
+- [Part 5: Runbook](#part-5-runbook)
+  - [What We're NOT Doing](#what-were-not-doing)
+  - [Before You Add Something New](#before-you-add-something-new)
+  - [How We Keep This Real](#how-we-keep-this-real)
 - [Quick Reference](#quick-reference)
   - [Do](#do)
   - [Don't](#dont)
@@ -82,13 +81,15 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 
 ---
 
-## Part 1: Composability
+## Part 1: Composable Domain Objects & Flows
 
 Software is built from composable pieces. Both **structures** (objects) and **flows** (pipelines) should compose.
 
-### Objects
-
 Domain objects are plain objects created by factory functions. They compose via explicit dependencies, enabling testing, swapping, and isolation.
+
+**Minimize types, maximize interoperability**: Use the fewest possible building blocks (plain objects, functions, async generators). Every additional abstraction type (classes, custom containers, specialized patterns) creates friction—objects and classes don't compose, you can't serialize class instances, you can't spread them without losing methods. Plain objects work everywhere: JSON, IPC, spread operators, Object.assign, testing, debugging. Fewer types means less cognitive overhead and more natural composition.
+
+**Use the end-user's domain language**: Names for objects, types, and flows should come from the problem domain, not the implementation. A narrative written using actual type names should read naturally: "A Repo loads Nodes from files. The Board displays Nodes and handles Commands. The Watcher detects file changes and triggers sync." If your narrative needs technical jargon to make sense, the names are wrong.
 
 ### Principle: Plain Objects, Factory Functions
 
@@ -137,6 +138,56 @@ const repo = createRepo(path, {
 })
 ```
 
+**Why not classes**:
+
+- **Creates type friction**: Classes don't compose with plain objects—can't JSON.stringify instances, can't spread without losing methods, can't pass through IPC without custom serialization
+- **Reduces interoperability**: Every class instance needs special handling for common operations (cloning, merging, debugging)
+- TypeScript types are algebraic and work great with plain objects—no need for classes
+- Classes add visual clutter (constructor, `this`, visibility keywords)
+- Classes add another abstraction we don't need (we already have objects)
+- `this` binding issues (callbacks lose context)
+- Inheritance creates coupling
+
+```typescript
+// ❌ BAD - class with this binding
+export class Repo {
+  private db: Database
+  constructor(path: string) {
+    this.db = openDatabase(path)
+  }
+}
+
+// ✅ GOOD - factory function (see above)
+```
+
+**Infrastructure Class Exception**:
+
+Infrastructure classes that extend EventEmitter or manage low-level resources are acceptable when:
+
+- Performance-critical (worker thread management, file system operations)
+- Event-based (standard EventEmitter pattern for pub/sub)
+- Internal infrastructure (not domain objects)
+
+Examples in km:
+
+- `SyncManager extends EventEmitter` — event-based sync coordination
+- `WriteQueue extends EventEmitter` — debounced write operations
+- `FileSystemWatcher extends EventEmitter` — file system monitoring
+- `ParsePool` — worker thread pool management
+- `DisposableStore` — disposable resource container
+
+```typescript
+// ✅ ACCEPTABLE - infrastructure class extending EventEmitter
+export class SyncManager extends EventEmitter {
+  constructor(config: SyncConfig) {
+    super()
+    // Event-based infrastructure
+  }
+}
+```
+
+Domain objects (Repo, Board, Watcher) must still use factory functions.
+
 ---
 
 ### Principle: No Magic, No Globals
@@ -170,16 +221,6 @@ function processNodes(db: Database) {
 }
 ```
 
----
-
-### Disallowed Patterns
-
-**Why not classes**:
-
-- `this` binding issues (callbacks lose context)
-- Inheritance creates coupling
-- Harder to test (must instantiate whole class)
-
 **Why not singletons**:
 
 - Hidden coupling (who initialized it? when?)
@@ -194,42 +235,8 @@ export function getDb() {
   return _db
 }
 
-// ❌ BAD - class with this binding
-export class Repo {
-  private db: Database
-  constructor(path: string) {
-    this.db = openDatabase(path)
-  }
-}
-
-// ✅ GOOD - factory function
-
-// ✅ ACCEPTABLE - infrastructure class extending EventEmitter
-export class SyncManager extends EventEmitter {
-  constructor(config: SyncConfig) {
-    super()
-    // Event-based infrastructure
-  }
-}
+// ✅ GOOD - explicit dependency (see above)
 ```
-
-**Infrastructure Class Exception**:
-
-Infrastructure classes that extend EventEmitter or manage low-level resources are acceptable when:
-
-- Performance-critical (worker thread management, file system operations)
-- Event-based (standard EventEmitter pattern for pub/sub)
-- Internal infrastructure (not domain objects)
-
-Examples in km:
-
-- `SyncManager extends EventEmitter` — event-based sync coordination
-- `WriteQueue extends EventEmitter` — debounced write operations
-- `FileSystemWatcher extends EventEmitter` — file system monitoring
-- `ParsePool` — worker thread pool management
-- `DisposableStore` — disposable resource container
-
-Domain objects (Repo, Board, Watcher) must still use factory functions.
 
 ---
 
@@ -291,8 +298,6 @@ async function watchRepo(path: string) {
 - Predictable teardown order (reverse of creation)
 
 ---
-
-### Flows
 
 Async generators make multi-stage data processing composable. Each stage is a function that yields items, and stages compose like building blocks.
 
@@ -464,7 +469,7 @@ export function getDb() { ... }
 
 ## Part 3: Code for Humans
 
-Code is read more than written.
+Code is read more than written. Names should use the end-user's domain language so a narrative describing the system reads naturally.
 
 ### Principle: Inverted Pyramid
 
@@ -623,7 +628,88 @@ function applyNode(db: Database, node: KNode) {
 
 ---
 
-## Part 4: In Practice
+## Part 4: Coding with AI Agents
+
+These principles matter MORE when working with AI coding agents.
+
+### Why LLMs Amplify Architecture Problems
+
+LLM coding agents have specific constraints:
+
+- **No persistent memory** — Each session starts fresh, will use whatever patterns exist in the code
+- **Limited context** — Can't see the whole codebase, architecture must be locally obvious
+- **Pattern matching** — Will copy existing patterns, good or bad
+- **Fast iteration** — Can leverage <5s test loops extremely well
+
+### Legacy Code as Virus
+
+**Any inconsistency is a virus that LLMs will propagate.**
+
+When an LLM sees two ways to do something, it may copy either. If one is legacy/deprecated, you've now spread it. The old pattern isn't just technical debt—it's actively infectious.
+
+**"Legacy" means**:
+
+- Deprecated code patterns
+- Compatibility shims (`export { oldFunction as newFunction }`)
+- Fallback patterns (`const x = newWay() ?? oldWay()`)
+- Adapter layers that maintain old interfaces
+- Any code that exists only for backwards compatibility
+
+```
+Legacy pattern exists → LLM copies it → More legacy code → More likely to be copied
+```
+
+This is why "Quarantine and Delete" isn't optional—it's **quarantine**. Deprecation warnings don't work because LLMs don't read warnings, they read code.
+
+### The Quality Plateau
+
+**Goal: Reach a state where there's only ONE way to do things.**
+
+Below the plateau, every inconsistency is a potential infection vector. Above it, LLMs can only copy good patterns because that's all that exists.
+
+```
+                    ╭─────────────────────── Quality Plateau
+                   ╱                         (only good patterns exist)
+Code Quality      ╱
+                 ╱  ← Merciless refactoring
+                ╱     (continuous, never stop)
+───────────────╱
+              ↑
+              Inconsistencies = infection vectors
+```
+
+**Merciless refactoring** is not a phase—it's continuous. Any time you see:
+
+- Two ways to do the same thing → consolidate to one
+- A fallback pattern → delete it and fix callers
+- A `// TODO` or `// legacy` comment → fix it now or create a tracked issue
+
+### Principles That Matter More with LLMs
+
+**Composability** — When pieces compose cleanly, LLMs can combine them correctly. When composition is implicit or has multiple paths, LLMs guess wrong.
+
+**Quarantine and Delete** — If old patterns exist, LLMs will use them. The only way to prevent old patterns is to make them impossible.
+
+**5-Second Test Loops** — LLMs iterate extremely quickly. A 5-second test loop means an agent can try 100 approaches in the time a human tries 10. Fast feedback is a force multiplier.
+
+**Obvious right way** — When there's one clear pattern, LLMs follow it. When there are multiple ways, they guess. Consolidate patterns so the right way is obvious from any file.
+
+**Fail Loud, Fail Now** — Silent failures compound across sessions. If something's wrong, it must fail loudly NOW so the agent can fix it, not silently corrupt state for a future session to discover.
+
+**No Magic, No Globals** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` is self-documenting and works without hidden context.
+
+### The LLM-Friendly Codebase
+
+- One obvious way to do each thing (quality plateau)
+- Fast feedback loops (<5s tests)
+- Loud failures (throw, don't log)
+- No legacy patterns (quarantined/deleted)
+- Self-documenting APIs (explicit deps, no magic)
+- Continuous merciless refactoring (maintain the plateau)
+
+---
+
+## Part 5: Runbook
 
 How we keep principles alive over time.
 
@@ -714,107 +800,6 @@ When reviewing PRs, the question is: "Does this follow the principles?" If not, 
 
 ---
 
-## Part 5: Coding with AI Agents
-
-These principles matter MORE when working with AI coding agents.
-
-### Why LLMs Amplify Architecture Problems
-
-LLM coding agents have specific constraints:
-
-- **No persistent memory** — Each session starts fresh, will use whatever patterns exist in the code
-- **Limited context** — Can't see the whole codebase, architecture must be locally obvious
-- **Pattern matching** — Will copy existing patterns, good or bad
-- **Fast iteration** — Can leverage <5s test loops extremely well
-
-### Legacy Code as Virus
-
-**Any inconsistency is a virus that LLMs will propagate.**
-
-When an LLM sees two ways to do something, it may copy either. If one is legacy/deprecated, you've now spread it. The old pattern isn't just technical debt—it's actively infectious.
-
-```
-Legacy pattern exists → LLM copies it → More legacy code → More likely to be copied
-```
-
-This is why "Quarantine and Delete" isn't optional—it's **quarantine**. Deprecation warnings don't work because LLMs don't read warnings, they read code.
-
-### The Quality Plateau
-
-**Goal: Reach a state where there's only ONE way to do things.**
-
-Below the plateau, every inconsistency is a potential infection vector. Above it, LLMs can only copy good patterns because that's all that exists.
-
-```
-                    ╭─────────────────────── Quality Plateau
-                   ╱                         (only good patterns exist)
-Code Quality      ╱
-                 ╱  ← Merciless refactoring
-                ╱     (continuous, never stop)
-───────────────╱
-              ↑
-              Inconsistencies = infection vectors
-```
-
-**Merciless refactoring** is not a phase—it's continuous. Any time you see:
-
-- Two ways to do the same thing → consolidate to one
-- A fallback pattern → delete it and fix callers
-- A `// TODO` or `// legacy` comment → fix it now or create a tracked issue
-
-### Principles That Matter More with LLMs
-
-**Composability** — When pieces compose cleanly, LLMs can combine them correctly. When composition is implicit or has multiple paths, LLMs guess wrong.
-
-**Quarantine and Delete** — If old patterns exist, LLMs will use them. The only way to prevent old patterns is to make them impossible.
-
-**5-Second Test Loops** — LLMs iterate extremely quickly. A 5-second test loop means an agent can try 100 approaches in the time a human tries 10. Fast feedback is a force multiplier.
-
-**Obvious right way** — When there's one clear pattern, LLMs follow it. When there are multiple ways, they guess. Consolidate patterns so the right way is obvious from any file.
-
-**Fail Loud, Fail Now** — Silent failures compound across sessions. If something's wrong, it must fail loudly NOW so the agent can fix it, not silently corrupt state for a future session to discover.
-
-**No Magic, No Globals** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` is self-documenting and works without hidden context.
-
-### The LLM-Friendly Codebase
-
-- One obvious way to do each thing (quality plateau)
-- Fast feedback loops (<5s tests)
-- Loud failures (throw, don't log)
-- No legacy patterns (quarantined/deleted)
-- Self-documenting APIs (explicit deps, no magic)
-- Continuous merciless refactoring (maintain the plateau)
-
----
-
-## Part 6: Where We Came From
-
-### Why These Choices
-
-| km Principle          | Common Alternative   | Why We Chose Differently                             |
-| --------------------- | -------------------- | ---------------------------------------------------- |
-| Factory functions     | Classes              | Classes have `this` binding issues, harder to mock   |
-| No singletons         | Service locator      | Singletons hide dependencies, block parallel tests   |
-| Composition           | Peer stores          | Peers make sync generic when it's really translation |
-| Fail Loud, Fail Now   | Defensive coding     | Defensive coding masks bugs until production         |
-| Quarantine and Delete | Deprecation warnings | Warnings are ignored forever (especially by LLMs)    |
-| In-memory tests       | Real infrastructure  | Real infra is slow, flaky, blocks parallel execution |
-| Async generators      | Promise.all chains   | Generators compose, arrays don't                     |
-
----
-
-### Lessons Learned
-
-Real stories from km development that shaped these principles.
-
-- **The Backwards Compatibility Trap** — Singleton wrappers for "backwards compatibility" prevented migration from ever completing. The lesson: quarantine and delete. See [lesson-backwards-compatibility.md](ref/lesson-backwards-compatibility.md)
-
-- **FileTree as Peer DataStore** — Treating FileTree and DataStore as interchangeable peers led to performance asymmetry, semantic mismatch, and overly generic sync logic. The lesson: identify representation vs peer. See [lesson-filetree-as-peer.md](ref/lesson-filetree-as-peer.md)
-
-- **The km-me0n Incident** — `km sync --to-fs` corrupted source files by writing to real files instead of test fixtures. The lesson: tests use isolated directories, in-memory infrastructure. See [lesson-km-me0n.md](ref/lesson-km-me0n.md)
-
----
-
 ## Quick Reference
 
 ### Do
@@ -874,8 +859,18 @@ bun fix              # Lint + format
 
 ## See Also
 
+### Core Documentation
+
 - [concepts.md](concepts.md) — What km is (nodes, modes, status)
 - [architecture.md](architecture.md) — System architecture (layers, data flow)
 - [ref/pipelines.md](ref/pipelines.md) — Async generator pipeline case study
 - [ADR-002](adr/archive/002-domain-objects-refactor.md) — Historical context on domain object architecture
 - [dev/testing.md](dev/testing.md) — Detailed testing guide
+
+### Lessons Learned
+
+Real stories from km development that shaped these principles:
+
+- [lesson-backwards-compatibility.md](ref/lesson-backwards-compatibility.md) — **The Backwards Compatibility Trap**: Singleton wrappers for "backwards compatibility" prevented migration from ever completing. The lesson: quarantine and delete.
+- [lesson-filetree-as-peer.md](ref/lesson-filetree-as-peer.md) — **FileTree as Peer DataStore**: Treating FileTree and DataStore as interchangeable peers led to performance asymmetry, semantic mismatch, and overly generic sync logic. The lesson: identify representation vs peer.
+- [lesson-km-me0n.md](ref/lesson-km-me0n.md) — **The km-me0n Incident**: `km sync --to-fs` corrupted source files by writing to real files instead of test fixtures. The lesson: tests use isolated directories, in-memory infrastructure.

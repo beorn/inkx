@@ -42,12 +42,42 @@ Activated by requests about:
 ### `status` - Health Summary
 
 ```bash
-bd list --status open --limit 0 --long   # Count and scan for issues
+bd list --status open --limit 0 --json   # All open beads for table
 bd list --status in_progress --limit 0 --long
 bd stale --days 14 --limit 0
 ```
 
-Output summary table with counts by priority/status, flag any concerns.
+Output a comprehensive table of all open beads with these columns (up to 100 beads):
+
+| ID           | Type    | Title               | Priority | Claimed |
+| ------------ | ------- | ------------------- | -------- | ------- |
+| km-test-4    | epic    | Switch to Vitest    | P2       | -       |
+| km-test-4.3  | task    | Add Vitest producer | P2       | -       |
+| km-test-4.4  | task    | Migrate tree tests  | P2       | -       |
+| km-storage-1 | feature | Full event sourcing | P4       | -       |
+| km-test-3    | bug     | bun tap streaming   | P2       | beorn   |
+
+**Grouping rules:**
+
+- Group epics with their children (hierarchical IDs like km-test-4, km-test-4.1, km-test-4.2)
+- Show epic first, then all its subtasks indented or immediately following
+- Sort groups by priority (highest first), then by ID within each group
+- Limit total output to ~100 beads for readability
+
+Then output summary counts:
+
+| Metric           | Count |
+| ---------------- | ----- |
+| Open issues      | N     |
+| In progress      | N     |
+| Stale (14+ days) | N     |
+| P0               | N     |
+| P1               | N     |
+| P2               | N     |
+| P3               | N     |
+| P4               | N     |
+
+Flag any concerns (e.g., too many P1s, stale in_progress items).
 
 ### `ready` - Actionable Work
 

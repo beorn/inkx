@@ -136,16 +136,16 @@ interface Ctx {
 }
 
 // Future: function that executes with expanded context
-type Cmd = (ctx: Ctx) => void;
+type Cmd = (ctx: Ctx) => void
 
 // Future: when predicate with expanded context
-type When = (ctx: Ctx) => boolean;
+type When = (ctx: Ctx) => boolean
 
 // Future: binding with expanded context
 interface Binding {
-  keys: string[];
-  cmd: Cmd;
-  when?: When;
+  keys: string[]
+  cmd: Cmd
+  when?: When
 }
 ```
 
