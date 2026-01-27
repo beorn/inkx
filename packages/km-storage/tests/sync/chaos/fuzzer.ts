@@ -855,17 +855,22 @@ function generateReproductionCommand(
 
 /**
  * Generate a detailed bug report from a failure
+ * @param failure - The fuzz failure to report
+ * @param db - Database to read actual state from
  */
-export function generateBugReport(failure: FuzzFailure): SyncBugReport {
+export function generateBugReport(
+  failure: FuzzFailure,
+  db: Database,
+): SyncBugReport {
   // Reconstruct expected and actual state
   const expectedFiles = new Map<string, string>()
   for (const file of failure.scenario.setup) {
     expectedFiles.set(file.path, file.content)
   }
 
-  // Get actual state (would need to be captured during test)
+  // Get actual state from the provided db
   const actualFiles = new Map<string, string>()
-  const nodes = getAllNodes(getDb())
+  const nodes = getAllNodes(db)
 
   // Build diff
   const missingInDb: string[] = []
