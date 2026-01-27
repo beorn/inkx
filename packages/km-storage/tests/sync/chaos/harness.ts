@@ -18,7 +18,7 @@ import type {
 import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
 import { runWithKmDir } from "../../../src/emit.ts"
-import { resetDb, closeDb, getDb } from "../../../src/db.ts"
+import { resetDb, closeDb, getDb, runWithDb } from "../../../src/db.ts"
 import {
   reconcileDirectory,
   reconcileDirectoryRecursive,
@@ -99,8 +99,18 @@ async function runChaosTestWithMockFs(
 
       const scanner = mockFs.createScanner()
       const db = getDb()
-      const ops = reconcileDirectory(db, repoDir, repoDir, undefined, scanner)
-      applyReconcileOps(db, ops, repoDir, mockFs)
+      // Wrap in runWithDb so emitNodeCreated applies to db
+      // Use reconcileDirectoryRecursive to handle subdirectories
+      runWithDb(db, () => {
+        const ops = reconcileDirectoryRecursive(
+          db,
+          repoDir,
+          repoDir,
+          undefined,
+          scanner,
+        )
+        applyReconcileOps(db, ops, repoDir, mockFs)
+      })
 
       // ─────────────────────────────────────────────────────────────
       // Chaos Injection Phase
@@ -130,19 +140,22 @@ async function runChaosTestWithMockFs(
         "sync",
         (data: { paths: string[]; directories: string[] }) => {
           void (async () => {
-            for (const dir of data.directories) {
-              const dirOps =
-                dir === repoDir
-                  ? reconcileDirectory(db, dir, repoDir, undefined, scanner)
-                  : reconcileDirectoryRecursive(
-                      db,
-                      dir,
-                      repoDir,
-                      undefined,
-                      scanner,
-                    )
-              applyReconcileOps(db, dirOps, repoDir, mockFs)
-            }
+            // Wrap in runWithDb so emitNodeCreated applies to db
+            runWithDb(db, () => {
+              for (const dir of data.directories) {
+                const dirOps =
+                  dir === repoDir
+                    ? reconcileDirectory(db, dir, repoDir, undefined, scanner)
+                    : reconcileDirectoryRecursive(
+                        db,
+                        dir,
+                        repoDir,
+                        undefined,
+                        scanner,
+                      )
+                applyReconcileOps(db, dirOps, repoDir, mockFs)
+              }
+            })
           })()
         },
       )
@@ -227,6 +240,7 @@ async function runChaosTestWithRealFs(
 
     try {
       resetDb()
+      const db = getDb()
 
       for (const file of config.setup) {
         const fullPath = join(repoDir, file.path)
@@ -237,10 +251,11 @@ async function runChaosTestWithRealFs(
         writeFileSync(fullPath, file.content)
       }
 
-      // Initial Sync Phase
-      const db = getDb()
-      const ops = reconcileDirectory(db, repoDir, repoDir)
-      applyReconcileOps(db, ops, repoDir)
+      // Initial Sync Phase - wrap in runWithDb so emitNodeCreated applies to db
+      runWithDb(db, () => {
+        const ops = reconcileDirectory(db, repoDir, repoDir)
+        applyReconcileOps(db, ops, repoDir)
+      })
 
       // Chaos Injection Phase
       chaosWatcher = createChaosWatcher({
@@ -266,13 +281,16 @@ async function runChaosTestWithRealFs(
         "sync",
         (data: { paths: string[]; directories: string[] }) => {
           void (async () => {
-            for (const dir of data.directories) {
-              const dirOps =
-                dir === repoDir
-                  ? reconcileDirectory(db, dir, repoDir)
-                  : reconcileDirectoryRecursive(db, dir, repoDir)
-              applyReconcileOps(db, dirOps, repoDir)
-            }
+            // Wrap in runWithDb so emitNodeCreated applies to db
+            runWithDb(db, () => {
+              for (const dir of data.directories) {
+                const dirOps =
+                  dir === repoDir
+                    ? reconcileDirectory(db, dir, repoDir)
+                    : reconcileDirectoryRecursive(db, dir, repoDir)
+                applyReconcileOps(db, dirOps, repoDir)
+              }
+            })
           })()
         },
       )

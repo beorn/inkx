@@ -20,7 +20,6 @@ import type { Database } from "bun:sqlite"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import {
-  getDb,
   getChildren,
   resolveNode,
   resolvePathArg,
@@ -312,8 +311,8 @@ export const shCommand = new Command("sh")
     // Create repo domain object (auto-closes via `using`)
     using repo = await loadRepo(resolved.repoRoot)
 
-    // Get database instance (TODO: use repo.rawQuery() instead)
-    const db = getDb()
+    // Use repo's database (ADR-002: no singletons)
+    const db = repo.database
 
     // Initialize bound helper functions
     getNodeDisplayName = (node) => getNodeDisplayNameBase(node, (parentId) => getChildren(db, parentId))
