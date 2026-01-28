@@ -5,15 +5,6 @@ import { mdtest } from "./vendor/beorn-mdtest/src/integrations/vitest-plugin"
 
 export default defineConfig({
   plugins: [tsconfigPaths(), mdtest()],
-  resolve: {
-    alias: {
-      // mdtest plugin transforms .test.md files to import this
-      "@beorn/mdtest/vitest": new URL(
-        "./vendor/beorn-mdtest/src/integrations/vitest.ts",
-        import.meta.url,
-      ).pathname,
-    },
-  },
   test: {
     // Force certain packages to be bundled in SSR to avoid import issues
     server: {
