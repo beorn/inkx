@@ -1,6 +1,6 @@
 # Test System Architecture
 
-The km test system combines the best of two worlds: **Vitest's powerful testing framework** with **Bun's fast runtime and native APIs**. This document explains why we use `bunx --bun vitest`, how the architecture works, and how to run tests effectively.
+The km test system uses **Vitest's powerful testing framework** with **Bun's fast runtime and native APIs**. This document explains the architecture, how to run tests effectively, and how to use benchmarking and performance tracking features.
 
 ---
 
@@ -11,9 +11,10 @@ The km test system combines the best of two worlds: **Vitest's powerful testing 
 3. [Architecture](#architecture)
 4. [Running Tests](#running-tests)
 5. [Test Categories](#test-categories)
-6. [Migration History](#migration-history)
-7. [Implementation Details](#implementation-details)
-8. [Future Improvements](#future-improvements)
+6. [Performance Tracking](#performance-tracking)
+7. [Benchmarking](#benchmarking)
+8. [Test Modes](#test-modes)
+9. [Implementation Details](#implementation-details)
 
 ---
 
@@ -23,12 +24,10 @@ The km test system combines the best of two worlds: **Vitest's powerful testing 
 
 This unified approach gives us:
 
-- Vitest's mature testing framework and TAP streaming
+- Vitest's mature testing framework and reporters (HTML, JUnit)
 - Bun's fast runtime and native APIs (`bun:sqlite`, `bun:ffi`, etc.)
-- Real-time test feedback via TAP protocol
+- Automatic performance tracking and trending
 - Single test runner for the entire codebase
-
-**No More Hybrid**: Previously, we split tests between Bun Test (for packages using `bun:sqlite`) and Vitest (for everything else). This created complexity and required JUnit-to-TAP conversion. The all-Vitest approach eliminates this.
 
 ---
 
@@ -36,13 +35,10 @@ This unified approach gives us:
 
 ### The Problem with Pure Bun Test
 
-Bun's built-in test runner lacks native TAP support. While it has a `--bail` JUnit reporter, streaming test results in real-time requires:
-
-1. Running Bun Test with JUnit output
-2. Converting JUnit XML to TAP format
-3. Streaming the converted TAP output
-
-This adds complexity and latency to test feedback.
+Bun's built-in test runner lacks features we need:
+- No HTML UI for test results
+- Limited reporter options
+- No built-in benchmarking support
 
 ### The Problem with Pure Vitest
 
@@ -58,19 +54,8 @@ Porting these to Node.js equivalents would require significant rewrites.
 
 Vitest can run on **any JavaScript runtime** by using `bunx --bun vitest`:
 
-```typescript
-// vendor/beorn-tap/src/producers/vitest.ts
-export function runVitestTap(options: VitestTapOptions = {}): VitestTapResult {
-  const args = ["vitest", "run", "--reporter=tap", ...(options.args ?? [])]
-
-  const proc = spawn(["bunx", "--bun", ...args], {
-    cwd: options.cwd,
-    stdout: "pipe",
-    stderr: "inherit",
-  })
-
-  return { stdout: proc.stdout, proc, exited: proc.exited }
-}
+```bash
+bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit
 ```
 
 **How it works**:
@@ -78,14 +63,16 @@ export function runVitestTap(options: VitestTapOptions = {}): VitestTapResult {
 1. `bunx` downloads/runs `vitest` from npm
 2. `--bun` flag forces Bun as the JavaScript runtime (not Node.js)
 3. Vitest runs normally but with access to all Bun APIs
-4. `--reporter=tap` streams results in TAP format for real-time feedback
+4. Multiple reporters generate different outputs (terminal, HTML, JUnit)
 
 **Benefits**:
 
 - ✅ Vitest's mature testing framework (describe, test, expect, etc.)
-- ✅ Native TAP streaming (no conversion needed)
+- ✅ HTML UI for visualizing test results and timing
+- ✅ JUnit XML for CI integration
 - ✅ Full access to Bun APIs (`bun:sqlite`, `bun:ffi`, `Worker`)
 - ✅ Fast execution via Bun runtime
+- ✅ Built-in benchmarking support
 - ✅ Single test runner for entire codebase
 
 ---
@@ -97,28 +84,8 @@ export function runVitestTap(options: VitestTapOptions = {}): VitestTapResult {
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  User Commands (package.json scripts)                   │
-│  bun run test:fast, test:slow, test:mdtest, test:all   │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│  Test Scripts (TypeScript)                              │
-│  scripts/run-tests.ts, scripts/test-all.ts             │
-│  - Discover test files via test-patterns.ts            │
-│  - Orchestrate test execution                          │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│  TAP Orchestrator (@beorn/tap)                          │
-│  vendor/beorn-tap/src/orchestrate.ts                    │
-│  - Manages parallel/unified modes                       │
-│  - Routes output to consumers                           │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│  Vitest TAP Producer                                    │
-│  vendor/beorn-tap/src/producers/vitest.ts               │
-│  - Spawns: bunx --bun vitest run --reporter=tap        │
-│  - Streams TAP output in real-time                      │
+│  bun run test:fast, test:all (basic)                   │
+│  bun run test:fast:html, test:all:html (with reports)  │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -126,63 +93,43 @@ export function runVitestTap(options: VitestTapOptions = {}): VitestTapResult {
 │  - Runs on Bun runtime (not Node.js)                    │
 │  - Executes .test.ts, .spec.ts, .test.md files         │
 │  - Full access to bun:sqlite and other Bun APIs         │
+│  - Optional HTML report + JUnit XML (:html commands)    │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│  TAP Consumer (@beorn/tap)                              │
-│  vendor/beorn-tap/src/consumer.ts                       │
-│  - Parses TAP stream                                    │
-│  - Displays colored dots (. = pass, F = fail)           │
-│  - Shows summary (passed/failed/total)                  │
+│  Performance Tracking (opt-in via :html commands)       │
+│  infra/test-perf/track.ts                               │
+│  - Reads vitest metadata from HTML report               │
+│  - Tracks performance over time                         │
+│  - Identifies slow tests and regressions                │
+└─────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│  Outputs                                                │
+│  - Terminal: Dot reporter (always)                      │
+│  - HTML: test-results/vitest-report.html (:html only)   │
+│  - JUnit: test-results/junit.xml (:html only)           │
+│  - Performance history: .test-results/test-perf-history.jsonl (:html only) │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Test File Discovery
+### Reporters
 
-Test patterns are centralized in `scripts/test-patterns.ts`:
+The test system uses reporters configured via CLI flags:
+
+1. **Dot Reporter** (`--reporter=dot`) - Terminal output with concise dots (. = pass, x = fail) - Always enabled
+2. **HTML Reporter** (`--reporter=html`) - Interactive UI at `test-results/vitest-report.html` - Opt-in via `:html` commands
+3. **JUnit Reporter** (`--reporter=junit`) - XML output for CI systems - Opt-in via `:html` commands
+
+Configuration in `vitest.config.ts`:
 
 ```typescript
-export const TEST_PATTERNS = {
-  fast: {
-    include: [
-      "packages/**/tests/**/*.test.ts",
-      "packages/**/tests/**/*.spec.ts",
-      "apps/**/tests/**/*.test.ts",
-      "apps/**/tests/**/*.spec.ts",
-    ],
-    exclude: ["**/node_modules/**", "**/*.slow.test.ts"],
-  },
-  slow: {
-    include: [
-      "packages/**/tests/**/*.slow.test.ts",
-      "apps/**/tests/**/*.slow.test.ts",
-    ],
-    exclude: ["**/node_modules/**"],
-  },
-  mdtest: {
-    include: ["packages/**/tests/**/*.test.md", "apps/**/tests/**/*.test.md"],
-    exclude: ["**/node_modules/**"],
-  },
+// Reporters configured via CLI flags (see package.json scripts)
+// Use test:fast:html or test:all:html for HTML reports and performance tracking
+outputFile: {
+  html: "./test-results/vitest-report.html",
+  junit: "./test-results/junit.xml",
 }
-```
-
-### TAP Streaming Flow
-
-1. **Vitest generates TAP** - Native `--reporter=tap` flag
-2. **TAP producer streams chunks** - Bun subprocess stdout as Uint8Arrays
-3. **TAP consumer parses and displays** - Converts to colored dots in real-time
-4. **Exit code reflects results** - Non-zero if any tests failed
-
-Example TAP output:
-
-```tap
-TAP version 13
-# Subtest: apps/km-tui/tests/board.spec.ts
-    ok 1 - Board navigation > moves cursor down
-    ok 2 - Board navigation > moves cursor up
-    1..2
-ok 1 - apps/km-tui/tests/board.spec.ts # time=45.234ms
-1..1
 ```
 
 ---
@@ -191,154 +138,107 @@ ok 1 - apps/km-tui/tests/board.spec.ts # time=45.234ms
 
 ### Quick Reference
 
-| Command                | What it runs                            | Duration | Use case             |
-| ---------------------- | --------------------------------------- | -------- | -------------------- |
-| `bun run test:fast`    | `.test.ts` + `.spec.ts` (excludes slow) | ~11s     | Default iteration    |
-| `bun run test:slow`    | `.slow.test.ts` only                    | ~30s     | Sync/chaos iteration |
-| `bun run test:mdtest`  | `.test.md` only                         | ~5s      | CLI iteration        |
-| `bun run test:all`     | All tests via unified TAP               | ~45s     | Before commit        |
-| `bun run test:all:tui` | All tests with parallel TUI (3 rows)    | ~45s     | Visual progress      |
+| Command                  | What it runs                            | Duration | Use case             |
+| ------------------------ | --------------------------------------- | -------- | -------------------- |
+| `bun run test:fast`      | `.test.ts` + `.spec.ts` (excludes slow) | ~13s     | Default iteration    |
+| `bun run test:slow`      | `.slow.test.ts` only                    | ~30s     | Sync/chaos iteration |
+| `bun run test:all`       | All tests                               | ~45s     | Before commit        |
+| `bun run test:fast:html` | Fast tests + HTML report + perf tracking | ~13s    | Performance analysis |
+| `bun run test:all:html`  | All tests + HTML report + perf tracking | ~45s     | Full perf analysis   |
+| `bun run test:fast:serial` | Fast tests without parallelization    | ~20s     | Accurate timing      |
 
-### Detailed Usage
+### Detailed Commands
 
-#### Fast Tests (Iteration Loop)
+#### `bun run test:fast` (Default)
+
+Runs all fast tests (excludes `.slow.test.ts` files). This is your main iteration loop.
 
 ```bash
 bun run test:fast
 ```
 
-**What it does**:
+**Output:**
+- Terminal: Dot progress (·····)
 
-- Discovers all `.test.ts` and `.spec.ts` files (excluding `.slow.test.ts`)
-- Runs via `bunx --bun vitest run --reporter=tap`
-- Streams TAP output with colored dots
-- Returns exit code 1 if any tests fail
+For HTML reports and performance tracking, use `test:fast:html` instead.
 
-**When to use**: After every code change during development.
+**When to use:**
+- Default for local development
+- Quick feedback loop
+- Verifying changes
 
-**Example output**:
+#### `bun run test:slow`
 
-```
-...........F.............................................
-517 tests, 1 failed, 516 passed
-Time: 11.234s
-```
-
-#### Slow Tests
+Runs only `.slow.test.ts` files (chaos tests, sync tests, etc.).
 
 ```bash
 bun run test:slow
 ```
 
-**What it does**:
+**When to use:**
+- Testing sync/watcher behavior
+- Running chaos tests
+- Before committing changes to storage layer
 
-- Discovers all `.slow.test.ts` files
-- Runs chaos tests, sync integration tests, heavy I/O tests
-- Same TAP streaming as fast tests
+#### `bun run test:all`
 
-**When to use**: When working on sync, file watching, or chaos testing.
-
-**Why separate**: These tests take 20-30s and shouldn't slow down normal iteration.
-
-#### Markdown Tests
-
-```bash
-bun run test:mdtest
-```
-
-**What it does**:
-
-- Discovers all `.test.md` files
-- Runs via mdtest (markdown-based CLI tests)
-- Uses in-memory database for speed
-
-**When to use**: When working on CLI commands or acceptance tests.
-
-**Example test** (`apps/km-cli/tests/sh/navigation.test.md`):
-
-```markdown
----
-mdtest:
-  plugin: ../km-repl.ts
-  fixture: two-columns
-  memory: true # ← Critical for fast tests
----
-
-# Navigation Test
-
-$ km sh board.md -c 'j; state'
-cursor: [1]
-```
-
-#### All Tests (Unified TAP)
+Runs all tests (fast + slow).
 
 ```bash
 bun run test:all
 ```
 
-**What it does**:
+**When to use:**
+- Before committing
+- Before pushing
+- Final validation before PR
 
-- Discovers all test files (fast + slow + mdtest)
-- Runs via Vitest orchestrator in "unified" mode
-- Interleaves TAP output from all suites
-- Single stream of colored dots
-- Ideal for CI/CD
+#### `bun run test:fast:html`
 
-**When to use**: Before committing, in CI pipelines.
-
-**Implementation** (`scripts/test-all.ts`):
-
-```typescript
-const orchestrator = createOrchestrator({
-  mode: "unified", // Interleaved dots (CI-friendly)
-  suites: [
-    {
-      name: "vitest",
-      runner: "vitest",
-      files: allTests, // fast + slow + mdtest
-    },
-  ],
-})
-```
-
-#### All Tests (Parallel TUI)
+Runs fast tests with HTML report generation and automatic performance tracking.
 
 ```bash
-bun run test:all:tui
+bun run test:fast:html
 ```
 
-**What it does**:
+**Output:**
+- Terminal: Dot progress
+- HTML report: `test-results/vitest-report.html`
+- JUnit XML: `test-results/junit.xml`
+- Performance summary and trends
 
-- Runs fast, slow, and mdtest suites in parallel
-- Displays 3 separate rows with real-time progress
-- Each row shows: suite name, colored dots, timing
-- Updates in place using ANSI cursor positioning
+**When to use:**
+- Analyzing test performance
+- Identifying slow tests
+- Tracking performance trends
+- Generating reports for CI
 
-**When to use**: When you want visual progress tracking.
+#### `bun run test:fast:serial`
 
-**Implementation** (`scripts/test-all-tui.ts`):
+Runs fast tests sequentially (no parallelization). Gives accurate per-test timing but slower overall.
 
-```typescript
-const orchestrator = createOrchestrator({
-  mode: "parallel", // Force parallel TUI mode
-  suites: [
-    { name: "vitest:fast", runner: "vitest", files: fastTests },
-    { name: "vitest:slow", runner: "vitest", files: slowTests },
-    { name: "vitest:md", runner: "vitest", files: mdTests },
-  ],
-  renderParallel, // Inject inline renderer
-})
+```bash
+bun run test:fast:serial
 ```
 
-**Example output**:
+**When to use:**
+- Measuring test performance accurately
+- Debugging timing-sensitive tests
+- Comparing performance across runs
 
-```
-vitest:fast  ....................................  (11.2s)
-vitest:slow  ............                          (28.5s)
-vitest:md    .....                                 (4.8s)
+### Viewing Test Results
 
-Total: 517 tests, 517 passed, 0 failed
+After running tests, view the HTML UI:
+
+```bash
+npx vite preview --outDir test-results
 ```
+
+Then open http://localhost:4173 to see:
+- Per-test timing
+- Test file organization
+- Interactive filtering
+- Historical comparisons
 
 ---
 
@@ -346,340 +246,393 @@ Total: 517 tests, 517 passed, 0 failed
 
 ### By Speed
 
-| Category | Pattern         | Duration | Included in           | Purpose                |
-| -------- | --------------- | -------- | --------------------- | ---------------------- |
-| Fast     | `.test.ts`      | <1s each | test:fast, test:all   | Unit/integration tests |
-| Fast     | `.spec.ts`      | <1s each | test:fast, test:all   | TUI acceptance tests   |
-| Slow     | `.slow.test.ts` | 1-30s    | test:slow, test:all   | Chaos, sync, heavy I/O |
-| Mdtest   | `.test.md`      | <1s each | test:mdtest, test:all | CLI acceptance tests   |
+Tests are categorized by execution speed to optimize the development feedback loop.
 
-### By Layer
+#### Fast Tests (`.test.ts`, `.spec.ts`)
 
-| Layer   | Package          | Test Focus                       | Example Files              |
-| ------- | ---------------- | -------------------------------- | -------------------------- |
-| Parser  | `@km/markdown`   | Parse/serialize, roundtrip       | `markdown.test.ts`         |
-| Storage | `@km/storage`    | CRUD, queries, sync, events      | `repo.test.ts`             |
-| Tree    | `@km/tree`       | Tree queries, display names      | `queries.test.ts`          |
-| Board   | `@km/board`      | Reducer state, selectors         | `board.test.ts`            |
-| TUI     | `apps/km-tui`    | Component rendering, layout      | `board.spec.ts`            |
-| CLI     | `apps/km-cli`    | Commands, workflows              | `navigation.test.md`       |
-| Vendor  | `vendor/beorn-*` | Component behavior (inkx, flexx) | `vendor/beorn-inkx/tests/` |
+- **Target**: < 1 second per file
+- **Examples**: Unit tests, simple integration tests
+- **Location**: `packages/**/tests/**/*.test.ts`
 
-### By Test Level
-
+```typescript
+// packages/km-tree/tests/queries.test.ts
+describe("Tree queries", () => {
+  test("getNodeAtPath", () => {
+    // Fast, focused test
+  })
+})
 ```
-┌─────────────────────────────────────────────────────────┐
-│  ACCEPTANCE TESTS (End-User Visible)                    │
-├──────────────────────────┬──────────────────────────────┤
-│  TUI (.spec.ts)          │  CLI (.test.md)              │
-│  - Screen layout         │  - Command output            │
-│  - Keyboard navigation   │  - Error messages            │
-│  - Visual rendering      │  - Workflows                 │
-└──────────────────────────┴──────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│  CORE TESTS (.test.ts)                                  │
-├──────────────────────────┬──────────────────────────────┤
-│  Domain Tests            │  Pure Function Tests         │
-│  - Repo CRUD/queries     │  - Parser logic              │
-│  - Board state machine   │  - Tree queries              │
-│  - Config loading        │  - Formatters                │
-└──────────────────────────┴──────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│  SYNC TESTS (Special)                                   │
-├──────────────────────────┬──────────────────────────────┤
-│  Chaos (.slow.test.ts)   │  Regression (.test.ts)       │
-│  - Property-based        │  - Known bugs                │
-│  - Find new bugs         │  - Fast execution            │
-└──────────────────────────┴──────────────────────────────┘
+
+#### Slow Tests (`.slow.test.ts`)
+
+- **Target**: > 1 second per file
+- **Examples**: Sync tests, chaos tests, file system integration
+- **Location**: `packages/**/tests/**/*.slow.test.ts`
+
+```typescript
+// packages/km-storage/tests/sync.slow.test.ts
+describe("Sync manager", () => {
+  test("handles rapid file changes", async () => {
+    // Slow integration test
+  })
+})
+```
+
+**When to mark a test as slow:**
+- File takes > 1 second to execute
+- Tests involve file system I/O
+- Tests involve real database operations
+- Tests involve timing/delays
+
+### By Type
+
+#### Unit Tests
+
+Test individual functions/classes in isolation.
+
+```typescript
+describe("parseMarkdown", () => {
+  test("parses task list", () => {
+    const result = parseMarkdown("- [ ] Task")
+    expect(result.children).toHaveLength(1)
+  })
+})
+```
+
+#### Integration Tests
+
+Test multiple components working together.
+
+```typescript
+describe("Repo sync", () => {
+  test("syncs file changes to database", async () => {
+    const repo = await createFakeRepo()
+    repo.write("file.md", "# Content")
+    await repo.sync()
+    expect(repo.getAllNodes()).toHaveLength(1)
+  })
+})
+```
+
+#### Markdown Tests (`.test.md`)
+
+Executable markdown tests for CLI commands and end-to-end flows.
+
+```markdown
+# Test: Create and list tasks
+
+$ km add "New task"
+Created: New task
+
+$ km list
+- [ ] New task
 ```
 
 ---
 
-## Migration History
+## Performance Tracking
 
-### The Hybrid Era (Before January 2026)
+Performance tracking is available via the `:html` test commands (`test:fast:html`, `test:all:html`).
 
-**Problem**: Split test infrastructure with different capabilities.
+### How It Works
 
-**Old approach**:
+1. **Tests run** - Vitest generates HTML metadata (`test-results/html.meta.json.gz`)
+2. **Track script runs** - `infra/test-perf/track.ts` reads metadata
+3. **History stored** - Performance data appended to `.test-results/test-perf-history.jsonl`
+4. **Summary displayed** - Shows slowest files, regressions, trends
 
-- Vitest for packages without Bun APIs (`@km/tree`, `@km/board`, `@km/markdown`)
-- Bun Test for packages needing `bun:sqlite` (`@km/storage`)
-- Required JUnit-to-TAP conversion for Bun Test results
-- Two different test syntaxes and behaviors
+### Performance Summary
 
-**Issues**:
+After `bun run test:fast:html`:
 
-1. **Complexity** - Different test runners for different packages
-2. **Latency** - JUnit-to-TAP conversion delayed test feedback
-3. **Inconsistency** - Slightly different APIs between Bun Test and Vitest
-4. **Maintenance** - Two code paths to maintain
+```
+============================================================
+📊 Test Performance Summary
+============================================================
 
-### The All-Vitest Migration (January 2026)
+⏱️  Total: 13.2s (2292 tests, 107 files)
+   Avg per test: 5.8ms
+   Avg per file: 123ms
+   📉 2.1% faster than previous run (13.5s)
 
-**Discovery**: Vitest can run on Bun runtime via `bunx --bun vitest`.
+🐌 Slowest Files (top 5):
+   1. packages/km-storage/tests/repo.test.ts
+      2.1s (45 tests)
+   2. packages/km-storage/tests/sync.test.ts
+      1.8s (32 tests)
+   3. apps/km-tui/tests/board.spec.ts
+      1.2s (28 tests)
 
-**Migration plan** (from `docs/testing/plan.md`, PATH 1):
+⚠️  2 file(s) taking >1000ms should be .slow.test.ts:
+   - packages/km-storage/tests/repo.test.ts (2.1s)
+   - packages/km-storage/tests/sync.test.ts (1.8s)
 
-**Phase 1: Migrate pure packages** ✅
+📈 Historical Trend (last 5 runs):
+     1/25/2026, 10:30:12 AM: 13.5s (2292 tests)
+     1/25/2026, 11:15:45 AM: 13.3s (2292 tests)
+     1/25/2026, 2:20:33 PM: 13.8s (2295 tests)
+     1/26/2026, 9:45:22 AM: 13.4s (2295 tests)
+   → 1/27/2026, 10:48:30 PM: 13.2s (2292 tests)
 
-- Packages without Bun-specific APIs (`@km/tree`, `@km/board`)
-- Already using Vitest - no changes needed
+============================================================
+```
 
-**Phase 2: Migrate storage package** ✅
+### Interpreting Results
 
-- `@km/storage` (uses `bun:sqlite` extensively)
-- Updated test files to use Vitest syntax
-- Verified `bun:sqlite` works with `bunx --bun vitest`
+**Regression Warnings:**
+- 🟡 Yellow (>5% slower): Minor slowdown, investigate if consistent
+- 🔴 Red (>10% slower): Significant regression, investigate immediately
 
-**Phase 3: Update test scripts** ✅
+**Slow File Candidates:**
+- Files taking >1s should be moved to `.slow.test.ts`
+- Rename: `foo.test.ts` → `foo.slow.test.ts`
+- Update imports if needed
 
-- Unified `scripts/test-all.ts` to use single Vitest runner
-- Removed Bun Test producer from orchestrator
-- Updated all package.json scripts
+**Historical Trends:**
+- Look for consistent slowdowns over multiple runs
+- Correlate with recent changes
+- Use `git bisect` to find problematic commits
 
-**Phase 4: Update configuration** ✅
+### Manual Performance Analysis
 
-- Consolidated `vitest.config.ts` for all packages
-- Removed per-package test configuration
-- Centralized test patterns in `test-patterns.ts`
+View detailed timing in HTML UI:
 
-**Phase 5: Documentation** (This document)
+```bash
+bun run test:fast
+npx vite preview --outDir test-results
+```
 
-### Benefits Achieved
+Navigate to slowest files and inspect per-test timing.
 
-| Before (Hybrid)        | After (All-Vitest)    |
-| ---------------------- | --------------------- |
-| 2 test runners         | 1 test runner         |
-| JUnit → TAP conversion | Native TAP streaming  |
-| Different syntaxes     | Consistent Vitest API |
-| Per-package configs    | Centralized config    |
-| Slow test feedback     | Real-time streaming   |
+---
+
+## Benchmarking
+
+For measuring system performance (not test performance), use benchmarks.
+
+### Running Benchmarks
+
+```bash
+# Run all benchmarks
+bun run bench
+
+# Create baseline for comparison
+bun run bench:baseline
+
+# Compare against baseline
+bun run bench:compare
+```
+
+### Benchmark Files
+
+Benchmarks are located in `benchmarks/`:
+
+- `layout.bench.ts` - Flexx layout computation performance
+- `parser.bench.ts` - Markdown parsing/serialization
+
+### Writing Benchmarks
+
+Use Vitest's `bench()` API:
+
+```typescript
+import { bench, describe, beforeAll } from "vitest"
+
+describe("Parser Performance", () => {
+  let largeDoc: string
+
+  beforeAll(() => {
+    largeDoc = generateLargeDocument(1000) // 1000 items
+  })
+
+  bench("parse large document", () => {
+    parseMarkdown(largeDoc)
+  })
+})
+```
+
+### Benchmark Output
+
+```
+ BENCH  Summary
+
+  Parse flat list (100 items)
+    15,330 ops/sec
+    ± 1.22%
+    65.2 μs/op
+
+  Parse large document (1000 items)
+    1,523 ops/sec
+    ± 2.15%
+    656.8 μs/op
+```
+
+**Note:** You may see "NaNx faster than" in comparisons - this occurs when benchmarks run extremely fast (sub-microsecond). The actual timing data (Hz, mean) is still valid and useful.
+
+### Baseline Comparison
+
+After establishing a baseline:
+
+```bash
+bun run bench:compare
+```
+
+Output shows performance relative to baseline:
+
+```
+  Parse flat list (100 items)
+    1.05x faster than baseline
+
+  Parse large document (1000 items)
+    0.92x slower than baseline (⚠️ 8% regression)
+```
+
+---
+
+## Test Modes
+
+The storage layer supports three test modes via `TEST_MODE` environment variable.
+
+### `standard` (Default)
+
+- **Database**: `:memory:` (in-memory SQLite)
+- **Filesystem**: `/tmp` directory
+- **Use case**: Fast iteration, good fidelity
+- **Speed**: ⚡⚡⚡
+
+```bash
+bun run test:fast
+# or explicitly:
+TEST_MODE=standard bun run test:fast
+```
+
+### `mock`
+
+- **Database**: `:memory:` (in-memory SQLite)
+- **Filesystem**: `/tmp` directory
+- **Watcher tests**: Skipped
+- **Use case**: When you want to skip slow integration tests
+- **Speed**: ⚡⚡⚡
+
+```bash
+TEST_MODE=mock bun run test:fast
+```
+
+### `real`
+
+- **Database**: Disk-based (`/tmp/.km/state.db`)
+- **Filesystem**: `/tmp` directory
+- **Use case**: Debugging disk-specific issues, CI
+- **Speed**: ⚡⚡
+
+```bash
+TEST_MODE=real bun run test:all
+```
+
+### Test Mode Philosophy
+
+**"If fake didn't fail but real failed, update fake to make it more realistic"**
+
+- `standard` mode should catch 99% of bugs
+- `real` mode catches disk I/O, file descriptor, concurrency edge cases
+- If `real` mode finds a bug, add a test that catches it in `standard` mode
 
 ---
 
 ## Implementation Details
 
-### Vitest Configuration
+### Test Configuration
 
-**File**: `vitest.config.ts` (workspace root)
+`vitest.config.ts`:
 
 ```typescript
 export default defineConfig({
   test: {
-    // All packages now use Vitest (migration complete)
-    include: [
-      "packages/*/tests/**/*.test.ts",
-      "packages/*/tests/**/*.spec.ts",
-      "packages/*/tests/**/*.test.md",
-      "apps/*/tests/**/*.test.ts",
-      "apps/*/tests/**/*.spec.ts",
-      "apps/*/tests/**/*.test.md",
-      "apps/*/tests/**/*.test.tsx",
-    ],
-    exclude: ["**/node_modules/**", "**/dist/**"],
+    // Test files
+    include: ["**/*.{test,spec}.{ts,tsx,md}"],
+    exclude: ["**/node_modules/**", "**/dist/**", "**/vendor/**"],
 
-    // Multiple reporters for CI integration
-    reporters: ["tap", "html", "junit"],
+    // Benchmark configuration
+    benchmark: {
+      include: ["**/*.bench.{ts,tsx}"],
+    },
+
+    // Parallel execution
+    maxWorkers: Math.max(availableParallelism() - 1, 1),
+    fileParallelism: true,
+
+    // Reporters
+    reporters: ["html", "junit"],
     outputFile: {
       html: "./test-results/vitest-report.html",
       junit: "./test-results/junit.xml",
-    },
-
-    // Package aliases for imports
-    alias: {
-      "@km/core": "./packages/km-core/src/index.ts",
-      "@km/tree": "./packages/km-tree/src/index.ts",
-      "@km/storage": "./packages/km-storage/src/index.ts",
-      "@km/board": "./packages/km-board/src/index.ts",
-      "@beorn/tap": "./vendor/beorn-tap/src/index.ts",
     },
   },
 })
 ```
 
-**Key points**:
+### Package.json Scripts
 
-- Single config for entire workspace
-- Discovers tests in all packages and apps
-- Supports `.test.md` via mdtest loader
-- Multiple reporters (TAP, HTML, JUnit) for CI integration
-- Package aliases resolve to source files (not built)
-
-### Test Pattern Discovery
-
-**File**: `scripts/test-patterns.ts`
-
-Centralized source of truth for test file patterns. Used by:
-
-- `scripts/run-tests.ts` (single test type)
-- `scripts/test-all.ts` (unified TAP output)
-- `scripts/test-all-tui.ts` (parallel TUI)
-
-**Pattern matching**:
-
-- Fast tests: Include `.test.ts` and `.spec.ts`, exclude `.slow.test.ts`
-- Slow tests: Only `.slow.test.ts`
-- Mdtest: Only `.test.md`
-
-### TAP Producer
-
-**File**: `vendor/beorn-tap/src/producers/vitest.ts`
-
-```typescript
-export function runVitestTap(options: VitestTapOptions = {}): VitestTapResult {
-  const args = ["vitest", "run", "--reporter=tap", ...(options.args ?? [])]
-
-  const proc = spawn(["bunx", "--bun", ...args], {
-    cwd: options.cwd,
-    stdout: "pipe", // Stream TAP output
-    stderr: "inherit", // Show Vitest errors
-  })
-
-  return {
-    stdout: proc.stdout, // Readable stream
-    proc, // Subprocess handle
-    exited: proc.exited, // Promise<number> for exit code
-  }
+```json
+{
+  "test:fast": "NO_COLOR=1 bunx --bun vitest run --reporter=dot --exclude='**/*.slow.*'",
+  "test:slow": "NO_COLOR=1 bunx --bun vitest run --reporter=dot -- '**/*.slow.{test,spec}.{ts,tsx,md}'",
+  "test:all": "NO_COLOR=1 bunx --bun vitest run --reporter=dot",
+  "test:fast:html": "NO_COLOR=1 bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit --exclude='**/*.slow.*' && bun infra/test-perf/track.ts",
+  "test:all:html": "NO_COLOR=1 bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit && bun infra/test-perf/track.ts",
+  "bench": "bunx --bun vitest bench",
+  "bench:baseline": "bunx --bun vitest bench --outputJson benchmarks/baseline.json",
+  "bench:compare": "bunx --bun vitest bench --compare benchmarks/baseline.json"
 }
 ```
 
-**How it works**:
+### File Organization
 
-1. `bunx` resolves to installed `vitest` package
-2. `--bun` forces Bun runtime (enables `bun:sqlite`)
-3. `--reporter=tap` streams TAP format to stdout
-4. `proc.stdout` is piped to TAP consumer
-5. `proc.exited` resolves with exit code
-
-### TAP Consumer
-
-**File**: `vendor/beorn-tap/src/consumer.ts`
-
-Parses TAP stream and displays results:
-
-- `.` = test passed (green)
-- `F` = test failed (red)
-- `S` = test skipped (yellow)
-- Summary: `517 tests, 1 failed, 516 passed`
-
-**Usage** (`scripts/run-tests.ts`):
-
-```typescript
-const { stdout, exited } = runVitestTap({ args: files })
-const consumer = createConsumer({ dots: true, output: process.stdout })
-
-// Stream TAP output through consumer
-for await (const chunk of stdout) {
-  const text = new TextDecoder().decode(chunk)
-  consumer.write(text)
-}
-
-consumer.end()
-const results = consumer.getResults()
-process.exit(results.failed > 0 ? 1 : await exited)
+```
+km/
+├── packages/*/tests/          # Package tests
+│   ├── *.test.ts             # Fast unit/integration tests
+│   ├── *.slow.test.ts        # Slow integration tests
+│   └── *.test.md             # Markdown executable tests
+├── apps/*/tests/              # App tests (same structure)
+├── benchmarks/                # System benchmarks
+│   ├── layout.bench.ts
+│   ├── parser.bench.ts
+│   ├── queries.bench.ts
+│   ├── sync.bench.ts
+│   └── baseline.json          # Baseline for comparisons
+├── infra/test-perf/           # Performance tracking tool
+│   └── track.ts
+├── test-results/              # Generated test outputs
+│   ├── vitest-report.html    # HTML UI
+│   ├── html.meta.json.gz     # Vitest metadata
+│   └── junit.xml             # JUnit XML
+└── .test-results/             # Performance history
+    └── test-perf-history.jsonl
 ```
 
-### Test Infrastructure Helpers
+### Test Quality Enforcement
 
-**In-memory database** (`@km/storage`):
-
-- Default: `:memory:` SQLite (10-100x faster than disk)
-- Exception: Worker thread tests (need disk for sharing)
-- Environment: Isolated `/tmp/kmtest-{ulid}/` directories
-
-**Test fixtures**:
-
-- `withTestEnv()` - Provides isolated `{ db, repo, repoDir, kmDir }`
-- `createFakeRepo()` - In-memory repo without real database
-- Tree builders - `item()` creates nested hierarchy for TUI tests
-
-**Example** (using in-memory database):
+`tests/vitest-setup.ts` enforces test quality:
 
 ```typescript
-test("creates node", async () => {
-  await withTestEnv(async ({ db, repo, repoDir }) => {
-    // Fresh :memory: database with schema
-    // Isolated /tmp/kmtest-abc123/ directory
-    const taskId = createTask(db, "Test task")
-    expect(getNode(taskId)).toBeDefined()
+// Fail tests on any console output
+beforeEach(() => {
+  vi.spyOn(console, "log").mockImplementation(() => {
+    throw new Error("console.log() in test - use expect() instead")
   })
-  // Auto cleanup: db closed, temp dir removed
 })
 ```
 
----
-
-## Future Improvements
-
-### Native Bun TAP Support
-
-**Status**: In progress - Bun PR [#23366](https://github.com/oven-sh/bun/pull/23366)
-
-**What it adds**: Native `--reporter=tap` flag to Bun Test.
-
-**Why it matters**:
-
-- Current workaround requires JUnit → TAP conversion
-- Native TAP would enable streaming without conversion
-- Maintains compatibility with existing Bun-specific tests
-
-**Impact on km**:
-
-- Currently using all-Vitest approach (no change needed)
-- Native Bun TAP would provide alternative if Vitest issues arise
-- Having both options increases resilience
-
-### Potential Optimizations
-
-**Parallel test execution**:
-
-- Vitest supports `--threads` flag for parallel execution
-- Could reduce `test:fast` time from 11s to ~5s
-- Requires investigation of test isolation
-
-**Incremental testing**:
-
-- Only run tests affected by changed files
-- Vitest supports this via `--changed` flag
-- Requires proper git integration
-
-**Test result caching**:
-
-- Cache results for unchanged files
-- Skip tests that previously passed
-- Vitest supports via `--cache-dir` and `--no-cache`
-
-### Documentation Gaps
-
-**Topics to expand**:
-
-- Worker thread testing patterns
-- Chaos testing scenarios
-- Performance benchmarking
-- CI/CD integration examples
-- Debugging test failures
+This ensures tests are:
+- Silent (no console pollution)
+- Deterministic (no debug output)
+- Focused (explicit assertions)
 
 ---
 
-## Summary
+## Further Reading
 
-The km test system achieves **simplicity through unification**:
-
-1. **One test runner**: Vitest via `bunx --bun vitest`
-2. **One runtime**: Bun (supports `bun:sqlite` and other APIs)
-3. **One streaming format**: TAP (real-time feedback)
-4. **One configuration**: `vitest.config.ts` for entire workspace
-5. **One set of patterns**: `test-patterns.ts` for test discovery
-
-**Developer workflow**:
-
-- Iterate: `bun run test:fast` (~11s)
-- Before commit: `bun run test:all` (~45s)
-- Visual progress: `bun run test:all:tui` (parallel TUI)
-
-**Key innovation**: Using `bunx --bun vitest` unlocks Vitest's mature framework while maintaining full access to Bun's native APIs. This eliminates the need for a hybrid test system and provides consistent, fast, streaming test feedback.
-
-For detailed testing practices, see [testing.md](testing.md).
+- [Test Performance Guide](../testing/test-performance.md) - Optimizing test suite speed
+- [Benchmarking Guide](../testing/benchmarking.md) - Writing and running benchmarks
+- [Vitest Configuration](../testing/vitest-ci-integration.md) - CI integration details
+- [Markdown Tests](../../vendor/beorn-mdtest/README.md) - Writing executable markdown tests

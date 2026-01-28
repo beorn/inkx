@@ -13,14 +13,21 @@ allowed-tools: Bash, Read, Glob, Grep, Task
 ### Coding Iteration (every change)
 
 ```bash
-bun run test:fast          # ~11s - run after each change
+bun run test:fast          # ~13s - run after each change
 ```
 
 ### Before Commit
 
 ```bash
 bun fix                    # Lint + format (must pass)
-bun run test:all           # Full suite (must pass)
+bun run test:all           # Full suite (must pass) ~45s
+```
+
+### Performance Analysis
+
+```bash
+bun run test:fast:html     # Fast tests + HTML report + perf tracking
+bun run test:all:html      # All tests + HTML report + perf tracking
 ```
 
 ### Working on Specific Areas
@@ -44,11 +51,22 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ## Test Commands
 
-| Command     | What it runs                                                  |
-| ----------- | ------------------------------------------------------------- |
-| `test:fast` | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) |
-| `test:slow` | `*.slow.{test,spec}.{ts,tsx}` only                            |
-| `test:all`  | All tests (via Vitest)                                        |
+| Command              | What it runs                                                  | Notes                 |
+| -------------------- | ------------------------------------------------------------- | --------------------- |
+| `test:fast`          | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) | Fast feedback         |
+| `test:slow`          | `*.slow.{test,spec}.{ts,tsx}` only                            | Integration tests     |
+| `test:all`           | All tests (via Vitest)                                        | Before commit         |
+| `test:fast:html`     | Fast tests + HTML report + performance tracking               | Performance analysis  |
+| `test:all:html`      | All tests + HTML report + performance tracking                | Full analysis         |
+| `test:fast:serial`   | Fast tests without parallelization                            | Accurate timing       |
+
+## Benchmark Commands
+
+| Command           | What it does                           | Use case              |
+| ----------------- | -------------------------------------- | --------------------- |
+| `bench`           | Run all benchmarks                     | Measure performance   |
+| `bench:baseline`  | Create baseline for comparison         | After optimization    |
+| `bench:compare`   | Compare against baseline               | Detect regressions    |
 
 ---
 
@@ -76,6 +94,34 @@ Controls test infrastructure via environment variable.
 | `real`    | Disk     | CI, releases, debugging disk issues |
 
 Example: `TEST_MODE=mock bun run test:fast`
+
+---
+
+## Performance Tracking
+
+Use `:html` commands for performance tracking and HTML reports:
+
+```
+============================================================
+📊 Test Performance Summary
+============================================================
+
+⏱️  Total: 13.2s (2292 tests, 107 files)
+   Avg per test: 5.8ms
+   📉 2.1% faster than previous run
+
+🐌 Slowest Files (top 5):
+   1. packages/km-storage/tests/repo.test.ts
+      2.1s (45 tests)
+
+⚠️  2 file(s) taking >1000ms should be .slow.test.ts:
+   - packages/km-storage/tests/repo.test.ts (2.1s)
+```
+
+**What to do:**
+- Files >1s should be moved to `.slow.test.ts`
+- >10% regression: investigate immediately
+- View HTML UI: `npx vite preview --outDir test-results`
 
 ---
 
