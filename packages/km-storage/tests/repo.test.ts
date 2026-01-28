@@ -75,7 +75,7 @@ describe("createTestRepo", () => {
   test("throws on sync (bare repo)", async () => {
     using repo = createTestRepo()
 
-    expect(repo.sync()).rejects.toThrow("bare repo")
+    await expect(repo.sync()).rejects.toThrow("bare repo")
   })
 
   test("throws on watch (bare repo)", () => {
