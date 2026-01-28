@@ -4,4 +4,4 @@
 # NOTE: Use 'bun run test:fast' or 'bun run test:all' instead of bare 'bun test'
 #       to avoid running archived tests
 timeout = 120000
-preload = ["./tests/fail-on-console.ts"]
+preload = ["./infra/bun-test-setup.ts"]
