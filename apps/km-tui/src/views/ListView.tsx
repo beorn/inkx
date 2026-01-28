@@ -150,15 +150,20 @@ export function ListView({
             const isSelected = colIndex === cIdx
 
             return (
-              <MemoizedColumnHeader
+              <Box
                 key={`header-${item.column.node.id}`}
-                column={item.column}
-                colIdx={cIdx}
-                isSelected={isSelected}
-                isColSelected={isColSelected}
-                width={width}
-                showTopSpacer={cIdx > 0}
-              />
+                position="sticky"
+                stickyTop={0}
+              >
+                <MemoizedColumnHeader
+                  column={item.column}
+                  colIdx={cIdx}
+                  isSelected={isSelected}
+                  isColSelected={isColSelected}
+                  width={width}
+                  showTopSpacer={cIdx > 0}
+                />
+              </Box>
             )
           }
 
