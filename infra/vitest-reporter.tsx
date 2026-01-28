@@ -142,23 +142,35 @@ function plainTextRow(
   labelWidth: number = 20,
 ): string {
   const effectiveLabelWidth = labelWidth - indent.length
-  const label = name.length > effectiveLabelWidth - 1 ? name.slice(0, effectiveLabelWidth - 2) + "…" : name
+  const label =
+    name.length > effectiveLabelWidth - 1
+      ? name.slice(0, effectiveLabelWidth - 2) + "…"
+      : name
 
-  const visibleDots = testIds.slice(0, maxDots)
-  const truncated = testIds.length > maxDots
+  // Generate all dots
+  const allDots = testIds.map((id) =>
+    plainTextDot(
+      testStates.get(id) ?? "pending",
+      testDurations.get(id) ?? 0,
+      noisyTestIds.has(id),
+      threshold,
+    ),
+  )
 
-  const dots = visibleDots
-    .map((id) =>
-      plainTextDot(
-        testStates.get(id) ?? "pending",
-        testDurations.get(id) ?? 0,
-        noisyTestIds.has(id),
-        threshold,
-      ),
-    )
-    .join("")
+  // Split dots into lines that fit within maxDots
+  const lines: string[] = []
+  for (let i = 0; i < allDots.length; i += maxDots) {
+    lines.push(allDots.slice(i, i + maxDots).join(""))
+  }
 
-  return `${indent}${chalk.dim(label.padEnd(effectiveLabelWidth))}${dots}${truncated ? "…" : ""}\n`
+  // Build output: first line has label, subsequent lines are indented to align
+  const labelPadding = " ".repeat(effectiveLabelWidth)
+  let result = `${indent}${chalk.dim(label.padEnd(effectiveLabelWidth))}${lines[0] ?? ""}\n`
+  for (let i = 1; i < lines.length; i++) {
+    result += `${indent}${labelPadding}${lines[i]}\n`
+  }
+
+  return result
 }
 
 function plainTextConsolidatedRow(
@@ -169,21 +181,23 @@ function plainTextConsolidatedRow(
   threshold: number,
   maxDots: number,
 ): string {
-  const visibleDots = testIds.slice(0, maxDots)
-  const truncated = testIds.length > maxDots
+  // Generate all dots
+  const allDots = testIds.map((id) =>
+    plainTextDot(
+      testStates.get(id) ?? "pending",
+      testDurations.get(id) ?? 0,
+      noisyTestIds.has(id),
+      threshold,
+    ),
+  )
 
-  const dots = visibleDots
-    .map((id) =>
-      plainTextDot(
-        testStates.get(id) ?? "pending",
-        testDurations.get(id) ?? 0,
-        noisyTestIds.has(id),
-        threshold,
-      ),
-    )
-    .join("")
+  // Split dots into lines that fit within maxDots
+  const lines: string[] = []
+  for (let i = 0; i < allDots.length; i += maxDots) {
+    lines.push(allDots.slice(i, i + maxDots).join(""))
+  }
 
-  return `${dots}${truncated ? "…" : ""}\n`
+  return lines.join("\n") + "\n"
 }
 
 function plainTextPackageHeader(name: string): string {
@@ -200,14 +214,13 @@ function plainTextSummary(
 ): string {
   let result = "\n"
 
+  // Single line: Test Files + Duration
   result += chalk.dim("Test Files") + "  "
   if (failed > 0) result += chalk.bold.red(`${failed} failed`) + chalk.dim(" | ")
   if (passed > 0) result += chalk.bold.green(`${passed} passed`)
   if (skipped > 0) result += chalk.dim(" | ") + chalk.yellow(`${skipped} skipped`)
-  result += chalk.gray(` (${total})`) + "\n"
-
-  result += chalk.dim("  Duration") + "  "
-  result += formatDuration(elapsed)
+  result += chalk.gray(` (${total})`)
+  result += "  " + chalk.dim("Duration") + " " + formatDuration(elapsed)
   result += chalk.gray(` (tests ${formatDuration(testDuration)})`) + "\n"
 
   return result
@@ -242,7 +255,7 @@ function plainTextSlowestList(tests: SlowestTest[], threshold: number): string {
 
   let result = "\n" + chalk.bold(`SLOW TESTS`) + chalk.dim(` (>${threshold}ms)`) + "\n"
   for (const t of tests) {
-    result += `   ${chalk.yellow(formatDuration(t.duration).padStart(8))}  ${chalk.gray(t.file + " >")} ${t.name}\n`
+    result += `${chalk.yellow(formatDuration(t.duration).padStart(6))}  ${chalk.gray(t.file + " >")} ${t.name}\n`
   }
 
   return result
