@@ -45,7 +45,6 @@
   },
   "dependencies": {
     "commander": "^14.0.1",
-    "glob": "^11.0.0",
     "tap-parser": "^18.3.0"
   }
 }
