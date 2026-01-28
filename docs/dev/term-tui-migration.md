@@ -7,30 +7,30 @@
 
 **Key constraint:** NO cross-dependencies between term/tui and inkx/chalkx.
 
-| Package | Purpose | Dependencies |
-|---------|---------|--------------|
-| @beorn/term | Terminal detection, styling, patchConsole | Standalone |
-| @beorn/tui | React TUI rendering | Standalone (own impl) |
-| inkx | React TUI (existing) | Separate package |
-| chalkx | ANSI utilities (existing) | Separate package |
+| Package     | Purpose                                   | Dependencies          |
+| ----------- | ----------------------------------------- | --------------------- |
+| @beorn/term | Terminal detection, styling, patchConsole | Standalone            |
+| @beorn/tui  | React TUI rendering                       | Standalone (own impl) |
+| inkx        | React TUI (existing)                      | Separate package      |
+| chalkx      | ANSI utilities (existing)                 | Separate package      |
 
 ## Phase 1: term Package (Standalone)
 
 ### chalkx Features to Migrate
 
-| Feature | File | Status | Notes |
-|---------|------|--------|-------|
-| Extended underlines (curly, dotted, dashed, double) | underline.ts | **DONE** | In term/utils.ts |
-| Underline color (underlineColor, styledUnderline) | underline.ts | **DONE** | In term/utils.ts |
-| Hyperlinks (OSC 8) | hyperlink.ts | **DONE** | In term/utils.ts |
-| stripAnsi, displayLength | utils.ts | **DONE** | In term/utils.ts |
-| Extended underline detection | detection.ts | **DONE** | In term/detection.ts |
-| setExtendedUnderlineSupport | detection.ts | TODO | Export from term (for testing) |
-| resetDetectionCache | detection.ts | TODO | Export from term (for testing) |
-| bgOverride, BG_OVERRIDE_CODE | index.ts | TODO | Move to tui (inkx-specific) |
-| UNDERLINE_CODES constants | constants.ts | SKIP | Internal in term (not exported) |
-| chalkX convenience object | index.ts | SKIP | Not needed - term has flattened styling |
-| storybook.ts | storybook.ts | TODO | Port to term (useful for demos) |
+| Feature                                             | File         | Status   | Notes                                   |
+| --------------------------------------------------- | ------------ | -------- | --------------------------------------- |
+| Extended underlines (curly, dotted, dashed, double) | underline.ts | **DONE** | In term/utils.ts                        |
+| Underline color (underlineColor, styledUnderline)   | underline.ts | **DONE** | In term/utils.ts                        |
+| Hyperlinks (OSC 8)                                  | hyperlink.ts | **DONE** | In term/utils.ts                        |
+| stripAnsi, displayLength                            | utils.ts     | **DONE** | In term/utils.ts                        |
+| Extended underline detection                        | detection.ts | **DONE** | In term/detection.ts                    |
+| setExtendedUnderlineSupport                         | detection.ts | TODO     | Export from term (for testing)          |
+| resetDetectionCache                                 | detection.ts | TODO     | Export from term (for testing)          |
+| bgOverride, BG_OVERRIDE_CODE                        | index.ts     | TODO     | Move to tui (inkx-specific)             |
+| UNDERLINE_CODES constants                           | constants.ts | SKIP     | Internal in term (not exported)         |
+| chalkX convenience object                           | index.ts     | SKIP     | Not needed - term has flattened styling |
+| storybook.ts                                        | storybook.ts | TODO     | Port to term (useful for demos)         |
 
 ### chalkx Consumers in km
 
@@ -48,14 +48,14 @@ tui currently wraps inkx, causing module resolution issues (km-infra-tui-inkx-mo
 
 ### tui Should Have (Own Implementation)
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| render/renderSync | TODO | Own React reconciler |
-| renderString | HAS | Static render |
-| TermContext + useTerm | HAS | Term integration |
-| useConsole | HAS | Console subscription |
-| Console component | HAS | Render captured output |
-| Box, Text components | TODO | Basic components |
+| Feature               | Status | Notes                  |
+| --------------------- | ------ | ---------------------- |
+| render/renderSync     | TODO   | Own React reconciler   |
+| renderString          | HAS    | Static render          |
+| TermContext + useTerm | HAS    | Term integration       |
+| useConsole            | HAS    | Console subscription   |
+| Console component     | HAS    | Render captured output |
+| Box, Text components  | TODO   | Basic components       |
 
 ### inkx Stays Separate
 
@@ -72,12 +72,14 @@ inkx remains as-is for apps/km-tui. No migration needed - km-tui continues using
 **Uses @beorn/term for styling** - correct approach.
 
 Currently also uses @beorn/tui for components (Box, Text, useTerm), but this creates the module resolution issue. Options:
+
 1. Use inkx directly for components
 2. Wait for tui to have own implementation (km-term-2.5)
 
 ### chalkx Usage
 
 A few files use chalkx for extended underlines:
+
 - apps/km-tui/src/text/rich.ts
 - apps/km-tui/src/text/index.ts
 - apps/km-tui/src/views/CardColumn.tsx
@@ -89,12 +91,14 @@ These could migrate to @beorn/term which has the same features.
 ### Package Consolidation (Maybe Later)
 
 If we decide to reduce the number of packages:
+
 - chalkx features are mostly in term already
 - inkx could be deprecated if tui gets full implementation
 
 ### Naming
 
 Current names are fine:
+
 - @beorn/term - terminal primitives
 - @beorn/tui - React TUI (lightweight)
 - inkx - full React TUI framework

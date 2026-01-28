@@ -26,6 +26,7 @@ echo 'import { createTerm } from "@beorn/chalkx"' | bun run -
 **Symlink behavior**: Bun only creates symlinks in a package's `node_modules` when that package explicitly depends on another workspace package via `workspace:*`.
 
 Example: `apps/km-cli/package.json` has:
+
 ```json
 {
   "dependencies": {
@@ -44,6 +45,7 @@ But root `node_modules/@beorn/chalkx` does NOT exist because the root `package.j
 **How it resolves**: Standard Node.js module resolution - looks in `node_modules`. With `moduleResolution: "bundler"`, it defers to the bundler but still needs to find types.
 
 **Current solution**: `tsconfig.json` has explicit `paths`:
+
 ```json
 {
   "compilerOptions": {
@@ -56,6 +58,7 @@ But root `node_modules/@beorn/chalkx` does NOT exist because the root `package.j
 ```
 
 **Without paths**: TypeScript fails:
+
 ```
 error TS2307: Cannot find module '@beorn/chalkx' or its corresponding type declarations.
 ```
@@ -65,6 +68,7 @@ error TS2307: Cannot find module '@beorn/chalkx' or its corresponding type decla
 **How it resolves**: Vite has its own module resolution, independent of Bun. Even with `bunx --bun vitest`, Vite's resolver doesn't use Bun's workspace knowledge.
 
 **Current solution**: `vite-tsconfig-paths` plugin reads `tsconfig.json` paths and tells Vite how to resolve:
+
 ```typescript
 import tsconfigPaths from "vite-tsconfig-paths"
 
@@ -79,12 +83,12 @@ export default defineConfig({
 
 ## Resolution Matrix
 
-| Tool | Mechanism | Current Solution | Native Alternative |
-|------|-----------|------------------|-------------------|
-| Bun runtime | Internal workspace resolution | Just works | N/A |
-| TypeScript | node_modules lookup | tsconfig `paths` | Symlinks in node_modules |
-| Vite/Vitest | Vite's resolver | `vite-tsconfig-paths` | Symlinks in node_modules |
-| Knip | Reads workspaces from package.json | Explicit workspace entries | Auto-discovery |
+| Tool        | Mechanism                          | Current Solution           | Native Alternative       |
+| ----------- | ---------------------------------- | -------------------------- | ------------------------ |
+| Bun runtime | Internal workspace resolution      | Just works                 | N/A                      |
+| TypeScript  | node_modules lookup                | tsconfig `paths`           | Symlinks in node_modules |
+| Vite/Vitest | Vite's resolver                    | `vite-tsconfig-paths`      | Symlinks in node_modules |
+| Knip        | Reads workspaces from package.json | Explicit workspace entries | Auto-discovery           |
 
 ---
 
@@ -107,6 +111,7 @@ Add workspace packages as devDependencies in root `package.json`:
 ```
 
 Then `bun install` creates symlinks:
+
 - `node_modules/@beorn/chalkx` → `vendor/beorn-chalkx`
 - `node_modules/inkx` → `vendor/beorn-inkx`
 
@@ -120,12 +125,12 @@ Create symlinks manually in a postinstall script. More complex, less idiomatic.
 
 ## Package Naming
 
-| Folder | Package Name | Import As |
-|--------|--------------|-----------|
-| `vendor/beorn-chalkx` | `@beorn/chalkx` | `@beorn/chalkx` |
-| `vendor/beorn-inkx` | `inkx` | `inkx` |
+| Folder                 | Package Name     | Import As        |
+| ---------------------- | ---------------- | ---------------- |
+| `vendor/beorn-chalkx`  | `@beorn/chalkx`  | `@beorn/chalkx`  |
+| `vendor/beorn-inkx`    | `inkx`           | `inkx`           |
 | `vendor/beorn-inkx-ui` | `@beorn/inkx-ui` | `@beorn/inkx-ui` |
-| `packages/km-core` | `@km/core` | `@km/core` |
+| `packages/km-core`     | `@km/core`       | `@km/core`       |
 
 Note: Folder name doesn't have to match package name. The `name` field in `package.json` is what matters.
 
@@ -164,6 +169,7 @@ import { foo } from "@beorn/mdtest"
 ### Duplicate resolution config
 
 If using native resolution (symlinks), do NOT also have:
+
 - `paths` in tsconfig.json
 - `vite-tsconfig-paths` plugin
 

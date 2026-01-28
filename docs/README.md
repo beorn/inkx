@@ -64,14 +64,15 @@ km init                    # Enable persistence (stable IDs, history)
 
 ### Reference
 
-| Doc                                                                            | Description                              |
-| ------------------------------------------------------------------------------ | ---------------------------------------- |
-| [ref/ui.md](ref/ui.md)                                                         | Views, navigation, design                |
-| [ref/commands.md](ref/commands.md)                                             | Command system, keybindings              |
-| [ref/query.md](ref/query.md)                                                   | Query language                           |
-| [ref/markdown.md](ref/markdown.md)                                             | Markdown parsing                         |
-| [ref/pipelines.md](ref/pipelines.md)                                           | Async generator pipelines (complete)     |
-| [ref/prior-art.md](ref/prior-art.md)                                           | Research notes                           |
+| Doc                                  | Description                          |
+| ------------------------------------ | ------------------------------------ |
+| [ref/ui.md](ref/ui.md)               | Views, navigation, design            |
+| [ref/commands.md](ref/commands.md)   | Command system, keybindings          |
+| [ref/query.md](ref/query.md)         | Query language                       |
+| [ref/markdown.md](ref/markdown.md)   | Markdown parsing                     |
+| [ref/pipelines.md](ref/pipelines.md) | Async generator pipelines (complete) |
+| [ref/prior-art.md](ref/prior-art.md) | Research notes                       |
+
 ### Lessons
 
 | Doc                                                        | Description                              |

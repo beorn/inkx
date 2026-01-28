@@ -21,7 +21,14 @@
  */
 
 import fs from "node:fs"
-import type { Reporter, TestCase, TestModule, TestSpecification, TestSuite, Vitest } from "vitest/node"
+import type {
+  Reporter,
+  TestCase,
+  TestModule,
+  TestSpecification,
+  TestSuite,
+  Vitest,
+} from "vitest/node"
 import { createTerm, type Term } from "inkx"
 // import { renderString } from "inkx"
 import Debug from "debug"
@@ -58,7 +65,12 @@ interface TestTiming {
   state: "passed" | "failed" | "skipped"
 }
 
-type GroupingMode = "auto" | "consolidated" | "files-only" | "packages-only" | "packages+files"
+type GroupingMode =
+  | "auto"
+  | "consolidated"
+  | "files-only"
+  | "packages-only"
+  | "packages+files"
 
 interface ReporterOptions {
   slowThreshold?: number
@@ -275,12 +287,19 @@ function plainTextSummary(
   return result
 }
 
-function plainTextStatsTable(term: Term, categories: string[], categoryStats: Map<string, CategoryStats>): string {
+function plainTextStatsTable(
+  term: Term,
+  categories: string[],
+  categoryStats: Map<string, CategoryStats>,
+): string {
   if (categories.length <= 1) return ""
 
   const nameWidth = Math.max(...categories.map((c) => c.length), 12)
   // Single header line with bold column names
-  let result = "\n" + term.bold(`${"PACKAGE".padEnd(nameWidth)}  TESTS     TIME   SLOW`) + "\n"
+  let result =
+    "\n" +
+    term.bold(`${"PACKAGE".padEnd(nameWidth)}  TESTS     TIME   SLOW`) +
+    "\n"
 
   for (const category of categories) {
     const stats = categoryStats.get(category)
@@ -290,7 +309,8 @@ function plainTextStatsTable(term: Term, categories: string[], categoryStats: Ma
     const name = category.padEnd(nameWidth)
     const tests = testCount.toString().padStart(5)
     const time = formatDuration(stats.duration).padStart(8)
-    const slow = stats.slowCount > 0 ? stats.slowCount.toString().padStart(6) : "     -"
+    const slow =
+      stats.slowCount > 0 ? stats.slowCount.toString().padStart(6) : "     -"
 
     const nameText = stats.failed > 0 ? term.red(name) : term.dim(name)
     result += `${nameText}  ${tests}  ${time}  ${slow}\n`
@@ -299,7 +319,11 @@ function plainTextStatsTable(term: Term, categories: string[], categoryStats: Ma
   return result
 }
 
-function plainTextSlowestList(term: Term, tests: SlowestTest[], baseThreshold: number): string {
+function plainTextSlowestList(
+  term: Term,
+  tests: SlowestTest[],
+  baseThreshold: number,
+): string {
   if (tests.length === 0) return ""
 
   // Build legend showing the slow tiers (all green, increasing size/brightness)
@@ -377,7 +401,10 @@ export class KmReporter implements Reporter {
   private skipped = 0
   private startTime = 0
 
-  private testStates = new Map<string, "pending" | "passed" | "failed" | "skipped">()
+  private testStates = new Map<
+    string,
+    "pending" | "passed" | "failed" | "skipped"
+  >()
   private testOrder: string[] = []
   private finishedTests = new Set<string>()
   private runningTests = new Set<string>()
@@ -400,7 +427,12 @@ export class KmReporter implements Reporter {
     if (process.env.VITEST_REPORTER_TTY === "true") return true
 
     // CI environments → non-TTY (plain text output)
-    if (process.env.CI || process.env.GITHUB_ACTIONS || process.env.GITLAB_CI || process.env.JENKINS_URL) {
+    if (
+      process.env.CI ||
+      process.env.GITHUB_ACTIONS ||
+      process.env.GITLAB_CI ||
+      process.env.JENKINS_URL
+    ) {
       return false
     }
 
@@ -521,9 +553,15 @@ export class KmReporter implements Reporter {
     }
 
     // Helper: find next file to break out, returns [category, fileName] or null
-    const findNextBreakout = (onlyOverflowing: boolean): [string, string] | null => {
-      const candidates: Array<{ category: string; fileName: string; testCount: number; duration: number }> =
-        []
+    const findNextBreakout = (
+      onlyOverflowing: boolean,
+    ): [string, string] | null => {
+      const candidates: Array<{
+        category: string
+        fileName: string
+        testCount: number
+        duration: number
+      }> = []
 
       for (const category of this.categoryOrder) {
         const stats = this.categoryStats.get(category)
@@ -556,7 +594,9 @@ export class KmReporter implements Reporter {
       }
 
       // Priority 2: slow files (>= significantDuration)
-      const slow = candidates.filter((c) => c.duration >= this.options.significantDuration)
+      const slow = candidates.filter(
+        (c) => c.duration >= this.options.significantDuration,
+      )
       if (slow.length > 0) {
         slow.sort((a, b) => b.duration - a.duration)
         return [slow[0].category, slow[0].fileName]
@@ -621,7 +661,11 @@ export class KmReporter implements Reporter {
   }
 
   async onTestRunStart(_specs: readonly TestSpecification[]) {
-    debug("onTestRunStart called with %d specs, isTTY=%s", _specs.length, this.isTTY)
+    debug(
+      "onTestRunStart called with %d specs, isTTY=%s",
+      _specs.length,
+      this.isTTY,
+    )
     if (!this.term) return
 
     // Write header
@@ -634,7 +678,10 @@ export class KmReporter implements Reporter {
   }
 
   onTestModuleCollected(module: TestModule) {
-    debug("onTestModuleCollected: %s", (module as { moduleId?: string }).moduleId)
+    debug(
+      "onTestModuleCollected: %s",
+      (module as { moduleId?: string }).moduleId,
+    )
     for (const test of module.children.allTests()) {
       this.onTestCaseReady(test)
     }
@@ -652,8 +699,14 @@ export class KmReporter implements Reporter {
     if (this.finishedTests.has(id)) return
     if (this.testStates.has(id)) return
 
-    const moduleId = (testCase.module as { moduleId?: string }).moduleId ?? "unknown"
-    debug("onTestCaseReady: id=%s name=%s module=%s", id, testCase.name, moduleId)
+    const moduleId =
+      (testCase.module as { moduleId?: string }).moduleId ?? "unknown"
+    debug(
+      "onTestCaseReady: id=%s name=%s module=%s",
+      id,
+      testCase.name,
+      moduleId,
+    )
 
     this.testStates.set(id, "pending")
     this.testOrder.push(id)
@@ -724,10 +777,17 @@ export class KmReporter implements Reporter {
     const duration = diagnostic?.duration ?? 0
     const state = result.state
 
-    debug("onTestCaseResult: %s state=%s duration=%dms", testCase.name, state, duration)
+    debug(
+      "onTestCaseResult: %s state=%s duration=%dms",
+      testCase.name,
+      state,
+      duration,
+    )
 
-    const moduleId = (testCase.module as { moduleId?: string }).moduleId ?? "unknown"
-    const testState = state === "passed" ? "passed" : state === "failed" ? "failed" : "skipped"
+    const moduleId =
+      (testCase.module as { moduleId?: string }).moduleId ?? "unknown"
+    const testState =
+      state === "passed" ? "passed" : state === "failed" ? "failed" : "skipped"
 
     this.timings.push({
       name: testCase.name,
@@ -800,7 +860,8 @@ export class KmReporter implements Reporter {
           if (testState === "passed") categoryFileStats.passed++
           else if (testState === "failed") categoryFileStats.failed++
           else if (testState === "skipped") categoryFileStats.skipped++
-          if (duration >= this.options.slowThreshold) categoryFileStats.slowCount++
+          if (duration >= this.options.slowThreshold)
+            {categoryFileStats.slowCount++}
         }
       }
     }
@@ -818,7 +879,12 @@ export class KmReporter implements Reporter {
   onTestModuleEnd(_testModule: TestModule) {}
 
   onTestRunEnd() {
-    debug("onTestRunEnd called, passed=%d failed=%d skipped=%d", this.passed, this.failed, this.skipped)
+    debug(
+      "onTestRunEnd called, passed=%d failed=%d skipped=%d",
+      this.passed,
+      this.failed,
+      this.skipped,
+    )
     if (!this.term) return
 
     const elapsed = Date.now() - this.startTime
@@ -830,7 +896,12 @@ export class KmReporter implements Reporter {
     const labelWidth = 20
     const maxDots = this.columns - labelWidth - 2
 
-    debug("final render: grouping=%s, packages=%d, files=%d", effectiveGrouping, this.categoryOrder.length, this.fileOrder.length)
+    debug(
+      "final render: grouping=%s, packages=%d, files=%d",
+      effectiveGrouping,
+      this.categoryOrder.length,
+      this.fileOrder.length,
+    )
 
     switch (effectiveGrouping) {
       case "consolidated":
@@ -962,13 +1033,31 @@ export class KmReporter implements Reporter {
     }
 
     // Write summary and details
-    this.term.write(plainTextSummary(this.term, this.passed, this.failed, this.skipped, total, elapsed, testDuration))
+    this.term.write(
+      plainTextSummary(
+        this.term,
+        this.passed,
+        this.failed,
+        this.skipped,
+        total,
+        elapsed,
+        testDuration,
+      ),
+    )
     // Only show package stats table if we have multiple packages
     if (this.categoryOrder.length > 1) {
-      this.term.write(plainTextStatsTable(this.term, this.categoryOrder, this.categoryStats))
+      this.term.write(
+        plainTextStatsTable(this.term, this.categoryOrder, this.categoryStats),
+      )
     }
     if (this.options.showSlow) {
-      this.term.write(plainTextSlowestList(this.term, this.topSlowest, this.options.slowThreshold))
+      this.term.write(
+        plainTextSlowestList(
+          this.term,
+          this.topSlowest,
+          this.options.slowThreshold,
+        ),
+      )
     }
     this.term.write(plainTextFailures(this.term, this.testErrors))
 
@@ -1006,7 +1095,9 @@ export class KmReporter implements Reporter {
 
       try {
         if (fs.existsSync(pkgPath)) {
-          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as { name?: string }
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
+            name?: string
+          }
           const name = pkg.name ?? dirPath
           this.packageNameCache.set(dirPath, name)
           return name

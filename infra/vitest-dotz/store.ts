@@ -91,7 +91,12 @@ export interface TestStore {
     isNoisy?: boolean,
   ) => void
   setRunning: (running: boolean) => void
-  updateSlowest: (name: string, file: string, duration: number, threshold: number) => void
+  updateSlowest: (
+    name: string,
+    file: string,
+    duration: number,
+    threshold: number,
+  ) => void
 }
 
 // =============================================================================
