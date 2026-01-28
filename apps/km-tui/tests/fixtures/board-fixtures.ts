@@ -67,7 +67,7 @@ export function createBoardState(
   return {
     ...base,
     columns,
-    rootId: overrides.rootId ?? (columns.length > 0 ? "root" : null),
+    rootId: overrides.rootId ?? (columns.length > 0 ? "test-root" : null),
     ...overrides,
   }
 }

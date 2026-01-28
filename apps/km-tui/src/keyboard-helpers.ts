@@ -145,8 +145,6 @@ export function refreshBoardState(
     cardIndex?: number | ((col: { cards: CardState[] } | undefined) => number)
   },
 ): void {
-  if (!ctx.boardState.rootId) return
-
   // NOTE: No longer dispatches REFRESH action - columns are now derived from
   // repo at render time via useColumns hook. React automatically re-renders
   // when repo.stats.nodeCount changes.

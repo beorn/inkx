@@ -191,6 +191,7 @@ The `/ .md #` suffix shows what was collapsed. See [ref/ui.md](ref/ui.md).
 | **KNode**           | Flat record with `parent_id`. Stored in SQLite.                             |
 | **TNode**           | Recursive tree with `children[]`. For navigation.                           |
 | **BoardState**      | Visual state: cursor, selection, fold, zoom.                                |
+| **repo root**       | Single folder node with `parent_id = null` representing the repository.     |
 | **memory mode**     | No `.km/`. SQLite in RAM. Ephemeral IDs.                                    |
 | **disk mode**       | `.km/` exists. SQLite on disk. Stable IDs, events, sync.                    |
 | **domain object**   | Plain object created by factory function with explicit dependencies.        |

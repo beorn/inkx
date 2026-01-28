@@ -59,6 +59,11 @@ export const viewCommand = new Command("view")
     if (resolved.nodeRef) {
       const node = createdRepo.resolveNode(resolved.nodeRef)
       rootNodeId = node?.id
+    } else {
+      // No specific node requested - use repo root folder node
+      // The smart resolver finds the folder node with parent_id = null and type = 'folder'
+      const repoRootNode = createdRepo.resolveNode(resolved.repoRoot)
+      rootNodeId = repoRootNode?.id
     }
 
     // Build view state

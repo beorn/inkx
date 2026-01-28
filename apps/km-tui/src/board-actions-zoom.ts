@@ -9,7 +9,6 @@ import { boundary, ok, precondition } from "@km/commands"
 import type { KNode } from "@km/core"
 import { handleCursorMove } from "./board-actions-nav.ts"
 import { clearSelection, pushNavHistoryEntry } from "./keyboard-helpers.ts"
-import { initBoardState } from "./state.ts"
 import type { TUIContext } from "./tui-context.ts"
 import { actions } from "./ui-reducer.ts"
 
@@ -35,52 +34,35 @@ export function handleZoomOutwards(ctx: TUIContext): ActionResult {
   // Try actual zoom out (to parent of current root)
   if (boardState.rootId) {
     const currentRoot = ctx.repo.getNode(boardState.rootId)
-    if (currentRoot?.parent_id) {
-      const parentNode = ctx.repo.getNode(currentRoot.parent_id)
-      if (parentNode) {
-        pushNavHistoryEntry(
-          dispatch,
-          boardState.rootId,
-          layout.colIndex,
-          layout.cardIndex,
-          ui.subIndex,
-          ui.multiSelected,
-          ui.inOutlineMode,
-          boardState.cursorNodeId,
-        )
 
-        // When zooming out, keep the current root as the cursor
-        dispatchBoard({
-          type: "ZOOM_IN",
-          nodeId: parentNode.id,
-          cursorNodeId: boardState.rootId,
-        })
-        clearSelection(ctx)
-        return ok()
-      }
-    } else {
-      const rootView = initBoardState(ctx.repo)
-      if (rootView && rootView.rootId !== boardState.rootId) {
-        pushNavHistoryEntry(
-          dispatch,
-          boardState.rootId,
-          layout.colIndex,
-          layout.cardIndex,
-          ui.subIndex,
-          ui.multiSelected,
-          ui.inOutlineMode,
-          boardState.cursorNodeId,
-        )
+    // Check if we're at repo root (parent_id is null)
+    if (!currentRoot || currentRoot.parent_id === null) {
+      // Can't zoom out from repo root
+      return boundary("zoom_out", "at repo root")
+    }
 
-        // When zooming out to root, keep the current root as the cursor
-        dispatchBoard({
-          type: "ZOOM_IN",
-          nodeId: rootView.rootId,
-          cursorNodeId: boardState.rootId,
-        })
-        clearSelection(ctx)
-        return ok()
-      }
+    // We have a parent - zoom out to it
+    const parentNode = ctx.repo.getNode(currentRoot.parent_id)
+    if (parentNode) {
+      pushNavHistoryEntry(
+        dispatch,
+        boardState.rootId,
+        layout.colIndex,
+        layout.cardIndex,
+        ui.subIndex,
+        ui.multiSelected,
+        ui.inOutlineMode,
+        boardState.cursorNodeId,
+      )
+
+      // When zooming out, keep the current root as the cursor
+      dispatchBoard({
+        type: "ZOOM_IN",
+        nodeId: parentNode.id,
+        cursorNodeId: boardState.rootId,
+      })
+      clearSelection(ctx)
+      return ok()
     }
   }
 

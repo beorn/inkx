@@ -143,6 +143,14 @@ export async function createBoardTest(
     }
   }
 
+  // If no file specified, use the repo root node
+  if (!rootNodeId) {
+    const repoRootNodes = repo.getChildren(null)
+    if (repoRootNodes.length > 0) {
+      rootNodeId = repoRootNodes[0]?.id
+    }
+  }
+
   // Import TUI module for state initialization
   const tuiModule = await import("./index.ts")
 

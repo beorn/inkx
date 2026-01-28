@@ -114,6 +114,15 @@ export function resolveNode(
     > | null
     if (row) return rowToNode(row)
 
+    // Check if this path is the repo root folder node
+    // Repo root is identified by: parent_id IS NULL AND type = 'folder'
+    row = db
+      .query(
+        `SELECT * FROM nodes WHERE fs_path = ? AND parent_id IS NULL AND type = 'folder'${filterClause}`,
+      )
+      .get(absolutePath, ...params) as Record<string, unknown> | null
+    if (row) return rowToNode(row)
+
     // Don't fall through for explicit paths - they should match exactly or not at all
     // This prevents /some/path from accidentally matching an ID suffix
     return null

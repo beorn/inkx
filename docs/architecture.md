@@ -128,13 +128,13 @@ Storage → App:   repo.data.getChildren() → KNode[] (on-demand tree queries)
 App Render:      repo + state → columns       (derived at render time)
 ```
 
-| Type                   | Package     | Description                                 |
-| ---------------------- | ----------- | ------------------------------------------- |
-| `KNode`                | @km/core    | Flat record with `parent_id` (SQLite)       |
-| `TNode`                | @km/core    | Recursive with `children[]` (legacy paths)  |
-| `ProcessedMarkdown`    | @km/storage | Parsed file + hash (intermediate data type) |
-| `SimplifiedBoardState` | @km/board   | cursorNodeId, fold, zoom (no tree data)     |
-| `UIState`              | apps/       | Dialogs, view mode, dimensions              |
+| Type                   | Package     | Description                                                    |
+| ---------------------- | ----------- | -------------------------------------------------------------- |
+| `KNode`                | @km/core    | Flat record with `parent_id` (SQLite, null for repo root only) |
+| `TNode`                | @km/core    | Recursive with `children[]` (legacy paths)                     |
+| `ProcessedMarkdown`    | @km/storage | Parsed file + hash (intermediate data type)                    |
+| `SimplifiedBoardState` | @km/board   | cursorNodeId, fold, zoom (no tree data)                        |
+| `UIState`              | apps/       | Dialogs, view mode, dimensions                                 |
 
 **Key design:** No tree data in board state. Navigation uses `repo.getChildren()` directly. Columns are derived at render time via `useColumns()`, cursor position via `useCursorPosition()`.
 
@@ -279,17 +279,18 @@ apps/
 
 ## Glossary
 
-| Term            | Definition                                               |
-| --------------- | -------------------------------------------------------- |
-| **KNode**       | Flat record with `parent_id`. Stored in SQLite.          |
-| **TNode**       | Recursive tree with `children[]`. For navigation.        |
-| **BoardState**  | Visual state: cursor, selection, fold, zoom.             |
-| **memory mode** | No `.km/`. SQLite in RAM. Ephemeral IDs.                 |
-| **disk mode**   | `.km/` exists. SQLite on disk. Stable IDs, events, sync. |
-| **collapsing**  | Merging same-named folder/file/H1 into one display line. |
-| **cursoring**   | Moving to adjacent block (hjkl).                         |
-| **navigating**  | Changing board root via zoom (u/Enter).                  |
-| **shifting**    | Moving selected nodes in direction (opt+hjkl).           |
+| Term            | Definition                                                              |
+| --------------- | ----------------------------------------------------------------------- |
+| **KNode**       | Flat record with `parent_id`. Stored in SQLite.                         |
+| **TNode**       | Recursive tree with `children[]`. For navigation.                       |
+| **BoardState**  | Visual state: cursor, selection, fold, zoom.                            |
+| **repo root**   | Single folder node with `parent_id = null` representing the repository. |
+| **memory mode** | No `.km/`. SQLite in RAM. Ephemeral IDs.                                |
+| **disk mode**   | `.km/` exists. SQLite on disk. Stable IDs, events, sync.                |
+| **collapsing**  | Merging same-named folder/file/H1 into one display line.                |
+| **cursoring**   | Moving to adjacent block (hjkl).                                        |
+| **navigating**  | Changing board root via zoom (u/Enter).                                 |
+| **shifting**    | Moving selected nodes in direction (opt+hjkl).                          |
 
 ---
 

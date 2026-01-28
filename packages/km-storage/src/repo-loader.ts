@@ -16,7 +16,7 @@
 import createDebug from "debug"
 import { Database } from "bun:sqlite"
 import { existsSync, readdirSync, readFileSync, statSync } from "fs"
-import { join, dirname, relative } from "path"
+import { join, dirname, relative, basename } from "path"
 import type { Event } from "@km/core"
 import { ParsePool } from "./parse-pool.ts"
 import { runDeferredPipeline } from "./pipeline.ts"
@@ -176,13 +176,17 @@ export function* loadRepo(
     db.run(SCHEMA)
   }
 
+  // 2a. Migration: ensure repo root node exists
+  // Run in both memory and disk mode - all repos need a root folder node
+  migrateToRepoRootNode(db, repoRoot)
+
   // 3. Mode-specific event source (yield* chains progress)
   // km-fast-md.7: Use fast discover for instant board render
   const source: EventSource =
     mode === "memory"
       ? discoverOnly
-        ? yield* discoverFilesOnly(repoRoot, errors)
-        : yield* discoverFromFilesystem(repoRoot, errors)
+        ? yield* discoverFilesOnly(repoRoot, errors, db)
+        : yield* discoverFromFilesystem(repoRoot, errors, db)
       : yield* discoverFromEvents(
           db,
           kmDir ?? "",
@@ -298,6 +302,119 @@ function resolveRepoRoot(
   return { repoRoot: path, kmDir: null }
 }
 
+// --- Migration ---
+
+/**
+ * Migrate existing repos to have a repo root node.
+ * This ensures all nodes have a parent_id (either a folder or the repo root).
+ *
+ * @param db - Database instance
+ * @param repoRoot - Absolute path to repo root
+ */
+export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
+  // Check if repo root node already exists
+  const existingRoot = db
+    .prepare("SELECT id FROM nodes WHERE parent_id IS NULL AND type = 'folder'")
+    .get() as { id: string } | undefined
+
+  let repoRootId: string
+
+  if (existingRoot) {
+    debug(
+      "migrateToRepoRootNode: repo root node already exists (%s)",
+      existingRoot.id,
+    )
+    repoRootId = existingRoot.id
+  } else {
+    // Check if there are any orphan nodes to migrate
+    const orphanCount = (
+      db
+        .prepare("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL")
+        .get() as { count: number }
+    ).count
+
+    debug(
+      "migrateToRepoRootNode: creating repo root node (%d orphan nodes to migrate)",
+      orphanCount,
+    )
+
+    // Create repo root node - always create it even if no orphans
+    // This ensures the node exists for discover functions to query
+    // Use "." as the ID since relative(repoRoot, repoRoot) would return ""
+    repoRootId = "."
+    const now = Date.now()
+
+    db.run("BEGIN IMMEDIATE")
+    try {
+      // Insert repo root node
+      db.prepare(
+        `
+        INSERT INTO nodes (
+          id, type, parent_id, parent_idx, fs_path, content, data,
+          created_at, updated_at, version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      ).run(
+        repoRootId,
+        "folder",
+        null, // Top level - repo root has no parent
+        0,
+        repoRoot,
+        basename(repoRoot),
+        JSON.stringify({ name: basename(repoRoot), is_repo_root: true }),
+        now,
+        now,
+        "",
+      )
+
+      // Update all orphan nodes to be children of repo root (if any exist)
+      const orphanCount = (
+        db
+          .prepare(
+            "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND type != 'folder'",
+          )
+          .get() as { count: number }
+      ).count
+      if (orphanCount > 0) {
+        debug("migrateToRepoRootNode: updating %d orphan nodes", orphanCount)
+        db.prepare(
+          "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND type != 'folder'",
+        ).run(repoRootId)
+      }
+
+      db.run("COMMIT")
+      debug("migrateToRepoRootNode: migration complete")
+    } catch (error) {
+      db.run("ROLLBACK")
+      throw error
+    }
+  }
+
+  // Update orphan nodes even if repo root already exists
+  // This handles files discovered after the initial migration
+  const orphanCount = (
+    db
+      .prepare(
+        "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND type != 'folder'",
+      )
+      .get() as { count: number }
+  ).count
+
+  if (orphanCount > 0) {
+    debug("migrateToRepoRootNode: updating %d orphan nodes", orphanCount)
+    db.run("BEGIN IMMEDIATE")
+    try {
+      db.prepare(
+        "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND type != 'folder'",
+      ).run(repoRootId)
+      db.run("COMMIT")
+    } catch (error) {
+      db.run("ROLLBACK")
+      throw error
+    }
+  }
+}
+
 // --- Memory Mode Discovery ---
 
 /**
@@ -308,6 +425,7 @@ function resolveRepoRoot(
 function* discoverFilesOnly(
   repoRoot: string,
   _errors: LoadError[],
+  db: Database,
 ): Generator<StepYield, EventSource, unknown> {
   yield "Discovering files"
 
@@ -316,12 +434,23 @@ function* discoverFilesOnly(
   const now = Date.now()
   const ignorePatterns = getIgnorePatterns(repoRoot)
 
+  // Query for existing repo root node (created by migration)
+  const repoRootRow = db
+    .prepare("SELECT id FROM nodes WHERE parent_id IS NULL AND type = 'folder'")
+    .get() as { id: string } | undefined
+
+  if (!repoRootRow) {
+    throw new Error("Repo root node not found - migration failed")
+  }
+
+  const repoRootId = repoRootRow.id
+
   // Count files for progress
   const total = countMarkdownFilesFast(repoRoot, ignorePatterns)
   yield { current: 0, total }
 
   let current = 0
-  yield* scanDirectory(repoRoot, null)
+  yield* scanDirectory(repoRoot, repoRootId)
 
   yield { current, total }
   return { events, pendingLinks: [], deferredFiles }
@@ -423,6 +552,7 @@ function* discoverFilesOnly(
 function* discoverFromFilesystem(
   repoRoot: string,
   errors: LoadError[],
+  db: Database,
 ): Generator<StepYield, EventSource, unknown> {
   // Single-pass: discover AND parse in one traversal (km-load-perf.0)
   yield "Discovering files"
@@ -437,11 +567,22 @@ function* discoverFromFilesystem(
   const total = countMarkdownFilesFast(repoRoot, ignorePatterns)
   yield { current: total, total }
 
+  // Query for existing repo root node (created by migration)
+  const repoRootRow = db
+    .prepare("SELECT id FROM nodes WHERE parent_id IS NULL AND type = 'folder'")
+    .get() as { id: string } | undefined
+
+  if (!repoRootRow) {
+    throw new Error("Repo root node not found - migration failed")
+  }
+
+  const repoRootId = repoRootRow.id
+
   // Parse - scan filesystem and generate events
   yield "Parsing markdown"
   let current = 0
 
-  yield* scanDirectory(repoRoot, null, 0)
+  yield* scanDirectory(repoRoot, repoRootId, 0)
 
   return { events, pendingLinks }
 

@@ -321,7 +321,7 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
   if (dir === "up" || dir === "down") {
     positionRegistry.clearStickyY()
     const targetId = handleHierarchicalNavigation(ctx, dir)
-    if (targetId) {
+    if (targetId !== null) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
       return ok()
     }

@@ -1595,4 +1595,34 @@ describe.serial("km view - state initialization", () => {
     // Static mode shows column headings and tasks
     expect(viewResult.stdout).toContain("Column A")
   })
+
+  test("km view should work with directory path (repo root)", async () => {
+    // Create multiple files in the repo root
+    writeFileSync(
+      join(REPO_DIR, "project1.md"),
+      `# Project 1
+
+## Tasks
+- [ ] Task A
+`,
+    )
+    writeFileSync(
+      join(REPO_DIR, "project2.md"),
+      `# Project 2
+
+## Done
+- [x] Task B
+`,
+    )
+
+    await km(["sync"])
+
+    // View using repo directory path - should find repo root folder node
+    const viewResult = await km(["view", REPO_DIR, "--no-interactive"])
+    expect(viewResult.exitCode).toBe(0)
+    // Should show the repo root folder node's view
+    // The repo root folder node contains all top-level files as children
+    expect(viewResult.stdout).toContain("Project 1")
+    expect(viewResult.stdout).toContain("Project 2")
+  })
 })

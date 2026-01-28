@@ -70,6 +70,134 @@ km show abc123        # Same ID still works
 
 ---
 
+## Repo Root Node
+
+As of the data model redesign, the repository root is now represented as a **folder node with `parent_id = null`** rather than having root-level nodes with `parent_id = null`. This change provides cleaner navigation boundaries and more consistent tree structure.
+
+### Key Characteristics
+
+**Repo Root Node:**
+
+- `type: "folder"`
+- `parent_id: null` (only node with null parent)
+- `data.is_repo_root: true` (flag in data field)
+- `fs_path` points to repository root directory
+- All root-level files/folders have `parent_id = repoRootId` (not null)
+
+### Navigation Boundaries
+
+The repo root node serves as an absolute navigation boundary:
+
+1. **Cannot navigate above repo root** - When `parent_id = null` is detected, navigation stops
+2. **Cannot zoom out from repo root** - Zoom out command checks `parent_id === null` and returns boundary condition
+3. **Cursor cannot move to parent** - Tree navigation prevents moving up from a node whose parent has `parent_id = null`
+
+From `/Users/beorn/Code/pim/km/apps/km-tui/src/board-actions-zoom.ts`:
+
+```typescript
+if (!currentRoot || currentRoot.parent_id === null) {
+  // Can't zoom out from repo root
+  return boundary("zoom_out", "at repo root")
+}
+```
+
+From `/Users/beorn/Code/pim/km/apps/km-tui/src/navigation-handlers.ts`:
+
+```typescript
+if (currentNode.parent_id === null) {
+  debug("tree nav: at repo root, can't move to parent")
+  return null // At repo root (parent_id is null)
+}
+```
+
+### Migration
+
+Both memory and disk modes automatically migrate existing repos via `migrateToRepoRootNode()`:
+
+1. Checks if repo root node already exists (`parent_id IS NULL AND type = 'folder'`)
+2. If not, creates repo root node with ID = `"."` (since `relative(repoRoot, repoRoot)` returns `""`)
+3. Updates all orphan nodes (`parent_id IS NULL AND type != 'folder'`) to have `parent_id = "."`
+4. Migration is idempotent - safe to run multiple times
+
+**Note on ID Generation:**
+The repo root folder node uses `"."` as its ID instead of an empty string. This is because `generateId(repoRoot, repoRoot)` would return `relative(repoRoot, repoRoot)` which is an empty string, causing database issues.
+
+**Orphan File Handling:**
+In disk mode with `km sync`, the migration runs twice:
+
+1. Before sync: Creates repo root node and migrates existing orphans
+2. After sync: Catches new files discovered during sync (which have `parent_id = null`)
+
+#### Pre-Launch Flexibility
+
+**The project is pre-launch, so breaking changes to the data model are acceptable.** Migration code exists for development convenience, but users can simply delete their `.km/` directory and re-scan if they encounter issues.
+
+Why this matters:
+
+- **No backwards compatibility burden** - We can make structural changes like adding the repo root node without worrying about complex migrations
+- **Clean slate option** - Users can always `rm -rf .km/ && km init` to get the latest schema
+- **Development velocity** - Migration code is optional developer tooling, not a production requirement
+- **Fail-fast approach** - Better to surface incompatibilities early than maintain legacy patterns
+
+Once km launches publicly, we'll maintain strict backwards compatibility. Until then, breaking changes that improve the architecture are encouraged.
+
+From `/Users/beorn/Code/pim/km/packages/km-storage/src/repo-loader.ts`:
+
+```typescript
+const repoRootId = generateId(repoRoot, repoRoot)
+events.push({
+  id: repoRootId,
+  type: "node_created",
+  actor: "fs-scan",
+  ts: now,
+  data: {
+    id: repoRootId,
+    type: "folder",
+    parent_id: null, // Top level - repo root has no parent
+    parent_idx: 0,
+    fs_path: repoRoot,
+    content: basename(repoRoot),
+    data: { name: basename(repoRoot), is_repo_root: true },
+  },
+})
+```
+
+### Clarification: `parent_id = null` Meaning
+
+**Important:** When documentation or code refers to "`parent_id = null` = root", this means:
+
+- The **repo root node itself** (the single folder node representing the repository)
+- **NOT** a "root level view" or a set of root-level children
+- **NOT** nodes that should be at the top level
+
+Before this change, `parent_id = null` meant "this is a root-level node". Now it means "this is THE repo root node" - there should be exactly one.
+
+### Query Implications
+
+**Getting root-level children:**
+
+```typescript
+// Before: parent_id = null returned all root-level nodes
+repo.getChildren(null)
+
+// After: parent_id = null returns the repo root node only
+// To get root-level nodes, use:
+const repoRoot = repo.getChildren(null)[0] // Get the repo root node
+const rootLevelNodes = repo.getChildren(repoRoot.id) // Get its children
+```
+
+**Finding the repo root:**
+
+```sql
+-- Single repo root node (should be exactly one)
+SELECT * FROM nodes WHERE parent_id IS NULL
+
+-- Root-level files/folders (children of repo root)
+SELECT * FROM nodes WHERE parent_id = (SELECT id FROM nodes WHERE parent_id IS NULL)
+```
+
+---
+
 ## Mode Detection
 
 ```
@@ -149,7 +277,7 @@ interface KNode {
 | ---------------- | -------------- | --------------------------------------------- |
 | `id`             | string         | ULID (disk mode) or `path:line` (memory mode) |
 | `type`           | NodeType       | Node classification (see Node Types below)    |
-| `parent_id`      | string \| null | ID of parent node (null for root)             |
+| `parent_id`      | string \| null | ID of parent node (null for repo root only)   |
 | `parent_idx`     | number         | Fractional index for sibling ordering         |
 | `link_to`        | string \| null | Target node ID if this is an embedding        |
 | `link_alias`     | string         | Display alias from `\|alias` syntax           |

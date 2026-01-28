@@ -136,13 +136,19 @@ export function handleTreeNavigation(
     case "parent": {
       // Move to parent
       if (currentNode.parent_id === null) {
-        debug("tree nav: at root level, can't move to parent")
-        return null // At root level
+        debug("tree nav: at repo root, can't move to parent")
+        return null // At repo root (parent_id is null)
       }
       // Don't go above the current zoom root
       if (currentNode.parent_id === rootId) {
         debug("tree nav: at zoom root, returning to root")
         return rootId
+      }
+      // Check if parent is repo root (can't go above it)
+      const parentNode = repo.getNode(currentNode.parent_id)
+      if (parentNode && parentNode.parent_id === null) {
+        debug("tree nav: parent is repo root, can't go higher")
+        return null
       }
       debug("tree nav: parent %s", currentNode.parent_id.slice(-8))
       return currentNode.parent_id

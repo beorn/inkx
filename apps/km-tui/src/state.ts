@@ -66,85 +66,18 @@ export function initBoardState(
   repo: Repo,
   rootId?: string,
 ): TUIBoardState | null {
-  if (rootId) {
-    // Use repo.getNode for ID lookup (caller should resolve path/filename before calling)
-    const root = repo.getNode(rootId)
-    if (!root) {
-      return null
-    }
-    return buildBoardState(repo, root.id)
-  }
-
-  // No root specified - show root-level nodes as columns
-  // Group roots by name to avoid duplicate columns
-  const roots = repo.getChildren(null)
-
-  if (roots.length === 0) {
+  // rootId is required - no longer support root-level view
+  // Callers should resolve repo root folder node if needed
+  if (!rootId) {
     return null
   }
 
-  // Group roots by display name
-  const groups = new Map<string, KNode[]>()
-  for (const root of roots) {
-    const name = getNodeDisplayName(repo, root)
-    if (!groups.has(name)) {
-      groups.set(name, [])
-    }
-    groups.get(name)?.push(root)
+  // Use repo.getNode for ID lookup (caller should resolve path/filename before calling)
+  const root = repo.getNode(rootId)
+  if (!root) {
+    return null
   }
-
-  // First pass: collect all unique card nodes and their IDs
-  const allCardIds: string[] = []
-  const columnData: Array<{ colNode: KNode; cardNodes: KNode[] }> = []
-
-  for (const [_name, groupRoots] of groups) {
-    const colNode = groupRoots[0]
-    if (!colNode) continue
-
-    // Collect all children from all roots in this group
-    // Deduplicate by display name to avoid showing the same card multiple times
-    const seenNames = new Set<string>()
-    const uniqueCardNodes: KNode[] = []
-    for (const root of groupRoots) {
-      for (const child of repo.getChildren(root.id)) {
-        const cardName = getNodeDisplayName(repo, child)
-        if (!seenNames.has(cardName)) {
-          seenNames.add(cardName)
-          uniqueCardNodes.push(child)
-          allCardIds.push(child.id)
-        }
-      }
-    }
-
-    columnData.push({ colNode, cardNodes: uniqueCardNodes })
-  }
-
-  // Batch query for child counts using rawQuery
-  const childCounts = repo.getChildCounts(allCardIds)
-
-  // Second pass: build columns with pre-fetched child counts
-  const columns: ColumnState[] = []
-  for (const { colNode, cardNodes } of columnData) {
-    const cards: CardState[] = cardNodes.map((cardNode) => ({
-      node: cardNode,
-      children: [], // Don't load grandchildren eagerly (lazy loading)
-      childCount: childCounts.get(cardNode.id) ?? 0,
-    }))
-    columns.push({ node: colNode, cards })
-  }
-
-  return {
-    rootId: null, // null means "root level"
-    rootPath: null,
-    columns,
-    selectedCards: new Set(),
-    visualMode: false,
-    foldedCards: new Set(),
-    collapsedColumns: new Set(),
-    searchQuery: "",
-    searchMode: false,
-    helpMode: false,
-  }
+  return buildBoardState(repo, root.id)
 }
 
 /**
@@ -155,90 +88,19 @@ export function* initBoardStateGenerator(
   repo: Repo,
   rootId?: string,
 ): Generator<StepYield, TUIBoardState | null, unknown> {
-  if (rootId) {
-    // Use repo.getNode for ID lookup (caller should resolve path/filename before calling)
-    const root = repo.getNode(rootId)
-    if (!root) {
-      return null
-    }
-    // Delegate to generator version of buildBoardState
-    return yield* buildBoardStateGenerator(repo, root.id)
-  }
-
-  // No root specified - show root-level nodes as columns
-  const roots = repo.getChildren(null)
-  if (roots.length === 0) {
+  // rootId is required - no longer support root-level view
+  // Callers should resolve repo root folder node if needed
+  if (!rootId) {
     return null
   }
 
-  // Group roots by display name
-  const groups = new Map<string, KNode[]>()
-  for (const root of roots) {
-    const name = getNodeDisplayName(repo, root)
-    if (!groups.has(name)) {
-      groups.set(name, [])
-    }
-    groups.get(name)?.push(root)
+  // Use repo.getNode for ID lookup (caller should resolve path/filename before calling)
+  const root = repo.getNode(rootId)
+  if (!root) {
+    return null
   }
-
-  // First pass: collect all unique card nodes and their IDs
-  const allCardIds: string[] = []
-  const columnData: Array<{ colNode: KNode; cardNodes: KNode[] }> = []
-  const total = groups.size
-  let current = 0
-
-  yield "Building view"
-  yield { current: 0, total }
-
-  for (const [_name, groupRoots] of groups) {
-    const colNode = groupRoots[0]
-    if (!colNode) continue
-
-    // Collect all children from all roots in this group
-    const seenNames = new Set<string>()
-    const uniqueCardNodes: KNode[] = []
-    for (const root of groupRoots) {
-      for (const child of repo.getChildren(root.id)) {
-        const cardName = getNodeDisplayName(repo, child)
-        if (!seenNames.has(cardName)) {
-          seenNames.add(cardName)
-          uniqueCardNodes.push(child)
-          allCardIds.push(child.id)
-        }
-      }
-    }
-
-    columnData.push({ colNode, cardNodes: uniqueCardNodes })
-    current++
-    yield { current, total }
-  }
-
-  // Single batch query for all child counts
-  const childCounts = repo.getChildCounts(allCardIds)
-
-  // Second pass: build columns with pre-fetched child counts
-  const columns: ColumnState[] = []
-  for (const { colNode, cardNodes } of columnData) {
-    const cards: CardState[] = cardNodes.map((cardNode) => ({
-      node: cardNode,
-      children: [],
-      childCount: childCounts.get(cardNode.id) ?? 0,
-    }))
-    columns.push({ node: colNode, cards })
-  }
-
-  return {
-    rootId: null,
-    rootPath: null,
-    columns,
-    selectedCards: new Set(),
-    visualMode: false,
-    foldedCards: new Set(),
-    collapsedColumns: new Set(),
-    searchQuery: "",
-    searchMode: false,
-    helpMode: false,
-  }
+  // Delegate to generator version of buildBoardState
+  return yield* buildBoardStateGenerator(repo, root.id)
 }
 
 /**

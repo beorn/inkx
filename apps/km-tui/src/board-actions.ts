@@ -447,8 +447,9 @@ function handleNavSiblingBoard(
   }
 
   const currentRoot = ctx.repo.getNode(boardState.rootId)
-  if (!currentRoot?.parent_id) {
-    return boundary(direction, "no parent")
+  // Check if at repo root (parent_id is null) - can't navigate siblings
+  if (!currentRoot || currentRoot.parent_id === null) {
+    return boundary(direction, "at repo root")
   }
 
   const siblings = ctx.repo.getChildren(currentRoot.parent_id)

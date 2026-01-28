@@ -97,7 +97,7 @@ export function moveCardInColumn(
 
   refreshBoardState(ctx, { cardIndex: newCardIndex })
 
-  if (movedCardIds.length > 1 && ctx.boardState.rootId) {
+  if (movedCardIds.length > 1) {
     const newSelected = new Set<SelectionKey>()
     const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
     const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
@@ -160,7 +160,7 @@ export function moveCardToColumn(
     cardIndex: (col) => Math.min(expectedCardIndex, col?.cards.length || 0),
   })
 
-  if (movedCardIds.length > 0 && ctx.boardState.rootId) {
+  if (movedCardIds.length > 0) {
     const newSelected = new Set<SelectionKey>()
     const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
     const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
@@ -225,7 +225,7 @@ export function moveCardToColumnByIndex(
       Math.min(expectedCardIndex, Math.max(0, (col?.cards.length ?? 1) - 1)),
   })
 
-  if (movedCardIds.length > 0 && ctx.boardState.rootId) {
+  if (movedCardIds.length > 0) {
     const newSelected = new Set<SelectionKey>()
     const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
     const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)

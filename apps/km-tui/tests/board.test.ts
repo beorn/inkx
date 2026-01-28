@@ -107,42 +107,42 @@ describe.serial("State", () => {
     expect(state.columns[1]?.cards).toHaveLength(1)
   })
 
-  test("initBoardState groups root nodes by name", () => {
+  test("initBoardState builds state from repo root", () => {
     const repo = createFakeRepo({
       nodes: [
-        makeNode("proj1", "folder", "Projects", null, 0),
-        makeNode("proj2", "folder", "Projects", null, 1),
-        makeNode("arch", "folder", "Archive", null, 2),
+        makeNode("repo-root", "folder", undefined, null, 0, {
+          data: { is_repo_root: true },
+        }),
+        makeNode("proj1", "folder", "Projects", "repo-root", 0),
+        makeNode("arch", "folder", "Archive", "repo-root", 1),
       ],
     })
-    const state = initBoardState(repo)
+    const state = initBoardState(repo, "repo-root")
     expect(state).not.toBeNull()
-    expect(state!.rootId).toBeNull()
+    expect(state!.rootId).toBe("repo-root")
     expect(state!.columns).toHaveLength(2)
   })
 
-  test("initBoardState deduplicates cards by name within grouped columns", () => {
+  test("initBoardState handles nested folders", () => {
     const repo = createFakeRepo({
       nodes: [
-        makeNode("ref1", "folder", "ref", null, 0),
-        makeNode("ref2", "folder", "ref", null, 1),
-        makeNode("ref3", "folder", "ref", null, 2),
-        makeNode("p1", "folder", "Projects", "ref1", 0),
-        makeNode("p2", "folder", "Projects", "ref2", 0),
-        makeNode("p3", "folder", "Projects", "ref3", 0),
-        makeNode("a1", "folder", "Archive", "ref1", 1),
-        makeNode("w1", "folder", "Work", "ref2", 1),
+        makeNode("repo-root", "folder", undefined, null, 0, {
+          data: { is_repo_root: true },
+        }),
+        makeNode("ref", "folder", "ref", "repo-root", 0),
+        makeNode("p1", "folder", "Projects", "ref", 0),
+        makeNode("p2", "folder", "Archive", "ref", 1),
+        makeNode("p3", "folder", "Work", "ref", 2),
       ],
     })
-    const state = initBoardState(repo)
+    const state = initBoardState(repo, "ref")
     expect(state).not.toBeNull()
-    expect(state!.columns).toHaveLength(1)
-    const cardNames = state!.columns[0]!.cards.map(
+    expect(state!.rootId).toBe("ref")
+    expect(state!.columns).toHaveLength(3)
+    const cardNames = state!.columns.map(
       (c) => c.node.content || c.node.data?.name,
     )
-    const uniqueNames = new Set(cardNames)
-    expect(uniqueNames.size).toBe(3)
-    expect(cardNames.length).toBe(3)
+    expect(cardNames).toEqual(["Projects", "Archive", "Work"])
   })
 
   test("initBoardState returns null for empty database", () => {

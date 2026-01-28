@@ -12,7 +12,13 @@ import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
 const debug = createDebug("km:cli:sync")
-import { SyncManager, findKmRootFromPath, syncState, SCHEMA } from "@km/storage"
+import {
+  SyncManager,
+  findKmRootFromPath,
+  syncState,
+  SCHEMA,
+  migrateToRepoRootNode,
+} from "@km/storage"
 import { runWithKmDir } from "@km/storage/internal/emit.ts"
 import { formatPath } from "../utils/format-path.ts"
 
@@ -152,6 +158,10 @@ async function runSync(
           chalk.green("✓"),
           `Synced ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,
         )
+
+        // Re-run migration after sync to catch any new orphan files
+        // Files discovered during sync have parent_id = null, so we need to update them
+        migrateToRepoRootNode(db, repoPath)
       }
     } catch (error) {
       console.error(chalk.red("Sync failed:"), error)
@@ -189,6 +199,9 @@ export const syncCommand = new Command("sync")
     // Open database directly from kmRoot and ensure schema exists
     const db = new Database(join(kmRoot, "state.db"))
     db.run(SCHEMA)
+
+    // Ensure repo root folder node exists (migration)
+    migrateToRepoRootNode(db, repoPath)
 
     if (options.watch) {
       const debounceMs = parseInt(options.debounce, 10)
