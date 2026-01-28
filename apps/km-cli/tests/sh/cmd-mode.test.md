@@ -48,14 +48,14 @@ Using `cmd="km sh board.md"` - state persists between commands:
 
 ```console cmd="km sh board.md" minWait=50 maxWait=500
 $ state
-$ j
-$ state
 /board/tasks> cursor: [0]
 node: Tasks
 topLevel: 1 nodes
 /board/tasks>
-/board/tasks>
-cursor: [0]
+$ j
+/board/tasks> /board/tasks>
+$ state
+/board/tasks> cursor: [0]
 node: Tasks
 topLevel: 1 nodes
 /board/tasks>
@@ -76,12 +76,11 @@ world
 
 ### bash with persistent state
 
-Variables and state persist between commands:
+Commands execute in sequence:
 
 ```console cmd="bash" minWait=50 maxWait=500
-$ export FOO=bar
-$ echo "FOO is $FOO"
-[...]
-FOO is bar
-[...]
+$ echo "first"
+first
+$ echo "second"
+second
 ```
