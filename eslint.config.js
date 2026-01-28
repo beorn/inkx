@@ -3,7 +3,7 @@ import pluginPromise from "eslint-plugin-promise"
 
 export default [
   {
-    ignores: ["website/**", "vendor/**", ".claude/**"],
+    ignores: ["website/**", "vendor/**", ".claude/**", "test-results/**"],
   },
   ...tseslint.configs.recommendedTypeChecked,
   pluginPromise.configs["flat/recommended"],

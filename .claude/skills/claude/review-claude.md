@@ -38,7 +38,7 @@ Audit Claude Code configuration for token efficiency and proper structure.
 
 ## Execute (Parallel First)
 
-### Step 1: Gather Metrics (4 Bash in parallel)
+### Step 1: Gather Metrics (5 Bash in parallel)
 
 ```bash
 # 1. CLAUDE.md size
@@ -57,6 +57,16 @@ done
 # 4. Keywords overlap check
 grep -h "^\*\*Keywords\*\*:" .claude/skills/*/SKILL.md | \
   sed 's/.*: //' | tr ',' '\n' | sort | uniq -c | sort -rn | head -10
+
+# 5. MCP servers configured
+if [[ -f .mcp.json ]]; then
+  echo "=== Project MCP Servers (.mcp.json) ==="
+  cat .mcp.json
+fi
+if [[ -f ~/.claude.json ]]; then
+  echo "=== User MCP Servers (~/.claude.json) ==="
+  cat ~/.claude.json
+fi
 ```
 
 ### Step 2: Session Error Analysis (parallel)
@@ -90,6 +100,116 @@ Run [session-errors.md](session-errors.md) workflow simultaneously:
 | Skills point to docs/             | Rationale in docs/          | Inline explanations       |
 | Workflows use checkbox pattern    | `- [ ] Step 1`              | Add tracking checkboxes   |
 | Frequently-used skills have evals | Test scenarios exist        | Create evaluations        |
+| **MCP Servers**                   |                             |                           |
+| Each server actively used         | Called in recent sessions   | Disable unused servers    |
+| Context overhead justified        | <2k tokens OR high-value    | Remove low-value servers  |
+| Servers documented in mcp.md      | Usage guidance exists       | Add documentation         |
+| **Capability Overlap**            |                             |                           |
+| No duplicate functionality        | Each component unique value | Disable redundant         |
+| Skills over MCP for orchestration | Complex workflows use skill | Convert MCP to skill      |
+| MCP only for unique capabilities  | No skill alternative exists | Disable or create skill   |
+| Clear value proposition           | Why this vs alternatives?   | Document or remove        |
+
+### Step 3b: MCP Server Analysis
+
+Use `ListMcpResourcesTool` to enumerate all configured MCP servers and their tools.
+
+**For each server, calculate:**
+
+| Metric         | Method                                   | Target      |
+| -------------- | ---------------------------------------- | ----------- |
+| Tools provided | Count from tool list                     | N/A         |
+| Token overhead | ~300-600 per tool (desc + schema)        | <2k/server  |
+| Usage pattern  | Check if tools called in session history | >1 use/week |
+| Value ratio    | Token cost vs utility                    | High value  |
+
+**Overhead estimates:**
+
+- Simple tool (1-3 params): ~300-400 tokens
+- Complex tool (5+ params, enums): ~500-700 tokens
+- Resource catalogs: ~100-200 tokens
+- Server overhead = (tools × avg) + resources
+
+**Decision criteria:**
+
+| Overhead | Usage      | Action           |
+| -------- | ---------- | ---------------- |
+| >2k      | Rare       | Disable          |
+| >2k      | Frequent   | Keep, document   |
+| <2k      | Rare       | Consider disable |
+| <2k      | Frequent   | Keep             |
+| Any      | Never used | Disable          |
+
+### Step 3c: Capability Overlap Analysis
+
+**Goal**: Identify redundant functionality between skills, MCP servers, and built-in tools.
+
+#### 1. Inventory Capabilities (parallel)
+
+```bash
+# Skills - extract descriptions and keywords
+for skill in .claude/skills/*/SKILL.md; do
+  dir=$(dirname "$skill")
+  name=$(basename "$dir")
+  desc=$(grep "^description:" "$skill" | sed 's/description: //')
+  keywords=$(grep "^\*\*Keywords\*\*:" "$skill" | sed 's/\*\*Keywords\*\*: //')
+  echo "SKILL: $name | $desc | $keywords"
+done
+
+# MCP servers - list from config
+if [[ -f .mcp.json ]]; then
+  echo "=== Project MCP Servers ==="
+  cat .mcp.json | grep -o '"[^"]*":' | tr -d '":' | grep -v mcpServers
+fi
+```
+
+#### 2. Map Functionality
+
+For each capability domain, list what provides it:
+
+| Domain                | Skills         | MCP Servers         | Built-in Tools                            | Notes         |
+| --------------------- | -------------- | ------------------- | ----------------------------------------- | ------------- |
+| File rename + imports | batch-refactor | refactor-typescript | mcp**refactor-typescript**file_operations | Overlap       |
+| Symbol rename         | batch-refactor | refactor-typescript | mcp**refactor-typescript**refactoring     | Overlap       |
+| Text search/replace   | batch-refactor | -                   | Grep, Edit                                | Native better |
+| Organize imports      | -              | refactor-typescript | mcp**refactor-typescript**code_quality    | MCP only      |
+| Extract refactoring   | -              | refactor-typescript | mcp**refactor-typescript**refactoring     | MCP only      |
+
+#### 3. Evaluate Value Proposition
+
+For each component, assess:
+
+| Component               | Token Cost            | Unique Value                                    | Redundant With          | Recommendation           |
+| ----------------------- | --------------------- | ----------------------------------------------- | ----------------------- | ------------------------ |
+| batch-refactor skill    | ~500 (on-demand)      | LLM-guided review, editsets, conflict detection | MCP refactor-typescript | Keep (more powerful)     |
+| refactor-typescript MCP | ~2.1k (every message) | Extract refactorings, organize imports          | batch-refactor          | Disable (mostly overlap) |
+
+**Analysis questions:**
+
+1. **Does this component provide unique value?**
+   - What can it do that others can't?
+   - Is the unique value used frequently?
+
+2. **What's the cost/benefit ratio?**
+   - Token overhead vs frequency of use
+   - Maintenance burden vs utility
+
+3. **Could native tools handle this?**
+   - Skills can orchestrate Grep + Edit for many tasks
+   - MCP servers add overhead - worth it?
+
+4. **Is there a lighter alternative?**
+   - Could a skill replace an MCP server?
+   - Could native tools replace a skill?
+
+#### 4. Overlap Patterns to Flag
+
+| Pattern                     | Example                               | Action                   |
+| --------------------------- | ------------------------------------- | ------------------------ |
+| Skill + MCP do same thing   | batch-refactor + refactor-typescript  | Disable MCP or skill     |
+| MCP rarely used             | Never called in 10+ sessions          | Disable                  |
+| Skill recreates built-in    | Grep skill that just wraps Grep tool  | Remove skill, use native |
+| Multiple skills same domain | code-review + code-quality + refactor | Consolidate              |
 
 ### Step 4: Propose Changes
 
@@ -144,6 +264,39 @@ Copy this checklist and track progress:
 | Largest skill    | X lines | <150   | ✓/✗    |
 | Orphan files     | X       | 0      | ✓/✗    |
 | Keyword overlaps | X       | 0      | ✓/✗    |
+| MCP servers      | X       | N/A    | N/A    |
+| MCP token cost   | X       | <2k/ea | ✓/✗    |
+
+## MCP Server Analysis
+
+| Server Name | Tools | Est. Tokens | Usage  | Recommendation |
+| ----------- | ----- | ----------- | ------ | -------------- |
+| server-name | 4     | ~2.1k       | Never  | Disable        |
+| other-srv   | 2     | ~800        | Weekly | Keep           |
+
+**Token impact**: Total overhead per request: ~X,XXX tokens (~X% of 200k budget)
+
+## Capability Overlap Analysis
+
+| Domain                | Providers                                     | Overlap | Recommendation                                         |
+| --------------------- | --------------------------------------------- | ------- | ------------------------------------------------------ |
+| File rename + imports | batch-refactor skill, refactor-typescript MCP | 100%    | Keep skill (more powerful), disable MCP                |
+| Symbol rename         | batch-refactor skill, refactor-typescript MCP | 100%    | Keep skill (editsets, conflict detection), disable MCP |
+| Organize imports      | refactor-typescript MCP                       | 0%      | Unique to MCP - keep if used frequently                |
+| Extract refactoring   | refactor-typescript MCP                       | 0%      | Unique to MCP - keep if used frequently                |
+
+**Value analysis:**
+
+| Component               | Token Cost            | Unique Value                                                   | Usage Frequency | Keep?            |
+| ----------------------- | --------------------- | -------------------------------------------------------------- | --------------- | ---------------- |
+| batch-refactor          | ~500 (on-demand)      | LLM-guided review, editsets, conflict detection, text/markdown | High            | ✅ Yes           |
+| refactor-typescript MCP | ~2.1k (every message) | Extract refactorings, organize imports, fix all errors         | Never observed  | ❌ No - disabled |
+
+**Recommendations:**
+
+- Disable MCP servers with 100% skill overlap and low usage
+- Keep skills that provide unique orchestration value
+- Document unique MCP capabilities (organize imports, extract) in mcp.md for future re-enablement
 
 ## Issues Found
 
@@ -193,6 +346,9 @@ For each major pattern, identify the underlying cause:
 | Missing "when" in desc     | Copied old patterns         | Skills created before guidelines update  |
 | Session errors on specific | Unclear instructions        | Same misinterpretation happened 3+ times |
 | Dead docs referenced       | No usage tracking           | Docs exist but Claude never loads them   |
+| MCP + skill do same thing  | Added tools without review  | Duplicate file rename, symbol refactor   |
+| Unused MCP servers         | No value tracking           | Server loaded every message, never used  |
+| High token overhead        | No cost/benefit analysis    | MCP adds 2k+ tokens but used once/month  |
 
 ### 3. Process Improvements
 
@@ -226,19 +382,32 @@ Propose concrete improvements based on root causes:
 - Replace inline examples with file:line references
 - Consolidate similar workflows across skills
 
+**Capability overlap elimination:**
+
+- Disable MCP servers with 100% skill overlap (batch-refactor vs refactor-typescript)
+- Document unique MCP capabilities in mcp.md for future re-enablement
+- Prefer skills over MCP for orchestration (skills compose tools, MCP is single-purpose)
+- Keep MCP only for capabilities that can't be orchestrated (native operations, state management)
+- Track usage: disable components unused for 10+ sessions
+- Regular overlap audits: quarterly review of all skills/MCP/tools
+
 ### 4. Metrics Tracking
 
 Compare before/after metrics:
 
-| Metric                    | Before | After | Target |
-| ------------------------- | ------ | ----- | ------ |
-| CLAUDE.md lines           | X      | Y     | <60    |
-| Files over limit          | X      | Y     | 0      |
-| Orphan files              | X      | Y     | 0      |
-| Keyword overlaps          | X      | Y     | 0      |
-| Skills without "when"     | X      | Y     | 0      |
-| Session error rate        | X%     | Y%    | <5%    |
-| Avg tokens per activation | X      | Y     | <4000  |
+| Metric                           | Before | After | Target |
+| -------------------------------- | ------ | ----- | ------ |
+| CLAUDE.md lines                  | X      | Y     | <60    |
+| Files over limit                 | X      | Y     | 0      |
+| Orphan files                     | X      | Y     | 0      |
+| Keyword overlaps                 | X      | Y     | 0      |
+| Skills without "when"            | X      | Y     | 0      |
+| Session error rate               | X%     | Y%    | <5%    |
+| Avg tokens per activation        | X      | Y     | <4000  |
+| MCP servers                      | X      | Y     | <3     |
+| MCP token overhead               | Xk     | Yk    | <5k    |
+| Capability overlaps              | X      | Y     | 0      |
+| Unused components (10+ sessions) | X      | Y     | 0      |
 
 ### 5. Session Error Analysis Integration
 
