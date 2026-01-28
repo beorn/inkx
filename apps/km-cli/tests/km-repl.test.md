@@ -21,6 +21,7 @@ Syncing .km/state.db with files (repo ...)
 
 ```console
 $ km list
+.../
 Test Board
 ## Tasks
 [ ] Task A
@@ -28,5 +29,5 @@ Test Board
 [ ] Task C
 ## Done
 [x] Task D
-7 node(s)
+8 node(s)
 ```

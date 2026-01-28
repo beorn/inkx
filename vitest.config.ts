@@ -3,6 +3,12 @@ import { availableParallelism } from "node:os"
 
 export default defineConfig({
   test: {
+    // Force certain packages to be bundled in SSR to avoid import issues
+    server: {
+      deps: {
+        inline: ["zod"],
+      },
+    },
     // All packages now use Vitest (migration complete)
     include: [
       "packages/*/tests/**/*.test.ts",

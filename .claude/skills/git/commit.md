@@ -204,14 +204,14 @@ Before generating script, verify in gathered output:
 
 If the script fails partway through:
 
-| Error                            | Fix                                                |
-| -------------------------------- | -------------------------------------------------- |
-| "detached HEAD"                  | Add `(cd vendor/X && git checkout main)` to script |
-| "nothing to commit" (after gather) | This should be caught in Step 2 - don't generate a script if no changes exist |
-| "nothing to commit" (during script) | Remove that repo's section from script             |
-| "push rejected"                  | Run `git pull --rebase && git push` manually       |
-| Pre-commit hook fails            | Fix issue, run script again (idempotent)           |
-| "Uncommitted changes" (pre-push) | `bd sync` should be in script already              |
+| Error                               | Fix                                                                           |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| "detached HEAD"                     | Add `(cd vendor/X && git checkout main)` to script                            |
+| "nothing to commit" (after gather)  | This should be caught in Step 2 - don't generate a script if no changes exist |
+| "nothing to commit" (during script) | Remove that repo's section from script                                        |
+| "push rejected"                     | Run `git pull --rebase && git push` manually                                  |
+| Pre-commit hook fails               | Fix issue, run script again (idempotent)                                      |
+| "Uncommitted changes" (pre-push)    | `bd sync` should be in script already                                         |
 
 ## When to Ask User
 

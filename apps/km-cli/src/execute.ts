@@ -7,6 +7,7 @@
 
 import { Writable } from "stream"
 import type { ReplResult } from "../../../vendor/beorn-mdtest/src/types.js"
+import { configureProgram } from "./program.ts"
 
 /**
  * Execute a km command in-process and capture output
@@ -112,7 +113,6 @@ export async function executeKmCommand(
     process.argv = ["bun", "km", ...args]
 
     // Get a fresh program instance (configureProgram() doesn't call parse())
-    const { configureProgram } = await import("./program.js")
     const program = configureProgram()
 
     try {
