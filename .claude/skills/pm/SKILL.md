@@ -1,6 +1,6 @@
 ---
 description: Issue tracking with beads. Use when creating, claiming, closing issues or coordinating work across sessions.
-argument-hint: [ready|work|do|show|close|sync|my|create|list] [id]
+argument-hint: [ready|review|work|do|show|close|sync|my|create|list] [id]
 allowed-tools: Bash, Read, TodoWrite
 ---
 
@@ -20,21 +20,24 @@ Issue tracking using beads. Coordinates work across Claude sessions.
 
 When user says `/pm <action>`, run these commands:
 
-| User Says          | Action                                                |
-| ------------------ | ----------------------------------------------------- |
-| `/pm`              | `bd list --status open --limit 20`                    |
-| `/pm ready`        | `bd ready`                                            |
-| `/pm bug <desc>`   | Load [create.md](create.md) for bug creation/fixing   |
-| `/pm feat <desc>`  | Load [create.md](create.md) for feature creation      |
-| `/pm task <desc>`  | Load [create.md](create.md) for task creation         |
-| `/pm work <id>`    | `bd update <id> --claim --status in_progress`         |
-| `/pm do <id>`      | `bd update <id> --claim --status in_progress`         |
-| `/pm show <id>`    | `bd show <id>`                                        |
-| `/pm close <id>`   | `bd close <id>`                                       |
-| `/pm sync`         | `git add .beads && git commit -m "chore: sync beads"` |
-| `/pm my`           | `bd list --assignee $USER`                            |
-| `/pm new <id> "t"` | `bd create --id km-<id> --title "t"`                  |
-| `/pm create ...`   | See [beads.md](beads.md) for full create syntax       |
+| User Says            | Action                                                   |
+| -------------------- | -------------------------------------------------------- |
+| `/pm`                | `bd list --status open --limit 20`                       |
+| `/pm ready`          | `bd ready`                                               |
+| `/pm review [mode]`  | Load [workflows/review.md](workflows/review.md) for grooming |
+| `/pm bug <desc>`     | Load [create.md](create.md) for bug creation/fixing      |
+| `/pm feat <desc>`    | Load [create.md](create.md) for feature creation         |
+| `/pm task <desc>`    | Load [create.md](create.md) for task creation            |
+| `/pm work <id>`      | `bd update <id> --claim --status in_progress`            |
+| `/pm do <id>`        | `bd update <id> --claim --status in_progress`            |
+| `/pm show <id>`      | `bd show <id>`                                           |
+| `/pm close <id>`     | `bd close <id>`                                          |
+| `/pm sync`           | `git add .beads && git commit -m "chore: sync beads"`    |
+| `/pm my`             | `bd list --assignee $USER`                               |
+| `/pm new <id> "t"`   | `bd create --id km-<id> --title "t"`                     |
+| `/pm create ...`     | See [beads.md](beads.md) for full create syntax          |
+
+**Review modes**: `status` (health summary), `ready` (actionable work), `groom` (full review)
 
 ## Workflow
 
