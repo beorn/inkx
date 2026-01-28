@@ -39,7 +39,7 @@ export interface VitestTapResult {
 export function runVitestTap(options: VitestTapOptions = {}): VitestTapResult {
 	const args = ["vitest", "run", "--reporter=tap", ...(options.args ?? [])]
 
-	const proc = spawn(["bunx", ...args], {
+	const proc = spawn(["bunx", "--bun", ...args], {
 		cwd: options.cwd,
 		stdout: "pipe",
 		stderr: "inherit", // Show Vitest errors on stderr
