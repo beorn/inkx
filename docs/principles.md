@@ -268,6 +268,37 @@ export function getDb() {
 // ✅ GOOD - explicit dependency (see above)
 ```
 
+**Defaults over configuration**:
+
+Configuration files explode the possibility space—every option multiplies what you need to test and debug. They also create friction: users must set things up before anything works.
+
+**The pattern**: Sensible defaults → function arguments → configuration (last resort).
+
+```typescript
+// ❌ BAD - requires config file to work
+const watcher = createWatcher({ configPath: ".km/watcher.json" })
+// User must create config file before anything works
+
+// ✅ GOOD - works immediately with sensible defaults
+const watcher = createWatcher(repoPath)
+
+// ✅ GOOD - arguments for dynamic behavior
+const watcher = createWatcher(repoPath, { debounceMs: 100 })
+```
+
+**When configuration IS acceptable**:
+
+- User preferences persisting across sessions (theme, keybindings)
+- Environment-specific settings that rarely change (API endpoints)
+- Per-project settings that belong in version control
+
+**Why**:
+
+- Zero-config means it "just works"
+- Arguments are explicit at the call site
+- Configuration increases coupling (code ↔ config format, config location, loader)
+- Fewer configurations = fewer test combinations = fewer bugs
+
 #### Technique: `using` for Cleanup
 
 When you inject dependencies, you own their lifecycle. The `using` keyword ensures automatic cleanup.
@@ -763,6 +794,7 @@ What we're **not** optimizing for. These clarify tradeoffs and prevent endless d
 - **Not optimizing for**: Backwards compatibility inside the codebase — Quarantine and Delete
 - **Not optimizing for**: Maximum generality — Solve today's problems, not hypothetical futures
 - **Not optimizing for**: Minimal lines of code — Explicit and clear beats clever and terse
+- **Not optimizing for**: Maximum configurability — Sensible defaults and arguments beat config files
 
 ---
 
