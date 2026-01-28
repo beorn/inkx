@@ -1,7 +1,7 @@
 ---
 description: Issue tracking with beads. Use when creating, claiming, closing issues or coordinating work across sessions.
 argument-hint: [ready|review|work|do|show|close|sync|my|create|list] [id]
-allowed-tools: Bash, Read, TodoWrite
+allowed-tools: Bash, Read, TodoWrite, Task, EnterPlanMode, AskUserQuestion
 ---
 
 # Project Management
@@ -20,24 +20,49 @@ Issue tracking using beads. Coordinates work across Claude sessions.
 
 When user says `/pm <action>`, run these commands:
 
-| User Says           | Action                                                       |
-| ------------------- | ------------------------------------------------------------ |
-| `/pm`               | `bd list --status open --limit 20`                           |
-| `/pm ready`         | `bd ready`                                                   |
-| `/pm review [mode]` | Load [workflows/review.md](workflows/review.md) for grooming |
-| `/pm bug <desc>`    | Load [create.md](create.md) for bug creation/fixing          |
-| `/pm feat <desc>`   | Load [create.md](create.md) for feature creation             |
-| `/pm task <desc>`   | Load [create.md](create.md) for task creation                |
-| `/pm work <id>`     | `bd update <id> --claim --status in_progress`                |
-| `/pm do <id>`       | `bd update <id> --claim --status in_progress`                |
-| `/pm show <id>`     | `bd show <id>`                                               |
-| `/pm close <id>`    | `bd close <id>`                                              |
-| `/pm sync`          | `git add .beads && git commit -m "chore: sync beads"`        |
-| `/pm my`            | `bd list --assignee $USER`                                   |
-| `/pm new <id> "t"`  | `bd create --id km-<id> --title "t"`                         |
-| `/pm create ...`    | See [beads.md](beads.md) for full create syntax              |
+| User Says           | Action                                                       | Intent      |
+| ------------------- | ------------------------------------------------------------ | ----------- |
+| `/pm`               | `bd list --status open --limit 20`                           | info        |
+| `/pm ready`         | `bd ready`                                                   | info        |
+| `/pm review [mode]` | Load [workflows/review.md](workflows/review.md) for grooming | info        |
+| `/pm bug <desc>`    | Load [create.md](create.md) for bug creation/fixing          | ask         |
+| `/pm feat <desc>`   | Load [create.md](create.md) for feature creation             | ask         |
+| `/pm task <desc>`   | Load [create.md](create.md) for task creation                | ask         |
+| `/pm work <id>`     | Claim + start implementation immediately                     | **do-work** |
+| `/pm do <id>`       | Claim + start implementation immediately                     | **do-work** |
+| `/pm show <id>`     | `bd show <id>`                                               | info        |
+| `/pm close <id>`    | `bd close <id>`                                              | action      |
+| `/pm sync`          | `git add .beads && git commit -m "chore: sync beads"`        | action      |
+| `/pm my`            | `bd list --assignee $USER`                                   | info        |
+| `/pm new <id> "t"`  | `bd create --id km-<id> --title "t"`                         | action      |
+| `/pm create ...`    | See [beads.md](beads.md) for full create syntax              | action      |
 
 **Review modes**: `status` (health summary), `ready` (actionable work), `groom` (full review)
+
+## Intent Handling
+
+Commands have different intents that determine follow-up behavior:
+
+| Intent      | Behavior                                                            |
+| ----------- | ------------------------------------------------------------------- |
+| **info**    | Display information only, no follow-up action                       |
+| **ask**     | After action, ask user what to do next (e.g., "work now or track?") |
+| **action**  | Execute action, report result, done                                 |
+| **do-work** | **START WORK IMMEDIATELY** - no confirmation, proceed to implement  |
+
+### do-work Intent (Critical)
+
+When user says `/pm work <id>` or `/pm do <id>`:
+
+1. **Claim the bead**: `bd update <id> --claim --status in_progress`
+2. **Get bead details**: `bd show <id>` to determine type
+3. **Proceed DIRECTLY to implementation** - DO NOT ask "should I start work?"
+4. **Load appropriate workflow** based on bead type:
+   - Bug → [workflows/bugs.md](workflows/bugs.md)
+   - Feature → [workflows/features.md](workflows/features.md)
+   - Task → [workflows/tasks.md](workflows/tasks.md)
+
+The user's command IS the confirmation. Never re-ask intent that was already expressed.
 
 ## Workflow
 
@@ -64,6 +89,15 @@ When user says `/pm <action>`, run these commands:
 - Take over stale work: `bd update <id> --claim` (forcibly claims, updates assignee)
 - View your claims: `bd list --assignee $USER`
 - Actor field shows who last worked on each bead (audit trail)
+
+## Big Refactoring Beads
+
+When working on refactoring beads (labeled `refactor` or involving API migrations):
+
+1. **Read first**: [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md)
+2. **Rebase related beads** before starting - outdated beads cause accidental reverts
+3. **Break intentionally** - delete old APIs, let `tsc` guide fixes
+4. **Phase order**: Rebase -> Absorb -> Purge -> Remove -> Fix (not Fix -> Remove)
 
 ## Sub-Skills
 

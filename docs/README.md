@@ -72,9 +72,13 @@ km init                    # Enable persistence (stable IDs, history)
 | [ref/markdown.md](ref/markdown.md)                                             | Markdown parsing                         |
 | [ref/pipelines.md](ref/pipelines.md)                                           | Async generator pipelines (complete)     |
 | [ref/prior-art.md](ref/prior-art.md)                                           | Research notes                           |
-| [ref/lesson-backwards-compatibility.md](ref/lesson-backwards-compatibility.md) | Lesson: The Backwards Compatibility Trap |
-| [ref/lesson-filetree-as-peer.md](ref/lesson-filetree-as-peer.md)               | Lesson: FileTree as Peer DataStore       |
-| [ref/lesson-km-me0n.md](ref/lesson-km-me0n.md)                                 | Lesson: The km-me0n Incident             |
+### Lessons
+
+| Doc                                                        | Description                              |
+| ---------------------------------------------------------- | ---------------------------------------- |
+| [lessons/refactoring.md](lessons/refactoring.md)           | Delete first, fix second (with examples) |
+| [lessons/filetree-as-peer.md](lessons/filetree-as-peer.md) | Peer vs representation design            |
+| [lessons/km-me0n.md](lessons/km-me0n.md)                   | Test isolation after data corruption     |
 
 ### Developer Guides
 

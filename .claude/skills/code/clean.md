@@ -122,4 +122,8 @@ If all tests pass, summarize changes:
 - Remove comments that explain "why" (keep the narrative)
 - Change behavior while simplifying (refactor ≠ rewrite)
 
+## Related
+
+For major refactoring projects, see [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md).
+
 **Keywords**: clean, simplify, cleanup, refactor, consistency

@@ -836,6 +836,18 @@ If you can't answer these clearly, the design needs more work.
 
 ---
 
+### Refactoring
+
+Big refactoring projects have unique failure modes. See [lessons/refactoring.md](lessons/refactoring.md) for hard-won lessons with concrete examples:
+
+- **Update beads first** - Update bead descriptions to reflect current codebase state
+- **Break intentionally** - Force complete migration, not half-migrated code
+- **Purge aggressively** - Delete deprecated APIs immediately
+- **No backwards compat hacks** - No shims, re-exports, or fallbacks
+- **Phase order matters** - Update -> Absorb -> Purge -> Remove -> Fix
+
+---
+
 ### How We Keep This Real
 
 How we keep principles true over time.
@@ -943,6 +955,6 @@ bun fix              # Lint + format
 
 Real stories from km development that shaped these principles:
 
-- [lesson-backwards-compatibility.md](ref/lesson-backwards-compatibility.md) — **The Backwards Compatibility Trap**: Singleton wrappers for "backwards compatibility" prevented migration from ever completing. The lesson: quarantine and delete.
-- [lesson-filetree-as-peer.md](ref/lesson-filetree-as-peer.md) — **FileTree as Peer DataStore**: Treating FileTree and DataStore as interchangeable peers led to performance asymmetry, semantic mismatch, and overly generic sync logic. The lesson: identify representation vs peer.
-- [lesson-km-me0n.md](ref/lesson-km-me0n.md) — **The km-me0n Incident**: `km sync --to-fs` corrupted source files by writing to real files instead of test fixtures. The lesson: tests use isolated directories, in-memory infrastructure.
+- [refactoring.md](lessons/refactoring.md) — **Refactoring Lessons**: Delete first, fix second. Backwards compatibility is a trap. Includes case studies from domain objects migration and inkx/chalkx absorption.
+- [filetree-as-peer.md](lessons/filetree-as-peer.md) — **FileTree as Peer DataStore**: Treating FileTree and DataStore as interchangeable peers led to performance asymmetry, semantic mismatch, and overly generic sync logic. The lesson: identify representation vs peer.
+- [km-me0n.md](lessons/km-me0n.md) — **The km-me0n Incident**: `km sync --to-fs` corrupted source files by writing to real files instead of test fixtures. The lesson: tests use isolated directories, in-memory infrastructure.

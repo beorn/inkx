@@ -22,12 +22,12 @@ FileTree is a **representation** of DataStore, not a peer. Files are the source 
 
 Once we recognized this, the design simplified:
 
-- FileTree translates markdown → nodes
+- FileTree translates markdown -> nodes
 - DataStore is the canonical structure
 - Sync is unidirectional with clear semantics
 
 ## Related Principles
 
-- [Layered Architecture](../principles.md#layered-architecture) - Each layer calls only the layer below
+- [Layered Architecture](../principles.md#principle-organize-objects-into-layers) - Each layer calls only the layer below
 - [architecture.md](../architecture.md) - System layers and data flow
 - [storage.md](../storage.md) - SQLite schema and sync details
