@@ -12,17 +12,22 @@
  *   }
  *
  * SYMBOLS:
- *   · (green)  = passed
- *   ● (yellow) = passed but slow (>threshold)
- *   x (red)    = failed
- *   ⠋ (cyan)   = running (animated spinner in TTY mode)
- *   * (yellow) = pending/queued
- *   - (gray)   = skipped
+ *   · (green dim) = passed (fast or slow, <2x threshold)
+ *   ● (green)     = passed but very slow (>=2x threshold)
+ *   x (red)     = failed
+ *   ! (magenta) = noisy (test with console output)
+ *   ⠋ (cyan)    = running (animated spinner in TTY mode)
+ *   * (yellow)  = pending/queued
+ *   - (gray)    = skipped
  *
  * FEATURES:
  * - Clean colored dot output (no empty color sequences)
  * - Animated spinner for running tests (TTY mode only)
- * - Slow test detection with different symbol
+ * - Slow test detection with graduated dot sizes (bigger = slower)
+ * - Noisy test detection (tests with console output marked with !)
+ * - Error traces shown for failed tests
+ * - Grouped output by package (reads package.json for names)
+ * - Per-package summary with test counts and timing
  * - Test performance tracking per-test
  * - Slow test summary at end (configurable threshold)
  * - JSON export for performance trending over time
@@ -32,43 +37,33 @@
  * - docs/future/monorepo-infra.md
  */
 
+import fs from "node:fs"
 import type { Reporter, TestCase, TestModule, TestSpecification, Vitest } from "vitest/node"
+import { chalk } from "@beorn/chalkx"
+import Debug from "debug"
 
-// ANSI color codes
-const c = {
-  reset: "\x1b[0m",
-  bold: "\x1b[1m",
-  dim: "\x1b[2m",
-  red: "\x1b[31m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  blue: "\x1b[34m",
-  magenta: "\x1b[35m",
-  cyan: "\x1b[36m",
-  gray: "\x1b[90m",
-  bgCyan: "\x1b[46m",
-  bgRed: "\x1b[41m",
-  bgGreen: "\x1b[42m",
-}
+const debug = Debug("km:vitest-reporter")
 
-// ANSI cursor control
+// ANSI cursor control (chalk doesn't provide these)
 const cursor = {
   save: "\x1b7",
   restore: "\x1b8",
   hide: "\x1b[?25l",
   show: "\x1b[?25h",
   clearLine: "\x1b[2K",
+  moveUp: (n: number) => `\x1b[${n}A`,
   moveToColumn: (n: number) => `\x1b[${n}G`,
   moveLeft: (n: number) => `\x1b[${n}D`,
 }
 
-// Symbols
+// Symbols - dimmed dots for normal, bright disc for very slow
 const sym = {
-  pass: "·",
+  pass: "·", // Normal test - middle dot U+00B7 (shown dimmed)
+  passSlow2: "●", // Very slow (>=2x threshold) - black circle U+25CF (shown bright)
   fail: "x",
   skip: "-",
   pending: "*",
-  slow: "●", // Filled dot for slow tests
+  noisy: "!", // Test with console output
   check: "✓",
   cross: "✗",
   pointer: "❯",
@@ -94,6 +89,17 @@ interface ReporterOptions {
   showSlow?: boolean
   /** Max slow tests to show (default: 10) */
   maxSlow?: number
+  /** Group tests by package/directory (default: true) */
+  groupByPackage?: boolean
+}
+
+interface CategoryStats {
+  testIds: string[]
+  passed: number
+  failed: number
+  skipped: number
+  duration: number
+  slowCount: number
 }
 
 export class KmReporter implements Reporter {
@@ -107,11 +113,11 @@ export class KmReporter implements Reporter {
   private dotCount = 0
 
   // TTY-aware rendering for pending tests
-  private isTTY = process.stdout.isTTY ?? false
+  // NOTE: Check isTTY at runtime via getter, not at construction time,
+  // because vitest-setup.ts may set process.stdout.isTTY = false after reporter loads
   private testStates = new Map<string, "pending" | "passed" | "failed" | "skipped">()
   private testOrder: string[] = [] // Track order for rendering
   private finishedTests = new Set<string>()
-  private columns = process.stdout.columns ?? 80
 
   // Animation for running tests (TTY only)
   private spinnerFrame = 0
@@ -120,6 +126,30 @@ export class KmReporter implements Reporter {
 
   // Track slow tests for special display
   private slowTestIds = new Set<string>()
+  private testDurations = new Map<string, number>() // test ID → duration in ms
+
+  // Track test errors for display at end
+  private testErrors = new Map<string, { name: string; file: string; errors: Array<{ message: string; stack?: string }> }>()
+
+  // Track noisy tests (tests with console output)
+  private noisyTestIds = new Set<string>()
+
+  // Category grouping
+  private testToCategory = new Map<string, string>() // test ID → category
+  private categoryStats = new Map<string, CategoryStats>() // category → stats
+  private categoryOrder: string[] = [] // Maintain discovery order
+  private categoryCommittedCounts = new Map<string, number>() // For TTY rendering
+
+  // Runtime TTY detection - must be checked at runtime, not cached
+  private get isTTY(): boolean {
+    // Check both process.stdout.isTTY AND TERM != dumb
+    // TERM=dumb is set by test scripts to prevent escape sequences
+    return (process.stdout.isTTY ?? false) && process.env.TERM !== "dumb"
+  }
+
+  private get columns(): number {
+    return process.stdout.columns ?? 80
+  }
 
   constructor(options: ReporterOptions = {}) {
     this.options = {
@@ -127,15 +157,19 @@ export class KmReporter implements Reporter {
       perfOutput: options.perfOutput ?? "",
       showSlow: options.showSlow ?? true,
       maxSlow: options.maxSlow ?? 10,
+      groupByPackage: options.groupByPackage ?? true,
     }
+    debug("reporter initialized with options: %O", this.options)
   }
 
   onInit(ctx: Vitest) {
+    debug("onInit called")
     this.ctx = ctx
     this.reset()
   }
 
   private reset() {
+    debug("reset called")
     this.timings = []
     this.passed = 0
     this.failed = 0
@@ -149,6 +183,15 @@ export class KmReporter implements Reporter {
     this.spinnerFrame = 0
     this.runningTests.clear()
     this.slowTestIds.clear()
+    this.testDurations.clear()
+    this.testErrors.clear()
+    this.noisyTestIds.clear()
+    this.testToCategory.clear()
+    this.categoryStats.clear()
+    this.categoryOrder = []
+    this.categoryCommittedCounts.clear()
+    this.lastRenderedCategoryCount = 0
+    this.packageNameCache.clear()
     if (this.spinnerInterval) {
       clearInterval(this.spinnerInterval)
       this.spinnerInterval = null
@@ -156,13 +199,19 @@ export class KmReporter implements Reporter {
   }
 
   onTestRunStart(_specs: TestSpecification[]) {
+    debug("onTestRunStart called with %d specs, isTTY=%s", _specs.length, this.isTTY)
+
     // Print header
     const version = this.ctx.version
     const cwd = process.cwd()
-    process.stdout.write(`\n ${c.bold}${c.bgCyan} RUN ${c.reset} ${c.cyan}v${version}${c.reset} ${c.gray}${cwd}${c.reset}\n\n`)
+    process.stdout.write(`\n ${chalk.bold.bgCyan(" RUN ")} ${chalk.cyan(`v${version}`)} ${chalk.gray(cwd)}\n`)
+
+    // Print legend
+    process.stdout.write(` ${chalk.dim("Legend:")} ${chalk.green(sym.pass)}${chalk.dim("pass")} ${chalk.green(sym.passSlow2)}${chalk.dim("slow")} ${chalk.red(sym.fail)}${chalk.dim("fail")} ${chalk.magenta(sym.noisy)}${chalk.dim("noisy")} ${chalk.gray(sym.skip)}${chalk.dim("skip")}\n\n`)
 
     // Hide cursor and start animation for TTY
     if (this.isTTY) {
+      debug("starting TTY mode with spinner animation")
       process.stdout.write(cursor.hide)
       // Start spinner animation at 80ms interval (12.5 fps)
       this.spinnerInterval = setInterval(() => {
@@ -175,6 +224,7 @@ export class KmReporter implements Reporter {
   }
 
   onTestModuleCollected(module: TestModule) {
+    debug("onTestModuleCollected: %s", (module as { moduleId?: string }).moduleId)
     // Mark all discovered tests as pending
     for (const test of module.children.allTests()) {
       this.onTestCaseReady(test)
@@ -186,9 +236,33 @@ export class KmReporter implements Reporter {
     if (this.finishedTests.has(id)) return
     if (this.testStates.has(id)) return // Already tracked
 
+    debug("onTestCaseReady: %s", testCase.name)
     this.testStates.set(id, "pending")
     this.testOrder.push(id)
     this.runningTests.add(id) // Track as running for animation
+
+    // Track category for grouping
+    if (this.options.groupByPackage) {
+      const moduleId = (testCase.module as { moduleId?: string }).moduleId ?? "unknown"
+      const category = this.extractCategory(moduleId)
+      this.testToCategory.set(id, category)
+
+      if (!this.categoryStats.has(category)) {
+        debug("new category discovered: %s", category)
+        this.categoryStats.set(category, {
+          testIds: [],
+          passed: 0,
+          failed: 0,
+          skipped: 0,
+          duration: 0,
+          slowCount: 0,
+        })
+        this.categoryOrder.push(category)
+        this.categoryCommittedCounts.set(category, 0)
+      }
+      const stats = this.categoryStats.get(category)
+      if (stats) stats.testIds.push(id)
+    }
 
     // On TTY, render pending state; on non-TTY, wait for result
     if (this.isTTY) {
@@ -204,6 +278,8 @@ export class KmReporter implements Reporter {
     const diagnostic = testCase.diagnostic()
     const duration = diagnostic.duration ?? 0
     const state = result.state
+
+    debug("onTestCaseResult: %s state=%s duration=%dms", testCase.name, state, duration)
 
     // Track timing
     const moduleId = (testCase.module as { moduleId?: string }).moduleId ?? "unknown"
@@ -226,16 +302,53 @@ export class KmReporter implements Reporter {
     this.runningTests.delete(id) // No longer running
     this.testStates.set(id, testState)
 
-    // Track slow tests for special display
+    // Track slow tests and durations for display
+    this.testDurations.set(id, duration)
     if (duration >= this.options.slowThreshold) {
       this.slowTestIds.add(id)
     }
 
+    // Track errors for failed tests
+    if (testState === "failed" && result.errors && result.errors.length > 0) {
+      this.testErrors.set(id, {
+        name: testCase.name,
+        file: moduleId,
+        errors: result.errors.map((e) => ({
+          message: e.message ?? (typeof e === "string" ? e : "Unknown error"),
+          stack: e.stack,
+        })),
+      })
+    }
+
+    // Track noisy tests (tests with console output)
+    // Note: vitest doesn't expose stdout/stderr directly in the reporter API,
+    // but we can check if the test has any logs in diagnostic
+    const logs = (diagnostic as { stdout?: string; stderr?: string })
+    if (logs.stdout || logs.stderr) {
+      this.noisyTestIds.add(id)
+    }
+
+    // Update category stats
+    if (this.options.groupByPackage) {
+      const category = this.testToCategory.get(id)
+      const stats = category ? this.categoryStats.get(category) : undefined
+      if (stats) {
+        stats.duration += duration
+        if (testState === "passed") stats.passed++
+        else if (testState === "failed") stats.failed++
+        else if (testState === "skipped") stats.skipped++
+        if (duration >= this.options.slowThreshold) stats.slowCount++
+      }
+    }
+
     if (this.isTTY) {
-      // TTY mode: re-render the dot line to show updated state
+      // TTY mode: re-render grouped dot lines in place
       this.renderDots()
+    } else if (this.options.groupByPackage) {
+      // Non-TTY with grouping: suppress flat dots, show grouped output at end
+      // (handled by renderFinalGroupedDots in onTestRunEnd)
     } else {
-      // Non-TTY: emit dot immediately for streaming output
+      // Non-TTY flat mode: emit dots as tests complete
       const dot = this.formatDot(testState, id)
       process.stdout.write(dot)
       this.dotCount++
@@ -243,32 +356,85 @@ export class KmReporter implements Reporter {
   }
 
   private formatDot(state: "pending" | "passed" | "failed" | "skipped", id?: string): string {
-    const isSlow = id ? this.slowTestIds.has(id) : false
+    const duration = id ? this.testDurations.get(id) ?? 0 : 0
     const isRunning = id ? this.runningTests.has(id) : false
+    const isNoisy = id ? this.noisyTestIds.has(id) : false
+    const threshold = this.options.slowThreshold
+
+    // Noisy tests (with console output) get a magenta ! indicator
+    if (isNoisy && state !== "failed") {
+      return chalk.magenta(sym.noisy)
+    }
 
     switch (state) {
       case "passed":
-        // Slow passing tests get a filled dot in yellow
-        if (isSlow) return `${c.yellow}${sym.slow}${c.reset}`
-        return `${c.green}${sym.pass}${c.reset}`
+        // All dots are dimmed except very slow tests which get a bright large disc
+        if (duration >= threshold * 2) return chalk.green(sym.passSlow2) // Very slow: ● (bright)
+        return chalk.dim.green(sym.pass) // Fast/slow: · (dimmed)
       case "failed":
-        return `${c.red}${sym.fail}${c.reset}`
+        return chalk.red(sym.fail)
       case "skipped":
-        return `${c.dim}${c.gray}${sym.skip}${c.reset}`
+        return chalk.dim.gray(sym.skip)
       case "pending":
         // Animate running tests in TTY mode
         if (isRunning && this.isTTY) {
           const frame = spinnerFrames[this.spinnerFrame]
-          return `${c.cyan}${frame}${c.reset}`
+          return chalk.cyan(frame)
         }
-        return `${c.yellow}${sym.pending}${c.reset}`
+        return chalk.yellow(sym.pending)
     }
   }
 
   private committedCount = 0 // Tests already printed in committed lines
+  private lastRenderedCategoryCount = 0 // For cursor control in grouped mode
 
   private renderDots() {
-    // Only render uncommitted tests (current line)
+    if (this.options.groupByPackage) {
+      this.renderGroupedDots()
+    } else {
+      this.renderFlatDots()
+    }
+  }
+
+  private renderGroupedDots() {
+    // Move cursor up to start of category block
+    if (this.lastRenderedCategoryCount > 0) {
+      process.stdout.write(cursor.moveUp(this.lastRenderedCategoryCount))
+    }
+
+    const labelWidth = 20
+    const maxDots = this.columns - labelWidth - 2
+
+    for (const category of this.categoryOrder) {
+      const stats = this.categoryStats.get(category)
+      if (!stats) continue
+      const testIds = stats.testIds
+
+      // Build dots string for this category
+      const dots = testIds.map((id) => {
+        const state = this.testStates.get(id) ?? "pending"
+        return this.formatDot(state, id)
+      })
+
+      // Truncate if too many dots
+      const dotsStr = dots.length > maxDots
+        ? dots.slice(0, maxDots - 1).join("") + "…"
+        : dots.join("")
+
+      // Format label (right-padded)
+      const label = category.length > labelWidth - 1
+        ? category.slice(0, labelWidth - 2) + "…"
+        : category
+      const paddedLabel = label.padEnd(labelWidth)
+
+      process.stdout.write(`${cursor.clearLine}${chalk.dim(paddedLabel)}${dotsStr}\n`)
+    }
+
+    this.lastRenderedCategoryCount = this.categoryOrder.length
+  }
+
+  private renderFlatDots() {
+    // Original flat rendering (no grouping)
     const uncommittedTests = this.testOrder.slice(this.committedCount)
     const dots = uncommittedTests.map((id) => {
       const state = this.testStates.get(id) ?? "pending"
@@ -287,7 +453,7 @@ export class KmReporter implements Reporter {
       this.committedCount += this.columns
       // Recursively render remaining
       if (uncommittedTests.length > this.columns) {
-        this.renderDots()
+        this.renderFlatDots()
       }
       return
     }
@@ -296,11 +462,44 @@ export class KmReporter implements Reporter {
     process.stdout.write(`\r${cursor.clearLine}${dots.join("")}`)
   }
 
+  private renderFinalGroupedDots() {
+    // Render grouped dots at end of run (for non-TTY mode)
+    const labelWidth = 20
+    const maxDots = this.columns - labelWidth - 2
+
+    for (const category of this.categoryOrder) {
+      const stats = this.categoryStats.get(category)
+      if (!stats) continue
+      const testIds = stats.testIds
+
+      // Build dots string for this category
+      const dots = testIds.map((id) => {
+        const state = this.testStates.get(id) ?? "pending"
+        return this.formatDot(state, id)
+      })
+
+      // Truncate if too many dots
+      const dotsStr = dots.length > maxDots
+        ? dots.slice(0, maxDots - 1).join("") + "…"
+        : dots.join("")
+
+      // Format label (right-padded)
+      const label = category.length > labelWidth - 1
+        ? category.slice(0, labelWidth - 2) + "…"
+        : category
+      const paddedLabel = label.padEnd(labelWidth)
+
+      process.stdout.write(`${chalk.dim(paddedLabel)}${dotsStr}\n`)
+    }
+  }
+
   onTestModuleEnd(_testModule: TestModule) {
     // Optionally emit newline per file
   }
 
   onTestRunEnd() {
+    debug("onTestRunEnd called, passed=%d failed=%d skipped=%d", this.passed, this.failed, this.skipped)
+
     const total = this.passed + this.failed + this.skipped
     const elapsed = Date.now() - this.startTime
     const testDuration = this.timings.reduce((sum, t) => sum + t.duration, 0)
@@ -315,32 +514,77 @@ export class KmReporter implements Reporter {
     }
 
     // Blank line after dots
-    process.stdout.write("\n\n")
+    process.stdout.write("\n")
 
-    // Failed tests details (if any)
-    if (this.failed > 0) {
-      const failedTests = this.timings.filter(t => t.state === "failed")
-      for (const t of failedTests) {
-        const file = this.relativePath(t.file)
-        process.stdout.write(` ${c.red}${c.bold}${sym.cross} FAIL${c.reset} ${file} ${c.gray}>${c.reset} ${t.name}\n`)
-      }
+    // In non-TTY mode, show grouped dots at end (since we couldn't update in place)
+    if (!this.isTTY && this.options.groupByPackage && this.categoryOrder.length > 1) {
       process.stdout.write("\n")
+      this.renderFinalGroupedDots()
+    }
+
+    process.stdout.write("\n")
+
+    // Failed tests details with error traces
+    if (this.failed > 0) {
+      for (const [_id, errInfo] of this.testErrors) {
+        const file = this.relativePath(errInfo.file)
+        process.stdout.write(` ${chalk.red.bold(`${sym.cross} FAIL`)} ${file} ${chalk.gray(">")} ${errInfo.name}\n`)
+
+        // Show error details
+        for (const err of errInfo.errors) {
+          // Show error message
+          process.stdout.write(`   ${chalk.red(err.message)}\n`)
+
+          // Show stack trace (limit lines for readability)
+          if (err.stack) {
+            const stackLines = err.stack
+              .split("\n")
+              .filter((line) => line.trim().startsWith("at "))
+              .slice(0, 5) // Show first 5 stack frames
+            for (const line of stackLines) {
+              process.stdout.write(`   ${chalk.dim(line.trim())}\n`)
+            }
+          }
+        }
+        process.stdout.write("\n")
+      }
     }
 
     // Summary line
     const parts: string[] = []
     if (this.failed > 0) {
-      parts.push(`${c.bold}${c.red}${this.failed} failed${c.reset}`)
+      parts.push(chalk.bold.red(`${this.failed} failed`))
     }
     if (this.passed > 0) {
-      parts.push(`${c.bold}${c.green}${this.passed} passed${c.reset}`)
+      parts.push(chalk.bold.green(`${this.passed} passed`))
     }
     if (this.skipped > 0) {
-      parts.push(`${c.yellow}${this.skipped} skipped${c.reset}`)
+      parts.push(chalk.yellow(`${this.skipped} skipped`))
     }
 
-    process.stdout.write(` ${c.dim}Test Files${c.reset}  ${parts.join(`${c.dim} | ${c.reset}`)}${c.gray} (${total})${c.reset}\n`)
-    process.stdout.write(` ${c.dim}  Duration${c.reset}  ${this.formatDuration(elapsed)}${c.gray} (tests ${this.formatDuration(testDuration)})${c.reset}\n`)
+    process.stdout.write(` ${chalk.dim("Test Files")}  ${parts.join(chalk.dim(" | "))}${chalk.gray(` (${total})`)}\n`)
+    process.stdout.write(` ${chalk.dim("  Duration")}  ${this.formatDuration(elapsed)}${chalk.gray(` (tests ${this.formatDuration(testDuration)})`)}\n`)
+
+    // Per-category summary (if grouping enabled)
+    if (this.options.groupByPackage && this.categoryOrder.length > 1) {
+      process.stdout.write(`\n ${chalk.dim("By package:")}\n`)
+      const nameWidth = Math.max(...this.categoryOrder.map((c) => c.length), 12)
+      process.stdout.write(`   ${chalk.dim(`${"Package".padEnd(nameWidth)}  Tests     Time   Slow`)}\n`)
+
+      for (const category of this.categoryOrder) {
+        const stats = this.categoryStats.get(category)
+        if (!stats) continue
+        const testCount = stats.passed + stats.failed + stats.skipped
+        const name = category.padEnd(nameWidth)
+        const tests = testCount.toString().padStart(5)
+        const time = this.formatDuration(stats.duration).padStart(8)
+        const slow = stats.slowCount > 0 ? stats.slowCount.toString().padStart(6) : "     -"
+
+        // Color the name based on failures
+        const nameColored = stats.failed > 0 ? chalk.red(name) : chalk.dim(name)
+        process.stdout.write(`   ${nameColored}  ${tests}  ${time}  ${slow}\n`)
+      }
+    }
 
     // Slow tests report
     if (this.options.showSlow && this.failed === 0) {
@@ -350,11 +594,11 @@ export class KmReporter implements Reporter {
         .slice(0, this.options.maxSlow)
 
       if (slow.length > 0) {
-        process.stdout.write(`\n ${c.dim}Slow tests (>${this.options.slowThreshold}ms):${c.reset}\n`)
+        process.stdout.write(`\n ${chalk.dim(`Slow tests (>${this.options.slowThreshold}ms):`)}\n`)
         for (const t of slow) {
           const file = this.relativePath(t.file)
           const dur = this.formatDuration(t.duration).padStart(8)
-          process.stdout.write(`   ${c.yellow}${dur}${c.reset}  ${c.gray}${file} >${c.reset} ${t.name}\n`)
+          process.stdout.write(`   ${chalk.yellow(dur)}  ${chalk.gray(`${file} >`)} ${t.name}\n`)
         }
       }
     }
@@ -370,6 +614,56 @@ export class KmReporter implements Reporter {
   private relativePath(path: string): string {
     const cwd = process.cwd()
     return path.startsWith(cwd) ? path.slice(cwd.length + 1) : path
+  }
+
+  // Cache for package.json lookups
+  private packageNameCache = new Map<string, string>()
+
+  /**
+   * Extract category from file path by finding nearest package.json.
+   * Returns the package name from package.json, or directory path as fallback.
+   */
+  private extractCategory(moduleId: string): string {
+    const rel = this.relativePath(moduleId)
+    const parts = rel.split("/")
+
+    // Try to find package.json in parent directories
+    const cwd = process.cwd()
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const dirPath = parts.slice(0, i + 1).join("/")
+      const pkgPath = `${cwd}/${dirPath}/package.json`
+
+      // Check cache first
+      const cached = this.packageNameCache.get(dirPath)
+      if (cached !== undefined) {
+        return cached
+      }
+
+      // Try to read package.json
+      try {
+        if (fs.existsSync(pkgPath)) {
+          const pkg: { name?: string } = JSON.parse(fs.readFileSync(pkgPath, "utf8"))
+          const name = pkg.name ?? dirPath
+          this.packageNameCache.set(dirPath, name)
+          return name
+        }
+      } catch {
+        // File doesn't exist or can't be parsed, continue searching
+      }
+    }
+
+    // Fallback: use first two segments for known grouping dirs
+    const groupingDirs = ["packages", "apps", "vendor", "tests"]
+    if (parts.length >= 2 && groupingDirs.includes(parts[0])) {
+      const fallback = `${parts[0]}/${parts[1]}`
+      this.packageNameCache.set(fallback, fallback)
+      return fallback
+    }
+
+    // Last fallback: first segment
+    const fallback = parts[0] || "root"
+    this.packageNameCache.set(fallback, fallback)
+    return fallback
   }
 
   private formatDuration(ms: number): string {
@@ -396,7 +690,6 @@ export class KmReporter implements Reporter {
       allTests: this.timings,
     }
 
-    const fs = require("fs")
     fs.writeFileSync(this.options.perfOutput, JSON.stringify(data, null, 2))
   }
 }

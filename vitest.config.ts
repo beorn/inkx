@@ -1,5 +1,4 @@
 import { defineConfig } from "vitest/config"
-import { availableParallelism } from "node:os"
 import tsconfigPaths from "vite-tsconfig-paths"
 import { mdtest } from "./vendor/beorn-mdtest/src/integrations/vitest-plugin"
 
@@ -38,9 +37,10 @@ export default defineConfig({
     },
 
     // Worker configuration for parallel test execution
+    // Default to 20 workers - override with VITEST_MAX_WORKERS env var
     maxWorkers: process.env.VITEST_MAX_WORKERS
       ? Number.parseInt(process.env.VITEST_MAX_WORKERS)
-      : Math.max(availableParallelism() - 1, 1),
+      : 20,
     minWorkers: 1,
     fileParallelism: true,
 
