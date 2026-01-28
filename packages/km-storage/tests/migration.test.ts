@@ -36,7 +36,7 @@ test("migrateToRepoRootNode creates repo root for existing nodes", async () => {
     throw new Error("No repo root node found")
   }
 
-  const data = JSON.parse(repoRootNode.data)
+  const data = JSON.parse(repoRootNode.data) as { is_repo_root?: boolean }
   if (!data.is_repo_root) {
     throw new Error("Repo root node missing is_repo_root flag")
   }

@@ -1,7 +1,19 @@
 import { defineConfig } from "vitest/config"
 import { availableParallelism } from "node:os"
+import tsconfigPaths from "vite-tsconfig-paths"
+import { mdtest } from "./vendor/beorn-mdtest/src/integrations/vitest-plugin"
 
 export default defineConfig({
+  plugins: [tsconfigPaths(), mdtest()],
+  resolve: {
+    alias: {
+      // mdtest plugin transforms .test.md files to import this
+      "@beorn/mdtest/vitest": new URL(
+        "./vendor/beorn-mdtest/src/integrations/vitest.ts",
+        import.meta.url,
+      ).pathname,
+    },
+  },
   test: {
     // Force certain packages to be bundled in SSR to avoid import issues
     server: {
@@ -9,26 +21,20 @@ export default defineConfig({
         inline: ["zod"],
       },
     },
-    // All packages now use Vitest (migration complete)
+    // Vitest tests - vendor uses bun:test so excluded
     include: [
-      "packages/*/tests/**/*.test.ts",
-      "packages/*/tests/**/*.spec.ts",
-      "apps/*/tests/**/*.test.ts",
-      "apps/*/tests/**/*.spec.ts",
-      "apps/*/tests/**/*.test.tsx",
+      "packages/**/tests/**/*.{test,spec}.{ts,tsx}",
+      "apps/**/tests/**/*.{test,spec}.{ts,tsx}",
       "tests/**/*.test.ts",
-      "vendor/*/tests/**/*.test.ts",
+      "**/*.test.md",
     ],
-    exclude: ["**/node_modules/**", "**/dist/**"],
+    exclude: ["**/node_modules/**", "**/dist/**", "**/.direnv/**"],
 
     // Worker configuration for parallel test execution
-    // Note: Vitest runs in Bun runtime via `bun vitest` but uses Node's worker_threads
-    // under the hood. This is different from km-storage which uses Bun's native Worker API.
     maxWorkers: process.env.VITEST_MAX_WORKERS
       ? Number.parseInt(process.env.VITEST_MAX_WORKERS)
       : Math.max(availableParallelism() - 1, 1),
     minWorkers: 1,
-    // Enable file-level parallelization for better suite distribution
     fileParallelism: true,
 
     // Multiple reporters for CI integration
@@ -37,32 +43,6 @@ export default defineConfig({
       html: "./test-results/vitest-report.html",
       junit: "./test-results/junit.xml",
     },
-    // Aliases for internal packages
-    alias: {
-      "@km/core": new URL("./packages/km-core/src/index.ts", import.meta.url)
-        .pathname,
-      "@km/tree": new URL("./packages/km-tree/src/index.ts", import.meta.url)
-        .pathname,
-      "@km/storage/internal/emit.ts": new URL(
-        "./packages/km-storage/src/internal/emit.ts",
-        import.meta.url,
-      ).pathname,
-      "@km/storage/internal/db-instance.ts": new URL(
-        "./packages/km-storage/src/internal/db-instance.ts",
-        import.meta.url,
-      ).pathname,
-      "@km/storage": new URL(
-        "./packages/km-storage/src/index.ts",
-        import.meta.url,
-      ).pathname,
-      "@km/board": new URL("./packages/km-board/src/index.ts", import.meta.url)
-        .pathname,
-      "@beorn/tap": new URL("./vendor/beorn-tap/src/index.ts", import.meta.url)
-        .pathname,
-      "@beorn/mdtest/vitest": new URL(
-        "./vendor/beorn-mdtest/src/integrations/vitest.ts",
-        import.meta.url,
-      ).pathname,
-    },
+    // Other aliases resolved automatically by vite-tsconfig-paths plugin
   },
 })

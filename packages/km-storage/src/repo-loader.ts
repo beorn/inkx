@@ -18,7 +18,7 @@ import { Database } from "bun:sqlite"
 import { existsSync, readdirSync, readFileSync, statSync } from "fs"
 import { join, dirname, relative, basename } from "path"
 import type { Event } from "@km/core"
-import { ParsePool } from "./parse-pool.ts"
+import { createParsePool } from "./parse-pool.ts"
 import { runDeferredPipeline } from "./pipeline.ts"
 
 /**
@@ -1213,7 +1213,7 @@ async function parseDeferredWithPool(
   const total = deferredFiles.length
   debug("parseDeferredWithPool: starting %d files with pipeline", total)
 
-  const pool = new ParsePool()
+  const pool = createParsePool()
   await pool.start()
 
   try {
@@ -1241,7 +1241,7 @@ async function parseDeferredWithPool(
 
     return { parsed: result.parsed, pendingLinks }
   } finally {
-    await pool.shutdown()
+    await pool.stop()
   }
 }
 

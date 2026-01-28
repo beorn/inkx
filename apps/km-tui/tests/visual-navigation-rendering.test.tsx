@@ -44,13 +44,12 @@ function makeNode(
 }
 
 // Helper to create a minimal TUIBoardState (columns are derived from repo now)
+// Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
 function makeTUIBoardState(rootId: string): TUIBoardState {
   return {
     rootId,
     rootPath: null,
     columns: [], // Derived from repo
-    colIndex: 0,
-    cardIndex: 0,
     selectedCards: new Set(),
     foldedCards: new Set(),
     visualMode: false,

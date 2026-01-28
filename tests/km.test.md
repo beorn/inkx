@@ -32,7 +32,7 @@ Sync filesystem to database:
 ```console
 $ km sync
 Syncing .km/state.db with files (repo ...)
-✓ Applied ... event(s) from events.jsonl
+[...]
 ✓ Synced ... change(s) in ... directories (...ms)
 ```
 

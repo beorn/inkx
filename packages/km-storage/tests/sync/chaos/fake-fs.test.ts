@@ -10,7 +10,7 @@ const MockFileSystem = FakeFileSystem
 const createMockFileSystem = createFakeFileSystem
 
 describe("MockFileSystem", () => {
-  let fs: MockFileSystem
+  let fs: FakeFileSystem
 
   beforeEach(() => {
     fs = createMockFileSystem()

@@ -17,7 +17,8 @@ import { bash } from "../../../vendor/beorn-mdtest/src/plugins/bash.js"
  */
 export default function kmPlugin(opts: FileOpts): Plugin {
   // Create bash plugin as fallback for non-km commands
-  const bashPlugin = bash(opts)
+  // bash() always returns Plugin synchronously, not Promise<Plugin>
+  const bashPlugin = bash(opts) as Plugin
 
   return {
     block(blockOpts: BlockOpts) {
@@ -97,22 +98,22 @@ export default function kmPlugin(opts: FileOpts): Plugin {
 
     async beforeAll(): Promise<void> {
       // Delegate to bash plugin
-      await bashPlugin.beforeAll()
+      await bashPlugin.beforeAll?.()
     },
 
     async afterAll(): Promise<void> {
       // Delegate to bash plugin
-      await bashPlugin.afterAll()
+      await bashPlugin.afterAll?.()
     },
 
     async beforeEach(): Promise<void> {
       // Delegate to bash plugin
-      await bashPlugin.beforeEach()
+      await bashPlugin.beforeEach?.()
     },
 
     async afterEach(): Promise<void> {
       // Delegate to bash plugin
-      await bashPlugin.afterEach()
+      await bashPlugin.afterEach?.()
     },
   }
 }

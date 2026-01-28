@@ -16,6 +16,32 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
 
+    // Path aliases for Vitest (Bun resolves via workspaces, Vitest uses these)
+    "baseUrl": ".",
+    "paths": {
+      "@km/core": ["packages/km-core/src/index.ts"],
+      "@km/tree": ["packages/km-tree/src/index.ts"],
+      "@km/storage": ["packages/km-storage/src/index.ts"],
+      "@km/storage/*": ["packages/km-storage/src/*"],
+      "@km/board": ["packages/km-board/src/index.ts"],
+      "@km/commands": ["packages/km-commands/src/index.ts"],
+      "@km/markdown": ["packages/km-markdown/src/index.ts"],
+      "@km/agent": ["packages/km-agent/src/index.ts"],
+      "@km/beads": ["packages/km-beads/src/index.ts"],
+      "@km/connector-caldav": ["packages/km-connector-caldav/src/index.ts"],
+      "@beorn/tap": ["vendor/beorn-tap/src/index.ts"],
+      "@beorn/mdtest/vitest": [
+        "vendor/beorn-mdtest/src/integrations/vitest.ts"
+      ],
+      "@beorn/mdtest": ["vendor/beorn-mdtest/src/index.ts"],
+      "@beorn/chalkx": ["vendor/beorn-chalkx/src/index.ts"],
+      "@beorn/flexx": ["vendor/beorn-flexx/src/index.ts"],
+      "@beorn/inkx-ui": ["vendor/beorn-inkx-ui/src/index.ts"],
+      "@beorn/logger": ["vendor/beorn-logger/src/index.ts"],
+      "@beorn/tui-measure": ["vendor/beorn-tui-measure/src/index.ts"],
+      "@beorn/watcher-chaos": ["vendor/beorn-watcher-chaos/src/index.ts"]
+    },
+
     // Best practices
     "strict": true,
     "skipLibCheck": true,

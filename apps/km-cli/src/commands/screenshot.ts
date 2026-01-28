@@ -90,6 +90,14 @@ export const screenshotCommand = new Command("screenshot")
     // Create the BoardCore element with all required props
     const boardCoreElement = React.createElement(BoardCore, {
       state,
+      layout: {
+        columns: state.columns,
+        colIndex: 0,
+        cardIndex: 0,
+        subPath: [],
+        isAtCardLevel: true,
+        isInOutlineMode: false,
+      },
       ui: createInitialUIState(viewMode, [], { columns: width, rows: height }),
       derivedSelectionLevel: "card" as const,
       dimensions: { columns: width, rows: height },
@@ -100,7 +108,10 @@ export const screenshotCommand = new Command("screenshot")
         handleProjectCancel: () => {},
         handleNewItemCreate: () => {},
         handleNewItemCancel: () => {},
+        handleSearchSelect: () => {},
+        handleSearchCancel: () => {},
       },
+      moveMode: false,
     })
 
     // Render the board wrapped in RepoProvider

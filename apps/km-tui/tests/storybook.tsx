@@ -888,6 +888,7 @@ function createMockTUIBoardState(): TUIBoardState {
     ),
   ]
 
+  // Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
   return {
     rootId: "board-root",
     rootPath: "/Projects/webapp",
@@ -897,8 +898,6 @@ function createMockTUIBoardState(): TUIBoardState {
       mockColumn("Completed", completedCards),
       mockColumn("Formatting", formattingCards),
     ],
-    colIndex: 0, // Select "Active" column - other columns show inactive children
-    cardIndex: 0, // Select first card with children
     selectedCards: new Set<string>(),
     visualMode: false,
     foldedCards: new Set<string>(),
@@ -958,9 +957,13 @@ function ViewBox({
 function CardsViewDemo({
   state,
   width,
+  colIndex = 0,
+  cardIndex = 0,
 }: {
   state: TUIBoardState
   width: number
+  colIndex?: number
+  cardIndex?: number
 }): React.ReactElement {
   const numCols = Math.min(state.columns.length, 4)
   // Account for separator lines (1 char each) between columns
@@ -975,7 +978,7 @@ function CardsViewDemo({
       <TopBar segments={demoPathSegments} width={width} />
       <Box flexDirection="row" width={width}>
         {state.columns.slice(0, 4).map((column, cIdx) => {
-          const isColSelected = cIdx === state.colIndex
+          const isColSelected = cIdx === colIndex
           const isLastCol = cIdx === numCols - 1
           return (
             <React.Fragment key={column.node.id}>
@@ -984,8 +987,7 @@ function CardsViewDemo({
                   {column.node.content} ({column.cards.length})
                 </Text>
                 {column.cards.slice(0, 3).map((card, cardIdx) => {
-                  const isCardSelected =
-                    isColSelected && cardIdx === state.cardIndex
+                  const isCardSelected = isColSelected && cardIdx === cardIndex
                   return (
                     <Box
                       key={card.node.id}
@@ -1453,9 +1455,11 @@ function ToastAndStatusSection(): React.ReactElement {
       <BottomBar
         ui={mockUIState}
         state={mockState}
+        layout={{ colIndex: 0, cardIndex: 0 }}
         termWidth={demoTermWidth}
         storageMode="disk"
         nodeCount={42}
+        moveMode={false}
       />
       <Text> </Text>
 
@@ -1463,9 +1467,11 @@ function ToastAndStatusSection(): React.ReactElement {
       <BottomBar
         ui={uiStateWithStatus}
         state={mockState}
+        layout={{ colIndex: 0, cardIndex: 0 }}
         termWidth={demoTermWidth}
         storageMode="disk"
         nodeCount={42}
+        moveMode={false}
       />
       <Text> </Text>
 
@@ -1496,9 +1502,11 @@ function ToastAndStatusSection(): React.ReactElement {
           <BottomBar
             ui={uiStateWithStatus}
             state={mockState}
+            layout={{ colIndex: 0, cardIndex: 0 }}
             termWidth={demoTermWidth}
             storageMode="disk"
             nodeCount={42}
+            moveMode={false}
           />
         </Box>
       </ViewBox>

@@ -976,10 +976,8 @@ export function column(
 export function board(config: {
   columns: ReturnType<typeof column>[]
 }): TUIBoardState {
-  return createBoardStateFixture(config.columns, {
-    colIndex: 0,
-    cardIndex: 0,
-  })
+  // Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
+  return createBoardStateFixture(config.columns)
 }
 
 // =============================================================================

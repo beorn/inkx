@@ -76,11 +76,10 @@ describe("BottomBar", () => {
     status: null,
   }
 
+  // Note: colIndex/cardIndex are now in layout, not TUIBoardState
   const mockBoardState: TUIBoardState = {
     rootPath: "/tmp/test-repo",
     rootId: "root-123",
-    colIndex: 0,
-    cardIndex: 0,
     columns: [
       {
         node: {
@@ -326,7 +325,7 @@ describe("BottomBar", () => {
   it("hides move mode indicator when status message is shown", () => {
     const uiWithStatus: UIState = {
       ...mockUIState,
-      status: { level: "info", message: "Test message", timestamp: Date.now() },
+      status: { level: "info", message: "Test message" },
     }
     const { lastFrameText } = render(
       <BottomBar

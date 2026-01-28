@@ -29,7 +29,7 @@ import type { WatcherInterface, SyncData } from "../../../src/watch/types.ts"
  */
 class TestWatcher extends EventEmitter implements WatcherInterface {
   private pendingPaths: Set<string> = new Set()
-  private debounceTimer: NodeJS.Timeout | null = null
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null
   private debounceMs: number
   private repoPath: string = ""
   private inFlightWrites: Set<string> = new Set()

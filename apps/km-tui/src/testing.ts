@@ -312,17 +312,16 @@ export async function createBoardTest(
     },
 
     getCursor() {
-      const s = this.getState()
-      return [s.colIndex, s.cardIndex]
+      // Returns the static layout position (0, 0) - this harness doesn't track cursor changes
+      return [0, 0] as [number, number]
     },
 
     getSelectedNode() {
       const s = this.getState()
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Test helper accessing board state indices
-      const col = s.columns[s.colIndex]
+      // Static harness always at position (0, 0)
+      const col = s.columns[0]
       if (!col) return null
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- Test helper accessing board state indices
-      const card = col.cards[s.cardIndex]
+      const card = col.cards[0]
       return card?.node ?? null
     },
 

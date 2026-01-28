@@ -583,8 +583,21 @@ export class SyncManager extends EventEmitter {
     // Delegate to generator version, forwarding progress via callback
     const gen = this.syncFromFsWithProgress()
     let result = await gen.next()
+    let currentPhase = "Syncing"
     while (!result.done) {
-      onProgress?.(result.value)
+      // Convert StepYield to SyncProgress for callback
+      const value = result.value
+      if (typeof value === "string") {
+        currentPhase = value
+        onProgress?.({ phase: value, current: 0, total: 0 })
+      } else if ("current" in value || "total" in value) {
+        onProgress?.({
+          phase: currentPhase,
+          current: value.current ?? 0,
+          total: value.total ?? 0,
+        })
+      }
+      // Skip 'declare' yields - they're for steps() display only
       result = await gen.next()
     }
     return result.value
