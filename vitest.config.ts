@@ -6,7 +6,10 @@ import { mdtest } from "./vendor/beorn-mdtest/src/integrations/vitest-plugin"
 export default defineConfig({
   plugins: [tsconfigPaths(), mdtest()],
   test: {
-    // Test quality enforcement - fail on any console/stdout/stderr output
+    // Custom reporter: colored dots + slow test tracking (see infra/vitest-reporter.ts)
+    // CLI flag --reporter=./infra/vitest-reporter.ts overrides when specified
+    reporters: ["./infra/vitest-reporter.ts"],
+    // Test quality enforcement - fail on any console output
     setupFiles: ["./tests/vitest-setup.ts"],
     // Force certain packages to be bundled in SSR to avoid import issues
     server: {
@@ -23,6 +26,17 @@ export default defineConfig({
       "**/.direnv/**",
     ],
 
+    // Benchmark configuration
+    benchmark: {
+      include: ["**/*.bench.{ts,tsx}"],
+      exclude: [
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/vendor/**",
+        "**/.direnv/**",
+      ],
+    },
+
     // Worker configuration for parallel test execution
     maxWorkers: process.env.VITEST_MAX_WORKERS
       ? Number.parseInt(process.env.VITEST_MAX_WORKERS)
@@ -30,8 +44,8 @@ export default defineConfig({
     minWorkers: 1,
     fileParallelism: true,
 
-    // Multiple reporters for CI integration
-    reporters: ["tap", "html", "junit"],
+    // Reporters configured via CLI flags (see package.json scripts)
+    // Use test:fast:html or test:all:html for HTML reports and performance tracking
     outputFile: {
       html: "./test-results/vitest-report.html",
       junit: "./test-results/junit.xml",
