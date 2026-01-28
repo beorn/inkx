@@ -79,12 +79,13 @@ const syncManager = new SyncManager({ db, useWorker: false })
 - `.slow.test.ts` - Slow tests (chaos fuzzer, heavy integration)
 - `.test.md` - mdtest CLI tests (current convention, may migrate to `.spec.md`)
 
-| Suffix          | Purpose                   | Test Level | Included in           |
-| --------------- | ------------------------- | ---------- | --------------------- |
-| `.spec.ts`      | TUI acceptance (UI-level) | E2E        | test:fast, test:all   |
-| `.test.ts`      | Unit/integration tests    | Unit/Int   | test:fast, test:all   |
-| `.slow.test.ts` | Slow integration, chaos   | Int/E2E    | test:all only         |
-| `.test.md`      | mdtest CLI tests          | E2E        | test:mdtest, test:all |
+| Suffix          | Purpose                   | Test Level | Included in         |
+| --------------- | ------------------------- | ---------- | ------------------- |
+| `.spec.ts`      | TUI acceptance (UI-level) | E2E        | test:fast, test:all |
+| `.test.ts`      | Unit/integration tests    | Unit/Int   | test:fast, test:all |
+| `.slow.test.ts` | Slow integration, chaos   | Int/E2E    | test:all only       |
+| `.test.md`      | mdtest CLI tests          | E2E        | test:fast, test:all |
+| `.slow.test.md` | Slow mdtest CLI tests     | E2E        | test:all only       |
 
 **Rule**: Use `.spec.ts` ONLY for acceptance tests (board UI-level, CLI workflows). All other tests use `.test.ts`.
 
@@ -611,11 +612,10 @@ bun run test:all           # Full suite (must pass)
 
 **Working on Specific Areas**:
 
-| Working on...        | Run during iteration  |
-| -------------------- | --------------------- |
-| Sync, watcher, chaos | `bun run test:slow`   |
-| CLI commands         | `bun run test:mdtest` |
-| Everything else      | `bun run test:fast`   |
+| Working on...        | Run during iteration |
+| -------------------- | -------------------- |
+| Sync, watcher, chaos | `bun run test:slow`  |
+| Everything else      | `bun run test:fast`  |
 
 Still run `test:all` before commit.
 
@@ -627,12 +627,13 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ### File Naming
 
-| Suffix          | Purpose                         | Included in           |
-| --------------- | ------------------------------- | --------------------- |
-| `.test.ts`      | Fast tests (<1s each)           | test:fast, test:all   |
-| `.slow.test.ts` | Slow tests (integration, chaos) | test:all only         |
-| `.spec.ts`      | TUI acceptance tests            | test:fast, test:all   |
-| `.test.md`      | mdtest CLI tests                | test:mdtest, test:all |
+| Suffix          | Purpose                         | Included in         |
+| --------------- | ------------------------------- | ------------------- |
+| `.test.ts`      | Fast tests (<1s each)           | test:fast, test:all |
+| `.slow.test.ts` | Slow tests (integration, chaos) | test:all only       |
+| `.spec.ts`      | TUI acceptance tests            | test:fast, test:all |
+| `.test.md`      | mdtest CLI tests                | test:fast, test:all |
+| `.slow.test.md` | Slow mdtest CLI tests           | test:all only       |
 
 ### Test File Guidelines
 
@@ -655,12 +656,11 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ### Test Commands
 
-| Command       | What it runs                              | Use case             |
-| ------------- | ----------------------------------------- | -------------------- |
-| `test:fast`   | `*.test.ts` + `*.spec.ts` (excludes slow) | Default iteration    |
-| `test:slow`   | `*.slow.test.ts` only                     | Sync/chaos iteration |
-| `test:mdtest` | `*.test.md` only                          | CLI iteration        |
-| `test:all`    | `test:fast` + `test:slow` + `test:mdtest` | Before commit        |
+| Command     | What it runs                                                  | Use case          |
+| ----------- | ------------------------------------------------------------- | ----------------- |
+| `test:fast` | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) | Default iteration |
+| `test:slow` | `*.slow.{test,spec}.{ts,tsx}` only                            | Slow tests only   |
+| `test:all`  | All tests (`*.test.ts`, `*.spec.ts`, `*.test.md`, `*.slow.*`) | Before commit     |
 
 **Primary workflow**: `test:fast` (iterate) → `test:all` (commit)
 

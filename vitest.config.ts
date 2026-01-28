@@ -22,13 +22,13 @@ export default defineConfig({
       },
     },
     // Vitest tests - vendor uses bun:test so excluded
-    include: [
-      "packages/**/tests/**/*.{test,spec}.{ts,tsx}",
-      "apps/**/tests/**/*.{test,spec}.{ts,tsx}",
-      "tests/**/*.test.ts",
-      "**/*.test.md",
+    include: ["**/*.{test,spec}.{ts,tsx,md}"],
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/vendor/**",
+      "**/.direnv/**",
     ],
-    exclude: ["**/node_modules/**", "**/dist/**", "**/.direnv/**"],
 
     // Worker configuration for parallel test execution
     maxWorkers: process.env.VITEST_MAX_WORKERS

@@ -41,10 +41,11 @@ Run in parallel to count tests:
 ```bash
 # Test file counts by type
 echo "=== Test File Counts ==="
-echo "Fast unit: $(find packages apps -name '*.test.ts' ! -name '*.slow*' ! -name '*.playwright*' 2>/dev/null | wc -l)"
+echo "Fast unit (ts): $(find packages apps -name '*.test.ts' ! -name '*.slow*' ! -name '*.playwright*' 2>/dev/null | wc -l)"
+echo "Fast mdtest (md): $(find packages apps tests -name '*.test.md' ! -name '*.slow*' 2>/dev/null | wc -l)"
 echo "Slow integration: $(find packages apps -name '*.slow.test.ts' 2>/dev/null | wc -l)"
+echo "Slow mdtest: $(find packages apps tests -name '*.slow.test.md' 2>/dev/null | wc -l)"
 echo "Playwright: $(find packages apps -name '*.playwright.ts' 2>/dev/null | wc -l)"
-echo "mdtest: $(find packages apps tests -name '*.test.md' 2>/dev/null | wc -l)"
 echo "Chaos: $(find packages -path '*/chaos/*.test.ts' 2>/dev/null | wc -l)"
 
 # Tests per package
@@ -456,6 +457,10 @@ grep -r "7681" apps/km-tui/tests/*.playwright.ts
 # Tests with database access not marked slow
 grep -l "Database\|createVault\|withTestEnv" packages/*/tests/*.test.ts 2>/dev/null | \
   grep -v ".slow.test.ts"
+
+# mdtest files that should be marked slow (taking >1s per test)
+# Note: .test.md files now follow the same slow/fast convention as .test.ts
+# Use .slow.test.md suffix for slow mdtest files
 ```
 
 **Keywords**: test review, prune tests, test cleanup, test organization, test audit, test smell, test pyramid, chaos testing, playwright

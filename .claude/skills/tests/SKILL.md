@@ -25,11 +25,10 @@ bun run test:all           # Full suite (must pass)
 
 ### Working on Specific Areas
 
-| Working on...        | Run during iteration  |
-| -------------------- | --------------------- |
-| Sync, watcher, chaos | `bun run test:slow`   |
-| CLI commands         | `bun run test:mdtest` |
-| Everything else      | `bun run test:fast`   |
+| Working on...        | Run during iteration |
+| -------------------- | -------------------- |
+| Sync, watcher, chaos | `bun run test:slow`  |
+| Everything else      | `bun run test:fast`  |
 
 Still run `test:all` before commit.
 
@@ -45,12 +44,11 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ## Test Commands
 
-| Command       | What it runs                              |
-| ------------- | ----------------------------------------- |
-| `test:fast`   | `*.test.ts` + `*.spec.ts` (excludes slow) |
-| `test:slow`   | `*.slow.test.ts` only                     |
-| `test:mdtest` | `*.test.md` only                          |
-| `test:all`    | `test:fast` + `test:slow` + `test:mdtest` |
+| Command     | What it runs                                                  |
+| ----------- | ------------------------------------------------------------- |
+| `test:fast` | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) |
+| `test:slow` | `*.slow.{test,spec}.{ts,tsx}` only                            |
+| `test:all`  | All tests (via Vitest)                                        |
 
 ---
 
