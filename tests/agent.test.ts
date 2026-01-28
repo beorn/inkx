@@ -1,5 +1,5 @@
-// Wrapper to register agent.test.md with Vitest
-import { registerMdTests } from "@beorn/mdtest/vitest"
+// Wrapper to register agent.test.md with Bun test
+import { registerMdTests } from "../vendor/beorn-mdtest/src/integrations/bun.js"
 import { fileURLToPath } from "url"
 import { dirname, join } from "path"
 

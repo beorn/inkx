@@ -2,14 +2,12 @@
 /**
  * Cross-platform test runner for km project
  *
- * Runs tests via Vitest, which handles .test.ts, .spec.ts, and .test.md files.
+ * Runs tests via Vitest with TAP output for streaming dots.
  * Uses centralized test patterns from test-patterns.ts.
  *
  * Usage:
- *   bun scripts/run-tests.ts --type=fast
- *   bun scripts/run-tests.ts --type=slow
- *   bun scripts/run-tests.ts --type=mdtest
- *   bun scripts/run-tests.ts --all
+ *   bun scripts/run-tests.ts --type=fast   # All tests except *.slow.*
+ *   bun scripts/run-tests.ts --type=slow   # Only *.slow.* tests
  */
 
 import { parseArgs } from "node:util"
@@ -36,14 +34,14 @@ if (values.all) {
 
 if (!values.type) {
   console.error("Error: --type required")
-  console.error("Usage: bun scripts/run-tests.ts --type=<fast|slow|mdtest>")
+  console.error("Usage: bun scripts/run-tests.ts --type=<fast|slow>")
   process.exit(2)
 }
 
 const testType = values.type as TestType
-if (!["fast", "slow", "mdtest"].includes(testType)) {
+if (!["fast", "slow"].includes(testType)) {
   console.error(`Error: Invalid test type "${testType}"`)
-  console.error("Valid types: fast, slow, mdtest")
+  console.error("Valid types: fast, slow")
   process.exit(2)
 }
 

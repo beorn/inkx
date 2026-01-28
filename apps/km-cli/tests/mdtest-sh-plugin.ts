@@ -10,7 +10,7 @@ import {
   buildHookScript,
 } from "../../../vendor/beorn-mdtest/src/shell.js"
 import { splitNorm } from "../../../vendor/beorn-mdtest/src/core.js"
-import { bunShell } from "../../../vendor/beorn-mdtest/src/integrations/bun.js"
+import { bunShell } from "../../../vendor/beorn-mdtest/src/shell-bun.js"
 import { DEFAULTS } from "../../../vendor/beorn-mdtest/src/constants.js"
 import type {
   Plugin,

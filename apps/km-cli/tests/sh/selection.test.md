@@ -1,6 +1,8 @@
 ---
 mdtest:
-  plugin: ../mdtest-sh-plugin.ts
+  plugin: ../km-repl.ts
+  fixture: path-navigation
+  memory: true
 ---
 
 # km sh - Selection Tests
@@ -8,33 +10,6 @@ mdtest:
 Tests for TUI selection and multi-select commands using `km sh`.
 
 ## Setup
-
-```console
-$ beforeAll() {
->   export TEST_ROOT="$(mktemp -d)"
->   cd "$TEST_ROOT"
->   km() { bun run "$ROOT/apps/km-cli/src/index.ts" "$@"; }
->   export -f km
->   mkdir -p .km
-> }
-$ afterAll() {
->   rm -rf "$TEST_ROOT"
-> }
-```
-
-Create a test board with tasks:
-
-```console
-$ cat > board.md << 'EOF'
-> # Test Board
-> ## Tasks
-> - [ ] Task A
-> - [ ] Task B
-> - [ ] Task C
-> - [ ] Task D
-> - [ ] Task E
-> EOF
-```
 
 ```console
 $ km sync
@@ -50,8 +25,8 @@ Syncing .km/state.db with files (repo ...)
 ```console
 $ km sh board.md -c 'key enter; j; state'
 cursor: [0,1]
-node: Task B
-topLevel: 1 nodes
+node: Task A2
+topLevel: 2 nodes
 ```
 
 ### Navigate to first child then back to top
@@ -59,29 +34,39 @@ topLevel: 1 nodes
 ```console
 $ km sh board.md -c 'key enter; j; g; state'
 cursor: [0,0]
-node: Task A
-topLevel: 1 nodes
+node: Task A1
+topLevel: 2 nodes
 ```
 
 ## Multi-select Mode
 
-### A selects all siblings
+### A selects all siblings at top level
+
+```console
+$ km sh board.md -c 'A; state'
+cursor: [0]
+node: Section A
+topLevel: 2 nodes
+selected: 2 nodes
+```
+
+### A selects all siblings inside section
 
 ```console
 $ km sh board.md -c 'key enter; A; state'
 cursor: [0,0]
-node: Task A
-topLevel: 1 nodes
-selected: 5 nodes
+node: Task A1
+topLevel: 2 nodes
+selected: 3 nodes
 ```
 
 ### Escape clears selection
 
 ```console
-$ km sh board.md -c 'key enter; A; key esc; state'
-cursor: [0,0]
-node: Task A
-topLevel: 1 nodes
+$ km sh board.md -c 'A; key esc; state'
+cursor: [0]
+node: Section A
+topLevel: 2 nodes
 ```
 
 ## Error Handling

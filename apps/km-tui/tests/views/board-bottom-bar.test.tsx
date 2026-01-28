@@ -124,11 +124,14 @@ describe("BottomBar", () => {
     helpMode: false,
   }
 
+  const mockLayout = { colIndex: 0, cardIndex: 0 }
+
   it("renders storage mode and path", () => {
     const { lastFrameText } = render(
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -150,6 +153,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={mockUIState}
         state={boardStateWithHome}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -165,6 +169,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={123}
@@ -180,6 +185,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -195,6 +201,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -214,6 +221,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={mockUIState}
         state={singleColState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -229,6 +237,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -255,6 +264,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={uiWithWatcher}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -270,6 +280,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="memory"
         nodeCount={42}
@@ -285,6 +296,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -300,6 +312,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -319,6 +332,7 @@ describe("BottomBar", () => {
       <BottomBar
         ui={uiWithStatus}
         state={mockBoardState}
+        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
