@@ -1,9 +1,9 @@
 /**
  * Custom Vitest Reporter
  *
- * Uses @beorn/term for terminal output and renderString for React components.
- * Does NOT use React rendering (inkx/tui render) since vitest workers output
- * to the same terminal. Instead, uses term.write() with renderString().
+ * Uses inkx's createTerm for terminal output.
+ * Does NOT use React rendering (inkx render) since vitest workers output
+ * to the same terminal. Instead, uses term.write() with raw ANSI output.
  *
  * SYMBOLS:
  *   · (green dim) = passed (fast, <2x threshold)
@@ -22,8 +22,8 @@
 
 import fs from "node:fs"
 import type { Reporter, TestCase, TestModule, TestSpecification, TestSuite, Vitest } from "vitest/node"
-import { createTerm, type Term } from "../../vendor/beorn-term/src/index.js"
-// import { renderString } from "../../vendor/beorn-tui/src/index.js"
+import { createTerm, type Term } from "inkx"
+// import { renderString } from "inkx"
 import Debug from "debug"
 
 // Import components (to be created)

@@ -1,12 +1,11 @@
 /**
  * React Components for Vitest Reporter
  *
- * Used with @beorn/tui's renderString() for static output.
  * Accept term from useTerm() for styling.
  */
 
 import type { ReactElement } from "react"
-import { Box, Text, useTerm } from "../../vendor/beorn-tui/src/index.js"
+import { Box, Text, useTerm } from "inkx"
 
 // =============================================================================
 // Symbols

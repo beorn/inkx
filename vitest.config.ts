@@ -4,9 +4,9 @@ import { mdtest } from "./vendor/beorn-mdtest/src/integrations/vitest-plugin"
 export default createVitestConfig({
   plugins: [mdtest()],
   test: {
-    // Custom reporter: colored dots + slow test tracking (see infra/vitest-reporter/)
-    // Uses @beorn/term for terminal styling
-    reporters: ["./infra/vitest-reporter/index.tsx"],
+    // Custom reporter: React TUI with live updates (see infra/vitest-dotz/)
+    // Uses inkx for terminal rendering (createTerm, useTerm, Box, Text)
+    reporters: ["./infra/vitest-dotz/index.tsx"],
     // Reporters configured via CLI flags (see package.json scripts)
     // Use test:fast:html or test:all:html for HTML reports and performance tracking
     outputFile: {
