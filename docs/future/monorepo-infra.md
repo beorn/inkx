@@ -114,6 +114,45 @@ Shell execution:
 - Set `TERM=dumb` to prevent escape sequences
 - Capture and validate subprocess output
 
+## Custom Vitest Reporter
+
+The built-in dot reporter has a bug (empty color sequences). We implement our own:
+
+**Location**: `infra/vitest-reporter.ts`
+
+**Features**:
+1. Clean dot output (no color bugs)
+2. Test performance tracking per-test
+3. Slow test detection and reporting
+4. JSON export for performance trending
+5. Configurable slow threshold
+
+**Usage**:
+```ts
+// vitest.config.ts
+import KmReporter from "@km/infra/vitest-reporter"
+
+export default defineConfig({
+  test: {
+    reporters: [new KmReporter({ slowThreshold: 100, showSlow: true })]
+  }
+})
+```
+
+**Output example**:
+```
+····x···-·····················
+
+Tests: 1 failed, 28 passed, 1 skipped, 30 total
+Time:  1.23s
+
+Slow tests (>100ms):
+     412ms apps/km-cli/tests/sh > $ km sync
+     389ms apps/km-cli/tests/sh > $ km init
+```
+
+**Bead**: km-test-perf
+
 ## Research: How Far Can We Push It?
 
 ### Vitest (best support)
