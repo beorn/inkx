@@ -28,6 +28,8 @@
     "lint:errors": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "lint:unused": "knip",
+    "generate:paths": "bun packages/km-infra/typescript/generate-paths.ts --write",
+    "generate:knip": "bun packages/km-infra/knip/generate.ts --write",
     "format": "prettier --check .",
     "format:fix": "prettier --write . --log-level warn",
     "codemod": "bun scripts/codemod.ts",
@@ -83,5 +85,6 @@
     "debug": "^4.4.3",
     "reselect": "^5.1.1",
     "ulid": "2.4.0"
-  }
+  },
+  "prettier": "./packages/km-infra/prettier/index.json"
 }

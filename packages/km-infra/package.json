@@ -1,0 +1,25 @@
+{
+  "name": "@km/infra",
+  "description": "Shared tool configuration for km monorepo",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./eslint": "./eslint/index.ts",
+    "./vitest": "./vitest/index.ts",
+    "./vitest/setup": "./vitest/setup.ts",
+    "./typescript/base.json": "./typescript/base.json",
+    "./typescript/generate-paths": "./typescript/generate-paths.ts",
+    "./prettier": "./prettier/index.json",
+    "./knip/generate": "./knip/generate.ts",
+    "./release-it": "./release-it/index.ts"
+  },
+  "dependencies": {
+    "eslint-plugin-promise": "^7.2.1",
+    "typescript-eslint": "^8.53.1",
+    "vite-tsconfig-paths": "^6.0.5"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -61,14 +61,24 @@ export function getTestMode(): TestMode {
 }
 
 /**
- * Check if running in real infrastructure mode
+ * Check if running in real infrastructure mode.
+ *
+ * NOTE: Currently unused in the test suite. Reserved for future optimization
+ * where tests could run only in real mode via:
+ * `test.skipIf(!isRealMode())("disk-specific test", ...)`
  */
 export function isRealMode(): boolean {
   return getTestMode() === "real"
 }
 
 /**
- * Check if running in mock (memory-only) mode
+ * Check if running in mock (memory-only) mode.
+ *
+ * NOTE: Currently unused in the test suite. Reserved for future optimization
+ * where slow tests could be skipped in mock mode via:
+ * `test.skipIf(isMockMode())("slow integration test", ...)`
+ *
+ * @see docs/dev/test-fakes.md for behavioral fakes that work independently of TEST_MODE
  */
 export function isMockMode(): boolean {
   return getTestMode() === "mock"

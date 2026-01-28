@@ -505,37 +505,26 @@ See [chaos-testing.md](chaos-testing.md) for detailed reference.
 
 Controls test infrastructure via environment variable.
 
-| Mode      | Database | When to Use                         |
-| --------- | -------- | ----------------------------------- |
-| (default) | :memory: | Normal development                  |
-| `mock`    | :memory: | Skip watcher tests (~20s faster)    |
-| `real`    | Disk     | CI, releases, debugging disk issues |
+| Mode      | Database | When to Use                    |
+| --------- | -------- | ------------------------------ |
+| (default) | :memory: | Normal development             |
+| `mock`    | :memory: | Reserved for future skip logic |
+| `real`    | Disk     | CI, releases, drift detection  |
 
-All modes use `/tmp/kmtest-*` filesystem. The difference is database.
+All modes use `/tmp/kmtest-*` filesystem. The difference is database type.
 
 **Usage**:
 
 ```bash
 bun run test:fast                     # Default (memory DB)
-TEST_MODE=mock bun run test:fast      # Skip watcher tests
 TEST_MODE=real bun run test:all       # Disk DB, full infrastructure
 ```
 
-**In test code**:
+> **Note**: `isMockMode()` and `isRealMode()` are exported but currently unused. They're reserved for future optimization where slow tests could skip via `test.skipIf(isMockMode())`. Currently, all tests run in all modes.
 
-```typescript
-import { isMockMode, isRealMode } from "@km/storage";
+**Drift detection**: Run `TEST_MODE=real bun run test:all` periodically to catch when in-memory behavior diverges from disk behavior.
 
-// Skip slow infrastructure tests in mock mode
-test.skipIf(isMockMode())("file watcher syncs", () => { ... });
-
-// Only run in real mode (detect mock drift)
-test.skipIf(!isRealMode())("disk db behavior", () => { ... });
-```
-
-**mock vs default**: Same infrastructure, but `isMockMode()` returns true so tests can skip themselves.
-
-**Drift detection**: Periodic `TEST_MODE=real` runs catch when mocks diverge from reality.
+**Fakes vs TEST_MODE**: TEST_MODE controls the database type in `withTestEnv()`. Behavioral fakes like `createFakeRepo()` work independently of TEST_MODE. See [test-fakes.md](test-fakes.md) for the full fakes inventory.
 
 ---
 

@@ -36,6 +36,7 @@ This unified approach gives us:
 ### The Problem with Pure Bun Test
 
 Bun's built-in test runner lacks features we need:
+
 - No HTML UI for test results
 - Limited reporter options
 - No built-in benchmarking support
@@ -138,14 +139,14 @@ outputFile: {
 
 ### Quick Reference
 
-| Command                  | What it runs                            | Duration | Use case             |
-| ------------------------ | --------------------------------------- | -------- | -------------------- |
-| `bun run test:fast`      | `.test.ts` + `.spec.ts` (excludes slow) | ~13s     | Default iteration    |
-| `bun run test:slow`      | `.slow.test.ts` only                    | ~30s     | Sync/chaos iteration |
-| `bun run test:all`       | All tests                               | ~45s     | Before commit        |
-| `bun run test:fast:html` | Fast tests + HTML report + perf tracking | ~13s    | Performance analysis |
-| `bun run test:all:html`  | All tests + HTML report + perf tracking | ~45s     | Full perf analysis   |
-| `bun run test:fast:serial` | Fast tests without parallelization    | ~20s     | Accurate timing      |
+| Command                    | What it runs                             | Duration | Use case             |
+| -------------------------- | ---------------------------------------- | -------- | -------------------- |
+| `bun run test:fast`        | `.test.ts` + `.spec.ts` (excludes slow)  | ~13s     | Default iteration    |
+| `bun run test:slow`        | `.slow.test.ts` only                     | ~30s     | Sync/chaos iteration |
+| `bun run test:all`         | All tests                                | ~45s     | Before commit        |
+| `bun run test:fast:html`   | Fast tests + HTML report + perf tracking | ~13s     | Performance analysis |
+| `bun run test:all:html`    | All tests + HTML report + perf tracking  | ~45s     | Full perf analysis   |
+| `bun run test:fast:serial` | Fast tests without parallelization       | ~20s     | Accurate timing      |
 
 ### Detailed Commands
 
@@ -158,11 +159,13 @@ bun run test:fast
 ```
 
 **Output:**
+
 - Terminal: Dot progress (·····)
 
 For HTML reports and performance tracking, use `test:fast:html` instead.
 
 **When to use:**
+
 - Default for local development
 - Quick feedback loop
 - Verifying changes
@@ -176,6 +179,7 @@ bun run test:slow
 ```
 
 **When to use:**
+
 - Testing sync/watcher behavior
 - Running chaos tests
 - Before committing changes to storage layer
@@ -189,6 +193,7 @@ bun run test:all
 ```
 
 **When to use:**
+
 - Before committing
 - Before pushing
 - Final validation before PR
@@ -202,12 +207,14 @@ bun run test:fast:html
 ```
 
 **Output:**
+
 - Terminal: Dot progress
 - HTML report: `test-results/vitest-report.html`
 - JUnit XML: `test-results/junit.xml`
 - Performance summary and trends
 
 **When to use:**
+
 - Analyzing test performance
 - Identifying slow tests
 - Tracking performance trends
@@ -222,6 +229,7 @@ bun run test:fast:serial
 ```
 
 **When to use:**
+
 - Measuring test performance accurately
 - Debugging timing-sensitive tests
 - Comparing performance across runs
@@ -235,6 +243,7 @@ npx vite preview --outDir test-results
 ```
 
 Then open http://localhost:4173 to see:
+
 - Per-test timing
 - Test file organization
 - Interactive filtering
@@ -279,6 +288,7 @@ describe("Sync manager", () => {
 ```
 
 **When to mark a test as slow:**
+
 - File takes > 1 second to execute
 - Tests involve file system I/O
 - Tests involve real database operations
@@ -325,6 +335,7 @@ $ km add "New task"
 Created: New task
 
 $ km list
+
 - [ ] New task
 ```
 
@@ -380,15 +391,18 @@ After `bun run test:fast:html`:
 ### Interpreting Results
 
 **Regression Warnings:**
+
 - 🟡 Yellow (>5% slower): Minor slowdown, investigate if consistent
 - 🔴 Red (>10% slower): Significant regression, investigate immediately
 
 **Slow File Candidates:**
+
 - Files taking >1s should be moved to `.slow.test.ts`
 - Rename: `foo.test.ts` → `foo.slow.test.ts`
 - Update imports if needed
 
 **Historical Trends:**
+
 - Look for consistent slowdowns over multiple runs
 - Correlate with recent changes
 - Use `git bisect` to find problematic commits
@@ -490,7 +504,7 @@ Output shows performance relative to baseline:
 
 ## Test Modes
 
-The storage layer supports three test modes via `TEST_MODE` environment variable.
+The storage layer supports test modes via `TEST_MODE` environment variable.
 
 ### `standard` (Default)
 
@@ -509,9 +523,10 @@ TEST_MODE=standard bun run test:fast
 
 - **Database**: `:memory:` (in-memory SQLite)
 - **Filesystem**: `/tmp` directory
-- **Watcher tests**: Skipped
-- **Use case**: When you want to skip slow integration tests
+- **Use case**: Reserved for future optimization
 - **Speed**: ⚡⚡⚡
+
+> **Note**: Currently identical to `standard` mode. The `isMockMode()` function exists but no tests currently use it to skip. This mode is reserved for future optimization where slow tests could skip via `test.skipIf(isMockMode())`.
 
 ```bash
 TEST_MODE=mock bun run test:fast
@@ -521,7 +536,7 @@ TEST_MODE=mock bun run test:fast
 
 - **Database**: Disk-based (`/tmp/.km/state.db`)
 - **Filesystem**: `/tmp` directory
-- **Use case**: Debugging disk-specific issues, CI
+- **Use case**: Drift detection, CI, debugging disk-specific issues
 - **Speed**: ⚡⚡
 
 ```bash
@@ -535,6 +550,10 @@ TEST_MODE=real bun run test:all
 - `standard` mode should catch 99% of bugs
 - `real` mode catches disk I/O, file descriptor, concurrency edge cases
 - If `real` mode finds a bug, add a test that catches it in `standard` mode
+
+### Fakes vs Test Modes
+
+Test modes control the `withTestEnv()` infrastructure. Behavioral fakes like `createFakeRepo()` work independently of TEST_MODE. See [test-fakes.md](test-fakes.md) for the complete fakes inventory.
 
 ---
 
@@ -624,6 +643,7 @@ beforeEach(() => {
 ```
 
 This ensures tests are:
+
 - Silent (no console pollution)
 - Deterministic (no debug output)
 - Focused (explicit assertions)

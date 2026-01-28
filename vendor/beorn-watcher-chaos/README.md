@@ -17,9 +17,9 @@ ChaosWatcher lets you simulate these scenarios deterministically in tests.
 ## Installation
 
 ```bash
-npm install @beorn/watcher-chaos
-# or
 bun add @beorn/watcher-chaos
+# or
+npm install @beorn/watcher-chaos
 ```
 
 ## Usage

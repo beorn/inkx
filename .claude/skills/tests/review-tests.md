@@ -10,6 +10,7 @@ Review tests for pruning, overlap, and architecture alignment.
 
 **Target**: $ARGUMENTS
 **Reference**: See `docs/dev/test-review.md` for full checklist and guidelines.
+**Fakes Guide**: See `docs/dev/test-fakes.md` for fake inventory and when to use each.
 **Related**: `/review-code` (architecture), `/review-types` (type safety)
 
 ## Contents
@@ -89,6 +90,22 @@ grep -r "useWorker: true" packages/*/tests/*.test.ts 2>/dev/null | grep -v ".slo
 # Tests with console output (should be silent on success)
 echo "=== Console Output in Tests ==="
 grep -rn "console\.\(log\|info\|warn\|debug\)" packages/*/tests/*.test.ts apps/*/tests/*.test.ts 2>/dev/null | grep -v ".slow." | wc -l
+
+# TUI tests using withTestEnv (should use createFakeRepo)
+echo "=== TUI Tests Using withTestEnv ==="
+grep -l "withTestEnv" apps/km-tui/tests/*.test.ts apps/km-tui/tests/*.spec.ts 2>/dev/null | wc -l
+
+# Board package tests using withTestEnv (should use fakes for state tests)
+echo "=== Board Tests Using withTestEnv ==="
+grep -l "withTestEnv" packages/km-board/tests/*.test.ts 2>/dev/null | wc -l
+
+# Tests importing runtime (not type-only) db functions but testing UI logic
+echo "=== Potential Misuse: DB imports in UI tests ==="
+for f in apps/km-tui/tests/*.test.ts apps/km-tui/tests/*.spec.ts; do
+  if [ -f "$f" ] && grep -q "^import {" "$f" && grep "^import {" "$f" | grep -q "@km/storage" && ! grep -q "withTestEnv\|createFakeRepo" "$f"; then
+    echo "$f"
+  fi
+done 2>/dev/null
 ```
 
 **Expected results:**
@@ -98,6 +115,8 @@ grep -rn "console\.\(log\|info\|warn\|debug\)" packages/*/tests/*.test.ts apps/*
 - mdtests without memory: 0
 - Real watcher in fast tests: 0
 - Console output in fast tests: 0 (tests should be silent on success)
+- TUI tests using withTestEnv: 0 (should use createFakeRepo)
+- Board tests using withTestEnv: 0 (should use fakes for state tests)
 
 ## Phase 1.6: Test Setup Complexity Check
 
@@ -181,6 +200,7 @@ Apply checklist from `docs/dev/test-review.md`:
 **Fix candidates**:
 
 - Console output (tests should be silent on success)
+- `withTestEnv` in TUI/Board tests → should use `createFakeRepo()` (see `docs/dev/test-fakes.md`)
 
 **Merge candidates**:
 
@@ -230,6 +250,8 @@ Output structured findings:
 | Real watcher in fast tests    | N     | 0      | ✅/❌  |
 | Console output in fast tests  | N     | 0      | ✅/❌  |
 | Test helpers >150 lines       | N     | 0      | ✅/❌  |
+| TUI tests using withTestEnv   | N     | 0      | ✅/❌  |
+| Board tests using withTestEnv | N     | 0      | ✅/❌  |
 
 ### Performance
 

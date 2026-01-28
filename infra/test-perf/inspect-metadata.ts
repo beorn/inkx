@@ -11,8 +11,14 @@ const decompressed = gunzipSync(compressed)
 const text = new TextDecoder().decode(decompressed)
 const metadata = JSON.parse(text)
 
-console.log("Top-level type:", Array.isArray(metadata) ? "Array" : typeof metadata)
-console.log("Length/keys:", Array.isArray(metadata) ? metadata.length : Object.keys(metadata).length)
+console.log(
+  "Top-level type:",
+  Array.isArray(metadata) ? "Array" : typeof metadata,
+)
+console.log(
+  "Length/keys:",
+  Array.isArray(metadata) ? metadata.length : Object.keys(metadata).length,
+)
 
 if (Array.isArray(metadata) && metadata.length > 0) {
   console.log("\nFirst element:", metadata[0])

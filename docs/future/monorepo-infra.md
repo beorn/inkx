@@ -26,6 +26,7 @@ Like the [XDG Base Directory Specification](https://specifications.freedesktop.o
 ## Current State
 
 Config files in repo root:
+
 - `vitest.config.ts` - test runner config with plugins
 - `eslint.config.js` - linting rules
 - `tsconfig.json` - TypeScript base config
@@ -33,6 +34,7 @@ Config files in repo root:
 - `package.json` scripts - test commands
 
 Quality enforcement:
+
 - `tests/fail-on-console.ts` - bun:test output enforcement
 - `tests/vitest-setup.ts` - vitest output enforcement
 
@@ -105,12 +107,14 @@ The infra package should auto-detect:
 ## Quality Enforcement
 
 Tests must be silent on success:
+
 - Fail on any console.log/warn/error
 - Fail on any stdout/stderr output
 - Fail on Node.js warnings (MaxListenersExceeded, etc.)
 - Disable TTY detection to prevent spinners
 
 Shell execution:
+
 - Set `TERM=dumb` to prevent escape sequences
 - Capture and validate subprocess output
 
@@ -121,6 +125,7 @@ The built-in dot reporter has a bug (empty color sequences). We implement our ow
 **Location**: `infra/vitest-reporter.ts`
 
 **Features**:
+
 1. Clean dot output (no color bugs)
 2. Test performance tracking per-test
 3. Slow test detection and reporting
@@ -128,18 +133,20 @@ The built-in dot reporter has a bug (empty color sequences). We implement our ow
 5. Configurable slow threshold
 
 **Usage**:
+
 ```ts
 // vitest.config.ts
 import KmReporter from "@km/infra/vitest-reporter"
 
 export default defineConfig({
   test: {
-    reporters: [new KmReporter({ slowThreshold: 100, showSlow: true })]
-  }
+    reporters: [new KmReporter({ slowThreshold: 100, showSlow: true })],
+  },
 })
 ```
 
 **Output example**:
+
 ```
 ····x···-·····················
 
@@ -158,30 +165,34 @@ Slow tests (>100ms):
 ### Vitest (best support)
 
 From [Vitest 3.x Projects](https://vitest.dev/guide/projects):
+
 - `projects` config replaces deprecated `workspace`
 - `extends: true` inherits root config in project configs
 - Root config controls global options (reporters, coverage)
 - Can define `setupFiles` in root, shared via `extends: true`
 
 **Maximum automation:**
+
 ```ts
 // Root vitest.config.ts - discovers all packages automatically
 export default defineConfig({
   test: {
-    projects: ['packages/*/vitest.config.ts'],
-    setupFiles: ['./infra/vitest-setup.ts'],
-  }
+    projects: ["packages/*/vitest.config.ts"],
+    setupFiles: ["./infra/vitest-setup.ts"],
+  },
 })
 ```
 
 ### ESLint (good support)
 
 From [ESLint flat config in monorepos](https://github.com/eslint/eslint/discussions/16960):
+
 - Flat config = single root `eslint.config.js`
 - Shareable configs are just npm packages exporting arrays
 - `project: true` in typescript-eslint finds nearest `tsconfig.json`
 
 **Maximum automation:**
+
 ```js
 // Single file, everything auto-discovered
 export { default } from "@km/infra/eslint"
@@ -192,16 +203,19 @@ The [Turborepo approach](https://turborepo.dev/docs/guides/tools/eslint): `@repo
 ### TypeScript (partial support)
 
 From [tsconfig extends](https://www.typescriptlang.org/tsconfig/extends.html):
+
 - `extends` resolves from `node_modules` since TS 3.2
 - Package can expose config via `tsconfig` field in package.json
 - **Limitation**: `paths` are relative to the extending file, not the base
 
 **Maximum automation:**
+
 ```json
 { "extends": "@km/infra/tsconfig" }
 ```
 
 But `paths` must be generated at the extending level, not inherited. Options:
+
 1. [vite-tsconfig-paths](https://www.npmjs.com/package/vite-tsconfig-paths) for runtime resolution
 2. Generate `paths` from workspace packages at install time
 3. Use [Nx TypeScript Project Linking](https://nx.dev/docs/concepts/typescript-project-linking)
@@ -209,6 +223,7 @@ But `paths` must be generated at the extending level, not inherited. Options:
 ### Config Discovery (cosmiconfig)
 
 [Cosmiconfig](https://github.com/cosmiconfig/cosmiconfig) is the de-facto standard for JS config discovery:
+
 - Used by Prettier, Stylelint, and many others
 - Searches: `.{name}rc.{json,yaml,js}`, `.config/{name}rc.*`, `{name}.config.js`
 - Supports `$import` for config composition
@@ -219,23 +234,27 @@ But `paths` must be generated at the extending level, not inherited. Options:
 ### Zero-Config Monorepo Tools
 
 [Nx](https://nx.dev/):
+
 - Auto-discovers project structure
 - Works with any package manager workspaces
 - Deep project graph analysis
 - Plugin API for custom behavior
 
 [Turborepo](https://turbo.build/):
+
 - Zero-config build caching
 - `turbo.json` only file needed
 - Works with existing npm/yarn/pnpm workspaces
 
 [Bumpy](https://github.com/antonreshetov/bumpy):
+
 - Zero-config monorepo releases
 - Auto-discovers packages from workspaces config
 
 ### Bun Workspaces
 
 From [Bun workspaces docs](https://bun.com/docs/guides/install/workspaces):
+
 - Simpler alternative to Nx/Turbo for smaller projects
 - Single `node_modules` with symlinks
 - Less boilerplate than enterprise tools

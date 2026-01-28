@@ -1,0 +1,836 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/beorn/Code/pim/km/benchmarks/queries.bench.ts",
+      "groups": [
+        {
+          "fullName": "benchmarks/queries.bench.ts > Query Benchmarks - Flat List > getNode (single lookup)",
+          "benchmarks": [
+            {
+              "id": "-126633378_0_0_0",
+              "name": "100 nodes - lookup middle",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_0_0_1",
+              "name": "500 nodes - lookup middle",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_0_0_2",
+              "name": "2000 nodes - lookup middle",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/queries.bench.ts > Query Benchmarks - Flat List > getChildren (list children)",
+          "benchmarks": [
+            {
+              "id": "-126633378_0_1_0",
+              "name": "100 nodes - get all children",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_0_1_1",
+              "name": "500 nodes - get all children",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_0_1_2",
+              "name": "2000 nodes - get all children",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/queries.bench.ts > Query Benchmarks - Flat List > getAllNodes (full scan)",
+          "benchmarks": [
+            {
+              "id": "-126633378_0_2_0",
+              "name": "100 nodes",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_0_2_1",
+              "name": "500 nodes",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_0_2_2",
+              "name": "2000 nodes",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/queries.bench.ts > Query Benchmarks - Flat List > search (FTS)",
+          "benchmarks": [
+            {
+              "id": "-126633378_0_3_0",
+              "name": "100 nodes - search 'Task'",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_0_3_1",
+              "name": "500 nodes - search 'Task'",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_0_3_2",
+              "name": "2000 nodes - search 'Task'",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_0_3_3",
+              "name": "2000 nodes - search '#tag5'",
+              "rank": 4,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/queries.bench.ts > Query Benchmarks - Tree Structure > getAncestors (path to root)",
+          "benchmarks": [
+            {
+              "id": "-126633378_1_0_0",
+              "name": "depth=2 - leaf to root",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_1_0_1",
+              "name": "depth=3 - leaf to root",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_1_0_2",
+              "name": "depth=5 - leaf to root",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/queries.bench.ts > Query Benchmarks - Tree Structure > getSubtree (full subtree)",
+          "benchmarks": [
+            {
+              "id": "-126633378_1_1_0",
+              "name": "depth=2 - full tree",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_1_1_1",
+              "name": "depth=3 - full tree",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_1_1_2",
+              "name": "depth=5 - full tree",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/queries.bench.ts > Query Benchmarks - Tree Structure > getChildCountsBatch (batch counts)",
+          "benchmarks": [
+            {
+              "id": "-126633378_1_2_0",
+              "name": "depth=2 - count all parents",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_1_2_1",
+              "name": "depth=3 - count all parents",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_1_2_2",
+              "name": "depth=5 - count all parents",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/queries.bench.ts > Query Benchmarks - Batch Operations > getNode - multiple lookups",
+          "benchmarks": [
+            {
+              "id": "-126633378_2_0_0",
+              "name": "10 sequential lookups",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_2_0_1",
+              "name": "50 sequential lookups",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_2_0_2",
+              "name": "100 sequential lookups",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/queries.bench.ts > Query Benchmarks - Batch Operations > getChildCountsBatch - scaling",
+          "benchmarks": [
+            {
+              "id": "-126633378_2_1_0",
+              "name": "batch of 10",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_2_1_1",
+              "name": "batch of 50",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-126633378_2_1_2",
+              "name": "batch of 100",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "filepath": "/Users/beorn/Code/pim/km/benchmarks/layout.bench.ts",
+      "groups": [
+        {
+          "fullName": "benchmarks/layout.bench.ts > Flexx Layout Benchmarks > Flat Hierarchy (list-like)",
+          "benchmarks": [
+            {
+              "id": "1490587720_0_0_0",
+              "name": "100 nodes - layout only",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_0_1",
+              "name": "500 nodes - layout only",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_0_2",
+              "name": "1000 nodes - layout only",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_0_3",
+              "name": "100 nodes - create + layout",
+              "rank": 4,
+              "rme": 4.192048880073855,
+              "samples": [],
+              "totalTime": 500.0003530000086,
+              "min": 0.01762500000000955,
+              "max": 4.066125000000056,
+              "hz": 37755.973344282174,
+              "period": 0.02648587525161609,
+              "mean": 0.02648587525161609,
+              "variance": 0.006057942869831072,
+              "sd": 0.077832787884227,
+              "sem": 0.0005664800188077199,
+              "df": 18877,
+              "critical": 1.96,
+              "moe": 0.001110300836863131,
+              "p75": 0.021208999999998923,
+              "p99": 0.05616599999996197,
+              "p995": 0.599790999999982,
+              "p999": 0.997792000000004,
+              "sampleCount": 18878,
+              "median": 0.019874999999956344
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/layout.bench.ts > Flexx Layout Benchmarks > Deep Hierarchy (nested containers)",
+          "benchmarks": [
+            {
+              "id": "1490587720_0_1_0",
+              "name": "50 levels deep - layout only",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_1_1",
+              "name": "100 levels deep - layout only",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_1_2",
+              "name": "200 levels deep - layout only",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/layout.bench.ts > Flexx Layout Benchmarks > Terminal TUI Patterns",
+          "benchmarks": [
+            {
+              "id": "1490587720_0_2_0",
+              "name": "Kanban 3x10 (30 cards) - layout only",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_2_1",
+              "name": "Kanban 3x50 (150 cards) - layout only",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_2_2",
+              "name": "Kanban 3x100 (300 cards) - layout only",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_2_3",
+              "name": "Dashboard layout - layout only",
+              "rank": 4,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_2_4",
+              "name": "Kanban 3x50 - create + layout",
+              "rank": 5,
+              "rme": 4.5832855649568875,
+              "samples": [],
+              "totalTime": 500.01538100000676,
+              "min": 0.03587500000003274,
+              "max": 4.252917000000025,
+              "hz": 18619.427229179324,
+              "period": 0.05370734489795991,
+              "mean": 0.05370734489795991,
+              "variance": 0.014684485621292934,
+              "sd": 0.12117955942027903,
+              "sem": 0.0012558984622601053,
+              "df": 9309,
+              "critical": 1.96,
+              "moe": 0.002461560986029806,
+              "p75": 0.04874999999992724,
+              "p99": 0.14816700000005767,
+              "p995": 0.7367500000000291,
+              "p999": 2.0626669999999194,
+              "sampleCount": 9310,
+              "median": 0.04175000000009277
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/layout.bench.ts > Flexx Layout Benchmarks > Incremental Layout (dirty tracking)",
+          "benchmarks": [
+            {
+              "id": "1490587720_0_3_0",
+              "name": "Re-layout unchanged tree (should skip)",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1490587720_0_3_1",
+              "name": "Re-layout after single property change",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "filepath": "/Users/beorn/Code/pim/km/benchmarks/parser.bench.ts",
+      "groups": [
+        {
+          "fullName": "benchmarks/parser.bench.ts > Markdown Parser Benchmarks > Parse (string → AST)",
+          "benchmarks": [
+            {
+              "id": "580489971_0_0_0",
+              "name": "Parse flat list (100 items)",
+              "rank": 4,
+              "rme": 2.137975655254417,
+              "samples": [],
+              "totalTime": 500.0437339999983,
+              "min": 0.06008299999996325,
+              "max": 2.466625000000022,
+              "hz": 13734.7986446322,
+              "period": 0.07280776557949888,
+              "mean": 0.07280776557949888,
+              "variance": 0.004331906370259856,
+              "sd": 0.06581721940540983,
+              "sem": 0.0007941899506246893,
+              "df": 6867,
+              "critical": 1.96,
+              "moe": 0.0015566123032243909,
+              "p75": 0.0684999999999718,
+              "p99": 0.1585410000000138,
+              "p995": 0.2926669999999376,
+              "p999": 0.9777920000000222,
+              "sampleCount": 6868,
+              "median": 0.06629099999997834
+            },
+            {
+              "id": "580489971_0_0_1",
+              "name": "Parse nested list (243 items)",
+              "rank": 2,
+              "rme": 2.224169188305419,
+              "samples": [],
+              "totalTime": 500.04589900000155,
+              "min": 0.060458000000153334,
+              "max": 3.8430829999999787,
+              "hz": 14220.69456867994,
+              "period": 0.07032005329770799,
+              "mean": 0.07032005329770799,
+              "variance": 0.004528064021396947,
+              "sd": 0.06729089107298956,
+              "sem": 0.0007979780401263112,
+              "df": 7110,
+              "critical": 1.96,
+              "moe": 0.00156403695864757,
+              "p75": 0.06666700000005221,
+              "p99": 0.12266700000009223,
+              "p995": 0.2608749999999418,
+              "p999": 0.8807080000001406,
+              "sampleCount": 7111,
+              "median": 0.06483299999990777
+            },
+            {
+              "id": "580489971_0_0_2",
+              "name": "Parse rich document",
+              "rank": 1,
+              "rme": 2.216266607854009,
+              "samples": [],
+              "totalTime": 500.0229789999946,
+              "min": 0.05949999999984357,
+              "max": 2.4117089999999735,
+              "hz": 14295.343014625887,
+              "period": 0.06995285100727401,
+              "mean": 0.06995285100727401,
+              "variance": 0.004472262081300567,
+              "sd": 0.06687497350504572,
+              "sem": 0.0007909906521000412,
+              "df": 7147,
+              "critical": 1.96,
+              "moe": 0.0015503416781160807,
+              "p75": 0.06595800000013696,
+              "p99": 0.11179200000015044,
+              "p995": 0.28587500000003274,
+              "p999": 0.8687079999999696,
+              "sampleCount": 7148,
+              "median": 0.0643329999998059
+            },
+            {
+              "id": "580489971_0_0_3",
+              "name": "Parse large document (50 sections, 1000 items)",
+              "rank": 3,
+              "rme": 3.063438744717791,
+              "samples": [],
+              "totalTime": 500.0619229999925,
+              "min": 0.05966699999999037,
+              "max": 5.902666999999838,
+              "hz": 14174.244576506391,
+              "period": 0.07055049703724499,
+              "mean": 0.07055049703724499,
+              "variance": 0.008618468988171687,
+              "sd": 0.09283570966051634,
+              "sem": 0.001102689418790786,
+              "df": 7087,
+              "critical": 1.96,
+              "moe": 0.0021612712608299403,
+              "p75": 0.06608400000004622,
+              "p99": 0.11320799999975861,
+              "p995": 0.21725000000014916,
+              "p999": 0.9684999999999491,
+              "sampleCount": 7088,
+              "median": 0.06437500000038199
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/parser.bench.ts > Markdown Parser Benchmarks > Serialize (nodes → markdown)",
+          "benchmarks": [
+            {
+              "id": "580489971_0_1_0",
+              "name": "Serialize flat list (100 items)",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "580489971_0_1_1",
+              "name": "Serialize rich document",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "580489971_0_1_2",
+              "name": "Serialize large document",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/parser.bench.ts > Markdown Parser Benchmarks > Round-trip (parse → serialize)",
+          "benchmarks": [
+            {
+              "id": "580489971_0_2_0",
+              "name": "Round-trip flat list",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "580489971_0_2_1",
+              "name": "Round-trip rich document",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/parser.bench.ts > Markdown Parser Benchmarks > Regex operations (hot paths)",
+          "benchmarks": [
+            {
+              "id": "580489971_0_3_0",
+              "name": "Extract task mark",
+              "rank": 1,
+              "rme": 20.90654038815634,
+              "samples": [],
+              "totalTime": 500.08603599998924,
+              "min": 0.11124999999992724,
+              "max": 44.36875000000009,
+              "hz": 4927.152175071037,
+              "period": 0.20295699512986576,
+              "mean": 0.20295699512986576,
+              "variance": 1.1547845186411527,
+              "sd": 1.0746090073329708,
+              "sem": 0.021648615386435654,
+              "df": 2463,
+              "critical": 1.96,
+              "moe": 0.04243128615741388,
+              "p75": 0.1273750000000291,
+              "p99": 1.588416000000052,
+              "p995": 3.516583999999966,
+              "p999": 11.04162499999984,
+              "sampleCount": 2464,
+              "median": 0.1214589999999589
+            },
+            {
+              "id": "580489971_0_3_1",
+              "name": "Extract wiki links, tags, mentions",
+              "rank": 2,
+              "rme": 14.265033967379228,
+              "samples": [],
+              "totalTime": 500.0123199999871,
+              "min": 0.11562499999990905,
+              "max": 18.83145800000011,
+              "hz": 4885.879611926489,
+              "period": 0.20467143675807903,
+              "mean": 0.20467143675807903,
+              "variance": 0.5420900313594749,
+              "sd": 0.7362676356865585,
+              "sem": 0.01489614794646075,
+              "df": 2442,
+              "critical": 1.96,
+              "moe": 0.02919644997506307,
+              "p75": 0.13366599999972095,
+              "p99": 2.096541999999772,
+              "p995": 5.174375000000055,
+              "p999": 11.68637499999977,
+              "sampleCount": 2443,
+              "median": 0.12787499999967622
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "filepath": "/Users/beorn/Code/pim/km/benchmarks/sync.bench.ts",
+      "groups": [
+        {
+          "fullName": "benchmarks/sync.bench.ts > Sync Benchmarks - Directory Scanning > scanDirectory (filesystem read)",
+          "benchmarks": [
+            {
+              "id": "-580299337_0_0_0",
+              "name": "50 files",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-580299337_0_0_1",
+              "name": "200 files",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-580299337_0_0_2",
+              "name": "500 files",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/sync.bench.ts > Sync Benchmarks - Reconciliation > reconcileDirectory - initial (empty db)",
+          "benchmarks": [
+            {
+              "id": "-580299337_1_0_0",
+              "name": "100 files - initial sync",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-580299337_1_0_1",
+              "name": "300 files - initial sync",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/sync.bench.ts > Sync Benchmarks - Reconciliation > reconcileDirectory - incremental (populated db)",
+          "benchmarks": [
+            {
+              "id": "-580299337_1_1_0",
+              "name": "100 files - no changes",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-580299337_1_1_1",
+              "name": "300 files - no changes",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/sync.bench.ts > Sync Benchmarks - Apply Operations > applyReconcileOps - creates",
+          "benchmarks": [
+            {
+              "id": "-580299337_2_0_0",
+              "name": "50 new files",
+              "rank": 1,
+              "rme": 6.3928262571026435,
+              "samples": [],
+              "totalTime": 501.83483199999966,
+              "min": 6.742582999999968,
+              "max": 19.48629200000005,
+              "hz": 111.59050035809399,
+              "period": 8.96133628571428,
+              "mean": 8.96133628571428,
+              "variance": 4.574116892247868,
+              "sd": 2.138718516366253,
+              "sem": 0.2857982833925713,
+              "df": 55,
+              "critical": 2.0045,
+              "moe": 0.5728826590604092,
+              "p75": 9.098375000000033,
+              "p99": 19.48629200000005,
+              "p995": 19.48629200000005,
+              "p999": 19.48629200000005,
+              "sampleCount": 56,
+              "median": 8.683083499999952
+            },
+            {
+              "id": "-580299337_2_0_1",
+              "name": "100 new files",
+              "rank": 2,
+              "rme": 4.032535962645797,
+              "samples": [],
+              "totalTime": 510.86196000000064,
+              "min": 13.278458,
+              "max": 21.871917000000167,
+              "hz": 60.681754421487874,
+              "period": 16.47941806451615,
+              "mean": 16.47941806451615,
+              "variance": 3.283147992239432,
+              "sd": 1.8119459131661275,
+              "sem": 0.3254350929903828,
+              "df": 30,
+              "critical": 2.042,
+              "moe": 0.6645384598863616,
+              "p75": 17.131000000000085,
+              "p99": 21.871917000000167,
+              "p995": 21.871917000000167,
+              "p999": 21.871917000000167,
+              "sampleCount": 31,
+              "median": 16.265750000000025
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/sync.bench.ts > Sync Benchmarks - Nested Structure > scanDirectory - nested",
+          "benchmarks": [
+            {
+              "id": "-580299337_3_0_0",
+              "name": "depth=2 (39 files)",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-580299337_3_0_1",
+              "name": "depth=3 (117 files)",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/sync.bench.ts > Sync Benchmarks - Nested Structure > reconcileDirectory - nested",
+          "benchmarks": [
+            {
+              "id": "-580299337_3_1_0",
+              "name": "depth=2 - initial sync",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-580299337_3_1_1",
+              "name": "depth=3 - initial sync",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "benchmarks/sync.bench.ts > Sync Benchmarks - Full Cycle",
+          "benchmarks": [
+            {
+              "id": "-580299337_4_0",
+              "name": "full sync cycle - 50 files",
+              "rank": 1,
+              "rme": 3.87013240378224,
+              "samples": [],
+              "totalTime": 506.90321200000017,
+              "min": 6.905834000000141,
+              "max": 12.282666999999947,
+              "hz": 114.42026530303379,
+              "period": 8.73971055172414,
+              "mean": 8.73971055172414,
+              "variance": 1.6544054174320173,
+              "sd": 1.2862369211898783,
+              "sem": 0.168891181933915,
+              "df": 57,
+              "critical": 2.0027,
+              "moe": 0.33823837005905155,
+              "p75": 9.696457999999893,
+              "p99": 12.282666999999947,
+              "p995": 12.282666999999947,
+              "p999": 12.282666999999947,
+              "sampleCount": 58,
+              "median": 8.596854000000121
+            },
+            {
+              "id": "-580299337_4_1",
+              "name": "full sync cycle - 100 files",
+              "rank": 2,
+              "rme": 23.624313228219126,
+              "samples": [],
+              "totalTime": 531.9762930000015,
+              "min": 14.068833000000268,
+              "max": 58.46654200000012,
+              "hz": 33.836094271215856,
+              "period": 29.554238500000086,
+              "mean": 29.554238500000086,
+              "variance": 197.0904251411567,
+              "sd": 14.03888974033049,
+              "sem": 3.308998045239313,
+              "df": 17,
+              "critical": 2.11,
+              "moe": 6.98198587545495,
+              "p75": 40.30433400000038,
+              "p99": 58.46654200000012,
+              "p995": 58.46654200000012,
+              "p999": 58.46654200000012,
+              "sampleCount": 18,
+              "median": 23.825063
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
