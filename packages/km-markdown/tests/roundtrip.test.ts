@@ -7,7 +7,8 @@
 
 import { describe, test, expect } from "vitest"
 import { readFileSync } from "fs"
-import { join } from "path"
+import { join, dirname } from "path"
+import { fileURLToPath } from "url"
 import type { KNode } from "@km/core"
 
 import { parseMarkdownToNodes } from "../src/ast2nodes.ts"
@@ -504,7 +505,8 @@ x = 1
 })
 
 describe("Round-trip: Fixture Files", () => {
-  const fixturesDir = join(import.meta.dir, "fixtures")
+  const __dirname = dirname(fileURLToPath(import.meta.url))
+  const fixturesDir = join(__dirname, "fixtures")
 
   test("should round-trip inbox.md", () => {
     const original = readFileSync(join(fixturesDir, "inbox.md"), "utf-8")

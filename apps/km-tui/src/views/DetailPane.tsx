@@ -291,12 +291,22 @@ function formatDate(dateStr: string | undefined): {
 } {
   if (!dateStr) return { text: "", urgency: "normal" }
   try {
-    const date = new Date(dateStr)
+    // Parse date string as local date to avoid timezone issues
+    // YYYY-MM-DD should be treated as local midnight, not UTC midnight
+    const parts = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    const date = parts
+      ? new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]))
+      : new Date(dateStr)
+
     const now = new Date()
+    now.setHours(0, 0, 0, 0)
+
+    const dateLocal = new Date(date)
+    dateLocal.setHours(0, 0, 0, 0)
 
     // Calculate days until due
     const daysUntilDue = Math.floor(
-      (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      (dateLocal.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
     )
 
     // Determine urgency

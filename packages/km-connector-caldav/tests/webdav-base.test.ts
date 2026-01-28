@@ -4,7 +4,7 @@
  * Tests for the shared WebDAV functionality.
  */
 
-import { describe, test, expect, beforeEach, afterEach, mock } from "vitest"
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest"
 import {
   createBasicAuthHeader,
   webdavRequest,
@@ -13,10 +13,10 @@ import {
 
 // Mock fetch globally
 const originalFetch = globalThis.fetch
-let mockFetch: ReturnType<typeof mock>
+let mockFetch: ReturnType<typeof vi.fn>
 
 function setupMockFetch() {
-  mockFetch = mock(() => Promise.resolve(new Response("", { status: 200 })))
+  mockFetch = vi.fn(() => Promise.resolve(new Response("", { status: 200 })))
   globalThis.fetch = mockFetch as unknown as typeof fetch
 }
 
@@ -71,7 +71,7 @@ describe("webdav-base", () => {
 
     test("sends request with correct headers", async () => {
       const capturedOptions: RequestInit[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedOptions.push(options ?? {})
         return Promise.resolve(mockResponse("", 200))
       })
@@ -90,7 +90,7 @@ describe("webdav-base", () => {
 
     test("sends request body when provided", async () => {
       const capturedOptions: RequestInit[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedOptions.push(options ?? {})
         return Promise.resolve(mockResponse("", 207))
       })
@@ -110,7 +110,7 @@ describe("webdav-base", () => {
 
     test("includes custom headers", async () => {
       const capturedOptions: RequestInit[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedOptions.push(options ?? {})
         return Promise.resolve(mockResponse("", 207))
       })
@@ -131,7 +131,7 @@ describe("webdav-base", () => {
     })
 
     test("accepts 207 Multi-Status response", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse("<D:multistatus/>", 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -147,7 +147,7 @@ describe("webdav-base", () => {
     })
 
     test("throws on error status", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(new Response("Unauthorized", { status: 401 })),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -160,7 +160,7 @@ describe("webdav-base", () => {
     })
 
     test("throws on 404 Not Found", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(new Response("Not Found", { status: 404 })),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -185,7 +185,7 @@ describe("webdav-base", () => {
     test("extracts first href from response (used for principal discovery)", async () => {
       // Note: discoverPrincipal uses a simple regex that matches the first D:href
       // The actual CalDAV/CardDAV clients use this as a starting point for discovery
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(
           mockResponse(
             `<?xml version="1.0"?>
@@ -218,7 +218,7 @@ describe("webdav-base", () => {
 
     test("returns first href even without current-user-principal", async () => {
       // The function returns the first D:href it finds
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(
           mockResponse(
             `<?xml version="1.0"?>
@@ -246,7 +246,7 @@ describe("webdav-base", () => {
     })
 
     test("returns null when no href found", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(
           mockResponse(
             `<?xml version="1.0"?>
@@ -269,7 +269,7 @@ describe("webdav-base", () => {
 
     test("sends PROPFIND with Depth 0", async () => {
       const capturedOptions: RequestInit[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedOptions.push(options ?? {})
         return Promise.resolve(mockResponse("<D:multistatus/>", 207))
       })

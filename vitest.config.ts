@@ -7,11 +7,11 @@ export default defineConfig({
     include: [
       "packages/*/tests/**/*.test.ts",
       "packages/*/tests/**/*.spec.ts",
-      "packages/*/tests/**/*.test.md",
       "apps/*/tests/**/*.test.ts",
       "apps/*/tests/**/*.spec.ts",
-      "apps/*/tests/**/*.test.md",
       "apps/*/tests/**/*.test.tsx",
+      "tests/**/*.test.ts",
+      "vendor/*/tests/**/*.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**"],
 
@@ -31,12 +31,20 @@ export default defineConfig({
       html: "./test-results/vitest-report.html",
       junit: "./test-results/junit.xml",
     },
-    // Handle .test.md files with mdtest loader
+    // Aliases for internal packages
     alias: {
       "@km/core": new URL("./packages/km-core/src/index.ts", import.meta.url)
         .pathname,
       "@km/tree": new URL("./packages/km-tree/src/index.ts", import.meta.url)
         .pathname,
+      "@km/storage/internal/emit.ts": new URL(
+        "./packages/km-storage/src/internal/emit.ts",
+        import.meta.url,
+      ).pathname,
+      "@km/storage/internal/db-instance.ts": new URL(
+        "./packages/km-storage/src/internal/db-instance.ts",
+        import.meta.url,
+      ).pathname,
       "@km/storage": new URL(
         "./packages/km-storage/src/index.ts",
         import.meta.url,
@@ -45,6 +53,10 @@ export default defineConfig({
         .pathname,
       "@beorn/tap": new URL("./vendor/beorn-tap/src/index.ts", import.meta.url)
         .pathname,
+      "@beorn/mdtest/vitest": new URL(
+        "./vendor/beorn-mdtest/src/integrations/vitest.ts",
+        import.meta.url,
+      ).pathname,
     },
   },
 })

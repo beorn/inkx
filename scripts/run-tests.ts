@@ -60,8 +60,10 @@ const { stdout, exited } = runVitestTap({ args: files })
 const consumer = createConsumer({ dots: true, output: process.stdout })
 
 // Stream TAP output through consumer for dot display
+// Note: stdout chunks are Uint8Arrays from Bun subprocess, need decoding
 for await (const chunk of stdout) {
-  consumer.write(chunk)
+  const text = new TextDecoder().decode(chunk)
+  consumer.write(text)
 }
 
 consumer.end()

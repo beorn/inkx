@@ -13,6 +13,7 @@
 import { spawn } from "bun"
 import type { Suite } from "./orchestrate"
 import { runBunTap } from "./producers/bun"
+import { runVitestTap } from "./producers/vitest"
 import { Parser, type Result } from "tap-parser"
 
 interface SuiteState {
@@ -49,14 +50,15 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
 
 	const isTTY = process.stdout.isTTY ?? false
 	let renderedLines = 0
+	let lastRenderTime = 0
+	const renderThrottleMs = 50 // Throttle renders to ~20fps
 
 	// Hide cursor if TTY
 	if (isTTY) {
 		process.stdout.write(ANSI.CURSOR_HIDE)
+		// Initial render (only useful in TTY mode for immediate feedback)
+		render()
 	}
-
-	// Initial render
-	render()
 
 	// Run all suites in parallel
 	const promises = suites.map(async (suite) => {
@@ -64,7 +66,16 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
 			const state = states.get(suite.name)
 			if (state) {
 				Object.assign(state, update)
-				render()
+				// Only render on updates if TTY (for real-time feedback)
+				// In non-TTY mode, we'll only render at the end
+				// Throttle renders to avoid excessive updates
+				if (isTTY) {
+					const now = performance.now()
+					if (now - lastRenderTime >= renderThrottleMs) {
+						render()
+						lastRenderTime = now
+					}
+				}
 			}
 		})
 
@@ -74,14 +85,16 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
 		if (state) {
 			state.status = state.failed > 0 ? "failed" : "done"
 			state.timing = formatMs(elapsed)
-			render()
+			if (isTTY) {
+				render()
+			}
 		}
 	})
 
 	// Wait for all to complete
 	await Promise.all(promises)
 
-	// Final render
+	// Final render (always, even in non-TTY mode)
 	render()
 
 	// Show cursor and add newline
@@ -95,10 +108,8 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
 	return failedSuites.length > 0 ? 1 : 0
 
 	function render() {
-		if (!isTTY) return
-
-		// Move cursor up to overwrite previous render
-		if (renderedLines > 0) {
+		// Move cursor up to overwrite previous render (only if TTY)
+		if (isTTY && renderedLines > 0) {
 			process.stdout.write(ANSI.cursorUp(renderedLines))
 		}
 
@@ -114,11 +125,15 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
 			const reset = "\x1b[0m"
 			const gray = "\x1b[38;5;8m"
 
-			const name = `${bold}${color}${suite.name}${reset}`.padEnd(24) // Pad for alignment (accounting for ANSI codes)
-			const dots = state.dots.padEnd(60)
-			const timing = `${gray}${state.timing}${reset}`.padStart(20)
+			// Pad the plain text before adding ANSI codes
+			const namePadded = suite.name.padEnd(15)
+			const name = `${bold}${color}${namePadded}${reset}`
+			const dots = state.dots
+			const timing = `${gray}${state.timing.padStart(10)}${reset}`
 
-			lines.push(`${ANSI.CLEAR_LINE}${name}${dots}${timing}`)
+			// Use CLEAR_LINE only if TTY, otherwise just render the line
+			const prefix = isTTY ? ANSI.CLEAR_LINE : ""
+			lines.push(`${prefix}${name} ${dots} ${timing}`)
 		}
 
 		// Add summary line
@@ -142,8 +157,9 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
 		const icon = totalFailed > 0 ? "✗" : "✓"
 
 		lines.push("") // Empty line before summary
+		const prefix = isTTY ? ANSI.CLEAR_LINE : ""
 		lines.push(
-			`${ANSI.CLEAR_LINE}${bold}${summaryColor}${icon} ${totalTests} tests: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped${reset}`,
+			`${prefix}${bold}${summaryColor}${icon} ${totalTests} tests: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped${reset}`,
 		)
 
 		// Write all lines
@@ -184,11 +200,22 @@ async function runSuite(
 	// Spawn process and get TAP stream
 	if (suite.runner === "bun") {
 		const { stdout, exited } = runBunTap({ args: suite.files })
-		// Pipe TAP stream to parser
+		// Pipe TAP stream to parser (Node.js Readable with .on() support)
 		stdout.on("data", (chunk) => parser.write(chunk.toString()))
 		stdout.on("end", () => parser.end())
 		await exited
+	} else if (suite.runner === "vitest") {
+		const { stdout, exited } = runVitestTap({ args: suite.files })
+		// Pipe TAP stream to parser (Web ReadableStream, use async iteration)
+		// Note: chunks are Uint8Arrays from Bun subprocess, need decoding
+		for await (const chunk of stdout) {
+			const text = new TextDecoder().decode(chunk)
+			parser.write(text)
+		}
+		parser.end()
+		await exited
 	} else {
+		// Custom runner
 		const proc = spawn([...suite.command!, ...suite.files], { stdout: "pipe" })
 		// Pipe stdout to parser
 		if (proc.stdout) {

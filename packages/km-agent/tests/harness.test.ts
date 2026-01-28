@@ -9,7 +9,7 @@ import {
 describe("DEFAULT_HARNESS", () => {
   test("has required fields", () => {
     expect(DEFAULT_HARNESS.name).toBe("general")
-    expect(DEFAULT_HARNESS.tools).toBeArray()
+    expect(Array.isArray(DEFAULT_HARNESS.tools)).toBe(true)
     expect(DEFAULT_HARNESS.tools.length).toBeGreaterThan(0)
   })
 

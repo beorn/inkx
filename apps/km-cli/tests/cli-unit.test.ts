@@ -50,7 +50,7 @@ function createTask(
   return node
 }
 
-describe.serial("Task Status Filtering", () => {
+describe.sequential("Task Status Filtering", () => {
   test("should filter by single status", async () => {
     await withTestEnv(async ({ db }) => {
       createTask(db, "Open task", { task_status: "todo" })
@@ -90,7 +90,7 @@ describe.serial("Task Status Filtering", () => {
   })
 })
 
-describe.serial("Task Priority Sorting", () => {
+describe.sequential("Task Priority Sorting", () => {
   test("should sort by priority ascending", async () => {
     await withTestEnv(async ({ db }) => {
       createTask(db, "Low priority", { priority: 5 })
@@ -120,7 +120,7 @@ describe.serial("Task Priority Sorting", () => {
   })
 })
 
-describe.serial("Task Due Date Sorting", () => {
+describe.sequential("Task Due Date Sorting", () => {
   test("should sort by due date ascending", async () => {
     await withTestEnv(async ({ db }) => {
       createTask(db, "Due tomorrow", { due_date: "2026-01-10" })
@@ -160,7 +160,7 @@ describe.serial("Task Due Date Sorting", () => {
   })
 })
 
-describe.serial("Task Status Validation", () => {
+describe.sequential("Task Status Validation", () => {
   const validStatuses: TaskStatus[] = [
     "todo",
     "wip",
@@ -193,7 +193,7 @@ describe.serial("Task Status Validation", () => {
   })
 })
 
-describe.serial("Node ID Prefix Matching", () => {
+describe.sequential("Node ID Prefix Matching", () => {
   test("should find node by full ID", async () => {
     await withTestEnv(async ({ db }) => {
       const task = createTask(db, "Test task")
@@ -229,7 +229,7 @@ describe.serial("Node ID Prefix Matching", () => {
   })
 })
 
-describe.serial("Task Assignment", () => {
+describe.sequential("Task Assignment", () => {
   test("should filter tasks by assigned_to", async () => {
     await withTestEnv(async ({ db }) => {
       createTask(db, "Alice task", { assigned_to: "alice" })
@@ -262,7 +262,7 @@ describe.serial("Task Assignment", () => {
   })
 })
 
-describe.serial("Task Content Parsing", () => {
+describe.sequential("Task Content Parsing", () => {
   // These tests verify that task content can contain metadata markers
   // The actual parsing happens in md/parser.ts which is tested elsewhere
 
@@ -296,7 +296,7 @@ describe.serial("Task Content Parsing", () => {
   })
 })
 
-describe.serial("Search Functionality", () => {
+describe.sequential("Search Functionality", () => {
   test("should find tasks by content substring", async () => {
     await withTestEnv(async ({ db }) => {
       createTask(db, "Buy groceries")
@@ -340,7 +340,7 @@ describe.serial("Search Functionality", () => {
   })
 })
 
-describe.serial("Task Data Field", () => {
+describe.sequential("Task Data Field", () => {
   test("should store and retrieve JSON data", async () => {
     await withTestEnv(async ({ db }) => {
       const id = `task-${Date.now()}`
@@ -375,7 +375,7 @@ describe.serial("Task Data Field", () => {
   })
 })
 
-describe.serial("Overdue Detection", () => {
+describe.sequential("Overdue Detection", () => {
   test("should detect overdue tasks", async () => {
     await withTestEnv(async ({ db }) => {
       const yesterday = new Date()
@@ -414,7 +414,7 @@ describe.serial("Overdue Detection", () => {
   })
 })
 
-describe.serial("Timestamp Handling", () => {
+describe.sequential("Timestamp Handling", () => {
   test("should store and retrieve timestamps", async () => {
     await withTestEnv(async ({ db }) => {
       const before = Date.now()

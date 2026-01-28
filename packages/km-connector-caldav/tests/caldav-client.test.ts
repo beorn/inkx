@@ -4,16 +4,16 @@
  * Tests for CalDAVClient class using mocked fetch responses.
  */
 
-import { describe, test, expect, beforeEach, afterEach, mock } from "vitest"
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest"
 import { CalDAVClient } from "../src/caldav-client.ts"
 import type { CalendarEvent } from "../src/types.ts"
 
 // Mock fetch globally
 const originalFetch = globalThis.fetch
-let mockFetch: ReturnType<typeof mock>
+let mockFetch: ReturnType<typeof vi.fn>
 
 function setupMockFetch() {
-  mockFetch = mock(() => Promise.resolve(new Response("", { status: 200 })))
+  mockFetch = vi.fn(() => Promise.resolve(new Response("", { status: 200 })))
   globalThis.fetch = mockFetch as unknown as typeof fetch
 }
 
@@ -160,7 +160,7 @@ describe("CalDAVClient", () => {
 
     test("discovers calendar URL via PROPFIND", async () => {
       let callCount = 0
-      mockFetch = mock((url: string) => {
+      mockFetch = vi.fn((url: string) => {
         callCount++
         if (callCount === 1) {
           // First call: get principal
@@ -189,7 +189,7 @@ describe("CalDAVClient", () => {
     })
 
     test("falls back to config URL when discovery fails", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse("<D:multistatus></D:multistatus>", 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -209,7 +209,7 @@ describe("CalDAVClient", () => {
   describe("getEvents", () => {
     test("fetches and parses events", async () => {
       let callCount = 0
-      mockFetch = mock((url: string) => {
+      mockFetch = vi.fn((url: string) => {
         callCount++
         if (callCount <= 2) {
           // Discovery calls
@@ -245,7 +245,7 @@ describe("CalDAVClient", () => {
     })
 
     test("skips discovery if already discovered", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -275,7 +275,7 @@ describe("CalDAVClient", () => {
         body?: string
         headers?: Record<string, string>
       }[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
           method: options?.method ?? "GET",
@@ -320,7 +320,7 @@ describe("CalDAVClient", () => {
         method: string
         headers?: Record<string, string>
       }[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
           method: options?.method ?? "GET",
@@ -358,7 +358,7 @@ describe("CalDAVClient", () => {
         method: string
         headers?: Record<string, string>
       }[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
           method: options?.method ?? "GET",
@@ -388,7 +388,7 @@ describe("CalDAVClient", () => {
 
   describe("sync", () => {
     test("full sync without prior state", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -411,7 +411,7 @@ describe("CalDAVClient", () => {
     })
 
     test("detects modified events", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -436,7 +436,7 @@ describe("CalDAVClient", () => {
     })
 
     test("detects deleted events", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -460,7 +460,7 @@ describe("CalDAVClient", () => {
     })
 
     test("incremental sync using sync-collection updates sync token", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse(SYNC_COLLECTION_RESPONSE, 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch

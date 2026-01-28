@@ -4,16 +4,16 @@
  * Tests for CardDAVClient class using mocked fetch responses.
  */
 
-import { describe, test, expect, beforeEach, afterEach, mock } from "vitest"
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest"
 import { CardDAVClient } from "../src/carddav-client.ts"
 import type { Contact } from "../src/types.ts"
 
 // Mock fetch globally
 const originalFetch = globalThis.fetch
-let mockFetch: ReturnType<typeof mock>
+let mockFetch: ReturnType<typeof vi.fn>
 
 function setupMockFetch() {
-  mockFetch = mock(() => Promise.resolve(new Response("", { status: 200 })))
+  mockFetch = vi.fn(() => Promise.resolve(new Response("", { status: 200 })))
   globalThis.fetch = mockFetch as unknown as typeof fetch
 }
 
@@ -139,7 +139,7 @@ describe("CardDAVClient", () => {
 
     test("discovers addressbook URL via PROPFIND", async () => {
       let callCount = 0
-      mockFetch = mock((url: string) => {
+      mockFetch = vi.fn((url: string) => {
         callCount++
         if (callCount === 1) {
           return Promise.resolve(mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207))
@@ -166,7 +166,7 @@ describe("CardDAVClient", () => {
     })
 
     test("falls back to config URL when discovery fails", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse("<D:multistatus></D:multistatus>", 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -186,7 +186,7 @@ describe("CardDAVClient", () => {
   describe("getContacts", () => {
     test("fetches and parses contacts", async () => {
       let callCount = 0
-      mockFetch = mock((url: string) => {
+      mockFetch = vi.fn((url: string) => {
         callCount++
         if (callCount <= 2) {
           if (callCount === 1) {
@@ -224,7 +224,7 @@ describe("CardDAVClient", () => {
     })
 
     test("skips discovery if already discovered", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -253,7 +253,7 @@ describe("CardDAVClient", () => {
         body?: string
         headers?: Record<string, string>
       }[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
           method: options?.method ?? "GET",
@@ -298,7 +298,7 @@ describe("CardDAVClient", () => {
         method: string
         headers?: Record<string, string>
       }[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
           method: options?.method ?? "GET",
@@ -335,7 +335,7 @@ describe("CardDAVClient", () => {
         method: string
         headers?: Record<string, string>
       }[] = []
-      mockFetch = mock((url: string, options?: RequestInit) => {
+      mockFetch = vi.fn((url: string, options?: RequestInit) => {
         capturedRequests.push({
           url,
           method: options?.method ?? "GET",
@@ -365,7 +365,7 @@ describe("CardDAVClient", () => {
 
   describe("sync", () => {
     test("full sync without prior state", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -389,7 +389,7 @@ describe("CardDAVClient", () => {
     })
 
     test("detects modified contacts", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -414,7 +414,7 @@ describe("CardDAVClient", () => {
     })
 
     test("detects deleted contacts", async () => {
-      mockFetch = mock(() =>
+      mockFetch = vi.fn(() =>
         Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)),
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
