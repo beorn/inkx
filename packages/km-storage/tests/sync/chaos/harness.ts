@@ -25,7 +25,11 @@ import {
   reconcileDirectoryRecursive,
   applyReconcileOps,
 } from "../../../src/watch/reconcile.ts"
-import { MockFileSystem, createMockFileSystem } from "./mock-fs.ts"
+import { FakeFileSystem, createFakeFileSystem } from "./fake-fs.ts"
+
+// Backwards compatibility aliases
+const MockFileSystem = FakeFileSystem
+const createMockFileSystem = createFakeFileSystem
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

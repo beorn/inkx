@@ -14,7 +14,8 @@ import {
   getChildren,
   getNode,
 } from "../../../src/index.ts"
-import type { MockFileSystem } from "./mock-fs.ts"
+import type { FakeFileSystem } from "./fake-fs.ts"
+type MockFileSystem = FakeFileSystem
 import type { Database } from "bun:sqlite"
 
 // ─────────────────────────────────────────────────────────────────────────────
