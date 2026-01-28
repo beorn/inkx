@@ -216,13 +216,7 @@ Domain objects (Repo, Board, Watcher) must still use factory functions.
 
 **Minimize types, maximize interoperability**:
 
-Every type you add creates friction:
-
-- Classes don't compose with plain objects
-- Can't JSON.stringify class instances
-- Can't spread without losing methods
-- Can't pass through IPC without custom serialization
-- Need special handling for cloning, merging, debugging
+Use the fewest possible building blocks (plain objects, functions, async generators). Every additional abstraction type creates impedance mismatch—see [Why not classes](#principle-plain-objects) in "Plain Objects from Factories" for details on type friction.
 
 **Plain objects work everywhere**: JSON, IPC, spread operators, Object.assign, testing, debugging.
 
@@ -308,6 +302,10 @@ async function watchRepo(path: string) {
 ---
 
 ### Principle: Organize Objects Into Layers
+
+**The insight**: Each layer calls only the layer below it. Dependencies flow downward.
+
+**The pattern**: Strict layered architecture with clear boundaries.
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -505,7 +503,9 @@ export function getDb() { ... }
 
 ## Part 3: Code for Humans
 
-Code is read more than written. Names should use the end-user's domain language so a narrative describing the system reads naturally.
+Parts 1 and 2 establish what to build (composable pieces) and how to verify it works (fast feedback). Part 3 is about making it understandable.
+
+Code is read more than written. Use [Plain Domain Language](#principle-plain-language) (Part 1) so the code reads naturally. Make the "right way" locally obvious.
 
 ### Principle: Inverted Pyramid
 
