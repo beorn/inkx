@@ -3,7 +3,21 @@
  * TUI Storybook - Visual Component Catalog
  *
  * Renders all TUI components in various states for visual inspection.
- * Run: bun storybook
+ *
+ * ## Usage
+ *
+ * Interactive mode (default):
+ *   bun run apps/km-tui/tests/storybook.tsx
+ *
+ *   Keyboard controls:
+ *   - j/k or arrows: Navigate between sections
+ *   - Enter/Space: Toggle section expand/collapse
+ *   - e: Expand all sections
+ *   - c: Collapse all sections
+ *   - q or Escape: Quit
+ *
+ * Static mode (for CI or piping):
+ *   bun run apps/km-tui/tests/storybook.tsx --static
  *
  * ## IMPORTANT: Production Code Only
  *
@@ -29,11 +43,15 @@
  * See bead km-board-2 for the full plan.
  */
 
-import React from "react"
-import { createTestRenderer } from "inkx/testing"
-
-const render = createTestRenderer({ columns: 120, rows: 500 })
-import { Box, Text } from "inkx"
+import React, { useState } from "react"
+import {
+  render as inkxRender,
+  useInput,
+  useApp,
+  useStdout,
+  Box,
+  Text,
+} from "inkx"
 import chalk from "chalk"
 
 import {
@@ -1521,7 +1539,180 @@ function ToastAndStatusSection(): React.ReactElement {
 // Create a minimal mock repo for storybook
 const mockRepo = createFakeRepo()
 
-function Storybook(): React.ReactElement {
+// Section definitions for interactive mode
+interface Section {
+  id: string
+  title: string
+  component: () => React.ReactElement
+}
+
+const sections: Section[] = [
+  { id: "rich-text", title: "Layer 1: Rich Text", component: Layer1RichText },
+  { id: "tag-pills", title: "Layer 1: Tag Pills", component: Layer1TagPills },
+  {
+    id: "task-styling",
+    title: "Layer 1: Task Styling",
+    component: Layer1TaskStyling,
+  },
+  {
+    id: "fold-markers",
+    title: "Layer 1: Fold Markers",
+    component: Layer1FoldMarkers,
+  },
+  { id: "layout", title: "Layer 2: Layout", component: Layer2Layout },
+  { id: "tree-node", title: "Layer 3: TreeNode", component: Layer3Views },
+  { id: "all-views", title: "Layer 3: All Views", component: Layer3AllViews },
+  {
+    id: "visual-language",
+    title: "Visual Language",
+    component: VisualLanguageSection,
+  },
+  {
+    id: "toast-status",
+    title: "Toast & Status Bar",
+    component: ToastAndStatusSection,
+  },
+]
+
+// Interactive Storybook with keyboard navigation
+function InteractiveStorybook(): React.ReactElement {
+  const { exit } = useApp()
+  const { stdout } = useStdout()
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set([sections[0]?.id ?? ""]),
+  )
+
+  // Terminal dimensions
+  const termWidth = stdout?.columns ?? 120
+  const termHeight = stdout?.rows ?? 40
+
+  // Sidebar width
+  const sidebarWidth = 28
+
+  useInput((input, key) => {
+    // Navigation
+    if (input === "j" || key.downArrow) {
+      setSelectedIndex((prev) => Math.min(prev + 1, sections.length - 1))
+    } else if (input === "k" || key.upArrow) {
+      setSelectedIndex((prev) => Math.max(prev - 1, 0))
+    }
+    // Toggle expand/collapse
+    else if (input === " " || key.return) {
+      const section = sections[selectedIndex]
+      if (section) {
+        setExpandedSections((prev) => {
+          const next = new Set(prev)
+          if (next.has(section.id)) {
+            next.delete(section.id)
+          } else {
+            next.add(section.id)
+          }
+          return next
+        })
+      }
+    }
+    // Expand all
+    else if (input === "e") {
+      setExpandedSections(new Set(sections.map((s) => s.id)))
+    }
+    // Collapse all
+    else if (input === "c") {
+      setExpandedSections(new Set())
+    }
+    // Quit
+    else if (input === "q" || key.escape) {
+      exit()
+    }
+  })
+
+  // Get the currently selected section
+  const currentSection = sections[selectedIndex]
+  const isExpanded = currentSection
+    ? expandedSections.has(currentSection.id)
+    : false
+
+  return (
+    <RepoProvider repo={mockRepo}>
+      <UIProvider state={mockUIState} dispatch={noopDispatch}>
+        <Box flexDirection="column" width={termWidth} height={termHeight}>
+          {/* Header */}
+          <Box borderStyle="double" borderColor="cyan" paddingX={1}>
+            <Text bold color="cyan">
+              TUI Storybook
+            </Text>
+            <Text>{"  "}</Text>
+            <Text dimColor>
+              j/k:nav Enter/Space:toggle e:expand-all c:collapse-all q:quit
+            </Text>
+          </Box>
+
+          {/* Main content area */}
+          <Box flexDirection="row" flexGrow={1}>
+            {/* Sidebar */}
+            <Box
+              flexDirection="column"
+              width={sidebarWidth}
+              borderStyle="single"
+              borderColor="gray"
+              paddingX={1}
+            >
+              <Text bold color="yellow">
+                Sections
+              </Text>
+              <Text dimColor>────────────────────────</Text>
+              {sections.map((section, idx) => {
+                const isSelected = idx === selectedIndex
+                const isSectionExpanded = expandedSections.has(section.id)
+                const marker = isSectionExpanded ? "▼" : "▶"
+                return (
+                  <Text
+                    key={section.id}
+                    backgroundColor={isSelected ? "cyan" : undefined}
+                    color={
+                      isSelected
+                        ? "black"
+                        : isSectionExpanded
+                          ? "white"
+                          : "gray"
+                    }
+                  >
+                    {marker} {section.title.slice(0, sidebarWidth - 5)}
+                  </Text>
+                )
+              })}
+            </Box>
+
+            {/* Divider */}
+            <Box flexDirection="column" width={1}>
+              <Text color="gray">│</Text>
+            </Box>
+
+            {/* Content area */}
+            <Box flexDirection="column" flexGrow={1} paddingX={1}>
+              {isExpanded && currentSection ? (
+                <currentSection.component />
+              ) : (
+                <Box
+                  flexDirection="column"
+                  justifyContent="center"
+                  alignItems="center"
+                  height="100%"
+                >
+                  <Text dimColor>Press Enter or Space to expand section</Text>
+                  <Text dimColor>"{currentSection?.title ?? ""}"</Text>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Box>
+      </UIProvider>
+    </RepoProvider>
+  )
+}
+
+// Static Storybook (original behavior for --static flag)
+function StaticStorybook(): React.ReactElement {
   return (
     <RepoProvider repo={mockRepo}>
       <UIProvider state={mockUIState} dispatch={noopDispatch}>
@@ -1551,20 +1742,34 @@ function Storybook(): React.ReactElement {
 // Render and Output
 // ============================================================================
 
-// Run rendering (the RepoProvider handles db context now)
-const { lastFrame } = render(<Storybook />)
-// Clean up output from 500-row buffer:
-// 1. Remove trailing whitespace from each line
-// 2. Remove trailing blank/ANSI-only lines
-const ANSI_REGEX = /\x1b\[[0-9;]*m/g
-const rawOutput = lastFrame() ?? ""
-const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")) // trim trailing whitespace
-// Find last line with visible content (not just ANSI codes and whitespace)
-let lastContentLine = lines.length - 1
-while (lastContentLine >= 0) {
-  const line = lines[lastContentLine]
-  if (line && line.replace(ANSI_REGEX, "").trim() !== "") break
-  lastContentLine--
+// Check for --static flag to use non-interactive mode
+const isStaticMode = process.argv.includes("--static")
+
+if (isStaticMode) {
+  // Static mode: render to string and output (original behavior)
+  // Dynamic import to avoid setting IS_REACT_ACT_ENVIRONMENT in interactive mode
+  const { createTestRenderer } = await import("inkx/testing")
+  const render = createTestRenderer({ columns: 120, rows: 500 })
+  const { lastFrame } = render(<StaticStorybook />)
+  // Clean up output from 500-row buffer:
+  // 1. Remove trailing whitespace from each line
+  // 2. Remove trailing blank/ANSI-only lines
+  const ANSI_REGEX = /\x1b\[[0-9;]*m/g
+  const rawOutput = lastFrame() ?? ""
+  const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")) // trim trailing whitespace
+  // Find last line with visible content (not just ANSI codes and whitespace)
+  let lastContentLine = lines.length - 1
+  while (lastContentLine >= 0) {
+    const line = lines[lastContentLine]
+    if (line && line.replace(ANSI_REGEX, "").trim() !== "") break
+    lastContentLine--
+  }
+  const output = lines.slice(0, lastContentLine + 1).join("\n")
+  console.log(output)
+} else {
+  // Interactive mode: render to terminal with keyboard input
+  const instance = await inkxRender(<InteractiveStorybook />, {
+    exitOnCtrlC: true,
+  })
+  await instance.waitUntilExit()
 }
-const output = lines.slice(0, lastContentLine + 1).join("\n")
-console.log(output)
