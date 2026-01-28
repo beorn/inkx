@@ -13,6 +13,8 @@ bun km view <path>   # Run TUI
 
 **Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow and test types.
 
+**Use bun, not npm:** `bun add` (not `npm install`), `bunx` (not `npx`), `bun run test:all` (not `npm test`).
+
 ## Architecture
 
 Layered: App → Board → Tree → Storage → Parser → Filesystem. Each layer calls only layer below.
