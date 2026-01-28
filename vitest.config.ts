@@ -6,6 +6,8 @@ import { mdtest } from "./vendor/beorn-mdtest/src/integrations/vitest-plugin"
 export default defineConfig({
   plugins: [tsconfigPaths(), mdtest()],
   test: {
+    // Test quality enforcement - fail on any console/stdout/stderr output
+    setupFiles: ["./tests/vitest-setup.ts"],
     // Force certain packages to be bundled in SSR to avoid import issues
     server: {
       deps: {
