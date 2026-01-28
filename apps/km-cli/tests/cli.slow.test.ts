@@ -7,7 +7,8 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { rmSync, mkdirSync, existsSync, writeFileSync, readFileSync } from "fs"
-import { join } from "path"
+import { join, dirname } from "path"
+import { fileURLToPath } from "url"
 import { $ } from "bun"
 
 // Type for parsed task objects from JSON output
@@ -36,7 +37,8 @@ const REPO_DIR = join(TEST_DIR, "repo")
 const KM_DIR = join(REPO_DIR, ".km") // .km inside repo, not sibling
 
 // CLI path
-const CLI_PATH = join(import.meta.dir, "..", "src", "index.ts")
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const CLI_PATH = join(__dirname, "..", "src", "index.ts")
 
 /**
  * Run km CLI command and return result
@@ -73,7 +75,7 @@ async function km(
   }
 }
 
-describe.serial("CLI Integration", () => {
+describe("CLI Integration", () => {
   beforeEach(() => {
     // Clean up test directories
     if (existsSync(TEST_DIR)) {
@@ -363,7 +365,7 @@ Some content here.
   })
 })
 
-describe.serial("km list", () => {
+describe("km list", () => {
   beforeEach(async () => {
     // Clean up and create test directories
     if (existsSync(TEST_DIR)) {
@@ -443,7 +445,7 @@ Some paragraph content.
   })
 })
 
-describe.serial("km task status", () => {
+describe("km task status", () => {
   beforeEach(async () => {
     // Clean up and create test directories
     if (existsSync(TEST_DIR)) {
@@ -517,7 +519,7 @@ describe.serial("km task status", () => {
   })
 })
 
-describe.serial("km init", () => {
+describe("km init", () => {
   const INIT_TEST_DIR = join("/tmp", `kmtest-init-${process.pid}`)
 
   beforeEach(() => {
@@ -707,7 +709,7 @@ describe.serial("km init", () => {
   })
 })
 
-describe.serial("CLI Error Handling", () => {
+describe("CLI Error Handling", () => {
   beforeEach(() => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true })
@@ -736,7 +738,7 @@ describe.serial("CLI Error Handling", () => {
   })
 })
 
-describe.serial("Global --repo option", () => {
+describe("Global --repo option", () => {
   const ROOT_TEST_DIR = `/tmp/km-root-test-${process.pid}`
   const REPO_A = join(ROOT_TEST_DIR, "repo-a")
   const REPO_B = join(ROOT_TEST_DIR, "repo-b")
@@ -841,7 +843,7 @@ describe.serial("Global --repo option", () => {
   })
 })
 
-describe.serial("km new", () => {
+describe("km new", () => {
   beforeEach(() => {
     // Clean up and create test directories
     if (existsSync(TEST_DIR)) {
@@ -924,7 +926,7 @@ describe.serial("km new", () => {
   })
 })
 
-describe.serial("km done", () => {
+describe("km done", () => {
   beforeEach(async () => {
     // Clean up and create test directories
     if (existsSync(TEST_DIR)) {
@@ -1023,7 +1025,7 @@ describe.serial("km done", () => {
   })
 })
 
-describe.serial(
+describe(
   "Bidirectional sync - km status writes to markdown file",
   () => {
     beforeEach(async () => {
@@ -1166,7 +1168,7 @@ describe.serial(
   },
 )
 
-describe.serial("Task mark types - parsing and status mapping", () => {
+describe("Task mark types - parsing and status mapping", () => {
   beforeEach(async () => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true })
@@ -1241,7 +1243,7 @@ describe.serial("Task mark types - parsing and status mapping", () => {
   })
 })
 
-describe.serial("Query language integration - km task with queries", () => {
+describe("Query language integration - km task with queries", () => {
   beforeEach(async () => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true })
@@ -1380,7 +1382,7 @@ describe.serial("Query language integration - km task with queries", () => {
   })
 })
 
-describe.serial("km move - re-parent nodes", () => {
+describe("km move - re-parent nodes", () => {
   beforeEach(async () => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true })
@@ -1479,7 +1481,7 @@ describe.serial("km move - re-parent nodes", () => {
   })
 })
 
-describe.serial("km view - state initialization", () => {
+describe("km view - state initialization", () => {
   beforeEach(async () => {
     if (existsSync(TEST_DIR)) {
       rmSync(TEST_DIR, { recursive: true })

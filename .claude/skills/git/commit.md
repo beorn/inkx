@@ -69,6 +69,8 @@ From the gathered output, determine:
 4. **Beads context** - What beads were being worked on? Use for commit message context
 5. **Commit message** - Use conventional commits format, reference beads if relevant
 
+**IMPORTANT: If no changes detected** (empty "ALL CHANGES" and no "SUBMODULE CHANGES"), output a friendly message like "Nothing to commit, working tree is clean" and STOP. Do not generate or run a commit script.
+
 **Single vs multiple commits:** Default to ONE commit unless changes are CLEARLY unrelated:
 
 - Different packages touched? Usually ONE commit (refactors often touch multiple)
@@ -205,7 +207,8 @@ If the script fails partway through:
 | Error                            | Fix                                                |
 | -------------------------------- | -------------------------------------------------- |
 | "detached HEAD"                  | Add `(cd vendor/X && git checkout main)` to script |
-| "nothing to commit"              | Remove that repo's section from script             |
+| "nothing to commit" (after gather) | This should be caught in Step 2 - don't generate a script if no changes exist |
+| "nothing to commit" (during script) | Remove that repo's section from script             |
 | "push rejected"                  | Run `git pull --rebase && git push` manually       |
 | Pre-commit hook fails            | Fix issue, run script again (idempotent)           |
 | "Uncommitted changes" (pre-push) | `bd sync` should be in script already              |
