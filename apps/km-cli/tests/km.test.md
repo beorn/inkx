@@ -1,6 +1,6 @@
 ---
 mdtest:
-  plugin: ../apps/km-cli/tests/mdtest-plugin.ts
+  plugin: ./mdtest-plugin.ts
 ---
 
 # KM CLI - Happy Path Tests

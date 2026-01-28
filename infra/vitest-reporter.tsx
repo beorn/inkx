@@ -582,9 +582,12 @@ export class KmReporter implements Reporter {
       })
     }
 
-    const logs = diagnostic as { stdout?: string; stderr?: string }
-    if (logs.stdout || logs.stderr) {
-      this.noisyTestIds.add(id)
+    // Check if test produced console output (noisy test)
+    if (diagnostic) {
+      const logs = diagnostic as { stdout?: string; stderr?: string }
+      if (logs.stdout || logs.stderr) {
+        this.noisyTestIds.add(id)
+      }
     }
 
     const category = this.testToCategory.get(id)
