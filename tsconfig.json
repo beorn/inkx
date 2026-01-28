@@ -36,6 +36,7 @@
       "@beorn/mdtest": ["vendor/beorn-mdtest/src/index.ts"],
       "@beorn/chalkx": ["vendor/beorn-chalkx/src/index.ts"],
       "@beorn/flexx": ["vendor/beorn-flexx/src/index.ts"],
+      "@beorn/inkx": ["vendor/beorn-inkx/src/index.ts"],
       "@beorn/inkx-ui": ["vendor/beorn-inkx-ui/src/index.ts"],
       "@beorn/logger": ["vendor/beorn-logger/src/index.ts"],
       "@beorn/tui-measure": ["vendor/beorn-tui-measure/src/index.ts"],

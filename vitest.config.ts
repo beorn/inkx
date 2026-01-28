@@ -5,9 +5,9 @@ import { mdtest } from "./vendor/beorn-mdtest/src/integrations/vitest-plugin"
 export default defineConfig({
   plugins: [tsconfigPaths(), mdtest()],
   test: {
-    // Custom reporter: colored dots + slow test tracking (see infra/vitest-reporter.ts)
-    // CLI flag --reporter=./infra/vitest-reporter.ts overrides when specified
-    reporters: ["./infra/vitest-reporter.ts"],
+    // Custom reporter: colored dots + slow test tracking (see infra/vitest-reporter.tsx)
+    // CLI flag --reporter=./infra/vitest-reporter.tsx overrides when specified
+    reporters: ["./infra/vitest-reporter.tsx"],
     // Test quality enforcement - fail on any console output
     setupFiles: ["./tests/vitest-setup.ts"],
     // Force certain packages to be bundled in SSR to avoid import issues
