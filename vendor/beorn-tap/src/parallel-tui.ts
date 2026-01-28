@@ -23,6 +23,7 @@ interface SuiteState {
 	dots: string
 	timing: string
 	status: "running" | "done" | "failed"
+	total?: number // Total test count (undefined until we see the TAP plan)
 }
 
 const ANSI = {
@@ -51,7 +52,7 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
 	const isTTY = process.stdout.isTTY ?? false
 	let renderedLines = 0
 	let lastRenderTime = 0
-	const renderThrottleMs = 50 // Throttle renders to ~20fps
+	const renderThrottleMs = 10 // Throttle renders to ~100fps for responsive updates
 
 	// Hide cursor if TTY
 	if (isTTY) {
@@ -149,17 +150,24 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
 			(sum, s) => sum + s.skipped,
 			0,
 		)
-		const totalTests = totalPassed + totalFailed + totalSkipped
+
+		// Check if we know the total count yet
+		const allKnown = Array.from(states.values()).every((s) => s.total !== undefined)
+		const totalTests = allKnown
+			? totalPassed + totalFailed + totalSkipped
+			: null
 
 		const summaryColor = totalFailed > 0 ? "\x1b[31m" : "\x1b[32m"
 		const bold = "\x1b[1m"
 		const reset = "\x1b[0m"
+		const gray = "\x1b[38;5;8m"
 		const icon = totalFailed > 0 ? "✗" : "✓"
 
 		lines.push("") // Empty line before summary
 		const prefix = isTTY ? ANSI.CLEAR_LINE : ""
+		const testCount = totalTests !== null ? String(totalTests) : `${gray}?${reset}`
 		lines.push(
-			`${prefix}${bold}${summaryColor}${icon} ${totalTests} tests: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped${reset}`,
+			`${prefix}${bold}${summaryColor}${icon} ${testCount} tests: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped${reset}`,
 		)
 
 		// Write all lines
@@ -180,6 +188,13 @@ async function runSuite(
 	let passed = 0
 	let failed = 0
 	let skipped = 0
+	let total: number | undefined = undefined
+
+	// Listen for TAP plan (e.g., "1..87" tells us total test count)
+	parser.on("plan", (plan: { start: number; end: number }) => {
+		total = plan.end - plan.start + 1
+		onUpdate({ total })
+	})
 
 	// Listen for test results
 	parser.on("assert", (assert: Result) => {
