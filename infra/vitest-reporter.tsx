@@ -217,8 +217,8 @@ function plainTextStatsTable(categories: string[], categoryStats: Map<string, Ca
   if (categories.length <= 1) return ""
 
   const nameWidth = Math.max(...categories.map((c) => c.length), 12)
-  let result = "\n" + chalk.dim("By package:") + "\n"
-  result += chalk.dim(`   ${"Package".padEnd(nameWidth)}  Tests     Time   Slow`) + "\n"
+  // Single header line with bold column names
+  let result = "\n" + chalk.bold(`${"PACKAGE".padEnd(nameWidth)}  TESTS     TIME   SLOW`) + "\n"
 
   for (const category of categories) {
     const stats = categoryStats.get(category)
@@ -231,7 +231,7 @@ function plainTextStatsTable(categories: string[], categoryStats: Map<string, Ca
     const slow = stats.slowCount > 0 ? stats.slowCount.toString().padStart(6) : "     -"
 
     const nameText = stats.failed > 0 ? chalk.red(name) : chalk.dim(name)
-    result += `   ${nameText}  ${tests}  ${time}  ${slow}\n`
+    result += `${nameText}  ${tests}  ${time}  ${slow}\n`
   }
 
   return result
@@ -240,7 +240,7 @@ function plainTextStatsTable(categories: string[], categoryStats: Map<string, Ca
 function plainTextSlowestList(tests: SlowestTest[], threshold: number): string {
   if (tests.length === 0) return ""
 
-  let result = "\n" + chalk.dim(`Slow tests (>${threshold}ms):`) + "\n"
+  let result = "\n" + chalk.bold(`SLOW TESTS`) + chalk.dim(` (>${threshold}ms)`) + "\n"
   for (const t of tests) {
     result += `   ${chalk.yellow(formatDuration(t.duration).padStart(8))}  ${chalk.gray(t.file + " >")} ${t.name}\n`
   }
@@ -251,7 +251,7 @@ function plainTextSlowestList(tests: SlowestTest[], threshold: number): string {
 function plainTextFailures(errors: Map<string, TestError>): string {
   if (errors.size === 0) return ""
 
-  let result = "\n" + chalk.bold.red("Failures:") + "\n\n"
+  let result = "\n" + chalk.bold.red("FAILURES") + "\n\n"
 
   for (const errInfo of errors.values()) {
     result += ` ${chalk.bold.red(sym.cross + " FAIL")} ${errInfo.file}${chalk.gray(" >")} ${errInfo.name}\n`
@@ -350,11 +350,18 @@ export class KmReporter implements Reporter {
   }
 
   /**
-   * Determine the effective grouping mode based on auto-detection logic:
-   * - ≥40 items → consolidated (too many to list)
-   * - 0-1 packages → files-only (package grouping adds no value)
-   * - <30 total files → packages+files (detailed view fits)
-   * - 30-39 files → packages-only (compact grouped view)
+   * Determine the effective grouping mode based on auto-detection logic.
+   * "Items" = output lines for each mode:
+   *   - consolidated: 1 line (all dots)
+   *   - files-only: fileCount lines
+   *   - packages-only: packageCount lines
+   *   - packages+files: packageCount + fileCount lines
+   *
+   * Thresholds:
+   *   - ≥40 items → consolidated (too many to list)
+   *   - 0-1 packages → files-only (package grouping adds no value)
+   *   - <30 items → packages+files (detailed view fits)
+   *   - else → packages-only (compact grouped view)
    */
   private getEffectiveGrouping(): Exclude<GroupingMode, "auto"> {
     if (this.options.grouping !== "auto") {
@@ -364,22 +371,31 @@ export class KmReporter implements Reporter {
     const packageCount = this.categoryOrder.length
     const fileCount = this.fileOrder.length
 
-    // ≥40 items → consolidated
-    if (fileCount >= 40) {
-      return "consolidated"
-    }
+    // Calculate items (lines) for each mode
+    const filesOnlyItems = fileCount
+    const packagesOnlyItems = packageCount
+    const packagesFilesItems = packageCount + fileCount
 
-    // 0-1 packages → files-only
+    // 0-1 packages → files-only (package grouping adds no value)
     if (packageCount <= 1) {
+      // But if too many files, use consolidated
+      if (filesOnlyItems >= 40) {
+        return "consolidated"
+      }
       return "files-only"
     }
 
-    // <30 files → packages+files
-    if (fileCount < 30) {
+    // ≥40 items in most compact grouped mode → consolidated
+    if (packagesOnlyItems >= 40) {
+      return "consolidated"
+    }
+
+    // <30 items in detailed mode → packages+files
+    if (packagesFilesItems < 30) {
       return "packages+files"
     }
 
-    // 30-39 files → packages-only
+    // else → packages-only
     return "packages-only"
   }
 
