@@ -11,7 +11,7 @@ import type { Watcher, ServiceStatus, FileChange } from "../watcher.ts"
  * Mock watcher that implements the Watcher interface without
  * actually watching the filesystem.
  */
-export interface MockWatcher extends Watcher {
+export interface FakeWatcher extends Watcher {
   /** Manually emit a change event for testing */
   emitChange(changes: FileChange[]): void
   /** Manually emit a ready event */
@@ -27,7 +27,7 @@ export interface MockWatcher extends Watcher {
  * actually watch the filesystem. Use the emit* methods to simulate events.
  *
  * @example
- * const mockWatcher = createMockWatcher();
+ * const mockWatcher = createFakeWatcher();
  * using repo = runGenerator(createRepo(repoDir, {
  *   watcherFactory: () => mockWatcher,
  * }));
@@ -35,7 +35,7 @@ export interface MockWatcher extends Watcher {
  * await watcher.start();
  * mockWatcher.emitChange([{ type: "change", path: "/test.md" }]);
  */
-export function createMockWatcher(): MockWatcher {
+export function createFakeWatcher(): FakeWatcher {
   let status: ServiceStatus = "stopped"
 
   type ChangeHandler = (changes: FileChange[]) => void
@@ -45,7 +45,7 @@ export function createMockWatcher(): MockWatcher {
 
   const handlers = new Map<string, Set<AnyHandler>>()
 
-  const watcher: MockWatcher = {
+  const watcher: FakeWatcher = {
     get status() {
       return status
     },

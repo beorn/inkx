@@ -101,7 +101,7 @@ export interface ErrorInjection {
  * const content = fs.readFileSync("/repo/test.md", "utf8");
  * ```
  */
-export class MockFileSystem implements FileSystemOps {
+export class FakeFileSystem implements FileSystemOps {
   private files = new Map<string, FsNode>();
   private nextIno = 1;
   private errorInjection: ErrorInjection = {};
@@ -515,6 +515,11 @@ export class MockFileSystem implements FileSystemOps {
 /**
  * Create a new MockFileSystem instance
  */
-export function createMockFileSystem(): MockFileSystem {
-  return new MockFileSystem();
+export function createFakeFileSystem(): FakeFileSystem {
+  return new FakeFileSystem();
 }
+
+/** @deprecated Use FakeFileSystem instead */
+export const MockFileSystem = FakeFileSystem;
+/** @deprecated Use createFakeFileSystem instead */
+export const createMockFileSystem = createFakeFileSystem;

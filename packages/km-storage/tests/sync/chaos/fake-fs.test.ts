@@ -3,7 +3,11 @@
  */
 
 import { describe, test, expect, beforeEach } from "vitest"
-import { MockFileSystem, createMockFileSystem } from "./mock-fs.ts"
+import { FakeFileSystem, createFakeFileSystem } from "./fake-fs.ts"
+
+// Use deprecated aliases for backwards compatibility
+const MockFileSystem = FakeFileSystem
+const createMockFileSystem = createFakeFileSystem
 
 describe("MockFileSystem", () => {
   let fs: MockFileSystem

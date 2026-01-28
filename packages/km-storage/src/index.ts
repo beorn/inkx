@@ -346,7 +346,8 @@ export {
   getTestMode,
   isRealMode,
   isMockMode,
-  createMockWatcher,
+  createFakeWatcher,
+  createMockWatcher, // deprecated
   // Fixture DSL for building test data
   board,
   column,
@@ -377,6 +378,7 @@ export type {
   GenerateReportOptions,
   TestEnv,
   TestMode,
-  MockWatcher,
+  FakeWatcher,
+  MockWatcher, // deprecated
   BoardFixture,
 } from "./testing/index.ts"

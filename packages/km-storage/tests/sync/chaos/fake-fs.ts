@@ -1,11 +1,14 @@
 /**
- * MockFileSystem re-export from @beorn/watcher-chaos
+ * FakeFileSystem re-export from @beorn/watcher-chaos
  *
- * This file re-exports the MockFileSystem from the vendor package
+ * This file re-exports the FakeFileSystem from the vendor package
  * for use in km-storage chaos tests.
  */
 
 export {
+  FakeFileSystem,
+  createFakeFileSystem,
+  // Deprecated aliases for backwards compatibility
   MockFileSystem,
   createMockFileSystem,
   type StatResult,

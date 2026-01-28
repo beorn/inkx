@@ -8,7 +8,13 @@
 // Main exports
 export { ChaosWatcher, createChaosWatcher } from "./watcher.ts";
 export { SeededRandom } from "./seeded-random.ts";
-export { MockFileSystem, createMockFileSystem } from "./mock-fs.ts";
+export {
+  FakeFileSystem,
+  createFakeFileSystem,
+  // Deprecated aliases
+  MockFileSystem,
+  createMockFileSystem,
+} from "./fake-fs.ts";
 
 // Scenarios
 export {
@@ -61,4 +67,4 @@ export type {
   FileSystemOps,
   DirectoryScanner,
   ErrorInjection,
-} from "./mock-fs.ts";
+} from "./fake-fs.ts";
