@@ -541,51 +541,70 @@ describe("Path Pattern Query Execution", () => {
 })
 
 describe("Date Query Resolution", () => {
+  // Helper to format date in local timezone (matches implementation)
+  function formatDate(d: Date): string {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
   test("resolves 'today' to current date", () => {
     const result = resolveDateQuery("today")
-    const today = new Date().toISOString().slice(0, 10)
-    expect(result).toEqual({ start: today, end: today })
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = formatDate(today)
+    expect(result).toEqual({ start: todayStr, end: todayStr })
   })
 
   test("resolves 'tomorrow' to next day", () => {
     const result = resolveDateQuery("tomorrow")
-    const tomorrow = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowStr = tomorrow.toISOString().slice(0, 10)
+    const tomorrowStr = formatDate(tomorrow)
     expect(result).toEqual({ start: tomorrowStr, end: tomorrowStr })
   })
 
   test("resolves 'yesterday' to previous day", () => {
     const result = resolveDateQuery("yesterday")
-    const yesterday = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().slice(0, 10)
+    const yesterdayStr = formatDate(yesterday)
     expect(result).toEqual({ start: yesterdayStr, end: yesterdayStr })
   })
 
   test("resolves 'week' to 7-day range", () => {
     const result = resolveDateQuery("week")
     const today = new Date()
-    const todayStr = today.toISOString().slice(0, 10)
-    const weekEnd = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = formatDate(today)
+    const weekEnd = new Date(today)
     weekEnd.setDate(weekEnd.getDate() + 6)
-    const weekEndStr = weekEnd.toISOString().slice(0, 10)
+    const weekEndStr = formatDate(weekEnd)
     expect(result).toEqual({ start: todayStr, end: weekEndStr })
   })
 
   test("resolves 'past' to dates before today", () => {
     const result = resolveDateQuery("past")
-    const yesterday = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().slice(0, 10)
+    const yesterdayStr = formatDate(yesterday)
     expect(result).toEqual({ start: "0000-01-01", end: yesterdayStr })
   })
 
   test("resolves 'overdue' same as 'past'", () => {
     const result = resolveDateQuery("overdue")
-    const yesterday = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().slice(0, 10)
+    const yesterdayStr = formatDate(yesterday)
     expect(result).toEqual({ start: "0000-01-01", end: yesterdayStr })
   })
 
@@ -606,6 +625,14 @@ describe("Date Query Resolution", () => {
 })
 
 describe("Date Query Execution", () => {
+  // Helper to format date in local timezone (matches implementation)
+  function formatDate(d: Date): string {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
   let db: Database
 
   beforeEach(() => {
@@ -638,13 +665,15 @@ describe("Date Query Execution", () => {
     `)
 
     const now = Date.now()
-    const today = new Date().toISOString().slice(0, 10)
-    const yesterday = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = formatDate(today)
+    const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().slice(0, 10)
-    const tomorrow = new Date()
+    const yesterdayStr = formatDate(yesterday)
+    const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowStr = tomorrow.toISOString().slice(0, 10)
+    const tomorrowStr = formatDate(tomorrow)
 
     // Task due today
     db.run(
@@ -654,7 +683,7 @@ describe("Date Query Execution", () => {
         "task-today",
         "task",
         "todo",
-        today,
+        todayStr,
         "Task due today",
         "{}",
         now,

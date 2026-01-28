@@ -69,6 +69,14 @@ describe("extractReferences", () => {
 })
 
 describe("formatDate", () => {
+  // Helper to format date in local timezone (matches implementation)
+  function localDateStr(d: Date): string {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
   test("returns empty string for undefined", () => {
     expect(formatDate(undefined).text).toBe("")
   })
@@ -88,27 +96,35 @@ describe("formatDate", () => {
     expect(formatted.urgency).toBe("overdue")
   })
   test("returns overdue urgency for past dates", () => {
-    const pastDate = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const pastDate = new Date(today)
     pastDate.setDate(pastDate.getDate() - 5)
-    const formatted = formatDate(pastDate.toISOString().slice(0, 10))
+    const formatted = formatDate(localDateStr(pastDate))
     expect(formatted.urgency).toBe("overdue")
   })
   test("returns urgent urgency for dates due tomorrow", () => {
-    const tomorrow = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
-    const formatted = formatDate(tomorrow.toISOString().slice(0, 10))
+    const formatted = formatDate(localDateStr(tomorrow))
     expect(formatted.urgency).toBe("urgent")
   })
   test("returns soon urgency for dates due within 3 days", () => {
-    const soonDate = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const soonDate = new Date(today)
     soonDate.setDate(soonDate.getDate() + 3)
-    const formatted = formatDate(soonDate.toISOString().slice(0, 10))
+    const formatted = formatDate(localDateStr(soonDate))
     expect(formatted.urgency).toBe("soon")
   })
   test("returns normal urgency for future dates", () => {
-    const futureDate = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const futureDate = new Date(today)
     futureDate.setDate(futureDate.getDate() + 10)
-    const formatted = formatDate(futureDate.toISOString().slice(0, 10))
+    const formatted = formatDate(localDateStr(futureDate))
     expect(formatted.urgency).toBe("normal")
   })
 })

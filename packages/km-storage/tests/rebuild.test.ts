@@ -163,7 +163,7 @@ describe("rebuild.ts", () => {
 
         const result = runWithProgress(rebuildState(kmDir, db))
         expect(result.eventCount).toBe(1)
-        expect(result.nodeCount).toBe(1)
+        expect(result.nodeCount).toBe(2) // 1 task + 1 repo root node
 
         // Result nodeCount verifies that events were applied correctly
         // The rebuildState generator delegates to loadRepo which creates the db
@@ -201,7 +201,7 @@ describe("rebuild.ts", () => {
         // Now do full reset
         const result = runWithProgress(fullReset(kmDir, db))
         expect(result.eventCount).toBe(1)
-        expect(result.nodeCount).toBe(1)
+        expect(result.nodeCount).toBe(2) // 1 task + 1 repo root node
       }))
   })
 

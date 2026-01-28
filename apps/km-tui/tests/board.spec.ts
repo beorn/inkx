@@ -516,8 +516,8 @@ describe("Cursoring", () => {
     })
   })
 
-  describe("Columns View", () => {
-    // Repeat key cursoring tests in columns view
+  describe.skip("Columns View", () => {
+    // TODO: Repeat key cursoring tests in columns view
   })
 
   describe("Tabs View", () => {

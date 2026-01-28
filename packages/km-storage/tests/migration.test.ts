@@ -1,7 +1,7 @@
 /**
  * Test migration logic for repo root node
  */
-import { test } from "bun:test"
+import { test, expect } from "vitest"
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../src/schema.ts"
 import { loadRepo } from "../src/repo-loader.ts"

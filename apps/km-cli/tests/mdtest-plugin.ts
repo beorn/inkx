@@ -8,19 +8,24 @@ import type {
   BlockOpts,
   ReplResult,
 } from "../../../vendor/beorn-mdtest/src/types.js"
+import { bash } from "../../../vendor/beorn-mdtest/src/plugins/bash.js"
 
 /**
  * km CLI mdtest plugin
  * Executes km commands using bunShell for fast testing
+ * Falls back to bash plugin for non-km commands
  */
-export default function kmPlugin(_opts: FileOpts): Plugin {
-  // File-level state - reserved for future use
-  // let repoPath: string | null = null
+export default function kmPlugin(opts: FileOpts): Plugin {
+  // Create bash plugin as fallback for non-km commands
+  const bashPlugin = bash(opts)
 
   return {
     block(blockOpts: BlockOpts) {
       // Only handle console blocks
-      if (blockOpts.type !== "console") return null
+      if (blockOpts.type !== "console") {
+        // Delegate to bash for other block types
+        return bashPlugin.block(blockOpts)
+      }
 
       // Parse commands to check if this block has km commands
       const lines = blockOpts.content.split("\n")
@@ -32,11 +37,15 @@ export default function kmPlugin(_opts: FileOpts): Plugin {
       const hasKmCommands = commands.some((c) => c.startsWith("km "))
       const hasOtherCommands = commands.some((c) => !c.startsWith("km "))
 
-      // Only handle pure km command blocks
-      if (!hasKmCommands) return null
+      // No km commands - delegate to bash
+      if (!hasKmCommands) {
+        return bashPlugin.block(blockOpts)
+      }
 
       // For mixed commands, fall back to bash
-      if (hasOtherCommands) return null
+      if (hasOtherCommands) {
+        return bashPlugin.block(blockOpts)
+      }
 
       // Reset state if reset flag is set
       // (currently stateless - reserved for future use)
@@ -87,21 +96,23 @@ export default function kmPlugin(_opts: FileOpts): Plugin {
     },
 
     async beforeAll(): Promise<void> {
-      // Hook called before all blocks
-      // Could initialize shared resources here
+      // Delegate to bash plugin
+      await bashPlugin.beforeAll()
     },
 
     async afterAll(): Promise<void> {
-      // Hook called after all blocks
-      // Could clean up shared resources here
+      // Delegate to bash plugin
+      await bashPlugin.afterAll()
     },
 
     async beforeEach(): Promise<void> {
-      // Hook called before each block
+      // Delegate to bash plugin
+      await bashPlugin.beforeEach()
     },
 
     async afterEach(): Promise<void> {
-      // Hook called after each block
+      // Delegate to bash plugin
+      await bashPlugin.afterEach()
     },
   }
 }

@@ -88,7 +88,7 @@ function makeNode(
   }
 }
 
-describe.serial("State", () => {
+describe("State", () => {
   test("buildBoardState creates columns from children", () => {
     const repo = createFakeRepo({
       nodes: [
@@ -215,7 +215,7 @@ describe.serial("State", () => {
   })
 })
 
-describe.serial("Render", () => {
+describe("Render", () => {
   test("renderBoardStatic renders columns", () => {
     const repo = createFakeRepo({
       nodes: [

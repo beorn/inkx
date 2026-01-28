@@ -187,6 +187,12 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
   // Horizontal movement (h/l) uses visual Y coordinates for cross-column navigation
   // Per docs/06-ui.md: curswantY = head midpoint, find card whose box intersects
   if (dir === "left" || dir === "right") {
+    // At board level, h/l should not move - board title spans full width
+    const { cursorNodeId, rootId } = ctx.boardState
+    if (cursorNodeId === rootId) {
+      return boundary(dir)
+    }
+
     // Find next non-virtual column, skipping body columns
     let targetColIndex = layout.colIndex
     const step = dir === "left" ? -1 : 1
