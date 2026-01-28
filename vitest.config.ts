@@ -1,5 +1,5 @@
 import { createVitestConfig } from "./packages/km-infra/vitest/index.ts"
-import { mdtest } from "./vendor/beorn-mdtest/src/integrations/vitest-plugin"
+import { mdtest } from "@beorn/mdtest/vitest-plugin"
 
 export default createVitestConfig({
   plugins: [mdtest()],

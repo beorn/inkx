@@ -7,8 +7,8 @@ import type {
   FileOpts,
   BlockOpts,
   ReplResult,
-} from "../../../vendor/beorn-mdtest/src/types.js"
-import { bash } from "../../../vendor/beorn-mdtest/src/plugins/bash.js"
+} from "@beorn/mdtest/types"
+import { bash } from "@beorn/mdtest/plugins/bash"
 
 /**
  * km CLI mdtest plugin

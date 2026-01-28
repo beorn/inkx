@@ -6,7 +6,7 @@
  */
 
 import { Writable } from "stream"
-import type { ReplResult } from "../../../vendor/beorn-mdtest/src/types.js"
+import type { ReplResult } from "@beorn/mdtest/types"
 import { configureProgram } from "./program.ts"
 
 /**

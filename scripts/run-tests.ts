@@ -11,8 +11,8 @@
  */
 
 import { parseArgs } from "node:util"
-import { runVitestTap } from "../vendor/beorn-tap/src/producers/vitest"
-import { createConsumer } from "../vendor/beorn-tap/src/consumer"
+import { runVitestTap } from "@beorn/tap/producers/vitest"
+import { createConsumer } from "@beorn/tap/consumer"
 import { discoverTests, type TestType } from "./test-patterns"
 
 const { values } = parseArgs({

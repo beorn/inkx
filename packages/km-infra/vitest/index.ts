@@ -11,7 +11,6 @@ import { defineConfig, mergeConfig } from "vitest/config"
 import { availableParallelism } from "node:os"
 import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
-import tsconfigPaths from "vite-tsconfig-paths"
 
 // Get the directory where this file lives (for resolving setup file)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -83,7 +82,7 @@ export function createVitestConfig(
   const setupFiles = skipSetup ? [] : [join(__dirname, "setup.ts")]
 
   const baseConfig: UserConfig = {
-    plugins: [tsconfigPaths(), ...plugins],
+    plugins: [...plugins],
     test: {
       setupFiles,
       server: {
@@ -114,5 +113,4 @@ export function createVitestConfig(
 }
 
 // Re-export for convenience
-export { tsconfigPaths }
 export { defineConfig, mergeConfig } from "vitest/config"

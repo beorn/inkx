@@ -1,74 +1,8 @@
 {
   "extends": "./packages/km-infra/typescript/base.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@km/cli-app": ["apps/km-cli/src/index.ts"],
-      "@km/cli-app/mdtest": ["apps/km-cli/tests/mdtest-plugin.ts"],
-      "@km/repl": ["apps/km-repl/src/index.ts"],
-      "@km/tui": ["apps/km-tui/src/index.ts"],
-      "@km/agent": ["packages/km-agent/src/index.ts"],
-      "@km/beads": ["packages/km-beads/src/index.ts"],
-      "@km/board": ["packages/km-board/src/index.ts"],
-      "@km/commands": ["packages/km-commands/src/index.ts"],
-      "@km/connector-caldav": ["packages/km-connector-caldav/src/index.ts"],
-      "@km/core": ["packages/km-core/src/index.ts"],
-      "@km/infra/eslint": ["packages/km-infra/eslint/index.ts"],
-      "@km/infra/vitest": ["packages/km-infra/vitest/index.ts"],
-      "@km/infra/vitest/setup": ["packages/km-infra/vitest/setup.ts"],
-      "@km/infra/typescript/generate-paths": [
-        "packages/km-infra/typescript/generate-paths.ts"
-      ],
-      "@km/infra/knip/generate": ["packages/km-infra/knip/generate.ts"],
-      "@km/infra/release-it": ["packages/km-infra/release-it/index.ts"],
-      "@km/markdown": ["packages/km-markdown/src/index.ts"],
-      "@km/storage": ["packages/km-storage/src/index.ts"],
-      "@km/storage/internal/emit.ts": [
-        "packages/km-storage/src/internal/emit.ts"
-      ],
-      "@km/storage/internal/db-instance.ts": [
-        "packages/km-storage/src/internal/db-instance.ts"
-      ],
-      "@km/tree": ["packages/km-tree/src/index.ts"],
-      "@beorn/chalkx": ["vendor/beorn-chalkx/src/index.ts"],
-      "@beorn/chalkx/utils": ["vendor/beorn-chalkx/src/utils.ts"],
-      "@beorn/flexx": ["vendor/beorn-flexx/dist/index.d.ts"],
-      "inkx": ["vendor/beorn-inkx/src/index.ts"],
-      "inkx/testing": ["vendor/beorn-inkx/src/testing/index.tsx"],
-      "@beorn/inkx-ui": ["vendor/beorn-inkx-ui/src/index.ts"],
-      "@beorn/inkx-ui/cli": ["vendor/beorn-inkx-ui/src/cli/index.ts"],
-      "@beorn/inkx-ui/react": ["vendor/beorn-inkx-ui/src/react/index.ts"],
-      "@beorn/inkx-ui/wrappers": ["vendor/beorn-inkx-ui/src/wrappers/index.ts"],
-      "@beorn/inkx-ui/ansi": ["vendor/beorn-inkx-ui/src/ansi/index.ts"],
-      "@beorn/inkx-ui/utils": ["vendor/beorn-inkx-ui/src/utils/index.ts"],
-      "@beorn/inkx-ui/progress": ["vendor/beorn-inkx-ui/src/progress/index.ts"],
-      "@beorn/inkx-ui/display": ["vendor/beorn-inkx-ui/src/display/index.ts"],
-      "@beorn/inkx-ui/input": ["vendor/beorn-inkx-ui/src/input/index.ts"],
-      "@beorn/logger": ["vendor/beorn-logger/src/index.ts"],
-      "@beorn/mdtest": ["vendor/beorn-mdtest/src/index.ts"],
-      "@beorn/mdtest/api": ["vendor/beorn-mdtest/src/api.ts"],
-      "@beorn/mdtest/session": ["vendor/beorn-mdtest/src/session.ts"],
-      "@beorn/mdtest/bun": ["vendor/beorn-mdtest/src/integrations/bun.ts"],
-      "@beorn/mdtest/vitest": [
-        "vendor/beorn-mdtest/src/integrations/vitest.ts"
-      ],
-      "@beorn/tap": ["vendor/beorn-tap/src/index.ts"],
-      "@beorn/tap/consumer": ["vendor/beorn-tap/src/consumer.ts"],
-      "@beorn/tap/merge": ["vendor/beorn-tap/src/merge.ts"],
-      "@beorn/tap/producers/bun": ["vendor/beorn-tap/src/producers/bun.ts"],
-      "@beorn/tap/producers/playwright": [
-        "vendor/beorn-tap/src/producers/playwright.ts"
-      ],
-      "@beorn/tui-measure": ["vendor/beorn-tui-measure/src/index.ts"],
-      "@beorn/watcher-chaos": ["vendor/beorn-watcher-chaos/src/index.ts"]
-    }
+    // DO NOT add "paths" - packages resolve via node_modules symlinks
+    // See docs/dev/monorepo-module-resolution.md
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/dist",
-    "archive",
-    "apps/km-cli/src/tui/experiments",
-    "vendor/opentui/issues"
-  ]
+  "exclude": ["node_modules", "dist", "**/dist", "archive"]
 }

@@ -10,8 +10,11 @@
     ".": "./src/index.ts",
     "./consumer": "./src/consumer.ts",
     "./merge": "./src/merge.ts",
+    "./orchestrate": "./src/orchestrate.ts",
+    "./parallel-tui": "./src/parallel-tui.ts",
     "./producers/bun": "./src/producers/bun.ts",
-    "./producers/playwright": "./src/producers/playwright.ts"
+    "./producers/playwright": "./src/producers/playwright.ts",
+    "./producers/vitest": "./src/producers/vitest.ts"
   },
   "keywords": [
     "tap",

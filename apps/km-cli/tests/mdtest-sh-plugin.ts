@@ -4,20 +4,17 @@
 import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { CmdSession } from "../../../vendor/beorn-mdtest/src/cmdSession.js"
-import {
-  buildScript,
-  buildHookScript,
-} from "../../../vendor/beorn-mdtest/src/shell.js"
-import { splitNorm } from "../../../vendor/beorn-mdtest/src/core.js"
-import { bunShell } from "../../../vendor/beorn-mdtest/src/integrations/bun.js"
-import { DEFAULTS } from "../../../vendor/beorn-mdtest/src/constants.js"
+import { CmdSession } from "@beorn/mdtest/cmdSession"
+import { buildScript, buildHookScript } from "@beorn/mdtest/shell"
+import { splitNorm } from "@beorn/mdtest/core"
+import { bunShell } from "@beorn/mdtest/bun"
+import { DEFAULTS } from "@beorn/mdtest/constants"
 import type {
   Plugin,
   FileOpts,
   BlockOpts,
   ReplResult,
-} from "../../../vendor/beorn-mdtest/src/types.js"
+} from "@beorn/mdtest/types"
 
 /**
  * km sh mdtest plugin
