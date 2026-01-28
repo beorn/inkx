@@ -95,7 +95,6 @@ Agent not found: nonexistent
 ```console
 $ km agent harnesses
 Available harnesses:
-
   general
     General-purpose agent harness
 ```
@@ -107,12 +106,9 @@ Available harnesses:
 ```console
 $ km bd agent --help
 Usage: km bd agent [options] [command]
-
 Assign issues to agents and manage work queues
-
 Options:
   -h, --help                      display help for command
-
 Commands:
   ls [options]                    List all agents
 [...]

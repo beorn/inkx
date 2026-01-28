@@ -20,7 +20,6 @@ Initializing .km (repo ...)
   Created: @inbox.md
   Created: @next.md
   Created: @someday.md
-
 ✓ Synced ... file(s) in ... directories
 Next steps:
 [...]
@@ -33,7 +32,7 @@ Sync filesystem to database:
 ```console
 $ km sync
 Syncing .km/state.db with files (repo ...)
-[...]
+✓ Applied ... event(s) from events.jsonl
 ✓ Synced ... change(s) in ... directories (...ms)
 ```
 
@@ -49,6 +48,7 @@ $ km new "Test task from mdtest"
 
 $ km sync
 Syncing .km/state.db with files (repo ...)
+[...]
 ✓ Synced 2 change(s) in ... directories (...ms)
 ```
 
@@ -117,18 +117,20 @@ Title: Inbox
 ```console
 $ mkdir -p /tmp/km-mdtest-init
 $ cd /tmp/km-mdtest-init && km init .
-Initialized km in ...
-  Created: .../.km/
+Initializing .km (repo ...)
+✓ Created .km/
   Created: inbox/
   Created: archive/
   Created: @inbox.md
   Created: @next.md
   Created: @someday.md
+✓ Synced ... file(s) in ... directories
 Next steps:
 [...]
 
 $ ls /tmp/km-mdtest-init/.km
 events.jsonl
+state.db
 
 $ rm -rf /tmp/km-mdtest-init
 ```
@@ -162,11 +164,11 @@ Verify tasks exist in the project file:
 
 ```console
 $ km tasks './projects**'
-projects/
 [...]
      [ ] First project task
-[...]
-3 task(s)
+     [ ] Second project task
+     [ ] Third project task
+... task(s)
 ```
 
 Add (link) all tasks from projects to @next:
@@ -191,11 +193,11 @@ Verify original file STILL shows tasks (they were linked, not moved):
 
 ```console
 $ km tasks './projects**'
-projects/
 [...]
      [ ] First project task
-[...]
-3 task(s)
+     [ ] Second project task
+     [ ] Third project task
+... task(s)
 ```
 
 Clean up:
