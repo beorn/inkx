@@ -8,7 +8,10 @@
  */
 
 import { useMemo } from "react"
+import createDebug from "debug"
 import type { ColumnState } from "../types.ts"
+
+const debug = createDebug("km:perf")
 
 // =============================================================================
 // Types
@@ -41,7 +44,17 @@ export function useCursorPosition(
   cursorNodeId: string | null,
 ): CursorPosition {
   return useMemo(() => {
-    return deriveCursorPosition(columns, cursorNodeId)
+    const start = performance.now()
+    const result = deriveCursorPosition(columns, cursorNodeId)
+    const duration = performance.now() - start
+    if (duration > 1) {
+      debug(
+        "useCursorPosition: %.2fms for %d columns",
+        duration,
+        columns.length,
+      )
+    }
+    return result
   }, [columns, cursorNodeId])
 }
 

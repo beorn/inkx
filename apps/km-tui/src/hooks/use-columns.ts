@@ -8,10 +8,13 @@
  */
 
 import { useMemo } from "react"
+import createDebug from "debug"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import type { ColumnState, CardState, ColumnRules } from "../types.ts"
 import { parseColumnRules } from "../state.ts"
+
+const debug = createDebug("km:perf")
 
 // =============================================================================
 // Non-Column Types (content blocks, not navigable columns)
@@ -37,7 +40,13 @@ export function useColumns(
   foldedNodes: Set<string>,
 ): ColumnState[] {
   return useMemo(() => {
-    return deriveColumnsFromRepo(repo, rootId, foldedNodes)
+    const start = performance.now()
+    const result = deriveColumnsFromRepo(repo, rootId, foldedNodes)
+    const duration = performance.now() - start
+    if (duration > 5) {
+      debug("useColumns: %.2fms for %d columns", duration, result.length)
+    }
+    return result
   }, [repo.stats.nodeCount, rootId, foldedNodes])
 }
 

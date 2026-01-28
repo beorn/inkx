@@ -7,6 +7,7 @@
  */
 import type { Key } from "inkx"
 import type { Dispatch } from "react"
+import createDebug from "debug"
 import { actions, type UIAction } from "../ui-reducer.ts"
 import type { BoardState, BoardAction } from "@km/board"
 import type { Repo } from "../repo-context.tsx"
@@ -18,6 +19,8 @@ import {
 } from "../command-bridge.ts"
 import { handleCommandAction } from "../board-actions.ts"
 import { isErr, toast, toastQueue } from "@km/core"
+
+const perfDebug = createDebug("km:perf")
 
 // Re-export for convenience
 export { ensureCommandSystemInitialized }
@@ -85,6 +88,7 @@ export function handleBoardKeyInput(
   }
 
   // Route ALL keys through the command system
+  const keyStart = performance.now()
   const result = processKeyWithContext(input, key, tuiContext)
 
   if (result.handled && result.actions) {
@@ -92,7 +96,12 @@ export function handleBoardKeyInput(
       ? result.actions
       : [result.actions]
     for (const action of actionList) {
+      const actionStart = performance.now()
       const actionResult = handleCommandAction(tuiContext, action)
+      const actionDuration = performance.now() - actionStart
+      if (actionDuration > 5) {
+        perfDebug("action %s: %.2fms", action.type, actionDuration)
+      }
 
       // Check for boundary errors - ring bell and show status message
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
@@ -108,6 +117,10 @@ export function handleBoardKeyInput(
         // Output actual bell character to terminal
         process.stdout.write("\x07")
       }
+    }
+    const totalDuration = performance.now() - keyStart
+    if (totalDuration > 10) {
+      perfDebug("total key handling: %.2fms", totalDuration)
     }
     return true
   }
