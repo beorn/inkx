@@ -22,3 +22,9 @@
 [submodule "vendor/beorn-claude-tools"]
 	path = vendor/beorn-claude-tools
 	url = git@github.com:beorn/claude-tools.git
+[submodule "vendor/beorn-term"]
+	path = vendor/beorn-term
+	url = git@github.com:beorn/term.git
+[submodule "vendor/beorn-tui"]
+	path = vendor/beorn-tui
+	url = git@github.com:beorn/tui.git

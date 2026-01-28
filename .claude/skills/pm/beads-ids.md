@@ -117,20 +117,50 @@ km-<4-5 char random>
 
 ## Scope Tokens
 
-| Scope      | Package/Location    |
-| ---------- | ------------------- |
-| `storage`  | @km/storage         |
-| `board`    | @km/board           |
-| `tree`     | @km/tree            |
-| `tui`      | apps/km-tui         |
-| `cli`      | apps/km-cli         |
-| `markdown` | @km/markdown        |
-| `flexx`    | vendor/beorn-flexx  |
-| `test`     | Test infrastructure |
-| `sync`     | Sync/watcher system |
-| `commands` | Command system      |
-| `chore`    | Maintenance         |
-| `misc`     | Miscellaneous       |
+### Core Packages
+
+| Scope      | Package/Location |
+| ---------- | ---------------- |
+| `storage`  | @km/storage      |
+| `board`    | @km/board        |
+| `tree`     | @km/tree         |
+| `markdown` | @km/markdown     |
+
+### Apps
+
+| Scope | Package/Location |
+| ----- | ---------------- |
+| `tui` | apps/km-tui      |
+| `cli` | apps/km-cli      |
+
+### Vendor Packages
+
+| Scope    | Covers                                             |
+| -------- | -------------------------------------------------- |
+| `term`   | vendor/beorn-term, beorn-tui, inkx/chalkx absorb   |
+| `flexx`  | vendor/beorn-flexx                                 |
+| `logger` | vendor/beorn-logger                                |
+
+### Infrastructure & Cross-Cutting
+
+| Scope      | Meaning                        |
+| ---------- | ------------------------------ |
+| `infra`    | Build, test, CI infrastructure |
+| `test`     | Test infrastructure            |
+| `sync`     | Sync/watcher system            |
+| `commands` | Command system                 |
+| `bench`    | Benchmarks                     |
+| `chore`    | Maintenance                    |
+| `misc`     | Miscellaneous                  |
+
+### General Rule for New Scopes
+
+When creating beads for a package/area not listed above:
+
+1. **Use existing scope if related**: e.g., inkx/chalkx work → `tui` (they're TUI ecosystem)
+2. **Vendor packages**: Use package name without `beorn-` prefix
+3. **Core packages**: Use package name without `@km/` prefix
+4. **Keep it short**: Prefer 3-6 character scope tokens
 
 ## Subtasks (Dot Notation)
 
