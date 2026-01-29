@@ -306,8 +306,9 @@ export function testEnv(
         return null
       }
       const text = statusEl.textContent()
-      // Text includes icon (first char), extract message
-      const message = text.slice(2).trim() // Skip icon + space
+      // Text format: "icon message" - extract message after first space
+      const spaceIndex = text.indexOf(" ")
+      const message = spaceIndex >= 0 ? text.slice(spaceIndex + 1).trim() : text
       return level && message ? { level, message } : null
     },
     _result: result,
@@ -510,8 +511,9 @@ class BoardTestImpl implements BoardTest {
       return null
     }
     const text = statusEl.textContent()
-    // Text includes icon (first char), extract message
-    const message = text.slice(2).trim() // Skip icon + space
+    // Text format: "icon message" - extract message after first space
+    const spaceIndex = text.indexOf(" ")
+    const message = spaceIndex >= 0 ? text.slice(spaceIndex + 1).trim() : text
     return level && message ? { level, message } : null
   }
 
@@ -734,15 +736,13 @@ class BoardTestImpl implements BoardTest {
   }
 
   expectVisible(text: string): this {
-    const frame = this.result.lastFrameText()
-    expect(frame).toBeDefined()
+    const frame = this.result.text
     expect(frame).toContain(text)
     return this
   }
 
   expectNotVisible(text: string): this {
-    const frame = this.result.lastFrameText()
-    expect(frame).toBeDefined()
+    const frame = this.result.text
     expect(frame).not.toContain(text)
     return this
   }

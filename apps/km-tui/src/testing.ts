@@ -29,7 +29,7 @@
  */
 
 import React from "react"
-import { createTestRenderer, bufferToStyledText } from "inkx/testing"
+import { createTestRenderer, bufferToStyledText, keyToAnsi } from "inkx/testing"
 import type { AutoLocator } from "inkx/testing"
 import type { KNode } from "@km/core"
 import type { Repo } from "@km/storage"
@@ -256,32 +256,8 @@ export async function createBoardTest(
 
     // Input simulation
     press(key) {
-      // Map common key names to their escape sequences
-      const keyMap: Record<string, string> = {
-        enter: "\r",
-        return: "\r",
-        escape: "\x1b",
-        esc: "\x1b",
-        tab: "\t",
-        backspace: "\x7f",
-        delete: "\x1b[3~",
-        up: "\x1b[A",
-        down: "\x1b[B",
-        right: "\x1b[C",
-        left: "\x1b[D",
-        arrowup: "\x1b[A",
-        arrowdown: "\x1b[B",
-        arrowright: "\x1b[C",
-        arrowleft: "\x1b[D",
-        home: "\x1b[H",
-        end: "\x1b[F",
-        pageup: "\x1b[5~",
-        pagedown: "\x1b[6~",
-        space: " ",
-      }
-
-      const normalized = key.toLowerCase()
-      const sequence = keyMap[normalized] ?? key
+      // Use inkx's keyToAnsi for consistent key mapping
+      const sequence = keyToAnsi(key)
       app.stdin.write(sequence)
     },
 

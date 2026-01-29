@@ -19,6 +19,30 @@ import { expect } from "vitest"
 import type { AutoLocator, Rect } from "inkx/testing"
 
 // =============================================================================
+// Type Guard
+// =============================================================================
+
+function isAutoLocator(value: unknown): value is AutoLocator {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "boundingBox" in value &&
+    "textContent" in value &&
+    typeof (value as AutoLocator).boundingBox === "function" &&
+    typeof (value as AutoLocator).textContent === "function"
+  )
+}
+
+function assertAutoLocator(value: unknown, matcherName: string): asserts value is AutoLocator {
+  if (!isAutoLocator(value)) {
+    throw new Error(
+      `${matcherName} expects an AutoLocator, got ${typeof value}. ` +
+        `Use app.getByTestId() or app.locator() to get a locator.`,
+    )
+  }
+}
+
+// =============================================================================
 // Matcher Type Declarations
 // =============================================================================
 
@@ -67,8 +91,8 @@ expect.extend({
    * expect(locator.getByTestId('title')).toHaveText('Hello World')
    */
   toHaveText(received: unknown, expected: string) {
-    const locator = received as AutoLocator
-    const actual = getLocatorText(locator)
+    assertAutoLocator(received, "toHaveText")
+    const actual = getLocatorText(received)
     const pass = actual === expected
 
     return {
@@ -87,8 +111,8 @@ expect.extend({
    * expect(locator.getByTestId('message')).toContainText('error')
    */
   toContainText(received: unknown, expected: string) {
-    const locator = received as AutoLocator
-    const actual = getLocatorText(locator)
+    assertAutoLocator(received, "toContainText")
+    const actual = getLocatorText(received)
     const pass = actual.includes(expected)
 
     return {
@@ -113,8 +137,8 @@ expect.extend({
    * expect(locator.getByTestId('panel')).toBeVisible()
    */
   toBeVisible(received: unknown) {
-    const locator = received as AutoLocator
-    const rect = getLocatorRect(locator)
+    assertAutoLocator(received, "toBeVisible")
+    const rect = getLocatorRect(received)
     const pass = rect !== null && rect.width > 0 && rect.height > 0
 
     return {
@@ -133,8 +157,8 @@ expect.extend({
    * expect(locator.getByTestId('modal')).toBeHidden()
    */
   toBeHidden(received: unknown) {
-    const locator = received as AutoLocator
-    const rect = getLocatorRect(locator)
+    assertAutoLocator(received, "toBeHidden")
+    const rect = getLocatorRect(received)
     const pass = rect === null || rect.width === 0 || rect.height === 0
 
     return {
@@ -159,8 +183,8 @@ expect.extend({
    * expect(locator.getByTestId('col1')).toBeLeftOf(locator.getByTestId('col2'))
    */
   toBeLeftOf(received: unknown, other: AutoLocator) {
-    const locator = received as AutoLocator
-    const rectA = getLocatorRect(locator)
+    assertAutoLocator(received, "toBeLeftOf")
+    const rectA = getLocatorRect(received)
     const rectB = getLocatorRect(other)
 
     if (!rectA || !rectB) {
@@ -189,8 +213,8 @@ expect.extend({
    * expect(locator.getByTestId('col2')).toBeRightOf(locator.getByTestId('col1'))
    */
   toBeRightOf(received: unknown, other: AutoLocator) {
-    const locator = received as AutoLocator
-    const rectA = getLocatorRect(locator)
+    assertAutoLocator(received, "toBeRightOf")
+    const rectA = getLocatorRect(received)
     const rectB = getLocatorRect(other)
 
     if (!rectA || !rectB) {
@@ -219,8 +243,8 @@ expect.extend({
    * expect(locator.getByTestId('header')).toBeAbove(locator.getByTestId('content'))
    */
   toBeAbove(received: unknown, other: AutoLocator) {
-    const locator = received as AutoLocator
-    const rectA = getLocatorRect(locator)
+    assertAutoLocator(received, "toBeAbove")
+    const rectA = getLocatorRect(received)
     const rectB = getLocatorRect(other)
 
     if (!rectA || !rectB) {
@@ -249,8 +273,8 @@ expect.extend({
    * expect(locator.getByTestId('footer')).toBeBelow(locator.getByTestId('content'))
    */
   toBeBelow(received: unknown, other: AutoLocator) {
-    const locator = received as AutoLocator
-    const rectA = getLocatorRect(locator)
+    assertAutoLocator(received, "toBeBelow")
+    const rectA = getLocatorRect(received)
     const rectB = getLocatorRect(other)
 
     if (!rectA || !rectB) {
@@ -279,8 +303,8 @@ expect.extend({
    * expect(locator.getByTestId('card')).toBeContainedIn(locator.getByTestId('column'))
    */
   toBeContainedIn(received: unknown, container: AutoLocator) {
-    const locator = received as AutoLocator
-    const rectA = getLocatorRect(locator)
+    assertAutoLocator(received, "toBeContainedIn")
+    const rectA = getLocatorRect(received)
     const rectB = getLocatorRect(container)
 
     if (!rectA || !rectB) {
@@ -313,8 +337,8 @@ expect.extend({
    * expect(locator.getByTestId('column')).toHaveWidth(20)
    */
   toHaveWidth(received: unknown, expected: number) {
-    const locator = received as AutoLocator
-    const rect = getLocatorRect(locator)
+    assertAutoLocator(received, "toHaveWidth")
+    const rect = getLocatorRect(received)
 
     if (!rect) {
       return {
@@ -341,8 +365,8 @@ expect.extend({
    * expect(locator.getByTestId('row')).toHaveHeight(1)
    */
   toHaveHeight(received: unknown, expected: number) {
-    const locator = received as AutoLocator
-    const rect = getLocatorRect(locator)
+    assertAutoLocator(received, "toHaveHeight")
+    const rect = getLocatorRect(received)
 
     if (!rect) {
       return {
