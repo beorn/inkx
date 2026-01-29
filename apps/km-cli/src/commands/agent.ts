@@ -64,9 +64,10 @@ interface RunOptions {
 }
 
 export const agentCommand = new Command("agent")
-  .description(
-    `AI agent lifecycle and runtime management
-
+  .description("AI agent lifecycle and runtime management")
+  .addHelpText(
+    "after",
+    `
 Agents are AI assistants that can work on tasks autonomously. Each agent has:
   - A model (e.g., claude-sonnet-4) that powers its reasoning
   - A harness that defines available tools and constraints

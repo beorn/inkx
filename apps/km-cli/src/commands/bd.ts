@@ -60,9 +60,10 @@ interface ListOptions {
 }
 
 export const bdCommand = new Command("bd")
-  .description(
-    `Issue tracking (beads-compatible)
-
+  .description("Issue tracking (beads-compatible)")
+  .addHelpText(
+    "after",
+    `
 Markdown tasks ARE the issues. By default, queries filter to @issue
 and new issues are created in issue/. See 'km bd config' to customize,
 'km bd info' for stats, or 'km bd agent' for agent integration.`,
