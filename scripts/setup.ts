@@ -6,6 +6,7 @@
  * Or:       bun run scripts/setup.ts --quiet
  *
  * Handles:
+ * - Prerequisites check (nix, direnv)
  * - Git submodule initialization and update
  * - Submodule hook linking (auto-stage pointer updates)
  * - Cleanup of stale .git/config entries
@@ -39,8 +40,43 @@ const STALE_SUBMODULES = [
   "vendor/beorn-progressx",
 ]
 
+async function checkCommand(cmd: string): Promise<boolean> {
+  try {
+    await $`which ${cmd}`.quiet()
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function main() {
   log("🔧 km setup\n")
+
+  // 0. Check prerequisites
+  log("🔍 Checking prerequisites...")
+  const hasNix = await checkCommand("nix")
+  const hasDirenv = await checkCommand("direnv")
+
+  if (hasNix) {
+    log("   ✓ nix installed")
+  } else {
+    log("   ⚠ nix not found - install from https://nixos.org/download")
+    log("     (needed for reproducible dev environment)")
+  }
+
+  if (hasDirenv) {
+    log("   ✓ direnv installed")
+  } else {
+    log("   ⚠ direnv not found - install with: nix profile install nixpkgs#direnv")
+    log("     (needed for automatic environment activation)")
+  }
+
+  if (hasNix && hasDirenv) {
+    // Check if direnv is hooked into shell
+    const shellrc = process.env.SHELL?.includes("zsh") ? "~/.zshrc" : "~/.bashrc"
+    log(`   💡 Ensure direnv is hooked: eval "$(direnv hook zsh)" in ${shellrc}`)
+  }
+  log("")
 
   // 1. Configure git for submodule auto-update
   log("⚙️  Configuring git...")
