@@ -209,9 +209,7 @@ export function renderTree(
   const render = createTestRenderer({ columns: width, rows: height })
 
   // Render the tree view
-  const app = render(
-    React.createElement(TreeView, { state, width, height }),
-  )
+  const app = render(React.createElement(TreeView, { state, width, height }))
 
   // Get the buffer and convert to text
   const buffer = app.term.buffer

@@ -1,5 +1,6 @@
 {
   "name": "@km/storage",
+  "private": true,
   "description": "Database and storage for km",
   "type": "module",
   "module": "src/index.ts",
@@ -8,7 +9,6 @@
     "./internal/emit.ts": "./src/internal/emit.ts",
     "./internal/db-instance.ts": "./src/internal/db-instance.ts"
   },
-  "private": true,
   "dependencies": {
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",

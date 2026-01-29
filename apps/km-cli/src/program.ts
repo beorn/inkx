@@ -11,7 +11,9 @@ import "./debug-log.ts"
 import { existsSync, statSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { Command, type OptionValues } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { setLogLevel, type LogLevel } from "@km/core"
 
 /** Global options available on the root program */
@@ -60,7 +62,7 @@ export function getRootPath(): string | undefined {
 /**
  * Check if root was explicitly set (via --repo or KM_ROOT)
  */
-export function wasRootExplicit(): boolean {
+function wasRootExplicit(): boolean {
   return rootExplicitlySet
 }
 
@@ -104,12 +106,12 @@ export function configureProgram(): Command {
         if (str.includes("too many arguments")) {
           const args = process.argv.slice(2).filter((a) => !a.startsWith("-"))
           if (args.length > 0) {
-            write(chalk.red(`error: unknown command '${args[0]}'\n`))
-            write(chalk.dim("Run 'km --help' for available commands.\n"))
+            write(term.style().red(`error: unknown command '${args[0]}'\n`))
+            write(term.style().dim("Run 'km --help' for available commands.\n"))
             return
           }
         }
-        write(chalk.red(str))
+        write(term.style().red(str))
       },
     })
 
@@ -203,11 +205,13 @@ export function configureProgram(): Command {
     const kmDir = join(rootPath, ".km")
     const isMemoryMode = !existsSync(kmDir)
     if (!rootExplicitlySet && isMemoryMode && !pathArg) {
-      console.error(chalk.yellow(`Using current directory: ${rootPath}`))
+      console.error(term.style().yellow(`Using current directory: ${rootPath}`))
       console.error(
-        chalk.yellow(
-          `Hint: Use --repo <path> or set KM_ROOT, or run 'km init' for disk mode\n`,
-        ),
+        term
+          .style()
+          .yellow(
+            `Hint: Use --repo <path> or set KM_ROOT, or run 'km init' for disk mode\n`,
+          ),
       )
     }
   })
@@ -244,7 +248,7 @@ export function configureProgram(): Command {
     const unknownArgs = command.args
     if (unknownArgs.length > 0) {
       const unknown = String(unknownArgs[0])
-      console.error(chalk.red(`error: unknown command '${unknown}'`))
+      console.error(term.style().red(`error: unknown command '${unknown}'`))
 
       // Try to suggest similar commands
       const availableCommands = program.commands.map((cmd) => cmd.name())
@@ -253,9 +257,11 @@ export function configureProgram(): Command {
           cmd.startsWith(unknown[0] ?? "") || unknown.startsWith(cmd[0] ?? ""),
       )
       if (suggestion) {
-        console.error(chalk.yellow(`\nDid you mean: km ${suggestion}?`))
+        console.error(term.style().yellow(`\nDid you mean: km ${suggestion}?`))
       }
-      console.error(chalk.dim("\nRun 'km --help' for available commands."))
+      console.error(
+        term.style().dim("\nRun 'km --help' for available commands."),
+      )
       process.exitCode = 1
     } else {
       // No arguments - show help

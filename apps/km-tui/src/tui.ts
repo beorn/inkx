@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from "events"
-import chalk from "chalk"
+import { createTerm, type StyleChain } from "@beorn/chalkx"
 import createDebug from "debug"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import type { Repo } from "./repo-context.tsx"
@@ -15,6 +15,16 @@ import { SyncManager } from "@km/storage"
 import { setFsSync } from "@km/storage/internal/emit.ts"
 
 const debug = createDebug("km:tui")
+
+// Module-level term instance for styling (lazily initialized)
+// Force truecolor support for consistent styling in CLI/TUI utilities
+let _term: ReturnType<typeof createTerm> | null = null
+function getStyle(): StyleChain {
+  if (!_term) {
+    _term = createTerm({ colors: "truecolor" })
+  }
+  return _term.style()
+}
 
 /**
  * Global event emitter for TUI refresh events
@@ -45,10 +55,11 @@ export async function runBoard(
   options?: TuiOptions,
 ): Promise<void> {
   debug("runBoard start")
+  const style = getStyle()
 
   if (!state) {
     console.error(
-      chalk.red("No board found. Create a board node or specify a root ID."),
+      style.red("No board found. Create a board node or specify a root ID."),
     )
     process.exit(1)
   }
@@ -58,7 +69,7 @@ export async function runBoard(
   const repo = options?.repo
   if (!interactive) {
     if (!repo) {
-      console.error(chalk.red("Repo required for static mode"))
+      console.error(style.red("Repo required for static mode"))
       process.exit(1)
     }
     runBoardStatic(repo, state)
@@ -70,9 +81,9 @@ export async function runBoard(
   const stdout = process.stdout
   const forceTTY = process.env.FORCE_TTY === "1"
   if (!forceTTY && (!stdin.isTTY || !stdout.isTTY)) {
-    console.log(chalk.yellow("Not running in a TTY, using static mode"))
+    console.log(style.yellow("Not running in a TTY, using static mode"))
     if (!repo) {
-      console.error(chalk.red("Repo required for static mode"))
+      console.error(style.red("Repo required for static mode"))
       process.exit(1)
     }
     runBoardStatic(repo, state)

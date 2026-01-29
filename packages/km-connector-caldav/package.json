@@ -1,11 +1,11 @@
 {
   "name": "@km/connector-caldav",
+  "private": true,
   "description": "CalDAV/CardDAV sync connector for km",
   "type": "module",
   "module": "src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
-  "private": true,
   "dependencies": {}
 }

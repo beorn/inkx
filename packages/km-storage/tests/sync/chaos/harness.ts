@@ -332,7 +332,7 @@ async function runChaosTestWithRealFs(
 /**
  * Run a suite of chaos tests
  */
-export async function runChaosSuite(
+async function runChaosSuite(
   configs: ChaosTestConfig[],
   options: ChaosTestOptions = {},
 ): Promise<{
@@ -576,7 +576,7 @@ export async function runChaosSuiteParallel(
 /**
  * Print test results to console
  */
-export function printResults(results: ChaosTestResult[]): void {
+function printResults(results: ChaosTestResult[]): void {
   console.log("\n=== Chaos Test Results ===\n")
 
   for (const result of results) {

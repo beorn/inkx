@@ -24,14 +24,14 @@ const PASTE_END = "\x1b[201~"
 /**
  * Enable bracketed paste mode
  */
-export function enableBracketedPaste(): void {
+function enableBracketedPaste(): void {
   process.stdout.write("\x1b[?2004h")
 }
 
 /**
  * Disable bracketed paste mode
  */
-export function disableBracketedPaste(): void {
+function disableBracketedPaste(): void {
   process.stdout.write("\x1b[?2004l")
 }
 
@@ -70,7 +70,7 @@ function expandPath(path: string): string {
 /**
  * Parse pasted content to detect file drops
  */
-export function parsePastedContent(content: string): PasteResult {
+function parsePastedContent(content: string): PasteResult {
   // Remove bracketed paste sequences if present
   let text = content
   if (text.startsWith(PASTE_START)) {
@@ -119,7 +119,7 @@ export function parsePastedContent(content: string): PasteResult {
 /**
  * Get file info for display
  */
-export function getFileInfo(path: string): {
+function getFileInfo(path: string): {
   name: string
   isDirectory: boolean
   size?: number
@@ -143,7 +143,7 @@ export function getFileInfo(path: string): {
 /**
  * Detect terminal type for terminal-specific handling
  */
-export function getTerminalType(): string {
+function getTerminalType(): string {
   return process.env.TERM_PROGRAM || process.env.TERM || "unknown"
 }
 

@@ -6,7 +6,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { syncCommand } from "./sync.ts"
 
 export const watchCommand = new Command("watch")
@@ -17,9 +19,11 @@ export const watchCommand = new Command("watch")
   .option("--debounce <ms>", "Debounce interval in ms", "5000")
   .action(async (path, options) => {
     console.log(
-      chalk.yellow(
-        "Note: 'km watch' is deprecated. Use 'km sync --watch' instead.\n",
-      ),
+      term
+        .style()
+        .yellow(
+          "Note: 'km watch' is deprecated. Use 'km sync --watch' instead.\n",
+        ),
     )
 
     // Forward to sync --watch by parsing args

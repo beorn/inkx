@@ -4,7 +4,9 @@
  * Functions for modifying tasks: create, claim, release, assign, markDone.
  */
 
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { ulid } from "ulid"
 import {
   resolvePathArg,
@@ -38,7 +40,7 @@ export async function createTask(
   if (pathOrId) {
     const parent = findNodeByPathOrId(repo, pathOrId)
     if (!parent) {
-      console.error(chalk.red(`Parent not found: ${pathOrId}`))
+      console.error(term.style().red(`Parent not found: ${pathOrId}`))
       process.exit(1)
     }
     parentId = parent.id
@@ -67,7 +69,7 @@ export async function createTask(
     return
   }
 
-  console.log(chalk.green("Created task:"), nodeId.slice(0, 8))
+  console.log(term.style().green("Created task:"), nodeId.slice(0, 8))
 }
 
 /**
@@ -78,7 +80,7 @@ export async function markDone(
   options: { json?: boolean },
 ): Promise<void> {
   if (!pathOrId) {
-    console.error(chalk.red("Task ID or path required"))
+    console.error(term.style().red("Task ID or path required"))
     process.exit(1)
   }
 
@@ -87,7 +89,7 @@ export async function markDone(
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
-    console.error(chalk.red(`Task not found: ${pathOrId}`))
+    console.error(term.style().red(`Task not found: ${pathOrId}`))
     process.exit(1)
   }
 
@@ -106,7 +108,7 @@ export async function markDone(
     return
   }
 
-  console.log(chalk.green("✓"), "Marked as done:", task.id.slice(0, 8))
+  console.log(term.style().green("✓"), "Marked as done:", task.id.slice(0, 8))
 }
 
 /**
@@ -117,7 +119,7 @@ export async function claimTask(
   options: { json?: boolean },
 ): Promise<void> {
   if (!pathOrId) {
-    console.error(chalk.red("Task ID or path required"))
+    console.error(term.style().red("Task ID or path required"))
     process.exit(1)
   }
 
@@ -126,7 +128,7 @@ export async function claimTask(
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
-    console.error(chalk.red(`Task not found: ${pathOrId}`))
+    console.error(term.style().red(`Task not found: ${pathOrId}`))
     process.exit(1)
   }
 
@@ -148,7 +150,7 @@ export async function claimTask(
     return
   }
 
-  console.log(chalk.green("◐"), "Claimed:", task.id.slice(0, 8))
+  console.log(term.style().green("◐"), "Claimed:", task.id.slice(0, 8))
 }
 
 /**
@@ -159,7 +161,7 @@ export async function releaseTask(
   options: { json?: boolean },
 ): Promise<void> {
   if (!pathOrId) {
-    console.error(chalk.red("Task ID or path required"))
+    console.error(term.style().red("Task ID or path required"))
     process.exit(1)
   }
 
@@ -168,7 +170,7 @@ export async function releaseTask(
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
-    console.error(chalk.red(`Task not found: ${pathOrId}`))
+    console.error(term.style().red(`Task not found: ${pathOrId}`))
     process.exit(1)
   }
 
@@ -190,7 +192,7 @@ export async function releaseTask(
     return
   }
 
-  console.log(chalk.dim("○"), "Released:", task.id.slice(0, 8))
+  console.log(term.style().dim("○"), "Released:", task.id.slice(0, 8))
 }
 
 /**
@@ -202,7 +204,7 @@ export async function assignTask(
   options: { json?: boolean },
 ): Promise<void> {
   if (!pathOrId) {
-    console.error(chalk.red("Task ID or path required"))
+    console.error(term.style().red("Task ID or path required"))
     process.exit(1)
   }
 
@@ -211,7 +213,7 @@ export async function assignTask(
 
   const task = repo.resolveNode(pathOrId, { taskOnly: true })
   if (!task) {
-    console.error(chalk.red(`Task not found: ${pathOrId}`))
+    console.error(term.style().red(`Task not found: ${pathOrId}`))
     process.exit(1)
   }
 
@@ -229,5 +231,9 @@ export async function assignTask(
     return
   }
 
-  console.log(chalk.green("→"), `Assigned to ${user}:`, task.id.slice(0, 8))
+  console.log(
+    term.style().green("→"),
+    `Assigned to ${user}:`,
+    task.id.slice(0, 8),
+  )
 }

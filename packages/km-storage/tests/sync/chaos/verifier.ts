@@ -526,17 +526,14 @@ export class Verifier implements IVerifier {
 /**
  * Create a verifier instance
  */
-export function createVerifier(
-  db: Database,
-  mockFs?: MockFileSystem,
-): Verifier {
+function createVerifier(db: Database, mockFs?: MockFileSystem): Verifier {
   return new Verifier(db, mockFs)
 }
 
 /**
  * Quick verification - just check no duplicates and tree consistency
  */
-export function quickVerify(db: Database): VerificationResult {
+function quickVerify(db: Database): VerificationResult {
   const verifier = new Verifier(db)
   return verifier.verifyTreeConsistency()
 }

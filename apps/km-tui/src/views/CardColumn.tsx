@@ -112,7 +112,7 @@ function CardLayoutRegistrar({
   return null
 }
 
-export const Card = React.memo(
+const Card = React.memo(
   function Card({
     card,
     isSelected,

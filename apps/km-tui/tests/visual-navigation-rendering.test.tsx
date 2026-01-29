@@ -17,31 +17,9 @@ import { RepoProvider } from "../src/repo-context.tsx"
 import { createLayoutRegistry } from "../src/card-positions.ts"
 import { createFakeRepo } from "@km/storage"
 import type { TUIBoardState } from "../src/types.ts"
-import type { KNode } from "@km/core"
+import { item } from "./helpers/board-test.ts"
 
 const render = createTestRenderer({ columns: 80, rows: 24 })
-
-// Helper to create a fake node
-function makeNode(
-  id: string,
-  content: string,
-  type: KNode["type"] = "task",
-  parentId: string | null = null,
-  parentIdx: number = 0,
-): KNode {
-  return {
-    id,
-    type,
-    parent_id: parentId,
-    parent_idx: parentIdx,
-    link_to: null,
-    content,
-    data: {},
-    created_at: Date.now(),
-    updated_at: Date.now(),
-    version: "v1",
-  }
-}
 
 // Helper to create a minimal TUIBoardState (columns are derived from repo now)
 // Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
@@ -64,18 +42,14 @@ describe("Visual navigation integration: card position registration", () => {
   test("cards in single column register with increasing Y positions", () => {
     const registry = createLayoutRegistry()
 
-    // Create repo with nodes: root -> column -> cards
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("root", "Root", "section"),
-        makeNode("col-1", "Column 1", "section", "root", 0),
-        makeNode("card-1", "Task 1", "task", "col-1", 0),
-        makeNode("card-2", "Task 2", "task", "col-1", 1),
-        makeNode("card-3", "Task 3", "task", "col-1", 2),
-      ],
-    })
+    // Create repo with nodes: board -> column -> cards
+    const nodes = item(
+      "board",
+      item("col1", item("1a"), item("1b"), item("1c")),
+    )
+    const repo = createFakeRepo({ nodes })
 
-    const state = makeTUIBoardState("root")
+    const state = makeTUIBoardState("board")
 
     const app = render(
       <RepoProvider repo={repo}>
@@ -90,9 +64,9 @@ describe("Visual navigation integration: card position registration", () => {
     )
 
     // Verify render contains the tasks
-    expect(app.text).toContain("Task 1")
-    expect(app.text).toContain("Task 2")
-    expect(app.text).toContain("Task 3")
+    expect(app.text).toContain("1a")
+    expect(app.text).toContain("1b")
+    expect(app.text).toContain("1c")
 
     // Verify cards registered their positions
     expect(registry.hasCardsInColumn(0)).toBe(true)
@@ -110,19 +84,14 @@ describe("Visual navigation integration: card position registration", () => {
     const registry = createLayoutRegistry()
 
     // Create repo with two columns, each with cards
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("root", "Root", "section"),
-        makeNode("col-1", "Column 1", "section", "root", 0),
-        makeNode("card-a1", "Task A1", "task", "col-1", 0),
-        makeNode("card-a2", "Task A2", "task", "col-1", 1),
-        makeNode("col-2", "Column 2", "section", "root", 1),
-        makeNode("card-b1", "Task B1", "task", "col-2", 0),
-        makeNode("card-b2", "Task B2", "task", "col-2", 1),
-      ],
-    })
+    const nodes = item(
+      "board",
+      item("col1", item("1a"), item("1b")),
+      item("col2", item("2a"), item("2b")),
+    )
+    const repo = createFakeRepo({ nodes })
 
-    const state = makeTUIBoardState("root")
+    const state = makeTUIBoardState("board")
 
     render(
       <RepoProvider repo={repo}>
@@ -153,20 +122,14 @@ describe("Visual navigation integration: card position registration", () => {
     const registry = createLayoutRegistry()
 
     // Create repo with two columns with different card counts
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("root", "Root", "section"),
-        makeNode("col-1", "Column 1", "section", "root", 0),
-        makeNode("card-a1", "Task A1", "task", "col-1", 0),
-        makeNode("card-a2", "Task A2", "task", "col-1", 1),
-        makeNode("card-a3", "Task A3", "task", "col-1", 2),
-        makeNode("col-2", "Column 2", "section", "root", 1),
-        makeNode("card-b1", "Task B1", "task", "col-2", 0),
-        makeNode("card-b2", "Task B2", "task", "col-2", 1),
-      ],
-    })
+    const nodes = item(
+      "board",
+      item("col1", item("1a"), item("1b"), item("1c")),
+      item("col2", item("2a"), item("2b")),
+    )
+    const repo = createFakeRepo({ nodes })
 
-    const state = makeTUIBoardState("root")
+    const state = makeTUIBoardState("board")
 
     render(
       <RepoProvider repo={repo}>
@@ -180,14 +143,14 @@ describe("Visual navigation integration: card position registration", () => {
       </RepoProvider>,
     )
 
-    // Get the Y position of card-a2
+    // Get the Y position of 1b (card at index 1 in col1)
     const cardA2 = registry.getCard(0, 1)
     const targetY = cardA2.layout.y + cardA2.layout.cardHeight / 2
 
     // Find the card at that Y in column 1
     const foundIdx = registry.findCardAtYVisual(1, targetY)
 
-    // Should find card-b2 (index 1) since it's at similar Y to card-a2
+    // Should find 2b (index 1) since it's at similar Y to 1b
     expect(foundIdx).toBe(1)
   })
 })

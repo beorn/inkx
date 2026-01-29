@@ -48,7 +48,7 @@ export function LayoutProvider({
  *
  * @throws Error if called outside LayoutProvider
  */
-export function useLayoutRegistry(): LayoutRegistry {
+function useLayoutRegistry(): LayoutRegistry {
   const registry = useContext(LayoutContext)
   if (!registry) {
     throw new Error("useLayoutRegistry must be used within LayoutProvider")

@@ -33,7 +33,10 @@ function isAutoLocator(value: unknown): value is AutoLocator {
   )
 }
 
-function assertAutoLocator(value: unknown, matcherName: string): asserts value is AutoLocator {
+function assertAutoLocator(
+  value: unknown,
+  matcherName: string,
+): asserts value is AutoLocator {
   if (!isAutoLocator(value)) {
     throw new Error(
       `${matcherName} expects an AutoLocator, got ${typeof value}. ` +

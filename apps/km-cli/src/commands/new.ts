@@ -5,7 +5,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { join } from "path"
 import {
   parseTaskMetadata,
@@ -104,7 +106,7 @@ export const newCommand = new Command("new")
       const resolvedParent = resolvePathArg(options.parent, rootPath)
 
       if (!resolvedParent.nodeRef) {
-        console.error(chalk.red(`Cannot create task in a directory`))
+        console.error(term.style().red(`Cannot create task in a directory`))
         process.exit(1)
       }
 
@@ -119,8 +121,8 @@ export const newCommand = new Command("new")
         targetName = options.parent
       } else {
         console.error(
-          chalk.red(`Parent not found: ${options.parent}`),
-          chalk.dim("\nUse ID, path, or filename (e.g., @next.md)"),
+          term.style().red(`Parent not found: ${options.parent}`),
+          term.style().dim("\nUse ID, path, or filename (e.g., @next.md)"),
         )
         process.exit(1)
       }
@@ -150,12 +152,17 @@ export const newCommand = new Command("new")
       return
     }
 
-    console.log(chalk.green("✓"), `Added to ${targetName}: ${taskContent}`)
+    console.log(
+      term.style().green("✓"),
+      `Added to ${targetName}: ${taskContent}`,
+    )
 
     // If --next flag, remind user to sync and add to @next
     if (options.next) {
       console.log(
-        chalk.dim("  Hint: Run 'km sync' then 'km @next add' to add to board"),
+        term
+          .style()
+          .dim("  Hint: Run 'km sync' then 'km @next add' to add to board"),
       )
     }
   })

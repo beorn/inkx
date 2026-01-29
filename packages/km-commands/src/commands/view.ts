@@ -1,7 +1,7 @@
 import type { CommandDef } from "../types.ts"
 
 // View mode
-export const cycleViewMode = {
+const cycleViewMode = {
   id: "cycle_view_mode",
   name: "Cycle View Mode",
   description: "Cycle through view modes (columns, list, detail)",
@@ -10,7 +10,7 @@ export const cycleViewMode = {
   execute: () => ({ type: "CYCLE_VIEW_MODE" }),
 } satisfies CommandDef
 
-export const showHelp = {
+const showHelp = {
   id: "show_help",
   name: "Show Help",
   description: "Toggle help overlay",
@@ -20,7 +20,7 @@ export const showHelp = {
 } satisfies CommandDef
 
 // Fold commands
-export const toggleFold = {
+const toggleFold = {
   id: "toggle_fold",
   name: "Toggle Fold",
   description: "Fold or unfold current node",
@@ -32,7 +32,7 @@ export const toggleFold = {
   },
 } satisfies CommandDef
 
-export const toggleCollapse = {
+const toggleCollapse = {
   id: "toggle_collapse",
   name: "Toggle Collapse",
   description: "Collapse or expand top-level column",
@@ -44,7 +44,7 @@ export const toggleCollapse = {
   },
 } satisfies CommandDef
 
-export const foldAll = {
+const foldAll = {
   id: "fold_all",
   name: "Fold All",
   description: "Fold all nodes at depth 1",
@@ -53,7 +53,7 @@ export const foldAll = {
   execute: () => ({ type: "FOLD_LEVEL", depth: 1 }),
 } satisfies CommandDef
 
-export const unfoldAll = {
+const unfoldAll = {
   id: "unfold_all",
   name: "Unfold All",
   description: "Unfold all nodes",
@@ -63,7 +63,7 @@ export const unfoldAll = {
 } satisfies CommandDef
 
 // View configuration
-export const increaseOutlineDepth = {
+const increaseOutlineDepth = {
   id: "increase_outline_depth",
   name: "Increase Depth",
   description: "Show more nested levels",
@@ -72,7 +72,7 @@ export const increaseOutlineDepth = {
   execute: () => ({ type: "INCREASE_OUTLINE_DEPTH" }),
 } satisfies CommandDef
 
-export const decreaseOutlineDepth = {
+const decreaseOutlineDepth = {
   id: "decrease_outline_depth",
   name: "Decrease Depth",
   description: "Show fewer nested levels",
@@ -81,7 +81,7 @@ export const decreaseOutlineDepth = {
   execute: () => ({ type: "DECREASE_OUTLINE_DEPTH" }),
 } satisfies CommandDef
 
-export const increaseContentLines = {
+const increaseContentLines = {
   id: "increase_content_lines",
   name: "Show More Content",
   description: "Increase content preview lines",
@@ -90,7 +90,7 @@ export const increaseContentLines = {
   execute: () => ({ type: "INCREASE_CONTENT_LINES" }),
 } satisfies CommandDef
 
-export const decreaseContentLines = {
+const decreaseContentLines = {
   id: "decrease_content_lines",
   name: "Show Less Content",
   description: "Decrease content preview lines",

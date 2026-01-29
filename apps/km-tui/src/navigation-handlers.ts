@@ -173,7 +173,7 @@ export function handleTreeNavigation(
  * @param repo - Repo for tree queries
  * @returns New cursorNodeId, or null if can't move
  */
-export function handleSiblingJump(
+function handleSiblingJump(
   direction: "first" | "last",
   cursorNodeId: string | null,
   repo: Repo,
@@ -210,7 +210,7 @@ export function handleSiblingJump(
  * @param rootId - Current zoom root (to get columns)
  * @returns New cursorNodeId, or null if can't move
  */
-export function handleVisualNavigation(
+function handleVisualNavigation(
   direction: "left" | "right",
   state: BoardState,
   repo: Repo,
@@ -340,7 +340,7 @@ function findColumnIndex(
  * @param rootId - Current zoom root
  * @returns { colIndex, cardIndex } or null if not in a column/card position
  */
-export function deriveCursorPosition(
+function deriveCursorPosition(
   cursorNodeId: string | null,
   repo: Repo,
   rootId: string | null,
@@ -407,6 +407,6 @@ function isDescendant(nodeId: string, ancestorId: string, repo: Repo): boolean {
  * Should be called when doing vertical navigation (j/k).
  * Clears the sticky Y so next h/l uses fresh position.
  */
-export function clearStickyY(layout: LayoutRegistry): void {
+function clearStickyY(layout: LayoutRegistry): void {
   layout.clearStickyY()
 }

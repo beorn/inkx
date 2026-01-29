@@ -91,7 +91,7 @@ export function createFileDropHandler(
  * NOTE: Mouse support disabled pending migration to new navigation handlers.
  * TODO: Re-enable when navigation handlers support it.
  */
-export function createMouseHandler_(
+function createMouseHandler_(
   _dispatch: Dispatch<UIAction>,
   _dispatchBoard: Dispatch<BoardAction>,
   _mouseSelection: SelectionRange | null,

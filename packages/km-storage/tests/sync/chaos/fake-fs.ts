@@ -9,8 +9,6 @@ export {
   FakeFileSystem,
   createFakeFileSystem,
   // Deprecated aliases for backwards compatibility
-  MockFileSystem,
-  createMockFileSystem,
   type StatResult,
   type FsEntry,
   type FileSystemOps,

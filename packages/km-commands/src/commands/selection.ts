@@ -1,6 +1,6 @@
 import type { CommandDef } from "../types.ts"
 
-export const selectToggle = {
+const selectToggle = {
   id: "select_toggle",
   name: "Toggle Selection",
   description: "Toggle selection on current node",
@@ -12,7 +12,7 @@ export const selectToggle = {
   },
 } satisfies CommandDef
 
-export const selectAdd = {
+const selectAdd = {
   id: "select_add",
   name: "Add to Selection",
   description: "Add current node to selection",
@@ -23,7 +23,7 @@ export const selectAdd = {
   },
 } satisfies CommandDef
 
-export const selectRemove = {
+const selectRemove = {
   id: "select_remove",
   name: "Remove from Selection",
   description: "Remove current node from selection",
@@ -34,7 +34,7 @@ export const selectRemove = {
   },
 } satisfies CommandDef
 
-export const selectAllSiblings = {
+const selectAllSiblings = {
   id: "select_all_siblings",
   name: "Select All Siblings",
   description: "Select all siblings of current node",
@@ -42,7 +42,7 @@ export const selectAllSiblings = {
   execute: () => ({ type: "SELECT_ALL_SIBLINGS" }),
 } satisfies CommandDef
 
-export const selectAll = {
+const selectAll = {
   id: "select_all",
   name: "Select All",
   description: "Select all visible nodes",
@@ -53,7 +53,7 @@ export const selectAll = {
 
 // Progressive select all (TUI's Shift+A behavior)
 // First press: select all in column, second: select all in board
-export const selectAllProgressive = {
+const selectAllProgressive = {
   id: "select_all_progressive",
   name: "Progressive Select All",
   description: "Select all in column, then all in board",
@@ -62,7 +62,7 @@ export const selectAllProgressive = {
   execute: () => ({ type: "SELECT_ALL_PROGRESSIVE" }),
 } satisfies CommandDef
 
-export const clearSelection = {
+const clearSelection = {
   id: "clear_selection",
   name: "Clear Selection",
   description: "Clear all selections",
@@ -72,7 +72,7 @@ export const clearSelection = {
 } satisfies CommandDef
 
 // Extend selection (shift+direction)
-export const extendSelectUp = {
+const extendSelectUp = {
   id: "extend_select_up",
   name: "Extend Selection Up",
   description: "Extend selection upward",
@@ -81,7 +81,7 @@ export const extendSelectUp = {
   execute: () => ({ type: "EXTEND_SELECT_UP" }),
 } satisfies CommandDef
 
-export const extendSelectDown = {
+const extendSelectDown = {
   id: "extend_select_down",
   name: "Extend Selection Down",
   description: "Extend selection downward",
@@ -90,7 +90,7 @@ export const extendSelectDown = {
   execute: () => ({ type: "EXTEND_SELECT_DOWN" }),
 } satisfies CommandDef
 
-export const extendSelectLeft = {
+const extendSelectLeft = {
   id: "extend_select_left",
   name: "Extend Selection Left",
   description: "Extend selection leftward",
@@ -99,7 +99,7 @@ export const extendSelectLeft = {
   execute: () => ({ type: "EXTEND_SELECT_LEFT" }),
 } satisfies CommandDef
 
-export const extendSelectRight = {
+const extendSelectRight = {
   id: "extend_select_right",
   name: "Extend Selection Right",
   description: "Extend selection rightward",

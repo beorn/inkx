@@ -11,6 +11,9 @@
     "ulid": "^2.3.0",
     "yaml": "^2.4.0"
   },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
   "peerDependencies": {
     "@anthropic-ai/sdk": "^0.24.0"
   },
@@ -18,8 +21,5 @@
     "@anthropic-ai/sdk": {
       "optional": true
     }
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
   }
 }

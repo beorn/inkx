@@ -184,7 +184,7 @@ export function BottomBar({
  * Render watcher status indicator for bottom bar
  * Uses 📄 icon for files, always shows file count, plus current state if not idle
  */
-export function renderWatcherStatus(status: WatcherStatus): string {
+function renderWatcherStatus(status: WatcherStatus): string {
   const { state, pendingPaths, watchedPaths } = status
   // 📄 = file icon for watched files
   const fileCount = watchedPaths ? `📄${watchedPaths}` : "📄0"

@@ -74,7 +74,13 @@ function HorizontalLayout({
 }
 
 /** Vertical layout with two children */
-function VerticalLayout({ topID, bottomID }: { topID: string; bottomID: string }) {
+function VerticalLayout({
+  topID,
+  bottomID,
+}: {
+  topID: string
+  bottomID: string
+}) {
   return (
     <Box flexDirection="column">
       <Box testID={topID} height={2}>
@@ -163,7 +169,11 @@ describe("toContainText", () => {
 
 describe("toBeVisible", () => {
   test("passes for element with non-zero dimensions", () => {
-    const app = render(<SizedBox testID="visible" width={10} height={5}>Content</SizedBox>)
+    const app = render(
+      <SizedBox testID="visible" width={10} height={5}>
+        Content
+      </SizedBox>,
+    )
     expect(app.getByTestId("visible")).toBeVisible()
   })
 
@@ -204,14 +214,22 @@ describe("toBeHidden", () => {
   })
 
   test("fails for element with non-zero dimensions", () => {
-    const app = render(<SizedBox testID="visible" width={10} height={5}>Content</SizedBox>)
+    const app = render(
+      <SizedBox testID="visible" width={10} height={5}>
+        Content
+      </SizedBox>,
+    )
     expect(() => {
       expect(app.getByTestId("visible")).toBeHidden()
     }).toThrow(/Expected element to be hidden/)
   })
 
   test("negation works correctly", () => {
-    const app = render(<SizedBox testID="visible" width={10} height={5}>Content</SizedBox>)
+    const app = render(
+      <SizedBox testID="visible" width={10} height={5}>
+        Content
+      </SizedBox>,
+    )
     expect(app.getByTestId("visible")).not.toBeHidden()
   })
 })
@@ -384,19 +402,31 @@ describe("toBeContainedIn", () => {
 
 describe("toHaveWidth", () => {
   test("passes when width matches exactly", () => {
-    const app = render(<SizedBox testID="box" width={20} height={5}>Content</SizedBox>)
+    const app = render(
+      <SizedBox testID="box" width={20} height={5}>
+        Content
+      </SizedBox>,
+    )
     expect(app.getByTestId("box")).toHaveWidth(20)
   })
 
   test("fails when width does not match", () => {
-    const app = render(<SizedBox testID="box" width={20} height={5}>Content</SizedBox>)
+    const app = render(
+      <SizedBox testID="box" width={20} height={5}>
+        Content
+      </SizedBox>,
+    )
     expect(() => {
       expect(app.getByTestId("box")).toHaveWidth(15)
     }).toThrow(/Expected width to be 15, got 20/)
   })
 
   test("negation works correctly", () => {
-    const app = render(<SizedBox testID="box" width={20} height={5}>Content</SizedBox>)
+    const app = render(
+      <SizedBox testID="box" width={20} height={5}>
+        Content
+      </SizedBox>,
+    )
     expect(app.getByTestId("box")).not.toHaveWidth(15)
     expect(app.getByTestId("box")).not.toHaveWidth(25)
   })
@@ -404,19 +434,31 @@ describe("toHaveWidth", () => {
 
 describe("toHaveHeight", () => {
   test("passes when height matches exactly", () => {
-    const app = render(<SizedBox testID="box" width={20} height={5}>Content</SizedBox>)
+    const app = render(
+      <SizedBox testID="box" width={20} height={5}>
+        Content
+      </SizedBox>,
+    )
     expect(app.getByTestId("box")).toHaveHeight(5)
   })
 
   test("fails when height does not match", () => {
-    const app = render(<SizedBox testID="box" width={20} height={5}>Content</SizedBox>)
+    const app = render(
+      <SizedBox testID="box" width={20} height={5}>
+        Content
+      </SizedBox>,
+    )
     expect(() => {
       expect(app.getByTestId("box")).toHaveHeight(10)
     }).toThrow(/Expected height to be 10, got 5/)
   })
 
   test("negation works correctly", () => {
-    const app = render(<SizedBox testID="box" width={20} height={5}>Content</SizedBox>)
+    const app = render(
+      <SizedBox testID="box" width={20} height={5}>
+        Content
+      </SizedBox>,
+    )
     expect(app.getByTestId("box")).not.toHaveHeight(10)
     expect(app.getByTestId("box")).not.toHaveHeight(1)
   })

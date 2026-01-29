@@ -52,8 +52,8 @@ import {
   Box,
   Text,
   createTerm,
+  useTerm,
 } from "inkx"
-import chalk from "chalk"
 
 import {
   renderRich,
@@ -132,9 +132,6 @@ const mockUIState = createInitialUIState("cards", [], {
   rows: 40,
 })
 const noopDispatch = () => {}
-
-// Force chalk colors
-chalk.level = 3
 
 // ============================================================================
 // Section Header Components
@@ -244,12 +241,23 @@ function Layer1RichText(): React.ReactElement {
       ))}
 
       <SubsectionHeader title="displayLength() vs string.length" />
+      <DisplayLengthDemo />
+    </Box>
+  )
+}
+
+// Demo component for displayLength - uses useTerm() for styling
+function DisplayLengthDemo(): React.ReactElement {
+  const term = useTerm()
+  const style = term.style()
+  return (
+    <>
       <Text>
-        Styled text: {chalk.bold.red("Hello")} {chalk.blue("World")}
+        Styled text: {style.bold.red("Hello")} {style.blue("World")}
       </Text>
       <Text>string.length: 40</Text>
       <Text>displayLength(): 11</Text>
-    </Box>
+    </>
   )
 }
 

@@ -188,5 +188,3 @@ if (logPath) {
   process.on("SIGINT", () => stream?.end())
   process.on("SIGTERM", () => stream?.end())
 }
-
-export { stream as debugLogStream }

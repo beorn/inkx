@@ -15,7 +15,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
 import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
@@ -86,12 +88,12 @@ function createGtdStructure(targetDir: string, force: boolean): void {
 
   if (!existsSync(inboxDir)) {
     mkdirSync(inboxDir, { recursive: true })
-    console.log(chalk.dim(`  Created: inbox/`))
+    console.log(term.style().dim(`  Created: inbox/`))
   }
 
   if (!existsSync(archiveDir)) {
     mkdirSync(archiveDir, { recursive: true })
-    console.log(chalk.dim(`  Created: archive/`))
+    console.log(term.style().dim(`  Created: archive/`))
   }
 
   // Create board files (skip if exists unless --force)
@@ -105,16 +107,16 @@ function createGtdStructure(targetDir: string, force: boolean): void {
   for (const [filename, content] of files) {
     const filepath = join(targetDir, filename)
     if (existsSync(filepath) && !force) {
-      console.log(chalk.dim(`  Skipped: ${filename} (exists)`))
+      console.log(term.style().dim(`  Skipped: ${filename} (exists)`))
       skipped = true
     } else {
       writeFileSync(filepath, content)
-      console.log(chalk.dim(`  Created: ${filename}`))
+      console.log(term.style().dim(`  Created: ${filename}`))
     }
   }
 
   if (skipped) {
-    console.log(chalk.dim(`  Use --force to overwrite existing files`))
+    console.log(term.style().dim(`  Use --force to overwrite existing files`))
   }
 }
 
@@ -142,7 +144,7 @@ export const initCommand = new Command("init")
       // Create target directory if it doesn't exist
       if (!existsSync(targetDir)) {
         mkdirSync(targetDir, { recursive: true })
-        console.log(chalk.dim(`Created directory: ${targetDir}`))
+        console.log(term.style().dim(`Created directory: ${targetDir}`))
       }
     } else if (globalRoot) {
       // Expand ~ and resolve to absolute path
@@ -154,7 +156,7 @@ export const initCommand = new Command("init")
       // Create target directory if it doesn't exist
       if (!existsSync(targetDir)) {
         mkdirSync(targetDir, { recursive: true })
-        console.log(chalk.dim(`Created directory: ${targetDir}`))
+        console.log(term.style().dim(`Created directory: ${targetDir}`))
       }
     } else {
       targetDir = resolve(process.cwd())
@@ -164,21 +166,25 @@ export const initCommand = new Command("init")
 
     // Check if .km/ already exists
     if (existsSync(kmDir) && !options.force) {
-      console.log(chalk.yellow(`Already initialized: ${kmDir}`))
-      console.log(chalk.dim("Use --force to reinitialize"))
+      console.log(term.style().yellow(`Already initialized: ${kmDir}`))
+      console.log(term.style().dim("Use --force to reinitialize"))
       return
     }
 
     // Check if there's a .km/ in an ancestor directory
     const ancestorKm = findAncestorKmDir(targetDir)
     if (ancestorKm && !options.force) {
-      console.log(chalk.yellow(`Found existing km repo at ${ancestorKm}`))
       console.log(
-        chalk.yellow(
-          `Creating a nested repo may cause conflicts. Consider using the parent repo instead.`,
-        ),
+        term.style().yellow(`Found existing km repo at ${ancestorKm}`),
       )
-      console.log(chalk.dim("Use --force to create a nested repo"))
+      console.log(
+        term
+          .style()
+          .yellow(
+            `Creating a nested repo may cause conflicts. Consider using the parent repo instead.`,
+          ),
+      )
+      console.log(term.style().dim("Use --force to create a nested repo"))
       return
     }
 
@@ -192,10 +198,10 @@ export const initCommand = new Command("init")
     }
 
     console.log(
-      chalk.bold("Initializing .km"),
-      chalk.dim(`(repo ${formatPath(targetDir)})`),
+      term.style().bold("Initializing .km"),
+      term.style().dim(`(repo ${formatPath(targetDir)})`),
     )
-    console.log(chalk.green("✓"), "Created .km/")
+    console.log(term.style().green("✓"), "Created .km/")
 
     // Add GTD structure by default (unless --no-gtd)
     if (options.gtd !== false) {
@@ -225,7 +231,7 @@ export const initCommand = new Command("init")
           directories: number
         }
         console.log(
-          chalk.green("✓"),
+          term.style().green("✓"),
           `Synced ${result.processed} file(s) in ${result.directories} directories`,
         )
       } catch (error) {
@@ -235,6 +241,11 @@ export const initCommand = new Command("init")
 
     console.log()
     console.log("Next steps:")
-    console.log(chalk.cyan("  km tasks   ") + chalk.dim("# List tasks"))
-    console.log(chalk.cyan("  km view    ") + chalk.dim("# Open kanban board"))
+    console.log(
+      term.style().cyan("  km tasks   ") + term.style().dim("# List tasks"),
+    )
+    console.log(
+      term.style().cyan("  km view    ") +
+        term.style().dim("# Open kanban board"),
+    )
   })

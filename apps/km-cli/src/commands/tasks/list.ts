@@ -4,7 +4,9 @@
  * Lists tasks with optional filtering by path, status, or query.
  */
 
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { resolvePathArg, type Repo } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
@@ -122,16 +124,16 @@ export async function listTasks(
   }
 
   if (tasks.length === 0) {
-    console.log(chalk.dim("No tasks found"))
+    console.log(term.style().dim("No tasks found"))
     return
   }
 
   // Show context header
   if (rootNode) {
-    console.log(chalk.bold(getNodeDisplayName(repo, rootNode)))
+    console.log(term.style().bold(getNodeDisplayName(repo, rootNode)))
     console.log()
   } else if (pathFilter) {
-    console.log(chalk.dim(`Filter: ${pathFilter}`))
+    console.log(term.style().dim(`Filter: ${pathFilter}`))
     console.log()
   }
 
@@ -150,7 +152,7 @@ export async function listTasks(
       }
     }
     console.log()
-    console.log(chalk.dim(`${tasks.length} task(s)`))
+    console.log(term.style().dim(`${tasks.length} task(s)`))
     return
   }
 
@@ -188,7 +190,7 @@ export async function listTasks(
       const ca = collapsedAncestors[i]
       if (!ca) continue
       const prefix = " ".repeat(fsDepth)
-      console.log(prefix + chalk.dim(formatCollapsedAncestor(repo, ca)))
+      console.log(prefix + term.style().dim(formatCollapsedAncestor(repo, ca)))
       if (ca.node.type === "section") {
         hasSection = true
       } else {
@@ -214,13 +216,13 @@ export async function listTasks(
   }
 
   console.log()
-  console.log(chalk.dim(`${tasks.length} task(s)`))
+  console.log(term.style().dim(`${tasks.length} task(s)`))
 }
 
 /**
  * Show task details
  */
-export function showTaskDetails(
+function showTaskDetails(
   repo: Repo,
   task: KNode,
   options: { json?: boolean },
@@ -230,20 +232,21 @@ export function showTaskDetails(
     return
   }
 
-  console.log(chalk.bold("Task:"), task.id)
-  console.log(chalk.dim("Status:"), task.task_status ?? "todo")
-  console.log(chalk.dim("Content:"), task.content ?? "(none)")
-  if (task.due_date) console.log(chalk.dim("Due:"), task.due_date)
+  console.log(term.style().bold("Task:"), task.id)
+  console.log(term.style().dim("Status:"), task.task_status ?? "todo")
+  console.log(term.style().dim("Content:"), task.content ?? "(none)")
+  if (task.due_date) console.log(term.style().dim("Due:"), task.due_date)
   if (task.scheduled_date) {
-    console.log(chalk.dim("Scheduled:"), task.scheduled_date)
+    console.log(term.style().dim("Scheduled:"), task.scheduled_date)
   }
-  if (task.priority) console.log(chalk.dim("Priority:"), task.priority)
-  if (task.assigned_to) console.log(chalk.dim("Assigned:"), task.assigned_to)
+  if (task.priority) console.log(term.style().dim("Priority:"), task.priority)
+  if (task.assigned_to)
+    {console.log(term.style().dim("Assigned:"), task.assigned_to)}
   if (task.parent_id) {
-    console.log(chalk.dim("Parent:"), task.parent_id.slice(0, 8))
+    console.log(term.style().dim("Parent:"), task.parent_id.slice(0, 8))
   }
   console.log(
-    chalk.dim("Created:"),
+    term.style().dim("Created:"),
     new Date(task.created_at ?? Date.now()).toISOString(),
   )
 
@@ -251,7 +254,7 @@ export function showTaskDetails(
   const children = getTasksUnderNode(repo, task.id)
   if (children.length > 0) {
     console.log()
-    console.log(chalk.dim(`${children.length} subtask(s):`))
+    console.log(term.style().dim(`${children.length} subtask(s):`))
     for (const child of children) {
       console.log("  " + formatTaskLine(child, { showId: true }))
     }

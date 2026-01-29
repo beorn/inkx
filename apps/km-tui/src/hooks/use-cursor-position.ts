@@ -62,7 +62,7 @@ export function useCursorPosition(
  * Pure function to derive cursor position.
  * Can be used outside of React for testing.
  */
-export function deriveCursorPosition(
+function deriveCursorPosition(
   columns: ColumnState[],
   cursorNodeId: string | null,
 ): CursorPosition {

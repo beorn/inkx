@@ -7,7 +7,7 @@ import { describe, test, expect } from "vitest"
 import React from "react"
 import { createFakeRepo } from "@km/storage"
 import type { Repo } from "@km/storage"
-import type { KNode, NodeType } from "@km/core"
+import type { KNode } from "@km/core"
 import {
   createEmptyState,
   initBoardState,
@@ -60,59 +60,28 @@ function renderBoardCore(
   })
 }
 
-function makeNode(
-  id: string,
-  type: NodeType,
-  content: string | undefined,
-  parentId: string | null,
-  parentIdx: number,
-  extra?: Partial<KNode>,
-): KNode {
-  const now = Date.now()
-  return {
-    id,
-    type,
-    parent_id: parentId,
-    parent_idx: parentIdx,
-    link_to: null,
-    content,
-    data: {},
-    created_at: now,
-    updated_at: now,
-    version: "v1",
-    ...extra,
-  }
-}
-
 describe("State", () => {
   test("buildBoardState creates columns from children", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("root", "board", "Test Board", null, 0),
-        makeNode("col1", "folder", "Column 1", "root", 0),
-        makeNode("col2", "folder", "Column 2", "root", 1),
-        makeNode("card1", "task", "Card 1.1", "col1", 0),
-        makeNode("card2", "task", "Card 1.2", "col1", 1),
-        makeNode("card3", "task", "Card 2.1", "col2", 0),
-      ],
-    })
-    const state = buildBoardState(repo, "root")
-    expect(state.rootId).toBe("root")
+    const nodes = item(
+      "board",
+      item("col1", item("1a"), item("1b")),
+      item("col2", item("2a")),
+    )
+    const repo = createFakeRepo({ nodes })
+    const state = buildBoardState(repo, "board")
+    expect(state.rootId).toBe("board")
     expect(state.columns).toHaveLength(2)
     expect(state.columns[0]?.cards).toHaveLength(2)
     expect(state.columns[1]?.cards).toHaveLength(1)
   })
 
   test("initBoardState builds state from repo root", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("repo-root", "folder", undefined, null, 0, {
-          data: { is_repo_root: true },
-        }),
-        makeNode("proj1", "folder", "Projects", "repo-root", 0),
-        makeNode("arch", "folder", "Archive", "repo-root", 1),
-      ],
-    })
+    const nodes = item.root(
+      "repo-root",
+      item.folder("Projects"),
+      item.folder("Archive"),
+    )
+    const repo = createFakeRepo({ nodes })
     const state = initBoardState(repo, "repo-root")
     expect(state).not.toBeNull()
     expect(state!.rootId).toBe("repo-root")
@@ -120,17 +89,16 @@ describe("State", () => {
   })
 
   test("initBoardState handles nested folders", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("repo-root", "folder", undefined, null, 0, {
-          data: { is_repo_root: true },
-        }),
-        makeNode("ref", "folder", "ref", "repo-root", 0),
-        makeNode("p1", "folder", "Projects", "ref", 0),
-        makeNode("p2", "folder", "Archive", "ref", 1),
-        makeNode("p3", "folder", "Work", "ref", 2),
-      ],
-    })
+    const nodes = item.root(
+      "repo-root",
+      item.folder(
+        "ref",
+        item.folder("Projects"),
+        item.folder("Archive"),
+        item.folder("Work"),
+      ),
+    )
+    const repo = createFakeRepo({ nodes })
     const state = initBoardState(repo, "ref")
     expect(state).not.toBeNull()
     expect(state!.rootId).toBe("ref")
@@ -148,43 +116,28 @@ describe("State", () => {
   })
 
   test("getNodeDisplayName returns content", () => {
-    const repo = createFakeRepo({
-      nodes: [makeNode("task1", "task", "Test Task", null, 0)],
-    })
-    const node = repo.getNode("task1")!
+    const nodes = item.task("Test Task")
+    const repo = createFakeRepo({ nodes })
+    const node = repo.getNode("Test Task")!
     expect(getNodeDisplayName(repo, node)).toBe("Test Task")
   })
 
   test("getNodeDisplayName returns data.name if present", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("folder1", "folder", undefined, null, 0, {
-          data: { name: "My Folder" },
-        }),
-      ],
-    })
-    const node = repo.getNode("folder1")!
+    const nodes = item.folder("My Folder", item("child"))
+    const repo = createFakeRepo({ nodes })
+    const node = repo.getNode("My Folder")!
     expect(getNodeDisplayName(repo, node)).toBe("My Folder")
   })
 
   test("buildBoardState filters out paragraph nodes as columns (km-1tho)", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("root", "file", "@issue.md", null, 0),
-        makeNode(
-          "para",
-          "paragraph",
-          "All issues tracked with the @issue tag.",
-          "root",
-          0,
-        ),
-        makeNode("col1", "section", "Open Issues", "root", 1),
-        makeNode("col2", "section", "Closed Issues", "root", 2),
-        makeNode("task1", "task", "Fix bug #1", "col1", 0),
-        makeNode("task2", "task", "Fix bug #2", "col2", 0),
-      ],
-    })
-    const state = buildBoardState(repo, "root")
+    const nodes = item.file(
+      "@issue.md",
+      item.paragraph("All issues tracked with the @issue tag."),
+      item.section("Open Issues", item("Fix bug #1")),
+      item.section("Closed Issues", item("Fix bug #2")),
+    )
+    const repo = createFakeRepo({ nodes })
+    const state = buildBoardState(repo, "@issue.md")
     expect(state.columns).toHaveLength(3)
     expect(state.columns[0]!.isVirtual).toBe(true)
     expect(state.columns[0]!.cards).toHaveLength(1)
@@ -194,33 +147,25 @@ describe("State", () => {
   })
 
   test("buildBoardState filters out code and quote nodes as columns", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("root", "file", "readme.md", null, 0),
-        makeNode("code", "code", "const x = 1;", "root", 0),
-        makeNode("quote", "quote", "Some quote text", "root", 1),
-        makeNode("col", "section", "Getting Started", "root", 2),
-        makeNode("task", "task", "Install dependencies", "col", 0),
-      ],
-    })
-    const state = buildBoardState(repo, "root")
+    const nodes = item.file(
+      "readme.md",
+      item.code("const x = 1;"),
+      item.quote("Some quote text"),
+      item.section("Getting Started", item("Install dependencies")),
+    )
+    const repo = createFakeRepo({ nodes })
+    const state = buildBoardState(repo, "readme.md")
     expect(state.columns).toHaveLength(2)
     expect(state.columns[0]!.isVirtual).toBe(true)
     expect(state.columns[0]!.cards).toHaveLength(2)
-    expect(state.columns[1]!.node.id).toBe("col")
+    expect(state.columns[1]!.node.id).toBe("Getting Started")
   })
 })
 
 describe("Render", () => {
   test("renderBoardStatic renders columns", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        makeNode("board", "board", "Board", null, 0),
-        makeNode("col1", "folder", "Todo", "board", 0),
-        makeNode("col2", "folder", "Done", "board", 1),
-        makeNode("task1", "task", "Task 1", "col1", 0),
-      ],
-    })
+    const nodes = item("board", item("Todo", item("Task 1")), item("Done"))
+    const repo = createFakeRepo({ nodes })
     const state = buildBoardState(repo, "board")
     const output = renderBoardStatic(repo, state, 80)
     expect(output).toContain("Todo")

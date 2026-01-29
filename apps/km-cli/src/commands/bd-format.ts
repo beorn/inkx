@@ -4,13 +4,15 @@
  * Pure functions for formatting issue data for CLI output.
  */
 
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import type { Issue } from "@km/beads"
 
 /**
  * Convert internal status to bd-compatible status string
  */
-export function bdStatus(status: Issue["status"]): string {
+function bdStatus(status: Issue["status"]): string {
   switch (status) {
     case "todo":
       return "open"
@@ -28,7 +30,7 @@ export function bdStatus(status: Issue["status"]): string {
 /**
  * Format timestamp as bd-compatible date string
  */
-export function formatDate(ts: number): string {
+function formatDate(ts: number): string {
   const d = new Date(ts)
   return d.toISOString().replace("T", " ").slice(0, 16)
 }
@@ -61,10 +63,10 @@ export function printIssue(issue: Issue): void {
   const status = bdStatus(issue.status)
   const type = issue.type || "task"
   const location = issue.parentContext
-    ? chalk.dim(` (${issue.parentContext})`)
+    ? term.style().dim(` (${issue.parentContext})`)
     : ""
   console.log(
-    `${chalk.cyan(issue.shortId)} [P${issue.priority}] [${type}] ${status} - ${issue.title}${location}`,
+    `${term.style().cyan(issue.shortId)} [P${issue.priority}] [${type}] ${status} - ${issue.title}${location}`,
   )
 }
 
@@ -74,10 +76,10 @@ export function printIssue(issue: Issue): void {
 export function printReadyIssue(issue: Issue, index: number): void {
   const type = issue.type || "task"
   const location = issue.parentContext
-    ? chalk.dim(` (${issue.parentContext})`)
+    ? term.style().dim(` (${issue.parentContext})`)
     : ""
   console.log(
-    `${index}. [P${issue.priority}] [${type}] ${chalk.cyan(issue.shortId)}: ${issue.title}${location}`,
+    `${index}. [P${issue.priority}] [${type}] ${term.style().cyan(issue.shortId)}: ${issue.title}${location}`,
   )
 }
 
@@ -85,7 +87,7 @@ export function printReadyIssue(issue: Issue, index: number): void {
  * Print issue details in bd show format
  */
 export function printIssueDetails(issue: Issue): void {
-  console.log(`${chalk.bold(issue.shortId)}: ${issue.title}`)
+  console.log(`${term.style().bold(issue.shortId)}: ${issue.title}`)
   console.log(`Status: ${bdStatus(issue.status)}`)
   console.log(`Priority: P${issue.priority}`)
   console.log(`Type: ${issue.type || "task"}`)

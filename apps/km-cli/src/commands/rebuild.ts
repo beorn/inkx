@@ -6,7 +6,9 @@
 
 import createDebug from "debug"
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
 import { dirname, resolve } from "path"
 
@@ -39,7 +41,9 @@ export const rebuildCommand = new Command("rebuild")
 
     if (!kmRoot) {
       console.error(
-        chalk.red(`No .km directory found in ${searchPath} or ancestors.`),
+        term
+          .style()
+          .red(`No .km directory found in ${searchPath} or ancestors.`),
       )
       console.error("Run 'km init' to initialize a repo.")
       process.exit(1)
@@ -55,10 +59,12 @@ export const rebuildCommand = new Command("rebuild")
       }
 
       if (options.fresh) {
-        console.log(chalk.yellow("Fresh start - deleting all .km data..."))
+        console.log(
+          term.style().yellow("Fresh start - deleting all .km data..."),
+        )
         freshStart(kmRoot)
         console.log(
-          chalk.green("✓"),
+          term.style().green("✓"),
           "Fresh start complete - .km directory cleared",
         )
         return
@@ -67,8 +73,8 @@ export const rebuildCommand = new Command("rebuild")
       const repoPath = dirname(kmRoot)
       debug("rebuild: starting (full=%s)", !!options.full)
       console.log(
-        chalk.bold("Rebuilding .km/state.db from .km/events.jsonl"),
-        chalk.dim(`(repo ${formatPath(repoPath)})`),
+        term.style().bold("Rebuilding .km/state.db from .km/events.jsonl"),
+        term.style().dim(`(repo ${formatPath(repoPath)})`),
       )
 
       // Open database for rebuild operations
@@ -77,7 +83,7 @@ export const rebuildCommand = new Command("rebuild")
 
       try {
         if (options.full) {
-          console.log(chalk.dim("Performing full reset..."))
+          console.log(term.style().dim("Performing full reset..."))
         }
 
         const results = await steps({
@@ -103,12 +109,12 @@ export const rebuildCommand = new Command("rebuild")
           result.nodeCount,
         )
 
-        console.log(chalk.green("✓"), "Rebuild complete")
-        console.log(chalk.dim(`  Events: ${result.eventCount}`))
-        console.log(chalk.dim(`  Nodes: ${result.nodeCount}`))
-        console.log(chalk.dim(`  Time: ${result.duration}ms`))
+        console.log(term.style().green("✓"), "Rebuild complete")
+        console.log(term.style().dim(`  Events: ${result.eventCount}`))
+        console.log(term.style().dim(`  Nodes: ${result.nodeCount}`))
+        console.log(term.style().dim(`  Time: ${result.duration}ms`))
       } catch (error) {
-        console.error(chalk.red("Rebuild failed:"), error)
+        console.error(term.style().red("Rebuild failed:"), error)
         process.exit(1)
       } finally {
         db.close()
@@ -123,22 +129,28 @@ function showStatus(): void {
   const dbPath = getDbPath()
   const eventsPath = getEventsPath()
 
-  console.log(chalk.bold("State Status"))
+  console.log(term.style().bold("State Status"))
   console.log()
 
   // Database
   if (existsSync(dbPath)) {
     const stat = statSync(dbPath)
-    console.log(chalk.dim("Database:"), dbPath)
-    console.log(chalk.dim("  Size:"), formatSize(stat.size))
-    console.log(chalk.dim("  Modified:"), new Date(stat.mtimeMs).toISOString())
+    console.log(term.style().dim("Database:"), dbPath)
+    console.log(term.style().dim("  Size:"), formatSize(stat.size))
+    console.log(
+      term.style().dim("  Modified:"),
+      new Date(stat.mtimeMs).toISOString(),
+    )
 
     const db = new Database(dbPath, { readonly: true })
     const lastEvent = getLastEventId(db)
     db.close()
-    console.log(chalk.dim("  Last event:"), lastEvent?.slice(0, 13) ?? "(none)")
+    console.log(
+      term.style().dim("  Last event:"),
+      lastEvent?.slice(0, 13) ?? "(none)",
+    )
   } else {
-    console.log(chalk.yellow("Database:"), "Not found")
+    console.log(term.style().yellow("Database:"), "Not found")
   }
 
   console.log()
@@ -146,11 +158,14 @@ function showStatus(): void {
   // Events
   if (existsSync(eventsPath)) {
     const stat = statSync(eventsPath)
-    console.log(chalk.dim("Events:"), eventsPath)
-    console.log(chalk.dim("  Size:"), formatSize(stat.size))
-    console.log(chalk.dim("  Modified:"), new Date(stat.mtimeMs).toISOString())
+    console.log(term.style().dim("Events:"), eventsPath)
+    console.log(term.style().dim("  Size:"), formatSize(stat.size))
+    console.log(
+      term.style().dim("  Modified:"),
+      new Date(stat.mtimeMs).toISOString(),
+    )
   } else {
-    console.log(chalk.yellow("Events:"), "Not found")
+    console.log(term.style().yellow("Events:"), "Not found")
   }
 }
 

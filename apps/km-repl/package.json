@@ -1,12 +1,12 @@
 {
   "name": "@km/repl",
+  "private": true,
   "description": "REPL application for km - interactive command interface for scripting and debugging",
   "type": "module",
   "module": "src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
-  "private": true,
   "dependencies": {
     "@km/board": "workspace:*",
     "@km/commands": "workspace:*",

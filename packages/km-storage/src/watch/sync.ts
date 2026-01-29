@@ -851,7 +851,7 @@ function findFileNode(db: Database, node: KNode): KNode | null {
 /**
  * One-time sync from filesystem to database
  */
-export async function syncOnce(
+async function syncOnce(
   db: Database,
   repoPath: string,
 ): Promise<{

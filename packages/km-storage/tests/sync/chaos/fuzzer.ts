@@ -144,9 +144,7 @@ export interface SyncBugReport {
 /**
  * Generate test scenarios based on configuration
  */
-export function* generateScenarios(
-  config: FuzzConfig,
-): Generator<GeneratedScenario> {
+function* generateScenarios(config: FuzzConfig): Generator<GeneratedScenario> {
   const random = new SeededRandom(config.seed)
   const maxCombined = config.maxCombinedScenarios ?? 2
 
@@ -982,7 +980,7 @@ export function formatBugReport(report: SyncBugReport): string {
 /**
  * Generate a random markdown file with specific characteristics
  */
-export function generateRandomFile(
+function generateRandomFile(
   random: SeededRandom,
   options: {
     minTasks?: number

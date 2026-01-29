@@ -1,16 +1,15 @@
 /**
- * DotzReporter - Live-updating Vitest Reporter
+ * DotzReporter - inkx-based Vitest Reporter
  *
- * Renders test progress as colored dots with live re-rendering in place.
- * Uses cursor movement to update the same screen area (not fullscreen mode).
+ * Single React component used for both modes:
+ * - TTY: render() with mode: 'inline' for live updates
+ * - Non-TTY: renderString() for static output
  *
- * Features:
- * - Live updating display (redraws in place)
- * - Keyboard controls: a=auto, p=packages, f=files, q=quit
- * - Grouping modes control how dots are organized
+ * All output goes through inkx - layout, colors, everything.
  */
 
-import fs from "node:fs"
+import * as fs from "node:fs"
+import { useSyncExternalStore, createContext, useContext } from "react"
 import type {
   Reporter,
   TestCase,
@@ -20,11 +19,14 @@ import type {
   Vitest,
 } from "vitest/node"
 import {
-  createFlexxEngine,
-  setLayoutEngine,
-  isLayoutEngineInitialized,
+  render,
   createTerm,
+  Box,
+  Text,
+  useTerm,
+  TermContext,
   type Term,
+  type Instance,
 } from "inkx"
 import Debug from "debug"
 
@@ -37,11 +39,20 @@ import {
 const debug = Debug("km:vitest-dotz")
 
 // =============================================================================
+// Context for Interactive Mode
+// =============================================================================
+
+const InteractiveContext = createContext(true)
+function useInteractive() {
+  return useContext(InteractiveContext)
+}
+
+// =============================================================================
 // Constants & Types
 // =============================================================================
 
-type GroupingMode = "auto" | "packages" | "files"
 type TestState = "pending" | "passed" | "failed" | "skipped"
+
 const DOT = {
   fail: "x",
   skip: "-",
@@ -49,25 +60,300 @@ const DOT = {
   noisy: "!",
 } as const
 
-const CSI = {
-  hideCursor: "\x1b[?25l",
-  showCursor: "\x1b[?25h",
-  clearLine: "\x1b[K",
-  moveUp: (n: number) => `\x1b[${n}A`,
-  moveToCol1: "\x1b[G",
-} as const
-
 export interface ReporterOptions {
   slowThreshold?: number
   perfOutput?: string
   showSlow?: boolean
-  /** Symbols for pass states, mapped linearly from 0x to 10x threshold. Last symbol repeats bright for >10x. */
+  /** Symbols for pass states, mapped linearly from 0x to 10x threshold. */
   symbols?: string[]
 }
 
 const PASS_SLOW_SYMBOLS = {
   dots: ["·", "•", "●"],
-  // bars: ["▁", "▂", "▃", "▄", "▅", "▆", "▇"],
+}
+
+// =============================================================================
+// React Hooks
+// =============================================================================
+
+function useTestStore(store: TestStore): TestStoreState {
+  return useSyncExternalStore(store.subscribe, store.getSnapshot)
+}
+
+// =============================================================================
+// Main Report Component (used for both TTY and non-TTY)
+// =============================================================================
+
+interface ReportProps {
+  store: TestStore
+  options: Required<ReporterOptions>
+}
+
+function Report({ store, options }: ReportProps) {
+  const interactive = useInteractive()
+  const state = useTestStore(store)
+
+  return (
+    <Box flexDirection="column">
+      {/* Live dots - only in interactive mode WHILE RUNNING */}
+      {interactive && state.isRunning && (
+        <DotsDisplay state={state} options={options} />
+      )}
+
+      {/* Summary sections - shown when not running (or always in non-interactive) */}
+      {(!interactive || !state.isRunning) && (
+        <>
+          <Summary state={state} />
+          <PackageTable state={state} />
+          <SlowTests state={state} options={options} />
+          <Failures state={state} />
+        </>
+      )}
+    </Box>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// Dots Display (live updating dots grouped by package)
+// -----------------------------------------------------------------------------
+
+interface DotsDisplayProps {
+  state: TestStoreState
+  options: Required<ReporterOptions>
+}
+
+function DotsDisplay({ state, options }: DotsDisplayProps) {
+  const term = useTerm()
+  const cols = process.stdout.columns || 80
+
+  // Calculate max label width
+  const maxLabelWidth = Math.min(
+    Math.max(...state.categoryOrder.map((c) => c.length), 12) + 1,
+    20,
+  )
+
+  const maxDotsPerLine = Math.max(20, cols - maxLabelWidth - 1)
+
+  return (
+    <Box flexDirection="column">
+      {state.categoryOrder.map((category) => {
+        const catStats = state.categoryStats.get(category)
+        if (!catStats) return null
+
+        // Build dots for all tests in this category
+        const dots = catStats.testIds.map((id) => {
+          const testState = state.testStates.get(id) ?? "pending"
+          const duration = state.testDurations.get(id) ?? 0
+          const isNoisy = state.noisyTestIds.has(id)
+          return renderDot(term, testState, duration, isNoisy, options)
+        })
+
+        // Wrap dots into lines
+        const lines: string[][] = []
+        for (let i = 0; i < dots.length; i += maxDotsPerLine) {
+          lines.push(dots.slice(i, i + maxDotsPerLine))
+        }
+
+        return (
+          <Box key={category} flexDirection="column">
+            {lines.map((lineDots, i) => (
+              <Text key={i}>
+                {i === 0
+                  ? term.style().cyan(category.padEnd(maxLabelWidth))
+                  : " ".repeat(maxLabelWidth)}
+                {lineDots.join("")}
+              </Text>
+            ))}
+          </Box>
+        )
+      })}
+    </Box>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// Summary
+// -----------------------------------------------------------------------------
+
+interface SummaryProps {
+  state: TestStoreState
+}
+
+function Summary({ state }: SummaryProps) {
+  const term = useTerm()
+  const { passed, failed, skipped } = state
+  const total = passed + failed + skipped
+  const elapsed = Date.now() - state.startTime
+  const sum = [...state.testDurations.values()].reduce((a, b) => a + b, 0)
+
+  const counts: string[] = []
+  if (failed > 0) counts.push(term.style().bold.red(`${failed} failed`))
+  if (passed > 0) counts.push(term.style().bold.green(`${passed} passed`))
+  if (skipped > 0) counts.push(term.style().yellow(`${skipped} skipped`))
+
+  return (
+    <Box flexDirection="column" marginTop={1}>
+      <Text>
+        {term.style().dim("Tests")}{" "}
+        {counts.length
+          ? counts.join(term.style().dim(" | "))
+          : term.style().dim("0")}
+        {term.style().gray(` (${total})`)}
+        {"  "}
+        {term.style().dim("Time")} {fmtDuration(elapsed)}
+        {term.style().gray(` (sum ${fmtDuration(sum)})`)}
+      </Text>
+    </Box>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// Package Table
+// -----------------------------------------------------------------------------
+
+interface PackageTableProps {
+  state: TestStoreState
+}
+
+function PackageTable({ state }: PackageTableProps) {
+  const term = useTerm()
+
+  if (state.categoryOrder.length <= 1) return null
+
+  const w = Math.max(...state.categoryOrder.map((c) => c.length), 12)
+
+  return (
+    <Box flexDirection="column" marginTop={1}>
+      <Text>
+        {term
+          .style()
+          .bold.white(
+            `${"PACKAGE".padEnd(w)}  ${"TESTS".padStart(5)}  ${"TIME".padStart(8)}  ${"SLOW".padStart(6)}`,
+          )}
+      </Text>
+      {state.categoryOrder.map((cat) => {
+        const s = state.categoryStats.get(cat)
+        if (!s) return null
+        const n = s.passed + s.failed + s.skipped
+        const slow =
+          s.slowCount > 0 ? s.slowCount.toString().padStart(6) : "     -"
+        const row = `${cat.padEnd(w)}  ${n.toString().padStart(5)}  ${fmtDuration(s.duration).padStart(8)}  ${slow}`
+        return (
+          <Text key={cat}>
+            {s.failed > 0 ? term.style().red(row) : term.style().dim(row)}
+          </Text>
+        )
+      })}
+    </Box>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// Slow Tests
+// -----------------------------------------------------------------------------
+
+interface SlowTestsProps {
+  state: TestStoreState
+  options: Required<ReporterOptions>
+}
+
+function SlowTests({ state, options }: SlowTestsProps) {
+  const term = useTerm()
+
+  if (!options.showSlow || state.topSlowest.length === 0) return null
+
+  const { symbols, slowThreshold: threshold } = options
+  const n = symbols.length
+  const rangePerSymbol = 10 / n
+  const fmt = (ms: number) => (ms >= 1000 ? `${ms / 1000}s` : `${ms}ms`)
+
+  // Build slow symbol legend
+  const legendParts: string[] = []
+  for (let i = 1; i < n; i++) {
+    const minMult = i * rangePerSymbol
+    const sym = symbols[i] ?? "●"
+    legendParts.push(
+      `${term.style().green.dim(sym)} ${term.style().dim(`≥${fmt(Math.round(threshold * minMult))}`)}`,
+    )
+  }
+  const lastSym = symbols[n - 1] ?? "●"
+  legendParts.push(
+    `${term.style().green(lastSym)} ${term.style().dim(`≥${fmt(threshold * 10)}`)}`,
+  )
+
+  return (
+    <Box flexDirection="column" marginTop={1}>
+      <Text>
+        {term.style().bold("SLOW TESTS")}
+        {"  "}
+        {legendParts.join("  ")}
+      </Text>
+      {state.topSlowest.map((test, i) => {
+        const { index, bright } = durationToSymbolIndex(
+          test.duration,
+          threshold,
+          symbols.length,
+        )
+        const symbol = symbols[Math.min(index, symbols.length - 1)] ?? "●"
+        const styledSymbol = bright
+          ? term.style().green(symbol)
+          : term.style().green.dim(symbol)
+        const fileLoc = test.line ? `${test.file}:${test.line}` : test.file
+        return (
+          <Text key={i}>
+            {styledSymbol}{" "}
+            {term.style().green(fmtDuration(test.duration).padStart(6))}{" "}
+            {term.style().gray(fileLoc + " >")} {test.name}
+          </Text>
+        )
+      })}
+    </Box>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// Failures
+// -----------------------------------------------------------------------------
+
+interface FailuresProps {
+  state: TestStoreState
+}
+
+function Failures({ state }: FailuresProps) {
+  const term = useTerm()
+
+  if (state.testErrors.size === 0) return null
+
+  return (
+    <Box flexDirection="column" marginTop={1}>
+      <Text>{term.style().bold.red("FAILURES")}</Text>
+      {[...state.testErrors.values()].map((err, i) => (
+        <Box key={i} flexDirection="column" marginTop={1}>
+          <Text>
+            {term.style().red("✗")} {term.style().bold(err.name)}
+          </Text>
+          <Text>
+            {"  "}
+            {term.style().dim(err.file)}
+          </Text>
+          {err.errors.map((e, j) => (
+            <Box key={j} flexDirection="column">
+              <Text>
+                {"  "}
+                {e.message}
+              </Text>
+              {e.stack &&
+                e.stack
+                  .split("\n")
+                  .map((line, k) => (
+                    <Text key={k}>{term.style().dim(line)}</Text>
+                  ))}
+            </Box>
+          ))}
+        </Box>
+      ))}
+    </Box>
+  )
 }
 
 // =============================================================================
@@ -76,21 +362,14 @@ const PASS_SLOW_SYMBOLS = {
 
 export class DotzReporter implements Reporter {
   private ctx!: Vitest
-  private term: Term | null = null
   private store: TestStore
   private options: Required<ReporterOptions>
   private packageNameCache = new Map<string, string>()
   private finishedTests = new Set<string>()
   private finishedCalled = false
-
-  // Keyboard state
-  private groupingMode: GroupingMode = "auto"
-  private stdinHandler: ((data: Buffer) => void) | null = null
-  private wasRawMode = false
-
-  // Rendering state
-  private lastLineCount = 0
-  private cols = 80
+  private isTTY = false
+  private term: Term | null = null
+  private app: Instance | null = null
 
   constructor(options: ReporterOptions = {}) {
     this.options = {
@@ -110,21 +389,45 @@ export class DotzReporter implements Reporter {
   onInit(ctx: Vitest) {
     debug("onInit called")
     this.ctx = ctx
-    this.term = createTerm()
-    if (!isLayoutEngineInitialized()) setLayoutEngine(createFlexxEngine())
-    this.term.write(CSI.hideCursor)
-    this.setupKeyboardInput()
+    // Check for TTY AND non-dumb terminal
+    // Also disable for CI environments which often have pseudo-TTYs but no interactivity
+    const term = process.env.TERM ?? ""
+    const isDumbTerminal = term === "dumb" || term === ""
+    const isCI = Boolean(process.env.CI)
+    this.isTTY = (process.stdout.isTTY ?? false) && !isDumbTerminal && !isCI
+    debug(
+      "isTTY=%s (stdout.isTTY=%s, TERM=%s, CI=%s)",
+      this.isTTY,
+      process.stdout.isTTY,
+      term,
+      isCI,
+    )
   }
 
-  onTestRunStart(_specs: readonly TestSpecification[]) {
+  async onTestRunStart(_specs: readonly TestSpecification[]) {
     debug("onTestRunStart called with %d specs", _specs.length)
     this.store.reset()
     this.store.setRunning(true)
     this.finishedTests.clear()
     this.finishedCalled = false
-    this.lastLineCount = 0
-    this.cols = process.stdout.columns || this.term?.cols || 80
-    this.renderFrame()
+
+    // TTY mode: Start inkx render with inline mode
+    if (this.isTTY) {
+      // Disable act() warnings - we're a reporter, not a test
+      // @ts-expect-error - React internal flag
+      globalThis.IS_REACT_ACT_ENVIRONMENT = false
+
+      this.term = createTerm()
+      this.app = await render(
+        this.term,
+        <InteractiveContext.Provider value={true}>
+          <Report store={this.store} options={this.options} />
+        </InteractiveContext.Provider>,
+        {
+          mode: "inline",
+        },
+      )
+    }
   }
 
   onTestModuleCollected(module: TestModule) {
@@ -180,14 +483,21 @@ export class DotzReporter implements Reporter {
     const logs = diagnostic as { stdout?: string; stderr?: string } | undefined
     const isNoisy = Boolean(logs?.stdout || logs?.stderr)
 
+    // Get line number: prefer mdtest metadata, fall back to Vitest location
+    const meta = testCase.meta() as { mdtestLocation?: { line?: number } }
+    const computedLocation = (testCase as { location?: { line?: number } })
+      .location
+    const line = meta.mdtestLocation?.line ?? computedLocation?.line
+
     this.store.updateTest(id, testState, duration, errors, isNoisy)
     this.store.updateSlowest(
       testCase.name,
       this.relativePath(moduleId),
+      line,
       duration,
       this.options.slowThreshold,
     )
-    this.renderFrame()
+    // React re-renders automatically via store subscription
   }
 
   onTestModuleEnd(_: TestModule) {}
@@ -195,504 +505,64 @@ export class DotzReporter implements Reporter {
   onTestRunEnd(
     testModules?: Iterable<TestModule>,
     errors?: readonly unknown[],
-    state?: unknown,
+    _state?: unknown,
   ) {
     debug("onTestRunEnd called", {
       testModules: !!testModules,
       errors: (errors as unknown[])?.length,
-      state,
     })
-    this.finishRun()
+    void this.finishRun()
   }
 
   // Deprecated in vitest 3+, but kept for compatibility
   onFinished(_files?: unknown[], _errors?: unknown[]) {
     debug("onFinished called")
-    this.finishRun()
+    void this.finishRun()
   }
 
-  private finishRun() {
+  private async finishRun() {
     if (this.finishedCalled) return
     this.finishedCalled = true
     this.store.setRunning(false)
-    this.cleanup()
-    this.renderFrame()
-    this.term?.write(CSI.showCursor + "\n")
-    this.term?.[Symbol.dispose]()
-    this.term = null
+
+    if (this.isTTY && this.app) {
+      // TTY: Wait for final render, then cleanup
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      this.app.unmount()
+      this.app = null
+      this.term?.[Symbol.dispose]()
+      this.term = null
+    } else {
+      // Non-TTY: Render static report using renderString
+      await this.printSummary()
+    }
+
     if (this.options.perfOutput) this.exportPerformance()
   }
 
-  // ===========================================================================
-  // Keyboard Input
-  // ===========================================================================
+  private async printSummary() {
+    // Create term for styling
+    using term = createTerm()
+    const cols = process.stdout.columns || 80
 
-  private setupKeyboardInput() {
-    if (!process.stdin.isTTY) return
+    // Dynamically import renderString
+    const { renderString } = await import("inkx")
 
-    this.wasRawMode = process.stdin.isRaw ?? false
-    process.stdin.setRawMode(true)
-    process.stdin.resume()
-
-    this.stdinHandler = (data: Buffer) => {
-      const key = data.toString().toLowerCase()
-      debug("key pressed: %s", key)
-
-      if (key === "a") this.setGroupingMode("auto")
-      else if (key === "p") this.setGroupingMode("packages")
-      else if (key === "f") this.setGroupingMode("files")
-      else if (key === "q" || key === "\x03") {
-        this.cleanup()
-        process.exit(0)
-      }
-    }
-
-    process.stdin.on("data", this.stdinHandler)
-  }
-
-  private setGroupingMode(mode: GroupingMode) {
-    if (mode === this.groupingMode) return
-    this.groupingMode = mode
-    this.renderFrame()
-  }
-
-  private cleanup() {
-    if (this.stdinHandler) {
-      process.stdin.off("data", this.stdinHandler)
-      this.stdinHandler = null
-    }
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode(this.wasRawMode)
-      process.stdin.pause()
-    }
-  }
-
-  // ===========================================================================
-  // Rendering
-  // ===========================================================================
-
-  private renderFrame() {
-    if (!this.term) return
-    const t = this.term
-    const state = this.store.getSnapshot()
-    const lines: string[] = []
-
-    // Header
-    this.buildHeader(t, lines)
-
-    // Dots display
-    this.buildDotsDisplay(t, state, lines)
-
-    // Summary
-    this.buildSummary(t, state, lines)
-
-    // Package stats (always show if multiple packages)
-    this.buildPackageTable(t, state, lines)
-
-    // Slow tests (always show if any)
-    this.buildSlowTests(t, state, lines)
-
-    // Failures (always show if any)
-    this.buildFailures(t, state, lines)
-
-    // Render with cursor repositioning
-    this.writeFrame(t, lines)
-  }
-
-  private buildHeader(t: Term, lines: string[]) {
-    const symbols = this.options.symbols
-
-    lines.push(
-      `${t.bold.inverse.cyan(" DOTZ ")} ${t.cyan(`v${this.ctx?.version ?? "?"}`)} ${t.dim(process.cwd())}`,
+    // Render the static report - use reasonable height to avoid huge buffer
+    const output = await renderString(
+      <TermContext.Provider value={term}>
+        <InteractiveContext.Provider value={false}>
+          <Report store={this.store} options={this.options} />
+        </InteractiveContext.Provider>
+      </TermContext.Provider>,
+      { width: cols, height: 100 },
     )
 
-    // Simple legend: pass symbol + fail/noisy/skip
-    lines.push(
-      `${t.green.dim(symbols[0]!)} ${t.dim("pass")}  ` +
-        `${t.red(DOT.fail)} ${t.dim("fail")}  ` +
-        `${t.magenta(DOT.noisy)} ${t.dim("noisy")}  ` +
-        `${t.gray(DOT.skip)} ${t.dim("skip")}`,
-    )
-
-    // Show keyboard shortcuts only in watch mode
-    if (this.ctx?.config?.watch) {
-      lines.push(
-        `${t.dim("Keys:")} ${t.cyan("a")}${t.dim("=auto")}  ` +
-          `${t.cyan("p")}${t.dim("=packages")}  ` +
-          `${t.cyan("f")}${t.dim("=files")}  ` +
-          `${t.cyan("q")}${t.dim("=quit")}  ` +
-          `${t.dim("Mode:")} ${t.cyan(this.groupingMode)}`,
-      )
-    }
-    lines.push("")
-  }
-
-  private buildDotsDisplay(t: Term, state: TestStoreState, lines: string[]) {
-    // Calculate which specific files should be broken out
-    const fileBreakouts = this.calculateFileBreakouts(state)
-
-    // Find max label width for left-aligned dots
-    let maxLabelWidth = 0
-    for (const category of state.categoryOrder) {
-      maxLabelWidth = Math.max(maxLabelWidth, category.length)
-      const brokenOutFiles = fileBreakouts.get(category)
-      if (brokenOutFiles) {
-        const catStats = state.categoryStats.get(category)
-        if (catStats) {
-          for (const file of brokenOutFiles) {
-            const rawName = file.split("/").pop() ?? file
-            const prettyName = prettifyFilename(rawName)
-            maxLabelWidth = Math.max(maxLabelWidth, prettyName.length + 2)
-          }
-        }
-      }
-    }
-    const labelWidth = Math.min(maxLabelWidth + 1, 28)
-
-    for (const category of state.categoryOrder) {
-      const catStats = state.categoryStats.get(category)
-      if (!catStats) continue
-
-      const brokenOutFiles = fileBreakouts.get(category) ?? new Set<string>()
-
-      // Collect test IDs for files NOT broken out (for package line)
-      const inlineTestIds: string[] = []
-      for (const file of catStats.fileOrder) {
-        if (!brokenOutFiles.has(file)) {
-          const fileStats = catStats.files.get(file)
-          if (fileStats) {
-            inlineTestIds.push(...fileStats.testIds)
-          }
-        }
-      }
-
-      // Package line: name + dots for non-broken-out files
-      const label = category.padEnd(labelWidth)
-      if (inlineTestIds.length > 0) {
-        this.addDotsWithPrefix(
-          t,
-          t.cyan(label),
-          labelWidth,
-          inlineTestIds,
-          state,
-          lines,
-        )
-      } else if (brokenOutFiles.size > 0) {
-        // All files broken out - just show package name
-        lines.push(t.cyan(category))
-      }
-
-      // Broken out files with individual dots
-      for (const file of catStats.fileOrder) {
-        if (!brokenOutFiles.has(file)) continue
-        const fileStats = catStats.files.get(file)
-        if (!fileStats) continue
-        const rawName = file.split("/").pop() ?? file
-        const prettyName = prettifyFilename(rawName, labelWidth - 3)
-        const fileLabel = `  ${prettyName}`.padEnd(labelWidth)
-        this.addDotsWithPrefix(
-          t,
-          t.dim(fileLabel),
-          labelWidth,
-          fileStats.testIds,
-          state,
-          lines,
-        )
-      }
-    }
-  }
-
-  /** Returns map of category -> set of files to break out */
-  private calculateFileBreakouts(
-    state: TestStoreState,
-  ): Map<string, Set<string>> {
-    const breakouts = new Map<string, Set<string>>()
-
-    // "packages" mode: never break out
-    if (this.groupingMode === "packages") {
-      return breakouts
-    }
-
-    for (const category of state.categoryOrder) {
-      const catStats = state.categoryStats.get(category)
-      if (!catStats) continue
-
-      const fileBreakouts = new Set<string>()
-      const dotsPerLine = Math.max(20, this.cols - 28) // assume max label width
-
-      if (this.groupingMode === "files") {
-        // "files" mode: break out all files
-        for (const file of catStats.fileOrder) {
-          fileBreakouts.add(file)
-        }
-      } else {
-        // "auto" mode: break out largest files until package line fits on one line
-        // Use conservative label width (28 max) to account for display alignment
-        const maxDots = this.cols - 28 - 1
-
-        // Sort files by test count (largest first)
-        const filesBySize = [...catStats.fileOrder]
-          .map((file) => ({
-            file,
-            count: catStats.files.get(file)?.testIds.length ?? 0,
-          }))
-          .sort((a, b) => b.count - a.count)
-
-        // Break out largest files until remaining dots fit on one line
-        let remainingDots = catStats.testIds.length
-        for (const { file, count } of filesBySize) {
-          if (remainingDots <= maxDots) break
-          fileBreakouts.add(file)
-          remainingDots -= count
-        }
-      }
-
-      if (fileBreakouts.size > 0) {
-        breakouts.set(category, fileBreakouts)
-      }
-    }
-
-    return breakouts
-  }
-
-  private addDotsWithPrefix(
-    t: Term,
-    prefix: string,
-    prefixLen: number,
-    testIds: string[],
-    state: TestStoreState,
-    lines: string[],
-  ) {
-    const dots = this.buildDots(t, testIds, state)
-    const maxDotsPerLine = Math.max(20, this.cols - prefixLen - 1)
-    const wrapped = this.wrapAnsiString(dots, maxDotsPerLine)
-
-    for (let i = 0; i < wrapped.length; i++) {
-      lines.push(
-        i === 0 ? prefix + wrapped[i] : " ".repeat(prefixLen) + wrapped[i],
-      )
-    }
-  }
-
-  private buildDots(t: Term, testIds: string[], state: TestStoreState): string {
-    const parts: string[] = []
-    for (const id of testIds) {
-      const testState = state.testStates.get(id) ?? "pending"
-      const duration = state.testDurations.get(id) ?? 0
-      const isNoisy = state.noisyTestIds.has(id)
-      parts.push(this.dot(t, testState, duration, isNoisy))
-    }
-    return parts.join("")
-  }
-
-  private dot(
-    t: Term,
-    state: TestState,
-    duration: number,
-    noisy: boolean,
-  ): string {
-    if (noisy && state !== "failed") return t.magenta(DOT.noisy)
-    if (state === "passed") {
-      const symbols = this.options.symbols
-      const { index, bright } = this.durationToSymbolIndex(duration)
-      const symbol = symbols[Math.min(index, symbols.length - 1)]!
-      return bright ? t.green(symbol) : t.green.dim(symbol)
-    }
-    if (state === "failed") return t.red(DOT.fail)
-    if (state === "skipped") return t.gray.dim(DOT.skip)
-    return t.yellow(DOT.pending)
-  }
-
-  /** Map duration to symbol index. N symbols = N+1 stages (last symbol repeats bright for >10x). */
-  private durationToSymbolIndex(duration: number): {
-    index: number
-    bright: boolean
-  } {
-    const threshold = this.options.slowThreshold
-    const symbols = this.options.symbols
-    const n = symbols.length
-
-    // multiplier: how many times threshold
-    const multiplier = duration / threshold
-
-    // N symbols divide 0-10x range into N equal parts
-    // Stage i covers [i * 10/N, (i+1) * 10/N) of threshold
-    // Stage N (bright) is >= 10x
-    const rangePerSymbol = 10 / n
-    const stage = Math.floor(multiplier / rangePerSymbol)
-
-    if (stage >= n) {
-      // >10x threshold: last symbol, bright
-      return { index: n - 1, bright: true }
-    }
-    return { index: stage, bright: false }
-  }
-
-  private wrapAnsiString(str: string, maxVisible: number): string[] {
-    if (maxVisible <= 0) maxVisible = 40
-    const lines: string[] = []
-    let line = ""
-    let visible = 0
-    let i = 0
-
-    while (i < str.length) {
-      if (str[i] === "\x1b") {
-        // Consume ANSI escape sequence
-        const start = i
-        while (i < str.length && str[i] !== "m") i++
-        if (i < str.length) i++ // include 'm'
-        line += str.slice(start, i)
-      } else {
-        line += str[i]
-        visible++
-        i++
-        if (visible >= maxVisible) {
-          lines.push(line)
-          line = ""
-          visible = 0
-        }
-      }
-    }
-
-    if (line || lines.length === 0) lines.push(line)
-    return lines
-  }
-
-  private buildSummary(t: Term, state: TestStoreState, lines: string[]) {
-    lines.push("")
-    const { passed, failed, skipped } = state
-    const total = passed + failed + skipped
-    const elapsed = Date.now() - state.startTime
-    const sum = [...state.testDurations.values()].reduce((a, b) => a + b, 0)
-
-    const counts: string[] = []
-    if (failed > 0) counts.push(t.bold.red(`${failed} failed`))
-    if (passed > 0) counts.push(t.bold.green(`${passed} passed`))
-    if (skipped > 0) counts.push(t.yellow(`${skipped} skipped`))
-
-    lines.push(
-      `${t.dim("Tests")} ${counts.length ? counts.join(t.dim(" | ")) : t.dim("0")}` +
-        `${t.gray(` (${total})`)}  ` +
-        `${t.dim("Time")} ${fmtDuration(elapsed)}${t.gray(` (sum ${fmtDuration(sum)})`)}`,
-    )
-  }
-
-  private buildPackageTable(t: Term, state: TestStoreState, lines: string[]) {
-    if (state.categoryOrder.length <= 1) return
-
-    lines.push("")
-    const w = Math.max(...state.categoryOrder.map((c) => c.length), 12)
-    lines.push(
-      t.bold.white(
-        `${"PACKAGE".padEnd(w)}  ${"TESTS".padStart(5)}  ${"TIME".padStart(8)}  ${"SLOW".padStart(6)}`,
-      ),
-    )
-
-    for (const cat of state.categoryOrder) {
-      const s = state.categoryStats.get(cat)
-      if (!s) continue
-      const n = s.passed + s.failed + s.skipped
-      const slow =
-        s.slowCount > 0 ? s.slowCount.toString().padStart(6) : "     -"
-      const row = `${cat.padEnd(w)}  ${n.toString().padStart(5)}  ${fmtDuration(s.duration).padStart(8)}  ${slow}`
-      lines.push(s.failed > 0 ? t.red(row) : t.dim(row))
-    }
-  }
-
-  private buildSlowTests(t: Term, state: TestStoreState, lines: string[]) {
-    if (!this.options.showSlow || state.topSlowest.length === 0) return
-
-    const symbols = this.options.symbols
-    const threshold = this.options.slowThreshold
-    const fmt = (ms: number) => (ms >= 1000 ? `${ms / 1000}s` : `${ms}ms`)
-    const n = symbols.length
-    const rangePerSymbol = 10 / n
-
-    // Build slow symbol legend (space before ≥ for readability)
-    const legendParts: string[] = []
-    for (let i = 1; i < n; i++) {
-      // Start from 1 (skip first symbol shown in header)
-      const minMult = i * rangePerSymbol
-      legendParts.push(
-        `${t.green.dim(symbols[i]!)} ${t.dim(`≥${fmt(Math.round(threshold * minMult))}`)}`,
-      )
-    }
-    // Last symbol bright for >10x
-    legendParts.push(
-      `${t.green(symbols[n - 1]!)} ${t.dim(`≥${fmt(threshold * 10)}`)}`,
-    )
-
-    lines.push("")
-    lines.push(`${t.bold("SLOW TESTS")}  ${legendParts.join("  ")}`)
-
-    for (const test of state.topSlowest) {
-      const { index, bright } = this.durationToSymbolIndex(test.duration)
-      const symbol = symbols[Math.min(index, symbols.length - 1)]!
-      const styledSymbol = bright ? t.green(symbol) : t.green.dim(symbol)
-      lines.push(
-        `${styledSymbol} ${t.green(fmtDuration(test.duration).padStart(6))} ${t.gray(test.file + " >")} ${test.name}`,
-      )
-    }
-  }
-
-  private buildFailures(t: Term, state: TestStoreState, lines: string[]) {
-    if (state.testErrors.size === 0) return
-
-    lines.push("")
-    lines.push(t.bold.red("FAILURES"))
-
-    for (const [, err] of state.testErrors) {
-      lines.push("")
-      lines.push(`${t.red("✗")} ${t.bold(err.name)}`)
-      lines.push(`  ${t.dim(err.file)}`)
-      for (const e of err.errors) {
-        lines.push(`  ${e.message}`)
-        if (e.stack) {
-          for (const stackLine of e.stack.split("\n")) {
-            lines.push(t.dim(stackLine))
-          }
-        }
-      }
-    }
-  }
-
-  private writeFrame(t: Term, lines: string[]) {
-    const termRows = process.stdout.rows || 24
-    const maxLines = termRows - 2 // leave room for prompt
-
-    // During live updates, cap output to screen height to prevent scroll/flicker
-    // Final frame (when !isRunning) can be taller and will scroll once
-    const state = this.store.getSnapshot()
-    const shouldTruncate = state.isRunning && lines.length > maxLines
-
-    const outputLines = shouldTruncate ? lines.slice(0, maxLines - 1) : lines
-    const truncatedCount = shouldTruncate ? lines.length - maxLines + 1 : 0
-
-    // Move cursor up to overwrite previous frame
-    if (this.lastLineCount > 0) {
-      const moveUp = Math.min(this.lastLineCount, maxLines)
-      t.write(CSI.moveUp(moveUp) + CSI.moveToCol1)
-    }
-
-    // Write frame
-    for (const line of outputLines) {
-      t.write(line + CSI.clearLine + "\n")
-    }
-
-    // Show truncation indicator if needed
-    if (truncatedCount > 0) {
-      t.write(t.dim(`  ... ${truncatedCount} more lines`) + CSI.clearLine + "\n")
-    }
-
-    // Clear leftover lines from previous frame
-    const actualOutput = outputLines.length + (truncatedCount > 0 ? 1 : 0)
-    const extra = this.lastLineCount - actualOutput
-    if (extra > 0) {
-      for (let i = 0; i < extra; i++) t.write(CSI.clearLine + "\n")
-      t.write(CSI.moveUp(extra))
-    }
-
-    this.lastLineCount = actualOutput
+    // TODO: why is this needed?  if it's a bug with inkx, we should fix it.
+    // Trim trailing blank lines (including lines with only ANSI codes)
+    // Match: newlines followed by optional ANSI escape sequences and/or whitespace
+    const trimmed = output.replace(/(\n(\x1b\[[0-9;]*[a-zA-Z]|\s)*)+$/, "")
+    console.log(trimmed)
   }
 
   // ===========================================================================
@@ -709,7 +579,6 @@ export class DotzReporter implements Reporter {
     const parts = rel.split("/")
     const cwd = process.cwd()
 
-    // Walk up looking for package.json
     for (let i = parts.length - 1; i >= 0; i--) {
       const dirPath = parts.slice(0, i + 1).join("/")
       const cached = this.packageNameCache.get(dirPath)
@@ -728,7 +597,6 @@ export class DotzReporter implements Reporter {
       } catch {}
     }
 
-    // Fallback: use directory structure
     const groupingDirs = ["packages", "apps", "vendor", "tests"]
     const fallback =
       parts.length >= 2 && parts[0] && groupingDirs.includes(parts[0])
@@ -792,16 +660,40 @@ function fmtDuration(ms: number): string {
   return `${Math.floor(ms / 60000)}m ${((ms % 60000) / 1000).toFixed(0)}s`
 }
 
-function prettifyFilename(filename: string, maxLen: number = 24): string {
-  // Remove common test suffixes
-  let name = filename
-    .replace(/\.(test|spec)\.(ts|tsx|js|jsx|md)$/, "")
-    .replace(/\.(ts|tsx|js|jsx|md)$/, "")
-
-  // Truncate if too long
-  if (name.length > maxLen) {
-    name = name.slice(0, maxLen - 1) + "…"
+function renderDot(
+  term: Term,
+  state: TestState,
+  duration: number,
+  noisy: boolean,
+  options: Required<ReporterOptions>,
+): string {
+  if (noisy && state !== "failed") return term.style().magenta(DOT.noisy)
+  if (state === "passed") {
+    const symbols = options.symbols
+    const { index, bright } = durationToSymbolIndex(
+      duration,
+      options.slowThreshold,
+      symbols.length,
+    )
+    const symbol = symbols[Math.min(index, symbols.length - 1)] ?? "●"
+    return bright ? term.style().green(symbol) : term.style().green.dim(symbol)
   }
+  if (state === "failed") return term.style().red(DOT.fail)
+  if (state === "skipped") return term.style().gray.dim(DOT.skip)
+  return term.style().yellow(DOT.pending)
+}
 
-  return name
+function durationToSymbolIndex(
+  duration: number,
+  threshold: number,
+  symbolCount: number,
+): { index: number; bright: boolean } {
+  const multiplier = duration / threshold
+  const rangePerSymbol = 10 / symbolCount
+  const stage = Math.floor(multiplier / rangePerSymbol)
+
+  if (stage >= symbolCount) {
+    return { index: symbolCount - 1, bright: true }
+  }
+  return { index: stage, bright: false }
 }

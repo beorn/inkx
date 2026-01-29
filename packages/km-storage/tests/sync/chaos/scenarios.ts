@@ -10,7 +10,7 @@ import type { ChaosScenario } from "./types.ts"
  * Slow disk - all events delayed 2-5 seconds
  * Simulates: Network drives, busy disks, slow storage
  */
-export const SLOW_DISK: ChaosScenario = {
+const SLOW_DISK: ChaosScenario = {
   type: "slow_disk",
   params: {
     minDelayMs: 2000,
@@ -22,7 +22,7 @@ export const SLOW_DISK: ChaosScenario = {
  * Queue overflow - drops 20% of events randomly
  * Simulates: inotify IN_Q_OVERFLOW, FSEvents buffer overflow
  */
-export const QUEUE_OVERFLOW: ChaosScenario = {
+const QUEUE_OVERFLOW: ChaosScenario = {
   type: "queue_overflow",
   params: {
     dropRate: 0.2,
@@ -34,7 +34,7 @@ export const QUEUE_OVERFLOW: ChaosScenario = {
  * Editor atomic writes - modify becomes delete + add pair
  * Simulates: Vim, VSCode, Emacs save patterns (write temp, rename)
  */
-export const EDITOR_ATOMIC: ChaosScenario = {
+const EDITOR_ATOMIC: ChaosScenario = {
   type: "editor_atomic",
   params: {
     tempSuffix: ".tmp",
@@ -46,7 +46,7 @@ export const EDITOR_ATOMIC: ChaosScenario = {
  * Event storm - bursts of 100+ events
  * Simulates: npm install, git checkout, bulk file operations
  */
-export const EVENT_STORM: ChaosScenario = {
+const EVENT_STORM: ChaosScenario = {
   type: "event_storm",
   params: {
     burstSize: 100,
@@ -59,7 +59,7 @@ export const EVENT_STORM: ChaosScenario = {
  * Reorder chaos - randomly reorders event batches
  * Simulates: Non-deterministic event delivery order
  */
-export const REORDER_CHAOS: ChaosScenario = {
+const REORDER_CHAOS: ChaosScenario = {
   type: "reorder_chaos",
   params: {
     reorderProbability: 0.5,
@@ -71,7 +71,7 @@ export const REORDER_CHAOS: ChaosScenario = {
  * Partial writes - file created before fully written
  * Simulates: Large file writes, slow network saves
  */
-export const PARTIAL_WRITES: ChaosScenario = {
+const PARTIAL_WRITES: ChaosScenario = {
   type: "partial_writes",
   params: {
     initialWriteDelayMs: 0,
@@ -84,7 +84,7 @@ export const PARTIAL_WRITES: ChaosScenario = {
  * Rename storm - rapid file renames
  * Simulates: Refactoring tools, bulk rename operations
  */
-export const RENAME_STORM: ChaosScenario = {
+const RENAME_STORM: ChaosScenario = {
   type: "rename_storm",
   params: {
     chainLength: 5, // file.md -> file1.md -> file2.md -> ...
@@ -96,7 +96,7 @@ export const RENAME_STORM: ChaosScenario = {
  * FSEvents coalescing - parent dir event instead of file events
  * Simulates: macOS FSEvents hierarchical coalescing
  */
-export const FSEVENTS_COALESCE: ChaosScenario = {
+const FSEVENTS_COALESCE: ChaosScenario = {
   type: "fsevents_coalesce",
   params: {
     coalesceThreshold: 10, // Coalesce when > N files changed in dir
@@ -108,7 +108,7 @@ export const FSEVENTS_COALESCE: ChaosScenario = {
  * Init gap - file changes during watcher initialization
  * Simulates: Files created between scan and watcher ready
  */
-export const INIT_GAP: ChaosScenario = {
+const INIT_GAP: ChaosScenario = {
   type: "init_gap",
   params: {
     initDurationMs: 2000, // How long before "ready" fires
@@ -120,7 +120,7 @@ export const INIT_GAP: ChaosScenario = {
  * Rapid succession - many edits in milliseconds
  * Simulates: Rapid typing with autosave, search-replace
  */
-export const RAPID_SUCCESSION: ChaosScenario = {
+const RAPID_SUCCESSION: ChaosScenario = {
   type: "rapid_succession",
   params: {
     editsPerFile: 10,
@@ -132,7 +132,7 @@ export const RAPID_SUCCESSION: ChaosScenario = {
  * Duplicate events - same event fired multiple times
  * Simulates: fs.watch duplicate event bug
  */
-export const DUPLICATE_EVENTS: ChaosScenario = {
+const DUPLICATE_EVENTS: ChaosScenario = {
   type: "rapid_succession", // Reuse rapid_succession with duplicates
   params: {
     editsPerFile: 3,
@@ -160,7 +160,7 @@ export const CHAOS_SCENARIOS = {
 /**
  * Create a custom scenario by merging with defaults
  */
-export function createScenario(
+function createScenario(
   type: ChaosScenario["type"],
   overrides: Record<string, unknown> = {},
 ): ChaosScenario {

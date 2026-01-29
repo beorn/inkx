@@ -50,15 +50,15 @@ function getSlowDot(
   threshold: number,
 ): string {
   if (duration >= threshold * 20) {
-    return term.green(sym.slow10x)
+    return term.style().green(sym.slow10x)
   }
   if (duration >= threshold * 10) {
-    return term.green.dim(sym.slow10x)
+    return term.style().green.dim(sym.slow10x)
   }
   if (duration >= threshold * 5) {
-    return term.green.dim(sym.slow5x)
+    return term.style().green.dim(sym.slow5x)
   }
-  return term.green.dim(sym.slow2x)
+  return term.style().green.dim(sym.slow2x)
 }
 
 // =============================================================================
@@ -76,14 +76,16 @@ export function Header({ version, cwd }: HeaderProps): ReactElement {
   return (
     <Box flexDirection="column">
       <Text>
-        {term.bold.inverse.cyan(" RUN ")} {term.cyan(`v${version}`)}{" "}
-        {term.dim(cwd)}
+        {term.style().bold.inverse.cyan(" RUN ")}{" "}
+        {term.style().cyan(`v${version}`)} {term.style().dim(cwd)}
       </Text>
       <Text>
-        {term.dim("Legend:")} {term.green(sym.pass)} {term.dim("pass")}{" "}
-        {term.green(sym.slow2x)} {term.dim("slow")} {term.red(sym.fail)}{" "}
-        {term.dim("fail")} {term.magenta(sym.noisy)} {term.dim("noisy")}{" "}
-        {term.gray(sym.skip)} {term.dim("skip")}
+        {term.style().dim("Legend:")} {term.style().green(sym.pass)}{" "}
+        {term.style().dim("pass")} {term.style().green(sym.slow2x)}{" "}
+        {term.style().dim("slow")} {term.style().red(sym.fail)}{" "}
+        {term.style().dim("fail")} {term.style().magenta(sym.noisy)}{" "}
+        {term.style().dim("noisy")} {term.style().gray(sym.skip)}{" "}
+        {term.style().dim("skip")}
       </Text>
       <Text> </Text>
     </Box>
@@ -110,7 +112,7 @@ export function Dot({
   const term = useTerm()
 
   if (isNoisy && state !== "failed") {
-    return <Text>{term.magenta(sym.noisy)}</Text>
+    return <Text>{term.style().magenta(sym.noisy)}</Text>
   }
 
   switch (state) {
@@ -118,13 +120,13 @@ export function Dot({
       if (duration >= threshold * 2) {
         return <Text>{getSlowDot(term, duration, threshold)}</Text>
       }
-      return <Text>{term.green.dim(sym.pass)}</Text>
+      return <Text>{term.style().green.dim(sym.pass)}</Text>
     case "failed":
-      return <Text>{term.red(sym.fail)}</Text>
+      return <Text>{term.style().red(sym.fail)}</Text>
     case "skipped":
-      return <Text>{term.gray.dim(sym.skip)}</Text>
+      return <Text>{term.style().gray.dim(sym.skip)}</Text>
     case "pending":
-      return <Text>{term.yellow(sym.pending)}</Text>
+      return <Text>{term.style().yellow(sym.pending)}</Text>
   }
 }
 
@@ -173,24 +175,24 @@ export function FileRow({
     const isNoisy = noisyTestIds.has(id)
 
     if (isNoisy && state !== "failed") {
-      allDots.push(term.magenta(sym.noisy))
+      allDots.push(term.style().magenta(sym.noisy))
     } else {
       switch (state) {
         case "passed":
           if (duration >= threshold * 2) {
             allDots.push(getSlowDot(term, duration, threshold))
           } else {
-            allDots.push(term.green.dim(sym.pass))
+            allDots.push(term.style().green.dim(sym.pass))
           }
           break
         case "failed":
-          allDots.push(term.red(sym.fail))
+          allDots.push(term.style().red(sym.fail))
           break
         case "skipped":
-          allDots.push(term.gray.dim(sym.skip))
+          allDots.push(term.style().gray.dim(sym.skip))
           break
         case "pending":
-          allDots.push(term.yellow(sym.pending))
+          allDots.push(term.style().yellow(sym.pending))
           break
       }
     }
@@ -205,8 +207,8 @@ export function FileRow({
   // Build styled label
   const paddedLabel = label.padEnd(effectiveLabelWidth)
   const styledLabel = isPackage
-    ? term.bold.white(paddedLabel)
-    : term.dim(paddedLabel)
+    ? term.style().bold.white(paddedLabel)
+    : term.style().dim(paddedLabel)
 
   // First line has label, subsequent lines are indented to align
   const labelPadding = " ".repeat(effectiveLabelWidth)
@@ -255,25 +257,25 @@ export function Summary({
   const parts: string[] = []
 
   if (failed > 0) {
-    parts.push(term.bold.red(`${failed} failed`))
-    parts.push(term.dim(" | "))
+    parts.push(term.style().bold.red(`${failed} failed`))
+    parts.push(term.style().dim(" | "))
   }
   if (passed > 0) {
-    parts.push(term.bold.green(`${passed} passed`))
+    parts.push(term.style().bold.green(`${passed} passed`))
   }
   if (skipped > 0) {
-    parts.push(term.dim(" | "))
-    parts.push(term.yellow(`${skipped} skipped`))
+    parts.push(term.style().dim(" | "))
+    parts.push(term.style().yellow(`${skipped} skipped`))
   }
 
   return (
     <Box flexDirection="column">
       <Text> </Text>
       <Text>
-        {term.dim("Test Files")} {parts.join("")}
-        {term.gray(` (${total})`)} {term.dim("Duration")}{" "}
+        {term.style().dim("Test Files")} {parts.join("")}
+        {term.style().gray(` (${total})`)} {term.style().dim("Duration")}{" "}
         {formatDuration(elapsed)}
-        {term.gray(` (tests ${formatDuration(testDuration)})`)}
+        {term.style().gray(` (tests ${formatDuration(testDuration)})`)}
       </Text>
     </Box>
   )
@@ -307,9 +309,9 @@ export function StatsTable({
   }
 
   const nameWidth = Math.max(...categories.map((c) => c.length), 12)
-  const header = term.bold(
-    `${"PACKAGE".padEnd(nameWidth)}  TESTS     TIME   SLOW`,
-  )
+  const header = term
+    .style()
+    .bold(`${"PACKAGE".padEnd(nameWidth)}  TESTS     TIME   SLOW`)
 
   const rows: string[] = []
   for (const category of categories) {
@@ -323,7 +325,8 @@ export function StatsTable({
     const slow =
       stats.slowCount > 0 ? stats.slowCount.toString().padStart(6) : "     -"
 
-    const nameText = stats.failed > 0 ? term.red(name) : term.dim(name)
+    const nameText =
+      stats.failed > 0 ? term.style().red(name) : term.style().dim(name)
     rows.push(`${nameText}  ${tests}  ${time}  ${slow}`)
   }
 
@@ -368,7 +371,7 @@ export function Failures({ errors }: FailuresProps): ReactElement {
       errorLines.push(
         <Text key={`${id}-msg-${errorLines.length}`}>
           {" "}
-          {term.red(err.message)}
+          {term.style().red(err.message)}
         </Text>,
       )
 
@@ -382,7 +385,7 @@ export function Failures({ errors }: FailuresProps): ReactElement {
           errorLines.push(
             <Text key={`${id}-stack-${errorLines.length}`}>
               {" "}
-              {term.dim(line.trim())}
+              {term.style().dim(line.trim())}
             </Text>,
           )
         }
@@ -393,8 +396,8 @@ export function Failures({ errors }: FailuresProps): ReactElement {
       <Box key={id} flexDirection="column">
         <Text>
           {" "}
-          {term.bold.red(sym.cross + " FAIL")} {errInfo.file}
-          {term.gray(" >")} {errInfo.name}
+          {term.style().bold.red(sym.cross + " FAIL")} {errInfo.file}
+          {term.style().gray(" >")} {errInfo.name}
         </Text>
         {errorLines}
         <Text> </Text>
@@ -405,7 +408,7 @@ export function Failures({ errors }: FailuresProps): ReactElement {
   return (
     <Box flexDirection="column">
       <Text> </Text>
-      <Text>{term.bold.red("FAILURES")}</Text>
+      <Text>{term.style().bold.red("FAILURES")}</Text>
       <Text> </Text>
       {failureBlocks}
     </Box>
@@ -444,21 +447,21 @@ export function SlowestList({
   const t20x = threshold * 20
 
   const legend =
-    term.green.dim(sym.slow2x) +
-    term.dim(` >=${t2x}ms  `) +
-    term.green.dim(sym.slow5x) +
-    term.dim(` >=${t5x}ms  `) +
-    term.green.dim(sym.slow10x) +
-    term.dim(` >=${t10x}ms  `) +
-    term.green(sym.slow10x) +
-    term.dim(` >=${t20x}ms`)
+    term.style().green.dim(sym.slow2x) +
+    term.style().dim(` >=${t2x}ms  `) +
+    term.style().green.dim(sym.slow5x) +
+    term.style().dim(` >=${t5x}ms  `) +
+    term.style().green.dim(sym.slow10x) +
+    term.style().dim(` >=${t10x}ms  `) +
+    term.style().green(sym.slow10x) +
+    term.style().dim(` >=${t20x}ms`)
 
   const rows = tests.map((t, i) => (
     <Text key={i}>
       {getSlowDot(term, t.duration, threshold)}{" "}
-      {term.yellow(formatDuration(t.duration).padStart(6))}
+      {term.style().yellow(formatDuration(t.duration).padStart(6))}
       {"  "}
-      {term.gray(t.file + " >")} {t.name}
+      {term.style().gray(t.file + " >")} {t.name}
     </Text>
   ))
 
@@ -466,7 +469,7 @@ export function SlowestList({
     <Box flexDirection="column">
       <Text> </Text>
       <Text>
-        {term.bold("SLOW TESTS")} {legend}
+        {term.style().bold("SLOW TESTS")} {legend}
       </Text>
       {rows}
     </Box>

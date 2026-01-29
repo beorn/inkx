@@ -63,7 +63,7 @@ import {
 } from "inkx/testing"
 import { expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
-import type { KNode, NodeRules } from "@km/core"
+import type { KNode, NodeRules, NodeType } from "@km/core"
 
 import { BoardCore, Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
@@ -183,10 +183,71 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
   return result
 }
 
+// Internal helper for type-specific node creation
+function makeNodeWithType(
+  content: string,
+  type: NodeType,
+  props: { is_repo_root?: boolean },
+  ...childArrays: KNode[][]
+): KNode[] {
+  const hasChildren = childArrays.length > 0
+
+  const node: KNode = {
+    id: content,
+    type,
+    content: hasChildren ? undefined : content,
+    data: {
+      ...(hasChildren ? { name: content } : {}),
+      ...(props.is_repo_root ? { is_repo_root: true } : {}),
+    },
+    parent_id: null,
+    parent_idx: 0,
+    link_to: null,
+    created_at: Date.now(),
+    updated_at: Date.now(),
+    version: "v1",
+  }
+
+  const result: KNode[] = [node]
+  childArrays.forEach((childArray, idx) => {
+    const directChild = childArray[0]
+    if (directChild) {
+      directChild.parent_id = content
+      directChild.parent_idx = idx
+    }
+    result.push(...childArray)
+  })
+
+  return result
+}
+
+// Type-specific factories attached to item()
+item.root = (content: string, ...childArrays: KNode[][]): KNode[] =>
+  makeNodeWithType(content, "folder", { is_repo_root: true }, ...childArrays)
+
+item.folder = (content: string, ...childArrays: KNode[][]): KNode[] =>
+  makeNodeWithType(content, "folder", {}, ...childArrays)
+
+item.section = (content: string, ...childArrays: KNode[][]): KNode[] =>
+  makeNodeWithType(content, "section", {}, ...childArrays)
+
+item.paragraph = (content: string): KNode[] =>
+  makeNodeWithType(content, "paragraph", {})
+
+item.file = (content: string, ...childArrays: KNode[][]): KNode[] =>
+  makeNodeWithType(content, "file", {}, ...childArrays)
+
+item.code = (content: string): KNode[] => makeNodeWithType(content, "code", {})
+
+item.quote = (content: string): KNode[] =>
+  makeNodeWithType(content, "quote", {})
+
+item.task = (content: string): KNode[] => makeNodeWithType(content, "task", {})
+
 /**
  * Standard board fixture for common tests
  */
-export function standardBoard() {
+function standardBoard() {
   const nodes = item(
     "board",
     item("col1", item("1a"), item("1b")),
@@ -989,7 +1050,7 @@ export const SIMPLE_BOARD = board({
 /**
  * Board with nested sections
  */
-export const NESTED_BOARD = board({
+const NESTED_BOARD = board({
   columns: [
     column("Project", [
       { title: "Phase 1", children: ["Design", "Build"] },
@@ -1001,7 +1062,7 @@ export const NESTED_BOARD = board({
 /**
  * Board with many items for scroll testing
  */
-export const LONG_BOARD = board({
+const LONG_BOARD = board({
   columns: [
     column(
       "Tasks",

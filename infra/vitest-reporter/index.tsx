@@ -121,8 +121,8 @@ interface TestError {
 
 function plainTextHeader(term: Term, version: string, cwd: string): string {
   return (
-    `${term.bold.inverse.cyan(" RUN ")} ${term.cyan(`v${version}`)} ${term.dim(cwd)}\n` +
-    `${term.dim("Legend:")} ${term.green(sym.pass)} ${term.dim("pass")}  ${term.green(sym.slow2x)} ${term.dim("slow")}  ${term.red(sym.fail)} ${term.dim("fail")}  ${term.magenta(sym.noisy)} ${term.dim("noisy")}  ${term.gray(sym.skip)} ${term.dim("skip")}\n\n`
+    `${term.style().bold.inverse.cyan(" RUN ")} ${term.style().cyan(`v${version}`)} ${term.style().dim(cwd)}\n` +
+    `${term.style().dim("Legend:")} ${term.style().green(sym.pass)} ${term.style().dim("pass")}  ${term.style().green(sym.slow2x)} ${term.style().dim("slow")}  ${term.style().red(sym.fail)} ${term.style().dim("fail")}  ${term.style().magenta(sym.noisy)} ${term.style().dim("noisy")}  ${term.style().gray(sym.skip)} ${term.style().dim("skip")}\n\n`
   )
 }
 
@@ -136,15 +136,15 @@ function plainTextHeader(term: Term, version: string, cwd: string): string {
  */
 function slowDot(term: Term, duration: number, threshold: number): string {
   if (duration >= threshold * 20) {
-    return term.green(sym.slow10x)
+    return term.style().green(sym.slow10x)
   }
   if (duration >= threshold * 10) {
-    return term.green.dim(sym.slow10x)
+    return term.style().green.dim(sym.slow10x)
   }
   if (duration >= threshold * 5) {
-    return term.green.dim(sym.slow5x)
+    return term.style().green.dim(sym.slow5x)
   }
-  return term.green.dim(sym.slow2x)
+  return term.style().green.dim(sym.slow2x)
 }
 
 function plainTextDot(
@@ -155,7 +155,7 @@ function plainTextDot(
   threshold: number,
 ): string {
   if (isNoisy && state !== "failed") {
-    return term.magenta(sym.noisy)
+    return term.style().magenta(sym.noisy)
   }
 
   switch (state) {
@@ -163,13 +163,13 @@ function plainTextDot(
       if (duration >= threshold * 2) {
         return slowDot(term, duration, threshold)
       }
-      return term.green.dim(sym.pass)
+      return term.style().green.dim(sym.pass)
     case "failed":
-      return term.red(sym.fail)
+      return term.style().red(sym.fail)
     case "skipped":
-      return term.gray.dim(sym.skip)
+      return term.style().gray.dim(sym.skip)
     case "pending":
-      return term.yellow(sym.pending)
+      return term.style().yellow(sym.pending)
   }
 }
 
@@ -212,8 +212,8 @@ function plainTextRow(
   // Build output: first line has label, subsequent lines are indented to align
   const labelPadding = " ".repeat(effectiveLabelWidth)
   const styledLabel = isPackage
-    ? term.bold.white(label.padEnd(effectiveLabelWidth))
-    : term.dim(label.padEnd(effectiveLabelWidth))
+    ? term.style().bold.white(label.padEnd(effectiveLabelWidth))
+    : term.style().dim(label.padEnd(effectiveLabelWidth))
   let result = `${indent}${styledLabel}${lines[0] ?? ""}\n`
   for (let i = 1; i < lines.length; i++) {
     result += `${indent}${labelPadding}${lines[i]}\n`
@@ -252,7 +252,7 @@ function plainTextConsolidatedRow(
 }
 
 function plainTextPackageHeader(term: Term, name: string): string {
-  return `${term.bold.white(name)}\n`
+  return `${term.style().bold.white(name)}\n`
 }
 
 /**
@@ -276,13 +276,17 @@ function plainTextSummary(
   let result = "\n"
 
   // Single line: Test Files + Duration
-  result += term.dim("Test Files") + "  "
-  if (failed > 0) result += term.bold.red(`${failed} failed`) + term.dim(" | ")
-  if (passed > 0) result += term.bold.green(`${passed} passed`)
-  if (skipped > 0) result += term.dim(" | ") + term.yellow(`${skipped} skipped`)
-  result += term.gray(` (${total})`)
-  result += "  " + term.dim("Duration") + " " + formatDuration(elapsed)
-  result += term.gray(` (tests ${formatDuration(testDuration)})`) + "\n"
+  result += term.style().dim("Test Files") + "  "
+  if (failed > 0)
+    {result +=
+      term.style().bold.red(`${failed} failed`) + term.style().dim(" | ")}
+  if (passed > 0) result += term.style().bold.green(`${passed} passed`)
+  if (skipped > 0)
+    {result +=
+      term.style().dim(" | ") + term.style().yellow(`${skipped} skipped`)}
+  result += term.style().gray(` (${total})`)
+  result += "  " + term.style().dim("Duration") + " " + formatDuration(elapsed)
+  result += term.style().gray(` (tests ${formatDuration(testDuration)})`) + "\n"
 
   return result
 }
@@ -298,7 +302,7 @@ function plainTextStatsTable(
   // Single header line with bold column names
   let result =
     "\n" +
-    term.bold(`${"PACKAGE".padEnd(nameWidth)}  TESTS     TIME   SLOW`) +
+    term.style().bold(`${"PACKAGE".padEnd(nameWidth)}  TESTS     TIME   SLOW`) +
     "\n"
 
   for (const category of categories) {
@@ -312,7 +316,8 @@ function plainTextStatsTable(
     const slow =
       stats.slowCount > 0 ? stats.slowCount.toString().padStart(6) : "     -"
 
-    const nameText = stats.failed > 0 ? term.red(name) : term.dim(name)
+    const nameText =
+      stats.failed > 0 ? term.style().red(name) : term.style().dim(name)
     result += `${nameText}  ${tests}  ${time}  ${slow}\n`
   }
 
@@ -332,18 +337,18 @@ function plainTextSlowestList(
   const t10x = baseThreshold * 10
   const t20x = baseThreshold * 20
   const legend =
-    term.green.dim(sym.slow2x) +
-    term.dim(` ≥${t2x}ms  `) +
-    term.green.dim(sym.slow5x) +
-    term.dim(` ≥${t5x}ms  `) +
-    term.green.dim(sym.slow10x) +
-    term.dim(` ≥${t10x}ms  `) +
-    term.green(sym.slow10x) +
-    term.dim(` ≥${t20x}ms`)
+    term.style().green.dim(sym.slow2x) +
+    term.style().dim(` ≥${t2x}ms  `) +
+    term.style().green.dim(sym.slow5x) +
+    term.style().dim(` ≥${t5x}ms  `) +
+    term.style().green.dim(sym.slow10x) +
+    term.style().dim(` ≥${t10x}ms  `) +
+    term.style().green(sym.slow10x) +
+    term.style().dim(` ≥${t20x}ms`)
 
-  let result = "\n" + term.bold(`SLOW TESTS`) + "  " + legend + "\n"
+  let result = "\n" + term.style().bold(`SLOW TESTS`) + "  " + legend + "\n"
   for (const t of tests) {
-    result += `${slowDot(term, t.duration, baseThreshold)} ${term.yellow(formatDuration(t.duration).padStart(6))}  ${term.gray(t.file + " >")} ${t.name}\n`
+    result += `${slowDot(term, t.duration, baseThreshold)} ${term.style().yellow(formatDuration(t.duration).padStart(6))}  ${term.style().gray(t.file + " >")} ${t.name}\n`
   }
 
   return result
@@ -352,20 +357,20 @@ function plainTextSlowestList(
 function plainTextFailures(term: Term, errors: Map<string, TestError>): string {
   if (errors.size === 0) return ""
 
-  let result = "\n" + term.bold.red("FAILURES") + "\n\n"
+  let result = "\n" + term.style().bold.red("FAILURES") + "\n\n"
 
   for (const errInfo of errors.values()) {
-    result += ` ${term.bold.red(sym.cross + " FAIL")} ${errInfo.file}${term.gray(" >")} ${errInfo.name}\n`
+    result += ` ${term.style().bold.red(sym.cross + " FAIL")} ${errInfo.file}${term.style().gray(" >")} ${errInfo.name}\n`
 
     for (const err of errInfo.errors) {
-      result += `   ${term.red(err.message)}\n`
+      result += `   ${term.style().red(err.message)}\n`
       if (err.stack) {
         const stackLines = err.stack
           .split("\n")
           .filter((line) => line.trim().startsWith("at "))
           .slice(0, 5)
         for (const line of stackLines) {
-          result += term.dim(`   ${line.trim()}`) + "\n"
+          result += term.style().dim(`   ${line.trim()}`) + "\n"
         }
       }
     }
@@ -590,7 +595,8 @@ export class KmReporter implements Reporter {
       const large = candidates.filter((c) => c.testCount > maxDots / 3)
       if (large.length > 0) {
         large.sort((a, b) => b.testCount - a.testCount)
-        return [large[0].category, large[0].fileName]
+        const first = large[0]
+        if (first) return [first.category, first.fileName]
       }
 
       // Priority 2: slow files (>= significantDuration)
@@ -599,12 +605,14 @@ export class KmReporter implements Reporter {
       )
       if (slow.length > 0) {
         slow.sort((a, b) => b.duration - a.duration)
-        return [slow[0].category, slow[0].fileName]
+        const first = slow[0]
+        if (first) return [first.category, first.fileName]
       }
 
       // Priority 3: file with most tests
       candidates.sort((a, b) => b.testCount - a.testCount)
-      return [candidates[0].category, candidates[0].fileName]
+      const first = candidates[0]
+      if (first) return [first.category, first.fileName]
     }
 
     // Phase 1: Fill vertical space up to targetLineCount
@@ -660,7 +668,7 @@ export class KmReporter implements Reporter {
     this.packageNameCache.clear()
   }
 
-  async onTestRunStart(_specs: readonly TestSpecification[]) {
+  onTestRunStart(_specs: readonly TestSpecification[]) {
     debug(
       "onTestRunStart called with %d specs, isTTY=%s",
       _specs.length,
@@ -860,8 +868,9 @@ export class KmReporter implements Reporter {
           if (testState === "passed") categoryFileStats.passed++
           else if (testState === "failed") categoryFileStats.failed++
           else if (testState === "skipped") categoryFileStats.skipped++
-          if (duration >= this.options.slowThreshold)
-            {categoryFileStats.slowCount++}
+          if (duration >= this.options.slowThreshold) {
+            categoryFileStats.slowCount++
+          }
         }
       }
     }
@@ -903,12 +912,15 @@ export class KmReporter implements Reporter {
       this.fileOrder.length,
     )
 
+    const term = this.term
+    if (!term) return
+
     switch (effectiveGrouping) {
       case "consolidated":
         // Single row of all dots
-        this.term.write(
+        term.write(
           plainTextConsolidatedRow(
-            this.term,
+            term,
             this.testOrder,
             this.testStates,
             this.testDurations,
@@ -924,9 +936,9 @@ export class KmReporter implements Reporter {
         for (const fileName of this.fileOrder) {
           const stats = this.fileStats.get(fileName)
           if (!stats) continue
-          this.term.write(
+          term.write(
             plainTextRow(
-              this.term,
+              term,
               beautifyFileName(fileName),
               stats.testIds,
               this.testStates,
@@ -944,13 +956,13 @@ export class KmReporter implements Reporter {
         for (const category of this.categoryOrder) {
           const stats = this.categoryStats.get(category)
           if (!stats) continue
-          this.term.write(plainTextPackageHeader(this.term, category))
+          term.write(plainTextPackageHeader(term, category))
           for (const fileName of stats.fileOrder) {
             const fileStats = stats.files.get(fileName)
             if (!fileStats) continue
-            this.term.write(
+            term.write(
               plainTextRow(
-                this.term,
+                term,
                 beautifyFileName(fileName),
                 fileStats.testIds,
                 this.testStates,
@@ -987,9 +999,9 @@ export class KmReporter implements Reporter {
 
           // Render package row with aggregated dots (if any)
           if (aggregatedTestIds.length > 0) {
-            this.term.write(
+            term.write(
               plainTextRow(
-                this.term,
+                term,
                 category,
                 aggregatedTestIds,
                 this.testStates,
@@ -1004,7 +1016,7 @@ export class KmReporter implements Reporter {
             )
           } else if (brokenOutFiles.size > 0) {
             // Package has only broken out files - just show header
-            this.term.write(plainTextPackageHeader(this.term, category))
+            term.write(plainTextPackageHeader(term, category))
           }
 
           // Render broken out files as indented sub-items
@@ -1012,9 +1024,9 @@ export class KmReporter implements Reporter {
             if (!brokenOutFiles.has(fileName)) continue
             const fileStats = stats.files.get(fileName)
             if (!fileStats) continue
-            this.term.write(
+            term.write(
               plainTextRow(
-                this.term,
+                term,
                 beautifyFileName(fileName),
                 fileStats.testIds,
                 this.testStates,
@@ -1033,9 +1045,9 @@ export class KmReporter implements Reporter {
     }
 
     // Write summary and details
-    this.term.write(
+    term.write(
       plainTextSummary(
-        this.term,
+        term,
         this.passed,
         this.failed,
         this.skipped,
@@ -1046,29 +1058,25 @@ export class KmReporter implements Reporter {
     )
     // Only show package stats table if we have multiple packages
     if (this.categoryOrder.length > 1) {
-      this.term.write(
-        plainTextStatsTable(this.term, this.categoryOrder, this.categoryStats),
+      term.write(
+        plainTextStatsTable(term, this.categoryOrder, this.categoryStats),
       )
     }
     if (this.options.showSlow) {
-      this.term.write(
-        plainTextSlowestList(
-          this.term,
-          this.topSlowest,
-          this.options.slowThreshold,
-        ),
+      term.write(
+        plainTextSlowestList(term, this.topSlowest, this.options.slowThreshold),
       )
     }
-    this.term.write(plainTextFailures(this.term, this.testErrors))
+    term.write(plainTextFailures(term, this.testErrors))
 
     // Show cursor in TTY mode
     if (this.isTTY) {
-      this.term.write(cursor.show)
+      term.write(cursor.show)
     }
-    this.term.write("\n")
+    term.write("\n")
 
     // Dispose term
-    this.term[Symbol.dispose]()
+    term[Symbol.dispose]()
     this.term = null
 
     if (this.options.perfOutput) {

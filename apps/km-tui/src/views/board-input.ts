@@ -23,7 +23,6 @@ import { isErr, toast, toastQueue } from "@km/core"
 const perfDebug = createDebug("km:perf")
 
 // Re-export for convenience
-export { ensureCommandSystemInitialized }
 
 /**
  * Handle main keyboard input through command system

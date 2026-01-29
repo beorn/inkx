@@ -3,10 +3,6 @@ export {
   FileSystemWatcher,
   scanDirectory,
   scanDirectoryRecursive,
-  scanSymlinks,
-  detectCaseSensitivity,
-  normalizePath,
-  detectCaseCollisions,
 } from "./watcher.ts"
 
 export type {
@@ -17,7 +13,6 @@ export type {
 } from "./watcher.ts"
 
 // Worker-based watcher (non-blocking)
-export { WorkerWatcher } from "./worker-bridge.ts"
 
 export type { WorkerWatcherConfig } from "./worker-bridge.ts"
 
@@ -35,7 +30,6 @@ export type { SyncConfig, SyncFromFsResult } from "./sync.ts"
 // Reconcile
 export {
   reconcileDirectory,
-  reconcileDirectoryRecursive,
   applyReconcileOps,
   applyReconcileOpsAsync,
   getParentNodeId,

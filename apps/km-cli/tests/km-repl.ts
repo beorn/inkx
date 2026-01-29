@@ -15,6 +15,9 @@
  * ```
  */
 
+// Disable colors BEFORE any imports - chalk caches color support at import time
+process.env.NO_COLOR = "1"
+
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "fs"
 import { tmpdir } from "os"
 import { join } from "path"

@@ -1,11 +1,21 @@
 /**
  * Board top bar - path segments rendering
  */
-import chalk from "chalk"
+import { createTerm, type StyleChain } from "@beorn/chalkx"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderPlain } from "../text/index.ts"
+
+// Module-level term instance for styling (lazily initialized)
+// Force truecolor support for consistent styling in CLI/TUI utilities
+let _term: ReturnType<typeof createTerm> | null = null
+function getStyle(): StyleChain {
+  if (!_term) {
+    _term = createTerm({ colors: "truecolor" })
+  }
+  return _term.style()
+}
 
 export interface PathSegment {
   id: string | null
@@ -126,12 +136,13 @@ export function getPathSegments(
 /**
  * Render top bar content as plain string (no chalk styling)
  * Color is controlled by the parent Text component's color prop
- * Board root segment gets special formatting via chalk.bold
+ * Board root segment gets special formatting via term.style().bold
  */
 export function renderTopBarContent(
   segments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>,
   isBoardSelected: boolean,
 ): string {
+  const style = getStyle()
   // Find the board root index:
   // - If there are isWithinBoard segments, board root is the last one before them
   // - If no isWithinBoard segments, the last segment is the board root
@@ -144,10 +155,10 @@ export function renderTopBarContent(
         : 0
 
   // Build content: " ● " prefix + segments
-  // Use chalk only for bold (board root) and dim (other segments)
+  // Use style only for bold (board root) and dim (other segments)
   // Base color is inherited from parent Text component
-  const boldChalk = isBoardSelected ? chalk.black.bold : chalk.gray.bold
-  const dimChalk = isBoardSelected ? chalk.black.dim : chalk.gray.dim
+  const boldStyle = isBoardSelected ? style.black.bold : style.gray.bold
+  const dimStyle = isBoardSelected ? style.black.dim : style.gray.dim
 
   let content = " ● "
 
@@ -157,10 +168,10 @@ export function renderTopBarContent(
 
     if (isBoardRoot) {
       // Board root: bold, prominent (sep is dimmed)
-      content += dimChalk(sepPart) + boldChalk(seg.name)
+      content += dimStyle(sepPart) + boldStyle(seg.name)
     } else {
       // Path segments before/after board root: dimmed
-      content += dimChalk(sepPart + seg.name)
+      content += dimStyle(sepPart + seg.name)
     }
   })
 

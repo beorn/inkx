@@ -5,7 +5,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { resolvePathArg } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
 import { getMarkForStatus } from "@km/core"
@@ -27,7 +29,7 @@ export function createStatusCommand() {
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {
-        console.error(chalk.red(`No task found with ID prefix: ${id}`))
+        console.error(term.style().red(`No task found with ID prefix: ${id}`))
         process.exit(1)
       }
 
@@ -48,12 +50,12 @@ export function createStatusCommand() {
         const status = task.task_status ?? "todo"
         const statusIcon =
           status === "done"
-            ? chalk.green("✓")
+            ? term.style().green("✓")
             : status === "wip"
-              ? chalk.yellow("●")
+              ? term.style().yellow("●")
               : status === "blocked"
-                ? chalk.red("✗")
-                : chalk.dim("○")
+                ? term.style().red("✗")
+                : term.style().dim("○")
 
         console.log(
           `${statusIcon} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`,
@@ -64,8 +66,10 @@ export function createStatusCommand() {
       // Set mode - update the status
       const validStatuses = ["todo", "wip", "blocked", "done", "dropped"]
       if (!validStatuses.includes(newStatus)) {
-        console.error(chalk.red(`Invalid status: ${newStatus}`))
-        console.error(chalk.dim(`Valid statuses: ${validStatuses.join(", ")}`))
+        console.error(term.style().red(`Invalid status: ${newStatus}`))
+        console.error(
+          term.style().dim(`Valid statuses: ${validStatuses.join(", ")}`),
+        )
         process.exit(1)
       }
 
@@ -83,15 +87,15 @@ export function createStatusCommand() {
 
       const statusIcon =
         newStatus === "done"
-          ? chalk.green("✓")
+          ? term.style().green("✓")
           : newStatus === "wip"
-            ? chalk.yellow("●")
+            ? term.style().yellow("●")
             : newStatus === "blocked"
-              ? chalk.red("✗")
-              : chalk.dim("○")
+              ? term.style().red("✗")
+              : term.style().dim("○")
 
       console.log(
-        `${statusIcon} ${chalk.dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
+        `${statusIcon} ${term.style().dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
       )
     })
 }

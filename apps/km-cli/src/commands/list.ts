@@ -11,7 +11,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { resolvePathArg, type Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { loadRepo } from "../load-repo.ts"
@@ -131,7 +133,7 @@ function displayWithContext(
     // Flat mode: each node on one line with path prefix
     for (const { node, collapsed } of nodesWithContext) {
       const pathParts = collapsed.map((ca) =>
-        chalk.dim(formatCollapsedAncestor(repo, ca, false)),
+        term.style().dim(formatCollapsedAncestor(repo, ca, false)),
       )
       const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : ""
       console.log(pathStr + formatNode(repo, node, options.showId))
@@ -150,7 +152,9 @@ function displayWithContext(
           const prefix = " ".repeat(depth)
           console.log(
             prefix +
-              chalk.dim(formatCollapsedAncestor(repo, ca, options.showId)),
+              term
+                .style()
+                .dim(formatCollapsedAncestor(repo, ca, options.showId)),
           )
           if (ca.node.type !== "section") {
             depth++
@@ -230,7 +234,7 @@ export const listCommand = new Command("list")
     }
 
     if (nodes.length === 0) {
-      console.log(chalk.dim("No nodes found"))
+      console.log(term.style().dim("No nodes found"))
       return
     }
 
@@ -243,5 +247,5 @@ export const listCommand = new Command("list")
       displaySimple(repo, nodes, { showId })
     }
 
-    console.log(chalk.dim(`\n${nodes.length} node(s)`))
+    console.log(term.style().dim(`\n${nodes.length} node(s)`))
   })

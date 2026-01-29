@@ -73,7 +73,7 @@ export interface BoardLayout {
   colScrollOffset: number
 }
 
-export function computeBoardLayout(config: BoardLayoutConfig): BoardLayout {
+function computeBoardLayout(config: BoardLayoutConfig): BoardLayout {
   const {
     termWidth,
     termHeight,

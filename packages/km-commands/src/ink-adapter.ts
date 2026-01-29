@@ -148,5 +148,5 @@ export function wouldHandleKey(
 }
 
 // Re-export for convenience
-export { buildContext } from "./executor.ts"
+
 export type { CommandContext, CommandAction, ViewMode }

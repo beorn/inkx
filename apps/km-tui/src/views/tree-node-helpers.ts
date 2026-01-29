@@ -43,14 +43,7 @@ export function stripTaskMark(text: string): string {
 // =============================================================================
 
 /** Colors that need white text for contrast */
-export const DARK_BG_COLORS = [
-  "red",
-  "green",
-  "blue",
-  "magenta",
-  "gray",
-  "grey",
-]
+const DARK_BG_COLORS = ["red", "green", "blue", "magenta", "gray", "grey"]
 
 /**
  * TreeNode display variants:
@@ -307,7 +300,7 @@ export interface TreeNodeHeightConfig {
  * Used by ListView and ColumnsView to properly calculate how many items fit.
  * Note: Compact mode (columns view) never shows separate parent context line.
  */
-export function estimateTreeNodeHeight(
+function estimateTreeNodeHeight(
   node: KNode,
   depth: number,
   config: TreeNodeHeightConfig,

@@ -22,7 +22,7 @@ function getNextStatus(current: TaskStatus | null | undefined): TaskStatus {
 // Note: Task commands need special handling as they modify storage
 // They return a marker action that the dispatcher will convert to storage mutations
 
-export const cycleTaskStatus = {
+const cycleTaskStatus = {
   id: "cycle_task_status",
   name: "Cycle Status",
   description: "Cycle through task statuses",
@@ -42,7 +42,7 @@ export const cycleTaskStatus = {
   },
 } satisfies CommandDef
 
-export const toggleTaskDone = {
+const toggleTaskDone = {
   id: "toggle_task_done",
   name: "Toggle Done",
   description: "Toggle task between done and todo",
@@ -60,7 +60,7 @@ export const toggleTaskDone = {
   },
 } satisfies CommandDef
 
-export const setStatusTodo = {
+const setStatusTodo = {
   id: "set_status_todo",
   name: "Set Todo",
   description: "Set task status to todo",
@@ -75,7 +75,7 @@ export const setStatusTodo = {
   },
 } satisfies CommandDef
 
-export const setStatusWip = {
+const setStatusWip = {
   id: "set_status_wip",
   name: "Set In Progress",
   description: "Set task status to work in progress",
@@ -90,7 +90,7 @@ export const setStatusWip = {
   },
 } satisfies CommandDef
 
-export const setStatusBlocked = {
+const setStatusBlocked = {
   id: "set_status_blocked",
   name: "Set Blocked",
   description: "Set task status to blocked",
@@ -105,7 +105,7 @@ export const setStatusBlocked = {
   },
 } satisfies CommandDef
 
-export const setStatusDone = {
+const setStatusDone = {
   id: "set_status_done",
   name: "Set Done",
   description: "Mark task as done",
@@ -120,7 +120,7 @@ export const setStatusDone = {
   },
 } satisfies CommandDef
 
-export const setStatusDropped = {
+const setStatusDropped = {
   id: "set_status_dropped",
   name: "Set Dropped",
   description: "Mark task as dropped/cancelled",

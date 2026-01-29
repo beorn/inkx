@@ -6,7 +6,9 @@
 
 import createDebug from "debug"
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
 import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
@@ -27,9 +29,9 @@ import { formatPath } from "../utils/format-path.ts"
  */
 function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   debug("starting watch: %s (debounce=%dms)", repoPath, debounceMs)
-  console.log(chalk.dim(`Watching: ${repoPath}`))
-  console.log(chalk.dim(`Debounce: ${debounceMs}ms`))
-  console.log(chalk.dim("Press Ctrl+C to stop\n"))
+  console.log(term.style().dim(`Watching: ${repoPath}`))
+  console.log(term.style().dim(`Debounce: ${debounceMs}ms`))
+  console.log(term.style().dim("Press Ctrl+C to stop\n"))
 
   const manager = new SyncManager({
     db,
@@ -40,19 +42,19 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   })
 
   manager.on("ready", () => {
-    console.log(chalk.green("✓"), "Watcher ready")
+    console.log(term.style().green("✓"), "Watcher ready")
   })
 
   manager.on("state-change", (state) => {
-    console.log(chalk.dim(`State: ${state}`))
+    console.log(term.style().dim(`State: ${state}`))
   })
 
   manager.on("write-complete", (data) => {
     /* eslint-disable @typescript-eslint/no-unsafe-member-access -- EventEmitter data payload is untyped */
     console.log(
-      chalk.green("✓"),
+      term.style().green("✓"),
       `Wrote ${data.count} file(s)`,
-      data.errors > 0 ? chalk.red(`(${data.errors} error(s))`) : "",
+      data.errors > 0 ? term.style().red(`(${data.errors} error(s))`) : "",
     )
     /* eslint-enable @typescript-eslint/no-unsafe-member-access */
   })
@@ -60,12 +62,12 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   manager.on("write-errors", (errors) => {
     for (const { path, error } of errors) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- EventEmitter error payload is untyped
-      console.error(chalk.red("✗"), path, error.message)
+      console.error(term.style().red("✗"), path, error.message)
     }
   })
 
   manager.on("error", (error) => {
-    console.error(chalk.red("Error:"), error)
+    console.error(term.style().red("Error:"), error)
   })
 
   // Start watching
@@ -73,7 +75,7 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
 
   // Handle shutdown
   process.on("SIGINT", () => {
-    console.log(chalk.dim("\nStopping watcher..."))
+    console.log(term.style().dim("\nStopping watcher..."))
     void (async () => {
       await manager.stop()
       process.exit(0)
@@ -99,12 +101,12 @@ async function runSync(
 ): Promise<void> {
   debug("runSync", { repoPath, toFs: options.toFs, dryRun: options.dryRun })
   console.log(
-    chalk.bold(`Syncing .km/state.db with files`),
-    chalk.dim(`(repo ${formatPath(repoPath)})`),
+    term.style().bold(`Syncing .km/state.db with files`),
+    term.style().dim(`(repo ${formatPath(repoPath)})`),
   )
 
   if (options.dryRun) {
-    console.log(chalk.yellow("Dry run mode - no changes will be made"))
+    console.log(term.style().yellow("Dry run mode - no changes will be made"))
     // TODO: Implement dry run
     return
   }
@@ -125,7 +127,7 @@ async function runSync(
       }
       if (eventResult.applied > 0) {
         console.log(
-          chalk.green("✓"),
+          term.style().green("✓"),
           `Applied ${eventResult.applied} event(s) from events.jsonl`,
         )
       }
@@ -140,9 +142,9 @@ async function runSync(
       })
 
       if (options.toFs) {
-        console.log(chalk.dim("Syncing database → filesystem..."))
+        console.log(term.style().dim("Syncing database → filesystem..."))
         const result = await manager.syncToFs()
-        console.log(chalk.green("✓"), `Wrote ${result.written} file(s)`)
+        console.log(term.style().green("✓"), `Wrote ${result.written} file(s)`)
       } else {
         // Default: from filesystem
         const syncResults = await steps({
@@ -155,7 +157,7 @@ async function runSync(
           duration: number
         }
         console.log(
-          chalk.green("✓"),
+          term.style().green("✓"),
           `Synced ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,
         )
 
@@ -164,7 +166,7 @@ async function runSync(
         migrateToRepoRootNode(db, repoPath)
       }
     } catch (error) {
-      console.error(chalk.red("Sync failed:"), error)
+      console.error(term.style().red("Sync failed:"), error)
       process.exit(1)
     }
   })

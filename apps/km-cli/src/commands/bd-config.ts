@@ -5,7 +5,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { resolvePathArg, loadConfigObject } from "@km/storage"
 
 export const configCommand = new Command("config").description(
@@ -20,17 +22,23 @@ configCommand
     const resolved = resolvePathArg(undefined)
     const configObj = loadConfigObject(resolved.repoRoot)
 
-    console.log(chalk.bold("Beads Configuration"))
-    console.log(`  board:  ${configObj.beads.board || chalk.dim("(not set)")}`)
-    console.log(`  parent: ${configObj.beads.parent || chalk.dim("(not set)")}`)
+    console.log(term.style().bold("Beads Configuration"))
+    console.log(
+      `  board:  ${configObj.beads.board || term.style().dim("(not set)")}`,
+    )
+    console.log(
+      `  parent: ${configObj.beads.parent || term.style().dim("(not set)")}`,
+    )
     console.log(`  prefix: ${configObj.beads.prefix}`)
     if (configObj.path) {
       console.log()
-      console.log(chalk.dim(`Source: ${configObj.path}`))
+      console.log(term.style().dim(`Source: ${configObj.path}`))
     } else {
       console.log()
       console.log(
-        chalk.dim("No config file found. Create .km/config.yaml to customize."),
+        term
+          .style()
+          .dim("No config file found. Create .km/config.yaml to customize."),
       )
     }
   })
@@ -53,8 +61,8 @@ configCommand
         console.log(configObj.beads.prefix)
         break
       default:
-        console.error(chalk.red(`Unknown config key: ${key}`))
-        console.log(chalk.dim("Valid keys: board, parent, prefix"))
+        console.error(term.style().red(`Unknown config key: ${key}`))
+        console.log(term.style().dim("Valid keys: board, parent, prefix"))
         process.exitCode = 1
     }
   })
@@ -65,8 +73,8 @@ configCommand
   .action((key, value) => {
     // Validate key
     if (!["board", "parent", "prefix"].includes(key)) {
-      console.error(chalk.red(`Unknown config key: ${key}`))
-      console.log(chalk.dim("Valid keys: board, parent, prefix"))
+      console.error(term.style().red(`Unknown config key: ${key}`))
+      console.log(term.style().dim("Valid keys: board, parent, prefix"))
       process.exitCode = 1
       return
     }
@@ -74,12 +82,14 @@ configCommand
     const resolved = resolvePathArg(undefined)
     const configPath = `${resolved.repoRoot}/.km/config.yaml`
 
-    console.log(chalk.yellow(`To set ${key}=${value}, edit ${configPath}:`))
+    console.log(
+      term.style().yellow(`To set ${key}=${value}, edit ${configPath}:`),
+    )
     console.log()
-    console.log(chalk.dim("beads:"))
-    console.log(chalk.dim(`  ${key}: "${value}"`))
+    console.log(term.style().dim("beads:"))
+    console.log(term.style().dim(`  ${key}: "${value}"`))
     console.log()
-    console.log(chalk.dim("(Programmatic config editing coming soon)"))
+    console.log(term.style().dim("(Programmatic config editing coming soon)"))
   })
 
 // Show config list by default when no subcommand
@@ -87,17 +97,23 @@ configCommand.action(() => {
   const resolved = resolvePathArg(undefined)
   const configObj = loadConfigObject(resolved.repoRoot)
 
-  console.log(chalk.bold("Beads Configuration"))
-  console.log(`  board:  ${configObj.beads.board || chalk.dim("(not set)")}`)
-  console.log(`  parent: ${configObj.beads.parent || chalk.dim("(not set)")}`)
+  console.log(term.style().bold("Beads Configuration"))
+  console.log(
+    `  board:  ${configObj.beads.board || term.style().dim("(not set)")}`,
+  )
+  console.log(
+    `  parent: ${configObj.beads.parent || term.style().dim("(not set)")}`,
+  )
   console.log(`  prefix: ${configObj.beads.prefix}`)
   if (configObj.path) {
     console.log()
-    console.log(chalk.dim(`Source: ${configObj.path}`))
+    console.log(term.style().dim(`Source: ${configObj.path}`))
   } else {
     console.log()
     console.log(
-      chalk.dim("No config file found. Create .km/config.yaml to customize."),
+      term
+        .style()
+        .dim("No config file found. Create .km/config.yaml to customize."),
     )
   }
 })

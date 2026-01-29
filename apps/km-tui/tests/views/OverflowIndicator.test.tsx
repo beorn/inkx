@@ -37,14 +37,18 @@ describe("OverflowIndicator", () => {
   })
 
   it("renders with width prop", () => {
-    const app = render(<OverflowIndicator direction="down" count={5} width={30} />)
+    const app = render(
+      <OverflowIndicator direction="down" count={5} width={30} />,
+    )
     // Verify the text is present
     // Note: centering behavior (padding spaces) may be stripped by text extraction
     expect(app.text).toContain("▼ 5 more")
   })
 
   it("does not center when width is too narrow", () => {
-    const app = render(<OverflowIndicator direction="down" count={5} width={5} />)
+    const app = render(
+      <OverflowIndicator direction="down" count={5} width={5} />,
+    )
     // Width is less than text, so no padding should be applied
     expect(app.text).toContain("▼ 5 more")
   })

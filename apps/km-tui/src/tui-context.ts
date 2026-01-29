@@ -147,7 +147,7 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
  * Get subIndex from layout.
  * TODO: Outline mode support will be added in a future update.
  */
-export function getSubIndex(ctx: TUIContext): number {
+function getSubIndex(ctx: TUIContext): number {
   return ctx.layout.subPath[0] ?? 0
 }
 
@@ -155,6 +155,6 @@ export function getSubIndex(ctx: TUIContext): number {
  * Check if cursor is in outline mode (has subPath).
  * TODO: Outline mode support will be added in a future update.
  */
-export function isInOutlineMode(ctx: TUIContext): boolean {
+function isInOutlineMode(ctx: TUIContext): boolean {
   return ctx.layout.isInOutlineMode
 }

@@ -180,7 +180,7 @@ export function moveCardToColumn(
 }
 
 /** Move card to a specific column by index (for Opt+1-9) */
-export function moveCardToColumnByIndex(
+function moveCardToColumnByIndex(
   ctx: TUIContext,
   card: CardState,
   targetColIndex: number,
@@ -249,7 +249,7 @@ export function moveCardToColumnByIndex(
 // =============================================================================
 
 /** Indent node: make it a child of the sibling above it */
-export function indentNode(ctx: TUIContext, card: CardState): void {
+function indentNode(ctx: TUIContext, card: CardState): void {
   const col = ctx.layout.columns[ctx.layout.colIndex]
   if (!col) return
 

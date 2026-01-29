@@ -1,12 +1,12 @@
 {
   "name": "@km/markdown",
+  "private": true,
   "description": "Markdown parsing and serialization for km",
   "type": "module",
   "module": "src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
-  "private": true,
   "dependencies": {
     "@km/core": "workspace:*",
     "@types/mdast": "^4.0.4",

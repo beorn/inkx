@@ -4,7 +4,9 @@
  * Functions for formatting tasks and their paths for CLI output.
  */
 
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import {
   getNodeDisplayName as getNodeDisplayNameRaw,
   type CollapsedAncestor,
@@ -28,17 +30,17 @@ export function formatCollapsedAncestor(
 ): string {
   const name = getNodeDisplayName(repo, ca.node)
   if (ca.typeSuffix) {
-    return name + chalk.gray(` ${ca.typeSuffix}`)
+    return name + term.style().gray(` ${ca.typeSuffix}`)
   }
   // No collapsed suffix - show individual type indicator
   if (ca.node.type === "folder") {
-    return name + chalk.gray("/")
+    return name + term.style().gray("/")
   } else if (ca.node.type === "file") {
     // Only add .md if name doesn't already end with it
-    return name.endsWith(".md") ? name : name + chalk.gray(".md")
+    return name.endsWith(".md") ? name : name + term.style().gray(".md")
   } else if (ca.node.type === "section") {
     const depth = (ca.node.data?.depth as number) ?? 1
-    return chalk.gray("#".repeat(depth) + " ") + name
+    return term.style().gray("#".repeat(depth) + " ") + name
   }
   return name
 }
@@ -57,7 +59,7 @@ export function formatTaskWithPath(
   if (options.flat) {
     // Single line: path → task
     const pathParts = collapsedAncestors.map((ca) =>
-      chalk.dim(formatCollapsedAncestor(repo, ca)),
+      term.style().dim(formatCollapsedAncestor(repo, ca)),
     )
     const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : ""
     lines.push(pathStr + formatTaskLine(task, options))
@@ -69,7 +71,7 @@ export function formatTaskWithPath(
     let hasSection = false
     for (const ca of collapsedAncestors) {
       const prefix = " ".repeat(fsDepth)
-      lines.push(prefix + chalk.dim(formatCollapsedAncestor(repo, ca)))
+      lines.push(prefix + term.style().dim(formatCollapsedAncestor(repo, ca)))
       if (ca.node.type === "section") {
         hasSection = true
       } else {
@@ -100,12 +102,12 @@ export function formatTaskLine(
   const checkboxStr = `[${mark}]`
   const checkbox =
     status === "done"
-      ? chalk.green(checkboxStr)
+      ? term.style().green(checkboxStr)
       : status === "wip"
-        ? chalk.yellow(checkboxStr)
+        ? term.style().yellow(checkboxStr)
         : status === "blocked"
-          ? chalk.red(checkboxStr)
-          : chalk.dim(checkboxStr)
+          ? term.style().red(checkboxStr)
+          : term.style().dim(checkboxStr)
 
   const content = task.content ?? "(no content)"
 
@@ -114,20 +116,20 @@ export function formatTaskLine(
   if (options.showId) {
     // Show last 8 chars of ID (the random part, not timestamp)
     const shortId = task.id.slice(-8)
-    line += `${chalk.dim(shortId)}  `
+    line += `${term.style().dim(shortId)}  `
   }
   line += content
 
   if (options.verbose) {
     if (task.due_date) {
-      line += chalk.cyan(` 📅 ${task.due_date}`)
+      line += term.style().cyan(` 📅 ${task.due_date}`)
     }
     if (task.priority) {
       const p = task.priority === 1 ? "⏫" : task.priority === 2 ? "🔼" : "🔽"
       line += ` ${p}`
     }
     if (task.assigned_to) {
-      line += chalk.magenta(` @${task.assigned_to}`)
+      line += term.style().magenta(` @${task.assigned_to}`)
     }
   }
 

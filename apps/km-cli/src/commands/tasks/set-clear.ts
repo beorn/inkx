@@ -5,7 +5,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { resolvePathArg, emitNodeUpdatedWithEmitter } from "@km/storage"
 import { getMarkForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
@@ -34,7 +36,7 @@ export function createSetCommand() {
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {
-        console.error(chalk.red(`No task found with ID prefix: ${id}`))
+        console.error(term.style().red(`No task found with ID prefix: ${id}`))
         process.exit(1)
       }
 
@@ -44,7 +46,9 @@ export function createSetCommand() {
         const colonIndex = field.indexOf(":")
         if (colonIndex === -1) {
           console.error(
-            chalk.red(`Invalid field format: ${field} (expected field:value)`),
+            term
+              .style()
+              .red(`Invalid field format: ${field} (expected field:value)`),
           )
           process.exit(1)
         }
@@ -77,12 +81,12 @@ export function createSetCommand() {
             updates.assigned_to = value || null
             break
           default:
-            console.error(chalk.yellow(`Unknown field: ${key}`))
+            console.error(term.style().yellow(`Unknown field: ${key}`))
         }
       }
 
       if (Object.keys(updates).length === 0) {
-        console.error(chalk.red("No valid field updates provided"))
+        console.error(term.style().red("No valid field updates provided"))
         process.exit(1)
       }
 
@@ -99,7 +103,7 @@ export function createSetCommand() {
       }
 
       console.log(
-        chalk.green("✓"),
+        term.style().green("✓"),
         `Updated ${Object.keys(updates).join(", ")}:`,
         task.id.slice(0, 8),
       )
@@ -127,7 +131,7 @@ export function createClearCommand() {
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {
-        console.error(chalk.red(`No task found with ID prefix: ${id}`))
+        console.error(term.style().red(`No task found with ID prefix: ${id}`))
         process.exit(1)
       }
 
@@ -156,12 +160,12 @@ export function createClearCommand() {
             updates.assigned_to = null
             break
           default:
-            console.error(chalk.yellow(`Unknown field: ${key}`))
+            console.error(term.style().yellow(`Unknown field: ${key}`))
         }
       }
 
       if (Object.keys(updates).length === 0) {
-        console.error(chalk.red("No valid fields to clear"))
+        console.error(term.style().red("No valid fields to clear"))
         process.exit(1)
       }
 
@@ -178,7 +182,7 @@ export function createClearCommand() {
       }
 
       console.log(
-        chalk.dim("○"),
+        term.style().dim("○"),
         `Cleared ${fields.join(", ")}:`,
         task.id.slice(0, 8),
       )

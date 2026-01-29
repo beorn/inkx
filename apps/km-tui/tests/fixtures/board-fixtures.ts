@@ -13,7 +13,7 @@ import { createEmptyState } from "../../src/state.ts"
 /**
  * Create a test KNode with defaults
  */
-export function createTestKNode(
+function createTestKNode(
   overrides: Partial<KNode> & { id?: string } = {},
 ): KNode {
   const id = overrides.id ?? ulid()
@@ -76,7 +76,7 @@ export function createBoardState(
  * Create a simple test board with columns and cards
  * Useful for testing navigation, rendering, etc.
  */
-export function createSimpleTestBoard(): {
+function createSimpleTestBoard(): {
   state: TUIBoardState
   nodeIds: {
     root: string
@@ -142,7 +142,7 @@ export function createSimpleTestBoard(): {
 /**
  * Create a nested board for zoom testing
  */
-export function createNestedTestBoard(): {
+function createNestedTestBoard(): {
   state: TUIBoardState
   nodeIds: {
     root: string
@@ -220,7 +220,7 @@ export function createNestedTestBoard(): {
 /**
  * Create a board state with task statuses for status icon testing
  */
-export function createStatusTestBoard(): TUIBoardState {
+function createStatusTestBoard(): TUIBoardState {
   const col = createColumnState({ content: "Tasks" }, [
     createCardState({
       content: "Todo task",

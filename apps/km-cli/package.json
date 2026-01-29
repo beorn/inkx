@@ -1,13 +1,13 @@
 {
   "name": "@km/cli-app",
-  "description": "CLI application for km",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "module": "src/index.ts",
+  "description": "CLI application for km",
   "bin": {
     "km": "./src/bootstrap.ts"
   },
+  "type": "module",
+  "module": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./mdtest": "./tests/mdtest-plugin.ts"

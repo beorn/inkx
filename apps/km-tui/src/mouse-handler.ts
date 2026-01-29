@@ -39,7 +39,7 @@ export interface SelectionRange {
  * Enable SGR extended mouse mode
  * This enables tracking of all mouse events with coordinates
  */
-export function enableMouseMode(): void {
+function enableMouseMode(): void {
   // Enable SGR extended mouse mode (better coordinate support)
   process.stdout.write("\x1b[?1006h")
   // Enable button event tracking (movement while button held)
@@ -51,7 +51,7 @@ export function enableMouseMode(): void {
 /**
  * Disable mouse mode
  */
-export function disableMouseMode(): void {
+function disableMouseMode(): void {
   process.stdout.write("\x1b[?1003l")
   process.stdout.write("\x1b[?1002l")
   process.stdout.write("\x1b[?1006l")
@@ -63,7 +63,7 @@ export function disableMouseMode(): void {
  * Where Cb is button code, Cx is column, Cy is row
  * M = press, m = release
  */
-export function parseMouseEvent(data: string): MouseEvent | null {
+function parseMouseEvent(data: string): MouseEvent | null {
   // SGR format: \x1b[<button;x;y[Mm]
   const sgrMatch = data.match(/\x1b\[<(\d+);(\d+);(\d+)([Mm])/)
   if (sgrMatch) {
@@ -123,7 +123,7 @@ export function parseMouseEvent(data: string): MouseEvent | null {
 /**
  * Check if terminal supports SGR mouse mode
  */
-export function supportsMouseMode(): boolean {
+function supportsMouseMode(): boolean {
   const term = (
     process.env.TERM_PROGRAM ||
     process.env.TERM ||
@@ -148,7 +148,7 @@ export function supportsMouseMode(): boolean {
  * Create a mouse handler that processes raw stdin data
  * Returns a cleanup function
  */
-export function createMouseHandler(
+function createMouseHandler(
   onMouseEvent: (event: MouseEvent) => void,
 ): () => void {
   const handleData = (data: Buffer) => {
@@ -185,7 +185,7 @@ export function createMouseHandler(
 /**
  * Selection state manager for drag-select
  */
-export class SelectionManager {
+class SelectionManager {
   private isDragging = false
   private startX = 0
   private startY = 0

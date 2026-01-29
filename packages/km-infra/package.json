@@ -1,8 +1,8 @@
 {
   "name": "@km/infra",
+  "private": true,
   "description": "Shared tool configuration for km monorepo",
   "type": "module",
-  "private": true,
   "exports": {
     "./eslint": "./eslint/index.ts",
     "./vitest": "./vitest/index.ts",

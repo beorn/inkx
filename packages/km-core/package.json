@@ -1,12 +1,12 @@
 {
   "name": "@km/core",
+  "private": true,
   "description": "Core types and event system for km",
   "type": "module",
   "module": "src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
-  "private": true,
   "dependencies": {
     "@beorn/logger": "workspace:*",
     "nanoevents": "^9.1.0"

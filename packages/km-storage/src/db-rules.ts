@@ -34,7 +34,7 @@ import type { KNode, NodeRules } from "@km/core"
 const debug = createDebug("km:storage:db:rules")
 
 /** Relationship type for add= rule results */
-export const ADD_RULE_RELATIONSHIP = "query:add"
+const ADD_RULE_RELATIONSHIP = "query:add"
 
 // =============================================================================
 // Rule Context - Replaces global state with explicit context passing

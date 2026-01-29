@@ -10,7 +10,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -45,7 +47,7 @@ export const statusCommand = new Command("status")
     const node = repo.resolveNode(id, { taskOnly: true })
 
     if (!node) {
-      console.error(chalk.red(`Task not found: ${id}`))
+      console.error(term.style().red(`Task not found: ${id}`))
       process.exit(1)
     }
 
@@ -54,12 +56,12 @@ export const statusCommand = new Command("status")
       const status = node.task_status ?? "todo"
       const statusIcon =
         status === "done"
-          ? chalk.green("✓")
+          ? term.style().green("✓")
           : status === "blocked"
-            ? chalk.red("!")
+            ? term.style().red("!")
             : status === "dropped"
-              ? chalk.dim("-")
-              : chalk.dim("○")
+              ? term.style().dim("-")
+              : term.style().dim("○")
 
       if (options.json) {
         console.log(
@@ -82,8 +84,10 @@ export const statusCommand = new Command("status")
     // Set mode - validate and update status
     const validStatuses = ["todo", "wip", "blocked", "done", "dropped"]
     if (!validStatuses.includes(newStatus)) {
-      console.error(chalk.red(`Invalid status: ${newStatus}`))
-      console.error(chalk.dim(`Valid statuses: ${validStatuses.join(", ")}`))
+      console.error(term.style().red(`Invalid status: ${newStatus}`))
+      console.error(
+        term.style().dim(`Valid statuses: ${validStatuses.join(", ")}`),
+      )
       process.exit(1)
     }
 
@@ -121,10 +125,10 @@ export const statusCommand = new Command("status")
             )
           } else {
             console.log(
-              chalk.green("✓"),
+              term.style().green("✓"),
               `Marked done: ${node.content?.slice(0, 40)}`,
             )
-            console.log(chalk.blue("↻"), `Next occurrence: ${nextDue}`)
+            console.log(term.style().blue("↻"), `Next occurrence: ${nextDue}`)
           }
         }
       }
@@ -150,14 +154,14 @@ export const statusCommand = new Command("status")
 
     const statusIcon =
       newStatus === "done"
-        ? chalk.green("✓")
+        ? term.style().green("✓")
         : newStatus === "blocked"
-          ? chalk.red("!")
+          ? term.style().red("!")
           : newStatus === "dropped"
-            ? chalk.dim("-")
-            : chalk.dim("○")
+            ? term.style().dim("-")
+            : term.style().dim("○")
 
     console.log(
-      `${statusIcon} ${chalk.dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
+      `${statusIcon} ${term.style().dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
     )
   })

@@ -2,7 +2,7 @@ import type { CommandDef } from "../types.ts"
 
 // Move mode commands return minimal actions (MoveAction types).
 // TUI handler in board-actions.ts augments with context before dispatching to board.
-export const enterMoveMode = {
+const enterMoveMode = {
   id: "enter_move_mode",
   name: "Enter Move Mode",
   description: "Start moving selected nodes",
@@ -11,7 +11,7 @@ export const enterMoveMode = {
   execute: () => ({ type: "ENTER_MOVE_MODE" }),
 } satisfies CommandDef
 
-export const confirmMove = {
+const confirmMove = {
   id: "confirm_move",
   name: "Confirm Move",
   description: "Confirm node movement to current position",
@@ -21,7 +21,7 @@ export const confirmMove = {
   execute: () => ({ type: "CONFIRM_MOVE" }),
 } satisfies CommandDef
 
-export const cancelMove = {
+const cancelMove = {
   id: "cancel_move",
   name: "Cancel Move",
   description: "Cancel move operation",
@@ -32,7 +32,7 @@ export const cancelMove = {
 } satisfies CommandDef
 
 // Shifting (visual reorder)
-export const shiftUp = {
+const shiftUp = {
   id: "shift_up",
   name: "Shift Up",
   description: "Move node up among siblings",
@@ -41,7 +41,7 @@ export const shiftUp = {
   execute: () => ({ type: "SHIFT_UP" }),
 } satisfies CommandDef
 
-export const shiftDown = {
+const shiftDown = {
   id: "shift_down",
   name: "Shift Down",
   description: "Move node down among siblings",
@@ -50,7 +50,7 @@ export const shiftDown = {
   execute: () => ({ type: "SHIFT_DOWN" }),
 } satisfies CommandDef
 
-export const shiftLeft = {
+const shiftLeft = {
   id: "shift_left",
   name: "Shift Left",
   description: "Move node to parent level (outdent)",
@@ -59,7 +59,7 @@ export const shiftLeft = {
   execute: () => ({ type: "SHIFT_LEFT" }),
 } satisfies CommandDef
 
-export const shiftRight = {
+const shiftRight = {
   id: "shift_right",
   name: "Shift Right",
   description: "Move node under previous sibling (indent)",
@@ -68,7 +68,7 @@ export const shiftRight = {
   execute: () => ({ type: "SHIFT_RIGHT" }),
 } satisfies CommandDef
 
-export const deleteNode = {
+const deleteNode = {
   id: "delete_node",
   name: "Delete Node",
   description: "Delete current node",

@@ -33,6 +33,6 @@ export function assertNever(action: never): never {
  * Beep to indicate an unimplemented feature.
  * Use this for actions that are recognized but not yet implemented.
  */
-export function beepUnimplemented(): void {
+function beepUnimplemented(): void {
   process.stdout.write("\x07")
 }

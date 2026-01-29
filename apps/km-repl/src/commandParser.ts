@@ -150,7 +150,7 @@ const SINGLE_CHAR_MAP: Record<string, BoardAction | "KEY"> = {
  * Parse a quoted string like "jjk" into individual characters
  * Simple: just splits the string into characters
  */
-export function parseQuotedString(input: string): string[] | null {
+function parseQuotedString(input: string): string[] | null {
   // Must start and end with quotes
   if (
     !(

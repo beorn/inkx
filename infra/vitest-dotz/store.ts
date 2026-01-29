@@ -40,6 +40,7 @@ export interface CategoryStats {
 export interface SlowestTest {
   name: string
   file: string
+  line?: number
   duration: number
 }
 
@@ -97,6 +98,7 @@ export interface TestStore {
   updateSlowest: (
     name: string,
     file: string,
+    line: number | undefined,
     duration: number,
     threshold: number,
   ) => void
@@ -287,7 +289,7 @@ export function createTestStore(slowThreshold: number = 100): TestStore {
       notify()
     },
 
-    updateSlowest: (name, file, duration, threshold) => {
+    updateSlowest: (name, file, line, duration, threshold) => {
       // Show tests that are at least 2x the threshold (e.g., 200ms for 100ms threshold)
       const minDuration = threshold * 2
       if (duration >= minDuration) {
@@ -297,7 +299,7 @@ export function createTestStore(slowThreshold: number = 100): TestStore {
           duration,
           minDuration,
         )
-        state.topSlowest.push({ name, file, duration })
+        state.topSlowest.push({ name, file, line, duration })
         state.topSlowest.sort((a, b) => b.duration - a.duration)
         // Keep only top entries (will be limited in display)
         if (state.topSlowest.length > 20) {

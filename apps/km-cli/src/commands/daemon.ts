@@ -19,7 +19,9 @@ import {
 } from "fs"
 import { join, dirname } from "path"
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { Database } from "bun:sqlite"
 import { SyncManager, findKmRootFromPath } from "@km/storage"
 import { setEventHub, setFsSync } from "@km/storage/internal/emit.ts"
@@ -118,9 +120,9 @@ class KmDaemon extends EventEmitter {
     // In foreground mode, also log to console
     if (process.env.KM_DAEMON_FOREGROUND) {
       if (level === "error") {
-        console.error(chalk.red(message))
+        console.error(term.style().red(message))
       } else {
-        console.log(chalk.dim(message))
+        console.log(term.style().dim(message))
       }
     }
   }
@@ -443,7 +445,9 @@ const daemonStartCommand = new Command("start")
   .action(async (options: { foreground?: boolean }) => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
-      console.error(chalk.red("No .km directory found. Run 'km init' first."))
+      console.error(
+        term.style().red("No .km directory found. Run 'km init' first."),
+      )
       process.exit(1)
     }
     const repoPath = dirname(kmDir)
@@ -458,8 +462,8 @@ const daemonStartCommand = new Command("start")
       const status = getDaemonStatus(kmDir)
       if (status.status === "running") {
         console.log(
-          chalk.yellow("Daemon already running"),
-          chalk.dim(`(PID: ${status.pid})`),
+          term.style().yellow("Daemon already running"),
+          term.style().dim(`(PID: ${status.pid})`),
         )
         return
       }
@@ -486,14 +490,14 @@ const daemonStartCommand = new Command("start")
       // Check if it started
       const newStatus = getDaemonStatus(kmDir)
       if (newStatus.status === "running") {
-        console.log(chalk.green("✓"), "Daemon started")
-        console.log(chalk.dim(`PID: ${newStatus.pid}`))
+        console.log(term.style().green("✓"), "Daemon started")
+        console.log(term.style().dim(`PID: ${newStatus.pid}`))
       } else {
-        console.error(chalk.red("✗"), "Failed to start daemon")
+        console.error(term.style().red("✗"), "Failed to start daemon")
         console.log(
-          chalk.dim("Check"),
-          chalk.cyan(getDaemonPaths(kmDir).log),
-          chalk.dim("for details"),
+          term.style().dim("Check"),
+          term.style().cyan(getDaemonPaths(kmDir).log),
+          term.style().dim("for details"),
         )
       }
     }
@@ -504,14 +508,14 @@ const daemonStopCommand = new Command("stop")
   .action(async () => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
-      console.error(chalk.red("No .km directory found."))
+      console.error(term.style().red("No .km directory found."))
       process.exit(1)
     }
     const paths = getDaemonPaths(kmDir)
     const status = getDaemonStatus(kmDir)
 
     if (status.status === "stopped") {
-      console.log(chalk.yellow("Daemon is not running"))
+      console.log(term.style().yellow("Daemon is not running"))
       return
     }
 
@@ -519,7 +523,7 @@ const daemonStopCommand = new Command("stop")
     if (existsSync(paths.socket)) {
       try {
         await sendToDaemon(paths.socket, { type: "stop" })
-        console.log(chalk.green("✓"), "Daemon stopping...")
+        console.log(term.style().green("✓"), "Daemon stopping...")
 
         // Wait for it to stop
         for (let i = 0; i < 10; i++) {
@@ -528,16 +532,18 @@ const daemonStopCommand = new Command("stop")
           })
           const newStatus = getDaemonStatus(kmDir)
           if (newStatus.status === "stopped") {
-            console.log(chalk.green("✓"), "Daemon stopped")
+            console.log(term.style().green("✓"), "Daemon stopped")
             return
           }
         }
 
         console.log(
-          chalk.yellow("Daemon taking too long to stop, sending SIGTERM..."),
+          term
+            .style()
+            .yellow("Daemon taking too long to stop, sending SIGTERM..."),
         )
       } catch {
-        console.log(chalk.dim("Socket unavailable, sending SIGTERM..."))
+        console.log(term.style().dim("Socket unavailable, sending SIGTERM..."))
       }
     }
 
@@ -545,9 +551,9 @@ const daemonStopCommand = new Command("stop")
     if (status.pid) {
       try {
         process.kill(status.pid, "SIGTERM")
-        console.log(chalk.green("✓"), "Sent SIGTERM to daemon")
+        console.log(term.style().green("✓"), "Sent SIGTERM to daemon")
       } catch {
-        console.log(chalk.yellow("Process not found, cleaning up..."))
+        console.log(term.style().yellow("Process not found, cleaning up..."))
       }
     }
 
@@ -565,17 +571,17 @@ const daemonStatusCommand = new Command("status")
   .action(async () => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
-      console.error(chalk.red("No .km directory found."))
+      console.error(term.style().red("No .km directory found."))
       process.exit(1)
     }
     const paths = getDaemonPaths(kmDir)
     const basicStatus = getDaemonStatus(kmDir)
 
-    console.log(chalk.bold("km daemon"))
+    console.log(term.style().bold("km daemon"))
     console.log()
 
     if (basicStatus.status === "stopped") {
-      console.log("Status:", chalk.yellow("stopped"))
+      console.log("Status:", term.style().yellow("stopped"))
       return
     }
 
@@ -585,7 +591,7 @@ const daemonStatusCommand = new Command("status")
         const response = await sendToDaemon(paths.socket, { type: "status" })
         if (response.ok && response.data) {
           const status = response.data as unknown as DaemonStatus
-          console.log("Status:", chalk.green("running"))
+          console.log("Status:", term.style().green("running"))
           console.log("PID:", status.pid)
           console.log("Uptime:", formatUptime(status.uptime ?? 0))
           console.log("Socket:", paths.socket)
@@ -601,9 +607,9 @@ const daemonStatusCommand = new Command("status")
     }
 
     // Basic status (no socket connection)
-    console.log("Status:", chalk.green("running"))
+    console.log("Status:", term.style().green("running"))
     console.log("PID:", basicStatus.pid)
-    console.log("Socket:", chalk.dim("(unavailable)"))
+    console.log("Socket:", term.style().dim("(unavailable)"))
   })
 
 export const daemonCommand = new Command("daemon")

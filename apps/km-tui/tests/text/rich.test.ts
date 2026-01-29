@@ -2,8 +2,8 @@
  * Tests for rich text rendering (Layer 1)
  */
 
-import { describe, it, expect, beforeAll } from "vitest"
-import chalk from "chalk"
+import { describe, it, expect } from "vitest"
+import { createTerm } from "@beorn/chalkx"
 import {
   ANSI_REGEX,
   displayLength,
@@ -12,10 +12,9 @@ import {
   renderPlain,
 } from "../../src/text/rich.ts"
 
-// Force chalk to output colors in test environment
-beforeAll(() => {
-  chalk.level = 3 // Enable full color support
-})
+// Create a term with forced color for testing
+const term = createTerm({ colors: "truecolor" })
+const style = term.style()
 
 // ============================================================================
 // ANSI Utilities
@@ -39,17 +38,17 @@ describe("displayLength", () => {
   })
 
   it("excludes ANSI escape codes from count", () => {
-    const styled = chalk.red("hello")
+    const styled = style.red("hello")
     expect(displayLength(styled)).toBe(5)
   })
 
   it("handles multiple ANSI codes", () => {
-    const styled = chalk.red("a") + chalk.blue("b") + chalk.green("c")
+    const styled = style.red("a") + style.blue("b") + style.green("c")
     expect(displayLength(styled)).toBe(3)
   })
 
   it("handles nested styles", () => {
-    const styled = chalk.bold.red("bold red")
+    const styled = style.bold.red("bold red")
     expect(displayLength(styled)).toBe(8)
   })
 
@@ -64,7 +63,7 @@ describe("displayLength", () => {
 
 describe("stripAnsi", () => {
   it("removes all ANSI escape codes", () => {
-    const styled = chalk.red("hello")
+    const styled = style.red("hello")
     expect(stripAnsi(styled)).toBe("hello")
   })
 
@@ -73,7 +72,7 @@ describe("stripAnsi", () => {
   })
 
   it("handles multiple styles", () => {
-    const styled = chalk.red("a") + " " + chalk.blue("b")
+    const styled = style.red("a") + " " + style.blue("b")
     expect(stripAnsi(styled)).toBe("a b")
   })
 

@@ -1,12 +1,12 @@
 {
   "name": "@km/commands",
+  "private": true,
   "description": "Unified command system - registry, parsing, keybindings",
   "type": "module",
   "module": "src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
-  "private": true,
   "dependencies": {
     "@km/board": "workspace:*",
     "@km/core": "workspace:*"

@@ -142,7 +142,7 @@ export interface RetryConfig {
   jitterFactor: number
 }
 
-export const DEFAULT_RETRY_CONFIG: RetryConfig = {
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
   baseDelayMs: 100,
   maxDelayMs: 5000,

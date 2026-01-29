@@ -5,7 +5,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { resolvePathArg, type Repo, type Link } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -27,7 +29,9 @@ export const showCommand = new Command("show")
     // Directory paths don't resolve to a specific node
     if (!resolved.nodeRef) {
       console.error(
-        chalk.red(`Cannot show a directory. Use 'km ls' to list contents.`),
+        term
+          .style()
+          .red(`Cannot show a directory. Use 'km ls' to list contents.`),
       )
       process.exit(1)
     }
@@ -35,7 +39,7 @@ export const showCommand = new Command("show")
     const node = repo.resolveNode(resolved.nodeRef)
 
     if (!node) {
-      console.error(chalk.red(`Node not found: ${id}`))
+      console.error(term.style().red(`Node not found: ${id}`))
       process.exit(1)
     }
 
@@ -57,45 +61,51 @@ export const showCommand = new Command("show")
     }
 
     // Display node details
-    console.log(chalk.bold("ID:"), node.id)
-    console.log(chalk.bold("Type:"), node.type)
+    console.log(term.style().bold("ID:"), node.id)
+    console.log(term.style().bold("Type:"), node.type)
 
     if (node.fs_path) {
-      console.log(chalk.bold("Path:"), node.fs_path)
+      console.log(term.style().bold("Path:"), node.fs_path)
     }
 
     // Title can be on node.title (in-memory) or node.data.title (from DB)
     const title = node.title || (node.data?.title as string | undefined)
     if (title) {
-      console.log(chalk.bold("Title:"), title)
+      console.log(term.style().bold("Title:"), title)
     }
 
     if (node.content && node.content !== title) {
-      console.log(chalk.bold("Content:"), node.content)
+      console.log(term.style().bold("Content:"), node.content)
     }
 
     if (node.task_status) {
-      console.log(chalk.bold("Status:"), formatStatus(node.task_status))
+      console.log(term.style().bold("Status:"), formatStatus(node.task_status))
     }
 
     if (node.due_date) {
-      console.log(chalk.bold("Due:"), node.due_date)
+      console.log(term.style().bold("Due:"), node.due_date)
     }
 
     if (node.priority) {
-      console.log(chalk.bold("Priority:"), node.priority)
+      console.log(term.style().bold("Priority:"), node.priority)
     }
 
     if (node.assigned_to) {
-      console.log(chalk.bold("Assigned:"), node.assigned_to)
+      console.log(term.style().bold("Assigned:"), node.assigned_to)
     }
 
     if (node.parent_id) {
-      console.log(chalk.bold("Parent:"), node.parent_id.slice(0, 8))
+      console.log(term.style().bold("Parent:"), node.parent_id.slice(0, 8))
     }
 
-    console.log(chalk.bold("Created:"), new Date(node.created_at).toISOString())
-    console.log(chalk.bold("Updated:"), new Date(node.updated_at).toISOString())
+    console.log(
+      term.style().bold("Created:"),
+      new Date(node.created_at).toISOString(),
+    )
+    console.log(
+      term.style().bold("Updated:"),
+      new Date(node.updated_at).toISOString(),
+    )
 
     // Display refs from data
     const data = node.data as Record<string, unknown>
@@ -105,16 +115,18 @@ export const showCommand = new Command("show")
       data.mentions.length > 0
     ) {
       console.log(
-        chalk.bold("Refs:"),
+        term.style().bold("Refs:"),
         (data.mentions as string[])
-          .map((m) => chalk.magenta(`@${m}`))
+          .map((m) => term.style().magenta(`@${m}`))
           .join(" "),
       )
     }
     if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
       console.log(
-        chalk.bold("Tags:"),
-        (data.tags as string[]).map((t) => chalk.cyan(`#${t}`)).join(" "),
+        term.style().bold("Tags:"),
+        (data.tags as string[])
+          .map((t) => term.style().cyan(`#${t}`))
+          .join(" "),
       )
     }
     if (
@@ -123,8 +135,10 @@ export const showCommand = new Command("show")
       data.projects.length > 0
     ) {
       console.log(
-        chalk.bold("Projects:"),
-        (data.projects as string[]).map((p) => chalk.yellow(`+${p}`)).join(" "),
+        term.style().bold("Projects:"),
+        (data.projects as string[])
+          .map((p) => term.style().yellow(`+${p}`))
+          .join(" "),
       )
     }
 
@@ -134,7 +148,10 @@ export const showCommand = new Command("show")
     delete otherData.tags
     delete otherData.projects
     if (Object.keys(otherData).length > 0) {
-      console.log(chalk.bold("Data:"), JSON.stringify(otherData, null, 2))
+      console.log(
+        term.style().bold("Data:"),
+        JSON.stringify(otherData, null, 2),
+      )
     }
 
     // Children
@@ -144,7 +161,7 @@ export const showCommand = new Command("show")
         : repo.getChildren(node.id)
 
       if (children.length > 0) {
-        console.log(chalk.bold("\nChildren:"))
+        console.log(term.style().bold("\nChildren:"))
         for (const child of children) {
           const prefix = options.tree ? getIndent(child, node.id) : "  "
           console.log(`${prefix}${formatNodeBrief(child)}`)
@@ -158,21 +175,21 @@ export const showCommand = new Command("show")
       const backlinks = repo.getBacklinks(node.id)
 
       if (outgoing.length > 0) {
-        console.log(chalk.bold("\nOutgoing links:"))
+        console.log(term.style().bold("\nOutgoing links:"))
         for (const link of outgoing) {
           console.log(`  ${formatLink(link, repo)}`)
         }
       }
 
       if (backlinks.length > 0) {
-        console.log(chalk.bold("\nBacklinks:"))
+        console.log(term.style().bold("\nBacklinks:"))
         for (const link of backlinks) {
           console.log(`  ${formatBacklink(link, repo)}`)
         }
       }
 
       if (outgoing.length === 0 && backlinks.length === 0) {
-        console.log(chalk.dim("\nNo links found."))
+        console.log(term.style().dim("\nNo links found."))
       }
     }
   })
@@ -201,12 +218,12 @@ function formatLink(link: Link, repo: Repo): string {
   const parts: string[] = []
 
   // Target name with section/block
-  let target = chalk.cyan(`[[${link.target_name}]]`)
+  let target = term.style().cyan(`[[${link.target_name}]]`)
   if (link.section) {
-    target = chalk.cyan(`[[${link.target_name}#${link.section}]]`)
+    target = term.style().cyan(`[[${link.target_name}#${link.section}]]`)
   }
   if (link.block_id) {
-    target = chalk.cyan(`[[${link.target_name}^${link.block_id}]]`)
+    target = term.style().cyan(`[[${link.target_name}^${link.block_id}]]`)
   }
   parts.push(target)
 
@@ -215,16 +232,18 @@ function formatLink(link: Link, repo: Repo): string {
     const targetNode = repo.getNode(link.target_id)
     if (targetNode) {
       parts.push(
-        chalk.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`),
+        term
+          .style()
+          .dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`),
       )
     }
   } else {
-    parts.push(chalk.yellow("(unresolved)"))
+    parts.push(term.style().yellow("(unresolved)"))
   }
 
   // Alias
   if (link.alias) {
-    parts.push(chalk.dim(`"${link.alias}"`))
+    parts.push(term.style().dim(`"${link.alias}"`))
   }
 
   return parts.join(" ")
@@ -241,10 +260,10 @@ function formatBacklink(link: Link, repo: Repo): string {
     const sourceName = sourceNode.fs_path
       ? sourceNode.fs_path.split("/").pop()
       : sourceNode.content?.slice(0, 30) || link.source_id.slice(0, 8)
-    parts.push(chalk.green(`← ${sourceName}`))
-    parts.push(chalk.dim(`(${link.source_id.slice(0, 8)})`))
+    parts.push(term.style().green(`← ${sourceName}`))
+    parts.push(term.style().dim(`(${link.source_id.slice(0, 8)})`))
   } else {
-    parts.push(chalk.dim(`← ${link.source_id.slice(0, 8)}`))
+    parts.push(term.style().dim(`← ${link.source_id.slice(0, 8)}`))
   }
 
   return parts.join(" ")

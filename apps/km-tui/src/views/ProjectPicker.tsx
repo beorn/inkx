@@ -369,4 +369,3 @@ export function ProjectPicker({
 }
 
 // Export fuzzy functions for testing
-export { fuzzyMatch, fuzzyScore, getProjectPath }

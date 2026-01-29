@@ -10,7 +10,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { ulid } from "ulid"
 import {
   queryTasks,
@@ -38,16 +40,16 @@ export const addCommand = new Command("add")
     using repo = await loadRepo(resolvedTarget.repoRoot)
 
     if (!resolvedTarget.nodeRef) {
-      console.error(chalk.red(`Cannot add to a directory`))
+      console.error(term.style().red(`Cannot add to a directory`))
       process.exit(1)
     }
 
     // Resolve target board/container
     const targetNode = repo.resolveNode(resolvedTarget.nodeRef)
     if (!targetNode) {
-      console.error(chalk.red(`Target not found: ${target}`))
+      console.error(term.style().red(`Target not found: ${target}`))
       console.error(
-        chalk.dim("Use ID, path, or filename (e.g., @next, @inbox.md)"),
+        term.style().dim("Use ID, path, or filename (e.g., @next, @inbox.md)"),
       )
       process.exit(1)
     }
@@ -80,11 +82,11 @@ export const addCommand = new Command("add")
       }
 
       // Nothing found
-      console.warn(chalk.yellow(`No tasks found for: ${source}`))
+      console.warn(term.style().yellow(`No tasks found for: ${source}`))
     }
 
     if (tasksToAdd.length === 0) {
-      console.log(chalk.yellow("No tasks to add"))
+      console.log(term.style().yellow("No tasks to add"))
       process.exit(0)
     }
 
@@ -121,16 +123,16 @@ export const addCommand = new Command("add")
     let nextIdx = Date.now()
 
     if (options.dryRun) {
-      console.log(chalk.cyan("Dry run - would link:"))
+      console.log(term.style().cyan("Dry run - would link:"))
       for (const task of tasksToAdd) {
         console.log(
-          `  ${chalk.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
+          `  ${term.style().dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
         )
       }
       console.log(
-        chalk.dim(
-          `\nTo: ${targetNode.content || targetNode.fs_path || target}`,
-        ),
+        term
+          .style()
+          .dim(`\nTo: ${targetNode.content || targetNode.fs_path || target}`),
       )
       return
     }
@@ -164,17 +166,17 @@ export const addCommand = new Command("add")
     }
 
     console.log(
-      chalk.green("✓"),
+      term.style().green("✓"),
       `Linked ${tasksToAdd.length} task(s) to ${targetNode.content || target}`,
     )
     for (const task of tasksToAdd.slice(0, 5)) {
       console.log(
-        chalk.dim(
-          `  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`,
-        ),
+        term
+          .style()
+          .dim(`  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`),
       )
     }
     if (tasksToAdd.length > 5) {
-      console.log(chalk.dim(`  ... and ${tasksToAdd.length - 5} more`))
+      console.log(term.style().dim(`  ... and ${tasksToAdd.length - 5} more`))
     }
   })

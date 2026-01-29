@@ -7,12 +7,12 @@
  * - Content rendering: renderRich() for markdown-aware styling
  * - Status icons: renderStatusIcon() with colorize()
  *
- * Uses chalk directly for UI chrome only:
+ * Uses term.style() for UI chrome:
  * - Headers, borders, status bars
  * - Selection/current highlighting (bgBlue, bgYellow)
  */
 
-import chalk from "chalk"
+import { createTerm, type StyleChain } from "@beorn/chalkx"
 import type { TaskStatus } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { TUIBoardState, CardState, RenderOptions } from "./types.ts"
@@ -22,6 +22,16 @@ import {
   renderRich,
   colorize,
 } from "./text/index.ts"
+
+// Module-level term instance for styling (lazily initialized)
+// Force truecolor support for consistent styling in CLI/TUI utilities
+let _term: ReturnType<typeof createTerm> | null = null
+function getStyle(): StyleChain {
+  if (!_term) {
+    _term = createTerm({ colors: "truecolor" })
+  }
+  return _term.style()
+}
 
 /**
  * Default render options
@@ -47,6 +57,7 @@ export function renderBoard(
   colIndex = 0,
   cardIndex = 0,
 ): string {
+  const style = getStyle()
   const lines: string[] = []
   const { width, height } = opts
 
@@ -60,11 +71,11 @@ export function renderBoard(
   const title = root ? getNodeDisplayName(repo, root) : "Board"
 
   // Header
-  lines.push(chalk.bold.inverse(` ${title} `.padEnd(width)))
+  lines.push(style.bold.inverse(` ${title} `.padEnd(width)))
 
   if (state.columns.length === 0) {
-    lines.push(chalk.dim("\n  Empty board - no columns found"))
-    lines.push(chalk.dim("  Add child nodes to create columns\n"))
+    lines.push(style.dim("\n  Empty board - no columns found"))
+    lines.push(style.dim("  Add child nodes to create columns\n"))
     lines.push(renderStatusBar(state, width))
     return lines.join("\n")
   }
@@ -80,10 +91,10 @@ export function renderBoard(
     const header = ` ${name} (${count}) `
     const isSelected = i === colIndex
     const padded = header.padEnd(colWidth - 1).slice(0, colWidth - 1)
-    return isSelected ? chalk.bold.bgBlue.white(padded) : chalk.bold(padded)
+    return isSelected ? style.bold.bgBlue.white(padded) : style.bold(padded)
   })
   lines.push(headers.join(" "))
-  lines.push(chalk.dim("─".repeat(width)))
+  lines.push(style.dim("─".repeat(width)))
 
   // Render cards
   const maxCardsVisible = Math.max(Math.floor(cardHeight / 4), 3)
@@ -124,7 +135,7 @@ export function renderBoard(
   // Show "..." if more cards
   const moreIndicators = state.columns.map((col) => {
     if (col.cards.length > maxCardsVisible) {
-      return chalk
+      return style
         .dim(`  ... +${col.cards.length - maxCardsVisible} more`)
         .padEnd(colWidth - 1)
     }
@@ -137,7 +148,7 @@ export function renderBoard(
 
   // Search bar
   if (state.searchMode) {
-    lines.push(chalk.inverse(` /${state.searchQuery}█ `.padEnd(width)))
+    lines.push(style.inverse(` /${state.searchQuery}█ `.padEnd(width)))
   }
 
   return lines.join("\n")
@@ -155,6 +166,7 @@ export function renderCard(
   isSelected: boolean,
   isFolded: boolean,
 ): string {
+  const style = getStyle()
   const lines: string[] = []
   const { node, children } = card
 
@@ -170,15 +182,15 @@ export function renderCard(
     node.task_status === "done" || node.task_status === "dropped"
   const styledContent = renderRich(rawContent)
   const content = isDoneOrDropped
-    ? chalk.dim.strikethrough(styledContent)
+    ? style.dim.strikethrough(styledContent)
     : styledContent
   let firstLine = `${statusIcon} ${content}`
 
   // Apply styling
   if (isCurrent) {
-    firstLine = chalk.bgBlue.white(firstLine.padEnd(width).slice(0, width))
+    firstLine = style.bgBlue.white(firstLine.padEnd(width).slice(0, width))
   } else if (isSelected) {
-    firstLine = chalk.bgYellow.black(firstLine.padEnd(width).slice(0, width))
+    firstLine = style.bgYellow.black(firstLine.padEnd(width).slice(0, width))
   } else {
     firstLine = firstLine.padEnd(width).slice(0, width)
   }
@@ -193,12 +205,12 @@ export function renderCard(
       const childRaw = (child.content || "").slice(0, width - 3)
       const childContent = renderRich(childRaw)
       lines.push(
-        chalk.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width),
+        style.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width),
       )
     }
     if (children.length > maxChildren) {
       lines.push(
-        chalk
+        style
           .dim(`  +${children.length - maxChildren} more`)
           .padEnd(width)
           .slice(0, width),
@@ -206,12 +218,12 @@ export function renderCard(
     }
   } else if (children.length > 0) {
     lines.push(
-      chalk.dim(`  ▶ ${children.length}`).padEnd(width).slice(0, width),
+      style.dim(`  ▶ ${children.length}`).padEnd(width).slice(0, width),
     )
   }
 
   // Card border bottom
-  lines.push(chalk.dim("─".repeat(width)))
+  lines.push(style.dim("─".repeat(width)))
 
   return lines.join("\n")
 }
@@ -220,31 +232,33 @@ export function renderCard(
  * Render status bar
  */
 export function renderStatusBar(state: TUIBoardState, width: number): string {
+  const style = getStyle()
   const parts: string[] = []
 
   if (state.visualMode) {
-    parts.push(chalk.bgYellow.black(" VISUAL "))
+    parts.push(style.bgYellow.black(" VISUAL "))
   }
 
   if (state.selectedCards.size > 0) {
-    parts.push(chalk.yellow(`${state.selectedCards.size} selected`))
+    parts.push(style.yellow(`${state.selectedCards.size} selected`))
   }
 
   const left = parts.join(" ")
   const right = "h/l:cols j/k:cards x:status Tab:fold ?:help q:quit"
 
   const padding = width - left.length - right.length - 2
-  return chalk.inverse(` ${left}${" ".repeat(Math.max(1, padding))}${right} `)
+  return style.inverse(` ${left}${" ".repeat(Math.max(1, padding))}${right} `)
 }
 
 /**
  * Render help overlay
  */
 export function renderHelp(width: number): string {
+  const style = getStyle()
   const help = `
-${chalk.bold("BOARDLINER - Keyboard Reference")}
+${style.bold("BOARDLINER - Keyboard Reference")}
 
-${chalk.yellow("Navigation")}
+${style.yellow("Navigation")}
   h / Ctrl+B      Move to left column
   l / Ctrl+F      Move to right column
   j / Ctrl+N      Move to next card
@@ -254,30 +268,30 @@ ${chalk.yellow("Navigation")}
   Enter / o       Zoom into card
   Escape / q      Zoom out / Quit
 
-${chalk.yellow("Selection")}
+${style.yellow("Selection")}
   Space           Toggle card selection
   v               Visual mode (multi-select)
 
-${chalk.yellow("Actions")}
+${style.yellow("Actions")}
   x               Cycle status (todo → wip → blocked → done → ...)
   Tab             Fold/unfold card outline
 
-${chalk.yellow("Card Movement")}
+${style.yellow("Card Movement")}
   H               Move card to previous column
   L               Move card to next column
   K               Move card up in column
   J               Move card down in column
 
-${chalk.yellow("Other")}
+${style.yellow("Other")}
   /               Search
   ?               This help
   q               Quit
 
-${chalk.dim("Press any key to close")}
+${style.dim("Press any key to close")}
 `
 
   const lines: string[] = []
-  lines.push(chalk.bgBlue.white(" ".repeat(width)))
+  lines.push(style.bgBlue.white(" ".repeat(width)))
   for (const line of help.split("\n")) {
     lines.push(line.padEnd(width).slice(0, width))
   }
@@ -293,11 +307,12 @@ export function renderBoardStatic(
   state: TUIBoardState,
   width: number,
 ): string {
+  const style = getStyle()
   const { columns } = state
   const lines: string[] = []
 
   if (columns.length === 0) {
-    return chalk.dim("Empty board")
+    return style.dim("Empty board")
   }
 
   // Show each column with its cards
@@ -307,11 +322,11 @@ export function renderBoardStatic(
 
     // Column header
     lines.push("")
-    lines.push(chalk.bold(`${name}`) + chalk.dim(` (${count})`))
+    lines.push(style.bold(`${name}`) + style.dim(` (${count})`))
 
     // Cards under this column
     if (col.cards.length === 0) {
-      lines.push(chalk.dim("  (empty)"))
+      lines.push(style.dim("  (empty)"))
     } else {
       const maxCards = 10 // Limit cards shown per column
       const visibleCards = col.cards.slice(0, maxCards)
@@ -327,7 +342,7 @@ export function renderBoardStatic(
           card.node.task_status === "dropped"
         const styledContent = renderRich(truncContent)
         const content = isDoneOrDropped
-          ? chalk.dim.strikethrough(styledContent)
+          ? style.dim.strikethrough(styledContent)
           : styledContent
         lines.push(`${statusIcon} ${content}`)
 
@@ -340,17 +355,17 @@ export function renderBoardStatic(
             const childRaw = child.content || ""
             const childLine = childRaw.split("\n")[0] ?? childRaw
             const childContent = renderRich(childLine.slice(0, width - 6))
-            lines.push(chalk.dim(`  ${childIcon} ${childContent}`))
+            lines.push(style.dim(`  ${childIcon} ${childContent}`))
           }
           if (card.children.length > maxChildren) {
             lines.push(
-              chalk.dim(`    +${card.children.length - maxChildren} more`),
+              style.dim(`    +${card.children.length - maxChildren} more`),
             )
           }
         }
       }
       if (col.cards.length > maxCards) {
-        lines.push(chalk.dim(`  +${col.cards.length - maxCards} more cards`))
+        lines.push(style.dim(`  +${col.cards.length - maxCards} more cards`))
       }
     }
   }
@@ -366,7 +381,7 @@ export function renderStatusIcon(status?: TaskStatus): string {
   const icon = getStatusIconBase(status)
   // Handle custom markers with background color (inverted display)
   if (icon.backgroundColor) {
-    return chalk.bgWhite.black(icon.char)
+    return getStyle().bgWhite.black(icon.char)
   }
   // Map icon color to colorize-compatible color
   // Note: "blue" in icon.color maps to "cyan" for visibility

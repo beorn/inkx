@@ -9,7 +9,9 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import chalk from "chalk"
+import { createTerm } from "@beorn/chalkx"
+
+const term = createTerm(process)
 import { resolveNode, resolvePathArg, findProject } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -30,14 +32,14 @@ export const moveCommand = new Command("move")
 
     const nodeRef = resolvedNode.nodeRef
     if (!nodeRef) {
-      console.error(chalk.red(`Cannot move a directory`))
+      console.error(term.style().red(`Cannot move a directory`))
       process.exit(1)
     }
 
     // Find the node to move (nodeRef validated above)
     const node = resolveNode(repo.database, nodeRef)
     if (!node) {
-      console.error(chalk.red(`Node not found: ${nodeArg}`))
+      console.error(term.style().red(`Node not found: ${nodeArg}`))
       process.exit(1)
     }
 
@@ -52,7 +54,7 @@ export const moveCommand = new Command("move")
       // Find project by name
       targetParent = findProject(repo.database, options.project)
       if (!targetParent) {
-        console.error(chalk.red(`Project not found: ${options.project}`))
+        console.error(term.style().red(`Project not found: ${options.project}`))
         process.exit(1)
       }
       targetParentId = targetParent.id
@@ -61,24 +63,24 @@ export const moveCommand = new Command("move")
       const resolvedParent = resolvePathArg(parentArg, resolvedNode.repoRoot)
       const parentRef = resolvedParent.nodeRef
       if (!parentRef) {
-        console.error(chalk.red(`Cannot use a directory as parent`))
+        console.error(term.style().red(`Cannot use a directory as parent`))
         process.exit(1)
       }
       // Find parent by ID/path/filename (parentRef validated above)
       targetParent = resolveNode(repo.database, parentRef)
       if (!targetParent) {
-        console.error(chalk.red(`Parent not found: ${parentArg}`))
+        console.error(term.style().red(`Parent not found: ${parentArg}`))
         process.exit(1)
       }
       targetParentId = targetParent.id
     } else {
-      console.error(chalk.red("Specify a parent, --project, or --root"))
+      console.error(term.style().red("Specify a parent, --project, or --root"))
       process.exit(1)
     }
 
     // Don't move to self
     if (targetParentId === node.id) {
-      console.error(chalk.red("Cannot move a node to itself"))
+      console.error(term.style().red("Cannot move a node to itself"))
       process.exit(1)
     }
 
@@ -94,7 +96,7 @@ export const moveCommand = new Command("move")
         )
         return
       }
-      console.log(chalk.yellow("Node is already at this location"))
+      console.log(term.style().yellow("Node is already at this location"))
       return
     }
 
@@ -111,5 +113,5 @@ export const moveCommand = new Command("move")
       ? getNodeDisplayName(targetParent)
       : "(root)"
 
-    console.log(chalk.green("→"), `Moved ${nodeName} to ${targetName}`)
+    console.log(term.style().green("→"), `Moved ${nodeName} to ${targetName}`)
   })

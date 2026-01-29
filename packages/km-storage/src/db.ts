@@ -58,7 +58,6 @@ export {
   getBacklinks,
   getBacklinksByName,
   resolveLinks,
-  resolveLinksBatch,
 } from "./db-links.ts"
 
 export type { Link } from "./db-links.ts"

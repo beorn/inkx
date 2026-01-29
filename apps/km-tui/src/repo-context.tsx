@@ -45,5 +45,3 @@ export function RepoProvider({
 }) {
   return <RepoContext.Provider value={repo}>{children}</RepoContext.Provider>
 }
-
-export { RepoContext }

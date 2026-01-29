@@ -89,7 +89,7 @@ export function UIProvider({
 /**
  * Get the dispatch function only (never causes re-renders)
  */
-export function useUIDispatch(): Dispatch<UIAction> {
+function useUIDispatch(): Dispatch<UIAction> {
   const context = useContext(UIContext)
   if (!context) {
     throw new Error("useUIDispatch must be used within UIProvider")
@@ -122,7 +122,7 @@ export function useUISelector<T>(selector: (state: UIState) => T): T {
  * Get the full UI state (causes re-render on any state change).
  * Prefer useUISelector for better performance.
  */
-export function useUIState(): UIState {
+function useUIState(): UIState {
   return useUISelector((state) => state)
 }
 
@@ -144,13 +144,13 @@ const selectRootBoardId = (state: UIState) => state.rootBoardId
 /**
  * Check if a node is folded
  */
-export const makeSelectIsFolded = (nodeId: string) =>
+const makeSelectIsFolded = (nodeId: string) =>
   createSelector([selectFoldedNodes], (foldedNodes) => foldedNodes.has(nodeId))
 
 /**
  * Check if a selection key is multi-selected
  */
-export const makeSelectIsMultiSelected = (key: SelectionKey) =>
+const makeSelectIsMultiSelected = (key: SelectionKey) =>
   createSelector([selectMultiSelected], (multiSelected) =>
     multiSelected.has(key),
   )
@@ -162,7 +162,7 @@ export const makeSelectIsMultiSelected = (key: SelectionKey) =>
  * - Cards view: multiline variant (parent context above, content can wrap)
  * - Other views (list, columns, tabs): oneliner variant (inline context, truncate)
  */
-export const selectTreeConfig = createSelector(
+const selectTreeConfig = createSelector(
   [
     selectMaxOutlineDepth,
     selectMaxContentLines,
@@ -197,7 +197,7 @@ export function useTreeConfig() {
 /**
  * Check if a node is folded
  */
-export function useIsFolded(nodeId: string): boolean {
+function useIsFolded(nodeId: string): boolean {
   const foldedNodes = useUISelector(selectFoldedNodes)
   return foldedNodes.has(nodeId)
 }
@@ -205,7 +205,7 @@ export function useIsFolded(nodeId: string): boolean {
 /**
  * Check if a selection key is multi-selected
  */
-export function useIsMultiSelected(key: SelectionKey): boolean {
+function useIsMultiSelected(key: SelectionKey): boolean {
   const multiSelected = useUISelector(selectMultiSelected)
   return multiSelected.has(key)
 }
@@ -213,7 +213,7 @@ export function useIsMultiSelected(key: SelectionKey): boolean {
 /**
  * Get selection-related state
  */
-export function useSelectionState() {
+function useSelectionState() {
   return useUISelector(
     createSelector(
       [selectMultiSelected, selectSubIndex, selectInOutlineMode],

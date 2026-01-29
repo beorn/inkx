@@ -15,7 +15,7 @@ import type {
   HistoryRedoAction,
 } from "../types.ts"
 
-export const undoCommand = {
+const undoCommand = {
   id: "undo",
   name: "Undo",
   description: "Undo the last action",
@@ -26,7 +26,7 @@ export const undoCommand = {
   },
 } satisfies CommandDef
 
-export const redoCommand = {
+const redoCommand = {
   id: "redo",
   name: "Redo",
   description: "Redo the last undone action",

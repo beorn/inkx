@@ -5,15 +5,24 @@
  * Used by both CLI commands and TUI components.
  *
  * ## Functions
- * - `renderRich(raw)` - strips markup, applies chalk styling
+ * - `renderRich(raw)` - strips markup, applies term styling
  * - `renderPlain(raw)` - strips markup, returns plain text
  * - `displayLength(styled)` - character count excluding ANSI codes
  * - `stripAnsi(styled)` - remove all ANSI escape codes
  */
 
-import chalk from "chalk"
-import { dashedUnderline } from "@beorn/chalkx"
+import { createTerm, dashedUnderline, type StyleChain } from "@beorn/chalkx"
 import stringWidth from "string-width"
+
+// Module-level term instance for styling (lazily initialized)
+// Force truecolor support for consistent styling in CLI/TUI utilities
+let _term: ReturnType<typeof createTerm> | null = null
+function getStyle(): StyleChain {
+  if (!_term) {
+    _term = createTerm({ colors: "truecolor" })
+  }
+  return _term.style()
+}
 
 // ============================================================================
 // ANSI String Utilities
@@ -153,7 +162,7 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   result = result.replace(
     MD_LINK_REGEX,
     (_match, linkText: string, _url: string) => {
-      return chalk.underline(linkText)
+      return getStyle().underline(linkText)
     },
   )
 
@@ -162,7 +171,7 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   // The km:// protocol would be intercepted for navigation, but wrapping breaks it
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
     const { display } = extractLinkParts(content)
-    return chalk.underline(display)
+    return getStyle().underline(display)
   })
 
   // Style sigils (@mention, #tag, +project) - use node color if available, else dim
@@ -178,59 +187,61 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
       // Use sigil's color if provided, otherwise dim white
       // Always dim the sigil to keep it subtle - color + dim for toned-down appearance
       const color = sigilColors.get(sigil)
+      const style = getStyle()
       if (color) {
         // Use the sigil node's color, but dimmed for subtlety
         switch (color) {
           case "red":
-            return chalk.dim.red(sigil)
+            return style.dim.red(sigil)
           case "green":
-            return chalk.dim.green(sigil)
+            return style.dim.green(sigil)
           case "yellow":
-            return chalk.dim.yellow(sigil)
+            return style.dim.yellow(sigil)
           case "blue":
-            return chalk.dim.blue(sigil)
+            return style.dim.blue(sigil)
           case "magenta":
-            return chalk.dim.magenta(sigil)
+            return style.dim.magenta(sigil)
           case "cyan":
-            return chalk.dim.cyan(sigil)
+            return style.dim.cyan(sigil)
           case "white":
-            return chalk.dim.white(sigil)
+            return style.dim.white(sigil)
           case "gray":
           case "grey":
-            return chalk.gray(sigil)
+            return style.gray(sigil)
           default:
-            return chalk.dim(sigil)
+            return style.dim(sigil)
         }
       }
       // Default: subtle dim text
-      return chalk.dim(sigil)
+      return style.dim(sigil)
     },
   )
 
   // Style bold text (must be before italic to avoid conflicts)
+  const style = getStyle()
   result = result.replace(BOLD_REGEX, (_match, content: string) => {
-    return chalk.bold(content)
+    return style.bold(content)
   })
 
   // Style italic text (*italic* or _italic_)
   result = result.replace(ITALIC_ASTERISK_REGEX, (_match, content: string) => {
-    return chalk.italic(content)
+    return style.italic(content)
   })
   result = result.replace(
     ITALIC_UNDERSCORE_REGEX,
     (_match, content: string) => {
-      return chalk.italic(content)
+      return style.italic(content)
     },
   )
 
   // Style inline code
   result = result.replace(CODE_REGEX, (_match, content: string) => {
-    return chalk.cyan(content)
+    return style.cyan(content)
   })
 
   // Style strikethrough (render as dim since terminals often don't support true strikethrough)
   result = result.replace(STRIKETHROUGH_REGEX, (_match, content: string) => {
-    return chalk.dim.strikethrough(content)
+    return style.dim.strikethrough(content)
   })
 
   // Clean up whitespace: collapse multiple spaces and newlines

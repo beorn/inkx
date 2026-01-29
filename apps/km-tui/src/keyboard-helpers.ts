@@ -42,7 +42,7 @@ export function pushNavHistoryEntry(
 // =============================================================================
 
 /** Calculate max sub-items in current card */
-export function getMaxSubIndex(ctx: TUIContext): number {
+function getMaxSubIndex(ctx: TUIContext): number {
   const col = ctx.layout.columns[ctx.layout.colIndex]
   const card = col?.cards[ctx.layout.cardIndex]
   if (!card) return 0
