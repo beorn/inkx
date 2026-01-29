@@ -33,6 +33,9 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 - **Type inference**: Let TypeScript infer; avoid explicit annotations unless necessary
 - **Hoisted helpers**: Put non-trivial functions after `return` or at end of file
 - **Package imports**: Use package names (`inkx`, `chalkx`), never relative `../vendor/...`
+- **DI via inject**: Pass deps via `options.inject`, no globals/singletons/`getX()`
+- **No import side effects**: Module init must not perform work
+- **Sensible defaults**: Defaults → arguments → config files (last resort)
 - **Async generators**: Use for pipelines, not `Promise.all` chains
 - **Disposables**: Use `using`/`await using` for cleanup (`Symbol.dispose`)
 - **Fail fast**: Throw on invalid state, no defensive fallbacks
