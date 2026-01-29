@@ -20,6 +20,12 @@ bun km view <path>   # Run TUI
 Layered: App → Board → Tree → Storage → Parser → Filesystem. Each layer calls only layer below.
 UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/README.md).
 
+## Vendor Packages
+
+Packages in `vendor/` (inkx, chalkx, mdtest, flexx, etc.) are **part of km**. When you find bugs
+in these packages, fix them directly - do not work around them. Each vendor package has its own
+CLAUDE.md with API documentation.
+
 ## Code Style
 
 ESM only; type inference; important code first; fail fast; factory functions not classes.

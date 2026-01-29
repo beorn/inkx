@@ -32,12 +32,14 @@ Unify production and testing render paths via a pure generator API that separate
 ## When to Implement
 
 **Triggers:**
+
 - Major inkx feature touching both render paths
 - Need production frame capture (debugging, logging)
 - Test infrastructure overhaul
 - Extracting inkx as standalone library
 
 **Skip if:**
+
 - Current APIs working fine
 - No need for unified debugging
 
@@ -48,28 +50,30 @@ Unify production and testing render paths via a pure generator API that separate
 ### Two Rendering Paths
 
 **Production:**
+
 ```tsx
 using term = createTerm()
 await render(term, <App />)
 ```
 
 **Testing:**
+
 ```tsx
 const render = createTestRenderer({ columns: 80, rows: 24 })
 const result = render(<App />)
-result.stdin.write('\x1b[B')
-expect(result.lastFrameText()).toContain('...')
+result.stdin.write("\x1b[B")
+expect(result.lastFrameText()).toContain("...")
 ```
 
 ### Feature Matrix
 
-| Feature | Testing | Production |
-|---------|---------|------------|
-| Frame capture | `lastFrame()`, `frames[]` | stdout only |
-| Execution | Synchronous | Async |
-| Input | `stdin.write()` | Real stdin |
-| Tree inspection | `getContainer()` | None |
-| Diffing | Disabled | Enabled |
+| Feature         | Testing                   | Production  |
+| --------------- | ------------------------- | ----------- |
+| Frame capture   | `lastFrame()`, `frames[]` | stdout only |
+| Execution       | Synchronous               | Async       |
+| Input           | `stdin.write()`           | Real stdin  |
+| Tree inspection | `getContainer()`          | None        |
+| Diffing         | Disabled                  | Enabled     |
 
 ### Shared: 5-Phase Pipeline
 
@@ -101,20 +105,20 @@ Render as pure generator. Yields frames, receives input. No I/O.
 
 ```tsx
 interface Frame {
-  buffer: TerminalBuffer      // Raw cells
-  output: string              // ANSI diff
-  text: string                // Plain text
-  container: InkxNode         // Component tree
+  buffer: TerminalBuffer // Raw cells
+  output: string // ANSI diff
+  text: string // Plain text
+  container: InkxNode // Component tree
 }
 
 interface RenderEvent {
-  type: 'exit' | 'bell' | 'title' | 'cursor-move'
+  type: "exit" | "bell" | "title" | "cursor-move"
   payload?: unknown
   error?: Error
 }
 
 interface InputEvent {
-  type: 'key' | 'mouse' | 'resize' | 'focus' | 'blur'
+  type: "key" | "mouse" | "resize" | "focus" | "blur"
   data?: string
   // mouse: x, y; resize: columns, rows
 }
@@ -123,16 +127,19 @@ interface InputEvent {
 ### API Layers
 
 **Layer 1: Sync Generator (Core)**
+
 ```tsx
 function* renderSync(element, options): Generator<{ frame, event? }, void, InputEvent?>
 ```
 
 **Layer 2: Async Generator (Event Streams)**
+
 ```tsx
 async function* render(element, events, options): AsyncGenerator<{ frame, event? }>
 ```
 
 **Layer 3: Convenience Wrappers**
+
 ```tsx
 // Production
 async function run(term: Term, element: ReactElement): Promise<void>
@@ -147,16 +154,19 @@ function createTestTerm(options): TestTerm
 // Direct generator (maximum control)
 const gen = renderSync(<Counter />, { columns: 80, rows: 24 })
 const { frame } = gen.next().value!
-expect(frame.text).toContain('Count: 0')
+expect(frame.text).toContain("Count: 0")
 
-const { frame: next } = gen.next({ type: 'key', data: keyToAnsi('ArrowUp') }).value!
-expect(next.text).toContain('Count: 1')
+const { frame: next } = gen.next({
+  type: "key",
+  data: keyToAnsi("ArrowUp"),
+}).value!
+expect(next.text).toContain("Count: 1")
 
 // Convenience wrapper (typical tests)
 using term = createTestTerm({ columns: 80, rows: 24 })
 term.render(<Counter />)
-term.press('ArrowUp')
-expect(term.screenshot()).toContain('Count: 1')
+term.press("ArrowUp")
+expect(term.screenshot()).toContain("Count: 1")
 ```
 
 ### Usage: Production
@@ -169,8 +179,8 @@ await run(term, <App />)
 // Explicit control (advanced)
 for await (const { frame, event } of render(<App />, term.events(), options)) {
   term.write(frame.output)
-  if (event?.type === 'exit') break
-  if (event?.type === 'bell') term.bell()
+  if (event?.type === "exit") break
+  if (event?.type === "bell") term.bell()
 }
 ```
 
@@ -194,15 +204,15 @@ All these systems share a key insight: **pure functions describe effects, an ext
 
 ### Systems Surveyed
 
-| System | Effect Model | How Effects Are Described |
-|--------|--------------|---------------------------|
-| [Elm](https://guide.elm-lang.org/architecture/) | Commands to runtime | `Cmd msg` returned from `update` |
-| [Roc](https://www.roc-lang.org/functional) | Platform + Tasks | `Task` values handed to platform |
-| [Haskell](https://wiki.haskell.org/All_About_Monads) | IO Monad | `IO a` confined, never escapes |
-| [Koka](https://koka-lang.github.io/koka/doc/book.html) | Algebraic effects | Effect types + handlers |
-| [Unison](https://www.unison-lang.org/docs/fundamentals/abilities/) | Abilities | Effect types + handlers |
-| [Cycle.js](https://cycle.js.org/) | Sources/Sinks | Streams in, streams out |
-| [Redux Saga](https://redux-saga.js.org/) | Generator effects | `yield call()`, `yield put()` |
+| System                                                             | Effect Model        | How Effects Are Described        |
+| ------------------------------------------------------------------ | ------------------- | -------------------------------- |
+| [Elm](https://guide.elm-lang.org/architecture/)                    | Commands to runtime | `Cmd msg` returned from `update` |
+| [Roc](https://www.roc-lang.org/functional)                         | Platform + Tasks    | `Task` values handed to platform |
+| [Haskell](https://wiki.haskell.org/All_About_Monads)               | IO Monad            | `IO a` confined, never escapes   |
+| [Koka](https://koka-lang.github.io/koka/doc/book.html)             | Algebraic effects   | Effect types + handlers          |
+| [Unison](https://www.unison-lang.org/docs/fundamentals/abilities/) | Abilities           | Effect types + handlers          |
+| [Cycle.js](https://cycle.js.org/)                                  | Sources/Sinks       | Streams in, streams out          |
+| [Redux Saga](https://redux-saga.js.org/)                           | Generator effects   | `yield call()`, `yield put()`    |
 
 ### Elm: Model-View-Update
 
@@ -261,9 +271,9 @@ fun greet() : console ()
 
 ```js
 function main(sources) {
-  const click$ = sources.DOM.select('button').events('click')
+  const click$ = sources.DOM.select("button").events("click")
   const vtree$ = click$.map(renderView)
-  return { DOM: vtree$ }  // sinks
+  return { DOM: vtree$ } // sinks
 }
 ```
 
@@ -281,8 +291,8 @@ function main(sources) {
 
 ```js
 function* fetchUser(action) {
-  const user = yield call(api.fetch, action.userId)  // describe effect
-  yield put({ type: 'USER_LOADED', user })           // describe dispatch
+  const user = yield call(api.fetch, action.userId) // describe effect
+  yield put({ type: "USER_LOADED", user }) // describe dispatch
 }
 ```
 
@@ -317,14 +327,14 @@ main = do
 
 Our generator-based API embodies these patterns:
 
-| Pattern | Our Implementation |
-|---------|-------------------|
-| Pure core | `renderSync()` has no I/O |
-| Effect descriptions | `RenderEvent` (exit, bell, title) |
-| Runtime executes | `run()` wrapper handles actual I/O |
-| Input via messages | `gen.next(inputEvent)` |
-| Output via yields | `yield { frame, event }` |
-| Testable | Mock inputs, assert on outputs |
+| Pattern             | Our Implementation                 |
+| ------------------- | ---------------------------------- |
+| Pure core           | `renderSync()` has no I/O          |
+| Effect descriptions | `RenderEvent` (exit, bell, title)  |
+| Runtime executes    | `run()` wrapper handles actual I/O |
+| Input via messages  | `gen.next(inputEvent)`             |
+| Output via yields   | `yield { frame, event }`           |
+| Testable            | Mock inputs, assert on outputs     |
 
 **The key architectural insight:** Generators provide a natural "effect boundary" in JavaScript—`yield` describes what to do, the caller decides how to do it.
 
@@ -353,8 +363,8 @@ Keep production and test renderers separate, just improve each.
 ### B. Unified Factory with Mode Switch
 
 ```tsx
-const renderer = createRenderer({ term })  // production
-const renderer = createRenderer({ columns: 80 })  // testing (headless)
+const renderer = createRenderer({ term }) // production
+const renderer = createRenderer({ columns: 80 }) // testing (headless)
 ```
 
 **Pros:** Single entry point
@@ -364,8 +374,8 @@ const renderer = createRenderer({ columns: 80 })  // testing (headless)
 ### C. Term-Centric (term.render())
 
 ```tsx
-term.render(<App />)  // production
-mockTerm.render(<App />)  // testing
+term.render(<App />) // production
+mockTerm.render(<App />) // testing
 ```
 
 **Pros:** Natural ownership
@@ -384,24 +394,24 @@ Pure generator yields frames, receives input. Wrappers for ergonomics.
 
 ## Benefits
 
-| Benefit | Description |
-|---------|-------------|
-| **Purity** | Render has no I/O |
-| **Testability** | `gen.next()` deterministic |
-| **Control** | Full event loop control |
-| **Debuggability** | Frame capture everywhere |
-| **Unification** | Same code, two interfaces |
+| Benefit           | Description                |
+| ----------------- | -------------------------- |
+| **Purity**        | Render has no I/O          |
+| **Testability**   | `gen.next()` deterministic |
+| **Control**       | Full event loop control    |
+| **Debuggability** | Frame capture everywhere   |
+| **Unification**   | Same code, two interfaces  |
 
 ---
 
 ## Risks & Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| Breaking change | Old APIs become wrappers |
-| Generator unfamiliarity | Convenience wrappers hide it |
-| React async batching | `act()` + `updateContainerSync` |
-| Performance | Diffing still works |
+| Risk                    | Mitigation                      |
+| ----------------------- | ------------------------------- |
+| Breaking change         | Old APIs become wrappers        |
+| Generator unfamiliarity | Convenience wrappers hide it    |
+| React async batching    | `act()` + `updateContainerSync` |
+| Performance             | Diffing still works             |
 
 ---
 
@@ -453,13 +463,13 @@ Async variant consuming event stream.
 
 ## Files
 
-| File | Changes |
-|------|---------|
-| `inkx/src/render-gen.ts` | New: `renderSync()`, `render()` |
-| `inkx/src/run.ts` | New: `run()` wrapper |
-| `inkx/src/testing/test-term.ts` | New: `createTestTerm()` |
-| `inkx/src/context.ts` | Events to queue |
-| `inkx/src/index.ts` | Exports |
+| File                            | Changes                         |
+| ------------------------------- | ------------------------------- |
+| `inkx/src/render-gen.ts`        | New: `renderSync()`, `render()` |
+| `inkx/src/run.ts`               | New: `run()` wrapper            |
+| `inkx/src/testing/test-term.ts` | New: `createTestTerm()`         |
+| `inkx/src/context.ts`           | Events to queue                 |
+| `inkx/src/index.ts`             | Exports                         |
 
 ---
 
@@ -468,6 +478,7 @@ Async variant consuming event stream.
 ### 1. term.events() location
 
 **Options:**
+
 - A: Add to @beorn/chalkx Term
 - B: Wrapper in inkx
 
@@ -476,6 +487,7 @@ Async variant consuming event stream.
 ### 2. Resize handling
 
 **Options:**
+
 - A: InputEvent, render re-layouts internally
 - B: Caller restarts render with new dimensions
 
@@ -502,13 +514,13 @@ await run(term, <App />)
 // Before
 const render = createTestRenderer({ columns: 80, rows: 24 })
 const { stdin, lastFrameText } = render(<App />)
-stdin.write('\x1b[B')
-expect(lastFrameText()).toContain('selected')
+stdin.write("\x1b[B")
+expect(lastFrameText()).toContain("selected")
 
 // After
 using term = createTestTerm({ columns: 80, rows: 24 })
-term.render(<App />).press('ArrowDown')
-expect(term.screenshot()).toContain('selected')
+term.render(<App />).press("ArrowDown")
+expect(term.screenshot()).toContain("selected")
 ```
 
 ---

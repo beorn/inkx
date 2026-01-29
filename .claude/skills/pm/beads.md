@@ -231,13 +231,14 @@ No special handling needed in commands - the actor is set automatically based on
 
 These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
 
-| Wrong                 | Correct                         |
-| --------------------- | ------------------------------- |
-| `bd close --note "x"` | `bd close --reason "x"`         |
-| `bd update --id km-x` | `bd update km-x` (positional)   |
+| Wrong                 | Correct                                                 |
+| --------------------- | ------------------------------------------------------- |
+| `bd close --note "x"` | `bd close --reason "x"`                                 |
+| `bd update --id km-x` | `bd update km-x` (positional)                           |
 | `bd create --name`    | `bd create --title` or `bd create <title>` (positional) |
-| `bd update --desc`    | `bd update --description` or `-d` |
+| `bd update --desc`    | `bd update --description` or `-d`                       |
 
 **Note**: `--description` and `--notes` are BOTH valid on `bd update` but serve different purposes:
+
 - `--description` / `-d`: Full issue description (main content)
 - `--notes`: Additional status updates, progress notes

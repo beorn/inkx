@@ -92,16 +92,17 @@ The user's command IS the confirmation. Never re-ask intent that was already exp
 
 **Claim management**:
 
-| Action                     | Command                                      |
-| -------------------------- | -------------------------------------------- |
-| Claim (start work)         | `bd update <id> --claim`                     |
-| Unclaim (return to pool)   | `bd update <id> --assignee "" --status open` |
-| Reassign                   | `bd update <id> --assignee "other-person"`   |
-| View your claims           | `bd list --assignee $USER`                   |
-| View all in-progress       | `bd list --status in_progress`               |
-| Take over stale work       | `bd update <id> --claim` (forcibly reclaims) |
+| Action                   | Command                                      |
+| ------------------------ | -------------------------------------------- |
+| Claim (start work)       | `bd update <id> --claim`                     |
+| Unclaim (return to pool) | `bd update <id> --assignee "" --status open` |
+| Reassign                 | `bd update <id> --assignee "other-person"`   |
+| View your claims         | `bd list --assignee $USER`                   |
+| View all in-progress     | `bd list --status in_progress`               |
+| Take over stale work     | `bd update <id> --claim` (forcibly reclaims) |
 
 **Stale claim guidelines** (check: `bd show <id> --json | jq -r '.updated_at'`):
+
 - **Agent claims** (`claude:*`): Stale after ~20 min, safe to reclaim
 - **User claims** (`beorn`): Stale after ~24 hours, check before reclaiming
 

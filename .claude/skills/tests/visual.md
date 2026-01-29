@@ -29,7 +29,7 @@ test("navigation works", () => {
     ),
   )
 
-  board.press("ArrowDown")  // Playwright-style key name
+  board.press("ArrowDown") // Playwright-style key name
   board.expect("#1a[data-cursor]").toExist()
 })
 ```
@@ -40,25 +40,25 @@ Use Playwright-style key names instead of raw ANSI codes:
 
 ```typescript
 // Navigation keys
-board.press("ArrowDown")   // Instead of "\x1b[B"
-board.press("ArrowUp")     // Instead of "\x1b[A"
-board.press("ArrowLeft")   // Instead of "\x1b[D"
-board.press("ArrowRight")  // Instead of "\x1b[C"
+board.press("ArrowDown") // Instead of "\x1b[B"
+board.press("ArrowUp") // Instead of "\x1b[A"
+board.press("ArrowLeft") // Instead of "\x1b[D"
+board.press("ArrowRight") // Instead of "\x1b[C"
 
 // Action keys
-board.press("Enter")       // Instead of "\r"
-board.press("Escape")      // Instead of "\x1b"
-board.press("Tab")         // Instead of "\t"
-board.press("Space")       // Instead of " "
-board.press("Backspace")   // Instead of "\x08"
+board.press("Enter") // Instead of "\r"
+board.press("Escape") // Instead of "\x1b"
+board.press("Tab") // Instead of "\t"
+board.press("Space") // Instead of " "
+board.press("Backspace") // Instead of "\x08"
 
 // Modifier combinations
-board.press("Control+c")   // Ctrl+C
-board.press("Shift+Tab")   // Shift+Tab
+board.press("Control+c") // Ctrl+C
+board.press("Shift+Tab") // Shift+Tab
 
 // Single characters work as-is
-board.press("j")           // vim-style down
-board.press("k")           // vim-style up
+board.press("j") // vim-style down
+board.press("k") // vim-style up
 ```
 
 ### Key APIs

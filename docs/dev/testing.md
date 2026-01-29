@@ -226,17 +226,17 @@ Use Playwright-style key names instead of raw ANSI escape codes:
 
 ```typescript
 // Navigation keys
-board.press("ArrowDown")   // Instead of "\x1b[B"
-board.press("ArrowUp")     // Instead of "\x1b[A"
-board.press("Enter")       // Instead of "\r"
-board.press("Escape")      // Instead of "\x1b"
-board.press("Tab")         // Instead of "\t"
+board.press("ArrowDown") // Instead of "\x1b[B"
+board.press("ArrowUp") // Instead of "\x1b[A"
+board.press("Enter") // Instead of "\r"
+board.press("Escape") // Instead of "\x1b"
+board.press("Tab") // Instead of "\t"
 
 // Modifier combinations
-board.press("Control+c")   // Ctrl+C
+board.press("Control+c") // Ctrl+C
 
 // Single characters work as-is
-board.press("j")           // vim-style down
+board.press("j") // vim-style down
 ```
 
 **Custom matchers for InkxLocator**:

@@ -55,12 +55,49 @@ rg -B2 -A2 'unknown flag.*--note' \
 
 | Category       | Pattern              | Fix Location         |
 | -------------- | -------------------- | -------------------- |
-| bd flag errors | `bd <cmd> --<wrong>` | skills/pm/bd.md      |
+| bd flag errors | `bd <cmd> --<wrong>` | skills/pm/beads.md   |
 | km flag errors | `km <cmd> --<wrong>` | skills/tui/SKILL.md  |
 | Bash syntax    | Newlines, quoting    | CLAUDE.md            |
 | Missing PATH   | `cmd` → `bun cmd`    | CLAUDE.md            |
 | macOS vs GNU   | GNU flags on macOS   | CLAUDE.md            |
 | MCP params     | Wrong param names    | skills/claude/mcp.md |
+
+### Step 3b: Layer Classification (3-Layer Promotion System)
+
+Errors are documented at three layers with different loading costs:
+
+| Layer | Location            | Loads When    | Cost   |
+| ----- | ------------------- | ------------- | ------ |
+| L1    | Sub-file (beads.md) | Read tool     | Low    |
+| L2    | SKILL.md entry      | /pm activated | Medium |
+| L3    | CLAUDE.md           | Every message | High   |
+
+**Movement thresholds:**
+
+| Direction      | Threshold        | Notes                         |
+| -------------- | ---------------- | ----------------------------- |
+| → L1 (add)     | ≥3 occurrences   | First documentation           |
+| L1 → L2        | ≥5 after L1      | Skill may not be loading      |
+| L2 → L3        | ≥5 after L2      | Must see every message        |
+| L1 → L3 (skip) | Critical error   | Data loss, security, blocking |
+| L3 → L2        | 0 in 10 sessions | Skill loading working         |
+| L2 → L1        | 0 in 10 sessions | Well-learned pattern          |
+| L3 → L1 (skip) | 0 in 20 sessions | Fully resolved                |
+| Remove         | 0 in 30 sessions | Obsolete                      |
+
+**Judgment factors for aggressive promotion:**
+
+- User explicitly complains about the error
+- Error causes cascading failures or work loss
+- Error occurs in committed code
+
+**Judgment factors for aggressive demotion:**
+
+- Error completely stopped after fix
+- Pattern well-established in Claude's behavior
+- Token budget is tight (L3 costs ~4 tokens/line every message)
+
+**Check current layer:** `rg '<pattern>' CLAUDE.md .claude/skills/*/SKILL.md .claude/skills/*/*.md`
 
 ### Step 4: Propose Fixes
 
