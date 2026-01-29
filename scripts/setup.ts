@@ -180,7 +180,7 @@ async function main() {
   }
 
   // 6. Check direnv is allowed for this directory
-  if (hasDirenv && existsSync(join(KM_ROOT, ".envrc"))) {
+  if (hasDirenv) {
     log("🔐 Checking direnv...")
     const direnvStatus = await $`direnv status`.quiet().nothrow()
     const statusText = direnvStatus.stdout.toString()
