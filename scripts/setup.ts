@@ -76,14 +76,14 @@ async function checkCommand(cmd: string): Promise<boolean> {
 }
 
 /**
- * Backup a file before editing (only if it exists and no backup exists yet)
+ * Backup a file before editing with timestamp
  */
-function backupFile(filePath: string): void {
-  if (!existsSync(filePath)) return
-  const backupPath = `${filePath}.km-backup`
-  if (!existsSync(backupPath)) {
-    copyFileSync(filePath, backupPath)
-  }
+function backupFile(filePath: string): string | null {
+  if (!existsSync(filePath)) return null
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+  const backupPath = `${filePath}.km-backup-${timestamp}`
+  copyFileSync(filePath, backupPath)
+  return backupPath
 }
 
 async function main() {
@@ -127,9 +127,20 @@ async function main() {
 
   const shellrcContent = existsSync(shellrc) ? await Bun.file(shellrc).text() : ""
 
+  // Track if we need to edit
+  let needsEdit = false
+  if (hasOmz) {
+    needsEdit = !(shellrcContent.includes("direnv") && shellrcContent.includes("plugins="))
+  } else {
+    needsEdit = !shellrcContent.includes("direnv hook")
+  }
+
   // Backup before editing
-  if (existsSync(shellrc)) {
-    backupFile(shellrc)
+  if (needsEdit && existsSync(shellrc)) {
+    const backupPath = backupFile(shellrc)
+    if (backupPath) {
+      log(`   📋 Backed up to ${backupPath}`)
+    }
   }
 
   if (hasOmz) {
