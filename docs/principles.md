@@ -33,6 +33,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 3. **Code for Humans** — Make the "right way" locally obvious
    - Principle: Inverted Pyramid
    - Naming Conventions
+   - No Prop Drilling
    - No Hidden Side Effects
    - Local Reasoning
    - API Boundaries
@@ -60,6 +61,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 - [Part 3: Code for Humans](#part-3-code-for-humans)
   - [Principle: Inverted Pyramid](#principle-inverted-pyramid)
   - [Naming Conventions](#naming-conventions)
+  - [No Prop Drilling](#no-prop-drilling)
   - [No Hidden Side Effects](#no-hidden-side-effects)
   - [Local Reasoning](#local-reasoning)
   - [API Boundaries](#api-boundaries)
@@ -600,6 +602,51 @@ interface RepoOptions {
   }
 }
 ```
+
+---
+
+### No Prop Drilling
+
+**The rule**: Don't repeat the same 10 props through every layer. Reduce props, use spread, or align names.
+
+**The anti-pattern**: Passing the same props through multiple layers with slight name changes.
+
+```typescript
+// ❌ BAD - prop drilling with aliasing
+function Parent({ userId, userName, userEmail, userRole, theme, locale, debug, logger, config, flags }) {
+  return <Child
+    id={userId}
+    name={userName}
+    email={userEmail}
+    role={userRole}
+    currentTheme={theme}
+    currentLocale={locale}
+    isDebug={debug}
+    log={logger}
+    settings={config}
+    featureFlags={flags}
+  />
+}
+
+// ✅ GOOD - spread with aligned names
+function Parent(props) {
+  return <Child {...props} />
+}
+
+// ✅ GOOD - group related props into objects
+function Parent({ user, env }) {
+  return <Child user={user} env={env} />
+}
+```
+
+**Guidelines**:
+
+- **Align names across layers**: If it's `theme` in the parent, keep it `theme` in the child—no `currentTheme` aliasing
+- **Use spread for pass-through**: `<Child {...props} />` or `<Child {...pick(props, ['a', 'b'])} />`
+- **Group related props**: Instead of 5 user fields, pass a `user` object
+- **Use context for truly global state**: Theme, locale, auth—things every component needs
+
+**Why**: Prop drilling creates maintenance burden. When you add a prop at the top, you must thread it through every layer. Aligned names and spread eliminate this busywork.
 
 ---
 

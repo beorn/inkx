@@ -36,6 +36,7 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 - **DI via inject**: Pass deps via `options.inject`, no globals/singletons/`getX()`
 - **No import side effects**: Module init must not perform work
 - **Sensible defaults**: Defaults → arguments → config files (last resort)
+- **No prop drilling**: Use `...spread`, align names across layers; don't repeat 10 props
 - **Async generators**: Use for pipelines, not `Promise.all` chains
 - **Disposables**: Use `using`/`await using` for cleanup (`Symbol.dispose`)
 - **Fail fast**: Throw on invalid state, no defensive fallbacks
