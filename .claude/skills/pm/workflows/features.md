@@ -186,7 +186,7 @@ For features needing 5+ subtasks:
 ```bash
 bd create --id km-epic-<slug> --type epic --title "<name>"
 bd create --id km-epic-<slug>.a --type task --title "<first>" --parent km-epic-<slug>
-bd update km-epic-<slug>.a --claim --status in_progress
+bd update km-epic-<slug>.a --claim
 ```
 
 **Multi-package epics**: Use `/max` to parallelize subtasks across packages.

@@ -132,19 +132,16 @@ Exact match (open)?
 1. **Find next sequence number:**
 
    ```bash
-   # For km-storage.bug-N-slug pattern:
-   bd list --all | grep "km-<scope>.<type>" | tail -1
-   # Extract N, use N+1
+   # For km-<scope>-N pattern:
+   bd list --all | grep "km-<scope>-"
+   # Find highest N, use N+1
    ```
 
-2. **Generate slug:**
-   - Take first 3-4 keywords from description
-   - Convert to kebab-case
-   - Example: "Fix sync race condition" → "fix-sync-race"
+2. **Construct ID:**
+   - `km-<scope>-<N+1>`
+   - Example: `km-storage-15`
 
-3. **Construct ID:**
-   - `km-<scope>.<type>-<N+1>-<slug>`
-   - Example: `km-storage.bug-3-sync-race`
+**Note**: Type/priority/labels go in metadata fields, not the ID. See [beads-ids.md](beads-ids.md).
 
 ### Create bead:
 
@@ -165,11 +162,14 @@ bd create \
 ### Update related beads if dependencies identified:
 
 ```bash
-# Add dependency
+# Add dependency (new-id is blocked by blocking-id)
 bd dep add <new-id> <blocking-id>
 
 # Link to parent epic
 bd update <new-id> --parent <epic-id>
+
+# Or use --deps at creation time
+bd create --id km-tui-8.1 --title "Subtask" --deps "parent-child:km-tui-8"
 ```
 
 ---
@@ -201,8 +201,10 @@ Use AskUserQuestion with two options.
 ### Claim the bead:
 
 ```bash
-bd update <id> --claim --status in_progress
+bd update <id> --claim
 ```
+
+(`--claim` atomically sets assignee + status=in_progress)
 
 ### Delegate by type
 

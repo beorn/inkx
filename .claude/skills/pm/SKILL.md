@@ -34,7 +34,7 @@ When user says `/pm <action>`, run these commands:
 | `/pm close <id>`    | `bd close <id>`                                              | action      |
 | `/pm sync`          | `git add .beads && git commit -m "chore: sync beads"`        | action      |
 | `/pm my`            | `bd list --assignee $USER`                                   | info        |
-| `/pm new <id> "t"`  | `bd create --id km-<id> --title "t"`                         | action      |
+| `/pm new <id> "t"`  | `bd create --id <id> --title "t"` (ID should start with km-) | action      |
 | `/pm create ...`    | See [beads.md](beads.md) for full create syntax              | action      |
 
 **Review modes**: `status` (health summary), `ready` (actionable work), `groom` (full review)
@@ -54,7 +54,7 @@ Commands have different intents that determine follow-up behavior:
 
 When user says `/pm work <id>` or `/pm do <id>`:
 
-1. **Claim the bead**: `bd update <id> --claim --status in_progress`
+1. **Claim the bead**: `bd update <id> --claim` (sets assignee + status=in_progress)
 2. **Get bead details**: `bd show <id>` to determine type
 3. **Proceed DIRECTLY to implementation** - DO NOT ask "should I start work?"
 4. **Load appropriate workflow** based on bead type:
@@ -67,28 +67,43 @@ The user's command IS the confirmation. Never re-ask intent that was already exp
 ## Workflow
 
 1. **Find work**: `bd ready` or `bd list`
-2. **Claim work**: `bd update <id> --claim --status in_progress` - MANDATORY before coding
+2. **Claim work**: `bd update <id> --claim` - MANDATORY before coding
 3. **Implement**: Do the work
-4. **Complete**: `bd close <id>`
+4. **Complete**: `bd close <id> --reason "..."`
 5. **Commit**: `git add .beads && git commit -m "chore: sync beads"`
+
+## Quick Reference: Common Flag Mistakes
+
+| Command     | Wrong    | Correct                                      |
+| ----------- | -------- | -------------------------------------------- |
+| `bd update` | `--desc` | `--description` or `-d`                      |
+| `bd close`  | `--note` | `--reason` or `-r`                           |
+| `bd create` | `--name` | `--title` or positional: `bd create <title>` |
+
+**Note**: `--description` and `--notes` are both valid on `bd update` (different fields).
 
 ## Session Coordination
 
-**Actor tracking** (automatic):
+**Actor tracking** (automatic via session prehook):
 
-- Each Claude session has unique actor ID: `claude:abc12345` (from $BD_ACTOR)
-- User operations use actor: `beorn` (from $USER)
+- Claude sessions: `BD_ACTOR=claude:<sessionId>` (set by `.claude/settings.json` prehook)
+- User shells: Uses `$USER` (e.g., "beorn")
 - See [beads.md Actor Attribution](beads.md#actor-attribution-audit-trail) for details
 
-**Claim management** (manual):
+**Claim management**:
 
-- Claims don't auto-expire - use `bd list --status in_progress` to see active work
-- **Stale claim guidelines** (check age with `bd show <id> --json | jq -r '.[0].updated_at'`):
-  - **Agent claims** (actor=`claude:*`): Stale after **20 minutes** of inactivity, safe to reclaim
-  - **User claims** (actor=`beorn`): Stale after **24 hours** of inactivity, check before reclaiming
-- Take over stale work: `bd update <id> --claim` (forcibly claims, updates assignee)
-- View your claims: `bd list --assignee $USER`
-- Actor field shows who last worked on each bead (audit trail)
+| Action                     | Command                                      |
+| -------------------------- | -------------------------------------------- |
+| Claim (start work)         | `bd update <id> --claim`                     |
+| Unclaim (return to pool)   | `bd update <id> --assignee "" --status open` |
+| Reassign                   | `bd update <id> --assignee "other-person"`   |
+| View your claims           | `bd list --assignee $USER`                   |
+| View all in-progress       | `bd list --status in_progress`               |
+| Take over stale work       | `bd update <id> --claim` (forcibly reclaims) |
+
+**Stale claim guidelines** (check: `bd show <id> --json | jq -r '.updated_at'`):
+- **Agent claims** (`claude:*`): Stale after ~20 min, safe to reclaim
+- **User claims** (`beorn`): Stale after ~24 hours, check before reclaiming
 
 ## Big Refactoring Beads
 

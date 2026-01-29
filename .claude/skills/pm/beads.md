@@ -82,8 +82,9 @@ bd list --json | jq -r '.[] | "\(.id) \(.title)"'
 ### ID Pattern
 
 ```text
-km-<scope>.<type>-<N>-<slug>    # Package-specific
-km-<type>-<slug>                # Cross-cutting
+km-<scope>-<N>         # Package-specific (recommended)
+km-<scope>-<N>.<N>     # Subtasks under parent
+km-<keyword>           # Cross-cutting/named initiatives
 ```
 
 **Scope tokens**: storage, board, tree, tui, cli, markdown, beads, agent
@@ -92,22 +93,22 @@ km-<type>-<slug>                # Cross-cutting
 
 ```bash
 # Find next number for scope
-bd list --all | grep "km-storage.bug" | tail -1
+bd list --all | grep "km-storage-"
 
 # Package-specific bug
-bd create --id km-storage.bug-3-sync-race --type bug --title "Race in file sync"
+bd create --id km-storage-15 --type bug --title "Race in file sync"
 
 # Feature with subtasks
-bd create --id km-tui.feat-1-vim-mode --type feature --priority 1 \
+bd create --id km-tui-8 --type feature --priority 1 \
   --title "Add vim keybindings" \
   --description "Full description here"
 
-bd create --id km-tui.feat-1-vim-mode.a --type task \
+bd create --id km-tui-8.1 --type task \
   --title "Normal mode navigation" \
-  --parent km-tui.feat-1-vim-mode
+  --parent km-tui-8
 
-# Cross-cutting issue (no scope)
-bd create --id km-bug-watcher-race --type bug --title "Watcher race condition"
+# Cross-cutting initiative (keyword-based)
+bd create --id km-dark-mode --type epic --title "Dark mode support"
 
 # Quick capture (outputs only ID)
 bd q "Quick note about issue"
@@ -117,12 +118,47 @@ bd q "Quick note about issue"
 
 ```bash
 bd update km-abc123 --status in_progress
-bd update km-abc123 --claim           # Atomic claim
 bd update km-abc123 --notes "Progress: fixed X, still need Y"
 bd update km-abc123 --priority 1
 bd update km-abc123 --title "New title"
 bd update km-abc123 --status in_progress --priority 0 --notes "Starting"
 ```
+
+## Claiming & Unclaiming Work
+
+**Claim** = assign to yourself + set status to in_progress (atomic operation).
+
+```bash
+# Claim a bead (REQUIRED before starting work)
+bd update <id> --claim
+
+# What --claim does:
+#   1. Sets assignee to $BD_ACTOR or $USER
+#   2. Sets status to in_progress
+#   3. Fails if already claimed by someone else (prevents conflicts)
+
+# Forcibly take over (use for stale claims)
+bd update <id> --claim              # Overwrites existing assignee
+
+# Unclaim / release a bead (return to pool)
+bd update <id> --assignee "" --status open
+
+# Reassign to someone else
+bd update <id> --assignee "other-person"
+```
+
+**Workflow:**
+
+1. `bd ready` → find available work
+2. `bd update <id> --claim` → claim before coding
+3. Do the work
+4. `bd close <id> --reason "..."` → marks done, clears assignee
+
+**Stale claim guidelines:**
+
+- Agent claims (`claude:*`): Stale after ~20 min inactivity
+- User claims (`beorn`): Stale after ~24 hours inactivity
+- Check: `bd show <id> --json | jq -r '.updated_at'`
 
 ## Closing Beads
 
@@ -162,10 +198,10 @@ bd ready --unassigned
 The `bd` command tracks who performs actions via the `--actor` flag. This is automatically set by environment variables:
 
 - **User operations**: Uses `$USER` (typically "beorn")
-- **Agent operations**: Uses `$BD_ACTOR` (set automatically by SessionStart hook to "claude:sessionId")
+- **Agent operations**: Uses `$BD_ACTOR` (set by Claude Code session prehook to "claude:sessionId")
 - **Manual override**: `bd update <id> --actor "custom-name"`
 
-The SessionStart hook automatically sets `BD_ACTOR=claude:abc12345` for each agent session, making every Claude instance a distinct actor. All bd commands in that session (update, create, close, etc.) automatically inherit this actor.
+The Claude Code session prehook (in `.claude/settings.json`) automatically exports `BD_ACTOR=claude:<sessionId>` for each agent session, making every Claude instance a distinct actor. All bd commands in that session (update, create, close, etc.) automatically inherit this actor.
 
 **Examples:**
 
@@ -195,8 +231,13 @@ No special handling needed in commands - the actor is set automatically based on
 
 These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
 
-| Wrong                  | Correct                       |
-| ---------------------- | ----------------------------- |
-| `bd close --note "x"`  | `bd close --reason "x"`       |
-| `bd update --id km-x`  | `bd update km-x` (positional) |
-| `bd create --name "x"` | `bd create --title "x"`       |
+| Wrong                 | Correct                         |
+| --------------------- | ------------------------------- |
+| `bd close --note "x"` | `bd close --reason "x"`         |
+| `bd update --id km-x` | `bd update km-x` (positional)   |
+| `bd create --name`    | `bd create --title` or `bd create <title>` (positional) |
+| `bd update --desc`    | `bd update --description` or `-d` |
+
+**Note**: `--description` and `--notes` are BOTH valid on `bd update` but serve different purposes:
+- `--description` / `-d`: Full issue description (main content)
+- `--notes`: Additional status updates, progress notes
