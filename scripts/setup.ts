@@ -42,13 +42,18 @@ const STALE_SUBMODULES = [
 async function main() {
   log("🔧 km setup\n")
 
-  // 1. Initialize and update submodules
+  // 1. Configure git for submodule auto-update
+  log("⚙️  Configuring git...")
+  await $`git config submodule.recurse true`.quiet()
+  log("   ✓ submodule.recurse = true (auto-update on pull/checkout)\n")
+
+  // 2. Initialize and update submodules
   log("📦 Initializing submodules...")
   await $`git submodule init`.quiet()
   await $`git submodule update`.quiet()
   log("   ✓ Submodules initialized\n")
 
-  // 2. Clean up stale .git/config entries
+  // 3. Clean up stale .git/config entries
   log("🧹 Cleaning stale config entries...")
   for (const stale of STALE_SUBMODULES) {
     try {
@@ -60,7 +65,7 @@ async function main() {
   }
   log("")
 
-  // 3. Link post-commit hooks to all submodules
+  // 4. Link post-commit hooks to all submodules
   log("🔗 Linking submodule hooks...")
   let changedHooks = 0
 
@@ -124,7 +129,7 @@ async function main() {
   }
   log("")
 
-  // 4. Install dependencies (skip in quiet mode - assume already done)
+  // 5. Install dependencies (skip in quiet mode - assume already done)
   if (!QUIET) {
     log("📥 Installing dependencies...")
     const result = await $`bun install`.nothrow()
