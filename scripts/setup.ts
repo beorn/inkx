@@ -155,28 +155,42 @@ async function main() {
 
   // Install nix-direnv (needed for 'use flake' in .envrc)
   log("   🔍 Checking nix-direnv...")
+  const nixDirenvPath = join(process.env.HOME ?? "", ".nix-profile/share/nix-direnv/direnvrc")
   const direnvrcPath = join(process.env.HOME ?? "", ".direnvrc")
-  const direnvrcContent = existsSync(direnvrcPath) ? await Bun.file(direnvrcPath).text() : ""
-  const hasNixDirenv = direnvrcContent.includes("nix-direnv")
 
-  if (!hasNixDirenv) {
-    log("   ⚠ nix-direnv not configured - installing...")
+  // Step 1: Ensure nix-direnv package is installed
+  if (!existsSync(nixDirenvPath)) {
+    log("   ⚠ nix-direnv not installed - installing...")
     const installNixDirenv = await $`nix profile add nixpkgs#nix-direnv`.quiet().nothrow()
     if (installNixDirenv.exitCode !== 0) {
       console.error("   ✗ Failed to install nix-direnv")
       console.error(installNixDirenv.stderr.toString())
       process.exit(1)
     }
+    // Verify installation
+    if (!existsSync(nixDirenvPath)) {
+      console.error("   ✗ nix-direnv installed but direnvrc not found at expected path")
+      console.error(`     Expected: ${nixDirenvPath}`)
+      console.error("     Try: nix profile list | grep nix-direnv")
+      process.exit(1)
+    }
+    log("   ✓ nix-direnv installed")
+  } else {
+    log("   ✓ nix-direnv installed")
+  }
 
-    // Configure direnvrc to use nix-direnv
+  // Step 2: Ensure ~/.direnvrc sources nix-direnv
+  const direnvrcContent = existsSync(direnvrcPath) ? await Bun.file(direnvrcPath).text() : ""
+  if (!direnvrcContent.includes("nix-direnv")) {
+    log("   📝 Configuring ~/.direnvrc to use nix-direnv...")
     if (existsSync(direnvrcPath)) {
       backupFile(direnvrcPath)
     }
-    const nixDirenvSource = `\n# Added by km setup - enables 'use flake' command\nsource $HOME/.nix-profile/share/nix-direnv/direnvrc\n`
-    await Bun.write(direnvrcPath, direnvrcContent + nixDirenvSource)
-    log("   ✓ nix-direnv installed and configured")
+    const nixDirenvSource = `# Added by km setup - enables 'use flake' command\nsource $HOME/.nix-profile/share/nix-direnv/direnvrc\n`
+    await Bun.write(direnvrcPath, nixDirenvSource + direnvrcContent)
+    log("   ✓ ~/.direnvrc configured")
   } else {
-    log("   ✓ nix-direnv configured")
+    log("   ✓ ~/.direnvrc configured")
   }
 
   // Check if direnv is hooked into shell and add if not
