@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 import {
   ANSI_REGEX,
   displayLength,
@@ -13,8 +13,8 @@ import {
 } from "../../src/text/rich.ts"
 
 // Create a term with forced color for testing
-const term = createTerm({ colors: "truecolor" })
-const style = term.style()
+const term = createTerm({ color: "truecolor" })
+const style = term
 
 // ============================================================================
 // ANSI Utilities

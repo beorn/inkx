@@ -11,7 +11,8 @@
  * - `stripAnsi(styled)` - remove all ANSI escape codes
  */
 
-import { createTerm, dashedUnderline, type StyleChain } from "chalkx"
+import { createTerm, type StyleChain } from "inkx"
+import { dashedUnderline } from "chalkx"
 import stringWidth from "string-width"
 
 // Module-level term instance for styling (lazily initialized)
@@ -19,9 +20,9 @@ import stringWidth from "string-width"
 let _term: ReturnType<typeof createTerm> | null = null
 function getStyle(): StyleChain {
   if (!_term) {
-    _term = createTerm({ colors: "truecolor" })
+    _term = createTerm({ color: "truecolor" })
   }
-  return _term.style()
+  return _term
 }
 
 // ============================================================================

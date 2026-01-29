@@ -4,7 +4,7 @@
  * Pure functions for formatting issue data for CLI output.
  */
 
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import type { Issue } from "@km/beads"
@@ -63,10 +63,10 @@ export function printIssue(issue: Issue): void {
   const status = bdStatus(issue.status)
   const type = issue.type || "task"
   const location = issue.parentContext
-    ? term.style().dim(` (${issue.parentContext})`)
+    ? term.dim(` (${issue.parentContext})`)
     : ""
   console.log(
-    `${term.style().cyan(issue.shortId)} [P${issue.priority}] [${type}] ${status} - ${issue.title}${location}`,
+    `${term.cyan(issue.shortId)} [P${issue.priority}] [${type}] ${status} - ${issue.title}${location}`,
   )
 }
 
@@ -76,10 +76,10 @@ export function printIssue(issue: Issue): void {
 export function printReadyIssue(issue: Issue, index: number): void {
   const type = issue.type || "task"
   const location = issue.parentContext
-    ? term.style().dim(` (${issue.parentContext})`)
+    ? term.dim(` (${issue.parentContext})`)
     : ""
   console.log(
-    `${index}. [P${issue.priority}] [${type}] ${term.style().cyan(issue.shortId)}: ${issue.title}${location}`,
+    `${index}. [P${issue.priority}] [${type}] ${term.cyan(issue.shortId)}: ${issue.title}${location}`,
   )
 }
 
@@ -87,7 +87,7 @@ export function printReadyIssue(issue: Issue, index: number): void {
  * Print issue details in bd show format
  */
 export function printIssueDetails(issue: Issue): void {
-  console.log(`${term.style().bold(issue.shortId)}: ${issue.title}`)
+  console.log(`${term.bold(issue.shortId)}: ${issue.title}`)
   console.log(`Status: ${bdStatus(issue.status)}`)
   console.log(`Priority: P${issue.priority}`)
   console.log(`Type: ${issue.type || "task"}`)

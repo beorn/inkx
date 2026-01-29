@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { resolvePathArg } from "@km/storage"
@@ -29,7 +29,7 @@ export function createStatusCommand() {
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {
-        console.error(term.style().red(`No task found with ID prefix: ${id}`))
+        console.error(term.red(`No task found with ID prefix: ${id}`))
         process.exit(1)
       }
 
@@ -50,12 +50,12 @@ export function createStatusCommand() {
         const status = task.task_status ?? "todo"
         const statusIcon =
           status === "done"
-            ? term.style().green("✓")
+            ? term.green("✓")
             : status === "wip"
-              ? term.style().yellow("●")
+              ? term.yellow("●")
               : status === "blocked"
-                ? term.style().red("✗")
-                : term.style().dim("○")
+                ? term.red("✗")
+                : term.dim("○")
 
         console.log(
           `${statusIcon} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`,
@@ -66,9 +66,9 @@ export function createStatusCommand() {
       // Set mode - update the status
       const validStatuses = ["todo", "wip", "blocked", "done", "dropped"]
       if (!validStatuses.includes(newStatus)) {
-        console.error(term.style().red(`Invalid status: ${newStatus}`))
+        console.error(term.red(`Invalid status: ${newStatus}`))
         console.error(
-          term.style().dim(`Valid statuses: ${validStatuses.join(", ")}`),
+          term.dim(`Valid statuses: ${validStatuses.join(", ")}`),
         )
         process.exit(1)
       }
@@ -87,15 +87,15 @@ export function createStatusCommand() {
 
       const statusIcon =
         newStatus === "done"
-          ? term.style().green("✓")
+          ? term.green("✓")
           : newStatus === "wip"
-            ? term.style().yellow("●")
+            ? term.yellow("●")
             : newStatus === "blocked"
-              ? term.style().red("✗")
-              : term.style().dim("○")
+              ? term.red("✗")
+              : term.dim("○")
 
       console.log(
-        `${statusIcon} ${term.style().dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
+        `${statusIcon} ${term.dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
       )
     })
 }

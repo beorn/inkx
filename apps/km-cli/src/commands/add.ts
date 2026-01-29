@@ -10,7 +10,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { ulid } from "ulid"
@@ -40,16 +40,16 @@ export const addCommand = new Command("add")
     using repo = await loadRepo(resolvedTarget.repoRoot)
 
     if (!resolvedTarget.nodeRef) {
-      console.error(term.style().red(`Cannot add to a directory`))
+      console.error(term.red(`Cannot add to a directory`))
       process.exit(1)
     }
 
     // Resolve target board/container
     const targetNode = repo.resolveNode(resolvedTarget.nodeRef)
     if (!targetNode) {
-      console.error(term.style().red(`Target not found: ${target}`))
+      console.error(term.red(`Target not found: ${target}`))
       console.error(
-        term.style().dim("Use ID, path, or filename (e.g., @next, @inbox.md)"),
+        term.dim("Use ID, path, or filename (e.g., @next, @inbox.md)"),
       )
       process.exit(1)
     }
@@ -82,11 +82,11 @@ export const addCommand = new Command("add")
       }
 
       // Nothing found
-      console.warn(term.style().yellow(`No tasks found for: ${source}`))
+      console.warn(term.yellow(`No tasks found for: ${source}`))
     }
 
     if (tasksToAdd.length === 0) {
-      console.log(term.style().yellow("No tasks to add"))
+      console.log(term.yellow("No tasks to add"))
       process.exit(0)
     }
 
@@ -123,16 +123,14 @@ export const addCommand = new Command("add")
     let nextIdx = Date.now()
 
     if (options.dryRun) {
-      console.log(term.style().cyan("Dry run - would link:"))
+      console.log(term.cyan("Dry run - would link:"))
       for (const task of tasksToAdd) {
         console.log(
-          `  ${term.style().dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
+          `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
         )
       }
       console.log(
-        term
-          .style()
-          .dim(`\nTo: ${targetNode.content || targetNode.fs_path || target}`),
+        term.dim(`\nTo: ${targetNode.content || targetNode.fs_path || target}`),
       )
       return
     }
@@ -166,17 +164,15 @@ export const addCommand = new Command("add")
     }
 
     console.log(
-      term.style().green("✓"),
+      term.green("✓"),
       `Linked ${tasksToAdd.length} task(s) to ${targetNode.content || target}`,
     )
     for (const task of tasksToAdd.slice(0, 5)) {
       console.log(
-        term
-          .style()
-          .dim(`  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`),
+        term.dim(`  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`),
       )
     }
     if (tasksToAdd.length > 5) {
-      console.log(term.style().dim(`  ... and ${tasksToAdd.length - 5} more`))
+      console.log(term.dim(`  ... and ${tasksToAdd.length - 5} more`))
     }
   })

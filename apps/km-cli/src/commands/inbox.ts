@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import type { Repo } from "@km/storage"
@@ -34,7 +34,7 @@ export const inboxCommand = new Command("inbox")
         console.log(JSON.stringify({ items: [], count: 0 }))
       } else {
         console.log(
-          term.style().yellow("No inbox found. Create an inbox/ folder."),
+          term.yellow("No inbox found. Create an inbox/ folder."),
         )
       }
       return
@@ -47,7 +47,7 @@ export const inboxCommand = new Command("inbox")
       if (options.json) {
         console.log(JSON.stringify({ items: [], count: 0 }))
       } else {
-        console.log(term.style().green("Inbox is empty!"))
+        console.log(term.green("Inbox is empty!"))
       }
       return
     }
@@ -60,10 +60,10 @@ export const inboxCommand = new Command("inbox")
         }),
       )
     } else {
-      console.log(term.style().bold(`Inbox (${items.length} items):\n`))
+      console.log(term.bold(`Inbox (${items.length} items):\n`))
       for (const item of items) {
         console.log(
-          `  ${term.style().dim(item.id.slice(0, 7))} ${item.content}`,
+          `  ${term.dim(item.id.slice(0, 7))} ${item.content}`,
         )
       }
     }
@@ -79,7 +79,7 @@ inboxCommand
 
     if (!inbox) {
       console.log(
-        term.style().yellow("No inbox found. Create an inbox/ folder."),
+        term.yellow("No inbox found. Create an inbox/ folder."),
       )
       return
     }
@@ -88,7 +88,7 @@ inboxCommand
     const items = repo.getChildren(inbox.id).filter((n) => n.type === "task")
 
     if (items.length === 0) {
-      console.log(term.style().green("Inbox is empty!"))
+      console.log(term.green("Inbox is empty!"))
       return
     }
 
@@ -107,15 +107,15 @@ inboxCommand
       })
     }
 
-    console.log(term.style().bold("\nInbox Processing\n"))
+    console.log(term.bold("\nInbox Processing\n"))
     console.log("Keys: [n]ext  [s]omeday  [d]one  [D]elete  [q]uit\n")
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
       if (!item) continue
 
-      console.log(term.style().dim(`\nItem ${i + 1} of ${items.length}:`))
-      console.log(term.style().bold(item.content || "(no content)"))
+      console.log(term.dim(`\nItem ${i + 1} of ${items.length}:`))
+      console.log(term.bold(item.content || "(no content)"))
 
       let processed = false
       while (!processed) {
@@ -126,9 +126,9 @@ inboxCommand
           case "n": // Move to next
             if (nextNode) {
               repo.moveNode(item.id, nextNode.id, 0)
-              console.log(term.style().green("→ Moved to @next"))
+              console.log(term.green("→ Moved to @next"))
             } else {
-              console.log(term.style().yellow("No @next board found"))
+              console.log(term.yellow("No @next board found"))
               continue
             }
             processed = true
@@ -137,9 +137,9 @@ inboxCommand
           case "s": // Move to someday
             if (somedayNode) {
               repo.moveNode(item.id, somedayNode.id, 0)
-              console.log(term.style().green("→ Moved to @someday"))
+              console.log(term.green("→ Moved to @someday"))
             } else {
-              console.log(term.style().yellow("No @someday board found"))
+              console.log(term.yellow("No @someday board found"))
               continue
             }
             processed = true
@@ -150,7 +150,7 @@ inboxCommand
               task_status: "done",
               task_mark: "x",
             })
-            console.log(term.style().green("✓ Marked done"))
+            console.log(term.green("✓ Marked done"))
             processed = true
             break
 
@@ -159,12 +159,12 @@ inboxCommand
               task_status: "dropped",
               task_mark: "-",
             })
-            console.log(term.style().red("✗ Dropped"))
+            console.log(term.red("✗ Dropped"))
             processed = true
             break
 
           case "q": // Quit
-            console.log(term.style().dim("\nQuitting..."))
+            console.log(term.dim("\nQuitting..."))
             rl.close()
             return
 
@@ -178,13 +178,13 @@ inboxCommand
             break
 
           default:
-            console.log(term.style().dim("Unknown key. Press ? for help."))
+            console.log(term.dim("Unknown key. Press ? for help."))
         }
       }
     }
 
     rl.close()
-    console.log(term.style().green("\n✓ Inbox processing complete!"))
+    console.log(term.green("\n✓ Inbox processing complete!"))
   })
 
 // Subcommand: inbox new <content> - create new item in inbox
@@ -199,7 +199,7 @@ inboxCommand
 
     if (!inbox) {
       console.error(
-        term.style().red("No inbox found. Create an inbox/ folder."),
+        term.red("No inbox found. Create an inbox/ folder."),
       )
       process.exit(1)
     }
@@ -209,7 +209,7 @@ inboxCommand
     // Find file path for inbox to append to
     const inboxPath = inbox.fs_path
     if (!inboxPath) {
-      console.error(term.style().red("Inbox has no file path"))
+      console.error(term.red("Inbox has no file path"))
       process.exit(1)
     }
 
@@ -219,6 +219,6 @@ inboxCommand
     if (options.json) {
       console.log(JSON.stringify({ created: true, content: taskContent }))
     } else {
-      console.log(term.style().green("+ Created in inbox:"), taskContent)
+      console.log(term.green("+ Created in inbox:"), taskContent)
     }
   })

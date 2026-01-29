@@ -4,7 +4,7 @@
  * Functions for formatting tasks and their paths for CLI output.
  */
 
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import {
@@ -30,17 +30,17 @@ export function formatCollapsedAncestor(
 ): string {
   const name = getNodeDisplayName(repo, ca.node)
   if (ca.typeSuffix) {
-    return name + term.style().gray(` ${ca.typeSuffix}`)
+    return name + term.gray(` ${ca.typeSuffix}`)
   }
   // No collapsed suffix - show individual type indicator
   if (ca.node.type === "folder") {
-    return name + term.style().gray("/")
+    return name + term.gray("/")
   } else if (ca.node.type === "file") {
     // Only add .md if name doesn't already end with it
-    return name.endsWith(".md") ? name : name + term.style().gray(".md")
+    return name.endsWith(".md") ? name : name + term.gray(".md")
   } else if (ca.node.type === "section") {
     const depth = (ca.node.data?.depth as number) ?? 1
-    return term.style().gray("#".repeat(depth) + " ") + name
+    return term.gray("#".repeat(depth) + " ") + name
   }
   return name
 }
@@ -59,7 +59,7 @@ export function formatTaskWithPath(
   if (options.flat) {
     // Single line: path → task
     const pathParts = collapsedAncestors.map((ca) =>
-      term.style().dim(formatCollapsedAncestor(repo, ca)),
+      term.dim(formatCollapsedAncestor(repo, ca)),
     )
     const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : ""
     lines.push(pathStr + formatTaskLine(task, options))
@@ -71,7 +71,7 @@ export function formatTaskWithPath(
     let hasSection = false
     for (const ca of collapsedAncestors) {
       const prefix = " ".repeat(fsDepth)
-      lines.push(prefix + term.style().dim(formatCollapsedAncestor(repo, ca)))
+      lines.push(prefix + term.dim(formatCollapsedAncestor(repo, ca)))
       if (ca.node.type === "section") {
         hasSection = true
       } else {
@@ -102,12 +102,12 @@ export function formatTaskLine(
   const checkboxStr = `[${mark}]`
   const checkbox =
     status === "done"
-      ? term.style().green(checkboxStr)
+      ? term.green(checkboxStr)
       : status === "wip"
-        ? term.style().yellow(checkboxStr)
+        ? term.yellow(checkboxStr)
         : status === "blocked"
-          ? term.style().red(checkboxStr)
-          : term.style().dim(checkboxStr)
+          ? term.red(checkboxStr)
+          : term.dim(checkboxStr)
 
   const content = task.content ?? "(no content)"
 
@@ -116,20 +116,20 @@ export function formatTaskLine(
   if (options.showId) {
     // Show last 8 chars of ID (the random part, not timestamp)
     const shortId = task.id.slice(-8)
-    line += `${term.style().dim(shortId)}  `
+    line += `${term.dim(shortId)}  `
   }
   line += content
 
   if (options.verbose) {
     if (task.due_date) {
-      line += term.style().cyan(` 📅 ${task.due_date}`)
+      line += term.cyan(` 📅 ${task.due_date}`)
     }
     if (task.priority) {
       const p = task.priority === 1 ? "⏫" : task.priority === 2 ? "🔼" : "🔽"
       line += ` ${p}`
     }
     if (task.assigned_to) {
-      line += term.style().magenta(` @${task.assigned_to}`)
+      line += term.magenta(` @${task.assigned_to}`)
     }
   }
 

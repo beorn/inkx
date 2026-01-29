@@ -35,10 +35,11 @@ export {
   formatCollapsedAncestor,
 } from "./format.ts"
 
-// Extended ANSI features (chalkx)
+// Term primitives (re-exported from inkx)
+export { createTerm, term, type Term, type StyleChain } from "inkx"
+
+// Extended ANSI features (chalkx - not re-exported by inkx)
 export {
-  createTerm,
-  term,
   curlyUnderline,
   dottedUnderline,
   dashedUnderline,
@@ -48,8 +49,6 @@ export {
   hyperlink,
   detectExtendedUnderline,
   type UnderlineStyle,
-  type Term,
-  type StyleChain,
 } from "chalkx"
 
 // Board color system

@@ -6,7 +6,7 @@
 
 import createDebug from "debug"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
@@ -29,9 +29,9 @@ import { formatPath } from "../utils/format-path.ts"
  */
 function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   debug("starting watch: %s (debounce=%dms)", repoPath, debounceMs)
-  console.log(term.style().dim(`Watching: ${repoPath}`))
-  console.log(term.style().dim(`Debounce: ${debounceMs}ms`))
-  console.log(term.style().dim("Press Ctrl+C to stop\n"))
+  console.log(term.dim(`Watching: ${repoPath}`))
+  console.log(term.dim(`Debounce: ${debounceMs}ms`))
+  console.log(term.dim("Press Ctrl+C to stop\n"))
 
   const manager = new SyncManager({
     db,
@@ -42,19 +42,19 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   })
 
   manager.on("ready", () => {
-    console.log(term.style().green("✓"), "Watcher ready")
+    console.log(term.green("✓"), "Watcher ready")
   })
 
   manager.on("state-change", (state) => {
-    console.log(term.style().dim(`State: ${state}`))
+    console.log(term.dim(`State: ${state}`))
   })
 
   manager.on("write-complete", (data) => {
     /* eslint-disable @typescript-eslint/no-unsafe-member-access -- EventEmitter data payload is untyped */
     console.log(
-      term.style().green("✓"),
+      term.green("✓"),
       `Wrote ${data.count} file(s)`,
-      data.errors > 0 ? term.style().red(`(${data.errors} error(s))`) : "",
+      data.errors > 0 ? term.red(`(${data.errors} error(s))`) : "",
     )
     /* eslint-enable @typescript-eslint/no-unsafe-member-access */
   })
@@ -62,12 +62,12 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   manager.on("write-errors", (errors) => {
     for (const { path, error } of errors) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- EventEmitter error payload is untyped
-      console.error(term.style().red("✗"), path, error.message)
+      console.error(term.red("✗"), path, error.message)
     }
   })
 
   manager.on("error", (error) => {
-    console.error(term.style().red("Error:"), error)
+    console.error(term.red("Error:"), error)
   })
 
   // Start watching
@@ -75,7 +75,7 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
 
   // Handle shutdown
   process.on("SIGINT", () => {
-    console.log(term.style().dim("\nStopping watcher..."))
+    console.log(term.dim("\nStopping watcher..."))
     void (async () => {
       await manager.stop()
       process.exit(0)
@@ -101,12 +101,12 @@ async function runSync(
 ): Promise<void> {
   debug("runSync", { repoPath, toFs: options.toFs, dryRun: options.dryRun })
   console.log(
-    term.style().bold(`Syncing .km/state.db with files`),
-    term.style().dim(`(repo ${formatPath(repoPath)})`),
+    term.bold(`Syncing .km/state.db with files`),
+    term.dim(`(repo ${formatPath(repoPath)})`),
   )
 
   if (options.dryRun) {
-    console.log(term.style().yellow("Dry run mode - no changes will be made"))
+    console.log(term.yellow("Dry run mode - no changes will be made"))
     // TODO: Implement dry run
     return
   }
@@ -127,7 +127,7 @@ async function runSync(
       }
       if (eventResult.applied > 0) {
         console.log(
-          term.style().green("✓"),
+          term.green("✓"),
           `Applied ${eventResult.applied} event(s) from events.jsonl`,
         )
       }
@@ -142,9 +142,9 @@ async function runSync(
       })
 
       if (options.toFs) {
-        console.log(term.style().dim("Syncing database → filesystem..."))
+        console.log(term.dim("Syncing database → filesystem..."))
         const result = await manager.syncToFs()
-        console.log(term.style().green("✓"), `Wrote ${result.written} file(s)`)
+        console.log(term.green("✓"), `Wrote ${result.written} file(s)`)
       } else {
         // Default: from filesystem
         const syncResults = await steps({
@@ -157,7 +157,7 @@ async function runSync(
           duration: number
         }
         console.log(
-          term.style().green("✓"),
+          term.green("✓"),
           `Synced ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,
         )
 
@@ -166,7 +166,7 @@ async function runSync(
         migrateToRepoRootNode(db, repoPath)
       }
     } catch (error) {
-      console.error(term.style().red("Sync failed:"), error)
+      console.error(term.red("Sync failed:"), error)
       process.exit(1)
     }
   })

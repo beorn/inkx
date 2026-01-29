@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { resolvePathArg, loadConfigObject } from "@km/storage"
@@ -22,23 +22,21 @@ configCommand
     const resolved = resolvePathArg(undefined)
     const configObj = loadConfigObject(resolved.repoRoot)
 
-    console.log(term.style().bold("Beads Configuration"))
+    console.log(term.bold("Beads Configuration"))
     console.log(
-      `  board:  ${configObj.beads.board || term.style().dim("(not set)")}`,
+      `  board:  ${configObj.beads.board || term.dim("(not set)")}`,
     )
     console.log(
-      `  parent: ${configObj.beads.parent || term.style().dim("(not set)")}`,
+      `  parent: ${configObj.beads.parent || term.dim("(not set)")}`,
     )
     console.log(`  prefix: ${configObj.beads.prefix}`)
     if (configObj.path) {
       console.log()
-      console.log(term.style().dim(`Source: ${configObj.path}`))
+      console.log(term.dim(`Source: ${configObj.path}`))
     } else {
       console.log()
       console.log(
-        term
-          .style()
-          .dim("No config file found. Create .km/config.yaml to customize."),
+        term.dim("No config file found. Create .km/config.yaml to customize."),
       )
     }
   })
@@ -61,8 +59,8 @@ configCommand
         console.log(configObj.beads.prefix)
         break
       default:
-        console.error(term.style().red(`Unknown config key: ${key}`))
-        console.log(term.style().dim("Valid keys: board, parent, prefix"))
+        console.error(term.red(`Unknown config key: ${key}`))
+        console.log(term.dim("Valid keys: board, parent, prefix"))
         process.exitCode = 1
     }
   })
@@ -73,8 +71,8 @@ configCommand
   .action((key, value) => {
     // Validate key
     if (!["board", "parent", "prefix"].includes(key)) {
-      console.error(term.style().red(`Unknown config key: ${key}`))
-      console.log(term.style().dim("Valid keys: board, parent, prefix"))
+      console.error(term.red(`Unknown config key: ${key}`))
+      console.log(term.dim("Valid keys: board, parent, prefix"))
       process.exitCode = 1
       return
     }
@@ -83,13 +81,13 @@ configCommand
     const configPath = `${resolved.repoRoot}/.km/config.yaml`
 
     console.log(
-      term.style().yellow(`To set ${key}=${value}, edit ${configPath}:`),
+      term.yellow(`To set ${key}=${value}, edit ${configPath}:`),
     )
     console.log()
-    console.log(term.style().dim("beads:"))
-    console.log(term.style().dim(`  ${key}: "${value}"`))
+    console.log(term.dim("beads:"))
+    console.log(term.dim(`  ${key}: "${value}"`))
     console.log()
-    console.log(term.style().dim("(Programmatic config editing coming soon)"))
+    console.log(term.dim("(Programmatic config editing coming soon)"))
   })
 
 // Show config list by default when no subcommand
@@ -97,23 +95,21 @@ configCommand.action(() => {
   const resolved = resolvePathArg(undefined)
   const configObj = loadConfigObject(resolved.repoRoot)
 
-  console.log(term.style().bold("Beads Configuration"))
+  console.log(term.bold("Beads Configuration"))
   console.log(
-    `  board:  ${configObj.beads.board || term.style().dim("(not set)")}`,
+    `  board:  ${configObj.beads.board || term.dim("(not set)")}`,
   )
   console.log(
-    `  parent: ${configObj.beads.parent || term.style().dim("(not set)")}`,
+    `  parent: ${configObj.beads.parent || term.dim("(not set)")}`,
   )
   console.log(`  prefix: ${configObj.beads.prefix}`)
   if (configObj.path) {
     console.log()
-    console.log(term.style().dim(`Source: ${configObj.path}`))
+    console.log(term.dim(`Source: ${configObj.path}`))
   } else {
     console.log()
     console.log(
-      term
-        .style()
-        .dim("No config file found. Create .km/config.yaml to customize."),
+      term.dim("No config file found. Create .km/config.yaml to customize."),
     )
   }
 })

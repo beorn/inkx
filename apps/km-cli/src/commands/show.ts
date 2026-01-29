@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { resolvePathArg, type Repo, type Link } from "@km/storage"
@@ -29,9 +29,7 @@ export const showCommand = new Command("show")
     // Directory paths don't resolve to a specific node
     if (!resolved.nodeRef) {
       console.error(
-        term
-          .style()
-          .red(`Cannot show a directory. Use 'km ls' to list contents.`),
+        term.red(`Cannot show a directory. Use 'km ls' to list contents.`),
       )
       process.exit(1)
     }
@@ -39,7 +37,7 @@ export const showCommand = new Command("show")
     const node = repo.resolveNode(resolved.nodeRef)
 
     if (!node) {
-      console.error(term.style().red(`Node not found: ${id}`))
+      console.error(term.red(`Node not found: ${id}`))
       process.exit(1)
     }
 
@@ -61,49 +59,49 @@ export const showCommand = new Command("show")
     }
 
     // Display node details
-    console.log(term.style().bold("ID:"), node.id)
-    console.log(term.style().bold("Type:"), node.type)
+    console.log(term.bold("ID:"), node.id)
+    console.log(term.bold("Type:"), node.type)
 
     if (node.fs_path) {
-      console.log(term.style().bold("Path:"), node.fs_path)
+      console.log(term.bold("Path:"), node.fs_path)
     }
 
     // Title can be on node.title (in-memory) or node.data.title (from DB)
     const title = node.title || (node.data?.title as string | undefined)
     if (title) {
-      console.log(term.style().bold("Title:"), title)
+      console.log(term.bold("Title:"), title)
     }
 
     if (node.content && node.content !== title) {
-      console.log(term.style().bold("Content:"), node.content)
+      console.log(term.bold("Content:"), node.content)
     }
 
     if (node.task_status) {
-      console.log(term.style().bold("Status:"), formatStatus(node.task_status))
+      console.log(term.bold("Status:"), formatStatus(node.task_status))
     }
 
     if (node.due_date) {
-      console.log(term.style().bold("Due:"), node.due_date)
+      console.log(term.bold("Due:"), node.due_date)
     }
 
     if (node.priority) {
-      console.log(term.style().bold("Priority:"), node.priority)
+      console.log(term.bold("Priority:"), node.priority)
     }
 
     if (node.assigned_to) {
-      console.log(term.style().bold("Assigned:"), node.assigned_to)
+      console.log(term.bold("Assigned:"), node.assigned_to)
     }
 
     if (node.parent_id) {
-      console.log(term.style().bold("Parent:"), node.parent_id.slice(0, 8))
+      console.log(term.bold("Parent:"), node.parent_id.slice(0, 8))
     }
 
     console.log(
-      term.style().bold("Created:"),
+      term.bold("Created:"),
       new Date(node.created_at).toISOString(),
     )
     console.log(
-      term.style().bold("Updated:"),
+      term.bold("Updated:"),
       new Date(node.updated_at).toISOString(),
     )
 
@@ -115,17 +113,17 @@ export const showCommand = new Command("show")
       data.mentions.length > 0
     ) {
       console.log(
-        term.style().bold("Refs:"),
+        term.bold("Refs:"),
         (data.mentions as string[])
-          .map((m) => term.style().magenta(`@${m}`))
+          .map((m) => term.magenta(`@${m}`))
           .join(" "),
       )
     }
     if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
       console.log(
-        term.style().bold("Tags:"),
+        term.bold("Tags:"),
         (data.tags as string[])
-          .map((t) => term.style().cyan(`#${t}`))
+          .map((t) => term.cyan(`#${t}`))
           .join(" "),
       )
     }
@@ -135,9 +133,9 @@ export const showCommand = new Command("show")
       data.projects.length > 0
     ) {
       console.log(
-        term.style().bold("Projects:"),
+        term.bold("Projects:"),
         (data.projects as string[])
-          .map((p) => term.style().yellow(`+${p}`))
+          .map((p) => term.yellow(`+${p}`))
           .join(" "),
       )
     }
@@ -149,7 +147,7 @@ export const showCommand = new Command("show")
     delete otherData.projects
     if (Object.keys(otherData).length > 0) {
       console.log(
-        term.style().bold("Data:"),
+        term.bold("Data:"),
         JSON.stringify(otherData, null, 2),
       )
     }
@@ -161,7 +159,7 @@ export const showCommand = new Command("show")
         : repo.getChildren(node.id)
 
       if (children.length > 0) {
-        console.log(term.style().bold("\nChildren:"))
+        console.log(term.bold("\nChildren:"))
         for (const child of children) {
           const prefix = options.tree ? getIndent(child, node.id) : "  "
           console.log(`${prefix}${formatNodeBrief(child)}`)
@@ -175,21 +173,21 @@ export const showCommand = new Command("show")
       const backlinks = repo.getBacklinks(node.id)
 
       if (outgoing.length > 0) {
-        console.log(term.style().bold("\nOutgoing links:"))
+        console.log(term.bold("\nOutgoing links:"))
         for (const link of outgoing) {
           console.log(`  ${formatLink(link, repo)}`)
         }
       }
 
       if (backlinks.length > 0) {
-        console.log(term.style().bold("\nBacklinks:"))
+        console.log(term.bold("\nBacklinks:"))
         for (const link of backlinks) {
           console.log(`  ${formatBacklink(link, repo)}`)
         }
       }
 
       if (outgoing.length === 0 && backlinks.length === 0) {
-        console.log(term.style().dim("\nNo links found."))
+        console.log(term.dim("\nNo links found."))
       }
     }
   })
@@ -218,12 +216,12 @@ function formatLink(link: Link, repo: Repo): string {
   const parts: string[] = []
 
   // Target name with section/block
-  let target = term.style().cyan(`[[${link.target_name}]]`)
+  let target = term.cyan(`[[${link.target_name}]]`)
   if (link.section) {
-    target = term.style().cyan(`[[${link.target_name}#${link.section}]]`)
+    target = term.cyan(`[[${link.target_name}#${link.section}]]`)
   }
   if (link.block_id) {
-    target = term.style().cyan(`[[${link.target_name}^${link.block_id}]]`)
+    target = term.cyan(`[[${link.target_name}^${link.block_id}]]`)
   }
   parts.push(target)
 
@@ -232,18 +230,16 @@ function formatLink(link: Link, repo: Repo): string {
     const targetNode = repo.getNode(link.target_id)
     if (targetNode) {
       parts.push(
-        term
-          .style()
-          .dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`),
+        term.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`),
       )
     }
   } else {
-    parts.push(term.style().yellow("(unresolved)"))
+    parts.push(term.yellow("(unresolved)"))
   }
 
   // Alias
   if (link.alias) {
-    parts.push(term.style().dim(`"${link.alias}"`))
+    parts.push(term.dim(`"${link.alias}"`))
   }
 
   return parts.join(" ")
@@ -260,10 +256,10 @@ function formatBacklink(link: Link, repo: Repo): string {
     const sourceName = sourceNode.fs_path
       ? sourceNode.fs_path.split("/").pop()
       : sourceNode.content?.slice(0, 30) || link.source_id.slice(0, 8)
-    parts.push(term.style().green(`← ${sourceName}`))
-    parts.push(term.style().dim(`(${link.source_id.slice(0, 8)})`))
+    parts.push(term.green(`← ${sourceName}`))
+    parts.push(term.dim(`(${link.source_id.slice(0, 8)})`))
   } else {
-    parts.push(term.style().dim(`← ${link.source_id.slice(0, 8)}`))
+    parts.push(term.dim(`← ${link.source_id.slice(0, 8)}`))
   }
 
   return parts.join(" ")

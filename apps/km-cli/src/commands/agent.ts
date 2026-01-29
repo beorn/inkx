@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import {
@@ -139,11 +139,11 @@ agentCommand
     }
 
     if (agents.length === 0) {
-      console.log(term.style().yellow("No agents found."))
+      console.log(term.yellow("No agents found."))
       return
     }
 
-    console.log(term.style().bold(`Agents (${agents.length}):\n`))
+    console.log(term.bold(`Agents (${agents.length}):\n`))
     for (const agent of agents) {
       printAgent(agent)
     }
@@ -163,11 +163,9 @@ agentCommand
     if (opts.harness) {
       const harness = loadHarness(opts.harness)
       if (!harness) {
-        console.error(term.style().red(`Harness not found: ${opts.harness}`))
+        console.error(term.red(`Harness not found: ${opts.harness}`))
         console.error(
-          term
-            .style()
-            .dim(`Available harnesses: ${listHarnesses().join(", ")}`),
+          term.dim(`Available harnesses: ${listHarnesses().join(", ")}`),
         )
         process.exitCode = 1
         return
@@ -186,16 +184,14 @@ agentCommand
       return
     }
 
-    console.log(term.style().green(`Created agent: ${shortId}`))
-    console.log(term.style().dim(`  Name: ${name}`))
-    console.log(term.style().dim(`  Model: ${opts.model ?? "claude-sonnet-4"}`))
-    console.log(term.style().dim(`  Harness: ${opts.harness ?? "general"}`))
+    console.log(term.green(`Created agent: ${shortId}`))
+    console.log(term.dim(`  Name: ${name}`))
+    console.log(term.dim(`  Model: ${opts.model ?? "claude-sonnet-4"}`))
+    console.log(term.dim(`  Harness: ${opts.harness ?? "general"}`))
 
     // Note: Actual persistence requires km-storage integration
     console.log(
-      term
-        .style()
-        .yellow("\nNote: Agent created in memory. Persistence pending."),
+      term.yellow("\nNote: Agent created in memory. Persistence pending."),
     )
   })
 
@@ -208,7 +204,7 @@ agentCommand
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)
     if (!agent) {
-      console.error(term.style().red(`Agent not found: ${id}`))
+      console.error(term.red(`Agent not found: ${id}`))
       process.exitCode = 1
       return
     }
@@ -216,11 +212,9 @@ agentCommand
     const updates = stopAgentFields()
     void updates // Use for persistence later
 
-    console.log(term.style().green(`Stopped agent: ${agent.shortId}`))
+    console.log(term.green(`Stopped agent: ${agent.shortId}`))
     console.log(
-      term
-        .style()
-        .yellow("\nNote: Update created in memory. Persistence pending."),
+      term.yellow("\nNote: Update created in memory. Persistence pending."),
     )
   })
 
@@ -233,24 +227,22 @@ agentCommand
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)
     if (!agent) {
-      console.error(term.style().red(`Agent not found: ${id}`))
+      console.error(term.red(`Agent not found: ${id}`))
       process.exitCode = 1
       return
     }
 
     // If agent has a PID, we could kill the process here
     if (agent.pid) {
-      console.log(term.style().dim(`Would kill process ${agent.pid}`))
+      console.log(term.dim(`Would kill process ${agent.pid}`))
     }
 
     const updates = stopAgentFields()
     void updates
 
-    console.log(term.style().yellow(`Killed agent: ${agent.shortId}`))
+    console.log(term.yellow(`Killed agent: ${agent.shortId}`))
     console.log(
-      term
-        .style()
-        .yellow("\nNote: Update created in memory. Persistence pending."),
+      term.yellow("\nNote: Update created in memory. Persistence pending."),
     )
   })
 
@@ -264,7 +256,7 @@ agentCommand
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)
     if (!agent) {
-      console.error(term.style().red(`Agent not found: ${id}`))
+      console.error(term.red(`Agent not found: ${id}`))
       process.exitCode = 1
       return
     }
@@ -294,12 +286,12 @@ agentCommand
       return
     }
 
-    console.log(term.style().bold("Available harnesses:\n"))
+    console.log(term.bold("Available harnesses:\n"))
     for (const name of harnesses) {
       const h = loadHarness(name)
-      console.log(`  ${term.style().cyan(name)}`)
+      console.log(`  ${term.cyan(name)}`)
       if (h?.description) {
-        console.log(term.style().dim(`    ${h.description}`))
+        console.log(term.dim(`    ${h.description}`))
       }
     }
   })
@@ -313,7 +305,7 @@ agentCommand
   .action((agentId: string | undefined, opts: SessionsOptions) => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
-      console.error(term.style().red("No .km directory found"))
+      console.error(term.red("No .km directory found"))
       process.exitCode = 1
       return
     }
@@ -325,14 +317,14 @@ agentCommand
     }
 
     if (sessions.length === 0) {
-      console.log(term.style().yellow("No sessions found."))
-      console.log(term.style().dim("(Session querying not yet implemented)"))
+      console.log(term.yellow("No sessions found."))
+      console.log(term.dim("(Session querying not yet implemented)"))
       return
     }
 
-    console.log(term.style().bold(`Sessions (${sessions.length}):\n`))
+    console.log(term.bold(`Sessions (${sessions.length}):\n`))
     for (const session of sessions) {
-      console.log(`  ${term.style().cyan(session.id)} - ${session.status}`)
+      console.log(`  ${term.cyan(session.id)} - ${session.status}`)
     }
   })
 
@@ -344,15 +336,15 @@ agentCommand
   .action((sessionId: string, opts: SessionOptions) => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
-      console.error(term.style().red("No .km directory found"))
+      console.error(term.red("No .km directory found"))
       process.exitCode = 1
       return
     }
     const session = getSession(kmDir, sessionId)
 
     if (!session) {
-      console.error(term.style().red(`Session not found: ${sessionId}`))
-      console.log(term.style().dim("(Session querying not yet implemented)"))
+      console.error(term.red(`Session not found: ${sessionId}`))
+      console.log(term.dim("(Session querying not yet implemented)"))
       process.exitCode = 1
       return
     }
@@ -362,7 +354,7 @@ agentCommand
       return
     }
 
-    console.log(term.style().bold(`Session: ${session.id}`))
+    console.log(term.bold(`Session: ${session.id}`))
     console.log(`  Agent: ${session.agentId}`)
     console.log(`  Status: ${session.status}`)
     if (session.taskId) console.log(`  Task: ${session.taskId}`)
@@ -384,7 +376,7 @@ agentCommand
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, id)
     if (!agent) {
-      console.error(term.style().red(`Agent not found: ${id}`))
+      console.error(term.red(`Agent not found: ${id}`))
       process.exitCode = 1
       return
     }
@@ -395,10 +387,10 @@ agentCommand
       const resolved = repo.resolveNode(opts.target, { taskOnly: true })
       if (!resolved) {
         console.error(
-          term.style().red(`Could not resolve target: ${opts.target}`),
+          term.red(`Could not resolve target: ${opts.target}`),
         )
         console.error(
-          term.style().dim("Target can be a file path, node ID, or @ref"),
+          term.dim("Target can be a file path, node ID, or @ref"),
         )
         process.exitCode = 1
         return
@@ -411,7 +403,7 @@ agentCommand
     }
 
     if (opts.dryRun) {
-      console.log(term.style().bold("Dry run mode - would execute:"))
+      console.log(term.bold("Dry run mode - would execute:"))
       console.log(`  Agent: ${agent.shortId} (${agent.name})`)
       console.log(`  Model: ${agent.model}`)
       console.log(`  Harness: ${agent.harness}`)
@@ -419,19 +411,19 @@ agentCommand
       if (targetTask) {
         console.log(`  Target: ${targetTask.id}`)
         if (targetTask.name) {
-          console.log(`          ${term.style().dim(targetTask.name)}`)
+          console.log(`          ${term.dim(targetTask.name)}`)
         }
         if (targetTask.path) {
-          console.log(`          ${term.style().dim(targetTask.path)}`)
+          console.log(`          ${term.dim(targetTask.path)}`)
         }
       }
       if (opts.continuous) console.log(`  Mode: continuous`)
       return
     }
 
-    console.log(term.style().yellow("Agent runtime not yet implemented."))
+    console.log(term.yellow("Agent runtime not yet implemented."))
     console.log(
-      term.style().dim("This will execute the agent with the Claude API."),
+      term.dim("This will execute the agent with the Claude API."),
     )
   })
 
@@ -440,17 +432,17 @@ agentCommand
 function printAgent(agent: Agent): void {
   const status = formatStatus(agent.status)
   const task = agent.currentTaskId
-    ? term.style().dim(` → ${agent.currentTaskId}`)
+    ? term.dim(` → ${agent.currentTaskId}`)
     : ""
 
   console.log(
-    `${status} ${term.style().cyan(agent.shortId)} ${agent.name}${task}`,
+    `${status} ${term.cyan(agent.shortId)} ${agent.name}${task}`,
   )
-  console.log(term.style().dim(`   ${agent.model} / ${agent.harness}`))
+  console.log(term.dim(`   ${agent.model} / ${agent.harness}`))
 }
 
 function printAgentDetails(agent: Agent): void {
-  console.log(term.style().bold(`Agent: ${agent.shortId}`))
+  console.log(term.bold(`Agent: ${agent.shortId}`))
   console.log()
   console.log(`  Name:     ${agent.name}`)
   console.log(`  Status:   ${formatStatus(agent.status)}`)
@@ -463,24 +455,24 @@ function printAgentDetails(agent: Agent): void {
 
   console.log()
   console.log(
-    term.style().dim(`  Created:  ${new Date(agent.createdAt).toISOString()}`),
+    term.dim(`  Created:  ${new Date(agent.createdAt).toISOString()}`),
   )
   console.log(
-    term.style().dim(`  Updated:  ${new Date(agent.updatedAt).toISOString()}`),
+    term.dim(`  Updated:  ${new Date(agent.updatedAt).toISOString()}`),
   )
 }
 
 function formatStatus(status: AgentStatus): string {
   switch (status) {
     case "idle":
-      return term.style().dim("○")
+      return term.dim("○")
     case "running":
-      return term.style().green("●")
+      return term.green("●")
     case "paused":
-      return term.style().yellow("◐")
+      return term.yellow("◐")
     case "stopped":
-      return term.style().gray("○")
+      return term.gray("○")
     case "error":
-      return term.style().red("✗")
+      return term.red("✗")
   }
 }

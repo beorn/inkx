@@ -5,7 +5,7 @@
  * Extracted from list.ts and show.ts for reuse.
  */
 
-import { createTerm, type StyleChain } from "chalkx"
+import { createTerm, type StyleChain } from "inkx"
 import type { KNode } from "@km/core"
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
@@ -20,7 +20,7 @@ function getStyle(): StyleChain {
   if (!_term) {
     _term = createTerm()
   }
-  return _term.style()
+  return _term
 }
 
 /**

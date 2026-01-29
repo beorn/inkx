@@ -6,7 +6,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import {
@@ -55,14 +55,14 @@ bdAgentCommand
     }
 
     if (agents.length === 0) {
-      console.log(term.style().yellow("No agents found."))
+      console.log(term.yellow("No agents found."))
       console.log(
-        term.style().dim("Use 'km agent spawn <name>' to create one."),
+        term.dim("Use 'km agent spawn <name>' to create one."),
       )
       return
     }
 
-    console.log(term.style().bold(`Agents (${agents.length}):\n`))
+    console.log(term.bold(`Agents (${agents.length}):\n`))
     for (const agent of agents) {
       printAgent(agent)
     }
@@ -78,7 +78,7 @@ bdAgentCommand
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
-      console.error(term.style().red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${agentId}`))
       process.exitCode = 1
       return
     }
@@ -100,26 +100,26 @@ bdAgentCommand
       return
     }
 
-    console.log(term.style().bold(`Work queue for ${agent.shortId}:\n`))
+    console.log(term.bold(`Work queue for ${agent.shortId}:\n`))
 
     if (agent.currentTaskId) {
       console.log(
-        `  ${term.style().green("▶")} Current: ${term.style().cyan(agent.currentTaskId)}`,
+        `  ${term.green("▶")} Current: ${term.cyan(agent.currentTaskId)}`,
       )
     }
 
     if (queue.length === 0 && !agent.currentTaskId) {
-      console.log(term.style().dim("  No tasks assigned."))
+      console.log(term.dim("  No tasks assigned."))
     } else if (queue.length > 0) {
       console.log()
       for (const item of queue) {
         const isCurrent = item.issueShortId === agent.currentTaskId
         const prefix = isCurrent
-          ? term.style().green("▶")
-          : term.style().dim("○")
-        const priority = term.style().dim(`P${item.priority}`)
+          ? term.green("▶")
+          : term.dim("○")
+        const priority = term.dim(`P${item.priority}`)
         console.log(
-          `  ${prefix} ${term.style().cyan(item.issueShortId)} ${priority} ${item.title}`,
+          `  ${prefix} ${term.cyan(item.issueShortId)} ${priority} ${item.title}`,
         )
       }
     }
@@ -134,14 +134,14 @@ bdAgentCommand
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
-      console.error(term.style().red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${agentId}`))
       process.exitCode = 1
       return
     }
 
     const issue = getIssue(issueId)
     if (!issue) {
-      console.error(term.style().red(`Issue not found: ${issueId}`))
+      console.error(term.red(`Issue not found: ${issueId}`))
       process.exitCode = 1
       return
     }
@@ -151,11 +151,11 @@ bdAgentCommand
     void assignment // Will be used for persistence
 
     console.log(
-      term.style().green(`Assigned ${issue.shortId} to ${agent.shortId}`),
+      term.green(`Assigned ${issue.shortId} to ${agent.shortId}`),
     )
-    console.log(term.style().dim(`  ${issue.title}`))
+    console.log(term.dim(`  ${issue.title}`))
     console.log(
-      term.style().yellow("\nNote: Assignment not yet persisted to storage."),
+      term.yellow("\nNote: Assignment not yet persisted to storage."),
     )
   })
 
@@ -168,14 +168,14 @@ bdAgentCommand
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
-      console.error(term.style().red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${agentId}`))
       process.exitCode = 1
       return
     }
 
     const issue = getIssue(issueId)
     if (!issue) {
-      console.error(term.style().red(`Issue not found: ${issueId}`))
+      console.error(term.red(`Issue not found: ${issueId}`))
       process.exitCode = 1
       return
     }
@@ -185,10 +185,10 @@ bdAgentCommand
     void assignment // Will be used for persistence
 
     console.log(
-      term.style().green(`Unassigned ${issue.shortId} from ${agent.shortId}`),
+      term.green(`Unassigned ${issue.shortId} from ${agent.shortId}`),
     )
     console.log(
-      term.style().yellow("\nNote: Unassignment not yet persisted to storage."),
+      term.yellow("\nNote: Unassignment not yet persisted to storage."),
     )
   })
 
@@ -202,7 +202,7 @@ bdAgentCommand
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
-      console.error(term.style().red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${agentId}`))
       process.exitCode = 1
       return
     }
@@ -210,14 +210,14 @@ bdAgentCommand
     // Get ready issues sorted by priority
     const ready = queryReady()
     if (ready.length === 0) {
-      console.log(term.style().yellow("No ready issues to claim."))
+      console.log(term.yellow("No ready issues to claim."))
       return
     }
 
     // Claim the first one (highest priority)
     const issue = ready[0]
     if (!issue) {
-      console.log(term.style().yellow("No ready issues to claim."))
+      console.log(term.yellow("No ready issues to claim."))
       return
     }
 
@@ -236,10 +236,10 @@ bdAgentCommand
       return
     }
 
-    console.log(term.style().green(`${agent.shortId} claimed ${issue.shortId}`))
-    console.log(term.style().dim(`  ${issue.title}`))
+    console.log(term.green(`${agent.shortId} claimed ${issue.shortId}`))
+    console.log(term.dim(`  ${issue.title}`))
     console.log(
-      term.style().yellow("\nNote: Claim not yet persisted to storage."),
+      term.yellow("\nNote: Claim not yet persisted to storage."),
     )
   })
 
@@ -254,21 +254,21 @@ bdAgentCommand
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, agentId)
     if (!agent) {
-      console.error(term.style().red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${agentId}`))
       process.exitCode = 1
       return
     }
 
     if (opts.dryRun) {
-      console.log(term.style().bold("Dry run - would execute:"))
+      console.log(term.bold("Dry run - would execute:"))
       console.log(`  Agent: ${agent.shortId}`)
       console.log(`  Mode: continuous (process work queue)`)
       if (opts.maxTasks) console.log(`  Max tasks: ${opts.maxTasks}`)
       return
     }
 
-    console.log(term.style().yellow("Agent runtime not yet implemented."))
-    console.log(term.style().dim("Use 'km agent run' for execution commands."))
+    console.log(term.yellow("Agent runtime not yet implemented."))
+    console.log(term.dim("Use 'km agent run' for execution commands."))
   })
 
 // Helper functions
@@ -276,25 +276,25 @@ bdAgentCommand
 function printAgent(agent: Agent): void {
   const status = formatStatus(agent.status)
   const task = agent.currentTaskId
-    ? term.style().dim(` → ${agent.currentTaskId}`)
+    ? term.dim(` → ${agent.currentTaskId}`)
     : ""
 
   console.log(
-    `${status} ${term.style().cyan(agent.shortId)} ${agent.name}${task}`,
+    `${status} ${term.cyan(agent.shortId)} ${agent.name}${task}`,
   )
 }
 
 function formatStatus(status: Agent["status"]): string {
   switch (status) {
     case "idle":
-      return term.style().dim("○")
+      return term.dim("○")
     case "running":
-      return term.style().green("●")
+      return term.green("●")
     case "paused":
-      return term.style().yellow("◐")
+      return term.yellow("◐")
     case "stopped":
-      return term.style().gray("○")
+      return term.gray("○")
     case "error":
-      return term.style().red("✗")
+      return term.red("✗")
   }
 }

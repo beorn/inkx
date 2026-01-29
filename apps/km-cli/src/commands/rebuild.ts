@@ -6,7 +6,7 @@
 
 import createDebug from "debug"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
@@ -41,9 +41,7 @@ export const rebuildCommand = new Command("rebuild")
 
     if (!kmRoot) {
       console.error(
-        term
-          .style()
-          .red(`No .km directory found in ${searchPath} or ancestors.`),
+        term.red(`No .km directory found in ${searchPath} or ancestors.`),
       )
       console.error("Run 'km init' to initialize a repo.")
       process.exit(1)
@@ -60,11 +58,11 @@ export const rebuildCommand = new Command("rebuild")
 
       if (options.fresh) {
         console.log(
-          term.style().yellow("Fresh start - deleting all .km data..."),
+          term.yellow("Fresh start - deleting all .km data..."),
         )
         freshStart(kmRoot)
         console.log(
-          term.style().green("✓"),
+          term.green("✓"),
           "Fresh start complete - .km directory cleared",
         )
         return
@@ -73,8 +71,8 @@ export const rebuildCommand = new Command("rebuild")
       const repoPath = dirname(kmRoot)
       debug("rebuild: starting (full=%s)", !!options.full)
       console.log(
-        term.style().bold("Rebuilding .km/state.db from .km/events.jsonl"),
-        term.style().dim(`(repo ${formatPath(repoPath)})`),
+        term.bold("Rebuilding .km/state.db from .km/events.jsonl"),
+        term.dim(`(repo ${formatPath(repoPath)})`),
       )
 
       // Open database for rebuild operations
@@ -83,7 +81,7 @@ export const rebuildCommand = new Command("rebuild")
 
       try {
         if (options.full) {
-          console.log(term.style().dim("Performing full reset..."))
+          console.log(term.dim("Performing full reset..."))
         }
 
         const results = await steps({
@@ -109,12 +107,12 @@ export const rebuildCommand = new Command("rebuild")
           result.nodeCount,
         )
 
-        console.log(term.style().green("✓"), "Rebuild complete")
-        console.log(term.style().dim(`  Events: ${result.eventCount}`))
-        console.log(term.style().dim(`  Nodes: ${result.nodeCount}`))
-        console.log(term.style().dim(`  Time: ${result.duration}ms`))
+        console.log(term.green("✓"), "Rebuild complete")
+        console.log(term.dim(`  Events: ${result.eventCount}`))
+        console.log(term.dim(`  Nodes: ${result.nodeCount}`))
+        console.log(term.dim(`  Time: ${result.duration}ms`))
       } catch (error) {
-        console.error(term.style().red("Rebuild failed:"), error)
+        console.error(term.red("Rebuild failed:"), error)
         process.exit(1)
       } finally {
         db.close()
@@ -129,16 +127,16 @@ function showStatus(): void {
   const dbPath = getDbPath()
   const eventsPath = getEventsPath()
 
-  console.log(term.style().bold("State Status"))
+  console.log(term.bold("State Status"))
   console.log()
 
   // Database
   if (existsSync(dbPath)) {
     const stat = statSync(dbPath)
-    console.log(term.style().dim("Database:"), dbPath)
-    console.log(term.style().dim("  Size:"), formatSize(stat.size))
+    console.log(term.dim("Database:"), dbPath)
+    console.log(term.dim("  Size:"), formatSize(stat.size))
     console.log(
-      term.style().dim("  Modified:"),
+      term.dim("  Modified:"),
       new Date(stat.mtimeMs).toISOString(),
     )
 
@@ -146,11 +144,11 @@ function showStatus(): void {
     const lastEvent = getLastEventId(db)
     db.close()
     console.log(
-      term.style().dim("  Last event:"),
+      term.dim("  Last event:"),
       lastEvent?.slice(0, 13) ?? "(none)",
     )
   } else {
-    console.log(term.style().yellow("Database:"), "Not found")
+    console.log(term.yellow("Database:"), "Not found")
   }
 
   console.log()
@@ -158,14 +156,14 @@ function showStatus(): void {
   // Events
   if (existsSync(eventsPath)) {
     const stat = statSync(eventsPath)
-    console.log(term.style().dim("Events:"), eventsPath)
-    console.log(term.style().dim("  Size:"), formatSize(stat.size))
+    console.log(term.dim("Events:"), eventsPath)
+    console.log(term.dim("  Size:"), formatSize(stat.size))
     console.log(
-      term.style().dim("  Modified:"),
+      term.dim("  Modified:"),
       new Date(stat.mtimeMs).toISOString(),
     )
   } else {
-    console.log(term.style().yellow("Events:"), "Not found")
+    console.log(term.yellow("Events:"), "Not found")
   }
 }
 

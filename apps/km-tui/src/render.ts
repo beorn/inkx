@@ -7,12 +7,12 @@
  * - Content rendering: renderRich() for markdown-aware styling
  * - Status icons: renderStatusIcon() with colorize()
  *
- * Uses term.style() for UI chrome:
+ * Uses term for UI chrome:
  * - Headers, borders, status bars
  * - Selection/current highlighting (bgBlue, bgYellow)
  */
 
-import { createTerm, type StyleChain } from "chalkx"
+import { createTerm, type StyleChain } from "inkx"
 import type { TaskStatus } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { TUIBoardState, CardState, RenderOptions } from "./types.ts"
@@ -28,9 +28,9 @@ import {
 let _term: ReturnType<typeof createTerm> | null = null
 function getStyle(): StyleChain {
   if (!_term) {
-    _term = createTerm({ colors: "truecolor" })
+    _term = createTerm({ color: "truecolor" })
   }
-  return _term.style()
+  return _term
 }
 
 /**

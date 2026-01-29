@@ -19,7 +19,7 @@ import {
 } from "fs"
 import { join, dirname } from "path"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { Database } from "bun:sqlite"
@@ -120,9 +120,9 @@ class KmDaemon extends EventEmitter {
     // In foreground mode, also log to console
     if (process.env.KM_DAEMON_FOREGROUND) {
       if (level === "error") {
-        console.error(term.style().red(message))
+        console.error(term.red(message))
       } else {
-        console.log(term.style().dim(message))
+        console.log(term.dim(message))
       }
     }
   }
@@ -446,7 +446,7 @@ const daemonStartCommand = new Command("start")
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
       console.error(
-        term.style().red("No .km directory found. Run 'km init' first."),
+        term.red("No .km directory found. Run 'km init' first."),
       )
       process.exit(1)
     }
@@ -462,8 +462,8 @@ const daemonStartCommand = new Command("start")
       const status = getDaemonStatus(kmDir)
       if (status.status === "running") {
         console.log(
-          term.style().yellow("Daemon already running"),
-          term.style().dim(`(PID: ${status.pid})`),
+          term.yellow("Daemon already running"),
+          term.dim(`(PID: ${status.pid})`),
         )
         return
       }
@@ -490,14 +490,14 @@ const daemonStartCommand = new Command("start")
       // Check if it started
       const newStatus = getDaemonStatus(kmDir)
       if (newStatus.status === "running") {
-        console.log(term.style().green("✓"), "Daemon started")
-        console.log(term.style().dim(`PID: ${newStatus.pid}`))
+        console.log(term.green("✓"), "Daemon started")
+        console.log(term.dim(`PID: ${newStatus.pid}`))
       } else {
-        console.error(term.style().red("✗"), "Failed to start daemon")
+        console.error(term.red("✗"), "Failed to start daemon")
         console.log(
-          term.style().dim("Check"),
-          term.style().cyan(getDaemonPaths(kmDir).log),
-          term.style().dim("for details"),
+          term.dim("Check"),
+          term.cyan(getDaemonPaths(kmDir).log),
+          term.dim("for details"),
         )
       }
     }
@@ -508,14 +508,14 @@ const daemonStopCommand = new Command("stop")
   .action(async () => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
-      console.error(term.style().red("No .km directory found."))
+      console.error(term.red("No .km directory found."))
       process.exit(1)
     }
     const paths = getDaemonPaths(kmDir)
     const status = getDaemonStatus(kmDir)
 
     if (status.status === "stopped") {
-      console.log(term.style().yellow("Daemon is not running"))
+      console.log(term.yellow("Daemon is not running"))
       return
     }
 
@@ -523,7 +523,7 @@ const daemonStopCommand = new Command("stop")
     if (existsSync(paths.socket)) {
       try {
         await sendToDaemon(paths.socket, { type: "stop" })
-        console.log(term.style().green("✓"), "Daemon stopping...")
+        console.log(term.green("✓"), "Daemon stopping...")
 
         // Wait for it to stop
         for (let i = 0; i < 10; i++) {
@@ -532,18 +532,16 @@ const daemonStopCommand = new Command("stop")
           })
           const newStatus = getDaemonStatus(kmDir)
           if (newStatus.status === "stopped") {
-            console.log(term.style().green("✓"), "Daemon stopped")
+            console.log(term.green("✓"), "Daemon stopped")
             return
           }
         }
 
         console.log(
-          term
-            .style()
-            .yellow("Daemon taking too long to stop, sending SIGTERM..."),
+          term.yellow("Daemon taking too long to stop, sending SIGTERM..."),
         )
       } catch {
-        console.log(term.style().dim("Socket unavailable, sending SIGTERM..."))
+        console.log(term.dim("Socket unavailable, sending SIGTERM..."))
       }
     }
 
@@ -551,9 +549,9 @@ const daemonStopCommand = new Command("stop")
     if (status.pid) {
       try {
         process.kill(status.pid, "SIGTERM")
-        console.log(term.style().green("✓"), "Sent SIGTERM to daemon")
+        console.log(term.green("✓"), "Sent SIGTERM to daemon")
       } catch {
-        console.log(term.style().yellow("Process not found, cleaning up..."))
+        console.log(term.yellow("Process not found, cleaning up..."))
       }
     }
 
@@ -571,17 +569,17 @@ const daemonStatusCommand = new Command("status")
   .action(async () => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
-      console.error(term.style().red("No .km directory found."))
+      console.error(term.red("No .km directory found."))
       process.exit(1)
     }
     const paths = getDaemonPaths(kmDir)
     const basicStatus = getDaemonStatus(kmDir)
 
-    console.log(term.style().bold("km daemon"))
+    console.log(term.bold("km daemon"))
     console.log()
 
     if (basicStatus.status === "stopped") {
-      console.log("Status:", term.style().yellow("stopped"))
+      console.log("Status:", term.yellow("stopped"))
       return
     }
 
@@ -591,7 +589,7 @@ const daemonStatusCommand = new Command("status")
         const response = await sendToDaemon(paths.socket, { type: "status" })
         if (response.ok && response.data) {
           const status = response.data as unknown as DaemonStatus
-          console.log("Status:", term.style().green("running"))
+          console.log("Status:", term.green("running"))
           console.log("PID:", status.pid)
           console.log("Uptime:", formatUptime(status.uptime ?? 0))
           console.log("Socket:", paths.socket)
@@ -607,9 +605,9 @@ const daemonStatusCommand = new Command("status")
     }
 
     // Basic status (no socket connection)
-    console.log("Status:", term.style().green("running"))
+    console.log("Status:", term.green("running"))
     console.log("PID:", basicStatus.pid)
-    console.log("Socket:", term.style().dim("(unavailable)"))
+    console.log("Socket:", term.dim("(unavailable)"))
   })
 
 export const daemonCommand = new Command("daemon")

@@ -10,7 +10,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"
@@ -47,7 +47,7 @@ export const statusCommand = new Command("status")
     const node = repo.resolveNode(id, { taskOnly: true })
 
     if (!node) {
-      console.error(term.style().red(`Task not found: ${id}`))
+      console.error(term.red(`Task not found: ${id}`))
       process.exit(1)
     }
 
@@ -56,12 +56,12 @@ export const statusCommand = new Command("status")
       const status = node.task_status ?? "todo"
       const statusIcon =
         status === "done"
-          ? term.style().green("✓")
+          ? term.green("✓")
           : status === "blocked"
-            ? term.style().red("!")
+            ? term.red("!")
             : status === "dropped"
-              ? term.style().dim("-")
-              : term.style().dim("○")
+              ? term.dim("-")
+              : term.dim("○")
 
       if (options.json) {
         console.log(
@@ -84,9 +84,9 @@ export const statusCommand = new Command("status")
     // Set mode - validate and update status
     const validStatuses = ["todo", "wip", "blocked", "done", "dropped"]
     if (!validStatuses.includes(newStatus)) {
-      console.error(term.style().red(`Invalid status: ${newStatus}`))
+      console.error(term.red(`Invalid status: ${newStatus}`))
       console.error(
-        term.style().dim(`Valid statuses: ${validStatuses.join(", ")}`),
+        term.dim(`Valid statuses: ${validStatuses.join(", ")}`),
       )
       process.exit(1)
     }
@@ -125,10 +125,10 @@ export const statusCommand = new Command("status")
             )
           } else {
             console.log(
-              term.style().green("✓"),
+              term.green("✓"),
               `Marked done: ${node.content?.slice(0, 40)}`,
             )
-            console.log(term.style().blue("↻"), `Next occurrence: ${nextDue}`)
+            console.log(term.blue("↻"), `Next occurrence: ${nextDue}`)
           }
         }
       }
@@ -154,14 +154,14 @@ export const statusCommand = new Command("status")
 
     const statusIcon =
       newStatus === "done"
-        ? term.style().green("✓")
+        ? term.green("✓")
         : newStatus === "blocked"
-          ? term.style().red("!")
+          ? term.red("!")
           : newStatus === "dropped"
-            ? term.style().dim("-")
-            : term.style().dim("○")
+            ? term.dim("-")
+            : term.dim("○")
 
     console.log(
-      `${statusIcon} ${term.style().dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
+      `${statusIcon} ${term.dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
     )
   })

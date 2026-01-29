@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { resolvePathArg, emitNodeUpdatedWithEmitter } from "@km/storage"
@@ -36,7 +36,7 @@ export function createSetCommand() {
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {
-        console.error(term.style().red(`No task found with ID prefix: ${id}`))
+        console.error(term.red(`No task found with ID prefix: ${id}`))
         process.exit(1)
       }
 
@@ -46,9 +46,7 @@ export function createSetCommand() {
         const colonIndex = field.indexOf(":")
         if (colonIndex === -1) {
           console.error(
-            term
-              .style()
-              .red(`Invalid field format: ${field} (expected field:value)`),
+            term.red(`Invalid field format: ${field} (expected field:value)`),
           )
           process.exit(1)
         }
@@ -81,12 +79,12 @@ export function createSetCommand() {
             updates.assigned_to = value || null
             break
           default:
-            console.error(term.style().yellow(`Unknown field: ${key}`))
+            console.error(term.yellow(`Unknown field: ${key}`))
         }
       }
 
       if (Object.keys(updates).length === 0) {
-        console.error(term.style().red("No valid field updates provided"))
+        console.error(term.red("No valid field updates provided"))
         process.exit(1)
       }
 
@@ -103,7 +101,7 @@ export function createSetCommand() {
       }
 
       console.log(
-        term.style().green("✓"),
+        term.green("✓"),
         `Updated ${Object.keys(updates).join(", ")}:`,
         task.id.slice(0, 8),
       )
@@ -131,7 +129,7 @@ export function createClearCommand() {
       const task = repo.resolveNode(id, { taskOnly: true })
 
       if (!task) {
-        console.error(term.style().red(`No task found with ID prefix: ${id}`))
+        console.error(term.red(`No task found with ID prefix: ${id}`))
         process.exit(1)
       }
 
@@ -160,12 +158,12 @@ export function createClearCommand() {
             updates.assigned_to = null
             break
           default:
-            console.error(term.style().yellow(`Unknown field: ${key}`))
+            console.error(term.yellow(`Unknown field: ${key}`))
         }
       }
 
       if (Object.keys(updates).length === 0) {
-        console.error(term.style().red("No valid fields to clear"))
+        console.error(term.red("No valid fields to clear"))
         process.exit(1)
       }
 
@@ -182,7 +180,7 @@ export function createClearCommand() {
       }
 
       console.log(
-        term.style().dim("○"),
+        term.dim("○"),
         `Cleared ${fields.join(", ")}:`,
         task.id.slice(0, 8),
       )

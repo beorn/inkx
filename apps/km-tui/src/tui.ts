@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from "events"
-import { createTerm, type StyleChain } from "chalkx"
+import { createTerm, type StyleChain } from "inkx"
 import createDebug from "debug"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import type { Repo } from "./repo-context.tsx"
@@ -18,12 +18,13 @@ const debug = createDebug("km:tui")
 
 // Module-level term instance for styling (lazily initialized)
 // Force truecolor support for consistent styling in CLI/TUI utilities
-let _term: ReturnType<typeof createTerm> | null = null
+// Note: In chalkx, term IS the StyleChain - no .style() method needed
+let _term: StyleChain | null = null
 function getStyle(): StyleChain {
   if (!_term) {
-    _term = createTerm({ colors: "truecolor" })
+    _term = createTerm({ color: "truecolor" })
   }
-  return _term.style()
+  return _term
 }
 
 /**

@@ -249,7 +249,7 @@ function Layer1RichText(): React.ReactElement {
 // Demo component for displayLength - uses useTerm() for styling
 function DisplayLengthDemo(): React.ReactElement {
   const term = useTerm()
-  const style = term.style()
+  const style = term
   return (
     <>
       <Text>

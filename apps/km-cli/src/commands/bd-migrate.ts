@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import {
@@ -40,13 +40,11 @@ export const migrateCommand = new Command("migrate")
     // Find .beads directory
     const beadsDir = findBeadsDir(resolved.repoRoot)
     if (!beadsDir) {
-      console.error(term.style().red("No .beads directory found."))
+      console.error(term.red("No .beads directory found."))
       console.log(
-        term
-          .style()
-          .dim(
-            "Run 'bd init' to initialize beads, or check your working directory.",
-          ),
+        term.dim(
+          "Run 'bd init' to initialize beads, or check your working directory.",
+        ),
       )
       process.exitCode = 1
       return
@@ -59,7 +57,7 @@ export const migrateCommand = new Command("migrate")
 
     // Show stats first
     const stats = getMigrationStats(beadsDir)
-    console.log(term.style().bold("Migration Source"))
+    console.log(term.bold("Migration Source"))
     console.log(`  .beads dir: ${beadsDir}`)
     if (originalConfigPath) {
       console.log(`  Original config: ${originalConfigPath}`)
@@ -81,7 +79,7 @@ export const migrateCommand = new Command("migrate")
     console.log()
 
     if (stats.total === 0) {
-      console.log(term.style().yellow("No issues to migrate."))
+      console.log(term.yellow("No issues to migrate."))
       return
     }
 
@@ -96,7 +94,7 @@ export const migrateCommand = new Command("migrate")
     // Parse status filter
     const statusFilter = opts.status ? opts.status.split(",") : undefined
 
-    console.log(term.style().bold("Migration Target"))
+    console.log(term.bold("Migration Target"))
     console.log(`  Target dir: ${targetDir}`)
     console.log(`  Board tag: @${beadsConfig.board}`)
     if (statusFilter) {
@@ -105,7 +103,7 @@ export const migrateCommand = new Command("migrate")
     console.log()
 
     if (opts.dryRun) {
-      console.log(term.style().yellow("Dry run - no files will be written."))
+      console.log(term.yellow("Dry run - no files will be written."))
       console.log()
     }
 
@@ -117,24 +115,22 @@ export const migrateCommand = new Command("migrate")
       dryRun: opts.dryRun,
     })
 
-    console.log(term.style().bold("Results"))
+    console.log(term.bold("Results"))
     console.log(`  Migrated: ${result.migrated}`)
     console.log(`  Skipped (already exist): ${result.skipped}`)
     if (result.errors.length > 0) {
-      console.log(term.style().red(`  Errors: ${result.errors.length}`))
+      console.log(term.red(`  Errors: ${result.errors.length}`))
       for (const err of result.errors) {
-        console.log(term.style().red(`    - ${err}`))
+        console.log(term.red(`    - ${err}`))
       }
     }
 
     if (result.migrated > 0 && !opts.dryRun) {
       console.log()
       console.log(
-        term
-          .style()
-          .green(`✓ Migrated ${result.migrated} issues to ${targetDir}`),
+        term.green(`✓ Migrated ${result.migrated} issues to ${targetDir}`),
       )
-      console.log(term.style().dim("Run 'km rebuild' to index the new files."))
+      console.log(term.dim("Run 'km rebuild' to index the new files."))
     }
   })
 
@@ -154,7 +150,7 @@ export const exportCommand = new Command("export")
     const boardTag = configObj.beads.board || undefined
     const issues = queryIssues({}, undefined, boardTag)
 
-    console.log(term.style().bold("Export Source"))
+    console.log(term.bold("Export Source"))
     console.log(`  km issues: ${issues.length}`)
     if (boardTag) {
       console.log(`  Board filter: @${boardTag}`)
@@ -162,7 +158,7 @@ export const exportCommand = new Command("export")
     console.log()
 
     if (issues.length === 0) {
-      console.log(term.style().yellow("No issues to export."))
+      console.log(term.yellow("No issues to export."))
       return
     }
 
@@ -172,13 +168,13 @@ export const exportCommand = new Command("export")
       findBeadsDir(resolved.repoRoot) ||
       `${resolved.repoRoot}/.beads`
 
-    console.log(term.style().bold("Export Target"))
+    console.log(term.bold("Export Target"))
     console.log(`  .beads dir: ${beadsDir}`)
     console.log(`  Mode: ${opts.mode}`)
     console.log()
 
     if (opts.dryRun) {
-      console.log(term.style().yellow("Dry run - no files will be written."))
+      console.log(term.yellow("Dry run - no files will be written."))
       console.log()
     }
 
@@ -189,23 +185,21 @@ export const exportCommand = new Command("export")
       dryRun: opts.dryRun,
     })
 
-    console.log(term.style().bold("Results"))
+    console.log(term.bold("Results"))
     console.log(`  Exported: ${result.exported}`)
     if (result.errors.length > 0) {
-      console.log(term.style().red(`  Errors: ${result.errors.length}`))
+      console.log(term.red(`  Errors: ${result.errors.length}`))
       for (const err of result.errors) {
-        console.log(term.style().red(`    - ${err}`))
+        console.log(term.red(`    - ${err}`))
       }
     }
 
     if (result.exported > 0 && !opts.dryRun) {
       console.log()
       console.log(
-        term
-          .style()
-          .green(
-            `✓ Exported ${result.exported} issues to ${result.outputPath}`,
-          ),
+        term.green(
+          `✓ Exported ${result.exported} issues to ${result.outputPath}`,
+        ),
       )
     }
   })

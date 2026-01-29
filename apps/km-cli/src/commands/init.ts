@@ -15,7 +15,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
@@ -88,12 +88,12 @@ function createGtdStructure(targetDir: string, force: boolean): void {
 
   if (!existsSync(inboxDir)) {
     mkdirSync(inboxDir, { recursive: true })
-    console.log(term.style().dim(`  Created: inbox/`))
+    console.log(term.dim(`  Created: inbox/`))
   }
 
   if (!existsSync(archiveDir)) {
     mkdirSync(archiveDir, { recursive: true })
-    console.log(term.style().dim(`  Created: archive/`))
+    console.log(term.dim(`  Created: archive/`))
   }
 
   // Create board files (skip if exists unless --force)
@@ -107,16 +107,16 @@ function createGtdStructure(targetDir: string, force: boolean): void {
   for (const [filename, content] of files) {
     const filepath = join(targetDir, filename)
     if (existsSync(filepath) && !force) {
-      console.log(term.style().dim(`  Skipped: ${filename} (exists)`))
+      console.log(term.dim(`  Skipped: ${filename} (exists)`))
       skipped = true
     } else {
       writeFileSync(filepath, content)
-      console.log(term.style().dim(`  Created: ${filename}`))
+      console.log(term.dim(`  Created: ${filename}`))
     }
   }
 
   if (skipped) {
-    console.log(term.style().dim(`  Use --force to overwrite existing files`))
+    console.log(term.dim(`  Use --force to overwrite existing files`))
   }
 }
 
@@ -144,7 +144,7 @@ export const initCommand = new Command("init")
       // Create target directory if it doesn't exist
       if (!existsSync(targetDir)) {
         mkdirSync(targetDir, { recursive: true })
-        console.log(term.style().dim(`Created directory: ${targetDir}`))
+        console.log(term.dim(`Created directory: ${targetDir}`))
       }
     } else if (globalRoot) {
       // Expand ~ and resolve to absolute path
@@ -156,7 +156,7 @@ export const initCommand = new Command("init")
       // Create target directory if it doesn't exist
       if (!existsSync(targetDir)) {
         mkdirSync(targetDir, { recursive: true })
-        console.log(term.style().dim(`Created directory: ${targetDir}`))
+        console.log(term.dim(`Created directory: ${targetDir}`))
       }
     } else {
       targetDir = resolve(process.cwd())
@@ -166,8 +166,8 @@ export const initCommand = new Command("init")
 
     // Check if .km/ already exists
     if (existsSync(kmDir) && !options.force) {
-      console.log(term.style().yellow(`Already initialized: ${kmDir}`))
-      console.log(term.style().dim("Use --force to reinitialize"))
+      console.log(term.yellow(`Already initialized: ${kmDir}`))
+      console.log(term.dim("Use --force to reinitialize"))
       return
     }
 
@@ -175,16 +175,14 @@ export const initCommand = new Command("init")
     const ancestorKm = findAncestorKmDir(targetDir)
     if (ancestorKm && !options.force) {
       console.log(
-        term.style().yellow(`Found existing km repo at ${ancestorKm}`),
+        term.yellow(`Found existing km repo at ${ancestorKm}`),
       )
       console.log(
-        term
-          .style()
-          .yellow(
-            `Creating a nested repo may cause conflicts. Consider using the parent repo instead.`,
-          ),
+        term.yellow(
+          `Creating a nested repo may cause conflicts. Consider using the parent repo instead.`,
+        ),
       )
-      console.log(term.style().dim("Use --force to create a nested repo"))
+      console.log(term.dim("Use --force to create a nested repo"))
       return
     }
 
@@ -198,10 +196,10 @@ export const initCommand = new Command("init")
     }
 
     console.log(
-      term.style().bold("Initializing .km"),
-      term.style().dim(`(repo ${formatPath(targetDir)})`),
+      term.bold("Initializing .km"),
+      term.dim(`(repo ${formatPath(targetDir)})`),
     )
-    console.log(term.style().green("✓"), "Created .km/")
+    console.log(term.green("✓"), "Created .km/")
 
     // Add GTD structure by default (unless --no-gtd)
     if (options.gtd !== false) {
@@ -231,7 +229,7 @@ export const initCommand = new Command("init")
           directories: number
         }
         console.log(
-          term.style().green("✓"),
+          term.green("✓"),
           `Synced ${result.processed} file(s) in ${result.directories} directories`,
         )
       } catch (error) {
@@ -242,10 +240,10 @@ export const initCommand = new Command("init")
     console.log()
     console.log("Next steps:")
     console.log(
-      term.style().cyan("  km tasks   ") + term.style().dim("# List tasks"),
+      term.cyan("  km tasks   ") + term.dim("# List tasks"),
     )
     console.log(
-      term.style().cyan("  km view    ") +
-        term.style().dim("# Open kanban board"),
+      term.cyan("  km view    ") +
+        term.dim("# Open kanban board"),
     )
   })

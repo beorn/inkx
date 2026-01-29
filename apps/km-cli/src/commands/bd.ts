@@ -6,7 +6,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "chalkx"
+import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import {
@@ -104,7 +104,7 @@ bdCommand
         : boardTag
           ? ` on @${boardTag}`
           : ""
-      console.log(term.style().yellow(`No ready issues found${scopeMsg}.`))
+      console.log(term.yellow(`No ready issues found${scopeMsg}.`))
       return
     }
 
@@ -114,11 +114,9 @@ bdCommand
         ? ` on @${boardTag}`
         : ""
     console.log(
-      term
-        .style()
-        .bold(
-          `📋 Ready work (${issues.length} issues with no blockers${scopeMsg}):\n`,
-        ),
+      term.bold(
+        `📋 Ready work (${issues.length} issues with no blockers${scopeMsg}):\n`,
+      ),
     )
     issues.forEach((issue, i) => {
       printReadyIssue(issue, i + 1)
@@ -169,7 +167,7 @@ bdCommand
         : boardTag
           ? ` on @${boardTag}`
           : ""
-      console.log(term.style().yellow(`No issues found${scopeMsg}.`))
+      console.log(term.yellow(`No issues found${scopeMsg}.`))
       return
     }
 
@@ -178,7 +176,7 @@ bdCommand
       : boardTag
         ? ` on @${boardTag}`
         : ""
-    console.log(term.style().bold(`Issues (${issues.length}${scopeMsg}):\n`))
+    console.log(term.bold(`Issues (${issues.length}${scopeMsg}):\n`))
     for (const issue of issues) {
       printIssue(issue)
     }
@@ -200,7 +198,7 @@ const showCmd = bdCommand
     const issue = resolveIssueArg(repo, id)
 
     if (!issue) {
-      console.error(term.style().red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${id}`))
       process.exitCode = 1
       return
     }
@@ -239,16 +237,14 @@ bdCommand
       return
     }
 
-    console.log(term.style().green(`Created issue: ${shortId}`))
-    console.log(term.style().dim(`Title: ${title}`))
-    if (opts.type) console.log(term.style().dim(`Type: ${opts.type}`))
-    console.log(term.style().dim(`Priority: P${opts.priority ?? 2}`))
+    console.log(term.green(`Created issue: ${shortId}`))
+    console.log(term.dim(`Title: ${title}`))
+    if (opts.type) console.log(term.dim(`Type: ${opts.type}`))
+    console.log(term.dim(`Priority: P${opts.priority ?? 2}`))
 
     // Note: Actual persistence requires km-storage integration
     console.log(
-      term
-        .style()
-        .yellow("\nNote: Issue created in memory. Persistence pending."),
+      term.yellow("\nNote: Issue created in memory. Persistence pending."),
     )
   })
 
@@ -273,7 +269,7 @@ const updateCmd = bdCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
-      console.error(term.style().red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${id}`))
       process.exitCode = 1
       return
     }
@@ -286,21 +282,19 @@ const updateCmd = bdCommand
 
     const updates = updateIssueFields(issue, changes)
 
-    console.log(term.style().green(`Updated ${issue.shortId}:`))
+    console.log(term.green(`Updated ${issue.shortId}:`))
     if (updates.task_status) {
-      console.log(term.style().dim(`  Status: ${updates.task_status}`))
+      console.log(term.dim(`  Status: ${updates.task_status}`))
     }
     if (updates.priority !== undefined) {
-      console.log(term.style().dim(`  Priority: P${updates.priority}`))
+      console.log(term.dim(`  Priority: P${updates.priority}`))
     }
     if (updates.content) {
-      console.log(term.style().dim(`  Title: ${updates.content}`))
+      console.log(term.dim(`  Title: ${updates.content}`))
     }
 
     console.log(
-      term
-        .style()
-        .yellow("\nNote: Update created in memory. Persistence pending."),
+      term.yellow("\nNote: Update created in memory. Persistence pending."),
     )
   })
 
@@ -319,7 +313,7 @@ const closeCmd = bdCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
-      console.error(term.style().red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${id}`))
       process.exitCode = 1
       return
     }
@@ -327,12 +321,10 @@ const closeCmd = bdCommand
     const updates = closeIssueFields(opts.reason)
     void updates // Use updates for persistence later
 
-    console.log(term.style().green(`Closed ${issue.shortId}`))
-    if (opts.reason) console.log(term.style().dim(`Reason: ${opts.reason}`))
+    console.log(term.green(`Closed ${issue.shortId}`))
+    if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
     console.log(
-      term
-        .style()
-        .yellow("\nNote: Update created in memory. Persistence pending."),
+      term.yellow("\nNote: Update created in memory. Persistence pending."),
     )
   })
 
@@ -351,7 +343,7 @@ const dropCmd = bdCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
-      console.error(term.style().red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${id}`))
       process.exitCode = 1
       return
     }
@@ -359,12 +351,10 @@ const dropCmd = bdCommand
     const updates = dropIssueFields(opts.reason)
     void updates
 
-    console.log(term.style().yellow(`Dropped ${issue.shortId}`))
-    if (opts.reason) console.log(term.style().dim(`Reason: ${opts.reason}`))
+    console.log(term.yellow(`Dropped ${issue.shortId}`))
+    if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
     console.log(
-      term
-        .style()
-        .yellow("\nNote: Update created in memory. Persistence pending."),
+      term.yellow("\nNote: Update created in memory. Persistence pending."),
     )
   })
 
@@ -384,7 +374,7 @@ const depAddCmd = depCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
-      console.error(term.style().red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${id}`))
       process.exitCode = 1
       return
     }
@@ -393,14 +383,10 @@ const depAddCmd = depCommand
     void props
 
     console.log(
-      term
-        .style()
-        .green(`Added dependency: ${issue.shortId} blocked-by ${dependsOn}`),
+      term.green(`Added dependency: ${issue.shortId} blocked-by ${dependsOn}`),
     )
     console.log(
-      term
-        .style()
-        .yellow("\nNote: Update created in memory. Persistence pending."),
+      term.yellow("\nNote: Update created in memory. Persistence pending."),
     )
   })
 
@@ -417,7 +403,7 @@ const depRemoveCmd = depCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
-      console.error(term.style().red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${id}`))
       process.exitCode = 1
       return
     }
@@ -425,22 +411,18 @@ const depRemoveCmd = depCommand
     const result = removeDependency(issue, dependsOn)
     if (!result) {
       console.error(
-        term.style().yellow(`${issue.shortId} does not depend on ${dependsOn}`),
+        term.yellow(`${issue.shortId} does not depend on ${dependsOn}`),
       )
       return
     }
 
     console.log(
-      term
-        .style()
-        .green(
-          `Removed dependency: ${issue.shortId} no longer blocked-by ${dependsOn}`,
-        ),
+      term.green(
+        `Removed dependency: ${issue.shortId} no longer blocked-by ${dependsOn}`,
+      ),
     )
     console.log(
-      term
-        .style()
-        .yellow("\nNote: Update created in memory. Persistence pending."),
+      term.yellow("\nNote: Update created in memory. Persistence pending."),
     )
   })
 
@@ -457,20 +439,20 @@ const depListCmd = depCommand
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, id)
     if (!issue) {
-      console.error(term.style().red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${id}`))
       process.exitCode = 1
       return
     }
 
     const deps = getDependencies(issue)
     if (deps.length === 0) {
-      console.log(term.style().dim(`${issue.shortId} has no dependencies`))
+      console.log(term.dim(`${issue.shortId} has no dependencies`))
       return
     }
 
-    console.log(term.style().bold(`Dependencies for ${issue.shortId}:`))
+    console.log(term.bold(`Dependencies for ${issue.shortId}:`))
     for (const dep of deps) {
-      console.log(term.style().dim(`  - ${dep}`))
+      console.log(term.dim(`  - ${dep}`))
     }
   })
 
@@ -500,21 +482,21 @@ bdCommand
     const boardTag = config.board || undefined
     const issues = queryIssues({}, scopePath, boardTag)
 
-    console.log(term.style().bold("Beads Configuration"))
+    console.log(term.bold("Beads Configuration"))
     console.log("===================")
     console.log(
-      `Board:  ${config.board || term.style().dim("(none - showing all tasks)")}`,
+      `Board:  ${config.board || term.dim("(none - showing all tasks)")}`,
     )
     console.log(
-      `Parent: ${config.parent || term.style().dim("(none - create manually)")}`,
+      `Parent: ${config.parent || term.dim("(none - create manually)")}`,
     )
     console.log(`Prefix: ${config.prefix}`)
     if (configObj.path) {
-      console.log(term.style().dim(`Config: ${configObj.path}`))
+      console.log(term.dim(`Config: ${configObj.path}`))
     }
 
     console.log()
-    console.log(term.style().bold("How tasks are tracked:"))
+    console.log(term.bold("How tasks are tracked:"))
     if (config.board) {
       console.log(
         `  Tasks tagged @${config.board} are shown by 'km bd' commands.`,
@@ -533,7 +515,7 @@ bdCommand
     }
 
     console.log()
-    console.log(term.style().bold("Storage"))
+    console.log(term.bold("Storage"))
     console.log(`  Database: ${dbPath}`)
     console.log(`  Mode: ${repoMode}`)
     console.log(`  Repo: ${resolved.repoRoot}`)
@@ -550,7 +532,7 @@ bdCommand
       : boardTag
         ? ` on @${boardTag}`
         : ""
-    console.log(term.style().bold(`Statistics${scopeMsg}`))
+    console.log(term.bold(`Statistics${scopeMsg}`))
     console.log(`  Total: ${issues.length} issues`)
 
     // Show breakdown by status
@@ -576,15 +558,15 @@ bdCommand
       }
       if (pathsWithTasks.size > 0) {
         console.log()
-        console.log(term.style().bold("Files with tasks:"))
+        console.log(term.bold("Files with tasks:"))
         const paths = Array.from(pathsWithTasks).slice(0, 5)
         for (const path of paths) {
           const count = issues.filter((i) => i.path === path).length
-          console.log(term.style().dim(`  ${path} (${count})`))
+          console.log(term.dim(`  ${path} (${count})`))
         }
         if (pathsWithTasks.size > 5) {
           console.log(
-            term.style().dim(`  ... and ${pathsWithTasks.size - 5} more files`),
+            term.dim(`  ... and ${pathsWithTasks.size - 5} more files`),
           )
         }
       }
@@ -615,7 +597,7 @@ bdCommand
         console.log(`  scope: ${resolved.nodeRef}`)
       }
     } else {
-      console.log(term.style().yellow("No km directory found."))
+      console.log(term.yellow("No km directory found."))
       console.log(`  repo: ${resolved.repoRoot}`)
     }
   })

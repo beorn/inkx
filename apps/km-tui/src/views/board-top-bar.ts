@@ -1,7 +1,7 @@
 /**
  * Board top bar - path segments rendering
  */
-import { createTerm, type StyleChain } from "chalkx"
+import { createTerm, type StyleChain } from "inkx"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -12,9 +12,9 @@ import { renderPlain } from "../text/index.ts"
 let _term: ReturnType<typeof createTerm> | null = null
 function getStyle(): StyleChain {
   if (!_term) {
-    _term = createTerm({ colors: "truecolor" })
+    _term = createTerm({ color: "truecolor" })
   }
-  return _term.style()
+  return _term
 }
 
 export interface PathSegment {
@@ -136,7 +136,7 @@ export function getPathSegments(
 /**
  * Render top bar content as plain string (no chalk styling)
  * Color is controlled by the parent Text component's color prop
- * Board root segment gets special formatting via term.style().bold
+ * Board root segment gets special formatting via term.bold
  */
 export function renderTopBarContent(
   segments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>,
