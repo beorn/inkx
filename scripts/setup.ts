@@ -15,7 +15,7 @@
  */
 
 import { $ } from "bun"
-import { existsSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from "node:fs"
+import { copyFileSync, existsSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from "node:fs"
 import { join, resolve } from "node:path"
 
 const QUIET = process.argv.includes("--quiet")
@@ -75,6 +75,17 @@ async function checkCommand(cmd: string): Promise<boolean> {
   }
 }
 
+/**
+ * Backup a file before editing (only if it exists and no backup exists yet)
+ */
+function backupFile(filePath: string): void {
+  if (!existsSync(filePath)) return
+  const backupPath = `${filePath}.km-backup`
+  if (!existsSync(backupPath)) {
+    copyFileSync(filePath, backupPath)
+  }
+}
+
 async function main() {
   log("🔧 km setup\n")
 
@@ -115,6 +126,11 @@ async function main() {
   const hasOmz = shell === "zsh" && existsSync(omzDir)
 
   const shellrcContent = existsSync(shellrc) ? await Bun.file(shellrc).text() : ""
+
+  // Backup before editing
+  if (existsSync(shellrc)) {
+    backupFile(shellrc)
+  }
 
   if (hasOmz) {
     // Oh My Zsh: add direnv to plugins list
