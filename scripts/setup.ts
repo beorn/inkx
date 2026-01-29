@@ -127,11 +127,12 @@ async function main() {
   // 4. Install dependencies (skip in quiet mode - assume already done)
   if (!QUIET) {
     log("📥 Installing dependencies...")
-    try {
-      await $`bun install`.quiet()
+    const result = await $`bun install`.nothrow()
+    if (result.exitCode === 0) {
       log("   ✓ Dependencies installed\n")
-    } catch {
-      log("   ⚠ bun install had issues (may be fine if deps already installed)\n")
+    } else {
+      log("   ⚠ bun install failed:\n")
+      console.error(result.stderr.toString())
     }
   }
 
