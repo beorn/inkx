@@ -1778,7 +1778,7 @@ if (isStaticMode) {
 } else {
   // Interactive mode: render to terminal with keyboard input
   using term = createTerm()
-  const instance = await inkxRender(term, <InteractiveStorybook />, {
+  const instance = await inkxRender(<InteractiveStorybook />, term, {
     exitOnCtrlC: true,
   })
   await instance.waitUntilExit()

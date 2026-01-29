@@ -818,7 +818,7 @@ export async function renderInkxBoard(
 
   debug("Rendering with inkx")
   using term = createTerm()
-  const instance = await inkxRender(term, app, {
+  const instance = await inkxRender(app, term, {
     exitOnCtrlC: true,
     patchConsole: false,
     alternateScreen: true,

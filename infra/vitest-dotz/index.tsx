@@ -15,7 +15,7 @@ import type {
   TestSuite,
   Vitest,
 } from "vitest/node";
-import { Box, Text, useTerm, useContentRect, type App, type Term, type StyleChain } from "inkx";
+import { Box, Text, useTerm, useContentRect, type App, type Term } from "inkx";
 import Debug from "debug";
 
 import { createTestStore, type TestState, type TestStore, type TestStoreState } from "./store.js";
@@ -24,24 +24,25 @@ import { createTestStore, type TestState, type TestStore, type TestStoreState } 
 // Style Context (for testing DI)
 // =============================================================================
 
-/** Style function type - matches term.style() return */
-export type StyleFn = () => StyleChain;
+/** Style function type - returns a Term (which IS the style chain) */
+export type StyleFn = () => Term;
 
 /**
  * StyleContext allows injecting a style function for testing.
- * When null, components fall back to useTerm().style().
+ * When null, components fall back to useTerm().
  */
 export const StyleContext = createContext<StyleFn | null>(null);
 
 /**
- * Hook to get the style function - uses StyleContext if provided, otherwise useTerm().
+ * Hook to get the style chain - uses StyleContext if provided, otherwise useTerm().
+ * Note: Term IS the style chain (no .style() method needed).
  */
-export function useStyle(): StyleChain {
+export function useStyle(): Term {
   const styleFromContext = useContext(StyleContext);
   if (styleFromContext) {
     return styleFromContext();
   }
-  return useTerm().style();
+  return useTerm();
 }
 
 const debug = Debug("km:vitest-dotz");
@@ -463,7 +464,7 @@ export class DotzReporter implements Reporter {
 
     const { render, createTerm } = await import("inkx");
     this.term = createTerm();
-    this.app = await render(this.term, <Report store={this.store} options={this.options} />, {
+    this.app = await render(<Report store={this.store} options={this.options} />, this.term, {
       mode: "inline",
     });
   }
@@ -614,8 +615,8 @@ function extractLineNumber(testCase: TestCase) {
 }
 
 async function printSummary(store: TestStore, options: Options) {
-  const { renderString } = await import("inkx");
-  const output = await renderString(<Report store={store} options={options} />, {
+  const { renderStatic } = await import("inkx");
+  const output = await renderStatic(<Report store={store} options={options} />, {
     width: process.stdout.columns || 80,
   });
   console.log(output);
