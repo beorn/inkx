@@ -15,7 +15,7 @@ import type {
   TestSuite,
   Vitest,
 } from "vitest/node"
-import { Box, Text, useTerm } from "inkx"
+import { Box, Text, useTerm, useContentRect, type App } from "inkx"
 import Debug from "debug"
 
 import {
@@ -118,14 +118,19 @@ function Dot(props: DotProps) {
       options.slowThreshold,
       options.symbols.length,
     )
-    const char = options.symbols[Math.min(index, options.symbols.length - 1)] ?? "●"
-    const styled = bright ? term.style().green(char) : term.style().green.dim(char)
+    const char =
+      options.symbols[Math.min(index, options.symbols.length - 1)] ?? "●"
+    const styled = bright
+      ? term.style().green(char)
+      : term.style().green.dim(char)
     return <Text>{styled}</Text>
   }
 
   // Fallback for other states
-  if (testState === "failed") return <Text>{term.style().red(DOT_CHARS.fail)}</Text>
-  if (testState === "skipped") return <Text>{term.style().gray.dim(DOT_CHARS.skip)}</Text>
+  if (testState === "failed")
+    return <Text>{term.style().red(DOT_CHARS.fail)}</Text>
+  if (testState === "skipped")
+    return <Text>{term.style().gray.dim(DOT_CHARS.skip)}</Text>
   return <Text>{term.style().yellow(DOT_CHARS.pending)}</Text>
 }
 
@@ -155,7 +160,11 @@ function DotsLegend({ options }: { options: ResolvedOptions }) {
         <Dot status="passed" duration={0} options={options} />
       </LegendItem>
       <LegendItem label="slow">
-        <Dot status="passed" duration={options.slowThreshold * 10} options={options} />
+        <Dot
+          status="passed"
+          duration={options.slowThreshold * 10}
+          options={options}
+        />
       </LegendItem>
       <LegendItem label="fail">
         <Dot status="failed" />
@@ -181,7 +190,7 @@ function DotsSection({
   options: ResolvedOptions
 }) {
   const term = useTerm()
-  const cols = process.stdout.columns || 80
+  const { width: cols = 80 } = useContentRect()
 
   // Calculate label width based on longest category name
   const maxLabelWidth = Math.min(
@@ -197,7 +206,11 @@ function DotsSection({
   const fileBreakouts = new Set<string>()
   for (const category of state.categoryOrder) {
     const catStats = state.categoryStats.get(category)
-    if (catStats && catStats.testIds.length > dotsWidth && catStats.fileOrder.length > 1) {
+    if (
+      catStats &&
+      catStats.testIds.length > dotsWidth &&
+      catStats.fileOrder.length > 1
+    ) {
       fileBreakouts.add(category)
     }
   }
@@ -219,13 +232,24 @@ function DotsSection({
               {catStats.fileOrder.map((file) => {
                 const fileStats = catStats.files.get(file)
                 if (!fileStats) return null
-                const fileName = file.replace(/\.(test|spec)\.(ts|tsx|js|jsx|md)$/, "")
+                const fileName = file.replace(
+                  /\.(test|spec)\.(ts|tsx|js|jsx|md)$/,
+                  "",
+                )
                 return (
                   <Box key={file} flexDirection="row">
-                    <Text>{"  "}{term.style().dim(fileName.padEnd(fileLabelWidth))}</Text>
+                    <Text>
+                      {"  "}
+                      {term.style().dim(fileName.padEnd(fileLabelWidth))}
+                    </Text>
                     <Box flexDirection="row" flexWrap="wrap" width={dotsWidth}>
                       {fileStats.testIds.map((id) => (
-                        <Dot key={id} testId={id} store={state} options={options} />
+                        <Dot
+                          key={id}
+                          testId={id}
+                          store={state}
+                          options={options}
+                        />
                       ))}
                     </Box>
                   </Box>
@@ -383,10 +407,16 @@ function Failures({ state }: { state: TestStoreState }) {
           <Text>
             {term.style().red("✗")} {term.style().bold(err.name)}
           </Text>
-          <Text>{"  "}{term.style().dim(err.file)}</Text>
+          <Text>
+            {"  "}
+            {term.style().dim(err.file)}
+          </Text>
           {err.errors.map((e, j) => (
             <Box key={j} flexDirection="column">
-              <Text>{"  "}{e.message}</Text>
+              <Text>
+                {"  "}
+                {e.message}
+              </Text>
               {e.stack?.split("\n").map((line, k) => (
                 <Text key={k}>{term.style().dim(line)}</Text>
               ))}
@@ -405,19 +435,13 @@ function Failures({ state }: { state: TestStoreState }) {
 // Module-level cache for package name lookups
 const packageNameCache = new Map<string, string>()
 
-// App handle type from inkx render()
-interface AppHandle {
-  unmount: () => void
-  waitUntilExit: () => Promise<void>
-}
-
 export class DotzReporter implements Reporter {
   private ctx!: Vitest
   private store: TestStore
   private options: ResolvedOptions
   private finishedTests = new Set<string>()
   private finishedCalled = false
-  private app: AppHandle | null = null
+  private app: App | null = null
   private term: { [Symbol.dispose]: () => void } | null = null
   private isTTY: boolean
   private prevActEnv: boolean | undefined
@@ -431,7 +455,11 @@ export class DotzReporter implements Reporter {
     }
     this.store = createTestStore(this.options.slowThreshold)
     this.isTTY = process.stdout.isTTY === true
-    debug("reporter initialized with options: %O, isTTY: %s", this.options, this.isTTY)
+    debug(
+      "reporter initialized with options: %O, isTTY: %s",
+      this.options,
+      this.isTTY,
+    )
   }
 
   onInit(ctx: Vitest) {
@@ -455,10 +483,9 @@ export class DotzReporter implements Reporter {
   private async startStreaming() {
     // Tell React we're not in a test - we're the reporter, not under test
     // Save and disable for entire streaming duration
-    // @ts-expect-error - React internal flag
-    this.prevActEnv = globalThis.IS_REACT_ACT_ENVIRONMENT
-    // @ts-expect-error - React internal flag
-    globalThis.IS_REACT_ACT_ENVIRONMENT = false
+    const g = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    this.prevActEnv = g.IS_REACT_ACT_ENVIRONMENT
+    g.IS_REACT_ACT_ENVIRONMENT = false
 
     const { render, createTerm } = await import("inkx")
     this.term = createTerm()
@@ -568,8 +595,9 @@ export class DotzReporter implements Reporter {
       this.app = null
       this.term = null
       // Restore React act environment flag
-      // @ts-expect-error - React internal flag
-      globalThis.IS_REACT_ACT_ENVIRONMENT = this.prevActEnv
+      ;(
+        globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+      ).IS_REACT_ACT_ENVIRONMENT = this.prevActEnv
     } else {
       // Non-TTY: render static summary
       await printSummary(this.store, this.options)

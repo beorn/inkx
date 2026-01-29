@@ -13,8 +13,5 @@
   },
   "[json]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
-  },
-  "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }
