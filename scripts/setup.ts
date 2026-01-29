@@ -101,11 +101,29 @@ async function main() {
     process.exit(1)
   }
 
+  // Ensure nix experimental features are enabled
+  const nixConfDir = join(process.env.HOME ?? "", ".config", "nix")
+  const nixConfPath = join(nixConfDir, "nix.conf")
+  const nixConfContent = existsSync(nixConfPath) ? await Bun.file(nixConfPath).text() : ""
+  if (!nixConfContent.includes("experimental-features")) {
+    log("   📝 Enabling nix experimental features...")
+    if (!existsSync(nixConfDir)) {
+      mkdirSync(nixConfDir, { recursive: true })
+    }
+    if (existsSync(nixConfPath)) {
+      backupFile(nixConfPath)
+    }
+    await Bun.write(nixConfPath, nixConfContent + "\n# Added by km setup\nexperimental-features = nix-command flakes\n")
+    log("   ✓ nix.conf updated")
+  } else {
+    log("   ✓ nix experimental features enabled")
+  }
+
   if (hasDirenv) {
     log("   ✓ direnv installed")
   } else {
     log("   ⚠ direnv not found - installing with nix...")
-    const installDirenv = await $`nix --extra-experimental-features 'nix-command flakes' profile add nixpkgs#direnv`.quiet().nothrow()
+    const installDirenv = await $`nix profile add nixpkgs#direnv`.quiet().nothrow()
     if (installDirenv.exitCode !== 0) {
       console.error("   ✗ Failed to install direnv")
       console.error(installDirenv.stderr.toString())
