@@ -66,18 +66,62 @@ From the gathered output, determine:
 1. **Which submodules have changes?** Lines under "--- vendor/X ---"
 2. **What files in main repo?** Lines under "=== ALL CHANGES ==="
 3. **Any DETACHED branches?** Must fix first
-4. **Beads context** - What beads were being worked on? Use for commit message context
-5. **Commit message** - Use conventional commits format, reference beads if relevant
+4. **Bead correlation** - See [Correlating Changes to Beads](#correlating-changes-to-beads) below
+5. **Commit message** - Use conventional commits format with bead references
 
 **IMPORTANT: If no changes detected** (empty "ALL CHANGES" and no "SUBMODULE CHANGES"), output a friendly message like "Nothing to commit, working tree is clean" and STOP. Do not generate or run a commit script.
 
-**Single vs multiple commits:** Default to ONE commit unless changes are CLEARLY unrelated:
+### Correlating Changes to Beads
 
-- Different packages touched? Usually ONE commit (refactors often touch multiple)
-- Fix + test for that fix? ONE commit
-- Feature + unrelated style fix? Consider asking, but lean toward ONE unless obvious
+**Look hard to find which beads these changes relate to.** Check:
 
-Then generate a SINGLE bash script. DO NOT run multiple commands.
+1. **In-progress beads** - Most likely candidates. Compare bead scope tokens with changed files:
+   - `km-storage-*` → changes in `packages/km-storage/`
+   - `km-tui-*` → changes in `apps/km-tui/` or `packages/km-tui/`
+   - `beorn-inkx-*` → changes in `vendor/beorn-inkx/`
+   - `km-board-*` → changes in `packages/km-board/`
+
+2. **Bead descriptions** - Read the bead title/description. Does it match what changed?
+   - "Fix cursor position after delete" + cursor-related code changes = match
+   - "Add vim keybindings" + useInput changes = match
+
+3. **Recently closed beads** - Maybe this is a follow-up fix?
+
+4. **Recent activity log** - What was the agent working on?
+
+**Confidence levels:**
+
+| Confidence | Action |
+|------------|--------|
+| **High** - Scope token matches, description matches, in-progress | Reference with `Resolves:` or `Refs:` |
+| **Medium** - Scope matches but description unclear | Reference with `Refs:` (not Resolves) |
+| **Low** - Unsure which bead, or could be multiple | **Ask user** with AskUserQuestion |
+| **None** - No related bead found | Commit without bead reference (OK for small fixes) |
+
+**Bead reference syntax in commit messages:**
+
+```
+fix(storage): handle empty file gracefully
+
+Resolves: km-storage-42          # Completes the bead (closes it)
+Refs: km-storage-42              # Related but doesn't complete it
+Part-of: km-tui-8                # Part of a larger epic/feature
+```
+
+### Single vs Multiple Commits
+
+**Group by bead** when changes relate to different beads:
+
+- Changes to `km-storage` for `km-storage-15` + changes to `km-tui` for `km-tui-8` = TWO commits
+- Changes touching multiple packages but all for ONE bead = ONE commit
+- Fix + test for that fix = ONE commit (same bead)
+
+**Default to ONE commit** when:
+- All changes relate to the same bead
+- Changes are clearly part of one logical unit
+- No beads involved (small standalone fix)
+
+Then generate a SINGLE bash script (or multiple if grouping by bead). DO NOT run multiple separate commands.
 
 ## Step 3: Execute Everything (ONE Bash Call)
 
@@ -215,24 +259,31 @@ If the script fails partway through:
 
 ## When to Ask User
 
-**ASK** (use AskUserQuestion) ONLY if:
+**ASK** (use AskUserQuestion) if:
 
-- Changes are CLEARLY unrelated (e.g., "storage refactor" + "unrelated docs fix" + "CLI feature")
-- Sensitive files detected in changes
-- DETACHED HEAD that shouldn't be
+- **Bead assignment unclear** - Changes could relate to multiple beads, or you're ~70% confident but not sure
+  - Example: "These changes touch storage. I see km-storage-15 (race condition fix) and km-storage-18 (performance). Which bead does this relate to?"
+- **Changes are CLEARLY unrelated** - Multiple distinct changes that should be separate commits
+- **Sensitive files detected** in changes
+- **DETACHED HEAD** that shouldn't be
 
 **DO NOT ASK** (just commit):
 
-- Changes touch multiple packages but are part of one logical change
+- Bead assignment is obvious (scope matches, description matches)
+- Changes touch multiple packages but are part of one logical change (same bead)
 - Fix + tests for that fix
 - Refactor that naturally spans files
+- No beads involved and it's a small standalone fix
 - Following up on work the user explicitly requested
-- When in doubt, default to ONE commit - users can always ask for separate commits
 
 ## Summary
 
 1. **Bash call 1:** Gather command → read output (includes beads context)
-2. **Think:** Analyze changes + beads context, determine message, generate script
+2. **Think:**
+   - Correlate changes to beads (scope tokens, descriptions, in-progress work)
+   - If bead unclear (~70% confident), ask user
+   - Group commits by bead if changes relate to different beads
+   - Generate script with proper `Resolves:`/`Refs:` references
 3. **Bash call 2:** Execute complete script → done
 
-Total: 2 Bash tool calls. No more.
+Total: 2 Bash tool calls (plus optional AskUserQuestion for bead clarification).
