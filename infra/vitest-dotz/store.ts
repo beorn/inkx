@@ -8,6 +8,9 @@
  * - Triggers React re-renders on state changes
  */
 
+import createDebug from "debug"
+const debug = createDebug("km:vitest-dotz:store")
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -285,15 +288,23 @@ export function createTestStore(slowThreshold: number = 100): TestStore {
     },
 
     updateSlowest: (name, file, duration, threshold) => {
-      // Match dots criteria: shows for duration >= threshold * 2
-      if (duration < threshold * 2) return
-      state.topSlowest.push({ name, file, duration })
-      state.topSlowest.sort((a, b) => b.duration - a.duration)
-      // Keep only top entries (will be limited in display)
-      if (state.topSlowest.length > 20) {
-        state.topSlowest = state.topSlowest.slice(0, 20)
+      // Show tests that are at least 2x the threshold (e.g., 200ms for 100ms threshold)
+      const minDuration = threshold * 2
+      if (duration >= minDuration) {
+        debug(
+          "slow test: %s duration=%dms minDuration=%dms",
+          name,
+          duration,
+          minDuration,
+        )
+        state.topSlowest.push({ name, file, duration })
+        state.topSlowest.sort((a, b) => b.duration - a.duration)
+        // Keep only top entries (will be limited in display)
+        if (state.topSlowest.length > 20) {
+          state.topSlowest = state.topSlowest.slice(0, 20)
+        }
+        notify()
       }
-      notify()
     },
   }
 }

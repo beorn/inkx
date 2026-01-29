@@ -77,7 +77,7 @@ describe("Visual navigation integration: card position registration", () => {
 
     const state = makeTUIBoardState("root")
 
-    const { lastFrameText } = render(
+    const app = render(
       <RepoProvider repo={repo}>
         <Board
           initialState={state}
@@ -90,10 +90,9 @@ describe("Visual navigation integration: card position registration", () => {
     )
 
     // Verify render contains the tasks
-    const text = lastFrameText()!
-    expect(text).toContain("Task 1")
-    expect(text).toContain("Task 2")
-    expect(text).toContain("Task 3")
+    expect(app.text).toContain("Task 1")
+    expect(app.text).toContain("Task 2")
+    expect(app.text).toContain("Task 3")
 
     // Verify cards registered their positions
     expect(registry.hasCardsInColumn(0)).toBe(true)

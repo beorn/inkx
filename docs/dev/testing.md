@@ -205,11 +205,12 @@ test("columns are horizontal", () => {
 
 **Test API**:
 
-- `board.press(key)` - keyboard input (chainable)
+- `board.press(key)` - keyboard input with Playwright-style names (chainable)
 - `board.expect(selector)` - fluent assertions
 - `board.q(selector)` - advanced queries (returns InkxLocator)
 - `.toExist()` / `.toHaveCount(n)` - custom matchers
 - `.boundingBox()` - visual position checks
+- `board._result.debug()` - print component tree for debugging
 
 **CSS selectors**:
 
@@ -218,6 +219,44 @@ test("columns are horizontal", () => {
 - `#1a[data-cursor]` - cursor is on 1a
 - `[data-selected]` - all selected items
 - `[data-view="card"]` - all cards
+
+**Keyboard input (Playwright-style)**:
+
+Use Playwright-style key names instead of raw ANSI escape codes:
+
+```typescript
+// Navigation keys
+board.press("ArrowDown")   // Instead of "\x1b[B"
+board.press("ArrowUp")     // Instead of "\x1b[A"
+board.press("Enter")       // Instead of "\r"
+board.press("Escape")      // Instead of "\x1b"
+board.press("Tab")         // Instead of "\t"
+
+// Modifier combinations
+board.press("Control+c")   // Ctrl+C
+
+// Single characters work as-is
+board.press("j")           // vim-style down
+```
+
+**Custom matchers for InkxLocator**:
+
+```typescript
+import { createLocator } from "inkx/testing"
+
+const locator = createLocator(result.getContainer())
+const col1 = locator.getByTestId("col1")
+
+// Text and visibility
+expect(col1).toHaveText("To Do")
+expect(col1).toBeVisible()
+
+// Layout assertions
+expect(col1).toBeLeftOf(col2)
+expect(header).toBeAbove(content)
+expect(card).toBeContainedIn(column)
+expect(col1).toHaveWidth(20)
+```
 
 **Key benefits**:
 
@@ -535,10 +574,10 @@ TEST_MODE=real bun run test:all       # Disk DB, full infrastructure
 Fast, character-based testing for components:
 
 ```typescript
-import { createTestRenderer, createLocator } from "inkx/testing";
+import { createTestRenderer, createLocator, keyToAnsi } from "inkx/testing";
 
 const render = createTestRenderer({ columns: 80, rows: 24 });
-const { lastFrameText, getContainer, stdin } = render(<Board {...props} />);
+const { lastFrameText, getContainer, stdin, debug } = render(<Board {...props} />);
 
 // Text assertions
 expect(lastFrameText()).toContain("Task 1");
@@ -548,8 +587,13 @@ const locator = createLocator(getContainer());
 const task = locator.getByTestId("task-1");
 expect(task.boundingBox()?.x).toBe(10);
 
-// Keyboard input
-stdin.write("j"); // Move down
+// Keyboard input (Playwright-style key names)
+stdin.write(keyToAnsi("ArrowDown")); // Move down
+stdin.write(keyToAnsi("Enter"));     // Confirm
+stdin.write("j");                     // Single chars work directly
+
+// Debug output (prints component tree to console)
+debug();
 ```
 
 ### Method 2: `km screenshot` (Debugging Only)

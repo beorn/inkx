@@ -13,6 +13,9 @@
 
 import { beforeEach, afterEach, vi } from "vitest"
 
+// Register custom TUI testing matchers
+import "../../../apps/km-tui/tests/helpers/matchers.js"
+
 // Disable TTY detection to prevent spinner/progress output during tests
 process.stdout.isTTY = false
 process.stderr.isTTY = false

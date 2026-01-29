@@ -15,6 +15,7 @@ import {
   useApp,
   useStdout,
   render as inkxRender,
+  createTerm,
 } from "inkx"
 import createDebug from "debug"
 
@@ -816,7 +817,8 @@ export async function renderInkxBoard(
   process.once("SIGTERM", () => handleSignal("SIGTERM"))
 
   debug("Rendering with inkx")
-  const instance = await inkxRender(app, {
+  using term = createTerm()
+  const instance = await inkxRender(term, app, {
     exitOnCtrlC: true,
     patchConsole: false,
     alternateScreen: true,

@@ -6,7 +6,7 @@
  */
 import { describe, test, expect } from "vitest"
 import React from "react"
-import { createTestRenderer, createLocator } from "inkx/testing"
+import { createTestRenderer } from "inkx/testing"
 import { StatusBar } from "../src/views/StatusBar.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import type { UIState } from "../src/ui-reducer.ts"
@@ -27,12 +27,11 @@ function renderStatusBar(
   }
 
   const render = createTestRenderer({ columns: termWidth, rows: 24 })
-  const result = render(React.createElement(StatusBar, { ui, termWidth }))
+  const app = render(React.createElement(StatusBar, { ui, termWidth }))
 
   return {
-    result,
-    locator: createLocator(result.getContainer()),
-    screenshot: () => result.lastFrameText() ?? "",
+    app,
+    screenshot: () => app.text,
   }
 }
 

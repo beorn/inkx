@@ -66,7 +66,7 @@ describe("useScreenRectCallback integration", () => {
       positions.push(pos)
     }
 
-    const { lastFrameText } = render(
+    const app = render(
       <Box flexDirection="column">
         <Card id="card-1" content="First Card" onLayout={onLayout} />
         <Card id="card-2" content="Second Card" onLayout={onLayout} />
@@ -75,10 +75,9 @@ describe("useScreenRectCallback integration", () => {
     )
 
     // Verify rendering
-    const text = lastFrameText()!
-    expect(text).toContain("First Card")
-    expect(text).toContain("Second Card")
-    expect(text).toContain("Third Card")
+    expect(app.text).toContain("First Card")
+    expect(app.text).toContain("Second Card")
+    expect(app.text).toContain("Third Card")
 
     // Verify positions were recorded
     expect(positions.length).toBe(3)

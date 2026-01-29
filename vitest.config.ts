@@ -4,9 +4,11 @@ import { mdtest } from "@beorn/mdtest/vitest-plugin"
 export default createVitestConfig({
   plugins: [mdtest()],
   test: {
-    // Custom reporter: React TUI with live updates (see infra/vitest-dotz/)
-    // Uses inkx for terminal rendering (createTerm, useTerm, Box, Text)
-    reporters: ["./infra/vitest-dotz/index.tsx"],
+    // Default reporter: standard dot reporter
+    // Custom reporter available via test:fast2 (see infra/vitest-dotz/)
+    reporters: ["dot"],
+    // Enable location info (line/column) for test cases in reporters
+    includeTaskLocation: true,
     // Reporters configured via CLI flags (see package.json scripts)
     // Use test:fast:html or test:all:html for HTML reports and performance tracking
     outputFile: {

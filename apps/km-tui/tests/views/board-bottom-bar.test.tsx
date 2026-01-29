@@ -126,7 +126,7 @@ describe("BottomBar", () => {
   const mockLayout = { colIndex: 0, cardIndex: 0 }
 
   it("renders storage mode and path", () => {
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
@@ -137,7 +137,7 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).toContain("DISK")
     expect(output).toContain("/tmp/test-repo")
   })
@@ -148,7 +148,7 @@ describe("BottomBar", () => {
       ...mockBoardState,
       rootPath: `${homeDir}/Documents/repo`,
     }
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={boardStateWithHome}
@@ -159,12 +159,12 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).toContain("~/Documents/repo")
   })
 
   it("shows node count with clipboard icon", () => {
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
@@ -175,12 +175,12 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).toContain("📋123")
   })
 
   it("shows view mode", () => {
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
@@ -191,12 +191,12 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).toContain("COLUMNS VIEW")
   })
 
   it("shows column position in columns view", () => {
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
@@ -207,7 +207,7 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).toContain("col 1/2")
   })
 
@@ -216,7 +216,7 @@ describe("BottomBar", () => {
       ...mockBoardState,
       columns: [mockBoardState.columns[0]!],
     }
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={singleColState}
@@ -227,12 +227,12 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).not.toContain("col")
   })
 
   it("does not show spinner when not loading", () => {
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
@@ -243,7 +243,7 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     // Spinner frames should not appear when not loading
     const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
     const hasSpinner = spinnerFrames.some((frame) => output.includes(frame))
@@ -259,7 +259,7 @@ describe("BottomBar", () => {
         watchedPaths: 5,
       },
     }
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={uiWithWatcher}
         state={mockBoardState}
@@ -270,12 +270,12 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).toContain("📄5")
   })
 
   it("shows memory storage mode", () => {
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
@@ -286,12 +286,12 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).toContain("MEM")
   })
 
   it("shows move mode indicator when in move mode", () => {
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
@@ -302,12 +302,12 @@ describe("BottomBar", () => {
         moveMode={true}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).toContain("[MOVE]")
   })
 
   it("does not show move mode indicator when not in move mode", () => {
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={mockUIState}
         state={mockBoardState}
@@ -318,7 +318,7 @@ describe("BottomBar", () => {
         moveMode={false}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).not.toContain("[MOVE]")
   })
 
@@ -327,7 +327,7 @@ describe("BottomBar", () => {
       ...mockUIState,
       status: { level: "info", message: "Test message" },
     }
-    const { lastFrameText } = render(
+    const app = render(
       <BottomBar
         ui={uiWithStatus}
         state={mockBoardState}
@@ -338,7 +338,7 @@ describe("BottomBar", () => {
         moveMode={true}
       />,
     )
-    const output = lastFrameText() || ""
+    const output = app.text
     expect(output).toContain("Test message")
     expect(output).not.toContain("[MOVE]")
   })

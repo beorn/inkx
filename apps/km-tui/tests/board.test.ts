@@ -4,8 +4,6 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createTestRenderer } from "inkx/testing"
-const render = createTestRenderer()
 import React from "react"
 import { createFakeRepo } from "@km/storage"
 import type { Repo } from "@km/storage"

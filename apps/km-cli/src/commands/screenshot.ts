@@ -115,7 +115,7 @@ export const screenshotCommand = new Command("screenshot")
     })
 
     // Render the board wrapped in RepoProvider
-    const { lastBuffer, lastFrameText } = render(
+    const app = render(
       React.createElement(RepoProvider, {
         repo: repo,
         children: boardCoreElement,
@@ -124,7 +124,7 @@ export const screenshotCommand = new Command("screenshot")
 
     // Generate output based on format
     let output: string
-    const buffer = lastBuffer()
+    const buffer = app.term.buffer
 
     if (!buffer) {
       console.error("Failed to render buffer")
@@ -133,13 +133,12 @@ export const screenshotCommand = new Command("screenshot")
 
     switch (format) {
       case "text":
-        output = lastFrameText() ?? ""
+        output = app.text
         break
       case "ansi":
         output = inkxTesting.bufferToStyledText(buffer)
         break
       case "debug": {
-        const text = lastFrameText() ?? ""
         output = [
           `# TUI Screenshot`,
           `# Dimensions: ${width}x${height}`,
@@ -147,12 +146,12 @@ export const screenshotCommand = new Command("screenshot")
           `# Root: ${resolved.repoRoot}`,
           `# Node: ${resolved.nodeRef ?? "(root)"}`,
           ``,
-          text,
+          app.text,
         ].join("\n")
         break
       }
       default:
-        output = lastFrameText() ?? ""
+        output = app.text
     }
 
     // Output to file or stdout

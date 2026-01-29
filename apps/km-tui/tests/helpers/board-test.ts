@@ -56,9 +56,10 @@
 import React from "react"
 import {
   createTestRenderer,
-  createLocator,
-  type InkxLocator,
-  type RenderResult,
+  createAutoLocator,
+  keyToAnsi,
+  type App,
+  type AutoLocator,
 } from "inkx/testing"
 import { expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
@@ -253,51 +254,45 @@ export function testEnv(
     React.createElement(RepoProvider, { repo, children: boardElement }),
   )
 
-  // Create fluent API
+  // Create fluent API using App's auto-refreshing locators
   const board = {
     /** Whether bell was triggered (boundary hit) */
     get bell(): boolean {
-      const freshLocator = createLocator(result.getContainer())
-      return freshLocator.locator("[data-bell]").count() > 0
+      return result.locator("[data-bell]").count() > 0
     },
     press: (key: string) => {
-      result.stdin.write(key)
+      const sequence = keyToAnsi(key)
+      result.stdin.write(sequence)
       return board
     },
     q: (selector: string) => {
-      const freshLocator = createLocator(result.getContainer())
-      return freshLocator.locator(selector)
+      return result.locator(selector)
     },
     expect: (selector: string) => ({
       toExist: () => {
-        const freshLocator = createLocator(result.getContainer())
-        const loc = freshLocator.locator(selector)
+        const loc = result.locator(selector)
         expect(loc.count()).toBeGreaterThan(0)
       },
       not: {
         toExist: () => {
-          const freshLocator = createLocator(result.getContainer())
-          const loc = freshLocator.locator(selector)
+          const loc = result.locator(selector)
           expect(loc.count()).toBe(0)
         },
       },
       toHaveCount: (n: number) => {
-        const freshLocator = createLocator(result.getContainer())
-        const loc = freshLocator.locator(selector)
+        const loc = result.locator(selector)
         expect(loc.count()).toBe(n)
       },
     }),
-    screenshot: () => result.lastFrameText() ?? "",
+    screenshot: () => result.text,
     /** Check if status message is showing */
     get hasStatus(): boolean {
-      const freshLocator = createLocator(result.getContainer())
-      const bottomBar = freshLocator.locator("#bottom-bar")
+      const bottomBar = result.locator("#bottom-bar")
       return bottomBar.count() > 0 && !!bottomBar.getAttribute("data-status")
     },
     /** Get current status message if visible, or null if no status */
     getStatus: (): { level: string; message: string } | null => {
-      const freshLocator = createLocator(result.getContainer())
-      const bottomBar = freshLocator.locator("#bottom-bar")
+      const bottomBar = result.locator("#bottom-bar")
       if (bottomBar.count() === 0) {
         return null
       }
@@ -306,7 +301,7 @@ export function testEnv(
         return null
       }
       // Status message is in #status-message element within bottom bar
-      const statusEl = freshLocator.locator("#status-message")
+      const statusEl = result.locator("#status-message")
       if (statusEl.count() === 0) {
         return null
       }
@@ -333,7 +328,7 @@ declare module "vitest" {
 
 expect.extend({
   toExist(received: unknown) {
-    const locator = received as InkxLocator
+    const locator = received as AutoLocator
     const pass = locator.count() > 0
     return {
       pass,
@@ -342,7 +337,7 @@ expect.extend({
     }
   },
   toHaveCount(received: unknown, expected: number) {
-    const locator = received as InkxLocator
+    const locator = received as AutoLocator
     const count = locator.count()
     return {
       pass: count === expected,
@@ -450,11 +445,11 @@ interface BoardTest {
   /** Get the current frame with ANSI codes */
   screenshotAnsi(): string
 
-  /** Get the inkx locator for advanced queries */
-  locator(): InkxLocator
+  /** Get the inkx locator for advanced queries (auto-refreshing) */
+  locator(): AutoLocator
 
   /** Get the underlying render result for advanced use */
-  renderResult(): RenderResult
+  renderResult(): App
 
   // === Status Bar Locators ===
 
@@ -482,12 +477,12 @@ interface BoardTest {
 // =============================================================================
 
 class BoardTestImpl implements BoardTest {
-  private result: RenderResult
-  private currentLocator: InkxLocator
+  private result: App
+  private currentLocator: AutoLocator
 
-  constructor(result: RenderResult) {
+  constructor(result: App) {
     this.result = result
-    this.currentLocator = createLocator(result.getContainer())
+    this.currentLocator = createAutoLocator(() => result.getContainer())
   }
 
   // --- Bell State ---
@@ -529,9 +524,9 @@ class BoardTestImpl implements BoardTest {
   // --- Actions ---
 
   press(key: string): this {
-    this.result.stdin.write(key)
-    // Refresh locator after state change
-    this.currentLocator = createLocator(this.result.getContainer())
+    const sequence = keyToAnsi(key)
+    this.result.stdin.write(sequence)
+    // AutoLocator auto-refreshes on each access - no manual refresh needed
     return this
   }
 
@@ -546,7 +541,7 @@ class BoardTestImpl implements BoardTest {
     for (const char of text) {
       this.result.stdin.write(char)
     }
-    this.currentLocator = createLocator(this.result.getContainer())
+    // AutoLocator auto-refreshes on each access - no manual refresh needed
     return this
   }
 
@@ -825,18 +820,18 @@ class BoardTestImpl implements BoardTest {
   // --- Debug ---
 
   screenshot(): string {
-    return this.result.lastFrameText() ?? ""
+    return this.result.text
   }
 
   screenshotAnsi(): string {
     return this.result.lastFrame() ?? ""
   }
 
-  locator(): InkxLocator {
+  locator(): AutoLocator {
     return this.currentLocator
   }
 
-  renderResult(): RenderResult {
+  renderResult(): App {
     return this.result
   }
 

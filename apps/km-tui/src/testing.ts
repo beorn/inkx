@@ -29,13 +29,8 @@
  */
 
 import React from "react"
-import {
-  createTestRenderer,
-  bufferToText,
-  bufferToStyledText,
-  createLocator,
-  type InkxLocator,
-} from "inkx/testing"
+import { createTestRenderer, bufferToStyledText } from "inkx/testing"
+import type { AutoLocator } from "inkx/testing"
 import type { KNode } from "@km/core"
 import type { Repo } from "@km/storage"
 import type { TUIBoardState } from "./types.ts"
@@ -61,7 +56,7 @@ export interface BoardTestOptions {
 /**
  * Test harness for km board component
  */
-export interface BoardTestHarness extends InkxLocator {
+export interface BoardTestHarness extends AutoLocator {
   // Visual capture
   /** Get plain text screenshot (no ANSI codes) */
   screenshot(): string
@@ -195,68 +190,66 @@ export async function createBoardTest(
     moveMode: false,
   })
 
-  const result = render(
+  const app = render(
     React.createElement(RepoProvider, { repo, children: boardCoreElement }),
   )
 
   // Current state - updated after each input
   const currentState = state
 
-  // Create locator for DOM queries
-  const getLocator = () => createLocator(result.getContainer())
-
   // Build harness object that extends InkxLocator
   const harness: BoardTestHarness = {
-    // InkxLocator methods - delegate to current locator
+    // InkxLocator methods - delegate to app's auto-refreshing locators
     getByText(text) {
-      return getLocator().getByText(text)
+      return app.getByText(text)
     },
     getByTestId(id) {
-      return getLocator().getByTestId(id)
+      return app.getByTestId(id)
     },
     locator(selector) {
-      return getLocator().locator(selector)
+      return app.locator(selector)
     },
     first() {
-      return getLocator().first()
+      return app.locator("*").first()
     },
     last() {
-      return getLocator().last()
+      return app.locator("*").last()
     },
     nth(index) {
-      return getLocator().nth(index)
+      return app.locator("*").nth(index)
     },
     resolve() {
-      return getLocator().resolve()
+      return app.locator("*").resolve()
     },
     resolveAll() {
-      return getLocator().resolveAll()
+      return app.locator("*").resolveAll()
     },
     count() {
-      return getLocator().count()
+      return app.locator("*").count()
     },
     textContent() {
-      return getLocator().textContent()
+      return app.locator("*").textContent()
     },
     getAttribute(name) {
-      return getLocator().getAttribute(name)
+      return app.locator("*").getAttribute(name)
     },
     boundingBox() {
-      return getLocator().boundingBox()
+      return app.locator("*").boundingBox()
     },
     isVisible() {
-      return getLocator().isVisible()
+      return app.locator("*").isVisible()
+    },
+    filter(optionsOrPredicate: Parameters<AutoLocator["filter"]>[0]) {
+      return app.locator("*").filter(optionsOrPredicate)
     },
 
     // Visual capture
     screenshot() {
-      const buffer = result.lastBuffer()
-      if (!buffer) return ""
-      return bufferToText(buffer)
+      return app.text
     },
 
     screenshotAnsi() {
-      const buffer = result.lastBuffer()
+      const buffer = app.term.buffer
       if (!buffer) return ""
       return bufferToStyledText(buffer)
     },
@@ -289,7 +282,7 @@ export async function createBoardTest(
 
       const normalized = key.toLowerCase()
       const sequence = keyMap[normalized] ?? key
-      result.stdin.write(sequence)
+      app.stdin.write(sequence)
     },
 
     pressMultiple(keys) {
@@ -300,7 +293,7 @@ export async function createBoardTest(
 
     type(text) {
       for (const char of text) {
-        result.stdin.write(char)
+        app.stdin.write(char)
       }
     },
 
@@ -327,7 +320,7 @@ export async function createBoardTest(
 
     // Lifecycle
     unmount() {
-      result.unmount()
+      app.unmount()
     },
   }
 

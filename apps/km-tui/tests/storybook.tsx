@@ -51,6 +51,7 @@ import {
   useStdout,
   Box,
   Text,
+  createTerm,
 } from "inkx"
 import chalk from "chalk"
 
@@ -1750,12 +1751,12 @@ if (isStaticMode) {
   // Dynamic import to avoid setting IS_REACT_ACT_ENVIRONMENT in interactive mode
   const { createTestRenderer } = await import("inkx/testing")
   const render = createTestRenderer({ columns: 120, rows: 500 })
-  const { lastFrame } = render(<StaticStorybook />)
+  const app = render(<StaticStorybook />)
   // Clean up output from 500-row buffer:
   // 1. Remove trailing whitespace from each line
   // 2. Remove trailing blank/ANSI-only lines
   const ANSI_REGEX = /\x1b\[[0-9;]*m/g
-  const rawOutput = lastFrame() ?? ""
+  const rawOutput = app.lastFrame() ?? ""
   const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")) // trim trailing whitespace
   // Find last line with visible content (not just ANSI codes and whitespace)
   let lastContentLine = lines.length - 1
@@ -1768,7 +1769,8 @@ if (isStaticMode) {
   console.log(output)
 } else {
   // Interactive mode: render to terminal with keyboard input
-  const instance = await inkxRender(<InteractiveStorybook />, {
+  using term = createTerm()
+  const instance = await inkxRender(term, <InteractiveStorybook />, {
     exitOnCtrlC: true,
   })
   await instance.waitUntilExit()
