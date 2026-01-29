@@ -111,15 +111,46 @@ async function main() {
   // Check if direnv is hooked into shell and add if not
   const shell = process.env.SHELL?.includes("zsh") ? "zsh" : "bash"
   const shellrc = shell === "zsh" ? join(process.env.HOME ?? "", ".zshrc") : join(process.env.HOME ?? "", ".bashrc")
-  const hookLine = `eval "$(direnv hook ${shell})"`
+  const omzDir = join(process.env.HOME ?? "", ".oh-my-zsh")
+  const hasOmz = shell === "zsh" && existsSync(omzDir)
 
   const shellrcContent = existsSync(shellrc) ? await Bun.file(shellrc).text() : ""
-  if (!shellrcContent.includes("direnv hook")) {
-    log(`   📝 Adding direnv hook to ${shellrc}...`)
-    await Bun.write(shellrc, shellrcContent + `\n# Added by km setup\n${hookLine}\n`)
-    log("   ✓ direnv hook added (restart shell or run: source " + shellrc + ")")
+
+  if (hasOmz) {
+    // Oh My Zsh: add direnv to plugins list
+    if (shellrcContent.includes("direnv") && shellrcContent.includes("plugins=")) {
+      log("   ✓ direnv omz plugin already configured")
+    } else {
+      // Find plugins=(...) and add direnv
+      const pluginsMatch = shellrcContent.match(/^plugins=\(([^)]*)\)/m)
+      if (pluginsMatch) {
+        const currentPlugins = pluginsMatch[1].trim()
+        const newPlugins = currentPlugins ? `${currentPlugins} direnv` : "direnv"
+        const newContent = shellrcContent.replace(
+          /^plugins=\([^)]*\)/m,
+          `plugins=(${newPlugins})`
+        )
+        log(`   📝 Adding direnv to omz plugins in ${shellrc}...`)
+        await Bun.write(shellrc, newContent)
+        log("   ✓ direnv omz plugin added (restart shell or run: source " + shellrc + ")")
+      } else {
+        // No plugins line found, add manual hook as fallback
+        const hookLine = `eval "$(direnv hook ${shell})"`
+        log(`   📝 Adding direnv hook to ${shellrc}...`)
+        await Bun.write(shellrc, shellrcContent + `\n# Added by km setup\n${hookLine}\n`)
+        log("   ✓ direnv hook added (restart shell or run: source " + shellrc + ")")
+      }
+    }
   } else {
-    log("   ✓ direnv hook already configured")
+    // No omz: use manual hook
+    const hookLine = `eval "$(direnv hook ${shell})"`
+    if (!shellrcContent.includes("direnv hook")) {
+      log(`   📝 Adding direnv hook to ${shellrc}...`)
+      await Bun.write(shellrc, shellrcContent + `\n# Added by km setup\n${hookLine}\n`)
+      log("   ✓ direnv hook added (restart shell or run: source " + shellrc + ")")
+    } else {
+      log("   ✓ direnv hook already configured")
+    }
   }
   log("")
 
