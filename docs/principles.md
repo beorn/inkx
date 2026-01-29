@@ -18,36 +18,8 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 
 ---
 
-## Overview
-
-1. **Composable Domain Objects & Flows** — Build from simple, reusable pieces
-   - Principle: Plain Domain Language
-   - Principle: Plain Objects from Factories
-   - Principle: Compose Objects as Lego Blocks
-   - Principle: Organize Objects Into Layers
-   - Principle: Compose Flows using Generators
-2. **The Fast Feedback Loop** — Keep the loop tight to maintain extreme quality
-   - Principle: Fail Loud, Fail Now
-   - Principle: 5-Second Test Loops
-   - Principle: Quarantine and Delete
-3. **Code for Humans** — Make the "right way" locally obvious
-   - Principle: Inverted Pyramid
-   - Naming Conventions
-   - No Prop Drilling
-   - No Hidden Side Effects
-   - Local Reasoning
-   - API Boundaries
-4. **Coding with AI Agents** — Why these principles matter more with AI
-5. **Runbook** — How we keep principles alive
-   - What We're NOT Doing
-   - Before You Add Something New
-   - How We Keep This Real
-
----
-
 ## Contents
 
-- [Overview](#overview)
 - [Part 1: Composable Domain Objects & Flows](#part-1-composable-domain-objects--flows)
   - [Principle: Plain Domain Language](#principle-plain-language)
   - [Principle: Plain Objects from Factories](#principle-plain-objects)
@@ -70,7 +42,6 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [Legacy Code as Virus](#legacy-code-as-virus)
   - [The Quality Plateau](#the-quality-plateau)
   - [Principles That Matter More with LLMs](#principles-that-matter-more-with-llms)
-  - [The LLM-Friendly Codebase](#the-llm-friendly-codebase)
 - [Part 5: Runbook](#part-5-runbook)
   - [What We're NOT Doing](#what-were-not-doing)
   - [Before You Add Something New](#before-you-add-something-new)
@@ -176,35 +147,7 @@ export class Repo {
 // ✅ GOOD - factory function (see above)
 ```
 
-**Infrastructure Class Exception**:
-
-Infrastructure classes that extend EventEmitter or manage low-level resources are acceptable when:
-
-- Performance-critical (worker thread management, file system operations)
-- Event-based (standard EventEmitter pattern for pub/sub)
-- Internal infrastructure (not domain objects)
-
-Examples in km:
-
-- `SyncManager extends EventEmitter` — event-based sync coordination
-- `WriteQueue extends EventEmitter` — debounced write operations
-- `FileSystemWatcher extends EventEmitter` — file system monitoring
-- `ParsePool` — worker thread pool management
-- `DisposableStore` — disposable resource container
-
-```typescript
-// ✅ ACCEPTABLE - infrastructure class extending EventEmitter
-export class SyncManager extends EventEmitter {
-  constructor(config: SyncConfig) {
-    super()
-    // Event-based infrastructure
-  }
-}
-```
-
-**Method count guidance**: Infrastructure classes can have many methods when they're implementing a well-defined API contract (e.g., Yoga flexbox API with 40+ property setter/getter pairs). The key question is **coherence**: do all methods serve the same narrow purpose? A 65-method layout engine is acceptable if all methods are layout-related. A 20-method class handling authentication, logging, and file I/O would not be.
-
-Domain objects (Repo, Board, Watcher) must still use factory functions.
+**Infrastructure Class Exception**: Classes extending EventEmitter (e.g., `SyncManager`, `WriteQueue`) or managing low-level resources (e.g., `ParsePool`) are acceptable for internal infrastructure. Domain objects still use factory functions.
 
 ---
 
@@ -216,15 +159,13 @@ Domain objects (Repo, Board, Watcher) must still use factory functions.
 
 **The pattern**: Stick to plain objects, functions, and async generators. Inject all dependencies explicitly.
 
-**Minimize types, maximize interoperability**:
+#### Minimize Types
 
-Use the fewest possible building blocks (plain objects, functions, async generators). Every additional abstraction type creates impedance mismatch—see [Why not classes](#principle-plain-objects) in "Plain Objects from Factories" for details on type friction.
+Use plain objects, functions, and async generators. Every additional abstraction creates impedance mismatch—see [Why not classes](#principle-plain-objects) for details on type friction.
 
-**Plain objects work everywhere**: JSON, IPC, spread operators, Object.assign, testing, debugging.
+Plain objects work everywhere: JSON, IPC, spread operators, Object.assign, testing, debugging. Fewer types means less cognitive overhead and more natural composition.
 
-**Why**: Fewer types means less cognitive overhead and more natural composition.
-
-**No magic, no globals, no singletons**:
+#### No Globals or Singletons
 
 If you need something, pass it in explicitly:
 
@@ -270,7 +211,7 @@ export function getDb() {
 // ✅ GOOD - explicit dependency (see above)
 ```
 
-**Defaults over configuration**:
+#### Defaults Over Configuration
 
 Configuration files explode the possibility space—every option multiplies what you need to test and debug. They also create friction: users must set things up before anything works.
 
@@ -800,30 +741,16 @@ Code Quality      ╱
 
 ### Principles That Matter More with LLMs
 
-These principles exist in Parts 1-3 because they're universal. But LLMs suffer MORE from violations because of their specific constraints: no persistent memory, limited context, and pure pattern matching.
+These principles are universal, but LLMs suffer MORE from violations due to their constraints (no memory, limited context, pure pattern matching).
 
-**[Principle: Plain Objects from Factories](#principle-plain-objects)** — LLMs can't track hidden state or method inheritance across files. Plain objects with explicit dependencies are self-documenting.
-
-**[Principle: Compose Objects as Lego Blocks](#principle-lego-blocks)** — LLMs can't infer that `getDb()` requires prior initialization. Explicit `createRepo(path, { db })` works without hidden context. Minimal types (plain objects, functions, generators) reduce impedance mismatch.
-
-**[Principle: Quarantine and Delete](#principle-quarantine-and-delete)** — If old patterns exist, LLMs will use them. With no memory of "this is deprecated," the only way to prevent old patterns is to make them impossible.
-
-**[Principle: 5-Second Test Loops](#principle-5-second-test-loops)** — LLMs iterate extremely quickly. A 5-second test loop means an agent can try 100 approaches in the time a human tries 10. Fast feedback is a force multiplier.
-
-**[Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now)** — Silent failures compound across sessions. LLMs have no persistent memory, so if something's wrong, it must fail loudly NOW so the current agent can fix it, not silently corrupt state for a future session to discover.
-
-**One obvious way** (from [The Quality Plateau](#the-quality-plateau)) — When there's one clear pattern, LLMs follow it. When there are multiple ways, they guess. Pattern matching requires pattern consistency.
-
-### The LLM-Friendly Codebase
-
-A codebase optimized for LLM agents has:
-
-- **One obvious way** to do each thing ([The Quality Plateau](#the-quality-plateau))
-- **Fast feedback loops** (<5s tests - [Principle: 5-Second Test Loops](#principle-5-second-test-loops))
-- **Loud failures** (throw, don't log - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now))
-- **No legacy patterns** (quarantined/deleted - [Principle: Quarantine and Delete](#principle-quarantine-and-delete))
-- **Self-documenting APIs** (explicit deps - [Principle: Compose Objects as Lego Blocks](#principle-lego-blocks))
-- **Continuous merciless refactoring** to maintain the plateau
+| Principle | Why LLMs need it more |
+|-----------|----------------------|
+| [Factory Functions](#principle-plain-objects) | Can't track hidden state across files |
+| [Explicit Dependencies](#principle-lego-blocks) | Can't infer that `getDb()` requires initialization |
+| [Quarantine and Delete](#principle-quarantine-and-delete) | Will copy old patterns—they don't read deprecation warnings |
+| [5-Second Tests](#principle-5-second-test-loops) | 100 iterations while you wait for one slow suite |
+| [Fail Loud](#principle-fail-loud-fail-now) | Silent failures compound across sessions |
+| [Quality Plateau](#the-quality-plateau) | When there's one pattern, they follow it; when there are two, they guess |
 
 ---
 

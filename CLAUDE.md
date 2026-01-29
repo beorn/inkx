@@ -28,22 +28,28 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 
 ## Code Style
 
-- **ESM only**: Always use `import`/`export`, never `require`
-- **Factory functions**: Use `createX()` with `XOptions` type, not `class X`
-- **Type inference**: Let TypeScript infer; avoid explicit annotations unless necessary
-- **Hoisted helpers**: Put non-trivial functions after `return` or at end of file
-- **Package imports**: Use package names (`inkx`, `chalkx`), never relative `../vendor/...`
-- **DI via inject**: Pass deps via `options.inject`, no globals/singletons/`getX()`
-- **No import side effects**: Module init must not perform work
-- **Sensible defaults**: Defaults → arguments → config files (last resort)
-- **No prop drilling**: Use `...spread`, align names across layers; don't repeat 10 props
-- **Async generators**: Use for pipelines, not `Promise.all` chains
-- **Disposables**: Use `using`/`await using` for cleanup (`Symbol.dispose`)
-- **Fail fast**: Throw on invalid state, no defensive fallbacks
-- **Bun only**: Use `bun add`, `bunx`, `bun run` — never npm/pnpm
-- **Catalog deps**: Use `catalog:` in package.json for shared 3rd-party dependencies
+**Patterns:**
+- Factory functions (`createX()` with `XOptions`), not classes
+- Explicit deps via `options.inject`, no globals/singletons
+- Async generators for pipelines, not `Promise.all` chains
+- `using`/`await using` for cleanup
 
-See [docs/principles.md](docs/principles.md) for full architecture principles.
+**Code Layout:**
+- ESM imports only (`import`/`export`, never `require`)
+- Package names (`inkx`), never relative `../vendor/...`
+- Helpers after `return` or end of file
+- Let TypeScript infer types
+
+**Avoid:**
+- Prop drilling (use spread, align names across layers)
+- Import side effects (module init must not perform work)
+- Config files (sensible defaults → arguments → config as last resort)
+
+**Tooling:**
+- Bun only (`bun add`, `bunx`, `bun run`)
+- `catalog:` for shared deps in package.json
+
+See [docs/principles.md](docs/principles.md) for rationale.
 
 ## Issue Tracking
 
