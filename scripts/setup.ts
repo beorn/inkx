@@ -15,7 +15,7 @@
  */
 
 import { $ } from "bun"
-import { existsSync, lstatSync, readlinkSync, symlinkSync, unlinkSync } from "node:fs"
+import { existsSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from "node:fs"
 import { join, resolve } from "node:path"
 
 const QUIET = process.argv.includes("--quiet")
@@ -182,6 +182,11 @@ async function main() {
       unlinkSync(hookTarget)
     } catch {
       // Doesn't exist, fine
+    }
+
+    // Ensure hooks directory exists
+    if (!existsSync(hooksDir)) {
+      mkdirSync(hooksDir, { recursive: true })
     }
 
     // Create symlink
