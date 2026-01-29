@@ -106,14 +106,26 @@ The user's command IS the confirmation. Never re-ask intent that was already exp
 - **Agent claims** (`claude:*`): Stale after ~20 min, safe to reclaim
 - **User claims** (`beorn`): Stale after ~24 hours, check before reclaiming
 
-## Big Refactoring Beads
+## Big Refactoring & Implementation Projects
 
-When working on refactoring beads (labeled `refactor` or involving API migrations):
+When working on refactoring beads (labeled `refactor` or involving API migrations) or complex implementations:
 
-1. **Read first**: [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md)
+1. **Read first**:
+   - [/docs/principles.md](/docs/principles.md) - Architecture patterns, composability, fast feedback
+   - [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md) - Hard-won lessons on phase order, breaking vs fixing
 2. **Rebase related beads** before starting - outdated beads cause accidental reverts
 3. **Break intentionally** - delete old APIs, let `tsc` guide fixes
 4. **Phase order**: Rebase -> Absorb -> Purge -> Remove -> Fix (not Fix -> Remove)
+
+## Renaming / Re-IDing Beads
+
+When renaming, re-creating, or changing a bead's ID, **always update all references**:
+
+```bash
+grep -r "km-old-id" .claude/ docs/ --include="*.md"
+```
+
+Check `.claude/skills/`, `docs/`, and other beads (parent/deps). Never leave dangling references.
 
 ## Sub-Skills
 

@@ -79,12 +79,33 @@ bd list --json | jq -r '.[] | "\(.id) \(.title)"'
 
 **See [beads-ids.md](beads-ids.md) for full ID conventions.**
 
+### Check Database Prefix First
+
+**CRITICAL**: Different projects/submodules have different ID prefixes. Check before creating:
+
+```bash
+# See what prefix the database uses
+bd list --limit 1
+
+# Or check directly
+sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
+```
+
+| Location | Prefix |
+|----------|--------|
+| km (main project) | `km-` |
+| vendor/beorn-inkx | `beorn-inkx-` |
+| vendor/beorn-chalkx | `beorn-chalkx-` |
+| Other vendor packages | `beorn-<name>-` |
+
+**Never assume `km-`** — always verify for the current working directory.
+
 ### ID Pattern
 
 ```text
-km-<scope>-<N>         # Package-specific (recommended)
-km-<scope>-<N>.<N>     # Subtasks under parent
-km-<keyword>           # Cross-cutting/named initiatives
+<prefix><scope>-<N>    # Package-specific (recommended)
+<prefix><scope>-<N>.<N> # Subtasks under parent
+<prefix><keyword>      # Cross-cutting/named initiatives
 ```
 
 **Scope tokens**: storage, board, tree, tui, cli, markdown, beads, agent
@@ -104,8 +125,10 @@ bd create --id km-tui-8 --type feature --priority 1 \
   --description "Full description here"
 
 bd create --id km-tui-8.1 --type task \
-  --title "Normal mode navigation" \
-  --parent km-tui-8
+  --title "Normal mode navigation"
+
+# Set parent AFTER creation (--id and --parent cannot be used together)
+bd update km-tui-8.1 --parent km-tui-8
 
 # Cross-cutting initiative (keyword-based)
 bd create --id km-dark-mode --type epic --title "Dark mode support"
@@ -227,16 +250,44 @@ bd show km-123 --json | jq -r '.[0].actor'
 
 No special handling needed in commands - the actor is set automatically based on your environment.
 
+## Renaming / Re-IDing Beads
+
+When renaming, re-creating, or changing a bead's ID, **always search for and update references**:
+
+```bash
+# Find all references to the old ID
+grep -r "km-old-id" .claude/ docs/ --include="*.md"
+
+# Common reference locations:
+# - .claude/skills/**/*.md (workflows, examples)
+# - docs/**/*.md (architecture docs, ADRs)
+# - Other beads (parent, deps, notes fields)
+# - Git commit messages (for context, can't update)
+```
+
+**Checklist when changing bead IDs:**
+- [ ] Search `.claude/` for old ID references
+- [ ] Search `docs/` for old ID references
+- [ ] Check `bd list --all | grep <old-id>` for parent/dep relationships
+- [ ] Update all found references to new ID
+
+**Never leave dangling references** - they cause confusion and broken links.
+
+---
+
 ## Common Mistakes
 
 These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
 
-| Wrong                 | Correct                                                 |
-| --------------------- | ------------------------------------------------------- |
-| `bd close --note "x"` | `bd close --reason "x"`                                 |
-| `bd update --id km-x` | `bd update km-x` (positional)                           |
-| `bd create --name`    | `bd create --title` or `bd create <title>` (positional) |
-| `bd update --desc`    | `bd update --description` or `-d`                       |
+| Wrong                            | Correct                                                 |
+| -------------------------------- | ------------------------------------------------------- |
+| `bd close --note "x"`            | `bd close --reason "x"`                                 |
+| `bd update --id km-x`            | `bd update km-x` (positional)                           |
+| `bd create --name`               | `bd create --title` or `bd create <title>` (positional) |
+| `bd update --desc`               | `bd update --description` or `-d`                       |
+| `bd create --id X --parent Y`    | Create first, then `bd update X --parent Y`             |
+| `bd create --id km-...` (in vendor) | Check prefix first: `bd list --limit 1`              |
+| Assume dot notation is km-only   | Dot notation works with any prefix (`beorn-inkx-api.1`) |
 
 **Note**: `--description` and `--notes` are BOTH valid on `bd update` but serve different purposes:
 

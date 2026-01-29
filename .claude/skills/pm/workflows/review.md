@@ -269,6 +269,19 @@ bd stale --days 14 --limit 0 | wc -l      # Should decrease
 bd ready --limit 10                        # Should look actionable
 ```
 
+### Update References
+
+When closing, merging, or restructuring beads, **search for and update references**:
+
+```bash
+# Find all references to affected bead IDs
+grep -r "km-closed-id" .claude/ docs/ --include="*.md"
+```
+
+Check `.claude/skills/`, `docs/`, and other beads. Never leave dangling references.
+
+---
+
 ## Quality Gates
 
 Before presenting plan, self-check:
@@ -277,6 +290,7 @@ Before presenting plan, self-check:
 - [ ] Every "merge" specifies which survives and why
 - [ ] Priority changes use the criteria above
 - [ ] No circular dependencies introduced
+- [ ] References to closed/merged beads updated
 - [ ] Clarify items have specific questions
 
 ## Anti-Patterns

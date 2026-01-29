@@ -6,6 +6,27 @@ description: Bead ID conventions and scope tokens
 
 This document defines the ID structure for beads in the km project. All skills that create beads should follow these conventions.
 
+## Check Database Prefix First
+
+**CRITICAL**: Different projects/submodules have different ID prefixes. Before creating any bead:
+
+```bash
+# See what prefix the database uses
+bd list --limit 1
+
+# Or check directly
+sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
+```
+
+| Location | Prefix |
+|----------|--------|
+| km (main project) | `km-` |
+| vendor/beorn-inkx | `beorn-inkx-` |
+| vendor/beorn-chalkx | `beorn-chalkx-` |
+| Other vendor packages | `beorn-<name>-` |
+
+**Never assume `km-`** — always verify for the current working directory. The `bd` command will reject mismatched prefixes.
+
 ## Philosophy: Metadata First
 
 Beads have rich metadata fields (`issue_type`, `labels`, `priority`, `assignee`, `dependencies`) that should carry classification details rather than encoding everything in IDs. IDs should be **short, memorable prefixes** for grouping related work.
@@ -50,8 +71,8 @@ bd create --id km-storage-15 \
 ### Pattern 2: Hierarchical (For Epic Decomposition)
 
 ```
-km-<scope>-<N>        # Parent
-km-<scope>-<N>.<N>    # Subtask (numeric, not letters)
+<prefix><scope>-<N>        # Parent
+<prefix><scope>-<N>.<N>    # Subtask (numeric, not letters)
 ```
 
 **When to use**: Breaking down epics or large features into subtasks.
@@ -59,14 +80,16 @@ km-<scope>-<N>.<N>    # Subtask (numeric, not letters)
 **Examples:**
 
 ```
-km-test-1          # Test milestone epic
-km-test-1.1        # CI integration subtask
-km-test-1.2        # Coverage tracking subtask
+km-test-1              # Test milestone epic
+km-test-1.1            # CI integration subtask
+km-test-1.2            # Coverage tracking subtask
 
-km-storage-8       # Supertags epic
-km-storage-8.1     # Test specifications subtask
-km-storage-8.2     # Package structure subtask
+beorn-inkx-api         # inkx API epic (in vendor/beorn-inkx)
+beorn-inkx-api.1       # First subtask
+beorn-inkx-api.2       # Second subtask
 ```
+
+**Note**: Dot notation works with ANY prefix — not just `km-`. Always check the database prefix first.
 
 **Rules:**
 
@@ -106,14 +129,16 @@ km-<4-5 char random>
 
 ## Choosing an ID Pattern
 
-| Scenario              | Pattern         | Example                          | Notes                      |
-| --------------------- | --------------- | -------------------------------- | -------------------------- |
-| Package-specific bug  | 1: Scoped       | `km-storage-15`                  | Find next N with `bd list` |
-| Feature in a package  | 1: Scoped       | `km-tui-8`                       | Clear scope                |
-| Epic with subtasks    | 2: Hierarchical | `km-storage-8`, `km-storage-8.1` | Use dot notation           |
-| Cross-package feature | 3: Keyword      | `km-dark-mode`                   | Memorable name             |
-| Quick bug capture     | 4: Opaque       | `km-5vsut`                       | Auto-generated             |
-| Unknown scope yet     | 4: Opaque       | `km-a1b2c`                       | Refine later               |
+| Scenario              | Pattern         | Example                                    | Notes                           |
+| --------------------- | --------------- | ------------------------------------------ | ------------------------------- |
+| Package-specific bug  | 1: Scoped       | `km-storage-15`, `beorn-inkx-render-3`     | Check prefix first, find next N |
+| Feature in a package  | 1: Scoped       | `km-tui-8`, `beorn-chalkx-color-2`         | Clear scope                     |
+| Epic with subtasks    | 2: Hierarchical | `km-storage-8.1`, `beorn-inkx-api.1`       | Dot notation works with any prefix |
+| Cross-package feature | 3: Keyword      | `km-dark-mode`                             | Memorable name                  |
+| Quick bug capture     | 4: Opaque       | `km-5vsut`                                 | Auto-generated                  |
+| Unknown scope yet     | 4: Opaque       | `km-a1b2c`                                 | Refine later                    |
+
+**Remember**: Check `bd list --limit 1` to find the correct prefix before creating any bead.
 
 ## Scope Tokens
 
@@ -164,13 +189,16 @@ When creating beads for a package/area not listed above:
 
 ## Subtasks (Dot Notation)
 
-Use `.1`, `.2`, `.3` (numbers) for subtasks under a parent:
+Use `.1`, `.2`, `.3` (numbers) for subtasks under a parent. **Works with any prefix**:
 
 ```
-km-storage-8          # Parent
+km-storage-8          # Parent (in km)
 km-storage-8.1        # Subtask 1
 km-storage-8.2        # Subtask 2
-km-storage-8.3        # Subtask 3
+
+beorn-inkx-api        # Parent (in vendor/beorn-inkx)
+beorn-inkx-api.1      # Subtask 1
+beorn-inkx-api.2      # Subtask 2
 ```
 
 **Rules:**
@@ -179,6 +207,7 @@ km-storage-8.3        # Subtask 3
 - Numbers are sequential: 1, 2, 3, ... (not letters)
 - For 10+ subtasks, continue: 10, 11, 12, ...
 - Create with `--deps parent-child:<parent-id>`
+- **Dot notation works with ANY prefix** — not just `km-`
 
 **Query subtasks:**
 

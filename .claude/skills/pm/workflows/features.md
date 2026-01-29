@@ -84,6 +84,10 @@ bd close <id> --reason "<evidence>"
 
 For moderate/complex features:
 
+**Read first** (before making any plans):
+- [/docs/principles.md](/docs/principles.md) - Architecture patterns, composability, fast feedback
+- [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md) - If refactoring is involved
+
 ```typescript
 EnterPlanMode()
 ```
@@ -185,7 +189,8 @@ For features needing 5+ subtasks:
 
 ```bash
 bd create --id km-epic-<slug> --type epic --title "<name>"
-bd create --id km-epic-<slug>.a --type task --title "<first>" --parent km-epic-<slug>
+bd create --id km-epic-<slug>.a --type task --title "<first>"
+bd update km-epic-<slug>.a --parent km-epic-<slug>  # Set parent AFTER creation (--id and --parent conflict)
 bd update km-epic-<slug>.a --claim
 ```
 

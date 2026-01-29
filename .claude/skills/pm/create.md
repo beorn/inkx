@@ -129,17 +129,31 @@ Exact match (open)?
 
 ### Generate ID:
 
-1. **Find next sequence number:**
+1. **Check database prefix first:**
 
    ```bash
-   # For km-<scope>-N pattern:
-   bd list --all | grep "km-<scope>-"
+   # See what prefix the database uses (CRITICAL - don't assume km-)
+   bd list --limit 1
+   # Or: sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
+   ```
+
+   | Location | Prefix |
+   |----------|--------|
+   | km (main project) | `km-` |
+   | vendor/beorn-inkx | `beorn-inkx-` |
+   | vendor/beorn-chalkx | `beorn-chalkx-` |
+
+2. **Find next sequence number:**
+
+   ```bash
+   # For <prefix><scope>-N pattern:
+   bd list --all | grep "<prefix><scope>-"
    # Find highest N, use N+1
    ```
 
-2. **Construct ID:**
-   - `km-<scope>-<N+1>`
-   - Example: `km-storage-15`
+3. **Construct ID:**
+   - `<prefix><scope>-<N+1>`
+   - Example: `km-storage-15` or `beorn-inkx-api-2`
 
 **Note**: Type/priority/labels go in metadata fields, not the ID. See [beads-ids.md](beads-ids.md).
 
@@ -159,18 +173,29 @@ bd create \
 - If ID conflict → increment sequence, retry (max 3 attempts)
 - If create fails → report error with suggestion
 
+**If replacing an existing bead** (new ID for same work):
+
+```bash
+# Search for references to old ID before closing/deleting
+grep -r "km-old-id" .claude/ docs/ --include="*.md"
+```
+
+Update all references to point to the new ID. Never leave dangling references.
+
 ### Update related beads if dependencies identified:
 
 ```bash
 # Add dependency (new-id is blocked by blocking-id)
 bd dep add <new-id> <blocking-id>
 
-# Link to parent epic
+# Link to parent epic (AFTER creation - --id and --parent conflict)
 bd update <new-id> --parent <epic-id>
 
-# Or use --deps at creation time
+# Or use --deps at creation time (alternative to --parent)
 bd create --id km-tui-8.1 --title "Subtask" --deps "parent-child:km-tui-8"
 ```
+
+**Note**: `--id` and `--parent` cannot be used together. Either use `--deps` at creation time, or set parent via `bd update` after creation.
 
 ---
 

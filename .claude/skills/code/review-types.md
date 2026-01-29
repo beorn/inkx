@@ -137,9 +137,9 @@ DATE_SUFFIX=$(date +%m%d)
 bd create --id "km-rev-types-$DATE_SUFFIX" --type=task --priority=2 \
   --title="Type safety review findings" --body-file /tmp/review.md
 
-# Child beads for each refactor
-bd create --id "km-rev-types-$DATE_SUFFIX.a" --title="<finding 1>" \
-  --type=task --parent "km-rev-types-$DATE_SUFFIX"
+# Child beads for each refactor (set parent AFTER creation - --id and --parent conflict)
+bd create --id "km-rev-types-$DATE_SUFFIX.a" --title="<finding 1>" --type=task
+bd update "km-rev-types-$DATE_SUFFIX.a" --parent "km-rev-types-$DATE_SUFFIX"
 ```
 
 ---

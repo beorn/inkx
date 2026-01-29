@@ -50,6 +50,10 @@ bd close <id> --reason "<evidence>"
 
 ## Step 2A: Tasks WITH Tests
 
+**For refactoring tasks, read first:**
+- [/docs/principles.md](/docs/principles.md) - Architecture patterns, composability
+- [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md) - Phase order, breaking vs fixing
+
 **Refactoring:**
 
 ```bash
