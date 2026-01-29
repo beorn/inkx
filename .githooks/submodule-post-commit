@@ -1,0 +1,19 @@
+#!/bin/bash
+# Auto-update km's submodule pointer after committing in a submodule
+# This hook runs in the submodule directory after a commit
+
+SUBMODULE_PATH=$(git rev-parse --show-toplevel)
+SUBMODULE_NAME=$(basename "$SUBMODULE_PATH")
+KM_ROOT="/Users/beorn/Code/pim/km"
+
+# Only proceed if we're in a km submodule
+if [[ "$SUBMODULE_PATH" != "$KM_ROOT/vendor/"* ]]; then
+    exit 0
+fi
+
+cd "$KM_ROOT" || exit 0
+
+# Stage the submodule pointer update
+git add "vendor/$SUBMODULE_NAME" 2>/dev/null || exit 0
+
+echo "📌 Staged submodule pointer update for $SUBMODULE_NAME in km"
