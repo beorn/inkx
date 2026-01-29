@@ -333,14 +333,24 @@ async function main() {
   }
   log("   ✓ direnv allowed\n")
 
-  // 7. Verify CLI works (smoke test)
+  // 7. Build nix flake (so direnv doesn't have to on first cd)
+  log("❄️  Building nix environment (this may take a few minutes on first run)...")
+  const nixBuild = await $`nix develop --command true`.cwd(KM_ROOT).nothrow()
+  if (nixBuild.exitCode !== 0) {
+    log("   ⚠ nix develop failed (non-critical)")
+    log("   " + nixBuild.stderr.toString().trim().split("\n")[0])
+  } else {
+    log("   ✓ nix environment ready\n")
+  }
+
+  // 8. Verify CLI works (smoke test)
   log("🧪 Verifying installation...")
-  const smokeTest = await $`bun km --version`.quiet().nothrow()
+  const smokeTest = await $`nix develop --command bun km --version`.cwd(KM_ROOT).quiet().nothrow()
   if (smokeTest.exitCode !== 0) {
-    log("   ⚠ km CLI test failed (may need shell restart for direnv)")
+    log("   ⚠ km CLI test failed")
     log("   Error: " + smokeTest.stderr.toString().trim())
     log("")
-    log("✅ Setup complete! Restart your shell, then run: bun km --version")
+    log("✅ Setup complete! Run: cd " + KM_ROOT + " && bun km --version")
   } else {
     log("   ✓ km CLI works\n")
     log("✅ Setup complete!")
