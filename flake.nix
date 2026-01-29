@@ -26,6 +26,13 @@
             tmux
             lnav # Log viewer for debug script
           ];
+
+          shellHook = ''
+            # Run setup if needed (idempotent, quick when already set up)
+            if [ -f scripts/setup.ts ]; then
+              bun run scripts/setup.ts --quiet 2>/dev/null || true
+            fi
+          '';
         };
       }
     );

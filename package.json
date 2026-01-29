@@ -19,6 +19,7 @@
     "debug": "./scripts/debug"
   },
   "scripts": {
+    "setup": "bun run scripts/setup.ts",
     "km": "bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
     "tap": "bun ./vendor/beorn-tap/src/cli/runner.ts",
