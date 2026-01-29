@@ -12,7 +12,7 @@
  * - Selection/current highlighting (bgBlue, bgYellow)
  */
 
-import { createTerm, type StyleChain } from "@beorn/chalkx"
+import { createTerm, type StyleChain } from "chalkx"
 import type { TaskStatus } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { TUIBoardState, CardState, RenderOptions } from "./types.ts"

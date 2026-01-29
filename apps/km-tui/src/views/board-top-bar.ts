@@ -1,7 +1,7 @@
 /**
  * Board top bar - path segments rendering
  */
-import { createTerm, type StyleChain } from "@beorn/chalkx"
+import { createTerm, type StyleChain } from "chalkx"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"

@@ -5,7 +5,7 @@
  * Extracted from list.ts and show.ts for reuse.
  */
 
-import { createTerm, type StyleChain } from "@beorn/chalkx"
+import { createTerm, type StyleChain } from "chalkx"
 import type { KNode } from "@km/core"
 import {
   getNodeDisplayName as getNodeDisplayNameBase,

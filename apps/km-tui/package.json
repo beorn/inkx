@@ -8,7 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@beorn/chalkx": "workspace:*",
+    "chalkx": "workspace:*",
     "@beorn/tui-measure": "workspace:*",
     "@km/board": "workspace:*",
     "@km/commands": "workspace:*",

@@ -4,7 +4,7 @@
  * Functions for formatting tasks and their paths for CLI output.
  */
 
-import { createTerm } from "@beorn/chalkx"
+import { createTerm } from "chalkx"
 
 const term = createTerm(process)
 import {

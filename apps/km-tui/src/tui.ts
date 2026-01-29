@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from "events"
-import { createTerm, type StyleChain } from "@beorn/chalkx"
+import { createTerm, type StyleChain } from "chalkx"
 import createDebug from "debug"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import type { Repo } from "./repo-context.tsx"

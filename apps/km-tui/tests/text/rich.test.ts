@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { createTerm } from "@beorn/chalkx"
+import { createTerm } from "chalkx"
 import {
   ANSI_REGEX,
   displayLength,

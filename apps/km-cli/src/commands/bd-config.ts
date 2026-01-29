@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@beorn/chalkx"
+import { createTerm } from "chalkx"
 
 const term = createTerm(process)
 import { resolvePathArg, loadConfigObject } from "@km/storage"

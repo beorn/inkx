@@ -4,7 +4,7 @@
  * Lists tasks with optional filtering by path, status, or query.
  */
 
-import { createTerm } from "@beorn/chalkx"
+import { createTerm } from "chalkx"
 
 const term = createTerm(process)
 import { resolvePathArg, type Repo } from "@km/storage"

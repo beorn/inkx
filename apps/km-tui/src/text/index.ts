@@ -50,7 +50,7 @@ export {
   type UnderlineStyle,
   type Term,
   type StyleChain,
-} from "@beorn/chalkx"
+} from "chalkx"
 
 // Board color system
 export {

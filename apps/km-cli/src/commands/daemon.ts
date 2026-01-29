@@ -19,7 +19,7 @@ import {
 } from "fs"
 import { join, dirname } from "path"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@beorn/chalkx"
+import { createTerm } from "chalkx"
 
 const term = createTerm(process)
 import { Database } from "bun:sqlite"

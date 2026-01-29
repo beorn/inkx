@@ -4,7 +4,7 @@
  * Functions for modifying tasks: create, claim, release, assign, markDone.
  */
 
-import { createTerm } from "@beorn/chalkx"
+import { createTerm } from "chalkx"
 
 const term = createTerm(process)
 import { ulid } from "ulid"

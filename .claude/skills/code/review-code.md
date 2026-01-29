@@ -51,6 +51,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Unused code      | Files/exports/deps flagged by knip, dead code paths                         |
 | Arch violation   | Classes (not factories), module-level state, global getters                 |
 | Deprecated code  | Functions marked @deprecated, backwards compat shims                        |
+| Vendor path      | Import via path (e.g., `../vendor/`) instead of package name                |
 
 ## Iteration 0.5: Pre-Survey Check (project-wide reviews only)
 
@@ -107,6 +108,10 @@ The script detects:
 - Pattern 12: Missing Symbol.dispose (resource leaks)
 - Pattern 13: Missing closed checks (no fail-fast)
 - Pattern 14: Calling singletons (getDb() instead of injection)
+
+**Import issues (1 pattern)**:
+
+- Pattern 15: Vendor path imports (importing via `../vendor/` or absolute paths instead of package name)
 
 Output is structured with headers like `=== PATTERN 1: Classes ===` for easy parsing.
 
@@ -229,6 +234,13 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | Missing Symbol.dispose  | High             | Critical if manages DB/files        |
 | Missing closed checks   | Medium           | Fail-fast principle violation       |
 | Calling singletons      | High             | Hidden dependencies, blocks testing |
+
+**Import findings:**
+
+| Finding Type        | Default Severity | Context Adjustments                                       |
+| ------------------- | ---------------- | --------------------------------------------------------- |
+| Vendor path imports | High             | Path to vendor/ in import should use package name instead |
+| Package path imports| Medium           | Path to packages/ should use @km/name alias               |
 
 **Test-specific severity guide:**
 

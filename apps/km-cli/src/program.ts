@@ -11,7 +11,7 @@ import "./debug-log.ts"
 import { existsSync, statSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { Command, type OptionValues } from "@commander-js/extra-typings"
-import { createTerm } from "@beorn/chalkx"
+import { createTerm } from "chalkx"
 
 const term = createTerm(process)
 import { setLogLevel, type LogLevel } from "@km/core"

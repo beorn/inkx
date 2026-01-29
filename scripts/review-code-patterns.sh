@@ -106,4 +106,12 @@ for query in "SELECT.*FROM nodes WHERE type = 'file'" "findNodeByName\|findFileB
 done || true
 echo ""
 
+echo "=== PATTERN 18: Vendor path imports ==="
+# Import via relative/absolute path instead of package name - monorepo packages should use package names
+# Be particularly suspicious of any path containing /vendor/
+grep -rn 'from ["'"'"'][^"'"'"']*\/vendor\/' packages apps infra --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" || true
+grep -rn 'from ["'"'"']\.\..*\/packages\/' packages apps infra --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" || true
+grep -rn 'from ["'"'"']\/Users\/.*\/vendor\/' packages apps infra --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" || true
+echo ""
+
 echo "Pattern detection complete."

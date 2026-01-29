@@ -11,7 +11,7 @@
  * - `stripAnsi(styled)` - remove all ANSI escape codes
  */
 
-import { createTerm, dashedUnderline, type StyleChain } from "@beorn/chalkx"
+import { createTerm, dashedUnderline, type StyleChain } from "chalkx"
 import stringWidth from "string-width"
 
 // Module-level term instance for styling (lazily initialized)
