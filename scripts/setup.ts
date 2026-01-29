@@ -119,6 +119,22 @@ async function main() {
     log("   ✓ nix experimental features enabled")
   }
 
+  // Ensure git is available to nix (nix flakes require git in nix's PATH, not /usr/bin)
+  const nixProfileList = await $`nix profile list`.quiet().nothrow()
+  const hasNixGit = nixProfileList.stdout.toString().includes("git")
+  if (!hasNixGit) {
+    log("   📝 Adding git to nix profile (required for flakes)...")
+    const installGit = await $`nix profile add nixpkgs#git`.quiet().nothrow()
+    if (installGit.exitCode !== 0) {
+      console.error("   ✗ Failed to add git to nix profile")
+      console.error(installGit.stderr.toString())
+      process.exit(1)
+    }
+    log("   ✓ git added to nix profile")
+  } else {
+    log("   ✓ git in nix profile")
+  }
+
   if (hasDirenv) {
     log("   ✓ direnv installed")
   } else {
