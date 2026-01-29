@@ -1,17 +1,18 @@
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "oxc.configPath": "packages/km-infra/oxlint/config.json",
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

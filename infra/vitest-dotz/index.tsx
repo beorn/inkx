@@ -1,15 +1,12 @@
 /**
  * DotzReporter - inkx-based Vitest Reporter
  *
- * Single React component used for both modes:
- * - TTY: render() with mode: 'inline' for live updates
- * - Non-TTY: renderString() for static output
- *
+ * Renders test results using inkx React components.
  * All output goes through inkx - layout, colors, everything.
  */
 
 import * as fs from "node:fs"
-import { useSyncExternalStore, createContext, useContext } from "react"
+import { useSyncExternalStore, type ReactNode } from "react"
 import type {
   Reporter,
   TestCase,
@@ -18,19 +15,12 @@ import type {
   TestSuite,
   Vitest,
 } from "vitest/node"
-import {
-  render,
-  createTerm,
-  Box,
-  Text,
-  useTerm,
-  type Term,
-  type Instance,
-} from "inkx"
+import { Box, Text, useTerm } from "inkx"
 import Debug from "debug"
 
 import {
   createTestStore,
+  type TestState,
   type TestStore,
   type TestStoreState,
 } from "./store.js"
@@ -38,26 +28,8 @@ import {
 const debug = Debug("km:vitest-dotz")
 
 // =============================================================================
-// Context for Interactive Mode
+// Types & Constants
 // =============================================================================
-
-const InteractiveContext = createContext(true)
-function useInteractive() {
-  return useContext(InteractiveContext)
-}
-
-// =============================================================================
-// Constants & Types
-// =============================================================================
-
-type TestState = "pending" | "passed" | "failed" | "skipped"
-
-const DOT = {
-  fail: "x",
-  skip: "-",
-  pending: "*",
-  noisy: "!",
-} as const
 
 export interface ReporterOptions {
   slowThreshold?: number
@@ -67,102 +39,211 @@ export interface ReporterOptions {
   symbols?: string[]
 }
 
-const PASS_SLOW_SYMBOLS = {
-  dots: ["·", "•", "●"],
-}
+type ResolvedOptions = Required<ReporterOptions>
+
+const DEFAULT_SYMBOLS = ["·", "•", "●"]
 
 // =============================================================================
-// React Hooks
+// React Components
 // =============================================================================
 
 function useTestStore(store: TestStore): TestStoreState {
   return useSyncExternalStore(store.subscribe, store.getSnapshot)
 }
 
-// =============================================================================
-// Main Report Component (used for both TTY and non-TTY)
-// =============================================================================
-
 interface ReportProps {
   store: TestStore
-  options: Required<ReporterOptions>
+  options: ResolvedOptions
 }
 
 function Report({ store, options }: ReportProps) {
-  const interactive = useInteractive()
   const state = useTestStore(store)
-
   return (
     <Box flexDirection="column">
-      {/* Live dots - only in interactive mode WHILE RUNNING */}
-      {interactive && state.isRunning && (
-        <DotsDisplay state={state} options={options} />
-      )}
-
-      {/* Summary sections - shown when not running (or always in non-interactive) */}
-      {(!interactive || !state.isRunning) && (
-        <>
-          <Summary state={state} />
-          <PackageTable state={state} />
-          <SlowTests state={state} options={options} />
-          <Failures state={state} />
-        </>
-      )}
+      <DotsSection state={state} options={options} />
+      <Summary state={state} />
+      <PackageTable state={state} />
+      <SlowTests state={state} options={options} />
+      <Failures state={state} />
     </Box>
   )
 }
 
-// -----------------------------------------------------------------------------
-// Dots Display (live updating dots grouped by package)
-// -----------------------------------------------------------------------------
+// Dot component - can be used with testId (looks up state) or explicit props (for legend)
+type DotProps =
+  | { testId: string; store: TestStoreState; options: ResolvedOptions }
+  | { status: "passed"; duration: number; options: ResolvedOptions }
+  | { status: "failed" }
+  | { status: "skipped" }
+  | { status: "pending" }
+  | { status: "noisy" }
 
-interface DotsDisplayProps {
-  state: TestStoreState
-  options: Required<ReporterOptions>
+function Dot(props: DotProps) {
+  const term = useTerm()
+
+  let testState: TestState
+  let duration = 0
+  let isNoisy = false
+  let options: ResolvedOptions | undefined
+
+  if ("testId" in props) {
+    testState = props.store.testStates.get(props.testId) ?? "pending"
+    duration = props.store.testDurations.get(props.testId) ?? 0
+    isNoisy = props.store.noisyTestIds.has(props.testId)
+    options = props.options
+  } else if (props.status === "noisy") {
+    return <Text>{term.style().magenta(DOT_CHARS.noisy)}</Text>
+  } else if (props.status === "failed") {
+    return <Text>{term.style().red(DOT_CHARS.fail)}</Text>
+  } else if (props.status === "skipped") {
+    return <Text>{term.style().gray.dim(DOT_CHARS.skip)}</Text>
+  } else if (props.status === "pending") {
+    return <Text>{term.style().yellow(DOT_CHARS.pending)}</Text>
+  } else {
+    // status === "passed"
+    testState = "passed"
+    duration = props.duration
+    options = props.options
+  }
+
+  // Handle noisy tests
+  if (isNoisy && testState !== "failed") {
+    return <Text>{term.style().magenta(DOT_CHARS.noisy)}</Text>
+  }
+
+  // Handle passed tests with duration-based symbols
+  if (testState === "passed" && options) {
+    const { index, bright } = durationToSymbolIndex(
+      duration,
+      options.slowThreshold,
+      options.symbols.length,
+    )
+    const char = options.symbols[Math.min(index, options.symbols.length - 1)] ?? "●"
+    const styled = bright ? term.style().green(char) : term.style().green.dim(char)
+    return <Text>{styled}</Text>
+  }
+
+  // Fallback for other states
+  if (testState === "failed") return <Text>{term.style().red(DOT_CHARS.fail)}</Text>
+  if (testState === "skipped") return <Text>{term.style().gray.dim(DOT_CHARS.skip)}</Text>
+  return <Text>{term.style().yellow(DOT_CHARS.pending)}</Text>
 }
 
-function DotsDisplay({ state, options }: DotsDisplayProps) {
+function LegendItem({
+  children,
+  label,
+}: {
+  children: ReactNode
+  label: string
+}) {
+  const term = useTerm()
+  return (
+    <Box flexDirection="row" gap={1}>
+      {children}
+      <Text>{term.style().dim(label)}</Text>
+    </Box>
+  )
+}
+
+function DotsLegend({ options }: { options: ResolvedOptions }) {
+  const term = useTerm()
+
+  return (
+    <Box flexDirection="row" gap={2} marginBottom={1}>
+      <Text>{term.style().dim("Legend:")}</Text>
+      <LegendItem label="fast">
+        <Dot status="passed" duration={0} options={options} />
+      </LegendItem>
+      <LegendItem label="slow">
+        <Dot status="passed" duration={options.slowThreshold * 10} options={options} />
+      </LegendItem>
+      <LegendItem label="fail">
+        <Dot status="failed" />
+      </LegendItem>
+      <LegendItem label="skip">
+        <Dot status="skipped" />
+      </LegendItem>
+      <LegendItem label="pending">
+        <Dot status="pending" />
+      </LegendItem>
+      <LegendItem label="noisy">
+        <Dot status="noisy" />
+      </LegendItem>
+    </Box>
+  )
+}
+
+function DotsSection({
+  state,
+  options,
+}: {
+  state: TestStoreState
+  options: ResolvedOptions
+}) {
   const term = useTerm()
   const cols = process.stdout.columns || 80
 
-  // Calculate max label width
+  // Calculate label width based on longest category name
   const maxLabelWidth = Math.min(
     Math.max(...state.categoryOrder.map((c) => c.length), 12) + 1,
-    20,
+    24,
   )
+  const dotsWidth = cols - maxLabelWidth - 1
+  const fileIndent = 2
+  const fileLabelWidth = maxLabelWidth - fileIndent
 
-  const maxDotsPerLine = Math.max(20, cols - maxLabelWidth - 1)
+  // Determine which packages should break out into files
+  // Break out if package has many tests and multiple files
+  const fileBreakouts = new Set<string>()
+  for (const category of state.categoryOrder) {
+    const catStats = state.categoryStats.get(category)
+    if (catStats && catStats.testIds.length > dotsWidth && catStats.fileOrder.length > 1) {
+      fileBreakouts.add(category)
+    }
+  }
 
   return (
     <Box flexDirection="column">
+      <DotsLegend options={options} />
       {state.categoryOrder.map((category) => {
         const catStats = state.categoryStats.get(category)
         if (!catStats) return null
 
-        // Build dots for all tests in this category
-        const dots = catStats.testIds.map((id) => {
-          const testState = state.testStates.get(id) ?? "pending"
-          const duration = state.testDurations.get(id) ?? 0
-          const isNoisy = state.noisyTestIds.has(id)
-          return renderDot(term, testState, duration, isNoisy, options)
-        })
+        const shouldBreakOut = fileBreakouts.has(category)
 
-        // Wrap dots into lines
-        const lines: string[][] = []
-        for (let i = 0; i < dots.length; i += maxDotsPerLine) {
-          lines.push(dots.slice(i, i + maxDotsPerLine))
+        if (shouldBreakOut) {
+          // Package with file breakout: show package name as header, files with dots below
+          return (
+            <Box key={category} flexDirection="column">
+              <Text>{term.style().cyan.bold(category)}</Text>
+              {catStats.fileOrder.map((file) => {
+                const fileStats = catStats.files.get(file)
+                if (!fileStats) return null
+                const fileName = file.replace(/\.(test|spec)\.(ts|tsx|js|jsx|md)$/, "")
+                return (
+                  <Box key={file} flexDirection="row">
+                    <Text>{"  "}{term.style().dim(fileName.padEnd(fileLabelWidth))}</Text>
+                    <Box flexDirection="row" flexWrap="wrap" width={dotsWidth}>
+                      {fileStats.testIds.map((id) => (
+                        <Dot key={id} testId={id} store={state} options={options} />
+                      ))}
+                    </Box>
+                  </Box>
+                )
+              })}
+            </Box>
+          )
         }
 
+        // Render all tests in category together (no file breakout)
         return (
-          <Box key={category} flexDirection="column">
-            {lines.map((lineDots, i) => (
-              <Text key={i}>
-                {i === 0
-                  ? term.style().cyan(category.padEnd(maxLabelWidth))
-                  : " ".repeat(maxLabelWidth)}
-                {lineDots.join("")}
-              </Text>
-            ))}
+          <Box key={category} flexDirection="row">
+            <Text>{term.style().cyan(category.padEnd(maxLabelWidth))}</Text>
+            <Box flexDirection="row" flexWrap="wrap" width={dotsWidth}>
+              {catStats.testIds.map((id) => (
+                <Dot key={id} testId={id} store={state} options={options} />
+              ))}
+            </Box>
           </Box>
         )
       })}
@@ -170,15 +251,7 @@ function DotsDisplay({ state, options }: DotsDisplayProps) {
   )
 }
 
-// -----------------------------------------------------------------------------
-// Summary
-// -----------------------------------------------------------------------------
-
-interface SummaryProps {
-  state: TestStoreState
-}
-
-function Summary({ state }: SummaryProps) {
+function Summary({ state }: { state: TestStoreState }) {
   const term = useTerm()
   const { passed, failed, skipped } = state
   const total = passed + failed + skipped
@@ -206,15 +279,7 @@ function Summary({ state }: SummaryProps) {
   )
 }
 
-// -----------------------------------------------------------------------------
-// Package Table
-// -----------------------------------------------------------------------------
-
-interface PackageTableProps {
-  state: TestStoreState
-}
-
-function PackageTable({ state }: PackageTableProps) {
+function PackageTable({ state }: { state: TestStoreState }) {
   const term = useTerm()
 
   if (state.categoryOrder.length <= 1) return null
@@ -247,16 +312,13 @@ function PackageTable({ state }: PackageTableProps) {
   )
 }
 
-// -----------------------------------------------------------------------------
-// Slow Tests
-// -----------------------------------------------------------------------------
-
-interface SlowTestsProps {
+function SlowTests({
+  state,
+  options,
+}: {
   state: TestStoreState
-  options: Required<ReporterOptions>
-}
-
-function SlowTests({ state, options }: SlowTestsProps) {
+  options: ResolvedOptions
+}) {
   const term = useTerm()
 
   if (!options.showSlow || state.topSlowest.length === 0) return null
@@ -264,20 +326,18 @@ function SlowTests({ state, options }: SlowTestsProps) {
   const { symbols, slowThreshold: threshold } = options
   const n = symbols.length
   const rangePerSymbol = 10 / n
-  const fmt = (ms: number) => (ms >= 1000 ? `${ms / 1000}s` : `${ms}ms`)
 
-  // Build slow symbol legend
+  // Build legend
   const legendParts: string[] = []
   for (let i = 1; i < n; i++) {
     const minMult = i * rangePerSymbol
     const sym = symbols[i] ?? "●"
     legendParts.push(
-      `${term.style().green.dim(sym)} ${term.style().dim(`≥${fmt(Math.round(threshold * minMult))}`)}`,
+      `${term.style().green.dim(sym)} ${term.style().dim(`≥${fmtMs(Math.round(threshold * minMult))}`)}`,
     )
   }
-  const lastSym = symbols[n - 1] ?? "●"
   legendParts.push(
-    `${term.style().green(lastSym)} ${term.style().dim(`≥${fmt(threshold * 10)}`)}`,
+    `${term.style().green(symbols[n - 1] ?? "●")} ${term.style().dim(`≥${fmtMs(threshold * 10)}`)}`,
   )
 
   return (
@@ -310,15 +370,7 @@ function SlowTests({ state, options }: SlowTestsProps) {
   )
 }
 
-// -----------------------------------------------------------------------------
-// Failures
-// -----------------------------------------------------------------------------
-
-interface FailuresProps {
-  state: TestStoreState
-}
-
-function Failures({ state }: FailuresProps) {
+function Failures({ state }: { state: TestStoreState }) {
   const term = useTerm()
 
   if (state.testErrors.size === 0) return null
@@ -331,22 +383,13 @@ function Failures({ state }: FailuresProps) {
           <Text>
             {term.style().red("✗")} {term.style().bold(err.name)}
           </Text>
-          <Text>
-            {"  "}
-            {term.style().dim(err.file)}
-          </Text>
+          <Text>{"  "}{term.style().dim(err.file)}</Text>
           {err.errors.map((e, j) => (
             <Box key={j} flexDirection="column">
-              <Text>
-                {"  "}
-                {e.message}
-              </Text>
-              {e.stack &&
-                e.stack
-                  .split("\n")
-                  .map((line, k) => (
-                    <Text key={k}>{term.style().dim(line)}</Text>
-                  ))}
+              <Text>{"  "}{e.message}</Text>
+              {e.stack?.split("\n").map((line, k) => (
+                <Text key={k}>{term.style().dim(line)}</Text>
+              ))}
             </Box>
           ))}
         </Box>
@@ -356,51 +399,44 @@ function Failures({ state }: FailuresProps) {
 }
 
 // =============================================================================
-// DotzReporter Class
+// Reporter Class (minimal - just Vitest lifecycle)
 // =============================================================================
+
+// Module-level cache for package name lookups
+const packageNameCache = new Map<string, string>()
+
+// App handle type from inkx render()
+interface AppHandle {
+  unmount: () => void
+  waitUntilExit: () => Promise<void>
+}
 
 export class DotzReporter implements Reporter {
   private ctx!: Vitest
   private store: TestStore
-  private options: Required<ReporterOptions>
-  private packageNameCache = new Map<string, string>()
+  private options: ResolvedOptions
   private finishedTests = new Set<string>()
   private finishedCalled = false
-  private isTTY = false
-  private term: Term | null = null
-  private app: Instance | null = null
+  private app: AppHandle | null = null
+  private term: { [Symbol.dispose]: () => void } | null = null
+  private isTTY: boolean
+  private prevActEnv: boolean | undefined
 
   constructor(options: ReporterOptions = {}) {
     this.options = {
       slowThreshold: options.slowThreshold ?? 100,
       perfOutput: options.perfOutput ?? "",
       showSlow: options.showSlow ?? true,
-      symbols: options.symbols ?? PASS_SLOW_SYMBOLS.dots,
+      symbols: options.symbols ?? DEFAULT_SYMBOLS,
     }
     this.store = createTestStore(this.options.slowThreshold)
-    debug("reporter initialized with options: %O", this.options)
+    this.isTTY = process.stdout.isTTY === true
+    debug("reporter initialized with options: %O, isTTY: %s", this.options, this.isTTY)
   }
-
-  // ===========================================================================
-  // Vitest Reporter Lifecycle
-  // ===========================================================================
 
   onInit(ctx: Vitest) {
     debug("onInit called")
     this.ctx = ctx
-    // Check for TTY AND non-dumb terminal
-    // Also disable for CI environments which often have pseudo-TTYs but no interactivity
-    const term = process.env.TERM ?? ""
-    const isDumbTerminal = term === "dumb" || term === ""
-    const isCI = Boolean(process.env.CI)
-    this.isTTY = (process.stdout.isTTY ?? false) && !isDumbTerminal && !isCI
-    debug(
-      "isTTY=%s (stdout.isTTY=%s, TERM=%s, CI=%s)",
-      this.isTTY,
-      process.stdout.isTTY,
-      term,
-      isCI,
-    )
   }
 
   async onTestRunStart(_specs: readonly TestSpecification[]) {
@@ -410,30 +446,31 @@ export class DotzReporter implements Reporter {
     this.finishedTests.clear()
     this.finishedCalled = false
 
-    // TTY mode: Start inkx render with inline mode
-    if (this.isTTY) {
-      // Disable act() warnings - we're a reporter, not a test
-      // @ts-expect-error - React internal flag
-      globalThis.IS_REACT_ACT_ENVIRONMENT = false
-
-      this.term = createTerm()
-      this.app = await render(
-        this.term,
-        <InteractiveContext.Provider value={true}>
-          <Report store={this.store} options={this.options} />
-        </InteractiveContext.Provider>,
-        {
-          mode: "inline",
-        },
-      )
+    // Start streaming render for TTY
+    if (this.isTTY && !this.app) {
+      await this.startStreaming()
     }
   }
 
-  onTestModuleCollected(module: TestModule) {
-    debug(
-      "onTestModuleCollected: %s",
-      (module as { moduleId?: string }).moduleId,
+  private async startStreaming() {
+    // Tell React we're not in a test - we're the reporter, not under test
+    // Save and disable for entire streaming duration
+    // @ts-expect-error - React internal flag
+    this.prevActEnv = globalThis.IS_REACT_ACT_ENVIRONMENT
+    // @ts-expect-error - React internal flag
+    globalThis.IS_REACT_ACT_ENVIRONMENT = false
+
+    const { render, createTerm } = await import("inkx")
+    this.term = createTerm()
+    this.app = await render(
+      this.term,
+      <Report store={this.store} options={this.options} />,
+      { mode: "inline" },
     )
+  }
+
+  onTestModuleCollected(module: TestModule) {
+    debug("onTestModuleCollected: %s", getModuleId(module))
     for (const test of module.children.allTests()) this.onTestCaseReady(test)
   }
 
@@ -444,12 +481,11 @@ export class DotzReporter implements Reporter {
 
   onTestCaseReady(testCase: TestCase) {
     if (this.finishedTests.has(testCase.id)) return
-    const moduleId =
-      (testCase.module as { moduleId?: string }).moduleId ?? "unknown"
+    const moduleId = getModuleId(testCase.module)
     this.store.addTest(
       testCase.id,
-      this.extractCategory(moduleId),
-      this.extractFileName(moduleId),
+      extractCategory(moduleId),
+      extractFileName(moduleId),
     )
   }
 
@@ -460,8 +496,8 @@ export class DotzReporter implements Reporter {
     const id = testCase.id
     const diagnostic = testCase.diagnostic()
     const duration = diagnostic?.duration ?? 0
-    const moduleId =
-      (testCase.module as { moduleId?: string }).moduleId ?? "unknown"
+    const moduleId = getModuleId(testCase.module)
+
     const testState: TestState =
       result.state === "passed"
         ? "passed"
@@ -484,19 +520,17 @@ export class DotzReporter implements Reporter {
 
     // Get line number: prefer mdtest metadata, fall back to Vitest location
     const meta = testCase.meta() as { mdtestLocation?: { line?: number } }
-    const computedLocation = (testCase as { location?: { line?: number } })
-      .location
-    const line = meta.mdtestLocation?.line ?? computedLocation?.line
+    const loc = (testCase as { location?: { line?: number } }).location
+    const line = meta.mdtestLocation?.line ?? loc?.line
 
     this.store.updateTest(id, testState, duration, errors, isNoisy)
     this.store.updateSlowest(
       testCase.name,
-      this.relativePath(moduleId),
+      relativePath(moduleId),
       line,
       duration,
       this.options.slowThreshold,
     )
-    // React re-renders automatically via store subscription
   }
 
   onTestModuleEnd(_: TestModule) {}
@@ -513,7 +547,7 @@ export class DotzReporter implements Reporter {
     void this.finishRun()
   }
 
-  // Deprecated in vitest 3+, but kept for compatibility
+  // Deprecated in vitest 3+, kept for compatibility
   onFinished(_files?: unknown[], _errors?: unknown[]) {
     debug("onFinished called")
     void this.finishRun()
@@ -524,124 +558,26 @@ export class DotzReporter implements Reporter {
     this.finishedCalled = true
     this.store.setRunning(false)
 
-    if (this.isTTY && this.app) {
-      // TTY: Wait for final render, then cleanup
+    if (this.app) {
+      // Streaming mode: wait a tick for final render, then unmount
       await new Promise((resolve) => {
-        setTimeout(resolve, 100)
+        setTimeout(resolve, 50)
       })
       this.app.unmount()
-      this.app = null
       this.term?.[Symbol.dispose]()
+      this.app = null
       this.term = null
+      // Restore React act environment flag
+      // @ts-expect-error - React internal flag
+      globalThis.IS_REACT_ACT_ENVIRONMENT = this.prevActEnv
     } else {
-      // Non-TTY: Render static report using renderString
-      await this.printSummary()
+      // Non-TTY: render static summary
+      await printSummary(this.store, this.options)
     }
 
-    if (this.options.perfOutput) this.exportPerformance()
-  }
-
-  private async printSummary() {
-    const cols = process.stdout.columns || 80
-
-    // Dynamically import renderString
-    const { renderString } = await import("inkx")
-
-    // Render the static report - renderString provides Term via context automatically
-    const output = await renderString(
-      <InteractiveContext.Provider value={false}>
-        <Report store={this.store} options={this.options} />
-      </InteractiveContext.Provider>,
-      { width: cols, height: 100 },
-    )
-
-    // TODO: why is this needed?  if it's a bug with inkx, we should fix it.
-    // Trim trailing blank lines (including lines with only ANSI codes)
-    // Match: newlines followed by optional ANSI escape sequences and/or whitespace
-    const trimmed = output.replace(/(\n(\x1b\[[0-9;]*[a-zA-Z]|\s)*)+$/, "")
-    console.log(trimmed)
-  }
-
-  // ===========================================================================
-  // Utilities
-  // ===========================================================================
-
-  private relativePath(path: string) {
-    const cwd = process.cwd()
-    return path.startsWith(cwd) ? path.slice(cwd.length + 1) : path
-  }
-
-  private extractCategory(moduleId: string): string {
-    const rel = this.relativePath(moduleId)
-    const parts = rel.split("/")
-    const cwd = process.cwd()
-
-    for (let i = parts.length - 1; i >= 0; i--) {
-      const dirPath = parts.slice(0, i + 1).join("/")
-      const cached = this.packageNameCache.get(dirPath)
-      if (cached !== undefined) return cached
-
-      try {
-        const pkgPath = `${cwd}/${dirPath}/package.json`
-        if (fs.existsSync(pkgPath)) {
-          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
-            name?: string
-          }
-          const name = pkg.name ?? dirPath
-          this.packageNameCache.set(dirPath, name)
-          return name
-        }
-      } catch {}
+    if (this.options.perfOutput) {
+      exportPerformance(this.store.getSnapshot(), this.options)
     }
-
-    const groupingDirs = ["packages", "apps", "vendor", "tests"]
-    const fallback =
-      parts.length >= 2 && parts[0] && groupingDirs.includes(parts[0])
-        ? `${parts[0]}/${parts[1]}`
-        : parts[0] || "root"
-    this.packageNameCache.set(fallback, fallback)
-    return fallback
-  }
-
-  private extractFileName(moduleId: string): string {
-    return this.relativePath(moduleId).split("/").pop() || "unknown"
-  }
-
-  private exportPerformance() {
-    const state = this.store.getSnapshot()
-    const allTests = [...state.testDurations.entries()].map(
-      ([id, duration]) => ({
-        id,
-        duration,
-        state: state.testStates.get(id) ?? "pending",
-        file: state.testToFile.get(id) ?? "unknown",
-      }),
-    )
-
-    fs.writeFileSync(
-      this.options.perfOutput,
-      JSON.stringify(
-        {
-          timestamp: new Date().toISOString(),
-          summary: {
-            passed: state.passed,
-            failed: state.failed,
-            skipped: state.skipped,
-            elapsed: Date.now() - state.startTime,
-            testDuration: [...state.testDurations.values()].reduce(
-              (a, b) => a + b,
-              0,
-            ),
-          },
-          slowTests: allTests
-            .filter((t) => t.duration >= this.options.slowThreshold)
-            .sort((a, b) => b.duration - a.duration),
-          allTests,
-        },
-        null,
-        2,
-      ),
-    )
   }
 }
 
@@ -651,33 +587,116 @@ export default DotzReporter
 // Helpers
 // =============================================================================
 
+function getModuleId(module: unknown): string {
+  return (module as { moduleId?: string }).moduleId ?? "unknown"
+}
+
+function relativePath(path: string): string {
+  const cwd = process.cwd()
+  return path.startsWith(cwd) ? path.slice(cwd.length + 1) : path
+}
+
+function extractFileName(moduleId: string): string {
+  return relativePath(moduleId).split("/").pop() || "unknown"
+}
+
+function extractCategory(moduleId: string): string {
+  const rel = relativePath(moduleId)
+  const parts = rel.split("/")
+  const cwd = process.cwd()
+
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const dirPath = parts.slice(0, i + 1).join("/")
+    const cached = packageNameCache.get(dirPath)
+    if (cached !== undefined) return cached
+
+    try {
+      const pkgPath = `${cwd}/${dirPath}/package.json`
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
+          name?: string
+        }
+        const name = pkg.name ?? dirPath
+        packageNameCache.set(dirPath, name)
+        return name
+      }
+    } catch {}
+  }
+
+  const groupingDirs = ["packages", "apps", "vendor", "tests"]
+  const fallback =
+    parts.length >= 2 && parts[0] && groupingDirs.includes(parts[0])
+      ? `${parts[0]}/${parts[1]}`
+      : parts[0] || "root"
+  packageNameCache.set(fallback, fallback)
+  return fallback
+}
+
+async function printSummary(
+  store: TestStore,
+  options: ResolvedOptions,
+): Promise<void> {
+  const cols = process.stdout.columns || 80
+  const { renderString } = await import("inkx")
+  const output = await renderString(
+    <Report store={store} options={options} />,
+    { width: cols },
+  )
+  console.log(output)
+}
+
+function exportPerformance(
+  state: TestStoreState,
+  options: ResolvedOptions,
+): void {
+  const allTests = [...state.testDurations.entries()].map(([id, duration]) => ({
+    id,
+    duration,
+    state: state.testStates.get(id) ?? "pending",
+    file: state.testToFile.get(id) ?? "unknown",
+  }))
+
+  fs.writeFileSync(
+    options.perfOutput,
+    JSON.stringify(
+      {
+        timestamp: new Date().toISOString(),
+        summary: {
+          passed: state.passed,
+          failed: state.failed,
+          skipped: state.skipped,
+          elapsed: Date.now() - state.startTime,
+          testDuration: [...state.testDurations.values()].reduce(
+            (a, b) => a + b,
+            0,
+          ),
+        },
+        slowTests: allTests
+          .filter((t) => t.duration >= options.slowThreshold)
+          .sort((a, b) => b.duration - a.duration),
+        allTests,
+      },
+      null,
+      2,
+    ),
+  )
+}
+
+const DOT_CHARS = {
+  fail: "x",
+  skip: "-",
+  pending: "*",
+  noisy: "!",
+} as const
+
 function fmtDuration(ms: number): string {
   if (ms < 1000) return `${Math.round(ms)}ms`
   if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`
   return `${Math.floor(ms / 60000)}m ${((ms % 60000) / 1000).toFixed(0)}s`
 }
 
-function renderDot(
-  term: Term,
-  state: TestState,
-  duration: number,
-  noisy: boolean,
-  options: Required<ReporterOptions>,
-): string {
-  if (noisy && state !== "failed") return term.style().magenta(DOT.noisy)
-  if (state === "passed") {
-    const symbols = options.symbols
-    const { index, bright } = durationToSymbolIndex(
-      duration,
-      options.slowThreshold,
-      symbols.length,
-    )
-    const symbol = symbols[Math.min(index, symbols.length - 1)] ?? "●"
-    return bright ? term.style().green(symbol) : term.style().green.dim(symbol)
-  }
-  if (state === "failed") return term.style().red(DOT.fail)
-  if (state === "skipped") return term.style().gray.dim(DOT.skip)
-  return term.style().yellow(DOT.pending)
+function fmtMs(ms: number): string {
+  return ms >= 1000 ? `${ms / 1000}s` : `${ms}ms`
 }
 
 function durationToSymbolIndex(
