@@ -137,6 +137,32 @@ async function main() {
     log("   ✓ direnv installed")
   }
 
+  // Install nix-direnv (needed for 'use flake' in .envrc)
+  log("   🔍 Checking nix-direnv...")
+  const direnvrcPath = join(process.env.HOME ?? "", ".direnvrc")
+  const direnvrcContent = existsSync(direnvrcPath) ? await Bun.file(direnvrcPath).text() : ""
+  const hasNixDirenv = direnvrcContent.includes("nix-direnv")
+
+  if (!hasNixDirenv) {
+    log("   ⚠ nix-direnv not configured - installing...")
+    const installNixDirenv = await $`nix profile add nixpkgs#nix-direnv`.quiet().nothrow()
+    if (installNixDirenv.exitCode !== 0) {
+      console.error("   ✗ Failed to install nix-direnv")
+      console.error(installNixDirenv.stderr.toString())
+      process.exit(1)
+    }
+
+    // Configure direnvrc to use nix-direnv
+    if (existsSync(direnvrcPath)) {
+      backupFile(direnvrcPath)
+    }
+    const nixDirenvSource = `\n# Added by km setup - enables 'use flake' command\nsource $HOME/.nix-profile/share/nix-direnv/direnvrc\n`
+    await Bun.write(direnvrcPath, direnvrcContent + nixDirenvSource)
+    log("   ✓ nix-direnv installed and configured")
+  } else {
+    log("   ✓ nix-direnv configured")
+  }
+
   // Check if direnv is hooked into shell and add if not
   const shell = process.env.SHELL?.includes("zsh") ? "zsh" : "bash"
   const shellrc = shell === "zsh" ? join(process.env.HOME ?? "", ".zshrc") : join(process.env.HOME ?? "", ".bashrc")

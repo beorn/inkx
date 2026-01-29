@@ -22,7 +22,6 @@
           buildInputs = with pkgs; [
             bun
             nodejs_22
-            git
             nixfmt
             tmux
             lnav # Log viewer for debug script
