@@ -105,7 +105,7 @@ async function main() {
     log("   ✓ direnv installed")
   } else {
     log("   ⚠ direnv not found - installing with nix...")
-    const installDirenv = await $`nix profile install nixpkgs#direnv`.quiet().nothrow()
+    const installDirenv = await $`nix profile add nixpkgs#direnv`.quiet().nothrow()
     if (installDirenv.exitCode !== 0) {
       console.error("   ✗ Failed to install direnv")
       console.error(installDirenv.stderr.toString())
