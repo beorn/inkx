@@ -12,6 +12,8 @@ Issue tracking using beads. Coordinates work across Claude sessions.
 
 **IMPORTANT**: Read [beads.md](beads.md) for full CLI reference before running commands.
 
+**Submodule warning**: In `vendor/*` directories, beads use different prefixes (e.g., `beorn-inkx-*`). Always check with `bd list --limit 1` before creating.
+
 ## Current State
 
 !`bd list --status open --limit 10`
@@ -34,7 +36,7 @@ When user says `/pm <action>`, run these commands:
 | `/pm close <id>`    | `bd close <id>`                                              | action      |
 | `/pm sync`          | `git add .beads && git commit -m "chore: sync beads"`        | action      |
 | `/pm my`            | `bd list --assignee $USER`                                   | info        |
-| `/pm new <id> "t"`  | `bd create --id <id> --title "t"` (ID should start with km-) | action      |
+| `/pm new <id> "t"`  | `bd create --id <id> --title "t"` (check prefix: `bd list --limit 1`) | action      |
 | `/pm create ...`    | See [beads.md](beads.md) for full create syntax              | action      |
 
 **Review modes**: `status` (health summary), `ready` (actionable work), `groom` (full review)
