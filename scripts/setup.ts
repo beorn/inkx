@@ -81,26 +81,45 @@ async function main() {
   // 0. Check prerequisites
   log("🔍 Checking prerequisites...")
   const hasNix = await checkCommand("nix")
-  const hasDirenv = await checkCommand("direnv")
+  let hasDirenv = await checkCommand("direnv")
 
   if (hasNix) {
     log("   ✓ nix installed")
   } else {
-    log("   ⚠ nix not found - install from https://nixos.org/download")
-    log("     (needed for reproducible dev environment)")
+    console.error("   ✗ nix not found - install from https://nixos.org/download")
+    process.exit(1)
   }
 
   if (hasDirenv) {
     log("   ✓ direnv installed")
   } else {
-    log("   ⚠ direnv not found - install with: nix profile install nixpkgs#direnv")
-    log("     (needed for automatic environment activation)")
+    log("   ⚠ direnv not found - installing with nix...")
+    const installDirenv = await $`nix profile install nixpkgs#direnv`.quiet().nothrow()
+    if (installDirenv.exitCode !== 0) {
+      console.error("   ✗ Failed to install direnv")
+      console.error(installDirenv.stderr.toString())
+      process.exit(1)
+    }
+    hasDirenv = await checkCommand("direnv")
+    if (!hasDirenv) {
+      console.error("   ✗ direnv installed but not in PATH - restart your shell")
+      process.exit(1)
+    }
+    log("   ✓ direnv installed")
   }
 
-  if (hasNix && hasDirenv) {
-    // Check if direnv is hooked into shell
-    const shellrc = process.env.SHELL?.includes("zsh") ? "~/.zshrc" : "~/.bashrc"
-    log(`   💡 Ensure direnv is hooked: eval "$(direnv hook zsh)" in ${shellrc}`)
+  // Check if direnv is hooked into shell and add if not
+  const shell = process.env.SHELL?.includes("zsh") ? "zsh" : "bash"
+  const shellrc = shell === "zsh" ? join(process.env.HOME ?? "", ".zshrc") : join(process.env.HOME ?? "", ".bashrc")
+  const hookLine = `eval "$(direnv hook ${shell})"`
+
+  const shellrcContent = existsSync(shellrc) ? await Bun.file(shellrc).text() : ""
+  if (!shellrcContent.includes("direnv hook")) {
+    log(`   📝 Adding direnv hook to ${shellrc}...`)
+    await Bun.write(shellrc, shellrcContent + `\n# Added by km setup\n${hookLine}\n`)
+    log("   ✓ direnv hook added (restart shell or run: source " + shellrc + ")")
+  } else {
+    log("   ✓ direnv hook already configured")
   }
   log("")
 
@@ -229,11 +248,14 @@ async function main() {
   log("   ✓ Dependencies installed\n")
 
   // 6. Ensure direnv is allowed for this directory
-  if (hasDirenv) {
-    log("🔐 Allowing direnv...")
-    await $`direnv allow .`.cwd(KM_ROOT).quiet().nothrow()
-    log("   ✓ direnv allowed\n")
+  log("🔐 Allowing direnv...")
+  const direnvAllow = await $`direnv allow .`.cwd(KM_ROOT).quiet().nothrow()
+  if (direnvAllow.exitCode !== 0) {
+    console.error("   ✗ direnv allow failed")
+    console.error(direnvAllow.stderr.toString())
+    process.exit(1)
   }
+  log("   ✓ direnv allowed\n")
 
   // 7. Verify CLI works (smoke test)
   log("🧪 Verifying installation...")
