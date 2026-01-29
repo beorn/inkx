@@ -114,6 +114,25 @@ export function configureProgram(): Command {
         write(term.red(str))
       },
     })
+    .addHelpText(
+      "after",
+      `
+Getting Started:
+  km init                    Initialize km in current directory
+  km view                    Open interactive TUI (Kanban board)
+  km new "My first task"     Create a task in inbox
+  km list                    List all nodes
+
+Quick Actions:
+  km view ./path             View specific directory
+  km tasks                   List tasks with context
+  km status <id> done        Mark task complete
+  km bd ready                Show issues ready to work on
+
+Environment:
+  KM_ROOT=<path>             Set default repository path
+  DEBUG=km:*                 Enable debug logging`,
+    )
 
   // Pre-action hook: runs before any command
   program.hook("preAction", (thisCommand, actionCommand) => {
