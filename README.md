@@ -206,21 +206,27 @@ km/
 
 ## Development
 
+### Prerequisites
+
+- [Bun](https://bun.sh) — `curl -fsSL https://bun.sh/install | bash`
+- [Nix](https://nixos.org/download) — for reproducible dev environment (optional but recommended)
+- [direnv](https://direnv.net) — auto-activate environment (optional)
+
+### Quick Start
+
 ```bash
-# Clone with submodules
-git clone --recurse-submodules https://github.com/beorn/km.git
+git clone https://github.com/beorn/km.git
 cd km
+bun run setup    # Sets up everything: submodules, hooks, deps, direnv
+```
 
-# Or if already cloned without submodules
-git submodule update --init --recursive
+### Commands
 
-# Install dependencies
-bun install
-
-# Run
-bun run km           # Run CLI
-bun test             # Run all tests
-bun fix              # Lint + format
+```bash
+bun km              # Run CLI
+bun run test:fast   # Run fast tests
+bun run test:all    # Run all tests
+bun fix             # Lint + format
 ```
 
 ## Known Issues
