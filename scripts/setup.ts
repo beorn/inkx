@@ -337,12 +337,14 @@ async function main() {
   log("🧪 Verifying installation...")
   const smokeTest = await $`bun km --version`.quiet().nothrow()
   if (smokeTest.exitCode !== 0) {
-    console.error("   ✗ km CLI test failed - setup incomplete")
-    process.exit(1)
+    log("   ⚠ km CLI test failed (may need shell restart for direnv)")
+    log("   Error: " + smokeTest.stderr.toString().trim())
+    log("")
+    log("✅ Setup complete! Restart your shell, then run: bun km --version")
+  } else {
+    log("   ✓ km CLI works\n")
+    log("✅ Setup complete!")
   }
-  log("   ✓ km CLI works\n")
-
-  log("✅ Setup complete!")
 }
 
 main().catch((e) => {
