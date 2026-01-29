@@ -10,6 +10,8 @@
  * - Git submodule initialization and update
  * - Submodule hook linking (auto-stage pointer updates)
  * - Cleanup of stale .git/config entries
+ * - direnv allow (if needed)
+ * - Smoke test (km --version)
  */
 
 import { $ } from "bun"
@@ -174,6 +176,33 @@ async function main() {
     } else {
       log("   ⚠ bun install failed:\n")
       console.error(result.stderr.toString())
+    }
+  }
+
+  // 6. Check direnv is allowed for this directory
+  if (hasDirenv && existsSync(join(KM_ROOT, ".envrc"))) {
+    log("🔐 Checking direnv...")
+    const direnvStatus = await $`direnv status`.quiet().nothrow()
+    const statusText = direnvStatus.stdout.toString()
+    if (statusText.includes("Found RC allowed false")) {
+      log("   ⚠ direnv not allowed - running 'direnv allow'...")
+      await $`direnv allow ${KM_ROOT}`.quiet().nothrow()
+      log("   ✓ direnv allowed\n")
+    } else if (statusText.includes("Found RC allowed true")) {
+      log("   ✓ direnv already allowed\n")
+    } else {
+      log("   💡 Run 'direnv allow' to activate the dev environment\n")
+    }
+  }
+
+  // 7. Verify CLI works (smoke test)
+  if (!QUIET) {
+    log("🧪 Verifying installation...")
+    const smokeTest = await $`bun km --version`.quiet().nothrow()
+    if (smokeTest.exitCode === 0) {
+      log("   ✓ km CLI works\n")
+    } else {
+      log("   ⚠ km CLI test failed - check for errors above\n")
     }
   }
 
