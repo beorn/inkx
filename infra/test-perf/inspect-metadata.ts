@@ -42,14 +42,14 @@ if (Array.isArray(metadata) && metadata.length > 0) {
     console.log(JSON.stringify(firstFile, null, 2))
 
     // Try to dereference the name
-    if (firstFile && firstFile.name) {
+    if (firstFile?.name) {
       const nameIdx = parseInt(firstFile.name)
       const name = metadata[nameIdx]
       console.log(`\nFile name (dereferenced from ${nameIdx}):`, name)
     }
 
     // Check the result for duration
-    if (firstFile && firstFile.result) {
+    if (firstFile?.result) {
       const resultIdx = parseInt(firstFile.result)
       const result = metadata[resultIdx]
       console.log(`\nResult object (dereferenced from ${resultIdx}):`)
@@ -57,7 +57,7 @@ if (Array.isArray(metadata) && metadata.length > 0) {
     }
 
     // Check tasks
-    if (firstFile && firstFile.tasks) {
+    if (firstFile?.tasks) {
       const tasksIdx = parseInt(firstFile.tasks)
       const tasks = metadata[tasksIdx]
       console.log(`\nTasks array (dereferenced from ${tasksIdx}):`)

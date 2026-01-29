@@ -367,7 +367,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     cloneTask(sourceId, changes) {
       ensureNotClosed()
       const source = nodes.get(sourceId)
-      if (!source || source.type !== "task") return null
+      if (source?.type !== "task") return null
 
       const id = `fake-${nextId++}`
       const now = Date.now()

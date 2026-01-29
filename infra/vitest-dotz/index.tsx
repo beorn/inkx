@@ -24,7 +24,6 @@ import {
   Box,
   Text,
   useTerm,
-  TermContext,
   type Term,
   type Instance,
 } from "inkx"
@@ -527,7 +526,9 @@ export class DotzReporter implements Reporter {
 
     if (this.isTTY && this.app) {
       // TTY: Wait for final render, then cleanup
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100)
+      })
       this.app.unmount()
       this.app = null
       this.term?.[Symbol.dispose]()
@@ -541,20 +542,16 @@ export class DotzReporter implements Reporter {
   }
 
   private async printSummary() {
-    // Create term for styling
-    using term = createTerm()
     const cols = process.stdout.columns || 80
 
     // Dynamically import renderString
     const { renderString } = await import("inkx")
 
-    // Render the static report - use reasonable height to avoid huge buffer
+    // Render the static report - renderString provides Term via context automatically
     const output = await renderString(
-      <TermContext.Provider value={term}>
-        <InteractiveContext.Provider value={false}>
-          <Report store={this.store} options={this.options} />
-        </InteractiveContext.Provider>
-      </TermContext.Provider>,
+      <InteractiveContext.Provider value={false}>
+        <Report store={this.store} options={this.options} />
+      </InteractiveContext.Provider>,
       { width: cols, height: 100 },
     )
 

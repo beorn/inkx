@@ -118,7 +118,7 @@ export function getPathSegments(
   // Update first segment to have "/" separator (since it follows repo root)
   if (segments.length > 0) {
     const first = segments[0]
-    if (first && first.sep === "") {
+    if (first?.sep === "") {
       segments[0] = {
         id: first.id,
         name: first.name,

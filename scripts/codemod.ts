@@ -16,15 +16,11 @@
 
 import { $ } from "bun"
 import { dirname, join } from "path"
-import { existsSync } from "fs"
+import { existsSync, readFileSync } from "fs"
 import type { Transform } from "jscodeshift"
 
 /**
  * Find a file by walking up from startDir to root.
- *
- * Note: ESLint flat config (v9+) does NOT use cosmiconfig - it has its own
- * simple lookup for eslint.config.{js,mjs,cjs}. We use a similar approach
- * here rather than adding a cosmiconfig dependency for this single use case.
  */
 function findUp(filename: string, startDir: string): string | null {
   let dir = startDir
@@ -37,28 +33,72 @@ function findUp(filename: string, startDir: string): string | null {
   }
 }
 
+/**
+ * Extract ignore patterns from oxlint config (.oxlintrc.json)
+ */
+function getOxlintIgnores(configPath: string): string[] {
+  try {
+    const config = JSON.parse(readFileSync(configPath, "utf-8"))
+    return config.ignorePatterns ?? []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Extract ignore patterns from ESLint flat config (eslint.config.js)
+ */
+async function getEslintIgnores(configPath: string): Promise<string[]> {
+  try {
+    const eslintConfig = await import(configPath)
+    const config = eslintConfig.default
+    const ignorePatterns: string[] = []
+
+    for (const rule of config) {
+      if (rule.ignores) {
+        if (Array.isArray(rule.ignores)) ignorePatterns.push(...rule.ignores)
+        else ignorePatterns.push(rule.ignores)
+      }
+    }
+    return ignorePatterns
+  } catch {
+    return []
+  }
+}
+
 // ============================================================================
 // RUNNER (only runs when executed directly, not when imported)
 // ============================================================================
 
 if (import.meta.main) {
-  // Find ESLint config by walking up from cwd
+  // Find config files - oxlint in packages/km-infra, eslint at root
+  const oxlintConfigPath = findUp(
+    "packages/km-infra/oxlint/config.json",
+    process.cwd(),
+  )
   const eslintConfigPath = findUp("eslint.config.js", process.cwd())
-  if (!eslintConfigPath) {
-    console.error("Could not find eslint.config.js")
-    process.exit(1)
-  }
-  const eslintConfig = await import(eslintConfigPath)
 
-  // Extract ignore patterns from ESLint config
-  const config = eslintConfig.default
+  // Collect ignore patterns from available configs
   const ignorePatterns: string[] = []
 
-  for (const rule of config) {
-    if (rule.ignores) {
-      if (Array.isArray(rule.ignores)) ignorePatterns.push(...rule.ignores)
-      else ignorePatterns.push(rule.ignores)
-    }
+  if (oxlintConfigPath) {
+    ignorePatterns.push(...getOxlintIgnores(oxlintConfigPath))
+  }
+
+  if (eslintConfigPath) {
+    ignorePatterns.push(...(await getEslintIgnores(eslintConfigPath)))
+  }
+
+  // Warn if only one config exists (transition state)
+  if (oxlintConfigPath && !eslintConfigPath) {
+    console.warn("Note: Using oxlint config only (eslint.config.js not found)")
+  } else if (!oxlintConfigPath && eslintConfigPath) {
+    console.warn("Note: Using eslint.config.js only (oxlint config not found)")
+  } else if (!oxlintConfigPath && !eslintConfigPath) {
+    console.error(
+      "Could not find packages/km-infra/oxlint/config.json or eslint.config.js",
+    )
+    process.exit(1)
   }
 
   const uniqueIgnorePatterns = [...new Set(ignorePatterns)]

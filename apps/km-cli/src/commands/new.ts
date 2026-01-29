@@ -112,7 +112,7 @@ export const newCommand = new Command("new")
 
       // Try to resolve parent by ID, path, or filename
       const parentNode = repo.resolveNode(resolvedParent.nodeRef)
-      if (parentNode && parentNode.fs_path) {
+      if (parentNode?.fs_path) {
         targetPath = parentNode.fs_path
         targetName = parentNode.fs_path.split("/").pop() || options.parent
       } else if (repo.pathExists(options.parent)) {

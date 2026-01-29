@@ -293,8 +293,9 @@ const updateCmd = bdCommand
     if (updates.priority !== undefined) {
       console.log(term.style().dim(`  Priority: P${updates.priority}`))
     }
-    if (updates.content)
-      {console.log(term.style().dim(`  Title: ${updates.content}`))}
+    if (updates.content) {
+      console.log(term.style().dim(`  Title: ${updates.content}`))
+    }
 
     console.log(
       term

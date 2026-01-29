@@ -277,7 +277,7 @@ describe("Semicolon-separated commands", () => {
     const lastStateEvent = stateEvents[stateEvents.length - 1]
     expect(lastStateEvent).toBeDefined()
 
-    if (lastStateEvent && lastStateEvent.event === "state") {
+    if (lastStateEvent?.event === "state") {
       expect(lastStateEvent.state.cursor).toEqual([0, 1])
     }
   })

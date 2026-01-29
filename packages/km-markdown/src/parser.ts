@@ -324,13 +324,13 @@ export function parseTaskMetadata(text: string): {
     result.priority = 3
   }
   const priorityInlineMatch = text.match(PRIORITY_INLINE_REGEX)
-  if (priorityInlineMatch && priorityInlineMatch[1] && !result.priority) {
+  if (priorityInlineMatch?.[1] && !result.priority) {
     result.priority = parseInt(priorityInlineMatch[1], 10)
   }
 
   // Recurrence: 🔁 every week
   const recurrenceMatch = text.match(RECURRENCE_REGEX)
-  if (recurrenceMatch && recurrenceMatch[1]) {
+  if (recurrenceMatch?.[1]) {
     result.recurrence = recurrenceMatch[1].trim()
   }
 

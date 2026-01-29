@@ -37,7 +37,7 @@ export function toFts5Query(query: string): string {
   for (const token of tokens) {
     // Check if this is a phrase placeholder
     const phraseMatch = token.match(/^__PHRASE_(\d+)__$/)
-    if (phraseMatch && phraseMatch[1] !== undefined) {
+    if (phraseMatch?.[1] !== undefined) {
       const idx = parseInt(phraseMatch[1], 10)
       const phrase = phrases[idx]
       if (phrase !== undefined) {

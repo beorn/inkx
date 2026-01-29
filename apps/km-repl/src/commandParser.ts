@@ -190,7 +190,7 @@ export function parseKeySpec(spec: string): string | null {
 
   // Special key in angle brackets: <Enter>, <Escape>, <Tab>, <Ctrl-z>
   const match = spec.match(/^<(.+)>$/)
-  if (match && match[1]) {
+  if (match?.[1]) {
     return match[1]
   }
 

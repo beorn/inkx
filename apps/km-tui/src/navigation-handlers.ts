@@ -146,7 +146,7 @@ export function handleTreeNavigation(
       }
       // Check if parent is repo root (can't go above it)
       const parentNode = repo.getNode(currentNode.parent_id)
-      if (parentNode && parentNode.parent_id === null) {
+      if (parentNode?.parent_id === null) {
         debug("tree nav: parent is repo root, can't go higher")
         return null
       }

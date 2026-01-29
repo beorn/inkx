@@ -277,13 +277,15 @@ function plainTextSummary(
 
   // Single line: Test Files + Duration
   result += term.style().dim("Test Files") + "  "
-  if (failed > 0)
-    {result +=
-      term.style().bold.red(`${failed} failed`) + term.style().dim(" | ")}
+  if (failed > 0) {
+    result +=
+      term.style().bold.red(`${failed} failed`) + term.style().dim(" | ")
+  }
   if (passed > 0) result += term.style().bold.green(`${passed} passed`)
-  if (skipped > 0)
-    {result +=
-      term.style().dim(" | ") + term.style().yellow(`${skipped} skipped`)}
+  if (skipped > 0) {
+    result +=
+      term.style().dim(" | ") + term.style().yellow(`${skipped} skipped`)
+  }
   result += term.style().gray(` (${total})`)
   result += "  " + term.style().dim("Duration") + " " + formatDuration(elapsed)
   result += term.style().gray(` (tests ${formatDuration(testDuration)})`) + "\n"

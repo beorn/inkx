@@ -567,7 +567,7 @@ export class MemoryStore extends BaseStore {
 
       // The first node is always the file node
       const fileNode = nodes[0]
-      if (!fileNode || fileNode.type !== "file") {
+      if (fileNode?.type !== "file") {
         return
       }
 
@@ -774,7 +774,7 @@ export class MemoryStore extends BaseStore {
 
   cloneTask(sourceId: string, changes: Partial<KNode>): string | null {
     const source = this.getNode(sourceId)
-    if (!source || source.type !== "task") return null
+    if (source?.type !== "task") return null
 
     // Generate new ID (ephemeral for memory mode)
     const newId = `clone-${Date.now()}`

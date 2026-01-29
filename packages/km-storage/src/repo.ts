@@ -677,7 +677,7 @@ export function* createRepo(
     cloneTask(sourceId, changes) {
       ensureOpen()
       const source = dataStore.getNode(sourceId)
-      if (!source || source.type !== "task") return null
+      if (source?.type !== "task") return null
 
       const clonedNode: Partial<KNode> & { type: "task"; content: string } = {
         type: "task",
@@ -1146,7 +1146,7 @@ export function createBareRepo(
     cloneTask(sourceId, changes) {
       ensureOpen()
       const source = data.getNode(sourceId)
-      if (!source || source.type !== "task") return null
+      if (source?.type !== "task") return null
 
       const clonedNode: Partial<KNode> & { type: "task"; content: string } = {
         type: "task",

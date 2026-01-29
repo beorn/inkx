@@ -118,7 +118,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   if (tags) {
     for (const tag of tags) {
       const pMatch = tag.match(/^P([0-4])$/i)
-      if (pMatch && pMatch[1]) {
+      if (pMatch?.[1]) {
         priority = parseInt(pMatch[1], 10)
         break
       }

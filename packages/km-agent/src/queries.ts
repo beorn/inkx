@@ -146,7 +146,7 @@ function extractPriority(data: Record<string, unknown>): number {
   if (tags) {
     for (const tag of tags) {
       const pMatch = tag.match(/^P([0-4])$/i)
-      if (pMatch && pMatch[1]) {
+      if (pMatch?.[1]) {
         return parseInt(pMatch[1], 10)
       }
     }

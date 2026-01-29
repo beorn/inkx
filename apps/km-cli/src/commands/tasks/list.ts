@@ -240,8 +240,9 @@ function showTaskDetails(
     console.log(term.style().dim("Scheduled:"), task.scheduled_date)
   }
   if (task.priority) console.log(term.style().dim("Priority:"), task.priority)
-  if (task.assigned_to)
-    {console.log(term.style().dim("Assigned:"), task.assigned_to)}
+  if (task.assigned_to) {
+    console.log(term.style().dim("Assigned:"), task.assigned_to)
+  }
   if (task.parent_id) {
     console.log(term.style().dim("Parent:"), task.parent_id.slice(0, 8))
   }

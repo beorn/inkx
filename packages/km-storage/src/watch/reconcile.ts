@@ -121,11 +121,7 @@ export function reconcileDirectory(
         path: entry.path,
         ino: entry.ino,
       })
-    } else if (
-      existingByPath &&
-      existingByPath.fs_ino &&
-      existingByPath.fs_ino !== entry.ino
-    ) {
+    } else if (existingByPath?.fs_ino && existingByPath.fs_ino !== entry.ino) {
       // Atomic write: same path but different inode
       // This happens when editors save via temp file + rename (Vim, VSCode, etc.)
       // Treat as an update but also update the inode
