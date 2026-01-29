@@ -23,18 +23,27 @@ UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/
 ## Vendor Packages (Git Submodules)
 
 Packages in `vendor/` (inkx, chalkx, mdtest, flexx, etc.) are **git submodules** that are part of km.
-When you find bugs in these packages, fix them directly - do not work around them. Each vendor
-package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md] for
-committing changes to submodules.
+If they have bugs or shortcomings, fix or implement it directly - do not work around them.
+Each package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md]
 
 ## Code Style
 
-ESM only; type inference; important code first; fail fast; factory functions not classes.
-See [docs/principles.md](docs/principles.md).
+- **ESM only**: Always use `import`/`export`, never `require`
+- **Factory functions**: Use `createX()` with `XOptions` type, not `class X`
+- **Type inference**: Let TypeScript infer; avoid explicit annotations unless necessary
+- **Hoisted helpers**: Put non-trivial functions after `return` or at end of file
+- **Package imports**: Use package names (`inkx`, `chalkx`), never relative `../vendor/...`
+- **Async generators**: Use for pipelines, not `Promise.all` chains
+- **Disposables**: Use `using`/`await using` for cleanup (`Symbol.dispose`)
+- **Fail fast**: Throw on invalid state, no defensive fallbacks
+- **Bun only**: Use `bun add`, `bunx`, `bun run` — never npm/pnpm
+- **Catalog deps**: Use `catalog:` in package.json for shared 3rd-party dependencies
+
+See [docs/principles.md](docs/principles.md) for full architecture principles.
 
 ## Issue Tracking
 
-Use `/pm` for beads (issues/tasks/features). Always claim before starting: `bd work <id>`.
+Use `/pm` for beads (bugs/tasks/features) and claim before starting: `bd update <id> --claim`.
 See [.claude/skills/pm/] for commands and common mistakes.
 
 ## Commits
