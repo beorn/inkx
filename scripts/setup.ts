@@ -179,20 +179,11 @@ async function main() {
     }
   }
 
-  // 6. Check direnv is allowed for this directory
+  // 6. Ensure direnv is allowed for this directory
   if (hasDirenv) {
-    log("🔐 Checking direnv...")
-    const direnvStatus = await $`direnv status`.quiet().nothrow()
-    const statusText = direnvStatus.stdout.toString()
-    if (statusText.includes("Found RC allowed false")) {
-      log("   ⚠ direnv not allowed - running 'direnv allow'...")
-      await $`direnv allow ${KM_ROOT}`.quiet().nothrow()
-      log("   ✓ direnv allowed\n")
-    } else if (statusText.includes("Found RC allowed true")) {
-      log("   ✓ direnv already allowed\n")
-    } else {
-      log("   💡 Run 'direnv allow' to activate the dev environment\n")
-    }
+    log("🔐 Allowing direnv...")
+    await $`direnv allow .`.cwd(KM_ROOT).quiet().nothrow()
+    log("   ✓ direnv allowed\n")
   }
 
   // 7. Verify CLI works (smoke test)
