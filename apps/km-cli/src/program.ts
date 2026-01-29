@@ -124,7 +124,8 @@ Getting Started:
   km list                    List all nodes
 
 Quick Actions:
-  km view ./path             View specific directory
+  km view @next              View your Next Actions board
+  km add @next <id>          Add task to Next Actions board
   km tasks                   List tasks with context
   km status <id> done        Mark task complete
   km bd ready                Show issues ready to work on
