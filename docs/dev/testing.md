@@ -609,12 +609,12 @@ km screenshot /path/to/file.md --format ansi -o /tmp/out.txt
 
 **Not for**: Automated tests (use inkx test renderer instead).
 
-### Method 3: ttyd + Playwright (Deprecated)
+### Method 3: ttyd + Playwright (Manual Testing)
 
-Pixel-perfect terminal rendering via browser. **Not recommended** - slow, flaky, and being migrated to inkx.
+Pixel-perfect terminal rendering via browser. Use only when you need to see the final rendered output - not for automated tests (`bun test:all`).
 
 ```bash
-# Legacy approach - prefer inkx createTestRenderer instead
+# Ad-hoc visual inspection
 TTYD_PORT=$((7700 + RANDOM % 300))
 FORCE_TTY=1 ttyd -W -p $TTYD_PORT bun km view /tmp/repo &
 sleep 3

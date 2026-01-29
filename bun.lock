@@ -13,7 +13,6 @@
         "ulid": "2.4.0",
       },
       "devDependencies": {
-        "@beorn/chalkx": "workspace:*",
         "@beorn/flexx": "workspace:*",
         "@beorn/inkx-ui": "workspace:*",
         "@beorn/logger": "workspace:*",
@@ -42,6 +41,7 @@
         "@types/node": "^25.1.0",
         "@types/react": "^19.2.10",
         "@types/sinonjs__fake-timers": "^15.0.1",
+        "chalkx": "workspace:*",
         "immer": "^11.1.3",
         "inkx": "workspace:*",
         "knip": "^5.82.1",
@@ -98,7 +98,6 @@
     "apps/km-tui": {
       "name": "@km/tui",
       "dependencies": {
-        "@beorn/chalkx": "workspace:*",
         "@beorn/tui-measure": "workspace:*",
         "@km/board": "workspace:*",
         "@km/commands": "workspace:*",
@@ -107,6 +106,7 @@
         "@km/storage": "workspace:*",
         "@km/tree": "workspace:*",
         "chalk": "^5.4.1",
+        "chalkx": "workspace:*",
         "inkx": "workspace:*",
         "react": "catalog:",
       },
@@ -214,7 +214,7 @@
       },
     },
     "vendor/beorn-chalkx": {
-      "name": "@beorn/chalkx",
+      "name": "chalkx",
       "version": "0.1.0",
       "dependencies": {
         "chalk": "^5.4.1",
@@ -237,7 +237,7 @@
       "name": "inkx",
       "version": "0.0.1",
       "dependencies": {
-        "@beorn/chalkx": "workspace:*",
+        "chalkx": "workspace:*",
         "graphemer": "^1.4.0",
         "react-reconciler": "^0.33.0",
         "slice-ansi": "^7.1.2",
@@ -245,7 +245,7 @@
         "wrap-ansi": "^9.0.2",
       },
       "devDependencies": {
-        "@beorn/flexx": "workspace:*",
+        "@beorn/flexx": "github:beorn/flexx",
         "@biomejs/biome": "^1.9.0",
         "@types/bun": "^1.1.0",
         "@types/react": "^19.0.0",
@@ -258,7 +258,7 @@
         "yoga-wasm-web": "^0.3.3",
       },
       "peerDependencies": {
-        "@beorn/flexx": "workspace:*",
+        "@beorn/flexx": "github:beorn/flexx",
         "react": "^18.0.0 || ^19.0.0",
         "yoga-wasm-web": "^0.3.3",
       },
@@ -403,8 +403,6 @@
     "@babel/parser": ["@babel/parser@7.28.6", "", { "dependencies": { "@babel/types": "^7.28.6" }, "bin": "./bin/babel-parser.js" }, "sha512-TeR9zWR18BvbfPmGbLampPMW+uW1NZnJlRuuHso8i87QZNq2JRF9i6RgxRqtEq+wQGsS19NNTWr2duhnE49mfQ=="],
 
     "@babel/types": ["@babel/types@7.28.6", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.28.5" } }, "sha512-0ZrskXVEHSWIqZM/sQZ4EV3jZJXRkio/WCxaqKZP1g//CEWEPSfeZFcms4XeKBCHU0ZKnIkdJeU/kF+eRp5lBg=="],
-
-    "@beorn/chalkx": ["@beorn/chalkx@workspace:vendor/beorn-chalkx"],
 
     "@beorn/claude-tools": ["@beorn/claude-tools@workspace:vendor/beorn-claude-tools"],
 
@@ -981,6 +979,8 @@
     "chai": ["chai@5.3.3", "", { "dependencies": { "assertion-error": "^2.0.1", "check-error": "^2.1.1", "deep-eql": "^5.0.1", "loupe": "^3.1.0", "pathval": "^2.0.0" } }, "sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw=="],
 
     "chalk": ["chalk@5.6.2", "", {}, "sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA=="],
+
+    "chalkx": ["chalkx@workspace:vendor/beorn-chalkx"],
 
     "character-entities": ["character-entities@2.0.2", "", {}, "sha512-shx7oQ0Awen/BRIdkjkvz54PnEEI/EjwXDSIZp86/KKdbafHh1Df/RYGBhn4hbe2+uKC9FnT5UCEdyPz3ai9hQ=="],
 
@@ -1917,6 +1917,8 @@
     "gray-matter/js-yaml": ["js-yaml@3.14.2", "", { "dependencies": { "argparse": "^1.0.7", "esprima": "^4.0.0" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-PMSmkqxr106Xa156c2M265Z+FTrPl+oxd/rgOQy2tijQeK5TxQ43psO1ZCwhVOSdnn+RzkzlRz/eY4BgJBYVpg=="],
 
     "hosted-git-info/lru-cache": ["lru-cache@10.4.3", "", {}, "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ=="],
+
+    "inkx/@beorn/flexx": ["@beorn/flexx@github:beorn/flexx#d22f8ae", {}, "beorn-flexx-d22f8ae"],
 
     "inkx/string-width": ["string-width@8.1.0", "", { "dependencies": { "get-east-asian-width": "^1.3.0", "strip-ansi": "^7.1.0" } }, "sha512-Kxl3KJGb/gxkaUMOjRsQ8IrXiGW75O4E3RPjFIINOVH8AMl2SQ/yWdTzWwF3FevIX9LcMAjJW+GRwAlAbTSXdg=="],
 

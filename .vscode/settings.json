@@ -1,4 +1,5 @@
 {
+  "prettier.enable": false,
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "oxc.oxc-vscode",
   "oxc.configPath": "packages/km-infra/oxlint/config.json",
