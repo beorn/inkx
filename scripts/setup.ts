@@ -106,13 +106,27 @@ async function main() {
 
   // 1. Configure git for submodule auto-update
   log("⚙️  Configuring git...")
-  await $`git config submodule.recurse true`.quiet()
+  const gitConfig = await $`git config submodule.recurse true`.quiet().nothrow()
+  if (gitConfig.exitCode !== 0) {
+    console.error("   ✗ Failed to configure git - are you in a git repository?")
+    process.exit(1)
+  }
   log("   ✓ submodule.recurse = true (auto-update on pull/checkout)\n")
 
   // 2. Initialize and update submodules
   log("📦 Initializing submodules...")
-  await $`git submodule init`.quiet()
-  await $`git submodule update`.quiet()
+  const submoduleInit = await $`git submodule init`.quiet().nothrow()
+  if (submoduleInit.exitCode !== 0) {
+    console.error("   ✗ Failed to initialize submodules")
+    console.error(submoduleInit.stderr.toString())
+    process.exit(1)
+  }
+  const submoduleUpdate = await $`git submodule update`.quiet().nothrow()
+  if (submoduleUpdate.exitCode !== 0) {
+    console.error("   ✗ Failed to update submodules")
+    console.error(submoduleUpdate.stderr.toString())
+    process.exit(1)
+  }
   log("   ✓ Submodules initialized\n")
 
   // 3. Clean up stale .git/config entries (submodules removed from .gitmodules)
@@ -195,7 +209,8 @@ async function main() {
       log(`   ✓ Linked ${submoduleName}`)
       changedHooks++
     } catch (e) {
-      log(`   ✗ Failed to link ${submoduleName}: ${e}`)
+      console.error(`   ✗ Failed to link ${submoduleName}: ${e}`)
+      process.exit(1)
     }
   }
   if (changedHooks === 0) {
@@ -203,17 +218,15 @@ async function main() {
   }
   log("")
 
-  // 5. Install dependencies (skip in quiet mode - assume already done)
-  if (!QUIET) {
-    log("📥 Installing dependencies...")
-    const result = await $`bun install`.nothrow()
-    if (result.exitCode === 0) {
-      log("   ✓ Dependencies installed\n")
-    } else {
-      log("   ⚠ bun install failed:\n")
-      console.error(result.stderr.toString())
-    }
+  // 5. Install dependencies
+  log("📥 Installing dependencies...")
+  const bunInstall = await $`bun install`.nothrow()
+  if (bunInstall.exitCode !== 0) {
+    console.error("   ✗ bun install failed:")
+    console.error(bunInstall.stderr.toString())
+    process.exit(1)
   }
+  log("   ✓ Dependencies installed\n")
 
   // 6. Ensure direnv is allowed for this directory
   if (hasDirenv) {
@@ -223,15 +236,13 @@ async function main() {
   }
 
   // 7. Verify CLI works (smoke test)
-  if (!QUIET) {
-    log("🧪 Verifying installation...")
-    const smokeTest = await $`bun km --version`.quiet().nothrow()
-    if (smokeTest.exitCode === 0) {
-      log("   ✓ km CLI works\n")
-    } else {
-      log("   ⚠ km CLI test failed - check for errors above\n")
-    }
+  log("🧪 Verifying installation...")
+  const smokeTest = await $`bun km --version`.quiet().nothrow()
+  if (smokeTest.exitCode !== 0) {
+    console.error("   ✗ km CLI test failed - setup incomplete")
+    process.exit(1)
   }
+  log("   ✓ km CLI works\n")
 
   log("✅ Setup complete!")
 }
