@@ -37,17 +37,18 @@ When modifying TUI styling (colors, selection states, visual hierarchy), follow 
 
 ## Background Colors
 
-Use inkx `backgroundColor` OR chalk.bg\*, never both on same element (throws by default):
+Use inkx `backgroundColor` OR term.style().bg\*, never both on same element (throws by default):
 
 ```tsx
 // ✅ CORRECT - inkx style
 <Text backgroundColor="cyan">{text}</Text>
 
-// ✅ CORRECT - chalk style
-<Text>{chalk.bgCyan.black(text)}</Text>
+// ✅ CORRECT - term.style() for ANSI strings
+const term = useTerm() // or useTermStatic() outside React
+<Text>{term.style().bgCyan.black(text)}</Text>
 
 // ❌ WRONG - mixing throws
-<Text backgroundColor="cyan">{chalk.bgCyan(text)}</Text>
+<Text backgroundColor="cyan">{term.style().bgCyan(text)}</Text>
 ```
 
 ## Status Icons

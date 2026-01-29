@@ -37,8 +37,8 @@ export {
 
 // Extended ANSI features (chalkx)
 export {
-  chalkX,
-  chalk,
+  createTerm,
+  term,
   curlyUnderline,
   dottedUnderline,
   dashedUnderline,
@@ -46,9 +46,10 @@ export {
   underlineColor,
   styledUnderline,
   hyperlink,
-  supportsExtendedUnderline,
-  setExtendedUnderlineSupport,
+  detectExtendedUnderline,
   type UnderlineStyle,
+  type Term,
+  type StyleChain,
 } from "@beorn/chalkx"
 
 // Board color system
