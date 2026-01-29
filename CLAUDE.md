@@ -20,11 +20,12 @@ bun km view <path>   # Run TUI
 Layered: App → Board → Tree → Storage → Parser → Filesystem. Each layer calls only layer below.
 UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/README.md).
 
-## Vendor Packages
+## Vendor Packages (Git Submodules)
 
-Packages in `vendor/` (inkx, chalkx, mdtest, flexx, etc.) are **part of km**. When you find bugs
-in these packages, fix them directly - do not work around them. Each vendor package has its own
-CLAUDE.md with API documentation.
+Packages in `vendor/` (inkx, chalkx, mdtest, flexx, etc.) are **git submodules** that are part of km.
+When you find bugs in these packages, fix them directly - do not work around them. Each vendor
+package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md] for
+committing changes to submodules.
 
 ## Code Style
 
