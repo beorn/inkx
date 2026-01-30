@@ -80,7 +80,8 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Deprecated code    | Functions marked @deprecated, backwards compat shims                        |
 | Vendor path        | Import via path (e.g., `../vendor/`) instead of package name                |
 | Promise.all chain  | `Promise.all(x.map(...))` instead of async generator pipeline               |
-| Missing dispose    | Manual `.close()`/`.dispose()`/`.release()` instead of `using` + disposable |
+| Missing dispose    | Resource without `Symbol.dispose`, no `using` for cleanup                   |
+| Not using dispose  | Manual `.close()`/`.dispose()`/`.release()` instead of `using` + disposable |
 | CommonJS import    | `require()` instead of ESM `import`/`export`                                |
 | Prop drilling      | Same props passed through several layers and/or with unneccessary aliasing  |
 | Import side effect | Module-level initialization, `let x = expensiveInit()` on load              |
@@ -93,6 +94,18 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 **Exception**: For `focus="layers"`, run code smell checks (classes, singletons, global getters) but skip knip.
 
 Run these checks **in parallel** (single message with multiple Bash calls):
+
+### Tooling Coverage (skip in manual review)
+
+These patterns are already caught by automated tooling:
+
+| Pattern            | Tool   | Rule               |
+| ------------------ | ------ | ------------------ |
+| CommonJS imports   | oxlint | `no-require-imports` |
+| Deprecated usage   | oxlint | `no-deprecated`    |
+| Unused files/exports | knip | `bun lint:unused`  |
+
+The script below catches patterns NOT covered by existing linters.
 
 ### Knip Check (focus="all" or empty only)
 
@@ -111,7 +124,7 @@ Ignore "Configuration hints" section (knip suggestions, not findings).
 
 ### Pattern Detection Script (focus="all", empty, or "layers")
 
-Run pattern detection script that checks for 14 different code issues:
+Run pattern detection script that checks for 21 different code issues:
 
 ```bash
 bash scripts/review-code-patterns.sh 2>&1 | tee /tmp/review-code-patterns.txt
@@ -135,16 +148,25 @@ The script detects:
 - Pattern 9: Sync file operations (readFileSync in watch/sync)
 - Pattern 10: Multiple regex replacements (chained new RegExp calls)
 
-**Composition issues (4 patterns)**:
+**Composition issues (6 patterns)**:
 
 - Pattern 11: Factory without options (can't inject dependencies)
 - Pattern 12: Missing Symbol.dispose (resource leaks)
 - Pattern 13: Missing closed checks (no fail-fast)
 - Pattern 14: Calling singletons (getDb() instead of injection)
+- Pattern 15: Promise.all chains (`Promise.all(x.map(...))` instead of async generators)
+- Pattern 16: Not using dispose (manual `.close()`/`.release()` instead of `using`)
 
-**Import issues (1 pattern)**:
+**Import issues (2 patterns)**:
 
-- Pattern 15: Vendor path imports (importing via `../vendor/` or absolute paths instead of package name)
+- Pattern 17: Vendor path imports (importing via `../vendor/` or absolute paths instead of package name)
+- Pattern 18: Package path imports (relative paths to `packages/` instead of `@km/` alias)
+
+**Code layout issues (3 patterns)**:
+
+- Pattern 19: Prop drilling (same props through 3+ layers)
+- Pattern 20: Import side effects (module-level `let x = init()`)
+- Pattern 21: Inverted pyramid (helpers before main logic)
 
 Output is structured with headers like `=== PATTERN 1: Classes ===` for easy parsing.
 
@@ -267,6 +289,8 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | Missing Symbol.dispose  | High             | Critical if manages DB/files        |
 | Missing closed checks   | Medium           | Fail-fast principle violation       |
 | Calling singletons      | High             | Hidden dependencies, blocks testing |
+| Promise.all chains      | Medium           | High if in sync/reconcile pipelines |
+| Not using dispose       | Medium           | High if resource manages DB/files   |
 
 **Import findings:**
 
@@ -274,6 +298,15 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | -------------------- | ---------------- | --------------------------------------------------------- |
 | Vendor path imports  | High             | Path to vendor/ in import should use package name instead |
 | Package path imports | Medium           | Path to packages/ should use @km/name alias               |
+| CommonJS imports     | High             | Should always use ESM `import`                            |
+
+**Code layout findings:**
+
+| Finding Type       | Default Severity | Context Adjustments                          |
+| ------------------ | ---------------- | -------------------------------------------- |
+| Prop drilling      | Medium           | High if 5+ props through 4+ layers           |
+| Import side effect | High             | Critical if expensive init (DB, network)     |
+| Inverted pyramid   | Low              | Medium if main logic buried >100 lines down  |
 
 **Test-specific severity guide:**
 

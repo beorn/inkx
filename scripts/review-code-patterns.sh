@@ -1,11 +1,21 @@
 #!/usr/bin/env bash
 # scripts/review-code-patterns.sh
-# Runs all code review detection patterns with structured output
+# Pattern detection for code review
+# Catches patterns NOT covered by oxlint/knip
 #
 # Usage: bash scripts/review-code-patterns.sh
 # Output: Structured sections with headers for each pattern
+#
+# Tooling coverage (handled elsewhere):
+#   - CommonJS imports: oxlint no-require-imports
+#   - Deprecated usage: oxlint no-deprecated
+#   - Unused files/exports: knip (bun lint:unused)
 
 set -euo pipefail
+
+# =============================================================================
+# CODE SMELLS (Patterns 1-6)
+# =============================================================================
 
 echo "=== PATTERN 1: Classes ==="
 grep -rn "^export class\|^class [A-Z]" packages apps --include="*.ts" \
@@ -35,6 +45,10 @@ grep -rn "?? \(true\|false\|0\|\[\]\|\{\}\)" packages apps --include="*.ts" \
   --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/" | head -50 || true
 echo ""
 
+# =============================================================================
+# PERFORMANCE (Patterns 7-10)
+# =============================================================================
+
 echo "=== PATTERN 7: Regex in loops ==="
 grep -rn "new RegExp\|/.*/.test\|/.*/.exec" packages apps --include="*.ts" \
   -B3 2>/dev/null | grep -E "(for|while|forEach|map|filter)" | head -50 || true
@@ -54,6 +68,10 @@ echo "=== PATTERN 10: Multiple regex replacements ==="
 grep -rn "\.replace.*new RegExp.*\.replace.*new RegExp" packages apps \
   --include="*.ts" 2>/dev/null | grep -v "node_modules\|vendor/" || true
 echo ""
+
+# =============================================================================
+# COMPOSITION (Patterns 11-16)
+# =============================================================================
 
 echo "=== PATTERN 11: Factory without options ==="
 grep -rn "export function create[A-Z][a-zA-Z]*(" packages apps --include="*.ts" \
@@ -83,35 +101,64 @@ grep -rn "getDb()\|emit()\|getEventHub()" packages apps --include="*.ts" \
   --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/\|@deprecated" || true
 echo ""
 
-echo "=== PATTERN 15: parseMarkdownWithLinks usage ==="
-# Multiple files using the same parser suggests potential shared wrapper needed
-grep -rln "parseMarkdownWithLinks" packages apps --include="*.ts" \
-  --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/\|index.ts" || true
+echo "=== PATTERN 15: Promise.all chains ==="
+# Promise.all(x.map(...)) should use async generators instead
+grep -rn "Promise\.all.*\.map\(" packages apps --include="*.ts" \
+  --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/" || true
 echo ""
 
-echo "=== PATTERN 16: Inline map building from DB ==="
-# Building lookup maps inline suggests extractable pattern
-grep -rn "new Map<.*string" packages apps --include="*.ts" \
-  --exclude="*.test.ts" -A3 2>/dev/null | grep -E "\.query\(|\.all\(\)" | head -20 || true
+echo "=== PATTERN 16: Not using dispose ==="
+# Manual cleanup calls that could use `using` instead
+grep -rn "\.close()\|\.dispose()\|\.release()\|\.destroy()\|\.end()\|\.disconnect()\|\.stop()\|\.abort()\|\.unsubscribe()" packages apps --include="*.ts" \
+  --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/\|Symbol\.\(async\)\?Dispose" || true
 echo ""
 
-echo "=== PATTERN 17: Duplicate DB queries ==="
-# Same SQL pattern in multiple files suggests shared query needed
-for query in "SELECT.*FROM nodes WHERE type = 'file'" "findNodeByName\|findFileByName" "findChildByContent"; do
-  count=$(grep -rln "$query" packages apps --include="*.ts" --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/" | wc -l)
-  if [ "$count" -gt 1 ]; then
-    echo "Query pattern '$query' appears in $count files:"
-    grep -rln "$query" packages apps --include="*.ts" --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/" | head -5
+# =============================================================================
+# IMPORTS (Patterns 17-18)
+# Note: CommonJS covered by oxlint no-require-imports
+# =============================================================================
+
+echo "=== PATTERN 17: Vendor path imports ==="
+# Import via relative/absolute path instead of package name
+grep -rn 'from ["'"'"'][^"'"'"']*\/vendor\/' packages apps infra --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" || true
+grep -rn 'from ["'"'"']\/Users\/.*\/vendor\/' packages apps infra --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" || true
+echo ""
+
+echo "=== PATTERN 18: Package path imports ==="
+# Relative paths to packages/ should use @km/ alias
+grep -rn 'from ["'"'"']\.\..*\/packages\/' packages apps --include="*.ts" 2>/dev/null | grep -v "node_modules" || true
+echo ""
+
+# =============================================================================
+# CODE LAYOUT (Patterns 19-21)
+# =============================================================================
+
+echo "=== PATTERN 19: Prop drilling ==="
+# Components with 5+ props that also spread props (potential drilling)
+grep -rn "function.*{[^}]*,[^}]*,[^}]*,[^}]*," packages apps --include="*.tsx" \
+  --exclude="*.test.tsx" -A5 2>/dev/null | grep "\.\.\..*Props\|\.\.\.props" | head -20 || true
+echo ""
+
+echo "=== PATTERN 20: Import side effects ==="
+# Module-level initialization (not const/type declarations)
+grep -rn "^let.*=.*await\|^let.*=.*new\|^let.*=.*create" packages apps --include="*.ts" \
+  --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/\|debug(" || true
+echo ""
+
+echo "=== PATTERN 21: Inverted pyramid ==="
+# Files where first export appears after line 100 (helpers before main)
+count=0
+for file in $(find packages apps -name "*.ts" ! -name "*.test.ts" ! -path "*/node_modules/*" ! -path "*/vendor/*" 2>/dev/null); do
+  first_export=$(grep -n "^export " "$file" 2>/dev/null | head -1 | cut -d: -f1)
+  if [ -n "$first_export" ] && [ "$first_export" -gt 100 ]; then
+    echo "$file:$first_export (first export at line $first_export)"
+    count=$((count + 1))
+    if [ $count -ge 20 ]; then
+      echo "... (showing first 20)"
+      break
+    fi
   fi
 done || true
-echo ""
-
-echo "=== PATTERN 18: Vendor path imports ==="
-# Import via relative/absolute path instead of package name - monorepo packages should use package names
-# Be particularly suspicious of any path containing /vendor/
-grep -rn 'from ["'"'"'][^"'"'"']*\/vendor\/' packages apps infra --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" || true
-grep -rn 'from ["'"'"']\.\..*\/packages\/' packages apps infra --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" || true
-grep -rn 'from ["'"'"']\/Users\/.*\/vendor\/' packages apps infra --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "node_modules" || true
 echo ""
 
 echo "Pattern detection complete."
