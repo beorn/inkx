@@ -31,23 +31,27 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 ## Code Style Rules (from CLAUDE.md)
 
 **Patterns (must have):**
+
 - Factory functions (`createX()` with `XOptions`), not classes
 - Explicit deps via `options.inject`, no globals/singletons/`getX()`
 - Async generators for pipelines, not `Promise.all` chains
 - `using`/`await using` for cleanup (`Symbol.dispose`)
 
 **Code Layout:**
+
 - ESM imports only (`import`/`export`, never `require`)
 - Package names (`inkx`), never relative `../vendor/...`
 - Helpers after `return` or end of file
 
 **Avoid:**
+
 - Prop drilling (use spread, align names across layers)
 - Import side effects (module init must not perform work)
 - Config files (sensible defaults → arguments → config as last resort)
 - Classes (exception: infrastructure extending EventEmitter)
 
 **Architecture:**
+
 - Layers: App → Board → Tree → Storage → Parser → Filesystem
 - Each layer calls only layer below
 - UI never touches filesystem directly
@@ -76,7 +80,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Deprecated code    | Functions marked @deprecated, backwards compat shims                        |
 | Vendor path        | Import via path (e.g., `../vendor/`) instead of package name                |
 | Promise.all chain  | `Promise.all(x.map(...))` instead of async generator pipeline               |
-| Missing dispose    | Resource without `Symbol.dispose`; acquiring resource without `using`       |
+| Missing dispose    | Manual `.close()`/`.dispose()`/`.release()` instead of `using` + disposable |
 | CommonJS import    | `require()` instead of ESM `import`/`export`                                |
 | Prop drilling      | Same props passed through several layers and/or with unneccessary aliasing  |
 | Import side effect | Module-level initialization, `let x = expensiveInit()` on load              |
@@ -266,10 +270,10 @@ For each finding (from Iteration 0.5 + Iteration 1):
 
 **Import findings:**
 
-| Finding Type        | Default Severity | Context Adjustments                                       |
-| ------------------- | ---------------- | --------------------------------------------------------- |
-| Vendor path imports | High             | Path to vendor/ in import should use package name instead |
-| Package path imports| Medium           | Path to packages/ should use @km/name alias               |
+| Finding Type         | Default Severity | Context Adjustments                                       |
+| -------------------- | ---------------- | --------------------------------------------------------- |
+| Vendor path imports  | High             | Path to vendor/ in import should use package name instead |
+| Package path imports | Medium           | Path to packages/ should use @km/name alias               |
 
 **Test-specific severity guide:**
 
