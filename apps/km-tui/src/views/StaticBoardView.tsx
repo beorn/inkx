@@ -91,13 +91,11 @@ function CardRow({
     : styledContent
   const maxChildren = 3
 
-  // Use string concatenation to avoid inkx rendering bug with ⚠ emoji
-  // where text after space gets truncated when using JSX interpolation
-  const line = `${icon.char} ${content}`
-
   return (
     <Box flexDirection="column">
-      <Text>{line}</Text>
+      <Text>
+        {icon.char} {content}
+      </Text>
       {card.children.slice(0, maxChildren).map((child) => {
         const childIcon = getStatusIcon(child.task_status)
         const childLine = (child.content || "").split("\n")[0] ?? ""

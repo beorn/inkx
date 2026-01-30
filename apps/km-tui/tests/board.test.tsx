@@ -166,8 +166,7 @@ describe("State", () => {
 
 describe("Render", () => {
   test("StaticBoardView renders columns", async () => {
-    // Build nodes with explicit task_status to avoid inkx bug with ⚠ emoji
-    // (no status icon is wide char that causes text truncation in renderStatic)
+    // Build nodes with explicit task_status for deterministic rendering
     const nodes = [
       { id: "board", type: "folder" as const, data: { name: "board" }, parent_id: null, parent_idx: 0, link_to: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
       { id: "Todo", type: "folder" as const, data: { name: "Todo" }, parent_id: "board", parent_idx: 0, link_to: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
