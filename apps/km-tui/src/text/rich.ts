@@ -11,7 +11,7 @@
  * - `stripAnsi(styled)` - remove all ANSI escape codes
  */
 
-import { createTerm, type StyleChain } from "inkx"
+import { createTerm, stripAnsi, ANSI_REGEX, type StyleChain } from "inkx"
 import { dashedUnderline } from "chalkx"
 import stringWidth from "string-width"
 
@@ -29,14 +29,8 @@ function getStyle(): StyleChain {
 // ANSI String Utilities
 // ============================================================================
 
-/**
- * ANSI escape code pattern for stripping.
- * Matches:
- * - SGR escape sequences like \x1b[31m (red), \x1b[0m (reset)
- * - Extended SGR codes like \x1b[4:3m (curly underline) or \x1b[58:2::r:g:bm (underline color)
- * - OSC 8 hyperlink sequences: \x1b]8;;<url>\x1b\\ (opening) and \x1b]8;;\x1b\\ (closing)
- */
-export const ANSI_REGEX = /\x1b\[[0-9;:]*m|\x1b\]8;;[^\x1b]*\x1b\\/g
+// Re-export ANSI utilities from inkx (canonical implementation)
+export { stripAnsi, ANSI_REGEX }
 
 /**
  * Get the display length of a string, excluding ANSI escape codes.
@@ -49,13 +43,6 @@ export const ANSI_REGEX = /\x1b\[[0-9;:]*m|\x1b\]8;;[^\x1b]*\x1b\\/g
  */
 export function displayLength(text: string): number {
   return stringWidth(text)
-}
-
-/**
- * Strip all ANSI escape codes from a string.
- */
-export function stripAnsi(text: string): string {
-  return text.replace(ANSI_REGEX, "")
 }
 
 // ============================================================================
