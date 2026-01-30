@@ -77,6 +77,8 @@ See [.claude/skills/pm/] for commands and common mistakes.
 
 Use `/git commit`. Follow [Conventional Commits](https://conventionalcommits.org): `type(scope): message`
 
+**Never parallelize git commands** - run them sequentially with `&&`. Parallel git operations cause `.git/index.lock` conflicts.
+
 ## Session Completion
 
 Before ending: `bun fix && bun run test:all && git push`. Propose next steps with AskUserQuestion.
