@@ -25,5 +25,6 @@ Reviews for architecture violations, type safety, and code simplification.
 | ---------------------------------- | ----------------------------------------------- |
 | [review-code.md](review-code.md)   | Layer violations, over-engineering (infrequent) |
 | [review-types.md](review-types.md) | Type safety, any removal (infrequent)           |
+| [review-llm.md](review-llm.md)     | External LLM review with km principles          |
 | [clean.md](clean.md)               | Simplification patterns                         |
 | [complexity.md](complexity.md)     | Cyclomatic/cognitive complexity analysis        |
