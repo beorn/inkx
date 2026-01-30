@@ -3,6 +3,11 @@ import { mdtest } from "@beorn/mdtest/vitest-plugin"
 
 export default createVitestConfig({
   plugins: [mdtest()],
+  // Include vendor benchmark files (default excludes vendor/*)
+  benchmarkInclude: [
+    "**/*.bench.{ts,tsx}",
+    "vendor/beorn-flexx/bench/**/*.bench.ts",
+  ],
   test: {
     // Default reporter: standard dot reporter
     // Custom reporter available via test:fast2 (see infra/vitest-dotz/)
