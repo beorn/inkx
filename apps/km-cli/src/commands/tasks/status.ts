@@ -67,9 +67,7 @@ export function createStatusCommand() {
       const validStatuses = ["todo", "wip", "blocked", "done", "dropped"]
       if (!validStatuses.includes(newStatus)) {
         console.error(term.red(`Invalid status: ${newStatus}`))
-        console.error(
-          term.dim(`Valid statuses: ${validStatuses.join(", ")}`),
-        )
+        console.error(term.dim(`Valid statuses: ${validStatuses.join(", ")}`))
         process.exit(1)
       }
 

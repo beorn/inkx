@@ -57,9 +57,7 @@ export const rebuildCommand = new Command("rebuild")
       }
 
       if (options.fresh) {
-        console.log(
-          term.yellow("Fresh start - deleting all .km data..."),
-        )
+        console.log(term.yellow("Fresh start - deleting all .km data..."))
         freshStart(kmRoot)
         console.log(
           term.green("✓"),
@@ -135,18 +133,12 @@ function showStatus(): void {
     const stat = statSync(dbPath)
     console.log(term.dim("Database:"), dbPath)
     console.log(term.dim("  Size:"), formatSize(stat.size))
-    console.log(
-      term.dim("  Modified:"),
-      new Date(stat.mtimeMs).toISOString(),
-    )
+    console.log(term.dim("  Modified:"), new Date(stat.mtimeMs).toISOString())
 
     const db = new Database(dbPath, { readonly: true })
     const lastEvent = getLastEventId(db)
     db.close()
-    console.log(
-      term.dim("  Last event:"),
-      lastEvent?.slice(0, 13) ?? "(none)",
-    )
+    console.log(term.dim("  Last event:"), lastEvent?.slice(0, 13) ?? "(none)")
   } else {
     console.log(term.yellow("Database:"), "Not found")
   }
@@ -158,10 +150,7 @@ function showStatus(): void {
     const stat = statSync(eventsPath)
     console.log(term.dim("Events:"), eventsPath)
     console.log(term.dim("  Size:"), formatSize(stat.size))
-    console.log(
-      term.dim("  Modified:"),
-      new Date(stat.mtimeMs).toISOString(),
-    )
+    console.log(term.dim("  Modified:"), new Date(stat.mtimeMs).toISOString())
   } else {
     console.log(term.yellow("Events:"), "Not found")
   }

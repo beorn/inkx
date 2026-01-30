@@ -387,12 +387,8 @@ agentCommand
     if (opts.target) {
       const resolved = repo.resolveNode(opts.target, { taskOnly: true })
       if (!resolved) {
-        console.error(
-          term.red(`Could not resolve target: ${opts.target}`),
-        )
-        console.error(
-          term.dim("Target can be a file path, node ID, or @ref"),
-        )
+        console.error(term.red(`Could not resolve target: ${opts.target}`))
+        console.error(term.dim("Target can be a file path, node ID, or @ref"))
         process.exitCode = 1
         return
       }
@@ -423,22 +419,16 @@ agentCommand
     }
 
     console.log(term.yellow("Agent runtime not yet implemented."))
-    console.log(
-      term.dim("This will execute the agent with the Claude API."),
-    )
+    console.log(term.dim("This will execute the agent with the Claude API."))
   })
 
 // Helper functions
 
 function printAgent(agent: Agent): void {
   const status = formatStatus(agent.status)
-  const task = agent.currentTaskId
-    ? term.dim(` → ${agent.currentTaskId}`)
-    : ""
+  const task = agent.currentTaskId ? term.dim(` → ${agent.currentTaskId}`) : ""
 
-  console.log(
-    `${status} ${term.cyan(agent.shortId)} ${agent.name}${task}`,
-  )
+  console.log(`${status} ${term.cyan(agent.shortId)} ${agent.name}${task}`)
   console.log(term.dim(`   ${agent.model} / ${agent.harness}`))
 }
 

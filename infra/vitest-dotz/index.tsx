@@ -613,7 +613,7 @@ export class DotzReporter implements Reporter {
 
   onTestModuleEnd(_: TestModule) {}
 
-  onTestRunEnd(
+  async onTestRunEnd(
     testModules?: Iterable<TestModule>,
     errors?: readonly unknown[],
   ) {
@@ -621,12 +621,12 @@ export class DotzReporter implements Reporter {
       testModules: !!testModules,
       errors: (errors as unknown[])?.length,
     })
-    void this.finishRun()
+    await this.finishRun()
   }
 
-  onFinished() {
+  async onFinished() {
     debug("onFinished")
-    void this.finishRun()
+    await this.finishRun()
   }
 
   private async finishRun() {
@@ -713,13 +713,14 @@ function extractLineNumber(testCase: TestCase) {
 
 async function printSummary(store: TestStore, options: Options) {
   const { renderStatic } = await import("inkx")
+  const width = process.stdout.columns || 80
+  // Use large height to avoid truncation - static output doesn't need fixed height
   const output = await renderStatic(
-    <Report store={store} options={options} />,
-    {
-      width: process.stdout.columns || 80,
-    },
+    <Report store={store} options={options} width={width} />,
+    { width, height: 1000 },
   )
-  console.log(output)
+  // Trim trailing empty lines from the buffer output
+  console.log(output.replace(/\n+$/, ""))
 }
 
 function exportPerformance(state: TestStoreState, options: Options) {

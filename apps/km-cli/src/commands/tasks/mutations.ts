@@ -231,9 +231,5 @@ export async function assignTask(
     return
   }
 
-  console.log(
-    term.green("→"),
-    `Assigned to ${user}:`,
-    task.id.slice(0, 8),
-  )
+  console.log(term.green("→"), `Assigned to ${user}:`, task.id.slice(0, 8))
 }

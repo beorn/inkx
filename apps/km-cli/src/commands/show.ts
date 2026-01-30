@@ -96,14 +96,8 @@ export const showCommand = new Command("show")
       console.log(term.bold("Parent:"), node.parent_id.slice(0, 8))
     }
 
-    console.log(
-      term.bold("Created:"),
-      new Date(node.created_at).toISOString(),
-    )
-    console.log(
-      term.bold("Updated:"),
-      new Date(node.updated_at).toISOString(),
-    )
+    console.log(term.bold("Created:"), new Date(node.created_at).toISOString())
+    console.log(term.bold("Updated:"), new Date(node.updated_at).toISOString())
 
     // Display refs from data
     const data = node.data as Record<string, unknown>
@@ -114,17 +108,13 @@ export const showCommand = new Command("show")
     ) {
       console.log(
         term.bold("Refs:"),
-        (data.mentions as string[])
-          .map((m) => term.magenta(`@${m}`))
-          .join(" "),
+        (data.mentions as string[]).map((m) => term.magenta(`@${m}`)).join(" "),
       )
     }
     if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
       console.log(
         term.bold("Tags:"),
-        (data.tags as string[])
-          .map((t) => term.cyan(`#${t}`))
-          .join(" "),
+        (data.tags as string[]).map((t) => term.cyan(`#${t}`)).join(" "),
       )
     }
     if (
@@ -134,9 +124,7 @@ export const showCommand = new Command("show")
     ) {
       console.log(
         term.bold("Projects:"),
-        (data.projects as string[])
-          .map((p) => term.yellow(`+${p}`))
-          .join(" "),
+        (data.projects as string[]).map((p) => term.yellow(`+${p}`)).join(" "),
       )
     }
 
@@ -146,10 +134,7 @@ export const showCommand = new Command("show")
     delete otherData.tags
     delete otherData.projects
     if (Object.keys(otherData).length > 0) {
-      console.log(
-        term.bold("Data:"),
-        JSON.stringify(otherData, null, 2),
-      )
+      console.log(term.bold("Data:"), JSON.stringify(otherData, null, 2))
     }
 
     // Children

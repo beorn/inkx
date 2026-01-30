@@ -23,12 +23,8 @@ configCommand
     const configObj = loadConfigObject(resolved.repoRoot)
 
     console.log(term.bold("Beads Configuration"))
-    console.log(
-      `  board:  ${configObj.beads.board || term.dim("(not set)")}`,
-    )
-    console.log(
-      `  parent: ${configObj.beads.parent || term.dim("(not set)")}`,
-    )
+    console.log(`  board:  ${configObj.beads.board || term.dim("(not set)")}`)
+    console.log(`  parent: ${configObj.beads.parent || term.dim("(not set)")}`)
     console.log(`  prefix: ${configObj.beads.prefix}`)
     if (configObj.path) {
       console.log()
@@ -80,9 +76,7 @@ configCommand
     const resolved = resolvePathArg(undefined)
     const configPath = `${resolved.repoRoot}/.km/config.yaml`
 
-    console.log(
-      term.yellow(`To set ${key}=${value}, edit ${configPath}:`),
-    )
+    console.log(term.yellow(`To set ${key}=${value}, edit ${configPath}:`))
     console.log()
     console.log(term.dim("beads:"))
     console.log(term.dim(`  ${key}: "${value}"`))
@@ -96,12 +90,8 @@ configCommand.action(() => {
   const configObj = loadConfigObject(resolved.repoRoot)
 
   console.log(term.bold("Beads Configuration"))
-  console.log(
-    `  board:  ${configObj.beads.board || term.dim("(not set)")}`,
-  )
-  console.log(
-    `  parent: ${configObj.beads.parent || term.dim("(not set)")}`,
-  )
+  console.log(`  board:  ${configObj.beads.board || term.dim("(not set)")}`)
+  console.log(`  parent: ${configObj.beads.parent || term.dim("(not set)")}`)
   console.log(`  prefix: ${configObj.beads.prefix}`)
   if (configObj.path) {
     console.log()

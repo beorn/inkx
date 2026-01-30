@@ -169,7 +169,9 @@ export const addCommand = new Command("add")
     )
     for (const task of tasksToAdd.slice(0, 5)) {
       console.log(
-        term.dim(`  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`),
+        term.dim(
+          `  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`,
+        ),
       )
     }
     if (tasksToAdd.length > 5) {

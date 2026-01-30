@@ -56,9 +56,7 @@ bdAgentCommand
 
     if (agents.length === 0) {
       console.log(term.yellow("No agents found."))
-      console.log(
-        term.dim("Use 'km agent spawn <name>' to create one."),
-      )
+      console.log(term.dim("Use 'km agent spawn <name>' to create one."))
       return
     }
 
@@ -114,9 +112,7 @@ bdAgentCommand
       console.log()
       for (const item of queue) {
         const isCurrent = item.issueShortId === agent.currentTaskId
-        const prefix = isCurrent
-          ? term.green("▶")
-          : term.dim("○")
+        const prefix = isCurrent ? term.green("▶") : term.dim("○")
         const priority = term.dim(`P${item.priority}`)
         console.log(
           `  ${prefix} ${term.cyan(item.issueShortId)} ${priority} ${item.title}`,
@@ -150,13 +146,9 @@ bdAgentCommand
     const assignment = assignIssueFields(agent.shortId)
     void assignment // Will be used for persistence
 
-    console.log(
-      term.green(`Assigned ${issue.shortId} to ${agent.shortId}`),
-    )
+    console.log(term.green(`Assigned ${issue.shortId} to ${agent.shortId}`))
     console.log(term.dim(`  ${issue.title}`))
-    console.log(
-      term.yellow("\nNote: Assignment not yet persisted to storage."),
-    )
+    console.log(term.yellow("\nNote: Assignment not yet persisted to storage."))
   })
 
 // bd agent unassign <agent-id> <issue-id> - Remove assignment
@@ -184,9 +176,7 @@ bdAgentCommand
     const assignment = unassignIssueFields()
     void assignment // Will be used for persistence
 
-    console.log(
-      term.green(`Unassigned ${issue.shortId} from ${agent.shortId}`),
-    )
+    console.log(term.green(`Unassigned ${issue.shortId} from ${agent.shortId}`))
     console.log(
       term.yellow("\nNote: Unassignment not yet persisted to storage."),
     )
@@ -238,9 +228,7 @@ bdAgentCommand
 
     console.log(term.green(`${agent.shortId} claimed ${issue.shortId}`))
     console.log(term.dim(`  ${issue.title}`))
-    console.log(
-      term.yellow("\nNote: Claim not yet persisted to storage."),
-    )
+    console.log(term.yellow("\nNote: Claim not yet persisted to storage."))
   })
 
 // bd agent run <agent-id> - Run agent on its queue (continuous)
@@ -275,13 +263,9 @@ bdAgentCommand
 
 function printAgent(agent: Agent): void {
   const status = formatStatus(agent.status)
-  const task = agent.currentTaskId
-    ? term.dim(` → ${agent.currentTaskId}`)
-    : ""
+  const task = agent.currentTaskId ? term.dim(` → ${agent.currentTaskId}`) : ""
 
-  console.log(
-    `${status} ${term.cyan(agent.shortId)} ${agent.name}${task}`,
-  )
+  console.log(`${status} ${term.cyan(agent.shortId)} ${agent.name}${task}`)
 }
 
 function formatStatus(status: Agent["status"]): string {

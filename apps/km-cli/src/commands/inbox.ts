@@ -33,9 +33,7 @@ export const inboxCommand = new Command("inbox")
       if (options.json) {
         console.log(JSON.stringify({ items: [], count: 0 }))
       } else {
-        console.log(
-          term.yellow("No inbox found. Create an inbox/ folder."),
-        )
+        console.log(term.yellow("No inbox found. Create an inbox/ folder."))
       }
       return
     }
@@ -62,9 +60,7 @@ export const inboxCommand = new Command("inbox")
     } else {
       console.log(term.bold(`Inbox (${items.length} items):\n`))
       for (const item of items) {
-        console.log(
-          `  ${term.dim(item.id.slice(0, 7))} ${item.content}`,
-        )
+        console.log(`  ${term.dim(item.id.slice(0, 7))} ${item.content}`)
       }
     }
   })
@@ -78,9 +74,7 @@ inboxCommand
     const inbox = getInboxNode(repo)
 
     if (!inbox) {
-      console.log(
-        term.yellow("No inbox found. Create an inbox/ folder."),
-      )
+      console.log(term.yellow("No inbox found. Create an inbox/ folder."))
       return
     }
 
@@ -198,9 +192,7 @@ inboxCommand
     const inbox = getInboxNode(repo)
 
     if (!inbox) {
-      console.error(
-        term.red("No inbox found. Create an inbox/ folder."),
-      )
+      console.error(term.red("No inbox found. Create an inbox/ folder."))
       process.exit(1)
     }
 

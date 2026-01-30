@@ -151,7 +151,8 @@ function displayWithContext(
         for (const ca of collapsed) {
           const prefix = " ".repeat(depth)
           console.log(
-            prefix + term.dim(formatCollapsedAncestor(repo, ca, options.showId)),
+            prefix +
+              term.dim(formatCollapsedAncestor(repo, ca, options.showId)),
           )
           if (ca.node.type !== "section") {
             depth++

@@ -445,9 +445,7 @@ const daemonStartCommand = new Command("start")
   .action(async (options: { foreground?: boolean }) => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
-      console.error(
-        term.red("No .km directory found. Run 'km init' first."),
-      )
+      console.error(term.red("No .km directory found. Run 'km init' first."))
       process.exit(1)
     }
     const repoPath = dirname(kmDir)

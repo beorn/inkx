@@ -8,7 +8,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "chalkx": "workspace:*",
     "@beorn/tui-measure": "workspace:*",
     "@km/board": "workspace:*",
     "@km/commands": "workspace:*",
@@ -17,6 +16,7 @@
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "chalk": "^5.4.1",
+    "chalkx": "workspace:*",
     "inkx": "workspace:*",
     "react": "catalog:"
   },

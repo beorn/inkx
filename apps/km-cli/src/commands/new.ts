@@ -152,10 +152,7 @@ export const newCommand = new Command("new")
       return
     }
 
-    console.log(
-      term.green("✓"),
-      `Added to ${targetName}: ${taskContent}`,
-    )
+    console.log(term.green("✓"), `Added to ${targetName}: ${taskContent}`)
 
     // If --next flag, remind user to sync and add to @next
     if (options.next) {

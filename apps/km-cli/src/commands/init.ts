@@ -174,9 +174,7 @@ export const initCommand = new Command("init")
     // Check if there's a .km/ in an ancestor directory
     const ancestorKm = findAncestorKmDir(targetDir)
     if (ancestorKm && !options.force) {
-      console.log(
-        term.yellow(`Found existing km repo at ${ancestorKm}`),
-      )
+      console.log(term.yellow(`Found existing km repo at ${ancestorKm}`))
       console.log(
         term.yellow(
           `Creating a nested repo may cause conflicts. Consider using the parent repo instead.`,
@@ -239,11 +237,6 @@ export const initCommand = new Command("init")
 
     console.log()
     console.log("Next steps:")
-    console.log(
-      term.cyan("  km tasks   ") + term.dim("# List tasks"),
-    )
-    console.log(
-      term.cyan("  km view    ") +
-        term.dim("# Open kanban board"),
-    )
+    console.log(term.cyan("  km tasks   ") + term.dim("# List tasks"))
+    console.log(term.cyan("  km view    ") + term.dim("# Open kanban board"))
   })
