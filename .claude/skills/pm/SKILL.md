@@ -12,11 +12,13 @@ Issue tracking using beads. Coordinates work across Claude sessions.
 
 **IMPORTANT**: Read [beads.md](beads.md) for full CLI reference before running commands.
 
+**Directory**: Always run `bd` commands from the km root (`/Users/beorn/Code/pim/km`). If in a subdirectory (e.g., `vendor/*`), prefix commands with `cd /Users/beorn/Code/pim/km &&`.
+
 **Submodule warning**: In `vendor/*` directories, beads use different prefixes (e.g., `beorn-inkx-*`). Always check with `bd list --limit 1` before creating.
 
 ## Current State
 
-!`bd list --status open --limit 10`
+!`(cd /Users/beorn/Code/pim/km && bd list --status open --limit 10)`
 
 ## Command Mapping
 

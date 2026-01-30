@@ -58,7 +58,8 @@
     "chaos:fuzz": "bun ./scripts/chaos.ts fuzz",
     "chaos:reproduce": "bun ./scripts/chaos.ts reproduce",
     "chaos:report": "bun ./scripts/chaos.ts report",
-    "release": "release-it"
+    "release": "release-it",
+    "test:flexx:yoga": "cd vendor/beorn-flexx && bun test:yoga"
   },
   "devDependencies": {
     "chalkx": "workspace:*",
