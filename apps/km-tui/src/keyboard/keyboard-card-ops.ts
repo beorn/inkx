@@ -4,7 +4,7 @@
  * Functions for moving, indenting, and outdenting cards.
  */
 
-import type { CardState, ColumnState, SelectionKey } from "../types.ts"
+import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import { actions } from "../ui-reducer.ts"
 import type { TUIContext } from "../tui-context.ts"
@@ -12,81 +12,6 @@ import {
   getSelectedCardIndices,
   refreshBoardState,
 } from "./keyboard-helpers.ts"
-
-// =============================================================================
-// Card Movement Helpers
-// =============================================================================
-
-const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
-
-type IndexedCard = { index: number; card: CardState }
-
-/** Get cards to move - either selected cards or single card */
-function getCardsToMove(
-  ctx: TUIContext,
-  col: ColumnState,
-  card: CardState,
-): IndexedCard[] {
-  const selectedIndices = getSelectedCardIndices(ctx)
-  if (selectedIndices.length === 0) {
-    return [{ index: ctx.layout.cardIndex, card }]
-  }
-  return selectedIndices
-    .map((i: number) => ({ index: i, card: col.cards[i] }))
-    .filter((c): c is IndexedCard => c.card !== undefined)
-}
-
-/** Update multi-selection after cards move to new positions */
-function updateSelectionAfterMove(
-  ctx: TUIContext,
-  movedCardIds: string[],
-  colIndex: number,
-): void {
-  if (movedCardIds.length <= 1) return
-
-  const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
-  const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
-  const newCol = columns[colIndex]
-  if (!newCol) return
-
-  const newSelected = new Set<SelectionKey>()
-  const cards = ctx.repo.getChildren(newCol.id)
-  for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
-    const c = cards[cardIdx]
-    if (c && movedCardIds.includes(c.id)) {
-      newSelected.add(makeSelectionKey(colIndex, cardIdx, 0))
-    }
-  }
-  ctx.dispatch(actions.setMultiSelected(newSelected))
-}
-
-/** Calculate sort order for inserting before a position */
-function getSortOrderBefore(
-  col: ColumnState,
-  targetIndex: number,
-  getEffectiveSortOrder: (i: number) => number,
-): number {
-  if (targetIndex === 0) {
-    return getEffectiveSortOrder(0) - 1
-  }
-  const prevOrder = getEffectiveSortOrder(targetIndex - 1)
-  const targetOrder = getEffectiveSortOrder(targetIndex)
-  return (prevOrder + targetOrder) / 2
-}
-
-/** Calculate sort order for inserting after a position */
-function getSortOrderAfter(
-  col: ColumnState,
-  targetIndex: number,
-  getEffectiveSortOrder: (i: number) => number,
-): number {
-  if (targetIndex >= col.cards.length - 1) {
-    return getEffectiveSortOrder(col.cards.length - 1) + 1
-  }
-  const targetOrder = getEffectiveSortOrder(targetIndex)
-  const nextOrder = getEffectiveSortOrder(targetIndex + 1)
-  return (targetOrder + nextOrder) / 2
-}
 
 // =============================================================================
 // Card Movement
@@ -101,49 +26,94 @@ export function moveCardInColumn(
   const col = ctx.layout.columns[ctx.layout.colIndex]
   if (!col) return
 
-  const validCards = getCardsToMove(ctx, col, card)
+  const selectedIndices = getSelectedCardIndices(ctx)
+  const cardsToMove =
+    selectedIndices.length > 0
+      ? selectedIndices.map((i: number) => ({ index: i, card: col.cards[i] }))
+      : [{ index: ctx.layout.cardIndex, card }]
+
+  const validCards = cardsToMove.filter(
+    (c): c is { index: number; card: CardState } => c.card !== undefined,
+  )
   if (validCards.length === 0) return
 
-  // Sort cards by index - process in direction order to avoid collisions
-  const sortedCards = validCards.toSorted((a, b) =>
-    direction === "up" ? a.index - b.index : b.index - a.index,
-  )
+  const sortedCards =
+    direction === "up"
+      ? validCards.sort(
+          (a: { index: number }, b: { index: number }) => a.index - b.index,
+        )
+      : validCards.sort(
+          (a: { index: number }, b: { index: number }) => b.index - a.index,
+        )
 
-  // Check if move is possible
   const firstToMove = sortedCards[0]
   if (!firstToMove) return
-  const boundaryIndex =
+  const targetIndex =
     direction === "up" ? firstToMove.index - 1 : firstToMove.index + 1
-  if (boundaryIndex < 0 || boundaryIndex >= col.cards.length) return
+  if (targetIndex < 0 || targetIndex >= col.cards.length) return
 
-  // Helper to get effective sort order (use parent_idx or fallback to index)
   const getEffectiveSortOrder = (cardIndex: number): number => {
     const c = col.cards[cardIndex]
-    if (!c) return cardIndex
-    return c.node.parent_idx === 0 ? cardIndex : c.node.parent_idx
+    return c
+      ? c.node.parent_idx === 0
+        ? cardIndex
+        : c.node.parent_idx
+      : cardIndex
   }
 
-  // Move each card
   for (const { index: currentIndex, card: cardToMove } of sortedCards) {
     const cardTargetIndex =
       direction === "up" ? currentIndex - 1 : currentIndex + 1
+
     if (cardTargetIndex < 0 || cardTargetIndex >= col.cards.length) continue
 
-    const newSortOrder =
-      direction === "up"
-        ? getSortOrderBefore(col, cardTargetIndex, getEffectiveSortOrder)
-        : getSortOrderAfter(col, cardTargetIndex, getEffectiveSortOrder)
+    let newSortOrder: number
+    if (direction === "up") {
+      if (cardTargetIndex === 0) {
+        const firstOrder = getEffectiveSortOrder(0)
+        newSortOrder = firstOrder - 1
+      } else {
+        const prevOrder = getEffectiveSortOrder(cardTargetIndex - 1)
+        const targetOrder = getEffectiveSortOrder(cardTargetIndex)
+        newSortOrder = (prevOrder + targetOrder) / 2
+      }
+    } else {
+      if (cardTargetIndex >= col.cards.length - 1) {
+        const lastOrder = getEffectiveSortOrder(col.cards.length - 1)
+        newSortOrder = lastOrder + 1
+      } else {
+        const targetOrder = getEffectiveSortOrder(cardTargetIndex)
+        const nextOrder = getEffectiveSortOrder(cardTargetIndex + 1)
+        newSortOrder = (targetOrder + nextOrder) / 2
+      }
+    }
 
     ctx.repo.moveNode(cardToMove.node.id, col.node.id, newSortOrder)
   }
 
-  // Update UI state
+  const movedCardIds = validCards.map((c) => c.card.node.id)
   const newCardIndex =
     direction === "up" ? ctx.layout.cardIndex - 1 : ctx.layout.cardIndex + 1
+
   refreshBoardState(ctx, { cardIndex: newCardIndex })
 
-  const movedCardIds = validCards.map((c) => c.card.node.id)
-  updateSelectionAfterMove(ctx, movedCardIds, ctx.layout.colIndex)
+  if (movedCardIds.length > 1) {
+    const newSelected = new Set<SelectionKey>()
+    const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
+    const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
+    const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
+    const newCol = columns[ctx.layout.colIndex]
+    if (newCol) {
+      const cards = ctx.repo.getChildren(newCol.id)
+      for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
+        const c = cards[cardIdx]
+        if (c && movedCardIds.includes(c.id)) {
+          newSelected.add(makeSelectionKey(ctx.layout.colIndex, cardIdx, 0))
+        }
+      }
+    }
+    ctx.dispatch(actions.setMultiSelected(newSelected))
+  }
 }
 
 /** Move card to different column (left/right) */
@@ -162,10 +132,16 @@ export function moveCardToColumn(
   const targetCol = ctx.layout.columns[targetColIndex]
   if (!targetCol) return
 
-  const cardsToMove = getCardsToMove(ctx, col, card).map((c) => c.card)
+  const selectedIndices = getSelectedCardIndices(ctx)
+  const cardsToMove: CardState[] =
+    selectedIndices.length > 0
+      ? selectedIndices
+          .map((i: number) => col.cards[i])
+          .filter((c): c is CardState => c !== undefined)
+      : [card]
+
   if (cardsToMove.length === 0) return
 
-  // Move cards to end of target column
   let newSortOrder =
     targetCol.cards.length > 0
       ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1
@@ -176,15 +152,31 @@ export function moveCardToColumn(
     newSortOrder++
   }
 
-  // Update UI state
+  const movedCardIds = cardsToMove.map((c) => c.node.id)
   const expectedCardIndex = targetCol.cards.length
+
   refreshBoardState(ctx, {
     colIndex: targetColIndex,
     cardIndex: (col) => Math.min(expectedCardIndex, col?.cards.length || 0),
   })
 
-  const movedCardIds = cardsToMove.map((c) => c.node.id)
-  updateSelectionAfterMove(ctx, movedCardIds, targetColIndex)
+  if (movedCardIds.length > 0) {
+    const newSelected = new Set<SelectionKey>()
+    const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
+    const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
+    const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
+    const newCol = columns[targetColIndex]
+    if (newCol) {
+      const cards = ctx.repo.getChildren(newCol.id)
+      for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
+        const c = cards[cardIdx]
+        if (c && movedCardIds.includes(c.id)) {
+          newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0))
+        }
+      }
+    }
+    ctx.dispatch(actions.setMultiSelected(newSelected))
+  }
 }
 
 // =============================================================================

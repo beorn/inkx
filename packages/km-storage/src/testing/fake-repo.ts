@@ -48,350 +48,6 @@ export interface FakeRepo extends Repo {
 }
 
 /**
- * Internal state for a FakeRepo instance
- */
-interface FakeRepoState {
-  nodes: Map<string, KNode>
-  links: Link[]
-  nextId: number
-  closed: boolean
-  readonly initialNodes: KNode[]
-  readonly initialLinks: Link[]
-}
-
-/**
- * Create initial state from options
- */
-function createState(options: FakeRepoOptions): FakeRepoState {
-  const state: FakeRepoState = {
-    nodes: new Map(),
-    links: [],
-    nextId: 1,
-    closed: false,
-    initialNodes: options.nodes ?? [],
-    initialLinks: options.links ?? [],
-  }
-  resetState(state)
-  return state
-}
-
-/**
- * Reset state to initial values
- */
-function resetState(state: FakeRepoState): void {
-  state.nodes = new Map()
-  state.links = [...state.initialLinks]
-  state.nextId = 1
-  state.closed = false
-
-  for (const node of state.initialNodes) {
-    state.nodes.set(node.id, { ...node })
-  }
-}
-
-/**
- * Throw if repo is closed
- */
-function ensureNotClosed(state: FakeRepoState): void {
-  if (state.closed) {
-    throw new Error("Repo is closed")
-  }
-}
-
-/**
- * Create no-op emitter for FakeRepo
- */
-function createFakeEmitter(): Emitter {
-  let fakeEventHub: EventHub | null = null
-  let fakeFsSync: FsSync | null = null
-
-  return {
-    kmDir: "/fake/.km",
-    eventsPath: "/fake/.km/events.jsonl",
-    emit(event) {
-      return { id: ulid(), ts: Date.now(), ...event } as Event
-    },
-    setEventHub(hub) {
-      fakeEventHub = hub
-    },
-    setFsSync(sync) {
-      fakeFsSync = sync
-    },
-    getEventHub() {
-      return fakeEventHub
-    },
-    getFsSync() {
-      return fakeFsSync
-    },
-    close() {
-      fakeEventHub = null
-      fakeFsSync = null
-    },
-  }
-}
-
-/**
- * Get children of a node, sorted by parent_idx
- */
-function getChildrenFromState(
-  state: FakeRepoState,
-  parentId: string | null,
-): KNode[] {
-  return [...state.nodes.values()]
-    .filter((n) => n.parent_id === parentId)
-    .sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0))
-}
-
-/**
- * Create query operations for the repo
- */
-function createQueryOperations(state: FakeRepoState) {
-  return {
-    getNode(id: string): KNode | null {
-      ensureNotClosed(state)
-      return state.nodes.get(id) ?? null
-    },
-
-    getChildren(parentId: string | null): KNode[] {
-      ensureNotClosed(state)
-      return getChildrenFromState(state, parentId)
-    },
-
-    getChildCounts(parentIds: string[]): Map<string, number> {
-      ensureNotClosed(state)
-      const counts = new Map<string, number>()
-      for (const node of state.nodes.values()) {
-        if (node.parent_id && parentIds.includes(node.parent_id)) {
-          counts.set(node.parent_id, (counts.get(node.parent_id) ?? 0) + 1)
-        }
-      }
-      return counts
-    },
-
-    getSubtree(nodeId: string): KNode[] {
-      ensureNotClosed(state)
-      const result: KNode[] = []
-      const queue = [nodeId]
-
-      while (queue.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounds checked by loop condition
-        const id = queue.shift()!
-        const node = state.nodes.get(id)
-        if (node) {
-          result.push(node)
-          const children = getChildrenFromState(state, id)
-          queue.push(...children.map((c) => c.id))
-        }
-      }
-
-      return result
-    },
-
-    getAncestors(nodeId: string): KNode[] {
-      ensureNotClosed(state)
-      const result: KNode[] = []
-      let current = state.nodes.get(nodeId)
-
-      while (current?.parent_id) {
-        const parent = state.nodes.get(current.parent_id)
-        if (parent) {
-          result.unshift(parent)
-          current = parent
-        } else {
-          break
-        }
-      }
-
-      return result
-    },
-
-    getAllTasks(): KNode[] {
-      ensureNotClosed(state)
-      return [...state.nodes.values()].filter((n) => n.type === "task")
-    },
-
-    getTasksByStatus(status: TaskStatus): KNode[] {
-      ensureNotClosed(state)
-      return [...state.nodes.values()].filter(
-        (n) => n.type === "task" && n.task_status === status,
-      )
-    },
-
-    search(query: string): KNode[] {
-      ensureNotClosed(state)
-      const q = query.toLowerCase()
-      return [...state.nodes.values()].filter(
-        (n) =>
-          n.content?.toLowerCase().includes(q) ||
-          n.title?.toLowerCase().includes(q),
-      )
-    },
-
-    query(expression: string): KNode[] {
-      ensureNotClosed(state)
-      const typeMatch = expression.match(/^type:(\w+)$/)
-      if (typeMatch) {
-        const type = typeMatch[1]
-        return [...state.nodes.values()].filter((n) => n.type === type)
-      }
-      return this.getAllTasks()
-    },
-
-    getLinksTo(targetId: string): KNode[] {
-      ensureNotClosed(state)
-      const linkingIds = state.links
-        .filter((l) => l.target_id === targetId)
-        .map((l) => l.source_id)
-      return [...state.nodes.values()].filter((n) => linkingIds.includes(n.id))
-    },
-
-    getBacklinks(nodeId: string): Link[] {
-      ensureNotClosed(state)
-      return state.links.filter((l) => l.target_id === nodeId)
-    },
-
-    getOutgoingLinks(sourceId: string): Link[] {
-      ensureNotClosed(state)
-      return state.links.filter((l) => l.source_id === sourceId)
-    },
-
-    resolveNode(query: string, _typeOrOptions?: unknown): KNode | null {
-      ensureNotClosed(state)
-      const byId = state.nodes.get(query)
-      if (byId) return byId
-
-      for (const node of state.nodes.values()) {
-        if (node.content?.includes(query) || node.title?.includes(query)) {
-          return node
-        }
-      }
-      return null
-    },
-  }
-}
-
-/**
- * Create mutation operations for the repo
- */
-function createMutationOperations(state: FakeRepoState) {
-  return {
-    updateNode(id: string, changes: Partial<KNode>): void {
-      ensureNotClosed(state)
-      const node = state.nodes.get(id)
-      if (!node) {
-        throw new Error(`Node ${id} not found`)
-      }
-      state.nodes.set(id, { ...node, ...changes, id })
-    },
-
-    moveNode(id: string, newParentId: string | null, position: number): void {
-      ensureNotClosed(state)
-      const node = state.nodes.get(id)
-      if (!node) {
-        throw new Error(`Node ${id} not found`)
-      }
-      state.nodes.set(id, {
-        ...node,
-        parent_id: newParentId,
-        parent_idx: position,
-      })
-    },
-
-    deleteNode(id: string): void {
-      ensureNotClosed(state)
-      state.nodes.delete(id)
-      state.links = state.links.filter(
-        (l) => l.source_id !== id && l.target_id !== id,
-      )
-    },
-
-    addNode(
-      parentId: string | null,
-      nodeData: Partial<KNode> & { type: string },
-    ): string {
-      ensureNotClosed(state)
-      const id = `fake-${state.nextId++}`
-      const siblings = getChildrenFromState(state, parentId)
-      const position = siblings.length
-      const now = Date.now()
-
-      const node = {
-        ...nodeData,
-        id,
-        parent_id: parentId,
-        parent_idx: position,
-        link_to: null,
-        data: {},
-        created_at: now,
-        updated_at: now,
-        version: "fake-0",
-        task_status:
-          nodeData.type === "task" ? ("todo" as TaskStatus) : undefined,
-      } as KNode
-
-      state.nodes.set(id, node)
-      return id
-    },
-
-    cloneTask(sourceId: string, changes: Partial<KNode>): string | null {
-      ensureNotClosed(state)
-      const source = state.nodes.get(sourceId)
-      if (source?.type !== "task") return null
-
-      const id = `fake-${state.nextId++}`
-      const now = Date.now()
-
-      const cloned: KNode = {
-        ...source,
-        id,
-        task_status: changes.task_status ?? "todo",
-        task_mark: changes.task_mark ?? " ",
-        content: changes.content ?? source.content,
-        due_date: changes.due_date ?? source.due_date,
-        scheduled_date: changes.scheduled_date ?? source.scheduled_date,
-        parent_idx: (source.parent_idx ?? 0) + 0.001,
-        data: { ...source.data, ...changes.data, recur_prev: sourceId },
-        created_at: now,
-        updated_at: now,
-        ...changes,
-      }
-
-      state.nodes.set(id, cloned)
-      return id
-    },
-
-    appendTaskToFile(
-      _filePath: string,
-      _content: string,
-      _options?: unknown,
-    ): void {
-      ensureNotClosed(state)
-      // No-op in fake repo - filesystem operations not supported
-    },
-
-    pathExists(_relativePath: string): boolean {
-      ensureNotClosed(state)
-      return false
-    },
-
-    rawQuery<T = Record<string, unknown>>(
-      sql: string,
-      _params?: unknown[],
-    ): T[] {
-      ensureNotClosed(state)
-
-      if (sql.trim() === "SELECT * FROM nodes") {
-        return [...state.nodes.values()] as T[]
-      }
-
-      throw new Error(
-        `FakeRepo.rawQuery: unsupported query pattern: ${sql.slice(0, 100)}`,
-      )
-    },
-  }
-}
-
-/**
  * Create a FakeRepo for testing.
  *
  * @example
@@ -412,18 +68,52 @@ function createMutationOperations(state: FakeRepoState) {
  */
 export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   const path = options.path ?? "/fake/repo"
+  const initialNodes = options.nodes ?? []
+  const initialLinks = options.links ?? []
   const loadErrors = options.loadErrors ?? []
-  const baseStats: RepoStats = {
-    nodeCount: (options.nodes ?? []).length,
-    linkCount: (options.links ?? []).length,
+  const stats: RepoStats = {
+    nodeCount: initialNodes.length,
+    linkCount: initialLinks.length,
     duration: 0,
     ...options.stats,
   }
 
-  const state = createState(options)
-  const emitter = createFakeEmitter()
-  const queryOps = createQueryOperations(state)
-  const mutationOps = createMutationOperations(state)
+  // Internal state
+  let nodes = new Map<string, KNode>()
+  let links: Link[] = []
+  let nextId = 1
+  let closed = false
+
+  // Initialize with provided data
+  reset()
+
+  // Create a no-op emitter for FakeRepo
+  let fakeEventHub: EventHub | null = null
+  let fakeFsSync: FsSync | null = null
+  const fakeEmitter: Emitter = {
+    kmDir: "/fake/.km",
+    eventsPath: "/fake/.km/events.jsonl",
+    emit(event) {
+      // No-op emit for fake repo - just return a full event
+      return { id: ulid(), ts: Date.now(), ...event } as Event
+    },
+    setEventHub(hub) {
+      fakeEventHub = hub
+    },
+    setFsSync(sync) {
+      fakeFsSync = sync
+    },
+    getEventHub() {
+      return fakeEventHub
+    },
+    getFsSync() {
+      return fakeFsSync
+    },
+    close() {
+      fakeEventHub = null
+      fakeFsSync = null
+    },
+  }
 
   const repo: FakeRepo = {
     get path() {
@@ -439,85 +129,349 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     },
 
     get stats() {
-      return { ...baseStats, nodeCount: state.nodes.size }
+      return { ...stats, nodeCount: nodes.size }
     },
 
     get deferredFiles() {
-      return []
+      return [] // FakeRepo never has deferred files
     },
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- FakeRepo returns null as any for database stub
     get database() {
+      // FakeRepo doesn't have a real database - return null
+      // Tests that need database access should use a real repo
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
       return null as any
     },
 
+    // Repo-specific properties (stubs for FakeRepo)
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- FakeRepo returns null as any for data stub
     get data() {
+      // FakeRepo doesn't have a real DataStore
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
       return null as any
     },
 
     get files() {
+      // FakeRepo doesn't have files
       return null
     },
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- FakeRepo returns empty object as any for config stub
     get config() {
+      // FakeRepo returns minimal config
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
       return {} as any
     },
 
     get emitter(): Emitter {
-      return emitter
+      // FakeRepo returns a no-op emitter
+      return fakeEmitter
     },
 
     sync() {
+      // FakeRepo is in-memory, sync is a no-op
       return Promise.resolve({ fromFiles: 0, fromData: 0, conflicts: [] })
     },
 
+    // --- Query operations ---
+
     needsRebuild() {
+      return false // FakeRepo is in-memory, never needs rebuild
+    },
+
+    getNode(id) {
+      ensureNotClosed()
+      return nodes.get(id) ?? null
+    },
+
+    getChildren(parentId) {
+      ensureNotClosed()
+      return [...nodes.values()]
+        .filter((n) => n.parent_id === parentId)
+        .sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0))
+    },
+
+    getChildCounts(parentIds) {
+      ensureNotClosed()
+      const counts = new Map<string, number>()
+      for (const node of nodes.values()) {
+        if (node.parent_id && parentIds.includes(node.parent_id)) {
+          counts.set(node.parent_id, (counts.get(node.parent_id) ?? 0) + 1)
+        }
+      }
+      return counts
+    },
+
+    getSubtree(nodeId) {
+      ensureNotClosed()
+      const result: KNode[] = []
+      const queue = [nodeId]
+
+      while (queue.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounds checked by loop condition
+        const id = queue.shift()!
+        const node = nodes.get(id)
+        if (node) {
+          result.push(node)
+          const children = this.getChildren(id)
+          queue.push(...children.map((c) => c.id))
+        }
+      }
+
+      return result
+    },
+
+    getAncestors(nodeId) {
+      ensureNotClosed()
+      const result: KNode[] = []
+      let current = nodes.get(nodeId)
+
+      while (current?.parent_id) {
+        const parent = nodes.get(current.parent_id)
+        if (parent) {
+          result.unshift(parent)
+          current = parent
+        } else {
+          break
+        }
+      }
+
+      return result
+    },
+
+    getAllTasks() {
+      ensureNotClosed()
+      return [...nodes.values()].filter((n) => n.type === "task")
+    },
+
+    getTasksByStatus(status) {
+      ensureNotClosed()
+      return [...nodes.values()].filter(
+        (n) => n.type === "task" && n.task_status === status,
+      )
+    },
+
+    search(query) {
+      ensureNotClosed()
+      const q = query.toLowerCase()
+      return [...nodes.values()].filter(
+        (n) =>
+          n.content?.toLowerCase().includes(q) ||
+          n.title?.toLowerCase().includes(q),
+      )
+    },
+
+    query(expression) {
+      ensureNotClosed()
+      // Simple implementation: basic type filtering for tests
+      // Full query language support is tested via real repo
+
+      // Handle "type:X" queries
+      const typeMatch = expression.match(/^type:(\w+)$/)
+      if (typeMatch) {
+        const type = typeMatch[1]
+        return [...nodes.values()].filter((n) => n.type === type)
+      }
+
+      // Default: return all tasks (for backwards compatibility)
+      return this.getAllTasks()
+    },
+
+    getLinksTo(targetId) {
+      ensureNotClosed()
+      const linkingIds = links
+        .filter((l) => l.target_id === targetId)
+        .map((l) => l.source_id)
+      return [...nodes.values()].filter((n) => linkingIds.includes(n.id))
+    },
+
+    getBacklinks(nodeId) {
+      ensureNotClosed()
+      return links.filter((l) => l.target_id === nodeId)
+    },
+
+    getOutgoingLinks(sourceId) {
+      ensureNotClosed()
+      return links.filter((l) => l.source_id === sourceId)
+    },
+
+    resolveNode(query, _typeOrOptions) {
+      ensureNotClosed()
+      // Simple implementation: exact ID match or content match
+      const byId = nodes.get(query)
+      if (byId) return byId
+
+      // Try content match
+      for (const node of nodes.values()) {
+        if (node.content?.includes(query) || node.title?.includes(query)) {
+          return node
+        }
+      }
+      return null
+    },
+
+    // --- Mutation operations ---
+
+    updateNode(id, changes) {
+      ensureNotClosed()
+      const node = nodes.get(id)
+      if (!node) {
+        throw new Error(`Node ${id} not found`)
+      }
+      nodes.set(id, { ...node, ...changes, id })
+    },
+
+    moveNode(id, newParentId, position) {
+      ensureNotClosed()
+      const node = nodes.get(id)
+      if (!node) {
+        throw new Error(`Node ${id} not found`)
+      }
+      nodes.set(id, { ...node, parent_id: newParentId, parent_idx: position })
+    },
+
+    deleteNode(id) {
+      ensureNotClosed()
+      nodes.delete(id)
+      // Remove any links from/to this node
+      links = links.filter((l) => l.source_id !== id && l.target_id !== id)
+    },
+
+    addNode(parentId, nodeData) {
+      ensureNotClosed()
+      const id = `fake-${nextId++}`
+      const siblings = this.getChildren(parentId)
+      const position = siblings.length
+      const now = Date.now()
+
+      // nodeData.type is required by the interface signature
+      const node = {
+        ...nodeData,
+        id,
+        parent_id: parentId,
+        parent_idx: position,
+        link_to: null,
+        data: {},
+        created_at: now,
+        updated_at: now,
+        version: "fake-0",
+        task_status:
+          nodeData.type === "task" ? ("todo" as TaskStatus) : undefined,
+      } as KNode
+
+      nodes.set(id, node)
+      return id
+    },
+
+    cloneTask(sourceId, changes) {
+      ensureNotClosed()
+      const source = nodes.get(sourceId)
+      if (source?.type !== "task") return null
+
+      const id = `fake-${nextId++}`
+      const now = Date.now()
+
+      const cloned: KNode = {
+        ...source,
+        id,
+        task_status: changes.task_status ?? "todo",
+        task_mark: changes.task_mark ?? " ",
+        content: changes.content ?? source.content,
+        due_date: changes.due_date ?? source.due_date,
+        scheduled_date: changes.scheduled_date ?? source.scheduled_date,
+        parent_idx: (source.parent_idx ?? 0) + 0.001,
+        data: { ...source.data, ...changes.data, recur_prev: sourceId },
+        created_at: now,
+        updated_at: now,
+        ...changes,
+      }
+
+      nodes.set(id, cloned)
+      return id
+    },
+
+    appendTaskToFile(_filePath, _content, _options) {
+      ensureNotClosed()
+      // No-op in fake repo - filesystem operations not supported
+    },
+
+    pathExists(_relativePath) {
+      ensureNotClosed()
+      // Always return false in fake repo
       return false
     },
 
-    // Query operations
-    ...queryOps,
+    rawQuery<T = Record<string, unknown>>(
+      sql: string,
+      _params?: unknown[],
+    ): T[] {
+      ensureNotClosed()
 
-    // Mutation operations
-    ...mutationOps,
+      // Pattern: SELECT * FROM nodes (used by ProjectPicker)
+      if (sql.trim() === "SELECT * FROM nodes") {
+        return [...nodes.values()] as T[]
+      }
 
-    // Lifecycle
+      // Unknown query - throw helpful error
+      // Note: Use getChildCounts() instead of rawQuery for child count batching
+      throw new Error(
+        `FakeRepo.rawQuery: unsupported query pattern: ${sql.slice(0, 100)}`,
+      )
+    },
+
+    // --- Lifecycle ---
+
     watch() {
-      ensureNotClosed(state)
+      ensureNotClosed()
       throw new Error("FakeRepo does not support watching")
     },
 
     *refresh(): Generator<StepYield, void, unknown> {
-      ensureNotClosed(state)
+      ensureNotClosed()
+      // No-op for fake repo - just yield a progress update
       yield { current: 1, total: 1 }
     },
 
     close() {
-      state.closed = true
+      closed = true
     },
 
     [Symbol.dispose]() {
       this.close()
     },
 
-    // Test helpers
+    // --- Test helpers ---
+
     getAllNodes() {
-      return [...state.nodes.values()]
+      return [...nodes.values()]
     },
 
     getAllLinks() {
-      return [...state.links]
+      return [...links]
     },
 
     reset() {
-      resetState(state)
+      reset()
     },
   }
 
   return repo
+
+  function reset() {
+    nodes = new Map()
+    links = [...initialLinks]
+    nextId = 1
+    closed = false
+
+    for (const node of initialNodes) {
+      nodes.set(node.id, { ...node })
+    }
+  }
+
+  function ensureNotClosed() {
+    if (closed) {
+      throw new Error("Repo is closed")
+    }
+  }
 }

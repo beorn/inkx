@@ -9,7 +9,7 @@ import { createTerm } from "inkx"
 const term = createTerm(process)
 import { resolvePathArg, type Repo } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
-import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
+import { collapseAncestorsWithTypes } from "@km/tree"
 import type { KNode } from "@km/core"
 import { getRootPath } from "../../program.ts"
 import {
@@ -37,253 +37,6 @@ export interface ListTasksOptions {
   json?: boolean
 }
 
-interface TaskLookupResult {
-  tasks: KNode[]
-  rootNode: KNode | null
-  pathFilter: string | null
-}
-
-/** Build query string with status filters */
-function buildQueryString(queryArg: string, options: ListTasksOptions): string {
-  let queryStr = queryArg
-  if (!options.all && !queryStr.includes("status:")) {
-    queryStr = `-status:done ${queryStr}`
-  }
-  if (options.status) {
-    queryStr = `status:${options.status} ${queryStr}`
-  }
-  return queryStr
-}
-
-/** Filter tasks by status options */
-function filterByStatus(tasks: KNode[], options: ListTasksOptions): KNode[] {
-  return tasks.filter((t) => {
-    if (options.status) return t.task_status === options.status
-    if (options.all) return true
-    return t.task_status === "todo" || t.task_status === "wip"
-  })
-}
-
-/** Get tasks via query search */
-function getTasksByQuery(
-  repo: Repo,
-  queryArg: string,
-  options: ListTasksOptions,
-): TaskLookupResult {
-  const queryStr = buildQueryString(queryArg, options)
-  return { tasks: repo.query(queryStr), rootNode: null, pathFilter: null }
-}
-
-/** Get tasks filtered by path pattern */
-function getTasksByPathFilter(
-  repo: Repo,
-  pathFilter: string,
-  options: ListTasksOptions,
-): TaskLookupResult {
-  const allTasks = filterByStatus(repo.getAllTasks(), options)
-  const tasks = allTasks.filter((t) => taskPathMatches(repo, t, pathFilter))
-  return { tasks, rootNode: null, pathFilter }
-}
-
-/** Get tasks under a specific node */
-function getTasksUnderRoot(
-  repo: Repo,
-  rootNode: KNode,
-  options: ListTasksOptions,
-): TaskLookupResult {
-  const tasks = filterByStatus(getTasksUnderNode(repo, rootNode.id), options)
-  return { tasks, rootNode, pathFilter: null }
-}
-
-/** Get all tasks (global list) */
-function getAllTasksFiltered(
-  repo: Repo,
-  options: ListTasksOptions,
-): TaskLookupResult {
-  return {
-    tasks: filterByStatus(repo.getAllTasks(), options),
-    rootNode: null,
-    pathFilter: null,
-  }
-}
-
-/** Resolve which tasks to display based on pathOrId and options */
-function resolveTasks(
-  repo: Repo,
-  pathOrId: string | undefined,
-  options: ListTasksOptions,
-): TaskLookupResult | { showDetails: KNode } {
-  // Query takes precedence (explicit option or query-like positional arg)
-  const queryArg =
-    options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
-  if (queryArg) {
-    return getTasksByQuery(repo, queryArg, options)
-  }
-
-  // No path/id specified - show all tasks
-  if (!pathOrId) {
-    return getAllTasksFiltered(repo, options)
-  }
-
-  // Try exact node match
-  const rootNode = findNodeByPathOrId(repo, pathOrId)
-  if (!rootNode) {
-    return getTasksByPathFilter(repo, pathOrId, options)
-  }
-
-  // Single task - show details instead of list
-  if (rootNode.type === "task") {
-    return { showDetails: rootNode }
-  }
-
-  return getTasksUnderRoot(repo, rootNode, options)
-}
-
-/** Find divergence point between two ancestor key arrays */
-function findDivergenceIndex(
-  previousKeys: string[],
-  currentKeys: string[],
-): number {
-  let i = 0
-  while (
-    i < previousKeys.length &&
-    i < currentKeys.length &&
-    previousKeys[i] === currentKeys[i]
-  ) {
-    i++
-  }
-  return i
-}
-
-/** Count filesystem depth (folders/files, not sections) up to index */
-function countFsDepth(
-  ancestors: CollapsedAncestor[],
-  upToIndex: number,
-): number {
-  let depth = 0
-  for (let i = 0; i < upToIndex && i < ancestors.length; i++) {
-    const ca = ancestors[i]
-    if (ca && ca.node.type !== "section") depth++
-  }
-  return depth
-}
-
-/** Print new path elements and return updated fsDepth and hasSection */
-function printNewPathElements(
-  repo: Repo,
-  ancestors: CollapsedAncestor[],
-  startIndex: number,
-  initialFsDepth: number,
-): { fsDepth: number; hasSection: boolean } {
-  let fsDepth = initialFsDepth
-  let hasSection = false
-
-  for (let i = startIndex; i < ancestors.length; i++) {
-    const ca = ancestors[i]
-    if (!ca) continue
-    console.log(
-      " ".repeat(fsDepth) + term.dim(formatCollapsedAncestor(repo, ca)),
-    )
-    if (ca.node.type === "section") {
-      hasSection = true
-    } else {
-      fsDepth++
-    }
-  }
-
-  return { fsDepth, hasSection }
-}
-
-/** Print task in tree mode with proper indentation */
-function printTreeTask(
-  repo: Repo,
-  task: KNode,
-  collapsedAncestors: CollapsedAncestor[],
-  ancestorKeys: string[],
-  previousAncestorKeys: string[],
-  options: ListTasksOptions,
-): void {
-  const divergeIndex = findDivergenceIndex(previousAncestorKeys, ancestorKeys)
-  const initialFsDepth = countFsDepth(collapsedAncestors, divergeIndex)
-
-  const { fsDepth, hasSection: newHasSection } = printNewPathElements(
-    repo,
-    collapsedAncestors,
-    divergeIndex,
-    initialFsDepth,
-  )
-
-  const hasSection =
-    newHasSection || collapsedAncestors.some((ca) => ca.node.type === "section")
-  const taskIndent = hasSection ? fsDepth + 3 : fsDepth
-
-  console.log(
-    " ".repeat(taskIndent) +
-      formatTaskLine(task, { verbose: options.verbose, showId: options.id }),
-  )
-}
-
-/** Output tasks in flat mode */
-function outputFlatMode(
-  repo: Repo,
-  tasks: KNode[],
-  options: ListTasksOptions,
-): void {
-  for (const task of tasks) {
-    const rawAncestors = repo.getAncestors(task.id)
-    const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
-    const lines = formatTaskWithPath(repo, task, collapsedAncestors, {
-      verbose: options.verbose,
-      flat: true,
-      showId: options.id,
-    })
-    for (const line of lines) console.log(line)
-  }
-  console.log()
-  console.log(term.dim(`${tasks.length} task(s)`))
-}
-
-/** Output tasks in tree mode */
-function outputTreeMode(
-  repo: Repo,
-  tasks: KNode[],
-  options: ListTasksOptions,
-): void {
-  const tasksWithAncestors = buildTaskTree(repo, tasks)
-  const sorted = sortByPath(tasksWithAncestors)
-
-  let previousAncestorKeys: string[] = []
-  for (const { task, collapsedAncestors, ancestorKeys } of sorted) {
-    printTreeTask(
-      repo,
-      task,
-      collapsedAncestors,
-      ancestorKeys,
-      previousAncestorKeys,
-      options,
-    )
-    previousAncestorKeys = ancestorKeys
-  }
-
-  console.log()
-  console.log(term.dim(`${tasks.length} task(s)`))
-}
-
-/** Print context header for the task list */
-function printContextHeader(
-  repo: Repo,
-  rootNode: KNode | null,
-  pathFilter: string | null,
-): void {
-  if (rootNode) {
-    console.log(term.bold(getNodeDisplayName(repo, rootNode)))
-    console.log()
-  } else if (pathFilter) {
-    console.log(term.dim(`Filter: ${pathFilter}`))
-    console.log()
-  }
-}
-
 /**
  * List tasks (optionally scoped to a root node or filtered by path/query)
  */
@@ -294,15 +47,76 @@ export async function listTasks(
   const resolved = resolvePathArg(undefined, getRootPath() || process.cwd())
   using repo = await loadRepo(resolved.repoRoot)
 
-  const result = resolveTasks(repo, pathOrId, options)
+  let tasks: KNode[]
+  let rootNode: KNode | null = null
+  let pathFilter: string | null = null
 
-  // Handle single task details view
-  if ("showDetails" in result) {
-    showTaskDetails(repo, result.showDetails, options)
-    return
+  // Handle query option first (takes precedence)
+  // Also treat positional arg as query if it looks like one
+  const queryArg =
+    options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
+  if (queryArg) {
+    // Build query string, adding default status filter
+    let queryStr = queryArg
+    if (!options.all && !queryStr.includes("status:")) {
+      queryStr = `-status:done ${queryStr}`
+    }
+    if (options.status) {
+      queryStr = `status:${options.status} ${queryStr}`
+    }
+    tasks = repo.query(queryStr)
+  } else if (pathOrId) {
+    // Try to find an exact node match first
+    rootNode = findNodeByPathOrId(repo, pathOrId)
+
+    if (rootNode) {
+      // If the root IS a task, show its details
+      if (rootNode.type === "task") {
+        showTaskDetails(repo, rootNode, options)
+        return
+      }
+
+      // Get tasks under this root
+      tasks = getTasksUnderNode(repo, rootNode.id)
+    } else {
+      // No exact match - treat as path filter (like `bun test <filter>`)
+      pathFilter = pathOrId
+
+      // Get tasks with status filter via repo
+      const allTasks = repo.getAllTasks().filter((t) => {
+        if (options.status && t.task_status !== options.status) return false
+        if (!options.all && !options.status && t.task_status === "done") {
+          return false
+        }
+        return true
+      })
+
+      // Filter by path match
+      tasks = allTasks.filter(
+        (t) => pathFilter && taskPathMatches(repo, t, pathFilter),
+      )
+    }
+
+    // Apply status filter for root node case
+    if (rootNode) {
+      if (options.status) {
+        tasks = tasks.filter((t) => t.task_status === options.status)
+      } else if (!options.all) {
+        tasks = tasks.filter(
+          (t) => t.task_status === "todo" || t.task_status === "wip",
+        )
+      }
+    }
+  } else {
+    // Global task list via repo
+    tasks = repo.getAllTasks().filter((t) => {
+      if (options.status && t.task_status !== options.status) return false
+      if (!options.all && !options.status && t.task_status === "done") {
+        return false
+      }
+      return true
+    })
   }
-
-  const { tasks, rootNode, pathFilter } = result
 
   if (options.json) {
     console.log(JSON.stringify(tasks, null, 2))
@@ -314,13 +128,95 @@ export async function listTasks(
     return
   }
 
-  printContextHeader(repo, rootNode, pathFilter)
-
-  if (options.flat) {
-    outputFlatMode(repo, tasks, options)
-  } else {
-    outputTreeMode(repo, tasks, options)
+  // Show context header
+  if (rootNode) {
+    console.log(term.bold(getNodeDisplayName(repo, rootNode)))
+    console.log()
+  } else if (pathFilter) {
+    console.log(term.dim(`Filter: ${pathFilter}`))
+    console.log()
   }
+
+  // Flat mode: simple single-line display
+  if (options.flat) {
+    for (const task of tasks) {
+      const rawAncestors = repo.getAncestors(task.id)
+      const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
+      const lines = formatTaskWithPath(repo, task, collapsedAncestors, {
+        verbose: options.verbose,
+        flat: true,
+        showId: options.id,
+      })
+      for (const line of lines) {
+        console.log(line)
+      }
+    }
+    console.log()
+    console.log(term.dim(`${tasks.length} task(s)`))
+    return
+  }
+
+  // Tree mode: group tasks by shared paths
+  const tasksWithAncestors = buildTaskTree(repo, tasks)
+  const sorted = sortByPath(tasksWithAncestors)
+
+  let previousAncestorKeys: string[] = []
+
+  for (const { task, collapsedAncestors, ancestorKeys } of sorted) {
+    // Find where current path diverges from previous
+    let divergeIndex = 0
+    while (
+      divergeIndex < previousAncestorKeys.length &&
+      divergeIndex < ancestorKeys.length &&
+      previousAncestorKeys[divergeIndex] === ancestorKeys[divergeIndex]
+    ) {
+      divergeIndex++
+    }
+
+    // Count fs depth (folders/files) before divergence point
+    let fsDepth = 0
+    for (let i = 0; i < divergeIndex && i < collapsedAncestors.length; i++) {
+      const ca = collapsedAncestors[i]
+      if (ca && ca.node.type !== "section") {
+        fsDepth++
+      }
+    }
+
+    // Print only the new path elements with appropriate indentation
+    // - Folders/files: 1 space per level
+    // - Sections: same indent as their file (# prefix shows heading level)
+    let hasSection = false
+    for (let i = divergeIndex; i < collapsedAncestors.length; i++) {
+      const ca = collapsedAncestors[i]
+      if (!ca) continue
+      const prefix = " ".repeat(fsDepth)
+      console.log(prefix + term.dim(formatCollapsedAncestor(repo, ca)))
+      if (ca.node.type === "section") {
+        hasSection = true
+      } else {
+        // Only folders/files increase the depth
+        fsDepth++
+      }
+    }
+
+    // Check if any ancestor was a section (for task indent)
+    if (!hasSection) {
+      hasSection = collapsedAncestors.some((ca) => ca.node.type === "section")
+    }
+
+    // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
+    const taskIndent = hasSection ? fsDepth + 3 : fsDepth
+    const taskPrefix = " ".repeat(taskIndent)
+    console.log(
+      taskPrefix +
+        formatTaskLine(task, { verbose: options.verbose, showId: options.id }),
+    )
+
+    previousAncestorKeys = ancestorKeys
+  }
+
+  console.log()
+  console.log(term.dim(`${tasks.length} task(s)`))
 }
 
 /**

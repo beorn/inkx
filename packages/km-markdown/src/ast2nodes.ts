@@ -104,223 +104,6 @@ export function parseMarkdownToNodes(
 }
 
 /**
- * Create the initial file node from filesystem path and frontmatter
- */
-function createFileNode(
-  fsPath: string,
-  fsIno: number | undefined,
-  fsMtime: number | undefined,
-  frontmatter: string | null,
-  now: number,
-): KNode {
-  const filename = fsPath.split("/").pop() || ""
-  const name = filename.replace(/\.md$/i, "")
-
-  return {
-    id: ulid(),
-    type: "file",
-    parent_id: null,
-    parent_idx: 0,
-    link_to: null,
-    fs_path: fsPath,
-    fs_ino: fsIno,
-    fs_mtime: fsMtime,
-    name,
-    content: undefined,
-    content_hash: undefined,
-    data: frontmatter ? parseFrontmatter(frontmatter) : {},
-    created_at: now,
-    updated_at: now,
-    version: "",
-  }
-}
-
-/**
- * Merge H1 section properties into the file node
- */
-function mergeH1IntoFileNode(fileNode: KNode, h1Section: KNode): void {
-  fileNode.title = h1Section.title
-  fileNode.content = h1Section.content
-  fileNode.md_pos = h1Section.md_pos
-  fileNode.md_slug = h1Section.md_slug
-
-  if (h1Section.rules) {
-    fileNode.rules = h1Section.rules
-  }
-  if (h1Section.task_status) {
-    fileNode.task_status = h1Section.task_status
-  }
-  if (h1Section.task_mark) {
-    fileNode.task_mark = h1Section.task_mark
-  }
-  if (h1Section.data) {
-    fileNode.data = { ...h1Section.data, ...fileNode.data }
-  }
-  if (h1Section.title) {
-    fileNode.data = { ...fileNode.data, _h1Title: h1Section.title }
-  }
-}
-
-/**
- * Re-parent children from H1 section to file node
- */
-function reparentH1Children(
-  childNodes: KNode[],
-  h1SectionId: string,
-  fileNodeId: string,
-): KNode[] {
-  const filtered = childNodes.filter((n) => n.id !== h1SectionId)
-  for (const child of filtered) {
-    if (child.parent_id === h1SectionId) {
-      child.parent_id = fileNodeId
-    }
-  }
-  return filtered
-}
-
-/**
- * Extract wikilinks from a single node (content and properties)
- */
-function extractNodeWikilinks(node: KNode): ExtractedLink[] {
-  const links: ExtractedLink[] = []
-
-  if (node.content) {
-    for (const link of parseWikiLinks(node.content)) {
-      links.push({ nodeId: node.id, link })
-    }
-  }
-
-  const nodeData = node.data as
-    | { props?: Record<string, PropertyValue> }
-    | undefined
-  if (!nodeData?.props) {
-    return links
-  }
-
-  for (const [propName, propValue] of Object.entries(nodeData.props)) {
-    for (const target of extractLinksFromProperty(propValue)) {
-      links.push({
-        nodeId: node.id,
-        link: { type: "wikiLink", target, embedded: false },
-        relationship: propName,
-      })
-    }
-  }
-
-  return links
-}
-
-/**
- * Add refs from content to aggregation sets
- */
-function addRefsFromContent(
-  content: string,
-  mentions: Set<string>,
-  tags: Set<string>,
-  projects: Set<string>,
-): void {
-  const refs = extractAllRefs(content)
-  for (const m of refs.mentions) mentions.add(m)
-  for (const t of refs.tags) tags.add(t)
-  for (const p of refs.projects) projects.add(p)
-}
-
-/**
- * Add refs from node data to aggregation sets
- */
-function addRefsFromNodeData(
-  nodeData: Record<string, unknown> | undefined,
-  mentions: Set<string>,
-  tags: Set<string>,
-  projects: Set<string>,
-): void {
-  if (!nodeData) return
-  if (nodeData.mentions) {
-    for (const m of nodeData.mentions as string[]) mentions.add(m)
-  }
-  if (nodeData.tags) {
-    for (const t of nodeData.tags as string[]) tags.add(t)
-  }
-  if (nodeData.projects) {
-    for (const p of nodeData.projects as string[]) projects.add(p)
-  }
-}
-
-/**
- * Aggregate refs from all nodes and store in file node data
- */
-function aggregateRefsToFileNode(fileNode: KNode, childNodes: KNode[]): void {
-  const mentions = new Set<string>()
-  const tags = new Set<string>()
-  const projects = new Set<string>()
-
-  if (fileNode.content) {
-    addRefsFromContent(fileNode.content, mentions, tags, projects)
-  }
-
-  for (const node of childNodes) {
-    if (node.content) {
-      addRefsFromContent(node.content, mentions, tags, projects)
-    }
-    addRefsFromNodeData(
-      node.data as Record<string, unknown> | undefined,
-      mentions,
-      tags,
-      projects,
-    )
-  }
-
-  const fileData = fileNode.data as Record<string, unknown>
-  const existingMentions = (fileData.mentions as string[] | undefined) || []
-  const existingTags = (fileData.tags as string[] | undefined) || []
-  const existingProjects = (fileData.projects as string[] | undefined) || []
-
-  for (const m of existingMentions) mentions.add(m)
-  for (const t of existingTags) tags.add(t)
-  for (const p of existingProjects) projects.add(p)
-
-  if (mentions.size > 0) fileData._allMentions = [...mentions]
-  if (tags.size > 0) fileData._allTags = [...tags]
-  if (projects.size > 0) fileData._allProjects = [...projects]
-}
-
-/**
- * Validate H1 headings and generate warnings
- */
-function validateH1Headings(
-  childNodes: KNode[],
-  h1Section: KNode | undefined,
-  fsPath: string,
-): ParseWarning[] {
-  const warnings: ParseWarning[] = []
-  const h1Count = childNodes.filter(
-    (n) => n.type === "section" && n.data?.depth === 1,
-  ).length
-  const totalH1s = h1Section ? h1Count + 1 : h1Count
-
-  if (totalH1s === 0) {
-    warnings.push({
-      type: "missing_h1",
-      message: `${fsPath}: Missing H1 heading. Each markdown file should have exactly one # heading as its title.`,
-    })
-    return warnings
-  }
-
-  if (totalH1s > 1) {
-    const secondH1 = childNodes.find(
-      (n) => n.type === "section" && n.data?.depth === 1,
-    )
-    warnings.push({
-      type: "multiple_h1",
-      message: `${fsPath}: Multiple H1 headings found (${totalH1s}). Each markdown file should have exactly one # heading.`,
-      line: secondH1?.md_line,
-    })
-  }
-
-  return warnings
-}
-
-/**
  * Parse a markdown file into km nodes with wikilink extraction
  */
 export function parseMarkdownWithLinks(
@@ -336,24 +119,189 @@ export function parseMarkdownWithLinks(
   const ast = parseMarkdown(body)
   const now = Date.now()
 
-  const fileNode = createFileNode(fsPath, fsIno, fsMtime, frontmatter, now)
+  // Extract name from filesystem path (filename without .md)
+  const filename = fsPath.split("/").pop() || ""
+  const name = filename.replace(/\.md$/i, "")
+
+  // Create file node
+  const fileNode: KNode = {
+    id: ulid(),
+    type: "file",
+    parent_id: null, // Will be set based on folder structure
+    parent_idx: 0,
+    link_to: null,
+    fs_path: fsPath,
+    fs_ino: fsIno,
+    fs_mtime: fsMtime,
+    name, // Slug/identifier derived from filename
+    content: undefined,
+    content_hash: undefined,
+    data: frontmatter ? parseFrontmatter(frontmatter) : {},
+    created_at: now,
+    updated_at: now,
+    version: "",
+  }
+
+  // Convert AST to nodes
   let childNodes = astToNodes(ast, fileNode, body)
 
+  // Merge H1 section into file node (file + H1 = one conceptual node)
+  // The H1 title becomes the file's title, and H1's children become file's children
   const h1Section = childNodes.find(
     (n) => n.type === "section" && n.data?.depth === 1,
   )
 
   if (h1Section) {
-    mergeH1IntoFileNode(fileNode, h1Section)
-    childNodes = reparentH1Children(childNodes, h1Section.id, fileNode.id)
+    // Copy H1 properties to file node
+    fileNode.title = h1Section.title
+    fileNode.content = h1Section.content
+    fileNode.md_pos = h1Section.md_pos
+    fileNode.md_slug = h1Section.md_slug
+    if (h1Section.rules) {
+      fileNode.rules = h1Section.rules
+    }
+    // Copy task properties from H1 (if present)
+    if (h1Section.task_status) {
+      fileNode.task_status = h1Section.task_status
+    }
+    if (h1Section.task_mark) {
+      fileNode.task_mark = h1Section.task_mark
+    }
+    // Merge H1's data into file data, but frontmatter takes precedence
+    // (frontmatter fields overwrite H1 data fields)
+    if (h1Section.data) {
+      fileNode.data = { ...h1Section.data, ...fileNode.data }
+    }
+    // Store H1 title in data for DB persistence (using _h1Title to avoid collision with frontmatter title)
+    if (h1Section.title) {
+      fileNode.data = { ...fileNode.data, _h1Title: h1Section.title }
+    }
+
+    // Re-parent H1's children to the file node
+    childNodes = childNodes.filter((n) => n.id !== h1Section.id)
+    for (const child of childNodes) {
+      if (child.parent_id === h1Section.id) {
+        child.parent_id = fileNode.id
+      }
+    }
   }
 
   const allNodes = [fileNode, ...childNodes]
-  const wikilinks = allNodes.flatMap(extractNodeWikilinks)
 
-  aggregateRefsToFileNode(fileNode, childNodes)
+  // Extract wikilinks from all nodes with content (both inline and from properties)
+  const wikilinks: ExtractedLink[] = []
+  for (const node of allNodes) {
+    // Extract wikilinks from content
+    if (node.content) {
+      const links = parseWikiLinks(node.content)
+      for (const link of links) {
+        wikilinks.push({ nodeId: node.id, link })
+      }
+    }
 
-  const warnings = validateH1Headings(childNodes, h1Section, fsPath)
+    // Extract links from properties (e.g., blocked-by:: [[target]])
+    const nodeData = node.data as
+      | { props?: Record<string, PropertyValue> }
+      | undefined
+    if (nodeData?.props) {
+      for (const [propName, propValue] of Object.entries(nodeData.props)) {
+        const propLinks = extractLinksFromProperty(propValue)
+        for (const target of propLinks) {
+          wikilinks.push({
+            nodeId: node.id,
+            link: { type: "wikiLink", target, embedded: false },
+            relationship: propName,
+          })
+        }
+      }
+    }
+  }
+
+  // Aggregate mentions, tags, projects from all nodes (including file node) to file node's data
+  // This enables queries like @issue to find files where any content has that mention
+  const aggregatedMentions = new Set<string>()
+  const aggregatedTags = new Set<string>()
+  const aggregatedProjects = new Set<string>()
+
+  // km-load-perf.1: Use single-pass extraction for all refs
+  // Include file node's own content (e.g., H1 heading with @issue #feature)
+  if (fileNode.content) {
+    const refs = extractAllRefs(fileNode.content)
+    for (const m of refs.mentions) aggregatedMentions.add(m)
+    for (const t of refs.tags) aggregatedTags.add(t)
+    for (const p of refs.projects) aggregatedProjects.add(p)
+  }
+
+  for (const node of childNodes) {
+    if (node.content) {
+      // Single-pass extraction instead of 3 separate passes
+      const refs = extractAllRefs(node.content)
+      for (const m of refs.mentions) aggregatedMentions.add(m)
+      for (const t of refs.tags) aggregatedTags.add(t)
+      for (const p of refs.projects) aggregatedProjects.add(p)
+    }
+    // Also include from node's own data (for list items that already extracted these)
+    const nodeData = node.data as Record<string, unknown> | undefined
+    if (nodeData?.mentions) {
+      for (const m of nodeData.mentions as string[]) aggregatedMentions.add(m)
+    }
+    if (nodeData?.tags) {
+      for (const t of nodeData.tags as string[]) aggregatedTags.add(t)
+    }
+    if (nodeData?.projects) {
+      for (const p of nodeData.projects as string[]) aggregatedProjects.add(p)
+    }
+  }
+
+  // Store aggregated refs in separate fields to preserve original frontmatter
+  // Original frontmatter values stay in data.tags/mentions/projects
+  // Aggregated values (content + frontmatter) go in data._allTags/_allMentions/_allProjects
+  const fileData = fileNode.data as Record<string, unknown>
+  const existingMentions = (fileData.mentions as string[] | undefined) || []
+  const existingTags = (fileData.tags as string[] | undefined) || []
+  const existingProjects = (fileData.projects as string[] | undefined) || []
+
+  // Add original frontmatter values to aggregation
+  for (const m of existingMentions) aggregatedMentions.add(m)
+  for (const t of existingTags) aggregatedTags.add(t)
+  for (const p of existingProjects) aggregatedProjects.add(p)
+
+  // Store aggregated values in separate fields (for queries)
+  // Original frontmatter values (data.tags etc.) are preserved for serialization
+  if (aggregatedMentions.size > 0) {
+    fileData._allMentions = [...aggregatedMentions]
+  }
+  if (aggregatedTags.size > 0) {
+    fileData._allTags = [...aggregatedTags]
+  }
+  if (aggregatedProjects.size > 0) {
+    fileData._allProjects = [...aggregatedProjects]
+  }
+
+  // Validate H1 headings - each file should have exactly one
+  const warnings: ParseWarning[] = []
+  const h1Count = childNodes.filter(
+    (n) => n.type === "section" && n.data?.depth === 1,
+  ).length
+  // Add 1 for the merged H1 if it existed
+  const totalH1s = h1Section ? h1Count + 1 : h1Count
+
+  if (totalH1s === 0) {
+    warnings.push({
+      type: "missing_h1",
+      message: `${fsPath}: Missing H1 heading. Each markdown file should have exactly one # heading as its title.`,
+    })
+  } else if (totalH1s > 1) {
+    // Find the second H1 for line number
+    const secondH1 = childNodes.find(
+      (n) => n.type === "section" && n.data?.depth === 1,
+    )
+    warnings.push({
+      type: "multiple_h1",
+      message: `${fsPath}: Multiple H1 headings found (${totalH1s}). Each markdown file should have exactly one # heading.`,
+      line: secondH1?.md_line,
+    })
+  }
 
   debug("parsed", {
     fsPath,

@@ -335,60 +335,100 @@ function calculateVariableHeightScrollState<T>(
   const totalHeight = heights.reduce((sum, h) => sum + h, 0)
 
   if (totalHeight < availableHeight) {
-    return buildScrollResult(items, 0, items.length)
+    return {
+      visible: items.map((item, index) => ({ item, index })),
+      scrollOffset: 0,
+      overflowTop: 0,
+      overflowBottom: 0,
+    }
   }
 
   const safeSelectedIndex = Math.min(selectedIndex, items.length - 1)
-  const initialOffset = findInitialScrollOffset(
-    heights,
-    safeSelectedIndex,
-    availableHeight,
-    items.length,
-  )
-
-  let { scrollOffset, endIndex } = calculateVisibleRange(
-    heights,
-    initialOffset,
-    availableHeight,
-    indicatorHeight,
-    items.length,
-  )
-
-  // Adjust if selected item is not visible
-  if (safeSelectedIndex < scrollOffset) {
-    ;({ scrollOffset, endIndex } = calculateVisibleRange(
-      heights,
-      safeSelectedIndex,
-      availableHeight,
-      indicatorHeight,
-      items.length,
-    ))
-  } else if (safeSelectedIndex >= endIndex) {
-    const adjustedOffset = findOffsetToShowSelected(
-      heights,
-      safeSelectedIndex,
-      availableHeight,
-      indicatorHeight,
-      items.length,
-    )
-    ;({ scrollOffset, endIndex } = calculateVisibleRange(
-      heights,
-      adjustedOffset,
-      availableHeight,
-      indicatorHeight,
-      items.length,
-    ))
+  const selectedHeight = heights[safeSelectedIndex] ?? 1
+  let heightBefore = 0
+  for (let i = 0; i < safeSelectedIndex; i++) {
+    heightBefore += heights[i] ?? 0
   }
 
-  return buildScrollResult(items, scrollOffset, endIndex)
-}
+  const targetScrollTop = heightBefore - (availableHeight - selectedHeight) / 2
 
-/** Build the final scroll result object */
-function buildScrollResult<T>(
-  items: T[],
-  scrollOffset: number,
-  endIndex: number,
-): ScrollState<T> {
+  let scrollOffset = 0
+  let cumulativeHeight = 0
+  for (let i = 0; i < items.length; i++) {
+    if (cumulativeHeight >= targetScrollTop) {
+      scrollOffset = i
+      break
+    }
+    cumulativeHeight += heights[i] ?? 0
+    scrollOffset = i + 1
+  }
+  scrollOffset = Math.max(0, Math.min(scrollOffset, items.length - 1))
+
+  const willShowTop = scrollOffset > 0
+  let effectiveHeight = availableHeight - (willShowTop ? indicatorHeight : 0)
+
+  let usedHeight = 0
+  let endIndex = scrollOffset
+  for (let i = scrollOffset; i < items.length; i++) {
+    const itemH = heights[i] ?? 1
+    const needsBottomIndicator = i + 1 < items.length
+    const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0
+
+    if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
+      usedHeight += itemH
+      endIndex = i + 1
+    } else {
+      break
+    }
+  }
+
+  if (safeSelectedIndex < scrollOffset) {
+    scrollOffset = safeSelectedIndex
+    usedHeight = 0
+    endIndex = scrollOffset
+    effectiveHeight = availableHeight - (scrollOffset > 0 ? indicatorHeight : 0)
+    for (let i = scrollOffset; i < items.length; i++) {
+      const itemH = heights[i] ?? 1
+      const needsBottomIndicator = i + 1 < items.length
+      const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0
+      if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
+        usedHeight += itemH
+        endIndex = i + 1
+      } else {
+        break
+      }
+    }
+  } else if (safeSelectedIndex >= endIndex) {
+    usedHeight = heights[safeSelectedIndex] ?? 1
+    scrollOffset = safeSelectedIndex
+    const hasBottom = safeSelectedIndex + 1 < items.length
+    effectiveHeight =
+      availableHeight - indicatorHeight - (hasBottom ? indicatorHeight : 0)
+    for (let i = safeSelectedIndex - 1; i >= 0; i--) {
+      const h = heights[i] ?? 0
+      if (usedHeight + h <= effectiveHeight) {
+        usedHeight += h
+        scrollOffset = i
+      } else {
+        break
+      }
+    }
+    usedHeight = 0
+    endIndex = scrollOffset
+    effectiveHeight = availableHeight - (scrollOffset > 0 ? indicatorHeight : 0)
+    for (let i = scrollOffset; i < items.length; i++) {
+      const itemH = heights[i] ?? 1
+      const needsBottomIndicator = i + 1 < items.length
+      const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0
+      if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
+        usedHeight += itemH
+        endIndex = i + 1
+      } else {
+        break
+      }
+    }
+  }
+
   const visible = items.slice(scrollOffset, endIndex).map((item, i) => ({
     item,
     index: scrollOffset + i,
@@ -400,96 +440,6 @@ function buildScrollResult<T>(
     overflowTop: scrollOffset,
     overflowBottom: Math.max(0, items.length - endIndex),
   }
-}
-
-/** Find initial scroll offset to center selected item */
-function findInitialScrollOffset(
-  heights: number[],
-  selectedIndex: number,
-  availableHeight: number,
-  itemCount: number,
-): number {
-  const selectedHeight = heights[selectedIndex] ?? 1
-  let heightBefore = 0
-  for (let i = 0; i < selectedIndex; i++) {
-    heightBefore += heights[i] ?? 0
-  }
-
-  const targetScrollTop = heightBefore - (availableHeight - selectedHeight) / 2
-
-  let scrollOffset = 0
-  let cumulativeHeight = 0
-  for (let i = 0; i < itemCount; i++) {
-    if (cumulativeHeight >= targetScrollTop) {
-      scrollOffset = i
-      break
-    }
-    cumulativeHeight += heights[i] ?? 0
-    scrollOffset = i + 1
-  }
-
-  return Math.max(0, Math.min(scrollOffset, itemCount - 1))
-}
-
-/** Calculate visible range from a given scroll offset */
-function calculateVisibleRange(
-  heights: number[],
-  scrollOffset: number,
-  availableHeight: number,
-  indicatorHeight: number,
-  itemCount: number,
-): { scrollOffset: number; endIndex: number } {
-  const hasTopIndicator = scrollOffset > 0
-  const effectiveHeight =
-    availableHeight - (hasTopIndicator ? indicatorHeight : 0)
-
-  let usedHeight = 0
-  let endIndex = scrollOffset
-
-  for (let i = scrollOffset; i < itemCount; i++) {
-    const itemH = heights[i] ?? 1
-    const needsBottomIndicator = i + 1 < itemCount
-    const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0
-
-    if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
-      usedHeight += itemH
-      endIndex = i + 1
-    } else {
-      break
-    }
-  }
-
-  return { scrollOffset, endIndex }
-}
-
-/** Find scroll offset that ensures selected item is visible (scrolling up from selected) */
-function findOffsetToShowSelected(
-  heights: number[],
-  selectedIndex: number,
-  availableHeight: number,
-  indicatorHeight: number,
-  itemCount: number,
-): number {
-  let usedHeight = heights[selectedIndex] ?? 1
-  let scrollOffset = selectedIndex
-
-  const hasBottomIndicator = selectedIndex + 1 < itemCount
-  const effectiveHeight =
-    availableHeight -
-    indicatorHeight -
-    (hasBottomIndicator ? indicatorHeight : 0)
-
-  for (let i = selectedIndex - 1; i >= 0; i--) {
-    const h = heights[i] ?? 0
-    if (usedHeight + h <= effectiveHeight) {
-      usedHeight += h
-      scrollOffset = i
-    } else {
-      break
-    }
-  }
-
-  return scrollOffset
 }
 
 // =============================================================================

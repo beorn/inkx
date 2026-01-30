@@ -277,64 +277,6 @@ function findChildByName(
 }
 
 /**
- * Get nodes at a given cursor position
- */
-function getNodesAtCursor(rootNodes: TNode[], cursor: TPath): TNode[] {
-  let nodes = rootNodes
-  for (const idx of cursor) {
-    const node = nodes[idx]
-    if (node) {
-      nodes = node.children
-    }
-  }
-  return nodes
-}
-
-/**
- * Get children of the current cursor position for relative path navigation
- */
-function getChildrenForRelativePath(state: BoardState): {
-  nodes: TNode[]
-  error?: string
-} {
-  let nodes = state.nodes
-
-  // Navigate to parent of cursor position
-  for (const idx of state.cursor.slice(0, -1)) {
-    const node = nodes[idx]
-    if (!node) {
-      return { nodes: [], error: "Invalid current path" }
-    }
-    nodes = node.children
-  }
-
-  // Get children of current node
-  const lastIdx = state.cursor[state.cursor.length - 1]
-  if (lastIdx !== undefined) {
-    const currentNode = nodes[lastIdx]
-    if (currentNode) {
-      nodes = currentNode.children
-    }
-  }
-
-  return { nodes }
-}
-
-/**
- * Handle parent directory navigation (..)
- */
-function handleParentNav(
-  state: BoardState,
-  cursor: TPath,
-): { cursor: TPath; nodes: TNode[] } {
-  if (cursor.length === 0) {
-    return { cursor, nodes: state.nodes }
-  }
-  const newCursor = cursor.slice(0, -1)
-  return { cursor: newCursor, nodes: getNodesAtCursor(state.nodes, newCursor) }
-}
-
-/**
  * Resolve a path string to a cursor path
  * Supports: /, .., relative paths, absolute paths from root
  */
@@ -343,30 +285,49 @@ function resolvePath(
   pathStr: string,
 ): { cursor: TPath; error?: string } {
   const parts = pathStr.split("/").filter((p) => p.length > 0)
-  const isAbsolute = pathStr.startsWith("/")
 
-  let cursor: TPath = isAbsolute ? [] : [...state.cursor]
-  let nodes: TNode[]
+  // Start from root or current position
+  let cursor: TPath = pathStr.startsWith("/") ? [] : [...state.cursor]
+  let nodes = state.nodes
 
-  // Initialize nodes based on path type
-  if (isAbsolute || cursor.length === 0) {
-    nodes = state.nodes
-  } else {
-    const result = getChildrenForRelativePath(state)
-    if (result.error) {
-      return { cursor: [], error: result.error }
+  // Navigate to the position indicated by cursor
+  if (cursor.length > 0 && !pathStr.startsWith("/")) {
+    for (const idx of cursor.slice(0, -1)) {
+      const node = nodes[idx]
+      if (!node) {
+        return { cursor: [], error: "Invalid current path" }
+      }
+      nodes = node.children
     }
-    nodes = result.nodes
+    // Get the current node's children for relative navigation
+    const lastIdx = cursor[cursor.length - 1]
+    if (lastIdx !== undefined) {
+      const currentNode = nodes[lastIdx]
+      if (currentNode) {
+        nodes = currentNode.children
+      }
+    }
   }
 
   for (const part of parts) {
     if (part === "..") {
-      const navResult = handleParentNav(state, cursor)
-      cursor = navResult.cursor
-      nodes = navResult.nodes
+      // Go up one level
+      if (cursor.length > 0) {
+        cursor = cursor.slice(0, -1)
+        // Recalculate nodes for the new position
+        nodes = state.nodes
+        for (const idx of cursor) {
+          const node = nodes[idx]
+          if (node) {
+            nodes = node.children
+          }
+        }
+      }
     } else if (part === ".") {
+      // Stay at current position
       continue
     } else {
+      // Find child by name
       const found = findChildByName(nodes, part)
       if (!found) {
         return { cursor, error: `No such node: ${part}` }
@@ -596,188 +557,6 @@ function catNode(state: BoardState, pathStr?: string): string {
   return lines.join("\n")
 }
 
-// ===== Shell command output helpers =====
-
-/**
- * Output helper that handles both JSON and line modes
- */
-function emitOutput(ctx: ShellContext, text: string, ts: number): void {
-  if (ctx.jsonMode) {
-    ctx.output({ event: "output", text, ts })
-  } else {
-    ctx.output(text)
-  }
-}
-
-/**
- * Output state in appropriate format
- */
-function emitState(ctx: ShellContext, ts: number): void {
-  if (ctx.jsonMode) {
-    ctx.output({ event: "state", state: serializeState(ctx.state), ts })
-  } else {
-    ctx.output(formatStateHuman(ctx.state))
-  }
-}
-
-/**
- * Output error in appropriate format
- */
-function emitError(ctx: ShellContext, error: string, ts: number): void {
-  if (ctx.jsonMode) {
-    ctx.output({ event: "error", error, ts })
-  } else {
-    ctx.output(`error: ${error}`)
-  }
-}
-
-// ===== Shell command handlers =====
-
-type CommandResult = { quit: boolean }
-
-function handleState(ctx: ShellContext, ts: number): CommandResult {
-  emitState(ctx, ts)
-  return { quit: false }
-}
-
-function handleView(ctx: ShellContext, ts: number): CommandResult {
-  emitOutput(ctx, renderAsciiView(ctx.state), ts)
-  return { quit: false }
-}
-
-async function handleRender(
-  command: Extract<ShellCommand, { type: "RENDER" }>,
-  ctx: ShellContext,
-  ts: number,
-): Promise<CommandResult> {
-  const { renderTree } = await import("./treeRenderer.tsx")
-  const view = await renderTree(ctx.state, {
-    width: command.width,
-    height: command.height,
-    ansi: command.ansi,
-  })
-  emitOutput(ctx, view, ts)
-  return { quit: false }
-}
-
-function handleHelp(
-  command: Extract<ShellCommand, { type: "HELP" }>,
-  ctx: ShellContext,
-  ts: number,
-): CommandResult {
-  emitOutput(ctx, getCommandHelp(command.topic), ts)
-  return { quit: false }
-}
-
-function handleLog(
-  command: Extract<ShellCommand, { type: "LOG" }>,
-  ctx: ShellContext,
-  ts: number,
-): CommandResult {
-  const log = ctx.actionLog ?? []
-  if (log.length === 0) {
-    emitOutput(ctx, "(no actions)", ts)
-    return { quit: false }
-  }
-
-  const count = command.count ?? log.length
-  const entries = log.slice(-count)
-  const lines = entries.map(
-    (entry) => `${entry.action.type} → cursor=[${entry.cursor.join(",")}]`,
-  )
-  emitOutput(ctx, lines.join("\n"), ts)
-  return { quit: false }
-}
-
-function handlePwd(ctx: ShellContext, ts: number): CommandResult {
-  emitOutput(ctx, getPathAsString(ctx.state), ts)
-  return { quit: false }
-}
-
-function handleLs(
-  command: Extract<ShellCommand, { type: "LS" }>,
-  ctx: ShellContext,
-  ts: number,
-): CommandResult {
-  emitOutput(ctx, listNodes(ctx.state, command.path), ts)
-  return { quit: false }
-}
-
-function handleCd(
-  command: Extract<ShellCommand, { type: "CD" }>,
-  ctx: ShellContext,
-  ts: number,
-): CommandResult {
-  const result = navigateToPath(ctx.state, command.path)
-  if (result.error) {
-    if (ctx.jsonMode) {
-      ctx.output({ event: "error", error: result.error, ts })
-    } else {
-      ctx.output(`cd: ${result.error}`)
-    }
-    return { quit: false }
-  }
-
-  if (result.newCursor) {
-    ctx.state = { ...ctx.state, cursor: result.newCursor }
-    if (ctx.jsonMode) {
-      ctx.output({ event: "state", state: serializeState(ctx.state), ts })
-    } else if (ctx.verbose) {
-      const node = getNodeAtPath(ctx.state.nodes, result.newCursor)
-      ctx.output(`cd: ${node?.title ?? "(unknown)"}`)
-    }
-  }
-  return { quit: false }
-}
-
-function handleTree(
-  command: Extract<ShellCommand, { type: "TREE" }>,
-  ctx: ShellContext,
-  ts: number,
-): CommandResult {
-  emitOutput(ctx, renderTreeCommand(ctx.state, command.path, command.depth), ts)
-  return { quit: false }
-}
-
-function handleCat(
-  command: Extract<ShellCommand, { type: "CAT" }>,
-  ctx: ShellContext,
-  ts: number,
-): CommandResult {
-  emitOutput(ctx, catNode(ctx.state, command.path), ts)
-  return { quit: false }
-}
-
-function handleMutation(
-  command: ShellCommand,
-  ctx: ShellContext,
-  ts: number,
-): CommandResult {
-  if (!ctx.onMutation) {
-    emitError(ctx, "Mutation commands require storage integration", ts)
-    return { quit: false }
-  }
-
-  const result = ctx.onMutation(command, ctx.state)
-  if (!result.ok) {
-    emitError(ctx, result.error ?? "Unknown error", ts)
-    return { quit: false }
-  }
-
-  if (result.newState) {
-    ctx.state = result.newState
-    if (ctx.jsonMode) {
-      ctx.output({ event: "state", state: serializeState(ctx.state), ts })
-    } else if (ctx.verbose) {
-      const node = getNodeAtPath(ctx.state.nodes, ctx.state.cursor)
-      ctx.output(
-        `mutation: ${command.type} → ${node?.title ?? "(cursor moved)"}`,
-      )
-    }
-  }
-  return { quit: false }
-}
-
 /**
  * Execute a shell command (not a BoardAction)
  */
@@ -788,33 +567,181 @@ export async function executeShellCommand(
   const ts = Date.now()
 
   switch (command.type) {
-    case "STATE":
-      return handleState(ctx, ts)
-    case "VIEW":
-      return handleView(ctx, ts)
-    case "RENDER":
-      return handleRender(command, ctx, ts)
-    case "HELP":
-      return handleHelp(command, ctx, ts)
-    case "LOG":
-      return handleLog(command, ctx, ts)
+    case "STATE": {
+      if (ctx.jsonMode) {
+        ctx.output({ event: "state", state: serializeState(ctx.state), ts })
+      } else {
+        ctx.output(formatStateHuman(ctx.state))
+      }
+      return { quit: false }
+    }
+
+    case "VIEW": {
+      const view = renderAsciiView(ctx.state)
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: view, ts })
+      } else {
+        ctx.output(view)
+      }
+      return { quit: false }
+    }
+
+    case "RENDER": {
+      // Lazy import to avoid loading inkx at module load time
+      const { renderTree } = await import("./treeRenderer.tsx")
+      const view = await renderTree(ctx.state, {
+        width: command.width,
+        height: command.height,
+        ansi: command.ansi,
+      })
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: view, ts })
+      } else {
+        ctx.output(view)
+      }
+      return { quit: false }
+    }
+
+    case "HELP": {
+      const help = getCommandHelp(command.topic)
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: help, ts })
+      } else {
+        ctx.output(help)
+      }
+      return { quit: false }
+    }
+
+    case "LOG": {
+      // Output last n actions (default: all)
+      const log = ctx.actionLog ?? []
+      if (log.length === 0) {
+        if (ctx.jsonMode) {
+          ctx.output({ event: "output", text: "(no actions)", ts })
+        } else {
+          ctx.output("(no actions)")
+        }
+      } else {
+        const count = command.count ?? log.length
+        const entries = log.slice(-count)
+        const lines = entries.map(
+          (entry) =>
+            `${entry.action.type} → cursor=[${entry.cursor.join(",")}]`,
+        )
+        if (ctx.jsonMode) {
+          ctx.output({ event: "output", text: lines.join("\n"), ts })
+        } else {
+          ctx.output(lines.join("\n"))
+        }
+      }
+      return { quit: false }
+    }
+
     case "QUIT":
       return { quit: true }
-    case "PWD":
-      return handlePwd(ctx, ts)
 
-    case "LS":
-      return handleLs(command, ctx, ts)
-    case "CD":
-      return handleCd(command, ctx, ts)
-    case "TREE":
-      return handleTree(command, ctx, ts)
-    case "CAT":
-      return handleCat(command, ctx, ts)
+    // === Filesystem-like commands (REPL mode) ===
+
+    case "PWD": {
+      const path = getPathAsString(ctx.state)
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: path, ts })
+      } else {
+        ctx.output(path)
+      }
+      return { quit: false }
+    }
+
+    case "LS": {
+      const result = listNodes(ctx.state, command.path)
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: result, ts })
+      } else {
+        ctx.output(result)
+      }
+      return { quit: false }
+    }
+
+    case "CD": {
+      const result = navigateToPath(ctx.state, command.path)
+      if (result.error) {
+        if (ctx.jsonMode) {
+          ctx.output({ event: "error", error: result.error, ts })
+        } else {
+          ctx.output(`cd: ${result.error}`)
+        }
+      } else if (result.newCursor) {
+        // Update state cursor
+        ctx.state = { ...ctx.state, cursor: result.newCursor }
+        if (ctx.jsonMode) {
+          ctx.output({ event: "state", state: serializeState(ctx.state), ts })
+        } else if (ctx.verbose) {
+          const node = getNodeAtPath(ctx.state.nodes, result.newCursor)
+          ctx.output(`cd: ${node?.title ?? "(unknown)"}`)
+        }
+      }
+      return { quit: false }
+    }
+
+    case "TREE": {
+      const result = renderTreeCommand(ctx.state, command.path, command.depth)
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: result, ts })
+      } else {
+        ctx.output(result)
+      }
+      return { quit: false }
+    }
+
+    case "CAT": {
+      const result = catNode(ctx.state, command.path)
+      if (ctx.jsonMode) {
+        ctx.output({ event: "output", text: result, ts })
+      } else {
+        ctx.output(result)
+      }
+      return { quit: false }
+    }
+
+    // === Mutation commands (require onMutation handler) ===
+
     case "SET_STATUS":
     case "DELETE":
-    case "SHIFT":
-      return handleMutation(command, ctx, ts)
+    case "SHIFT": {
+      if (!ctx.onMutation) {
+        const msg = "Mutation commands require storage integration"
+        if (ctx.jsonMode) {
+          ctx.output({ event: "error", error: msg, ts })
+        } else {
+          ctx.output(`error: ${msg}`)
+        }
+        return { quit: false }
+      }
+
+      const result = ctx.onMutation(command, ctx.state)
+      if (!result.ok) {
+        if (ctx.jsonMode) {
+          ctx.output({
+            event: "error",
+            error: result.error ?? "Unknown error",
+            ts,
+          })
+        } else {
+          ctx.output(`error: ${result.error ?? "Unknown error"}`)
+        }
+      } else if (result.newState) {
+        ctx.state = result.newState
+        if (ctx.jsonMode) {
+          ctx.output({ event: "state", state: serializeState(ctx.state), ts })
+        } else if (ctx.verbose) {
+          const node = getNodeAtPath(ctx.state.nodes, ctx.state.cursor)
+          ctx.output(
+            `mutation: ${command.type} → ${node?.title ?? "(cursor moved)"}`,
+          )
+        }
+      }
+      return { quit: false }
+    }
   }
 }
 
@@ -871,110 +798,6 @@ export function executeBoardAction(
   return newState
 }
 
-// Key map used for KEY: and KEYS: markers
-// Shell uses structural navigation (prev/next/in/out) - no visual cursor logic
-// Note: App-specific actions (modals, search, help) are not available in km-sh
-const KEY_MAP: Record<string, BoardAction> = {
-  // Structural cursor movement (vim style keys)
-  j: { type: "CURSOR_MOVE", dir: "next" },
-  k: { type: "CURSOR_MOVE", dir: "prev" },
-  h: { type: "CURSOR_MOVE", dir: "out" }, // h always goes to parent
-  l: { type: "CURSOR_MOVE", dir: "in" }, // l always goes to child
-  H: { type: "NAV_CROSS_COLUMN", direction: "left" },
-  L: { type: "NAV_CROSS_COLUMN", direction: "right" },
-  g: { type: "CURSOR_MOVE", dir: "first" },
-  G: { type: "CURSOR_MOVE", dir: "last" },
-
-  // Navigation
-  Enter: { type: "CURSOR_MOVE", dir: "in" },
-  Backspace: { type: "CURSOR_MOVE", dir: "out" },
-  u: { type: "CURSOR_MOVE", dir: "out" },
-  "[": { type: "NAV_BACK" },
-  "]": { type: "NAV_FORWARD" },
-
-  // Selection
-  A: { type: "SELECT_ALL_SIBLINGS" },
-  Escape: { type: "CLEAR_SELECTION" },
-
-  // Extend-select (shift+hjkl)
-  J: { type: "EXTEND_SELECT_DOWN" },
-  K: { type: "EXTEND_SELECT_UP" },
-  // Note: H/L are used for cross-column nav, so extend-select left/right
-  // would need different key bindings in a real TUI
-
-  // View controls (fold only - outline depth is app-level)
-  z: { type: "TOGGLE_FOLD_CURRENT" },
-  Z: { type: "UNFOLD_ALL" },
-
-  // Moving (m + destination)
-  m: { type: "ENTER_MOVE_MODE" },
-}
-
-/**
- * Handle single key command (KEY: marker)
- */
-function handleSingleKey(
-  key: string,
-  ctx: ShellContext,
-  ts: number,
-): { state: BoardState; quit: boolean } {
-  const action = KEY_MAP[key]
-  if (action) {
-    return { state: executeBoardAction(action, ctx), quit: false }
-  }
-  emitError(ctx, `Unknown key: ${key}`, ts)
-  return { state: ctx.state, quit: false }
-}
-
-/**
- * Handle key sequence command (KEYS: marker)
- */
-function handleKeySequence(
-  keys: string[],
-  ctx: ShellContext,
-  ts: number,
-): { state: BoardState; quit: boolean } {
-  let currentState = ctx.state
-  for (const key of keys) {
-    const action = KEY_MAP[key]
-    if (!action) {
-      emitError(ctx, `Unknown key: ${key}`, ts)
-      return { state: currentState, quit: false }
-    }
-    ctx.state = currentState
-    currentState = executeBoardAction(action, ctx)
-  }
-  return { state: currentState, quit: false }
-}
-
-/**
- * Handle parse error from command parsing
- */
-function handleParseError(
-  error: string,
-  ctx: ShellContext,
-  ts: number,
-): { state: BoardState; quit: boolean } | null {
-  // Check for special KEY: marker (single key)
-  if (error.startsWith("KEY:")) {
-    return handleSingleKey(error.slice(4), ctx, ts)
-  }
-
-  // Check for special KEYS: marker (key sequence)
-  if (error.startsWith("KEYS:")) {
-    return handleKeySequence(error.slice(5).split(","), ctx, ts)
-  }
-
-  // Skip empty lines/comments silently
-  if (error === "empty") {
-    return { state: ctx.state, quit: false }
-  }
-
-  // Report error
-  emitError(ctx, error, ts)
-  return { state: ctx.state, quit: false }
-}
-
 /**
  * Execute a single command line
  * Returns new state and whether to quit
@@ -986,22 +809,106 @@ export async function executeCommand(
   const ts = Date.now()
   const result = parseCommand(line)
 
+  // Key map used for KEY: and KEYS: markers
+  // Shell uses structural navigation (prev/next/in/out) - no visual cursor logic
+  // Note: App-specific actions (modals, search, help) are not available in km-sh
+  const keyMap: Record<string, BoardAction> = {
+    // Structural cursor movement (vim style keys)
+    j: { type: "CURSOR_MOVE", dir: "next" },
+    k: { type: "CURSOR_MOVE", dir: "prev" },
+    h: { type: "CURSOR_MOVE", dir: "out" }, // h always goes to parent
+    l: { type: "CURSOR_MOVE", dir: "in" }, // l always goes to child
+    H: { type: "NAV_CROSS_COLUMN", direction: "left" },
+    L: { type: "NAV_CROSS_COLUMN", direction: "right" },
+    g: { type: "CURSOR_MOVE", dir: "first" },
+    G: { type: "CURSOR_MOVE", dir: "last" },
+
+    // Navigation
+    Enter: { type: "CURSOR_MOVE", dir: "in" },
+    Backspace: { type: "CURSOR_MOVE", dir: "out" },
+    u: { type: "CURSOR_MOVE", dir: "out" },
+    "[": { type: "NAV_BACK" },
+    "]": { type: "NAV_FORWARD" },
+
+    // Selection
+    A: { type: "SELECT_ALL_SIBLINGS" },
+    Escape: { type: "CLEAR_SELECTION" },
+
+    // Extend-select (shift+hjkl)
+    J: { type: "EXTEND_SELECT_DOWN" },
+    K: { type: "EXTEND_SELECT_UP" },
+    // Note: H/L are used for cross-column nav, so extend-select left/right
+    // would need different key bindings in a real TUI
+
+    // View controls (fold only - outline depth is app-level)
+    z: { type: "TOGGLE_FOLD_CURRENT" },
+    Z: { type: "UNFOLD_ALL" },
+
+    // Moving (m + destination)
+    m: { type: "ENTER_MOVE_MODE" },
+  }
+
   if (!result.ok) {
-    return (
-      handleParseError(result.error, ctx, ts) ?? {
-        state: ctx.state,
-        quit: false,
+    // Check for special KEY: marker (single key)
+    if (result.error.startsWith("KEY:")) {
+      const key = result.error.slice(4)
+      const action = keyMap[key]
+      if (action) {
+        const newState = executeBoardAction(action, ctx)
+        return { state: newState, quit: false }
+      } else {
+        if (ctx.jsonMode) {
+          ctx.output({ event: "error", error: `Unknown key: ${key}`, ts })
+        } else {
+          ctx.output(`error: Unknown key: ${key}`)
+        }
+        return { state: ctx.state, quit: false }
       }
-    )
+    }
+
+    // Check for special KEYS: marker (key sequence)
+    if (result.error.startsWith("KEYS:")) {
+      const keys = result.error.slice(5).split(",")
+      let currentState = ctx.state
+      for (const key of keys) {
+        const action = keyMap[key]
+        if (action) {
+          ctx.state = currentState
+          currentState = executeBoardAction(action, ctx)
+        } else {
+          if (ctx.jsonMode) {
+            ctx.output({ event: "error", error: `Unknown key: ${key}`, ts })
+          } else {
+            ctx.output(`error: Unknown key: ${key}`)
+          }
+          return { state: currentState, quit: false }
+        }
+      }
+      return { state: currentState, quit: false }
+    }
+
+    // Skip empty lines/comments silently
+    if (result.error === "empty") {
+      return { state: ctx.state, quit: false }
+    }
+
+    // Report error
+    if (ctx.jsonMode) {
+      ctx.output({ event: "error", error: result.error, ts })
+    } else {
+      ctx.output(`error: ${result.error}`)
+    }
+    return { state: ctx.state, quit: false }
   }
 
   // Execute shell command or tree action
   if ("command" in result) {
     const { quit } = await executeShellCommand(result.command, ctx)
     return { state: ctx.state, quit }
+  } else {
+    const newState = executeBoardAction(result.action, ctx)
+    return { state: newState, quit: false }
   }
-
-  return { state: executeBoardAction(result.action, ctx), quit: false }
 }
 
 /**

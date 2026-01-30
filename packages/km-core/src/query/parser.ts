@@ -137,19 +137,10 @@ interface TokenInfo {
 }
 
 /**
- * Context for token parsing
+ * Parse a query string into an AST
  */
-interface ParseContext {
-  term: string
-  negated: boolean
-  offset: QueryOffset
-}
-
-/**
- * Create empty AST
- */
-function createEmptyAST(): QueryAST {
-  return {
+export function parseQuery(query: string): QueryAST {
+  const ast: QueryAST = {
     conditions: [],
     refs: [],
     paths: [],
@@ -160,17 +151,21 @@ function createEmptyAST(): QueryAST {
     textTerms: [],
     phraseTerms: [],
   }
-}
 
-/**
- * Tokenize query string preserving quoted phrases
- */
-function tokenize(query: string): TokenInfo[] {
+  if (!query || query.trim() === "") {
+    return ast
+  }
+
+  // Tokenize by splitting on whitespace, but preserve quoted strings
+  // Track positions for each token
   const tokens: TokenInfo[] = []
   const regex = /"([^"]+)"|(\S+)/g
   let match
   while ((match = regex.exec(query)) !== null) {
+    // match[1] is content inside quotes (phrase search)
+    // match[2] is unquoted token
     if (match[1] !== undefined) {
+      // Quoted phrase - track full match including quotes
       tokens.push({
         value: match[1],
         start: match.index,
@@ -186,249 +181,191 @@ function tokenize(query: string): TokenInfo[] {
       })
     }
   }
-  return tokens
-}
 
-/**
- * Try to parse a reference token (@mention, #tag, +project)
- */
-function tryParseRef(ctx: ParseContext, ast: QueryAST): boolean {
-  const { term, negated, offset } = ctx
-  const prefixMap: Record<string, QueryRef["type"]> = {
-    "@": "person",
-    "#": "tag",
-    "+": "project",
-  }
-  const prefix = term[0]
-  const type = prefixMap[prefix]
-  if (!type) return false
+  for (const tokenInfo of tokens) {
+    const { value: token, start, end, isPhrase } = tokenInfo
 
-  ast.refs.push({
-    type,
-    value: term.slice(1),
-    negated,
-    offset,
-  })
-  return true
-}
-
-/**
- * Check if term looks like a path pattern
- */
-function isPathPattern(term: string): boolean {
-  return (
-    term.startsWith("./") ||
-    term.startsWith("/") ||
-    term.endsWith("/") ||
-    term.includes("**")
-  )
-}
-
-/**
- * Try to parse a path pattern token
- */
-function tryParsePath(ctx: ParseContext, ast: QueryAST): boolean {
-  const { term, negated, offset } = ctx
-  if (!isPathPattern(term)) return false
-
-  const recursive = term.endsWith("**")
-  let pattern = term
-
-  if (recursive) {
-    pattern = term.slice(0, -2)
-    if (pattern.endsWith("/")) {
-      pattern = pattern.slice(0, -1)
+    // Handle quoted phrases
+    if (isPhrase) {
+      ast.phrases.push(token)
+      ast.phraseTerms.push({
+        value: token,
+        offset: { start, end },
+      })
+      continue
     }
-  }
 
-  ast.paths.push({ pattern, recursive, negated, offset })
-  return true
-}
+    if (!token) continue
 
-/**
- * Try to parse property existence check (prop::*)
- */
-function tryParsePropExists(
-  propName: string,
-  propValue: string,
-  ctx: ParseContext,
-  ast: QueryAST,
-): boolean {
-  if (propValue !== "*") return false
+    // Check for negation prefix
+    const negated = token.startsWith("-")
+    const term = negated ? token.slice(1) : token
+    const offset: QueryOffset = { start, end }
 
-  ast.propConditions.push({
-    prop: propName.toLowerCase(),
-    op: "exists",
-    negated: ctx.negated,
-    offset: ctx.offset,
-  })
-  return true
-}
+    // @mention
+    if (term.startsWith("@")) {
+      ast.refs.push({
+        type: "person",
+        value: term.slice(1),
+        negated,
+        offset,
+      })
+      continue
+    }
 
-/**
- * Try to parse property comparison (prop::>N, prop::<=N, etc.)
- */
-function tryParsePropComparison(
-  propName: string,
-  propValue: string,
-  ctx: ParseContext,
-  ast: QueryAST,
-): boolean {
-  const compMatch = propValue.match(/^(>=|<=|>|<)(-?\d+(?:\.\d+)?)$/)
-  if (!compMatch) return false
+    // #tag
+    if (term.startsWith("#")) {
+      ast.refs.push({
+        type: "tag",
+        value: term.slice(1),
+        negated,
+        offset,
+      })
+      continue
+    }
 
-  const [, compOp, numStr] = compMatch
-  ast.propConditions.push({
-    prop: propName.toLowerCase(),
-    op: compOp as ">" | "<" | ">=" | "<=",
-    value: parseFloat(numStr ?? "0"),
-    negated: ctx.negated,
-    offset: ctx.offset,
-  })
-  return true
-}
+    // +project
+    if (term.startsWith("+")) {
+      ast.refs.push({
+        type: "project",
+        value: term.slice(1),
+        negated,
+        offset,
+      })
+      continue
+    }
 
-/**
- * Parse property equality (prop::value)
- */
-function parsePropEquality(
-  propName: string,
-  propValue: string,
-  ctx: ParseContext,
-  ast: QueryAST,
-): void {
-  const numValue = parseFloat(propValue)
-  const isNumber = !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue)
+    // Path patterns: ./path, /path, path/, **
+    // - ./path/** - relative path with recursive
+    // - /absolute/path - absolute path
+    // - path/ - contains path segment
+    if (
+      term.startsWith("./") ||
+      term.startsWith("/") ||
+      term.endsWith("/") ||
+      term.includes("**")
+    ) {
+      const recursive = term.endsWith("**")
+      let pattern = term
 
-  ast.propConditions.push({
-    prop: propName.toLowerCase(),
-    op: ctx.negated ? "!=" : "=",
-    value: isNumber ? numValue : propValue,
-    negated: ctx.negated,
-    offset: ctx.offset,
-  })
-}
+      // Remove ** suffix for cleaner pattern matching
+      if (recursive) {
+        pattern = term.slice(0, -2)
+        // Also remove trailing slash if present
+        if (pattern.endsWith("/")) {
+          pattern = pattern.slice(0, -1)
+        }
+      }
 
-/**
- * Try to parse a property query (prop::value)
- */
-function tryParseProp(ctx: ParseContext, ast: QueryAST): boolean {
-  const propMatch = ctx.term.match(/^([a-z][a-z0-9_-]*)::(.*)$/i)
-  if (!propMatch) return false
+      ast.paths.push({
+        pattern,
+        recursive,
+        negated,
+        offset,
+      })
+      continue
+    }
 
-  const [, propName, propValue] = propMatch
-  if (!propName || propValue === undefined) return false
+    // Property queries: prop::* (exists), prop::value (equals), prop::>N (comparison)
+    // Pattern: name::value where :: distinguishes from field:value
+    const propMatch = term.match(/^([a-z][a-z0-9_-]*)::(.*)$/i)
+    if (propMatch) {
+      const [, propName, propValue] = propMatch
 
-  if (tryParsePropExists(propName, propValue, ctx, ast)) return true
-  if (tryParsePropComparison(propName, propValue, ctx, ast)) return true
-  parsePropEquality(propName, propValue, ctx, ast)
-  return true
-}
+      if (propValue === "*") {
+        // Existence check: prop::*
+        ast.propConditions.push({
+          prop: propName?.toLowerCase() ?? "",
+          op: "exists",
+          negated,
+          offset,
+        })
+      } else {
+        // Check for comparison operators: >N, <N, >=N, <=N
+        const compMatch = propValue?.match(/^(>=|<=|>|<)(-?\d+(?:\.\d+)?)$/)
+        if (compMatch) {
+          const [, compOp, numStr] = compMatch
+          ast.propConditions.push({
+            prop: propName?.toLowerCase() ?? "",
+            op: compOp as ">" | "<" | ">=" | "<=",
+            value: parseFloat(numStr ?? "0"),
+            negated,
+            offset,
+          })
+        } else {
+          // Value match: prop::value
+          // Check if it's a number
+          const numValue = parseFloat(propValue ?? "")
+          const isNumber =
+            !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "")
 
-/**
- * Try to parse special query (blocked:true/false)
- */
-function tryParseSpecial(ctx: ParseContext, ast: QueryAST): boolean {
-  const lower = ctx.term.toLowerCase()
-  if (lower !== "blocked:true" && lower !== "blocked:false") return false
+          ast.propConditions.push({
+            prop: propName?.toLowerCase() ?? "",
+            op: negated ? "!=" : "=",
+            value: isNumber ? numValue : (propValue ?? ""),
+            negated,
+            offset,
+          })
+        }
+      }
+      continue
+    }
 
-  ast.specials.push({
-    type: "blocked",
-    value: lower === "blocked:true",
-    offset: ctx.offset,
-  })
-  return true
-}
+    // Special queries: blocked:true/false
+    if (
+      term.toLowerCase() === "blocked:true" ||
+      term.toLowerCase() === "blocked:false"
+    ) {
+      ast.specials.push({
+        type: "blocked",
+        value: term.toLowerCase() === "blocked:true",
+        offset,
+      })
+      continue
+    }
 
-/**
- * Map operator string to QueryCondition operator
- */
-function mapOperator(opStr: string, negated: boolean): QueryCondition["op"] {
-  if (opStr === ":" || opStr === "=") return negated ? "!=" : "="
-  if (opStr === "!=") return "!="
-  if (opStr === ">") return ">"
-  if (opStr === "<") return "<"
-  if (opStr === ">=") return ">="
-  if (opStr === "<=") return "<="
-  return "="
-}
+    // field:value (supports comma-separated values like status:open,blocked)
+    const fieldMatch = term.match(/^([a-z_]+)([:=<>!]+)(.+)$/i)
+    if (fieldMatch) {
+      const [, field, opStr, rawValue] = fieldMatch
+      let op: QueryCondition["op"] = "="
 
-/**
- * Try to parse field:value condition
- */
-function tryParseField(ctx: ParseContext, ast: QueryAST): boolean {
-  const fieldMatch = ctx.term.match(/^([a-z_]+)([:=<>!]+)(.+)$/i)
-  if (!fieldMatch) return false
+      // Determine operator
+      if (opStr === ":" || opStr === "=") {
+        op = negated ? "!=" : "="
+      } else if (opStr === "!=") {
+        op = "!="
+      } else if (opStr === ">") {
+        op = ">"
+      } else if (opStr === "<") {
+        op = "<"
+      } else if (opStr === ">=") {
+        op = ">="
+      } else if (opStr === "<=") {
+        op = "<="
+      }
 
-  const [, field, opStr, rawValue] = fieldMatch
-  if (!field || !opStr || !rawValue) return false
+      // Map field aliases
+      const mappedField = mapFieldName(field ?? "")
 
-  ast.conditions.push({
-    field: mapFieldName(field),
-    op: mapOperator(opStr, ctx.negated),
-    value: rawValue,
-    negated: ctx.negated,
-    offset: ctx.offset,
-  })
-  return true
-}
+      // Store value as-is (comma-separated values handled by executor)
+      ast.conditions.push({
+        field: mappedField,
+        op,
+        value: rawValue ?? "",
+        negated,
+        offset,
+      })
+      continue
+    }
 
-/**
- * Add plain text search term
- */
-function addTextTerm(ctx: ParseContext, ast: QueryAST): void {
-  ast.text.push(ctx.negated ? `-${ctx.term}` : ctx.term)
-  ast.textTerms.push({
-    value: ctx.term,
-    negated: ctx.negated,
-    offset: ctx.offset,
-  })
-}
-
-/**
- * Process a single token and add to AST
- */
-function processToken(tokenInfo: TokenInfo, ast: QueryAST): void {
-  const { value: token, start, end, isPhrase } = tokenInfo
-
-  // Handle quoted phrases
-  if (isPhrase) {
-    ast.phrases.push(token)
-    ast.phraseTerms.push({ value: token, offset: { start, end } })
-    return
-  }
-
-  if (!token) return
-
-  // Prepare parsing context
-  const negated = token.startsWith("-")
-  const term = negated ? token.slice(1) : token
-  const ctx: ParseContext = { term, negated, offset: { start, end } }
-
-  // Try each parser in order
-  if (tryParseRef(ctx, ast)) return
-  if (tryParsePath(ctx, ast)) return
-  if (tryParseProp(ctx, ast)) return
-  if (tryParseSpecial(ctx, ast)) return
-  if (tryParseField(ctx, ast)) return
-
-  // Default: plain text search
-  addTextTerm(ctx, ast)
-}
-
-/**
- * Parse a query string into an AST
- */
-export function parseQuery(query: string): QueryAST {
-  const ast = createEmptyAST()
-
-  if (!query || query.trim() === "") {
-    return ast
-  }
-
-  const tokens = tokenize(query)
-  for (const token of tokens) {
-    processToken(token, ast)
+    // Plain text search term
+    ast.text.push(negated ? `-${term}` : term)
+    ast.textTerms.push({
+      value: term,
+      negated,
+      offset,
+    })
   }
 
   return ast

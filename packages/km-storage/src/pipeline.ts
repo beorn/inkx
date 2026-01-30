@@ -147,137 +147,6 @@ export async function* parseFiles(
 // STAGE 2: applyNodes - Buffering
 // ============================================================================
 
-/** Prepared statements for node operations */
-interface NodeStatements {
-  deleteStmt: ReturnType<Database["prepare"]>
-  insertStmt: ReturnType<Database["prepare"]>
-}
-
-/** Context for applying a single file */
-interface ApplyContext {
-  statements: NodeStatements
-  stubInfo?: Map<string, { parent_id: string | null; parent_idx: number }>
-  emitter?: Emitter
-  now: number
-}
-
-/**
- * Insert a single node into the database.
- */
-function insertNode(
-  node: KNode,
-  insertStmt: ReturnType<Database["prepare"]>,
-  now: number,
-): void {
-  const data = node.data ?? {}
-  insertStmt.run(
-    node.id,
-    node.type,
-    node.parent_id ?? null,
-    node.link_to ?? null,
-    node.link_alias ?? null,
-    node.parent_idx ?? 0,
-    node.fs_path ?? null,
-    node.fs_ino ?? null,
-    node.fs_mtime ?? null,
-    node.name ?? null,
-    node.title ?? null,
-    node.md_pos ?? null,
-    node.md_line ?? null,
-    node.md_slug ?? null,
-    node.task_status ?? null,
-    node.task_mark ?? null,
-    node.assigned_to ?? null,
-    node.due_date ?? null,
-    node.scheduled_date ?? null,
-    node.priority ?? null,
-    node.content ?? null,
-    node.content_hash ?? null,
-    JSON.stringify(data),
-    now,
-    now,
-    node.version || "",
-  )
-}
-
-/**
- * Handle file creation: delete stub, insert all nodes.
- */
-function applyCreateFile(file: ParsedFile, ctx: ApplyContext): void {
-  const { statements, stubInfo, emitter, now } = ctx
-  const stub = stubInfo?.get(file.nodeId)
-
-  // Set parent info on file node from stub
-  const fileNode = file.nodes[0]
-  if (fileNode && stub) {
-    fileNode.parent_id = stub.parent_id
-    fileNode.parent_idx = stub.parent_idx
-  }
-
-  // Delete stub if it exists
-  if (stub) {
-    statements.deleteStmt.run(file.nodeId)
-  }
-
-  // Insert all nodes
-  for (const node of file.nodes) {
-    insertNode(node, statements.insertStmt, now)
-
-    if (emitter) {
-      emitNodeCreated(
-        emitter,
-        "fs-watch",
-        node as unknown as Record<string, unknown>,
-      )
-    }
-  }
-}
-
-/**
- * Handle file update: update metadata on existing file node.
- */
-function applyUpdateFile(
-  file: ParsedFile,
-  db: Database,
-  ctx: ApplyContext,
-): void {
-  if (!file.nodes[0]) return
-
-  const { emitter, now } = ctx
-  const updates: Record<string, unknown> = {
-    fs_mtime: file.mtime,
-    fs_ino: file.ino,
-    content_hash: file.hash,
-  }
-
-  db.run(
-    `UPDATE nodes SET fs_mtime = ?, fs_ino = ?, content_hash = ?, updated_at = ? WHERE id = ?`,
-    [file.mtime, file.ino, file.hash, now, file.nodeId],
-  )
-
-  if (emitter) {
-    emitNodeUpdated(emitter, "fs-watch", file.nodeId, updates)
-  }
-}
-
-/**
- * Create prepared statements for node operations.
- */
-function prepareNodeStatements(db: Database): NodeStatements {
-  return {
-    deleteStmt: db.prepare("DELETE FROM nodes WHERE id = ?"),
-    insertStmt: db.prepare(`
-      INSERT INTO nodes (
-        id, type, parent_id, link_to, link_alias, parent_idx,
-        fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
-        task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
-        content, content_hash, data,
-        created_at, updated_at, version
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `),
-  }
-}
-
 /**
  * Apply parsed nodes to database.
  * Exhausts upstream, then applies in single transaction.
@@ -287,30 +156,125 @@ export async function* applyNodes(
   db: Database,
   options: PipelineOptions = {},
 ): AsyncGenerator<AppliedFile> {
-  const files = await collectParsedFiles(upstream, options.signal)
+  const { signal, emitter, stubInfo } = options
+
+  // Collect all parsed files (exhaust upstream)
+  const files: ParsedFile[] = []
+  for await (const file of upstream) {
+    if (signal?.aborted) return
+    files.push(file)
+  }
+
   if (files.length === 0) return
 
   debug("applyNodes: applying %d files", files.length)
 
-  const ctx: ApplyContext = {
-    statements: prepareNodeStatements(db),
-    stubInfo: options.stubInfo,
-    emitter: options.emitter,
-    now: Date.now(),
-  }
+  // Prepare statements
+  const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?")
+  const insertStmt = db.prepare(`
+    INSERT INTO nodes (
+      id, type, parent_id, link_to, link_alias, parent_idx,
+      fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
+      task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+      content, content_hash, data,
+      created_at, updated_at, version
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
 
+  const now = Date.now()
+
+  // Apply in single transaction
   db.run("BEGIN IMMEDIATE")
   try {
     for (const file of files) {
       if (file.error) continue
 
       if (file.isCreate) {
-        applyCreateFile(file, ctx)
+        // Get stub info if available (for deferred parsing)
+        const stub = stubInfo?.get(file.nodeId)
+
+        // Set parent info on file node
+        const fileNode = file.nodes[0]
+        if (fileNode && stub) {
+          fileNode.parent_id = stub.parent_id
+          fileNode.parent_idx = stub.parent_idx
+        }
+
+        // Delete stub if it exists
+        if (stub) {
+          deleteStmt.run(file.nodeId)
+        }
+
+        // Insert all nodes
+        for (const node of file.nodes) {
+          const data = node.data ?? {}
+          insertStmt.run(
+            node.id,
+            node.type,
+            node.parent_id ?? null,
+            node.link_to ?? null,
+            node.link_alias ?? null,
+            node.parent_idx ?? 0,
+            node.fs_path ?? null,
+            node.fs_ino ?? null,
+            node.fs_mtime ?? null,
+            node.name ?? null,
+            node.title ?? null,
+            node.md_pos ?? null,
+            node.md_line ?? null,
+            node.md_slug ?? null,
+            node.task_status ?? null,
+            node.task_mark ?? null,
+            node.assigned_to ?? null,
+            node.due_date ?? null,
+            node.scheduled_date ?? null,
+            node.priority ?? null,
+            node.content ?? null,
+            node.content_hash ?? null,
+            JSON.stringify(data),
+            now,
+            now,
+            node.version || "",
+          )
+
+          // Emit event if emitter provided (syncing path)
+          if (emitter) {
+            emitNodeCreated(
+              emitter,
+              "fs-watch",
+              node as unknown as Record<string, unknown>,
+            )
+          }
+        }
       } else {
-        applyUpdateFile(file, db, ctx)
+        // Update path - update file node metadata
+        if (file.nodes[0]) {
+          const updates: Record<string, unknown> = {
+            fs_mtime: file.mtime,
+            fs_ino: file.ino,
+            content_hash: file.hash,
+          }
+
+          db.run(
+            `UPDATE nodes SET fs_mtime = ?, fs_ino = ?, content_hash = ?, updated_at = ? WHERE id = ?`,
+            [file.mtime, file.ino, file.hash, now, file.nodeId],
+          )
+
+          // Emit update event if emitter provided
+          if (emitter) {
+            emitNodeUpdated(emitter, "fs-watch", file.nodeId, updates)
+          }
+        }
       }
 
-      yield toAppliedFile(file)
+      // Yield with wikilinks for next stage
+      const name = basename(file.path).replace(/\.md$/, "")
+      yield {
+        nodeId: file.nodeId,
+        name,
+        path: file.path,
+        wikilinks: file.wikilinks,
+      }
     }
 
     db.run("COMMIT")
@@ -318,34 +282,6 @@ export async function* applyNodes(
   } catch (error) {
     db.run("ROLLBACK")
     throw error
-  }
-}
-
-/**
- * Collect all parsed files from upstream generator.
- */
-async function collectParsedFiles(
-  upstream: AsyncGenerator<ParsedFile>,
-  signal?: AbortSignal,
-): Promise<ParsedFile[]> {
-  const files: ParsedFile[] = []
-  for await (const file of upstream) {
-    if (signal?.aborted) return files
-    files.push(file)
-  }
-  return files
-}
-
-/**
- * Convert a ParsedFile to an AppliedFile for the next pipeline stage.
- */
-function toAppliedFile(file: ParsedFile): AppliedFile {
-  const name = basename(file.path).replace(/\.md$/, "")
-  return {
-    nodeId: file.nodeId,
-    name,
-    path: file.path,
-    wikilinks: file.wikilinks,
   }
 }
 

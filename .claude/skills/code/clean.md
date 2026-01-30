@@ -19,7 +19,13 @@ argument-hint: [file-or-directory] [--dry-run]
 
 # Clean
 
-Systematic simplification for conciseness and consistency.
+Systematic simplification for **conciseness** and consistency.
+
+## Core Principle
+
+**Good refactoring reduces or maintains line count while improving clarity.**
+
+If your changes add significant lines, you're probably over-engineering. The best refactorings make code shorter AND clearer. When those conflict, prefer clarity - but be skeptical of "clarity" that requires 50 extra lines.
 
 ## Target
 
@@ -116,11 +122,14 @@ If all tests pass, summarize changes:
 
 ## Anti-Patterns (Do NOT)
 
-- Extract helpers for single-use code (3 similar lines is fine)
-- Create abstractions "for future flexibility"
-- Add type complexity that hurts readability
-- Remove comments that explain "why" (keep the narrative)
-- Change behavior while simplifying (refactor ≠ rewrite)
+- **Add lines to reduce complexity scores** - if refactoring adds 50+ lines, stop
+- **Extract helpers for single-use code** - 3 similar lines is fine, don't create a function
+- **Create abstractions "for future flexibility"** - solve today's problem only
+- **Add type complexity that hurts readability** - inference is usually enough
+- **Remove comments that explain "why"** - keep the narrative
+- **Change behavior while simplifying** - refactor ≠ rewrite
+
+**The test**: After refactoring, is the code shorter or the same length? If not, reconsider.
 
 ## Related
 
