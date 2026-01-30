@@ -149,6 +149,70 @@ Enables Claude to see full scope even when previewing with partial reads.
 [Failure procedures]
 ```
 
+## Recommended Patterns
+
+### Common Aliases Table
+
+When users have multiple terms for the same thing, add an aliases table:
+
+```markdown
+## Common Aliases
+
+| User Says | They Mean | Technical ID |
+|-----------|-----------|--------------|
+| "ChatGPT" / "GPT" | Latest GPT | `gpt-5.2` |
+| "deep research" | Research agent | `o3-deep-research` |
+```
+
+**When to use**: Skills wrapping external services, model selectors, commands with multiple names.
+
+### "When to Use" Table
+
+Map user intent phrases to specific actions:
+
+```markdown
+## When to Use
+
+| User Says | Action |
+|-----------|--------|
+| "Ask GPT about X" | `bun llm ask --model gpt-5.2 "X"` |
+| "Get a second opinion" | `bun llm ask "X"` |
+| "Research this topic" | `bun llm research "topic"` |
+```
+
+**When to use**: Skills with multiple commands or modes, ambiguous triggers.
+
+### Cross-Skill Integration
+
+When skills work together, add integration sections:
+
+```markdown
+## Integration with [Other Skill]
+
+- `command-a` uses [other-skill] automatically
+- `--with-feature` includes context from [other-skill]
+- Both share `~/.tool/shared-db.db`
+```
+
+**When to use**: Skills that share data, call each other, or have complementary workflows.
+
+### External Dependencies
+
+Document required configuration for skills that need API keys or setup:
+
+```markdown
+## Missing Capabilities
+
+| Capability | Requires | Setup |
+|------------|----------|-------|
+| Deep Research | OpenAI | `export OPENAI_API_KEY=...` |
+| Web Search | Perplexity | `export PERPLEXITY_API_KEY=...` |
+
+Run `command --help` to see which providers are ready vs missing.
+```
+
+**When to use**: Skills wrapping external APIs, optional integrations.
+
 ## CLAUDE.md Decision Tree
 
 Ask in order—first "yes" wins:

@@ -108,3 +108,18 @@ bun fix # Lint + format
 - Keep <60 lines (loads every message)
 - Commands and pointers, not full docs
 - Document key constraints
+
+## Best Practices Checklist
+
+When creating/editing skills, check these patterns:
+
+| Pattern | When to Add | Example |
+|---------|-------------|---------|
+| **Description with "Use when..."** | Always | "Queries LLMs. Use when user mentions GPT or wants second opinion." |
+| **Quick Reference table** | Multiple commands | `\| Goal \| Command \|` at top |
+| **"When to Use" table** | Ambiguous triggers | `\| User Says \| Action \|` |
+| **Common Aliases table** | Multiple terms for same thing | ChatGPT → gpt-5.2, deep research → o3 |
+| **Cross-skill integration** | Works with other skills | "Integration with [other-skill]" section |
+| **Missing Capabilities table** | Needs API keys/config | `\| Capability \| Setup \|` |
+
+**Full details**: [review-reference.md](review-reference.md#recommended-patterns)
