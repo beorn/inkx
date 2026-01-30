@@ -35,10 +35,11 @@ Commit changes and create releases.
 
 ## Sub-Skills
 
-| File                     | Purpose                                |
-| ------------------------ | -------------------------------------- |
-| [commit.md](commit.md)   | Multi-repo commit workflow, submodules |
-| [release.md](release.md) | GitHub release process, versioning     |
+| File                       | Purpose                                |
+| -------------------------- | -------------------------------------- |
+| [commit.md](commit.md)     | Multi-repo commit workflow, submodules |
+| [release.md](release.md)   | GitHub release process, versioning     |
+| [worktree.md](worktree.md) | Parallel development with worktrees    |
 
 ## Conventional Commit Types
 

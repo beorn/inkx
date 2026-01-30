@@ -46,6 +46,7 @@ import { bdCommand } from "./commands/bd.ts"
 import { agentCommand } from "./commands/agent.ts"
 import { statsCommand } from "./commands/stats.ts"
 import { screenshotCommand } from "./commands/screenshot.ts"
+import { worktreeCommand } from "./commands/worktree.ts"
 
 // Global state for resolved root path (set in preAction, used by commands)
 let resolvedRootPath: string | undefined
@@ -252,6 +253,7 @@ Environment:
   program.addCommand(agentCommand) // km agent - AI agent management
   program.addCommand(statsCommand) // km stats [path] - repo statistics (domain object example)
   program.addCommand(screenshotCommand) // km screenshot [root] - capture TUI as text
+  program.addCommand(worktreeCommand) // km worktree {create,remove,list} - git worktree management
 
   // Handle unknown commands with helpful error message
   program.action((_options, command) => {
