@@ -11,7 +11,7 @@ Review tests for pruning, overlap, and architecture alignment.
 **Target**: $ARGUMENTS
 **Reference**: See `docs/dev/test-review.md` for full checklist and guidelines.
 **Fakes Guide**: See `docs/dev/test-fakes.md` for fake inventory and when to use each.
-**Related**: `/review-code` (architecture), `/review-types` (type safety)
+**Related**: `/code review` (architecture), `/code types` (type safety)
 
 ## Contents
 

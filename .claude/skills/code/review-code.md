@@ -26,32 +26,61 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 
 **Focus**: $ARGUMENTS → if empty, review all areas; otherwise limit to specified area
 
-**Architecture**: See CLAUDE.md §1 "Clear Layering". Rules: layers call only below, UI never touches fs, parser is stateless.
+**Related**: `/code types` (type safety), `/tests review` (test suite)
 
-**Related**: `/review-types` (type safety), `/review-tests` (test suite)
+## Code Style Rules (from CLAUDE.md)
+
+**Patterns (must have):**
+- Factory functions (`createX()` with `XOptions`), not classes
+- Explicit deps via `options.inject`, no globals/singletons/`getX()`
+- Async generators for pipelines, not `Promise.all` chains
+- `using`/`await using` for cleanup (`Symbol.dispose`)
+
+**Code Layout:**
+- ESM imports only (`import`/`export`, never `require`)
+- Package names (`inkx`), never relative `../vendor/...`
+- Helpers after `return` or end of file
+
+**Avoid:**
+- Prop drilling (use spread, align names across layers)
+- Import side effects (module init must not perform work)
+- Config files (sensible defaults → arguments → config as last resort)
+- Classes (exception: infrastructure extending EventEmitter)
+
+**Architecture:**
+- Layers: App → Board → Tree → Storage → Parser → Filesystem
+- Each layer calls only layer below
+- UI never touches filesystem directly
 
 ## Contents
 
+- [Code Style Rules](#code-style-rules-from-claudemd)
 - [Finding Types](#finding-types)
 - [Iteration 0.5: Pre-Survey Check](#iteration-05-pre-survey-check-project-wide-reviews-only)
 - [Iteration 1: Survey](#iteration-1-survey)
 - [Iteration 2: Filter](#iteration-2-filter)
 - [Iteration 3: Present](#iteration-3-present)
-- [Summary](#summary)
+- [Retrospective](#retrospective-process-improvement)
 
 ## Finding Types
 
-| Type             | Signal                                                                      |
-| ---------------- | --------------------------------------------------------------------------- |
-| Layer violation  | `km-cli` imports `fs`/`path`, parser has state, sync writes SQLite directly |
-| Over-engineering | 1-implementation interface, unused config, single-use generic               |
-| Code smell       | Duplicated logic, dead export, 400+ line file, classes, singletons          |
-| Test gap         | Untested public API, `test1()` name, mock of internal                       |
-| Doc drift        | Spec/code mismatch, stale CLAUDE.md                                         |
-| Unused code      | Files/exports/deps flagged by knip, dead code paths                         |
-| Arch violation   | Classes (not factories), module-level state, global getters                 |
-| Deprecated code  | Functions marked @deprecated, backwards compat shims                        |
-| Vendor path      | Import via path (e.g., `../vendor/`) instead of package name                |
+| Type               | Signal                                                                      |
+| ------------------ | --------------------------------------------------------------------------- |
+| Layer violation    | `km-cli` imports `fs`/`path`, parser has state, sync writes SQLite directly |
+| Over-engineering   | 1-implementation interface, unused config, single-use generic               |
+| Code smell         | Duplicated logic, dead export, 400+ line file                               |
+| Test gap           | Untested public API, `test1()` name, mock of internal                       |
+| Doc drift          | Spec/code mismatch, stale CLAUDE.md                                         |
+| Unused code        | Files/exports/deps flagged by knip, dead code paths                         |
+| Arch violation     | Classes (not factories), module-level state, global getters                 |
+| Deprecated code    | Functions marked @deprecated, backwards compat shims                        |
+| Vendor path        | Import via path (e.g., `../vendor/`) instead of package name                |
+| Promise.all chain  | `Promise.all(x.map(...))` instead of async generator pipeline               |
+| Missing dispose    | Resource without `Symbol.dispose`; acquiring resource without `using`       |
+| CommonJS import    | `require()` instead of ESM `import`/`export`                                |
+| Prop drilling      | Same props passed through several layers and/or with unneccessary aliasing  |
+| Import side effect | Module-level initialization, `let x = expensiveInit()` on load              |
+| Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
 
 ## Iteration 0.5: Pre-Survey Check (project-wide reviews only)
 

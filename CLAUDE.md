@@ -35,10 +35,10 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 - `using`/`await using` for cleanup
 
 **Code Layout:**
+- Minimize: Let TypeScript infer types, short-but-clear names
+- Readability: Core logic first, hoisted functions after `return` or end of file
 - ESM imports only (`import`/`export`, never `require`)
 - Package names (`inkx`), never relative `../vendor/...`
-- Helpers after `return` or end of file
-- Let TypeScript infer types
 
 **Avoid:**
 - Prop drilling (use spread, align names across layers)
@@ -46,7 +46,7 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 - Config files (sensible defaults → arguments → config as last resort)
 
 **Tooling:**
-- Bun only (`bun add`, `bunx`, `bun run`)
+- Bun only (`bun add`, `bunx`, `bun run`), never node/deno/npm/pnpm/yarn
 - `catalog:` for shared deps in package.json
 
 See [docs/principles.md](docs/principles.md) for rationale.
