@@ -24,7 +24,12 @@ Atomically commit all pending changes across the main repo and vendor submodules
 
 ## Step 1: Gather Everything (ONE Bash Call)
 
-Run this single command to capture complete repo state:
+Run this single command to capture complete repo state.
+
+**Tip:** To see stats for specific files only (useful when working tree has unrelated changes):
+```bash
+git diff --stat -- path/to/file1 path/to/file2  # --stat BEFORE --, files AFTER
+```
 
 ```bash
 {
