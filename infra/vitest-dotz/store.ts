@@ -244,7 +244,11 @@ export function createTestStore(slowThreshold = 100): TestStore {
           catFileStats.duration += duration
           if (isSlow) catFileStats.slowCount++
         } else if (file) {
-          debug("updateTest: file not found in category files: %s/%s", category, file)
+          debug(
+            "updateTest: file not found in category files: %s/%s",
+            category,
+            file,
+          )
         }
       } else if (category) {
         debug("updateTest: category not found in categoryStats: %s", category)
@@ -261,7 +265,12 @@ export function createTestStore(slowThreshold = 100): TestStore {
 
     updateSlowest: (name, file, line, duration, threshold) => {
       if (duration < threshold * 2) return
-      debug("slow test: %s duration=%dms threshold=%dms", name, duration, threshold)
+      debug(
+        "slow test: %s duration=%dms threshold=%dms",
+        name,
+        duration,
+        threshold,
+      )
       state.topSlowest.push({ name, file, line, duration })
       state.topSlowest.sort((a, b) => b.duration - a.duration)
       if (state.topSlowest.length > 20) state.topSlowest.length = 20
