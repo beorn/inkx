@@ -13,16 +13,11 @@ import type { BoardState, BoardAction } from "@km/board"
 import type { Repo } from "../repo-context.tsx"
 import type { TUIContext } from "../tui-context.ts"
 import { handleTreeNavigation } from "../handlers/navigation-handlers.ts"
-import {
-  processKeyWithContext,
-  ensureCommandSystemInitialized,
-} from "../command-bridge.ts"
+import { processKeyWithContext } from "../command-bridge.ts"
 import { handleCommandAction } from "../board/board-actions.ts"
 import { isErr, toast, toastQueue } from "@km/core"
 
 const perfDebug = createDebug("km:perf")
-
-// Re-export for convenience
 
 /**
  * Handle main keyboard input through command system

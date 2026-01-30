@@ -10,20 +10,10 @@
  */
 
 import type { CommandAction } from "@km/commands"
-import {
-  type ActionResult,
-  boundary,
-  ok,
-  precondition,
-  unimplemented,
-} from "@km/commands"
+import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import createDebug from "debug"
 import { assertNever } from "../action-handlers.ts"
-import {
-  outdentNode,
-  moveCardInColumn,
-  moveCardToColumn,
-} from "../keyboard/keyboard-card-ops.ts"
+import { outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import {
   clearSelection,
   progressiveSelectAll,

@@ -121,7 +121,6 @@ function generateKnipConfig(
   }
 
   // Check for additional entry points
-  const srcIndex = join(root, pkgDir, "src", "index.ts")
   const tuiEntry = join(root, pkgDir, "src", "tui.ts")
   if (existsSync(tuiEntry)) {
     entry.unshift("src/tui.ts")

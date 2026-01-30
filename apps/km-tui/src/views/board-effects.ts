@@ -8,11 +8,9 @@ import {
   createPasteHandler,
   supportsFileDrop,
 } from "../handlers/paste-handler.ts"
-import type { SelectionRange } from "../handlers/mouse-handler.ts"
 import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"
 import type { Repo } from "../repo-context.tsx"
-import type { BoardAction } from "@km/board"
 import { toast, kmEvents } from "@km/core"
 
 /**
@@ -85,23 +83,6 @@ export function createFileDropHandler(
   })
 
   return cleanup
-}
-
-/**
- * Creates the mouse handler effect
- * Handles mouse drag-select and scroll wheel events
- *
- * NOTE: Mouse support disabled pending migration to new navigation handlers.
- * TODO: Re-enable when navigation handlers support it.
- */
-function createMouseHandler_(
-  _dispatch: Dispatch<UIAction>,
-  _dispatchBoard: Dispatch<BoardAction>,
-  _mouseSelection: SelectionRange | null,
-): () => void | undefined {
-  // TODO: Fix mouse integration - not working properly yet
-  // Disable for now until scroll wheel and click-to-select work correctly
-  return () => {}
 }
 
 /**

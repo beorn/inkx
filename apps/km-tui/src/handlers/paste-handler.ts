@@ -8,7 +8,7 @@
  * it checks arbitrary system paths from file drops, not store-relative paths.
  */
 
-import { existsSync, statSync } from "fs"
+import { existsSync } from "fs"
 import { homedir } from "os"
 
 // Increase max listeners for test scenarios where many Board components are created
@@ -114,30 +114,6 @@ function parsePastedContent(content: string): PasteResult {
 
   // Otherwise, it's regular text paste
   return { type: "text", text }
-}
-
-/**
- * Get file info for display
- */
-function getFileInfo(path: string): {
-  name: string
-  isDirectory: boolean
-  size?: number
-} {
-  try {
-    const stats = statSync(path)
-    const parts = path.split("/")
-    return {
-      name: parts[parts.length - 1] || path,
-      isDirectory: stats.isDirectory(),
-      size: stats.isDirectory() ? undefined : stats.size,
-    }
-  } catch {
-    return {
-      name: path.split("/").pop() || path,
-      isDirectory: false,
-    }
-  }
 }
 
 /**

@@ -89,7 +89,17 @@
     "setTimeout": "readonly",
     "setInterval": "readonly",
     "clearTimeout": "readonly",
-    "clearInterval": "readonly"
+    "clearInterval": "readonly",
+    "setImmediate": "readonly",
+    "AbortController": "readonly",
+    "performance": "readonly",
+    "AsyncDisposableStack": "readonly",
+    "Worker": "readonly",
+    "URL": "readonly",
+    "fetch": "readonly",
+    "postMessage": "readonly",
+    "TextDecoder": "readonly",
+    "Response": "readonly"
   },
   "overrides": [
     {
@@ -138,7 +148,9 @@
         "**/*.test.ts",
         "**/*.test.tsx",
         "**/tests/**/*.ts",
-        "scripts/**/*.ts"
+        "scripts/**/*.ts",
+        "infra/**/*.ts",
+        "infra/**/*.tsx"
       ],
       "rules": {
         "@typescript-eslint/no-explicit-any": "off",

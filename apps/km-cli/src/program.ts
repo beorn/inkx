@@ -60,13 +60,6 @@ export function getRootPath(): string | undefined {
 }
 
 /**
- * Check if root was explicitly set (via --repo or KM_ROOT)
- */
-function wasRootExplicit(): boolean {
-  return rootExplicitlySet
-}
-
-/**
  * Configure and return the km CLI program
  *
  * This function creates a fresh Commander program instance with all commands

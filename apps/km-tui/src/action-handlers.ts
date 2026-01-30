@@ -28,11 +28,3 @@ export function assertNever(action: never): never {
   const unhandled = action as CommandAction
   throw new Error(`Unhandled action type: ${unhandled.type}`)
 }
-
-/**
- * Beep to indicate an unimplemented feature.
- * Use this for actions that are recognized but not yet implemented.
- */
-function beepUnimplemented(): void {
-  process.stdout.write("\x07")
-}

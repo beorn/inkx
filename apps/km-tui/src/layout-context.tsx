@@ -43,20 +43,6 @@ export function LayoutProvider({
 // =============================================================================
 
 /**
- * Get the layout registry for registering card positions.
- * Must be called within LayoutProvider.
- *
- * @throws Error if called outside LayoutProvider
- */
-function useLayoutRegistry(): LayoutRegistry {
-  const registry = useContext(LayoutContext)
-  if (!registry) {
-    throw new Error("useLayoutRegistry must be used within LayoutProvider")
-  }
-  return registry
-}
-
-/**
  * Get the layout registry, returning null if not within LayoutProvider.
  * Use this for optional position tracking (e.g., in tests).
  */

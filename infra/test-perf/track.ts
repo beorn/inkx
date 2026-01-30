@@ -87,12 +87,12 @@ function main() {
 // Metadata Reading
 // ============================================================================
 
-function readMetadata(): any {
+function readMetadata(): unknown {
   try {
     const compressed = readFileSync(METADATA_PATH)
     const decompressed = gunzipSync(compressed)
     const text = new TextDecoder().decode(decompressed)
-    return JSON.parse(text)
+    return JSON.parse(text) as unknown
   } catch (error) {
     console.error(`❌ Failed to read metadata: ${error}`)
     process.exit(1)
@@ -106,13 +106,13 @@ function readMetadata(): any {
 /**
  * Dereference a string index to get the actual value from the metadata array
  */
-function deref(metadata: any[], idx: string | number | undefined): any {
+function deref(metadata: unknown[], idx: string | number | undefined): unknown {
   if (idx === undefined) return undefined
   const index = typeof idx === "string" ? parseInt(idx) : idx
   return metadata[index]
 }
 
-function extractPerformanceData(metadata: any): PerformanceData {
+function extractPerformanceData(metadata: unknown): PerformanceData {
   // The vitest metadata uses an indexed array structure where string indices
   // reference other elements in the array
   const files: FileMetadata[] = []

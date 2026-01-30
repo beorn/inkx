@@ -9,7 +9,6 @@ import { boundary, ok } from "@km/commands"
 import createDebug from "debug"
 import { getCardMidY } from "../card-positions.ts"
 
-const perfDebug = createDebug("km:perf")
 import {
   clearSelection,
   pushNavHistoryEntry,
@@ -117,7 +116,6 @@ function handleHierarchicalNavigation(
  * Handle cursor movement in any direction.
  */
 export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
-  const navStart = performance.now()
   const { state, layout, ui, dispatch, dispatchBoard, positionRegistry } = ctx
   const col = state.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]

@@ -7,11 +7,7 @@
 
 import React from "react"
 import { Box, Text } from "inkx"
-import {
-  createTestRenderer,
-  bufferToText,
-  bufferToStyledText,
-} from "inkx/testing"
+import { createTestRenderer, bufferToStyledText } from "inkx/testing"
 import type { BoardState, TNode, TPath } from "./board-types.ts"
 
 // Status icons for task status

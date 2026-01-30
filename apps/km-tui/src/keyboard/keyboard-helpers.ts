@@ -41,22 +41,6 @@ export function pushNavHistoryEntry(
 // Selection Helpers
 // =============================================================================
 
-/** Calculate max sub-items in current card */
-function getMaxSubIndex(ctx: TUIContext): number {
-  const col = ctx.layout.columns[ctx.layout.colIndex]
-  const card = col?.cards[ctx.layout.cardIndex]
-  if (!card) return 0
-  return (
-    1 +
-    ctx.countVisibleDescendants(
-      card.node,
-      0,
-      ctx.ui.maxOutlineDepth,
-      ctx.ui.foldedNodes,
-    )
-  )
-}
-
 /** Update multi-selection range from anchor to current position */
 export function updateSelectionRange(
   ctx: TUIContext,

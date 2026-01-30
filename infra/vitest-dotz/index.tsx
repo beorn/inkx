@@ -661,7 +661,9 @@ export class DotzReporter implements Reporter {
     this.store.setRunning(false)
 
     if (this.app) {
-      await new Promise((r) => setTimeout(r, UNMOUNT_DELAY_MS))
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, UNMOUNT_DELAY_MS)
+      })
       this.app.unmount()
       this.patchedConsole?.[Symbol.dispose]()
       this.term?.[Symbol.dispose]()

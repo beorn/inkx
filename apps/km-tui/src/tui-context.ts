@@ -138,23 +138,3 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
     countVisibleDescendants: params.countVisibleDescendants,
   }
 }
-
-// =============================================================================
-// Cursor Helpers (simplified for new architecture)
-// =============================================================================
-
-/**
- * Get subIndex from layout.
- * TODO: Outline mode support will be added in a future update.
- */
-function getSubIndex(ctx: TUIContext): number {
-  return ctx.layout.subPath[0] ?? 0
-}
-
-/**
- * Check if cursor is in outline mode (has subPath).
- * TODO: Outline mode support will be added in a future update.
- */
-function isInOutlineMode(ctx: TUIContext): boolean {
-  return ctx.layout.isInOutlineMode
-}

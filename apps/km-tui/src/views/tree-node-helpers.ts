@@ -42,9 +42,6 @@ export function stripTaskMark(text: string): string {
 // Constants
 // =============================================================================
 
-/** Colors that need white text for contrast */
-const DARK_BG_COLORS = ["red", "green", "blue", "magenta", "gray", "grey"]
-
 /**
  * TreeNode display variants:
  * - oneliner: Title + parent context inline, truncated to one line
@@ -272,93 +269,4 @@ export function truncateContext(
 ): string | null {
   if (!context) return null
   return context.length > maxLen ? context.slice(0, maxLen - 1) + "…" : context
-}
-
-// =============================================================================
-// Height Estimation
-// =============================================================================
-
-export interface TreeNodeHeightConfig {
-  /** Maximum lines for content wrapping */
-  maxContentLines: number
-  /** Maximum depth for showing children */
-  maxOutlineDepth: number
-  /** Maximum children to show (from VARIANT_CONFIG) */
-  maxChildren: number
-  /** Width available for text (used to estimate wrapping) */
-  availableWidth: number
-}
-
-/**
- * Estimate the rendered height (in lines) of a TreeNode.
- *
- * This accounts for:
- * - Parent context line (if embedded task at depth 0, wide mode only)
- * - Content lines (always 1 since wrap="truncate")
- * - Children (recursive, capped by maxOutlineDepth and maxChildren)
- *
- * Used by ListView and ColumnsView to properly calculate how many items fit.
- * Note: Compact mode (columns view) never shows separate parent context line.
- */
-function estimateTreeNodeHeight(
-  node: KNode,
-  depth: number,
-  config: TreeNodeHeightConfig,
-  getChildren: (id: string) => KNode[],
-  foldedNodes: Set<string>,
-  parentContext?: string | null,
-  isCompact = false,
-): number {
-  const { maxContentLines, maxOutlineDepth, maxChildren, availableWidth } =
-    config
-
-  let height = 0
-
-  // Parent context line for embedded tasks at depth 0 (wide mode only)
-  // Compact mode never shows separate context line to keep items compact
-  const isEmbedded = node.link_to != null
-  const showSeparateContext =
-    !isCompact && depth === 0 && isEmbedded && parentContext
-  if (showSeparateContext) {
-    height += 1
-  }
-
-  // Content lines: estimate based on content length vs available width
-  const content = node.content || node.title || ""
-  // Prefix: leftPad (depth) + marker (1) + space (1) + optional status icon (2 for tasks)
-  // Using depth + 4 as conservative estimate
-  const prefixLength = depth + MARKER_SLOT_WIDTH + 1 + 2
-  const contentWidth = Math.max(1, availableWidth - prefixLength)
-  const estimatedLines = Math.min(
-    maxContentLines,
-    Math.max(1, Math.ceil(content.length / contentWidth)),
-  )
-  height += estimatedLines
-
-  // Children (if not folded and within depth limit)
-  const isFolded = foldedNodes.has(node.id)
-  if (!isFolded && depth < maxOutlineDepth) {
-    const children = getChildren(node.id)
-    const visibleChildren = children.slice(0, maxChildren)
-    const hiddenCount = children.length - visibleChildren.length
-
-    for (const child of visibleChildren) {
-      height += estimateTreeNodeHeight(
-        child,
-        depth + 1,
-        config,
-        getChildren,
-        foldedNodes,
-        undefined, // parentContext
-        isCompact,
-      )
-    }
-
-    // "+N more" indicator
-    if (hiddenCount > 0) {
-      height += 1
-    }
-  }
-
-  return height
 }

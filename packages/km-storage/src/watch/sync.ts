@@ -847,31 +847,3 @@ function findFileNode(db: Database, node: KNode): KNode | null {
 
   return findFileNode(db, parent)
 }
-
-/**
- * One-time sync from filesystem to database
- */
-async function syncOnce(
-  db: Database,
-  repoPath: string,
-): Promise<{
-  created: number
-  updated: number
-  deleted: number
-}> {
-  const manager = new SyncManager({
-    db,
-    repoPath,
-    debounceFs: 0,
-    debounceApply: 0,
-    conflictStrategy: "fs_wins",
-  })
-
-  const result = await manager.syncFromFs()
-
-  return {
-    created: result.processed,
-    updated: 0,
-    deleted: 0,
-  }
-}

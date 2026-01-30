@@ -16,7 +16,6 @@ import React, {
 } from "react"
 import { createSelector } from "reselect"
 import type { UIState, UIAction } from "./ui-reducer.ts"
-import type { SelectionKey } from "./types.ts"
 import { useRepo } from "./repo-context.tsx"
 
 // =============================================================================
@@ -87,17 +86,6 @@ export function UIProvider({
 // =============================================================================
 
 /**
- * Get the dispatch function only (never causes re-renders)
- */
-function useUIDispatch(): Dispatch<UIAction> {
-  const context = useContext(UIContext)
-  if (!context) {
-    throw new Error("useUIDispatch must be used within UIProvider")
-  }
-  return context.dispatch
-}
-
-/**
  * Select a slice of UI state with automatic memoization.
  * Only re-renders when the selected value changes.
  *
@@ -118,42 +106,18 @@ export function useUISelector<T>(selector: (state: UIState) => T): T {
   )
 }
 
-/**
- * Get the full UI state (causes re-render on any state change).
- * Prefer useUISelector for better performance.
- */
-function useUIState(): UIState {
-  return useUISelector((state) => state)
-}
-
 // =============================================================================
 // Pre-built Selectors (memoized with reselect)
 // =============================================================================
 
 // Base selectors
-const selectFoldedNodes = (state: UIState) => state.foldedNodes
-const selectMultiSelected = (state: UIState) => state.multiSelected
-const selectSubIndex = (state: UIState) => state.subIndex
-const selectInOutlineMode = (state: UIState) => state.inOutlineMode
 const selectMaxOutlineDepth = (state: UIState) => state.maxOutlineDepth
 const selectMaxContentLines = (state: UIState) => state.maxContentLines
 const selectViewMode = (state: UIState) => state.viewMode
+const selectInOutlineMode = (state: UIState) => state.inOutlineMode
+const selectSubIndex = (state: UIState) => state.subIndex
 // Note: selectionLevel is now derived from cursor depth in Board.tsx, not stored in UIState
 const selectRootBoardId = (state: UIState) => state.rootBoardId
-
-/**
- * Check if a node is folded
- */
-const makeSelectIsFolded = (nodeId: string) =>
-  createSelector([selectFoldedNodes], (foldedNodes) => foldedNodes.has(nodeId))
-
-/**
- * Check if a selection key is multi-selected
- */
-const makeSelectIsMultiSelected = (key: SelectionKey) =>
-  createSelector([selectMultiSelected], (multiSelected) =>
-    multiSelected.has(key),
-  )
 
 /**
  * Get tree rendering config (commonly used together)
@@ -192,38 +156,6 @@ const selectTreeConfig = createSelector(
  */
 export function useTreeConfig() {
   return useUISelector(selectTreeConfig)
-}
-
-/**
- * Check if a node is folded
- */
-function useIsFolded(nodeId: string): boolean {
-  const foldedNodes = useUISelector(selectFoldedNodes)
-  return foldedNodes.has(nodeId)
-}
-
-/**
- * Check if a selection key is multi-selected
- */
-function useIsMultiSelected(key: SelectionKey): boolean {
-  const multiSelected = useUISelector(selectMultiSelected)
-  return multiSelected.has(key)
-}
-
-/**
- * Get selection-related state
- */
-function useSelectionState() {
-  return useUISelector(
-    createSelector(
-      [selectMultiSelected, selectSubIndex, selectInOutlineMode],
-      (multiSelected, subIndex, inOutlineMode) => ({
-        multiSelected,
-        currentSubIndex: subIndex,
-        inOutlineMode,
-      }),
-    ),
-  )
 }
 
 /**

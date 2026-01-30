@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from "events"
-import { createTerm, renderStatic, Box, Text, type StyleChain } from "inkx"
+import { createTerm, renderStatic, type StyleChain } from "inkx"
 import createDebug from "debug"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import { RepoProvider, type Repo } from "./repo-context.tsx"
