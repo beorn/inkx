@@ -25,6 +25,7 @@
             nixfmt
             tmux
             lnav # Log viewer for debug script
+            ttyd # Terminal web server for TTY MCP
           ];
 
           # Note: Run 'bun run setup' manually after first clone

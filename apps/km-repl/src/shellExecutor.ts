@@ -587,9 +587,9 @@ export async function executeShellCommand(
     }
 
     case "RENDER": {
-      // Lazy import to avoid loading inkx/testing at module load time
+      // Lazy import to avoid loading inkx at module load time
       const { renderTree } = await import("./treeRenderer.tsx")
-      const view = renderTree(ctx.state, {
+      const view = await renderTree(ctx.state, {
         width: command.width,
         height: command.height,
         ansi: command.ansi,

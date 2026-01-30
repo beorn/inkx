@@ -6,7 +6,7 @@ export default createVitestConfig({
   test: {
     // Default reporter: standard dot reporter
     // Custom reporter available via test:fast2 (see infra/vitest-dotz/)
-    reporters: ["dot"],
+    //reporters: ["dot"],
     // Enable location info (line/column) for test cases in reporters
     includeTaskLocation: true,
     // Reporters configured via CLI flags (see package.json scripts)

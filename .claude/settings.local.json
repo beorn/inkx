@@ -47,7 +47,14 @@
       "Skill(max:*)",
       "Skill(git)",
       "Skill(git:*)",
-      "mcp__refactor-typescript__code_quality"
+      "mcp__refactor-typescript__code_quality",
+      "mcp__tty__start",
+      "mcp__tty__screenshot",
+      "mcp__tty__press",
+      "mcp__tty__reset",
+      "mcp__tty__wait",
+      "mcp__tty__list",
+      "mcp__tty__stop"
     ],
     "deny": [],
     "ask": []

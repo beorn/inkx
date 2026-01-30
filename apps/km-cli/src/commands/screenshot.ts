@@ -43,13 +43,14 @@ export const screenshotCommand = new Command("screenshot")
     const format: OutputFormat = options.format as OutputFormat
 
     // Import modules
-    const [storageModule, cliModule, tuiModule, inkxTesting] =
-      await Promise.all([
+    const [storageModule, cliModule, tuiModule, inkxModule] = await Promise.all(
+      [
         import("@km/storage"),
         import("../program.ts"),
         import("@km/tui"),
-        import("inkx/testing"),
-      ])
+        import("inkx"),
+      ],
+    )
 
     // Resolve path and load repo
     const resolved = storageModule.resolvePathArg(root, cliModule.getRootPath())
@@ -71,12 +72,6 @@ export const screenshotCommand = new Command("screenshot")
     }
 
     state.rootPath = resolved.repoRoot
-
-    // Create test renderer with specified dimensions
-    const render = inkxTesting.createTestRenderer({
-      columns: width,
-      rows: height,
-    })
 
     // Import React and Board components
     const React = await import("react")
@@ -114,31 +109,28 @@ export const screenshotCommand = new Command("screenshot")
       moveMode: false,
     })
 
-    // Render the board wrapped in RepoProvider
-    const app = render(
-      React.createElement(RepoProvider, {
-        repo: repo,
-        children: boardCoreElement,
-      }),
-    )
+    // Create element wrapped in RepoProvider
+    const element = React.createElement(RepoProvider, {
+      repo: repo,
+      children: boardCoreElement,
+    })
+
+    // Use renderStatic for one-shot rendering (production code)
+    const plain = format === "text" || format === "debug"
+    const rendered = await inkxModule.renderStatic(element, {
+      width,
+      height,
+      plain,
+    })
 
     // Generate output based on format
     let output: string
-    const buffer = app.term.buffer
-
-    if (!buffer) {
-      console.error("Failed to render buffer")
-      process.exit(1)
-    }
-
     switch (format) {
       case "text":
-        output = app.text
-        break
       case "ansi":
-        output = inkxTesting.bufferToStyledText(buffer)
+        output = rendered
         break
-      case "debug": {
+      case "debug":
         output = [
           `# TUI Screenshot`,
           `# Dimensions: ${width}x${height}`,
@@ -146,12 +138,11 @@ export const screenshotCommand = new Command("screenshot")
           `# Root: ${resolved.repoRoot}`,
           `# Node: ${resolved.nodeRef ?? "(root)"}`,
           ``,
-          app.text,
+          rendered,
         ].join("\n")
         break
-      }
       default:
-        output = app.text
+        output = rendered
     }
 
     // Output to file or stdout

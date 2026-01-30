@@ -6,8 +6,7 @@
  */
 
 import React from "react"
-import { Box, Text } from "inkx"
-import { createTestRenderer, bufferToStyledText } from "inkx/testing"
+import { Box, Text, renderStatic } from "inkx"
 import type { BoardState, TNode, TPath } from "./board-types.ts"
 
 // Status icons for task status
@@ -193,25 +192,18 @@ function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
 }
 
 /**
- * Render a BoardState to text using inkx test renderer
+ * Render a BoardState to text using inkx renderStatic
  */
-export function renderTree(
+export async function renderTree(
   state: BoardState,
   options: { width?: number; height?: number; ansi?: boolean } = {},
-): string {
+): Promise<string> {
   const { width = 80, height = 24, ansi = false } = options
 
-  // Create test renderer
-  const render = createTestRenderer({ columns: width, rows: height })
-
-  // Render the tree view
-  const app = render(React.createElement(TreeView, { state, width, height }))
-
-  // Get the buffer and convert to text
-  const buffer = app.term.buffer
-  if (!buffer) {
-    return "(render failed)"
-  }
-
-  return ansi ? bufferToStyledText(buffer) : app.text
+  // Use renderStatic for one-shot rendering (production code)
+  return renderStatic(React.createElement(TreeView, { state, width, height }), {
+    width,
+    height,
+    plain: !ansi,
+  })
 }
