@@ -56,7 +56,6 @@
 import React from "react"
 import {
   createTestRenderer,
-  createAutoLocator,
   keyToAnsi,
   type App,
   type AutoLocator,
@@ -540,25 +539,23 @@ interface BoardTest {
 
 class BoardTestImpl implements BoardTest {
   private result: App
-  private currentLocator: AutoLocator
 
   constructor(result: App) {
     this.result = result
-    this.currentLocator = createAutoLocator(() => result.getContainer())
   }
 
   // --- Bell State ---
 
   /** Whether bell was triggered (boundary hit) - checks for data-bell attribute */
   get bell(): boolean {
-    return this.currentLocator.locator("[data-bell]").count() > 0
+    return this.result.locator("[data-bell]").count() > 0
   }
 
   // --- Status Message (in BottomBar) ---
 
   /** Get current status message if visible, or null if no status */
   getStatus(): { level: string; message: string } | null {
-    const bottomBar = this.currentLocator.locator("#bottom-bar")
+    const bottomBar = this.result.locator("#bottom-bar")
     if (bottomBar.count() === 0) {
       return null
     }
@@ -567,7 +564,7 @@ class BoardTestImpl implements BoardTest {
       return null
     }
     // Status message is in #status-message element within bottom bar
-    const statusEl = this.currentLocator.locator("#status-message")
+    const statusEl = this.result.locator("#status-message")
     if (statusEl.count() === 0) {
       return null
     }
@@ -580,7 +577,7 @@ class BoardTestImpl implements BoardTest {
 
   /** Check if status message is showing */
   get hasStatus(): boolean {
-    const bottomBar = this.currentLocator.locator("#bottom-bar")
+    const bottomBar = this.result.locator("#bottom-bar")
     return bottomBar.count() > 0 && !!bottomBar.getAttribute("data-status")
   }
 
@@ -629,14 +626,14 @@ class BoardTestImpl implements BoardTest {
 
   expectCursor(pos: CursorPosition): this {
     // Find the cursor element by testID
-    const cursor = this.currentLocator.getByTestId("cursor")
+    const cursor = this.result.getByTestId("cursor")
     const cursorBox = cursor.boundingBox()
 
     expect(cursorBox).not.toBeNull()
 
     if (pos.col !== undefined) {
       // Find the target column and compare X positions
-      const column = this.currentLocator.getByTestId(`column-${pos.col}`)
+      const column = this.result.getByTestId(`column-${pos.col}`)
       const colBox = column.boundingBox()
       expect(colBox).not.toBeNull()
 
@@ -650,9 +647,7 @@ class BoardTestImpl implements BoardTest {
     if (pos.card !== undefined) {
       // Find the card at the expected index within the current column
       // This requires the card to have a testID like "card-{colIndex}-{cardIndex}"
-      const card = this.currentLocator.getByTestId(
-        `card-${pos.col ?? 0}-${pos.card}`,
-      )
+      const card = this.result.getByTestId(`card-${pos.col ?? 0}-${pos.card}`)
       const cardBox = card.boundingBox()
 
       if (cardBox && cursorBox) {
@@ -667,11 +662,11 @@ class BoardTestImpl implements BoardTest {
 
   expectSelected(text: string): this {
     // Find text and check if it has selection styling
-    const element = this.currentLocator.getByText(text)
+    const element = this.result.getByText(text)
     expect(element.count()).toBeGreaterThan(0)
 
     // Check if parent has selection attribute
-    const selected = this.currentLocator.locator('[data-selected="true"]')
+    const selected = this.result.locator('[data-selected="true"]')
     const selectedTexts = selected.resolveAll().map((node) => {
       // Get text content recursively
       const getTextContent = (n: typeof node): string => {
@@ -690,7 +685,7 @@ class BoardTestImpl implements BoardTest {
   expect(text: string): ContentAssertion {
     // eslint-disable-next-line @typescript-eslint/no-this-alias -- needed to reference BoardTest in returned object
     const self = this
-    const element = this.currentLocator.getByText(text)
+    const element = this.result.getByText(text)
 
     return {
       toBeVisible(): BoardTest {
@@ -785,7 +780,7 @@ class BoardTestImpl implements BoardTest {
     let count = 0
     for (let i = 0; i < 20; i++) {
       // reasonable max
-      const col = this.currentLocator.getByTestId(`column-${i}`)
+      const col = this.result.getByTestId(`column-${i}`)
       if (col.count() > 0) {
         count++
       } else {
@@ -811,8 +806,8 @@ class BoardTestImpl implements BoardTest {
   // --- Position Assertions ---
 
   expectLeftOf(a: string, b: string): this {
-    const aEl = this.currentLocator.getByTestId(a)
-    const bEl = this.currentLocator.getByTestId(b)
+    const aEl = this.result.getByTestId(a)
+    const bEl = this.result.getByTestId(b)
 
     const aBox = aEl.boundingBox()
     const bBox = bEl.boundingBox()
@@ -828,8 +823,8 @@ class BoardTestImpl implements BoardTest {
   }
 
   expectRightOf(a: string, b: string): this {
-    const aEl = this.currentLocator.getByTestId(a)
-    const bEl = this.currentLocator.getByTestId(b)
+    const aEl = this.result.getByTestId(a)
+    const bEl = this.result.getByTestId(b)
 
     const aBox = aEl.boundingBox()
     const bBox = bEl.boundingBox()
@@ -845,8 +840,8 @@ class BoardTestImpl implements BoardTest {
   }
 
   expectAbove(a: string, b: string): this {
-    const aEl = this.currentLocator.getByTestId(a)
-    const bEl = this.currentLocator.getByTestId(b)
+    const aEl = this.result.getByTestId(a)
+    const bEl = this.result.getByTestId(b)
 
     const aBox = aEl.boundingBox()
     const bBox = bEl.boundingBox()
@@ -862,8 +857,8 @@ class BoardTestImpl implements BoardTest {
   }
 
   expectBelow(a: string, b: string): this {
-    const aEl = this.currentLocator.getByTestId(a)
-    const bEl = this.currentLocator.getByTestId(b)
+    const aEl = this.result.getByTestId(a)
+    const bEl = this.result.getByTestId(b)
 
     const aBox = aEl.boundingBox()
     const bBox = bEl.boundingBox()
@@ -884,13 +879,13 @@ class BoardTestImpl implements BoardTest {
     return this.result.text
   }
 
-  /** Uses lastFrame() to get ANSI-colored output for visual debugging, vs screenshot() which returns plain text via app.text */
+  /** Get ANSI-colored output for visual debugging, vs screenshot() which returns plain text via app.text */
   screenshotAnsi(): string {
-    return this.result.lastFrame() ?? ""
+    return this.result.html
   }
 
   locator(): AutoLocator {
-    return this.currentLocator
+    return this.result.locator("*")
   }
 
   renderResult(): App {
@@ -900,7 +895,7 @@ class BoardTestImpl implements BoardTest {
   // --- Status Bar Locators ---
 
   private getTextContent(selector: string): string {
-    const el = this.currentLocator.locator(selector)
+    const el = this.result.locator(selector)
     const nodes = el.resolveAll()
     if (nodes.length === 0) return ""
     const node = nodes[0]
@@ -925,12 +920,12 @@ class BoardTestImpl implements BoardTest {
   }
 
   getWatcherStatus(): string | null {
-    const el = this.currentLocator.locator("#watcher-status")
+    const el = this.result.locator("#watcher-status")
     return el.count() > 0 ? this.getTextContent("#watcher-status") : null
   }
 
   getColumnPosition(): string | null {
-    const el = this.currentLocator.locator("#column-position")
+    const el = this.result.locator("#column-position")
     return el.count() > 0 ? this.getTextContent("#column-position") : null
   }
 }

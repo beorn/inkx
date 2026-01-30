@@ -2,7 +2,12 @@
  * Toast System Tests
  */
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
-import { toast, toastQueue, createToastQueue, type ToastQueue } from "../src/toast.ts"
+import {
+  toast,
+  toastQueue,
+  createToastQueue,
+  type ToastQueue,
+} from "../src/toast.ts"
 
 describe("ToastQueue", () => {
   let queue: ToastQueue

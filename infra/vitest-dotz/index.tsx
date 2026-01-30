@@ -149,7 +149,12 @@ export interface ReportProps {
   console?: PatchedConsole
 }
 
-export function Report({ store, options, width, console: patched }: ReportProps) {
+export function Report({
+  store,
+  options,
+  width,
+  console: patched,
+}: ReportProps) {
   const state = useStore(store)
   return (
     <Box id="report" flexDirection="column">
@@ -199,8 +204,9 @@ export function Dot(props: DotProps) {
   if (isNoisy && testState !== "failed") return <StatusDot status="noisy" />
 
   // Non-passed states
-  if (testState in STATUS_DOTS)
-    {return <StatusDot status={testState as StatusKey} />}
+  if (testState in STATUS_DOTS) {
+    return <StatusDot status={testState as StatusKey} />
+  }
 
   // Passed: duration-based symbol
   const { char, bright } = durationToSymbol(
@@ -669,8 +675,9 @@ export class DotzReporter implements Reporter {
       await printSummary(this.store, this.options)
     }
 
-    if (this.options.perfOutput)
-      {exportPerformance(this.store.getSnapshot(), this.options)}
+    if (this.options.perfOutput) {
+      exportPerformance(this.store.getSnapshot(), this.options)
+    }
   }
 }
 

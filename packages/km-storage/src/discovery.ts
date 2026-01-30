@@ -24,7 +24,12 @@ import { join, relative } from "path"
 import type { Event } from "@km/core"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
-import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo-loader.ts"
+import type {
+  StepYield,
+  PendingLink,
+  DeferredFile,
+  LoadError,
+} from "./repo-loader.ts"
 
 // ============================================================================
 // TYPES
@@ -137,7 +142,16 @@ export function* discoverFiles(
       if (entry.isDirectory()) {
         // Create folder node
         const folderId = generateId(repoRoot, fullPath)
-        events.push(createFolderEvent(folderId, parentId, order++, fullPath, entry.name, now))
+        events.push(
+          createFolderEvent(
+            folderId,
+            parentId,
+            order++,
+            fullPath,
+            entry.name,
+            now,
+          ),
+        )
 
         // Recurse into subdirectory
         yield* scanDirectory(fullPath, folderId)
@@ -148,7 +162,16 @@ export function* discoverFiles(
             const fileId = generateId(repoRoot, fullPath)
             const name = entry.name.replace(/\.md$/i, "")
 
-            events.push(createStubFileEvent(fileId, parentId, order++, fullPath, name, now))
+            events.push(
+              createStubFileEvent(
+                fileId,
+                parentId,
+                order++,
+                fullPath,
+                name,
+                now,
+              ),
+            )
             deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
 
             current++
@@ -159,7 +182,10 @@ export function* discoverFiles(
             // Full mode: parse markdown
             try {
               const content = readFileSync(fullPath, "utf-8")
-              const { nodes, wikilinks } = parseMarkdownWithLinks(content, fullPath)
+              const { nodes, wikilinks } = parseMarkdownWithLinks(
+                content,
+                fullPath,
+              )
 
               // First node is always the file node
               const fileNode = nodes[0]
@@ -170,7 +196,8 @@ export function* discoverFiles(
 
               // Convert nodes to events
               for (const node of nodes) {
-                const nodeId = node.id ?? generateId(repoRoot, fullPath, node.md_line)
+                const nodeId =
+                  node.id ?? generateId(repoRoot, fullPath, node.md_line)
                 events.push({
                   id: nodeId,
                   type: "node_created",
@@ -198,7 +225,16 @@ export function* discoverFiles(
         } else {
           // Non-markdown file node
           const fileId = generateId(repoRoot, fullPath)
-          events.push(createNonMdFileEvent(fileId, parentId, order++, fullPath, entry.name, now))
+          events.push(
+            createNonMdFileEvent(
+              fileId,
+              parentId,
+              order++,
+              fullPath,
+              entry.name,
+              now,
+            ),
+          )
         }
       }
     }
@@ -227,7 +263,10 @@ export function countMarkdownFilesFast(
     if (!dirPath) continue
 
     // Skip ignored directories (except root)
-    if (dirPath !== rootPath && shouldIgnore(dirPath, ignorePatterns, rootPath)) {
+    if (
+      dirPath !== rootPath &&
+      shouldIgnore(dirPath, ignorePatterns, rootPath)
+    ) {
       continue
     }
 
@@ -255,7 +294,11 @@ export function countMarkdownFilesFast(
 }
 
 /** Generate node ID from path */
-function generateId(repoRoot: string, filePath: string, lineNum?: number): string {
+function generateId(
+  repoRoot: string,
+  filePath: string,
+  lineNum?: number,
+): string {
   const relPath = relative(repoRoot, filePath)
   return lineNum !== undefined ? `${relPath}:${lineNum}` : relPath
 }

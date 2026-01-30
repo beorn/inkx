@@ -48,6 +48,7 @@ echo "Slow integration: $(find packages apps -name '*.slow.test.ts' 2>/dev/null 
 echo "Slow mdtest: $(find packages apps tests -name '*.slow.test.md' 2>/dev/null | wc -l)"
 echo "Playwright: $(find packages apps -name '*.playwright.ts' 2>/dev/null | wc -l)"
 echo "Chaos: $(find packages -path '*/chaos/*.test.ts' 2>/dev/null | wc -l)"
+echo "Yoga (vendor): $(find vendor/beorn-flexx/tests/yoga -name '*.test.ts' 2>/dev/null | wc -l)"
 
 # Tests per package
 echo -e "\n=== Tests by Package ==="
@@ -252,6 +253,12 @@ Output structured findings:
 | Test helpers >150 lines       | N     | 0      | ✅/❌  |
 | TUI tests using withTestEnv   | N     | 0      | ✅/❌  |
 | Board tests using withTestEnv | N     | 0      | ✅/❌  |
+
+### Vendor Test Freshness
+
+| Check                  | Last Updated | Latest Upstream | Status |
+| ---------------------- | ------------ | --------------- | ------ |
+| Yoga tests (flexx)     | YYYY-MM-DD   | vX.Y.Z          | ✅/❌  |
 
 ### Performance
 
@@ -458,6 +465,39 @@ Make edits directly to this file or create a process improvement bead.
 ---
 
 ## Quick Checks
+
+### Check for stale vendor test fixtures
+
+The Yoga layout tests in `vendor/beorn-flexx/tests/yoga/` are generated from Facebook's Yoga project.
+These should be refreshed periodically to catch new test cases or Yoga behavior changes.
+
+```bash
+# Check when Yoga tests were last generated
+ls -la vendor/beorn-flexx/tests/yoga/*.test.ts | head -5
+
+# Check latest Yoga release (compare against last import)
+curl -s https://api.github.com/repos/facebook/yoga/releases/latest | grep tag_name
+```
+
+**When to re-import:**
+
+- When Yoga releases a new version (especially major/minor versions)
+- If Flexx layout behavior seems incorrect but tests pass
+- Periodically (e.g., quarterly) during test reviews
+
+**How to re-import:**
+
+```bash
+cd vendor/beorn-flexx
+bun scripts/import-yoga-tests.ts
+bun test tests/yoga/  # Verify tests pass
+```
+
+**Source**: https://github.com/facebook/yoga/tree/main/gentest/fixtures
+
+If tests fail after re-import, either:
+1. Flexx has a layout bug that needs fixing
+2. Yoga changed expected behavior (check release notes)
 
 ### Check chaos test coverage
 

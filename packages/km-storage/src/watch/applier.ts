@@ -182,7 +182,11 @@ export async function applyReconcileOpsAsync(
   // Batch resolve links for all new files at once
   finalizeBatchLinks(db, ctx)
 
-  debug("applied %d ops (async) in %dms", reconcileOps.length, Date.now() - start)
+  debug(
+    "applied %d ops (async) in %dms",
+    reconcileOps.length,
+    Date.now() - start,
+  )
 }
 
 /**

@@ -64,7 +64,9 @@ function ColumnSection({
             <CardRow key={card.node.id} card={card} repo={repo} />
           ))}
           {col.cards.length > maxCards && (
-            <Text>{term.dim(`  +${col.cards.length - maxCards} more cards`)}</Text>
+            <Text>
+              {term.dim(`  +${col.cards.length - maxCards} more cards`)}
+            </Text>
           )}
         </>
       )}

@@ -244,7 +244,11 @@ export function* resolveLinksGen(
     }
 
     // Phase 2: Apply to database
-    applyResolvedLinks(db, { linksToInsert, embeddedUpdates, resolvedCount: resolved })
+    applyResolvedLinks(db, {
+      linksToInsert,
+      embeddedUpdates,
+      resolvedCount: resolved,
+    })
 
     yield { current: total, total }
     return resolved
@@ -329,7 +333,11 @@ export async function resolveLinksAsync(
   }
 
   // Phase 2: Apply to database
-  applyResolvedLinks(db, { linksToInsert, embeddedUpdates, resolvedCount: resolved })
+  applyResolvedLinks(db, {
+    linksToInsert,
+    embeddedUpdates,
+    resolvedCount: resolved,
+  })
 
   onProgress?.(total, total)
   debug("resolveLinksAsync: completed, %d resolved", resolved)

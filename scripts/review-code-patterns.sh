@@ -174,10 +174,12 @@ grep -rn "^\s\+.*createTestRenderer" packages apps --include="*.test.ts" --inclu
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
-echo "=== PATTERN 23: Old lastFrame capture ==="
-# Capturing lastFrame() from render result is the old way of testing
-# Should use app.text or other newer inkx APIs instead
-grep -rn "lastFrame\|last_frame\|lastResult" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+echo "=== PATTERN 23: Old inkx APIs ==="
+# Old testing patterns that should use modern app.text / app.html:
+#   - lastFrame() - old way, use app.html for ANSI or app.text for plain
+#   - getContainer() - use app.locator() instead (auto-refreshing)
+# Note: .screenshot() is allowed in test helpers (BoardTestImpl) that wrap app.text
+grep -rn "\.lastFrame()\|\.getContainer()" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
   | grep -v "node_modules\|vendor/" || true
 echo ""
 

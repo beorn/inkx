@@ -63,7 +63,9 @@ interface ParsePoolInternal {
 /**
  * Create a pool of worker threads for parallel markdown parsing.
  */
-function createParsePoolInternal(options?: ParsePoolOptions): ParsePoolInternal {
+function createParsePoolInternal(
+  options?: ParsePoolOptions,
+): ParsePoolInternal {
   const poolSize = options?.poolSize ?? Math.max(1, cpus().length - 1)
   debug("creating pool with %d workers", poolSize)
 

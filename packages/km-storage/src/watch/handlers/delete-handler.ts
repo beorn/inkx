@@ -4,7 +4,11 @@
  * Simple handlers for file/folder deletion and renaming.
  */
 
-import { emitNodeUpdated, emitNodeDeleted, type Emitter } from "../../emitter.ts"
+import {
+  emitNodeUpdated,
+  emitNodeDeleted,
+  type Emitter,
+} from "../../emitter.ts"
 import type { ReconcileOp } from "../reconcile.ts"
 
 /**

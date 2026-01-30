@@ -128,7 +128,10 @@ function createQueryMethods(deps: RepoMethodDeps) {
       ensureOpen()
       return dbGetChildCountsBatch(db, parentIds)
     },
-    rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
+    rawQuery<T = Record<string, unknown>>(
+      sql: string,
+      params?: unknown[],
+    ): T[] {
       ensureOpen()
       const stmt = db.prepare(sql)
       return (
@@ -157,7 +160,12 @@ function createMutationMethods(deps: RepoMethodDeps) {
     },
     moveNode(id: string, newParentId: string, position: number) {
       ensureOpen()
-      let ctx: MutationContext = { type: "move", nodeId: id, newParentId, position }
+      let ctx: MutationContext = {
+        type: "move",
+        nodeId: id,
+        newParentId,
+        position,
+      }
       if (hooks?.beforeMutation) {
         const result = hooks.beforeMutation(ctx)
         if (result?.cancel) throw new Error("Mutation cancelled by hook")
@@ -249,7 +257,10 @@ function checkNeedsRebuild(rootPath: string, db: Database): boolean {
       ? readFileSync(eventsPath, "utf-8")
       : ""
     const hasEvents = content.trim().length > 0
-    debug("needsRebuild", { result: hasEvents ? "yes" : "no", reason: "no last_event" })
+    debug("needsRebuild", {
+      result: hasEvents ? "yes" : "no",
+      reason: "no last_event",
+    })
     return hasEvents
   }
 

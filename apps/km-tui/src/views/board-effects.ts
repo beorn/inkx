@@ -4,7 +4,10 @@
 import type { WriteStream } from "tty"
 import type { Dispatch } from "react"
 import { actions, type UIAction } from "../ui-reducer.ts"
-import { createPasteHandler, supportsFileDrop } from "../handlers/paste-handler.ts"
+import {
+  createPasteHandler,
+  supportsFileDrop,
+} from "../handlers/paste-handler.ts"
 import type { SelectionRange } from "../handlers/mouse-handler.ts"
 import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"

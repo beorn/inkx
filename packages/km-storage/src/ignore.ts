@@ -313,7 +313,9 @@ export interface PatternMatcher {
  *   const matcher = createPatternMatcher({ patterns: getIgnorePatterns(repoPath) })
  *   if (matcher.matches(filePath)) { skip this file }
  */
-export function createPatternMatcher(options: PatternMatcherOptions): PatternMatcher {
+export function createPatternMatcher(
+  options: PatternMatcherOptions,
+): PatternMatcher {
   const compiledPatterns: Array<{ regex: RegExp; original: string }> = []
 
   for (const pattern of options.patterns) {

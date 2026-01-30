@@ -168,10 +168,52 @@ describe("Render", () => {
   test("StaticBoardView renders columns", async () => {
     // Build nodes with explicit task_status for deterministic rendering
     const nodes = [
-      { id: "board", type: "folder" as const, data: { name: "board" }, parent_id: null, parent_idx: 0, link_to: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "Todo", type: "folder" as const, data: { name: "Todo" }, parent_id: "board", parent_idx: 0, link_to: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "Task 1", type: "task" as const, content: "Task 1", task_status: "todo" as const, data: {}, parent_id: "Todo", parent_idx: 0, link_to: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "Done", type: "folder" as const, data: { name: "Done" }, parent_id: "board", parent_idx: 1, link_to: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      {
+        id: "board",
+        type: "folder" as const,
+        data: { name: "board" },
+        parent_id: null,
+        parent_idx: 0,
+        link_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "Todo",
+        type: "folder" as const,
+        data: { name: "Todo" },
+        parent_id: "board",
+        parent_idx: 0,
+        link_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "Task 1",
+        type: "task" as const,
+        content: "Task 1",
+        task_status: "todo" as const,
+        data: {},
+        parent_id: "Todo",
+        parent_idx: 0,
+        link_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "Done",
+        type: "folder" as const,
+        data: { name: "Done" },
+        parent_id: "board",
+        parent_idx: 1,
+        link_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
     ]
     const repo = createFakeRepo({ nodes })
     const state = buildBoardState(repo, "board")

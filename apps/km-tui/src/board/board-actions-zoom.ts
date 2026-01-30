@@ -8,7 +8,10 @@ import type { ActionResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
 import type { KNode } from "@km/core"
 import { handleCursorMove } from "./board-actions-nav.ts"
-import { clearSelection, pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
+import {
+  clearSelection,
+  pushNavHistoryEntry,
+} from "../keyboard/keyboard-helpers.ts"
 import type { TUIContext } from "../tui-context.ts"
 import { actions } from "../ui-reducer.ts"
 

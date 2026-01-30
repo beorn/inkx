@@ -32,7 +32,10 @@ import { MemoryStore, type NodeStore } from "./store.ts"
 
 // Import extracted modules
 import { discoverFiles } from "./discovery.ts"
-import { resolveLinksGen, resolveLinksAsync as resolveLinksAsyncImpl } from "./link-resolution.ts"
+import {
+  resolveLinksGen,
+  resolveLinksAsync as resolveLinksAsyncImpl,
+} from "./link-resolution.ts"
 
 const debug = createDebug("km:storage:repo-loader")
 
@@ -190,7 +193,12 @@ export function* loadRepo(
   const source: EventSource =
     mode === "memory"
       ? yield* discoverMemoryMode(repoRoot, errors, db, discoverOnly)
-      : yield* discoverFromEvents(db, kmDir ?? "", options?.force ?? false, errors)
+      : yield* discoverFromEvents(
+          db,
+          kmDir ?? "",
+          options?.force ?? false,
+          errors,
+        )
 
   // 4. Shared pipeline
   yield* applyEvents(db, source.events, errors)
@@ -202,12 +210,18 @@ export function* loadRepo(
 
   if (discoverOnly) {
     returnDeferredFiles = source.deferredFiles
-    debug("discover-only mode, %d files deferred", returnDeferredFiles?.length ?? 0)
+    debug(
+      "discover-only mode, %d files deferred",
+      returnDeferredFiles?.length ?? 0,
+    )
   } else {
     if (source.pendingLinks.length > 0) {
       if (skipLinks) {
         returnPendingLinks = source.pendingLinks
-        debug("skipping link resolution, %d links deferred", source.pendingLinks.length)
+        debug(
+          "skipping link resolution, %d links deferred",
+          source.pendingLinks.length,
+        )
       } else {
         linkCount = yield* resolveLinksGen(db, source.pendingLinks, errors)
       }
@@ -224,7 +238,9 @@ export function* loadRepo(
   const duration = Date.now() - start
   debug("loadRepo complete", { mode, nodeCount, linkCount, duration })
 
-  const store: NodeStore = new MemoryStore(repoRoot, { inject: { database: db } })
+  const store: NodeStore = new MemoryStore(repoRoot, {
+    inject: { database: db },
+  })
 
   return {
     mode,
@@ -326,16 +342,24 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
   let repoRootId: string
 
   if (existingRoot) {
-    debug("migrateToRepoRootNode: repo root node already exists (%s)", existingRoot.id)
+    debug(
+      "migrateToRepoRootNode: repo root node already exists (%s)",
+      existingRoot.id,
+    )
     repoRootId = existingRoot.id
   } else {
     const orphanCount = (
-      db.prepare("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL").get() as {
+      db
+        .prepare("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL")
+        .get() as {
         count: number
       }
     ).count
 
-    debug("migrateToRepoRootNode: creating repo root node (%d orphan nodes to migrate)", orphanCount)
+    debug(
+      "migrateToRepoRootNode: creating repo root node (%d orphan nodes to migrate)",
+      orphanCount,
+    )
 
     repoRootId = "."
     const now = Date.now()
@@ -361,12 +385,17 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
       )
 
       const orphanNodeCount = (
-        db.prepare(
-          "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND type != 'folder'",
-        ).get() as { count: number }
+        db
+          .prepare(
+            "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND type != 'folder'",
+          )
+          .get() as { count: number }
       ).count
       if (orphanNodeCount > 0) {
-        debug("migrateToRepoRootNode: updating %d orphan nodes", orphanNodeCount)
+        debug(
+          "migrateToRepoRootNode: updating %d orphan nodes",
+          orphanNodeCount,
+        )
         db.prepare(
           "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND type != 'folder'",
         ).run(repoRootId)
@@ -382,9 +411,11 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
 
   // Update orphan nodes even if repo root already exists
   const orphanCount = (
-    db.prepare(
-      "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND type != 'folder'",
-    ).get() as { count: number }
+    db
+      .prepare(
+        "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND type != 'folder'",
+      )
+      .get() as { count: number }
   ).count
 
   if (orphanCount > 0) {
