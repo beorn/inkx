@@ -12,7 +12,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createInterface } from "readline"
+import { createInterface, type Interface as ReadlineInterface } from "readline"
 import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs"
 import { homedir } from "os"
 import { join } from "path"
@@ -48,6 +48,17 @@ import {
 import type { KNode } from "@km/core"
 
 // ============================================
+// Types
+// ============================================
+
+interface ShellOptions {
+  json?: boolean
+  command?: string[]
+  file?: string
+  verbose?: boolean
+}
+
+// ============================================
 // Main Export - Shell Command
 // ============================================
 
@@ -62,82 +73,10 @@ export const shCommand = new Command("sh")
   .option("-f, --file <path>", "Read commands from file instead of stdin")
   .option("-v, --verbose", "Output JSON action event for each command")
   .action(async (root, options) => {
-    // Resolve the root argument - handles directory paths, file paths, and node IDs
-    const resolved = resolvePathArg(root, getRootPath())
+    const result = await initializeShell(root, options)
+    if (!result) return // Error already handled
 
-    // Create repo domain object (auto-closes via `using`)
-    using repo = await loadRepo(resolved.repoRoot)
-
-    // Use repo's database (ADR-002: no singletons)
-    const db = repo.database
-
-    // Initialize bound helper functions
-    getNodeDisplayName = (node) =>
-      getNodeDisplayNameBase(node, (parentId) => getChildren(db, parentId))
-
-    // Resolve the node reference if provided
-    let resolvedNodeId: string | null = null
-    if (resolved.nodeRef) {
-      const node = resolveNode(db, resolved.nodeRef)
-      if (node) {
-        resolvedNodeId = node.id
-      } else if (resolved.wasExplicitPath) {
-        // Explicit path that didn't resolve - error
-        if (options.json) {
-          console.log(
-            JSON.stringify({
-              event: "error",
-              error: `No node found for path: ${resolved.nodeRef}`,
-              ts: Date.now(),
-            }),
-          )
-        } else {
-          console.error(`error: No node found for path: ${resolved.nodeRef}`)
-        }
-        process.exit(1)
-      } else {
-        // Non-path that didn't resolve - could be invalid ID
-        resolvedNodeId = resolved.nodeRef // Let buildNodes handle it
-      }
-    }
-
-    const nodes = buildNodes(db, resolvedNodeId)
-
-    if (nodes.length === 0) {
-      if (options.json) {
-        console.log(
-          JSON.stringify({
-            event: "error",
-            error: "No nodes found",
-            ts: Date.now(),
-          }),
-        )
-      } else {
-        console.error("error: No nodes found")
-      }
-      process.exit(1)
-    }
-
-    // Compute the root node's slug path for prompt display
-    // e.g., if viewing @inbox.md, this will be "@inbox"
-    let rootSlugPath: string | undefined
-    if (resolvedNodeId) {
-      const rootNode = resolveNode(db, resolvedNodeId)
-      if (rootNode) {
-        rootSlugPath = getNodeName(rootNode)
-      }
-    }
-
-    // Create initial state
-    const initialState = createBoardState(nodes, resolvedNodeId, repo.path)
-
-    // Create mutation handler for storage operations
-    const onMutation = createMutationHandler(
-      db,
-      repo,
-      resolvedNodeId,
-      repo.path,
-    )
+    const { initialState, onMutation, rootSlugPath, options: opts } = result
 
     // Output function
     const output = (event: OutputEvent | string) => {
@@ -149,162 +88,19 @@ export const shCommand = new Command("sh")
     }
 
     // Read input: -c takes priority, then -f, then stdin (REPL mode)
-    const cmdStrings: string[] | undefined = options.command
+    const cmdStrings: string[] | undefined = opts.command
 
     if (cmdStrings && cmdStrings.length > 0) {
-      // Batch mode: -c flag with commands
-      const lines = cmdStrings.flatMap(parseCommandString)
-      const finalState = await runShell(lines, initialState, {
-        jsonMode: options.json ?? false,
-        verbose: options.verbose ?? false,
-        output,
-        onMutation,
-      })
-
-      if (options.json) {
-        console.log(
-          JSON.stringify({
-            event: "final",
-            state: serializeState(finalState),
-            ts: Date.now(),
-          }),
-        )
-      }
-    } else if (options.file) {
-      // Batch mode: -f flag with file
-      const lines = await readInputLines(options.file)
-      const finalState = await runShell(lines, initialState, {
-        jsonMode: options.json ?? false,
-        verbose: options.verbose ?? false,
-        output,
-        onMutation,
-      })
-
-      if (options.json) {
-        console.log(
-          JSON.stringify({
-            event: "final",
-            state: serializeState(finalState),
-            ts: Date.now(),
-          }),
-        )
-      }
-    } else {
-      // REPL mode: read from stdin line by line, execute immediately
-      const ctx: ShellContext = {
-        state: initialState,
-        jsonMode: options.json ?? false,
-        verbose: options.verbose ?? false,
-        output,
-        actionLog: [],
-        onMutation,
-      }
-
-      // OSC 133 shell integration - auto-enabled in TTY or via env var
-      const useOsc133 = shouldEmitOsc133()
-
-      // History file path
-      const historyPath = join(homedir(), ".km_history")
-
-      // Load history from file
-      let history: string[] = []
-      try {
-        const historyContent = readFileSync(historyPath, "utf-8")
-        history = historyContent
-          .split("\n")
-          .filter((line) => line.trim().length > 0)
-      } catch {
-        // No history file yet, that's fine
-      }
-
-      // Get all command names for completion
-      const commandNames = getCommandNames()
-
-      // Tab completion function
-      const completer = (line: string): [string[], string] => {
-        // Complete command names
-        const hits = commandNames.filter((cmd) =>
-          cmd.startsWith(line.toLowerCase()),
-        )
-        // Show all completions if none found
-        return [hits.length ? hits : commandNames, line]
-      }
-
-      // Build prompt showing current path (including root node path)
-      const buildPrompt = () => `${getPromptPath(ctx.state, rootSlugPath)}> `
-
-      const rl = createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        completer,
-        history,
-        historySize: 1000,
-        crlfDelay: Infinity,
-        terminal: process.stdin.isTTY ?? false,
-        prompt: buildPrompt(),
-      })
-
-      // Signal prompt ready and show initial prompt
-      if (useOsc133) {
-        process.stdout.write(OSC_133_A)
-      }
-      rl.prompt()
-
-      await new Promise<void>((resolve) => {
-        rl.on("line", (line) => {
-          // Use void to handle async callback (lint: no-misused-promises)
-          void (async () => {
-            // Signal command start
-            if (useOsc133) {
-              process.stdout.write(OSC_133_C)
-            }
-
-            const { state, quit } = await executeCommand(line, ctx)
-            ctx.state = state
-
-            // Append to history file (only non-empty lines)
-            if (line.trim().length > 0) {
-              try {
-                appendFileSync(historyPath, line + "\n")
-              } catch {
-                // Ignore history write errors
-              }
-            }
-
-            // Signal command end (exit code 0 - shell commands don't have exit codes yet)
-            if (useOsc133) {
-              process.stdout.write(osc133D(0))
-              // Signal next prompt ready (unless quitting)
-              if (!quit) {
-                process.stdout.write(OSC_133_A)
-              }
-            }
-
-            if (quit) {
-              rl.close()
-            } else {
-              // Update prompt with new path and show it
-              rl.setPrompt(buildPrompt())
-              rl.prompt()
-            }
-          })()
-        })
-
-        rl.on("close", () => {
-          resolve()
-        })
-      })
-
-      if (options.json) {
-        console.log(
-          JSON.stringify({
-            event: "final",
-            state: serializeState(ctx.state),
-            ts: Date.now(),
-          }),
-        )
-      }
+      await runCommandMode(cmdStrings, initialState, opts, output, onMutation)
+      return
     }
+
+    if (opts.file) {
+      await runFileMode(opts.file, initialState, opts, output, onMutation)
+      return
+    }
+
+    await runReplMode(initialState, opts, output, onMutation, rootSlugPath)
   })
 
 // ============================================
@@ -316,6 +112,315 @@ export const shCommand = new Command("sh")
 const OSC_133_A = "\x1b]133;A\x07" // Prompt start (ready for input)
 const OSC_133_C = "\x1b]133;C\x07" // Command start (execution beginning)
 const osc133D = (exitCode: number) => `\x1b]133;D;${exitCode}\x07` // Command end
+
+// ============================================
+// Mode Handlers
+// ============================================
+
+interface ShellInitResult {
+  initialState: BoardState
+  onMutation: MutationHandler
+  rootSlugPath: string | undefined
+  options: ShellOptions
+}
+
+/**
+ * Initialize shell: resolve root, load repo, build nodes
+ * Returns null if initialization fails (error already output)
+ */
+async function initializeShell(
+  root: string | undefined,
+  options: ShellOptions,
+): Promise<ShellInitResult | null> {
+  // Resolve the root argument - handles directory paths, file paths, and node IDs
+  const resolved = resolvePathArg(root, getRootPath())
+
+  // Create repo domain object (auto-closes via `using`)
+  using repo = await loadRepo(resolved.repoRoot)
+
+  // Use repo's database (ADR-002: no singletons)
+  const db = repo.database
+
+  // Initialize bound helper functions
+  getNodeDisplayName = (node) =>
+    getNodeDisplayNameBase(node, (parentId) => getChildren(db, parentId))
+
+  // Resolve the node reference if provided
+  const resolvedNodeId = resolveNodeReference(db, resolved, options)
+  if (resolvedNodeId === false) return null // Error already handled
+
+  const nodes = buildNodes(db, resolvedNodeId)
+
+  if (nodes.length === 0) {
+    outputError("No nodes found", options.json)
+    process.exit(1)
+  }
+
+  // Compute the root node's slug path for prompt display
+  const rootSlugPath = resolvedNodeId
+    ? getRootSlugPath(db, resolvedNodeId)
+    : undefined
+
+  // Create initial state
+  const initialState = createBoardState(nodes, resolvedNodeId, repo.path)
+
+  // Create mutation handler for storage operations
+  const onMutation = createMutationHandler(db, repo, resolvedNodeId, repo.path)
+
+  return { initialState, onMutation, rootSlugPath, options }
+}
+
+/**
+ * Resolve node reference, handling errors
+ * Returns node ID, null (no ref), or false (error)
+ */
+function resolveNodeReference(
+  db: Database,
+  resolved: ReturnType<typeof resolvePathArg>,
+  options: ShellOptions,
+): string | null | false {
+  if (!resolved.nodeRef) return null
+
+  const node = resolveNode(db, resolved.nodeRef)
+  if (node) return node.id
+
+  if (resolved.wasExplicitPath) {
+    outputError(`No node found for path: ${resolved.nodeRef}`, options.json)
+    process.exit(1)
+  }
+
+  // Non-path that didn't resolve - could be invalid ID
+  return resolved.nodeRef // Let buildNodes handle it
+}
+
+/**
+ * Get the root node's slug path for prompt display
+ */
+function getRootSlugPath(db: Database, nodeId: string): string | undefined {
+  const rootNode = resolveNode(db, nodeId)
+  return rootNode ? getNodeName(rootNode) : undefined
+}
+
+/**
+ * Output an error in JSON or text format
+ */
+function outputError(message: string, jsonMode?: boolean): void {
+  if (jsonMode) {
+    console.log(
+      JSON.stringify({ event: "error", error: message, ts: Date.now() }),
+    )
+  } else {
+    console.error(`error: ${message}`)
+  }
+}
+
+/**
+ * Output final state in JSON format
+ */
+function outputFinalState(state: BoardState): void {
+  console.log(
+    JSON.stringify({
+      event: "final",
+      state: serializeState(state),
+      ts: Date.now(),
+    }),
+  )
+}
+
+/**
+ * Run shell in command mode (-c flag)
+ */
+async function runCommandMode(
+  cmdStrings: string[],
+  initialState: BoardState,
+  options: ShellOptions,
+  output: (event: OutputEvent | string) => void,
+  onMutation: MutationHandler,
+): Promise<void> {
+  const lines = cmdStrings.flatMap(parseCommandString)
+  const finalState = await runShell(lines, initialState, {
+    jsonMode: options.json ?? false,
+    verbose: options.verbose ?? false,
+    output,
+    onMutation,
+  })
+
+  if (options.json) {
+    outputFinalState(finalState)
+  }
+}
+
+/**
+ * Run shell in file mode (-f flag)
+ */
+async function runFileMode(
+  filePath: string,
+  initialState: BoardState,
+  options: ShellOptions,
+  output: (event: OutputEvent | string) => void,
+  onMutation: MutationHandler,
+): Promise<void> {
+  const lines = await readInputLines(filePath)
+  const finalState = await runShell(lines, initialState, {
+    jsonMode: options.json ?? false,
+    verbose: options.verbose ?? false,
+    output,
+    onMutation,
+  })
+
+  if (options.json) {
+    outputFinalState(finalState)
+  }
+}
+
+/**
+ * Run shell in REPL mode (interactive stdin)
+ */
+async function runReplMode(
+  initialState: BoardState,
+  options: ShellOptions,
+  output: (event: OutputEvent | string) => void,
+  onMutation: MutationHandler,
+  rootSlugPath: string | undefined,
+): Promise<void> {
+  const ctx: ShellContext = {
+    state: initialState,
+    jsonMode: options.json ?? false,
+    verbose: options.verbose ?? false,
+    output,
+    actionLog: [],
+    onMutation,
+  }
+
+  const rl = createReplInterface(ctx, rootSlugPath)
+  const historyPath = join(homedir(), ".km_history")
+  const useOsc133 = shouldEmitOsc133()
+
+  // Signal prompt ready and show initial prompt
+  if (useOsc133) {
+    process.stdout.write(OSC_133_A)
+  }
+  rl.prompt()
+
+  await runReplLoop(rl, ctx, historyPath, rootSlugPath, useOsc133)
+
+  if (options.json) {
+    outputFinalState(ctx.state)
+  }
+}
+
+/**
+ * Create readline interface for REPL mode
+ */
+function createReplInterface(
+  ctx: ShellContext,
+  rootSlugPath: string | undefined,
+): ReadlineInterface {
+  const historyPath = join(homedir(), ".km_history")
+  const history = loadHistory(historyPath)
+  const commandNames = getCommandNames()
+
+  const completer = (line: string): [string[], string] => {
+    const hits = commandNames.filter((cmd) =>
+      cmd.startsWith(line.toLowerCase()),
+    )
+    return [hits.length ? hits : commandNames, line]
+  }
+
+  const buildPrompt = () => `${getPromptPath(ctx.state, rootSlugPath)}> `
+
+  return createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    completer,
+    history,
+    historySize: 1000,
+    crlfDelay: Infinity,
+    terminal: process.stdin.isTTY ?? false,
+    prompt: buildPrompt(),
+  })
+}
+
+/**
+ * Load command history from file
+ */
+function loadHistory(historyPath: string): string[] {
+  try {
+    const content = readFileSync(historyPath, "utf-8")
+    return content.split("\n").filter((line) => line.trim().length > 0)
+  } catch {
+    return [] // No history file yet
+  }
+}
+
+/**
+ * Run the REPL event loop
+ */
+async function runReplLoop(
+  rl: ReadlineInterface,
+  ctx: ShellContext,
+  historyPath: string,
+  rootSlugPath: string | undefined,
+  useOsc133: boolean,
+): Promise<void> {
+  const buildPrompt = () => `${getPromptPath(ctx.state, rootSlugPath)}> `
+
+  await new Promise<void>((resolve) => {
+    rl.on("line", (line) => {
+      void handleReplLine(rl, ctx, line, historyPath, buildPrompt, useOsc133)
+    })
+
+    rl.on("close", resolve)
+  })
+}
+
+/**
+ * Handle a single REPL line input
+ */
+async function handleReplLine(
+  rl: ReadlineInterface,
+  ctx: ShellContext,
+  line: string,
+  historyPath: string,
+  buildPrompt: () => string,
+  useOsc133: boolean,
+): Promise<void> {
+  if (useOsc133) {
+    process.stdout.write(OSC_133_C)
+  }
+
+  const { state, quit } = await executeCommand(line, ctx)
+  ctx.state = state
+
+  appendToHistory(historyPath, line)
+
+  if (useOsc133) {
+    process.stdout.write(osc133D(0))
+    if (!quit) {
+      process.stdout.write(OSC_133_A)
+    }
+  }
+
+  if (quit) {
+    rl.close()
+    return
+  }
+
+  rl.setPrompt(buildPrompt())
+  rl.prompt()
+}
+
+/**
+ * Append a line to history file (if non-empty)
+ */
+function appendToHistory(historyPath: string, line: string): void {
+  if (line.trim().length === 0) return
+  try {
+    appendFileSync(historyPath, line + "\n")
+  } catch {
+    // Ignore history write errors
+  }
+}
 
 // ============================================
 // Helper Functions

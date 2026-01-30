@@ -21,6 +21,8 @@ import {
   type QueryRef,
   type QueryPath,
   type DateRange,
+  type QueryPropCondition,
+  type QuerySpecial,
 } from "@km/core"
 
 // Re-export parsing types and functions from @km/core
@@ -42,29 +44,19 @@ export interface QueryOptions {
   requireTaskStatus?: boolean
 }
 
+/** Accumulator for building SQL queries */
+interface QueryBuilder {
+  clauses: string[]
+  params: (string | number)[]
+}
+
 /**
- * Execute a query against the database
+ * Build base SQL with optional recursive CTE for path filtering
  */
-export function executeQuery(
-  db: Database,
-  ast: QueryAST,
-  baseType?: string,
-  options?: QueryOptions,
-): KNode[] {
-  const requireTaskStatus = options?.requireTaskStatus ?? false
-
-  // Check if we need path filtering (requires CTE for ancestor lookup)
-  const needsPathFilter = ast.paths.length > 0
-
-  let sql: string
-  const params: (string | number)[] = []
-
+function buildBaseQuery(needsPathFilter: boolean): string {
   if (needsPathFilter) {
-    // Use a recursive CTE to compute effective_path for all nodes
-    // This walks up the parent chain to find the nearest ancestor with fs_path
-    sql = `
+    return `
       WITH RECURSIVE node_ancestors AS (
-        -- Base case: start with each node
         SELECT
           id AS node_id,
           id AS current_id,
@@ -75,7 +67,6 @@ export function executeQuery(
 
         UNION ALL
 
-        -- Recursive case: walk up to parent
         SELECT
           na.node_id,
           n.id,
@@ -84,10 +75,9 @@ export function executeQuery(
           na.depth + 1
         FROM node_ancestors na
         JOIN nodes n ON n.id = na.parent_id
-        WHERE na.fs_path IS NULL  -- Stop when we find an fs_path
+        WHERE na.fs_path IS NULL
       ),
       node_paths AS (
-        -- Get the first ancestor with fs_path for each node
         SELECT node_id, fs_path AS effective_path
         FROM node_ancestors
         WHERE fs_path IS NOT NULL
@@ -97,292 +87,403 @@ export function executeQuery(
       FROM nodes n
       LEFT JOIN node_paths np ON n.id = np.node_id
       WHERE 1=1`
+  }
+  return "SELECT * FROM nodes WHERE 1=1"
+}
+
+/**
+ * Build date predicate for date fields with shortcuts (today, tomorrow, week, etc.)
+ * Returns SQL clause or null if not a date shortcut
+ */
+function buildDatePredicate(
+  field: string,
+  op: string,
+  value: string,
+  builder: QueryBuilder,
+): boolean {
+  if (!isDateField(field) || !isDateShortcut(value)) return false
+
+  const dateRange = resolveDate(value)
+  if (!dateRange) return false
+
+  if (op !== "=" && op !== "!=") return false
+
+  const isSingleDay = dateRange.start === dateRange.end
+
+  if (op === "=") {
+    if (isSingleDay) {
+      builder.clauses.push(`${field} = ?`)
+      builder.params.push(dateRange.start)
+    } else {
+      builder.clauses.push(`${field} >= ? AND ${field} <= ?`)
+      builder.params.push(dateRange.start, dateRange.end)
+    }
   } else {
-    sql = "SELECT * FROM nodes WHERE 1=1"
-  }
-
-  // Filter by type if specified
-  if (baseType) {
-    sql += " AND type = ?"
-    params.push(baseType)
-  }
-
-  // Filter to only nodes with task_status (nodes acting as tasks)
-  if (requireTaskStatus) {
-    sql += " AND task_status IS NOT NULL"
-  }
-
-  // Apply field conditions
-  for (const cond of ast.conditions) {
-    const { field, op, value } = cond
-
-    // Handle date shortcuts for date fields
-    if (isDateField(field) && isDateShortcut(value)) {
-      const dateRange = resolveDate(value)
-      if (dateRange) {
-        if (op === "=" || op === "!=") {
-          if (dateRange.start === dateRange.end) {
-            // Single day - use exact match or not equal
-            if (op === "=") {
-              sql += ` AND ${field} = ?`
-              params.push(dateRange.start)
-            } else {
-              sql += ` AND (${field} != ? OR ${field} IS NULL)`
-              params.push(dateRange.start)
-            }
-          } else {
-            // Date range
-            if (op === "=") {
-              sql += ` AND ${field} >= ? AND ${field} <= ?`
-              params.push(dateRange.start, dateRange.end)
-            } else {
-              sql += ` AND (${field} < ? OR ${field} > ? OR ${field} IS NULL)`
-              params.push(dateRange.start, dateRange.end)
-            }
-          }
-        }
-        continue
-      }
-    }
-
-    // Handle comma-separated values (e.g., status:open,blocked → IN clause)
-    const values = value.split(",").filter((v: string) => v.length > 0)
-
-    if (op === "=") {
-      if (values.length > 1) {
-        // Multiple values: use IN clause (OR semantics)
-        const placeholders = values.map(() => "?").join(", ")
-        sql += ` AND ${field} IN (${placeholders})`
-        params.push(...values)
-      } else {
-        sql += ` AND ${field} = ?`
-        params.push(value)
-      }
-    } else if (op === "!=") {
-      if (values.length > 1) {
-        // Multiple values: NOT IN clause
-        const placeholders = values.map(() => "?").join(", ")
-        sql += ` AND (${field} NOT IN (${placeholders}) OR ${field} IS NULL)`
-        params.push(...values)
-      } else {
-        sql += ` AND (${field} != ? OR ${field} IS NULL)`
-        params.push(value)
-      }
-    } else if (op === ">" || op === "<" || op === ">=" || op === "<=") {
-      sql += ` AND ${field} ${op} ?`
-      params.push(value)
-    } else if (op === "LIKE") {
-      sql += ` AND ${field} LIKE ?`
-      params.push(`%${value}%`)
-    }
-  }
-
-  // Apply reference filters (stored in JSON data field)
-  for (const ref of ast.refs) {
-    const jsonPath =
-      ref.type === "person"
-        ? "mentions"
-        : ref.type === "tag"
-          ? "tags"
-          : "projects"
-
-    if (ref.negated) {
-      // Exclude nodes with this ref
-      sql += ` AND (data IS NULL OR json_extract(data, '$') NOT LIKE ?)`
-      params.push(`%"${ref.value}"%`)
+    if (isSingleDay) {
+      builder.clauses.push(`(${field} != ? OR ${field} IS NULL)`)
+      builder.params.push(dateRange.start)
     } else {
-      // Include only nodes with this ref
-      sql += ` AND json_extract(data, '$.${jsonPath}') LIKE ?`
-      params.push(`%"${ref.value}"%`)
+      builder.clauses.push(`(${field} < ? OR ${field} > ? OR ${field} IS NULL)`)
+      builder.params.push(dateRange.start, dateRange.end)
     }
   }
+  return true
+}
 
-  // Apply property conditions (data.props queries)
-  // Properties are stored as PropertyValue objects:
-  // - { type: "number", value: N }
-  // - { type: "link", target: "..." }
-  // - { type: "text", value: "..." }
-  // - { type: "date", value: "YYYY-MM-DD" }
-  // - { type: "list", values: [...] }
-  for (const propCond of ast.propConditions) {
-    const { prop, op, value, negated } = propCond
-    const jsonPath = `$.props.${prop}`
-    const valuePath = `$.props.${prop}.value` // For number/text/date
-    const targetPath = `$.props.${prop}.target` // For link
+/**
+ * Build SQL for field:value conditions with IN/NOT IN support
+ */
+function buildFieldCondition(
+  cond: QueryCondition,
+  builder: QueryBuilder,
+): void {
+  const { field, op, value } = cond
+  const values = value.split(",").filter((v: string) => v.length > 0)
 
-    if (op === "exists") {
-      if (negated) {
-        // Property does not exist
-        sql += ` AND (data IS NULL OR json_extract(data, ?) IS NULL)`
-      } else {
-        // Property exists
-        sql += ` AND json_extract(data, ?) IS NOT NULL`
-      }
-      params.push(jsonPath)
-    } else if ((op === "=" || op === "!=") && value !== undefined) {
-      const effectiveOp = negated ? (op === "=" ? "!=" : "=") : op
-      if (effectiveOp === "=") {
-        // Match value in different property types:
-        // - number/text/date: $.props.X.value = ?
-        // - link: $.props.X.target = ?
-        // - list: $.props.X.values contains the value (LIKE search)
-        sql += ` AND (json_extract(data, ?) = ? OR json_extract(data, ?) = ? OR json_extract(data, ?) LIKE ?)`
-        params.push(
-          valuePath,
-          value,
-          targetPath,
-          value,
-          jsonPath,
-          `%"${value}"%`,
-        )
-      } else {
-        // Not equal - must not match in any form
-        sql += ` AND (json_extract(data, ?) IS NULL OR (json_extract(data, ?) != ? AND json_extract(data, ?) != ? AND json_extract(data, ?) NOT LIKE ?))`
-        params.push(
-          jsonPath,
-          valuePath,
-          value,
-          targetPath,
-          value,
-          jsonPath,
-          `%"${value}"%`,
-        )
-      }
-    } else if (
-      (op === ">" || op === "<" || op === ">=" || op === "<=") &&
-      value !== undefined
-    ) {
-      // Numeric comparison - extract from $.props.X.value
-      sql += ` AND CAST(json_extract(data, ?) AS REAL) ${op} ?`
-      params.push(valuePath, value)
+  if (op === "=") {
+    if (values.length > 1) {
+      const placeholders = values.map(() => "?").join(", ")
+      builder.clauses.push(`${field} IN (${placeholders})`)
+      builder.params.push(...values)
+    } else {
+      builder.clauses.push(`${field} = ?`)
+      builder.params.push(value)
+    }
+  } else if (op === "!=") {
+    if (values.length > 1) {
+      const placeholders = values.map(() => "?").join(", ")
+      builder.clauses.push(
+        `(${field} NOT IN (${placeholders}) OR ${field} IS NULL)`,
+      )
+      builder.params.push(...values)
+    } else {
+      builder.clauses.push(`(${field} != ? OR ${field} IS NULL)`)
+      builder.params.push(value)
+    }
+  } else if (op === ">" || op === "<" || op === ">=" || op === "<=") {
+    builder.clauses.push(`${field} ${op} ?`)
+    builder.params.push(value)
+  } else if (op === "LIKE") {
+    builder.clauses.push(`${field} LIKE ?`)
+    builder.params.push(`%${value}%`)
+  }
+}
+
+/**
+ * Build SQL for reference filters (@person, #tag, +project)
+ */
+function buildRefCondition(ref: QueryRef, builder: QueryBuilder): void {
+  const jsonPath =
+    ref.type === "person"
+      ? "mentions"
+      : ref.type === "tag"
+        ? "tags"
+        : "projects"
+
+  if (ref.negated) {
+    builder.clauses.push(`(data IS NULL OR json_extract(data, '$') NOT LIKE ?)`)
+    builder.params.push(`%"${ref.value}"%`)
+  } else {
+    builder.clauses.push(`json_extract(data, '$.${jsonPath}') LIKE ?`)
+    builder.params.push(`%"${ref.value}"%`)
+  }
+}
+
+/**
+ * Build SQL for property existence check
+ */
+function buildPropExistsCondition(
+  jsonPath: string,
+  negated: boolean,
+  builder: QueryBuilder,
+): void {
+  if (negated) {
+    builder.clauses.push(`(data IS NULL OR json_extract(data, ?) IS NULL)`)
+  } else {
+    builder.clauses.push(`json_extract(data, ?) IS NOT NULL`)
+  }
+  builder.params.push(jsonPath)
+}
+
+/**
+ * Build SQL for property equality check (handles number/text/date/link/list)
+ */
+function buildPropEqualityCondition(
+  jsonPath: string,
+  valuePath: string,
+  targetPath: string,
+  value: string,
+  isEqual: boolean,
+  builder: QueryBuilder,
+): void {
+  if (isEqual) {
+    builder.clauses.push(
+      `(json_extract(data, ?) = ? OR json_extract(data, ?) = ? OR json_extract(data, ?) LIKE ?)`,
+    )
+    builder.params.push(
+      valuePath,
+      value,
+      targetPath,
+      value,
+      jsonPath,
+      `%"${value}"%`,
+    )
+  } else {
+    builder.clauses.push(
+      `(json_extract(data, ?) IS NULL OR (json_extract(data, ?) != ? AND json_extract(data, ?) != ? AND json_extract(data, ?) NOT LIKE ?))`,
+    )
+    builder.params.push(
+      jsonPath,
+      valuePath,
+      value,
+      targetPath,
+      value,
+      jsonPath,
+      `%"${value}"%`,
+    )
+  }
+}
+
+/**
+ * Build SQL for property conditions (data.props queries)
+ */
+function buildPropCondition(
+  propCond: QueryPropCondition,
+  builder: QueryBuilder,
+): void {
+  const { prop, op, value, negated } = propCond
+  const jsonPath = `$.props.${prop}`
+  const valuePath = `$.props.${prop}.value`
+  const targetPath = `$.props.${prop}.target`
+
+  if (op === "exists") {
+    buildPropExistsCondition(jsonPath, negated, builder)
+  } else if ((op === "=" || op === "!=") && value !== undefined) {
+    const effectiveOp = negated ? (op === "=" ? "!=" : "=") : op
+    buildPropEqualityCondition(
+      jsonPath,
+      valuePath,
+      targetPath,
+      value,
+      effectiveOp === "=",
+      builder,
+    )
+  } else if (
+    (op === ">" || op === "<" || op === ">=" || op === "<=") &&
+    value !== undefined
+  ) {
+    builder.clauses.push(`CAST(json_extract(data, ?) AS REAL) ${op} ?`)
+    builder.params.push(valuePath, value)
+  }
+}
+
+/**
+ * Build SQL for blocked:true/false special conditions
+ */
+function buildBlockedCondition(
+  isBlocked: boolean,
+  outerTable: string,
+  builder: QueryBuilder,
+): void {
+  const blockerSubquery = `
+    SELECT 1 FROM nodes AS blocker
+    WHERE (
+      blocker.id = json_extract(${outerTable}.data, '$.props.blocked-by.target')
+      OR blocker.name = json_extract(${outerTable}.data, '$.props.blocked-by.target')
+      OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.id || '"%'
+      OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.name || '"%'
+    )
+    AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))`
+
+  if (isBlocked) {
+    builder.clauses.push(`json_extract(data, '$.props.blocked-by') IS NOT NULL`)
+    builder.clauses.push(`EXISTS (${blockerSubquery})`)
+  } else {
+    builder.clauses.push(
+      `(json_extract(data, '$.props.blocked-by') IS NULL OR NOT EXISTS (${blockerSubquery}))`,
+    )
+  }
+}
+
+/**
+ * Build SQL for special conditions (blocked:true/false)
+ */
+function buildSpecialCondition(
+  special: QuerySpecial,
+  outerTable: string,
+  builder: QueryBuilder,
+): void {
+  if (special.type === "blocked") {
+    buildBlockedCondition(special.value, outerTable, builder)
+  }
+}
+
+/**
+ * Build SQL for text search terms
+ */
+function buildTextCondition(terms: string[], builder: QueryBuilder): void {
+  for (const term of terms) {
+    if (term.startsWith("-")) {
+      builder.clauses.push("content NOT LIKE ?")
+      builder.params.push(`%${term.slice(1)}%`)
+    } else {
+      builder.clauses.push("content LIKE ?")
+      builder.params.push(`%${term}%`)
     }
   }
+}
 
-  // Apply special conditions (blocked:true/false)
-  // blocked:true = has blocked-by property pointing to at least one non-done task
-  // blocked:false = no blocked-by property OR all blockers are done
-  // Table alias: when path filter is used, outer query is "FROM nodes n", otherwise "FROM nodes"
-  const outerTable = needsPathFilter ? "n" : "nodes"
-  for (const special of ast.specials) {
-    if (special.type === "blocked") {
-      if (special.value) {
-        // blocked:true - has blocked-by property with at least one unresolved blocker
-        // Properties are stored as PropertyValue: {type: "link", target: "..."} or {type: "list", values: [...]}
-        sql += ` AND json_extract(data, '$.props.blocked-by') IS NOT NULL`
-        // Subquery to check if any blocker is not done
-        sql += ` AND EXISTS (
-          SELECT 1 FROM nodes AS blocker
-          WHERE (
-            blocker.id = json_extract(${outerTable}.data, '$.props.blocked-by.target')
-            OR blocker.name = json_extract(${outerTable}.data, '$.props.blocked-by.target')
-            OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.id || '"%'
-            OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.name || '"%'
-          )
-          AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
-        )`
-      } else {
-        // blocked:false - no blocked-by property OR all blockers are done
-        sql += ` AND (
-          json_extract(data, '$.props.blocked-by') IS NULL
-          OR NOT EXISTS (
-            SELECT 1 FROM nodes AS blocker
-            WHERE (
-              blocker.id = json_extract(${outerTable}.data, '$.props.blocked-by.target')
-              OR blocker.name = json_extract(${outerTable}.data, '$.props.blocked-by.target')
-              OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.id || '"%'
-              OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.name || '"%'
-            )
-            AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
-          )
-        )`
-      }
-    }
+/**
+ * Normalize path pattern by removing leading ./ or / and trailing /
+ */
+function normalizePathPattern(pattern: string): {
+  pattern: string
+  isNonRecursive: boolean
+} {
+  let normalized = pattern
+  if (normalized.startsWith("./")) normalized = normalized.slice(2)
+  if (normalized.startsWith("/")) normalized = normalized.slice(1)
+  if (normalized.endsWith("/")) normalized = normalized.slice(0, -1)
+
+  const isNonRecursive = normalized.endsWith("$")
+  if (isNonRecursive) normalized = normalized.slice(0, -1)
+
+  return { pattern: normalized, isNonRecursive }
+}
+
+/**
+ * Build SQL for recursive path matching
+ */
+function buildRecursivePathCondition(
+  pathColumn: string,
+  pattern: string,
+  negated: boolean,
+  builder: QueryBuilder,
+): void {
+  if (negated) {
+    builder.clauses.push(
+      `(${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ?))`,
+    )
+  } else {
+    builder.clauses.push(
+      `(${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ?)`,
+    )
   }
+  builder.params.push(`%/${pattern}/%`, `%/${pattern}.md`, `%/${pattern}`)
+}
 
-  // Apply text search
-  if (ast.text.length > 0) {
-    for (const term of ast.text) {
-      if (term.startsWith("-")) {
-        sql += " AND content NOT LIKE ?"
-        params.push(`%${term.slice(1)}%`)
-      } else {
-        sql += " AND content LIKE ?"
-        params.push(`%${term}%`)
-      }
-    }
+/**
+ * Build SQL for non-recursive path matching (direct children only)
+ */
+function buildNonRecursivePathCondition(
+  pathColumn: string,
+  pattern: string,
+  negated: boolean,
+  builder: QueryBuilder,
+): void {
+  if (negated) {
+    builder.clauses.push(`(${pathColumn} IS NULL OR ${pathColumn} NOT GLOB ?)`)
+    builder.params.push(`*/${pattern}/*[!/]*`)
+  } else {
+    builder.clauses.push(`${pathColumn} GLOB ? AND ${pathColumn} NOT GLOB ?`)
+    builder.params.push(`*/${pattern}/*`, `*/${pattern}/*/*`)
   }
+}
 
-  // Apply path pattern filters
-  // Path patterns match against effective_path (includes ancestor lookup for child nodes)
-  // When needsPathFilter is true, we use the CTE with effective_path column
+/**
+ * Build SQL for path pattern filters
+ */
+function buildPathCondition(
+  pathFilter: QueryPath,
+  pathColumn: string,
+  builder: QueryBuilder,
+): void {
+  const { pattern, recursive, negated } = pathFilter
+  const { pattern: normalizedPattern, isNonRecursive } =
+    normalizePathPattern(pattern)
+  const effectiveRecursive = recursive || !isNonRecursive
+
+  if (effectiveRecursive) {
+    buildRecursivePathCondition(pathColumn, normalizedPattern, negated, builder)
+  } else {
+    buildNonRecursivePathCondition(
+      pathColumn,
+      normalizedPattern,
+      negated,
+      builder,
+    )
+  }
+}
+
+/**
+ * Execute a query against the database
+ */
+export function executeQuery(
+  db: Database,
+  ast: QueryAST,
+  baseType?: string,
+  options?: QueryOptions,
+): KNode[] {
+  const requireTaskStatus = options?.requireTaskStatus ?? false
+  const needsPathFilter = ast.paths.length > 0
   const pathColumn = needsPathFilter ? "effective_path" : "fs_path"
+  const outerTable = needsPathFilter ? "n" : "nodes"
 
-  for (const pathFilter of ast.paths) {
-    const { pattern, recursive, negated } = pathFilter
+  const builder: QueryBuilder = { clauses: [], params: [] }
 
-    // Normalize pattern:
-    // - Remove leading ./ for relative paths
-    // - Remove leading / for absolute paths
-    // - Remove trailing / if present
-    let normalizedPattern = pattern
-    if (normalizedPattern.startsWith("./")) {
-      normalizedPattern = normalizedPattern.slice(2)
-    }
-    if (normalizedPattern.startsWith("/")) {
-      normalizedPattern = normalizedPattern.slice(1)
-    }
-    if (normalizedPattern.endsWith("/")) {
-      normalizedPattern = normalizedPattern.slice(0, -1)
-    }
+  // Type and status filters
+  if (baseType) {
+    builder.clauses.push("type = ?")
+    builder.params.push(baseType)
+  }
+  if (requireTaskStatus) {
+    builder.clauses.push("task_status IS NOT NULL")
+  }
 
-    // Default to recursive matching (./folder matches all contents)
-    // Use ./folder$ for non-recursive (direct children only)
-    const isNonRecursive = normalizedPattern.endsWith("$")
-    if (isNonRecursive) {
-      normalizedPattern = normalizedPattern.slice(0, -1)
-    }
-    const effectiveRecursive = recursive || !isNonRecursive
-
-    if (effectiveRecursive) {
-      // Recursive pattern (e.g., ./inbox/** or ./inbox)
-      // Matches:
-      //   - /root/inbox/file.md (file directly in folder)
-      //   - /root/inbox/sub/file.md (file in subfolder)
-      //   - /root/inbox.md (the folder itself as a file)
-      if (negated) {
-        sql += ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ?))`
-        params.push(
-          `%/${normalizedPattern}/%`, // files inside folder
-          `%/${normalizedPattern}.md`, // the folder file itself
-          `%/${normalizedPattern}`, // exact match at end
-        )
-      } else {
-        sql += ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ?)`
-        params.push(
-          `%/${normalizedPattern}/%`, // files inside folder
-          `%/${normalizedPattern}.md`, // the folder file itself
-          `%/${normalizedPattern}`, // exact match at end (for folder names without extension)
-        )
-      }
-    } else {
-      // Non-recursive pattern (e.g., ./inbox$) - direct children only
-      // Only matches files directly in the folder, not subfolders
-      if (negated) {
-        sql += ` AND (${pathColumn} IS NULL OR ${pathColumn} NOT GLOB ?)`
-        params.push(`*/${normalizedPattern}/*[!/]*`)
-      } else {
-        // Match direct children: /folder/file.md but not /folder/sub/file.md
-        // GLOB pattern: */folder/* where the part after folder/ has no more slashes
-        sql += ` AND ${pathColumn} GLOB ? AND ${pathColumn} NOT GLOB ?`
-        params.push(`*/${normalizedPattern}/*`, `*/${normalizedPattern}/*/*`)
-      }
+  // Field conditions
+  for (const cond of ast.conditions) {
+    if (!buildDatePredicate(cond.field, cond.op, cond.value, builder)) {
+      buildFieldCondition(cond, builder)
     }
   }
 
+  // Reference filters
+  for (const ref of ast.refs) {
+    buildRefCondition(ref, builder)
+  }
+
+  // Property conditions
+  for (const propCond of ast.propConditions) {
+    buildPropCondition(propCond, builder)
+  }
+
+  // Special conditions
+  for (const special of ast.specials) {
+    buildSpecialCondition(special, outerTable, builder)
+  }
+
+  // Text search
+  if (ast.text.length > 0) {
+    buildTextCondition(ast.text, builder)
+  }
+
+  // Path filters
+  for (const pathFilter of ast.paths) {
+    buildPathCondition(pathFilter, pathColumn, builder)
+  }
+
+  // Assemble final SQL
+  let sql = buildBaseQuery(needsPathFilter)
+  if (builder.clauses.length > 0) {
+    sql += " AND " + builder.clauses.join(" AND ")
+  }
   sql += " ORDER BY parent_idx ASC, created_at DESC"
 
   const start = Date.now()
-  const rows = db.prepare(sql).all(...params) as Record<string, unknown>[]
+  const rows = db.prepare(sql).all(...builder.params) as Record<
+    string,
+    unknown
+  >[]
   const nodes = rows.map(rowToNode)
   debug("executeQuery", {
     results: nodes.length,

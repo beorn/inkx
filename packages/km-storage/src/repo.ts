@@ -68,6 +68,21 @@ interface RepoMethodDeps {
   ensureOpen: () => void
 }
 
+/** Context for building a Repo object */
+interface RepoBuildContext {
+  rootPath: string
+  mode: "memory" | "disk"
+  db: Database
+  dataStore: DataStore & HasDatabase
+  emitter: Emitter
+  fileTree: FileTree | null
+  config: Config
+  hooks?: RepoHooks
+  loadErrors: LoadError[]
+  stats: RepoStats
+  deferredFiles: DeferredFile[]
+}
+
 /** Create query methods shared by createRepo and createBareRepo */
 function createQueryMethods(deps: RepoMethodDeps) {
   const { db, dataStore, ensureOpen } = deps
@@ -228,6 +243,438 @@ function createMutationMethods(deps: RepoMethodDeps) {
       return dataStore.addNode(clonedNode.parent_id ?? null, clonedNode)
     },
   }
+}
+
+/** Dependencies for creating file operation methods */
+interface FileMethodDeps {
+  rootPath: string
+  fileTree: FileTree | null
+  ensureOpen: () => void
+}
+
+/** Create file operation methods for full repos */
+function createFileOperationMethods(deps: FileMethodDeps) {
+  const { rootPath, fileTree, ensureOpen } = deps
+  return {
+    appendTaskToFile(
+      filePath: string,
+      content: string,
+      opts?: { ensure?: boolean },
+    ) {
+      ensureOpen()
+      if (!fileTree) {
+        throw new Error("Cannot appendTaskToFile: repo has no files")
+      }
+      const relativePath = filePath.startsWith("/")
+        ? filePath.slice(rootPath.length + 1)
+        : filePath
+
+      if (opts?.ensure) {
+        ensureFileExists(fileTree, relativePath)
+      }
+
+      const existing = fileTree.read(relativePath)
+      fileTree.write(relativePath, existing + content)
+    },
+    pathExists(relativePath: string) {
+      ensureOpen()
+      return (
+        fileTree?.exists(relativePath) ??
+        existsSync(join(rootPath, relativePath))
+      )
+    },
+  }
+}
+
+/** Ensure a file exists, creating it with frontmatter if needed */
+function ensureFileExists(fileTree: FileTree, relativePath: string) {
+  const dir = dirname(relativePath)
+  if (dir && dir !== "." && !fileTree.exists(dir)) {
+    const baseName = basename(relativePath).replace(/\.md$/, "")
+    fileTree.write(relativePath, `---\ntitle: ${baseName}\n---\n\n`)
+  }
+  if (!fileTree.exists(relativePath)) {
+    const baseName = basename(relativePath).replace(/\.md$/, "")
+    fileTree.write(relativePath, `---\ntitle: ${baseName}\n---\n\n`)
+  }
+}
+
+/** Dependencies for creating lifecycle methods */
+interface LifecycleMethodDeps {
+  rootPath: string
+  mode: "memory" | "disk"
+  db: Database
+  dataStore: DataStore
+  emitter: Emitter
+  fileTree: FileTree | null
+  hooks?: RepoHooks
+  ensureOpen: () => void
+  setClosed: () => void
+}
+
+/** Create lifecycle methods for full repos */
+function createLifecycleMethods(deps: LifecycleMethodDeps) {
+  const {
+    rootPath,
+    mode,
+    db,
+    dataStore,
+    emitter,
+    fileTree,
+    hooks,
+    ensureOpen,
+    setClosed,
+  } = deps
+  return {
+    sync() {
+      ensureOpen()
+      debug("sync() called - not yet implemented")
+      return Promise.resolve({ fromFiles: 0, fromData: 0, conflicts: [] })
+    },
+    watch(watchOptions: Partial<WatcherOptions> = {}) {
+      ensureOpen()
+      return createWatcher(rootPath, { db, ...watchOptions })
+    },
+    needsRebuild() {
+      ensureOpen()
+      if (mode === "memory") {
+        debug("needsRebuild: no (memory mode)")
+        return false
+      }
+      return checkNeedsRebuild(rootPath, db)
+    },
+    *refresh(): Generator<StepYield, void, unknown> {
+      ensureOpen()
+      debug("refresh not yet implemented")
+      yield "Refreshing"
+    },
+    close() {
+      setClosed()
+      debug("closing repo")
+      hooks?.onClose?.()
+      emitter.close()
+      fileTree?.close()
+      dataStore.close()
+      db.close()
+    },
+  }
+}
+
+/** Create lifecycle methods for bare repos (throws on file operations) */
+function createBareLifecycleMethods(deps: {
+  rootPath: string
+  emitter: Emitter
+  hooks?: RepoHooks
+  ensureOpen: () => void
+  setClosed: () => void
+}) {
+  const { rootPath, emitter, hooks, ensureOpen, setClosed } = deps
+  return {
+    appendTaskToFile(): void {
+      throw new Error("Cannot appendTaskToFile: bare repo has no files")
+    },
+    pathExists(relativePath: string) {
+      ensureOpen()
+      return existsSync(join(rootPath, relativePath))
+    },
+    sync(): Promise<SyncResult> {
+      return Promise.reject(new Error("Cannot sync: bare repo has no files"))
+    },
+    watch(): Watcher {
+      throw new Error("Cannot watch: bare repo has no files")
+    },
+    needsRebuild(): boolean {
+      throw new Error("Cannot check needsRebuild: bare repo has no files")
+    },
+    *refresh(): Generator<StepYield, void, unknown> {
+      throw new Error("Cannot refresh: bare repo has no files")
+    },
+    close() {
+      setClosed()
+      debug("closing bare repo")
+      hooks?.onClose?.()
+      emitter.close()
+      // Note: caller manages DataStore lifecycle for bare repos
+    },
+  }
+}
+
+/** Create property getters for repo */
+function createRepoGetters(ctx: {
+  rootPath: string
+  mode: "memory" | "disk"
+  db: Database
+  dataStore: DataStore & HasDatabase
+  emitter: Emitter
+  fileTree: FileTree | null
+  config: Config
+  loadErrors: LoadError[]
+  stats: RepoStats
+  deferredFiles: DeferredFile[]
+  ensureOpen: () => void
+}) {
+  const {
+    rootPath,
+    mode,
+    db,
+    dataStore,
+    emitter,
+    fileTree,
+    config,
+    loadErrors,
+    stats,
+    deferredFiles,
+    ensureOpen,
+  } = ctx
+  return {
+    get path() {
+      return rootPath
+    },
+    get mode() {
+      return mode
+    },
+    get data() {
+      ensureOpen()
+      return dataStore
+    },
+    get files() {
+      ensureOpen()
+      return fileTree
+    },
+    get config() {
+      ensureOpen()
+      return config
+    },
+    get database() {
+      ensureOpen()
+      return db
+    },
+    get loadErrors() {
+      return loadErrors
+    },
+    get stats() {
+      return stats
+    },
+    get deferredFiles() {
+      return deferredFiles
+    },
+    get emitter() {
+      ensureOpen()
+      return emitter
+    },
+  }
+}
+
+/** Create property getters for bare repo */
+function createBareRepoGetters(ctx: {
+  rootPath: string
+  mode: "memory" | "disk"
+  db: Database
+  dataStore: DataStore & HasDatabase
+  emitter: Emitter
+  config: Config
+  ensureOpen: () => void
+}) {
+  const { rootPath, mode, db, dataStore, emitter, config, ensureOpen } = ctx
+  return {
+    get path() {
+      return rootPath
+    },
+    get mode() {
+      return mode
+    },
+    get data() {
+      ensureOpen()
+      return dataStore
+    },
+    get files(): FileTree | null {
+      return null
+    },
+    get config() {
+      ensureOpen()
+      return config
+    },
+    get database() {
+      ensureOpen()
+      return db
+    },
+    get loadErrors(): LoadError[] {
+      return []
+    },
+    get stats(): RepoStats {
+      return { nodeCount: 0, linkCount: 0, duration: 0 }
+    },
+    get deferredFiles(): DeferredFile[] {
+      return []
+    },
+    get emitter() {
+      ensureOpen()
+      return emitter
+    },
+  }
+}
+
+/** Build a full Repo object from initialized components */
+function buildFullRepo(ctx: RepoBuildContext): Repo {
+  let closed = false
+  const ensureOpen = () => {
+    if (closed) throw new Error("Repo is closed")
+  }
+  const setClosed = () => {
+    if (closed) return
+    closed = true
+  }
+
+  const methodDeps: RepoMethodDeps = {
+    db: ctx.db,
+    dataStore: ctx.dataStore,
+    hooks: ctx.hooks,
+    ensureOpen,
+  }
+
+  const queryMethods = createQueryMethods(methodDeps)
+  const mutationMethods = createMutationMethods(methodDeps)
+  const fileMethods = createFileOperationMethods({
+    rootPath: ctx.rootPath,
+    fileTree: ctx.fileTree,
+    ensureOpen,
+  })
+  const lifecycleMethods = createLifecycleMethods({
+    ...ctx,
+    ensureOpen,
+    setClosed,
+  })
+
+  // Combine methods, then define getters as true accessors
+  const repo = {
+    ...queryMethods,
+    ...mutationMethods,
+    ...fileMethods,
+    ...lifecycleMethods,
+    [Symbol.dispose]() {
+      this.close()
+    },
+  } as Repo
+
+  // Define getters as true accessors (spread would convert them to values)
+  Object.defineProperties(repo, {
+    path: { get: () => ctx.rootPath, enumerable: true },
+    mode: { get: () => ctx.mode, enumerable: true },
+    data: {
+      get: () => {
+        ensureOpen()
+        return ctx.dataStore
+      },
+      enumerable: true,
+    },
+    files: {
+      get: () => {
+        ensureOpen()
+        return ctx.fileTree
+      },
+      enumerable: true,
+    },
+    config: {
+      get: () => {
+        ensureOpen()
+        return ctx.config
+      },
+      enumerable: true,
+    },
+    database: {
+      get: () => {
+        ensureOpen()
+        return ctx.db
+      },
+      enumerable: true,
+    },
+    loadErrors: { get: () => ctx.loadErrors, enumerable: true },
+    stats: { get: () => ctx.stats, enumerable: true },
+    deferredFiles: { get: () => ctx.deferredFiles, enumerable: true },
+    emitter: {
+      get: () => {
+        ensureOpen()
+        return ctx.emitter
+      },
+      enumerable: true,
+    },
+  })
+
+  return repo
+}
+
+/** Build a bare Repo object (no files) from initialized components */
+function buildBareRepo(
+  ctx: Omit<
+    RepoBuildContext,
+    "fileTree" | "loadErrors" | "stats" | "deferredFiles"
+  >,
+): Repo {
+  let closed = false
+  const ensureOpen = () => {
+    if (closed) throw new Error("Repo is closed")
+  }
+  const setClosed = () => {
+    if (closed) return
+    closed = true
+  }
+
+  const methodDeps: RepoMethodDeps = {
+    db: ctx.db,
+    dataStore: ctx.dataStore,
+    hooks: ctx.hooks,
+    ensureOpen,
+  }
+
+  const getters = createBareRepoGetters({ ...ctx, ensureOpen })
+  const queryMethods = createQueryMethods(methodDeps)
+  const mutationMethods = createMutationMethods(methodDeps)
+  const bareMethods = createBareLifecycleMethods({
+    rootPath: ctx.rootPath,
+    emitter: ctx.emitter,
+    hooks: ctx.hooks,
+    ensureOpen,
+    setClosed,
+  })
+
+  return {
+    ...getters,
+    ...queryMethods,
+    ...mutationMethods,
+    ...bareMethods,
+    [Symbol.dispose]() {
+      this.close()
+    },
+  }
+}
+
+/** Initialize database and data store for a given mode */
+function initializeDatabase(
+  kmDir: string,
+  mode: "memory" | "disk",
+  emitter: Emitter,
+): { db: Database; dataStore: DataStore & HasDatabase } {
+  if (mode === "disk") {
+    if (!existsSync(kmDir)) {
+      mkdirSync(kmDir, { recursive: true })
+    }
+    const dbPath = join(kmDir, "state.db")
+    const db = new Database(dbPath)
+    db.run(SCHEMA)
+    const dataStore = createDBDataStore(db, { emitter })
+    return { db, dataStore }
+  }
+  // Memory mode - ephemeral (no emitter = direct SQL)
+  const db = new Database(":memory:")
+  db.run(SCHEMA)
+  const dataStore = createDBDataStore(db)
+  return { db, dataStore }
+}
+
+/** Detect storage mode based on .km directory existence */
+function detectMode(kmDir: string, forceMemory?: boolean): "memory" | "disk" {
+  const hasKmDir = existsSync(kmDir) && !forceMemory
+  return hasKmDir ? "disk" : "memory"
 }
 
 /** Check if a repo at rootPath needs rebuild (disk mode helper) */
@@ -611,245 +1058,148 @@ export function* createRepo(
 ): Generator<StepYield, Repo, unknown> {
   debug("createRepo", { rootPath, options })
 
-  // Track loading results
-  let loadErrors: LoadError[] = []
-  let stats: RepoStats = { nodeCount: 0, linkCount: 0, duration: 0 }
-  let deferredFiles: DeferredFile[] = []
-
-  let dataStore: DataStore & HasDatabase
-  let db: Database
-  let mode: "memory" | "disk"
-  let emitter: Emitter
-
-  // kmDir is used for emitter and disk mode detection
   const kmDir = join(rootPath, ".km")
+  const result = options.loadFiles
+    ? yield* createRepoWithFiles(rootPath, kmDir, options)
+    : yield* createRepoEmpty(rootPath, kmDir, options)
 
-  if (options.loadFiles) {
-    // =========================================================================
-    // File loading mode - create db first, then use loadRepo to populate
-    // ADR-002: Create our own db instead of relying on singleton
-    // =========================================================================
+  return buildFullRepo({
+    rootPath,
+    mode: result.mode,
+    db: result.db,
+    dataStore: result.dataStore,
+    emitter: result.emitter,
+    fileTree: createDiskFileTree(rootPath),
+    config: loadConfigObject(rootPath),
+    hooks: options.hooks,
+    loadErrors: result.loadErrors,
+    stats: result.stats,
+    deferredFiles: result.deferredFiles,
+  })
+}
 
-    // Detect mode and create database BEFORE calling loadRepo
-    const hasKmDir = existsSync(kmDir) && !options.forceMemory
-    mode = hasKmDir ? "disk" : "memory"
+/** Initialize repo with file loading */
+function* createRepoWithFiles(
+  rootPath: string,
+  kmDir: string,
+  options: CreateRepoOptions,
+): Generator<
+  StepYield,
+  {
+    mode: "memory" | "disk"
+    db: Database
+    dataStore: DataStore & HasDatabase
+    emitter: Emitter
+    loadErrors: LoadError[]
+    stats: RepoStats
+    deferredFiles: DeferredFile[]
+  },
+  unknown
+> {
+  // Detect mode and create database BEFORE calling loadRepo
+  const mode = detectMode(kmDir, options.forceMemory)
+  const emitter = createEmitter({ kmDir })
 
-    // Create emitter early - needed for disk mode DataStore
-    emitter = createEmitter({ kmDir })
+  // Create database based on mode
+  const db =
+    mode === "disk" ? createDiskDatabase(kmDir) : createMemoryDatabase()
 
-    if (mode === "disk") {
-      if (!existsSync(kmDir)) {
-        mkdirSync(kmDir, { recursive: true })
-      }
-      const dbPath = join(kmDir, "state.db")
-      db = new Database(dbPath)
-      db.run(SCHEMA)
-    } else {
-      db = new Database(":memory:")
-      db.run(SCHEMA)
-    }
+  // Load files using loadRepo
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here
+  const loadResult = yield* loadRepo(rootPath, {
+    searchAncestors: false,
+    skipLinkResolution: options.skipLinkResolution,
+    discoverOnly: options.discoverOnly,
+    db,
+  })
 
-    // Now call loadRepo with OUR db (avoids singleton)
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here
-    const loadResult = yield* loadRepo(rootPath, {
-      searchAncestors: false, // rootPath is already the repo root
-      skipLinkResolution: options.skipLinkResolution,
-      discoverOnly: options.discoverOnly,
-      db, // ADR-002: pass db to avoid singleton
-    })
+  // Create DataStore - pass emitter for disk mode only
+  const dataStore = createDBDataStore(
+    db,
+    mode === "disk" ? { emitter } : undefined,
+  )
 
-    // Create DataStore - pass emitter for disk mode only
-    dataStore = createDBDataStore(db, mode === "disk" ? { emitter } : undefined)
+  debug(
+    "loaded files: %d nodes, %d links, %d errors",
+    loadResult.nodeCount,
+    loadResult.linkCount,
+    loadResult.errors.length,
+  )
 
-    // Capture loading results
-    loadErrors = loadResult.errors
-    stats = {
+  return {
+    mode,
+    db,
+    dataStore,
+    emitter,
+    loadErrors: loadResult.errors,
+    stats: {
       nodeCount: loadResult.nodeCount,
       linkCount: loadResult.linkCount,
       duration: loadResult.duration,
-    }
-    deferredFiles = loadResult.deferredFiles ?? []
+    },
+    deferredFiles: loadResult.deferredFiles ?? [],
+  }
+}
 
-    debug(
-      "loaded files: %d nodes, %d links, %d errors",
-      stats.nodeCount,
-      stats.linkCount,
-      loadErrors.length,
-    )
-  } else {
-    // =========================================================================
-    // Empty database mode - no file loading
-    // =========================================================================
-    // Declare all sub-steps upfront so they appear as pending
-    yield {
-      declare: ["Detecting mode", "Initializing database", "Scanning files"],
-    }
-
-    // Step 1: Detect mode
-    yield "Detecting mode"
-    const hasKmDir = existsSync(kmDir) && !options.forceMemory
-    mode = hasKmDir ? "disk" : "memory"
-
-    // Create emitter early - needed for disk mode DataStore
-    emitter = createEmitter({ kmDir })
-
-    debug("detected mode: %s (hasKmDir=%s)", mode, hasKmDir)
-
-    // Step 2: Initialize database
-    yield "Initializing database"
-
-    if (mode === "disk") {
-      // Ensure .km directory exists
-      if (!existsSync(kmDir)) {
-        mkdirSync(kmDir, { recursive: true })
-      }
-
-      const dbPath = join(kmDir, "state.db")
-      db = new Database(dbPath)
-      db.run(SCHEMA)
-      dataStore = createDBDataStore(db, { emitter })
-    } else {
-      // Memory mode - ephemeral (no emitter = direct SQL)
-      db = new Database(":memory:")
-      db.run(SCHEMA)
-      dataStore = createDBDataStore(db)
-    }
-
-    // Step 3: Scan files (for full repo)
-    yield "Scanning files"
+/** Initialize repo without file loading (empty database) */
+function* createRepoEmpty(
+  _rootPath: string,
+  kmDir: string,
+  options: CreateRepoOptions,
+): Generator<
+  StepYield,
+  {
+    mode: "memory" | "disk"
+    db: Database
+    dataStore: DataStore & HasDatabase
+    emitter: Emitter
+    loadErrors: LoadError[]
+    stats: RepoStats
+    deferredFiles: DeferredFile[]
+  },
+  unknown
+> {
+  yield {
+    declare: ["Detecting mode", "Initializing database", "Scanning files"],
   }
 
-  // Create FileTree for the repo root
-  const fileTree = createDiskFileTree(rootPath)
+  yield "Detecting mode"
+  const mode = detectMode(kmDir, options.forceMemory)
+  const emitter = createEmitter({ kmDir })
+  debug("detected mode: %s", mode)
 
-  // Load config
-  const config = loadConfigObject(rootPath)
+  yield "Initializing database"
+  const { db, dataStore } = initializeDatabase(kmDir, mode, emitter)
 
-  // Capture hooks from options
-  const hooks = options.hooks
+  yield "Scanning files"
 
-  let closed = false
-  function ensureOpen() {
-    if (closed) throw new Error("Repo is closed")
+  return {
+    mode,
+    db,
+    dataStore,
+    emitter,
+    loadErrors: [],
+    stats: { nodeCount: 0, linkCount: 0, duration: 0 },
+    deferredFiles: [],
   }
+}
 
-  // Create shared methods using factories
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, ensureOpen }
-  const queryMethods = createQueryMethods(methodDeps)
-  const mutationMethods = createMutationMethods(methodDeps)
-
-  const repo: Repo = {
-    get path() {
-      return rootPath
-    },
-    get mode() {
-      return mode
-    },
-    get data() {
-      ensureOpen()
-      return dataStore
-    },
-    get files() {
-      ensureOpen()
-      return fileTree
-    },
-    get config() {
-      ensureOpen()
-      return config
-    },
-    get database() {
-      ensureOpen()
-      return db
-    },
-    get loadErrors() {
-      return loadErrors
-    },
-    get stats() {
-      return stats
-    },
-    get deferredFiles() {
-      return deferredFiles
-    },
-    get emitter() {
-      ensureOpen()
-      return emitter
-    },
-
-    // Spread shared query and mutation methods
-    ...queryMethods,
-    ...mutationMethods,
-
-    // Full-repo specific methods
-    appendTaskToFile(filePath, content, opts) {
-      ensureOpen()
-      const relativePath = filePath.startsWith("/")
-        ? filePath.slice(rootPath.length + 1)
-        : filePath
-
-      if (opts?.ensure) {
-        const dir = dirname(relativePath)
-        if (dir && dir !== "." && !fileTree.exists(dir)) {
-          const baseName = basename(relativePath).replace(/\.md$/, "")
-          fileTree.write(relativePath, `---\ntitle: ${baseName}\n---\n\n`)
-        }
-        if (!fileTree.exists(relativePath)) {
-          const baseName = basename(relativePath).replace(/\.md$/, "")
-          fileTree.write(relativePath, `---\ntitle: ${baseName}\n---\n\n`)
-        }
-      }
-
-      const existing = fileTree.read(relativePath)
-      fileTree.write(relativePath, existing + content)
-    },
-
-    pathExists(relativePath) {
-      ensureOpen()
-      return fileTree.exists(relativePath)
-    },
-
-    sync() {
-      ensureOpen()
-      debug("sync() called - not yet implemented")
-      return Promise.resolve({ fromFiles: 0, fromData: 0, conflicts: [] })
-    },
-
-    watch(watchOptions = {}) {
-      ensureOpen()
-      return createWatcher(rootPath, { db, ...watchOptions })
-    },
-
-    needsRebuild() {
-      ensureOpen()
-      if (mode === "memory") {
-        debug("needsRebuild: no (memory mode)")
-        return false
-      }
-      return checkNeedsRebuild(rootPath, db)
-    },
-
-    *refresh() {
-      ensureOpen()
-      debug("refresh not yet implemented")
-      yield "Refreshing"
-    },
-
-    close() {
-      if (closed) return
-      closed = true
-      debug("closing repo")
-      hooks?.onClose?.()
-      emitter.close()
-      fileTree.close()
-      dataStore.close()
-      db.close()
-    },
-
-    [Symbol.dispose]() {
-      this.close()
-    },
+/** Create a disk-backed database */
+function createDiskDatabase(kmDir: string): Database {
+  if (!existsSync(kmDir)) {
+    mkdirSync(kmDir, { recursive: true })
   }
+  const dbPath = join(kmDir, "state.db")
+  const db = new Database(dbPath)
+  db.run(SCHEMA)
+  return db
+}
 
-  return repo
+/** Create an in-memory database */
+function createMemoryDatabase(): Database {
+  const db = new Database(":memory:")
+  db.run(SCHEMA)
+  return db
 }
 
 // =============================================================================
@@ -902,98 +1252,25 @@ export function createBareRepo(
   debug("createBareRepo", { options })
 
   const config = options.config ?? loadConfigObject(options.configPath)
-  const db = dataStore.database
   const repoPath = options.configPath ?? process.cwd()
   const kmDir = join(repoPath, ".km")
   const emitter =
     options.emitter ??
-    createEmitter({ kmDir, db, skipPersist: options.skipPersist })
-  const hooks = options.hooks
+    createEmitter({
+      kmDir,
+      db: dataStore.database,
+      skipPersist: options.skipPersist,
+    })
 
-  let closed = false
-  function ensureOpen() {
-    if (closed) throw new Error("Repo is closed")
-  }
-
-  // Create shared methods using factories
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, ensureOpen }
-  const queryMethods = createQueryMethods(methodDeps)
-  const mutationMethods = createMutationMethods(methodDeps)
-
-  const repo: Repo = {
-    get path() {
-      return repoPath
-    },
-    get mode() {
-      return "memory" as const
-    },
-    get data() {
-      ensureOpen()
-      return dataStore
-    },
-    get files() {
-      return null
-    },
-    get config() {
-      ensureOpen()
-      return config
-    },
-    get database() {
-      ensureOpen()
-      return db
-    },
-    get loadErrors() {
-      return []
-    },
-    get stats() {
-      return { nodeCount: 0, linkCount: 0, duration: 0 }
-    },
-    get deferredFiles() {
-      return []
-    },
-    get emitter() {
-      ensureOpen()
-      return emitter
-    },
-
-    // Spread shared query and mutation methods
-    ...queryMethods,
-    ...mutationMethods,
-
-    // Bare repo specific methods (throw on file operations)
-    appendTaskToFile() {
-      throw new Error("Cannot appendTaskToFile: bare repo has no files")
-    },
-    pathExists(relativePath) {
-      ensureOpen()
-      return existsSync(join(repoPath, relativePath))
-    },
-    sync() {
-      return Promise.reject(new Error("Cannot sync: bare repo has no files"))
-    },
-    watch() {
-      throw new Error("Cannot watch: bare repo has no files")
-    },
-    needsRebuild() {
-      throw new Error("Cannot check needsRebuild: bare repo has no files")
-    },
-    *refresh() {
-      throw new Error("Cannot refresh: bare repo has no files")
-    },
-    close() {
-      if (closed) return
-      closed = true
-      debug("closing bare repo")
-      hooks?.onClose?.()
-      emitter.close()
-      // Note: caller manages DataStore lifecycle for bare repos
-    },
-    [Symbol.dispose]() {
-      this.close()
-    },
-  }
-
-  return repo
+  return buildBareRepo({
+    rootPath: repoPath,
+    mode: "memory",
+    db: dataStore.database,
+    dataStore,
+    emitter,
+    config,
+    hooks: options.hooks,
+  })
 }
 
 // =============================================================================

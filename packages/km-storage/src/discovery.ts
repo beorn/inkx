@@ -140,103 +140,116 @@ export function* discoverFiles(
       if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
 
       if (entry.isDirectory()) {
-        // Create folder node
-        const folderId = generateId(repoRoot, fullPath)
-        events.push(
-          createFolderEvent(
-            folderId,
-            parentId,
-            order++,
-            fullPath,
-            entry.name,
-            now,
-          ),
-        )
-
-        // Recurse into subdirectory
-        yield* scanDirectory(fullPath, folderId)
-      } else if (entry.isFile()) {
-        if (entry.name.endsWith(".md")) {
-          if (parseMode === "stub") {
-            // Stub mode: create stub node without parsing
-            const fileId = generateId(repoRoot, fullPath)
-            const name = entry.name.replace(/\.md$/i, "")
-
-            events.push(
-              createStubFileEvent(
-                fileId,
-                parentId,
-                order++,
-                fullPath,
-                name,
-                now,
-              ),
-            )
-            deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
-
-            current++
-            if (current % 100 === 0) {
-              yield { current, total }
-            }
-          } else {
-            // Full mode: parse markdown
-            try {
-              const content = readFileSync(fullPath, "utf-8")
-              const { nodes, wikilinks } = parseMarkdownWithLinks(
-                content,
-                fullPath,
-              )
-
-              // First node is always the file node
-              const fileNode = nodes[0]
-              if (fileNode?.type === "file") {
-                fileNode.parent_id = parentId
-                fileNode.parent_idx = order++
-              }
-
-              // Convert nodes to events
-              for (const node of nodes) {
-                const nodeId =
-                  node.id ?? generateId(repoRoot, fullPath, node.md_line)
-                events.push({
-                  id: nodeId,
-                  type: "node_created",
-                  actor: "fs-scan",
-                  ts: now,
-                  data: { ...node, id: nodeId },
-                })
-              }
-
-              // Collect wikilinks for later resolution
-              for (const wikilink of wikilinks) {
-                pendingLinks.push(wikilink)
-              }
-
-              current++
-              // Yield progress every 50 files
-              if (current % 50 === 0) {
-                yield { current, total }
-              }
-            } catch (err) {
-              const message = err instanceof Error ? err.message : String(err)
-              errors.push({ phase: "parse", path: fullPath, message })
-            }
-          }
-        } else {
-          // Non-markdown file node
-          const fileId = generateId(repoRoot, fullPath)
-          events.push(
-            createNonMdFileEvent(
-              fileId,
-              parentId,
-              order++,
-              fullPath,
-              entry.name,
-              now,
-            ),
-          )
-        }
+        order = processDirectory(entry, fullPath, parentId, order)
+        yield* scanDirectory(fullPath, generateId(repoRoot, fullPath))
+        continue
       }
+
+      if (!entry.isFile()) continue
+
+      const result = processFile(entry, fullPath, parentId, order)
+      order = result.order
+      if (result.shouldYield) {
+        yield { current, total }
+      }
+    }
+  }
+
+  function processDirectory(
+    entry: import("fs").Dirent,
+    fullPath: string,
+    parentId: string | null,
+    order: number,
+  ): number {
+    const folderId = generateId(repoRoot, fullPath)
+    events.push(
+      createFolderEvent(folderId, parentId, order, fullPath, entry.name, now),
+    )
+    return order + 1
+  }
+
+  function processFile(
+    entry: import("fs").Dirent,
+    fullPath: string,
+    parentId: string | null,
+    order: number,
+  ): { order: number; shouldYield: boolean } {
+    if (!entry.name.endsWith(".md")) {
+      return processNonMarkdownFile(entry, fullPath, parentId, order)
+    }
+
+    return parseMode === "stub"
+      ? processStubMarkdownFile(fullPath, parentId, order)
+      : processFullMarkdownFile(fullPath, parentId, order)
+  }
+
+  function processNonMarkdownFile(
+    entry: import("fs").Dirent,
+    fullPath: string,
+    parentId: string | null,
+    order: number,
+  ): { order: number; shouldYield: boolean } {
+    const fileId = generateId(repoRoot, fullPath)
+    events.push(
+      createNonMdFileEvent(fileId, parentId, order, fullPath, entry.name, now),
+    )
+    return { order: order + 1, shouldYield: false }
+  }
+
+  function processStubMarkdownFile(
+    fullPath: string,
+    parentId: string | null,
+    order: number,
+  ): { order: number; shouldYield: boolean } {
+    const fileId = generateId(repoRoot, fullPath)
+    const name = fullPath.split("/").pop()?.replace(/\.md$/i, "") ?? ""
+
+    events.push(
+      createStubFileEvent(fileId, parentId, order, fullPath, name, now),
+    )
+    deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
+
+    current++
+    return { order: order + 1, shouldYield: current % 100 === 0 }
+  }
+
+  function processFullMarkdownFile(
+    fullPath: string,
+    parentId: string | null,
+    order: number,
+  ): { order: number; shouldYield: boolean } {
+    try {
+      const content = readFileSync(fullPath, "utf-8")
+      const { nodes, wikilinks } = parseMarkdownWithLinks(content, fullPath)
+
+      // First node is always the file node
+      const fileNode = nodes[0]
+      if (fileNode?.type === "file") {
+        fileNode.parent_id = parentId
+        fileNode.parent_idx = order
+      }
+
+      // Convert nodes to events
+      for (const node of nodes) {
+        const nodeId = node.id ?? generateId(repoRoot, fullPath, node.md_line)
+        events.push({
+          id: nodeId,
+          type: "node_created",
+          actor: "fs-scan",
+          ts: now,
+          data: { ...node, id: nodeId },
+        })
+      }
+
+      // Collect wikilinks for later resolution
+      pendingLinks.push(...wikilinks)
+
+      current++
+      return { order: order + 1, shouldYield: current % 50 === 0 }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push({ phase: "parse", path: fullPath, message })
+      return { order, shouldYield: false }
     }
   }
 }
@@ -262,35 +275,55 @@ export function countMarkdownFilesFast(
     const dirPath = stack.pop()
     if (!dirPath) continue
 
-    // Skip ignored directories (except root)
-    if (
-      dirPath !== rootPath &&
-      shouldIgnore(dirPath, ignorePatterns, rootPath)
-    ) {
-      continue
-    }
+    const isRoot = dirPath === rootPath
+    if (!isRoot && shouldIgnore(dirPath, ignorePatterns, rootPath)) continue
 
-    try {
-      const entries = readdirSync(dirPath, { withFileTypes: true })
-
-      for (const entry of entries) {
-        const fullPath = join(dirPath, entry.name)
-
-        // Skip ignored entries
-        if (shouldIgnore(fullPath, ignorePatterns, rootPath)) continue
-
-        if (entry.isDirectory()) {
-          stack.push(fullPath)
-        } else if (entry.isFile() && entry.name.endsWith(".md")) {
-          count++
-        }
-      }
-    } catch {
-      // Skip directories we can't read
-    }
+    count += countDirectoryMarkdownFiles(
+      dirPath,
+      rootPath,
+      ignorePatterns,
+      stack,
+    )
   }
 
   return count
+}
+
+/**
+ * Count markdown files in a single directory and push subdirectories to stack.
+ */
+function countDirectoryMarkdownFiles(
+  dirPath: string,
+  rootPath: string,
+  ignorePatterns: string[],
+  stack: string[],
+): number {
+  let count = 0
+
+  try {
+    const entries = readdirSync(dirPath, { withFileTypes: true })
+
+    for (const entry of entries) {
+      const fullPath = join(dirPath, entry.name)
+
+      if (shouldIgnore(fullPath, ignorePatterns, rootPath)) continue
+
+      if (entry.isDirectory()) {
+        stack.push(fullPath)
+      } else if (isMarkdownFile(entry)) {
+        count++
+      }
+    }
+  } catch {
+    // Skip directories we can't read
+  }
+
+  return count
+}
+
+/** Check if entry is a markdown file */
+function isMarkdownFile(entry: import("fs").Dirent): boolean {
+  return entry.isFile() && entry.name.endsWith(".md")
 }
 
 /** Generate node ID from path */

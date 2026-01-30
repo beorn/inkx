@@ -51,5 +51,8 @@ test-*.ts
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# perles local config
+.perles/
 tmp-test/
 docs/vs-decker.md

@@ -16,11 +16,12 @@ const term = createTerm(process)
 import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
-import type { TaskStatus, TaskMark } from "@km/core"
+import type { TaskStatus, TaskMark, TaskNode, Repo } from "@km/core"
 
-/**
- * Get task mark for status
- */
+const VALID_STATUSES = ["todo", "wip", "blocked", "done", "dropped"] as const
+
+type StatusOptions = { json?: boolean }
+
 function getMarkForStatus(status: TaskStatus): TaskMark {
   switch (status) {
     case "done":
@@ -34,6 +35,105 @@ function getMarkForStatus(status: TaskStatus): TaskMark {
     default:
       return " "
   }
+}
+
+function getStatusIcon(status: string): string {
+  switch (status) {
+    case "done":
+      return term.green("✓")
+    case "blocked":
+      return term.red("!")
+    case "dropped":
+      return term.dim("-")
+    default:
+      return term.dim("○")
+  }
+}
+
+function getNodeRecurrence(node: TaskNode): string | undefined {
+  return (
+    (node.data?.recurrence as string) || (node.recurrence as string | undefined)
+  )
+}
+
+function handleViewMode(node: TaskNode, options: StatusOptions): void {
+  const status = node.task_status ?? "todo"
+
+  if (options.json) {
+    console.log(
+      JSON.stringify({
+        id: node.id,
+        status,
+        mark: node.task_mark ?? " ",
+        content: node.content,
+      }),
+    )
+    return
+  }
+
+  const statusIcon = getStatusIcon(status)
+  const content = node.content?.slice(0, 60) ?? "(no content)"
+  console.log(`${statusIcon} ${status}: ${content}`)
+}
+
+function handleRecurringTask(
+  repo: Repo,
+  node: TaskNode,
+  options: StatusOptions,
+): boolean {
+  const recurrence = getNodeRecurrence(node)
+  if (!recurrence) return false
+
+  const rrule = naturalToRRule(recurrence) || recurrence
+  const baseDate = node.due_date || new Date().toISOString().slice(0, 10)
+  const nextDue = getNextOccurrence(rrule, baseDate)
+
+  if (!nextDue) return false
+
+  const newId = repo.cloneTask(node.id, {
+    due_date: nextDue,
+    task_status: "todo",
+    task_mark: " ",
+  })
+
+  if (options.json) {
+    console.log(
+      JSON.stringify({
+        id: node.id,
+        status: "done",
+        recurring: true,
+        next_id: newId,
+        next_due: nextDue,
+      }),
+    )
+  } else {
+    console.log(term.green("✓"), `Marked done: ${node.content?.slice(0, 40)}`)
+    console.log(term.blue("↻"), `Next occurrence: ${nextDue}`)
+  }
+
+  return true
+}
+
+function outputStatusChange(
+  node: TaskNode,
+  newStatus: string,
+  options: StatusOptions,
+  handledRecurring: boolean,
+): void {
+  if (options.json) {
+    if (!handledRecurring) {
+      console.log(JSON.stringify({ id: node.id, status: newStatus }))
+    }
+    return
+  }
+
+  if (handledRecurring) return
+
+  const statusIcon = getStatusIcon(newStatus)
+  const content = node.content?.slice(0, 50) ?? "(no content)"
+  console.log(
+    `${statusIcon} ${term.dim(node.id.slice(0, 8))} → ${newStatus}: ${content}`,
+  )
 }
 
 export const statusCommand = new Command("status")
@@ -51,115 +151,29 @@ export const statusCommand = new Command("status")
       process.exit(1)
     }
 
-    // View mode - just show current status
     if (!newStatus) {
-      const status = node.task_status ?? "todo"
-      const statusIcon =
-        status === "done"
-          ? term.green("✓")
-          : status === "blocked"
-            ? term.red("!")
-            : status === "dropped"
-              ? term.dim("-")
-              : term.dim("○")
-
-      if (options.json) {
-        console.log(
-          JSON.stringify({
-            id: node.id,
-            status,
-            mark: node.task_mark ?? " ",
-            content: node.content,
-          }),
-        )
-        return
-      }
-
-      console.log(
-        `${statusIcon} ${status}: ${node.content?.slice(0, 60) ?? "(no content)"}`,
-      )
+      handleViewMode(node, options)
       return
     }
 
-    // Set mode - validate and update status
-    const validStatuses = ["todo", "wip", "blocked", "done", "dropped"]
-    if (!validStatuses.includes(newStatus)) {
+    if (
+      !VALID_STATUSES.includes(newStatus as (typeof VALID_STATUSES)[number])
+    ) {
       console.error(term.red(`Invalid status: ${newStatus}`))
-      console.error(term.dim(`Valid statuses: ${validStatuses.join(", ")}`))
+      console.error(term.dim(`Valid statuses: ${VALID_STATUSES.join(", ")}`))
       process.exit(1)
     }
 
-    // Handle recurring tasks when marking done
+    let handledRecurring = false
     if (newStatus === "done") {
-      const recurrence =
-        (node.data?.recurrence as string) ||
-        (node.recurrence as string | undefined)
-
-      if (recurrence) {
-        // Convert natural language to RRULE if needed
-        const rrule = naturalToRRule(recurrence) || recurrence
-
-        // Calculate next due date
-        const baseDate = node.due_date || new Date().toISOString().slice(0, 10)
-        const nextDue = getNextOccurrence(rrule, baseDate)
-
-        if (nextDue) {
-          // Clone the task with new due date
-          const newId = repo.cloneTask(node.id, {
-            due_date: nextDue,
-            task_status: "todo",
-            task_mark: " ",
-          })
-
-          if (options.json) {
-            console.log(
-              JSON.stringify({
-                id: node.id,
-                status: "done",
-                recurring: true,
-                next_id: newId,
-                next_due: nextDue,
-              }),
-            )
-          } else {
-            console.log(
-              term.green("✓"),
-              `Marked done: ${node.content?.slice(0, 40)}`,
-            )
-            console.log(term.blue("↻"), `Next occurrence: ${nextDue}`)
-          }
-        }
-      }
+      handledRecurring = handleRecurringTask(repo, node, options)
     }
 
     const newMark = getMarkForStatus(newStatus as TaskStatus)
-
     repo.updateNode(node.id, {
       task_status: newStatus as TaskStatus,
       task_mark: newMark,
     })
 
-    if (options.json) {
-      // For non-recurring done, we haven't output yet
-      const recurrence =
-        (node.data?.recurrence as string) ||
-        (node.recurrence as string | undefined)
-      if (newStatus !== "done" || !recurrence) {
-        console.log(JSON.stringify({ id: node.id, status: newStatus }))
-      }
-      return
-    }
-
-    const statusIcon =
-      newStatus === "done"
-        ? term.green("✓")
-        : newStatus === "blocked"
-          ? term.red("!")
-          : newStatus === "dropped"
-            ? term.dim("-")
-            : term.dim("○")
-
-    console.log(
-      `${statusIcon} ${term.dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
-    )
+    outputStatusChange(node, newStatus, options, handledRecurring)
   })

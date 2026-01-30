@@ -26,137 +26,193 @@ export interface DiffResult {
 }
 
 /**
- * Match nodes by structural position (parent_id + parent_idx + type).
- * This is more stable than md_pos which shifts when content changes.
- */
-function makeStructuralKey(node: KNode): string {
-  return `${node.parent_id ?? "root"}:${node.parent_idx ?? 0}:${node.type}`
-}
-
-/**
  * Diff existing nodes against new nodes
  *
  * Returns changes and a map from new IDs to existing IDs (for link remapping).
  */
 export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
-  const changes: NodeChange[] = []
+  const existingByKey = indexByStructuralKey(existing)
+  const idMap = matchFileNodes(existing, newNodes)
 
-  // Index existing by structural key (parent + index + type)
-  const existingByKey = new Map<string, KNode>()
-  for (const node of existing) {
-    const key = makeStructuralKey(node)
-    existingByKey.set(key, node)
+  const changes = [
+    ...processNewNodes(newNodes, existingByKey, idMap),
+    ...processFileNodeUpdates(existing, newNodes, existingByKey),
+    ...collectDeletedNodes(existingByKey),
+  ]
+
+  return { changes, idMap }
+}
+
+// --- Helper functions ---
+
+/** Match nodes by structural position (parent_id + parent_idx + type) */
+function makeStructuralKey(node: KNode): string {
+  return `${node.parent_id ?? "root"}:${node.parent_idx ?? 0}:${node.type}`
+}
+
+/** Build index of existing nodes by structural key */
+function indexByStructuralKey(nodes: KNode[]): Map<string, KNode> {
+  const map = new Map<string, KNode>()
+  for (const node of nodes) {
+    map.set(makeStructuralKey(node), node)
   }
+  return map
+}
 
-  // Map from new node IDs to existing node IDs (for parent_id remapping)
+/** Match file nodes and return ID mapping */
+function matchFileNodes(
+  existing: KNode[],
+  newNodes: KNode[],
+): Map<string, string> {
   const idMap = new Map<string, string>()
-
-  // First pass: match file nodes by type (always root)
   const existingFile = existing.find((n) => n.type === "file")
   const newFile = newNodes.find((n) => n.type === "file")
   if (existingFile && newFile) {
     idMap.set(newFile.id, existingFile.id)
   }
+  return idMap
+}
 
-  // Process non-file nodes with remapped parent IDs
+/** Remap parent_id using the ID map */
+function remapParentId(
+  parentId: string | null,
+  idMap: Map<string, string>,
+): string | null {
+  if (!parentId) return null
+  return idMap.get(parentId) ?? parentId
+}
+
+/** Build structural key with remapped parent ID */
+function makeRemappedKey(node: KNode, idMap: Map<string, string>): string {
+  const remappedParentId = remapParentId(node.parent_id, idMap)
+  return `${remappedParentId ?? "root"}:${node.parent_idx ?? 0}:${node.type}`
+}
+
+/** Create a new node with remapped parent_id */
+function createNodeWithRemappedParent(
+  node: KNode,
+  idMap: Map<string, string>,
+): KNode {
+  const mappedParentId = node.parent_id ? idMap.get(node.parent_id) : undefined
+  if (!mappedParentId) return node
+  return { ...node, parent_id: mappedParentId }
+}
+
+/** Detect changes between two nodes (for non-file nodes) */
+function detectNodeChanges(
+  newNode: KNode,
+  existingNode: KNode,
+): Record<string, unknown> {
+  const changes: Record<string, unknown> = {}
+
+  if (newNode.content !== existingNode.content) {
+    changes.content = newNode.content
+  }
+  if (newNode.task_status !== existingNode.task_status) {
+    changes.task_status = newNode.task_status
+  }
+  if (newNode.task_mark !== existingNode.task_mark) {
+    changes.task_mark = newNode.task_mark
+  }
+  if (newNode.md_pos !== existingNode.md_pos) changes.md_pos = newNode.md_pos
+
+  if (
+    JSON.stringify(newNode.data ?? {}) !==
+    JSON.stringify(existingNode.data ?? {})
+  ) {
+    changes.data = newNode.data
+  }
+
+  return changes
+}
+
+/** Detect changes between two file nodes */
+function detectFileChanges(
+  newFile: KNode,
+  existingFile: KNode,
+): Record<string, unknown> {
+  const changes: Record<string, unknown> = {}
+
+  if (newFile.content !== existingFile.content) {
+    changes.content = newFile.content
+  }
+  if (newFile.title !== existingFile.title) changes.title = newFile.title
+
+  if (
+    JSON.stringify(newFile.data ?? {}) !==
+    JSON.stringify(existingFile.data ?? {})
+  ) {
+    changes.data = newFile.data
+  }
+
+  return changes
+}
+
+/** Process non-file nodes: match, create, or update */
+function processNewNodes(
+  newNodes: KNode[],
+  existingByKey: Map<string, KNode>,
+  idMap: Map<string, string>,
+): NodeChange[] {
+  const changes: NodeChange[] = []
+
   for (const node of newNodes) {
     if (node.type === "file") continue
 
-    // Remap parent_id for key lookup
-    const remappedParentId = node.parent_id
-      ? (idMap.get(node.parent_id) ?? node.parent_id)
-      : null
-    const key = `${remappedParentId ?? "root"}:${node.parent_idx ?? 0}:${node.type}`
-
+    const key = makeRemappedKey(node, idMap)
     const existingNode = existingByKey.get(key)
 
     if (!existingNode) {
-      // New node - need to remap its parent_id to existing parent
-      const nodeToCreate = { ...node }
-      if (nodeToCreate.parent_id && idMap.has(nodeToCreate.parent_id)) {
-        const mappedId = idMap.get(nodeToCreate.parent_id)
-        if (mappedId) {
-          nodeToCreate.parent_id = mappedId
-        }
-      }
       changes.push({
         type: "created",
-        node: nodeToCreate,
+        node: createNodeWithRemappedParent(node, idMap),
       })
-    } else {
-      // Map new ID to existing ID for child nodes
-      idMap.set(node.id, existingNode.id)
-
-      // Check for changes
-      const nodeChanges: Record<string, unknown> = {}
-
-      if (node.content !== existingNode.content) {
-        nodeChanges.content = node.content
-      }
-      if (node.task_status !== existingNode.task_status) {
-        nodeChanges.task_status = node.task_status
-      }
-      if (node.task_mark !== existingNode.task_mark) {
-        nodeChanges.task_mark = node.task_mark
-      }
-      // Compare data field for mentions, tags, projects changes
-      const newData = JSON.stringify(node.data ?? {})
-      const existingData = JSON.stringify(existingNode.data ?? {})
-      if (newData !== existingData) {
-        nodeChanges.data = node.data
-      }
-      // Update md_pos since it may have shifted
-      if (node.md_pos !== existingNode.md_pos) {
-        nodeChanges.md_pos = node.md_pos
-      }
-
-      if (Object.keys(nodeChanges).length > 0) {
-        changes.push({
-          type: "updated",
-          nodeId: existingNode.id,
-          changes: nodeChanges,
-        })
-      }
-
-      existingByKey.delete(key)
+      continue
     }
-  }
 
-  // Handle file node updates
-  if (existingFile && newFile) {
-    const nodeChanges: Record<string, unknown> = {}
-    if (newFile.content !== existingFile.content) {
-      nodeChanges.content = newFile.content
-    }
-    if (newFile.title !== existingFile.title) {
-      nodeChanges.title = newFile.title
-    }
-    const newData = JSON.stringify(newFile.data ?? {})
-    const existingData = JSON.stringify(existingFile.data ?? {})
-    if (newData !== existingData) {
-      nodeChanges.data = newFile.data
-    }
+    idMap.set(node.id, existingNode.id)
+    const nodeChanges = detectNodeChanges(node, existingNode)
+
     if (Object.keys(nodeChanges).length > 0) {
       changes.push({
         type: "updated",
-        nodeId: existingFile.id,
+        nodeId: existingNode.id,
         changes: nodeChanges,
       })
     }
-    // Remove file from remaining check
-    const fileKey = makeStructuralKey(existingFile)
-    existingByKey.delete(fileKey)
+
+    existingByKey.delete(key)
   }
 
-  // Remaining existing nodes were deleted
-  for (const [, node] of existingByKey) {
-    // Don't delete file nodes
-    if (node.type === "file") continue
-    changes.push({
-      type: "deleted",
-      nodeId: node.id,
-    })
-  }
+  return changes
+}
 
-  return { changes, idMap }
+/** Process file node updates */
+function processFileNodeUpdates(
+  existing: KNode[],
+  newNodes: KNode[],
+  existingByKey: Map<string, KNode>,
+): NodeChange[] {
+  const existingFile = existing.find((n) => n.type === "file")
+  const newFile = newNodes.find((n) => n.type === "file")
+
+  if (!existingFile || !newFile) return []
+
+  existingByKey.delete(makeStructuralKey(existingFile))
+
+  const fileChanges = detectFileChanges(newFile, existingFile)
+  if (Object.keys(fileChanges).length === 0) return []
+
+  return [{ type: "updated", nodeId: existingFile.id, changes: fileChanges }]
+}
+
+/** Collect deleted nodes (remaining in existingByKey, excluding files) */
+function collectDeletedNodes(existingByKey: Map<string, KNode>): NodeChange[] {
+  const changes: NodeChange[] = []
+  for (const node of existingByKey.values()) {
+    if (node.type !== "file") {
+      changes.push({ type: "deleted", nodeId: node.id })
+    }
+  }
+  return changes
 }

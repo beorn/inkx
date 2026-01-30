@@ -34,8 +34,9 @@ export interface LinkResolver {
  * Create a LinkResolver pre-populated with all file nodes from the database.
  */
 export function createLinkResolver(db: Database): LinkResolver {
-  // Build lookup map: normalized name → file id
+  // Build lookup map: normalized name → node id
   // Index by both basename and full path for flexible matching
+  // Include any node with fs_path (files and folders) to support folder embeds
   const filesByName = new Map<string, string>()
 
   const rows = db
@@ -43,7 +44,7 @@ export function createLinkResolver(db: Database): LinkResolver {
       `
     SELECT id, fs_path, json_extract(data, '$.name') as name
     FROM nodes
-    WHERE type = 'file'
+    WHERE fs_path IS NOT NULL
   `,
     )
     .all() as Array<{ id: string; fs_path: string | null; name: string | null }>

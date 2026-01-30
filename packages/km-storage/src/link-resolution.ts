@@ -156,10 +156,11 @@ export function applyResolvedLinks(
       )
     }
 
-    // Batch UPDATE for embedded links (update source node's link_to)
+    // Batch UPDATE for embedded links (update source node's link_to and type)
+    // Change paragraph nodes to embed type when link resolves
     if (embeddedUpdates.length > 0) {
       const updateStmt = db.prepare(`
-        UPDATE nodes SET link_to = ?, link_alias = ?, updated_at = ? WHERE id = ?
+        UPDATE nodes SET type = 'embed', link_to = ?, link_alias = ?, updated_at = ? WHERE id = ?
       `)
       for (const update of embeddedUpdates) {
         updateStmt.run(update.target_id, update.alias, now, update.source_id)

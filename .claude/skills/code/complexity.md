@@ -41,6 +41,17 @@ bun lint:complexity --brief      # One-line per finding
 bun lint:complexity <path>       # Specific path
 ```
 
+**IMPORTANT**: Always use `bun lint:complexity`, never raw oxlint commands.
+The script handles config paths and file discovery correctly.
+
+```bash
+# WRONG - don't use raw oxlint for complexity
+bunx oxlint --plugin complexity ...  # ❌ Wrong flags, wrong config
+
+# RIGHT - use the complexity script
+bun lint:complexity                  # ✓ Handles everything correctly
+```
+
 ## Refactoring Workflow
 
 1. **Identify candidates**

@@ -76,85 +76,97 @@ export function getNextOccurrence(
 
   const next = new Date(from)
 
-  switch (parsed.freq) {
-    case "DAILY":
-      next.setUTCDate(next.getUTCDate() + parsed.interval)
-      break
-
-    case "WEEKLY":
-      if (parsed.byDay && parsed.byDay.length > 0) {
-        // Find next occurrence on one of the specified days
-        const currentDay = next.getUTCDay()
-        const targetDays = parsed.byDay
-          .map((d) => DAY_MAP[d.toUpperCase()])
-          .filter((d) => d !== undefined)
-          .sort((a, b) => a - b)
-
-        if (targetDays.length === 0) {
-          // No valid days, just add interval weeks
-          next.setUTCDate(next.getUTCDate() + 7 * parsed.interval)
-        } else {
-          // Find next target day
-          let daysToAdd = 0
-          let foundInCurrentWeek = false
-
-          for (const targetDay of targetDays) {
-            if (targetDay > currentDay) {
-              daysToAdd = targetDay - currentDay
-              foundInCurrentWeek = true
-              break
-            }
-          }
-
-          if (!foundInCurrentWeek) {
-            // Go to first target day of next interval week
-            const firstTarget = targetDays[0] ?? 0
-            daysToAdd = 7 * parsed.interval - currentDay + firstTarget
-          }
-
-          next.setUTCDate(next.getUTCDate() + daysToAdd)
-        }
-      } else {
-        // Simple weekly: same day next week(s)
-        next.setUTCDate(next.getUTCDate() + 7 * parsed.interval)
-      }
-      break
-
-    case "MONTHLY":
-      if (parsed.byMonthDay && parsed.byMonthDay.length > 0) {
-        // Find next occurrence on one of the specified days
-        const currentMonthDay = next.getUTCDate()
-        const targetDays = parsed.byMonthDay.sort((a, b) => a - b)
-
-        let found = false
-        for (const targetDay of targetDays) {
-          if (targetDay > currentMonthDay) {
-            next.setUTCDate(targetDay)
-            found = true
-            break
-          }
-        }
-
-        if (!found) {
-          // Go to first target day of next month
-          next.setUTCMonth(next.getUTCMonth() + parsed.interval)
-          next.setUTCDate(targetDays[0] ?? 1)
-        }
-      } else {
-        // Simple monthly: same day next month(s)
-        next.setUTCMonth(next.getUTCMonth() + parsed.interval)
-      }
-      break
-
-    case "YEARLY":
-      next.setUTCFullYear(next.getUTCFullYear() + parsed.interval)
-      break
-
-    default:
-      return null
+  const handlers: Record<string, () => void> = {
+    DAILY: () => advanceDaily(next, parsed.interval),
+    WEEKLY: () => advanceWeekly(next, parsed.interval, parsed.byDay),
+    MONTHLY: () => advanceMonthly(next, parsed.interval, parsed.byMonthDay),
+    YEARLY: () => advanceYearly(next, parsed.interval),
   }
 
+  const handler = handlers[parsed.freq]
+  if (!handler) return null
+
+  handler()
   return next.toISOString().slice(0, 10)
+}
+
+function advanceDaily(date: Date, interval: number): void {
+  date.setUTCDate(date.getUTCDate() + interval)
+}
+
+function advanceWeekly(
+  date: Date,
+  interval: number,
+  byDay: string[] | undefined,
+): void {
+  if (!byDay || byDay.length === 0) {
+    date.setUTCDate(date.getUTCDate() + 7 * interval)
+    return
+  }
+
+  const targetDays = parseTargetDays(byDay)
+  if (targetDays.length === 0) {
+    date.setUTCDate(date.getUTCDate() + 7 * interval)
+    return
+  }
+
+  const daysToAdd = calculateWeeklyDaysToAdd(
+    date.getUTCDay(),
+    targetDays,
+    interval,
+  )
+  date.setUTCDate(date.getUTCDate() + daysToAdd)
+}
+
+function parseTargetDays(byDay: string[]): number[] {
+  return byDay
+    .map((d) => DAY_MAP[d.toUpperCase()])
+    .filter((d) => d !== undefined)
+    .sort((a, b) => a - b)
+}
+
+function calculateWeeklyDaysToAdd(
+  currentDay: number,
+  targetDays: number[],
+  interval: number,
+): number {
+  for (const targetDay of targetDays) {
+    if (targetDay > currentDay) {
+      return targetDay - currentDay
+    }
+  }
+  // Go to first target day of next interval week
+  const firstTarget = targetDays[0] ?? 0
+  return 7 * interval - currentDay + firstTarget
+}
+
+function advanceMonthly(
+  date: Date,
+  interval: number,
+  byMonthDay: number[] | undefined,
+): void {
+  if (!byMonthDay || byMonthDay.length === 0) {
+    date.setUTCMonth(date.getUTCMonth() + interval)
+    return
+  }
+
+  const currentMonthDay = date.getUTCDate()
+  const targetDays = byMonthDay.toSorted((a, b) => a - b)
+
+  for (const targetDay of targetDays) {
+    if (targetDay > currentMonthDay) {
+      date.setUTCDate(targetDay)
+      return
+    }
+  }
+
+  // Go to first target day of next month
+  date.setUTCMonth(date.getUTCMonth() + interval)
+  date.setUTCDate(targetDays[0] ?? 1)
+}
+
+function advanceYearly(date: Date, interval: number): void {
+  date.setUTCFullYear(date.getUTCFullYear() + interval)
 }
 
 /**
