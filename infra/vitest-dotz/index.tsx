@@ -21,7 +21,17 @@ import type {
   TestSuite,
   Vitest,
 } from "vitest/node"
-import { Box, Text, useTerm, useContentRect, type App, type Term } from "inkx"
+import {
+  Box,
+  Text,
+  Console,
+  useTerm,
+  useContentRect,
+  patchConsole,
+  type App,
+  type Term,
+  type PatchedConsole,
+} from "inkx"
 import Debug from "debug"
 
 import {
@@ -135,12 +145,15 @@ export interface ReportProps {
   options: Options
   /** Override width for testing (bypasses useContentRect) */
   width?: number
+  /** Patched console for capturing output */
+  console?: PatchedConsole
 }
 
-export function Report({ store, options, width }: ReportProps) {
+export function Report({ store, options, width, console: patched }: ReportProps) {
   const state = useStore(store)
   return (
     <Box id="report" flexDirection="column">
+      {patched && <Console console={patched} />}
       <DotsSection state={state} options={options} width={width} />
       <Summary state={state} />
       <PackageTable state={state} />
@@ -508,6 +521,7 @@ export class DotzReporter implements Reporter {
   private finishedCalled = false
   private app: App | null = null
   private term: Term | null = null
+  private patchedConsole: PatchedConsole | null = null
   private isTTY = process.stdout.isTTY === true
   private prevActEnv: boolean | undefined
 
@@ -542,11 +556,17 @@ export class DotzReporter implements Reporter {
 
     const { render, createTerm } = await import("inkx")
     this.term = createTerm()
+    this.patchedConsole = patchConsole(console)
     this.app = await render(
-      <Report store={this.store} options={this.options} />,
+      <Report
+        store={this.store}
+        options={this.options}
+        console={this.patchedConsole}
+      />,
       this.term,
       {
         mode: "inline",
+        alternateScreen: false,
       },
     )
   }
@@ -637,9 +657,11 @@ export class DotzReporter implements Reporter {
     if (this.app) {
       await new Promise((r) => setTimeout(r, UNMOUNT_DELAY_MS))
       this.app.unmount()
+      this.patchedConsole?.[Symbol.dispose]()
       this.term?.[Symbol.dispose]()
       this.app = null
       this.term = null
+      this.patchedConsole = null
       ;(
         globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
       ).IS_REACT_ACT_ENVIRONMENT = this.prevActEnv
