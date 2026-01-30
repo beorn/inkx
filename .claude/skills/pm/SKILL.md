@@ -88,6 +88,12 @@ The user's command IS the confirmation. Never re-ask intent that was already exp
 
 ## Session Coordination
 
+**Before creating new beads**: Check if similar issues were discussed before:
+```bash
+bun history fts "error handling"  # Search past sessions
+bun history similar "TUI rendering bug"  # Find similar questions
+```
+
 **Actor tracking** (automatic via session prehook):
 
 - Claude sessions: `BD_ACTOR=claude:<sessionId>` (set by `.claude/settings.json` prehook)
@@ -130,6 +136,21 @@ grep -r "km-old-id" .claude/ docs/ --include="*.md"
 ```
 
 Check `.claude/skills/`, `docs/`, and other beads (parent/deps). Never leave dangling references.
+
+## Package Prefixes
+
+Beads use group prefixes for package families (configured in `alias_prefixes`):
+
+| Prefix | Packages |
+|--------|----------|
+| `km-` | km (main project) |
+| `inkx-` | inkx, chalkx, inkx-ui |
+| `flexx-` | flexx layout engine |
+| `beorn-tools-` | beorn-claude-tools |
+| `logger-` | logger |
+| `tap-` | tap |
+| `mdtest-` | mdtest |
+| `watcher-` | watcher-chaos |
 
 ## Sub-Skills
 
