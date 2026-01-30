@@ -4,11 +4,11 @@
  * Layout functions for the TUI that operate on styled ANSI strings.
  * These are TUI-specific and not needed by CLI commands.
  *
- * ## Text utilities (from @beorn/tui-measure)
+ * ## Text utilities (from inkx)
  * - `wrapText` - Word-wrap styled text
  * - `truncateText`, `padText` - Truncate and pad styled text
  * - `constrainText` - Combine wrap + truncate with limits
- * - `displayLength`, `stripAnsi` - ANSI-aware string measurement
+ * - `displayLength` - ANSI-aware string measurement
  *
  * ## Path rendering (km-ink specific)
  * - `renderPath`, `renderParentPath` - Smart breadcrumb path rendering
@@ -20,17 +20,16 @@
  * - `ScrollableList` - Virtualized scrolling list
  */
 
-// Text utilities from tui-measure
+// Text utilities from factory (which imports from inkx)
 export {
   wrapText,
   truncateText,
   padText,
   constrainText,
   displayLength,
-  stripAnsi,
   calcScrollOffset,
   ANSI_REGEX,
-} from "@beorn/tui-measure"
+} from "./factory.tsx"
 
 // Path rendering (km-ink specific)
 export {

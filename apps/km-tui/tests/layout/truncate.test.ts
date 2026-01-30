@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { truncateText, padText, displayLength } from "@beorn/tui-measure"
+import { truncateText, padText, displayWidth as displayLength } from "inkx"
 
 describe("truncateText", () => {
   it("returns unchanged if text fits", () => {

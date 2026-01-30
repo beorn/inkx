@@ -1,13 +1,18 @@
 /**
  * Tests for text wrapping (Layer 2)
+ *
+ * Note: inkx's wrapText differs slightly from tui-measure:
+ * - Returns [''] for empty input (preserves the input as a single line)
+ * - Preserves trailing spaces on wrapped lines
  */
 
 import { describe, it, expect } from "vitest"
-import { wrapText } from "@beorn/tui-measure"
+import { wrapText } from "inkx"
 
 describe("wrapText", () => {
-  it("returns empty array for empty input", () => {
-    expect(wrapText("", 10)).toEqual([])
+  it("returns single empty line for empty input", () => {
+    // inkx returns [''] to represent an empty line (consistent behavior)
+    expect(wrapText("", 10)).toEqual([""])
   })
 
   it("returns single line if text fits", () => {
@@ -16,12 +21,14 @@ describe("wrapText", () => {
 
   it("wraps at word boundaries", () => {
     const result = wrapText("hello world", 6)
-    expect(result).toEqual(["hello", "world"])
+    // inkx preserves the trailing space on wrapped lines
+    expect(result).toEqual(["hello ", "world"])
   })
 
   it("wraps multiple words", () => {
     const result = wrapText("one two three four", 10)
-    expect(result).toEqual(["one two", "three four"])
+    // inkx preserves trailing spaces
+    expect(result).toEqual(["one two ", "three four"])
   })
 
   it("handles very long words by breaking mid-word", () => {
@@ -55,15 +62,16 @@ describe("wrapText", () => {
     expect(result30).toEqual(["Edge Cases (wiki links + text)"])
 
     // At width 25, wraps at last space before limit
+    // inkx preserves the trailing space
     const result25 = wrapText(text, 25)
     expect(result25.length).toBe(2)
-    expect(result25[0]).toBe("Edge Cases (wiki links +")
+    expect(result25[0]).toBe("Edge Cases (wiki links + ")
     expect(result25[1]).toBe("text)")
 
     // At width 20, wraps earlier
     const result20 = wrapText(text, 20)
     expect(result20.length).toBe(2)
-    expect(result20[0]).toBe("Edge Cases (wiki")
+    expect(result20[0]).toBe("Edge Cases (wiki ")
     expect(result20[1]).toBe("links + text)")
   })
 })
