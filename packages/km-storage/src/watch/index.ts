@@ -46,11 +46,12 @@ export {
   readObsidianIgnore,
   getIgnorePatterns,
   createIgnoreMatcher,
-  PatternMatcher,
+  createPatternMatcher,
   matchesPattern,
   shouldIgnore,
   isHiddenFile,
 } from "../ignore.ts"
+export type { PatternMatcher, PatternMatcherOptions } from "../ignore.ts"
 
 // Write queue
 export { WriteQueue, shouldApplyToFs } from "./writequeue.ts"

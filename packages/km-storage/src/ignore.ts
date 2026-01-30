@@ -288,48 +288,57 @@ function patternToRegex(pattern: string): RegExp | null {
   }
 }
 
+export interface PatternMatcherOptions {
+  /** Glob patterns to match against */
+  patterns: string[]
+}
+
 /**
- * Pre-compiled pattern matcher for efficient ignore checking.
+ * PatternMatcher interface - pre-compiled pattern matcher for efficient ignore checking.
+ */
+export interface PatternMatcher {
+  /** Check if a path matches any pattern. Tests both full path and basename. */
+  matches(path: string, repoPath?: string): boolean
+  /** Number of compiled patterns */
+  readonly size: number
+}
+
+/**
+ * Create a pre-compiled pattern matcher for efficient ignore checking.
  *
  * Compiles all glob patterns to RegExp once at construction time,
  * avoiding O(n*m) regex compilation during file scanning.
  *
  * Usage:
- *   const matcher = createIgnoreMatcher(repoPath)
+ *   const matcher = createPatternMatcher({ patterns: getIgnorePatterns(repoPath) })
  *   if (matcher.matches(filePath)) { skip this file }
  */
-export class PatternMatcher {
-  private patterns: Array<{ regex: RegExp; original: string }>
+export function createPatternMatcher(options: PatternMatcherOptions): PatternMatcher {
+  const compiledPatterns: Array<{ regex: RegExp; original: string }> = []
 
-  constructor(patterns: string[]) {
-    this.patterns = []
-    for (const pattern of patterns) {
-      const regex = patternToRegex(pattern)
-      if (regex) {
-        this.patterns.push({ regex, original: pattern })
-      }
+  for (const pattern of options.patterns) {
+    const regex = patternToRegex(pattern)
+    if (regex) {
+      compiledPatterns.push({ regex, original: pattern })
     }
   }
 
-  /**
-   * Check if a path matches any pattern.
-   * Tests both the full path and the basename.
-   */
-  matches(path: string, repoPath?: string): boolean {
-    const normalizedPath = repoPath ? relative(repoPath, path) : path
-    const name = basename(path)
+  return {
+    matches(path, repoPath) {
+      const normalizedPath = repoPath ? relative(repoPath, path) : path
+      const name = basename(path)
 
-    for (const { regex } of this.patterns) {
-      if (regex.test(normalizedPath) || regex.test(name)) {
-        return true
+      for (const { regex } of compiledPatterns) {
+        if (regex.test(normalizedPath) || regex.test(name)) {
+          return true
+        }
       }
-    }
-    return false
-  }
+      return false
+    },
 
-  /** Number of compiled patterns */
-  get size(): number {
-    return this.patterns.length
+    get size() {
+      return compiledPatterns.length
+    },
   }
 }
 
@@ -339,7 +348,7 @@ export class PatternMatcher {
  */
 export function createIgnoreMatcher(repoPath: string): PatternMatcher {
   const patterns = getIgnorePatterns(repoPath)
-  return new PatternMatcher(patterns)
+  return createPatternMatcher({ patterns })
 }
 
 /**
@@ -369,8 +378,8 @@ export function shouldIgnore(
   patternsOrMatcher: string[] | PatternMatcher,
   repoPath?: string,
 ): boolean {
-  // Use PatternMatcher if provided (fast path)
-  if (patternsOrMatcher instanceof PatternMatcher) {
+  // Use PatternMatcher if provided (fast path) - check for matches method
+  if (!Array.isArray(patternsOrMatcher)) {
     return patternsOrMatcher.matches(path, repoPath)
   }
 

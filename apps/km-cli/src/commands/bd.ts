@@ -23,7 +23,6 @@ import {
   type IssueFilter,
 } from "@km/beads"
 import { resolvePathArg, loadConfigObject } from "@km/storage"
-import { getDbPath } from "@km/storage/internal/db-instance.ts"
 import { loadRepo } from "../load-repo.ts"
 import { join } from "path"
 import { existsSync } from "fs"
@@ -471,12 +470,12 @@ bdCommand
     const resolved = resolvePathArg(scope)
     const kmDir = join(resolved.repoRoot, ".km")
 
-    // Load repo to set up context for getDbPath()
+    // Load repo for database access and mode
     using repo = await loadRepo(resolved.repoRoot)
     const scopePath = resolved.nodeRef ?? undefined
     const configObj = loadConfigObject(resolved.repoRoot)
     const config = configObj.beads
-    const dbPath = getDbPath()
+    const dbPath = join(kmDir, "state.db")
     const repoMode = repo.mode
 
     // Query with board filter if configured
@@ -582,9 +581,9 @@ bdCommand
     const resolved = resolvePathArg(scope)
     const kmDir = join(resolved.repoRoot, ".km")
 
-    // Load repo to set up global state for getDbPath()
+    // Load repo (unused but kept for consistency - may use in future)
     using _repo = await loadRepo(resolved.repoRoot)
-    const dbPath = getDbPath()
+    const dbPath = join(kmDir, "state.db")
     const configObj = loadConfigObject(resolved.repoRoot)
 
     if (existsSync(kmDir)) {

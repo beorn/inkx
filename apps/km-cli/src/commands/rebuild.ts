@@ -21,8 +21,6 @@ import {
   findKmRootFromPath,
   SCHEMA,
 } from "@km/storage"
-import { getDbPath } from "@km/storage/internal/db-instance.ts"
-import { getEventsPath, runWithKmDir } from "@km/storage/internal/emit.ts"
 import { Database } from "bun:sqlite"
 import { existsSync, statSync } from "fs"
 import { join } from "path"
@@ -47,83 +45,80 @@ export const rebuildCommand = new Command("rebuild")
       process.exit(1)
     }
 
-    // Run all operations in kmDir context
     debug("Using .km directory: %s", kmRoot)
 
-    await runWithKmDir(kmRoot, async () => {
-      if (options.status) {
-        showStatus()
-        return
-      }
+    if (options.status) {
+      showStatus(kmRoot)
+      return
+    }
 
-      if (options.fresh) {
-        console.log(term.yellow("Fresh start - deleting all .km data..."))
-        freshStart(kmRoot)
-        console.log(
-          term.green("✓"),
-          "Fresh start complete - .km directory cleared",
-        )
-        return
-      }
-
-      const repoPath = dirname(kmRoot)
-      debug("rebuild: starting (full=%s)", !!options.full)
+    if (options.fresh) {
+      console.log(term.yellow("Fresh start - deleting all .km data..."))
+      freshStart(kmRoot)
       console.log(
-        term.bold("Rebuilding .km/state.db from .km/events.jsonl"),
-        term.dim(`(repo ${formatPath(repoPath)})`),
+        term.green("✓"),
+        "Fresh start complete - .km directory cleared",
+      )
+      return
+    }
+
+    const repoPath = dirname(kmRoot)
+    debug("rebuild: starting (full=%s)", !!options.full)
+    console.log(
+      term.bold("Rebuilding .km/state.db from .km/events.jsonl"),
+      term.dim(`(repo ${formatPath(repoPath)})`),
+    )
+
+    // Open database for rebuild operations
+    const db = new Database(join(kmRoot, "state.db"))
+    db.run(SCHEMA)
+
+    try {
+      if (options.full) {
+        console.log(term.dim("Performing full reset..."))
+      }
+
+      const results = await steps({
+        rebuildState: options.full
+          ? function* () {
+              return yield* fullReset(kmRoot, db)
+            }
+          : function* () {
+              return yield* rebuildState(kmRoot, db)
+            },
+      }).run({ clear: true })
+
+      const result = results.rebuildState as unknown as {
+        duration: number
+        eventCount: number
+        nodeCount: number
+      }
+
+      debug(
+        "rebuild: complete in %dms, events=%d nodes=%d",
+        result.duration,
+        result.eventCount,
+        result.nodeCount,
       )
 
-      // Open database for rebuild operations
-      const db = new Database(join(kmRoot, "state.db"))
-      db.run(SCHEMA)
-
-      try {
-        if (options.full) {
-          console.log(term.dim("Performing full reset..."))
-        }
-
-        const results = await steps({
-          rebuildState: options.full
-            ? function* () {
-                return yield* fullReset(kmRoot, db)
-              }
-            : function* () {
-                return yield* rebuildState(kmRoot, db)
-              },
-        }).run({ clear: true })
-
-        const result = results.rebuildState as unknown as {
-          duration: number
-          eventCount: number
-          nodeCount: number
-        }
-
-        debug(
-          "rebuild: complete in %dms, events=%d nodes=%d",
-          result.duration,
-          result.eventCount,
-          result.nodeCount,
-        )
-
-        console.log(term.green("✓"), "Rebuild complete")
-        console.log(term.dim(`  Events: ${result.eventCount}`))
-        console.log(term.dim(`  Nodes: ${result.nodeCount}`))
-        console.log(term.dim(`  Time: ${result.duration}ms`))
-      } catch (error) {
-        console.error(term.red("Rebuild failed:"), error)
-        process.exit(1)
-      } finally {
-        db.close()
-      }
-    })
+      console.log(term.green("✓"), "Rebuild complete")
+      console.log(term.dim(`  Events: ${result.eventCount}`))
+      console.log(term.dim(`  Nodes: ${result.nodeCount}`))
+      console.log(term.dim(`  Time: ${result.duration}ms`))
+    } catch (error) {
+      console.error(term.red("Rebuild failed:"), error)
+      process.exit(1)
+    } finally {
+      db.close()
+    }
   })
 
 /**
  * Show rebuild status
  */
-function showStatus(): void {
-  const dbPath = getDbPath()
-  const eventsPath = getEventsPath()
+function showStatus(kmRoot: string): void {
+  const dbPath = join(kmRoot, "state.db")
+  const eventsPath = join(kmRoot, "events.jsonl")
 
   console.log(term.bold("State Status"))
   console.log()

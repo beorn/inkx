@@ -23,19 +23,193 @@ import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { Database } from "bun:sqlite"
-import { SyncManager, findKmRootFromPath } from "@km/storage"
-import { setEventHub, setFsSync } from "@km/storage/internal/emit.ts"
+import { SyncManager, findKmRootFromPath, createEmitter } from "@km/storage"
+import type { Emitter } from "@km/storage"
 import type { Event } from "@km/core"
 import { EventEmitter } from "events"
 
-/** Daemon file paths */
-function getDaemonPaths(kmDir: string) {
-  return {
-    pid: join(kmDir, "daemon.pid"),
-    socket: join(kmDir, "km.sock"),
-    log: join(kmDir, "daemon.log"),
-  }
-}
+// ============================================
+// Main Export - Daemon Command
+// ============================================
+
+const daemonStartCommand = new Command("start")
+  .description("Start the daemon in the background")
+  .option("--foreground", "Run in foreground (don't daemonize)")
+  .action(async (options: { foreground?: boolean }) => {
+    const kmDir = findKmRootFromPath(process.cwd())
+    if (!kmDir) {
+      console.error(term.red("No .km directory found. Run 'km init' first."))
+      process.exit(1)
+    }
+    const repoPath = dirname(kmDir)
+
+    if (options.foreground) {
+      // Run in foreground
+      process.env.KM_DAEMON_FOREGROUND = "1"
+      const daemon = new KmDaemon(repoPath, kmDir)
+      await daemon.start()
+    } else {
+      // Check if already running
+      const status = getDaemonStatus(kmDir)
+      if (status.status === "running") {
+        console.log(
+          term.yellow("Daemon already running"),
+          term.dim(`(PID: ${status.pid})`),
+        )
+        return
+      }
+
+      // Spawn background process
+      const cliPath = process.argv[1] ?? "km"
+      const proc = Bun.spawn(
+        ["bun", "run", cliPath, "daemon", "start", "--foreground"],
+        {
+          cwd: repoPath,
+          env: { ...process.env, KM_DIR: kmDir },
+          stdio: ["ignore", "ignore", "ignore"],
+        },
+      )
+
+      // Detach and let it run
+      proc.unref()
+
+      // Wait a moment for it to start
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 500)
+      })
+
+      // Check if it started
+      const newStatus = getDaemonStatus(kmDir)
+      if (newStatus.status === "running") {
+        console.log(term.green("✓"), "Daemon started")
+        console.log(term.dim(`PID: ${newStatus.pid}`))
+      } else {
+        console.error(term.red("✗"), "Failed to start daemon")
+        console.log(
+          term.dim("Check"),
+          term.cyan(getDaemonPaths(kmDir).log),
+          term.dim("for details"),
+        )
+      }
+    }
+  })
+
+const daemonStopCommand = new Command("stop")
+  .description("Stop the daemon")
+  .action(async () => {
+    const kmDir = findKmRootFromPath(process.cwd())
+    if (!kmDir) {
+      console.error(term.red("No .km directory found."))
+      process.exit(1)
+    }
+    const paths = getDaemonPaths(kmDir)
+    const status = getDaemonStatus(kmDir)
+
+    if (status.status === "stopped") {
+      console.log(term.yellow("Daemon is not running"))
+      return
+    }
+
+    // Try graceful shutdown via socket
+    if (existsSync(paths.socket)) {
+      try {
+        await sendToDaemon(paths.socket, { type: "stop" })
+        console.log(term.green("✓"), "Daemon stopping...")
+
+        // Wait for it to stop
+        for (let i = 0; i < 10; i++) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, 500)
+          })
+          const newStatus = getDaemonStatus(kmDir)
+          if (newStatus.status === "stopped") {
+            console.log(term.green("✓"), "Daemon stopped")
+            return
+          }
+        }
+
+        console.log(
+          term.yellow("Daemon taking too long to stop, sending SIGTERM..."),
+        )
+      } catch {
+        console.log(term.dim("Socket unavailable, sending SIGTERM..."))
+      }
+    }
+
+    // Fall back to SIGTERM
+    if (status.pid) {
+      try {
+        process.kill(status.pid, "SIGTERM")
+        console.log(term.green("✓"), "Sent SIGTERM to daemon")
+      } catch {
+        console.log(term.yellow("Process not found, cleaning up..."))
+      }
+    }
+
+    // Clean up files
+    try {
+      if (existsSync(paths.pid)) unlinkSync(paths.pid)
+      if (existsSync(paths.socket)) unlinkSync(paths.socket)
+    } catch {
+      // Ignore cleanup errors
+    }
+  })
+
+const daemonStatusCommand = new Command("status")
+  .description("Show daemon status")
+  .action(async () => {
+    const kmDir = findKmRootFromPath(process.cwd())
+    if (!kmDir) {
+      console.error(term.red("No .km directory found."))
+      process.exit(1)
+    }
+    const paths = getDaemonPaths(kmDir)
+    const basicStatus = getDaemonStatus(kmDir)
+
+    console.log(term.bold("km daemon"))
+    console.log()
+
+    if (basicStatus.status === "stopped") {
+      console.log("Status:", term.yellow("stopped"))
+      return
+    }
+
+    // Try to get detailed status from socket
+    if (existsSync(paths.socket)) {
+      try {
+        const response = await sendToDaemon(paths.socket, { type: "status" })
+        if (response.ok && response.data) {
+          const status = response.data as unknown as DaemonStatus
+          console.log("Status:", term.green("running"))
+          console.log("PID:", status.pid)
+          console.log("Uptime:", formatUptime(status.uptime ?? 0))
+          console.log("Socket:", paths.socket)
+          console.log()
+          console.log("Events processed:", status.eventsProcessed)
+          console.log("Pending writes:", status.pendingWrites)
+          console.log("Repo:", status.repoPath)
+          return
+        }
+      } catch {
+        // Fall through to basic status
+      }
+    }
+
+    // Basic status (no socket connection)
+    console.log("Status:", term.green("running"))
+    console.log("PID:", basicStatus.pid)
+    console.log("Socket:", term.dim("(unavailable)"))
+  })
+
+export const daemonCommand = new Command("daemon")
+  .description("Manage the km background daemon")
+  .addCommand(daemonStartCommand)
+  .addCommand(daemonStopCommand)
+  .addCommand(daemonStatusCommand)
+
+// ============================================
+// Helper Types
+// ============================================
 
 /** Socket message types */
 interface DaemonMessage {
@@ -59,11 +233,117 @@ interface DaemonStatus {
   repoPath?: string
 }
 
+// ============================================
+// Helper Functions
+// ============================================
+
+/** Daemon file paths */
+function getDaemonPaths(kmDir: string) {
+  return {
+    pid: join(kmDir, "daemon.pid"),
+    socket: join(kmDir, "km.sock"),
+    log: join(kmDir, "daemon.log"),
+  }
+}
+
+/**
+ * Send a message to the daemon via socket
+ */
+async function sendToDaemon(
+  socketPath: string,
+  message: DaemonMessage,
+): Promise<DaemonResponse> {
+  return new Promise((resolve, reject) => {
+    const socket = connect(socketPath)
+    let data = ""
+
+    socket.on("connect", () => {
+      socket.write(JSON.stringify(message))
+    })
+
+    socket.on("data", (chunk) => {
+      data += chunk.toString()
+      // Try to parse complete response
+      if (data.includes("\n")) {
+        try {
+          const response = JSON.parse(data.trim()) as DaemonResponse
+          socket.end()
+          resolve(response)
+        } catch {
+          // Wait for more data
+        }
+      }
+    })
+
+    socket.on("error", (error) => {
+      reject(error instanceof Error ? error : new Error(String(error)))
+    })
+
+    socket.on("close", () => {
+      if (data) {
+        try {
+          resolve(JSON.parse(data.trim()) as DaemonResponse)
+        } catch {
+          reject(new Error("Invalid response from daemon"))
+        }
+      }
+    })
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      socket.end()
+      reject(new Error("Timeout waiting for daemon response"))
+    }, 5000)
+  })
+}
+
+/**
+ * Get daemon status (without connecting)
+ */
+function getDaemonStatus(kmDir: string): DaemonStatus {
+  const paths = getDaemonPaths(kmDir)
+
+  if (!existsSync(paths.pid)) {
+    return { status: "stopped" }
+  }
+
+  try {
+    const pid = parseInt(readFileSync(paths.pid, "utf-8").trim(), 10)
+    // Check if process is running
+    process.kill(pid, 0)
+    return { status: "running", pid }
+  } catch {
+    return { status: "stopped" }
+  }
+}
+
+/**
+ * Format uptime as human readable string
+ */
+function formatUptime(ms: number): string {
+  const seconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+
+  if (hours > 0) {
+    return `${hours}h ${minutes % 60}m`
+  } else if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`
+  } else {
+    return `${seconds}s`
+  }
+}
+
+// ============================================
+// KmDaemon Class
+// ============================================
+
 /**
  * KM Daemon - single background process for sync and automation
  */
 class KmDaemon extends EventEmitter {
   private sync: SyncManager
+  private emitter: Emitter
   private server?: ReturnType<typeof createServer>
   private startTime: number = 0
   private eventsProcessed: number = 0
@@ -79,6 +359,9 @@ class KmDaemon extends EventEmitter {
 
     // Open database directly from kmDir
     const db = new Database(join(kmDir, "state.db"))
+
+    // Create emitter for event handling
+    this.emitter = createEmitter({ kmDir, db })
 
     this.sync = new SyncManager({
       db,
@@ -291,10 +574,10 @@ class KmDaemon extends EventEmitter {
     this.server.listen(this.paths.socket)
 
     // Set up event hub for broadcasting
-    setEventHub({ broadcast: (event) => this.broadcast(event) })
+    this.emitter.setEventHub({ broadcast: (event) => this.broadcast(event) })
 
     // Wire up filesystem sync so events propagate to markdown files
-    setFsSync(this.sync)
+    this.emitter.setFsSync(this.sync)
 
     // Startup sweep - sync filesystem
     this.log("Starting filesystem sync...")
@@ -346,270 +629,3 @@ class KmDaemon extends EventEmitter {
     process.exit(0)
   }
 }
-
-/**
- * Send a message to the daemon via socket
- */
-async function sendToDaemon(
-  socketPath: string,
-  message: DaemonMessage,
-): Promise<DaemonResponse> {
-  return new Promise((resolve, reject) => {
-    const socket = connect(socketPath)
-    let data = ""
-
-    socket.on("connect", () => {
-      socket.write(JSON.stringify(message))
-    })
-
-    socket.on("data", (chunk) => {
-      data += chunk.toString()
-      // Try to parse complete response
-      if (data.includes("\n")) {
-        try {
-          const response = JSON.parse(data.trim()) as DaemonResponse
-          socket.end()
-          resolve(response)
-        } catch {
-          // Wait for more data
-        }
-      }
-    })
-
-    socket.on("error", (error) => {
-      reject(error instanceof Error ? error : new Error(String(error)))
-    })
-
-    socket.on("close", () => {
-      if (data) {
-        try {
-          resolve(JSON.parse(data.trim()) as DaemonResponse)
-        } catch {
-          reject(new Error("Invalid response from daemon"))
-        }
-      }
-    })
-
-    // Timeout after 5 seconds
-    setTimeout(() => {
-      socket.end()
-      reject(new Error("Timeout waiting for daemon response"))
-    }, 5000)
-  })
-}
-
-/**
- * Get daemon status (without connecting)
- */
-function getDaemonStatus(kmDir: string): DaemonStatus {
-  const paths = getDaemonPaths(kmDir)
-
-  if (!existsSync(paths.pid)) {
-    return { status: "stopped" }
-  }
-
-  try {
-    const pid = parseInt(readFileSync(paths.pid, "utf-8").trim(), 10)
-    // Check if process is running
-    process.kill(pid, 0)
-    return { status: "running", pid }
-  } catch {
-    return { status: "stopped" }
-  }
-}
-
-/**
- * Format uptime as human readable string
- */
-function formatUptime(ms: number): string {
-  const seconds = Math.floor(ms / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-
-  if (hours > 0) {
-    return `${hours}h ${minutes % 60}m`
-  } else if (minutes > 0) {
-    return `${minutes}m ${seconds % 60}s`
-  } else {
-    return `${seconds}s`
-  }
-}
-
-// ============================================
-// CLI Commands
-// ============================================
-
-const daemonStartCommand = new Command("start")
-  .description("Start the daemon in the background")
-  .option("--foreground", "Run in foreground (don't daemonize)")
-  .action(async (options: { foreground?: boolean }) => {
-    const kmDir = findKmRootFromPath(process.cwd())
-    if (!kmDir) {
-      console.error(term.red("No .km directory found. Run 'km init' first."))
-      process.exit(1)
-    }
-    const repoPath = dirname(kmDir)
-
-    if (options.foreground) {
-      // Run in foreground
-      process.env.KM_DAEMON_FOREGROUND = "1"
-      const daemon = new KmDaemon(repoPath, kmDir)
-      await daemon.start()
-    } else {
-      // Check if already running
-      const status = getDaemonStatus(kmDir)
-      if (status.status === "running") {
-        console.log(
-          term.yellow("Daemon already running"),
-          term.dim(`(PID: ${status.pid})`),
-        )
-        return
-      }
-
-      // Spawn background process
-      const cliPath = process.argv[1] ?? "km"
-      const proc = Bun.spawn(
-        ["bun", "run", cliPath, "daemon", "start", "--foreground"],
-        {
-          cwd: repoPath,
-          env: { ...process.env, KM_DIR: kmDir },
-          stdio: ["ignore", "ignore", "ignore"],
-        },
-      )
-
-      // Detach and let it run
-      proc.unref()
-
-      // Wait a moment for it to start
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 500)
-      })
-
-      // Check if it started
-      const newStatus = getDaemonStatus(kmDir)
-      if (newStatus.status === "running") {
-        console.log(term.green("✓"), "Daemon started")
-        console.log(term.dim(`PID: ${newStatus.pid}`))
-      } else {
-        console.error(term.red("✗"), "Failed to start daemon")
-        console.log(
-          term.dim("Check"),
-          term.cyan(getDaemonPaths(kmDir).log),
-          term.dim("for details"),
-        )
-      }
-    }
-  })
-
-const daemonStopCommand = new Command("stop")
-  .description("Stop the daemon")
-  .action(async () => {
-    const kmDir = findKmRootFromPath(process.cwd())
-    if (!kmDir) {
-      console.error(term.red("No .km directory found."))
-      process.exit(1)
-    }
-    const paths = getDaemonPaths(kmDir)
-    const status = getDaemonStatus(kmDir)
-
-    if (status.status === "stopped") {
-      console.log(term.yellow("Daemon is not running"))
-      return
-    }
-
-    // Try graceful shutdown via socket
-    if (existsSync(paths.socket)) {
-      try {
-        await sendToDaemon(paths.socket, { type: "stop" })
-        console.log(term.green("✓"), "Daemon stopping...")
-
-        // Wait for it to stop
-        for (let i = 0; i < 10; i++) {
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, 500)
-          })
-          const newStatus = getDaemonStatus(kmDir)
-          if (newStatus.status === "stopped") {
-            console.log(term.green("✓"), "Daemon stopped")
-            return
-          }
-        }
-
-        console.log(
-          term.yellow("Daemon taking too long to stop, sending SIGTERM..."),
-        )
-      } catch {
-        console.log(term.dim("Socket unavailable, sending SIGTERM..."))
-      }
-    }
-
-    // Fall back to SIGTERM
-    if (status.pid) {
-      try {
-        process.kill(status.pid, "SIGTERM")
-        console.log(term.green("✓"), "Sent SIGTERM to daemon")
-      } catch {
-        console.log(term.yellow("Process not found, cleaning up..."))
-      }
-    }
-
-    // Clean up files
-    try {
-      if (existsSync(paths.pid)) unlinkSync(paths.pid)
-      if (existsSync(paths.socket)) unlinkSync(paths.socket)
-    } catch {
-      // Ignore cleanup errors
-    }
-  })
-
-const daemonStatusCommand = new Command("status")
-  .description("Show daemon status")
-  .action(async () => {
-    const kmDir = findKmRootFromPath(process.cwd())
-    if (!kmDir) {
-      console.error(term.red("No .km directory found."))
-      process.exit(1)
-    }
-    const paths = getDaemonPaths(kmDir)
-    const basicStatus = getDaemonStatus(kmDir)
-
-    console.log(term.bold("km daemon"))
-    console.log()
-
-    if (basicStatus.status === "stopped") {
-      console.log("Status:", term.yellow("stopped"))
-      return
-    }
-
-    // Try to get detailed status from socket
-    if (existsSync(paths.socket)) {
-      try {
-        const response = await sendToDaemon(paths.socket, { type: "status" })
-        if (response.ok && response.data) {
-          const status = response.data as unknown as DaemonStatus
-          console.log("Status:", term.green("running"))
-          console.log("PID:", status.pid)
-          console.log("Uptime:", formatUptime(status.uptime ?? 0))
-          console.log("Socket:", paths.socket)
-          console.log()
-          console.log("Events processed:", status.eventsProcessed)
-          console.log("Pending writes:", status.pendingWrites)
-          console.log("Repo:", status.repoPath)
-          return
-        }
-      } catch {
-        // Fall through to basic status
-      }
-    }
-
-    // Basic status (no socket connection)
-    console.log("Status:", term.green("running"))
-    console.log("PID:", basicStatus.pid)
-    console.log("Socket:", term.dim("(unavailable)"))
-  })
-
-export const daemonCommand = new Command("daemon")
-  .description("Manage the km background daemon")
-  .addCommand(daemonStartCommand)
-  .addCommand(daemonStopCommand)
-  .addCommand(daemonStatusCommand)

@@ -47,252 +47,9 @@ import {
 } from "@km/repl"
 import type { KNode } from "@km/core"
 
-// OSC 133 Shell Integration Protocol (Kitty, WezTerm, iTerm2, VS Code)
-// Emitted automatically when running in a real TTY, or when TERM_SHELL_INTEGRATION=1
-const OSC_133_A = "\x1b]133;A\x07" // Prompt start (ready for input)
-const OSC_133_C = "\x1b]133;C\x07" // Command start (execution beginning)
-const osc133D = (exitCode: number) => `\x1b]133;D;${exitCode}\x07` // Command end
-
-/**
- * Determine if we should emit OSC 133 sequences
- * - Auto-enabled when stdout is a real TTY (interactive terminal)
- * - Force-enabled via TERM_SHELL_INTEGRATION=1 (for mdtest PTY mode)
- * - Force-disabled via TERM_SHELL_INTEGRATION=0
- */
-function shouldEmitOsc133(): boolean {
-  const envFlag = process.env.TERM_SHELL_INTEGRATION
-  if (envFlag === "1") return true
-  if (envFlag === "0") return false
-  // Auto-detect: emit if running in a real TTY
-  return process.stdout.isTTY === true
-}
-
-/**
- * Get node name (slug identifier)
- * Uses node.name if available, otherwise derives from fs_path/md_slug
- */
-function getNodeName(node: KNode): string {
-  // Prefer the stored name
-  if (node.name) {
-    return node.name
-  }
-  // Fallback: derive from fs_path for files
-  if (node.fs_path) {
-    const filename = node.fs_path.split("/").pop()
-    if (filename) {
-      return filename.replace(/\.md$/, "")
-    }
-  }
-  // Fallback: use md_slug for sections
-  if (node.md_slug) {
-    return node.md_slug
-  }
-  // Last resort: short ID
-  return node.id.slice(0, 8)
-}
-
-/**
- * Convert KNode to TNode (recursive)
- */
-function kNodeToTNode(db: Database, node: KNode, depth: number): TNode {
-  const children = getChildren(db, node.id)
-  return {
-    // KNode base properties
-    id: node.id,
-    type: node.type,
-    parent_id: node.parent_id ?? null,
-    parent_idx: node.parent_idx ?? 0,
-    link_to: node.link_to ?? null,
-    link_alias: node.link_alias,
-    name: getNodeName(node),
-    title: getNodeDisplayName(node),
-    task_status: node.task_status,
-    task_mark: node.task_mark,
-    priority: node.priority,
-    due_date: node.due_date,
-    scheduled_date: node.scheduled_date,
-    content: node.content,
-    rules: node.rules,
-    data: node.data ?? {},
-    created_at: node.created_at ?? 0,
-    updated_at: node.updated_at ?? 0,
-    version: node.version ?? "",
-
-    // TNode tree properties
-    children: children.map((child, idx) => {
-      const childNode = kNodeToTNode(db, child, depth + 1)
-      // Update parent reference for the child
-      return {
-        ...childNode,
-        parent_id: node.id,
-        parent_idx: child.parent_idx ?? idx,
-      }
-    }),
-    childCount: children.length,
-    childrenLoaded: true,
-    isTask: node.task_status !== undefined,
-    depth,
-  }
-}
-
-/**
- * Build tree nodes from root
- */
-function buildNodes(db: Database, rootId: string | null): TNode[] {
-  if (!rootId) {
-    const roots = getChildren(db, null)
-    if (roots.length === 0) {
-      return []
-    }
-    return roots.map((node) => kNodeToTNode(db, node, 0))
-  }
-
-  const node = resolveNode(db, rootId)
-  if (!node) {
-    return []
-  }
-
-  const children = getChildren(db, node.id)
-  return children.map((child) => kNodeToTNode(db, child, 0))
-}
-
-/**
- * Read all lines from stdin or a file
- */
-async function readInputLines(inputFile?: string): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    const lines: string[] = []
-    const input =
-      inputFile && existsSync(inputFile)
-        ? createReadStream(inputFile)
-        : process.stdin
-
-    const rl = createInterface({
-      input,
-      crlfDelay: Infinity,
-    })
-
-    rl.on("line", (line) => {
-      lines.push(line)
-    })
-
-    rl.on("close", () => {
-      resolve(lines)
-    })
-
-    rl.on("error", reject)
-  })
-}
-
-/**
- * Parse commands from -c option
- * Supports semicolon or newline separated commands
- */
-function parseCommandString(cmdString: string): string[] {
-  return cmdString
-    .split(/[;\n]/)
-    .map((cmd) => cmd.trim())
-    .filter((cmd) => cmd.length > 0)
-}
-
-/**
- * Get node at current cursor position
- */
-function getNodeAtCursor(state: BoardState): TNode | null {
-  let nodes = state.nodes
-  for (let i = 0; i < state.cursor.length; i++) {
-    const idx = state.cursor[i]
-    if (idx === undefined || idx >= nodes.length) return null
-    const node = nodes[idx]
-    if (!node) return null
-    if (i === state.cursor.length - 1) return node
-    nodes = node.children
-  }
-  return nodes[0] ?? null
-}
-
-/**
- * Create mutation handler that integrates with storage layer
- * Uses the repo's methods which handle filesystem writes synchronously
- */
-function createMutationHandler(
-  db: Database,
-  repo: Repo,
-  rootId: string | null,
-  rootPath: string,
-): MutationHandler {
-  return (command: ShellCommand, state: BoardState) => {
-    const currentNode = getNodeAtCursor(state)
-    if (!currentNode) {
-      return { ok: false, error: "No node at cursor" }
-    }
-
-    try {
-      switch (command.type) {
-        case "SET_STATUS": {
-          // Use repo's updateNode which writes to filesystem synchronously
-          repo.updateNode(currentNode.id, { task_status: command.status })
-          break
-        }
-        case "DELETE": {
-          // TODO: Implement delete - requires regenerating markdown file
-          return { ok: false, error: "delete command not yet implemented" }
-        }
-        case "SHIFT": {
-          // TODO: Implement shift - requires regenerating markdown file
-          return {
-            ok: false,
-            error: "shift_up/shift_down commands not yet implemented",
-          }
-        }
-        default:
-          return {
-            ok: false,
-            error: `Unknown mutation: ${(command as ShellCommand).type}`,
-          }
-      }
-
-      // Rebuild state from storage after mutation
-      const newNodes = buildNodes(db, rootId)
-      const newState = createBoardState(newNodes, rootId, rootPath)
-
-      // Preserve cursor position if valid, otherwise reset
-      let newCursor = state.cursor
-      let testNodes = newState.nodes
-      for (let i = 0; i < newCursor.length; i++) {
-        const idx = newCursor[i]
-        if (idx === undefined || idx >= testNodes.length) {
-          // Cursor invalid, truncate
-          newCursor = newCursor.slice(0, i)
-          break
-        }
-        const node = testNodes[idx]
-        if (!node) {
-          newCursor = newCursor.slice(0, i)
-          break
-        }
-        testNodes = node.children
-      }
-
-      return {
-        ok: true,
-        newState: {
-          ...newState,
-          cursor: newCursor.length > 0 ? newCursor : [0],
-          // Preserve UI state
-          foldedNodes: state.foldedNodes,
-          collapsedNodes: state.collapsedNodes,
-          selectedNodes: new Set(), // Clear selection after mutation
-        },
-      }
-    } catch (err) {
-      return {
-        ok: false,
-        error: err instanceof Error ? err.message : String(err),
-      }
-    }
-  }
-}
+// ============================================
+// Main Export - Shell Command
+// ============================================
 
 export const shCommand = new Command("sh")
   .description("Non-interactive shell for scripting and debugging TUI")
@@ -549,3 +306,258 @@ export const shCommand = new Command("sh")
       }
     }
   })
+
+// ============================================
+// Helper Constants
+// ============================================
+
+// OSC 133 Shell Integration Protocol (Kitty, WezTerm, iTerm2, VS Code)
+// Emitted automatically when running in a real TTY, or when TERM_SHELL_INTEGRATION=1
+const OSC_133_A = "\x1b]133;A\x07" // Prompt start (ready for input)
+const OSC_133_C = "\x1b]133;C\x07" // Command start (execution beginning)
+const osc133D = (exitCode: number) => `\x1b]133;D;${exitCode}\x07` // Command end
+
+// ============================================
+// Helper Functions
+// ============================================
+
+/**
+ * Determine if we should emit OSC 133 sequences
+ * - Auto-enabled when stdout is a real TTY (interactive terminal)
+ * - Force-enabled via TERM_SHELL_INTEGRATION=1 (for mdtest PTY mode)
+ * - Force-disabled via TERM_SHELL_INTEGRATION=0
+ */
+function shouldEmitOsc133(): boolean {
+  const envFlag = process.env.TERM_SHELL_INTEGRATION
+  if (envFlag === "1") return true
+  if (envFlag === "0") return false
+  // Auto-detect: emit if running in a real TTY
+  return process.stdout.isTTY === true
+}
+
+/**
+ * Get node name (slug identifier)
+ * Uses node.name if available, otherwise derives from fs_path/md_slug
+ */
+function getNodeName(node: KNode): string {
+  // Prefer the stored name
+  if (node.name) {
+    return node.name
+  }
+  // Fallback: derive from fs_path for files
+  if (node.fs_path) {
+    const filename = node.fs_path.split("/").pop()
+    if (filename) {
+      return filename.replace(/\.md$/, "")
+    }
+  }
+  // Fallback: use md_slug for sections
+  if (node.md_slug) {
+    return node.md_slug
+  }
+  // Last resort: short ID
+  return node.id.slice(0, 8)
+}
+
+/**
+ * Convert KNode to TNode (recursive)
+ */
+function kNodeToTNode(db: Database, node: KNode, depth: number): TNode {
+  const children = getChildren(db, node.id)
+  return {
+    // KNode base properties
+    id: node.id,
+    type: node.type,
+    parent_id: node.parent_id ?? null,
+    parent_idx: node.parent_idx ?? 0,
+    link_to: node.link_to ?? null,
+    link_alias: node.link_alias,
+    name: getNodeName(node),
+    title: getNodeDisplayName(node),
+    task_status: node.task_status,
+    task_mark: node.task_mark,
+    priority: node.priority,
+    due_date: node.due_date,
+    scheduled_date: node.scheduled_date,
+    content: node.content,
+    rules: node.rules,
+    data: node.data ?? {},
+    created_at: node.created_at ?? 0,
+    updated_at: node.updated_at ?? 0,
+    version: node.version ?? "",
+
+    // TNode tree properties
+    children: children.map((child, idx) => {
+      const childNode = kNodeToTNode(db, child, depth + 1)
+      // Update parent reference for the child
+      return {
+        ...childNode,
+        parent_id: node.id,
+        parent_idx: child.parent_idx ?? idx,
+      }
+    }),
+    childCount: children.length,
+    childrenLoaded: true,
+    isTask: node.task_status !== undefined,
+    depth,
+  }
+}
+
+/**
+ * Build tree nodes from root
+ */
+function buildNodes(db: Database, rootId: string | null): TNode[] {
+  if (!rootId) {
+    const roots = getChildren(db, null)
+    if (roots.length === 0) {
+      return []
+    }
+    return roots.map((node) => kNodeToTNode(db, node, 0))
+  }
+
+  const node = resolveNode(db, rootId)
+  if (!node) {
+    return []
+  }
+
+  const children = getChildren(db, node.id)
+  return children.map((child) => kNodeToTNode(db, child, 0))
+}
+
+/**
+ * Read all lines from stdin or a file
+ */
+async function readInputLines(inputFile?: string): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const lines: string[] = []
+    const input =
+      inputFile && existsSync(inputFile)
+        ? createReadStream(inputFile)
+        : process.stdin
+
+    const rl = createInterface({
+      input,
+      crlfDelay: Infinity,
+    })
+
+    rl.on("line", (line) => {
+      lines.push(line)
+    })
+
+    rl.on("close", () => {
+      resolve(lines)
+    })
+
+    rl.on("error", reject)
+  })
+}
+
+/**
+ * Parse commands from -c option
+ * Supports semicolon or newline separated commands
+ */
+function parseCommandString(cmdString: string): string[] {
+  return cmdString
+    .split(/[;\n]/)
+    .map((cmd) => cmd.trim())
+    .filter((cmd) => cmd.length > 0)
+}
+
+/**
+ * Get node at current cursor position
+ */
+function getNodeAtCursor(state: BoardState): TNode | null {
+  let nodes = state.nodes
+  for (let i = 0; i < state.cursor.length; i++) {
+    const idx = state.cursor[i]
+    if (idx === undefined || idx >= nodes.length) return null
+    const node = nodes[idx]
+    if (!node) return null
+    if (i === state.cursor.length - 1) return node
+    nodes = node.children
+  }
+  return nodes[0] ?? null
+}
+
+/**
+ * Create mutation handler that integrates with storage layer
+ * Uses the repo's methods which handle filesystem writes synchronously
+ */
+function createMutationHandler(
+  db: Database,
+  repo: Repo,
+  rootId: string | null,
+  rootPath: string,
+): MutationHandler {
+  return (command: ShellCommand, state: BoardState) => {
+    const currentNode = getNodeAtCursor(state)
+    if (!currentNode) {
+      return { ok: false, error: "No node at cursor" }
+    }
+
+    try {
+      switch (command.type) {
+        case "SET_STATUS": {
+          // Use repo's updateNode which writes to filesystem synchronously
+          repo.updateNode(currentNode.id, { task_status: command.status })
+          break
+        }
+        case "DELETE": {
+          // TODO: Implement delete - requires regenerating markdown file
+          return { ok: false, error: "delete command not yet implemented" }
+        }
+        case "SHIFT": {
+          // TODO: Implement shift - requires regenerating markdown file
+          return {
+            ok: false,
+            error: "shift_up/shift_down commands not yet implemented",
+          }
+        }
+        default:
+          return {
+            ok: false,
+            error: `Unknown mutation: ${(command as ShellCommand).type}`,
+          }
+      }
+
+      // Rebuild state from storage after mutation
+      const newNodes = buildNodes(db, rootId)
+      const newState = createBoardState(newNodes, rootId, rootPath)
+
+      // Preserve cursor position if valid, otherwise reset
+      let newCursor = state.cursor
+      let testNodes = newState.nodes
+      for (let i = 0; i < newCursor.length; i++) {
+        const idx = newCursor[i]
+        if (idx === undefined || idx >= testNodes.length) {
+          // Cursor invalid, truncate
+          newCursor = newCursor.slice(0, i)
+          break
+        }
+        const node = testNodes[idx]
+        if (!node) {
+          newCursor = newCursor.slice(0, i)
+          break
+        }
+        testNodes = node.children
+      }
+
+      return {
+        ok: true,
+        newState: {
+          ...newState,
+          cursor: newCursor.length > 0 ? newCursor : [0],
+          // Preserve UI state
+          foldedNodes: state.foldedNodes,
+          collapsedNodes: state.collapsedNodes,
+          selectedNodes: new Set(), // Clear selection after mutation
+        },
+      }
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      }
+    }
+  }
+}

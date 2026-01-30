@@ -1213,36 +1213,34 @@ async function parseDeferredWithPool(
   const total = deferredFiles.length
   debug("parseDeferredWithPool: starting %d files with pipeline", total)
 
-  const pool = createParsePool()
+  // ParsePoolService has Symbol.asyncDispose - use await using for automatic cleanup
+  await using pool = createParsePool()
   await pool.start()
 
-  try {
-    // Use composable pipeline: parseFiles → applyNodes → resolveLinks → applyLinks
-    const result = await runDeferredPipeline(db, deferredFiles, pool)
+  // Use composable pipeline: parseFiles → applyNodes → resolveLinks → applyLinks
+  const result = await runDeferredPipeline(db, deferredFiles, pool)
 
-    // Convert ResolvedLink[] back to PendingLink[] for compatibility
-    const pendingLinks: PendingLink[] = result.pendingLinks.map((link) => ({
-      nodeId: link.source_id,
-      link: {
-        target: link.target_name,
-        section: link.section ?? undefined,
-        blockId: link.block_id ?? undefined,
-        alias: link.alias ?? undefined,
-        embedded: link.embedded,
-      },
-      relationship: link.relationship ?? undefined,
-    }))
+  // Convert ResolvedLink[] back to PendingLink[] for compatibility
+  const pendingLinks: PendingLink[] = result.pendingLinks.map((link) => ({
+    nodeId: link.source_id,
+    link: {
+      target: link.target_name,
+      section: link.section ?? undefined,
+      blockId: link.block_id ?? undefined,
+      alias: link.alias ?? undefined,
+      embedded: link.embedded,
+    },
+    relationship: link.relationship ?? undefined,
+  }))
 
-    debug(
-      "parseDeferredWithPool: completed, %d parsed, %d links",
-      result.parsed,
-      pendingLinks.length,
-    )
+  debug(
+    "parseDeferredWithPool: completed, %d parsed, %d links",
+    result.parsed,
+    pendingLinks.length,
+  )
 
-    return { parsed: result.parsed, pendingLinks }
-  } finally {
-    await pool.stop()
-  }
+  return { parsed: result.parsed, pendingLinks }
+  // pool.stop() called automatically via Symbol.asyncDispose
 }
 
 /**

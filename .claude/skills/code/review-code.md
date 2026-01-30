@@ -86,6 +86,8 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Prop drilling      | Same props passed through several layers and/or with unneccessary aliasing  |
 | Import side effect | Module-level initialization, `let x = expensiveInit()` on load              |
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
+| Old inkx render    | `render = ` helper function instead of using inkx `render()` directly       |
+| Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer inkx APIs      |
 
 ## Iteration 0.5: Pre-Survey Check (project-wide reviews only)
 
@@ -124,7 +126,7 @@ Ignore "Configuration hints" section (knip suggestions, not findings).
 
 ### Pattern Detection Script (focus="all", empty, or "layers")
 
-Run pattern detection script that checks for 21 different code issues:
+Run pattern detection script that checks for 23 different code issues:
 
 ```bash
 bash scripts/review-code-patterns.sh 2>&1 | tee /tmp/review-code-patterns.txt
@@ -167,6 +169,11 @@ The script detects:
 - Pattern 19: Prop drilling (same props through 3+ layers)
 - Pattern 20: Import side effects (module-level `let x = init()`)
 - Pattern 21: Inverted pyramid (helpers before main logic)
+
+**Test/TUI issues (2 patterns)**:
+
+- Pattern 22: Old inkx render helper (`render = ` function instead of using inkx `render()` directly)
+- Pattern 23: Old lastFrame capture (`lastFrame()` instead of `app.text` or newer inkx APIs)
 
 Output is structured with headers like `=== PATTERN 1: Classes ===` for easy parsing.
 
@@ -307,6 +314,13 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | Prop drilling      | Medium           | High if 5+ props through 4+ layers           |
 | Import side effect | High             | Critical if expensive init (DB, network)     |
 | Inverted pyramid   | Low              | Medium if main logic buried >100 lines down  |
+
+**Test/TUI findings:**
+
+| Finding Type        | Default Severity | Context Adjustments                               |
+| ------------------- | ---------------- | ------------------------------------------------- |
+| Old inkx render     | Medium           | Code not updated to use inkx render()/renderStatic() APIs |
+| Old lastFrame       | Medium           | Should use app.text or other newer inkx APIs      |
 
 **Test-specific severity guide:**
 

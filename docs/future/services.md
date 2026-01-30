@@ -1,6 +1,6 @@
 # Services & Connectors
 
-> **Status: Future** — Not yet implemented.
+> **Status: Implemented** — CalDAV/CardDAV available in `@km/connector-caldav`.
 
 External service integrations for km.
 
@@ -12,28 +12,44 @@ Services (also called connectors) allow km to sync with external systems like ca
 
 ---
 
-## Planned Connectors
+## Connectors
 
-| Connector | Protocol    | Features                |
-| --------- | ----------- | ----------------------- |
-| Calendar  | CalDAV      | Events, reminders       |
-| Contacts  | CardDAV     | People, organizations   |
-| Tasks     | CalDAV TODO | External task sync      |
-| GitHub    | REST API    | Issues, PRs             |
-| Linear    | GraphQL     | Issues, projects        |
-| Slack     | REST API    | Messages, notifications |
+| Connector | Protocol    | Features                | Status      |
+| --------- | ----------- | ----------------------- | ----------- |
+| Calendar  | CalDAV      | Events, reminders       | Implemented |
+| Contacts  | CardDAV     | People, organizations   | Implemented |
+| Tasks     | CalDAV TODO | External task sync      | Implemented |
+| GitHub    | REST API    | Issues, PRs             | Planned     |
+| Linear    | GraphQL     | Issues, projects        | Planned     |
+| Slack     | REST API    | Messages, notifications | Planned     |
 
 ---
 
-## CalDAV Integration
+## CalDAV/CardDAV Integration
 
-### Planned Features
+**Package:** `@km/connector-caldav`
+
+### Usage
+
+```bash
+# Configure connection
+km connector add caldav --url https://caldav.example.com --user me
+
+# Sync calendars
+km sync caldav
+
+# List calendars
+km caldav ls
+```
+
+### Features
 
 - Sync events to/from km nodes
 - Map calendar events to task nodes with dates
 - Two-way sync with conflict resolution
+- CardDAV contact sync as `@person` nodes
 
-### Configuration (Future)
+### Configuration
 
 ```yaml
 # .km/config.yaml
@@ -46,16 +62,6 @@ connectors:
       - work
       - personal
 ```
-
----
-
-## CardDAV Integration
-
-### Planned Features
-
-- Sync contacts as `@person` nodes
-- Map contact fields to node metadata
-- Link tasks to contacts via `@` references
 
 ---
 

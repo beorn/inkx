@@ -1,8 +1,31 @@
 # Agents
 
-> **Status: Future** — Not yet implemented.
+> **Status: Implemented** — Available in `@km/agent` package and `km agent` CLI.
 
 AI agent orchestration for km.
+
+---
+
+## Quick Start
+
+```bash
+# List agents
+km agent ls
+
+# Spawn a new agent
+km agent spawn reviewer --harness code-reviewer
+
+# Run agent with prompt
+km agent run reviewer "Review the auth module"
+
+# Interactive chat
+km agent chat reviewer
+
+# View agent sessions
+km agent sessions reviewer
+```
+
+See `km agent --help` for full command reference.
 
 ---
 

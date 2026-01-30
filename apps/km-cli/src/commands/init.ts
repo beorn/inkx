@@ -25,100 +25,9 @@ import { SyncManager } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 import { loadRepo } from "../load-repo.ts"
 
-/**
- * Search for .km/ in ancestors of the given directory
- * Returns the path to the ancestor .km/ if found, undefined otherwise
- */
-function findAncestorKmDir(startDir: string): string | undefined {
-  let current = dirname(startDir)
-
-  while (current !== dirname(current)) {
-    // Stop at filesystem root
-    const kmPath = join(current, ".km")
-    if (existsSync(kmPath)) {
-      return kmPath
-    }
-    current = dirname(current)
-  }
-
-  return undefined
-}
-
-/**
- * GTD template content
- *
- * Boards are just .md files - the @ prefix is a naming convention.
- * Column rules (add=, sync=) are inline in the section heading.
- */
-const GTD_INBOX_MD = `# Inbox color=white
-
-## Unprocessed add="./inbox/**"
-
-## Processing
-`
-
-const GTD_NEXT_MD = `# Next Actions color=cyan
-
-## Processing default=true
-
-## Next
-
-## Doing
-
-## Waiting color=yellow
-
-## Done collapse=true color=green
-`
-
-const GTD_SOMEDAY_MD = `# Someday/Maybe color=gray
-
-## Ideas
-
-## Projects
-`
-
-/**
- * Create GTD folder structure
- * Skips existing files unless force is true
- */
-function createGtdStructure(targetDir: string, force: boolean): void {
-  // Create folders (always safe)
-  const inboxDir = join(targetDir, "inbox")
-  const archiveDir = join(targetDir, "archive")
-
-  if (!existsSync(inboxDir)) {
-    mkdirSync(inboxDir, { recursive: true })
-    console.log(term.dim(`  Created: inbox/`))
-  }
-
-  if (!existsSync(archiveDir)) {
-    mkdirSync(archiveDir, { recursive: true })
-    console.log(term.dim(`  Created: archive/`))
-  }
-
-  // Create board files (skip if exists unless --force)
-  const files: [string, string][] = [
-    ["@inbox.md", GTD_INBOX_MD],
-    ["@next.md", GTD_NEXT_MD],
-    ["@someday.md", GTD_SOMEDAY_MD],
-  ]
-
-  let skipped = false
-  for (const [filename, content] of files) {
-    const filepath = join(targetDir, filename)
-    if (existsSync(filepath) && !force) {
-      console.log(term.dim(`  Skipped: ${filename} (exists)`))
-      skipped = true
-    } else {
-      writeFileSync(filepath, content)
-      console.log(term.dim(`  Created: ${filename}`))
-    }
-  }
-
-  if (skipped) {
-    console.log(term.dim(`  Use --force to overwrite existing files`))
-  }
-}
+// ============================================
+// Main Export - Init Command
+// ============================================
 
 export const initCommand = new Command("init")
   .description(
@@ -240,3 +149,106 @@ export const initCommand = new Command("init")
     console.log(term.cyan("  km tasks   ") + term.dim("# List tasks"))
     console.log(term.cyan("  km view    ") + term.dim("# Open kanban board"))
   })
+
+// ============================================
+// Helper Functions
+// ============================================
+
+/**
+ * Search for .km/ in ancestors of the given directory
+ * Returns the path to the ancestor .km/ if found, undefined otherwise
+ */
+function findAncestorKmDir(startDir: string): string | undefined {
+  let current = dirname(startDir)
+
+  while (current !== dirname(current)) {
+    // Stop at filesystem root
+    const kmPath = join(current, ".km")
+    if (existsSync(kmPath)) {
+      return kmPath
+    }
+    current = dirname(current)
+  }
+
+  return undefined
+}
+
+/**
+ * Create GTD folder structure
+ * Skips existing files unless force is true
+ */
+function createGtdStructure(targetDir: string, force: boolean): void {
+  // Create folders (always safe)
+  const inboxDir = join(targetDir, "inbox")
+  const archiveDir = join(targetDir, "archive")
+
+  if (!existsSync(inboxDir)) {
+    mkdirSync(inboxDir, { recursive: true })
+    console.log(term.dim(`  Created: inbox/`))
+  }
+
+  if (!existsSync(archiveDir)) {
+    mkdirSync(archiveDir, { recursive: true })
+    console.log(term.dim(`  Created: archive/`))
+  }
+
+  // Create board files (skip if exists unless --force)
+  const files: [string, string][] = [
+    ["@inbox.md", GTD_INBOX_MD],
+    ["@next.md", GTD_NEXT_MD],
+    ["@someday.md", GTD_SOMEDAY_MD],
+  ]
+
+  let skipped = false
+  for (const [filename, content] of files) {
+    const filepath = join(targetDir, filename)
+    if (existsSync(filepath) && !force) {
+      console.log(term.dim(`  Skipped: ${filename} (exists)`))
+      skipped = true
+    } else {
+      writeFileSync(filepath, content)
+      console.log(term.dim(`  Created: ${filename}`))
+    }
+  }
+
+  if (skipped) {
+    console.log(term.dim(`  Use --force to overwrite existing files`))
+  }
+}
+
+// ============================================
+// GTD Template Content
+// ============================================
+
+/**
+ * GTD template content
+ *
+ * Boards are just .md files - the @ prefix is a naming convention.
+ * Column rules (add=, sync=) are inline in the section heading.
+ */
+const GTD_INBOX_MD = `# Inbox color=white
+
+## Unprocessed add="./inbox/**"
+
+## Processing
+`
+
+const GTD_NEXT_MD = `# Next Actions color=cyan
+
+## Processing default=true
+
+## Next
+
+## Doing
+
+## Waiting color=yellow
+
+## Done collapse=true color=green
+`
+
+const GTD_SOMEDAY_MD = `# Someday/Maybe color=gray
+
+## Ideas
+
+## Projects
+`

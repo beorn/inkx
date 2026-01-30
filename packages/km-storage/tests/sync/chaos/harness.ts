@@ -16,7 +16,7 @@ import type {
   ChaosScenario,
   ChaosScenarioType,
 } from "./types.ts"
-import { ChaosWatcher, createChaosWatcher } from "@beorn/watcher-chaos"
+import { createChaosWatcher } from "@beorn/watcher-chaos"
 import { Verifier } from "./verifier.ts"
 import { createEmitter } from "../../../src/emitter.ts"
 import { SCHEMA } from "../../../src/schema.ts"
@@ -76,15 +76,21 @@ async function runChaosTestWithMockFs(
   mockFs.mkdirSync(kmDir, { recursive: true })
 
   // Create in-memory database for parallel isolation (no shared state)
+  // Note: bun:sqlite Database does not have Symbol.dispose, so we use try/finally
   const db = new Database(":memory:")
   db.run(SCHEMA)
 
   // Create emitter with skipPersist since we're using mock fs
   const emitter = createEmitter({ kmDir, db, skipPersist: true })
 
-  let chaosWatcher: ChaosWatcher | null = null
-
   try {
+    // ChaosWatcher has Symbol.asyncDispose - use await using for automatic cleanup
+    await using chaosWatcher = createChaosWatcher({
+      debounceMs: 50,
+      scenario: config.scenario,
+      seed: 12345,
+    })
+
     // ─────────────────────────────────────────────────────────────
     // Setup Phase (in-memory)
     // ─────────────────────────────────────────────────────────────
@@ -118,22 +124,16 @@ async function runChaosTestWithMockFs(
     // Chaos Injection Phase
     // ─────────────────────────────────────────────────────────────
 
-    chaosWatcher = createChaosWatcher({
-      debounceMs: 50,
-      scenario: config.scenario,
-      seed: 12345,
-    })
-
     chaosWatcher.start(repoDir)
 
     await new Promise<void>((resolve) => {
       if (config.scenario.type === "init_gap") {
-        chaosWatcher!.once("ready", resolve)
-        void chaosWatcher!.advanceTime(
+        chaosWatcher.once("ready", resolve)
+        void chaosWatcher.advanceTime(
           (config.scenario.params.initDurationMs as number) ?? 2000,
         )
       } else {
-        chaosWatcher!.once("ready", resolve)
+        chaosWatcher.once("ready", resolve)
       }
     })
 
@@ -197,10 +197,8 @@ async function runChaosTestWithMockFs(
       eventsEmitted: chaosWatcher.getEmittedEvents().length,
       eventsDropped: chaosWatcher.getDroppedEvents().length,
     }
+    // chaosWatcher automatically stopped via Symbol.asyncDispose
   } finally {
-    if (chaosWatcher) {
-      await chaosWatcher.stop()
-    }
     db.close()
   }
 }
@@ -224,15 +222,21 @@ async function runChaosTestWithRealFs(
   mkdirSync(repoDir, { recursive: true })
 
   // Create in-memory database for parallel isolation (no shared state)
+  // Note: bun:sqlite Database does not have Symbol.dispose, so we use try/finally
   const db = new Database(":memory:")
   db.run(SCHEMA)
 
   // Create emitter with db wired for event application
   const emitter = createEmitter({ kmDir, db })
 
-  let chaosWatcher: ChaosWatcher | null = null
-
   try {
+    // ChaosWatcher has Symbol.asyncDispose - use await using for automatic cleanup
+    await using chaosWatcher = createChaosWatcher({
+      debounceMs: 50,
+      scenario: config.scenario,
+      seed: 12345,
+    })
+
     for (const file of config.setup) {
       const fullPath = join(repoDir, file.path)
       const fileDir = dirname(fullPath)
@@ -248,22 +252,16 @@ async function runChaosTestWithRealFs(
     applyReconcileOps(db, ops, repoDir, emitter)
 
     // Chaos Injection Phase
-    chaosWatcher = createChaosWatcher({
-      debounceMs: 50,
-      scenario: config.scenario,
-      seed: 12345,
-    })
-
     chaosWatcher.start(repoDir)
 
     await new Promise<void>((resolve) => {
       if (config.scenario.type === "init_gap") {
-        chaosWatcher!.once("ready", resolve)
-        void chaosWatcher!.advanceTime(
+        chaosWatcher.once("ready", resolve)
+        void chaosWatcher.advanceTime(
           (config.scenario.params.initDurationMs as number) ?? 2000,
         )
       } else {
-        chaosWatcher!.once("ready", resolve)
+        chaosWatcher.once("ready", resolve)
       }
     })
 
@@ -314,10 +312,8 @@ async function runChaosTestWithRealFs(
       eventsEmitted: chaosWatcher.getEmittedEvents().length,
       eventsDropped: chaosWatcher.getDroppedEvents().length,
     }
+    // chaosWatcher automatically stopped via Symbol.asyncDispose
   } finally {
-    if (chaosWatcher) {
-      await chaosWatcher.stop()
-    }
     db.close()
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true })

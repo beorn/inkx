@@ -6,6 +6,7 @@ out
 dist
 *.tgz
 *.gen.ts
+*.bak
 
 # code coverage
 coverage

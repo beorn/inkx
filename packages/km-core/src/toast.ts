@@ -49,61 +49,101 @@ export type ToastOptions = Omit<Toast, "id" | "level" | "message">
 // Toast Queue
 // =============================================================================
 
+export interface ToastQueueOptions {
+  /** Debounce time for batching similar toasts (default: 100ms) */
+  batchDebounce?: number
+}
+
 /**
- * Simple toast queue with batching support.
+ * ToastQueue interface - simple toast queue with batching support.
+ */
+export interface ToastQueue {
+  /** Add a toast to the queue. Returns toast ID. */
+  push(level: NotificationLevel, message: string, options?: ToastOptions): string
+  /** Remove a toast by ID */
+  dismiss(id: string): void
+  /** Remove all toasts */
+  dismissAll(): void
+  /** Get all current toasts */
+  getAll(): Toast[]
+  /** Get the most recent toast (for single-toast display) */
+  getLatest(): Toast | null
+}
+
+/**
+ * Create a simple toast queue with batching support.
  * Toasts are stored in order and can be batched by key.
  */
-export class ToastQueue {
-  private toasts: Toast[] = []
-  private nextId = 1
+export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
+  const batchDebounce = options.batchDebounce ?? 100
+
+  // Internal state
+  let toasts: Toast[] = []
+  let nextId = 1
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private batchTimers = new Map<string, any>()
-  private batchDebounce = 100 // ms
+  const batchTimers = new Map<string, any>()
 
-  /**
-   * Add a toast to the queue.
-   * If batchKey is provided, similar toasts will be batched.
-   */
-  push(
-    level: NotificationLevel,
-    message: string,
-    options?: ToastOptions,
-  ): string {
-    const id = `toast-${this.nextId++}`
-    const toast: Toast = {
-      id,
-      level,
-      message,
-      duration: 4000,
-      dismissible: true,
-      ...options,
-    }
+  return {
+    push(level, message, opts) {
+      const id = `toast-${nextId++}`
+      const toast: Toast = {
+        id,
+        level,
+        message,
+        duration: 4000,
+        dismissible: true,
+        ...opts,
+      }
 
-    // Handle batching
-    if (toast.batchKey) {
-      this.handleBatch(toast)
-    } else {
-      this.toasts.push(toast)
-    }
+      // Handle batching
+      if (toast.batchKey) {
+        handleBatch(toast)
+      } else {
+        toasts.push(toast)
+      }
 
-    return id
+      return id
+    },
+
+    dismiss(id) {
+      toasts = toasts.filter((t) => t.id !== id)
+    },
+
+    dismissAll() {
+      toasts = []
+      // Clear all batch timers
+      for (const timer of batchTimers.values()) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
+        clearTimeout(timer)
+      }
+      batchTimers.clear()
+    },
+
+    getAll() {
+      return [...toasts]
+    },
+
+    getLatest() {
+      return toasts[toasts.length - 1] ?? null
+    },
   }
 
-  private handleBatch(toast: Toast): void {
+  // Internal helper functions
+  function handleBatch(toast: Toast): void {
     if (!toast.batchKey) return
 
     const key = toast.batchKey
 
     // Cancel existing batch timer
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Timer ID from Map<string, any>
-    const existingTimer = this.batchTimers.get(key)
+    const existingTimer = batchTimers.get(key)
     if (existingTimer) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
       clearTimeout(existingTimer)
     }
 
     // Find existing batched toast
-    const existing = this.toasts.find((t) => t.batchKey === key)
+    const existing = toasts.find((t) => t.batchKey === key)
 
     if (existing) {
       // Update existing batched toast
@@ -128,7 +168,7 @@ export class ToastQueue {
         existing.itemThreshold = threshold
       } else {
         // No items - just increment count in message
-        const count = this.extractCount(existing.message) + 1
+        const count = extractCount(existing.message) + 1
         existing.message = `${count} ${toast.message}`
       }
     } else {
@@ -137,64 +177,30 @@ export class ToastQueue {
         const threshold = toast.itemThreshold ?? 3
         if (toast.items.length < threshold) {
           // Keep original message and items
-          this.toasts.push({ ...toast })
+          toasts.push({ ...toast })
         } else {
           // Show count
-          this.toasts.push({
+          toasts.push({
             ...toast,
             message: `${toast.items.length} ${toast.message}`,
           })
         }
       } else {
-        this.toasts.push({ ...toast, message: `1 ${toast.message}` })
+        toasts.push({ ...toast, message: `1 ${toast.message}` })
       }
     }
 
     // Set new batch timer
     const timer = setTimeout(() => {
-      this.batchTimers.delete(key)
-    }, this.batchDebounce)
+      batchTimers.delete(key)
+    }, batchDebounce)
 
-    this.batchTimers.set(key, timer)
+    batchTimers.set(key, timer)
   }
 
-  private extractCount(message: string): number {
+  function extractCount(message: string): number {
     const match = message.match(/^(\d+)\s/)
     return match?.[1] ? parseInt(match[1], 10) : 1
-  }
-
-  /**
-   * Remove a toast by ID
-   */
-  dismiss(id: string): void {
-    this.toasts = this.toasts.filter((t) => t.id !== id)
-  }
-
-  /**
-   * Remove all toasts
-   */
-  dismissAll(): void {
-    this.toasts = []
-    // Clear all batch timers
-    for (const timer of this.batchTimers.values()) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
-      clearTimeout(timer)
-    }
-    this.batchTimers.clear()
-  }
-
-  /**
-   * Get all current toasts
-   */
-  getAll(): Toast[] {
-    return [...this.toasts]
-  }
-
-  /**
-   * Get the most recent toast (for single-toast display)
-   */
-  getLatest(): Toast | null {
-    return this.toasts[this.toasts.length - 1] ?? null
   }
 }
 
@@ -206,7 +212,7 @@ export class ToastQueue {
  * Global toast queue instance.
  * In TUI, this is rendered in the toast area above the bottom bar.
  */
-export const toastQueue = new ToastQueue()
+export const toastQueue = createToastQueue()
 
 /**
  * Sonner-compatible toast API.

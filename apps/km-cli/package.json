@@ -22,7 +22,6 @@
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "@km/tui": "workspace:*",
-    "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "inkx": "workspace:*",
     "react": "catalog:"

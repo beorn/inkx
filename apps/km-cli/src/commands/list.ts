@@ -21,6 +21,81 @@ import { getRootPath } from "../program.ts"
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
 import { formatNode, formatCollapsedAncestor } from "@km/tui"
 
+// ============================================
+// Main Export - List Command
+// ============================================
+
+export const listCommand = new Command("list")
+  .alias("ls")
+  .description("List nodes")
+  .argument("[query]", "Filter by path, ID prefix, -status:done negation")
+  .allowUnknownOption()
+  .option(
+    "-t, --type <type>",
+    "Filter by node type (task, section, file, folder)",
+  )
+  .option("--status <status>", "Filter tasks by status (todo, wip, done)")
+  .option("-a, --all", "Show all (including done tasks)")
+  .option("-c, --context", "Show ancestor paths (like tasks command)")
+  .option("-i, --id", "Show node IDs")
+  .option("-f, --flat", "Flat output with path prefixes")
+  .option("--json", "Output as JSON")
+  .action(async (queryOrPath, options) => {
+    // Check if argument looks like a path
+    let repoRoot: string
+    let query: string | undefined
+
+    if (
+      queryOrPath &&
+      (queryOrPath.startsWith("/") ||
+        queryOrPath.startsWith(".") ||
+        queryOrPath.startsWith("~"))
+    ) {
+      // It's a path - use as repo root
+      const resolved = resolvePathArg(queryOrPath, getRootPath())
+      repoRoot = resolved.repoRoot
+      query = undefined
+    } else {
+      // It's a query - use default root
+      repoRoot = getRootPath() ?? process.cwd()
+      query = queryOrPath
+    }
+
+    using repo = await loadRepo(repoRoot)
+
+    const nodes = getFilteredNodesWithQuery(repo, {
+      type: options.type,
+      query,
+      status: options.status,
+      all: options.all,
+    })
+
+    if (options.json) {
+      console.log(JSON.stringify(nodes, null, 2))
+      return
+    }
+
+    if (nodes.length === 0) {
+      console.log(term.dim("No nodes found"))
+      return
+    }
+
+    const showId = options.id ?? false
+    const flat = options.flat ?? false
+
+    if (options.context || options.type === "task") {
+      displayWithContext(repo, nodes, { showId, flat })
+    } else {
+      displaySimple(repo, nodes, { showId })
+    }
+
+    console.log(term.dim(`\n${nodes.length} node(s)`))
+  })
+
+// ============================================
+// Helper Functions
+// ============================================
+
 /**
  * Match a query against a node
  * Query can be: node ID prefix, path pattern, or relative path
@@ -180,70 +255,3 @@ function displaySimple(
     console.log(formatNode(repo, node, options.showId))
   }
 }
-
-export const listCommand = new Command("list")
-  .alias("ls")
-  .description("List nodes")
-  .argument("[query]", "Filter by path, ID prefix, -status:done negation")
-  .allowUnknownOption()
-  .option(
-    "-t, --type <type>",
-    "Filter by node type (task, section, file, folder)",
-  )
-  .option("--status <status>", "Filter tasks by status (todo, wip, done)")
-  .option("-a, --all", "Show all (including done tasks)")
-  .option("-c, --context", "Show ancestor paths (like tasks command)")
-  .option("-i, --id", "Show node IDs")
-  .option("-f, --flat", "Flat output with path prefixes")
-  .option("--json", "Output as JSON")
-  .action(async (queryOrPath, options) => {
-    // Check if argument looks like a path
-    let repoRoot: string
-    let query: string | undefined
-
-    if (
-      queryOrPath &&
-      (queryOrPath.startsWith("/") ||
-        queryOrPath.startsWith(".") ||
-        queryOrPath.startsWith("~"))
-    ) {
-      // It's a path - use as repo root
-      const resolved = resolvePathArg(queryOrPath, getRootPath())
-      repoRoot = resolved.repoRoot
-      query = undefined
-    } else {
-      // It's a query - use default root
-      repoRoot = getRootPath() ?? process.cwd()
-      query = queryOrPath
-    }
-
-    using repo = await loadRepo(repoRoot)
-
-    const nodes = getFilteredNodesWithQuery(repo, {
-      type: options.type,
-      query,
-      status: options.status,
-      all: options.all,
-    })
-
-    if (options.json) {
-      console.log(JSON.stringify(nodes, null, 2))
-      return
-    }
-
-    if (nodes.length === 0) {
-      console.log(term.dim("No nodes found"))
-      return
-    }
-
-    const showId = options.id ?? false
-    const flat = options.flat ?? false
-
-    if (options.context || options.type === "task") {
-      displayWithContext(repo, nodes, { showId, flat })
-    } else {
-      displaySimple(repo, nodes, { showId })
-    }
-
-    console.log(term.dim(`\n${nodes.length} node(s)`))
-  })

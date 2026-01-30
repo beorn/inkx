@@ -20,10 +20,8 @@ $ beforeAll() {
 $ km agent --help
 Usage: km agent [options] [command]
 AI agent lifecycle and runtime management
-Agents are AI assistants that can work on tasks autonomously. Each agent has:
-  - A model (e.g., claude-sonnet-4) that powers its reasoning
-  - A harness that defines available tools and constraints
-  - A work queue of assigned issues from the beads system
+Options:
+  -h, --help                      display help for command
 [...]
 ```
 

@@ -5,14 +5,14 @@
  */
 
 import { EventEmitter } from "events"
-import { createTerm, type StyleChain } from "inkx"
+import { createTerm, renderStatic, Box, Text, type StyleChain } from "inkx"
 import createDebug from "debug"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
-import type { Repo } from "./repo-context.tsx"
-import { renderBoardStatic } from "./render.ts"
+import { RepoProvider, type Repo } from "./repo-context.tsx"
 import { renderInkxBoard } from "./views/index.ts"
+import { StaticBoardView } from "./views/StaticBoardView.tsx"
 import { SyncManager } from "@km/storage"
-import { setFsSync } from "@km/storage/internal/emit.ts"
+import React from "react"
 
 const debug = createDebug("km:tui")
 
@@ -39,9 +39,18 @@ tuiEvents.setMaxListeners(200)
 /**
  * Run the board in static (non-interactive) mode
  */
-export function runBoardStatic(repo: Repo, state: TUIBoardState): void {
+export async function runBoardStatic(
+  repo: Repo,
+  state: TUIBoardState,
+): Promise<void> {
   const width = process.stdout.columns || 80
-  console.log(renderBoardStatic(repo, state, width))
+  const output = await renderStatic(
+    <RepoProvider repo={repo}>
+      <StaticBoardView state={state} />
+    </RepoProvider>,
+    { width },
+  )
+  console.log(output)
 }
 
 /**
@@ -73,7 +82,7 @@ export async function runBoard(
       console.error(style.red("Repo required for static mode"))
       process.exit(1)
     }
-    runBoardStatic(repo, state)
+    await runBoardStatic(repo, state)
     return
   }
 
@@ -87,7 +96,7 @@ export async function runBoard(
       console.error(style.red("Repo required for static mode"))
       process.exit(1)
     }
-    runBoardStatic(repo, state)
+    await runBoardStatic(repo, state)
     return
   }
 
@@ -120,7 +129,7 @@ export async function runBoard(
     })
 
     // Wire up TUI changes → filesystem (always enabled for writes)
-    setFsSync(syncManager)
+    options.repo.emitter.setFsSync(syncManager)
 
     if (watchEnabled) {
       // Wire up filesystem changes → TUI refresh
@@ -151,7 +160,7 @@ export async function runBoard(
   } finally {
     // Clean up sync manager
     if (syncManager) {
-      setFsSync(null)
+      options?.repo?.emitter.setFsSync(null)
       await syncManager.stop()
     }
   }

@@ -140,6 +140,8 @@ Columns can have rules that control task membership:
 | `add`     | `add="query"`      | Pull in tasks matching query         |
 | `sync`    | `sync=field:value` | Bidirectional: move here ↔ set field |
 
+> **Note:** `sync=` parsing is supported (stored in `node.rules.sync`), but automatic sync evaluation is planned for a future release. Currently, `sync=` rules serve as documentation of intended column behavior.
+
 **`add="query"`** — Continuously pulls in matching tasks:
 
 ```markdown

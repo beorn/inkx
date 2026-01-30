@@ -37,7 +37,9 @@ export type {
 } from "./types.ts"
 
 // Registry
+export type { CommandRegistry } from "./registry.ts"
 export {
+  createCommandRegistry,
   registerCommand,
   registerCommands,
   getCommand,

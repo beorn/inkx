@@ -43,201 +43,196 @@ export interface ParsePoolOptions {
 }
 
 /**
- * Pool of worker threads for parallel markdown parsing.
+ * Internal ParsePool interface for the pool implementation.
  */
-export class ParsePool {
-  private workers: Worker[] = []
-  private availableWorkers: Worker[] = []
-  private pendingRequests: Map<
+interface ParsePoolInternal {
+  start(): Promise<void>
+  parse(nodeId: string, fsPath: string): Promise<ParseResult>
+  parseMany(
+    files: Array<{ nodeId: string; fsPath: string }>,
+    onProgress?: (current: number, total: number) => void,
+    shouldAbort?: () => boolean,
+  ): Promise<ParseResult[]>
+  stream(
+    files: Array<{ nodeId: string; fsPath: string }>,
+    signal?: AbortSignal,
+  ): AsyncGenerator<ParseResult>
+  shutdown(): Promise<void>
+}
+
+/**
+ * Create a pool of worker threads for parallel markdown parsing.
+ */
+function createParsePoolInternal(options?: ParsePoolOptions): ParsePoolInternal {
+  const poolSize = options?.poolSize ?? Math.max(1, cpus().length - 1)
+  debug("creating pool with %d workers", poolSize)
+
+  // Internal state
+  let workers: Worker[] = []
+  let availableWorkers: Worker[] = []
+  const pendingRequests = new Map<
     number,
     {
       resolve: (result: ParseResult) => void
       reject: (error: Error) => void
     }
-  > = new Map()
-  private requestQueue: ParseRequest[] = []
-  private nextRequestId = 0
-  private poolSize: number
-  private shutdownPromise: Promise<void> | null = null
+  >()
+  const requestQueue: ParseRequest[] = []
+  let nextRequestId = 0
+  let shutdownPromise: Promise<void> | null = null
 
-  constructor(options?: ParsePoolOptions) {
-    this.poolSize = options?.poolSize ?? Math.max(1, cpus().length - 1)
-    debug("creating pool with %d workers", this.poolSize)
-  }
+  return {
+    async start() {
+      debug("starting pool")
 
-  /**
-   * Start the worker pool.
-   */
-  async start(): Promise<void> {
-    debug("starting pool")
+      const readyPromises: Promise<void>[] = []
 
-    const readyPromises: Promise<void>[] = []
+      for (let i = 0; i < poolSize; i++) {
+        const worker = new Worker(new URL("./parse-worker.ts", import.meta.url))
 
-    for (let i = 0; i < this.poolSize; i++) {
-      const worker = new Worker(new URL("./parse-worker.ts", import.meta.url))
-
-      const readyPromise = new Promise<void>((resolve) => {
-        const onMessage = (event: MessageEvent<WorkerResponse>) => {
-          if (event.data.type === "ready") {
-            worker.removeEventListener("message", onMessage)
-            resolve()
+        const readyPromise = new Promise<void>((resolve) => {
+          const onMessage = (event: MessageEvent<WorkerResponse>) => {
+            if (event.data.type === "ready") {
+              worker.removeEventListener("message", onMessage)
+              resolve()
+            }
           }
+          worker.addEventListener("message", onMessage)
+        })
+        readyPromises.push(readyPromise)
+
+        worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+          handleWorkerMessage(worker, event.data)
         }
-        worker.addEventListener("message", onMessage)
+
+        worker.onerror = (error: ErrorEvent) => {
+          debug("worker error: %s", error.message)
+        }
+
+        workers.push(worker)
+      }
+
+      await Promise.all(readyPromises)
+      availableWorkers = [...workers]
+      debug("pool started, %d workers ready", workers.length)
+    },
+
+    parse(nodeId, fsPath) {
+      return new Promise((resolve, reject) => {
+        const id = nextRequestId++
+
+        pendingRequests.set(id, { resolve, reject })
+
+        const request: ParseRequest = {
+          type: "parse",
+          id,
+          nodeId,
+          fsPath,
+        }
+
+        // If a worker is available, dispatch immediately
+        const worker = availableWorkers.pop()
+        if (worker) {
+          worker.postMessage(request)
+        } else {
+          // Queue the request
+          requestQueue.push(request)
+        }
       })
-      readyPromises.push(readyPromise)
+    },
 
-      worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-        this.handleWorkerMessage(worker, event.data)
+    async parseMany(files, onProgress, shouldAbort) {
+      const total = files.length
+      const results: ParseResult[] = []
+      let completed = 0
+
+      const promises = files.map(async ({ nodeId, fsPath }) => {
+        if (shouldAbort?.()) {
+          return null
+        }
+
+        const result = await this.parse(nodeId, fsPath)
+        completed++
+        onProgress?.(completed, total)
+        return result
+      })
+
+      for (const promise of promises) {
+        const result = await promise
+        if (result) {
+          results.push(result)
+        }
+        if (shouldAbort?.()) {
+          break
+        }
       }
 
-      worker.onerror = (error: ErrorEvent) => {
-        debug("worker error: %s", error.message)
+      return results
+    },
+
+    async *stream(files, signal) {
+      if (files.length === 0) return
+
+      // Create all parse promises upfront
+      const pending = new Map<string, Promise<ParseResult>>()
+
+      for (const file of files) {
+        const parsePromise = this.parse(file.nodeId, file.fsPath)
+        pending.set(file.fsPath, parsePromise)
       }
 
-      this.workers.push(worker)
-    }
+      // Yield as each completes
+      while (pending.size > 0) {
+        if (signal?.aborted) return
 
-    await Promise.all(readyPromises)
-    this.availableWorkers = [...this.workers]
-    debug("pool started, %d workers ready", this.workers.length)
-  }
+        // Race all pending promises
+        const result = await Promise.race(pending.values())
 
-  /**
-   * Parse a file using a worker from the pool.
-   */
-  parse(nodeId: string, fsPath: string): Promise<ParseResult> {
-    return new Promise((resolve, reject) => {
-      const id = this.nextRequestId++
+        pending.delete(result.fsPath)
+        yield result
+      }
+    },
 
-      this.pendingRequests.set(id, { resolve, reject })
-
-      const request: ParseRequest = {
-        type: "parse",
-        id,
-        nodeId,
-        fsPath,
+    async shutdown() {
+      if (shutdownPromise) {
+        return shutdownPromise
       }
 
-      // If a worker is available, dispatch immediately
-      const worker = this.availableWorkers.pop()
-      if (worker) {
-        worker.postMessage(request)
-      } else {
-        // Queue the request
-        this.requestQueue.push(request)
-      }
-    })
-  }
+      debug("shutting down pool")
 
-  /**
-   * Parse multiple files in parallel.
-   */
-  async parseMany(
-    files: Array<{ nodeId: string; fsPath: string }>,
-    onProgress?: (current: number, total: number) => void,
-    shouldAbort?: () => boolean,
-  ): Promise<ParseResult[]> {
-    const total = files.length
-    const results: ParseResult[] = []
-    let completed = 0
-
-    const promises = files.map(async ({ nodeId, fsPath }) => {
-      if (shouldAbort?.()) {
-        return null
-      }
-
-      const result = await this.parse(nodeId, fsPath)
-      completed++
-      onProgress?.(completed, total)
-      return result
-    })
-
-    for (const promise of promises) {
-      const result = await promise
-      if (result) {
-        results.push(result)
-      }
-      if (shouldAbort?.()) {
-        break
-      }
-    }
-
-    return results
-  }
-
-  /**
-   * Stream parse results as workers complete.
-   * Yields results as they arrive (not in order, but fast).
-   * Use this for pipeline composition with async generators.
-   */
-  async *stream(
-    files: Array<{ nodeId: string; fsPath: string }>,
-    signal?: AbortSignal,
-  ): AsyncGenerator<ParseResult> {
-    if (files.length === 0) return
-
-    // Create all parse promises upfront
-    const pending = new Map<string, Promise<ParseResult>>()
-
-    for (const file of files) {
-      const parsePromise = this.parse(file.nodeId, file.fsPath)
-      pending.set(file.fsPath, parsePromise)
-    }
-
-    // Yield as each completes
-    while (pending.size > 0) {
-      if (signal?.aborted) return
-
-      // Race all pending promises
-      const result = await Promise.race(pending.values())
-
-      pending.delete(result.fsPath)
-      yield result
-    }
-  }
-
-  /**
-   * Shutdown the worker pool.
-   */
-  async shutdown(): Promise<void> {
-    if (this.shutdownPromise) {
-      return this.shutdownPromise
-    }
-
-    debug("shutting down pool")
-
-    this.shutdownPromise = (async () => {
-      await Promise.all(
-        this.workers.map(
-          (worker) =>
-            new Promise<void>((resolve) => {
-              const timeout = setTimeout(() => {
-                worker.terminate()
-                resolve()
-              }, 1000)
-
-              worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-                if (event.data.type === "shutdown") {
-                  clearTimeout(timeout)
+      shutdownPromise = (async () => {
+        await Promise.all(
+          workers.map(
+            (worker) =>
+              new Promise<void>((resolve) => {
+                const timeout = setTimeout(() => {
                   worker.terminate()
                   resolve()
+                }, 1000)
+
+                worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+                  if (event.data.type === "shutdown") {
+                    clearTimeout(timeout)
+                    worker.terminate()
+                    resolve()
+                  }
                 }
-              }
 
-              worker.postMessage({ type: "shutdown" } satisfies WorkerMessage)
-            }),
-        ),
-      )
-      this.workers = []
-      this.availableWorkers = []
-      debug("pool shut down")
-    })()
+                worker.postMessage({ type: "shutdown" } satisfies WorkerMessage)
+              }),
+          ),
+        )
+        workers = []
+        availableWorkers = []
+        debug("pool shut down")
+      })()
 
-    return this.shutdownPromise
+      return shutdownPromise
+    },
   }
 
-  private handleWorkerMessage(worker: Worker, message: WorkerResponse): void {
+  // Internal helper function
+  function handleWorkerMessage(worker: Worker, message: WorkerResponse): void {
     if (message.type === "debug") {
       // Forward worker debug through createDebug.log
       // In CLI context, debug-log.ts overrides this to write to DEBUG_LOG
@@ -247,9 +242,9 @@ export class ParsePool {
     }
 
     if (message.type === "parsed") {
-      const pending = this.pendingRequests.get(message.id)
+      const pending = pendingRequests.get(message.id)
       if (pending) {
-        this.pendingRequests.delete(message.id)
+        pendingRequests.delete(message.id)
 
         if (message.error) {
           pending.reject(new Error(message.error))
@@ -267,11 +262,11 @@ export class ParsePool {
       }
 
       // Process next queued request
-      const nextRequest = this.requestQueue.shift()
+      const nextRequest = requestQueue.shift()
       if (nextRequest) {
         worker.postMessage(nextRequest)
       } else {
-        this.availableWorkers.push(worker)
+        availableWorkers.push(worker)
       }
     }
   }
@@ -316,7 +311,7 @@ export interface ParsePoolService extends AsyncDisposable {
 export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
   debug("createParsePool", { options })
 
-  const pool = new ParsePool(options)
+  const pool = createParsePoolInternal(options)
   let status: ServiceStatus = "stopped"
 
   return {

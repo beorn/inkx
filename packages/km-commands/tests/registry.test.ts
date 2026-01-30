@@ -6,6 +6,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest"
 import {
+  createCommandRegistry,
   registerCommand,
   registerCommands,
   getCommand,
@@ -301,5 +302,86 @@ describe("filterCommands", () => {
     const result1 = filterCommands("CURSOR")
     const result2 = filterCommands("cursor")
     expect(result1).toHaveLength(result2.length)
+  })
+})
+
+describe("createCommandRegistry", () => {
+  it("creates isolated registry instances", () => {
+    const registry1 = createCommandRegistry()
+    const registry2 = createCommandRegistry()
+
+    registry1.register(createCommand("cmd_a"))
+    registry2.register(createCommand("cmd_b"))
+
+    // Each registry only has its own commands
+    expect(registry1.get("cmd_a")).toBeDefined()
+    expect(registry1.get("cmd_b")).toBeUndefined()
+    expect(registry2.get("cmd_b")).toBeDefined()
+    expect(registry2.get("cmd_a")).toBeUndefined()
+  })
+
+  it("does not affect default registry", () => {
+    clearRegistry()
+    const custom = createCommandRegistry()
+
+    custom.register(createCommand("custom_cmd"))
+    registerCommand(createCommand("default_cmd"))
+
+    // Custom registry has custom_cmd only
+    expect(custom.get("custom_cmd")).toBeDefined()
+    expect(custom.get("default_cmd")).toBeUndefined()
+
+    // Default registry has default_cmd only
+    expect(getCommand("default_cmd")).toBeDefined()
+    expect(getCommand("custom_cmd")).toBeUndefined()
+  })
+
+  it("supports all registry operations", () => {
+    const registry = createCommandRegistry()
+
+    // register/registerAll
+    registry.register(createCommand("nav_1", "Navigation"))
+    registry.registerAll([
+      createCommand("nav_2", "Navigation"),
+      createCommand("sel_1", "Selection"),
+    ])
+
+    // get
+    expect(registry.get("nav_1")).toBeDefined()
+    expect(registry.get("nonexistent")).toBeUndefined()
+
+    // getAll
+    expect(registry.getAll()).toHaveLength(3)
+
+    // getByCategory
+    const byCategory = registry.getByCategory()
+    expect(byCategory.get("Navigation")).toHaveLength(2)
+    expect(byCategory.get("Selection")).toHaveLength(1)
+
+    // filter
+    const filtered = registry.filter("nav")
+    expect(filtered).toHaveLength(2)
+
+    // clear
+    registry.clear()
+    expect(registry.getAll()).toHaveLength(0)
+  })
+
+  it("enables test isolation without clearRegistry", () => {
+    // Simulate parallel tests with separate registries
+    const test1Registry = createCommandRegistry()
+    const test2Registry = createCommandRegistry()
+
+    // Test 1: adds commands for its test
+    test1Registry.register(createCommand("test1_cmd"))
+    expect(test1Registry.getAll()).toHaveLength(1)
+
+    // Test 2: runs independently without clearing
+    test2Registry.register(createCommand("test2_cmd"))
+    expect(test2Registry.getAll()).toHaveLength(1)
+
+    // Neither test polluted the other
+    expect(test1Registry.get("test2_cmd")).toBeUndefined()
+    expect(test2Registry.get("test1_cmd")).toBeUndefined()
   })
 })

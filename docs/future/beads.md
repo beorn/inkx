@@ -1,8 +1,31 @@
 # Beads Integration
 
-> **Status: Future** — Not yet implemented.
+> **Status: Implemented** — Available in `@km/beads` package and `km bd` CLI.
 
 `km bd` reimplements the beads CLI API using km's native storage layer.
+
+---
+
+## Quick Start
+
+```bash
+# List ready issues
+km bd ready
+
+# Create an issue
+km bd create "Fix login bug" -t bug -p 1
+
+# Claim and start work
+km bd update km-a1b2 --claim
+
+# Close with reason
+km bd close km-a1b2 -r "Fixed in commit abc123"
+
+# View in TUI
+km view @issues
+```
+
+See `km bd --help` for full command reference.
 
 ---
 

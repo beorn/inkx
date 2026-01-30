@@ -178,9 +178,8 @@ async function withConcurrentTestEnv(
         // Create our controllable test watcher
         const testWatcher = new TestWatcher(100) // 100ms debounce
 
-        // Create sync manager with our test watcher injected
-        // This bypasses chokidar entirely, giving us deterministic control
-        const syncManager = new SyncManager({
+        // SyncManager has Symbol.asyncDispose - use await using for automatic cleanup
+        await using syncManager = new SyncManager({
           db: data.database, // Use raw db from DataStore's HasDatabase capability
           repoPath: repoDir,
           debounceFs: 100,
@@ -191,7 +190,10 @@ async function withConcurrentTestEnv(
         })
 
         // Wire up filesystem sync via emitter
+        // Use defer to ensure cleanup happens in correct order (before syncManager.stop)
+        await using stack = new AsyncDisposableStack()
         emitter.setFsSync(syncManager)
+        stack.defer(() => emitter.setFsSync(null))
 
         // Track state changes
         syncManager.on("state-change", (state) => {
@@ -211,21 +213,17 @@ async function withConcurrentTestEnv(
           testWatcher.triggerChange(path)
         }
 
-        try {
-          await fn({
-            repoDir,
-            data,
-            syncManager,
-            testWatcher,
-            events,
-            advanceTime,
-            flushTimers,
-            writeAndTrigger,
-          })
-        } finally {
-          emitter.setFsSync(null)
-          await syncManager.stop()
-        }
+        await fn({
+          repoDir,
+          data,
+          syncManager,
+          testWatcher,
+          events,
+          advanceTime,
+          flushTimers,
+          writeAndTrigger,
+        })
+        // stack disposes first (emitter.setFsSync(null)), then syncManager disposes
       },
       { mode: "real" },
     )

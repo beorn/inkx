@@ -116,9 +116,8 @@ export type {
 export type { LoadError as RepoLoaderError } from "./repo-loader.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
-/// km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
-export { createParsePool, ParsePool } from "./parse-pool.ts"
+export { createParsePool } from "./parse-pool.ts"
 
 export type {
   ParsePoolService,
@@ -231,7 +230,6 @@ export {
   readObsidianIgnore,
   getIgnorePatterns,
   createIgnoreMatcher,
-  PatternMatcher,
   matchesPattern,
   shouldIgnore,
   isHiddenFile,
@@ -251,6 +249,8 @@ export type {
   WatcherInterface,
   SyncData,
   SyncFromFsResult,
+  PatternMatcher,
+  PatternMatcherOptions,
 } from "./watch/index.ts"
 
 // Event emission singletons REMOVED - use Repo.emitter or createEmitter() instead.

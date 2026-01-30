@@ -23,7 +23,6 @@ import { tmpdir } from "os"
 import { join } from "path"
 import type { Plugin, ReplResult } from "@beorn/mdtest/types"
 import { executeKmCommand } from "../src/execute.ts"
-import { closeDb } from "@km/storage/internal/db-instance.ts"
 
 interface Opts {
   fixture?: string
@@ -124,10 +123,9 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
         blockFixture ?? (explicitReset ? fileOpts.fixture : currentFixture)
 
       if (shouldReset) {
-        // Clean up old repo - must close database before deleting directory
+        // Clean up old repo
         if (repoPath) {
           try {
-            closeDb() // Close database handle before deleting files
             rmSync(repoPath, { recursive: true, force: true })
           } catch {
             // Ignore cleanup errors
@@ -183,7 +181,6 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
     async afterAll() {
       if (repoPath) {
         try {
-          closeDb() // Close database handle before deleting files
           rmSync(repoPath, { recursive: true, force: true })
         } catch {
           // Ignore cleanup errors

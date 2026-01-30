@@ -161,4 +161,22 @@ for file in $(find packages apps -name "*.ts" ! -name "*.test.ts" ! -path "*/nod
 done || true
 echo ""
 
+# =============================================================================
+# TEST/TUI PATTERNS (Patterns 22-23)
+# =============================================================================
+
+echo "=== PATTERN 22: Old inkx render helper ==="
+# Code that creates render() helper functions instead of using inkx render() directly
+# This indicates code not updated to take advantage of inkx's render()/renderStatic() options
+grep -rn "render.*=.*\(.*\)" packages apps --include="*.test.ts" --include="*.test.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/\|renderStatic\|from.*inkx\|from.*ink" || true
+echo ""
+
+echo "=== PATTERN 23: Old lastFrame capture ==="
+# Capturing lastFrame() from render result is the old way of testing
+# Should use app.text or other newer inkx APIs instead
+grep -rn "lastFrame\|last_frame\|lastResult" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/" || true
+echo ""
+
 echo "Pattern detection complete."
