@@ -89,11 +89,12 @@ if (import.meta.main) {
     ignorePatterns.push(...(await getEslintIgnores(eslintConfigPath)))
   }
 
-  // Warn if only one config exists (transition state)
-  if (oxlintConfigPath && !eslintConfigPath) {
-    console.warn("Note: Using oxlint config only (eslint.config.js not found)")
-  } else if (!oxlintConfigPath && eslintConfigPath) {
-    console.warn("Note: Using eslint.config.js only (oxlint config not found)")
+  // Validate config - exactly one must exist
+  if (oxlintConfigPath && eslintConfigPath) {
+    console.error(
+      "Found both oxlint and eslint configs - ambiguous. Remove one.",
+    )
+    process.exit(1)
   } else if (!oxlintConfigPath && !eslintConfigPath) {
     console.error(
       "Could not find packages/km-infra/oxlint/config.json or eslint.config.js",
