@@ -18,20 +18,20 @@ import {
   unimplemented,
 } from "@km/commands"
 import createDebug from "debug"
-import { assertNever } from "./action-handlers.ts"
+import { assertNever } from "../action-handlers.ts"
 import {
   outdentNode,
   moveCardInColumn,
   moveCardToColumn,
-} from "./keyboard-card-ops.ts"
+} from "../keyboard/keyboard-card-ops.ts"
 import {
   clearSelection,
   progressiveSelectAll,
   pushNavHistoryEntry,
-} from "./keyboard-helpers.ts"
-import { DEFAULT_FAVORITES } from "./keyboard-types.ts"
-import type { TUIContext } from "./tui-context.ts"
-import { actions } from "./ui-reducer.ts"
+} from "../keyboard/keyboard-helpers.ts"
+import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
+import type { TUIContext } from "../tui-context.ts"
+import { actions } from "../ui-reducer.ts"
 
 const debug = createDebug("km:tui:board-actions")
 

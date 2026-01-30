@@ -13,8 +13,8 @@
 
 import createDebug from "debug"
 import type { Repo } from "@km/storage"
-import type { LayoutRegistry } from "./card-positions.ts"
-import { getCardMidY } from "./card-positions.ts"
+import type { LayoutRegistry } from "../card-positions.ts"
+import { getCardMidY } from "../card-positions.ts"
 import type { BoardState } from "@km/board"
 
 const debug = createDebug("km:tui:nav")

@@ -5,9 +5,9 @@
  */
 
 import type { TaskMark, TaskStatus } from "@km/core"
-import { moveCardInColumn, moveCardToColumn } from "./keyboard-card-ops.ts"
-import { refreshBoardState } from "./keyboard-helpers.ts"
-import type { TUIContext } from "./tui-context.ts"
+import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
+import { refreshBoardState } from "../keyboard/keyboard-helpers.ts"
+import type { TUIContext } from "../tui-context.ts"
 
 /**
  * Delete the selected node.

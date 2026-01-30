@@ -4,14 +4,14 @@
  * Handles multi-selection, range selection, and selection clearing.
  */
 
-import { updateSelectionRange } from "./keyboard-helpers.ts"
+import { updateSelectionRange } from "../keyboard/keyboard-helpers.ts"
 import {
   handleTreeNavigation,
   type TreeDirection,
-} from "./navigation-handlers.ts"
-import type { TUIContext } from "./tui-context.ts"
-import { makeSelectionKey } from "./types.ts"
-import { actions } from "./ui-reducer.ts"
+} from "../handlers/navigation-handlers.ts"
+import type { TUIContext } from "../tui-context.ts"
+import { makeSelectionKey } from "../types.ts"
+import { actions } from "../ui-reducer.ts"
 
 /**
  * Extend selection vertically (up or down).

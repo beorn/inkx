@@ -86,7 +86,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Prop drilling      | Same props passed through several layers and/or with unneccessary aliasing  |
 | Import side effect | Module-level initialization, `let x = expensiveInit()` on load              |
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
-| Old inkx render    | `render = ` helper function instead of using inkx `render()` directly       |
+| Old inkx render    | `createTestRenderer` inside function body (wasteful recreation each call)   |
 | Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer inkx APIs      |
 
 ## Iteration 0.5: Pre-Survey Check (project-wide reviews only)
@@ -172,7 +172,7 @@ The script detects:
 
 **Test/TUI issues (2 patterns)**:
 
-- Pattern 22: Old inkx render helper (`render = ` function instead of using inkx `render()` directly)
+- Pattern 22: createTestRenderer inside function (`createTestRenderer` called inside test body = wasteful recreation; module-level is correct)
 - Pattern 23: Old lastFrame capture (`lastFrame()` instead of `app.text` or newer inkx APIs)
 
 Output is structured with headers like `=== PATTERN 1: Classes ===` for easy parsing.
@@ -319,7 +319,7 @@ For each finding (from Iteration 0.5 + Iteration 1):
 
 | Finding Type        | Default Severity | Context Adjustments                               |
 | ------------------- | ---------------- | ------------------------------------------------- |
-| Old inkx render     | Medium           | Code not updated to use inkx render()/renderStatic() APIs |
+| Old inkx render     | Medium           | createTestRenderer inside function body (should be at module level) |
 | Old lastFrame       | Medium           | Should use app.text or other newer inkx APIs      |
 
 **Test-specific severity guide:**

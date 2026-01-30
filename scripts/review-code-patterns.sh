@@ -165,11 +165,13 @@ echo ""
 # TEST/TUI PATTERNS (Patterns 22-23)
 # =============================================================================
 
-echo "=== PATTERN 22: Old inkx render helper ==="
-# Code that creates render() helper functions instead of using inkx render() directly
-# This indicates code not updated to take advantage of inkx's render()/renderStatic() options
-grep -rn "render.*=.*\(.*\)" packages apps --include="*.test.ts" --include="*.test.tsx" 2>/dev/null \
-  | grep -v "node_modules\|vendor/\|renderStatic\|from.*inkx\|from.*ink" || true
+echo "=== PATTERN 22: createTestRenderer inside function ==="
+# Calling createTestRenderer inside a test/function body is wasteful - recreates renderer each call
+# CORRECT: const render = createTestRenderer(...) at module level (created once)
+# WRONG: createTestRenderer(...) indented inside describe/it/test blocks (recreated per test)
+# Detect by finding createTestRenderer calls that are indented (not at column 0/1)
+grep -rn "^\s\+.*createTestRenderer" packages apps --include="*.test.ts" --include="*.test.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/" || true
 echo ""
 
 echo "=== PATTERN 23: Old lastFrame capture ==="

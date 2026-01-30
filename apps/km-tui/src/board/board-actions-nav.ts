@@ -7,20 +7,20 @@
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import createDebug from "debug"
-import { getCardMidY } from "./card-positions.ts"
+import { getCardMidY } from "../card-positions.ts"
 
 const perfDebug = createDebug("km:perf")
 import {
   clearSelection,
   pushNavHistoryEntry,
   updateSelectionRange,
-} from "./keyboard-helpers.ts"
+} from "../keyboard/keyboard-helpers.ts"
 import {
   handleTreeNavigation,
   type TreeDirection,
-} from "./navigation-handlers.ts"
-import type { TUIContext } from "./tui-context.ts"
-import { actions } from "./ui-reducer.ts"
+} from "../handlers/navigation-handlers.ts"
+import type { TUIContext } from "../tui-context.ts"
+import { actions } from "../ui-reducer.ts"
 
 const debug = createDebug("km:tui:nav")
 

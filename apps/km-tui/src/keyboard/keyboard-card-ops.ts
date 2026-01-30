@@ -4,10 +4,10 @@
  * Functions for moving, indenting, and outdenting cards.
  */
 
-import type { CardState, SelectionKey } from "./types.ts"
-import { makeSelectionKey } from "./types.ts"
-import { actions } from "./ui-reducer.ts"
-import type { TUIContext } from "./tui-context.ts"
+import type { CardState, SelectionKey } from "../types.ts"
+import { makeSelectionKey } from "../types.ts"
+import { actions } from "../ui-reducer.ts"
+import type { TUIContext } from "../tui-context.ts"
 import {
   getSelectedCardIndices,
   refreshBoardState,

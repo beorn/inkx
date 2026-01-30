@@ -884,6 +884,7 @@ class BoardTestImpl implements BoardTest {
     return this.result.text
   }
 
+  /** Uses lastFrame() to get ANSI-colored output for visual debugging, vs screenshot() which returns plain text via app.text */
   screenshotAnsi(): string {
     return this.result.lastFrame() ?? ""
   }

@@ -5,13 +5,12 @@ TypeScript, Bun, Ink (React TUI), SQLite. Bidirectional sync: TUI ↔ Model ↔ 
 ## Commands
 
 ```bash
+# all bun commands should be preceded with `cd ${repoRoot} ;` - they will not work if your cwd is a subdir
 bun run test:fast    # Fast tests (~11s) - iterate here
 bun run test:all     # Full tests - before commit
 bun fix              # Lint + format - must pass
 bun km view <path>   # Run TUI
 ```
-
-**Run from repo root:** All commands above must be run from `/Users/beorn/Code/pim/km`, not from subdirectories.
 
 **Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow and test types.
 
@@ -31,23 +30,27 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 ## Code Style
 
 **Patterns:**
+
 - Factory functions (`createX()` with `XOptions`), not classes
 - Explicit deps via `options.inject`, no globals/singletons
 - Async generators for pipelines, not `Promise.all` chains
 - `using`/`await using` for cleanup
 
 **Code Layout:**
+
 - Minimize: Let TypeScript infer types, short-but-clear names
 - Readability: Core logic first, hoisted functions after `return` or end of file
 - ESM imports only (`import`/`export`, never `require`)
 - Package names (`inkx`), never relative `../vendor/...`
 
 **Avoid:**
+
 - Prop drilling (use spread, align names across layers)
 - Import side effects (module init must not perform work)
 - Config files (sensible defaults → arguments → config as last resort)
 
 **Tooling:**
+
 - Bun only (`bun add`, `bunx`, `bun run`), never node/deno/npm/pnpm/yarn
 - `catalog:` for shared deps in package.json
 

@@ -12,12 +12,12 @@ import { actions, type UIAction } from "../ui-reducer.ts"
 import type { BoardState, BoardAction } from "@km/board"
 import type { Repo } from "../repo-context.tsx"
 import type { TUIContext } from "../tui-context.ts"
-import { handleTreeNavigation } from "../navigation-handlers.ts"
+import { handleTreeNavigation } from "../handlers/navigation-handlers.ts"
 import {
   processKeyWithContext,
   ensureCommandSystemInitialized,
 } from "../command-bridge.ts"
-import { handleCommandAction } from "../board-actions.ts"
+import { handleCommandAction } from "../board/board-actions.ts"
 import { isErr, toast, toastQueue } from "@km/core"
 
 const perfDebug = createDebug("km:perf")

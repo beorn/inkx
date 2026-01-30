@@ -27,77 +27,66 @@ function renderStatusBar(
   }
 
   const render = createTestRenderer({ columns: termWidth, rows: 24 })
-  const app = render(React.createElement(StatusBar, { ui, termWidth }))
-
-  return {
-    app,
-    screenshot: () => app.text,
-  }
+  return render(React.createElement(StatusBar, { ui, termWidth }))
 }
 
 describe("StatusBar", () => {
   test("not rendered when status is null", () => {
-    const { screenshot } = renderStatusBar(null)
+    const app = renderStatusBar(null)
 
     // Should not render anything
-    const text = screenshot()
-    expect(text.trim()).toBe("")
+    expect(app.text.trim()).toBe("")
   })
 
   test("info level - renders message", () => {
-    const { screenshot } = renderStatusBar({
+    const app = renderStatusBar({
       level: "info",
       message: "Test info message",
     })
 
-    const text = screenshot()
-    expect(text).toContain("Test info message")
+    expect(app.text).toContain("Test info message")
     // Icon may not render as unicode in test output, but message should be there
   })
 
   test("success level - renders message", () => {
-    const { screenshot } = renderStatusBar({
+    const app = renderStatusBar({
       level: "success",
       message: "Test success message",
     })
 
-    const text = screenshot()
-    expect(text).toContain("Test success message")
+    expect(app.text).toContain("Test success message")
   })
 
   test("warning level - renders message", () => {
-    const { screenshot } = renderStatusBar({
+    const app = renderStatusBar({
       level: "warning",
       message: "Test warning message",
     })
 
-    const text = screenshot()
-    expect(text).toContain("Test warning message")
+    expect(app.text).toContain("Test warning message")
   })
 
   test("error level - renders message", () => {
-    const { screenshot } = renderStatusBar({
+    const app = renderStatusBar({
       level: "error",
       message: "Test error message",
     })
 
-    const text = screenshot()
-    expect(text).toContain("Test error message")
+    expect(app.text).toContain("Test error message")
   })
 
   test("message displayed correctly", () => {
-    const { screenshot } = renderStatusBar({
+    const app = renderStatusBar({
       level: "info",
       message: "Exact message to verify",
     })
 
-    const text = screenshot()
-    expect(text).toContain("Exact message to verify")
+    expect(app.text).toContain("Exact message to verify")
   })
 
   test("message truncates with ellipsis when too long", () => {
     const longMessage = "A".repeat(100) // 100 chars, way longer than terminal width
-    const { screenshot } = renderStatusBar(
+    const app = renderStatusBar(
       {
         level: "info",
         message: longMessage,
@@ -105,13 +94,12 @@ describe("StatusBar", () => {
       40, // Small terminal width
     )
 
-    const text = screenshot()
     // Message should be truncated with ellipsis
-    expect(text).toContain("…")
+    expect(app.text).toContain("…")
     // Should not contain the full message
-    expect(text).not.toContain("A".repeat(100))
+    expect(app.text).not.toContain("A".repeat(100))
     // Message should fit within terminal (approx 40 - 4 for icon/padding)
-    const lines = text.split("\n")
+    const lines = app.text.split("\n")
     const statusLine = lines.find((line) => line.includes("ℹ"))
     if (statusLine) {
       // Strip ANSI codes for accurate length check
@@ -122,7 +110,7 @@ describe("StatusBar", () => {
 
   test("message not truncated when fits within terminal width", () => {
     const message = "Short message"
-    const { screenshot } = renderStatusBar(
+    const app = renderStatusBar(
       {
         level: "info",
         message,
@@ -130,15 +118,14 @@ describe("StatusBar", () => {
       80, // Wide terminal
     )
 
-    const text = screenshot()
-    expect(text).toContain(message)
-    expect(text).not.toContain("…") // No truncation needed
+    expect(app.text).toContain(message)
+    expect(app.text).not.toContain("…") // No truncation needed
   })
 
   test("truncation boundary - exactly at limit", () => {
     // termWidth=40, maxMessageLength=36 (40-4), so 36 char message should not truncate
     const exactMessage = "A".repeat(36)
-    const { screenshot } = renderStatusBar(
+    const app = renderStatusBar(
       {
         level: "info",
         message: exactMessage,
@@ -146,15 +133,14 @@ describe("StatusBar", () => {
       40,
     )
 
-    const text = screenshot()
-    expect(text).toContain(exactMessage)
-    expect(text).not.toContain("…")
+    expect(app.text).toContain(exactMessage)
+    expect(app.text).not.toContain("…")
   })
 
   test("truncation boundary - one char over limit", () => {
     // termWidth=40, maxMessageLength=36 (40-4), so 37 char message should truncate
     const overMessage = "A".repeat(37)
-    const { screenshot } = renderStatusBar(
+    const app = renderStatusBar(
       {
         level: "info",
         message: overMessage,
@@ -162,8 +148,7 @@ describe("StatusBar", () => {
       40,
     )
 
-    const text = screenshot()
-    expect(text).toContain("…")
-    expect(text).not.toContain("A".repeat(37))
+    expect(app.text).toContain("…")
+    expect(app.text).not.toContain("A".repeat(37))
   })
 })
