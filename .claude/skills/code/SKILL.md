@@ -12,11 +12,12 @@ Reviews for architecture violations, type safety, and code simplification.
 
 ## Quick Actions
 
-| Command        | Purpose                               |
-| -------------- | ------------------------------------- |
-| `/code review` | Architecture review (layers, smells)  |
-| `/code types`  | Type safety review                    |
-| `/code clean`  | Simplification and consistency review |
+| Command             | Purpose                               |
+| ------------------- | ------------------------------------- |
+| `/code review`      | Architecture review (layers, smells)  |
+| `/code types`       | Type safety review                    |
+| `/code clean`       | Simplification and consistency review |
+| `/code complexity`  | Complexity analysis and refactoring   |
 
 ## Sub-Skills
 
@@ -25,3 +26,4 @@ Reviews for architecture violations, type safety, and code simplification.
 | [review-code.md](review-code.md)   | Layer violations, over-engineering (infrequent) |
 | [review-types.md](review-types.md) | Type safety, any removal (infrequent)           |
 | [clean.md](clean.md)               | Simplification patterns                         |
+| [complexity.md](complexity.md)     | Cyclomatic/cognitive complexity analysis        |

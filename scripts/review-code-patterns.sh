@@ -204,4 +204,10 @@ grep -rn "^import.*from ['\"]chalk['\"]" packages apps --include="*.ts" --includ
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
+echo "=== PATTERN 27: High complexity functions ==="
+# Functions exceeding cyclomatic (>20) or cognitive (>15) complexity thresholds
+# Uses oxlint-plugin-complexity for static analysis
+bun scripts/complexity-report.ts --brief 2>/dev/null || true
+echo ""
+
 echo "Pattern detection complete."

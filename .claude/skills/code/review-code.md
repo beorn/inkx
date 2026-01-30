@@ -88,6 +88,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
 | Old inkx render    | `createTestRenderer` inside function body (wasteful recreation each call)   |
 | Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer inkx APIs      |
+| High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
 
 ## Iteration 0.5: Pre-Survey Check (project-wide reviews only)
 
@@ -174,6 +175,10 @@ The script detects:
 
 - Pattern 22: createTestRenderer inside function (`createTestRenderer` called inside test body = wasteful recreation; module-level is correct)
 - Pattern 23: Old lastFrame capture (`lastFrame()` instead of `app.text` or newer inkx APIs)
+
+**Complexity issues (1 pattern)**:
+
+- Pattern 27: High complexity functions (cyclomatic>20 or cognitive>15, candidates for refactoring)
 
 Output is structured with headers like `=== PATTERN 1: Classes ===` for easy parsing.
 
@@ -321,6 +326,13 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | ------------------- | ---------------- | ------------------------------------------------- |
 | Old inkx render     | Medium           | createTestRenderer inside function body (should be at module level) |
 | Old lastFrame       | Medium           | Should use app.text or other newer inkx APIs      |
+
+**Complexity findings:**
+
+| Finding Type        | Default Severity | Context Adjustments                               |
+| ------------------- | ---------------- | ------------------------------------------------- |
+| High cyclomatic     | Medium           | High if >30, Critical if >40 (deeply nested)      |
+| High cognitive      | Medium           | High if >25, Critical if >35 (hard to understand) |
 
 **Test-specific severity guide:**
 

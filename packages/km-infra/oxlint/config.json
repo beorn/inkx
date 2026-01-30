@@ -1,6 +1,7 @@
 {
   "$schema": "../../../node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "promise"],
+  "jsPlugins": ["oxlint-plugin-complexity"],
   "categories": {
     "correctness": "off"
   },
@@ -30,6 +31,8 @@
     "vendor/opentui/issues/"
   ],
   "rules": {
+    "complexity/max-cyclomatic": ["warn", { "max": 20 }],
+    "complexity/max-cognitive": ["warn", { "max": 15 }],
     "no-control-regex": "off",
     "getter-return": "error",
     "no-undef": "error",
