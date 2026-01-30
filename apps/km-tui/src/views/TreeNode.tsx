@@ -162,10 +162,6 @@ function TreeNodeImpl({
 
   const repo = useRepo()
   const isOneliner = variant === "oneliner"
-  // Use provided children or fetch from repo
-  const resolvedGetChildren = getChildrenProp ?? repo.getChildren.bind(repo)
-  const children = childrenProp ?? resolvedGetChildren(node.id)
-  const hasChildren = children.length > 0
   const isEmbedded = node.link_to != null
 
   // For embedded nodes, resolve the target for display purposes
@@ -173,6 +169,14 @@ function TreeNodeImpl({
   const resolvedNode =
     isEmbedded && node.link_to ? repo.getNode(node.link_to) : null
   const displayNode = resolvedNode ?? node
+
+  // Use provided children or fetch from repo
+  // For embeds, get children from the TARGET node (transclusion shows target's children)
+  const resolvedGetChildren = getChildrenProp ?? repo.getChildren.bind(repo)
+  const childrenSourceId =
+    isEmbedded && resolvedNode ? resolvedNode.id : node.id
+  const children = childrenProp ?? resolvedGetChildren(childrenSourceId)
+  const hasChildren = children.length > 0
 
   // A node is a task if it has task_status set, regardless of structural type
   // For embeds, check the target node's status
@@ -207,10 +211,13 @@ function TreeNodeImpl({
 
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
+  // For embedded folders, show folder name with "/" suffix
   const rawContent =
-    displayNode.type === "section"
-      ? getNodeDisplayName(repo, displayNode)
-      : displayNode.content || getNodeDisplayName(repo, displayNode)
+    isEmbedded && displayNode.type === "folder"
+      ? getNodeDisplayName(repo, displayNode) + "/"
+      : displayNode.type === "section"
+        ? getNodeDisplayName(repo, displayNode)
+        : displayNode.content || getNodeDisplayName(repo, displayNode)
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
 
   // Memoize rich text rendering - only recalc when content or sigil config changes
