@@ -11,6 +11,8 @@ bun fix              # Lint + format - must pass
 bun km view <path>   # Run TUI
 ```
 
+**Run from repo root:** All commands above must be run from `/Users/beorn/Code/pim/km`, not from subdirectories.
+
 **Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow and test types.
 
 **Use bun, not npm:** `bun add` (not `npm install`), `bunx` (not `npx`), `bun run test:all` (not `npm test`).
