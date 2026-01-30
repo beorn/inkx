@@ -15,7 +15,7 @@ Build and maintain the Ink-based TUI.
 | Need                        | Load                               |
 | --------------------------- | ---------------------------------- |
 | Colors, icons, styling      | [design.md](design.md)             |
-| Visual bugs, debugging      | [fix.md](fix.md)                   |
+| Rendering bugs, debugging   | [fix.md](fix.md)                   |
 | Slow rendering, memoization | [optimization.md](optimization.md) |
 
 ## Critical Design Rules
@@ -37,7 +37,7 @@ Build and maintain the Ink-based TUI.
 # Run visual storybook
 bun storyboard
 
-# Run inkx visual tests
+# Run TUI tests
 bun run test:mock
 
 # Check for act() warnings

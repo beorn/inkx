@@ -82,9 +82,9 @@ When working on TUI code using Ink, you MUST read @docs/dev/ink-patterns.md. Cri
 - **ANSI-aware text length** - Use displayLength() not .length
 - **Text truncation** - Use truncateText() for proper ANSI handling
 
-## Visual Testing
+## TUI Testing
 
-For testing TUI appearance, see [visual.md](../tests/visual.md):
+For testing TUI appearance, see [tui.md](../tests/tui.md):
 
 - ttyd + Playwright for headless capture
 - Storybook for component isolation

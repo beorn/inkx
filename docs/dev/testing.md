@@ -567,9 +567,9 @@ TEST_MODE=real bun run test:all       # Disk DB, full infrastructure
 
 ---
 
-## Visual Testing Methods
+## Testing Categories
 
-### Method 1: inkx Test Renderer (Primary)
+### TUI Tests (inkx)
 
 Fast, character-based testing for components:
 
@@ -609,7 +609,7 @@ km screenshot /path/to/file.md --format ansi -o /tmp/out.txt
 
 **Not for**: Automated tests (use inkx test renderer instead).
 
-### Method 3: ttyd + Playwright (Manual Testing)
+### GUI Tests (ttyd + Playwright)
 
 Pixel-perfect terminal rendering via browser. Use only when you need to see the final rendered output - not for automated tests (`bun test:all`).
 

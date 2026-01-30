@@ -1,16 +1,16 @@
 ---
-description: Debug and fix TUI rendering issues using inkx tests and visual inspection
+description: Debug and fix TUI rendering issues using inkx tests and GUI inspection
 argument-hint: [issue] (describe the visual bug, or "explore" for full check)
 allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion
 ---
 
-# Fix TUI Visual Rendering Issues
+# Fix TUI Rendering Issues
 
 Debug and fix TUI rendering issues through inkx tests and visual inspection.
 
 **Issue**: $ARGUMENTS
 
-**Reference**: [visual.md](../tests/visual.md) for testing patterns
+**Reference**: [tui.md](../tests/tui.md) for testing patterns
 
 ## The Fix Loop
 

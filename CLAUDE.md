@@ -16,6 +16,18 @@ bun km view <path>   # Run TUI
 
 **Use bun, not npm:** `bun add` (not `npm install`), `bunx` (not `npx`), `bun run test:all` (not `npm test`).
 
+## Testing Categories
+
+| Category | What | Skill |
+|----------|------|-------|
+| TUI Tests | char-level (inkx) | [tui.md](.claude/skills/tests/tui.md) |
+| CLI Tests | command output (mdtest) | [cli.md](.claude/skills/tests/cli.md) |
+| GUI Tests | pixel-level (ttyd/playwright) | [gui.md](.claude/skills/tests/gui.md) |
+| Bench | benchmarks | [bench.md](.claude/skills/tests/bench.md) |
+| Storybook | static component rendering | `bun storybook` |
+
+Any test can be `.slow.` (manually assigned). Bench and Storybook are not "tests".
+
 ## Architecture
 
 Layered: App → Board → Tree → Storage → Parser → Filesystem. Each layer calls only layer below.

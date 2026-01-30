@@ -70,11 +70,24 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ---
 
-## Test Types
+## Testing Categories
+
+| Category | What | Skill |
+|----------|------|-------|
+| **TUI Tests** | Term buffer (inkx) | [tui.md](tui.md) |
+| **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
+| **GUI Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
+| **Bench** | Benchmarks | [bench.md](bench.md) |
+| **Storybook** | Static component rendering | `bun storybook` |
+
+- Any **test** can have `.slow.` suffix (manually assigned)
+- **Bench** and **Storybook** are not "tests" - must qualify
+
+### Test File Suffixes
 
 | Suffix          | What It Tests                   |
 | --------------- | ------------------------------- |
-| `.test.ts`      | Unit/integration - core logic   |
+| `.test.ts`      | Unit/component - core logic     |
 | `.spec.ts`      | TUI acceptance - user behavior  |
 | `.slow.test.ts` | Heavy integration - chaos, sync |
 | `.test.md`      | CLI commands via mdtest         |
@@ -142,11 +155,14 @@ See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for detai
 
 ## Sub-Skills
 
-| Need                                 | Load                                            |
-| ------------------------------------ | ----------------------------------------------- |
-| TDD workflow, test safety            | [tdd-workflow.md](tdd-workflow.md)              |
-| TUI visual testing (inkx, storybook) | [visual.md](visual.md)                          |
-| Chaos/fuzz testing sync              | [chaos.md](chaos.md)                            |
-| Test quality review                  | [review-tests.md](review-tests.md) (infrequent) |
+| Need                         | Load                                            |
+| ---------------------------- | ----------------------------------------------- |
+| TDD workflow, test safety    | [tdd-workflow.md](tdd-workflow.md)              |
+| TUI testing (inkx)           | [tui.md](tui.md)                                |
+| CLI testing (mdtest)         | [cli.md](cli.md)                                |
+| GUI testing (ttyd/playwright)| [gui.md](gui.md)                                |
+| Benchmarks                   | [bench.md](bench.md)                            |
+| Chaos/fuzz testing sync      | [chaos.md](chaos.md)                            |
+| Test quality review          | [review-tests.md](review-tests.md) (infrequent) |
 
 **Full reference**: [docs/dev/testing.md](../../docs/dev/testing.md)
