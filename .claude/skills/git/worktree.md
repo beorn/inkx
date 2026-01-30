@@ -7,8 +7,8 @@ Manages git worktrees for parallel development. Handles km's submodules, depende
 ## Quick Reference
 
 ```bash
-# Show status
-bun worktree              # List worktrees with quick status
+# Show status and help
+bun worktree              # List worktrees with status + help
 
 # Create worktree
 bun worktree create <name> [branch]
@@ -24,13 +24,61 @@ bun worktree remove my-feature --delete-branch  # Also delete branch
 bun worktree list         # Shows uncommitted changes
 ```
 
-## When to Use Worktrees
+## How Worktrees Are Created
 
-Use worktrees when you need to:
-- **Work on multiple features** without stashing
-- **Test changes in isolation** from your main working directory
-- **Compare implementations** side by side
-- **Run long tests** while continuing development
+**Worktrees are created from your COMMITTED state, not your working tree.**
+
+This ensures each worktree is an exact, reproducible copy. Before creating, the tool validates:
+
+1. **No uncommitted changes** in main repo
+2. **No uncommitted changes** in any submodule
+3. **All submodule commits** are pushed to remote
+
+If any check fails, you'll see an error with options:
+- Commit your changes first
+- Stash your changes: `git stash`
+- Use `--allow-dirty` to bypass (creates worktree without local changes)
+
+### Why These Checks?
+
+Without these checks, you could create a worktree expecting it to have your current work, but it would only have what's committed. This leads to confusion about "which version of the code is where."
+
+## Submodule Handling
+
+Each worktree gets **independent submodule clones** (not symlinks):
+
+- Submodules are cloned fresh via `git submodule update --init --recursive`
+- Changes in one worktree's submodules don't affect others
+- You can have different submodule states per worktree
+- Each worktree can commit to submodules independently
+
+### Submodule Validation
+
+Before creating, the tool checks that all submodule commits exist on remote. This prevents the new worktree from failing to initialize submodules.
+
+If you see "Found unpushed submodule commits":
+
+```bash
+# Push all submodules
+git submodule foreach "git push origin HEAD || true"
+
+# Then retry
+bun worktree create my-feature
+```
+
+## Post-Create Setup
+
+After creating the worktree, these steps run automatically:
+
+1. `git submodule update --init --recursive` - Clone all submodules
+2. `bun install` (or `npm install` if no bun.lock) - Install dependencies
+3. `direnv allow` - Allow environment if .envrc present
+4. `bun run prepare` - Install git hooks
+
+Skip any step with flags:
+- `--no-install` - Skip dependency installation
+- `--no-direnv` - Skip direnv allow
+- `--no-hooks` - Skip hook installation
 
 ## Worktree Locations
 
@@ -44,43 +92,13 @@ Worktrees are created at `../<repo>-<name>`:
 └── km-infra/              # Worktree for feat/km-infra
 ```
 
-## What Create Does
+## When to Use Worktrees
 
-The `create` command handles all km-specific setup:
-
-1. **Validates submodules** - Ensures all submodule commits are pushed (prevents clone failures)
-2. **Creates worktree** - Uses `git worktree add`
-3. **Clones submodules** - Each worktree gets independent submodule copies
-4. **Installs dependencies** - Runs `bun install`
-5. **Allows direnv** - Runs `direnv allow` if .envrc exists
-6. **Installs hooks** - Runs `bun run prepare`
-
-### Create Options
-
-| Option | Description |
-|--------|-------------|
-| `--no-install` | Skip `bun install` |
-| `--no-direnv` | Skip `direnv allow` |
-| `--no-hooks` | Skip hook installation |
-
-## Submodule Handling
-
-**Critical**: Submodule commits must be pushed before creating a worktree.
-
-If you see "Found unpushed submodule commits":
-
-```bash
-# Push all submodules
-git submodule foreach "git push origin HEAD || true"
-
-# Then retry
-bun worktree create my-feature
-```
-
-Each worktree gets **independent submodule clones**, not symlinks. This means:
-- Changes in one worktree's submodules don't affect others
-- Each worktree can have different submodule states
-- Submodules must be committed and pushed separately per worktree
+Use worktrees when you need to:
+- **Work on multiple features** without stashing
+- **Test changes in isolation** from your main working directory
+- **Compare implementations** side by side
+- **Run long tests** while continuing development
 
 ## Remove Safeguards
 
@@ -92,6 +110,24 @@ The `remove` command protects against data loss:
 
 ## Common Issues
 
+### "Cannot create worktree - uncommitted changes detected"
+
+Your working tree has changes that won't be in the new worktree:
+
+```bash
+# Option 1: Commit first
+git add . && git commit -m "WIP"
+bun worktree create my-feature
+
+# Option 2: Stash
+git stash
+bun worktree create my-feature
+# Later: git stash pop
+
+# Option 3: Create anyway (worktree won't have your changes)
+bun worktree create my-feature --allow-dirty
+```
+
 ### "Found unpushed submodule commits"
 
 Push your submodule changes first:
@@ -101,21 +137,6 @@ cd vendor/beorn-inkx
 git push
 cd ../..
 bun worktree create my-feature
-```
-
-### "Worktree has uncommitted changes"
-
-Either commit your changes or use `--force`:
-
-```bash
-# Option 1: Commit first
-cd ../km-my-feature
-git add . && git commit -m "WIP"
-cd ../km
-bun worktree remove my-feature
-
-# Option 2: Force remove (loses uncommitted changes)
-bun worktree remove my-feature --force
 ```
 
 ### Beads/Database Conflicts
