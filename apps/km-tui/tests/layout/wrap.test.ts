@@ -1,7 +1,7 @@
 /**
  * Tests for text wrapping (Layer 2)
  *
- * Note: inkx's wrapText differs slightly from tui-measure:
+ * Note: inkx's wrapText behavior:
  * - Returns [''] for empty input (preserves the input as a single line)
  * - Preserves trailing spaces on wrapped lines
  */

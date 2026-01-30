@@ -38,7 +38,7 @@ Audit Claude Code configuration for token efficiency and proper structure.
 
 ## Execute (Parallel First)
 
-### Step 1: Gather Metrics (5 Bash in parallel)
+### Step 1: Gather Metrics (6 Bash in parallel)
 
 ```bash
 # 1. CLAUDE.md size
@@ -67,6 +67,28 @@ if [[ -f ~/.claude.json ]]; then
   echo "=== User MCP Servers (~/.claude.json) ==="
   cat ~/.claude.json
 fi
+
+# 6. Plugin configuration status
+echo "=== Plugin Configuration ==="
+cat ~/.claude/settings.json | jq -r '.enabledPlugins | to_entries[] | "\(.key): \(if .value then "enabled" else "disabled" end)"' 2>/dev/null || echo "No plugins configured"
+echo ""
+echo "=== Installed Plugins ==="
+cat ~/.claude/plugins/installed_plugins.json 2>/dev/null || echo "No installed_plugins.json"
+echo ""
+echo "=== Plugin Skills Discovery ==="
+for plugin_dir in ~/.claude/plugins/cache/*/; do
+  [[ -d "$plugin_dir" ]] || continue
+  plugin_name=$(basename "$plugin_dir")
+  echo "Plugin: $plugin_name"
+  # Check for skills at root (correct)
+  if [[ -d "$plugin_dir"*/skills ]]; then
+    echo "  Skills (root): $(ls -1 "$plugin_dir"*/skills 2>/dev/null | wc -l | tr -d ' ') found"
+  fi
+  # Check for nested skills in plugins/ (broken structure)
+  for nested in "$plugin_dir"*/plugins/*/skills; do
+    [[ -d "$nested" ]] && echo "  WARNING: Nested skills at $nested (not discovered by Claude Code)"
+  done
+done
 ```
 
 ### Step 2: Session Error Analysis (parallel)
@@ -87,6 +109,11 @@ Run [session-errors.md](session-errors.md) workflow simultaneously:
 | Entry points 50-70 lines          | Has sub-file table          | Monolithic (strict)       |
 | Sub-files <150 lines              | Focused workflow            | Split (unless infrequent) |
 | Files >100 lines have ToC         | ✓                           | Add table of contents     |
+| **Plugins**                       |                             |                           |
+| Skills at repo root               | skills/ at repo root        | Nested in plugins/ (fix)  |
+| Installed version up-to-date      | Matches marketplace/source  | `plugin update` needed    |
+| Enabled in settings               | enabledPlugins: true        | Add to settings.json      |
+| Skills discovered                 | Listed in available skills  | Check structure           |
 | **Structure**                     |                             |                           |
 | No orphan sub-files               | All linked from SKILL       | Dead file                 |
 | No deeply nested references       | Max 1 level from SKILL.md   | Flatten structure         |
@@ -110,7 +137,50 @@ Run [session-errors.md](session-errors.md) workflow simultaneously:
 | MCP only for unique capabilities  | No skill alternative exists | Disable or create skill   |
 | Clear value proposition           | Why this vs alternatives?   | Document or remove        |
 
-### Step 3b: MCP Server Analysis
+### Step 3b: Plugin Configuration Analysis
+
+Check plugin health and skill discovery:
+
+```bash
+# 1. Check if installed plugins are outdated
+for plugin in $(cat ~/.claude/plugins/installed_plugins.json | jq -r '.plugins | keys[]' 2>/dev/null); do
+  installed_sha=$(cat ~/.claude/plugins/installed_plugins.json | jq -r ".plugins[\"$plugin\"][0].gitCommitSha")
+  install_path=$(cat ~/.claude/plugins/installed_plugins.json | jq -r ".plugins[\"$plugin\"][0].installPath")
+  echo "Plugin: $plugin"
+  echo "  Installed SHA: ${installed_sha:0:12}"
+  echo "  Install path: $install_path"
+  # Check if skills directory exists at root
+  if [[ -d "$install_path/skills" ]]; then
+    echo "  Skills: $(ls -1 "$install_path/skills" 2>/dev/null | wc -l | tr -d ' ') at root (correct)"
+  else
+    echo "  WARNING: No skills/ at root - skills won't be discovered"
+  fi
+  # Check for nested plugins structure (broken)
+  if [[ -d "$install_path/plugins" ]]; then
+    echo "  WARNING: Found plugins/ subdirectory - monorepo structure not supported"
+    ls -la "$install_path/plugins/"
+  fi
+done
+
+# 2. Check enabled status in settings
+echo ""
+echo "=== Enabled Status ==="
+enabled=$(cat ~/.claude/settings.json | jq -r '.enabledPlugins | to_entries[] | select(.value == true) | .key' 2>/dev/null)
+disabled=$(cat ~/.claude/settings.json | jq -r '.enabledPlugins | to_entries[] | select(.value == false) | .key' 2>/dev/null)
+echo "Enabled: ${enabled:-none}"
+echo "Disabled: ${disabled:-none}"
+```
+
+**Common plugin issues:**
+
+| Issue | Symptom | Fix |
+|-------|---------|-----|
+| Skills not discovered | Skill missing from available skills | Move skills/ to repo root |
+| Old version installed | Missing new features | `claude plugin update <name>` |
+| Not enabled | Plugin installed but skills unavailable | Add to enabledPlugins in settings.json |
+| Monorepo structure | source.path ignored in marketplace.json | Flatten repo (skills at root) |
+
+### Step 3c: MCP Server Analysis
 
 Use `ListMcpResourcesTool` to enumerate all configured MCP servers and their tools.
 
@@ -266,6 +336,19 @@ Copy this checklist and track progress:
 | Keyword overlaps | X       | 0      | ✓/✗    |
 | MCP servers      | X       | N/A    | N/A    |
 | MCP token cost   | X       | <2k/ea | ✓/✗    |
+| Plugins enabled  | X/Y     | All    | ✓/✗    |
+| Plugin skills    | X       | All    | ✓/✗    |
+
+## Plugin Analysis
+
+| Plugin | Version | Skills | Status | Notes |
+|--------|---------|--------|--------|-------|
+| name   | 0.x.0   | N      | ✓/✗    | Issue |
+
+**Common issues found:**
+- [ ] Skills not at repo root (source.path ignored)
+- [ ] Plugin not enabled in settings.json
+- [ ] Outdated version (update needed)
 
 ## MCP Server Analysis
 

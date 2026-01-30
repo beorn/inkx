@@ -10,7 +10,7 @@
  * - `format` - Node formatting for display
  */
 
-// Rich text rendering (ANSI utilities exported from layout/index.ts via @beorn/tui-measure)
+// Rich text rendering (ANSI utilities exported from inkx)
 export { renderRich, renderPlain, type RenderRichOptions } from "./rich.ts"
 
 // Icon utilities (moved from @km/tui-core)
