@@ -30,12 +30,33 @@ debug("loading %s...", filename) // Inline text
 debug("state: %s → %s", oldState, newState) // Transitions
 ```
 
-## TUI Debugging (Separate from TUI Display)
+## TUI Debugging (CRITICAL: Use DEBUG_LOG)
+
+TUI apps occupy the terminal, so debug output must go to a file:
 
 ```bash
+# Debug km code
 DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
-# Then: tail -f /tmp/km.log
+
+# Debug inkx rendering/layout issues
+DEBUG=inkx:* DEBUG_LOG=/tmp/inkx.log bun km view /path/to/vault
+
+# Debug everything
+DEBUG=km:*,inkx:*,flexx:* DEBUG_LOG=/tmp/debug.log bun km view /path
+
+# In another terminal
+tail -f /tmp/debug.log
 ```
+
+**Common debug patterns:**
+
+| Issue | Namespace |
+|-------|-----------|
+| Layout problems | `DEBUG=flexx:layout` |
+| Keyboard input not working | `DEBUG=inkx:useInput` |
+| Render not updating | `DEBUG=inkx:render,inkx:pipeline` |
+| Storage/sync issues | `DEBUG=km:storage:*` |
+| Board state issues | `DEBUG=km:board:*` |
 
 ## CLI Flags
 
