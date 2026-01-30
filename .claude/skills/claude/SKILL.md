@@ -27,7 +27,7 @@ Manage Claude Code: slash commands, plugins, MCP servers.
 | Create slash command    | [skill-format.md](skill-format.md) |
 | Create/install plugin   | [plugins.md](plugins.md)           |
 | Configure MCP server    | [mcp.md](mcp.md)                   |
-| Recover session history | [session.md](session.md)           |
+| Search session history  | [/history](../history/SKILL.md)    |
 
 ## Skill File Format (Quick)
 
@@ -49,11 +49,12 @@ Use $ARGUMENTS for all args, or $1, $2 for positional.
 
 ## Troubleshooting
 
-| Issue            | Fix                               |
-| ---------------- | --------------------------------- |
-| Not in /help     | Add `description:` frontmatter    |
-| Not auto-loading | Add **Keywords** line             |
-| MCP failing      | `claude mcp list`, restart Claude |
+| Issue            | Fix                                                    |
+| ---------------- | ------------------------------------------------------ |
+| Not in /help     | Use `skills/<name>/SKILL.md` format (not standalone)   |
+| Not auto-loading | Add **Keywords** line                                  |
+| MCP failing      | `claude mcp list`, restart Claude                      |
+| Standalone file  | Move `skills/x.md` → `skills/x/SKILL.md` (required)    |
 
 ## Sub-Skills
 
@@ -62,7 +63,7 @@ Use $ARGUMENTS for all args, or $1, $2 for positional.
 | [skill-format.md](skill-format.md)         | Skill format, dynamic content    |
 | [plugins.md](plugins.md)                   | Plugin creation, manifest        |
 | [mcp.md](mcp.md)                           | Server configuration             |
-| [session.md](session.md)                   | Session history recovery         |
+| [/history](../history/SKILL.md)            | Session history search (FTS5)    |
 | [session-errors.md](session-errors.md)     | Analyze sessions for cmd errors  |
 | [review-claude.md](review-claude.md)       | Audit steering docs (infrequent) |
 | [review-reference.md](review-reference.md) | Audit rules (infrequent)         |

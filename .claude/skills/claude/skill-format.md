@@ -10,8 +10,8 @@ description: Create and format slash commands (skills)
 
 Skills go in `.claude/skills/`:
 
-- Domain skills: `.claude/skills/<domain>/SKILL.md` with sub-files
-- Standalone: `.claude/skills/<name>.md`
+- **Required format**: `.claude/skills/<name>/SKILL.md` with optional sub-files
+- ~~Standalone: `.claude/skills/<name>.md`~~ — **Does not work!** Claude Code only discovers `SKILL.md` files inside directories.
 
 ## Basic Format
 

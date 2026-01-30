@@ -68,7 +68,16 @@ if [[ -f ~/.claude.json ]]; then
   cat ~/.claude.json
 fi
 
-# 6. Plugin configuration status
+# 6. Standalone skill files (not discovered by Claude Code)
+echo "=== Skill Discovery Check ==="
+for f in .claude/skills/*.md; do
+  [[ -f "$f" ]] && echo "STANDALONE (not discovered): $f"
+done
+for d in .claude/skills/*/; do
+  [[ -f "${d}SKILL.md" ]] && echo "Directory (OK): ${d}SKILL.md"
+done
+
+# 7. Plugin configuration status
 echo "=== Plugin Configuration ==="
 cat ~/.claude/settings.json | jq -r '.enabledPlugins | to_entries[] | "\(.key): \(if .value then "enabled" else "disabled" end)"' 2>/dev/null || echo "No plugins configured"
 echo ""
@@ -118,6 +127,7 @@ Run [session-errors.md](session-errors.md) workflow simultaneously:
 | No orphan sub-files               | All linked from SKILL       | Dead file                 |
 | No deeply nested references       | Max 1 level from SKILL.md   | Flatten structure         |
 | **Discovery**                     |                             |                           |
+| Skills use directory format       | `skills/<name>/SKILL.md`    | Standalone .md not found  |
 | Skill names use gerund form       | "testing-code", "analyzing" | Rename to gerund          |
 | Descriptions are third person     | "Tests code", not "I test"  | Rewrite in third person   |
 | Descriptions include "when"       | "Use when testing..."       | Add usage triggers        |
@@ -287,6 +297,7 @@ For each issue, draft Edit operations:
 
 | Issue Type           | Action                                |
 | -------------------- | ------------------------------------- |
+| Standalone skill     | Move to `skills/<name>/SKILL.md`      |
 | Over line limit      | Split into sub-files                  |
 | Dead docs            | Remove (from session-errors analysis) |
 | Missing section      | Add "Common Mistakes" table           |
