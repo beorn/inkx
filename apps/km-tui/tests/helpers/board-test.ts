@@ -54,12 +54,7 @@
  */
 
 import React from "react"
-import {
-  createTestRenderer,
-  keyToAnsi,
-  type App,
-  type AutoLocator,
-} from "inkx/testing"
+import { createTestRenderer, type App, type AutoLocator } from "inkx/testing"
 import { expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import type { KNode, NodeRules, NodeType } from "@km/core"
@@ -321,8 +316,9 @@ export function testEnv(
       return result.locator("[data-bell]").count() > 0
     },
     press: (key: string) => {
-      const sequence = keyToAnsi(key)
-      result.stdin.write(sequence)
+      // Fire-and-forget - app.press() is async but we don't need to await
+      // because React state updates happen synchronously in the test renderer
+      void result.press(key)
       return board
     },
     q: (selector: string) => {
@@ -584,8 +580,9 @@ class BoardTestImpl implements BoardTest {
   // --- Actions ---
 
   press(key: string): this {
-    const sequence = keyToAnsi(key)
-    this.result.stdin.write(sequence)
+    // Fire-and-forget - app.press() is async but we don't need to await
+    // because React state updates happen synchronously in the test renderer
+    void this.result.press(key)
     // AutoLocator auto-refreshes on each access - no manual refresh needed
     return this
   }
@@ -599,7 +596,7 @@ class BoardTestImpl implements BoardTest {
 
   type(text: string): this {
     for (const char of text) {
-      this.result.stdin.write(char)
+      void this.result.press(char)
     }
     // AutoLocator auto-refreshes on each access - no manual refresh needed
     return this

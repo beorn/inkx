@@ -79,7 +79,7 @@
  *   )
  * )
  * ```
- * - `testEnv()` creates Board component with stdin.write() for keyboard input
+ * - `testEnv()` creates Board component with app.press() for keyboard input
  * - `item()` builds nested trees inline, content is used as node ID
  * - Self-documenting: `#1a`, `#col1` are both the content and test selector
  *

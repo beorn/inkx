@@ -54,9 +54,9 @@ export {
 // Board color system
 export {
   GTD_BOARD_COLORS,
-  getChalkColor,
+  getTermColor,
   normalizeBoardName,
   getBoardColorByName,
   colorize,
-  type ChalkColor,
+  type TermColor,
 } from "./colors.ts"

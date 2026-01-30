@@ -183,4 +183,25 @@ grep -rn "\.lastFrame()\|\.getContainer()" packages apps --include="*.ts" --incl
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
+echo "=== PATTERN 24: stdin.write() for keyboard input ==="
+# Old keyboard input pattern: keyToAnsi() + stdin.write()
+# New pattern: app.press('key') - Playwright-style API
+# Note: stdin.write is OK for raw ANSI sequences in production code, flag test usage
+grep -rn "stdin\.write\|keyToAnsi" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/" || true
+echo ""
+
+echo "=== PATTERN 25: createTestRenderer in production code ==="
+# createTestRenderer is for tests only - production code should use renderStatic()
+# Note: src/testing.ts is a test utility exported for test consumption, not production code
+grep -rn "createTestRenderer" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/\|\.test\.\|tests/\|storybook\|src/testing\.ts" || true
+echo ""
+
+echo "=== PATTERN 26: Direct chalk imports ==="
+# Should use term.red() etc via createTerm/useTerm, not chalk directly
+grep -rn "^import.*from ['\"]chalk['\"]" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/" || true
+echo ""
+
 echo "Pattern detection complete."

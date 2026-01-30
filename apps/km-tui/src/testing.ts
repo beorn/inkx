@@ -29,7 +29,7 @@
  */
 
 import React from "react"
-import { createTestRenderer, bufferToStyledText, keyToAnsi } from "inkx/testing"
+import { createTestRenderer, bufferToStyledText } from "inkx/testing"
 import type { AutoLocator } from "inkx/testing"
 import type { KNode } from "@km/core"
 import type { Repo } from "@km/storage"
@@ -63,7 +63,7 @@ export interface BoardTestHarness extends AutoLocator {
   /** Get styled screenshot (with ANSI codes) */
   screenshotAnsi(): string
 
-  // Input simulation
+  // Input simulation (uses app.press() Playwright-style API, fire-and-forget)
   /** Press a single key */
   press(key: string): void
   /** Press multiple keys in sequence */
@@ -254,22 +254,20 @@ export async function createBoardTest(
       return bufferToStyledText(buffer)
     },
 
-    // Input simulation
+    // Input simulation - use app.press() (Playwright-style API, fire-and-forget)
     press(key) {
-      // Use inkx's keyToAnsi for consistent key mapping
-      const sequence = keyToAnsi(key)
-      app.stdin.write(sequence)
+      void app.press(key)
     },
 
     pressMultiple(keys) {
       for (const key of keys) {
-        this.press(key)
+        void app.press(key)
       }
     },
 
     type(text) {
       for (const char of text) {
-        app.stdin.write(char)
+        void app.press(char)
       }
     },
 

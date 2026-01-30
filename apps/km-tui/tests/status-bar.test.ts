@@ -11,6 +11,10 @@ import { StatusBar } from "../src/views/StatusBar.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import type { UIState } from "../src/ui-reducer.ts"
 
+// Module-level renderers (created once, reused across tests)
+const render80 = createTestRenderer({ columns: 80, rows: 24 })
+const render40 = createTestRenderer({ columns: 40, rows: 24 })
+
 /**
  * Helper to render StatusBar with custom UI state
  */
@@ -26,7 +30,7 @@ function renderStatusBar(
     status: statusConfig,
   }
 
-  const render = createTestRenderer({ columns: termWidth, rows: 24 })
+  const render = termWidth === 40 ? render40 : render80
   return render(React.createElement(StatusBar, { ui, termWidth }))
 }
 

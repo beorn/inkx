@@ -5,7 +5,16 @@
  * Colors are inherited down the tree - a board's color applies to all its children.
  */
 
-import chalk, { type ChalkInstance } from "chalk"
+import { createTerm, type StyleChain } from "inkx"
+
+// Module-level term instance for styling (lazily initialized)
+let _term: ReturnType<typeof createTerm> | null = null
+function getTerm(): StyleChain {
+  if (!_term) {
+    _term = createTerm({ color: "truecolor" })
+  }
+  return _term
+}
 
 /**
  * GTD board default colors
@@ -22,9 +31,9 @@ export const GTD_BOARD_COLORS: Record<string, string> = {
 }
 
 /**
- * Valid chalk color names
+ * Valid terminal color names
  */
-export type ChalkColor =
+export type TermColor =
   | "black"
   | "red"
   | "green"
@@ -37,31 +46,32 @@ export type ChalkColor =
   | "grey"
 
 /**
- * Get chalk function for a color name
+ * Get styling function for a color name
  */
-export function getChalkColor(color: string): ChalkInstance {
+export function getTermColor(color: string): (text: string) => string {
+  const term = getTerm()
   switch (color) {
     case "black":
-      return chalk.black
+      return (text: string) => term.black(text)
     case "red":
-      return chalk.red
+      return (text: string) => term.red(text)
     case "green":
-      return chalk.green
+      return (text: string) => term.green(text)
     case "yellow":
-      return chalk.yellow
+      return (text: string) => term.yellow(text)
     case "blue":
-      return chalk.blue
+      return (text: string) => term.blue(text)
     case "magenta":
-      return chalk.magenta
+      return (text: string) => term.magenta(text)
     case "cyan":
-      return chalk.cyan
+      return (text: string) => term.cyan(text)
     case "white":
-      return chalk.white
+      return (text: string) => term.white(text)
     case "gray":
     case "grey":
-      return chalk.gray
+      return (text: string) => term.gray(text)
     default:
-      return chalk.dim // fallback for unknown colors
+      return (text: string) => term.dim(text) // fallback for unknown colors
   }
 }
 
@@ -86,5 +96,5 @@ export function getBoardColorByName(name: string): string | undefined {
  */
 export function colorize(text: string, color: string | undefined): string {
   if (!color) return text
-  return getChalkColor(color)(text)
+  return getTermColor(color)(text)
 }
