@@ -38,6 +38,9 @@ When user says `/pm <action>`, run these commands:
 | `/pm close <id>`    | `bd close <id>`                                              | action      |
 | `/pm sync`          | `git add .beads && git commit -m "chore: sync beads"`        | action      |
 | `/pm my`            | `bd list --assignee $USER`                                   | info        |
+| `/pm rebase`        | Load [workflows/rebase.md](workflows/rebase.md) for session reset | ask         |
+| `/pm replan`        | Load [workflows/rebase.md](workflows/rebase.md) (alias)      | ask         |
+| `/pm regroup`       | Load [workflows/rebase.md](workflows/rebase.md) (alias)      | ask         |
 | `/pm new <id> "t"`  | `bd create --id <id> --title "t"` (check prefix: `bd list --limit 1`) | action      |
 | `/pm create ...`    | See [beads.md](beads.md) for full create syntax              | action      |
 
@@ -90,8 +93,8 @@ The user's command IS the confirmation. Never re-ask intent that was already exp
 
 **Before creating new beads**: Check if similar issues were discussed before:
 ```bash
-bun history fts "error handling"  # Search past sessions
-bun history similar "TUI rendering bug"  # Find similar questions
+bun history "error handling"  # Search past sessions
+bun history -q "TUI rendering bug"  # Find user questions about this
 ```
 
 **Actor tracking** (automatic via session prehook):
@@ -161,6 +164,7 @@ Beads use group prefixes for package families (configured in `alias_prefixes`):
 | [workflows/features.md](workflows/features.md) | Feature implementation (assess, plan, TDD) |
 | [workflows/tasks.md](workflows/tasks.md)       | Task completion (refactoring, cleanup)     |
 | [workflows/review.md](workflows/review.md)     | Backlog grooming (infrequent)              |
+| [workflows/rebase.md](workflows/rebase.md)     | Session reset, context cleanup, planning   |
 | [workflows/upstream.md](workflows/upstream.md) | External dependency bugs                   |
 | [beads.md](beads.md)                           | Full CLI reference, all subcommands        |
 | [beads-ids.md](beads-ids.md)                   | Bead ID conventions, scope tokens          |

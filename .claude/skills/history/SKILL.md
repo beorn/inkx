@@ -1,6 +1,6 @@
 ---
 description: Searches Claude Code session history with FTS5. Use when recovering lost content, finding past conversations, or checking before LLM queries.
-argument-hint: [fts|similar|now|hour|day] <query>
+argument-hint: [query] [-q|-r] [-s time] [-i types] [-p project]
 allowed-tools: Bash, Read
 ---
 
@@ -12,34 +12,66 @@ Fast SQLite + FTS5 search across all Claude Code sessions.
 
 ## Quick Reference
 
-| Goal | Command |
-|------|---------|
-| Search content | `bun history fts "search term"` |
-| Similar questions | `bun history similar "how to X"` |
-| Recent activity | `bun history hour` |
-| Today's activity | `bun history day` |
-| Recover file | `bun history restore path/to/file` |
-| Full help | `bun history --help` |
-
-## Before LLM Queries
-
-Check if you've researched this before:
-
 ```bash
-# Manual check
-bun history similar "TUI testing best practices"
+# Basic search
+bun history "search term"
 
-# Or use prepare (does this automatically)
-bun llm prepare "TUI testing"
+# Questions only, last hour
+bun history -q -s 1h "how do I"
+
+# All questions from today
+bun history -q -s today
+
+# Plans and messages about refactoring
+bun history -i p,m "refactor"
+
+# Regex search
+bun history -g "function\s+\w+Async"
+
+# Tool operations in a project today
+bun history -t Write -p "*km*" -s 1d
+
+# Activity summaries
+bun history now       # Last 5 minutes
+bun history hour      # Last hour
+bun history day       # Today
 ```
 
-## Commands
+## Search Options
 
-### Search (Fast - requires index)
-| Command | Description |
-|---------|-------------|
-| `fts <query>` | Full-text search (<100ms) |
-| `similar <query>` | Find similar past questions |
+| Option | Description |
+|--------|-------------|
+| `-i, --include <types>` | Content types: `p,m,s,t` or `plans,messages,summaries,todos` |
+| `-g, --grep` | Regex mode (slower, scans files) |
+| `-q, --question` | Only user questions |
+| `-r, --response` | Only assistant responses |
+| `-t, --tool <name>` | Messages with specific tool (Write, Bash, etc.) |
+| `-s, --since <time>` | Time window: `1h`, `1d`, `1w`, `today`, `yesterday` (default: 30d) |
+| `-p, --project <glob>` | Project glob match (e.g., `*km*`) |
+| `--session <id>` | Specific session |
+| `-n, --limit <num>` | Max results (default: 10) |
+| `--json` | JSON output |
+
+## Content Types
+
+| Short | Long | Description |
+|-------|------|-------------|
+| m | messages | All messages (user + assistant + tool) |
+| p | plans | Plan files (~/.claude/plans/*.md) |
+| s | summaries | Session summaries (auto-generated) |
+| t | todos | Todo lists (~/.claude/todos/*.json) |
+
+## Time Formats
+
+| Format | Meaning |
+|--------|---------|
+| `1h`, `2h` | Hours ago |
+| `1d`, `7d` | Days ago |
+| `1w`, `2w` | Weeks ago |
+| `today` | Since midnight |
+| `yesterday` | Since yesterday midnight |
+
+## Commands
 
 ### Activity Dashboard
 | Command | Description |
@@ -58,7 +90,7 @@ bun llm prepare "TUI testing"
 ### File Recovery
 | Command | Description |
 |---------|-------------|
-| `search <pattern>` | Find file writes |
+| `writes-search <pattern>` | Find file writes |
 | `restore <file>` | Recover content |
 
 ### Indexing
@@ -67,11 +99,16 @@ bun llm prepare "TUI testing"
 | `index` | Build/rebuild FTS5 index |
 | `index --incremental` | Update new sessions only |
 
-## Integration with LLM
+## Before LLM Queries
 
-- `bun llm prepare` checks history automatically
-- `bun llm ask --with-history` includes past context
-- Both share `~/.claude/session-index.db`
+Check if you've researched this before:
+
+```bash
+bun history "TUI testing best practices"
+
+# Or use prepare (does this automatically)
+bun llm prepare "TUI testing"
+```
 
 ## Performance
 
