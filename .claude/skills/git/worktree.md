@@ -4,24 +4,26 @@
 
 Manages git worktrees for parallel development. Handles km's submodules, dependencies, and direnv automatically.
 
+**Tool location**: `vendor/beorn-claude-tools/tools/worktree.ts` (also available as `bun run worktree`)
+
 ## Quick Reference
 
 ```bash
 # Show status and help
-bun worktree              # List worktrees with status + help
+bun run worktree
 
 # Create worktree
-bun worktree create <name> [branch]
-bun worktree create my-feature          # New branch feat/my-feature
-bun worktree create bugfix fix/cursor   # Specific branch
-bun worktree create test main           # Track main
+bun run worktree create <name> [branch]
+bun run worktree create my-feature          # New branch feat/my-feature
+bun run worktree create bugfix fix/cursor   # Specific branch
+bun run worktree create test main           # Track main
 
 # Remove worktree
-bun worktree remove <name>
-bun worktree remove my-feature --delete-branch  # Also delete branch
+bun run worktree remove <name>
+bun run worktree remove my-feature --delete-branch  # Also delete branch
 
 # Detailed status
-bun worktree list         # Shows uncommitted changes
+bun run worktree list         # Shows uncommitted changes
 ```
 
 ## How Worktrees Are Created
@@ -63,7 +65,7 @@ If you see "Found unpushed submodule commits":
 git submodule foreach "git push origin HEAD || true"
 
 # Then retry
-bun worktree create my-feature
+bun run worktree create my-feature
 ```
 
 ## Post-Create Setup
@@ -117,15 +119,15 @@ Your working tree has changes that won't be in the new worktree:
 ```bash
 # Option 1: Commit first
 git add . && git commit -m "WIP"
-bun worktree create my-feature
+bun run worktree create my-feature
 
 # Option 2: Stash
 git stash
-bun worktree create my-feature
+bun run worktree create my-feature
 # Later: git stash pop
 
 # Option 3: Create anyway (worktree won't have your changes)
-bun worktree create my-feature --allow-dirty
+bun run worktree create my-feature --allow-dirty
 ```
 
 ### "Found unpushed submodule commits"
@@ -136,7 +138,7 @@ Push your submodule changes first:
 cd vendor/beorn-inkx
 git push
 cd ../..
-bun worktree create my-feature
+bun run worktree create my-feature
 ```
 
 ### Beads/Database Conflicts
@@ -147,18 +149,6 @@ The `.beads/` database is shared across worktrees. When working in worktrees:
 # Disable beads daemon to avoid conflicts
 export BEADS_NO_DAEMON=1
 ```
-
-## Integration with km
-
-The `km worktree` command provides the same interface:
-
-```bash
-km worktree create my-feature
-km worktree remove my-feature
-km worktree list
-```
-
-Both `bun worktree` and `km worktree` use the same underlying implementation.
 
 ## See Also
 
