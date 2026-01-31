@@ -64,6 +64,7 @@ Use $ARGUMENTS for all args, or $1, $2 for positional.
 | [plugins.md](plugins.md)                   | Plugin creation, manifest        |
 | [mcp.md](mcp.md)                           | Server configuration             |
 | [/history](../history/SKILL.md)            | Session history search (FTS5)    |
+| [session.md](session.md)                   | Session recovery commands        |
 | [session-errors.md](session-errors.md)     | Analyze sessions for cmd errors  |
 | [review-claude.md](review-claude.md)       | Audit steering docs (infrequent) |
 | [review-reference.md](review-reference.md) | Audit rules (infrequent)         |
