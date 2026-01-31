@@ -132,6 +132,64 @@ For non-trivial bugs, report to user first and wait for confirmation.
 
 ---
 
+## Performance Bug Workflow
+
+For non-trivial performance issues, use **TDD with benchmarks**:
+
+### Step 1: Create Benchmark First
+
+Before optimizing, create a benchmark that exercises the problem area:
+
+```typescript
+// bench/problem-area.bench.ts
+import { bench, describe } from "vitest"
+
+describe("Performance Issue: <description>", () => {
+  bench("baseline - current behavior", () => {
+    // Exercise the slow code path
+    slowFunction(realWorldInput)
+  })
+})
+```
+
+Run to establish baseline:
+```bash
+bun run bench
+```
+
+### Step 2: Profile to Find Root Cause
+
+Add timing/counting to identify the bottleneck:
+
+```typescript
+const t0 = Date.now()
+expensiveOperation()
+debug("operation: %dms", Date.now() - t0)
+```
+
+Common culprits:
+- O(n²) loops (nested iteration over same data)
+- Excessive allocations (creating objects in hot paths)
+- Missing caching (recomputing same values)
+- Unnecessary work (recalculating when nothing changed)
+
+### Step 3: Fix and Verify
+
+After fixing, run benchmark again to verify improvement:
+
+```bash
+bun run bench
+# Compare: before vs after
+```
+
+### Step 4: Document in Bead
+
+```bash
+bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improvement)"
+```
+
+---
+
 ## Bug Priority Guide
 
 | Priority | When                       | Response                   |
@@ -147,6 +205,7 @@ For non-trivial bugs, report to user first and wait for confirmation.
 - P1: "blocks", "prevents", "can't work"
 - P2: "annoying", "workaround" (default)
 - P3: "minor", "polish", "nice to have"
+- **perf**: "slow", "lag", "takes Xms" → use Performance Bug Workflow
 
 ---
 
