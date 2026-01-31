@@ -210,4 +210,39 @@ echo "=== PATTERN 27: High complexity functions ==="
 bun scripts/complexity-report.ts --brief 2>/dev/null || true
 echo ""
 
+# =============================================================================
+# ALIGNMENT/GUIDELINES (Patterns 28-31) - from docs/principles.md Quick Reference
+# =============================================================================
+
+echo "=== PATTERN 28: ensure* defensive checks ==="
+# Should let lower levels throw naturally (NOT ensureDir/ensureKmDir - those are setup)
+grep -rn "ensureOpen\|ensureValid\|ensureClosed\|ensureConnected\|ensureInitialized" \
+  packages apps --include="*.ts" --exclude="*.test.ts" 2>/dev/null \
+  | grep -v "node_modules\|vendor/" || true
+echo ""
+
+echo "=== PATTERN 29: Getters (use plain properties) ==="
+# get propertyName() should be plain properties for simple access
+grep -rn "^\s*get [a-z][a-zA-Z]*\s*().*{" packages apps --include="*.ts" \
+  --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/" || true
+echo ""
+
+echo "=== PATTERN 30: opts.ensure embedded side effects ==="
+# Options that trigger side effects - caller should handle preconditions
+grep -rn "ensure\?: boolean\|ensure: boolean\|\.ensure &&\|\.ensure)" packages apps \
+  --include="*.ts" --exclude="*.test.ts" 2>/dev/null \
+  | grep -v "node_modules\|vendor/" || true
+echo ""
+
+echo "=== PATTERN 31: Switch statements (review for lookup objects) ==="
+# Not violations, but candidates for review - many should be lookup objects
+# Show count only, full output is too noisy
+count=$(grep -rn "switch\s*(" packages apps --include="*.ts" --exclude="*.test.ts" \
+  2>/dev/null | grep -v "node_modules\|vendor/" | wc -l)
+echo "$count switch statements found (review manually: lookup objects vs discriminated unions)"
+grep -rn "switch\s*(" packages apps --include="*.ts" --exclude="*.test.ts" \
+  2>/dev/null | grep -v "node_modules\|vendor/" | head -10 || true
+echo "..."
+echo ""
+
 echo "Pattern detection complete."

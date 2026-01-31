@@ -59,6 +59,20 @@ export const viewCommand = new Command("view")
     if (resolved.nodeRef) {
       const node = createdRepo.resolveNode(resolved.nodeRef)
       rootNodeId = node?.id
+
+      // km-view-stub: If targeting a stub file, parse it eagerly
+      // Stub files have data._stub = true and no children until parsed
+      if (node?.type === "file" && interactive) {
+        const data = node.data as { _stub?: boolean } | undefined
+        if (data?._stub && node.fs_path) {
+          debug("parsing stub file eagerly: %s", node.fs_path)
+          storageModule.parseStubFile(
+            createdRepo.database,
+            node.id,
+            node.fs_path,
+          )
+        }
+      }
     } else {
       // No specific node requested - use repo root folder node
       // The smart resolver finds the folder node with parent_id = null and type = 'folder'
