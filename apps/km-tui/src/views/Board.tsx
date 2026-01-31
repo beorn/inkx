@@ -593,6 +593,10 @@ export function Board({
       countVisibleDescendants(repo, node, depth, maxDepth, foldedNodes),
   })
 
+  // Ref to track current tuiContext for event handlers (avoids stale closure)
+  const tuiContextRef = useRef(tuiContext)
+  tuiContextRef.current = tuiContext
+
   // Initialize command system on first render
   useEffect(() => {
     ensureCommandSystemInitialized()
@@ -614,16 +618,17 @@ export function Board({
   )
 
   // Main keyboard input handler - ALL keys go through @km/commands
+  // Use tuiContextRef.current to get fresh context (avoids stale closure)
   useInput((input, key) => {
     handleBoardKeyInput(
       input,
       key,
-      tuiContext,
+      tuiContextRef.current,
       {
-        showNewItemDialog: ui.showNewItemDialog,
-        showProjectPicker: ui.showProjectPicker,
-        showSearchDialog: ui.showSearchDialog,
-        showHelp: ui.showHelp,
+        showNewItemDialog: tuiContextRef.current.ui.showNewItemDialog,
+        showProjectPicker: tuiContextRef.current.ui.showProjectPicker,
+        showSearchDialog: tuiContextRef.current.ui.showSearchDialog,
+        showHelp: tuiContextRef.current.ui.showHelp,
       },
       dispatch,
       onExit,

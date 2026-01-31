@@ -375,7 +375,13 @@ function handleJumpToColumn(
 }
 
 function handleCloseOrQuit(ctx: TUIContext): ActionResult {
-  const { ui, dispatch } = ctx
+  const { ui, dispatch, boardState, dispatchBoard } = ctx
+
+  // Cancel move mode first (highest priority for escape)
+  if (boardState.moveMode) {
+    dispatchBoard({ type: "CANCEL_MOVE" })
+    return ok()
+  }
 
   // Close any open overlay first
   if (ui.showDetailPane) {

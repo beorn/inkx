@@ -90,25 +90,64 @@ export function resolveNode(
     return rows.map(rowToNode)
   }
 
-  // Helper to check ambiguity and return first match
+  // Helper to check ambiguity and return best match
+  // When multiple matches exist, prefer:
+  // 1. Folders over files (directory named X beats file X.md inside it)
+  // 2. Parent paths over children (inbox/ beats inbox/inbox.md)
   const checkAmbiguity = (
     matches: KNode[],
     matchType: string,
   ): KNode | null => {
     if (matches.length === 0) return null
-    if (matches.length > 1) {
-      debug(
-        "resolveNode: AMBIGUOUS - %d matches for '%s' by %s: %s",
-        matches.length,
-        q,
-        matchType,
-        matches.map((n) => n.id).join(", "),
-      )
-      console.warn(
-        `Warning: Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`,
-      )
+    if (matches.length === 1) return matches[0] ?? null
+
+    // Sort matches: folders first, then by path length (shorter = closer to root)
+    const sorted = [...matches].sort((a, b) => {
+      // Folders before files
+      if (a.type === "folder" && b.type !== "folder") return -1
+      if (b.type === "folder" && a.type !== "folder") return 1
+      // Shorter paths first (parent directories)
+      const aPath = a.fs_path ?? ""
+      const bPath = b.fs_path ?? ""
+      return aPath.length - bPath.length
+    })
+
+    const best = sorted[0]
+    if (!best) return null
+
+    // Check if the best match is a parent of all others - no ambiguity in that case
+    const bestPath = best.fs_path
+    if (bestPath) {
+      const isParentOfAll = sorted.slice(1).every((m) => {
+        const mPath = m.fs_path
+        return mPath?.startsWith(bestPath + "/")
+      })
+      if (isParentOfAll) {
+        debug(
+          "resolveNode: resolved '%s' to parent %s (children: %s)",
+          q,
+          best.id,
+          sorted
+            .slice(1)
+            .map((n) => n.id)
+            .join(", "),
+        )
+        return best
+      }
     }
-    return matches[0] ?? null
+
+    // Truly ambiguous - warn the user
+    debug(
+      "resolveNode: AMBIGUOUS - %d matches for '%s' by %s: %s",
+      matches.length,
+      q,
+      matchType,
+      matches.map((n) => n.id).join(", "),
+    )
+    console.warn(
+      `Warning: Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`,
+    )
+    return best
   }
 
   // ==========================================================================

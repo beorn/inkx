@@ -78,7 +78,14 @@ export function BottomBar({
   // Build status parts (middle)
   const statusParts: string[] = []
 
-  // Status message has priority - show it if present
+  // Mode indicators always shown first (they're important UI state)
+  if (moveMode) statusParts.push("[MOVE]")
+  if (ui.showHelp) statusParts.push("[?]")
+  if (ui.showProjectPicker) statusParts.push("[PROJ]")
+  if (ui.showNewItemDialog) statusParts.push("[NEW]")
+  if (ui.inOutlineMode) statusParts.push("OUT")
+
+  // Status message shown after mode indicators
   if (ui.status) {
     const icons = {
       info: "ℹ",
@@ -89,11 +96,7 @@ export function BottomBar({
     const icon = icons[ui.status.level]
     statusParts.push(`${icon} ${ui.status.message}`)
   } else {
-    // Normal status indicators (only when no status message)
-    if (moveMode) statusParts.push("[MOVE]")
-    if (ui.showHelp) statusParts.push("[?]")
-    if (ui.showProjectPicker) statusParts.push("[PROJ]")
-    if (ui.showNewItemDialog) statusParts.push("[NEW]")
+    // Additional indicators only when no status message
     if (ui.showDropNotification && ui.droppedFiles.length > 0) {
       statusParts.push(`[Drop:${ui.droppedFiles.length}]`)
     }
@@ -103,7 +106,6 @@ export function BottomBar({
     if (ui.multiSelected.size > 0) {
       statusParts.push(`[${ui.multiSelected.size}]`)
     }
-    if (ui.inOutlineMode) statusParts.push("OUT")
   }
 
   // Right side info (always visible)
@@ -144,19 +146,23 @@ export function BottomBar({
       id="bottom-bar"
       data-status={ui.status?.level}
     >
-      <Box width={leftWidth} flexShrink={0}>
-        <Text dimColor wrap="truncate-end">
-          {/* Storage mode indicator */}
-          <Text id="storage-mode">{modeLabel}</Text>
-          {" 📁"}
-          <Text id="repo-path">{displayPath}</Text>
-          {middle && (
-            <>
-              {"   "}
-              <Text id="status-message">{middle}</Text>
-            </>
-          )}
+      <Box width={leftWidth} flexShrink={0} flexDirection="row">
+        {/* Storage mode indicator */}
+        <Text dimColor id="storage-mode">
+          {modeLabel}
         </Text>
+        <Text dimColor>{" 📁"}</Text>
+        <Text dimColor id="repo-path">
+          {displayPath}
+        </Text>
+        {middle && (
+          <>
+            <Text dimColor>{"   "}</Text>
+            <Text dimColor id="status-message">
+              {middle}
+            </Text>
+          </>
+        )}
       </Box>
       <Box width={rightWidth} flexShrink={0}>
         <Text dimColor>

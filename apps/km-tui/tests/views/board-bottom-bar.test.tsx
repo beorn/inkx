@@ -322,7 +322,7 @@ describe("BottomBar", () => {
     expect(output).not.toContain("[MOVE]")
   })
 
-  it("hides move mode indicator when status message is shown", () => {
+  it("shows move mode indicator alongside status message", () => {
     const uiWithStatus: UIState = {
       ...mockUIState,
       status: { level: "info", message: "Test message" },
@@ -339,7 +339,9 @@ describe("BottomBar", () => {
       />,
     )
     const output = app.text
+    // Mode indicator should always be visible when in move mode
+    expect(output).toContain("[MOVE]")
+    // Status message should also be visible
     expect(output).toContain("Test message")
-    expect(output).not.toContain("[MOVE]")
   })
 })
