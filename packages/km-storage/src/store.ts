@@ -507,6 +507,7 @@ export class MemoryStore extends BaseStore {
           type: "folder",
           parent_id: parentId,
           fs_path: fullPath,
+          name: entry.name, // Folder name for link resolution (e.g., "inbox" for [[inbox]])
           content: entry.name,
           parent_idx: order++,
         })
@@ -661,9 +662,9 @@ export class MemoryStore extends BaseStore {
     const now = Date.now()
     this.db.run(
       `INSERT INTO nodes (
-        id, type, parent_id, parent_idx, fs_path, md_line,
+        id, type, parent_id, parent_idx, fs_path, md_line, name,
         content, title, task_status, task_mark, data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id ?? null,
         node.type ?? null,
@@ -671,6 +672,7 @@ export class MemoryStore extends BaseStore {
         node.parent_idx ?? 0,
         node.fs_path ?? null,
         node.md_line ?? null,
+        node.name ?? null,
         node.content ?? null,
         node.title ?? null,
         node.task_status ?? null,

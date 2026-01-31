@@ -14,24 +14,29 @@ import { rowToNode } from "./utils.ts"
 // =============================================================================
 
 /**
- * Find a file node by name (for wikilink resolution)
+ * Find a node by name (for wikilink resolution)
+ * Matches files, folders, and sections that have a name field.
+ * Falls back to fs_path matching for backwards compatibility.
  */
 export function findFileByName(db: Database, name: string): KNode | null {
   const normalizedName = name.toLowerCase().replace(/\.md$/, "")
 
+  // Single query: prefer exact name match, fall back to path match
+  // Uses ORDER BY to prioritize name matches over path matches
   const row = db
     .query(
       `
     SELECT * FROM nodes
-    WHERE type = 'file'
-    AND (
-      LOWER(REPLACE(fs_path, '.md', '')) LIKE '%' || ? || '%'
-      OR LOWER(json_extract(data, '$.name')) = ?
-    )
+    WHERE LOWER(name) = ?
+       OR (type = 'file' AND LOWER(REPLACE(fs_path, '.md', '')) LIKE '%' || ? || '%')
+    ORDER BY CASE WHEN LOWER(name) = ? THEN 0 ELSE 1 END
     LIMIT 1
   `,
     )
-    .get(normalizedName, normalizedName) as Record<string, unknown> | null
+    .get(normalizedName, normalizedName, normalizedName) as Record<
+    string,
+    unknown
+  > | null
 
   if (!row) return null
   return rowToNode(row)

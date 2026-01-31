@@ -55,26 +55,38 @@ export interface CreateHandlerOptions {
  * Unified handler that works with both filesystem parsing and pre-parsed content.
  */
 export function handleCreate(options: CreateHandlerOptions): void {
-  const { db, op, repoRoot, emitter, fs, parsed } = options
+  const { db, op, repoRoot, emitter, fs, parsed, ctx } = options
 
-  // Ensure all parent folders exist as nodes
-  const parentId = ensureFolderHierarchy(db, op.path, repoRoot, emitter, fs)
+  // Ensure all parent folders exist as nodes (and add them to resolver for linking)
+  const parentId = ensureFolderHierarchy(
+    db,
+    op.path,
+    repoRoot,
+    emitter,
+    fs,
+    ctx.resolver,
+  )
 
   // Get stats - either from parsed result or filesystem
   const stat = parsed ? null : fs.statSync(op.path)
 
   if (stat?.isDirectory()) {
     // Create folder node
+    const folderId = ulid()
+    const folderName = basename(op.path)
     emitNodeCreated(emitter, "fs-watch", {
-      id: ulid(),
+      id: folderId,
       type: "folder",
       fs_path: op.path,
       fs_ino: op.ino,
       fs_mtime: op.mtime ?? stat.mtimeMs,
       parent_id: parentId,
-      content: basename(op.path),
-      data: { name: basename(op.path) },
+      name: folderName, // Folder name for link resolution (e.g., "inbox" for [[inbox]])
+      content: folderName,
+      data: {},
     })
+    // Add folder to resolver so subsequent files can link to it (e.g., ![[inbox]])
+    options.ctx.resolver.addFile(folderId, folderName)
     return
   }
 
@@ -185,6 +197,7 @@ function handleMarkdownCreate(
 /**
  * Ensure all ancestor folders exist as nodes, creating them if needed.
  * Returns the ID of the immediate parent folder node.
+ * Adds created folders to the resolver for link resolution.
  */
 function ensureFolderHierarchy(
   db: Database,
@@ -192,6 +205,7 @@ function ensureFolderHierarchy(
   repoRoot: string,
   emitter: Emitter,
   fs: FileSystemOps,
+  resolver: LinkResolver,
 ): string | null {
   const parentPath = dirname(path)
 
@@ -217,12 +231,14 @@ function ensureFolderHierarchy(
     repoRoot,
     emitter,
     fs,
+    resolver,
   )
 
   // Create the parent folder node
   try {
     const stat = fs.statSync(parentPath)
     const folderId = ulid()
+    const folderName = basename(parentPath)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
       type: "folder",
@@ -230,9 +246,12 @@ function ensureFolderHierarchy(
       fs_ino: stat.ino,
       fs_mtime: stat.mtimeMs,
       parent_id: grandparentId,
-      content: basename(parentPath),
-      data: { name: basename(parentPath) },
+      name: folderName, // Folder name for link resolution
+      content: folderName,
+      data: {},
     })
+    // Add folder to resolver so files can link to it (e.g., ![[inbox]])
+    resolver.addFile(folderId, folderName)
     return folderId
   } catch {
     // Parent folder doesn't exist on filesystem

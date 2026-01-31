@@ -323,6 +323,7 @@ function createFolderEvent(
       parent_id: parentId,
       parent_idx: order,
       fs_path: fsPath,
+      name, // Folder name for link resolution (e.g., "inbox" for [[inbox]])
       content: name,
     },
   }

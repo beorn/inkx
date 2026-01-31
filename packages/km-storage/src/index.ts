@@ -102,6 +102,7 @@ export {
   loadRepo,
   resolveLinksAsync,
   parseDeferredAsync,
+  parseStubFile,
   migrateToRepoRootNode,
 } from "./repo-loader.ts"
 /* eslint-enable @typescript-eslint/no-deprecated */

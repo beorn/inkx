@@ -794,3 +794,113 @@ async function parseDeferredSequential(
 
   return { parsed, pendingLinks }
 }
+
+/**
+ * Parse a single stub file synchronously.
+ *
+ * Use when targeting a specific file in discoverOnly mode - parse that file
+ * eagerly so it has content before the board renders.
+ *
+ * @param db - Database instance
+ * @param nodeId - The stub node ID
+ * @param fsPath - Filesystem path to the markdown file
+ * @returns true if parsed successfully, false if stub not found or parse failed
+ */
+export function parseStubFile(
+  db: Database,
+  nodeId: string,
+  fsPath: string,
+): boolean {
+  debug("parseStubFile: parsing %s", fsPath)
+
+  try {
+    const content = readFileSync(fsPath, "utf-8")
+    const { nodes } = parseMarkdownWithLinks(content, fsPath)
+
+    const stubRow = db
+      .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
+      .get(nodeId) as {
+      parent_id: string | null
+      parent_idx: number
+    } | null
+
+    if (!stubRow) {
+      debug("parseStubFile: stub %s not found", nodeId)
+      return false
+    }
+
+    db.run("BEGIN IMMEDIATE")
+
+    try {
+      db.prepare("DELETE FROM nodes WHERE id = ?").run(nodeId)
+
+      const fileNode = nodes[0]
+      const originalFileId = fileNode?.id
+      if (fileNode?.type === "file") {
+        fileNode.id = nodeId
+        fileNode.parent_id = stubRow.parent_id
+        fileNode.parent_idx = stubRow.parent_idx
+
+        // Update child nodes to point to the preserved file node ID
+        for (const node of nodes) {
+          if (node.parent_id === originalFileId) {
+            node.parent_id = nodeId
+          }
+        }
+      }
+
+      const insertStmt = db.prepare(`
+        INSERT INTO nodes (
+          id, type, parent_id, link_to, link_alias, parent_idx,
+          fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
+          task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+          content, content_hash, data,
+          created_at, updated_at, version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+
+      const now = Date.now()
+      for (const node of nodes) {
+        const data = node.data ?? {}
+        insertStmt.run(
+          node.id,
+          node.type,
+          node.parent_id ?? null,
+          node.link_to ?? null,
+          node.link_alias ?? null,
+          node.parent_idx ?? 0,
+          node.fs_path ?? null,
+          node.fs_ino ?? null,
+          node.fs_mtime ?? null,
+          node.name ?? null,
+          node.title ?? null,
+          node.md_pos ?? null,
+          node.md_line ?? null,
+          node.md_slug ?? null,
+          node.task_status ?? null,
+          node.task_mark ?? null,
+          node.assigned_to ?? null,
+          node.due_date ?? null,
+          node.scheduled_date ?? null,
+          node.priority ?? null,
+          node.content ?? null,
+          node.content_hash ?? null,
+          JSON.stringify(data),
+          now,
+          now,
+          node.version || "",
+        )
+      }
+
+      db.run("COMMIT")
+      debug("parseStubFile: success, %d nodes", nodes.length)
+      return true
+    } catch (error) {
+      db.run("ROLLBACK")
+      throw error
+    }
+  } catch (err) {
+    debug("parseStubFile: error %s", err)
+    return false
+  }
+}

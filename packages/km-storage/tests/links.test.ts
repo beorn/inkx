@@ -213,6 +213,79 @@ describe("Links and Backlinks", () => {
     })
   })
 
+  describe("Folder Embedding", () => {
+    test("should resolve embedding to folder by name", () => {
+      const testDir = createTestDir()
+      // Create a folder with files
+      mkdirSync(join(testDir, "inbox"), { recursive: true })
+      writeFileSync(
+        join(testDir, "inbox", "task1.md"),
+        "# Task 1\n\n- [ ] Do something",
+      )
+
+      // Create a file that embeds the folder
+      writeFileSync(join(testDir, "board.md"), "# Board\n\n![[inbox]]")
+
+      using store = new MemoryStore(testDir)
+      const nodes = store.getAllNodes()
+
+      // Find the embedding node (paragraph with ![[inbox]])
+      const embedNode = nodes.find((n) => n.content?.includes("![[inbox]]"))
+      expect(embedNode).toBeDefined()
+
+      // Find the inbox folder
+      const inboxFolder = nodes.find(
+        (n) => n.type === "folder" && n.name === "inbox",
+      )
+      expect(inboxFolder).toBeDefined()
+
+      // The embedding should point to the folder
+      expect(embedNode?.link_to).toBe(inboxFolder?.id)
+    })
+
+    test("should resolve embedded folder link_to", () => {
+      const testDir = createTestDir()
+      mkdirSync(join(testDir, "projects"), { recursive: true })
+      writeFileSync(
+        join(testDir, "projects", "proj1.md"),
+        "# Project 1\n\nContent",
+      )
+
+      // Use embedding syntax to test link_to resolution
+      writeFileSync(join(testDir, "index.md"), "# Index\n\n![[projects]]")
+
+      using store = new MemoryStore(testDir)
+      const nodes = store.getAllNodes()
+
+      // Find the embedding node
+      const embedNode = nodes.find((n) => n.content?.includes("![[projects]]"))
+      expect(embedNode).toBeDefined()
+
+      // Find the projects folder
+      const projectsFolder = nodes.find(
+        (n) => n.type === "folder" && n.name === "projects",
+      )
+      expect(projectsFolder).toBeDefined()
+
+      // The embedding's link_to should point to the folder
+      expect(embedNode?.link_to).toBe(projectsFolder?.id)
+    })
+
+    test("folders should have name field populated", () => {
+      const testDir = createTestDir()
+      mkdirSync(join(testDir, "my-folder"), { recursive: true })
+      writeFileSync(join(testDir, "my-folder", "file.md"), "# File\n\nContent")
+
+      using store = new MemoryStore(testDir)
+      const folder = store
+        .getAllNodes()
+        .find((n) => n.type === "folder" && n.fs_path?.endsWith("my-folder"))
+
+      expect(folder).toBeDefined()
+      expect(folder?.name).toBe("my-folder")
+    })
+  })
+
   describe("Node Hierarchy", () => {
     test("should track parent-child relationships", () => {
       const testDir = createTestDir()

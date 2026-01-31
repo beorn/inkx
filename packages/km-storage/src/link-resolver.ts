@@ -35,16 +35,16 @@ export interface LinkResolver {
  */
 export function createLinkResolver(db: Database): LinkResolver {
   // Build lookup map: normalized name → node id
-  // Index by both basename and full path for flexible matching
-  // Include any node with fs_path (files and folders) to support folder embeds
+  // Use name field for capability-based matching (any named node is linkable)
+  // This includes files, folders, and sections
   const filesByName = new Map<string, string>()
 
   const rows = db
     .query(
       `
-    SELECT id, fs_path, json_extract(data, '$.name') as name
+    SELECT id, fs_path, name
     FROM nodes
-    WHERE fs_path IS NOT NULL
+    WHERE name IS NOT NULL
   `,
     )
     .all() as Array<{ id: string; fs_path: string | null; name: string | null }>

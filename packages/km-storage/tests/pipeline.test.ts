@@ -378,10 +378,10 @@ describe("pipelineResolveLinks()", () => {
   test("resolves links to existing files", async () => {
     const db = createTestDb()
 
-    // Insert target file
+    // Insert target file with name column (used for link resolution)
     db.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, data, created_at, updated_at, version)
-       VALUES ('target1', 'file', NULL, 0, '/test/target.md', '{"name":"target"}', 1000, 1000, '')`,
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, name, data, created_at, updated_at, version)
+       VALUES ('target1', 'file', NULL, 0, '/test/target.md', 'target', '{}', 1000, 1000, '')`,
     )
 
     const appliedFiles: AppliedFile[] = [
@@ -449,6 +449,62 @@ describe("pipelineResolveLinks()", () => {
     expect(results).toHaveLength(1)
     expect(results[0].target_id).toBeNull()
     expect(results[0].target_name).toBe("nonexistent")
+  })
+
+  test("resolves links to folders by name", async () => {
+    const db = createTestDb()
+
+    // Insert a folder with name column (folders are linkable via name)
+    db.run(
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, name, data, created_at, updated_at, version)
+       VALUES ('folder1', 'folder', NULL, 0, '/test/inbox', 'inbox', '{}', 1000, 1000, '')`,
+    )
+
+    const appliedFiles: AppliedFile[] = [
+      {
+        nodeId: "file1",
+        name: "board",
+        path: "/test/board.md",
+        wikilinks: [
+          { nodeId: "file1", link: { target: "inbox", embedded: true } },
+        ],
+      },
+    ]
+
+    const results = await collect(
+      pipelineResolveLinks(fromArray(appliedFiles), db),
+    )
+
+    expect(results).toHaveLength(1)
+    expect(results[0].source_id).toBe("file1")
+    expect(results[0].target_name).toBe("inbox")
+    expect(results[0].target_id).toBe("folder1") // Folder resolved!
+  })
+
+  test("resolves links to sections by name", async () => {
+    const db = createTestDb()
+
+    // Insert a section with name column (sections have slugified heading as name)
+    db.run(
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, name, title, data, created_at, updated_at, version)
+       VALUES ('section1', 'section', 'file1', 0, 'my-section', 'My Section', '{"depth":2}', 1000, 1000, '')`,
+    )
+
+    const appliedFiles: AppliedFile[] = [
+      {
+        nodeId: "file2",
+        name: "reference",
+        path: "/test/reference.md",
+        wikilinks: [{ nodeId: "file2", link: { target: "my-section" } }],
+      },
+    ]
+
+    const results = await collect(
+      pipelineResolveLinks(fromArray(appliedFiles), db),
+    )
+
+    expect(results).toHaveLength(1)
+    expect(results[0].target_id).toBe("section1") // Section resolved by name!
   })
 })
 

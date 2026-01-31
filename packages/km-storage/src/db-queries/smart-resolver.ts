@@ -1,8 +1,11 @@
 /**
  * Smart Resolver Queries
  *
- * Intelligent node resolution that tries multiple strategies:
- * ID matching, path matching, filename matching, content matching.
+ * Intelligent node resolution with path-first semantics and ambiguity detection.
+ *
+ * Key distinction:
+ * - Paths (contain '/') → resolve uniquely by filesystem path
+ * - Names (bare, no '/') → search by name field, may be ambiguous
  */
 
 import createDebug from "debug"
@@ -28,14 +31,11 @@ interface ResolveOptions {
 /**
  * Smart node resolver - finds a node by various identifiers.
  *
- * Resolution order:
- * 1. Exact ID match
- * 2. ID prefix match (e.g., "abc" matches "abc123...")
- * 3. ID suffix match (e.g., "xyz" matches "...xyz")
- * 4. Exact filesystem path match
- * 5. Filename match (fs_path ends with query)
- * 6. Filename without extension (e.g., "@inbox" matches "@inbox.md")
- * 7. Content/title match (for nodes without fs_path)
+ * Resolution strategy:
+ * 1. Explicit paths (/, ./, ../) → absolute fs_path match
+ * 2. Relative paths (contains /) → fs_path suffix match (unique)
+ * 3. Bare names (no /) → name-based search (may warn on ambiguity)
+ * 4. Fallback: ID match, content match
  *
  * @param db - Database instance
  * @param query - ID, path, or filename to search for
@@ -47,16 +47,19 @@ export function resolveNode(
   query: string,
   typeOrOptions?: string | ResolveOptions,
 ): KNode | null {
-  // Support both old signature (type string) and new signature (options object)
   const options: ResolveOptions =
     typeof typeOrOptions === "string"
       ? { type: typeOrOptions }
       : (typeOrOptions ?? {})
 
   const { type, taskOnly } = options
+
+  // Normalize trailing slashes - "docs/" clearly means the docs directory
+  const q = query.endsWith("/") ? query.slice(0, -1) : query
+
   debug(
     "resolveNode: %s (type=%s, taskOnly=%s)",
-    query,
+    q,
     type ?? "any",
     taskOnly ?? false,
   )
@@ -75,117 +78,199 @@ export function resolveNode(
 
   const filterClause = filters.length > 0 ? " AND " + filters.join(" AND ") : ""
 
-  // 0. Handle explicit filesystem paths (/, ./, ../)
-  // Note: ~ is expanded by the shell before reaching this code
-  if (isExplicitPath(query)) {
-    const absolutePath = resolve(process.cwd(), query)
-    // Try exact absolute path match first
-    let row = db
-      .query(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`)
-      .get(absolutePath, ...params) as Record<string, unknown> | null
-    if (row) return rowToNode(row)
+  // Helper to get single result
+  const getOne = (sql: string, ...p: (string | number)[]): KNode | null => {
+    const row = db.query(sql).get(...p) as Record<string, unknown> | null
+    return row ? rowToNode(row) : null
+  }
 
-    // For directory paths, try finding the corresponding .md file
-    // e.g., /repo/Projects → /repo/Projects.md or /repo/Projects/index.md
+  // Helper to get all results (for ambiguity detection)
+  const getAll = (sql: string, ...p: (string | number)[]): KNode[] => {
+    const rows = db.query(sql).all(...p) as Record<string, unknown>[]
+    return rows.map(rowToNode)
+  }
+
+  // Helper to check ambiguity and return first match
+  const checkAmbiguity = (
+    matches: KNode[],
+    matchType: string,
+  ): KNode | null => {
+    if (matches.length === 0) return null
+    if (matches.length > 1) {
+      debug(
+        "resolveNode: AMBIGUOUS - %d matches for '%s' by %s: %s",
+        matches.length,
+        q,
+        matchType,
+        matches.map((n) => n.id).join(", "),
+      )
+      console.warn(
+        `Warning: Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`,
+      )
+    }
+    return matches[0] ?? null
+  }
+
+  // ==========================================================================
+  // 1. Explicit filesystem paths (/, ./, ../)
+  // ==========================================================================
+  if (isExplicitPath(q)) {
+    const absolutePath = resolve(process.cwd(), q)
+    debug("resolveNode: explicit path → %s", absolutePath)
+
+    // Exact absolute path match
+    let node = getOne(
+      `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
+      absolutePath,
+      ...params,
+    )
+    if (node) return node
+
+    // Try .md extension
     if (!absolutePath.endsWith(".md")) {
-      // Try sibling .md file (Projects → Projects.md)
-      row = db
-        .query(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`)
-        .get(`${absolutePath}.md`, ...params) as Record<string, unknown> | null
-      if (row) return rowToNode(row)
+      node = getOne(
+        `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
+        `${absolutePath}.md`,
+        ...params,
+      )
+      if (node) return node
 
-      // Try index.md inside the directory
-      row = db
-        .query(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`)
-        .get(`${absolutePath}/index.md`, ...params) as Record<
-        string,
-        unknown
-      > | null
-      if (row) return rowToNode(row)
+      // Try index.md inside directory
+      node = getOne(
+        `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
+        `${absolutePath}/index.md`,
+        ...params,
+      )
+      if (node) return node
     }
 
-    // Also try matching by filename suffix (handles relative paths in DB)
-    // When DB stores "board.md" but query is "/tmp/repo/board.md"
-    row = db
-      .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`)
-      .get(`%${absolutePath.split("/").pop()}`, ...params) as Record<
-      string,
-      unknown
-    > | null
-    if (row) return rowToNode(row)
-
-    // Check if this path is the repo root folder node
-    // Repo root is identified by: parent_id IS NULL AND type = 'folder'
-    row = db
-      .query(
-        `SELECT * FROM nodes WHERE fs_path = ? AND parent_id IS NULL AND type = 'folder'${filterClause}`,
-      )
-      .get(absolutePath, ...params) as Record<string, unknown> | null
-    if (row) return rowToNode(row)
-
-    // Don't fall through for explicit paths - they should match exactly or not at all
-    // This prevents /some/path from accidentally matching an ID suffix
+    // Don't fall through for explicit paths
+    debug("resolveNode: explicit path not found")
     return null
   }
 
-  // 1. Exact ID match
-  let row = db
-    .query(`SELECT * FROM nodes WHERE id = ?${filterClause}`)
-    .get(query, ...params) as Record<string, unknown> | null
-  if (row) return rowToNode(row)
+  // ==========================================================================
+  // 2. Relative paths (contains /) → unique path resolution
+  // ==========================================================================
+  if (q.includes("/")) {
+    debug("resolveNode: relative path")
 
-  // 2. ID prefix match
-  row = db
-    .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`)
-    .get(`${query}%`, ...params) as Record<string, unknown> | null
-  if (row) return rowToNode(row)
+    // Try exact fs_path suffix match
+    let node = getOne(
+      `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
+      `%/${q}`,
+      ...params,
+    )
+    if (node) return node
 
-  // 3. ID suffix match (for short IDs like the last 8 chars)
-  row = db
-    .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`)
-    .get(`%${query}`, ...params) as Record<string, unknown> | null
-  if (row) return rowToNode(row)
+    // Try with .md extension
+    if (!q.endsWith(".md")) {
+      node = getOne(
+        `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
+        `%/${q}.md`,
+        ...params,
+      )
+      if (node) return node
+    }
 
-  // 4. Exact filesystem path match
-  row = db
-    .query(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`)
-    .get(query, ...params) as Record<string, unknown> | null
-  if (row) return rowToNode(row)
+    // Try exact ID match (IDs can contain / like "docs/readme.md")
+    node = getOne(
+      `SELECT * FROM nodes WHERE id = ?${filterClause}`,
+      q,
+      ...params,
+    )
+    if (node) return node
 
-  // 5. Filename match (fs_path ends with the query)
-  // This handles cases like "@inbox.md" when full path is "/path/to/@inbox.md"
-  row = db
-    .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`)
-    .get(`%/${query}`, ...params) as Record<string, unknown> | null
-  if (row) return rowToNode(row)
-
-  // Also try without leading slash (handles bare filenames)
-  row = db
-    .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`)
-    .get(`%${query}`, ...params) as Record<string, unknown> | null
-  if (row) return rowToNode(row)
-
-  // 6. Filename without extension (e.g., "@inbox" matches "@inbox.md")
-  if (!query.includes(".")) {
-    row = db
-      .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`)
-      .get(`%/${query}.md`, ...params) as Record<string, unknown> | null
-    if (row) return rowToNode(row)
-
-    row = db
-      .query(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`)
-      .get(`%${query}.md`, ...params) as Record<string, unknown> | null
-    if (row) return rowToNode(row)
+    debug("resolveNode: relative path not found")
+    return null
   }
 
-  // 7. Content/title match (exact match on content field)
-  row = db
-    .query(`SELECT * FROM nodes WHERE content = ?${filterClause}`)
-    .get(query, ...params) as Record<string, unknown> | null
-  if (row) {
-    debug("resolveNode: matched by content")
-    return rowToNode(row)
+  // ==========================================================================
+  // 3. Bare names (no /) → name-based search, may be ambiguous
+  // ==========================================================================
+  debug("resolveNode: bare name search")
+
+  // 3a. Try exact ID match first (unambiguous)
+  let node = getOne(
+    `SELECT * FROM nodes WHERE id = ?${filterClause}`,
+    q,
+    ...params,
+  )
+  if (node) {
+    debug("resolveNode: exact ID match")
+    return node
   }
+
+  // 3b. Try by name field (file/folder names)
+  const nameMatches = getAll(
+    `SELECT * FROM nodes WHERE name = ?${filterClause}`,
+    q,
+    ...params,
+  )
+  node = checkAmbiguity(nameMatches, "name")
+  if (node) return node
+
+  // 3c. Try by name with .md extension stripped
+  const nameMdMatches = getAll(
+    `SELECT * FROM nodes WHERE name = ?${filterClause}`,
+    `${q}.md`,
+    ...params,
+  )
+  node = checkAmbiguity(nameMdMatches, "name+.md")
+  if (node) return node
+
+  // 3d. Try fs_path suffix (filename match)
+  const pathSuffixMatches = getAll(
+    `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
+    `%/${q}`,
+    ...params,
+  )
+  node = checkAmbiguity(pathSuffixMatches, "fs_path suffix")
+  if (node) return node
+
+  // 3e. Try fs_path suffix with .md extension
+  if (!q.endsWith(".md")) {
+    const pathSuffixMdMatches = getAll(
+      `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
+      `%/${q}.md`,
+      ...params,
+    )
+    node = checkAmbiguity(pathSuffixMdMatches, "fs_path suffix+.md")
+    if (node) return node
+  }
+
+  // ==========================================================================
+  // 4. Fallback: ID prefix/suffix match (for short IDs)
+  // ==========================================================================
+
+  // ID prefix match
+  const prefixMatches = getAll(
+    `SELECT * FROM nodes WHERE id LIKE ?${filterClause}`,
+    `${q}%`,
+    ...params,
+  )
+  node = checkAmbiguity(prefixMatches, "ID prefix")
+  if (node) return node
+
+  // ID suffix match
+  const suffixMatches = getAll(
+    `SELECT * FROM nodes WHERE id LIKE ?${filterClause}`,
+    `%${q}`,
+    ...params,
+  )
+  node = checkAmbiguity(suffixMatches, "ID suffix")
+  if (node) return node
+
+  // ==========================================================================
+  // 5. Content/title match
+  // ==========================================================================
+  const contentMatches = getAll(
+    `SELECT * FROM nodes WHERE content = ?${filterClause}`,
+    q,
+    ...params,
+  )
+  node = checkAmbiguity(contentMatches, "content")
+  if (node) return node
 
   debug("resolveNode: no match found")
   return null
@@ -200,6 +285,5 @@ export function resolveNode(
  * @returns The matching task node, or null if not found
  */
 export function resolveTask(db: Database, query: string): KNode | null {
-  // Use resolveNode with taskOnly filter to ensure we match nodes with task_status
   return resolveNode(db, query, { taskOnly: true })
 }
