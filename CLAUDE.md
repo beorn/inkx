@@ -100,3 +100,4 @@ Before ending: `bun fix && bun run test:all && git push`. Propose next steps wit
 | [claude/](.claude/skills/claude/)   | Claude Code config     |
 | [logging/](.claude/skills/logging/) | Debug output           |
 | [max/](.claude/skills/max/)         | Parallel agents        |
+| [batch-refactor](vendor/beorn-claude-tools/skills/batch-refactor/SKILL.md) | Batch rename/refactor across files |

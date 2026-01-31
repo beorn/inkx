@@ -16,7 +16,8 @@ Run `bun llm` for full help.
 | Goal | Command |
 |------|---------|
 | Standard question | `bun llm "question"` |
-| Deep research | `bun llm deep "topic"` or `bun llm research "topic"` or `bun llm think "topic"` |
+| Deep research | `bun llm deep "topic"` |
+| Deep (skip confirm) | `bun llm deep -y "topic"` |
 | Second opinion | `bun llm opinion "question"` |
 | Multi-model debate | `bun llm debate "question"` |
 
