@@ -58,9 +58,40 @@ Key design choices:
 This is a personal project optimized for maintainability by one person + AI agents.
 Code should be readable top-to-bottom without jumping between many small functions.
 
-## Project Principles
+## Project Principles (Quick Reference from docs/principles.md)
 
-[paste Quick Reference section from docs/principles.md here]
+### Structure
+- Core functions (exports) first - the reason this module exists
+- Helpers at bottom - in importance order, narrative flows
+- Core logic <15 lines - abstract details to helpers
+- Helpers after return or at end of file
+
+### Alignment
+- Align variable names with return property names: `{ path, data }` not `{ path: rootPath, data: loadedData }`
+- Family names consistent: `getNode`, `getChildren`, `getSubtree` (all `get*`)
+- Same-level things get same visual weight - extract all or inline all
+- Domain types explicit (documentation), internal types inferred
+
+### Patterns
+- `const` over `let`: `const x = transform(initial)` not `let x; x = mutate(x)`
+- Spread over manual: `{ ...defaults, ...overrides }` not field-by-field copying
+- Compose over call: `withHooks(base)` returns wrapped, not `addHooks()` that mutates
+- Early returns (guard clauses at top)
+- Lookup objects over switch
+
+### Avoid (delete when you see them)
+- `ensure*` checks - lower levels throw naturally
+- Getters/setters - use plain properties
+- Pure delegators - `f(x)` just calls `g(x)`, call `g(x)` directly
+- Compatibility shims - break and fix callers now
+- Inline expressions - prefer named helper calls
+- `let` with mutation - use `const` with transform
+
+### Keep (deliberate indirection)
+- Interfaces at boundaries - `DataStore` enables swapping implementations
+- Dependency injection - pass `db` as param, not import singleton
+- Hooks for extension - `beforeMutation`/`afterMutation` without modifying core
+- Wrappers for concerns - `withHooks(baseRepo)` separates cross-cutting concerns
 
 ## Code to Review
 
@@ -76,6 +107,10 @@ File: [file path and which layer it belongs to]
 2. Could this be shorter while staying clear?
 3. Is anything over-engineered for what it does?
 4. Are there patterns that conflict with the project principles above?
+5. Any `ensure*` checks, getters/setters, or pure delegators that should be deleted?
+6. Any `let` with mutation that should be `const` with transform?
+7. Any misaligned names that prevent shorthand syntax?
+8. Any mixed visual weight (one method much longer than siblings)?
 ```
 
 ### Step 3: Query

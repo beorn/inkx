@@ -56,6 +56,21 @@ Catalog opportunities in these categories:
 | Large destructure      | Dot notation      | `const {a,b,c,d,e,f} = obj` → use `obj.prop` throughout             |
 | Verbose conditionals   | Early returns     | Nested if/else → guard clauses at top                               |
 
+### Alignment Patterns (from docs/principles.md)
+
+| Pattern                | Replace With           | Example                                                          |
+| ---------------------- | ---------------------- | ---------------------------------------------------------------- |
+| `let` with mutation    | `const` with transform | `let x; x = f(x)` → `const x = f(initial)`                       |
+| Manual field copying   | Spread                 | `{a: o.a, b: o.b}` → `{...defaults, ...overrides}`               |
+| Mutating wrapper       | Composing wrapper      | `addHooks(obj)` mutates → `withHooks(obj)` returns new           |
+| Misaligned names       | Aligned names          | `const rootPath` → `const path` (enables `{path}` shorthand)     |
+| Inline complex expr    | Named helper           | `x ? (a && b) : (c \|\| d)` → `const result = computeResult(x)`  |
+| Mixed visual weight    | Uniform weight         | 20-line method + one-liners → extract all to same level          |
+| `ensure*` checks       | Delete                 | `ensureOpen()` → let lower layer throw naturally                 |
+| Getters/setters        | Plain properties       | `get path() { return _path }` → `path` property                  |
+| Pure delegators        | Direct call            | `f(x) { return g(x) }` → call `g(x)` directly                    |
+| Wrapper types          | Delete                 | `interface XDeps { db: Database }` → use inline or infer         |
+
 ### Narrative Flow
 
 - **Top**: Main export (the "what")

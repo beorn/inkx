@@ -63,6 +63,31 @@ describe("parser", () => {
 
 ---
 
+## Fast Iteration
+
+**IMPORTANT**: Full benchmark runs can take minutes. For quick iteration during development, use a dedicated quick-compare script with minimal iterations:
+
+```bash
+# Quick comparison (3 iterations instead of hundreds)
+bun bench/quick-compare.ts 1500 3
+
+# Full benchmark (slow but statistically accurate)
+bun run bench
+```
+
+**Flexx example** (`vendor/beorn-flexx/bench/quick-compare.ts`):
+```typescript
+const iterations = parseInt(process.argv[3] || "3", 10)
+// ... run minimal iterations for fast feedback
+```
+
+When debugging performance issues:
+1. Create a `quick-compare.ts` script with configurable iteration count
+2. Default to 3-5 iterations for ~1s total runtime
+3. Only run full `bun bench` for final validation
+
+---
+
 ## Note
 
 Benchmarks are **not tests** - they measure performance, not correctness. Never say "benchmark test" - say "benchmark" or "bench".

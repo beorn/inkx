@@ -89,6 +89,15 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Old inkx render    | `createTestRenderer` inside function body (wasteful recreation each call)   |
 | Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer inkx APIs      |
 | High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
+| `ensure*` checks   | `ensureOpen()`, `ensureValid()` - lower levels throw naturally              |
+| Getters/setters    | `get path() { return _path }` - use plain properties instead                |
+| Pure delegators    | `f(x) { return g(x) }` - call `g(x)` directly                               |
+| `opts.ensure`      | Embedded side effects in options - caller should handle preconditions       |
+| Let with mutation  | `let x; x = mutate(x)` - prefer `const` with transform                      |
+| Inline expressions | Complex inline `? :` or `&&` chains - extract to named helper               |
+| Misaligned names   | `rootPath` returned as `path` - align names for shorthand syntax            |
+| Mixed visual weight| 20-line method mixed with one-liners at same level - extract or inline all  |
+| Wrapper types      | `interface XDeps { db: Database }` that just mirrors another - delete       |
 
 ## Iteration 0.5: Pre-Survey Check (project-wide reviews only)
 
@@ -107,6 +116,7 @@ These patterns are already caught by automated tooling:
 | CommonJS imports   | oxlint | `no-require-imports` |
 | Deprecated usage   | oxlint | `no-deprecated`    |
 | Unused files/exports | knip | `bun lint:unused`  |
+| High complexity    | oxlint | `bun lint:complexity` (targeting input, not extraction rule) |
 
 The script below catches patterns NOT covered by existing linters.
 
@@ -127,7 +137,7 @@ Ignore "Configuration hints" section (knip suggestions, not findings).
 
 ### Pattern Detection Script (focus="all", empty, or "layers")
 
-Run pattern detection script that checks for 23 different code issues:
+Run pattern detection script that checks for 31 different code issues:
 
 ```bash
 bash scripts/review-code-patterns.sh 2>&1 | tee /tmp/review-code-patterns.txt
@@ -180,9 +190,34 @@ The script detects:
 
 - Pattern 27: High complexity functions (cyclomatic>20 or cognitive>15, candidates for refactoring)
 
+**Alignment/guidelines issues (4 patterns)** - from docs/principles.md Quick Reference:
+
+- Pattern 28: `ensure*` defensive checks (`ensureOpen`, `ensureValid` - lower levels should throw naturally)
+- Pattern 29: Getters (`get x()` should be plain properties for simple access)
+- Pattern 30: `opts.ensure` embedded side effects (caller should handle preconditions)
+- Pattern 31: Switch statements (candidates for lookup objects vs discriminated unions - count only)
+
 Output is structured with headers like `=== PATTERN 1: Classes ===` for easy parsing.
 
 Store raw output for Filter iteration.
+
+### Complexity Analysis (focus="all" or empty only)
+
+Run detailed complexity analysis to identify review candidates:
+
+```bash
+bun lint:complexity 2>&1 | tee /tmp/complexity-output.txt
+```
+
+This produces a ranked list of functions exceeding complexity thresholds.
+
+**IMPORTANT**: Complexity findings are **INPUT for targeting**, not rules for extraction:
+- High-complexity files are candidates for `/code clean` or `/code review-llm`
+- Do NOT mechanically extract helpers to reduce scores
+- The goal is readability improvement, not score reduction
+- Sometimes complex functions are correct (parsers, state machines)
+
+Store output for use in Follow-up phase when selecting files to clean.
 
 ## Iteration 1: Survey
 
@@ -334,6 +369,20 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | High cyclomatic     | Medium           | High if >30, Critical if >40 (deeply nested)      |
 | High cognitive      | Medium           | High if >25, Critical if >35 (hard to understand) |
 
+**Alignment/pattern findings (from docs/principles.md Quick Reference):**
+
+| Finding Type        | Default Severity | Context Adjustments                               |
+| ------------------- | ---------------- | ------------------------------------------------- |
+| `ensure*` checks    | Medium           | High if >5 occurrences in same file               |
+| Getters/setters     | Low              | Medium if obscures simple property access         |
+| Pure delegators     | Low              | Medium if creates unnecessary abstraction layer   |
+| `opts.ensure`       | Medium           | Embedded side effects violate caller-handles rule |
+| Let with mutation   | Low              | Medium if complex multi-step mutation             |
+| Inline expressions  | Low              | Medium if >3 chained operators, hard to read      |
+| Misaligned names    | Low              | Medium if prevents shorthand across 5+ properties |
+| Mixed visual weight | Medium           | High if one method is >10x longer than siblings   |
+| Wrapper types       | Low              | Delete types that just mirror another type        |
+
 **Test-specific severity guide:**
 
 | Severity | Test Finding                                           |
@@ -414,7 +463,51 @@ X critical, Y high, Z medium, W low
 5. (For test reviews) Verify CLAUDE.md timing is accurate
 ```
 
-Then use AskUserQuestion: "Which findings should I create beads for?"
+Then use AskUserQuestion: "Which findings should I address?"
+
+## Follow-up: Fix Findings
+
+For each finding the user wants to address:
+
+### Targeting with Complexity Data
+
+Use `/tmp/complexity-output.txt` to prioritize which files to review:
+
+```bash
+# Top complexity offenders become targets for clean/review-llm
+cat /tmp/complexity-output.txt | head -10
+```
+
+**Key insight**: High complexity = review candidate, NOT extraction mandate. The goal is readability, not score reduction. Sometimes complex code is correct.
+
+### Option A: Direct Fix with `/code clean`
+
+For pattern-based issues (alignment, composition, structure):
+
+```bash
+/code clean path/to/file.ts    # Review and fix single file
+/code clean path/to/dir        # Review and fix directory
+```
+
+Best for: `ensure*` checks, getters/setters, pure delegators, let mutations, misaligned names, mixed visual weight, wrapper types.
+
+**For complexity targets**: Run `/code clean` on high-complexity files. Focus on alignment patterns (visual weight, named helpers) that improve readability without adding lines.
+
+### Option B: LLM Second Opinion with `/code review-llm`
+
+For complex or ambiguous findings, get external perspective:
+
+```bash
+/code review-llm path/to/file.ts:100-200   # Review specific lines
+```
+
+The LLM review includes project principles and filters out suggestions that conflict with km's patterns.
+
+Best for: Over-engineering assessment, architecture decisions, "is this really a problem?" questions.
+
+**For complexity targets**: Use when unsure if a complex function needs refactoring or is inherently complex (parsers, state machines, reconcilers).
+
+### Option C: Create Bead for Later
 
 ## Follow-up: Create Beads
 
