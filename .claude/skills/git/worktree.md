@@ -2,7 +2,16 @@
 
 **Keywords**: worktree, parallel, branch, submodule, isolation
 
-Manages git worktrees for parallel development. Handles km's submodules, dependencies, and direnv automatically.
+Manages git worktrees for parallel development. Handles submodules, dependencies, and direnv automatically.
+
+## Why This Tool?
+
+Bare `git worktree add` doesn't handle:
+- **Submodules** - need independent clones, not symlinks to main worktree
+- **Dependencies** - `bun install` / `npm install` required per worktree
+- **Hooks** - git hooks need reinstalling per worktree
+- **Direnv** - needs `direnv allow` per worktree
+- **Validation** - uncommitted changes would be missing from new worktree; unpushed submodule commits would fail to clone
 
 **Tool location**: `vendor/beorn-claude-tools/tools/worktree.ts` (also available as `bun run worktree`)
 
