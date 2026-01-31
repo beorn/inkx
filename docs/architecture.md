@@ -277,6 +277,53 @@ apps/
 
 ---
 
+## Names, Paths, and IDs
+
+km uses a three-tier naming system inspired by filesystem semantics:
+
+| Concept  | Example                | Unique? | Purpose                           |
+| -------- | ---------------------- | ------- | --------------------------------- |
+| **Name** | `inbox`, `readme`      | No      | Human-friendly, can repeat        |
+| **Path** | `projects/inbox.md`    | Yes     | Composed of names, like fs paths  |
+| **ID**   | `01H5X...` or `p/i:42` | Yes     | Internal reference, stable        |
+
+### Resolution Algorithm
+
+The `resolveNode()` function uses path-first semantics:
+
+```
+Query contains "/" (path-like)?
+├─ Starts with /, ./, ../ → Absolute path resolution
+└─ Contains / → Relative path suffix match
+
+Query is bare name (no "/")?
+├─ Exact ID match (unambiguous)
+├─ Name field match (may warn if ambiguous)
+├─ fs_path suffix match
+└─ ID prefix/suffix match (short IDs)
+```
+
+**Ambiguity handling:** When multiple nodes match a bare name (e.g., `readme` matches both `/readme.md` and `/archive/readme.md`), km warns and returns the first match. Use paths for precision.
+
+### Block References
+
+Following [Obsidian's pattern](https://help.obsidian.md/links), blocks can have explicit IDs:
+
+```markdown
+This paragraph has an ID. ^my-block
+
+- Task with reference ^task-123
+```
+
+Block IDs are:
+- Added on-demand (only when first linked)
+- Short strings (not UUIDs like [Logseq](https://discuss.logseq.com/t/what-are-id-links-vs-block-ids-vs-page-ids/1318))
+- Used in links: `[[file#^my-block]]`
+
+See [storage.md](storage.md) for detailed resolution behavior.
+
+---
+
 ## Glossary
 
 | Term            | Definition                                                              |
@@ -287,6 +334,8 @@ apps/
 | **repo root**   | Single folder node with `parent_id = null` representing the repository. |
 | **memory mode** | No `.km/`. SQLite in RAM. Ephemeral IDs.                                |
 | **disk mode**   | `.km/` exists. SQLite on disk. Stable IDs, events, sync.                |
+| **name**        | Basename of file/folder/heading. Not unique (can repeat).               |
+| **path**        | Composed of names with `/`. Unique within repo.                         |
 | **collapsing**  | Merging same-named folder/file/H1 into one display line.                |
 | **cursoring**   | Moving to adjacent block (hjkl).                                        |
 | **navigating**  | Changing board root via zoom (u/Enter).                                 |

@@ -1,5 +1,11 @@
 # How km Works
 
+> **Reading this doc**: Principles explain the "why". Guidelines (checkboxes) are the actionable rules.
+>
+> **For LLM agents**: Extract guidelines with `grep '- \[ \]' docs/principles.md`
+
+---
+
 > **The thesis**: Build from composable pieces. Maintain quality through fast feedback. Write for humans and LLMs.
 
 ## Why These Choices
@@ -8,7 +14,7 @@ These principles came from building a real system—km—that needed to be maint
 
 The result is a codebase where **one obvious way** to do each thing eliminates choice paralysis. Where **composable pieces** (plain objects, factory functions, async generators) combine predictably. Where **fast tests** protect quality without slowing development. Where **failing loud** catches bugs at the call site instead of in production.
 
-These aren't theoretical ideals—they're practical tools that emerged from real problems. The "Lessons Learned" section documents the mistakes that taught us why each principle matters.
+These aren't theoretical ideals—they're practical tools that emerged from real problems. The [Lessons Learned](#lessons-learned) links at the end document the mistakes that taught us why each principle matters.
 
 ## How to Use This Doc
 
@@ -32,11 +38,15 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [Principle: Quarantine and Delete](#principle-quarantine-and-delete)
 - [Part 3: Code for Humans](#part-3-code-for-humans)
   - [Principle: Inverted Pyramid](#principle-inverted-pyramid)
+  - [Principle: Alignment](#principle-alignment)
   - [Naming Conventions](#naming-conventions)
   - [No Prop Drilling](#no-prop-drilling)
   - [No Hidden Side Effects](#no-hidden-side-effects)
   - [Local Reasoning](#local-reasoning)
   - [API Boundaries](#api-boundaries)
+  - [Type Safety](#type-safety)
+  - [Error Handling](#error-handling)
+  - [Module Boundaries](#module-boundaries)
 - [Part 4: Coding with AI Agents](#part-4-coding-with-ai-agents)
   - [Why LLMs Amplify Architecture Problems](#why-llms-amplify-architecture-problems)
   - [Legacy Code as Virus](#legacy-code-as-virus)
@@ -47,8 +57,11 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [Before You Add Something New](#before-you-add-something-new)
   - [How We Keep This Real](#how-we-keep-this-real)
 - [Quick Reference](#quick-reference)
-  - [Do](#do)
-  - [Don't](#dont)
+  - [Structure](#structure)
+  - [Alignment](#alignment)
+  - [Patterns](#patterns)
+  - [Avoid](#avoid-delete-these-when-you-see-them)
+  - [Deliberate indirection](#deliberate-indirection-keep-these)
   - [Test Commands](#test-commands)
 - [See Also](#see-also)
 
@@ -74,6 +87,9 @@ If your narrative needs technical jargon to make sense, the names are wrong.
 
 **Why**: Domain language makes code self-documenting and reduces onboarding time. New contributors (human or AI) can understand the system by reading type names.
 
+**Guidelines:**
+- [ ] Domain names — `Repo`, `Board`, `Watcher` / not `DataManager`, `StateController`
+
 ---
 
 <a id="principle-plain-objects"></a>
@@ -91,9 +107,7 @@ export function createRepo(path: string, options?: RepoOptions): Repo {
   let closed = false
 
   return {
-    get path() {
-      return path
-    },
+    path, // Plain property, not getter
 
     getNode(id) {
       if (closed) throw new Error("Repo is closed")
@@ -148,6 +162,10 @@ export class Repo {
 ```
 
 **Infrastructure Class Exception**: Classes extending EventEmitter (e.g., `SyncManager`, `WriteQueue`) or managing low-level resources (e.g., `ParsePool`) are acceptable for internal infrastructure. Domain objects still use factory functions.
+
+**Guidelines:**
+- [ ] Factories not classes — `createRepo()` / not `new Repo()`
+- [ ] Plain properties — `{ path }` / not `get path() { return x }`
 
 ---
 
@@ -273,6 +291,14 @@ async function watchRepo(path: string) {
 
 **Why this relates to DI**: Resources you create are dependencies you manage. Lifecycle management is part of dependency management.
 
+**Guidelines:**
+- [ ] Inject deps — `{ inject: { db } }` / not `getDb()`
+- [ ] No mutable module state — `const x = ...` / not `let x = ...` at top level
+- [ ] No lazy singletons — pass `db` as param / not `getDb()` accessor
+- [ ] Defaults over config — `createX(path)` / not `createX({ configPath })`
+- [ ] Disposable resources — `[Symbol.dispose]() {}` / not manual cleanup
+- [ ] Use `using` — `using repo = createRepo()` / not `try/finally`
+
 ---
 
 ### Principle: Organize Objects Into Layers
@@ -304,6 +330,10 @@ async function watchRepo(path: string) {
 - All mutations flow through emit() (enables sync, undo, multi-window)
 
 **Why**: Testable in isolation, clear boundaries, replaceable implementations. Each layer can be understood independently, reducing cognitive overhead.
+
+**Guidelines:**
+- [ ] Call down only — Board→Storage→Parser / not Board→Parser
+- [ ] UI through storage — `repo.save()` / not `fs.writeFile()`
 
 ---
 
@@ -384,6 +414,10 @@ const pipeline = resolveLinks(applyNodes(parseFiles(sources)))
 for await (const item of pipeline) { ... }
 ```
 
+**Guidelines:**
+- [ ] Generator pipelines — `for await (x of pipeline)` / not chained `Promise.all`
+- [ ] Single fan-out OK — `Promise.all([a, b, c])` / not `Promise.all(xs.map(...))`
+
 ---
 
 ## Part 2: The Fast Feedback Loop
@@ -422,6 +456,11 @@ function getNode(id: string) {
 
 **Why**: Bugs surface at the call site, not later as mysterious failures.
 
+**Guidelines:**
+- [ ] Throw internally — `if (!id) throw` / not `id ?? defaultId`
+- [ ] No ensure checks — let `db.get()` throw / not `ensureDbOpen()`
+- [ ] Required = throw — `throw new Error('db required')` / not `db ?? fallback`
+
 ---
 
 ### Principle: 5-Second Test Loops
@@ -444,6 +483,10 @@ const db = new Database("/tmp/test.db")
 ```
 
 **Target**: `bun run test:fast` ~11 seconds.
+
+**Guidelines:**
+- [ ] In-memory tests — `withTestEnv()` / not `new Database('/tmp/test.db')`
+- [ ] Fast suite — `test:fast` < 15s / not minutes
 
 ---
 
@@ -472,6 +515,10 @@ export function getDb() { ... }
 ```
 
 **Why**: Backwards compat shims never get cleaned up. If fallbacks exist, old patterns persist forever.
+
+**Guidelines:**
+- [ ] No compat shims — delete old API / not `export { old as new }`
+- [ ] Hard delete — comment out + fix callers / not `@deprecated` tag
 
 ---
 
@@ -521,6 +568,90 @@ function formatDate(d: Date): string {
 
 **Why**: Readers start at what matters, not implementation details.
 
+**Guidelines:**
+- [ ] Main first — exports at top / not buried after helpers
+- [ ] Short core — < 15 lines main logic / not 50-line functions
+- [ ] Helpers below — after `return` or bottom of file / not before main
+
+---
+
+### Principle: Alignment
+
+**The insight**: Aligned code is more readable AND more composable.
+
+**Names**: Align variable names with return property names. This enables shorthand syntax.
+
+```typescript
+// GOOD - aligned names enable shorthand
+const path = resolveRoot(input)
+const data = loadData(path)
+return { path, data }
+
+// BAD - misaligned names require mapping
+const rootPath = resolveRoot(input)
+const loadedData = loadData(rootPath)
+return { path: rootPath, data: loadedData }
+```
+
+**Family names**: Related functions share consistent prefixes.
+
+```typescript
+// GOOD - consistent get* family
+getNode(id)
+getChildren(id)
+getSubtree(id)
+
+// BAD - inconsistent verbs
+getNode(id)
+fetchChildren(id)
+querySubtree(id)
+```
+
+**Visual weight**: Same-level things get same visual treatment. Code space reflects importance.
+
+```typescript
+// GOOD - all methods one line (aligned visual weight)
+const repo = {
+  getNode: data.getNode,
+  getChildren: data.getChildren,
+  search: data.search,
+  close: () => closeAll(emitter, files, data, database),
+}
+
+// BAD - mixed visual weight (20-line method alongside one-liners)
+const repo = {
+  getNode: data.getNode,
+  getChildren: data.getChildren,
+  search: (query) => {
+    // 20 lines of inline code
+    // makes this look more important than getNode
+    // even though they're at the same level
+  },
+}
+```
+
+**Types**: Domain types explicit (documentation), internal types inferred.
+
+```typescript
+// GOOD - explicit domain type, implicit internal
+export interface Repo { ... }  // Domain type: documented
+const props = { path, data }   // Internal: let TS infer
+
+// BAD - wrapper type that mirrors another
+interface RepoMethodDeps { db: Database, path: string }  // Just delete this
+```
+
+**Why**: Aligned code enables generic wrappers, spread syntax, and visual scanning. When names match across layers, you can use `{ ...props }` instead of manual mapping.
+
+**Guidelines:**
+- [ ] Aligned names — `const path = ...; return { path }` / not `{ path: rootPath }`
+- [ ] Family prefixes — `getNode`, `getChildren` / not `getNode`, `fetchChildren`
+- [ ] Equal weight — all one-liners or all extracted / not mixed
+- [ ] No delegators — call `g(x)` directly / not `f(x) { return g(x) }`
+- [ ] Const transform — `const x = transform(y)` / not `let x = y; x = mutate(x)`
+- [ ] Simple inlines — `fn(a)` / not `fn(a && b ? c : d)`
+- [ ] No mirror types — use source type / not `type Copy = { ...same fields }`
+
 ---
 
 ### Naming Conventions
@@ -543,6 +674,10 @@ interface RepoOptions {
   }
 }
 ```
+
+**Guidelines:**
+- [ ] Naming pattern — `createRepo(opts: RepoOptions)` / not `makeRepo(config)`
+- [ ] Inject names — `inject: { db }` / not `inject: { database }`
 
 ---
 
@@ -589,6 +724,10 @@ function Parent({ user, env }) {
 
 **Why**: Prop drilling creates maintenance burden. When you add a prop at the top, you must thread it through every layer. Aligned names and spread eliminate this busywork.
 
+**Guidelines:**
+- [ ] Spread props — `<Child {...props} />` / not `<Child a={props.a} b={props.b} />`
+- [ ] Group related — `{ user: { id, name } }` / not `{ userId, userName }`
+
 ---
 
 ### No Hidden Side Effects
@@ -613,6 +752,10 @@ export function createGlobalState() {
 
 **Why**: Hidden initialization makes testing hard and violates explicit dependencies.
 
+**Guidelines:**
+- [ ] No import effects — `export function create()` / not `const x = init()` at top
+- [ ] No opts.ensure — caller ensures preconditions / not `{ ensure: true }`
+
 ---
 
 ### Local Reasoning
@@ -636,6 +779,10 @@ function processNode(db: Database, node: KNode) {
   // ...
 }
 ```
+
+**Guidelines:**
+- [ ] No globals — `fn(db, node)` / not `fn(node)` + `getCurrentDb()`
+- [ ] Deps as params — `process(db, x)` / not `process(x)` reading module state
 
 ---
 
@@ -681,6 +828,92 @@ function applyNode(db: Database, node: KNode) {
 
 **Why**: External callers get graceful errors. Internal bugs surface immediately.
 
+**Guidelines:**
+- [ ] Validate at edge — `if (!x) return null` in exports / not everywhere
+- [ ] Throw inside — `if (!x) throw` in internals / not `return null`
+
+---
+
+### Type Safety
+
+**The rule**: Use TypeScript's type system to prevent bugs at compile time.
+
+```typescript
+// ❌ BAD - any escapes type checking
+function process(data: any) {
+  return data.value // No type error if data has no value
+}
+
+// ✅ GOOD - unknown forces narrowing
+function process(data: unknown) {
+  if (typeof data === 'object' && data && 'value' in data) {
+    return data.value
+  }
+  throw new Error('Invalid data')
+}
+
+// ❌ BAD - non-null assertion hides potential bugs
+const node = nodes.find(n => n.id === id)!
+
+// ✅ GOOD - handle the undefined case
+const node = nodes.find(n => n.id === id)
+if (!node) throw new Error(`Node ${id} not found`)
+```
+
+**Guidelines:**
+- [ ] No any — `unknown` + narrowing / not `any`
+- [ ] No bang — `if (!x) throw` / not `x!`
+- [ ] Explicit returns — `fn(): Result` / not inferred on exports
+- [ ] Use satisfies — `x satisfies T` / not `x as T`
+
+---
+
+### Error Handling
+
+**The rule**: Only throw `Error` instances. Use typed errors for user-facing failures.
+
+```typescript
+// ❌ BAD - throwing non-Error values
+throw "something went wrong"
+throw { code: 404 }
+
+// ✅ GOOD - throw Error with context
+throw new Error(`Node ${id} not found`)
+
+// ✅ GOOD - typed error for user-facing failures
+export class KmUserError extends Error {
+  constructor(message: string, public readonly code: string) {
+    super(message)
+  }
+}
+throw new KmUserError("File not found", "FILE_NOT_FOUND")
+```
+
+**Guidelines:**
+- [ ] Throw Error — `throw new Error('msg')` / not `throw 'msg'`
+- [ ] Typed user errors — `throw new KmUserError()` / not generic Error for UI
+
+---
+
+### Module Boundaries
+
+**The rule**: Public API through `index.ts`, no deep imports across packages.
+
+```typescript
+// ❌ BAD - deep import reaches into internal structure
+import { queryNode } from '@km/storage/src/queries/nodes'
+
+// ✅ GOOD - import from package public API
+import { queryNode } from '@km/storage'
+```
+
+**Why**: Deep imports create coupling to internal structure. When internals change, unrelated code breaks.
+
+**Guidelines:**
+- [ ] Export via index — `export` in `index.ts` / not scattered exports
+- [ ] No deep imports — `from '@km/x'` / not `from '@km/x/src/internal'`
+- [ ] ESM only — `import` / not `require()`
+
 ---
 
 ## Part 4: Coding with AI Agents
@@ -694,7 +927,7 @@ LLM coding agents have specific constraints:
 - **No persistent memory** — Each session starts fresh, will use whatever patterns exist in the code
 - **Limited context** — Can't see the whole codebase, architecture must be locally obvious
 - **Pattern matching** — Will copy existing patterns, good or bad
-- **Fast iteration** — Can leverage <5s test loops extremely well
+- **Fast iteration** — Can leverage fast test loops (< 15s) extremely well
 
 ### Legacy Code as Virus
 
@@ -751,6 +984,11 @@ These principles are universal, but LLMs suffer MORE from violations due to thei
 | [5-Second Tests](#principle-5-second-test-loops) | 100 iterations while you wait for one slow suite |
 | [Fail Loud](#principle-fail-loud-fail-now) | Silent failures compound across sessions |
 | [Quality Plateau](#the-quality-plateau) | When there's one pattern, they follow it; when there are two, they guess |
+
+**Guidelines:**
+- [ ] Clean touched files — fix old patterns in modified files / not leave them
+- [ ] Track todos — `// TODO(#123)` / not `// TODO: someday`
+- [ ] One way only — consolidate before adding / not two patterns coexisting
 
 ---
 
@@ -828,19 +1066,18 @@ How we keep principles true over time.
 
 **Automated checks**:
 
-- `bun run test:fast` must stay <5s (enforced in CI)
+- `bun run test:fast` must stay < 15s (currently ~11s)
 - ESLint rules: no deprecated code allowed in-tree
 - TypeScript strict mode: catch type errors early
 
 **Code review checklist**:
 
-- [ ] Domain objects use factory functions; infrastructure classes (if needed) extend EventEmitter
-- [ ] Dependencies passed explicitly via `inject` option
-- [ ] Disposable resources use `Symbol.dispose`
-- [ ] Programming errors throw immediately (fail loud, fail now)
-- [ ] Tests use `withTestEnv()` for in-memory infrastructure
-- [ ] No backwards compatibility shims or deprecated code
-- [ ] Important logic at top of file, helpers after
+Extract with: `grep '- \[ \]' docs/principles.md`
+
+Each principle section includes inline guidelines that serve as the review checklist. Key areas:
+- **Composability** (Part 1): Factory functions, explicit dependencies, disposables, layers
+- **Fast feedback** (Part 2): Fail loud, in-memory tests, no backwards compat
+- **Readability** (Part 3): Inverted pyramid, alignment, naming, no hidden effects
 
 **One-way doors** (delete, don't deprecate):
 
@@ -860,55 +1097,89 @@ When reviewing PRs, the question is: "Does this follow the principles?" If not, 
 
 ## Quick Reference
 
-### Do
+> Extract all guidelines: `grep '- \[ \]' docs/principles.md`
 
-```typescript
-// Factory function with explicit deps
-const repo = createRepo(path, { inject: { db } })
+### Structure
 
-// using for automatic cleanup
-using repo = createRepo(path)
+**Module level:**
+- Core functions (exports) first - the reason this module exists
+- Helpers at bottom - in importance order, narrative flows
+- Types near what uses them
 
-// Throw on programming errors
-if (!id) throw new Error("id required")
+**Function level:**
+- Core logic <15 lines - abstract details to helpers
+- Helpers after return or at end of file
+- Name helpers for intent: `initDatabase()` not `setupDbStuff()`
 
-// In-memory tests
-await withTestEnv(async ({ db }) => { ... })
+**Order by importance:**
+- Within any list (imports, methods, helpers), most important first
+- Narrative should flow - reader follows the story top to bottom
+- If helpers call each other, order them so callees appear after callers
 
-// Delete old code, fix callers
-// (not: add deprecation warning)
+### Alignment
 
-// Compose generators
-const pipeline = resolveLinks(applyNodes(parseFiles(sources)))
-for await (const item of pipeline) { ... }
-```
+Alignment makes code more readable AND more composable.
 
-### Don't
+**Names:**
+- Align variable names with return property names: enables shorthand `{ path, data }` instead of `{ path: rootPath, data: loadedData }`
+- Shorter when unambiguous: `withHooks` not `wrapWithHooks`
+- Family names consistent: `initDatabase`, `initEmitter`, `initFiles` (all `init*`); `getNode`, `getChildren`, `getSubtree` (all `get*`)
 
-```typescript
-// ❌ Singletons
-const db = getDb()
+**Signatures:**
+- Align function signatures across a family to enable generic wrappers
+- Prefer readable helper calls over inline expressions: `const db = initDatabase(mode, kmDir)`
 
-// ❌ Classes with this binding
-class Repo { constructor() { this.db = ... } }
+**Visual weight:**
+- Same-level things get same treatment
+- Extract all or inline all - don't mix (inline dominates unfairly)
+- If something sticks out visually, it should be important
 
-// ❌ Defensive fallbacks
-const id = maybeId ?? defaultId
+**Types:**
+- Domain types explicit (documentation): `Repo` interface, `KNode` type
+- Internal types inferred: let TS figure it out
+- Delete wrapper types that just mirror another type
 
-// ❌ Real infrastructure in tests
-const db = new Database("/tmp/real.db")
+### Patterns
 
-// ❌ Backwards compat shims
-export { oldFunction as newFunction }
+**Composition:**
+- `const` over `let`: `const x = transform(initial)` not `let x = initial; x = mutate(x)`
+- Spread over manual: `{ ...defaults, ...overrides }` not field-by-field copying
+- Compose over call: `withHooks(base)` returns wrapped object, not `addHooks()` that mutates
 
-// ❌ Promise.all chains
-const resolved = await Promise.all(items.map(resolve))
-```
+**Decomposition:**
+- Wrappers for cross-cutting concerns (hooks, logging, timing)
+- Stage helpers for pipelines: `parse → validate → transform`
+- Each piece independently meaningful and testable
+
+**Control flow:**
+- Early returns (guard clauses at top): `if (!id) return null`
+- Lookup objects over switch: `handlers[type]?.()` not `switch(type) { case 'a': ... }`
+
+### Avoid (delete these when you see them)
+
+| Pattern | Why Bad | Instead |
+|---------|---------|---------|
+| `ensure*` checks | Lower levels throw naturally | Let db throw on closed connection |
+| Getters/setters | Accidental indirection | Plain properties: `path` not `get path()` |
+| Pure delegators | `f(x)` just calls `g(x)` | Call `g(x)` directly |
+| `opts.ensure` | Embedded side effects | Caller handles preconditions |
+| Compatibility shims | Adds complexity forever | Break and fix callers now |
+| Inline expressions | Hard to read | Named helper calls |
+| `let` with mutation | Hard to follow | `const` with transform |
+
+### Deliberate indirection (keep these)
+
+| Pattern | Why Good |
+|---------|----------|
+| Interfaces at boundaries | `DataStore` enables swapping implementations |
+| Dependency injection | Pass `db` as param, not import singleton |
+| Hooks for extension | `beforeMutation`/`afterMutation` without modifying core |
+| Wrappers for concerns | `withHooks(baseRepo)` separates cross-cutting concerns |
 
 ### Test Commands
 
 ```bash
-bun run test:fast    # <5s - use during development
+bun run test:fast    # < 15s - use during development
 bun run test:all     # Full suite - before commits
 bun fix              # Lint + format
 ```

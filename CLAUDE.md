@@ -68,6 +68,11 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 
 See [docs/principles.md](docs/principles.md) for rationale.
 
+**View Quick Reference:**
+```bash
+grep -A80 "^## Quick Reference" docs/principles.md
+```
+
 ## Issue Tracking
 
 Use `/pm` for beads (bugs/tasks/features) and claim before starting: `bd update <id> --claim`.

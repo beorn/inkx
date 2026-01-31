@@ -779,29 +779,89 @@ interface NodeStore {
 }
 ```
 
+### Names, Paths, and IDs
+
+km distinguishes between three concepts:
+
+| Concept | Example | Unique? | Purpose |
+|---------|---------|---------|---------|
+| **Name** | `inbox`, `readme` | No | Human-friendly identifier, multiple files can have same name |
+| **Path** | `projects/inbox.md` | Yes | Filesystem location, composed of names |
+| **ID** | `01H5XJKM...` (disk) or `projects/inbox.md:42` (memory) | Yes | Internal reference, stable across renames |
+
+**Key insight:** Names are not unique. `inbox.md` could exist at `/inbox.md`, `/archive/inbox.md`, and `/projects/inbox.md`. Resolution must handle this ambiguity.
+
+#### Block References (`^id`)
+
+Following Obsidian's pattern, blocks can have explicit IDs for linking:
+
+```markdown
+This is a paragraph with an ID. ^my-block-id
+
+- Task item ^task-123
+```
+
+Block IDs are:
+- Added on-demand (only when first referenced)
+- Short, human-readable strings (not UUIDs)
+- Used in links: `[[file#^my-block-id]]`
+
+Compare to Logseq which uses full UUIDs (`((uuid))`), making links less readable.
+
 ### Smart Node Resolution
 
-The `resolveNode` function provides flexible node lookup:
+The `resolveNode` function provides flexible node lookup with path-first semantics:
 
 ```typescript
-// Resolution order:
-// 1. Exact ID match
-// 2. ID prefix match (e.g., "abc" matches "abc123...")
-// 3. ID suffix match (e.g., "xyz" matches "...xyz")
-// 4. Exact filesystem path match
-// 5. Filename match (fs_path ends with query)
-// 6. Filename without extension ("@inbox" matches "@inbox.md")
-// 7. Content/title match
+// Resolution strategy (paths prioritized):
+// 1. Explicit paths (/, ./, ../) → absolute fs_path match
+// 2. Relative paths (contains /) → fs_path suffix match (unique)
+// 3. Bare names (no /) → name-based search (may warn on ambiguity)
+// 4. Fallback: ID match, content match
 
 function resolveNode(query: string, type?: string): Node | null
 ```
 
-Used by CLI commands:
+#### Resolution Order (Detailed)
+
+**For explicit paths** (`/path`, `./path`, `../path`):
+1. Exact absolute fs_path match
+2. Try with `.md` extension
+3. Try `index.md` inside directory
+4. Stop (don't fall through to fuzzy matching)
+
+**For relative paths** (contains `/` like `docs/readme`):
+1. fs_path suffix match
+2. Try with `.md` extension
+3. Exact ID match (IDs can contain `/`)
+4. Stop
+
+**For bare names** (no `/` like `readme`):
+1. Exact ID match (unambiguous)
+2. Name field match (may be ambiguous)
+3. Name with `.md` extension
+4. fs_path suffix match
+5. ID prefix/suffix match (for short IDs)
+6. Content/title match
+
+#### Ambiguity Detection
+
+When multiple nodes match a bare name, km logs a warning:
+
+```
+Warning: Ambiguous resolution for 'readme' - 3 matches found (using first)
+```
+
+The first match is returned, but users should use more specific paths to avoid ambiguity.
+
+#### CLI Examples
 
 ```bash
-km show 01H5X           # ID prefix
-km view @inbox          # Filename (resolves @inbox.md)
-km show --tree ./projects  # Path
+km view ./docs/readme.md   # Explicit path (unambiguous)
+km view docs/readme        # Relative path (unambiguous)
+km view readme             # Bare name (may warn if multiple)
+km show 01H5X              # ID prefix match
+km view @inbox             # Filename (resolves @inbox.md)
 ```
 
 ---
