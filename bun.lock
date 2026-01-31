@@ -245,14 +245,14 @@
       "name": "inkx",
       "version": "0.0.1",
       "dependencies": {
-        "chalkx": "^0.1.0",
+        "chalkx": "github:beorn/chalkx",
         "graphemer": "^1.4.0",
         "react-reconciler": "^0.33.0",
         "slice-ansi": "^7.1.2",
         "string-width": "^8.0.0",
       },
       "devDependencies": {
-        "@beorn/flexx": "^0.1.0",
+        "@beorn/flexx": "github:beorn/flexx",
         "@biomejs/biome": "^1.9.0",
         "@types/bun": "^1.1.0",
         "@types/react": "^19.0.0",
@@ -266,7 +266,7 @@
         "yoga-wasm-web": "^0.3.3",
       },
       "peerDependencies": {
-        "@beorn/flexx": "^0.1.0",
+        "@beorn/flexx": "github:beorn/flexx",
         "react": "^18.0.0 || ^19.0.0",
         "yoga-wasm-web": "^0.3.3",
       },
