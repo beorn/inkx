@@ -88,6 +88,50 @@ function createDeepTree(depth: number, breadth: number, prefix = "") {
   return item(`${prefix}node`, ...children)
 }
 
+// Wide flat: many siblings, shallow depth (like a spreadsheet)
+function createWideFlat(width: number, rows: number) {
+  const rowNodes = []
+  for (let r = 0; r < rows; r++) {
+    const cells = []
+    for (let c = 0; c < width; c++) {
+      cells.push(item(`r${r}c${c}`))
+    }
+    rowNodes.push(item(`row${r}`, ...cells))
+  }
+  return item("grid", ...rowNodes)
+}
+
+// Deep chain: single chain of deeply nested nodes
+function createDeepChain(depth: number) {
+  let node = item("leaf")
+  for (let i = depth - 1; i >= 0; i--) {
+    node = item(`d${i}`, node)
+  }
+  return node
+}
+
+// Mixed: realistic - some wide, some deep
+function createMixed(cols: number, cardsPerCol: number, nestDepth: number) {
+  const columns = []
+  for (let c = 0; c < cols; c++) {
+    const cards = []
+    for (let i = 0; i < cardsPerCol; i++) {
+      // Every 5th card has nested children
+      if (i % 5 === 0 && nestDepth > 0) {
+        const nested = []
+        for (let n = 0; n < nestDepth; n++) {
+          nested.push(item(`c${c}-${i}-n${n}`))
+        }
+        cards.push(item(`c${c}-${i}`, ...nested))
+      } else {
+        cards.push(item(`c${c}-${i}`))
+      }
+    }
+    columns.push(item(`col${c}`, ...cards))
+  }
+  return item("board", ...columns)
+}
+
 // ============================================================================
 // Benchmarks - Both Engines (filtered by INKX_ENGINE env var)
 // ============================================================================
@@ -110,6 +154,38 @@ if (RUN_FLEXX) {
       },
       BENCH_OPTIONS,
     )
+
+    bench(
+      "15 cols × 200 cards (~3015 nodes)",
+      () => {
+        testEnvWithEngine(flexxEngine, () => createLargeBoard(15, 200))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "20 cols × 250 cards (~5020 nodes)",
+      () => {
+        testEnvWithEngine(flexxEngine, () => createLargeBoard(20, 250))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "25 cols × 400 cards (~10025 nodes)",
+      () => {
+        testEnvWithEngine(flexxEngine, () => createLargeBoard(25, 400))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "30 cols × 500 cards (~15030 nodes)",
+      () => {
+        testEnvWithEngine(flexxEngine, () => createLargeBoard(30, 500))
+      },
+      BENCH_OPTIONS,
+    )
   })
 
   describe("Board Layout [flexx] - Deep Tree", () => {
@@ -125,6 +201,32 @@ if (RUN_FLEXX) {
       "depth=5 breadth=3 (~364 nodes)",
       () => {
         testEnvWithEngine(flexxEngine, () => createDeepTree(5, 3))
+      },
+      BENCH_OPTIONS,
+    )
+  })
+
+  describe("Board Layout [flexx] - Shapes", () => {
+    bench(
+      "wide-flat 100×50 (~5050 nodes)",
+      () => {
+        testEnvWithEngine(flexxEngine, () => createWideFlat(100, 50))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "deep-chain depth=500 (~500 nodes)",
+      () => {
+        testEnvWithEngine(flexxEngine, () => createDeepChain(500))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "mixed 10×100 nest=5 (~1660 nodes)",
+      () => {
+        testEnvWithEngine(flexxEngine, () => createMixed(10, 100, 5))
       },
       BENCH_OPTIONS,
     )
@@ -149,6 +251,38 @@ if (RUN_YOGA) {
       },
       BENCH_OPTIONS,
     )
+
+    bench(
+      "15 cols × 200 cards (~3015 nodes)",
+      () => {
+        testEnvWithEngine(yogaEngine, () => createLargeBoard(15, 200))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "20 cols × 250 cards (~5020 nodes)",
+      () => {
+        testEnvWithEngine(yogaEngine, () => createLargeBoard(20, 250))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "25 cols × 400 cards (~10025 nodes)",
+      () => {
+        testEnvWithEngine(yogaEngine, () => createLargeBoard(25, 400))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "30 cols × 500 cards (~15030 nodes)",
+      () => {
+        testEnvWithEngine(yogaEngine, () => createLargeBoard(30, 500))
+      },
+      BENCH_OPTIONS,
+    )
   })
 
   describe("Board Layout [yoga] - Deep Tree", () => {
@@ -164,6 +298,32 @@ if (RUN_YOGA) {
       "depth=5 breadth=3 (~364 nodes)",
       () => {
         testEnvWithEngine(yogaEngine, () => createDeepTree(5, 3))
+      },
+      BENCH_OPTIONS,
+    )
+  })
+
+  describe("Board Layout [yoga] - Shapes", () => {
+    bench(
+      "wide-flat 100×50 (~5050 nodes)",
+      () => {
+        testEnvWithEngine(yogaEngine, () => createWideFlat(100, 50))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "deep-chain depth=500 (~500 nodes)",
+      () => {
+        testEnvWithEngine(yogaEngine, () => createDeepChain(500))
+      },
+      BENCH_OPTIONS,
+    )
+
+    bench(
+      "mixed 10×100 nest=5 (~1660 nodes)",
+      () => {
+        testEnvWithEngine(yogaEngine, () => createMixed(10, 100, 5))
       },
       BENCH_OPTIONS,
     )
