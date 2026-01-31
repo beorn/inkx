@@ -39,6 +39,9 @@ Packages in `vendor/` (inkx, chalkx, mdtest, flexx, etc.) are **git submodules**
 If they have bugs or shortcomings, fix or implement it directly - do not work around them.
 Each package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md]
 
+**Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
+See [.claude/skills/git/worktree.md] for details.
+
 ## Code Style
 
 **Patterns:**
