@@ -7,6 +7,17 @@ allowed-tools: Bash, Read, Write
 
 Atomically commit all pending changes across the main repo and vendor submodules.
 
+**CRITICAL: NEVER run multiple separate git commands.** Chain them with `&&`:
+```bash
+# WRONG - multiple tool calls
+git add file1.ts
+git commit -m "message"
+git push
+
+# CORRECT - one tool call with chained commands
+git add file1.ts && git commit -m "message" && git push
+```
+
 **PERFORMANCE CRITICAL:** This command MUST complete in exactly 2 Bash calls:
 
 1. **Gather** - One command that collects ALL state
