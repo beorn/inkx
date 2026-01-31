@@ -24,6 +24,7 @@ Intelligent issue creation with duplicate detection, proper ID generation, and o
 - [Phase 3: Bead Management](#phase-3-bead-management)
 - [Phase 4: Action Decision](#phase-4-action-decision)
 - [Phase 5: Implementation](#phase-5-implementation)
+- [Phase 6: Work Completion](#phase-6-work-completion)
 - [Error Handling](#error-handling)
 - [Quality Gates](#quality-gates)
 
@@ -41,6 +42,8 @@ Phase 3: Bead Management (generate ID, create bead, link dependencies)
 Phase 4: Action Decision (ask: work now or just track?)
    ↓
 Phase 5: Implementation (if "work now" chosen)
+   ↓
+Phase 6: Work Completion (record results, update related)
 ```
 
 ---
@@ -259,6 +262,54 @@ Update status as work progresses.
 
 ---
 
+## Phase 6: Work Completion
+
+### Record Results
+
+When closing a bead, use `--reason` to capture structured results:
+
+**For performance work:**
+
+```bash
+bd close <id> --reason "$(cat <<'EOF'
+Before: 45ms layout pass, 12 allocations
+After: 28ms layout pass, 0 allocations
+Impact: 38% faster, eliminated GC pressure
+Next: km-flexx-measure-phase for further gains
+EOF
+)"
+```
+
+**For bug fixes:**
+
+```bash
+bd close <id> --reason "$(cat <<'EOF'
+Root cause: Nested percentages resolved against wrong reference
+Fix: Pass parent content size to child layout
+Tests: Added 5 regression tests (nested-containers.test.ts)
+EOF
+)"
+```
+
+**For features:**
+
+```bash
+bd close <id> --reason "$(cat <<'EOF'
+Implemented: New API renderStatic() for one-shot rendering
+Tests: 8 new tests, all passing
+Related: inkx-mig (migration) can now proceed
+EOF
+)"
+```
+
+### Update Related Beads
+
+- Reference completed bead in dependent beads' notes
+- Create follow-up beads for discovered issues
+- Update parent epic with progress
+
+---
+
 ## Error Handling
 
 | Scenario               | Action                                  |
@@ -290,6 +341,10 @@ Update status as work progresses.
 
 - [ ] test:fast passes (if code changed)
 - [ ] Evidence in close reason
+- [ ] Performance: Benchmark before/after recorded (if perf work)
+- [ ] Testing: Test count/pass rate documented
+- [ ] Impact: Analysis captured in close reason
+- [ ] Follow-up: Next steps beads created if needed
 - [ ] Related beads updated
 
 ---
