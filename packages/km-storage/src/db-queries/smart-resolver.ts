@@ -12,6 +12,7 @@ import createDebug from "debug"
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { resolve } from "path"
+import { realpathSync, existsSync } from "fs"
 import { isExplicitPath } from "../path-utils.ts"
 import { rowToNode } from "./utils.ts"
 
@@ -154,7 +155,16 @@ export function resolveNode(
   // 1. Explicit filesystem paths (/, ./, ../)
   // ==========================================================================
   if (isExplicitPath(q)) {
-    const absolutePath = resolve(process.cwd(), q)
+    // Resolve to absolute path, then normalize with realpath if file exists
+    // This handles symlinks like /tmp -> /private/tmp on macOS
+    let absolutePath = resolve(process.cwd(), q)
+    if (existsSync(absolutePath)) {
+      try {
+        absolutePath = realpathSync(absolutePath)
+      } catch {
+        // Keep original path if realpath fails
+      }
+    }
     debug("resolveNode: explicit path → %s", absolutePath)
 
     // Exact absolute path match
