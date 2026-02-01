@@ -3,9 +3,8 @@
  *
  * Tests for the Repo lifecycle hooks chaos testing utility.
  *
- * Note: These tests use createRepo which internally manages its own database
- * via loadRepo. They CANNOT use withTestEnv because createRepo's internal
- * setDb() call would overwrite the ALS context. Must remain serial.
+ * Note: These tests use createRepo which manages its own database lifecycle
+ * via the `using` keyword. Tests must remain serial to avoid filesystem conflicts.
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
@@ -18,7 +17,6 @@ import {
   createSeededRandom,
 } from "../../src/index.ts"
 import type { ChaosEvent, ChaosHooks } from "../../src/index.ts"
-import { closeDb } from "../../src/internal/db-instance.ts"
 
 const TEST_DIR = "/tmp/kmtest-chaos-hooks"
 const REPO_DIR = join(TEST_DIR, "repo")
@@ -30,7 +28,7 @@ describe.sequential("createChaosHooks", () => {
   })
 
   afterEach(() => {
-    closeDb()
+    // Repo cleanup is handled by `using` keyword - no need for closeDb()
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
   })
 

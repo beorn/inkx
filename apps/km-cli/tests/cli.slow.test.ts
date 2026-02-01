@@ -1054,7 +1054,7 @@ describe("Bidirectional sync - km status writes to markdown file", () => {
   })
 
   // TODO: CLI commands need to set up fsSync to write changes back to files
-  // This requires architectural work - see setFsSync in emit.ts
+  // This requires using Emitter.setFsSync() from the Emitter domain object
   test.skip("km status done should update markdown file with [x]", async () => {
     // Get task ID for "Open task"
     const listResult = await km(["tasks", "--json"])

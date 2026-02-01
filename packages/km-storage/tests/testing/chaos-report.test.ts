@@ -19,7 +19,6 @@ import {
   formatChaosReportMarkdown,
 } from "../../src/index.ts"
 import type { ChaosReport, ChaosScenario } from "../../src/index.ts"
-import { closeDb } from "../../src/internal/db-instance.ts"
 
 // Tests that don't use createRepo can run in parallel
 describe("generateChaosReport", () => {
@@ -320,8 +319,8 @@ describe("formatChaosReportMarkdown", () => {
   })
 })
 
-// Tests using createRepo must be serial - createRepo manages its own database
-// via loadRepo which uses global singletons. Cannot use withTestEnv.
+// Tests using createRepo must be serial to avoid filesystem conflicts.
+// Repo cleanup is handled by `using` keyword.
 const TEST_DIR = "/tmp/kmtest-chaos-report"
 const REPO_DIR = join(TEST_DIR, "repo")
 
@@ -332,7 +331,7 @@ describe.sequential("integration with real repo", () => {
   })
 
   afterEach(() => {
-    closeDb()
+    // Repo cleanup is handled by `using` keyword - no need for closeDb()
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true })
   })
 

@@ -20,14 +20,6 @@ const debug = createDebug("km:storage:emit")
 import { ulid } from "ulid"
 import { join } from "path"
 import type { Event } from "@km/core"
-import { tryGetContextDb } from "./db-instance.ts"
-import { applyEventWithDb } from "../db-events.ts"
-
-// Event hub for real-time broadcasting (set by km-code)
-let eventHub: { broadcast: (event: Event) => void } | null = null
-
-// Filesystem sync callback (set by km-watch when sync is enabled)
-let fsSync: { applyEventToFs: (event: Event) => void } | null = null
 
 // AsyncLocalStorage for context-local kmDir (enables parallel test isolation)
 const kmDirContext = new AsyncLocalStorage<string>()
@@ -71,23 +63,6 @@ export function runWithKmDir<T>(path: string, fn: () => T): T {
 }
 
 /**
- * Set the event hub for real-time broadcasting
- */
-export function setEventHub(hub: { broadcast: (event: Event) => void }): void {
-  eventHub = hub
-}
-
-/**
- * Set the filesystem sync callback
- * Called for each event to sync changes back to markdown files
- */
-export function setFsSync(
-  sync: { applyEventToFs: (event: Event) => void } | null,
-): void {
-  fsSync = sync
-}
-
-/**
  * Ensure the km directory exists
  */
 function ensureKmDir(): void {
@@ -112,7 +87,7 @@ export function getEventsPath(): string {
  */
 export function emit(
   event: Omit<Event, "id" | "ts">,
-  options: { skipPersist?: boolean; skipBroadcast?: boolean } = {},
+  options: { skipPersist?: boolean } = {},
 ): Event {
   const full: Event = {
     id: ulid(),
@@ -131,21 +106,9 @@ export function emit(
     appendFileSync(eventsPath, JSON.stringify(full) + "\n")
   }
 
-  // 2. Apply to state.db if loaded (context db from runWithDb)
-  const contextDb = tryGetContextDb()
-  if (contextDb) {
-    applyEventWithDb(contextDb, full)
-  }
-
-  // 3. Broadcast via socket (real-time)
-  if (eventHub && !options.skipBroadcast) {
-    eventHub.broadcast(full)
-  }
-
-  // 4. Sync to filesystem if enabled
-  if (fsSync) {
-    fsSync.applyEventToFs(full)
-  }
+  // NOTE: Database application, broadcasting, and filesystem sync have been removed.
+  // Use Emitter domain object (createEmitter) for full event emission capabilities.
+  // This deprecated function only persists to events.jsonl for backward compatibility.
 
   return full
 }
