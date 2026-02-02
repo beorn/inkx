@@ -1,11 +1,11 @@
 ---
-description: Queries other LLMs for second opinions and research. Use when user mentions GPT, ChatGPT, Gemini, consensus, or wants a second opinion.
+description: Queries other LLMs for second opinions and research. Use when user mentions GPT, ChatGPT, OpenAI, Gemini, Grok, deep, thinkdeep, or wants a second opinion.
 argument-hint: [deep|opinion|debate] <prompt>
 ---
 
 # LLM - Multi-Model Queries
 
-**Keywords**: gpt, chatgpt, openai, gemini, grok, second opinion, consensus, deep research
+**Keywords**: gpt, chatgpt, openai, gemini, grok, deep, thinkdeep, second opinion, consensus, research
 
 **Claude: Use this when the user wants another model's perspective or deep research.**
 
