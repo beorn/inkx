@@ -85,6 +85,19 @@ Catalog opportunities in these categories:
 - Use established utilities (check imports in similar files)
 - Preserve public API (exports, function signatures)
 
+### Logging Standards
+
+Check for incorrect logging patterns:
+
+| Pattern | Replace With | Exception |
+|---------|--------------|-----------|
+| `console.log/debug/info/warn` | `@beorn/logger` | CLI user output in `apps/km-cli/src/commands/*` |
+| `console.error` | `log.error()` | CLI error messages, crash handlers |
+| `import debug from 'debug'` | `@beorn/logger` | None - always migrate |
+| Direct `process.stdout.write` | Keep as-is | For raw terminal output (progress bars, etc.) |
+
+**Quick check**: `grep -r "console\." --include="*.ts" packages/ apps/km-tui/src/`
+
 ## Phase 2: Present Findings
 
 Summarize with impact assessment:
