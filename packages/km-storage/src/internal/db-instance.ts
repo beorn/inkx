@@ -11,13 +11,13 @@
  * the singleton have been removed. Use createRepo() for all new code.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { Database } from "bun:sqlite"
 import { join } from "path"
 import { existsSync, mkdirSync } from "fs"
 import { SCHEMA } from "../schema.ts"
 
-const debug = createDebug("km:storage:db:instance")
+const log = createConditionalLogger("km:storage:db:instance")
 
 // =============================================================================
 // DATABASE CREATION HELPERS (no singletons)
@@ -38,7 +38,7 @@ const debug = createDebug("km:storage:db:instance")
 export function createMemoryDb(): Database {
   const db = new Database(":memory:")
   db.run(SCHEMA)
-  debug("created in-memory database")
+  log.debug?.("created in-memory database")
   return db
 }
 
@@ -60,10 +60,10 @@ export function createDiskDb(
     }
   }
 
-  debug("opening database: %s", dbPath)
+  log.debug?.(`opening database: ${dbPath}`)
   const db = new Database(dbPath)
   db.run(SCHEMA)
-  debug("database initialized")
+  log.debug?.("database initialized")
   return db
 }
 
@@ -80,5 +80,5 @@ export function resetDatabase(db: Database): void {
     DROP TABLE IF EXISTS meta;
   `)
   db.run(SCHEMA)
-  debug("database reset")
+  log.debug?.("database reset")
 }

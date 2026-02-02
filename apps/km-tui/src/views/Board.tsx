@@ -17,9 +17,9 @@ import {
   ErrorBoundary,
   type PatchedConsole,
 } from "inkx"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 
-const _debug = createDebug("km:board")
+const _log = createConditionalLogger("km:board")
 import type { TUIBoardState, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -113,6 +113,8 @@ export interface BoardCoreProps {
   patchedConsole?: PatchedConsole | null
   /** Console stats for bottom bar indicator */
   consoleStats?: { total: number; errors: number; warnings: number }
+  /** Column scroll offset (edge-based, from parent) */
+  colScrollOffset: number
 }
 
 /**
@@ -131,6 +133,7 @@ export function BoardCore({
   moveMode,
   patchedConsole,
   consoleStats,
+  colScrollOffset,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
   const termWidth = dimensions.columns
@@ -141,14 +144,7 @@ export function BoardCore({
     Math.max(2, Math.floor(termWidth / 35)),
   )
 
-  // Calculate scroll offset (pure calculation, no refs needed)
-  const colScrollOffset = Math.max(
-    0,
-    Math.min(
-      layout.colIndex - Math.floor(maxCols / 2),
-      Math.max(0, state.columns.length - maxCols),
-    ),
-  )
+  // colScrollOffset is passed from parent (edge-based calculation)
 
   // Build selected item path segments for colorized top bar
   const selectedCol = state.columns[layout.colIndex]
@@ -723,6 +719,7 @@ export function Board({
       moveMode={boardState.moveMode}
       patchedConsole={patchedConsole}
       consoleStats={consoleStats}
+      colScrollOffset={colScrollOffset}
     />
   )
 }

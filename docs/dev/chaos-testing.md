@@ -57,7 +57,7 @@ The sync system (file watching, reconciliation, write queue) is notoriously hard
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Current state:** Tests use `MockFileSystem` (in-memory) by default with `--mock-fs` flag.
+**Current state:** Tests use `FakeFileSystem` (in-memory) by default.
 This provides ~9x speedup compared to real filesystem tests in `/tmp`.
 
 ---
@@ -622,6 +622,13 @@ See beads for implementation status:
 
 ## See Also
 
+This document is part of the **Exploration Testing** family. See [testing.md#dynamic-testing-taxonomy](testing.md#dynamic-testing-taxonomy) for how these relate.
+
+**Related exploration tests:**
+- [`/explore`](../../.claude/skills/explore/SKILL.md) — TUI monkey testing (keyboard surface)
+- [vendor/beorn-flexx/](../../vendor/beorn-flexx/) — Layout engine with Yoga differential fuzz
+
+**Implementation:**
 - [testing.md](testing.md) — General testing guide
-- [../../vendor/beorn-watcher-chaos/](../../vendor/beorn-watcher-chaos/) — Watcher chaos package
-- [../../packages/km-storage/tests/sync/chaos/](../../packages/km-storage/tests/sync/chaos/) — Chaos test suite
+- [vendor/beorn-watcher-chaos/](../../vendor/beorn-watcher-chaos/) — Watcher chaos package
+- [packages/km-storage/tests/sync/chaos/](../../packages/km-storage/tests/sync/chaos/) — Chaos test suite

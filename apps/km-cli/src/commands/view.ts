@@ -5,13 +5,13 @@
  * Press 'v' to cycle between views interactively.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { Command } from "@commander-js/extra-typings"
 import { createLogger } from "@km/core"
 import { setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 
-const debug = createDebug("km:cli:view")
+const debug = createConditionalLogger("km:cli:view")
 const log = createLogger("km")
 
 type ViewMode = "cards" | "columns" | "list" | "tabs"
@@ -30,7 +30,11 @@ export const viewCommand = new Command("view")
   .option("--no-watch", "Disable file watching (faster startup on large repos)")
   .action(async (root, options) => {
     using startup = log.span("startup", { path: root })
-    debug("view command", { root, as: options.as, watch: options.watch })
+    debug.debug?.("view command", {
+      root,
+      as: options.as,
+      watch: options.watch,
+    })
 
     // Clear the "Loading..." line from bootstrap.ts
     const { CURSOR_TO_START, CLEAR_LINE_END } =
@@ -78,7 +82,7 @@ export const viewCommand = new Command("view")
       if (node?.type === "file" && interactive) {
         const data = node.data as { _stub?: boolean } | undefined
         if (data?._stub && node.fs_path) {
-          debug("parsing stub file eagerly: %s", node.fs_path)
+          debug.debug?.(`parsing stub file eagerly: ${node.fs_path}`)
           storageModule.parseStubFile(
             createdRepo.database,
             node.id,
@@ -114,7 +118,7 @@ export const viewCommand = new Command("view")
     const tuiConfig = storageModule!.getTuiConfig(resolved.repoRoot)
     const watchEnabled = options.watch !== false ? tuiConfig.watch : false
     const watchWorker = tuiConfig.watchWorker
-    debug("watch config", {
+    debug.debug?.("watch config", {
       watchEnabled,
       watchWorker,
       cli: options.watch,
@@ -122,14 +126,16 @@ export const viewCommand = new Command("view")
     })
 
     // Run board - TUI takes over from here
-    debug("launching board", { viewMode, interactive, watchEnabled })
+    debug.debug?.("launching board", { viewMode, interactive, watchEnabled })
 
     // km-fast-md.7: Parse files and resolve links in background after board starts
     // This keeps startup instant while eventually completing content parsing
     let aborted = false
 
     if (deferredFiles.length > 0) {
-      debug("scheduling background parsing for %d files", deferredFiles.length)
+      debug.debug?.(
+        `scheduling background parsing for ${deferredFiles.length} files`,
+      )
       void (async () => {
         // Small delay to let the board render first
         await new Promise<void>((resolve) => {
@@ -145,7 +151,7 @@ export const viewCommand = new Command("view")
               deferredFiles,
               () => aborted, // Check abort on each batch
             )
-          debug("background parsing complete: %d parsed", parsed)
+          debug.debug?.(`background parsing complete: ${parsed} parsed`)
 
           if (aborted) return
 
@@ -157,11 +163,15 @@ export const viewCommand = new Command("view")
                 createdRepo.database,
                 pendingLinks,
               )
-            debug("background link resolution complete: %d resolved", resolved)
+            debug.debug?.(
+              `background link resolution complete: ${resolved} resolved`,
+            )
           }
         } catch (err) {
           if (!aborted) {
-            debug("background parsing/resolution failed: %s", err)
+            debug.debug?.(
+              `background parsing/resolution failed: ${String(err)}`,
+            )
           }
         }
       })()

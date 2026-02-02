@@ -8,10 +8,10 @@
  */
 
 import type { Database } from "bun:sqlite"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { ulid } from "ulid"
 
-const debug = createDebug("km:storage:db:ops")
+const log = createConditionalLogger("km:storage:db:ops")
 import type { KNode } from "@km/core"
 import type { Emitter } from "./emitter.ts"
 
@@ -70,12 +70,8 @@ function moveNodeImpl(
   newParentIdx: number,
   emitter?: Emitter,
 ): void {
-  debug(
-    "moveNode: %s → parent=%s idx=%d emitter=%s",
-    nodeId,
-    newParentId,
-    newParentIdx,
-    !!emitter,
+  log.debug?.(
+    `moveNode: ${nodeId} → parent=${newParentId} idx=${newParentIdx} emitter=${!!emitter}`,
   )
   if (emitter) {
     emitter.emit({
@@ -132,7 +128,7 @@ function updateNodeImpl(
 }
 
 function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
-  debug("deleteNode: %s emitter=%s", nodeId, !!emitter)
+  log.debug?.(`deleteNode: ${nodeId} emitter=${!!emitter}`)
   if (emitter) {
     emitter.emit({
       type: "node_deleted",
@@ -152,12 +148,8 @@ function addNodeImpl(
   emitter?: Emitter,
 ): string {
   const nodeId = node.id ?? ulid()
-  debug(
-    "addNode: %s type=%s parent=%s emitter=%s",
-    nodeId,
-    node.type ?? "task",
-    parentId,
-    !!emitter,
+  log.debug?.(
+    `addNode: ${nodeId} type=${node.type ?? "task"} parent=${parentId} emitter=${!!emitter}`,
   )
   const now = Date.now()
 

@@ -11,7 +11,7 @@
 
 import type { CommandAction } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { assertNever } from "../action-handlers.ts"
 import { outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import {
@@ -23,7 +23,7 @@ import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { TUIContext } from "../tui-context.ts"
 import { actions } from "../ui-reducer.ts"
 
-const debug = createDebug("km:tui:board-actions")
+const log = createConditionalLogger("km:tui:board-actions")
 
 // Import handlers from specialized modules
 import {
@@ -141,15 +141,12 @@ export function handleCommandAction(
       const curCol = state.columns[layout.colIndex]
       const curCard = curCol?.cards[layout.cardIndex]
       const curNodeId = curCard?.node.id ?? curCol?.node.id
-      debug(
-        "OPEN_DETAIL_PANE: colIndex=%d cardIndex=%d curNodeId=%s",
-        layout.colIndex,
-        layout.cardIndex,
-        curNodeId,
+      log.debug?.(
+        `OPEN_DETAIL_PANE: colIndex=${layout.colIndex} cardIndex=${layout.cardIndex} curNodeId=${curNodeId}`,
       )
       if (curNodeId) {
         const children = ctx.repo.getChildren(curNodeId)
-        debug("OPEN_DETAIL_PANE: children=%d", children.length)
+        log.debug?.(`OPEN_DETAIL_PANE: children=${children.length}`)
         if (children.length > 0) {
           // Use handleZoomInNode to support both card and column level zoom
           return handleZoomInNode(ctx, curNodeId)

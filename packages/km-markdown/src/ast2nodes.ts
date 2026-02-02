@@ -20,10 +20,10 @@
  * For the reverse operation (KNodes → markdown), see nodes2md.ts.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { ulid } from "ulid"
 
-const debug = createDebug("km:markdown:ast2nodes")
+const log = createConditionalLogger("km:markdown:ast2nodes")
 import type { Root, RootContent, Heading, List, ListItem } from "mdast"
 import { parse as parseYaml } from "yaml"
 import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core"
@@ -302,7 +302,7 @@ export function parseMarkdownWithLinks(
     })
   }
 
-  debug("parsed", {
+  log.debug?.("parsed", {
     fsPath,
     nodes: allNodes.length,
     wikilinks: wikilinks.length,

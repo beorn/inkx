@@ -4,7 +4,7 @@
  * One-time sync between filesystem and database, or continuous watch mode
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
@@ -13,7 +13,7 @@ import { steps } from "@beorn/inkx-ui/progress"
 import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
-const debug = createDebug("km:cli:sync")
+const log = createConditionalLogger("km:cli:sync")
 import {
   SyncManager,
   findKmRootFromPath,
@@ -51,7 +51,7 @@ export const syncCommand = new Command("sync")
     }
 
     const repoPath = dirname(kmRoot)
-    debug("resolved repo path: %s (from kmRoot: %s)", repoPath, kmRoot)
+    log.debug?.(`resolved repo path: ${repoPath} (from kmRoot: ${kmRoot})`)
 
     // Open database directly from kmRoot and ensure schema exists
     const db = new Database(join(kmRoot, "state.db"))
@@ -76,7 +76,7 @@ export const syncCommand = new Command("sync")
  * Start the continuous filesystem watcher
  */
 function startWatch(repoPath: string, debounceMs: number, db: Database): void {
-  debug("starting watch: %s (debounce=%dms)", repoPath, debounceMs)
+  log.debug?.(`starting watch: ${repoPath} (debounce=${debounceMs}ms)`)
   console.log(term.dim(`Watching: ${repoPath}`))
   console.log(term.dim(`Debounce: ${debounceMs}ms`))
   console.log(term.dim("Press Ctrl+C to stop\n"))
@@ -147,7 +147,11 @@ async function runSync(
   options: { toFs?: boolean; dryRun?: boolean },
   db: Database,
 ): Promise<void> {
-  debug("runSync", { repoPath, toFs: options.toFs, dryRun: options.dryRun })
+  log.debug?.("runSync", {
+    repoPath,
+    toFs: options.toFs,
+    dryRun: options.dryRun,
+  })
   console.log(
     term.bold(`Syncing .km/state.db with files`),
     term.dim(`(repo ${formatPath(repoPath)})`),

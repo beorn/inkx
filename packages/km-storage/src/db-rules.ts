@@ -16,7 +16,7 @@
  * - color: Board/section color
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
 import { queryNodes } from "./query.ts"
@@ -31,7 +31,7 @@ import {
 // because that would require the event system to be set up (which isn't always the case)
 import type { KNode, NodeRules } from "@km/core"
 
-const debug = createDebug("km:storage:db:rules")
+const log = createConditionalLogger("km:storage:db:rules")
 
 /** Relationship type for add= rule results */
 const ADD_RULE_RELATIONSHIP = "query:add"
@@ -87,13 +87,13 @@ export function evaluateNodeRules(
     .query("SELECT * FROM nodes WHERE id = ?")
     .get(nodeId) as Record<string, unknown> | null
   if (!row) {
-    debug("evaluateNodeRules: node %s not found", nodeId)
+    log.debug?.(`evaluateNodeRules: node ${nodeId} not found`)
     return
   }
 
   const node = rowToNode(row)
   if (!node.rules) {
-    debug("evaluateNodeRules: node %s has no rules", nodeId)
+    log.debug?.(`evaluateNodeRules: node ${nodeId} has no rules`)
     return
   }
 
@@ -133,11 +133,11 @@ function evaluateAddRule(
   query: string,
   ctx: RuleContext,
 ): void {
-  debug("evaluateAddRule: section=%s query=%s", sectionId, query)
+  log.debug?.(`evaluateAddRule: section=${sectionId} query=${query}`)
 
   const section = getNode(db, sectionId)
   if (!section) {
-    debug("evaluateAddRule: section not found")
+    log.debug?.("evaluateAddRule: section not found")
     return
   }
 
@@ -147,7 +147,7 @@ function evaluateAddRule(
   // Evaluate query
   const matchingNodes = queryNodes(db, query)
   const matchingIds = new Set(matchingNodes.map((n) => n.id))
-  debug("evaluateAddRule: found %d matches", matchingNodes.length)
+  log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches`)
 
   // Remove embeds that no longer match the query
   const existingEmbedNodes = getChildren(db, sectionId).filter(
@@ -163,13 +163,15 @@ function evaluateAddRule(
     }
   }
   if (removedCount > 0) {
-    debug("evaluateAddRule: removed %d stale embeds", removedCount)
+    log.debug?.(`evaluateAddRule: removed ${removedCount} stale embeds`)
   }
 
   // Get the board root (parent of section) to check board-wide deduplication
   const boardRootId = section.parent_id
   const existingOnBoard = getEmbedTargetsOnBoard(db, boardRootId)
-  debug("evaluateAddRule: existing embeds on board: %d", existingOnBoard.size)
+  log.debug?.(
+    `evaluateAddRule: existing embeds on board: ${existingOnBoard.size}`,
+  )
 
   // Get existing embed children in this section (by link_to) - refresh after cleanup
   const existingEmbeds = getChildren(db, sectionId)
@@ -227,11 +229,8 @@ function evaluateAddRule(
   }
 
   if (addedCount > 0 || removedCount > 0 || skippedCount > 0) {
-    debug(
-      "evaluateAddRule: +%d -%d skipped=%d",
-      addedCount,
-      removedCount,
-      skippedCount,
+    log.debug?.(
+      `evaluateAddRule: +${addedCount} -${removedCount} skipped=${skippedCount}`,
     )
   }
 
@@ -240,7 +239,7 @@ function evaluateAddRule(
     const fileNode = findFileAncestor(db, sectionId, ctx)
     if (fileNode?.fs_path) {
       ctx.pendingWriteBack.add(fileNode.fs_path)
-      debug("evaluateAddRule: marked %s for write-back", fileNode.fs_path)
+      log.debug?.(`evaluateAddRule: marked ${fileNode.fs_path} for write-back`)
     }
   }
 }
@@ -417,11 +416,13 @@ export function* evaluateAllRules(
   db: Database,
   ctx: RuleContext,
 ): Generator<RulesProgress, void, unknown> {
-  debug("evaluateAllRules: starting")
+  log.debug?.("evaluateAllRules: starting")
   const start = Date.now()
 
   const nodesWithRules = getNodesWithRules(db)
-  debug("evaluateAllRules: found %d nodes with rules", nodesWithRules.length)
+  log.debug?.(
+    `evaluateAllRules: found ${nodesWithRules.length} nodes with rules`,
+  )
 
   yield { current: 0, total: nodesWithRules.length }
 
@@ -441,7 +442,7 @@ export function* evaluateAllRules(
     ctx.fileAncestorCache = null
   }
 
-  debug("evaluateAllRules: completed in %dms", Date.now() - start)
+  log.debug?.(`evaluateAllRules: completed in ${Date.now() - start}ms`)
 }
 
 /**
@@ -459,7 +460,9 @@ export function onNodeChanged(
   ctx: RuleContext,
   changes?: Record<string, unknown>,
 ): void {
-  debug("onNodeChanged: %s changes=%O", changedNodeId, changes)
+  log.debug?.(
+    `onNodeChanged: ${changedNodeId} changes=${JSON.stringify(changes)}`,
+  )
 
   // For simplicity, re-evaluate all add= rules when any node changes.
   // This is O(rules * matches) but rules count is typically small (<20).
@@ -481,7 +484,7 @@ export function onNodeChanged(
  * Called when a node is deleted to clean up any links pointing to it.
  */
 export function onNodeDeleted(db: Database, deletedNodeId: string): void {
-  debug("onNodeDeleted: %s", deletedNodeId)
+  log.debug?.(`onNodeDeleted: ${deletedNodeId}`)
 
   // Remove any computed links that point TO this node
   db.run("DELETE FROM links WHERE target_id = ? AND relationship = ?", [

@@ -5,11 +5,11 @@
  */
 
 import type { Database } from "bun:sqlite"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { KNode } from "@km/core"
 import { rowToNode } from "./utils.ts"
 
-const debug = createDebug("km:storage:db:queries")
+const log = createConditionalLogger("km:storage:db:queries")
 
 // =============================================================================
 // Full-Text Search
@@ -62,7 +62,7 @@ export function toFts5Query(query: string): string {
 export function search(db: Database, query: string, limit = 50): KNode[] {
   const ftsQuery = toFts5Query(query)
 
-  debug("search: %s → fts5: %s", query, ftsQuery)
+  log.debug?.(`search: ${query} → fts5: ${ftsQuery}`)
 
   const rows = db
     .query(
@@ -76,7 +76,7 @@ export function search(db: Database, query: string, limit = 50): KNode[] {
     )
     .all(ftsQuery, limit) as Record<string, unknown>[]
 
-  debug("search: found %d results", rows.length)
+  log.debug?.(`search: found ${rows.length} results`)
   return rows.map(rowToNode)
 }
 

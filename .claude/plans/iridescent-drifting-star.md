@@ -1,11 +1,153 @@
-# Spec: testBoard() API for /explore Skill
+# Spec: TUI Testing Options for /explore Skill
 
 ## Problem
 
-The `/explore` skill needs a way to programmatically interact with TUI in test mode. Currently we have inkx test renderer but no convenient way to:
-1. Load real vault data into a test instance
-2. Control input/output without MCP TTY overhead
-3. Write quick ad-hoc scripts to reproduce bugs
+Claude needs a way to quickly test TUI interactions - debug bugs, explore edge cases, verify behavior.
+
+## Options Comparison
+
+| Option | Simplicity | Flexibility | Compatibility | Speed |
+|--------|------------|-------------|---------------|-------|
+| **A: inkx test renderer** | ★★★★★ | ★★★★☆ | inkx native | ~1000/s |
+| **B: MCP TTY (Playwright)** | ★★☆☆☆ | ★★★★★ | Any TUI | ~1/s |
+| **C: Headless stdin/stdout** | ★★★☆☆ | ★★★☆☆ | Any process | ~100/s |
+| **D: Custom Term injection** | ★★★★☆ | ★★★★☆ | inkx native | ~1000/s |
+
+---
+
+## Option A: inkx Test Renderer (Existing)
+
+**What it is**: Use `createTestRenderer()` from inkx/testing with components directly.
+
+```typescript
+import { createTestRenderer } from "inkx/testing"
+import { BoardApp } from "./views"
+
+const render = createTestRenderer({ columns: 80, rows: 24 })
+const app = render(<BoardApp initialState={state} />)
+
+app.press("j")
+console.log(app.text)
+```
+
+**Pros**:
+- Already exists and works
+- Fastest (no process/network overhead)
+- Full DOM access via locators
+- Playwright-style API (`app.press()`, `app.locator()`)
+
+**Cons**:
+- Requires constructing React component + state manually
+- No real vault loading helper (yet)
+
+**What's needed**: Just a `testBoard()` wrapper to handle vault loading.
+
+---
+
+## Option B: MCP TTY (Playwright + ttyd)
+
+**What it is**: Launch real `km view` via ttyd, control with Playwright.
+
+```typescript
+const { sessionId } = await mcp__tty__start({ command: ["bun", "km", "view", "/path"] })
+await mcp__tty__press({ sessionId, key: "j" })
+const text = await mcp__tty__text({ sessionId })
+```
+
+**Pros**:
+- Tests the REAL full app (including CLI parsing, startup)
+- Visual debugging via browser
+- Works with any TUI (not just inkx)
+
+**Cons**:
+- Slow (~1s per interaction due to browser)
+- Heavy (needs ttyd + Chromium)
+- No DOM access (only screen text/pixels)
+
+**Already exists**: MCP TTY tools work today.
+
+---
+
+## Option C: Headless stdin/stdout Mode
+
+**What it is**: Run `km view` with stdin/stdout piped, parse text output.
+
+```bash
+echo "jjk" | km view --headless /path
+# or
+km view --headless /path <<< "jjk"
+```
+
+**Pros**:
+- Simple - just pipe text in, read text out
+- Works with any CLI
+- No dependencies
+
+**Cons**:
+- Requires new `--headless` flag in km
+- No DOM access
+- Timing issues (when is render "done"?)
+- Frame separation unclear
+
+**What's needed**: Add `--headless` mode that:
+- Reads keys from stdin
+- Writes frames to stdout (with separator)
+- No alternate screen/raw mode
+
+---
+
+## Option D: Custom Term Injection (Proposed)
+
+**What it is**: testBoard() helper that injects a custom event source into real BoardApp.
+
+```typescript
+const board = await testBoard("/tmp/my-vault")
+board.press("j").press("j")
+console.log(board.text())
+```
+
+**Pros**:
+- Fast (no process overhead)
+- Uses real BoardApp code
+- Full DOM access
+- Ergonomic API
+
+**Cons**:
+- Requires flush/sync mechanism
+- inkx-specific
+
+**What's needed**: Thin wrapper around inkx render + vault loading.
+
+---
+
+## Recommendation
+
+**Start with Option A** (inkx test renderer) because:
+1. It already exists and works
+2. Just needs a `testBoard()` helper for vault loading
+3. Fastest iteration speed
+4. Compatible with existing test patterns
+
+**Implementation**:
+
+```typescript
+// apps/km-tui/tests/helpers/test-board.ts
+export async function testBoard(vaultPath: string, opts?: { width?: number, height?: number }) {
+  const repo = await createRepo({ rootPath: vaultPath })
+  const state = await initBoardState(repo)
+  const render = createTestRenderer({ columns: opts?.width ?? 80, rows: opts?.height ?? 24 })
+
+  return render(
+    <RepoProvider repo={repo}>
+      <BoardApp initialState={state} />
+    </RepoProvider>
+  )
+}
+```
+
+This is ~10 lines and unlocks ad-hoc testing immediately.
+
+---
 
 ## Solution: `testBoard()` Helper
 

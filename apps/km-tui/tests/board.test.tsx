@@ -54,6 +54,7 @@ function renderBoardCore(
       handleSearchCancel: () => {},
     },
     moveMode: false,
+    colScrollOffset: 0,
   })
   return React.createElement(RepoProvider, {
     repo,

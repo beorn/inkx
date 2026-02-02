@@ -10,9 +10,9 @@
 import React, { useMemo, useRef, forwardRef, useImperativeHandle } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { Box, Text } from "inkx"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 
-const debugCol = createDebug("km:tui:columns")
+const log = createConditionalLogger("km:tui:columns")
 import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
@@ -232,11 +232,8 @@ const VirtualizedTreeCardList = forwardRef<
           actualIndex === selectedCardIndex &&
           (!inOutlineMode || selectedSubIndex === 0)
 
-        debugCol(
-          "rendering card col=%d idx=%d id=%s",
-          colIndex,
-          actualIndex,
-          card.node.id,
+        log.debug?.(
+          `rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`,
         )
         return (
           <MemoizedTreeCard

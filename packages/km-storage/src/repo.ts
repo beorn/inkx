@@ -15,7 +15,7 @@
  */
 
 import { Database } from "bun:sqlite"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 
@@ -54,7 +54,7 @@ import {
 import { SCHEMA } from "./schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 
-const debug = createDebug("km:storage:repo")
+const log = createConditionalLogger("km:storage:repo")
 
 // =============================================================================
 // Shared Method Factories
@@ -265,12 +265,12 @@ function checkNeedsRebuild(rootPath: string, db: Database): boolean {
   const eventsPath = join(kmDir, "events.jsonl")
 
   if (!existsSync(dbPath)) {
-    debug("needsRebuild: yes (no state.db)")
+    log.debug?.("needsRebuild: yes (no state.db)")
     return true
   }
 
   if (!existsSync(eventsPath)) {
-    debug("needsRebuild: no (no events.jsonl)")
+    log.debug?.("needsRebuild: no (no events.jsonl)")
     return false
   }
 
@@ -285,10 +285,9 @@ function checkNeedsRebuild(rootPath: string, db: Database): boolean {
       ? readFileSync(eventsPath, "utf-8")
       : ""
     const hasEvents = content.trim().length > 0
-    debug("needsRebuild", {
-      result: hasEvents ? "yes" : "no",
-      reason: "no last_event",
-    })
+    log.debug?.(
+      `needsRebuild result=${hasEvents ? "yes" : "no"} reason=no last_event`,
+    )
     return hasEvents
   }
 
@@ -296,27 +295,25 @@ function checkNeedsRebuild(rootPath: string, db: Database): boolean {
   const content = readFileSync(eventsPath, "utf-8")
   const lines = content.split("\n").filter((l: string) => l.trim())
   if (lines.length === 0) {
-    debug("needsRebuild: no (no events)")
+    log.debug?.("needsRebuild: no (no events)")
     return false
   }
 
   const lastLine = lines.at(-1)
   if (!lastLine) {
-    debug("needsRebuild: no (empty last line)")
+    log.debug?.("needsRebuild: no (empty last line)")
     return false
   }
 
   try {
     const lastEvent = JSON.parse(lastLine) as { id: string }
     const needs = lastEvent.id > lastAppliedId
-    debug("needsRebuild", {
-      result: needs ? "yes" : "no",
-      last: lastEvent.id.slice(-8),
-      applied: (lastAppliedId as string).slice(-8),
-    })
+    log.debug?.(
+      `needsRebuild result=${needs ? "yes" : "no"} last=${lastEvent.id.slice(-8)} applied=${(lastAppliedId as string).slice(-8)}`,
+    )
     return needs
   } catch {
-    debug("needsRebuild: yes (malformed events)")
+    log.debug?.("needsRebuild: yes (malformed events)")
     return true
   }
 }
@@ -643,7 +640,7 @@ export function* createRepo(
   rootPath: string = process.cwd(),
   options: CreateRepoOptions = {},
 ): Generator<StepYield, Repo, unknown> {
-  debug("createRepo", { rootPath, options })
+  log.debug?.(`createRepo rootPath=${rootPath}`)
 
   // Track loading results
   let loadErrors: LoadError[] = []
@@ -719,10 +716,8 @@ export function* createRepo(
         )
 
       if (hasContentFiles) {
-        debug(
-          "WARNING: orphaned .km detected - database has %d nodes but repo has files. " +
-            "Falling back to memory mode for this session.",
-          stats.nodeCount,
+        log.debug?.(
+          `WARNING: orphaned .km detected - database has ${stats.nodeCount} nodes but repo has files. Falling back to memory mode for this session.`,
         )
 
         // Close disk db and switch to memory mode
@@ -764,11 +759,8 @@ export function* createRepo(
       }
     }
 
-    debug(
-      "loaded files: %d nodes, %d links, %d errors",
-      stats.nodeCount,
-      stats.linkCount,
-      loadErrors.length,
+    log.debug?.(
+      `loaded files: ${stats.nodeCount} nodes, ${stats.linkCount} links, ${loadErrors.length} errors`,
     )
   } else {
     // =========================================================================
@@ -787,7 +779,7 @@ export function* createRepo(
     // Create emitter early - needed for disk mode DataStore
     emitter = createEmitter({ kmDir })
 
-    debug("detected mode: %s (hasKmDir=%s)", mode, hasKmDir)
+    log.debug?.(`detected mode: ${mode} (hasKmDir=${hasKmDir})`)
 
     // Step 2: Initialize database
     yield "Initializing database"
@@ -903,7 +895,7 @@ export function* createRepo(
 
     sync() {
       ensureOpen()
-      debug("sync() called - not yet implemented")
+      log.debug?.("sync() called - not yet implemented")
       return Promise.resolve({ fromFiles: 0, fromData: 0, conflicts: [] })
     },
 
@@ -915,7 +907,7 @@ export function* createRepo(
     needsRebuild() {
       ensureOpen()
       if (mode === "memory") {
-        debug("needsRebuild: no (memory mode)")
+        log.debug?.("needsRebuild: no (memory mode)")
         return false
       }
       return checkNeedsRebuild(rootPath, db)
@@ -923,14 +915,14 @@ export function* createRepo(
 
     *refresh() {
       ensureOpen()
-      debug("refresh not yet implemented")
+      log.debug?.("refresh not yet implemented")
       yield "Refreshing"
     },
 
     close() {
       if (closed) return
       closed = true
-      debug("closing repo")
+      log.debug?.("closing repo")
       hooks?.onClose?.()
       emitter.close()
       fileTree.close()
@@ -993,7 +985,7 @@ export function createBareRepo(
   dataStore: DataStore & HasDatabase,
   options: CreateBareRepoOptions = {},
 ): Repo {
-  debug("createBareRepo", { options })
+  log.debug?.("createBareRepo")
 
   const config = options.config ?? loadConfigObject(options.configPath)
   const db = dataStore.database
@@ -1077,7 +1069,7 @@ export function createBareRepo(
     close() {
       if (closed) return
       closed = true
-      debug("closing bare repo")
+      log.debug?.("closing bare repo")
       hooks?.onClose?.()
       emitter.close()
       // Note: caller manages DataStore lifecycle for bare repos

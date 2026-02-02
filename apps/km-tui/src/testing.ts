@@ -189,6 +189,7 @@ export async function createBoardTest(
       handleSearchCancel: () => {},
     },
     moveMode: false,
+    colScrollOffset: 0,
   })
 
   const app = render(

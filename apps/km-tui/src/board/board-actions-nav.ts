@@ -6,7 +6,7 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { getCardMidY } from "../card-positions.ts"
 
 import {
@@ -21,7 +21,7 @@ import {
 import type { TUIContext } from "../tui-context.ts"
 import { actions } from "../ui-reducer.ts"
 
-const debug = createDebug("km:tui:nav")
+const log = createConditionalLogger("km:tui:nav")
 
 /**
  * Handle hierarchical vertical navigation (j/k).
@@ -41,7 +41,7 @@ function handleHierarchicalNavigation(
 
   if (!cursorNodeId) {
     // No cursor - can't navigate
-    debug("h-nav: no cursor")
+    log.debug?.("h-nav: no cursor")
     return null
   }
 
@@ -52,13 +52,8 @@ function handleHierarchicalNavigation(
   const isAtColumnLevel = cursorNode?.parent_id === rootId && !isAtBoardLevel
   const isAtCardLevel = !isAtBoardLevel && !isAtColumnLevel
 
-  debug(
-    "h-nav: dir=%s cursor=%s board=%s col=%s card=%s",
-    dir,
-    cursorNodeId.slice(-4),
-    isAtBoardLevel,
-    isAtColumnLevel,
-    isAtCardLevel,
+  log.debug?.(
+    `h-nav: dir=${dir} cursor=${cursorNodeId.slice(-4)} board=${isAtBoardLevel} col=${isAtColumnLevel} card=${isAtCardLevel}`,
   )
 
   if (dir === "down") {
@@ -241,20 +236,14 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     )
     const hasTargetPositions = positionRegistry.hasCardsInColumn(targetColIndex)
 
-    debug(
-      "h/l nav: curCol=%d hasCur=%s, targetCol=%d hasTgt=%s",
-      layout.colIndex,
-      hasCurrentPositions,
-      targetColIndex,
-      hasTargetPositions,
+    log.debug?.(
+      `h/l nav: curCol=${layout.colIndex} hasCur=${hasCurrentPositions}, targetCol=${targetColIndex} hasTgt=${hasTargetPositions}`,
     )
 
     // Fallback when positions aren't available: go to first card in target column
     if (!hasTargetPositions) {
-      debug(
-        "h/l nav: target column %d has no positions, falling back to first card. Registry:\n%s",
-        targetColIndex,
-        positionRegistry.dump(),
+      log.debug?.(
+        `h/l nav: target column ${targetColIndex} has no positions, falling back to first card. Registry:\n${positionRegistry.dump()}`,
       )
       const firstCard = targetCol.cards[0]
       if (firstCard) {
@@ -265,10 +254,8 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     }
 
     if (!hasCurrentPositions) {
-      debug(
-        "h/l nav: current column %d has no positions, can't get curswantY. Falling back to first card. Registry:\n%s",
-        layout.colIndex,
-        positionRegistry.dump(),
+      log.debug?.(
+        `h/l nav: current column ${layout.colIndex} has no positions, can't get curswantY. Falling back to first card. Registry:\n${positionRegistry.dump()}`,
       )
       const firstCard = targetCol.cards[0]
       if (firstCard) {
@@ -286,17 +273,14 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
         layout.colIndex,
         layout.cardIndex,
       )
-      debug(
-        "h/l: getting curswantY from current card col=%d idx=%d layout=%O",
-        layout.colIndex,
-        layout.cardIndex,
-        currentLayout.layout,
+      log.debug?.(
+        `h/l: getting curswantY from current card col=${layout.colIndex} idx=${layout.cardIndex} layout=${JSON.stringify(currentLayout.layout)}`,
       )
       curswantY = getCardMidY(currentLayout.layout)
-      debug("h/l: computed curswantY=%d", curswantY)
+      log.debug?.(`h/l: computed curswantY=${curswantY}`)
       positionRegistry.setStickyY(curswantY)
     } else {
-      debug("h/l: using sticky curswantY=%d", curswantY)
+      log.debug?.(`h/l: using sticky curswantY=${curswantY}`)
     }
 
     // Find card in target column whose box intersects curswantY (or closest)
@@ -309,11 +293,8 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     // For now, clamp to first card (column header navigation is separate)
     const finalCardIndex = Math.max(0, targetCardIndex)
 
-    debug(
-      "h/l visual: curswantY=%d, targetCol=%d, targetCard=%d",
-      curswantY,
-      targetColIndex,
-      finalCardIndex,
+    log.debug?.(
+      `h/l visual: curswantY=${curswantY}, targetCol=${targetColIndex}, targetCard=${finalCardIndex}`,
     )
 
     const targetCard = targetCol.cards[finalCardIndex]

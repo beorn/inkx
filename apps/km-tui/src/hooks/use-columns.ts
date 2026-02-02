@@ -8,13 +8,13 @@
  */
 
 import { useMemo } from "react"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import type { ColumnState, CardState, ColumnRules } from "../types.ts"
 import { parseColumnRules } from "../state.ts"
 
-const debug = createDebug("km:perf")
+const log = createConditionalLogger("km:perf")
 
 // =============================================================================
 // Non-Column Types (content blocks, not navigable columns)
@@ -44,7 +44,9 @@ export function useColumns(
     const result = deriveColumnsFromRepo(repo, rootId, foldedNodes)
     const duration = performance.now() - start
     if (duration > 5) {
-      debug("useColumns: %.2fms for %d columns", duration, result.length)
+      log.debug?.(
+        `useColumns: ${duration.toFixed(2)}ms for ${result.length} columns`,
+      )
     }
     return result
   }, [repo.stats.nodeCount, rootId, foldedNodes])

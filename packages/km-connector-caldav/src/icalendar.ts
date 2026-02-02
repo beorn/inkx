@@ -5,24 +5,24 @@
  * Implements RFC 5545 (iCalendar).
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { CalendarEvent, Attendee } from "./types.ts"
 import { parseEventStatus, parseAttendeeStatus } from "./constants.ts"
 
-const debug = createDebug("km:caldav:ical")
+const log = createConditionalLogger("km:caldav:ical")
 
 /**
  * Parse iCalendar data to CalendarEvent
  */
 export function parseICalendar(ical: string): CalendarEvent | null {
-  debug("parseICalendar: %d bytes", ical.length)
+  log.debug?.(`parseICalendar: ${ical.length} bytes`)
   // Unfold lines (RFC 5545: lines can be wrapped with CRLF + whitespace)
   const unfolded = ical.replace(/\r?\n[ \t]/g, "")
 
   // Find VEVENT component
   const veventMatch = unfolded.match(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/)
   if (!veventMatch) {
-    debug("parseICalendar: no VEVENT found")
+    log.debug?.("parseICalendar: no VEVENT found")
     return null
   }
 
@@ -42,7 +42,7 @@ export function parseICalendar(ical: string): CalendarEvent | null {
   const summary = getValue("SUMMARY")
 
   if (!uid || !summary) {
-    debug("parseICalendar: missing UID or SUMMARY")
+    log.debug?.("parseICalendar: missing UID or SUMMARY")
     return null
   }
 
@@ -99,7 +99,7 @@ export function parseICalendar(ical: string): CalendarEvent | null {
     }
   }
 
-  debug("parseICalendar: parsed %s (%s)", uid, summary)
+  log.debug?.(`parseICalendar: parsed ${uid} (${summary})`)
   return event
 }
 
@@ -107,7 +107,7 @@ export function parseICalendar(ical: string): CalendarEvent | null {
  * Format CalendarEvent to iCalendar
  */
 export function formatICalendar(event: CalendarEvent): string {
-  debug("formatICalendar: %s (%s)", event.uid, event.summary)
+  log.debug?.(`formatICalendar: ${event.uid} (${event.summary})`)
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",

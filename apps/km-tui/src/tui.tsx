@@ -7,7 +7,7 @@
 import { EventEmitter } from "events"
 import { writeSync } from "fs"
 import { createTerm, render, patchConsole } from "inkx"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import React from "react"
 import { createLogger } from "@km/core"
 import { enableConsoleDebug } from "../../km-cli/src/debug-log.ts"
@@ -16,8 +16,8 @@ import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { SyncManager } from "@km/storage"
 
-const debug = createDebug("km:tui")
-const log = createLogger("km:tui")
+const log = createConditionalLogger("km:tui")
+const spanLog = createLogger("km:tui")
 
 /**
  * Global event emitter for TUI refresh events
@@ -71,8 +71,8 @@ export async function runBoard(
   state: TUIBoardState | null,
   options?: TuiOptions,
 ): Promise<void> {
-  using run = log.span("run-board")
-  debug("runBoard start")
+  using run = spanLog.span("run-board")
+  log.debug?.("runBoard start")
 
   if (!state || !options?.repo) {
     console.error("No board found or repo missing.")
@@ -83,11 +83,9 @@ export async function runBoard(
   const interactive = options?.interactive !== false
   const isInteractive = interactive && term.hasInput()
 
-  debug("TTY detection", {
-    interactive,
-    hasInput: term.hasInput(),
-    isInteractive,
-  })
+  log.debug?.(
+    `TTY detection interactive=${interactive} hasInput=${term.hasInput()} isInteractive=${isInteractive}`,
+  )
 
   // Use term for interactive, TermDef with stdout for static
   const renderOpts = isInteractive
@@ -103,11 +101,9 @@ export async function runBoard(
   if (isInteractive && state.rootPath && options?.watch !== false) {
     using _ = run.span("sync-manager-init")
     const useWorker = options?.watchWorker !== false
-    debug("Creating SyncManager", {
-      rootPath: state.rootPath,
-      watch: true,
-      worker: useWorker,
-    })
+    log.debug?.(
+      `Creating SyncManager rootPath=${state.rootPath} watch=true worker=${useWorker}`,
+    )
     syncManager = new SyncManager({
       db: options.repo.database,
       repoPath: state.rootPath,
@@ -132,9 +128,9 @@ export async function runBoard(
       tuiEvents.emit("watcher-status", status)
     })
 
-    debug("Starting syncManager...")
+    log.debug?.("Starting syncManager...")
     syncManager.start()
-    debug("syncManager started")
+    log.debug?.("syncManager started")
   }
 
   // Register error handlers to clean up terminal on crash
@@ -167,7 +163,7 @@ export async function runBoard(
   try {
     // Stop CLI spinner - TUI is about to take over the screen
     options?.spinner?.stop()
-    debug("Starting TUI", { isInteractive })
+    log.debug?.(`Starting TUI isInteractive=${isInteractive}`)
 
     let instance: Awaited<ReturnType<typeof render>>
     {

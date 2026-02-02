@@ -6,9 +6,9 @@
  */
 import React, { useCallback } from "react"
 import { Box, Text, useContentRectCallback } from "inkx"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 
-const debug = createDebug("km:tui:layout")
+const log = createConditionalLogger("km:tui:layout")
 import type { CardState, ColumnState } from "../types.ts"
 import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
@@ -50,11 +50,8 @@ export const MemoizedTreeCard = React.memo(
     children,
     getBoardPills,
   }: MemoizedTreeCardProps): React.ReactElement {
-    debug(
-      "MemoizedTreeCard render: col=%d card=%d id=%s",
-      colIndex,
-      cardIndex,
-      card.node.id.slice(-8),
+    log.debug?.(
+      `MemoizedTreeCard render: col=${colIndex} card=${cardIndex} id=${card.node.id.slice(-8)}`,
     )
     return (
       <CardLayoutTracker
@@ -128,13 +125,8 @@ function CardLayoutTracker({
         cardWidth: computed.width,
         cardHeight: computed.height,
       })
-      debug(
-        "registered: col=%d card=%d id=%s y=%d h=%d",
-        colIndex,
-        cardIndex,
-        nodeId.slice(-8),
-        computed.y,
-        computed.height,
+      log.debug?.(
+        `registered: col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${computed.y} h=${computed.height}`,
       )
     },
     [registry, colIndex, cardIndex, nodeId],

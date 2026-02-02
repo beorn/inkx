@@ -5,11 +5,9 @@
  * - oneliner: Title + parent context inline on one line, truncated (for list/columns/tabs)
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
-import createDebug from "debug"
 import React, { useCallback, useMemo } from "react"
-
-const debug = createDebug("km:tui:render")
-import { Box, ErrorBoundary, Text, useContentRectCallback } from "inkx"
+import { renderLog, sid } from "../log.ts"
+import { Box, ErrorBoundary, Text } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
@@ -182,11 +180,8 @@ function TreeNodeImpl({
   const hasChildren = children.length > 0
 
   // Debug logging for render tracking
-  debug(
-    "TreeNode render: %s children=%d content=%s",
-    node.id.slice(-8),
-    children.length,
-    displayNode.content?.slice(0, 30) ?? "(empty)",
+  renderLog.debug?.(
+    `TreeNode ${sid(node.id)} children=${children.length} content=${displayNode.content?.slice(0, 30) ?? "(empty)"}`,
   )
 
   // A node is a task if it has task_status set, regardless of structural type
@@ -434,8 +429,13 @@ interface HeadRowProps {
 }
 
 function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
-  useContentRectCallback(onLayout)
-  return <Box flexDirection="column">{children}</Box>
+  // Use Box's onLayout prop instead of useContentRectCallback
+  // useContentRectCallback reads parent's NodeContext, not the Box's own node
+  return (
+    <Box flexDirection="column" onLayout={onLayout}>
+      {children}
+    </Box>
+  )
 }
 
 // =============================================================================

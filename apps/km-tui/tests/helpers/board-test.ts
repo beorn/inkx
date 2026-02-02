@@ -298,12 +298,13 @@ export function testEnv(
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
   const render = createTestRenderer({ columns, rows })
+  const registry = createLayoutRegistry()
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},
-    layoutRegistry: createLayoutRegistry(),
+    layoutRegistry: registry,
   })
   const result = render(
     React.createElement(RepoProvider, { repo, children: boardElement }),
@@ -369,7 +370,7 @@ export function testEnv(
     },
     _result: result,
   }
-  return { board }
+  return { board, registry }
 }
 
 // =============================================================================
@@ -968,6 +969,7 @@ export function renderBoard(
       handleSearchCancel: () => {},
     },
     moveMode: false,
+    colScrollOffset: 0,
   })
   const result = render(
     React.createElement(RepoProvider, { repo, children: boardCoreElement }),
@@ -1069,3 +1071,10 @@ const LONG_BOARD = board({
 // =============================================================================
 
 export type { BoardTest, ContentAssertion, CursorPosition, BoardTestOptions }
+
+// Re-export layout types and helpers for integration tests
+export {
+  getCardMidY,
+  type LayoutRegistry,
+  type NodeLayout,
+} from "../../src/card-positions.ts"

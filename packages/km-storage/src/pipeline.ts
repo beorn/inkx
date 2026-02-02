@@ -26,7 +26,7 @@
  *   await runPipeline(done)
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { basename } from "path"
 import type { KNode } from "@km/core"
@@ -36,7 +36,7 @@ import { emitNodeCreated, emitNodeUpdated } from "./emitter.ts"
 import { createLinkResolver, type LinkResolver } from "./link-resolver.ts"
 import type { WikilinkRef, ResolvedLink } from "./markdown-processing.ts"
 
-const debug = createDebug("km:storage:pipeline")
+const log = createConditionalLogger("km:storage:pipeline")
 
 // ============================================================================
 // TYPES
@@ -96,7 +96,7 @@ export async function* parseFiles(
 ): AsyncGenerator<ParsedFile> {
   if (sources.length === 0) return
 
-  debug("parseFiles: starting %d files", sources.length)
+  log.debug?.(`parseFiles: starting ${sources.length} files`)
 
   // Build lookup for isCreate flag
   const sourceMap = new Map<string, ParseSource>()
@@ -113,7 +113,7 @@ export async function* parseFiles(
     if (!source) continue
 
     if (result.error) {
-      debug("parseFiles: error for %s: %s", result.fsPath, result.error)
+      log.debug?.(`parseFiles: error for ${result.fsPath}: ${result.error}`)
       yield {
         path: result.fsPath,
         nodeId: result.nodeId,
@@ -140,7 +140,7 @@ export async function* parseFiles(
     }
   }
 
-  debug("parseFiles: completed")
+  log.debug?.("parseFiles: completed")
 }
 
 // ============================================================================
@@ -167,7 +167,7 @@ export async function* applyNodes(
 
   if (files.length === 0) return
 
-  debug("applyNodes: applying %d files", files.length)
+  log.debug?.(`applyNodes: applying ${files.length} files`)
 
   // Prepare statements
   const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?")
@@ -278,7 +278,7 @@ export async function* applyNodes(
     }
 
     db.run("COMMIT")
-    debug("applyNodes: committed %d files", files.length)
+    log.debug?.(`applyNodes: committed ${files.length} files`)
   } catch (error) {
     db.run("ROLLBACK")
     throw error
@@ -315,7 +315,7 @@ export async function* pipelineResolveLinks(
     }
   }
 
-  debug("pipelineResolveLinks: resolving %d links", pendingLinks.length)
+  log.debug?.(`pipelineResolveLinks: resolving ${pendingLinks.length} links`)
 
   // Now all files exist - resolve and yield links
   for (const { link } of pendingLinks) {
@@ -324,7 +324,7 @@ export async function* pipelineResolveLinks(
     yield resolveWikilink(link, resolver)
   }
 
-  debug("pipelineResolveLinks: completed")
+  log.debug?.("pipelineResolveLinks: completed")
 }
 
 /**
@@ -393,7 +393,7 @@ export async function* applyLinks(
 
   if (links.length === 0) return
 
-  debug("applyLinks: inserting %d links", links.length)
+  log.debug?.(`applyLinks: inserting ${links.length} links`)
 
   const now = Date.now()
 
@@ -432,7 +432,7 @@ export async function* applyLinks(
     }
 
     db.run("COMMIT")
-    debug("applyLinks: committed %d links", links.length)
+    log.debug?.(`applyLinks: committed ${links.length} links`)
   } catch (error) {
     db.run("ROLLBACK")
     throw error
@@ -538,10 +538,8 @@ export async function runDeferredPipeline(
   await runPipeline(linkGen)
 
   const parsedCount = stubInfo.size
-  debug(
-    "runDeferredPipeline: %d parsed, %d links",
-    parsedCount,
-    pendingLinks.length,
+  log.debug?.(
+    `runDeferredPipeline: ${parsedCount} parsed, ${pendingLinks.length} links`,
   )
 
   return { parsed: parsedCount, pendingLinks }

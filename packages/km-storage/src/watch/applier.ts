@@ -5,7 +5,7 @@
  * whether markdown files have pre-parsed content available.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { ulid } from "ulid"
 import type { Emitter } from "../emitter.ts"
@@ -26,7 +26,7 @@ import {
   type ReconcileContext,
 } from "./handlers/index.ts"
 
-const debug = createDebug("km:storage:watch:reconcile")
+const log = createConditionalLogger("km:storage:watch:reconcile")
 
 /**
  * Options for apply operations
@@ -89,25 +89,25 @@ export function applyReconcileOps(
     fs: fileOps = realFs,
   } = options
 
-  debug("applying %d reconcile ops", reconcileOps.length)
+  log.debug?.(`applying ${reconcileOps.length} reconcile ops`)
   const start = Date.now()
 
   // Build lookup map once for efficient link resolution
   const resolver = createLinkResolver(db)
-  debug("resolver ready with %d files", resolver.size)
+  log.debug?.(`resolver ready with ${resolver.size} files`)
 
   // Context for collecting new files for batch link resolution
   const ctx: ReconcileContext = { newFiles: [], resolver }
 
   for (const op of reconcileOps) {
-    debug("applying op: %s %s", op.type, op.path)
+    log.debug?.(`applying op: ${op.type} ${op.path}`)
     applyOp(db, op, root, emit, fileOps, ctx)
   }
 
   // Batch resolve links for all new files at once
   finalizeBatchLinks(db, ctx)
 
-  debug("applied %d ops in %dms", reconcileOps.length, Date.now() - start)
+  log.debug?.(`applied ${reconcileOps.length} ops in ${Date.now() - start}ms`)
 }
 
 /**
@@ -159,7 +159,7 @@ export async function applyReconcileOpsAsync(
     fs: fileOps = realFs,
   } = options
 
-  debug("applying %d reconcile ops (async)", reconcileOps.length)
+  log.debug?.(`applying ${reconcileOps.length} reconcile ops (async)`)
   const start = Date.now()
 
   // Parse all markdown files in parallel
@@ -167,14 +167,14 @@ export async function applyReconcileOpsAsync(
 
   // Build lookup map once for efficient link resolution
   const resolver = createLinkResolver(db)
-  debug("resolver ready with %d files", resolver.size)
+  log.debug?.(`resolver ready with ${resolver.size} files`)
 
   // Context for collecting new files for batch link resolution
   const ctx: ReconcileContext = { newFiles: [], resolver }
 
   // Apply ops sequentially (DB writes must be serial)
   for (const op of reconcileOps) {
-    debug("applying op: %s %s", op.type, op.path)
+    log.debug?.(`applying op: ${op.type} ${op.path}`)
     const parsed = parseResultMap.get(op.path)
     applyOp(db, op, root, emit, fileOps, ctx, parsed)
   }
@@ -182,10 +182,8 @@ export async function applyReconcileOpsAsync(
   // Batch resolve links for all new files at once
   finalizeBatchLinks(db, ctx)
 
-  debug(
-    "applied %d ops (async) in %dms",
-    reconcileOps.length,
-    Date.now() - start,
+  log.debug?.(
+    `applied ${reconcileOps.length} ops (async) in ${Date.now() - start}ms`,
   )
 }
 
@@ -246,7 +244,9 @@ async function parseMarkdownFiles(
     return new Map()
   }
 
-  debug("parallel parsing %d markdown files via pipeline", parseJobs.length)
+  log.debug?.(
+    `parallel parsing ${parseJobs.length} markdown files via pipeline`,
+  )
 
   // Build sources for pipeline
   const sources: ParseSource[] = parseJobs.map((job) => ({
@@ -273,7 +273,7 @@ async function parseMarkdownFiles(
     })
   }
 
-  debug("parsed %d files via pipeline", parsedFiles.length)
+  log.debug?.(`parsed ${parsedFiles.length} files via pipeline`)
   return parseResultMap
 }
 
@@ -283,10 +283,8 @@ async function parseMarkdownFiles(
 function finalizeBatchLinks(db: Database, ctx: ReconcileContext): void {
   if (ctx.newFiles.length > 0) {
     const resolved = resolveLinksBatch(db, ctx.newFiles)
-    debug(
-      "batch resolved %d links for %d new files",
-      resolved,
-      ctx.newFiles.length,
+    log.debug?.(
+      `batch resolved ${resolved} links for ${ctx.newFiles.length} new files`,
     )
   }
 }

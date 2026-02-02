@@ -4,12 +4,12 @@
  * Serializes km nodes back to markdown format
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 
-const debug = createDebug("km:markdown:nodes2md")
+const log = createConditionalLogger("km:markdown:nodes2md")
 
 /**
  * Context for serialization - includes node lookup for embedding reconstruction
@@ -23,7 +23,7 @@ interface SerializeContext {
  * Convert nodes to markdown
  */
 export function nodesToMarkdown(nodes: KNode[]): string {
-  debug("nodesToMarkdown: %d nodes", nodes.length)
+  log.debug?.(`nodesToMarkdown: ${nodes.length} nodes`)
   if (nodes.length === 0) {
     return ""
   }
@@ -219,7 +219,7 @@ function serializeEmbedding(node: KNode, ctx: SerializeContext): string {
   const targetNode = ctx.nodeMap.get(node.link_to)
   if (!targetNode) {
     // Target not found - fallback to content
-    debug("serializeEmbedding: target not found %s", node.link_to)
+    log.debug?.(`serializeEmbedding: target not found ${node.link_to}`)
     return (node.content ?? "") + "\n\n"
   }
 
@@ -380,7 +380,7 @@ function serializeTask(
 export function regenerateFile(fileNodeId: string, allNodes: KNode[]): string {
   // Filter to just this file's nodes
   const fileNodes = getFileSubtree(fileNodeId, allNodes)
-  debug("regenerateFile: %s → %d nodes", fileNodeId, fileNodes.length)
+  log.debug?.(`regenerateFile: ${fileNodeId} → ${fileNodes.length} nodes`)
   return nodesToMarkdown(fileNodes)
 }
 

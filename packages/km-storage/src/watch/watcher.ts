@@ -4,10 +4,10 @@
  * Watches for filesystem changes and triggers reconciliation
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { watch, type FSWatcher } from "chokidar"
 
-const debug = createDebug("km:storage:watch:watcher")
+const log = createConditionalLogger("km:storage:watch:watcher")
 import { dirname, join } from "path"
 import {
   statSync,
@@ -60,11 +60,11 @@ export class FileSystemWatcher extends EventEmitter {
    */
   start(repoPath: string): void {
     this.repoPath = repoPath
-    debug("starting watcher for %s", repoPath)
+    log.debug?.(`starting watcher for ${repoPath}`)
 
     // Load ignore patterns and pre-compile once
     const ignoreMatcher = createIgnoreMatcher(repoPath)
-    debug("ignore patterns: %d compiled", ignoreMatcher.size)
+    log.debug?.(`ignore patterns: ${ignoreMatcher.size} compiled`)
 
     // Create ignored function that combines patterns with file type check
     // This prevents chokidar from trying to watch socket files (which causes EOPNOTSUPP)
@@ -94,22 +94,22 @@ export class FileSystemWatcher extends EventEmitter {
     this.watcher.on("all", (event, path) => {
       // Skip in-flight writes (our own writes)
       if (this.inFlightWrites.has(path)) {
-        debug("skipping in-flight: %s %s", event, path)
+        log.debug?.(`skipping in-flight: ${event} ${path}`)
         return
       }
 
-      debug("fs event: %s %s", event, path)
+      log.debug?.(`fs event: ${event} ${path}`)
       this.pendingPaths.add(path)
       this.scheduleSync()
     })
 
     this.watcher.on("error", (error) => {
-      debug("watcher error: %O", error)
+      log.debug?.(`watcher error: ${String(error)}`)
       this.emit("error", error)
     })
 
     this.watcher.on("ready", () => {
-      debug("watcher ready")
+      log.debug?.("watcher ready")
       this.emit("ready")
     })
   }
@@ -118,7 +118,7 @@ export class FileSystemWatcher extends EventEmitter {
    * Stop watching
    */
   async stop(): Promise<void> {
-    debug("stopping watcher")
+    log.debug?.("stopping watcher")
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
       this.debounceTimer = undefined
@@ -134,7 +134,7 @@ export class FileSystemWatcher extends EventEmitter {
    * Mark a path as in-flight (being written by us)
    */
   markInFlight(path: string): void {
-    debug("marking in-flight: %s", path)
+    log.debug?.(`marking in-flight: ${path}`)
     this.inFlightWrites.add(path)
   }
 
@@ -162,10 +162,8 @@ export class FileSystemWatcher extends EventEmitter {
       clearTimeout(this.debounceTimer)
     }
 
-    debug(
-      "scheduling sync in %dms (%d pending)",
-      this.config.debounceMs,
-      this.pendingPaths.size,
+    log.debug?.(
+      `scheduling sync in ${this.config.debounceMs}ms (${this.pendingPaths.size} pending)`,
     )
     this.debounceTimer = setTimeout(() => {
       this.sync()
@@ -180,7 +178,7 @@ export class FileSystemWatcher extends EventEmitter {
     this.pendingPaths.clear()
 
     if (paths.length === 0) {
-      debug("sync: no pending paths")
+      log.debug?.("sync: no pending paths")
       return
     }
 
@@ -190,7 +188,9 @@ export class FileSystemWatcher extends EventEmitter {
       dirs.add(dirname(path))
     }
 
-    debug("sync: emitting %d paths, %d directories", paths.length, dirs.size)
+    log.debug?.(
+      `sync: emitting ${paths.length} paths, ${dirs.size} directories`,
+    )
 
     // Emit sync event with affected directories
     this.emit("sync", {
@@ -287,7 +287,7 @@ export function scanDirectory(
     // - Duplicate nodes if symlink target is also in repo
     // - Confusing behavior if symlink target is modified
     if (entry.isSymbolicLink()) {
-      debug("skipping symlink: %s", fullPath)
+      log.debug?.(`skipping symlink: ${fullPath}`)
       continue
     }
 
@@ -450,9 +450,9 @@ export function detectCaseSensitivity(dirPath: string): boolean {
     return !isCaseInsensitive
   } catch {
     // If we can't test, assume case-sensitive (safer default)
-    debug("could not detect case sensitivity, assuming case-sensitive", {
-      dirPath,
-    })
+    log.debug?.(
+      `could not detect case sensitivity, assuming case-sensitive dirPath=${dirPath}`,
+    )
     return true
   }
 }

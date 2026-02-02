@@ -12,8 +12,8 @@ import React, {
   useRef,
   useState,
 } from "react"
-import createDebug from "debug"
 import { useRepo } from "../repo-context.tsx"
+import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback } from "inkx"
 import { styledUnderline } from "chalkx"
 import type { CardState, ColumnState } from "../types.ts"
@@ -23,8 +23,6 @@ import { TreeNode } from "./TreeNode.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
 import type { NodeLayout } from "../card-positions.ts"
-
-const debug = createDebug("km:tui:card-layout")
 
 // =============================================================================
 // Virtualization
@@ -87,10 +85,8 @@ function CardLayoutRegistrar({
   const handleLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
       if (!registry) {
-        debug(
-          "CardLayoutRegistrar: no registry for col=%d card=%d",
-          colIndex,
-          cardIndex,
+        layoutLog.trace?.(
+          `CardLayoutRegistrar: no registry for col=${colIndex} card=${cardIndex}`,
         )
         return
       }
@@ -102,12 +98,8 @@ function CardLayoutRegistrar({
         cardHeight: computed.height,
       }
 
-      debug(
-        "CardLayoutRegistrar: col=%d card=%d y=%d h=%d",
-        colIndex,
-        cardIndex,
-        computed.y,
-        computed.height,
+      layoutLog.trace?.(
+        `CardLayoutRegistrar: col=${colIndex} card=${cardIndex} y=${computed.y} h=${computed.height}`,
       )
       registry.registerCard(colIndex, cardIndex, nodeId, layout)
     },
@@ -418,12 +410,8 @@ const VirtualizedCardList = forwardRef<
           isSelected &&
           actualIndex === selectedCardIndex &&
           selectionLevel === "card"
-        debug(
-          "CardColumn card: col=%d idx=%d node=%s content=%s",
-          colIndex,
-          actualIndex,
-          card.node.id.slice(-8),
-          card.node.content?.slice(0, 30) ?? "(empty)",
+        layoutLog.trace?.(
+          `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
         )
         return (
           <Card
