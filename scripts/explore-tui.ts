@@ -23,6 +23,7 @@
 
 import { testEnv, item } from "../apps/km-tui/tests/helpers/board-test"
 import { testBoard, type TestBoardResult } from "../apps/km-tui/tests/helpers/real-board"
+import { stripAnsi } from "inkx/testing"
 import type { Repo } from "@km/storage"
 
 // =============================================================================
@@ -70,6 +71,11 @@ interface State {
   bell: boolean
   text: string
   inDialog: boolean
+  // Spatial data for scroll/cursor verification
+  colIndex: number | null
+  cardIndex: number | null
+  totalColumns: number
+  scrollOffset: number | null
 }
 
 interface Locator {
@@ -98,14 +104,59 @@ function getState(board: Board): State {
   // Check for dialogs via DOM attribute (search, help, new-item, project-picker)
   const inDialog = board.q("[data-dialog]").count() > 0
 
+  // Extract spatial data from DOM
+  const columns = board.q("[data-column]")
+  const totalColumns = columns.count()
+
+  // Get cursor column and card index from data attributes
+  let colIndex: number | null = null
+  let cardIndex: number | null = null
+  let scrollOffset: number | null = null
+
+  if (cursor.count() > 0) {
+    // Try to get column index from cursor's parent column
+    const colAttr = cursor.getAttribute?.("data-col-index")
+    if (colAttr !== null && colAttr !== undefined) {
+      colIndex = parseInt(colAttr, 10)
+      if (isNaN(colIndex)) colIndex = null
+    }
+    // Try to get card index
+    const cardAttr = cursor.getAttribute?.("data-card-index")
+    if (cardAttr !== null && cardAttr !== undefined) {
+      cardIndex = parseInt(cardAttr, 10)
+      if (isNaN(cardIndex)) cardIndex = null
+    }
+  }
+
+  // Try to extract scroll offset from the board
+  const boardEl = board.q("[data-board]")
+  if (boardEl.count() > 0) {
+    const scrollAttr = boardEl.getAttribute?.("data-scroll-offset")
+    if (scrollAttr !== null && scrollAttr !== undefined) {
+      scrollOffset = parseInt(scrollAttr, 10)
+      if (isNaN(scrollOffset)) scrollOffset = null
+    }
+  }
+
+  // Strip ANSI codes from cursor text for clean comparisons
+  let cursorText: string | null = null
+  if (cursor.count() > 0) {
+    const rawText = cursor.textContent()
+    cursorText = stripAnsi(rawText).trim().slice(0, 40)
+  }
+
   return {
     cursorCount: cursor.count(),
-    cursorText: cursor.count() > 0 ? cursor.textContent().trim().slice(0, 40) : null,
+    cursorText,
     viewMode: viewMatch?.[1] ?? null,
     breadcrumb: breadcrumbMatch?.[1]?.trim() ?? null,
     bell: board.bell,
     text,
     inDialog,
+    colIndex,
+    cardIndex,
+    totalColumns,
+    scrollOffset,
   }
 }
 
@@ -226,11 +277,16 @@ function verifyRepoContent(
         const expectedName = (typeof data?.name === "string" ? data.name : null)
           || (typeof node.content === "string" ? node.content : null)
           || ""
-        // Check if the cursor text contains the expected name (allowing for truncation)
+        // Check if the cursor text contains the expected name (allowing for truncation and prefixes)
+        // The cursor text may include icons, folder indicators, etc.
         if (expectedName && expectedName.length > 3) {
           const normalizedExpected = expectedName.toLowerCase().slice(0, 30)
           const normalizedActual = state.cursorText.toLowerCase()
-          if (!normalizedActual.includes(normalizedExpected.slice(0, 10))) {
+          // Check if any significant portion of the expected name appears in the cursor text
+          // Use the first word or first 10 chars, whichever is shorter
+          const firstWord = normalizedExpected.split(/\s+/)[0] ?? ""
+          const searchTerm = firstWord.length >= 3 ? firstWord : normalizedExpected.slice(0, 10)
+          if (searchTerm.length >= 3 && !normalizedActual.includes(searchTerm)) {
             issues.push({
               iteration,
               action,
@@ -248,33 +304,120 @@ function verifyRepoContent(
 /**
  * Verify spatial relationships after navigation actions.
  * For h/l/j/k, checks cursor moved to expected relative position.
+ * Detects scroll bugs like scrolling too early (before reaching edge).
  */
 function verifySpatialNavigation(
   iteration: number,
   action: string,
   before: State,
   after: State,
-  board: Board,
+  _board: Board,
   issues: Issue[]
 ): void {
   // Only check spatial actions
   if (!["h", "l", "j", "k"].includes(action)) return
   if (after.bell || after.inDialog) return // Boundary or dialog
 
-  // Get column indices from DOM
-  const getColumnIndex = (): number | null => {
-    // Try to find which column the cursor is in by checking parent
-    const cursor = board.q("[data-cursor]")
-    if (cursor.count() === 0) return null
-    // The column index should be visible in the bottom bar for columns view
-    // or derivable from the DOM structure
-    return null // Simplified - full impl would query DOM hierarchy
+  // Verify horizontal navigation (h/l) - scroll offset invariants
+  // Skip if colIndex data attributes aren't available (not all boards expose them)
+  if ((action === "h" || action === "l") &&
+      before.colIndex !== null && after.colIndex !== null &&
+      before.colIndex >= 0 && after.colIndex >= 0) {
+    const moved = after.colIndex - before.colIndex
+    const expectedMove = action === "l" ? 1 : -1
+
+    // If we moved, verify direction is correct
+    if (moved !== 0 && moved !== expectedMove) {
+      issues.push({
+        iteration,
+        action,
+        type: "wrong-direction",
+        expected: `colIndex ${expectedMove > 0 ? "increase" : "decrease"}`,
+        actual: `changed by ${moved}`,
+      })
+    }
+
+    // Verify scroll offset changes only when needed
+    if (before.scrollOffset !== null && after.scrollOffset !== null &&
+        before.scrollOffset >= 0 && after.scrollOffset >= 0) {
+      const scrollChanged = after.scrollOffset !== before.scrollOffset
+
+      // Calculate visible column range (assuming ~6 columns visible at 80 width)
+      // This is approximate - real check would use actual terminal width
+      const VISIBLE_COLUMNS = 6
+      const SCROLL_PADDING = 1
+
+      // Cursor should be within visible range: [scrollOffset, scrollOffset + visibleCols - 1]
+      const minVisible = after.scrollOffset
+      const maxVisible = after.scrollOffset + VISIBLE_COLUMNS - 1
+
+      // Check if cursor is within visible range
+      if (after.colIndex < minVisible || after.colIndex > maxVisible) {
+        issues.push({
+          iteration,
+          action,
+          type: "cursor-outside-visible",
+          expected: `colIndex in [${minVisible}, ${maxVisible}]`,
+          actual: `colIndex=${after.colIndex}, scrollOffset=${after.scrollOffset}`,
+        })
+      }
+
+      // Scroll should only change when cursor reaches edge (with padding)
+      // Bug we fixed: scroll was happening when cursor was 3 cols from edge (center-based)
+      // Correct: scroll only at edge (edge-based)
+      if (scrollChanged) {
+        const wasAtLeftEdge = before.colIndex <= before.scrollOffset + SCROLL_PADDING
+        const wasAtRightEdge = before.colIndex >= before.scrollOffset + VISIBLE_COLUMNS - 1 - SCROLL_PADDING
+
+        // Scroll should only happen at edges
+        if (action === "l" && !wasAtRightEdge && after.scrollOffset > before.scrollOffset) {
+          issues.push({
+            iteration,
+            action,
+            type: "premature-scroll-right",
+            expected: `scroll at edge (colIndex >= ${before.scrollOffset + VISIBLE_COLUMNS - 1 - SCROLL_PADDING})`,
+            actual: `scrolled at colIndex=${before.colIndex}`,
+            detail: `Scroll changed from ${before.scrollOffset} to ${after.scrollOffset} too early`,
+          })
+        }
+        if (action === "h" && !wasAtLeftEdge && after.scrollOffset < before.scrollOffset) {
+          issues.push({
+            iteration,
+            action,
+            type: "premature-scroll-left",
+            expected: `scroll at edge (colIndex <= ${before.scrollOffset + SCROLL_PADDING})`,
+            actual: `scrolled at colIndex=${before.colIndex}`,
+            detail: `Scroll changed from ${before.scrollOffset} to ${after.scrollOffset} too early`,
+          })
+        }
+      }
+    }
   }
 
-  // For now, just verify cursor actually changed on navigation
+  // Verify vertical navigation (j/k) - cursor should move or bell
+  // Skip if cardIndex data attributes aren't available
+  if ((action === "j" || action === "k") &&
+      before.cardIndex !== null && after.cardIndex !== null &&
+      before.cardIndex >= 0 && after.cardIndex >= 0) {
+    const moved = after.cardIndex - before.cardIndex
+    const expectedMove = action === "j" ? 1 : -1
+
+    // If we moved, verify direction is correct (unless column changed)
+    if (moved !== 0 && moved !== expectedMove && before.colIndex === after.colIndex) {
+      issues.push({
+        iteration,
+        action,
+        type: "wrong-direction-vertical",
+        expected: `cardIndex ${expectedMove > 0 ? "increase" : "decrease"}`,
+        actual: `changed by ${moved}`,
+      })
+    }
+  }
+
+  // For now, just note if cursor didn't change on navigation (might be valid at boundary)
   if (before.cursorText === after.cursorText && before.cursorText !== null) {
-    // Same cursor text but no bell - might be a bug (or might be intentional)
-    // Don't report as issue since there are valid cases (e.g., cycling at boundary)
+    // Same cursor text but no bell - could be boundary wrap or single-item column
+    // Not necessarily a bug, so we don't report it as an issue
   }
 }
 

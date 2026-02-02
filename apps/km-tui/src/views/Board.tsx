@@ -205,6 +205,10 @@ export function BoardCore({
           <Box
             id={state.rootId ?? undefined}
             data-view="board"
+            data-board={true}
+            data-scroll-offset={colScrollOffset}
+            data-col-index={layout.colIndex}
+            data-card-index={layout.cardIndex}
             {...(isBoardSelected && { "data-cursor": true })}
             flexDirection="column"
             width={termWidth}

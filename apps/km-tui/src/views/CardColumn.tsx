@@ -505,8 +505,10 @@ export const Column = React.memo(function Column({
     <Box
       id={column.node.id}
       data-view="column"
+      data-column={true}
+      data-col-index={colIndex}
       {...(isSelected && { "data-selected": true })}
-      {...(isColumnSelected && { "data-cursor": true })}
+      {...(isColumnSelected && { "data-cursor": true, "data-card-index": -1 })}
       flexDirection="column"
       width={width}
       maxHeight={height}

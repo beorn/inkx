@@ -320,7 +320,11 @@ function TreeNodeImpl({
         <Box
           id={node.id}
           data-view="item"
-          {...(isSelected && { "data-cursor": true })}
+          {...(isSelected && {
+            "data-cursor": true,
+            "data-col-index": colIndex,
+            "data-card-index": cardIndex,
+          })}
           flexDirection="row"
           alignItems="flex-start"
           paddingLeft={depth}
