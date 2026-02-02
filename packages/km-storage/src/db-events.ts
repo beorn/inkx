@@ -21,7 +21,7 @@ import type { Event, TaskStatus } from "@km/core"
  * Apply an event to the database (db-accepting version)
  */
 export function applyEventWithDb(db: Database, event: Event): void {
-  debug("applying %s: %s", event.type, event.target ?? event.id.slice(-8))
+  debug("%s %s", event.type, event.target?.slice(-8) ?? "")
 
   switch (event.type) {
     case "node_created":

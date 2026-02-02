@@ -43,11 +43,6 @@ export interface Link {
  * Add a link from source to target
  */
 export function addLink(db: Database, link: Omit<Link, "created_at">): void {
-  debug("addLink", {
-    source: link.source_id,
-    target: link.target_name,
-    relationship: link.relationship ?? "wikilink",
-  })
   db.run(
     `
     INSERT OR REPLACE INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
@@ -69,10 +64,6 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
   // For embedded links, update the source node's link_to field for transclusion
   // Use "memory" mode - link_to is derived state, not user intent (no events)
   if (link.embedded && link.target_id) {
-    debug("addLink: updating source node link_to for embedding", {
-      source: link.source_id,
-      target: link.target_id,
-    })
     createDbOps(db).updateNode(link.source_id, {
       link_to: link.target_id,
       link_alias: link.alias ?? undefined,
@@ -84,7 +75,6 @@ export function addLink(db: Database, link: Omit<Link, "created_at">): void {
  * Remove all links from a source node
  */
 export function removeLinksFromSource(db: Database, sourceId: string): void {
-  debug("removeLinksFromSource: %s", sourceId)
   db.run("DELETE FROM links WHERE source_id = ?", [sourceId])
 }
 
@@ -97,7 +87,6 @@ export function removeLinksFromSourceByRelationship(
   sourceId: string,
   relationship: string,
 ): void {
-  debug("removeLinksFromSourceByRelationship", { sourceId, relationship })
   db.run("DELETE FROM links WHERE source_id = ? AND relationship = ?", [
     sourceId,
     relationship,
@@ -140,10 +129,6 @@ export function resolveLinks(
       const childNode = findChildByContent(db, targetId, link.section)
       if (childNode) {
         actualTargetId = childNode.id
-        debug("resolveLinks: resolved section to child", {
-          section: link.section,
-          childId: childNode.id,
-        })
       }
     }
 
@@ -163,10 +148,6 @@ export function resolveLinks(
     // For embedded links, update the source node's link_to
     // Use "memory" mode - link_to is derived state, not user intent (no events)
     if (link.embedded) {
-      debug("resolveLinks: updating source node link_to for embedding", {
-        source: link.source_id,
-        target: actualTargetId,
-      })
       createDbOps(db).updateNode(link.source_id, {
         link_to: actualTargetId,
         link_alias: link.alias ?? undefined,
@@ -230,10 +211,6 @@ export function resolveLinksBatch(
       const childNode = findChildByContent(db, targetId, link.section)
       if (childNode) {
         actualTargetId = childNode.id
-        debug("resolveLinksBatch: resolved section to child", {
-          section: link.section,
-          childId: childNode.id,
-        })
       }
     }
 
@@ -252,10 +229,6 @@ export function resolveLinksBatch(
 
     // For embedded links, update the source node's link_to
     if (link.embedded) {
-      debug("resolveLinksBatch: updating source node link_to for embedding", {
-        source: link.source_id,
-        target: actualTargetId,
-      })
       createDbOps(db).updateNode(link.source_id, {
         link_to: actualTargetId,
         link_alias: link.alias ?? undefined,

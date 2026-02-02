@@ -181,6 +181,7 @@ function evaluateAddRule(
   let nextIdx = existingChildren.length
 
   let addedCount = 0
+  let skippedCount = 0
   for (const match of matchingNodes) {
     // Skip self-reference and direct children (they're already children)
     if (match.id === sectionId || match.parent_id === sectionId) {
@@ -189,13 +190,13 @@ function evaluateAddRule(
 
     // Skip if already on board anywhere (deduplication)
     if (existingOnBoard.has(match.id)) {
-      debug("evaluateAddRule: skip %s (already on board)", match.id)
+      skippedCount++
       continue
     }
 
     // Skip if already an embed in this section
     if (existingEmbeds.includes(match.id)) {
-      debug("evaluateAddRule: skip %s (already embedded here)", match.id)
+      skippedCount++
       continue
     }
 
@@ -225,11 +226,14 @@ function evaluateAddRule(
     existingOnBoard.add(match.id) // Prevent adding same match twice
   }
 
-  debug(
-    "evaluateAddRule: created %d embeds, removed %d",
-    addedCount,
-    removedCount,
-  )
+  if (addedCount > 0 || removedCount > 0 || skippedCount > 0) {
+    debug(
+      "evaluateAddRule: +%d -%d skipped=%d",
+      addedCount,
+      removedCount,
+      skippedCount,
+    )
+  }
 
   // Mark the file for write-back if we added or removed any embeds
   if (addedCount > 0 || removedCount > 0) {

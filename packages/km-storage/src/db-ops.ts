@@ -106,12 +106,6 @@ function updateNodeImpl(
       `updateNode called with undefined updates for node ${nodeId}`,
     )
   }
-  debug(
-    "updateNode: %s keys=%o emitter=%s",
-    nodeId,
-    Object.keys(updates),
-    !!emitter,
-  )
   if (emitter) {
     emitter.emit({
       type: "node_updated",

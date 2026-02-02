@@ -130,7 +130,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
         ...partialEvent,
       }
 
-      debug("emit: %s target=%s", event.type, event.target ?? "(none)")
+      // Debug logging removed - db:events logs the apply
 
       // 1. Persist to events.jsonl (unless skipPersist is set per-call or as default)
       const shouldPersist = !(emitOptions.skipPersist ?? defaultSkipPersist)

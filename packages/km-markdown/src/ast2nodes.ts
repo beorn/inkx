@@ -112,7 +112,6 @@ export function parseMarkdownWithLinks(
   fsIno?: number,
   fsMtime?: number,
 ): ParseResult {
-  debug("parsing %s (%d bytes)", fsPath, content.length)
   const start = Date.now()
 
   const { frontmatter, body } = extractFrontmatter(content)
