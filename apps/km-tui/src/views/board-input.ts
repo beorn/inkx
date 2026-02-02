@@ -32,6 +32,7 @@ export function handleBoardKeyInput(
     showProjectPicker: boolean
     showSearchDialog: boolean
     showHelp: boolean
+    showConsole: boolean
   },
   dispatch: Dispatch<UIAction>,
   exit: () => void,
@@ -51,6 +52,22 @@ export function handleBoardKeyInput(
       return true
     }
     // All other keys are blocked while help is showing
+    return true
+  }
+
+  // Console modal - can be dismissed with backtick or escape
+  if (ui.showConsole) {
+    if (input === "`" || key.escape) {
+      dispatch(actions.hideConsole())
+      return true
+    }
+    // Block other keys while console is showing
+    return true
+  }
+
+  // Toggle console with backtick
+  if (input === "`") {
+    dispatch(actions.toggleConsole())
     return true
   }
 

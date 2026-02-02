@@ -10,6 +10,7 @@ import { createTerm, render, patchConsole } from "inkx"
 import createDebug from "debug"
 import React from "react"
 import { createLogger } from "@km/core"
+import { enableConsoleDebug } from "../../km-cli/src/debug-log.ts"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
@@ -158,6 +159,7 @@ export async function runBoard(
 
   // Patch console for interactive mode to capture output
   const patched = isInteractive ? patchConsole(console) : null
+  if (patched) enableConsoleDebug() // Route debug() output to <Console>
 
   try {
     // Stop CLI spinner - TUI is about to take over the screen

@@ -13,7 +13,6 @@ import {
   useInput,
   useApp,
   useStdout,
-  Console,
   useConsole,
   type PatchedConsole,
 } from "inkx"
@@ -27,6 +26,7 @@ import type { Repo } from "@km/storage"
 import { DetailPane } from "./DetailPane.tsx"
 import { ProjectPicker } from "./ProjectPicker.tsx"
 import { HelpOverlay } from "./HelpOverlay.tsx"
+import { ConsoleModal } from "./ConsoleModal.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
 import { Column } from "./CardColumn.tsx"
@@ -389,6 +389,14 @@ export function BoardCore({
               {ui.showHelp && (
                 <HelpOverlay width={termWidth} height={contentHeight} />
               )}
+              {/* Console modal */}
+              {ui.showConsole && patchedConsole && (
+                <ConsoleModal
+                  width={termWidth}
+                  height={contentHeight}
+                  patchedConsole={patchedConsole}
+                />
+              )}
             </Box>
             {/* Toast stack - bottom-right corner */}
             <ToastStack
@@ -434,6 +442,8 @@ export interface BoardProps {
   layoutRegistry?: LayoutRegistry
   /** Optional custom reducer for testing */
   reducer?: typeof uiReducer
+  /** Patched console for debug output modal */
+  patchedConsole?: PatchedConsole | null
 }
 
 /**
@@ -452,6 +462,7 @@ export function Board({
   onExit,
   layoutRegistry: injectedRegistry,
   reducer = uiReducer,
+  patchedConsole,
 }: BoardProps) {
   const repo = useRepo()
 
@@ -499,6 +510,14 @@ export function Board({
         initialCursorNodeId,
       ),
   )
+
+  // Console auto-open on first output
+  const consoleEntries = patchedConsole ? useConsole(patchedConsole) : []
+  useEffect(() => {
+    if (consoleEntries.length > 0 && !ui.consoleAutoOpened) {
+      dispatch(actions.autoOpenConsole())
+    }
+  }, [consoleEntries.length, ui.consoleAutoOpened])
 
   // Ref to track current rootId for event handlers (avoids stale closure)
   const rootIdRef = useRef(boardState.rootId)
@@ -629,6 +648,7 @@ export function Board({
         showProjectPicker: tuiContextRef.current.ui.showProjectPicker,
         showSearchDialog: tuiContextRef.current.ui.showSearchDialog,
         showHelp: tuiContextRef.current.ui.showHelp,
+        showConsole: tuiContextRef.current.ui.showConsole,
       },
       dispatch,
       onExit,
@@ -697,9 +717,6 @@ export function BoardApp({
   const { exit } = useApp()
   const { stdout } = useStdout()
 
-  // Get console entries if we have a patched console
-  const consoleEntries = patchedConsole ? useConsole(patchedConsole) : []
-
   // Create dispatch for dimension sync
   const [dimensionState, dimensionDispatch] = useReducer(
     (
@@ -721,16 +738,13 @@ export function BoardApp({
 
   return (
     <Box flexDirection="column" height={dimensionState.rows}>
-      {/* Console output at top - only shown if there are entries */}
-      {patchedConsole && consoleEntries.length > 0 && (
-        <Console console={patchedConsole} />
-      )}
       <Board
         initialState={initialState}
         initialViewMode={initialViewMode}
         dimensions={dimensionState}
         onExit={exit}
         layoutRegistry={layoutRegistry}
+        patchedConsole={patchedConsole}
       />
     </Box>
   )

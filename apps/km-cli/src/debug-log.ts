@@ -19,6 +19,23 @@ let stream: ReturnType<typeof createWriteStream> | null = null
 // Optional repo root for formatting paths relative to repo
 let repoRoot: string | null = null
 
+// Buffer for debug output before TUI is ready
+let consoleBuffer: string[] = []
+let consoleEnabled = false
+
+/**
+ * Enable routing debug output to console.debug (for TUI's <Console> component).
+ * Call this after patchConsole is set up. Flushes any buffered output.
+ */
+export function enableConsoleDebug(): void {
+  consoleEnabled = true
+  // Flush buffer
+  for (const line of consoleBuffer) {
+    console.debug(line)
+  }
+  consoleBuffer = []
+}
+
 /**
  * Set the repo root for path formatting in debug output.
  * Paths inside this root will be shown as relative.
@@ -167,10 +184,14 @@ function customLog(...args: unknown[]): void {
   } else if (!process.stdout.isTTY) {
     // Not in TTY (tests, scripts) - output to stderr as normal
     console.error(line)
+  } else if (consoleEnabled) {
+    // TUI mode with patchConsole active - route to console.debug
+    // This makes debug output appear in the <Console> component
+    console.debug(line)
+  } else {
+    // TTY but patchConsole not ready yet - buffer for later
+    consoleBuffer.push(line)
   }
-  // If in TTY without DEBUG_LOG, silently drop to prevent breaking TUI
-  // Use: DEBUG=km:* DEBUG_LOG=/tmp/km.log km view
-  // Or: debug km view (wrapper sets DEBUG_LOG automatically)
 }
 
 // Configure debug to use our custom formatter

@@ -33,6 +33,8 @@ export interface UIState {
   showProjectPicker: boolean
   showNewItemDialog: boolean
   showSearchDialog: boolean
+  showConsole: boolean
+  consoleAutoOpened: boolean // Track if console was auto-opened on first output
 
   // Selection state (selectionLevel is now derived from cursor depth in Board.tsx)
   subIndex: number
@@ -113,6 +115,8 @@ export function createInitialUIState(
     showProjectPicker: false,
     showNewItemDialog: false,
     showSearchDialog: false,
+    showConsole: false,
+    consoleAutoOpened: false,
 
     subIndex: 0,
     inOutlineMode: false,
@@ -196,6 +200,21 @@ const uiSlice = createSlice({
     },
     hideSearchDialog: (state) => {
       state.showSearchDialog = false
+    },
+    toggleConsole: (state) => {
+      state.showConsole = !state.showConsole
+    },
+    showConsole: (state) => {
+      state.showConsole = true
+    },
+    hideConsole: (state) => {
+      state.showConsole = false
+    },
+    autoOpenConsole: (state) => {
+      if (!state.consoleAutoOpened) {
+        state.showConsole = true
+        state.consoleAutoOpened = true
+      }
     },
 
     // Detail pane
