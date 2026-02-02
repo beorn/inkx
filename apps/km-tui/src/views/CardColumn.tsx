@@ -388,6 +388,13 @@ function VirtualizedCardList({
           isSelected &&
           actualIndex === selectedCardIndex &&
           selectionLevel === "card"
+        debug(
+          "CardColumn card: col=%d idx=%d node=%s content=%s",
+          colIndex,
+          actualIndex,
+          card.node.id.slice(-8),
+          card.node.content?.slice(0, 30) ?? "(empty)",
+        )
         return (
           <Card
             key={card.node.id}

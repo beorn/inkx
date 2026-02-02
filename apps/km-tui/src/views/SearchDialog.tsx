@@ -5,7 +5,7 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React, { useState, useMemo, useCallback } from "react"
-import { Box, Text, useInput } from "inkx"
+import { Box, Text, useInput, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -354,74 +354,76 @@ export function SearchDialog({
       </Text>
 
       {/* Results list */}
-      <Box flexDirection="column" flexGrow={1}>
-        {visibleResults.map((result, i) => {
-          const actualIndex = scrollOffset + i
-          const isSelected = actualIndex === selectedIndex
+      <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
+        <Box flexDirection="column" flexGrow={1}>
+          {visibleResults.map((result, i) => {
+            const actualIndex = scrollOffset + i
+            const isSelected = actualIndex === selectedIndex
 
-          // Calculate available width for content
-          const prefix = isSelected ? "▸ " : "  "
-          const typeIcon =
-            result.node.type === "task"
-              ? "☐"
-              : result.node.type === "file"
-                ? "📄"
-                : result.node.type === "section"
-                  ? "§"
-                  : "•"
-          const tagSuffix =
-            result.tags.length > 0 ? ` #${result.tags.join(" #")}` : ""
-          const contextSuffix = result.parentContext
-            ? ` < ${result.parentContext}`
-            : ""
+            // Calculate available width for content
+            const prefix = isSelected ? "▸ " : "  "
+            const typeIcon =
+              result.node.type === "task"
+                ? "☐"
+                : result.node.type === "file"
+                  ? "📄"
+                  : result.node.type === "section"
+                    ? "§"
+                    : "•"
+            const tagSuffix =
+              result.tags.length > 0 ? ` #${result.tags.join(" #")}` : ""
+            const contextSuffix = result.parentContext
+              ? ` < ${result.parentContext}`
+              : ""
 
-          const availableWidth =
-            innerWidth -
-            prefix.length -
-            2 - // typeIcon + space
-            tagSuffix.length -
-            contextSuffix.length -
-            2
+            const availableWidth =
+              innerWidth -
+              prefix.length -
+              2 - // typeIcon + space
+              tagSuffix.length -
+              contextSuffix.length -
+              2
 
-          // Truncate title if needed
-          const displayTitle =
-            result.title.length > availableWidth
-              ? result.title.slice(0, availableWidth - 1) + "…"
-              : result.title
+            // Truncate title if needed
+            const displayTitle =
+              result.title.length > availableWidth
+                ? result.title.slice(0, availableWidth - 1) + "…"
+                : result.title
 
-          return (
-            <Text
-              key={result.node.id}
-              backgroundColor={isSelected ? "magenta" : undefined}
-              color={isSelected ? "black" : undefined}
-              wrap="truncate"
-            >
-              {prefix}
-              <Text dimColor={!isSelected}>{typeIcon} </Text>
-              {displayTitle}
-              {result.parentContext && (
-                <Text
-                  dimColor={!isSelected}
-                  color={isSelected ? "gray" : undefined}
-                >
-                  {` < ${result.parentContext}`}
-                </Text>
-              )}
-              {result.tags.length > 0 && (
-                <Text color="magenta" dimColor={!isSelected}>
-                  {` #${result.tags.join(" #")}`}
-                </Text>
-              )}
-            </Text>
-          )
-        })}
-        {filteredResults.length === 0 && query && (
-          <Text dimColor>No matching items</Text>
-        )}
-        {filteredResults.length === 0 && !query && (
-          <Text dimColor>Start typing to search...</Text>
-        )}
-      </Box>
+            return (
+              <Text
+                key={result.node.id}
+                backgroundColor={isSelected ? "magenta" : undefined}
+                color={isSelected ? "black" : undefined}
+                wrap="truncate"
+              >
+                {prefix}
+                <Text dimColor={!isSelected}>{typeIcon} </Text>
+                {displayTitle}
+                {result.parentContext && (
+                  <Text
+                    dimColor={!isSelected}
+                    color={isSelected ? "gray" : undefined}
+                  >
+                    {` < ${result.parentContext}`}
+                  </Text>
+                )}
+                {result.tags.length > 0 && (
+                  <Text color="magenta" dimColor={!isSelected}>
+                    {` #${result.tags.join(" #")}`}
+                  </Text>
+                )}
+              </Text>
+            )
+          })}
+          {filteredResults.length === 0 && query && (
+            <Text dimColor>No matching items</Text>
+          )}
+          {filteredResults.length === 0 && !query && (
+            <Text dimColor>Start typing to search...</Text>
+          )}
+        </Box>
+      </ErrorBoundary>
 
       {/* Scroll indicator */}
       {filteredResults.length > maxVisible && (

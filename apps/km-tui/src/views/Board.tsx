@@ -14,6 +14,7 @@ import {
   useApp,
   useStdout,
   useConsole,
+  ErrorBoundary,
   type PatchedConsole,
 } from "inkx"
 import createDebug from "debug"
@@ -234,108 +235,124 @@ export function BoardCore({
             >
               {/* Cards, Columns, or List view */}
               {ui.viewMode === "cards" ? (
-                <Box
-                  flexDirection="row"
-                  width={boardWidth}
-                  height={contentHeight}
+                <ErrorBoundary
+                  fallback={<Text color="red">Error loading cards view</Text>}
                 >
-                  {state.columns.length === 0 ? (
-                    <Box flexDirection="column" padding={1}>
-                      <Text dimColor>Empty board</Text>
-                    </Box>
-                  ) : (
-                    <>
-                      {/* Left scroll indicator - full height filled bar */}
-                      {effectiveScrollOffset > 0 && (
-                        <VerticalScrollIndicator direction="left" />
-                      )}
-                      {effectiveVisibleColumns.map((col, i) => {
-                        const actualColIndex = effectiveScrollOffset + i
-                        const isLastCol =
-                          i === effectiveVisibleColumns.length - 1
-                        // Reduce column width if scroll indicators are shown
-                        const hasLeftIndicator = effectiveScrollOffset > 0
-                        const hasRightIndicator =
-                          effectiveScrollOffset + effectiveMaxCols <
-                          state.columns.length
-                        const indicatorWidth =
-                          (hasLeftIndicator ? 1 : 0) +
-                          (hasRightIndicator ? 1 : 0)
-                        // Account for separator lines between columns (1 char each, n-1 separators)
-                        const separatorCount =
-                          effectiveVisibleColumns.length - 1
-                        const availableWidth =
-                          boardWidth - indicatorWidth - separatorCount
-                        const baseColWidth = Math.floor(
-                          availableWidth / effectiveMaxCols,
-                        )
-                        const remainder = availableWidth % effectiveMaxCols
-                        // Distribute extra pixels to the first 'remainder' columns
-                        const adjustedColWidth =
-                          baseColWidth + (i < remainder ? 1 : 0)
-                        return (
-                          <React.Fragment key={col.node.id}>
-                            <Column
-                              column={col}
-                              colIndex={actualColIndex}
-                              isSelected={actualColIndex === layout.colIndex}
-                              isCollapsed={ui.collapsedColumns.has(
-                                actualColIndex,
-                              )}
-                              selectedCardIndex={layout.cardIndex}
-                              selectedSubIndex={
-                                ui.inOutlineMode ? ui.subIndex : -1
-                              }
-                              width={adjustedColWidth}
-                              height={contentHeight}
-                              selectionLevel={derivedSelectionLevel}
-                            />
-                            {/* Separator line between columns */}
-                            {!isLastCol && <ColumnSeparator />}
-                          </React.Fragment>
-                        )
-                      })}
-                      {/* Right scroll indicator - full height filled bar */}
-                      {effectiveScrollOffset + effectiveMaxCols <
-                        state.columns.length && (
-                        <VerticalScrollIndicator direction="right" />
-                      )}
-                    </>
-                  )}
-                </Box>
+                  <Box
+                    flexDirection="row"
+                    width={boardWidth}
+                    height={contentHeight}
+                  >
+                    {state.columns.length === 0 ? (
+                      <Box flexDirection="column" padding={1}>
+                        <Text dimColor>Empty board</Text>
+                      </Box>
+                    ) : (
+                      <>
+                        {/* Left scroll indicator - full height filled bar */}
+                        {effectiveScrollOffset > 0 && (
+                          <VerticalScrollIndicator direction="left" />
+                        )}
+                        {effectiveVisibleColumns.map((col, i) => {
+                          const actualColIndex = effectiveScrollOffset + i
+                          const isLastCol =
+                            i === effectiveVisibleColumns.length - 1
+                          // Reduce column width if scroll indicators are shown
+                          const hasLeftIndicator = effectiveScrollOffset > 0
+                          const hasRightIndicator =
+                            effectiveScrollOffset + effectiveMaxCols <
+                            state.columns.length
+                          const indicatorWidth =
+                            (hasLeftIndicator ? 1 : 0) +
+                            (hasRightIndicator ? 1 : 0)
+                          // Account for separator lines between columns (1 char each, n-1 separators)
+                          const separatorCount =
+                            effectiveVisibleColumns.length - 1
+                          const availableWidth =
+                            boardWidth - indicatorWidth - separatorCount
+                          const baseColWidth = Math.floor(
+                            availableWidth / effectiveMaxCols,
+                          )
+                          const remainder = availableWidth % effectiveMaxCols
+                          // Distribute extra pixels to the first 'remainder' columns
+                          const adjustedColWidth =
+                            baseColWidth + (i < remainder ? 1 : 0)
+                          return (
+                            <React.Fragment key={col.node.id}>
+                              <Column
+                                column={col}
+                                colIndex={actualColIndex}
+                                isSelected={actualColIndex === layout.colIndex}
+                                isCollapsed={ui.collapsedColumns.has(
+                                  actualColIndex,
+                                )}
+                                selectedCardIndex={layout.cardIndex}
+                                selectedSubIndex={
+                                  ui.inOutlineMode ? ui.subIndex : -1
+                                }
+                                width={adjustedColWidth}
+                                height={contentHeight}
+                                selectionLevel={derivedSelectionLevel}
+                              />
+                              {/* Separator line between columns */}
+                              {!isLastCol && <ColumnSeparator />}
+                            </React.Fragment>
+                          )
+                        })}
+                        {/* Right scroll indicator - full height filled bar */}
+                        {effectiveScrollOffset + effectiveMaxCols <
+                          state.columns.length && (
+                          <VerticalScrollIndicator direction="right" />
+                        )}
+                      </>
+                    )}
+                  </Box>
+                </ErrorBoundary>
               ) : ui.viewMode === "columns" ? (
-                <ColumnsView
-                  state={state}
-                  width={boardWidth}
-                  height={contentHeight}
-                  colIndex={layout.colIndex}
-                  cardIndex={layout.cardIndex}
-                  subIndex={ui.subIndex}
-                  effectiveScrollOffset={effectiveScrollOffset}
-                  effectiveMaxCols={effectiveMaxCols}
-                  effectiveVisibleColumns={effectiveVisibleColumns}
-                  selectionLevel={derivedSelectionLevel}
-                />
+                <ErrorBoundary
+                  fallback={<Text color="red">Error loading columns view</Text>}
+                >
+                  <ColumnsView
+                    state={state}
+                    width={boardWidth}
+                    height={contentHeight}
+                    colIndex={layout.colIndex}
+                    cardIndex={layout.cardIndex}
+                    subIndex={ui.subIndex}
+                    effectiveScrollOffset={effectiveScrollOffset}
+                    effectiveMaxCols={effectiveMaxCols}
+                    effectiveVisibleColumns={effectiveVisibleColumns}
+                    selectionLevel={derivedSelectionLevel}
+                  />
+                </ErrorBoundary>
               ) : ui.viewMode === "list" ? (
-                <ListView
-                  state={state}
-                  width={boardWidth}
-                  height={contentHeight}
-                  colIndex={layout.colIndex}
-                  cardIndex={layout.cardIndex}
-                  subIndex={ui.subIndex}
-                  selectionLevel={derivedSelectionLevel}
-                />
+                <ErrorBoundary
+                  fallback={<Text color="red">Error loading list view</Text>}
+                >
+                  <ListView
+                    state={state}
+                    width={boardWidth}
+                    height={contentHeight}
+                    colIndex={layout.colIndex}
+                    cardIndex={layout.cardIndex}
+                    subIndex={ui.subIndex}
+                    selectionLevel={derivedSelectionLevel}
+                  />
+                </ErrorBoundary>
               ) : (
-                <TabsView
-                  state={state}
-                  width={boardWidth}
-                  height={contentHeight}
-                  colIndex={layout.colIndex}
-                  cardIndex={layout.cardIndex}
-                  subIndex={ui.subIndex}
-                  selectionLevel={derivedSelectionLevel}
-                />
+                <ErrorBoundary
+                  fallback={<Text color="red">Error loading tabs view</Text>}
+                >
+                  <TabsView
+                    state={state}
+                    width={boardWidth}
+                    height={contentHeight}
+                    colIndex={layout.colIndex}
+                    cardIndex={layout.cardIndex}
+                    subIndex={ui.subIndex}
+                    selectionLevel={derivedSelectionLevel}
+                  />
+                </ErrorBoundary>
               )}
               {/* Detail pane */}
               {ui.showDetailPane && selectedCard && (

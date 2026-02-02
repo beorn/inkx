@@ -5,7 +5,7 @@
  * Auto-opens on first output, can be toggled with backtick.
  */
 import React from "react"
-import { Box, Text, useConsole, type PatchedConsole } from "inkx"
+import { Box, ErrorBoundary, Text, useConsole, type PatchedConsole } from "inkx"
 import { ModalDialog } from "./shared-components.tsx"
 
 const MAX_LINES = 100
@@ -55,19 +55,21 @@ export function ConsoleModal({
           overflow="scroll"
           paddingX={1}
         >
-          {visibleEntries.length === 0 ? (
-            <Text dimColor>No console output yet</Text>
-          ) : (
-            visibleEntries.map((entry, i) => (
-              <Text
-                key={i}
-                color={getColorForMethod(entry.method)}
-                wrap="truncate"
-              >
-                {formatEntry(entry)}
-              </Text>
-            ))
-          )}
+          <ErrorBoundary fallback={<Text color="red">Console error</Text>}>
+            {visibleEntries.length === 0 ? (
+              <Text dimColor>No console output yet</Text>
+            ) : (
+              visibleEntries.map((entry, i) => (
+                <Text
+                  key={i}
+                  color={getColorForMethod(entry.method)}
+                  wrap="truncate"
+                >
+                  {formatEntry(entry)}
+                </Text>
+              ))
+            )}
+          </ErrorBoundary>
         </Box>
 
         {/* Footer */}

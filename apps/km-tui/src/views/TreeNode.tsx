@@ -5,8 +5,11 @@
  * - oneliner: Title + parent context inline on one line, truncated (for list/columns/tabs)
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
+import createDebug from "debug"
 import React, { useCallback, useMemo } from "react"
-import { Box, Text, useContentRectCallback } from "inkx"
+
+const debug = createDebug("km:tui:render")
+import { Box, ErrorBoundary, Text, useContentRectCallback } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
@@ -177,6 +180,14 @@ function TreeNodeImpl({
     isEmbedded && resolvedNode ? resolvedNode.id : node.id
   const children = childrenProp ?? resolvedGetChildren(childrenSourceId)
   const hasChildren = children.length > 0
+
+  // Debug logging for render tracking
+  debug(
+    "TreeNode render: %s children=%d content=%s",
+    node.id.slice(-8),
+    children.length,
+    displayNode.content?.slice(0, 30) ?? "(empty)",
+  )
 
   // A node is a task if it has task_status set, regardless of structural type
   // For embeds, check the target node's status
@@ -381,20 +392,28 @@ function TreeNodeImpl({
 
       {/* Children */}
       {hasChildren && !isFolded && depth < maxDepth && (
-        <NodeChildren
-          children={visibleChildren}
-          colIndex={colIndex}
-          cardIndex={cardIndex}
-          startSubIndex={subIndex + 1}
-          depth={depth}
-          inOutlineMode={inOutlineMode}
-          currentSubIndex={currentSubIndex}
-          dimInactiveChildren={dimInactiveChildren}
-          hiddenCount={hiddenCount}
-          getChildren={resolvedGetChildren}
-          getParentContext={resolvedGetParentContext}
-          getBoardPills={getBoardPills}
-        />
+        <ErrorBoundary
+          fallback={
+            <Text color="red" dim>
+              [error]
+            </Text>
+          }
+        >
+          <NodeChildren
+            children={visibleChildren}
+            colIndex={colIndex}
+            cardIndex={cardIndex}
+            startSubIndex={subIndex + 1}
+            depth={depth}
+            inOutlineMode={inOutlineMode}
+            currentSubIndex={currentSubIndex}
+            dimInactiveChildren={dimInactiveChildren}
+            hiddenCount={hiddenCount}
+            getChildren={resolvedGetChildren}
+            getParentContext={resolvedGetParentContext}
+            getBoardPills={getBoardPills}
+          />
+        </ErrorBoundary>
       )}
     </Box>
   )
