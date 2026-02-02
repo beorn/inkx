@@ -13,14 +13,14 @@ allowed-tools: Bash, Read, Glob, Grep, Task
 ### Coding Iteration (every change)
 
 ```bash
-bun run test:fast          # ~13s - run after each change
+bun run test:fast          # ~20s - run after each change
 ```
 
 ### Before Commit
 
 ```bash
 bun fix                    # Lint + format (must pass)
-bun run test:all           # Full suite (must pass) ~45s
+bun run test:all           # Full suite (must pass) ~2-3min
 ```
 
 ### Performance Analysis
@@ -136,7 +136,7 @@ Use `:html` commands for performance tracking and HTML reports:
 
 - Files >1s should be moved to `.slow.test.ts`
 - > 10% regression: investigate immediately
-- View HTML UI: `npx vite preview --outDir test-results`
+- View HTML UI: `bunx vite preview --outDir test-results`
 
 ---
 

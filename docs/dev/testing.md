@@ -513,7 +513,7 @@ Each package has focused unit tests:
 
 **Scenarios**: Dropped events, reordering, duplicates, race conditions.
 
-See [chaos-testing.md](chaos-testing.md) for detailed reference.
+See [archive/chaos-testing.md](../archive/chaos-testing.md) for detailed reference.
 
 ### 3.2 Regression Tests
 
