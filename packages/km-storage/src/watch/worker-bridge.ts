@@ -8,7 +8,7 @@
  * during FSEvents setup.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { EventEmitter } from "events"
 import { getIgnorePatterns } from "../ignore.ts"
 import type {
@@ -18,9 +18,9 @@ import type {
   WatcherState,
 } from "./worker-thread.ts"
 
-const debug = createDebug("km:storage:watch:worker-bridge")
+const log = createConditionalLogger("km:storage:watch:worker-bridge")
 // For forwarding worker debug messages - uses worker's namespace
-const workerDebug = createDebug("km:storage:watch:worker")
+const workerLog = createConditionalLogger("km:storage:watch:worker")
 
 export interface WorkerWatcherConfig {
   debounceMs: number
@@ -59,11 +59,11 @@ export class WorkerWatcher extends EventEmitter {
    */
   start(repoPath: string): void {
     this.repoPath = repoPath
-    debug("starting worker watcher for %s", repoPath)
+    log.debug?.(`starting worker watcher for ${repoPath}`)
 
     // Load ignore patterns (this is fast, runs in main thread)
     const ignorePatterns = getIgnorePatterns(repoPath)
-    debug("ignore patterns: %O", ignorePatterns)
+    log.debug?.(`ignore patterns: ${JSON.stringify(ignorePatterns)}`)
 
     // Create worker
     // Use import.meta.url to resolve the worker file path
@@ -75,7 +75,7 @@ export class WorkerWatcher extends EventEmitter {
     }
 
     this.worker.onerror = (error: ErrorEvent) => {
-      debug("worker error: %s", error.message)
+      log.debug?.(`worker error: ${error.message}`)
       this.emit("error", new Error(error.message))
     }
 
@@ -92,7 +92,7 @@ export class WorkerWatcher extends EventEmitter {
    * Stop watching
    */
   async stop(): Promise<void> {
-    debug("stopping worker watcher")
+    log.debug?.("stopping worker watcher")
 
     if (!this.worker) {
       return
@@ -108,7 +108,7 @@ export class WorkerWatcher extends EventEmitter {
     // Wait for stopped message or timeout
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        debug("worker stop timeout, terminating")
+        log.debug?.("worker stop timeout, terminating")
         worker.terminate()
         resolve()
       }, 5000)
@@ -116,7 +116,7 @@ export class WorkerWatcher extends EventEmitter {
       // Listen for stopped message
       worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
         if (event.data.type === "stopped") {
-          debug("worker stopped gracefully")
+          log.debug?.("worker stopped gracefully")
           clearTimeout(timeout)
           // Don't call terminate() after graceful stop - causes Bun segfault (km-a4l5)
           // The worker has already cleaned up; calling terminate() races with internal cleanup
@@ -130,7 +130,7 @@ export class WorkerWatcher extends EventEmitter {
    * Mark a path as in-flight (being written by us)
    */
   markInFlight(path: string): void {
-    debug("marking in-flight: %s", path)
+    log.debug?.(`marking in-flight: ${path}`)
     this.postCommand({ type: "markInFlight", path })
   }
 
@@ -194,16 +194,14 @@ export class WorkerWatcher extends EventEmitter {
   private handleWorkerMessage(message: WorkerMessage): void {
     switch (message.type) {
       case "ready":
-        debug("worker ready")
+        log.debug?.("worker ready")
         this.isReady = true
         this.emit("ready")
         break
 
       case "sync":
-        debug(
-          "worker sync: %d paths, %d directories",
-          message.paths.length,
-          message.directories.length,
+        log.debug?.(
+          `worker sync: ${message.paths.length} paths, ${message.directories.length} directories`,
         )
         this.emit("sync", {
           paths: message.paths,
@@ -212,28 +210,27 @@ export class WorkerWatcher extends EventEmitter {
         break
 
       case "error":
-        debug("worker error: %s", message.message)
+        log.debug?.(`worker error: ${message.message}`)
         this.emit("error", new Error(message.message))
         break
 
       case "stopped":
-        debug("worker stopped")
+        log.debug?.("worker stopped")
         this.currentStatus = { state: "stopped", pendingPaths: 0 }
         break
 
       case "status":
-        debug("worker status", {
-          state: message.status.state,
-          pending: message.status.pendingPaths,
-        })
+        log.debug?.(
+          `worker status state=${message.status.state} pending=${message.status.pendingPaths}`,
+        )
         this.currentStatus = message.status
         this.emit("status", message.status)
         break
 
       case "debug":
-        // Forward worker debug messages through main thread's debug logger
+        // Forward worker debug messages through main thread's logger
         // This ensures DEBUG_LOG captures worker output
-        workerDebug("%s", message.message)
+        workerLog.debug?.(message.message)
         break
     }
   }

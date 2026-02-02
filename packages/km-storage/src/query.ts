@@ -5,11 +5,11 @@
  * Parsing is done by @km/core query module.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { rowToNode } from "./db-queries/index.ts"
 
-const debug = createDebug("km:storage:query")
+const log = createConditionalLogger("km:storage:query")
 import {
   parseQuery as parse,
   resolveDateQuery as resolveDate,
@@ -384,13 +384,9 @@ export function executeQuery(
   const start = Date.now()
   const rows = db.prepare(sql).all(...params) as Record<string, unknown>[]
   const nodes = rows.map(rowToNode)
-  debug("executeQuery", {
-    results: nodes.length,
-    ms: Date.now() - start,
-    type: baseType ?? "any",
-    conditions: ast.conditions.length,
-    paths: ast.paths.length,
-  })
+  log.debug?.(
+    `executeQuery results=${nodes.length} ms=${Date.now() - start} type=${baseType ?? "any"} conditions=${ast.conditions.length} paths=${ast.paths.length}`,
+  )
   return nodes
 }
 

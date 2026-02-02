@@ -4,7 +4,7 @@
  * Rebuild state.db from events.jsonl
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
@@ -12,7 +12,7 @@ const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
 import { dirname, resolve } from "path"
 
-const debug = createDebug("km:cli:rebuild")
+const log = createConditionalLogger("km:cli:rebuild")
 import {
   rebuildState,
   fullReset,
@@ -45,7 +45,7 @@ export const rebuildCommand = new Command("rebuild")
       process.exit(1)
     }
 
-    debug("Using .km directory: %s", kmRoot)
+    log.debug?.(`Using .km directory: ${kmRoot}`)
 
     if (options.status) {
       showStatus(kmRoot)
@@ -63,7 +63,7 @@ export const rebuildCommand = new Command("rebuild")
     }
 
     const repoPath = dirname(kmRoot)
-    debug("rebuild: starting (full=%s)", !!options.full)
+    log.debug?.(`rebuild: starting (full=${!!options.full})`)
     console.log(
       term.bold("Rebuilding .km/state.db from .km/events.jsonl"),
       term.dim(`(repo ${formatPath(repoPath)})`),
@@ -94,11 +94,8 @@ export const rebuildCommand = new Command("rebuild")
         nodeCount: number
       }
 
-      debug(
-        "rebuild: complete in %dms, events=%d nodes=%d",
-        result.duration,
-        result.eventCount,
-        result.nodeCount,
+      log.debug?.(
+        `rebuild: complete in ${result.duration}ms, events=${result.eventCount} nodes=${result.nodeCount}`,
       )
 
       console.log(term.green("✓"), "Rebuild complete")

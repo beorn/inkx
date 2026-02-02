@@ -8,7 +8,7 @@
  * - Names (bare, no '/') → search by name field, may be ambiguous
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { resolve } from "path"
@@ -16,7 +16,7 @@ import { realpathSync, existsSync } from "fs"
 import { isExplicitPath } from "../path-utils.ts"
 import { rowToNode } from "./utils.ts"
 
-const debug = createDebug("km:storage:db:queries")
+const log = createConditionalLogger("km:storage:db:queries")
 
 // =============================================================================
 // Smart Node Resolution
@@ -58,11 +58,8 @@ export function resolveNode(
   // Normalize trailing slashes - "docs/" clearly means the docs directory
   const q = query.endsWith("/") ? query.slice(0, -1) : query
 
-  debug(
-    "resolveNode: %s (type=%s, taskOnly=%s)",
-    q,
-    type ?? "any",
-    taskOnly ?? false,
+  log.debug?.(
+    `resolveNode: ${q} (type=${type ?? "any"}, taskOnly=${taskOnly ?? false})`,
   )
 
   // Build filter conditions
@@ -124,26 +121,19 @@ export function resolveNode(
         return mPath?.startsWith(bestPath + "/")
       })
       if (isParentOfAll) {
-        debug(
-          "resolveNode: resolved '%s' to parent %s (children: %s)",
-          q,
-          best.id,
-          sorted
+        log.debug?.(
+          `resolveNode: resolved '${q}' to parent ${best.id} (children: ${sorted
             .slice(1)
             .map((n) => n.id)
-            .join(", "),
+            .join(", ")})`,
         )
         return best
       }
     }
 
     // Truly ambiguous - warn the user
-    debug(
-      "resolveNode: AMBIGUOUS - %d matches for '%s' by %s: %s",
-      matches.length,
-      q,
-      matchType,
-      matches.map((n) => n.id).join(", "),
+    log.debug?.(
+      `resolveNode: AMBIGUOUS - ${matches.length} matches for '${q}' by ${matchType}: ${matches.map((n) => n.id).join(", ")}`,
     )
     console.warn(
       `Warning: Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`,
@@ -165,7 +155,7 @@ export function resolveNode(
         // Keep original path if realpath fails
       }
     }
-    debug("resolveNode: explicit path → %s", absolutePath)
+    log.debug?.(`resolveNode: explicit path → ${absolutePath}`)
 
     // Exact absolute path match
     let node = getOne(
@@ -194,7 +184,7 @@ export function resolveNode(
     }
 
     // Don't fall through for explicit paths
-    debug("resolveNode: explicit path not found")
+    log.debug?.("resolveNode: explicit path not found")
     return null
   }
 
@@ -202,7 +192,7 @@ export function resolveNode(
   // 2. Relative paths (contains /) → unique path resolution
   // ==========================================================================
   if (q.includes("/")) {
-    debug("resolveNode: relative path")
+    log.debug?.("resolveNode: relative path")
 
     // Try exact fs_path suffix match
     let node = getOne(
@@ -230,14 +220,14 @@ export function resolveNode(
     )
     if (node) return node
 
-    debug("resolveNode: relative path not found")
+    log.debug?.("resolveNode: relative path not found")
     return null
   }
 
   // ==========================================================================
   // 3. Bare names (no /) → name-based search, may be ambiguous
   // ==========================================================================
-  debug("resolveNode: bare name search")
+  log.debug?.("resolveNode: bare name search")
 
   // 3a. Try exact ID match first (unambiguous)
   let node = getOne(
@@ -246,7 +236,7 @@ export function resolveNode(
     ...params,
   )
   if (node) {
-    debug("resolveNode: exact ID match")
+    log.debug?.("resolveNode: exact ID match")
     return node
   }
 
@@ -321,7 +311,7 @@ export function resolveNode(
   node = checkAmbiguity(contentMatches, "content")
   if (node) return node
 
-  debug("resolveNode: no match found")
+  log.debug?.("resolveNode: no match found")
   return null
 }
 

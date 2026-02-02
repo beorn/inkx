@@ -12,11 +12,11 @@
 
 /* eslint-disable @typescript-eslint/no-deprecated -- This file contains deprecated singleton implementation */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { AsyncLocalStorage } from "async_hooks"
 
-const debug = createDebug("km:storage:emit")
+const log = createConditionalLogger("km:storage:emit")
 import { ulid } from "ulid"
 import { join } from "path"
 import type { Event } from "@km/core"
@@ -95,7 +95,7 @@ export function emit(
     ...event,
   }
 
-  debug("emit: %s target=%s", full.type, full.target ?? "(none)")
+  log.debug?.(`emit: ${full.type} target=${full.target ?? "(none)"}`)
 
   // Ensure directory exists
   ensureKmDir()

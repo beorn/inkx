@@ -1,8 +1,8 @@
 // Database schema (for testing with in-memory databases)
-export { SCHEMA } from "./schema.ts";
+export { SCHEMA } from "./schema.ts"
 
 // Link resolver (for benchmarks and testing)
-export { createLinkResolver, type LinkResolver } from "./link-resolver.ts";
+export { createLinkResolver, type LinkResolver } from "./link-resolver.ts"
 
 // DataStore interface and factories (preferred API for tree operations)
 // See: docs/00-principles.md
@@ -10,7 +10,7 @@ export {
   createMapDataStore,
   createMemDataStore,
   createDBDataStore,
-} from "./data-store.ts";
+} from "./data-store.ts"
 
 export type {
   DataStore,
@@ -20,13 +20,13 @@ export type {
   HasDatabase,
   EventLog,
   StoreEvent,
-} from "./data-store.ts";
+} from "./data-store.ts"
 
 // FileTree interface and factories (simple file I/O abstraction)
 // See: docs/00-principles.md
-export { createDiskFileTree, createMemFileTree } from "./file-tree.ts";
+export { createDiskFileTree, createMemFileTree } from "./file-tree.ts"
 
-export type { FileTree } from "./file-tree.ts";
+export type { FileTree } from "./file-tree.ts"
 
 // Database operations (db-accepting functions for internal use)
 // All application code should use Repo domain object (createRepo) instead
@@ -76,15 +76,15 @@ export {
   createDbOps,
   // Event application (internal use)
   applyEventWithDb,
-} from "./db.ts";
+} from "./db.ts"
 
-export type { Link, SearchResult, QueryAST, DbOps } from "./db.ts";
+export type { Link, SearchResult, QueryAST, DbOps } from "./db.ts"
 
 // Store abstraction
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
-export { MemoryStore } from "./store.ts";
+export { MemoryStore } from "./store.ts"
 
-export type { NodeStore } from "./store.ts";
+export type { NodeStore } from "./store.ts"
 
 // State rebuild (generators - use runWithProgress or for...of to consume)
 export {
@@ -95,9 +95,9 @@ export {
   freshStart,
   runWithProgress,
   runGenerator,
-} from "./rebuild.ts";
+} from "./rebuild.ts"
 
-export type { RebuildResult, SyncResult } from "./rebuild.ts";
+export type { RebuildResult, SyncResult } from "./rebuild.ts"
 
 // Unified repo loading (the ONE function for loading repos)
 /* eslint-disable @typescript-eslint/no-deprecated -- Re-exporting deprecated loadRepo for backward compatibility */
@@ -107,7 +107,7 @@ export {
   parseDeferredAsync,
   parseStubFile,
   migrateToRepoRootNode,
-} from "./repo-loader.ts";
+} from "./repo-loader.ts"
 /* eslint-enable @typescript-eslint/no-deprecated */
 
 export type {
@@ -116,23 +116,23 @@ export type {
   PendingLink,
   DeferredFile,
   StepYield,
-} from "./repo-loader.ts";
-export type { LoadError as RepoLoaderError } from "./repo-loader.ts";
+} from "./repo-loader.ts"
+export type { LoadError as RepoLoaderError } from "./repo-loader.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
-export { createParsePool } from "./parse-pool.ts";
+export { createParsePool } from "./parse-pool.ts"
 
 export type {
   ParsePoolService,
   ParseResult as PoolParseResult,
   ParsePoolOptions,
-} from "./parse-pool.ts";
+} from "./parse-pool.ts"
 
 // Watcher domain object (Service for file sync)
-export { createWatcher } from "./watcher.ts";
+export { createWatcher } from "./watcher.ts"
 
-export type { Watcher, WatcherOptions } from "./watcher.ts";
+export type { Watcher, WatcherOptions } from "./watcher.ts"
 
 // Database rules (add= materialization)
 export {
@@ -141,9 +141,9 @@ export {
   onNodeChanged,
   onNodeDeleted,
   createRuleContext,
-} from "./db-rules.ts";
+} from "./db-rules.ts"
 
-export type { RulesProgress, RuleContext } from "./db-rules.ts";
+export type { RulesProgress, RuleContext } from "./db-rules.ts"
 
 // Content-addressable store
 export {
@@ -155,12 +155,12 @@ export {
   shouldStoreInCas,
   storeContentAuto,
   loadContentAuto,
-} from "./cas.ts";
+} from "./cas.ts"
 
 // Query language
-export { parseQuery, resolveDateQuery } from "./query.ts";
+export { parseQuery, resolveDateQuery } from "./query.ts"
 
-export type { QueryCondition, QueryRef, DateRange } from "./query.ts";
+export type { QueryCondition, QueryRef, DateRange } from "./query.ts"
 
 // Re-export markdown parsing functions (to avoid other layers importing km-markdown directly)
 export {
@@ -173,9 +173,9 @@ export {
   // For km-watch sync layer
   parseMarkdownWithLinks,
   nodesToMarkdown,
-} from "@km/markdown";
+} from "@km/markdown"
 
-export type { ParseResult, ParseWarning } from "@km/markdown";
+export type { ParseResult, ParseWarning } from "@km/markdown"
 
 // Markdown processing utilities (shared between loading and syncing)
 export {
@@ -184,9 +184,9 @@ export {
   toPendingLinks,
   toResolvedLinks,
   getFileNode,
-} from "./markdown-processing.ts";
+} from "./markdown-processing.ts"
 
-export type { ProcessedMarkdown, ResolvedLink } from "./markdown-processing.ts";
+export type { ProcessedMarkdown, ResolvedLink } from "./markdown-processing.ts"
 
 // Async generator pipeline (composable stages for loading/syncing)
 export {
@@ -197,14 +197,14 @@ export {
   runPipeline,
   collect,
   runDeferredPipeline,
-} from "./pipeline.ts";
+} from "./pipeline.ts"
 
 export type {
   ParseSource,
   ParsedFile,
   AppliedFile,
   PipelineOptions,
-} from "./pipeline.ts";
+} from "./pipeline.ts"
 
 // Path utilities for filesystem-based node resolution
 export {
@@ -213,12 +213,12 @@ export {
   resolveFsPath,
   getEffectiveRoot,
   resolvePathArg,
-} from "./path-utils.ts";
+} from "./path-utils.ts"
 
-export type { PathResolution, ResolvedPathArg } from "./path-utils.ts";
+export type { PathResolution, ResolvedPathArg } from "./path-utils.ts"
 
 // ID utilities for consistent node ID generation
-export { generatePathBasedId } from "./id-utils.ts";
+export { generatePathBasedId } from "./id-utils.ts"
 
 // Watch and sync (merged from @km/watch)
 export {
@@ -242,7 +242,7 @@ export {
   isHiddenFile,
   WriteQueue,
   shouldApplyToFs,
-} from "./watch/index.ts";
+} from "./watch/index.ts"
 
 export type {
   WatcherConfig,
@@ -258,14 +258,14 @@ export type {
   SyncFromFsResult,
   PatternMatcher,
   PatternMatcherOptions,
-} from "./watch/index.ts";
+} from "./watch/index.ts"
 
 // Event emission singletons REMOVED - use Repo.emitter or createEmitter() instead.
 // Legacy consumers can import directly from "./internal/emit.ts" if absolutely necessary,
 // but should migrate to dependency injection patterns.
 
 // Recurrence utilities (moved from @km/core)
-export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts";
+export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
 
 // Configuration
 /* eslint-disable @typescript-eslint/no-deprecated -- Re-exporting deprecated config functions for backward compatibility */
@@ -275,7 +275,7 @@ export {
   getTuiConfig,
   getOriginalBeadsConfig,
   getOriginalBeadsConfigPath,
-} from "./config.ts";
+} from "./config.ts"
 /* eslint-enable @typescript-eslint/no-deprecated */
 
 export type {
@@ -283,12 +283,12 @@ export type {
   BeadsConfig,
   TuiConfig,
   OriginalBeadsConfig,
-} from "./config.ts";
+} from "./config.ts"
 
 // Config domain object (preferred API)
-export { loadConfigObject } from "./config-object.ts";
+export { loadConfigObject } from "./config-object.ts"
 
-export type { Config } from "./config-object.ts";
+export type { Config } from "./config-object.ts"
 
 // Emitter domain object - owns event emission lifecycle
 // Replaces global singletons in emit.ts with explicit ownership
@@ -307,7 +307,7 @@ export {
   emitSessionMessage as emitSessionMessageWithEmitter,
   emitSessionToolCall as emitSessionToolCallWithEmitter,
   emitSessionEnded as emitSessionEndedWithEmitter,
-} from "./emitter.ts";
+} from "./emitter.ts"
 
 export type {
   Emitter,
@@ -315,7 +315,7 @@ export type {
   EmitOptions,
   EventHub,
   FsSync,
-} from "./emitter.ts";
+} from "./emitter.ts"
 
 // Repo domain object - PREFERRED API for new code
 // Composed: DataStore + FileTree + Config
@@ -325,7 +325,7 @@ export {
   createBareRepo,
   createTestRepo,
   createTestEnvRepo,
-} from "./repo.ts";
+} from "./repo.ts"
 
 export type {
   Repo,
@@ -336,7 +336,7 @@ export type {
   SyncResult as RepoSyncResult,
   SyncConflict,
   RepoStats,
-} from "./repo.ts";
+} from "./repo.ts"
 
 // Testing utilities
 export {
@@ -364,7 +364,7 @@ export {
   SIMPLE_BOARD,
   NESTED_BOARD,
   BODY_CONTENT_BOARD,
-} from "./testing/index.ts";
+} from "./testing/index.ts"
 
 export type {
   FakeRepo,
@@ -388,4 +388,4 @@ export type {
   FakeWatcher,
   MockWatcher, // deprecated
   BoardFixture,
-} from "./testing/index.ts";
+} from "./testing/index.ts"

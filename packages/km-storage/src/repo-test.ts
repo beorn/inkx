@@ -6,7 +6,7 @@
  */
 
 import { Database } from "bun:sqlite"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { join } from "path"
 
 import type { DataStore, HasDatabase } from "./data-store.ts"
@@ -16,7 +16,7 @@ import type { Repo } from "./repo.ts"
 import { createBareRepo } from "./repo.ts"
 import { SCHEMA } from "./schema.ts"
 
-const debug = createDebug("km:storage:repo:test")
+const log = createConditionalLogger("km:storage:repo:test")
 
 /**
  * Create a test Repo with in-memory DataStore and optional in-memory FileTree.
@@ -33,7 +33,7 @@ const debug = createDebug("km:storage:repo:test")
  * @returns Test Repo with in-memory storage
  */
 export function createTestRepo(): Repo {
-  debug("createTestRepo")
+  log.debug?.("createTestRepo")
 
   const data = createMemDataStore()
   return createBareRepo(data)
@@ -91,7 +91,7 @@ export interface TestEnvRepoResult {
 export function createTestEnvRepo(
   options: CreateTestEnvRepoOptions,
 ): TestEnvRepoResult {
-  debug("createTestEnvRepo", { repoPath: options.repoPath })
+  log.debug?.(`createTestEnvRepo repoPath=${options.repoPath}`)
 
   const skipPersist = options.skipPersist ?? true
   const kmDir = join(options.repoPath, ".km")

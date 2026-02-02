@@ -4,11 +4,11 @@
  * Coordinates bidirectional sync between filesystem and database
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { existsSync, mkdirSync, statSync } from "fs"
 import type { Database } from "bun:sqlite"
 
-const debug = createDebug("km:storage:watch:sync")
+const log = createConditionalLogger("km:storage:watch:sync")
 import { dirname, join } from "path"
 import { EventEmitter } from "events"
 import {
@@ -130,15 +130,15 @@ export class SyncManager extends EventEmitter {
     // Otherwise use worker-based watcher by default (non-blocking)
     // Fall back to direct watcher if useWorker is explicitly false
     if (config.watcher) {
-      debug("using injected watcher")
+      log.debug?.("using injected watcher")
       this.watcher = config.watcher
     } else if (this.config.useWorker !== false) {
-      debug("using WorkerWatcher (non-blocking)")
+      log.debug?.("using WorkerWatcher (non-blocking)")
       this.watcher = new WorkerWatcher({
         debounceMs: this.config.debounceFs,
       })
     } else {
-      debug("using FileSystemWatcher (direct)")
+      log.debug?.("using FileSystemWatcher (direct)")
       this.watcher = new FileSystemWatcher({
         debounceMs: this.config.debounceFs,
       })
@@ -171,7 +171,7 @@ export class SyncManager extends EventEmitter {
    * Start watching and syncing
    */
   start(): void {
-    debug("starting sync manager for %s", this.config.repoPath)
+    log.debug?.(`starting sync manager for ${this.config.repoPath}`)
     // Load ignore patterns for reconciliation
     this.ignorePatterns = getIgnorePatterns(this.config.repoPath)
     this.watcher.start(this.config.repoPath)
@@ -186,7 +186,7 @@ export class SyncManager extends EventEmitter {
    * Stop watching and syncing
    */
   async stop(): Promise<void> {
-    debug("stopping sync manager")
+    log.debug?.("stopping sync manager")
     this.stopHeartbeat()
     await this.watcher.stop()
     this.writeQueue.clear()
@@ -205,7 +205,7 @@ export class SyncManager extends EventEmitter {
    */
   private startHeartbeat(): void {
     if (!this.heartbeatConfig.enabled) {
-      debug("heartbeat disabled")
+      log.debug?.("heartbeat disabled")
       return
     }
 
@@ -213,10 +213,8 @@ export class SyncManager extends EventEmitter {
       return // Already running
     }
 
-    debug(
-      "starting heartbeat: interval=%dms, idleThreshold=%dms",
-      this.heartbeatConfig.intervalMs,
-      this.heartbeatConfig.idleThresholdMs,
+    log.debug?.(
+      `starting heartbeat: interval=${this.heartbeatConfig.intervalMs}ms, idleThreshold=${this.heartbeatConfig.idleThresholdMs}ms`,
     )
 
     this.heartbeatTimer = setInterval(() => {
@@ -231,7 +229,7 @@ export class SyncManager extends EventEmitter {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer)
       this.heartbeatTimer = undefined
-      debug("heartbeat stopped")
+      log.debug?.("heartbeat stopped")
     }
   }
 
@@ -244,30 +242,27 @@ export class SyncManager extends EventEmitter {
 
     // Only run if we've been idle long enough
     if (idleTime < this.heartbeatConfig.idleThresholdMs) {
-      debug(
-        "heartbeat: skipping, idle=%dms < threshold=%dms",
-        idleTime,
-        this.heartbeatConfig.idleThresholdMs,
+      log.debug?.(
+        `heartbeat: skipping, idle=${idleTime}ms < threshold=${this.heartbeatConfig.idleThresholdMs}ms`,
       )
       return
     }
 
     // Don't run if we're in the middle of something
     if (this.state !== "idle") {
-      debug("heartbeat: skipping, state=%s", this.state)
+      log.debug?.(`heartbeat: skipping, state=${this.state}`)
       return
     }
 
     // Don't run if there are pending writes
     if (this.writeQueue.getPendingCount() > 0) {
-      debug(
-        "heartbeat: skipping, pending writes=%d",
-        this.writeQueue.getPendingCount(),
+      log.debug?.(
+        `heartbeat: skipping, pending writes=${this.writeQueue.getPendingCount()}`,
       )
       return
     }
 
-    debug("heartbeat: running reconciliation")
+    log.debug?.("heartbeat: running reconciliation")
     const start = Date.now()
 
     try {
@@ -282,7 +277,7 @@ export class SyncManager extends EventEmitter {
       )
 
       if (ops.length > 0) {
-        debug("heartbeat: found %d changes (drift detected)", ops.length)
+        log.debug?.(`heartbeat: found ${ops.length} changes (drift detected)`)
         this.heartbeatDrift += ops.length
 
         this.setState("emitting")
@@ -295,17 +290,15 @@ export class SyncManager extends EventEmitter {
         })
       }
 
-      debug(
-        "heartbeat: completed in %dms, ops=%d",
-        Date.now() - start,
-        ops.length,
+      log.debug?.(
+        `heartbeat: completed in ${Date.now() - start}ms, ops=${ops.length}`,
       )
       this.emit("heartbeat:complete", {
         duration: Date.now() - start,
         opsCount: ops.length,
       })
     } catch (error) {
-      debug("heartbeat: error %O", error)
+      log.debug?.(`heartbeat: error ${String(error)}`)
       this.emit("error", error)
     } finally {
       this.setState("idle")
@@ -367,10 +360,8 @@ export class SyncManager extends EventEmitter {
    * Handle filesystem sync event
    */
   private handleFsSync(data: { paths: string[]; directories: string[] }): void {
-    debug(
-      "fs sync triggered: %d paths, %d directories",
-      data.paths.length,
-      data.directories.length,
+    log.debug?.(
+      `fs sync triggered: ${data.paths.length} paths, ${data.directories.length} directories`,
     )
     this.lastActivityTime = Date.now()
     this.setState("reconciling")
@@ -383,7 +374,7 @@ export class SyncManager extends EventEmitter {
           this.config.repoPath,
           this.ignorePatterns,
         )
-        debug("reconciled %s: %d ops", dir, ops.length)
+        log.debug?.(`reconciled ${dir}: ${ops.length} ops`)
 
         if (ops.length > 0) {
           this.setState("emitting")
@@ -391,7 +382,7 @@ export class SyncManager extends EventEmitter {
         }
       }
     } catch (error) {
-      debug("fs sync error: %O", error)
+      log.debug?.(`fs sync error: ${String(error)}`)
       this.emit("error", error)
     }
 
@@ -401,7 +392,7 @@ export class SyncManager extends EventEmitter {
 
   private setState(newState: SyncState): void {
     if (this.state !== newState) {
-      debug("state: %s → %s", this.state, newState)
+      log.debug?.(`state: ${this.state} → ${newState}`)
       this.state = newState
       this.emit("state-change", this.state)
     }
@@ -412,11 +403,13 @@ export class SyncManager extends EventEmitter {
    */
   applyEventToFs(event: Event): void {
     if (!shouldApplyToFs(event.actor)) {
-      debug("skipping fs apply for actor=%s event=%s", event.actor, event.type)
+      log.debug?.(
+        `skipping fs apply for actor=${event.actor} event=${event.type}`,
+      )
       return
     }
 
-    debug("applying %s to fs: %s", event.type, event.target ?? "no-target")
+    log.debug?.(`applying ${event.type} to fs: ${event.target ?? "no-target"}`)
 
     switch (event.type) {
       case "node_updated":
@@ -478,11 +471,9 @@ export class SyncManager extends EventEmitter {
       const dbMtime = fileNode.fs_mtime
 
       if (dbMtime !== undefined && stat.mtimeMs !== dbMtime) {
-        debug("reconcile-before-write: file changed externally, reconciling", {
-          path: fileNode.fs_path,
-          dbMtime,
-          fsMtime: stat.mtimeMs,
-        })
+        log.debug?.(
+          `reconcile-before-write: file changed externally, reconciling path=${fileNode.fs_path} dbMtime=${dbMtime} fsMtime=${stat.mtimeMs}`,
+        )
 
         // Reconcile this directory to bring FS changes into DB
         const dir = dirname(fileNode.fs_path)
@@ -494,13 +485,13 @@ export class SyncManager extends EventEmitter {
         )
 
         if (ops.length > 0) {
-          debug("reconcile-before-write: applying %d ops", ops.length)
+          log.debug?.(`reconcile-before-write: applying ${ops.length} ops`)
           // Apply synchronously to ensure DB is updated before we regenerate
           applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
         }
       }
     } catch (err) {
-      debug("reconcile-before-write: error checking file", err)
+      log.debug?.(`reconcile-before-write: error checking file ${String(err)}`)
       // Continue with write anyway - better than losing the DB change
     }
   }
@@ -617,7 +608,7 @@ export class SyncManager extends EventEmitter {
    * ```
    */
   async *syncFromFsWithProgress(): AsyncGenerator<StepYield, SyncFromFsResult> {
-    debug("syncFromFs: scanning %s", this.config.repoPath)
+    log.debug?.(`syncFromFs: scanning ${this.config.repoPath}`)
     const start = Date.now()
 
     // Pre-compile ignore patterns once (avoids O(n*m) regex compilation during scan)
@@ -653,7 +644,7 @@ export class SyncManager extends EventEmitter {
     }
 
     const totalFiles = entries.length
-    debug("syncFromFs: found %d files", totalFiles)
+    log.debug?.(`syncFromFs: found ${totalFiles} files`)
     yield { current: totalFiles, total: totalFiles }
 
     // Phase 2: Reconciling - collect all ops first, then apply in batches
@@ -708,16 +699,15 @@ export class SyncManager extends EventEmitter {
     // SAFETY: Only write .md files to prevent corruption of source code/config files
     const pendingFiles = Array.from(ruleCtx.pendingWriteBack)
     if (pendingFiles.length > 0) {
-      debug(
-        "syncFromFs: writing back %d files after rule evaluation",
-        pendingFiles.length,
+      log.debug?.(
+        `syncFromFs: writing back ${pendingFiles.length} files after rule evaluation`,
       )
       for (const filePath of pendingFiles) {
         // CRITICAL: Skip non-.md files to prevent corruption
         if (!filePath.endsWith(".md")) {
-          debug("syncFromFs: SKIPPING non-.md file in write-back", {
-            filePath,
-          })
+          log.debug?.(
+            `syncFromFs: SKIPPING non-.md file in write-back filePath=${filePath}`,
+          )
           continue
         }
 
@@ -740,11 +730,8 @@ export class SyncManager extends EventEmitter {
 
     const duration = Date.now() - start
     const dirCount = dirToFiles.size
-    debug(
-      "syncFromFs: processed %d ops in %d dirs in %dms",
-      opsProcessed,
-      dirCount,
-      duration,
+    log.debug?.(
+      `syncFromFs: processed ${opsProcessed} ops in ${dirCount} dirs in ${duration}ms`,
     )
     return { processed: opsProcessed, directories: dirCount, duration }
   }
@@ -756,7 +743,7 @@ export class SyncManager extends EventEmitter {
    * This is critical to prevent corruption of non-repo files (km-me0n bug).
    */
   async syncToFs(): Promise<{ written: number }> {
-    debug("syncToFs: starting")
+    log.debug?.("syncToFs: starting")
     const start = Date.now()
 
     const nodes = getAllNodes(this.db)
@@ -765,7 +752,7 @@ export class SyncManager extends EventEmitter {
       (n) => n.type === "file" && n.fs_path?.endsWith(".md"),
     )
 
-    debug("syncToFs: writing %d files", fileNodes.length)
+    log.debug?.(`syncToFs: writing ${fileNodes.length} files`)
 
     for (const fileNode of fileNodes) {
       if (!fileNode.fs_path) continue
@@ -781,10 +768,8 @@ export class SyncManager extends EventEmitter {
 
     await this.writeQueue.forceFlush()
 
-    debug(
-      "syncToFs: wrote %d files in %dms",
-      fileNodes.length,
-      Date.now() - start,
+    log.debug?.(
+      `syncToFs: wrote ${fileNodes.length} files in ${Date.now() - start}ms`,
     )
     return { written: fileNodes.length }
   }

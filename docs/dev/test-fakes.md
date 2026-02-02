@@ -383,5 +383,5 @@ No database, no filesystem - pure in-memory Map storage.
 
 - [testing.md](testing.md) - Main testing guide
 - [test-system.md](test-system.md) - Test system architecture
-- [chaos-testing.md](../archive/chaos-testing.md) - Chaos testing scenarios
+- [chaos-testing.md](chaos-testing.md) - Chaos testing scenarios
 - [/tests real](../../.claude/skills/tests/real.md) - Drift detection workflow

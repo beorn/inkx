@@ -86,7 +86,15 @@ export function TabsView({
           return (
             <React.Fragment key={column.node.id}>
               {/* Tab with background - content-based width */}
-              <Box backgroundColor={isTabSelected ? "yellow" : undefined}>
+              <Box
+                id={column.node.id}
+                backgroundColor={isTabSelected ? "yellow" : undefined}
+                {...(isTabSelected && {
+                  "data-cursor": true,
+                  "data-col-index": cIdx,
+                  "data-card-index": -1,
+                })}
+              >
                 <Text
                   bold
                   color={textColor}

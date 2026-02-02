@@ -9,11 +9,11 @@
  */
 
 import type { Database } from "bun:sqlite"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { createDbOps } from "./db-ops.ts"
 import { findChildByContent } from "./db-queries/index.ts"
 
-const debug = createDebug("km:storage:db:links")
+const log = createConditionalLogger("km:storage:db:links")
 
 // =============================================================================
 // Types
@@ -155,7 +155,9 @@ export function resolveLinks(
     }
   }
 
-  debug("resolveLinks", { targetName, targetId, resolved: resolvedCount })
+  log.debug?.(
+    `resolveLinks targetName=${targetName} targetId=${targetId} resolved=${resolvedCount}`,
+  )
   return resolvedCount
 }
 
@@ -236,7 +238,9 @@ export function resolveLinksBatch(
     }
   }
 
-  debug("resolveLinksBatch", { targets: targets.length, resolved })
+  log.debug?.(
+    `resolveLinksBatch targets=${targets.length} resolved=${resolved}`,
+  )
   return resolved
 }
 

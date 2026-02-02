@@ -31,8 +31,9 @@ import { readFileSync, statSync } from "fs"
 import { createHash } from "crypto"
 import { parseMarkdownWithLinks } from "@km/markdown"
 
-// Create debug instance using the intercepted createDebug
-const debug = createDebug("km:storage:parse-worker")
+// Create logger for this module's debug output
+import { createConditionalLogger } from "@beorn/logger"
+const log = createConditionalLogger("km:storage:parse-worker")
 
 export interface ParseRequest {
   type: "parse"
@@ -77,7 +78,7 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
 
   if (message.type === "parse") {
     try {
-      debug("parsing %s", message.fsPath)
+      log.debug?.(`parsing ${message.fsPath}`)
       const stat = statSync(message.fsPath)
       const content = readFileSync(message.fsPath, "utf-8")
       const hash = createHash("sha256").update(content, "utf-8").digest("hex")
@@ -88,11 +89,8 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         stat.mtimeMs,
       )
 
-      debug(
-        "parsed %s: %d nodes, %d links",
-        message.fsPath,
-        nodes.length,
-        wikilinks.length,
+      log.debug?.(
+        `parsed ${message.fsPath}: ${nodes.length} nodes, ${wikilinks.length} links`,
       )
       self.postMessage({
         type: "parsed",
@@ -106,10 +104,8 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         mtime: stat.mtimeMs,
       } satisfies ParseResponse)
     } catch (err) {
-      debug(
-        "parse error %s: %s",
-        message.fsPath,
-        err instanceof Error ? err.message : String(err),
+      log.debug?.(
+        `parse error ${message.fsPath}: ${err instanceof Error ? err.message : String(err)}`,
       )
       self.postMessage({
         type: "parsed",

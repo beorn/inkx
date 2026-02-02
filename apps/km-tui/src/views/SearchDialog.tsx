@@ -4,8 +4,15 @@
  * Fuzzy search dialog for finding items by content or tags.
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
-import React, { useState, useMemo, useCallback } from "react"
-import { Box, Text, useInput } from "inkx"
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+  useDeferredValue,
+} from "react"
+import { Box, Text, useInput, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -210,235 +217,255 @@ export interface SearchDialogProps {
   height: number
 }
 
-export function SearchDialog({
-  onSelect,
-  onCancel,
-  width,
-  height,
-}: SearchDialogProps): React.ReactElement {
-  const repo = useRepo()
-  const [query, setQuery] = useState("")
-  const [selectedIndex, setSelectedIndex] = useState(0)
-
-  // Get all nodes using rawQuery
-  const allNodes = useMemo(
-    () => repo.rawQuery<KNode>("SELECT * FROM nodes"),
-    [repo],
-  )
-
-  // Wrap getNodeDisplayName with repo for use in helper functions
-  const getDisplayName = useCallback(
-    (node: KNode) => getNodeDisplayName(repo, node),
-    [repo],
-  )
-
-  // Get all search results
-  const allResults = useMemo(
-    () => getSearchResults(allNodes, repo.getNode.bind(repo), getDisplayName),
-    [allNodes, repo, getDisplayName],
-  )
-
-  // Parse query and filter results
-  const filteredResults = useMemo(() => {
-    if (!query.trim()) {
-      // Show recent items (tasks, files, sections) sorted by updated_at
-      return [...allResults]
-        .filter(
-          (r) =>
-            r.node.type === "task" ||
-            r.node.type === "file" ||
-            r.node.type === "section",
-        )
-        .sort((a, b) => b.node.updated_at - a.node.updated_at)
-        .slice(0, 20)
-    }
-
-    // Parse query for structured search
-    const queryAST = parseQuery(query)
-
-    // Filter and score by query
-    return allResults
-      .map((result) => {
-        const { matches, matchType } = matchesQuery(result, queryAST)
-        if (!matches) return null
-
-        // Score against title and content
-        const titleScore = fuzzyScore(query, result.title)
-        const contentScore = result.content
-          ? fuzzyScore(query, result.content) * 0.7
-          : -1
-        const tagScore = matchType === "tag" && result.tags.length > 0 ? 100 : 0
-
-        const bestScore = Math.max(titleScore, contentScore) + tagScore
-
-        return { ...result, score: bestScore, matchType }
-      })
-      .filter(
-        (r): r is SearchResult & { score: number } =>
-          r !== null && r.score >= 0,
-      )
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 50) // Limit to top 50 results
-  }, [allResults, query])
-
-  // Max visible items based on height
-  const maxVisible = Math.max(1, height - 6) // Reserve space for header, search, hints
-
-  // Scroll offset to keep selection visible
-  const scrollOffset = Math.max(
-    0,
-    Math.min(
-      selectedIndex - Math.floor(maxVisible / 2),
-      Math.max(0, filteredResults.length - maxVisible),
-    ),
-  )
-
-  const visibleResults = filteredResults.slice(
-    scrollOffset,
-    scrollOffset + maxVisible,
-  )
-
-  useInput((input, key) => {
-    if (key.escape) {
-      onCancel()
-      return
-    }
-
-    if (key.return) {
-      const selected = filteredResults[selectedIndex]
-      if (selected) {
-        onSelect(selected.node)
-      }
-      return
-    }
-
-    if (key.upArrow || (key.ctrl && input === "p")) {
-      setSelectedIndex((i) => Math.max(0, i - 1))
-      return
-    }
-
-    if (key.downArrow || (key.ctrl && input === "n")) {
-      setSelectedIndex((i) => Math.min(filteredResults.length - 1, i + 1))
-      return
-    }
-
-    if (key.backspace || key.delete) {
-      setQuery((q) => q.slice(0, -1))
-      setSelectedIndex(0)
-      return
-    }
-
-    // Regular character input
-    if (input.length === 1 && input >= " ") {
-      setQuery((q) => q + input)
-      setSelectedIndex(0)
-    }
-  })
-
-  const innerWidth = Math.max(10, width - 8) // Account for border + paddingX(2)
-
-  return (
-    <ModalDialog borderColor="magenta" width={width} height={height}>
-      {/* Header */}
-      <Text bold>Search items:</Text>
-
-      {/* Separator */}
-      <Text dimColor>{"─".repeat(innerWidth)}</Text>
-
-      {/* Search input */}
-      <Text>
-        <Text dimColor>[Search: </Text>
-        <Text color="magenta">{query || " "}</Text>
-        <Text inverse> </Text>
-        <Text dimColor>]</Text>
-      </Text>
-
-      {/* Results list */}
-      <Box flexDirection="column" flexGrow={1}>
-        {visibleResults.map((result, i) => {
-          const actualIndex = scrollOffset + i
-          const isSelected = actualIndex === selectedIndex
-
-          // Calculate available width for content
-          const prefix = isSelected ? "▸ " : "  "
-          const typeIcon =
-            result.node.type === "task"
-              ? "☐"
-              : result.node.type === "file"
-                ? "📄"
-                : result.node.type === "section"
-                  ? "§"
-                  : "•"
-          const tagSuffix =
-            result.tags.length > 0 ? ` #${result.tags.join(" #")}` : ""
-          const contextSuffix = result.parentContext
-            ? ` < ${result.parentContext}`
-            : ""
-
-          const availableWidth =
-            innerWidth -
-            prefix.length -
-            2 - // typeIcon + space
-            tagSuffix.length -
-            contextSuffix.length -
-            2
-
-          // Truncate title if needed
-          const displayTitle =
-            result.title.length > availableWidth
-              ? result.title.slice(0, availableWidth - 1) + "…"
-              : result.title
-
-          return (
-            <Text
-              key={result.node.id}
-              backgroundColor={isSelected ? "magenta" : undefined}
-              color={isSelected ? "black" : undefined}
-              wrap="truncate"
-            >
-              {prefix}
-              <Text dimColor={!isSelected}>{typeIcon} </Text>
-              {displayTitle}
-              {result.parentContext && (
-                <Text
-                  dimColor={!isSelected}
-                  color={isSelected ? "gray" : undefined}
-                >
-                  {` < ${result.parentContext}`}
-                </Text>
-              )}
-              {result.tags.length > 0 && (
-                <Text color="magenta" dimColor={!isSelected}>
-                  {` #${result.tags.join(" #")}`}
-                </Text>
-              )}
-            </Text>
-          )
-        })}
-        {filteredResults.length === 0 && query && (
-          <Text dimColor>No matching items</Text>
-        )}
-        {filteredResults.length === 0 && !query && (
-          <Text dimColor>Start typing to search...</Text>
-        )}
-      </Box>
-
-      {/* Scroll indicator */}
-      {filteredResults.length > maxVisible && (
-        <Text dimColor>
-          {scrollOffset > 0 ? "↑ " : "  "}
-          {`${selectedIndex + 1}/${filteredResults.length}`}
-          {scrollOffset + maxVisible < filteredResults.length ? " ↓" : ""}
-        </Text>
-      )}
-
-      {/* Hints */}
-      <Text dimColor>
-        ↑↓:nav Enter:select Esc:cancel | Use #tag to filter by tags
-      </Text>
-    </ModalDialog>
-  )
+export interface SearchDialogHandle {
+  focusInput(): void
+  clearQuery(): void
 }
+
+export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
+  function SearchDialog(
+    { onSelect, onCancel, width, height },
+    ref,
+  ): React.ReactElement {
+    const repo = useRepo()
+    const [query, setQuery] = useState("")
+    const deferredQuery = useDeferredValue(query)
+    const [selectedIndex, setSelectedIndex] = useState(0)
+
+    useImperativeHandle(ref, () => ({
+      focusInput() {
+        // No-op for now - TUI doesn't have native focus
+        // Documents the intent for potential future use
+      },
+      clearQuery() {
+        setQuery("")
+        setSelectedIndex(0)
+      },
+    }))
+
+    // Get all nodes using rawQuery
+    const allNodes = useMemo(
+      () => repo.rawQuery<KNode>("SELECT * FROM nodes"),
+      [repo],
+    )
+
+    // Wrap getNodeDisplayName with repo for use in helper functions
+    const getDisplayName = useCallback(
+      (node: KNode) => getNodeDisplayName(repo, node),
+      [repo],
+    )
+
+    // Get all search results
+    const allResults = useMemo(
+      () => getSearchResults(allNodes, repo.getNode.bind(repo), getDisplayName),
+      [allNodes, repo, getDisplayName],
+    )
+
+    // Parse query and filter results (uses deferredQuery for responsive typing)
+    const filteredResults = useMemo(() => {
+      if (!deferredQuery.trim()) {
+        // Show recent items (tasks, files, sections) sorted by updated_at
+        return [...allResults]
+          .filter(
+            (r) =>
+              r.node.type === "task" ||
+              r.node.type === "file" ||
+              r.node.type === "section",
+          )
+          .sort((a, b) => b.node.updated_at - a.node.updated_at)
+          .slice(0, 20)
+      }
+
+      // Parse query for structured search
+      const queryAST = parseQuery(deferredQuery)
+
+      // Filter and score by query
+      return allResults
+        .map((result) => {
+          const { matches, matchType } = matchesQuery(result, queryAST)
+          if (!matches) return null
+
+          // Score against title and content
+          const titleScore = fuzzyScore(deferredQuery, result.title)
+          const contentScore = result.content
+            ? fuzzyScore(deferredQuery, result.content) * 0.7
+            : -1
+          const tagScore =
+            matchType === "tag" && result.tags.length > 0 ? 100 : 0
+
+          const bestScore = Math.max(titleScore, contentScore) + tagScore
+
+          return { ...result, score: bestScore, matchType }
+        })
+        .filter(
+          (r): r is SearchResult & { score: number } =>
+            r !== null && r.score >= 0,
+        )
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 50) // Limit to top 50 results
+    }, [allResults, deferredQuery])
+
+    // Max visible items based on height
+    const maxVisible = Math.max(1, height - 6) // Reserve space for header, search, hints
+
+    // Scroll offset to keep selection visible
+    const scrollOffset = Math.max(
+      0,
+      Math.min(
+        selectedIndex - Math.floor(maxVisible / 2),
+        Math.max(0, filteredResults.length - maxVisible),
+      ),
+    )
+
+    const visibleResults = filteredResults.slice(
+      scrollOffset,
+      scrollOffset + maxVisible,
+    )
+
+    useInput((input, key) => {
+      if (key.escape) {
+        onCancel()
+        return
+      }
+
+      if (key.return) {
+        const selected = filteredResults[selectedIndex]
+        if (selected) {
+          onSelect(selected.node)
+        }
+        return
+      }
+
+      if (key.upArrow || (key.ctrl && input === "p")) {
+        setSelectedIndex((i) => Math.max(0, i - 1))
+        return
+      }
+
+      if (key.downArrow || (key.ctrl && input === "n")) {
+        setSelectedIndex((i) => Math.min(filteredResults.length - 1, i + 1))
+        return
+      }
+
+      if (key.backspace || key.delete) {
+        setQuery((q) => q.slice(0, -1))
+        setSelectedIndex(0)
+        return
+      }
+
+      // Regular character input
+      if (input.length === 1 && input >= " ") {
+        setQuery((q) => q + input)
+        setSelectedIndex(0)
+      }
+    })
+
+    const innerWidth = Math.max(10, width - 8) // Account for border + paddingX(2)
+
+    return (
+      <ModalDialog borderColor="magenta" width={width} height={height}>
+        {/* Header */}
+        <Text bold>Search items:</Text>
+
+        {/* Separator */}
+        <Text dimColor>{"─".repeat(innerWidth)}</Text>
+
+        {/* Search input */}
+        <Text>
+          <Text dimColor>[Search: </Text>
+          <Text color="magenta">{query || " "}</Text>
+          <Text inverse> </Text>
+          <Text dimColor>]</Text>
+        </Text>
+
+        {/* Results list */}
+        <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
+          <Box flexDirection="column" flexGrow={1}>
+            {visibleResults.map((result, i) => {
+              const actualIndex = scrollOffset + i
+              const isSelected = actualIndex === selectedIndex
+
+              // Calculate available width for content
+              const prefix = isSelected ? "▸ " : "  "
+              const typeIcon =
+                result.node.type === "task"
+                  ? "☐"
+                  : result.node.type === "file"
+                    ? "📄"
+                    : result.node.type === "section"
+                      ? "§"
+                      : "•"
+              const tagSuffix =
+                result.tags.length > 0 ? ` #${result.tags.join(" #")}` : ""
+              const contextSuffix = result.parentContext
+                ? ` < ${result.parentContext}`
+                : ""
+
+              const availableWidth =
+                innerWidth -
+                prefix.length -
+                2 - // typeIcon + space
+                tagSuffix.length -
+                contextSuffix.length -
+                2
+
+              // Truncate title if needed
+              const displayTitle =
+                result.title.length > availableWidth
+                  ? result.title.slice(0, availableWidth - 1) + "…"
+                  : result.title
+
+              return (
+                <Text
+                  key={result.node.id}
+                  backgroundColor={isSelected ? "magenta" : undefined}
+                  color={isSelected ? "black" : undefined}
+                  wrap="truncate"
+                >
+                  {prefix}
+                  <Text dimColor={!isSelected}>{typeIcon} </Text>
+                  {displayTitle}
+                  {result.parentContext && (
+                    <Text
+                      dimColor={!isSelected}
+                      color={isSelected ? "gray" : undefined}
+                    >
+                      {` < ${result.parentContext}`}
+                    </Text>
+                  )}
+                  {result.tags.length > 0 && (
+                    <Text color="magenta" dimColor={!isSelected}>
+                      {` #${result.tags.join(" #")}`}
+                    </Text>
+                  )}
+                </Text>
+              )
+            })}
+            {filteredResults.length === 0 && query && (
+              <Text dimColor>No matching items</Text>
+            )}
+            {filteredResults.length === 0 && !query && (
+              <Text dimColor>Start typing to search...</Text>
+            )}
+          </Box>
+        </ErrorBoundary>
+
+        {/* Scroll indicator */}
+        {filteredResults.length > maxVisible && (
+          <Text dimColor>
+            {scrollOffset > 0 ? "↑ " : "  "}
+            {`${selectedIndex + 1}/${filteredResults.length}`}
+            {scrollOffset + maxVisible < filteredResults.length ? " ↓" : ""}
+          </Text>
+        )}
+
+        {/* Hints */}
+        <Text dimColor>
+          ↑↓:nav Enter:select Esc:cancel | Use #tag to filter by tags
+        </Text>
+      </ModalDialog>
+    )
+  },
+)
 
 // Export fuzzy functions for testing
 export { fuzzyMatch, fuzzyScore, extractTags }

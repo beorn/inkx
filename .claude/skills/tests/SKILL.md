@@ -13,14 +13,14 @@ allowed-tools: Bash, Read, Glob, Grep, Task
 ### Coding Iteration (every change)
 
 ```bash
-bun run test:fast          # ~13s - run after each change
+bun run test:fast          # ~20s - run after each change
 ```
 
 ### Before Commit
 
 ```bash
 bun fix                    # Lint + format (must pass)
-bun run test:all           # Full suite (must pass) ~45s
+bun run test:all           # Full suite (must pass) ~2-3min
 ```
 
 ### Performance Analysis
@@ -77,11 +77,13 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | **TUI Tests** | Term buffer (inkx) | [tui.md](tui.md) |
 | **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
 | **GUI Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
+| **Exploration** | Chaos + monkey testing | [chaos.md](chaos.md), `/explore` |
 | **Bench** | Benchmarks | [bench.md](bench.md) |
 | **Storybook** | Static component rendering | `bun storybook` |
 
 - Any **test** can have `.slow.` suffix (manually assigned)
 - **Bench** and **Storybook** are not "tests" - must qualify
+- See [testing.md#dynamic-testing-taxonomy](../../docs/dev/testing.md#dynamic-testing-taxonomy) for industry terminology
 
 ### Test File Suffixes
 
@@ -136,7 +138,7 @@ Use `:html` commands for performance tracking and HTML reports:
 
 - Files >1s should be moved to `.slow.test.ts`
 - > 10% regression: investigate immediately
-- View HTML UI: `npx vite preview --outDir test-results`
+- View HTML UI: `bunx vite preview --outDir test-results`
 
 ---
 

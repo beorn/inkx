@@ -5,7 +5,7 @@
  * Created via loadConfigObject() factory function.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import {
   loadConfigWithPath,
   clearConfigCache,
@@ -16,7 +16,7 @@ import {
   type TuiConfig,
 } from "./config.ts"
 
-const debug = createDebug("km:storage:config")
+const log = createConditionalLogger("km:storage:config")
 
 /**
  * Config interface - repo configuration.
@@ -51,7 +51,7 @@ export interface Config {
  * @returns Config object
  */
 export function loadConfigObject(searchFrom?: string): Config {
-  debug("loadConfigObject", { searchFrom })
+  log.debug?.(`loadConfigObject searchFrom=${searchFrom}`)
 
   // Initial load - use loadConfigWithPath to get both config and path
   let result = loadConfigWithPath(searchFrom)
@@ -78,7 +78,7 @@ export function loadConfigObject(searchFrom?: string): Config {
     },
 
     reload() {
-      debug("reloading config")
+      log.debug?.("reloading config")
       clearConfigCache()
       result = loadConfigWithPath(searchFrom)
       raw = result?.config ?? {}

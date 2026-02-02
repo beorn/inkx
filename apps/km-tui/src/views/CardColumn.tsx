@@ -4,9 +4,16 @@
  * Uses inkx overflow="scroll" for native scrolling support.
  * Implements React-level virtualization for large card lists.
  */
-import React, { useCallback, useMemo, useRef } from "react"
-import createDebug from "debug"
+import React, {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { useRepo } from "../repo-context.tsx"
+import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback } from "inkx"
 import { styledUnderline } from "chalkx"
 import type { CardState, ColumnState } from "../types.ts"
@@ -16,8 +23,6 @@ import { TreeNode } from "./TreeNode.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
 import type { NodeLayout } from "../card-positions.ts"
-
-const debug = createDebug("km:tui:card-layout")
 
 // =============================================================================
 // Virtualization
@@ -80,10 +85,8 @@ function CardLayoutRegistrar({
   const handleLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
       if (!registry) {
-        debug(
-          "CardLayoutRegistrar: no registry for col=%d card=%d",
-          colIndex,
-          cardIndex,
+        layoutLog.trace?.(
+          `CardLayoutRegistrar: no registry for col=${colIndex} card=${cardIndex}`,
         )
         return
       }
@@ -95,12 +98,8 @@ function CardLayoutRegistrar({
         cardHeight: computed.height,
       }
 
-      debug(
-        "CardLayoutRegistrar: col=%d card=%d y=%d h=%d",
-        colIndex,
-        cardIndex,
-        computed.y,
-        computed.height,
+      layoutLog.trace?.(
+        `CardLayoutRegistrar: col=${colIndex} card=${cardIndex} y=${computed.y} h=${computed.height}`,
       )
       registry.registerCard(colIndex, cardIndex, nodeId, layout)
     },
@@ -250,6 +249,10 @@ function calcEdgeBasedScrollOffset(
 // Virtualized Card List Component
 // =============================================================================
 
+export interface VirtualizedCardListHandle {
+  scrollToItem(index: number): void
+}
+
 interface VirtualizedCardListProps {
   cards: CardState[]
   selectedCardIndex: number
@@ -273,20 +276,39 @@ interface VirtualizedCardListProps {
  * 3. Uses placeholder elements to maintain scroll position
  * 4. Uses edge-based scrolling (only scrolls when cursor approaches edge)
  */
-function VirtualizedCardList({
-  cards,
-  selectedCardIndex,
-  selectedSubIndex,
-  isSelected,
-  selectionLevel,
-  width,
-  height,
-  colIndex,
-  isVirtualColumn,
-}: VirtualizedCardListProps): React.ReactElement {
+const VirtualizedCardList = forwardRef<
+  VirtualizedCardListHandle,
+  VirtualizedCardListProps
+>(function VirtualizedCardList(
+  {
+    cards,
+    selectedCardIndex,
+    selectedSubIndex,
+    isSelected,
+    selectionLevel,
+    width,
+    height,
+    colIndex,
+    isVirtualColumn,
+  },
+  ref,
+): React.ReactElement {
   // Track scroll offset for edge-based scrolling
   // Using ref to persist across renders without causing re-renders
   const scrollOffsetRef = useRef(0)
+  // Counter to force re-render when scrollToItem is called
+  const [, setRenderCount] = useState(0)
+
+  // Expose scrollToItem via ref
+  useImperativeHandle(ref, () => ({
+    scrollToItem(index: number) {
+      scrollOffsetRef.current = Math.max(
+        0,
+        Math.min(index, Math.max(0, cards.length - 1)),
+      )
+      setRenderCount((c) => c + 1)
+    },
+  }))
 
   // Calculate how many cards fit in the viewport
   const visibleCardCount = Math.max(
@@ -361,12 +383,14 @@ function VirtualizedCardList({
   // Get the slice of cards to render
   const visibleCards = cards.slice(startIndex, endIndex)
 
-  // Calculate scrollTo index using edge-based offset
-  // scrollOffsetRef.current is the logical top card index
-  // We need to translate to the index within our rendered slice
+  // Calculate scrollTo index for inkx
+  // inkx scrollTo expects the INDEX of the child to scroll into view
+  // Account for top placeholder being child 0 when present
   const hasTopPlaceholder = topPlaceholderHeight > 0
-  const scrollToIndex =
-    newScrollOffset - startIndex + (hasTopPlaceholder ? 1 : 0)
+  const selectedIndexInSlice = selectedCardIndex - startIndex
+  const scrollToIndex = hasTopPlaceholder
+    ? selectedIndexInSlice + 1 // +1 for top placeholder
+    : selectedIndexInSlice
 
   return (
     <Box
@@ -388,6 +412,9 @@ function VirtualizedCardList({
           isSelected &&
           actualIndex === selectedCardIndex &&
           selectionLevel === "card"
+        layoutLog.trace?.(
+          `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
+        )
         return (
           <Card
             key={card.node.id}
@@ -408,7 +435,7 @@ function VirtualizedCardList({
       )}
     </Box>
   )
-}
+})
 
 // =============================================================================
 // Column Component
@@ -480,8 +507,10 @@ export const Column = React.memo(function Column({
     <Box
       id={column.node.id}
       data-view="column"
+      data-column={true}
+      data-col-index={colIndex}
       {...(isSelected && { "data-selected": true })}
-      {...(isColumnSelected && { "data-cursor": true })}
+      {...(isColumnSelected && { "data-cursor": true, "data-card-index": -1 })}
       flexDirection="column"
       width={width}
       maxHeight={height}

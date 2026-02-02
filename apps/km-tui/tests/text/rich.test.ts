@@ -5,7 +5,6 @@
 import { describe, it, expect } from "vitest"
 import { createTerm } from "inkx"
 import {
-  ANSI_REGEX,
   displayLength,
   stripAnsi,
   renderRich,
@@ -20,15 +19,15 @@ const style = term
 // ANSI Utilities
 // ============================================================================
 
-describe("ANSI_REGEX", () => {
-  it("matches simple ANSI escape codes", () => {
+describe("stripAnsi", () => {
+  it("strips simple ANSI escape codes", () => {
     const text = "\x1b[31mred\x1b[0m"
-    expect(text.replace(ANSI_REGEX, "")).toBe("red")
+    expect(stripAnsi(text)).toBe("red")
   })
 
-  it("matches complex ANSI escape codes with multiple params", () => {
+  it("strips complex ANSI escape codes with multiple params", () => {
     const text = "\x1b[1;31;4mstyle\x1b[0m"
-    expect(text.replace(ANSI_REGEX, "")).toBe("style")
+    expect(stripAnsi(text)).toBe("style")
   })
 })
 

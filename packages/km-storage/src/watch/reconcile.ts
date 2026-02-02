@@ -5,7 +5,7 @@
  * Operations are applied using the applier module.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { dirname } from "path"
 import type { KNode } from "@km/core"
@@ -13,7 +13,7 @@ import { getNodesUnderPath, getNodeByPath } from "../db-queries/core-lookup.ts"
 import { scanDirectory } from "./watcher.ts"
 import type { PatternMatcher } from "../ignore.ts"
 
-const debug = createDebug("km:storage:watch:reconcile")
+const log = createConditionalLogger("km:storage:watch:reconcile")
 
 export interface ReconcileOp {
   type: "create" | "update" | "rename" | "delete"
@@ -60,11 +60,9 @@ export function reconcileDirectory(
   // Get database state for this directory (using km-storage abstraction)
   const dbNodes = getNodesUnderPath(db, dirPath)
 
-  debug("reconciling", {
-    dirPath,
-    fsEntries: fsEntries.length,
-    dbNodes: dbNodes.length,
-  })
+  log.debug?.(
+    `reconciling dirPath=${dirPath} fsEntries=${fsEntries.length} dbNodes=${dbNodes.length}`,
+  )
 
   // Index by inode and path for efficient lookup
   const dbByIno = new Map<number, KNode>()
@@ -97,11 +95,9 @@ export function reconcileDirectory(
       // Atomic write: same path but different inode
       // This happens when editors save via temp file + rename (Vim, VSCode, etc.)
       // Treat as an update but also update the inode
-      debug("atomic write detected", {
-        path: entry.path,
-        oldIno: existingByPath.fs_ino,
-        newIno: entry.ino,
-      })
+      log.debug?.(
+        `atomic write detected path=${entry.path} oldIno=${existingByPath.fs_ino} newIno=${entry.ino}`,
+      )
       ops.push({
         type: "update",
         nodeId: existingByPath.id,
@@ -147,10 +143,8 @@ export function reconcileDirectory(
   }
 
   if (ops.length > 0) {
-    debug(
-      "generated %d ops: %O",
-      ops.length,
-      ops.map((o) => ({ type: o.type, path: o.path })),
+    log.debug?.(
+      `generated ${ops.length} ops: ${JSON.stringify(ops.map((o) => ({ type: o.type, path: o.path })))}`,
     )
   }
 

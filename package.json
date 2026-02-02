@@ -6,7 +6,8 @@
   "type": "module",
   "catalog": {
     "react": "^19.2.3",
-    "@types/react": "^19.2.7"
+    "@types/react": "^19.2.7",
+    "zod": "^4.3.6"
   },
   "workspaces": [
     "packages/*",
@@ -16,7 +17,8 @@
   ],
   "overrides": {
     "chalkx": "$chalkx",
-    "@beorn/flexx": "$@beorn/flexx"
+    "@beorn/flexx": "$@beorn/flexx",
+    "zod": "^4.3.6"
   },
   "bin": {
     "km": "./apps/km-cli/src/index.ts",
@@ -59,7 +61,7 @@
     "build:info": "bun scripts/generate-build-info.ts",
     "prebuild": "bun run build:info",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
-    "storybook": "bun run apps/km-tui/packages/km-ink/tests/storybook.tsx",
+    "storybook": "bun run apps/km-tui/tests/storybook.tsx",
     "chaos:fuzz": "bun ./scripts/chaos.ts fuzz",
     "chaos:reproduce": "bun ./scripts/chaos.ts reproduce",
     "chaos:report": "bun ./scripts/chaos.ts report",

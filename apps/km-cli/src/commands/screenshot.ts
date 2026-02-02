@@ -6,10 +6,10 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { setDebugRepoRoot } from "../debug-log.ts"
 
-const debug = createDebug("km:cli:screenshot")
+const log = createConditionalLogger("km:cli:screenshot")
 
 type ViewMode = "cards" | "columns" | "list" | "tabs"
 type OutputFormat = "text" | "ansi" | "debug"
@@ -33,7 +33,7 @@ export const screenshotCommand = new Command("screenshot")
   .option("--height <n>", "Terminal height", "24")
   .option("-o, --output <file>", "Output file (default: stdout)")
   .action(async (root, options) => {
-    debug("screenshot command", { root, ...options })
+    log.debug?.("screenshot command", { root, ...options })
 
     const width = parseInt(options.width, 10)
     const height = parseInt(options.height, 10)
@@ -118,6 +118,7 @@ export const screenshotCommand = new Command("screenshot")
         handleSearchCancel: () => {},
       },
       moveMode: false,
+      colScrollOffset: 0,
     })
 
     // Create element wrapped in RepoProvider

@@ -31,11 +31,10 @@ function createTestDb(): Database {
 }
 
 /** Mock ParsePoolService that returns pre-defined results */
-function createMockPool(results: Map<string, Partial<ParsedFile>>): {
-  stream: typeof parseFiles extends (s: ParseSource[], p: infer P) => unknown
-    ? P
-    : never
-} {
+function createMockPool(
+  results: Map<string, Partial<ParsedFile>>,
+): Parameters<typeof parseFiles>[1] {
+  // Only `stream` is needed for pipeline tests
   return {
     async *stream(files: Array<{ nodeId: string; fsPath: string }>) {
       for (const file of files) {
@@ -54,7 +53,7 @@ function createMockPool(results: Map<string, Partial<ParsedFile>>): {
         }
       }
     },
-  } as ReturnType<typeof createMockPool>
+  } as Parameters<typeof parseFiles>[1]
 }
 
 /** Create a mock async generator from an array */
@@ -113,7 +112,19 @@ describe("parseFiles()", () => {
         [
           "/test/file1.md",
           {
-            nodes: [{ id: "node1", type: "file" }],
+            nodes: [
+              {
+                id: "node1",
+                type: "file",
+                parent_id: null,
+                parent_idx: 0,
+                link_to: null,
+                data: {},
+                created_at: Date.now(),
+                updated_at: Date.now(),
+                version: "",
+              },
+            ],
             wikilinks: [],
             hash: "hash1",
           },
@@ -121,7 +132,19 @@ describe("parseFiles()", () => {
         [
           "/test/file2.md",
           {
-            nodes: [{ id: "node2", type: "file" }],
+            nodes: [
+              {
+                id: "node2",
+                type: "file",
+                parent_id: null,
+                parent_idx: 0,
+                link_to: null,
+                data: {},
+                created_at: Date.now(),
+                updated_at: Date.now(),
+                version: "",
+              },
+            ],
             wikilinks: [],
             hash: "hash2",
           },
@@ -161,8 +184,8 @@ describe("parseFiles()", () => {
     const results = await collect(parseFiles(sources, mockPool as never))
 
     expect(results).toHaveLength(1)
-    expect(results[0].error).toBe("Parse failed")
-    expect(results[0].nodes).toEqual([])
+    expect(results[0]!.error).toBe("Parse failed")
+    expect(results[0]!.nodes).toEqual([])
   })
 
   test("respects abort signal", async () => {
@@ -170,7 +193,26 @@ describe("parseFiles()", () => {
     controller.abort() // Abort immediately
 
     const mockPool = createMockPool(
-      new Map([["/test/file.md", { nodes: [{ id: "n1", type: "file" }] }]]),
+      new Map([
+        [
+          "/test/file.md",
+          {
+            nodes: [
+              {
+                id: "n1",
+                type: "file",
+                parent_id: null,
+                parent_idx: 0,
+                link_to: null,
+                data: {},
+                created_at: Date.now(),
+                updated_at: Date.now(),
+                version: "",
+              },
+            ],
+          },
+        ],
+      ]),
     )
 
     const sources: ParseSource[] = [
@@ -222,7 +264,7 @@ describe("applyNodes()", () => {
     const results = await collect(applyNodes(fromArray(parsedFiles), db))
 
     expect(results).toHaveLength(1)
-    expect(results[0].nodeId).toBe("file1")
+    expect(results[0]!.nodeId).toBe("file1")
 
     // Verify node was inserted
     const node = db.query("SELECT * FROM nodes WHERE id = ?").get("file1")
@@ -323,7 +365,7 @@ describe("applyNodes()", () => {
 
     // Only the good file should be yielded (error file is skipped entirely)
     expect(results).toHaveLength(1)
-    expect(results[0].nodeId).toBe("good1")
+    expect(results[0]!.nodeId).toBe("good1")
 
     // Only one node should be inserted
     const count = db.query("SELECT COUNT(*) as c FROM nodes").get() as {
@@ -365,8 +407,8 @@ describe("applyNodes()", () => {
 
     const results = await collect(applyNodes(fromArray(parsedFiles), db))
 
-    expect(results[0].wikilinks).toHaveLength(2)
-    expect(results[0].wikilinks[0].link.target).toBe("other")
+    expect(results[0]!.wikilinks).toHaveLength(2)
+    expect(results[0]!.wikilinks[0]!.link.target).toBe("other")
   })
 })
 
@@ -398,9 +440,9 @@ describe("pipelineResolveLinks()", () => {
     )
 
     expect(results).toHaveLength(1)
-    expect(results[0].source_id).toBe("source1")
-    expect(results[0].target_name).toBe("target")
-    expect(results[0].target_id).toBe("target1")
+    expect(results[0]!.source_id).toBe("source1")
+    expect(results[0]!.target_name).toBe("target")
+    expect(results[0]!.target_id).toBe("target1")
   })
 
   test("resolves forward references (files in same batch)", async () => {
@@ -427,7 +469,7 @@ describe("pipelineResolveLinks()", () => {
     )
 
     expect(results).toHaveLength(1)
-    expect(results[0].target_id).toBe("file2") // Forward reference resolved!
+    expect(results[0]!.target_id).toBe("file2") // Forward reference resolved!
   })
 
   test("returns null target_id for unresolved links", async () => {
@@ -447,8 +489,8 @@ describe("pipelineResolveLinks()", () => {
     )
 
     expect(results).toHaveLength(1)
-    expect(results[0].target_id).toBeNull()
-    expect(results[0].target_name).toBe("nonexistent")
+    expect(results[0]!.target_id).toBeNull()
+    expect(results[0]!.target_name).toBe("nonexistent")
   })
 
   test("resolves links to folders by name", async () => {
@@ -476,9 +518,9 @@ describe("pipelineResolveLinks()", () => {
     )
 
     expect(results).toHaveLength(1)
-    expect(results[0].source_id).toBe("file1")
-    expect(results[0].target_name).toBe("inbox")
-    expect(results[0].target_id).toBe("folder1") // Folder resolved!
+    expect(results[0]!.source_id).toBe("file1")
+    expect(results[0]!.target_name).toBe("inbox")
+    expect(results[0]!.target_id).toBe("folder1") // Folder resolved!
   })
 
   test("resolves links to sections by name", async () => {
@@ -504,7 +546,7 @@ describe("pipelineResolveLinks()", () => {
     )
 
     expect(results).toHaveLength(1)
-    expect(results[0].target_id).toBe("section1") // Section resolved by name!
+    expect(results[0]!.target_id).toBe("section1") // Section resolved by name!
   })
 })
 
@@ -594,7 +636,11 @@ describe("pipeline composition", () => {
                 type: "file",
                 parent_id: null,
                 parent_idx: 0,
+                link_to: null,
                 data: { name: "a" },
+                created_at: Date.now(),
+                updated_at: Date.now(),
+                version: "",
               },
             ],
             wikilinks: [{ nodeId: "a", link: { target: "b" } }],
@@ -609,7 +655,11 @@ describe("pipeline composition", () => {
                 type: "file",
                 parent_id: null,
                 parent_idx: 0,
+                link_to: null,
                 data: { name: "b" },
+                created_at: Date.now(),
+                updated_at: Date.now(),
+                version: "",
               },
             ],
             wikilinks: [{ nodeId: "b", link: { target: "a" } }],
@@ -646,9 +696,9 @@ describe("pipeline composition", () => {
       target_id: string
     }>
     expect(links).toHaveLength(2)
-    expect(links[0].source_id).toBe("a")
-    expect(links[0].target_id).toBe("b")
-    expect(links[1].source_id).toBe("b")
-    expect(links[1].target_id).toBe("a")
+    expect(links[0]!.source_id).toBe("a")
+    expect(links[0]!.target_id).toBe("b")
+    expect(links[1]!.source_id).toBe("b")
+    expect(links[1]!.target_id).toBe("a")
   })
 })

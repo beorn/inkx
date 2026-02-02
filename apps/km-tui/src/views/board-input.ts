@@ -7,7 +7,7 @@
  */
 import type { Key } from "inkx"
 import type { Dispatch } from "react"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { actions, type UIAction } from "../ui-reducer.ts"
 import type { BoardState, BoardAction } from "@km/board"
 import type { Repo } from "../repo-context.tsx"
@@ -17,7 +17,7 @@ import { processKeyWithContext } from "../command-bridge.ts"
 import { handleCommandAction } from "../board/board-actions.ts"
 import { isErr, toast, toastQueue } from "@km/core"
 
-const perfDebug = createDebug("km:perf")
+const perfLog = createConditionalLogger("km:perf")
 
 /**
  * Handle main keyboard input through command system
@@ -111,7 +111,7 @@ export function handleBoardKeyInput(
       const actionResult = handleCommandAction(tuiContext, action)
       const actionDuration = performance.now() - actionStart
       if (actionDuration > 5) {
-        perfDebug("action %s: %.2fms", action.type, actionDuration)
+        perfLog.debug?.(`action ${action.type}: ${actionDuration.toFixed(2)}ms`)
       }
 
       // Check for boundary errors - ring bell and show status message
@@ -131,7 +131,7 @@ export function handleBoardKeyInput(
     }
     const totalDuration = performance.now() - keyStart
     if (totalDuration > 10) {
-      perfDebug("total key handling: %.2fms", totalDuration)
+      perfLog.debug?.(`total key handling: ${totalDuration.toFixed(2)}ms`)
     }
     return true
   }

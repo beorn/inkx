@@ -9,11 +9,11 @@
 
 /* eslint-disable @typescript-eslint/no-deprecated -- This file contains deprecated rebuild implementation */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { existsSync, readFileSync, unlinkSync, readdirSync, rmSync } from "fs"
 import type { Database } from "bun:sqlite"
 
-const debug = createDebug("km:storage:rebuild")
+const log = createConditionalLogger("km:storage:rebuild")
 import { join, dirname } from "path"
 import type { Event } from "@km/core"
 import { loadRepo, type StepYield } from "./repo-loader.ts"
@@ -35,14 +35,14 @@ export function readEvents(kmDir: string): Event[] {
   const eventsPath = join(kmDir, "events.jsonl")
 
   if (!existsSync(eventsPath)) {
-    debug("no events file at %s", eventsPath)
+    log.debug?.(`no events file at ${eventsPath}`)
     return []
   }
 
   const content = readFileSync(eventsPath, "utf-8")
   const lines = content.split("\n").filter((line) => line.trim())
 
-  debug("reading %d lines from events.jsonl", lines.length)
+  log.debug?.(`reading ${lines.length} lines from events.jsonl`)
 
   const events: Event[] = []
   const seen = new Set<string>()
@@ -71,11 +71,8 @@ export function readEvents(kmDir: string): Event[] {
   // Sort by ULID (lexicographic = chronological)
   events.sort((a, b) => a.id.localeCompare(b.id))
 
-  debug(
-    "read %d events (%d dupes, %d malformed)",
-    events.length,
-    dupes,
-    malformed,
+  log.debug?.(
+    `read ${events.length} events (${dupes} dupes, ${malformed} malformed)`,
   )
   return events
 }
@@ -94,7 +91,7 @@ export function* rebuildState(
   kmDir: string,
   db: Database,
 ): Generator<StepYield, RebuildResult, unknown> {
-  debug("rebuildState: delegating to loadRepo with force=true")
+  log.debug?.("rebuildState: delegating to loadRepo with force=true")
 
   // Count events for the return value (loadRepo doesn't track this)
   const events = readEvents(kmDir)
@@ -142,7 +139,7 @@ export interface SyncStateOptions {
 export function* syncState(
   options: SyncStateOptions,
 ): Generator<StepYield, SyncResult, unknown> {
-  debug("syncState: delegating to loadRepo")
+  log.debug?.("syncState: delegating to loadRepo")
 
   const { kmDir, db } = options
 

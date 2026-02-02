@@ -153,7 +153,8 @@
         "**/tests/**/*.ts",
         "scripts/**/*.ts",
         "infra/**/*.ts",
-        "infra/**/*.tsx"
+        "infra/**/*.tsx",
+        "packages/km-infra/**/*.ts"
       ],
       "rules": {
         "@typescript-eslint/no-explicit-any": "off",

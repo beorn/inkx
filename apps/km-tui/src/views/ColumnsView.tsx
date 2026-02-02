@@ -7,12 +7,12 @@
  * Uses inkx overflow="scroll" for native scrolling support.
  * Implements React-level virtualization for large card lists.
  */
-import React, { useMemo, useRef } from "react"
+import React, { useMemo, useRef, forwardRef, useImperativeHandle } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { Box, Text } from "inkx"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 
-const debugCol = createDebug("km:tui:columns")
+const log = createConditionalLogger("km:tui:columns")
 import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
@@ -23,6 +23,18 @@ import {
   ColumnSeparator,
 } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
+
+// =============================================================================
+// Handle Interfaces
+// =============================================================================
+
+export interface VirtualizedTreeCardListHandle {
+  scrollToItem(index: number): void
+}
+
+export interface ColumnTreeHandle {
+  scrollToItem(index: number): void
+}
 
 // =============================================================================
 // Virtualization Constants
@@ -92,18 +104,31 @@ function calcEdgeBasedScrollOffset(
  * Virtualized list of tree cards that only renders items near the visible area.
  * Uses edge-based scrolling (only scrolls when cursor approaches edge).
  */
-function VirtualizedTreeCardList({
-  cards,
-  selectedCardIndex,
-  selectedSubIndex,
-  isSelected,
-  selectionLevel,
-  colIndex,
-  inOutlineMode,
-  height,
-}: VirtualizedTreeCardListProps): React.ReactElement {
+const VirtualizedTreeCardList = forwardRef<
+  VirtualizedTreeCardListHandle,
+  VirtualizedTreeCardListProps
+>(function VirtualizedTreeCardList(
+  {
+    cards,
+    selectedCardIndex,
+    selectedSubIndex,
+    isSelected,
+    selectionLevel,
+    colIndex,
+    inOutlineMode,
+    height,
+  },
+  ref,
+) {
   // Track scroll offset for edge-based scrolling
   const scrollOffsetRef = useRef(0)
+
+  // Expose scrollToItem method via ref
+  useImperativeHandle(ref, () => ({
+    scrollToItem(index: number) {
+      scrollOffsetRef.current = index
+    },
+  }))
 
   // Calculate how many items fit in the viewport
   const visibleItemCount = Math.max(
@@ -181,17 +206,21 @@ function VirtualizedTreeCardList({
   // Get the slice of cards to render
   const visibleCards = cards.slice(startIndex, endIndex)
 
-  // Calculate scrollTo index using edge-based offset
+  // Calculate scrollTo index for inkx
+  // inkx scrollTo expects the INDEX of the child to scroll into view
+  // Account for top placeholder being child 0 when present
   const hasTopPlaceholder = topPlaceholderHeight > 0
-  const scrollToIndex =
-    newScrollOffset - startIndex + (hasTopPlaceholder ? 1 : 0)
+  const selectedIndexInSlice = selectedCardIndex - startIndex
+  const scrollToIndex = hasTopPlaceholder
+    ? selectedIndexInSlice + 1 // +1 for top placeholder
+    : selectedIndexInSlice
 
   return (
     <Box
       flexDirection="column"
       height={height}
       overflow="scroll"
-      scrollTo={Math.max(0, scrollToIndex)}
+      scrollTo={isSelected ? Math.max(0, scrollToIndex) : undefined}
     >
       {/* Top placeholder */}
       {topPlaceholderHeight > 0 && (
@@ -207,11 +236,8 @@ function VirtualizedTreeCardList({
           actualIndex === selectedCardIndex &&
           (!inOutlineMode || selectedSubIndex === 0)
 
-        debugCol(
-          "rendering card col=%d idx=%d id=%s",
-          colIndex,
-          actualIndex,
-          card.node.id,
+        log.debug?.(
+          `rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`,
         )
         return (
           <MemoizedTreeCard
@@ -230,7 +256,7 @@ function VirtualizedTreeCardList({
       )}
     </Box>
   )
-}
+})
 
 // =============================================================================
 // ColumnTree Subcomponent
@@ -250,84 +276,104 @@ interface ColumnTreeProps {
 /**
  * Memoized ColumnTree - skips re-render when column state unchanged.
  */
-const ColumnTree = React.memo(function ColumnTree({
-  column,
-  colIndex,
-  isSelected,
-  selectedCardIndex,
-  selectedSubIndex,
-  selectionLevel,
-  width,
-  height,
-}: ColumnTreeProps): React.ReactElement {
-  const repo = useRepo()
-  const { inOutlineMode } = useTreeConfig()
+const ColumnTree = React.memo(
+  forwardRef<ColumnTreeHandle, ColumnTreeProps>(function ColumnTree(
+    {
+      column,
+      colIndex,
+      isSelected,
+      selectedCardIndex,
+      selectedSubIndex,
+      selectionLevel,
+      width,
+      height,
+    },
+    ref,
+  ) {
+    const listRef = useRef<VirtualizedTreeCardListHandle>(null)
 
-  // Render name with wiki links stripped: [[target|alias]] → "alias"
-  const name = renderPlain(getNodeDisplayName(repo, column.node))
-  const count = column.cards.length
-  const ownColor = getOwnColor(column.node)
+    // Forward scrollToItem to VirtualizedTreeCardList
+    useImperativeHandle(ref, () => ({
+      scrollToItem(index: number) {
+        listRef.current?.scrollToItem(index)
+      },
+    }))
 
-  // Column header is selected when at column level
-  const isColumnHeaderSelected = isSelected && selectionLevel === "column"
-  const headerStyle = getHeaderStyle(
-    ownColor,
-    isSelected,
-    isColumnHeaderSelected,
-  )
+    const repo = useRepo()
+    const { inOutlineMode } = useTreeConfig()
 
-  // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
-  const icon = getNodeIcon(null, ownColor, false)
-  const iconColor = isColumnHeaderSelected ? "black" : icon.color
+    // Render name with wiki links stripped: [[target|alias]] → "alias"
+    const name = renderPlain(getNodeDisplayName(repo, column.node))
+    const count = column.cards.length
+    const ownColor = getOwnColor(column.node)
 
-  return (
-    <Box
-      id={column.node.id}
-      data-view="column"
-      {...(isSelected && { "data-selected": true })}
-      {...(isColumnHeaderSelected && { "data-cursor": true })}
-      flexDirection="column"
-      width={width}
-      height={height}
-      overflow="hidden"
-    >
-      {/* Header section */}
-      <Box flexDirection="column" height={2} flexShrink={0}>
-        {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
-        <Box>
-          <Text
-            bold
-            color={headerStyle.color}
-            backgroundColor={headerStyle.backgroundColor}
-            wrap="truncate"
-          >
-            {" "}
-            <Text color={iconColor}>{icon.char}</Text> {name}
+    // Column header is selected when at column level
+    const isColumnHeaderSelected = isSelected && selectionLevel === "column"
+    const headerStyle = getHeaderStyle(
+      ownColor,
+      isSelected,
+      isColumnHeaderSelected,
+    )
+
+    // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
+    const icon = getNodeIcon(null, ownColor, false)
+    const iconColor = isColumnHeaderSelected ? "black" : icon.color
+
+    return (
+      <Box
+        id={column.node.id}
+        data-view="column"
+        data-column={true}
+        data-col-index={colIndex}
+        {...(isSelected && { "data-selected": true })}
+        {...(isColumnHeaderSelected && {
+          "data-cursor": true,
+          "data-card-index": -1,
+        })}
+        flexDirection="column"
+        width={width}
+        height={height}
+        overflow="hidden"
+      >
+        {/* Header section */}
+        <Box flexDirection="column" height={2} flexShrink={0}>
+          {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
+          <Box>
             <Text
-              color={isColumnHeaderSelected ? "gray" : undefined}
-              dimColor={!isColumnHeaderSelected}
-            >{` (${count})`}</Text>
+              bold
+              color={headerStyle.color}
+              backgroundColor={headerStyle.backgroundColor}
+              wrap="truncate"
+            >
+              {" "}
+              <Text color={iconColor}>{icon.char}</Text> {name}
+              <Text
+                color={isColumnHeaderSelected ? "gray" : undefined}
+                dimColor={!isColumnHeaderSelected}
+              >{` (${count})`}</Text>
+            </Text>
+          </Box>
+          <Text dimColor wrap="truncate">
+            {"─".repeat(100)}
           </Text>
         </Box>
-        <Text dimColor wrap="truncate">
-          {"─".repeat(100)}
-        </Text>
-      </Box>
 
-      {/* Cards with virtualized rendering */}
-      <VirtualizedTreeCardList
-        cards={column.cards}
-        selectedCardIndex={selectedCardIndex}
-        selectedSubIndex={selectedSubIndex}
-        isSelected={isSelected}
-        selectionLevel={selectionLevel}
-        colIndex={colIndex}
-        inOutlineMode={inOutlineMode}
-        height={height - 2}
-      />
-    </Box>
-  )
-})
+        {/* Cards with virtualized rendering */}
+        <VirtualizedTreeCardList
+          ref={listRef}
+          cards={column.cards}
+          selectedCardIndex={selectedCardIndex}
+          selectedSubIndex={selectedSubIndex}
+          isSelected={isSelected}
+          selectionLevel={selectionLevel}
+          colIndex={colIndex}
+          inOutlineMode={inOutlineMode}
+          height={height - 2}
+        />
+      </Box>
+    )
+  }),
+)
 
 // =============================================================================
 // ColumnsView Component

@@ -8,10 +8,10 @@
  */
 
 import { useMemo } from "react"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { ColumnState } from "../types.ts"
 
-const debug = createDebug("km:perf")
+const log = createConditionalLogger("km:perf")
 
 // =============================================================================
 // Types
@@ -48,10 +48,8 @@ export function useCursorPosition(
     const result = deriveCursorPosition(columns, cursorNodeId)
     const duration = performance.now() - start
     if (duration > 1) {
-      debug(
-        "useCursorPosition: %.2fms for %d columns",
-        duration,
-        columns.length,
+      log.debug?.(
+        `useCursorPosition: ${duration.toFixed(2)}ms for ${columns.length} columns`,
       )
     }
     return result
@@ -120,10 +118,8 @@ function deriveCursorPosition(
   // Cursor node not found in visible columns
   // This can happen after zoom or if node is outside current view
   // Log a warning for debugging - this should be rare in normal navigation
-  debug(
-    "cursor node %s not found in %d columns (this may indicate a bug if it happens during normal navigation)",
-    cursorNodeId?.slice(-8),
-    columns.length,
+  log.debug?.(
+    `cursor node ${cursorNodeId?.slice(-8)} not found in ${columns.length} columns (this may indicate a bug if it happens during normal navigation)`,
   )
   return {
     colIndex: -1,

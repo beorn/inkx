@@ -126,7 +126,7 @@ perfCommand
     "total",
   )
   .option("--limit <n>", "Limit output to top N spans", parseInt)
-  .action(async (file: string, options: AnalyzeOptions) => {
+  .action((file: string, options: AnalyzeOptions) => {
     // Parse trace file
     let spans: SpanEntry[]
     try {

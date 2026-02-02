@@ -4,12 +4,12 @@
  * Manages pending filesystem writes with debouncing and retry logic
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import * as fs from "fs"
 import { dirname } from "path"
 import { EventEmitter } from "events"
 
-const debug = createDebug("km:storage:watch:writequeue")
+const log = createConditionalLogger("km:storage:watch:writequeue")
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Error Classification
@@ -328,7 +328,7 @@ export class WriteQueue extends EventEmitter {
    * Queue a write operation
    */
   queue(write: PendingWrite): void {
-    debug("queuing write: %s (%d bytes)", write.path, write.content.length)
+    log.debug?.(`queuing write: ${write.path} (${write.content.length} bytes)`)
 
     // Get current mtime for conflict detection (if file exists)
     let baseMtime = write.baseMtime
@@ -356,7 +356,7 @@ export class WriteQueue extends EventEmitter {
    * Queue a delete operation
    */
   queueDelete(path: string, sourceEventId: string): void {
-    debug("queuing delete: %s", path)
+    log.debug?.(`queuing delete: ${path}`)
     this.pending.set(path, {
       type: "delete",
       path,
@@ -369,7 +369,7 @@ export class WriteQueue extends EventEmitter {
    * Queue a rename operation
    */
   queueRename(oldPath: string, newPath: string, sourceEventId: string): void {
-    debug("queuing rename: %s → %s", oldPath, newPath)
+    log.debug?.(`queuing rename: ${oldPath} → ${newPath}`)
     this.pending.set(oldPath, {
       type: "rename",
       path: oldPath,
@@ -446,13 +446,9 @@ export class WriteQueue extends EventEmitter {
       const resolution =
         this.conflictStrategy === "fs_wins" ? "discarded" : "written"
 
-      debug("conflict detected", {
-        path: op.path,
-        baseMtime: op.baseMtime,
-        currentMtime,
-        strategy: this.conflictStrategy,
-        resolution,
-      })
+      log.debug?.(
+        `conflict detected path=${op.path} baseMtime=${op.baseMtime} currentMtime=${currentMtime} strategy=${this.conflictStrategy} resolution=${resolution}`,
+      )
 
       return {
         path: op.path,
@@ -495,21 +491,17 @@ export class WriteQueue extends EventEmitter {
 
         // Don't retry permanent errors
         if (errorClass === "permanent") {
-          debug("permanent error", {
-            path: op.path,
-            attempts,
-            error: lastError.code || lastError.message,
-          })
+          log.debug?.(
+            `permanent error path=${op.path} attempts=${attempts} error=${lastError.code || lastError.message}`,
+          )
           return { op, success: false, attempts, error: lastError, errorClass }
         }
 
         // Last attempt - don't sleep, just fail
         if (attempt === this.retryConfig.maxRetries) {
-          debug("max retries reached", {
-            path: op.path,
-            attempts,
-            error: lastError.code || lastError.message,
-          })
+          log.debug?.(
+            `max retries reached path=${op.path} attempts=${attempts} error=${lastError.code || lastError.message}`,
+          )
           return {
             op,
             success: false,
@@ -521,12 +513,9 @@ export class WriteQueue extends EventEmitter {
 
         // Calculate backoff delay and wait
         const delay = calculateBackoffDelay(attempt, this.retryConfig)
-        debug("transient error, retrying", {
-          path: op.path,
-          attempts,
-          delayMs: delay,
-          error: lastError.code || lastError.message,
-        })
+        log.debug?.(
+          `transient error, retrying path=${op.path} attempts=${attempts} delayMs=${delay} error=${lastError.code || lastError.message}`,
+        )
         await sleep(delay)
       }
     }
@@ -554,11 +543,11 @@ export class WriteQueue extends EventEmitter {
     this.pending.clear()
 
     if (writes.length === 0) {
-      debug("flush: nothing pending")
+      log.debug?.("flush: nothing pending")
       return
     }
 
-    debug("flushing %d operations", writes.length)
+    log.debug?.(`flushing ${writes.length} operations`)
     const start = Date.now()
 
     // Mark paths as in-flight to prevent watch triggering re-sync
@@ -622,54 +611,29 @@ export class WriteQueue extends EventEmitter {
 
     // Emit events
     if (errors.length > 0) {
-      debug(
-        "flush errors: %O",
-        errors.map((e) => ({
-          path: e.path,
-          error: e.error.message,
-          code: e.error.code,
-          class: e.errorClass,
-          attempts: e.attempts,
-        })),
+      log.debug?.(
+        `flush errors: ${JSON.stringify(errors.map((e) => ({ path: e.path, error: e.error.message, code: e.error.code, class: e.errorClass, attempts: e.attempts })))}`,
       )
       this.emit("errors", errors)
     }
 
     // Emit specific event for permission errors (actionable by user)
     if (permissionErrors.length > 0) {
-      debug(
-        "permission denied: %O",
-        permissionErrors.map((p) => ({
-          path: p.path,
-          operation: p.operation,
-          code: p.code,
-        })),
+      log.debug?.(
+        `permission denied: ${JSON.stringify(permissionErrors.map((p) => ({ path: p.path, operation: p.operation, code: p.code })))}`,
       )
       this.emit("permission-denied", permissionErrors)
     }
 
     if (conflicts.length > 0) {
-      debug(
-        "flush conflicts: %O",
-        conflicts.map((c) => ({
-          path: c.path,
-          baseMtime: c.baseMtime,
-          currentMtime: c.currentMtime,
-          strategy: c.strategy,
-          resolution: c.resolution,
-        })),
+      log.debug?.(
+        `flush conflicts: ${JSON.stringify(conflicts.map((c) => ({ path: c.path, baseMtime: c.baseMtime, currentMtime: c.currentMtime, strategy: c.strategy, resolution: c.resolution })))}`,
       )
       this.emit("conflicts", conflicts)
     }
 
-    debug(
-      "flushed %d ops in %dms (%d errors, %d retries, %d conflicts, %d permission)",
-      writes.length,
-      Date.now() - start,
-      errors.length,
-      totalRetries,
-      conflicts.length,
-      permissionErrors.length,
+    log.debug?.(
+      `flushed ${writes.length} ops in ${Date.now() - start}ms (${errors.length} errors, ${totalRetries} retries, ${conflicts.length} conflicts, ${permissionErrors.length} permission)`,
     )
     this.emit("flushed", {
       count: writes.length,

@@ -5,12 +5,12 @@
  * Created via createWatcher() or repo.watch().
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { SyncManager, type SyncConfig } from "./watch/index.ts"
 import type { FileChange } from "./watch/index.ts"
 
-const debug = createDebug("km:storage:watcher")
+const log = createConditionalLogger("km:storage:watcher")
 
 /** Service status for lifecycle control */
 export type ServiceStatus = "stopped" | "starting" | "running" | "stopping"
@@ -75,7 +75,9 @@ export function createWatcher(
   repoPath: string,
   options: WatcherOptions,
 ): Watcher {
-  debug("createWatcher", { repoPath, options })
+  log.debug?.(
+    `createWatcher repoPath=${repoPath} options=${JSON.stringify(options)}`,
+  )
 
   let status: ServiceStatus = "stopped"
 
@@ -127,17 +129,17 @@ export function createWatcher(
     // eslint-disable-next-line @typescript-eslint/require-await -- Service interface requires Promise<void>
     async start() {
       if (status !== "stopped") {
-        debug("start called but status is %s", status)
+        log.debug?.(`start called but status is ${status}`)
         return
       }
 
       status = "starting"
-      debug("starting watcher")
+      log.debug?.("starting watcher")
 
       try {
         syncManager.start()
         status = "running"
-        debug("watcher started")
+        log.debug?.("watcher started")
       } catch (error) {
         status = "stopped"
         throw error
@@ -146,17 +148,17 @@ export function createWatcher(
 
     async stop() {
       if (status !== "running") {
-        debug("stop called but status is %s", status)
+        log.debug?.(`stop called but status is ${status}`)
         return
       }
 
       status = "stopping"
-      debug("stopping watcher")
+      log.debug?.("stopping watcher")
 
       try {
         await syncManager.stop()
         status = "stopped"
-        debug("watcher stopped")
+        log.debug?.("watcher stopped")
       } catch (error) {
         // Force status to stopped even on error
         status = "stopped"

@@ -195,6 +195,7 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
     }
 
     // Set new batch timer
+    // eslint-disable-next-line promise/prefer-await-to-callbacks -- setTimeout requires callback
     const timer = setTimeout(() => {
       batchTimers.delete(key)
     }, batchDebounce)

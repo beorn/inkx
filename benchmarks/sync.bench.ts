@@ -147,7 +147,7 @@ function populateDbFromFs(setup: TestSetup): void {
   // Do initial reconcile and apply to populate db
   const ops = reconcileDirectory(setup.db, setup.repoDir, setup.repoDir)
   if (ops.length > 0) {
-    applyReconcileOps(setup.db, setup.repoDir, ops, setup.emitter)
+    applyReconcileOps(setup.db, ops, setup.repoDir, setup.emitter)
   }
 }
 
@@ -250,14 +250,14 @@ describe("Sync Benchmarks - Apply Operations", () => {
     bench("50 new files", () => {
       const setup = createFlatFilesRepo(50)
       const ops = reconcileDirectory(setup.db, setup.repoDir, setup.repoDir)
-      applyReconcileOps(setup.db, setup.repoDir, ops, setup.emitter)
+      applyReconcileOps(setup.db, ops, setup.repoDir, setup.emitter)
       setup.cleanup()
     })
 
     bench("100 new files", () => {
       const setup = createFlatFilesRepo(100)
       const ops = reconcileDirectory(setup.db, setup.repoDir, setup.repoDir)
-      applyReconcileOps(setup.db, setup.repoDir, ops, setup.emitter)
+      applyReconcileOps(setup.db, ops, setup.repoDir, setup.emitter)
       setup.cleanup()
     })
   })
@@ -307,7 +307,7 @@ describe("Sync Benchmarks - Full Cycle", () => {
 
     // Apply
     if (ops.length > 0) {
-      applyReconcileOps(setup.db, setup.repoDir, ops, setup.emitter)
+      applyReconcileOps(setup.db, ops, setup.repoDir, setup.emitter)
     }
 
     // Second reconcile (should find no changes)
@@ -324,7 +324,7 @@ describe("Sync Benchmarks - Full Cycle", () => {
 
     // Apply
     if (ops.length > 0) {
-      applyReconcileOps(setup.db, setup.repoDir, ops, setup.emitter)
+      applyReconcileOps(setup.db, ops, setup.repoDir, setup.emitter)
     }
 
     // Second reconcile (should find no changes)

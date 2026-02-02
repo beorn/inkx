@@ -1,8 +1,8 @@
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { CommandContext, CommandAction, ViewMode } from "./types.ts"
 import { getCommand } from "./registry.ts"
 
-const debug = createDebug("km:commands:executor")
+const log = createConditionalLogger("km:commands:executor")
 
 export function executeCommand(
   id: string,
@@ -10,12 +10,12 @@ export function executeCommand(
 ): CommandAction | CommandAction[] | null {
   const cmd = getCommand(id)
   if (!cmd) {
-    debug("command not found: %s", id)
+    log.debug?.(`command not found: ${id}`)
     return null
   }
-  debug("executing: %s", id)
+  log.debug?.(`executing: ${id}`)
   const result = cmd.execute(ctx)
-  debug("executed", {
+  log.debug?.("executed", {
     id,
     result: Array.isArray(result) ? result.map((r) => r.type) : result?.type,
   })

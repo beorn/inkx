@@ -5,10 +5,10 @@
  * Events are the source of truth for all state changes.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Database, SQLQueryBindings } from "bun:sqlite"
 
-const debug = createDebug("km:storage:db:events")
+const log = createConditionalLogger("km:storage:db:events")
 import { readFileSync } from "fs"
 import { getMarkForStatus } from "@km/core"
 import type { Event, TaskStatus } from "@km/core"
@@ -21,7 +21,7 @@ import type { Event, TaskStatus } from "@km/core"
  * Apply an event to the database (db-accepting version)
  */
 export function applyEventWithDb(db: Database, event: Event): void {
-  debug("%s %s", event.type, event.target?.slice(-8) ?? "")
+  log.debug?.(`${event.type} ${event.target?.slice(-8) ?? ""}`)
 
   switch (event.type) {
     case "node_created":

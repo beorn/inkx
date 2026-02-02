@@ -6,7 +6,7 @@
  * km-disposable.3: Wrapped with Service factory pattern
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { cpus } from "os"
 import type { ServiceStatus } from "./watcher.ts"
 import type {
@@ -15,13 +15,9 @@ import type {
   WorkerResponse,
 } from "./parse-worker.ts"
 
-const debug = createDebug("km:storage:parse-pool")
-
-// For forwarding worker debug - call createDebug.log directly
-// This ensures it goes through debug-log.ts if loaded (CLI context)
-const forwardWorkerDebug = (formattedMessage: string) => {
-  createDebug.log(formattedMessage)
-}
+const log = createConditionalLogger("km:storage:parse-pool")
+// For forwarding worker debug messages
+const workerLog = createConditionalLogger("km:storage:parse-worker")
 
 export interface ParseResult {
   nodeId: string
@@ -67,7 +63,7 @@ function createParsePoolInternal(
   options?: ParsePoolOptions,
 ): ParsePoolInternal {
   const poolSize = options?.poolSize ?? Math.max(1, cpus().length - 1)
-  debug("creating pool with %d workers", poolSize)
+  log.debug?.(`creating pool with ${poolSize} workers`)
 
   // Internal state
   let workers: Worker[] = []
@@ -85,7 +81,7 @@ function createParsePoolInternal(
 
   return {
     async start() {
-      debug("starting pool")
+      log.debug?.("starting pool")
 
       const readyPromises: Promise<void>[] = []
 
@@ -108,7 +104,7 @@ function createParsePoolInternal(
         }
 
         worker.onerror = (error: ErrorEvent) => {
-          debug("worker error: %s", error.message)
+          log.debug?.(`worker error: ${error.message}`)
         }
 
         workers.push(worker)
@@ -116,7 +112,7 @@ function createParsePoolInternal(
 
       await Promise.all(readyPromises)
       availableWorkers = [...workers]
-      debug("pool started, %d workers ready", workers.length)
+      log.debug?.(`pool started, ${workers.length} workers ready`)
     },
 
     parse(nodeId, fsPath) {
@@ -200,7 +196,7 @@ function createParsePoolInternal(
         return shutdownPromise
       }
 
-      debug("shutting down pool")
+      log.debug?.("shutting down pool")
 
       shutdownPromise = (async () => {
         await Promise.all(
@@ -226,7 +222,7 @@ function createParsePoolInternal(
         )
         workers = []
         availableWorkers = []
-        debug("pool shut down")
+        log.debug?.("pool shut down")
       })()
 
       return shutdownPromise
@@ -236,10 +232,9 @@ function createParsePoolInternal(
   // Internal helper function
   function handleWorkerMessage(worker: Worker, message: WorkerResponse): void {
     if (message.type === "debug") {
-      // Forward worker debug through createDebug.log
-      // In CLI context, debug-log.ts overrides this to write to DEBUG_LOG
-      // In other contexts, it goes to stderr
-      forwardWorkerDebug(message.message)
+      // Forward worker debug messages through main thread's logger
+      // This ensures DEBUG_LOG captures worker output
+      workerLog.debug?.(message.message)
       return
     }
 
@@ -311,7 +306,7 @@ export interface ParsePoolService extends AsyncDisposable {
  * @returns ParsePoolService
  */
 export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
-  debug("createParsePool", { options })
+  log.debug?.(`createParsePool options=${JSON.stringify(options)}`)
 
   const pool = createParsePoolInternal(options)
   let status: ServiceStatus = "stopped"
@@ -323,17 +318,17 @@ export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
 
     async start() {
       if (status !== "stopped") {
-        debug("start called but status is %s", status)
+        log.debug?.(`start called but status is ${status}`)
         return
       }
 
       status = "starting"
-      debug("starting parse pool")
+      log.debug?.("starting parse pool")
 
       try {
         await pool.start()
         status = "running"
-        debug("parse pool started")
+        log.debug?.("parse pool started")
       } catch (error) {
         status = "stopped"
         throw error
@@ -342,17 +337,17 @@ export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
 
     async stop() {
       if (status !== "running") {
-        debug("stop called but status is %s", status)
+        log.debug?.(`stop called but status is ${status}`)
         return
       }
 
       status = "stopping"
-      debug("stopping parse pool")
+      log.debug?.("stopping parse pool")
 
       try {
         await pool.shutdown()
         status = "stopped"
-        debug("parse pool stopped")
+        log.debug?.("parse pool stopped")
       } catch (error) {
         // Force status to stopped even on error
         status = "stopped"

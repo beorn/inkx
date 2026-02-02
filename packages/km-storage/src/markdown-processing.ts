@@ -19,13 +19,13 @@
  *   const resolved = toResolvedLinks(file, resolver)   // syncing path
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Event, KNode } from "@km/core"
 import { parseMarkdownWithLinks, type ParseResult } from "@km/markdown"
 import { hashContent } from "./cas.ts"
 import type { LinkResolver } from "./link-resolver.ts"
 
-const debug = createDebug("km:storage:markdown-data")
+const log = createConditionalLogger("km:storage:markdown-data")
 
 // ============================================================================
 // DATA LAYER - Pure data types, no side effects
@@ -84,11 +84,8 @@ export function processMarkdownFile(
   const hash = hashContent(content)
   const result = parseMarkdownWithLinks(content, path, ino, mtime)
 
-  debug(
-    "processed %s: %d nodes, %d links",
-    path,
-    result.nodes.length,
-    result.wikilinks.length,
+  log.debug?.(
+    `processed ${path}: ${result.nodes.length} nodes, ${result.wikilinks.length} links`,
   )
 
   return {

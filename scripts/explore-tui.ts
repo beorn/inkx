@@ -1,0 +1,739 @@
+#!/usr/bin/env bun
+/**
+ * TUI Exploration Testing Script
+ *
+ * Comprehensive DOM + Buffer verification for km view TUI.
+ * Used by /explore skill for automated bug hunting.
+ *
+ * Usage:
+ *   bun scripts/explore-tui.ts [options]
+ *
+ * Options:
+ *   --iterations <n>  Number of random iterations (default: 100)
+ *   --seed <n>        Fixed seed for reproducibility
+ *   --path <vault>    Use real vault instead of fixtures
+ *   --verbose         Show every action
+ *   --quiet           Only output issues (for CI)
+ *   --json            Output results as JSON
+ *
+ * Exit codes:
+ *   0 - No issues found
+ *   1 - Issues found (bugs or errors)
+ */
+
+import { testEnv, item } from "../apps/km-tui/tests/helpers/board-test"
+import { testBoard, type TestBoardResult } from "../apps/km-tui/tests/helpers/real-board"
+import { stripAnsi } from "inkx/testing"
+import type { Repo } from "@km/storage"
+
+// =============================================================================
+// Seeded Random
+// =============================================================================
+
+class SeededRandom {
+  private seed: number
+  constructor(seed: number) {
+    this.seed = seed
+  }
+  next(): number {
+    this.seed = (this.seed * 1103515245 + 12345) & 0x7fffffff
+    return this.seed / 0x7fffffff
+  }
+  weighted<T>(items: { weight: number; value: T }[]): T {
+    const total = items.reduce((sum, i) => sum + i.weight, 0)
+    let r = this.next() * total
+    for (const item of items) {
+      r -= item.weight
+      if (r <= 0) return item.value
+    }
+    return items[items.length - 1]!.value
+  }
+}
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface Issue {
+  iteration: number
+  action: string
+  type: string
+  expected?: string
+  actual?: string
+  detail?: string
+}
+
+interface State {
+  cursorCount: number
+  cursorText: string | null
+  viewMode: string | null
+  breadcrumb: string | null
+  bell: boolean
+  text: string
+  inDialog: boolean
+  // Spatial data for scroll/cursor verification
+  colIndex: number | null
+  cardIndex: number | null
+  totalColumns: number
+  scrollOffset: number | null
+}
+
+interface Locator {
+  count: () => number
+  textContent: () => string
+  getAttribute?: (name: string) => string | null
+}
+
+interface Board {
+  press: (key: string) => unknown  // Returns self for chaining
+  q: (selector: string) => Locator
+  screenshot: () => string
+  bell: boolean
+  _repo?: Repo
+}
+
+// =============================================================================
+// State Extraction
+// =============================================================================
+
+function getState(board: Board): State {
+  const text = board.screenshot()
+  const cursor = board.q("[data-cursor]")
+  const viewMatch = text.match(/(CARDS|LIST|COLUMNS|TABS) VIEW/)
+  const breadcrumbMatch = text.match(/📁 \/ ([^\n]+)/)
+  // Check for dialogs via DOM attribute (search, help, new-item, project-picker)
+  const inDialog = board.q("[data-dialog]").count() > 0
+
+  // Extract spatial data from DOM
+  const columns = board.q("[data-column]")
+  const totalColumns = columns.count()
+
+  // Get cursor column and card index from data attributes
+  let colIndex: number | null = null
+  let cardIndex: number | null = null
+  let scrollOffset: number | null = null
+
+  if (cursor.count() > 0) {
+    // Try to get column index from cursor's parent column
+    const colAttr = cursor.getAttribute?.("data-col-index")
+    if (colAttr !== null && colAttr !== undefined) {
+      colIndex = parseInt(colAttr, 10)
+      if (isNaN(colIndex)) colIndex = null
+    }
+    // Try to get card index
+    const cardAttr = cursor.getAttribute?.("data-card-index")
+    if (cardAttr !== null && cardAttr !== undefined) {
+      cardIndex = parseInt(cardAttr, 10)
+      if (isNaN(cardIndex)) cardIndex = null
+    }
+  }
+
+  // Try to extract scroll offset from the board
+  const boardEl = board.q("[data-board]")
+  if (boardEl.count() > 0) {
+    const scrollAttr = boardEl.getAttribute?.("data-scroll-offset")
+    if (scrollAttr !== null && scrollAttr !== undefined) {
+      scrollOffset = parseInt(scrollAttr, 10)
+      if (isNaN(scrollOffset)) scrollOffset = null
+    }
+  }
+
+  // Strip ANSI codes from cursor text for clean comparisons
+  let cursorText: string | null = null
+  if (cursor.count() > 0) {
+    const rawText = cursor.textContent()
+    cursorText = stripAnsi(rawText).trim().slice(0, 40)
+  }
+
+  return {
+    cursorCount: cursor.count(),
+    cursorText,
+    viewMode: viewMatch?.[1] ?? null,
+    breadcrumb: breadcrumbMatch?.[1]?.trim() ?? null,
+    bell: board.bell,
+    text,
+    inDialog,
+    colIndex,
+    cardIndex,
+    totalColumns,
+    scrollOffset,
+  }
+}
+
+// =============================================================================
+// Verification
+// =============================================================================
+
+function verifyDomInvariants(
+  iteration: number,
+  action: string,
+  state: State,
+  issues: Issue[]
+): void {
+  // Check cursor count (should be exactly 1, except in dialogs)
+  if (!state.inDialog) {
+    if (state.cursorCount === 0) {
+      issues.push({
+        iteration,
+        action,
+        type: "missing-cursor",
+        detail: "No [data-cursor] element found",
+      })
+    } else if (state.cursorCount > 1) {
+      issues.push({
+        iteration,
+        action,
+        type: "multiple-cursors",
+        expected: "1",
+        actual: String(state.cursorCount),
+      })
+    }
+  }
+
+  // Check view mode indicator exists (skip when in dialogs/help - they may obscure it)
+  if (!state.viewMode && !state.inDialog) {
+    issues.push({
+      iteration,
+      action,
+      type: "missing-view-mode",
+      detail: "No view mode indicator in output",
+    })
+  }
+}
+
+function verifyBufferInvariants(
+  iteration: number,
+  action: string,
+  state: State,
+  issues: Issue[]
+): void {
+  // Non-empty output
+  if (state.text.length === 0) {
+    issues.push({ iteration, action, type: "empty-buffer" })
+  }
+
+  // No error strings
+  if (state.text.includes("[object Object]")) {
+    issues.push({ iteration, action, type: "object-object-in-buffer" })
+  }
+  if (/TypeError:|ReferenceError:|Error:/.test(state.text)) {
+    issues.push({
+      iteration,
+      action,
+      type: "error-in-buffer",
+      detail: state.text.slice(0, 100),
+    })
+  }
+}
+
+/**
+ * Fast content verification against the Repo.
+ * Verifies content <-> DOM and content <-> buffer alignment.
+ */
+function verifyRepoContent(
+  iteration: number,
+  action: string,
+  state: State,
+  board: Board,
+  repo: Repo,
+  issues: Issue[]
+): void {
+  // 1. Raw IDs shouldn't be displayed (ULID pattern)
+  const ulidMatches = state.text.match(/\b[0-9A-HJKMNP-TV-Z]{26}\b/g)
+  if (ulidMatches && ulidMatches.length > 3) {
+    issues.push({
+      iteration,
+      action,
+      type: "raw-ids-displayed",
+      detail: `${ulidMatches.length} ULID-like strings visible`,
+    })
+  }
+
+  // 2. Content <-> DOM: Verify cursor node exists in repo
+  const cursorEl = board.q("[data-cursor]")
+  if (cursorEl.count() > 0) {
+    const cursorId = cursorEl.getAttribute?.("id")
+    if (cursorId && !cursorId.startsWith("_")) {
+      const node = repo.getNode(cursorId)
+      if (!node) {
+        issues.push({
+          iteration,
+          action,
+          type: "cursor-node-not-in-repo",
+          detail: `Cursor on node ${cursorId} which doesn't exist in repo`,
+        })
+      }
+    }
+  }
+
+  // 3. Content <-> Buffer: Verify cursor text matches repo node content
+  if (state.cursorText) {
+    const cursorId = board.q("[data-cursor]").getAttribute?.("id")
+    if (cursorId) {
+      const node = repo.getNode(cursorId)
+      if (node) {
+        // Extract name from node data or content
+        const data = node.data as { name?: string } | undefined
+        const expectedName = (typeof data?.name === "string" ? data.name : null)
+          || (typeof node.content === "string" ? node.content : null)
+          || ""
+        // Check if the cursor text contains the expected name (allowing for truncation and prefixes)
+        // The cursor text may include icons, folder indicators, etc.
+        if (expectedName && expectedName.length > 3) {
+          const normalizedExpected = expectedName.toLowerCase().slice(0, 30)
+          const normalizedActual = state.cursorText.toLowerCase()
+          // Check if any significant portion of the expected name appears in the cursor text
+          // Use the first word or first 10 chars, whichever is shorter
+          const firstWord = normalizedExpected.split(/\s+/)[0] ?? ""
+          const searchTerm = firstWord.length >= 3 ? firstWord : normalizedExpected.slice(0, 10)
+          if (searchTerm.length >= 3 && !normalizedActual.includes(searchTerm)) {
+            issues.push({
+              iteration,
+              action,
+              type: "cursor-content-mismatch",
+              expected: normalizedExpected,
+              actual: normalizedActual,
+            })
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Verify spatial relationships after navigation actions.
+ * Works across all view modes (cards, columns, list, tabs).
+ *
+ * View mode considerations:
+ * - Cards/Columns: h/l = column nav, j/k = card within column
+ * - List: j/k can cross column boundaries (flat list)
+ * - Tabs: h/l = tab switch, j/k = item within tab
+ *
+ * Detects:
+ * - Premature scrolling (before reaching edge)
+ * - Cursor outside visible range
+ * - Wrong navigation direction
+ * - Missing data attributes on cursor
+ */
+function verifySpatialNavigation(
+  iteration: number,
+  action: string,
+  before: State,
+  after: State,
+  _board: Board,
+  issues: Issue[]
+): void {
+  // Only check spatial actions
+  if (!["h", "l", "j", "k"].includes(action)) return
+  if (after.bell || after.inDialog) return // Boundary or dialog
+
+  const viewMode = after.viewMode // CARDS, COLUMNS, LIST, TABS
+  const isFlatList = viewMode === "LIST" // In list mode, j/k can cross columns
+
+  // Verify data attributes are present on cursor (all modes should have them)
+  // This catches missing attributes which would indicate incomplete implementation
+  if (after.cursorCount > 0 && after.colIndex === null && after.cardIndex === null) {
+    // Only report once per mode to avoid spam
+    const issueType = `missing-spatial-attrs-${viewMode ?? "unknown"}`
+    const existingIssue = issues.find(i => i.type === issueType)
+    if (!existingIssue) {
+      issues.push({
+        iteration,
+        action,
+        type: issueType,
+        detail: `Cursor element lacks data-col-index and data-card-index in ${viewMode ?? "unknown"} mode`,
+      })
+    }
+  }
+
+  // Verify horizontal navigation (h/l) - scroll offset invariants
+  // Skip if colIndex data attributes aren't available
+  if ((action === "h" || action === "l") &&
+      before.colIndex !== null && after.colIndex !== null &&
+      before.colIndex >= 0 && after.colIndex >= 0) {
+    const moved = after.colIndex - before.colIndex
+    const expectedMove = action === "l" ? 1 : -1
+
+    // If we moved, verify direction is correct
+    if (moved !== 0 && moved !== expectedMove) {
+      issues.push({
+        iteration,
+        action,
+        type: "wrong-direction-horizontal",
+        expected: `colIndex ${expectedMove > 0 ? "increase" : "decrease"}`,
+        actual: `changed by ${moved}`,
+        detail: `viewMode=${viewMode}`,
+      })
+    }
+
+    // Verify scroll offset changes only when needed (for multi-column views)
+    // List and Tabs views don't have horizontal scrolling in the same way
+    if (viewMode !== "LIST" && viewMode !== "TABS" &&
+        before.scrollOffset !== null && after.scrollOffset !== null &&
+        before.scrollOffset >= 0 && after.scrollOffset >= 0) {
+      const scrollChanged = after.scrollOffset !== before.scrollOffset
+
+      // Calculate visible column range (assuming ~6 columns visible at 80 width)
+      // This is approximate - real check would use actual terminal width
+      const VISIBLE_COLUMNS = 6
+      const SCROLL_PADDING = 1
+
+      // Cursor should be within visible range: [scrollOffset, scrollOffset + visibleCols - 1]
+      const minVisible = after.scrollOffset
+      const maxVisible = after.scrollOffset + VISIBLE_COLUMNS - 1
+
+      // Check if cursor is within visible range
+      if (after.colIndex < minVisible || after.colIndex > maxVisible) {
+        issues.push({
+          iteration,
+          action,
+          type: "cursor-outside-visible",
+          expected: `colIndex in [${minVisible}, ${maxVisible}]`,
+          actual: `colIndex=${after.colIndex}, scrollOffset=${after.scrollOffset}`,
+          detail: `viewMode=${viewMode}`,
+        })
+      }
+
+      // Scroll should only change when cursor reaches edge (with padding)
+      // Bug we fixed: scroll was happening when cursor was 3 cols from edge (center-based)
+      // Correct: scroll only at edge (edge-based)
+      if (scrollChanged) {
+        const wasAtLeftEdge = before.colIndex <= before.scrollOffset + SCROLL_PADDING
+        const wasAtRightEdge = before.colIndex >= before.scrollOffset + VISIBLE_COLUMNS - 1 - SCROLL_PADDING
+
+        // Scroll should only happen at edges
+        if (action === "l" && !wasAtRightEdge && after.scrollOffset > before.scrollOffset) {
+          issues.push({
+            iteration,
+            action,
+            type: "premature-scroll-right",
+            expected: `scroll at edge (colIndex >= ${before.scrollOffset + VISIBLE_COLUMNS - 1 - SCROLL_PADDING})`,
+            actual: `scrolled at colIndex=${before.colIndex}`,
+            detail: `Scroll changed from ${before.scrollOffset} to ${after.scrollOffset} too early (viewMode=${viewMode})`,
+          })
+        }
+        if (action === "h" && !wasAtLeftEdge && after.scrollOffset < before.scrollOffset) {
+          issues.push({
+            iteration,
+            action,
+            type: "premature-scroll-left",
+            expected: `scroll at edge (colIndex <= ${before.scrollOffset + SCROLL_PADDING})`,
+            actual: `scrolled at colIndex=${before.colIndex}`,
+            detail: `Scroll changed from ${before.scrollOffset} to ${after.scrollOffset} too early (viewMode=${viewMode})`,
+          })
+        }
+      }
+    }
+  }
+
+  // Verify vertical navigation (j/k) - cursor should move or bell
+  // Skip if cardIndex data attributes aren't available
+  if ((action === "j" || action === "k") &&
+      before.cardIndex !== null && after.cardIndex !== null &&
+      before.cardIndex >= 0 && after.cardIndex >= 0) {
+    const moved = after.cardIndex - before.cardIndex
+    const expectedMove = action === "j" ? 1 : -1
+
+    // In list mode, j/k can cross column boundaries, so colIndex may change
+    // In other modes, j/k stays within the same column
+    const colChanged = before.colIndex !== after.colIndex
+
+    // If we moved within the same column, verify direction is correct
+    if (!isFlatList && !colChanged && moved !== 0 && moved !== expectedMove) {
+      issues.push({
+        iteration,
+        action,
+        type: "wrong-direction-vertical",
+        expected: `cardIndex ${expectedMove > 0 ? "increase" : "decrease"}`,
+        actual: `changed by ${moved}`,
+        detail: `viewMode=${viewMode}`,
+      })
+    }
+  }
+
+  // For now, just note if cursor didn't change on navigation (might be valid at boundary)
+  if (before.cursorText === after.cursorText && before.cursorText !== null) {
+    // Same cursor text but no bell - could be boundary wrap or single-item column
+    // Not necessarily a bug, so we don't report it as an issue
+  }
+}
+
+function verifyExpectedOutcome(
+  iteration: number,
+  action: string,
+  before: State,
+  after: State,
+  issues: Issue[]
+): void {
+  // Skip if bell rang (boundary condition)
+  if (after.bell) return
+
+  // Skip outcome checks when in a dialog (keys go to dialog, not board)
+  if (after.inDialog) return
+
+  switch (action) {
+    case "j":
+    case "k":
+      // Cursor should move (text changes)
+      if (before.cursorText === after.cursorText && before.cursorText !== null) {
+        // Could be at boundary - check if we're at top/bottom
+        // For now, just note it
+      }
+      break
+
+    case "h":
+    case "l":
+      // Cursor should move to different column
+      if (before.cursorText === after.cursorText && before.cursorText !== null) {
+        // Could be at boundary
+      }
+      break
+
+    case "v":
+      // View mode MUST change (unless we were in a dialog before)
+      if (!before.inDialog && before.viewMode === after.viewMode) {
+        issues.push({
+          iteration,
+          action,
+          type: "view-mode-unchanged",
+          expected: "changed",
+          actual: after.viewMode ?? "null",
+        })
+      }
+      break
+
+    case "o":
+      // Breadcrumb should change (zoom in)
+      // Only if cursor is on a folder
+      break
+
+    case "u":
+      // Breadcrumb should change (zoom out)
+      // Only if not at root
+      break
+  }
+}
+
+// =============================================================================
+// Actions
+// =============================================================================
+
+const ACTIONS = [
+  // Navigation (40%)
+  { weight: 12, value: "j" },
+  { weight: 12, value: "k" },
+  { weight: 8, value: "h" },
+  { weight: 8, value: "l" },
+  { weight: 2, value: "g" },
+  { weight: 2, value: "G" },
+  // View modes (15%)
+  { weight: 10, value: "v" },
+  { weight: 3, value: "+" },
+  { weight: 2, value: "-" },
+  // Zoom/fold (15%)
+  { weight: 8, value: "o" },
+  { weight: 6, value: "u" },
+  { weight: 1, value: "z" },
+  // Dialogs/escape (15%)
+  { weight: 5, value: "/" },
+  { weight: 3, value: "?" },
+  { weight: 7, value: "Escape" },
+  // Selection (5%)
+  { weight: 3, value: "A" },
+  { weight: 2, value: "Space" },
+]
+
+// =============================================================================
+// Main
+// =============================================================================
+
+async function main() {
+  const args = process.argv.slice(2)
+  const iterations = parseInt(args.find((a, i) => args[i - 1] === "--iterations") ?? "100")
+  const seedArg = args.find((a, i) => args[i - 1] === "--seed")
+  const seed = seedArg ? parseInt(seedArg) : Date.now() % 100000
+  const vaultPath = args.find((a, i) => args[i - 1] === "--path")
+  const verbose = args.includes("--verbose")
+  const quiet = args.includes("--quiet")
+  const jsonOutput = args.includes("--json")
+
+  const startTime = performance.now()
+
+  if (!quiet && !jsonOutput) {
+    console.log("=".repeat(60))
+    console.log("TUI EXPLORATION TEST")
+    console.log("=".repeat(60))
+    console.log(`Seed: ${seed}`)
+    console.log(`Iterations: ${iterations}`)
+    console.log(`Vault: ${vaultPath ?? "(fixtures)"}`)
+    console.log()
+  }
+
+  const rng = new SeededRandom(seed)
+  const issues: Issue[] = []
+  const actionCounts: Record<string, number> = {}
+  const viewModes = new Set<string>()
+
+  // Create board
+  let board: Board
+  if (vaultPath) {
+    board = await testBoard(vaultPath, { rows: 24, columns: 80 }) as unknown as Board
+  } else {
+    const env = testEnv(
+      () =>
+        item.root(
+          "board",
+          item("Inbox", item("Task 1"), item("Task 2"), item("Task 3"), item("Task 4")),
+          item(
+            "Projects",
+            item.folder("Alpha", item("Alpha 1"), item("Alpha 2")),
+            item.folder("Beta", item("Beta 1"))
+          ),
+          item("Areas", item.folder("Health", item("Exercise"), item("Diet")), item.folder("Work", item("Report"))),
+          item("Archive", item("Old 1"), item("Old 2"))
+        ),
+      { rows: 24, columns: 80 }
+    )
+    board = env.board as unknown as Board
+  }
+
+  // Run iterations
+  if (!quiet && !jsonOutput) {
+    console.log(`Running ${iterations} iterations...\n`)
+  }
+
+  for (let i = 1; i <= iterations; i++) {
+    const action = rng.weighted(ACTIONS)
+    actionCounts[action] = (actionCounts[action] ?? 0) + 1
+
+    const before = getState(board)
+
+    // Measure action time (includes render)
+    const actionStart = performance.now()
+    board.press(action)
+    const actionTime = performance.now() - actionStart
+
+    const after = getState(board)
+
+    if (after.viewMode) viewModes.add(after.viewMode)
+
+    // Verify DOM and buffer invariants
+    verifyDomInvariants(i, action, after, issues)
+    verifyBufferInvariants(i, action, after, issues)
+    verifyExpectedOutcome(i, action, before, after, issues)
+
+    // Content verification (repo <-> DOM <-> buffer)
+    if (board._repo) {
+      verifyRepoContent(i, action, after, board, board._repo, issues)
+      verifySpatialNavigation(i, action, before, after, board, issues)
+    }
+
+    // Check for slow actions (delayed loading / rendering)
+    if (actionTime > 50) {
+      issues.push({
+        iteration: i,
+        action,
+        type: "slow-action",
+        detail: `${Math.round(actionTime)}ms (threshold: 50ms)`,
+      })
+    }
+
+    if (!quiet && !jsonOutput && (verbose || i % 25 === 0)) {
+      const cursor = after.cursorText?.slice(0, 20) ?? "none"
+      console.log(`  [${i}] ${action} -> cursor="${cursor}" bell=${after.bell} ${actionTime > 20 ? `(${Math.round(actionTime)}ms)` : ""}`)
+    }
+  }
+
+  const duration = Math.round(performance.now() - startTime)
+
+  // Group issues by type for reporting
+  const byType: Record<string, Issue[]> = {}
+  for (const issue of issues) {
+    const arr = byType[issue.type] ?? []
+    arr.push(issue)
+    byType[issue.type] = arr
+  }
+
+  // JSON output
+  if (jsonOutput) {
+    const result = {
+      seed,
+      iterations,
+      duration,
+      issueCount: issues.length,
+      viewModesTested: [...viewModes],
+      actionCounts,
+      issuesByType: Object.fromEntries(
+        Object.entries(byType).map(([type, typeIssues]) => [
+          type,
+          { count: typeIssues.length, examples: typeIssues.slice(0, 3) },
+        ])
+      ),
+      reproduce: `bun scripts/explore-tui.ts --seed ${seed} --iterations ${iterations}`,
+    }
+    console.log(JSON.stringify(result, null, 2))
+    process.exit(issues.length > 0 ? 1 : 0)
+  }
+
+  // Quiet output - just summary line
+  if (quiet) {
+    if (issues.length > 0) {
+      const types = Object.keys(byType).join(", ")
+      console.log(`FAIL: ${issues.length} issues (${types}) [seed=${seed}]`)
+    } else {
+      console.log(`OK: ${iterations} iterations in ${duration}ms [seed=${seed}]`)
+    }
+    process.exit(issues.length > 0 ? 1 : 0)
+  }
+
+  // Full report
+  console.log("\n" + "=".repeat(60))
+  console.log("RESULTS")
+  console.log("=".repeat(60))
+
+  console.log("\n## Summary\n")
+  console.log(`| Metric | Value |`)
+  console.log(`|--------|-------|`)
+  console.log(`| Bugs found | ${issues.length} |`)
+  console.log(`| View modes tested | ${viewModes.size}/4 (${[...viewModes].join(", ")}) |`)
+  console.log(`| Duration | ${duration}ms |`)
+  console.log(`| Seed | ${seed} |`)
+
+  console.log("\n## Action Distribution\n")
+  const sorted = Object.entries(actionCounts).sort((a, b) => b[1] - a[1])
+  for (const [act, count] of sorted) {
+    console.log(`  ${act}: ${count}`)
+  }
+
+  if (issues.length > 0) {
+    console.log(`\n## Issues Found (${issues.length})\n`)
+
+    for (const [type, typeIssues] of Object.entries(byType)) {
+      console.log(`### ${type} (${typeIssues.length} occurrences)`)
+      // Show first 3 examples
+      for (const issue of typeIssues.slice(0, 3)) {
+        console.log(`  - iteration ${issue.iteration}, action="${issue.action}"`)
+        if (issue.expected) console.log(`    expected: ${issue.expected}, actual: ${issue.actual}`)
+        if (issue.detail) console.log(`    detail: ${issue.detail}`)
+      }
+      if (typeIssues.length > 3) {
+        console.log(`  ... and ${typeIssues.length - 3} more`)
+      }
+      console.log()
+    }
+
+    console.log("## Reproduce")
+    console.log(`bun scripts/explore-tui.ts --seed ${seed} --iterations ${iterations}`)
+  } else {
+    console.log("\n✅ No issues found!")
+  }
+
+  // Exit with error if issues found
+  process.exit(issues.length > 0 ? 1 : 0)
+}
+
+main().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})

@@ -8,10 +8,10 @@
  * See hazy-forging-crayon.md plan for design rationale.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { BoardState, BoardAction } from "./board-types.ts"
 
-const debug = createDebug("km:board:reducer")
+const log = createConditionalLogger("km:board:reducer")
 
 // ===== Reducer =====
 
@@ -25,7 +25,7 @@ export function simplifiedBoardReducer(
   state: BoardState,
   action: BoardAction,
 ): BoardState {
-  debug("action: %s", action.type)
+  log.debug?.(`action: ${action.type}`)
 
   switch (action.type) {
     // ===== Cursor Selection =====

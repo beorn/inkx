@@ -14,9 +14,10 @@
  */
 
 // Node.js/Bun global for yielding to event loop
+// eslint-disable-next-line promise/prefer-await-to-callbacks -- Type declaration, not actual callback
 declare function setImmediate(callback: (value?: unknown) => void): unknown
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, statSync } from "fs"
 import { join, dirname, basename } from "path"
@@ -37,7 +38,7 @@ import {
   resolveLinksAsync as resolveLinksAsyncImpl,
 } from "./link-resolution.ts"
 
-const debug = createDebug("km:storage:repo-loader")
+const log = createConditionalLogger("km:storage:repo-loader")
 
 // ============================================================================
 // TYPES
@@ -155,7 +156,7 @@ export function* loadRepo(
   // Explicit mode overrides auto-detection based on .km directory
   const mode = options?.mode ?? (kmDir ? "disk" : "memory")
 
-  debug("loadRepo repoRoot=%s mode=%s", repoRoot, mode)
+  log.debug?.(`loadRepo repoRoot=${repoRoot} mode=${mode}`)
 
   // Declare all sub-steps upfront so they appear as pending
   const skipLinks = options?.skipLinkResolution ?? false
@@ -217,17 +218,15 @@ export function* loadRepo(
 
   if (discoverOnly) {
     returnDeferredFiles = source.deferredFiles
-    debug(
-      "discover-only mode, %d files deferred",
-      returnDeferredFiles?.length ?? 0,
+    log.debug?.(
+      `discover-only mode, ${returnDeferredFiles?.length ?? 0} files deferred`,
     )
   } else {
     if (source.pendingLinks.length > 0) {
       if (skipLinks) {
         returnPendingLinks = source.pendingLinks
-        debug(
-          "skipping link resolution, %d links deferred",
-          source.pendingLinks.length,
+        log.debug?.(
+          `skipping link resolution, ${source.pendingLinks.length} links deferred`,
         )
       } else {
         linkCount = yield* resolveLinksGen(db, source.pendingLinks, errors)
@@ -243,7 +242,9 @@ export function* loadRepo(
   ).count
 
   const duration = Date.now() - start
-  debug("loadRepo complete", { mode, nodeCount, linkCount, duration })
+  log.debug?.(
+    `loadRepo complete mode=${mode} nodeCount=${nodeCount} linkCount=${linkCount} duration=${duration}`,
+  )
 
   const store: NodeStore = new MemoryStore(repoRoot, {
     inject: { database: db },
@@ -349,9 +350,8 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
   let repoRootId: string
 
   if (existingRoot) {
-    debug(
-      "migrateToRepoRootNode: repo root node already exists (%s)",
-      existingRoot.id,
+    log.debug?.(
+      `migrateToRepoRootNode: repo root node already exists (${existingRoot.id})`,
     )
     repoRootId = existingRoot.id
   } else {
@@ -363,9 +363,8 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
       }
     ).count
 
-    debug(
-      "migrateToRepoRootNode: creating repo root node (%d orphan nodes to migrate)",
-      orphanCount,
+    log.debug?.(
+      `migrateToRepoRootNode: creating repo root node (${orphanCount} orphan nodes to migrate)`,
     )
 
     repoRootId = "."
@@ -399,9 +398,8 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
           .get() as { count: number }
       ).count
       if (orphanNodeCount > 0) {
-        debug(
-          "migrateToRepoRootNode: updating %d orphan nodes",
-          orphanNodeCount,
+        log.debug?.(
+          `migrateToRepoRootNode: updating ${orphanNodeCount} orphan nodes`,
         )
         db.prepare(
           "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND type != 'folder'",
@@ -409,7 +407,7 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
       }
 
       db.run("COMMIT")
-      debug("migrateToRepoRootNode: migration complete")
+      log.debug?.("migrateToRepoRootNode: migration complete")
     } catch (error) {
       db.run("ROLLBACK")
       throw error
@@ -426,7 +424,7 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
   ).count
 
   if (orphanCount > 0) {
-    debug("migrateToRepoRootNode: updating %d orphan nodes", orphanCount)
+    log.debug?.(`migrateToRepoRootNode: updating ${orphanCount} orphan nodes`)
     db.run("BEGIN IMMEDIATE")
     try {
       db.prepare(
@@ -473,7 +471,7 @@ function* discoverFromEvents(
 
   const eventsPath = join(kmDir, "events.jsonl")
   if (!existsSync(eventsPath)) {
-    debug("no events file at %s", eventsPath)
+    log.debug?.(`no events file at ${eventsPath}`)
     yield { current: 0, total: 0 }
     return { events: [], pendingLinks: [] }
   }
@@ -514,7 +512,7 @@ function* discoverFromEvents(
   }
 
   yield { current: events.length, total: events.length }
-  debug("discovered %d events (%d new)", allEvents.length, events.length)
+  log.debug?.(`discovered ${allEvents.length} events (${events.length} new)`)
 
   return { events, pendingLinks: [] }
 }
@@ -652,7 +650,7 @@ async function parseDeferredWithPool(
   _shouldAbort?: () => boolean,
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
   const total = deferredFiles.length
-  debug("parseDeferredWithPool: starting %d files with pipeline", total)
+  log.debug?.(`parseDeferredWithPool: starting ${total} files with pipeline`)
 
   await using pool = createParsePool()
   await pool.start()
@@ -671,10 +669,8 @@ async function parseDeferredWithPool(
     relationship: link.relationship ?? undefined,
   }))
 
-  debug(
-    "parseDeferredWithPool: completed, %d parsed, %d links",
-    result.parsed,
-    pendingLinks.length,
+  log.debug?.(
+    `parseDeferredWithPool: completed, ${result.parsed} parsed, ${pendingLinks.length} links`,
   )
 
   return { parsed: result.parsed, pendingLinks }
@@ -689,7 +685,7 @@ async function parseDeferredSequential(
   shouldAbort?: () => boolean,
 ): Promise<{ parsed: number; pendingLinks: PendingLink[] }> {
   const total = deferredFiles.length
-  debug("parseDeferredSequential: starting %d files", total)
+  log.debug?.(`parseDeferredSequential: starting ${total} files`)
   const pendingLinks: PendingLink[] = []
   const BATCH_SIZE = 10
   let parsed = 0
@@ -721,7 +717,9 @@ async function parseDeferredSequential(
         } | null
 
         if (!stubRow) {
-          debug("parseDeferredSequential: stub %s not found, skipping", nodeId)
+          log.debug?.(
+            `parseDeferredSequential: stub ${nodeId} not found, skipping`,
+          )
           continue
         }
 
@@ -773,7 +771,9 @@ async function parseDeferredSequential(
 
         parsed++
       } catch (err) {
-        debug("parseDeferredSequential: error parsing %s: %s", fsPath, err)
+        log.debug?.(
+          `parseDeferredSequential: error parsing ${fsPath}: ${String(err)}`,
+        )
       }
 
       if (i % BATCH_SIZE === 0) {
@@ -781,7 +781,7 @@ async function parseDeferredSequential(
           setImmediate(resolve)
         })
         if (shouldAbort?.()) {
-          debug("parseDeferredSequential: aborted at %d/%d", i, total)
+          log.debug?.(`parseDeferredSequential: aborted at ${i}/${total}`)
           break
         }
       }
@@ -793,10 +793,8 @@ async function parseDeferredSequential(
     throw error
   }
 
-  debug(
-    "parseDeferredSequential: completed, %d parsed, %d links",
-    parsed,
-    pendingLinks.length,
+  log.debug?.(
+    `parseDeferredSequential: completed, ${parsed} parsed, ${pendingLinks.length} links`,
   )
 
   return { parsed, pendingLinks }
@@ -818,7 +816,7 @@ export function parseStubFile(
   nodeId: string,
   fsPath: string,
 ): boolean {
-  debug("parseStubFile: parsing %s", fsPath)
+  log.debug?.(`parseStubFile: parsing ${fsPath}`)
 
   try {
     const content = readFileSync(fsPath, "utf-8")
@@ -832,7 +830,7 @@ export function parseStubFile(
     } | null
 
     if (!stubRow) {
-      debug("parseStubFile: stub %s not found", nodeId)
+      log.debug?.(`parseStubFile: stub ${nodeId} not found`)
       return false
     }
 
@@ -900,14 +898,14 @@ export function parseStubFile(
       }
 
       db.run("COMMIT")
-      debug("parseStubFile: success, %d nodes", nodes.length)
+      log.debug?.(`parseStubFile: success, ${nodes.length} nodes`)
       return true
     } catch (error) {
       db.run("ROLLBACK")
       throw error
     }
   } catch (err) {
-    debug("parseStubFile: error %s", err)
+    log.debug?.(`parseStubFile: error ${String(err)}`)
     return false
   }
 }

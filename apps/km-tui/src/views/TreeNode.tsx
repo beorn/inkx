@@ -6,7 +6,8 @@
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
 import React, { useCallback, useMemo } from "react"
-import { Box, Text, useContentRectCallback } from "inkx"
+import { renderLog, sid } from "../log.ts"
+import { Box, ErrorBoundary, Text } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
@@ -178,6 +179,11 @@ function TreeNodeImpl({
   const children = childrenProp ?? resolvedGetChildren(childrenSourceId)
   const hasChildren = children.length > 0
 
+  // Debug logging for render tracking
+  renderLog.debug?.(
+    `TreeNode ${sid(node.id)} children=${children.length} content=${displayNode.content?.slice(0, 30) ?? "(empty)"}`,
+  )
+
   // A node is a task if it has task_status set, regardless of structural type
   // For embeds, check the target node's status
   const isTask = displayNode.task_status != null
@@ -314,7 +320,11 @@ function TreeNodeImpl({
         <Box
           id={node.id}
           data-view="item"
-          {...(isSelected && { "data-cursor": true })}
+          {...(isSelected && {
+            "data-cursor": true,
+            "data-col-index": colIndex,
+            "data-card-index": cardIndex,
+          })}
           flexDirection="row"
           alignItems="flex-start"
           paddingLeft={depth}
@@ -381,20 +391,28 @@ function TreeNodeImpl({
 
       {/* Children */}
       {hasChildren && !isFolded && depth < maxDepth && (
-        <NodeChildren
-          children={visibleChildren}
-          colIndex={colIndex}
-          cardIndex={cardIndex}
-          startSubIndex={subIndex + 1}
-          depth={depth}
-          inOutlineMode={inOutlineMode}
-          currentSubIndex={currentSubIndex}
-          dimInactiveChildren={dimInactiveChildren}
-          hiddenCount={hiddenCount}
-          getChildren={resolvedGetChildren}
-          getParentContext={resolvedGetParentContext}
-          getBoardPills={getBoardPills}
-        />
+        <ErrorBoundary
+          fallback={
+            <Text color="red" dim>
+              [error]
+            </Text>
+          }
+        >
+          <NodeChildren
+            children={visibleChildren}
+            colIndex={colIndex}
+            cardIndex={cardIndex}
+            startSubIndex={subIndex + 1}
+            depth={depth}
+            inOutlineMode={inOutlineMode}
+            currentSubIndex={currentSubIndex}
+            dimInactiveChildren={dimInactiveChildren}
+            hiddenCount={hiddenCount}
+            getChildren={resolvedGetChildren}
+            getParentContext={resolvedGetParentContext}
+            getBoardPills={getBoardPills}
+          />
+        </ErrorBoundary>
       )}
     </Box>
   )
@@ -415,8 +433,13 @@ interface HeadRowProps {
 }
 
 function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
-  useContentRectCallback(onLayout)
-  return <Box flexDirection="column">{children}</Box>
+  // Use Box's onLayout prop instead of useContentRectCallback
+  // useContentRectCallback reads parent's NodeContext, not the Box's own node
+  return (
+    <Box flexDirection="column" onLayout={onLayout}>
+      {children}
+    </Box>
+  )
 }
 
 // =============================================================================

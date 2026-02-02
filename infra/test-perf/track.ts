@@ -103,7 +103,7 @@ function readMetadata(): unknown {
     const text = new TextDecoder().decode(decompressed)
     return JSON.parse(text) as unknown
   } catch (error) {
-    console.error(`❌ Failed to read metadata: ${error}`)
+    console.error(`❌ Failed to read metadata: ${String(error)}`)
     process.exit(1)
   }
 }
@@ -221,7 +221,7 @@ function storeHistory(perfData: PerformanceData): void {
       writeFileSync(HISTORY_PATH, line)
     }
   } catch (error) {
-    console.error(`⚠️  Failed to write history: ${error}`)
+    console.error(`⚠️  Failed to write history: ${String(error)}`)
   }
 }
 
@@ -238,7 +238,7 @@ function loadHistory(): PerformanceData[] {
       .filter((line) => line.length > 0)
       .map((line) => JSON.parse(line) as PerformanceData)
   } catch (error) {
-    console.error(`⚠️  Failed to load history: ${error}`)
+    console.error(`⚠️  Failed to load history: ${String(error)}`)
     return []
   }
 }
@@ -263,8 +263,8 @@ function showSummary(
   console.log(`   Avg per file: ${formatTime(current.avgTimePerFile)}`)
 
   // Compare against previous run
-  if (history.length > 1) {
-    const previous = history[history.length - 2]!
+  const previous = history.length > 1 ? history[history.length - 2] : undefined
+  if (previous) {
     const timeDiff = current.totalTime - previous.totalTime
     const percentDiff = (timeDiff / previous.totalTime) * 100
 

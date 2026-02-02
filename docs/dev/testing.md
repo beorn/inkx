@@ -567,6 +567,65 @@ TEST_MODE=real bun run test:all       # Disk DB, full infrastructure
 
 ---
 
+## Dynamic Testing Taxonomy
+
+This section maps km's testing tools to industry-standard terminology, helping developers choose the right testing approach.
+
+### Industry Classification
+
+| Category             | Industry Term        | km Implementation              | Surface             |
+| -------------------- | -------------------- | ------------------------------ | ------------------- |
+| Fault Injection      | Chaos Engineering    | `/chaos`, `chaos-testing.md`   | Filesystem sync     |
+| Monkey Testing       | Exploratory Testing  | `/explore`, `explore-tui.ts`   | TUI (keyboard)      |
+| Differential Testing | Oracle-Based Testing | Flexx fuzz vs Yoga             | Layout engine       |
+| Property-Based       | Invariant Checking   | Both chaos + explore           | Invariants          |
+| Acceptance Testing   | E2E Testing          | mdtest, inkx specs             | CLI, TUI            |
+
+### Exploration Testing (Unified Pattern)
+
+All exploration tests follow the same pattern:
+**Generate inputs → Apply to system → Check invariants → Reproduce failures**
+
+| Test Suite  | Surface   | Input Generator      | Invariants                          | Reproduction |
+| ----------- | --------- | -------------------- | ----------------------------------- | ------------ |
+| Sync Chaos  | FS events | 11 chaos scenarios   | noDuplicates, noOrphans, syncMatch  | Seeded RNG   |
+| TUI Explore | Keyboard  | Weighted random keys | singleCursor, validView, noErrors   | Seeded RNG   |
+| Flexx Fuzz  | Layout    | Random node trees    | Yoga equivalence                    | Seeded RNG   |
+
+### Full Taxonomy Tree
+
+```
+Dynamic Testing
+├── Functional
+│   ├── Acceptance (mdtest, inkx specs) → verifies user-visible behavior
+│   ├── Regression (preserved failing tests) → prevents re-introduction
+│   └── Smoke (quick sanity) → fast CI gate
+├── Exploration
+│   ├── Fault Injection (chaos/) → sync resilience
+│   ├── Monkey Testing (/explore) → UI stability
+│   └── Differential (flexx fuzz) → layout correctness
+└── Performance
+    ├── Benchmarks (vitest bench) → track regressions
+    └── Profile-Guided → manual optimization
+```
+
+### What We Don't Have (Yet)
+
+| Type                    | Description                     | Could Add               |
+| ----------------------- | ------------------------------- | ----------------------- |
+| Coverage-Guided Fuzzing | AFL-style mutation              | For parser layer        |
+| Load Testing            | High volume concurrent ops      | For sync layer          |
+| Soak Testing            | Long-running stability          | CI nightly job          |
+| Mutation Testing        | Stryker-style code mutation     | Test quality metric     |
+
+### See Also
+
+- [chaos-testing.md](chaos-testing.md) — Filesystem sync chaos testing
+- [.claude/skills/explore/](../../.claude/skills/explore/) — TUI exploration skill
+- [vendor/beorn-flexx/](../../vendor/beorn-flexx/) — Layout engine with Yoga differential tests
+
+---
+
 ## Testing Categories
 
 ### TUI Tests (inkx)
@@ -866,7 +925,7 @@ const watcher = new ChaosWatcher({
 
 **Location**: `packages/km-storage/tests/sync/chaos/`
 
-See [archive/chaos-testing.md](../archive/chaos-testing.md) for full scenario reference.
+See [chaos-testing.md](chaos-testing.md) for full scenario reference.
 
 ---
 

@@ -12,7 +12,7 @@
  *   emitter.close()
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
@@ -20,7 +20,7 @@ import type { Event } from "@km/core"
 import type { Database } from "bun:sqlite"
 import { applyEventWithDb } from "./db-events.ts"
 
-const debug = createDebug("km:storage:emitter")
+const _log = createConditionalLogger("km:storage:emitter")
 
 // --- Types ---
 

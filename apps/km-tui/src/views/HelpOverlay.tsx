@@ -100,6 +100,7 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
         flexDirection="column"
         borderStyle="single"
         borderColor="cyan"
+        data-dialog="help"
       >
         <Text color="cyan">Terminal too small</Text>
         <Text dimColor>Press ? or Esc</Text>
@@ -132,7 +133,12 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
   }
 
   return (
-    <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop}>
+    <Box
+      position="absolute"
+      marginLeft={marginLeft}
+      marginTop={marginTop}
+      data-dialog="help"
+    >
       <ModalDialog borderColor="cyan" width={boxWidth}>
         {/* Header */}
         <Text> </Text>

@@ -11,11 +11,11 @@
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Repo } from "@km/storage"
 import type { BoardState } from "@km/board"
 
-const debug = createDebug("km:tui:nav")
+const log = createConditionalLogger("km:tui:nav")
 
 // =============================================================================
 // Tree Navigation
@@ -60,7 +60,7 @@ export function handleTreeNavigation(
 
   const currentNode = repo.getNode(cursorNodeId)
   if (!currentNode) {
-    debug("tree nav: current node not found")
+    log.debug?.("tree nav: current node not found")
     return null
   }
 
@@ -70,11 +70,11 @@ export function handleTreeNavigation(
       const siblings = repo.getChildren(currentNode.parent_id)
       const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId)
       if (currentIndex < 0 || currentIndex >= siblings.length - 1) {
-        debug("tree nav: at last sibling, can't move next")
+        log.debug?.("tree nav: at last sibling, can't move next")
         return null // At last sibling
       }
       const nextSibling = siblings[currentIndex + 1]
-      debug("tree nav: next sibling %s", nextSibling?.id.slice(-8))
+      log.debug?.(`tree nav: next sibling ${nextSibling?.id.slice(-8)}`)
       return nextSibling?.id ?? null
     }
 
@@ -83,11 +83,11 @@ export function handleTreeNavigation(
       const siblings = repo.getChildren(currentNode.parent_id)
       const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId)
       if (currentIndex <= 0) {
-        debug("tree nav: at first sibling, can't move prev")
+        log.debug?.("tree nav: at first sibling, can't move prev")
         return null // At first sibling
       }
       const prevSibling = siblings[currentIndex - 1]
-      debug("tree nav: prev sibling %s", prevSibling?.id.slice(-8))
+      log.debug?.(`tree nav: prev sibling ${prevSibling?.id.slice(-8)}`)
       return prevSibling?.id ?? null
     }
 
@@ -95,11 +95,11 @@ export function handleTreeNavigation(
       // Jump to first sibling
       const siblings = repo.getChildren(currentNode.parent_id)
       if (siblings.length === 0) {
-        debug("tree nav: no siblings, can't jump to first")
+        log.debug?.("tree nav: no siblings, can't jump to first")
         return null
       }
       const firstSibling = siblings[0]
-      debug("tree nav: first sibling %s", firstSibling?.id.slice(-8))
+      log.debug?.(`tree nav: first sibling ${firstSibling?.id.slice(-8)}`)
       return firstSibling?.id ?? null
     }
 
@@ -107,48 +107,48 @@ export function handleTreeNavigation(
       // Jump to last sibling
       const siblings = repo.getChildren(currentNode.parent_id)
       if (siblings.length === 0) {
-        debug("tree nav: no siblings, can't jump to last")
+        log.debug?.("tree nav: no siblings, can't jump to last")
         return null
       }
       const lastSibling = siblings[siblings.length - 1]
-      debug("tree nav: last sibling %s", lastSibling?.id.slice(-8))
+      log.debug?.(`tree nav: last sibling ${lastSibling?.id.slice(-8)}`)
       return lastSibling?.id ?? null
     }
 
     case "child": {
       // Move to first child (if not folded and has children)
       if (foldedNodes.has(cursorNodeId)) {
-        debug("tree nav: node is folded, can't enter child")
+        log.debug?.("tree nav: node is folded, can't enter child")
         return null
       }
       const children = repo.getChildren(cursorNodeId)
       if (children.length === 0) {
-        debug("tree nav: no children, can't enter child")
+        log.debug?.("tree nav: no children, can't enter child")
         return null
       }
       const firstChild = children[0]
-      debug("tree nav: first child %s", firstChild?.id.slice(-8))
+      log.debug?.(`tree nav: first child ${firstChild?.id.slice(-8)}`)
       return firstChild?.id ?? null
     }
 
     case "parent": {
       // Move to parent
       if (currentNode.parent_id === null) {
-        debug("tree nav: at repo root, can't move to parent")
+        log.debug?.("tree nav: at repo root, can't move to parent")
         return null // At repo root (parent_id is null)
       }
       // Don't go above the current zoom root
       if (currentNode.parent_id === rootId) {
-        debug("tree nav: at zoom root, returning to root")
+        log.debug?.("tree nav: at zoom root, returning to root")
         return rootId
       }
       // Check if parent is repo root (can't go above it)
       const parentNode = repo.getNode(currentNode.parent_id)
       if (parentNode?.parent_id === null) {
-        debug("tree nav: parent is repo root, can't go higher")
+        log.debug?.("tree nav: parent is repo root, can't go higher")
         return null
       }
-      debug("tree nav: parent %s", currentNode.parent_id.slice(-8))
+      log.debug?.(`tree nav: parent ${currentNode.parent_id.slice(-8)}`)
       return currentNode.parent_id
     }
 

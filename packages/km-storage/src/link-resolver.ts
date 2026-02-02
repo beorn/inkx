@@ -11,10 +11,10 @@
  */
 
 import type { Database } from "bun:sqlite"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { findChildByContent } from "./db-queries/wikilink-resolver.ts"
 
-const debug = createDebug("km:storage:link-resolver")
+const log = createConditionalLogger("km:storage:link-resolver")
 
 export interface LinkResolver {
   /** Resolve a wikilink target name to a node ID */
@@ -63,7 +63,7 @@ export function createLinkResolver(db: Database): LinkResolver {
     }
   }
 
-  debug("created resolver with %d files", filesByName.size)
+  log.debug?.(`created resolver with ${filesByName.size} files`)
 
   // Cache for section lookups: "fileId:sectionName" → nodeId
   const sectionCache = new Map<string, string | null>()

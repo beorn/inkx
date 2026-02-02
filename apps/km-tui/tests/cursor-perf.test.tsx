@@ -8,10 +8,10 @@
  */
 
 import { describe, test, expect } from "vitest"
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import { testEnv, item } from "./helpers/board-test.ts"
 
-const debug = createDebug("km:perf")
+const log = createConditionalLogger("km:perf")
 
 describe("Cursor Movement Performance", () => {
   test("measure cursor movement timing in small board", () => {
@@ -81,17 +81,17 @@ describe("Cursor Movement Performance", () => {
     const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length
     const max = (arr: number[]) => Math.max(...arr)
 
-    debug("=== Cursor Movement Performance ===")
-    debug(
+    log.debug?.("=== Cursor Movement Performance ===")
+    log.debug?.(
       `Down (j): avg=${avg(downTimes).toFixed(2)}ms max=${max(downTimes).toFixed(2)}ms`,
     )
-    debug(
+    log.debug?.(
       `Up (k):   avg=${avg(upTimes).toFixed(2)}ms max=${max(upTimes).toFixed(2)}ms`,
     )
-    debug(
+    log.debug?.(
       `Right (l): avg=${avg(rightTimes).toFixed(2)}ms max=${max(rightTimes).toFixed(2)}ms`,
     )
-    debug(
+    log.debug?.(
       `Left (h):  avg=${avg(leftTimes).toFixed(2)}ms max=${max(leftTimes).toFixed(2)}ms`,
     )
 
@@ -137,11 +137,11 @@ describe("Cursor Movement Performance", () => {
       return sorted[Math.floor(sorted.length * 0.95)]
     }
 
-    debug("=== Large Board (with scrolling) ===")
-    debug(
+    log.debug?.("=== Large Board (with scrolling) ===")
+    log.debug?.(
       `Scroll down: avg=${avg(scrollTimes).toFixed(2)}ms max=${max(scrollTimes).toFixed(2)}ms p95=${p95(scrollTimes)?.toFixed(2)}ms`,
     )
-    debug(
+    log.debug?.(
       `Post-scroll movement: avg=${avg(postScrollTimes).toFixed(2)}ms max=${max(postScrollTimes).toFixed(2)}ms`,
     )
 

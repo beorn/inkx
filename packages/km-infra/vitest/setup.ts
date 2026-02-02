@@ -11,6 +11,8 @@
  *   spy.mockRestore()
  */
 
+/* eslint-disable promise/prefer-await-to-callbacks -- Implements Node.js stream.write() API which requires callback support */
+
 import { beforeEach, afterEach, vi } from "vitest"
 
 // Register custom TUI testing matchers

@@ -58,10 +58,16 @@ export interface FileSystemOps {
   statSync(path: string): StatResult;
 }
 
+/** Pattern matcher interface for pre-compiled ignore patterns */
+export interface PatternMatcher {
+  matches(path: string, repoPath?: string): boolean;
+  readonly size: number;
+}
+
 /** Directory scanner function type */
 export type DirectoryScanner = (
   dirPath: string,
-  ignorePatterns?: string[],
+  ignorePatterns?: string[] | PatternMatcher,
 ) => FsEntry[];
 
 /** Error injection configuration */
@@ -372,7 +378,10 @@ export class FakeFileSystem implements FileSystemOps {
    * Create a DirectoryScanner function bound to this MockFileSystem
    */
   createScanner(): DirectoryScanner {
-    return (dirPath: string, ignorePatterns?: string[]): FsEntry[] => {
+    return (
+      dirPath: string,
+      ignorePatterns?: string[] | PatternMatcher,
+    ): FsEntry[] => {
       return this.scanDirectory(dirPath, ignorePatterns);
     };
   }
@@ -380,7 +389,10 @@ export class FakeFileSystem implements FileSystemOps {
   /**
    * Scan a directory and return entries
    */
-  scanDirectory(dirPath: string, ignorePatterns?: string[]): FsEntry[] {
+  scanDirectory(
+    dirPath: string,
+    ignorePatterns?: string[] | PatternMatcher,
+  ): FsEntry[] {
     this.checkErrors(dirPath, "scandir");
     const normalized = this.normalizePath(dirPath);
     const entries: FsEntry[] = [];
@@ -484,10 +496,15 @@ export class FakeFileSystem implements FileSystemOps {
 
   private shouldIgnore(
     name: string,
-    _path: string,
-    patterns?: string[],
+    fullPath: string,
+    patterns?: string[] | PatternMatcher,
   ): boolean {
     if (!patterns) return false;
+
+    // Handle PatternMatcher interface
+    if (typeof patterns === "object" && "matches" in patterns) {
+      return patterns.matches(fullPath);
+    }
 
     // Simple pattern matching (supports * wildcard and negation)
     for (const pattern of patterns) {

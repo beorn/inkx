@@ -13,14 +13,15 @@
  */
 
 // Node.js/Bun global for yielding to event loop
+// eslint-disable-next-line promise/prefer-await-to-callbacks -- Type declaration, not actual callback
 declare function setImmediate(callback: (value?: unknown) => void): unknown
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { createLinkResolver } from "./link-resolver.ts"
 import type { StepYield, PendingLink, LoadError } from "./repo-loader.ts"
 
-const debug = createDebug("km:storage:link-resolution")
+const log = createConditionalLogger("km:storage:link-resolution")
 
 // ============================================================================
 // TYPES
@@ -281,7 +282,7 @@ export async function resolveLinksAsync(
   const total = pendingLinks.length
   if (total === 0) return 0
 
-  debug("resolveLinksAsync: starting %d links", total)
+  log.debug?.(`resolveLinksAsync: starting ${total} links`)
 
   // Use shared LinkResolver for O(1) lookups
   const resolver = createLinkResolver(db)
@@ -341,6 +342,6 @@ export async function resolveLinksAsync(
   })
 
   onProgress?.(total, total)
-  debug("resolveLinksAsync: completed, %d resolved", resolved)
+  log.debug?.(`resolveLinksAsync: completed, ${resolved} resolved`)
   return resolved
 }

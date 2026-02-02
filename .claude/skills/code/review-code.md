@@ -88,6 +88,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
 | Old inkx render    | `createTestRenderer` inside function body (wasteful recreation each call)   |
 | Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer inkx APIs      |
+| Manual layout calc | `displayWidth()` in app code for layout - should rely on inkx/flexx         |
 | High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
 | `ensure*` checks   | `ensureOpen()`, `ensureValid()` - lower levels throw naturally              |
 | Getters/setters    | `get path() { return _path }` - use plain properties instead                |
@@ -361,6 +362,7 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | ------------------- | ---------------- | ------------------------------------------------- |
 | Old inkx render     | Medium           | createTestRenderer inside function body (should be at module level) |
 | Old lastFrame       | Medium           | Should use app.text or other newer inkx APIs      |
+| Manual layout calc  | Low              | High if workaround for inkx bug (see km-inkx-flexgrow) |
 
 **Complexity findings:**
 

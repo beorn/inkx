@@ -5,7 +5,7 @@
  * Displays content, fields, references, subtasks, and backlinks.
  */
 import React from "react"
-import { Box, Text } from "inkx"
+import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -113,166 +113,168 @@ export function DetailPane({
       backgroundColor="black"
       paddingX={1}
     >
-      {/* Title - let Ink handle wrapping naturally */}
-      <Box width={innerWidth}>
-        <Text bold wrap="wrap">
-          {title}
-        </Text>
-      </Box>
-
-      {/* Separator - full width */}
-      <Box>
-        <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
-      </Box>
-
-      {/* Fields */}
-      <Box flexDirection="row" gap={2}>
-        <Text>
-          <Text dimColor>Status: </Text>
-          <Text color={statusInfo.color}>{statusInfo.text}</Text>
-        </Text>
-        {dueDate.text && (
-          <Text>
-            <Text dimColor>Due: </Text>
-            <Text
-              color={
-                dueDate.urgency === "overdue"
-                  ? "red"
-                  : dueDate.urgency === "urgent"
-                    ? "yellow"
-                    : undefined
-              }
-              underline={
-                dueDate.urgency === "overdue" ||
-                dueDate.urgency === "urgent" ||
-                dueDate.urgency === "soon"
-              }
-            >
-              {dueDate.text}
-            </Text>
+      <ErrorBoundary fallback={<Text color="red">Error loading details</Text>}>
+        {/* Title - let Ink handle wrapping naturally */}
+        <Box width={innerWidth}>
+          <Text bold wrap="wrap">
+            {title}
           </Text>
-        )}
-      </Box>
+        </Box>
 
-      {assignedTo && (
+        {/* Separator - full width */}
+        <Box>
+          <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
+        </Box>
+
+        {/* Fields */}
         <Box flexDirection="row" gap={2}>
           <Text>
-            <Text dimColor>Assigned: </Text>
-            <Text color="magenta">@{assignedTo}</Text>
+            <Text dimColor>Status: </Text>
+            <Text color={statusInfo.color}>{statusInfo.text}</Text>
           </Text>
+          {dueDate.text && (
+            <Text>
+              <Text dimColor>Due: </Text>
+              <Text
+                color={
+                  dueDate.urgency === "overdue"
+                    ? "red"
+                    : dueDate.urgency === "urgent"
+                      ? "yellow"
+                      : undefined
+                }
+                underline={
+                  dueDate.urgency === "overdue" ||
+                  dueDate.urgency === "urgent" ||
+                  dueDate.urgency === "soon"
+                }
+              >
+                {dueDate.text}
+              </Text>
+            </Text>
+          )}
         </Box>
-      )}
 
-      {/* Project path */}
-      {projectPath.length > 0 && (
+        {assignedTo && (
+          <Box flexDirection="row" gap={2}>
+            <Text>
+              <Text dimColor>Assigned: </Text>
+              <Text color="magenta">@{assignedTo}</Text>
+            </Text>
+          </Box>
+        )}
+
+        {/* Project path */}
+        {projectPath.length > 0 && (
+          <Box>
+            <Text>
+              <Text dimColor>Project: </Text>
+              <Text>{projectPath.join(" / ")}</Text>
+            </Text>
+          </Box>
+        )}
+
+        {/* References */}
+        {hasRefs && (
+          <Box flexDirection="row" flexWrap="wrap" gap={1}>
+            {refs.tags.map((tag) => (
+              <Text key={`tag-${tag}`} color="blue">
+                #{tag}
+              </Text>
+            ))}
+            {refs.mentions.map((m) => (
+              <Text key={`mention-${m}`} color="magenta">
+                @{m}
+              </Text>
+            ))}
+            {refs.projects.map((p) => (
+              <Text key={`project-${p}`} color="green">
+                +{p}
+              </Text>
+            ))}
+            {refs.wikilinks.map((w) => (
+              <Text key={`wiki-${w}`} color="cyan">
+                [[{w}]]
+              </Text>
+            ))}
+          </Box>
+        )}
+
+        {/* Content section */}
+        {displayContent.length > 0 && (
+          <Box
+            flexDirection="column"
+            paddingX={1}
+            marginTop={1}
+            width={innerWidth}
+          >
+            <Text bold dimColor>
+              Content
+            </Text>
+            {displayContent.map((line, i) => (
+              <Text key={i} wrap="truncate">
+                {line}
+              </Text>
+            ))}
+            {hasMoreContent && <Text dimColor>...</Text>}
+          </Box>
+        )}
+
+        {/* Subtasks */}
+        {subtasks.length > 0 && (
+          <Box
+            flexDirection="column"
+            paddingX={1}
+            marginTop={1}
+            width={innerWidth}
+          >
+            <Text bold dimColor>
+              Subtasks ({subtasks.length})
+            </Text>
+            {subtasks.slice(0, maxSubtasks).map((task) => (
+              <Text key={task.id} wrap="truncate">
+                <Text dimColor={task.task_status === "done"}>
+                  {getSubtaskCheckbox(task.task_status)}{" "}
+                </Text>
+                <Text dimColor={task.task_status === "done"}>
+                  {task.content || getNodeDisplayName(repo, task)}
+                </Text>
+              </Text>
+            ))}
+            {subtasks.length > maxSubtasks && (
+              <Text dimColor> +{subtasks.length - maxSubtasks} more</Text>
+            )}
+          </Box>
+        )}
+
+        {/* Backlinks */}
+        {backlinkNodes.length > 0 && (
+          <Box
+            flexDirection="column"
+            paddingX={1}
+            marginTop={1}
+            width={innerWidth}
+          >
+            <Text bold dimColor>
+              Backlinks ({backlinkNodes.length})
+            </Text>
+            {backlinkNodes.slice(0, maxBacklinks).map((bl) => (
+              <Text key={bl.id} wrap="truncate" dimColor>
+                {"- "}[[{getNodeDisplayName(repo, bl)}]]
+              </Text>
+            ))}
+            {backlinkNodes.length > maxBacklinks && (
+              <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>
+            )}
+          </Box>
+        )}
+
+        {/* Keybindings hint */}
+        <Box flexGrow={1} />
         <Box>
-          <Text>
-            <Text dimColor>Project: </Text>
-            <Text>{projectPath.join(" / ")}</Text>
-          </Text>
+          <Text dimColor>h/Esc:close Space:status</Text>
         </Box>
-      )}
-
-      {/* References */}
-      {hasRefs && (
-        <Box flexDirection="row" flexWrap="wrap" gap={1}>
-          {refs.tags.map((tag) => (
-            <Text key={`tag-${tag}`} color="blue">
-              #{tag}
-            </Text>
-          ))}
-          {refs.mentions.map((m) => (
-            <Text key={`mention-${m}`} color="magenta">
-              @{m}
-            </Text>
-          ))}
-          {refs.projects.map((p) => (
-            <Text key={`project-${p}`} color="green">
-              +{p}
-            </Text>
-          ))}
-          {refs.wikilinks.map((w) => (
-            <Text key={`wiki-${w}`} color="cyan">
-              [[{w}]]
-            </Text>
-          ))}
-        </Box>
-      )}
-
-      {/* Content section */}
-      {displayContent.length > 0 && (
-        <Box
-          flexDirection="column"
-          paddingX={1}
-          marginTop={1}
-          width={innerWidth}
-        >
-          <Text bold dimColor>
-            Content
-          </Text>
-          {displayContent.map((line, i) => (
-            <Text key={i} wrap="truncate">
-              {line}
-            </Text>
-          ))}
-          {hasMoreContent && <Text dimColor>...</Text>}
-        </Box>
-      )}
-
-      {/* Subtasks */}
-      {subtasks.length > 0 && (
-        <Box
-          flexDirection="column"
-          paddingX={1}
-          marginTop={1}
-          width={innerWidth}
-        >
-          <Text bold dimColor>
-            Subtasks ({subtasks.length})
-          </Text>
-          {subtasks.slice(0, maxSubtasks).map((task) => (
-            <Text key={task.id} wrap="truncate">
-              <Text dimColor={task.task_status === "done"}>
-                {getSubtaskCheckbox(task.task_status)}{" "}
-              </Text>
-              <Text dimColor={task.task_status === "done"}>
-                {task.content || getNodeDisplayName(repo, task)}
-              </Text>
-            </Text>
-          ))}
-          {subtasks.length > maxSubtasks && (
-            <Text dimColor> +{subtasks.length - maxSubtasks} more</Text>
-          )}
-        </Box>
-      )}
-
-      {/* Backlinks */}
-      {backlinkNodes.length > 0 && (
-        <Box
-          flexDirection="column"
-          paddingX={1}
-          marginTop={1}
-          width={innerWidth}
-        >
-          <Text bold dimColor>
-            Backlinks ({backlinkNodes.length})
-          </Text>
-          {backlinkNodes.slice(0, maxBacklinks).map((bl) => (
-            <Text key={bl.id} wrap="truncate" dimColor>
-              {"- "}[[{getNodeDisplayName(repo, bl)}]]
-            </Text>
-          ))}
-          {backlinkNodes.length > maxBacklinks && (
-            <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>
-          )}
-        </Box>
-      )}
-
-      {/* Keybindings hint */}
-      <Box flexGrow={1} />
-      <Box>
-        <Text dimColor>h/Esc:close Space:status</Text>
-      </Box>
+      </ErrorBoundary>
     </Box>
   )
 }

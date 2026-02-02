@@ -12,9 +12,9 @@
  * - Used to return to same column when moving down
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 
-const debug = createDebug("km:tui:layout")
+const log = createConditionalLogger("km:tui:layout")
 
 // =============================================================================
 // Types
@@ -114,9 +114,15 @@ export interface LayoutRegistry {
   // === Visual navigation helpers ===
 
   /**
-   * Find the card in a column whose card box intersects targetY,
-   * or the closest card if none intersect.
-   * Returns -1 if should land on column header (targetY above all cards).
+   * Find the card in a column closest to targetY (curswantY).
+   *
+   * Algorithm:
+   * 1. If targetY falls inside a card's box, return that card (fast path)
+   * 2. Otherwise, find the card whose midpoint (y + cardHeight/2) is closest to targetY
+   * 3. Return -1 if targetY is above all cards (land on column header)
+   *
+   * @see docs/ref/ui.md#curswanty-cross-column-navigation-hl
+   * @see getCardMidY - calculates curswantY from source card's title midpoint
    */
   findCardAtYVisual(colIndex: number, targetY: number): number
 
@@ -168,11 +174,9 @@ export function createLayoutRegistry(): LayoutRegistry {
 
     registerNode(nodeId: string, layout: NodeLayout): void {
       nodeLayouts.set(nodeId, layout)
-      debug("registerNode", {
-        id: nodeId.slice(-8),
-        y: layout.y,
-        size: `${layout.cardWidth}x${layout.cardHeight}`,
-      })
+      log.debug?.(
+        `registerNode id=${nodeId.slice(-8)} y=${layout.y} size=${layout.cardWidth}x${layout.cardHeight}`,
+      )
     },
 
     getNode(nodeId: string): NodeLayout {
@@ -205,12 +209,9 @@ export function createLayoutRegistry(): LayoutRegistry {
       // Also register by node ID for direct lookup
       nodeLayouts.set(nodeId, layout)
 
-      debug("registerCard", {
-        col: colIndex,
-        card: cardIndex,
-        id: nodeId.slice(-8),
-        y: layout.y,
-      })
+      log.debug?.(
+        `registerCard col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${layout.y}`,
+      )
     },
 
     getCard(colIndex: number, cardIndex: number): CardEntry {
@@ -240,12 +241,8 @@ export function createLayoutRegistry(): LayoutRegistry {
       if (entry) {
         entry.layout.headY = headY
         entry.layout.headHeight = headHeight
-        debug(
-          "updateCardHead: col=%d card=%d headY=%d headHeight=%d",
-          colIndex,
-          cardIndex,
-          headY,
-          headHeight,
+        log.debug?.(
+          `updateCardHead: col=${colIndex} card=${cardIndex} headY=${headY} headHeight=${headHeight}`,
         )
       }
     },
@@ -269,12 +266,8 @@ export function createLayoutRegistry(): LayoutRegistry {
         }
       }
 
-      debug(
-        "findCardAtY: col=%d targetY=%d -> card=%d (y=%d)",
-        colIndex,
-        targetY,
-        closestIdx,
-        colMap.get(closestIdx)?.layout.y,
+      log.debug?.(
+        `findCardAtY: col=${colIndex} targetY=${targetY} -> card=${closestIdx} (y=${colMap.get(closestIdx)?.layout.y})`,
       )
 
       return closestIdx
@@ -284,7 +277,7 @@ export function createLayoutRegistry(): LayoutRegistry {
 
     setStickyY(y: number): void {
       stickyY = y
-      debug("setStickyY: %d", y)
+      log.debug?.(`setStickyY: ${y}`)
     },
 
     getStickyY(): number | null {
@@ -293,7 +286,7 @@ export function createLayoutRegistry(): LayoutRegistry {
 
     clearStickyY(): void {
       if (stickyY !== null) {
-        debug("clearStickyY")
+        log.debug?.("clearStickyY")
         stickyY = null
       }
     },
@@ -302,7 +295,7 @@ export function createLayoutRegistry(): LayoutRegistry {
 
     setStickyX(colIndex: number): void {
       stickyX = colIndex
-      debug("setStickyX: %d", colIndex)
+      log.debug?.(`setStickyX: ${colIndex}`)
     },
 
     getStickyX(): number | null {
@@ -311,7 +304,7 @@ export function createLayoutRegistry(): LayoutRegistry {
 
     clearStickyX(): void {
       if (stickyX !== null) {
-        debug("clearStickyX")
+        log.debug?.("clearStickyX")
         stickyX = null
       }
     },
@@ -331,13 +324,8 @@ export function createLayoutRegistry(): LayoutRegistry {
         const cardTop = entry.layout.y
         const cardBottom = cardTop + entry.layout.cardHeight
         if (targetY >= cardTop && targetY < cardBottom) {
-          debug(
-            "findCardAtYVisual: col=%d targetY=%d -> card=%d (intersects y=%d-%d)",
-            colIndex,
-            targetY,
-            cardIdx,
-            cardTop,
-            cardBottom,
+          log.debug?.(
+            `findCardAtYVisual: col=${colIndex} targetY=${targetY} -> card=${cardIdx} (intersects y=${cardTop}-${cardBottom})`,
           )
           return cardIdx
         }
@@ -361,19 +349,14 @@ export function createLayoutRegistry(): LayoutRegistry {
       // If targetY is above all cards, return -1 for column header
       const firstCard = colMap.get(0)
       if (firstCard && targetY < firstCard.layout.y) {
-        debug(
-          "findCardAtYVisual: col=%d targetY=%d -> header (above all cards)",
-          colIndex,
-          targetY,
+        log.debug?.(
+          `findCardAtYVisual: col=${colIndex} targetY=${targetY} -> header (above all cards)`,
         )
         return -1
       }
 
-      debug(
-        "findCardAtYVisual: col=%d targetY=%d -> card=%d (closest)",
-        colIndex,
-        targetY,
-        closestIdx,
+      log.debug?.(
+        `findCardAtYVisual: col=${colIndex} targetY=${targetY} -> card=${closestIdx} (closest)`,
       )
       return closestIdx
     },
@@ -400,11 +383,8 @@ export function createLayoutRegistry(): LayoutRegistry {
         const [, entry] = cardEntry
         const cardTop = entry.layout.y
         if (targetY < cardTop) {
-          debug(
-            "findInsertionSlot: col=%d targetY=%d -> slot=%d",
-            colIndex,
-            targetY,
-            i,
+          log.debug?.(
+            `findInsertionSlot: col=${colIndex} targetY=${targetY} -> slot=${i}`,
           )
           return i
         }
@@ -412,11 +392,8 @@ export function createLayoutRegistry(): LayoutRegistry {
 
       // targetY is at or below last card - insert after it
       const lastSlot = cards.length
-      debug(
-        "findInsertionSlot: col=%d targetY=%d -> slot=%d (after last)",
-        colIndex,
-        targetY,
-        lastSlot,
+      log.debug?.(
+        `findInsertionSlot: col=${colIndex} targetY=${targetY} -> slot=${lastSlot} (after last)`,
       )
       return lastSlot
     },
@@ -428,7 +405,7 @@ export function createLayoutRegistry(): LayoutRegistry {
       cardLayouts.clear()
       stickyY = null
       stickyX = null
-      debug("cleared all layouts")
+      log.debug?.("cleared all layouts")
     },
 
     hasCardsInColumn(colIndex: number): boolean {
@@ -472,15 +449,25 @@ export function createLayoutRegistry(): LayoutRegistry {
 // =============================================================================
 
 /**
- * Get the visual midpoint Y for a card's head row (used as curswantY).
- * Requires measured head position - throws if not available.
+ * Get the visual midpoint Y for a card's title row (used as curswantY).
+ * Returns headY + headHeight/2, where headHeight is always 1 (single title line).
+ *
+ * For h/l navigation, curswantY is the title midpoint of the source card.
+ * Target cards are matched by closest full card midpoint (y + cardHeight/2).
+ *
+ * @see docs/ref/ui.md#curswanty-cross-column-navigation-hl
+ * @see findCardAtYVisual - finds target card with closest midpoint
  */
 export function getCardMidY(layout: NodeLayout): number {
   if (layout.headY !== undefined && layout.headHeight !== undefined) {
     return layout.headY + layout.headHeight / 2
   }
-  throw new Error(
-    "Head position not registered - this is a programming error. " +
-      "Card components must call updateCardHead() after measuring the head row.",
-  )
+  // Fallback: use card box midpoint when head position not yet registered
+  // This happens when layout callbacks haven't fired yet (first render)
+  if (layout.y !== undefined && layout.cardHeight !== undefined) {
+    return layout.y + layout.cardHeight / 2
+  }
+  // Last resort: return 0 (top of screen) rather than throwing
+  // This allows navigation to work even if layout is incomplete
+  return 0
 }

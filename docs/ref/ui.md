@@ -540,19 +540,21 @@ When navigating between board level and column level with j/k:
 
 #### curswantY: Cross-Column Navigation (h/l)
 
-Uses visual Y coordinates based on card bounding boxes.
+Uses visual Y coordinates to maintain cursor position across columns.
 
 **On first h/l move:**
 
-- Calculate `curswantY` = vertical midpoint of current card's head box
+- Calculate `curswantY` = vertical midpoint of current card's **title row** (`headY + headHeight/2`)
+- Title row is always 1 line high, so `curswantY` is near the top of the card
 
 **On subsequent h/l moves:**
 
-- Find the card in target column whose **card box** intersects curswantY
-- If no intersection, find the card closest to curswantY
-- May land on column header if curswantY is above all cards
+- Find the card in target column whose **card midpoint** (`y + cardHeight/2`) is closest to `curswantY`
+- May land on column header if `curswantY` is above all cards
 
 **Cleared by:** j/k navigation, zoom, explicit navigation
+
+**Implementation:** See [`getCardMidY()`](../../apps/km-tui/src/card-positions.ts) and [`findCardAtYVisual()`](../../apps/km-tui/src/card-positions.ts).
 
 #### Insertion Slots for Card Shifting (Alt+h/l)
 
@@ -583,17 +585,22 @@ Column A                    Column B
 │ ● Header  │               │ ● Header  │
 ├───────────┤               ├───────────┤
 │ ╭───────╮ │               │ ╭───────╮ │
-│ │●Card 0│ │               │ │●Card 0│ │
-│ │ -sub  │ │               │ │ -sub  │ │
-│ │ -sub  │ │               │ │ -sub  │ │
+│ │●Card 0│◄├── curswantY ──┼─│●Card 0│◄├── lands here
+│ │ -sub  │ │   (title mid) │ ╰───────╯ │   (closest midpoint)
+│ │ -sub  │ │               │ ╭───────╮ │
+│ ╰───────╯ │               │ │●Card 1│ │
+│ ╭───────╮ │               │ │ -sub  │ │
+│ │●Card 1│ │               │ │ -sub  │ │
 │ ╰───────╯ │               │ │ -sub  │ │
 │ ╭───────╮ │               │ ╰───────╯ │
-│ │●Card 1│◄├── curswantY ──┼───────────┤
-│ ╰───────╯ │   (head mid)  │ ╭───────╮ │
-│ ╭───────╮ │               │ │●Card 1│◄├── lands here
-│ │●Card 2│ │               │ ╰───────╯ │   (card box intersects)
+│ │●Card 2│ │               │           │
 │ ╰───────╯ │               │           │
 ```
+
+When cursor is on Card 0 in Column A and pressing `l`:
+- `curswantY` = title midpoint of Card 0 (~row 4)
+- In Column B, Card 0's midpoint is closest to row 4
+- Result: cursor lands on Card 0 in Column B
 
 See bead km-a6ti for implementation details.
 

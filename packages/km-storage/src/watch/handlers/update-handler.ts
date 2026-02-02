@@ -6,7 +6,7 @@
  * - Pre-parsed content (from parallel parsing pipeline)
  */
 
-import createDebug from "debug"
+import { createConditionalLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import {
@@ -32,7 +32,7 @@ import type { ParseResult } from "../../parse-pool.ts"
 import type { ReconcileContext } from "./create-handler.ts"
 import { diffNodes } from "./node-differ.ts"
 
-const debug = createDebug("km:storage:watch:reconcile")
+const log = createConditionalLogger("km:storage:watch:reconcile")
 
 /**
  * Options for update handler
@@ -109,10 +109,8 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   // Get existing nodes for this file
   const existingNodes = getFileWithChildren(db, op.path)
 
-  debug(
-    "handleUpdate: existing nodes count=%d, new nodes count=%d",
-    existingNodes.length,
-    newNodes.length,
+  log.debug?.(
+    `handleUpdate: existing nodes count=${existingNodes.length}, new nodes count=${newNodes.length}`,
   )
 
   // Diff and emit changes

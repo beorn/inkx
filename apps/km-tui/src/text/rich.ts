@@ -11,7 +11,7 @@
  * - `stripAnsi(styled)` - remove all ANSI escape codes
  */
 
-import { createTerm, stripAnsi, ANSI_REGEX, type StyleChain } from "inkx"
+import { createTerm, stripAnsi, type StyleChain } from "inkx"
 import { dashedUnderline } from "chalkx"
 import stringWidth from "string-width"
 
@@ -28,7 +28,7 @@ function createTermStyle(): StyleChain {
 // ============================================================================
 
 // Re-export ANSI utilities from inkx (canonical implementation)
-export { stripAnsi, ANSI_REGEX }
+export { stripAnsi }
 
 /**
  * Get the display length of a string, excluding ANSI escape codes.
