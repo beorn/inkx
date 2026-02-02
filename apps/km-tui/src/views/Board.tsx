@@ -351,6 +351,7 @@ export function BoardCore({
                   position="absolute"
                   marginLeft={Math.floor(termWidth / 4)}
                   marginTop={Math.floor(contentHeight / 2)}
+                  data-dialog="project-picker"
                 >
                   <ProjectPicker
                     onSelect={dialogHandlers.handleProjectSelect}
@@ -367,6 +368,7 @@ export function BoardCore({
                   position="absolute"
                   marginLeft={Math.floor(termWidth / 4)}
                   marginTop={Math.floor(contentHeight / 3)}
+                  data-dialog="new-item"
                 >
                   <NewItemDialog
                     cursorNode={selectedCard?.node ?? null}
@@ -383,6 +385,7 @@ export function BoardCore({
                   position="absolute"
                   marginLeft={Math.floor(termWidth / 4)}
                   marginTop={Math.floor(contentHeight / 4)}
+                  data-dialog="search"
                 >
                   <SearchDialog
                     onSelect={dialogHandlers.handleSearchSelect}

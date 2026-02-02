@@ -3,9 +3,7 @@
  *
  * Verifies that exactly one cursor element exists across all view modes.
  * Bug discovered via /explore - COLUMNS, LIST, TABS modes had 2 cursor elements.
- *
- * Skipped tests: Known bug - multiple cursors in non-CARDS views
- * See bead km-nk11 for tracking.
+ * Fixed by removing redundant data-cursor from CardLayoutTracker.
  */
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
@@ -26,7 +24,7 @@ describe("view mode cursor consistency", () => {
     expect(cursorCount).toBe(1)
   })
 
-  test.skip("should have exactly 1 cursor in COLUMNS view", () => {
+  test("should have exactly 1 cursor in COLUMNS view", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -41,7 +39,7 @@ describe("view mode cursor consistency", () => {
     expect(cursorCount).toBe(1)
   })
 
-  test.skip("should have exactly 1 cursor in LIST view", () => {
+  test("should have exactly 1 cursor in LIST view", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -56,7 +54,7 @@ describe("view mode cursor consistency", () => {
     expect(cursorCount).toBe(1)
   })
 
-  test.skip("should have exactly 1 cursor in TABS view", () => {
+  test("should have exactly 1 cursor in TABS view", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -71,7 +69,7 @@ describe("view mode cursor consistency", () => {
     expect(cursorCount).toBe(1)
   })
 
-  test.skip("should maintain single cursor after switching view modes", () => {
+  test("should maintain single cursor after switching view modes", () => {
     const { board } = testEnv(() =>
       item(
         "board",

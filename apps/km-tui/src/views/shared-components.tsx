@@ -147,7 +147,7 @@ function CardLayoutTracker({
       flexDirection="column"
       id={nodeId}
       data-view="card"
-      {...(isSelected && { "data-cursor": true })}
+      // Note: data-cursor is set by TreeNode, not here, to avoid duplicates
     >
       {children}
     </Box>

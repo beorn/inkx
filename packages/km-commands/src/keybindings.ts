@@ -173,6 +173,7 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "q", commandId: "quit" },
   { key: "n", commandId: "new_item" },
   { key: "p", commandId: "project_picker" },
+  { key: "/", commandId: "search" },
 
   // Favorites (1-9) - jump to favorite boards
   { key: "1", commandId: "favorite_1" },

@@ -68,6 +68,7 @@ interface State {
   breadcrumb: string | null
   bell: boolean
   text: string
+  inDialog: boolean
 }
 
 interface Board {
@@ -86,6 +87,8 @@ function getState(board: Board): State {
   const cursor = board.q("[data-cursor]")
   const viewMatch = text.match(/(CARDS|LIST|COLUMNS|TABS) VIEW/)
   const breadcrumbMatch = text.match(/📁 \/ ([^\n]+)/)
+  // Check for dialogs via DOM attribute (search, help, new-item, project-picker)
+  const inDialog = board.q("[data-dialog]").count() > 0
 
   return {
     cursorCount: cursor.count(),
@@ -94,6 +97,7 @@ function getState(board: Board): State {
     breadcrumb: breadcrumbMatch ? breadcrumbMatch[1].trim() : null,
     bell: board.bell,
     text,
+    inDialog,
   }
 }
 
@@ -108,11 +112,7 @@ function verifyDomInvariants(
   issues: Issue[]
 ): void {
   // Check cursor count (should be exactly 1, except in dialogs)
-  const inDialog =
-    state.text.includes("Search:") ||
-    state.text.includes("New item:") ||
-    state.text.includes("HELP")
-  if (!inDialog) {
+  if (!state.inDialog) {
     if (state.cursorCount === 0) {
       issues.push({
         iteration,
@@ -177,6 +177,9 @@ function verifyExpectedOutcome(
   // Skip if bell rang (boundary condition)
   if (after.bell) return
 
+  // Skip outcome checks when in a dialog (keys go to dialog, not board)
+  if (after.inDialog) return
+
   switch (action) {
     case "j":
     case "k":
@@ -196,8 +199,8 @@ function verifyExpectedOutcome(
       break
 
     case "v":
-      // View mode MUST change
-      if (before.viewMode === after.viewMode) {
+      // View mode MUST change (unless we were in a dialog before)
+      if (!before.inDialog && before.viewMode === after.viewMode) {
         issues.push({
           iteration,
           action,
