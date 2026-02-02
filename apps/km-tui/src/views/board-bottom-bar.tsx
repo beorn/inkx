@@ -123,36 +123,26 @@ export function BottomBar({
     }
   }
 
-  // Right side info (always visible)
-  // DB/files/watcher status as one group (single space), other items with double space
-  const dbCount = nodeCount
-  // Show spinner when syncing/loading
-  const spinnerPrefix = isLoading ? `${spinnerFrame} ` : ""
+  // Right side info - build string for width calculation
   const watcherInfo = ui.watcherStatus
-    ? ` ${spinnerPrefix}${renderWatcherStatus(ui.watcherStatus)}`
+    ? ` ${isLoading ? `${spinnerFrame} ` : ""}${renderWatcherStatus(ui.watcherStatus)}`
     : ""
-  // 📋 = clipboard for records/nodes, 📄 = file for watched files
-  const dbFilesGroup = `📋${dbCount}${watcherInfo}`
-
-  const rightParts: string[] = [dbFilesGroup]
-  // Show column position (only meaningful in columns view)
-  if (ui.viewMode === "columns" && state.columns.length > 1) {
-    rightParts.push(`col ${layout.colIndex + 1}/${state.columns.length}`)
-  }
-  // Always show view mode with VIEW suffix
   const viewModeStr = (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW"
-  rightParts.push(viewModeStr)
+  const showColPosition = ui.viewMode === "columns" && state.columns.length > 1
+  const colPosStr = showColPosition
+    ? `   col ${layout.colIndex + 1}/${state.columns.length}`
+    : ""
 
-  // Left side: storage mode + folder icon + path
-  // 📁 = folder icon for repo path
-  const modeLabel = storageMode === "memory" ? "MEM" : "DISK"
-  const middle = statusParts.join("  ") // Double space between status parts
-  const right = ` ${rightParts.join("   ")} ` // Triple space between groups
-
-  // Calculate widths: right side is fixed, left gets remaining space
-  // Use displayWidth for emoji (📋 is 2 display columns but 1 in .length)
-  const rightWidth = displayWidth(right)
+  // Calculate right side width using displayWidth (handles emoji correctly)
+  // This is necessary because inkx/flexx doesn't properly handle flexGrow={1}/flexGrow={0}
+  // sibling layout - the left side expands and squeezes the right side
+  const rightStr = ` 📋${nodeCount}${watcherInfo}${colPosStr}   ${viewModeStr} `
+  const rightWidth = displayWidth(rightStr)
   const leftWidth = Math.max(1, termWidth - rightWidth)
+
+  // Left side info
+  const modeLabel = storageMode === "memory" ? "MEM" : "DISK"
+  const middle = statusParts.join("  ")
   return (
     <Box
       flexDirection="row"
@@ -161,6 +151,7 @@ export function BottomBar({
       id="bottom-bar"
       data-status={ui.status?.level}
     >
+      {/* Left side: explicit width, truncates overflow */}
       <Box
         width={leftWidth}
         flexGrow={0}
@@ -168,7 +159,6 @@ export function BottomBar({
         flexDirection="row"
         overflow="hidden"
       >
-        {/* Storage mode indicator */}
         <Text dimColor id="storage-mode">
           {modeLabel}
         </Text>
@@ -185,13 +175,13 @@ export function BottomBar({
           </>
         )}
       </Box>
+      {/* Right side: explicit width, nested Text for testable IDs */}
       <Box width={rightWidth} flexGrow={0} flexShrink={0}>
-        {/* Nested Text for testable IDs - idiomatic inkx pattern */}
         <Text dimColor>
           {" "}
-          <Text id="node-count">📋{dbCount}</Text>
+          <Text id="node-count">📋{nodeCount}</Text>
           {watcherInfo && <Text id="watcher-status">{watcherInfo}</Text>}
-          {ui.viewMode === "columns" && state.columns.length > 1 && (
+          {showColPosition && (
             <>
               {"   "}
               <Text id="column-position">
@@ -200,7 +190,8 @@ export function BottomBar({
             </>
           )}
           {"   "}
-          <Text id="view-mode">{viewModeStr}</Text>{" "}
+          <Text id="view-mode">{viewModeStr}</Text>
+          {" "}
         </Text>
       </Box>
     </Box>
