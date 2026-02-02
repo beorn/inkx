@@ -4,7 +4,14 @@
  * Uses inkx overflow="scroll" for native scrolling support.
  * Implements React-level virtualization for large card lists.
  */
-import React, { useCallback, useMemo, useRef } from "react"
+import React, {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import createDebug from "debug"
 import { useRepo } from "../repo-context.tsx"
 import { Box, Text, useScreenRectCallback } from "inkx"
@@ -250,6 +257,10 @@ function calcEdgeBasedScrollOffset(
 // Virtualized Card List Component
 // =============================================================================
 
+export interface VirtualizedCardListHandle {
+  scrollToItem(index: number): void
+}
+
 interface VirtualizedCardListProps {
   cards: CardState[]
   selectedCardIndex: number
@@ -273,20 +284,39 @@ interface VirtualizedCardListProps {
  * 3. Uses placeholder elements to maintain scroll position
  * 4. Uses edge-based scrolling (only scrolls when cursor approaches edge)
  */
-function VirtualizedCardList({
-  cards,
-  selectedCardIndex,
-  selectedSubIndex,
-  isSelected,
-  selectionLevel,
-  width,
-  height,
-  colIndex,
-  isVirtualColumn,
-}: VirtualizedCardListProps): React.ReactElement {
+const VirtualizedCardList = forwardRef<
+  VirtualizedCardListHandle,
+  VirtualizedCardListProps
+>(function VirtualizedCardList(
+  {
+    cards,
+    selectedCardIndex,
+    selectedSubIndex,
+    isSelected,
+    selectionLevel,
+    width,
+    height,
+    colIndex,
+    isVirtualColumn,
+  },
+  ref,
+): React.ReactElement {
   // Track scroll offset for edge-based scrolling
   // Using ref to persist across renders without causing re-renders
   const scrollOffsetRef = useRef(0)
+  // Counter to force re-render when scrollToItem is called
+  const [, setRenderCount] = useState(0)
+
+  // Expose scrollToItem via ref
+  useImperativeHandle(ref, () => ({
+    scrollToItem(index: number) {
+      scrollOffsetRef.current = Math.max(
+        0,
+        Math.min(index, Math.max(0, cards.length - 1)),
+      )
+      setRenderCount((c) => c + 1)
+    },
+  }))
 
   // Calculate how many cards fit in the viewport
   const visibleCardCount = Math.max(
@@ -415,7 +445,7 @@ function VirtualizedCardList({
       )}
     </Box>
   )
-}
+})
 
 // =============================================================================
 // Column Component

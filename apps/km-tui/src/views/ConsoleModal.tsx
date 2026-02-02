@@ -4,11 +4,15 @@
  * Displays debug/log output in a scrollable overlay.
  * Auto-opens on first output, can be toggled with backtick.
  */
-import React from "react"
+import React, { forwardRef, useImperativeHandle } from "react"
 import { Box, ErrorBoundary, Text, useConsole, type PatchedConsole } from "inkx"
 import { ModalDialog } from "./shared-components.tsx"
 
 const MAX_LINES = 100
+
+export interface ConsoleModalHandle {
+  scrollToBottom(): void
+}
 
 interface ConsoleModalProps {
   width: number
@@ -16,68 +20,74 @@ interface ConsoleModalProps {
   patchedConsole: PatchedConsole
 }
 
-export function ConsoleModal({
-  width,
-  height,
-  patchedConsole,
-}: ConsoleModalProps) {
-  const entries = useConsole(patchedConsole)
+export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(
+  function ConsoleModal({ width, height, patchedConsole }, ref) {
+    const entries = useConsole(patchedConsole)
 
-  // Take last MAX_LINES entries
-  const visibleEntries = entries.slice(-MAX_LINES)
+    // Expose imperative handle for parent components
+    useImperativeHandle(ref, () => ({
+      scrollToBottom() {
+        // No-op for now - inkx Box doesn't expose imperative scroll yet
+        // Documents the intent for future implementation
+      },
+    }))
 
-  // Calculate dimensions
-  const boxWidth = Math.max(40, Math.min(width - 4, 120))
-  const boxHeight = Math.max(10, height - 4)
-  const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2))
-  const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2))
+    // Take last MAX_LINES entries
+    const visibleEntries = entries.slice(-MAX_LINES)
 
-  // Content height for scrolling (subtract header/footer)
-  const contentHeight = boxHeight - 4
+    // Calculate dimensions
+    const boxWidth = Math.max(40, Math.min(width - 4, 120))
+    const boxHeight = Math.max(10, height - 4)
+    const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2))
+    const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2))
 
-  return (
-    <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop}>
-      <ModalDialog borderColor="gray" width={boxWidth}>
-        {/* Header */}
-        <Box justifyContent="space-between" width={boxWidth - 4}>
-          <Text color="gray" bold>
-            Console
-          </Text>
-          <Text dimColor>
-            {entries.length} entries (showing last {MAX_LINES})
-          </Text>
-        </Box>
+    // Content height for scrolling (subtract header/footer)
+    const contentHeight = boxHeight - 4
 
-        {/* Scrollable content */}
-        <Box
-          flexDirection="column"
-          height={contentHeight}
-          overflow="scroll"
-          paddingX={1}
-        >
-          <ErrorBoundary fallback={<Text color="red">Console error</Text>}>
-            {visibleEntries.length === 0 ? (
-              <Text dimColor>No console output yet</Text>
-            ) : (
-              visibleEntries.map((entry, i) => (
-                <Text
-                  key={i}
-                  color={getColorForMethod(entry.method)}
-                  wrap="truncate"
-                >
-                  {formatEntry(entry)}
-                </Text>
-              ))
-            )}
-          </ErrorBoundary>
-        </Box>
+    return (
+      <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop}>
+        <ModalDialog borderColor="gray" width={boxWidth}>
+          {/* Header */}
+          <Box justifyContent="space-between" width={boxWidth - 4}>
+            <Text color="gray" bold>
+              Console
+            </Text>
+            <Text dimColor>
+              {entries.length} entries (showing last {MAX_LINES})
+            </Text>
+          </Box>
 
-        {/* Footer */}
-        <Text dimColor>Press ` or Esc to close</Text>
-      </ModalDialog>
-    </Box>
-  )
-}
+          {/* Scrollable content */}
+          <Box
+            flexDirection="column"
+            height={contentHeight}
+            overflow="scroll"
+            paddingX={1}
+          >
+            <ErrorBoundary fallback={<Text color="red">Console error</Text>}>
+              {visibleEntries.length === 0 ? (
+                <Text dimColor>No console output yet</Text>
+              ) : (
+                visibleEntries.map((entry, i) => (
+                  <Text
+                    key={i}
+                    color={getColorForMethod(entry.method)}
+                    wrap="truncate"
+                  >
+                    {formatEntry(entry)}
+                  </Text>
+                ))
+              )}
+            </ErrorBoundary>
+          </Box>
+
+          {/* Footer */}
+          <Text dimColor>Press ` or Esc to close</Text>
+        </ModalDialog>
+      </Box>
+    )
+  },
+)
 
 function getColorForMethod(method: string): string {
   switch (method) {
