@@ -693,7 +693,7 @@ class BoardTestImpl implements BoardTest {
 
       inColumn(title: string): BoardTest {
         // Find the column by its title text
-        const column = self.currentLocator.getByText(title)
+        const column = self.result.getByText(title)
         expect(column.count()).toBeGreaterThan(0)
 
         const colBox = column.boundingBox()
@@ -711,7 +711,7 @@ class BoardTestImpl implements BoardTest {
       },
 
       toBeLeftOf(testId: string): BoardTest {
-        const other = self.currentLocator.getByTestId(testId)
+        const other = self.result.getByTestId(testId)
         const textBox = element.boundingBox()
         const otherBox = other.boundingBox()
 
@@ -726,7 +726,7 @@ class BoardTestImpl implements BoardTest {
       },
 
       toBeRightOf(testId: string): BoardTest {
-        const other = self.currentLocator.getByTestId(testId)
+        const other = self.result.getByTestId(testId)
         const textBox = element.boundingBox()
         const otherBox = other.boundingBox()
 
@@ -741,7 +741,7 @@ class BoardTestImpl implements BoardTest {
       },
 
       toBeAbove(testId: string): BoardTest {
-        const other = self.currentLocator.getByTestId(testId)
+        const other = self.result.getByTestId(testId)
         const textBox = element.boundingBox()
         const otherBox = other.boundingBox()
 
@@ -756,7 +756,7 @@ class BoardTestImpl implements BoardTest {
       },
 
       toBeBelow(testId: string): BoardTest {
-        const other = self.currentLocator.getByTestId(testId)
+        const other = self.result.getByTestId(testId)
         const textBox = element.boundingBox()
         const otherBox = other.boundingBox()
 

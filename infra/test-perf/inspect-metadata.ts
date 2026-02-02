@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+// @ts-nocheck - Utility script for inspecting metadata structure, strict typing not needed
 /**
  * Quick script to inspect the vitest metadata structure
  */
@@ -9,7 +10,8 @@ import { readFileSync } from "fs"
 const compressed = readFileSync("test-results/html.meta.json.gz")
 const decompressed = gunzipSync(compressed)
 const text = new TextDecoder().decode(decompressed)
-const metadata = JSON.parse(text)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const metadata = JSON.parse(text) as any[]
 
 console.log(
   "Top-level type:",

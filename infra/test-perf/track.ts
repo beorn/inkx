@@ -44,6 +44,15 @@ interface PerformanceData {
   avgTimePerFile: number
 }
 
+/** Vitest metadata indexed object with string indices pointing to other array elements */
+interface MetadataObject {
+  name?: string | number
+  files?: string | number
+  result?: string | number
+  tasks?: string | number
+  duration?: number
+}
+
 // ============================================================================
 // Configuration
 // ============================================================================
@@ -124,7 +133,7 @@ function extractPerformanceData(metadata: unknown): PerformanceData {
   }
 
   // Root object at index 0
-  const root = metadata[0]
+  const root = metadata[0] as MetadataObject | undefined
   if (!root || typeof root !== "object") {
     throw new Error("Invalid root object")
   }
@@ -136,15 +145,15 @@ function extractPerformanceData(metadata: unknown): PerformanceData {
   }
 
   // Process each file
-  for (const fileIdxStr of filesArray) {
-    const file = deref(metadata, fileIdxStr)
+  for (const fileIdxStr of filesArray as (string | number)[]) {
+    const file = deref(metadata, fileIdxStr) as MetadataObject | undefined
     if (!file || typeof file !== "object") continue
 
     // Dereference file name
-    const name = deref(metadata, file.name) || "unknown"
+    const name = (deref(metadata, file.name) as string | undefined) || "unknown"
 
     // Get duration from result object
-    const result = deref(metadata, file.result)
+    const result = deref(metadata, file.result) as MetadataObject | undefined
     const duration = result?.duration || 0
 
     // Get task count
@@ -227,7 +236,7 @@ function loadHistory(): PerformanceData[] {
       .trim()
       .split("\n")
       .filter((line) => line.length > 0)
-      .map((line) => JSON.parse(line))
+      .map((line) => JSON.parse(line) as PerformanceData)
   } catch (error) {
     console.error(`⚠️  Failed to load history: ${error}`)
     return []
@@ -255,7 +264,7 @@ function showSummary(
 
   // Compare against previous run
   if (history.length > 1) {
-    const previous = history[history.length - 2]
+    const previous = history[history.length - 2]!
     const timeDiff = current.totalTime - previous.totalTime
     const percentDiff = (timeDiff / previous.totalTime) * 100
 

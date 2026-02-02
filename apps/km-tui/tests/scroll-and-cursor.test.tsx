@@ -27,10 +27,10 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
 
       // The current card should be visible in the text output
       const screenshot = board.screenshot()
-      expect(screenshot).toContain(
-        `card${i}`,
+      expect(
+        screenshot,
         `card${i} should be visible after navigating down`,
-      )
+      ).toContain(`card${i}`)
     }
   })
 

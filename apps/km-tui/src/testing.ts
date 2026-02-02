@@ -30,7 +30,8 @@
 
 import React from "react"
 import { createTestRenderer, bufferToStyledText } from "inkx/testing"
-import type { AutoLocator } from "inkx/testing"
+import type { AutoLocator, FilterOptions } from "inkx/testing"
+import type { InkxNode } from "inkx"
 import type { KNode } from "@km/core"
 import type { Repo } from "@km/storage"
 import type { TUIBoardState } from "./types.ts"
@@ -239,8 +240,13 @@ export async function createBoardTest(
     isVisible() {
       return app.locator("*").isVisible()
     },
-    filter(optionsOrPredicate: Parameters<AutoLocator["filter"]>[0]) {
-      return app.locator("*").filter(optionsOrPredicate)
+    filter(optionsOrPredicate: FilterOptions | ((node: InkxNode) => boolean)) {
+      const loc = app.locator("*")
+      // Use overload-compatible call: either FilterOptions or predicate
+      if (typeof optionsOrPredicate === "function") {
+        return loc.filter(optionsOrPredicate)
+      }
+      return loc.filter(optionsOrPredicate)
     },
 
     // Visual capture
