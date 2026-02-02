@@ -160,7 +160,9 @@ export async function runBoard(
   // Patch console for interactive mode to capture output
   // suppress: true prevents original console methods from writing to terminal
   // (we want output only in the Console component, not echoed to stdout)
-  const patched = isInteractive ? patchConsole(console, { suppress: true }) : null
+  const patched = isInteractive
+    ? patchConsole(console, { suppress: true })
+    : null
 
   try {
     // Stop CLI spinner - TUI is about to take over the screen

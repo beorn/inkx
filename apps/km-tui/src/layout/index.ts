@@ -28,7 +28,6 @@ export {
   constrainText,
   displayLength,
   calcScrollOffset,
-  ANSI_REGEX,
 } from "./factory.tsx"
 
 // Path rendering (km-ink specific)

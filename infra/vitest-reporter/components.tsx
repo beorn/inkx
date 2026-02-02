@@ -76,16 +76,14 @@ export function Header({ version, cwd }: HeaderProps): ReactElement {
   return (
     <Box flexDirection="column">
       <Text>
-        {term.bold.inverse.cyan(" RUN ")}{" "}
-        {term.cyan(`v${version}`)} {term.dim(cwd)}
+        {term.bold.inverse.cyan(" RUN ")} {term.cyan(`v${version}`)}{" "}
+        {term.dim(cwd)}
       </Text>
       <Text>
-        {term.dim("Legend:")} {term.green(sym.pass)}{" "}
-        {term.dim("pass")} {term.green(sym.slow2x)}{" "}
-        {term.dim("slow")} {term.red(sym.fail)}{" "}
-        {term.dim("fail")} {term.magenta(sym.noisy)}{" "}
-        {term.dim("noisy")} {term.gray(sym.skip)}{" "}
-        {term.dim("skip")}
+        {term.dim("Legend:")} {term.green(sym.pass)} {term.dim("pass")}{" "}
+        {term.green(sym.slow2x)} {term.dim("slow")} {term.red(sym.fail)}{" "}
+        {term.dim("fail")} {term.magenta(sym.noisy)} {term.dim("noisy")}{" "}
+        {term.gray(sym.skip)} {term.dim("skip")}
       </Text>
       <Text> </Text>
     </Box>
@@ -309,8 +307,9 @@ export function StatsTable({
   }
 
   const nameWidth = Math.max(...categories.map((c) => c.length), 12)
-  const header = term
-        .bold(`${"PACKAGE".padEnd(nameWidth)}  TESTS     TIME   SLOW`)
+  const header = term.bold(
+    `${"PACKAGE".padEnd(nameWidth)}  TESTS     TIME   SLOW`,
+  )
 
   const rows: string[] = []
   for (const category of categories) {
@@ -324,8 +323,7 @@ export function StatsTable({
     const slow =
       stats.slowCount > 0 ? stats.slowCount.toString().padStart(6) : "     -"
 
-    const nameText =
-      stats.failed > 0 ? term.red(name) : term.dim(name)
+    const nameText = stats.failed > 0 ? term.red(name) : term.dim(name)
     rows.push(`${nameText}  ${tests}  ${time}  ${slow}`)
   }
 

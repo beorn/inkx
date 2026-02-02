@@ -14,47 +14,47 @@
  * See: docs/00-principles.md
  */
 
-import { Database } from "bun:sqlite";
-import createDebug from "debug";
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs";
-import { basename, dirname, join } from "path";
+import { Database } from "bun:sqlite"
+import createDebug from "debug"
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs"
+import { basename, dirname, join } from "path"
 
-import type { KNode, TaskStatus } from "@km/core";
-import type { Config } from "./config-object.ts";
-import { loadConfigObject } from "./config-object.ts";
-import type { DataStore, HasDatabase } from "./data-store.ts";
-import { createDBDataStore } from "./data-store.ts";
+import type { KNode, TaskStatus } from "@km/core"
+import type { Config } from "./config-object.ts"
+import { loadConfigObject } from "./config-object.ts"
+import type { DataStore, HasDatabase } from "./data-store.ts"
+import { createDBDataStore } from "./data-store.ts"
 import {
   getBacklinks as dbGetBacklinks,
   getOutgoingLinks as dbGetOutgoingLinks,
   type Link,
-} from "./db-links.ts";
-import { resolveNode as dbResolveNode } from "./db-queries/smart-resolver.ts";
+} from "./db-links.ts"
+import { resolveNode as dbResolveNode } from "./db-queries/smart-resolver.ts"
 import {
   getAllTasks as dbGetAllTasks,
   getLinksTo as dbGetLinksTo,
   getTasksByStatus as dbGetTasksByStatus,
-} from "./db-queries/task-queries.ts";
+} from "./db-queries/task-queries.ts"
 import {
   getAncestors as dbGetAncestors,
   getChildCountsBatch as dbGetChildCountsBatch,
   getSubtree as dbGetSubtree,
-} from "./db-queries/tree-traversal.ts";
-import { createEmitter, type Emitter } from "./emitter.ts";
-import type { FileTree } from "./file-tree.ts";
-import { createDiskFileTree } from "./file-tree.ts";
-import { executeQuery, parseQuery } from "./query.ts";
-import { type MutationContext, type RepoHooks } from "./repo-hooks.ts";
+} from "./db-queries/tree-traversal.ts"
+import { createEmitter, type Emitter } from "./emitter.ts"
+import type { FileTree } from "./file-tree.ts"
+import { createDiskFileTree } from "./file-tree.ts"
+import { executeQuery, parseQuery } from "./query.ts"
+import { type MutationContext, type RepoHooks } from "./repo-hooks.ts"
 import {
   loadRepo,
   type DeferredFile,
   type LoadError,
   type StepYield,
-} from "./repo-loader.ts";
-import { SCHEMA } from "./schema.ts";
-import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts";
+} from "./repo-loader.ts"
+import { SCHEMA } from "./schema.ts"
+import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 
-const debug = createDebug("km:storage:repo");
+const debug = createDebug("km:storage:repo")
 
 // =============================================================================
 // Shared Method Factories
@@ -62,81 +62,81 @@ const debug = createDebug("km:storage:repo");
 
 /** Dependencies for creating repo methods */
 interface RepoMethodDeps {
-  db: Database;
-  dataStore: DataStore;
-  hooks?: RepoHooks;
-  ensureOpen: () => void;
+  db: Database
+  dataStore: DataStore
+  hooks?: RepoHooks
+  ensureOpen: () => void
 }
 
 /** Create query methods shared by createRepo and createBareRepo */
 function createQueryMethods(deps: RepoMethodDeps) {
-  const { db, dataStore, ensureOpen } = deps;
+  const { db, dataStore, ensureOpen } = deps
   return {
     getNode(id: string) {
-      ensureOpen();
-      return dataStore.getNode(id);
+      ensureOpen()
+      return dataStore.getNode(id)
     },
     getChildren(parentId: string | null) {
-      ensureOpen();
-      return dataStore.getChildren(parentId);
+      ensureOpen()
+      return dataStore.getChildren(parentId)
     },
     getSubtree(nodeId: string) {
-      ensureOpen();
-      return dbGetSubtree(db, nodeId);
+      ensureOpen()
+      return dbGetSubtree(db, nodeId)
     },
     getAncestors(nodeId: string) {
-      ensureOpen();
-      return dbGetAncestors(db, nodeId);
+      ensureOpen()
+      return dbGetAncestors(db, nodeId)
     },
     getAllTasks() {
-      ensureOpen();
-      return dbGetAllTasks(db);
+      ensureOpen()
+      return dbGetAllTasks(db)
     },
     getTasksByStatus(status: TaskStatus) {
-      ensureOpen();
-      return dbGetTasksByStatus(db, status);
+      ensureOpen()
+      return dbGetTasksByStatus(db, status)
     },
     search(queryStr: string) {
-      ensureOpen();
-      return dataStore.search(queryStr);
+      ensureOpen()
+      return dataStore.search(queryStr)
     },
     query(expression: string) {
-      ensureOpen();
-      const ast = parseQuery(expression);
-      return executeQuery(db, ast);
+      ensureOpen()
+      const ast = parseQuery(expression)
+      return executeQuery(db, ast)
     },
     queryTasks(expression: string) {
-      ensureOpen();
-      const ast = parseQuery(expression);
-      return executeQuery(db, ast, undefined, { requireTaskStatus: true });
+      ensureOpen()
+      const ast = parseQuery(expression)
+      return executeQuery(db, ast, undefined, { requireTaskStatus: true })
     },
     getLinksTo(targetId: string) {
-      ensureOpen();
-      return dbGetLinksTo(db, targetId);
+      ensureOpen()
+      return dbGetLinksTo(db, targetId)
     },
     getOutgoingLinks(sourceId: string): Link[] {
-      ensureOpen();
-      return dbGetOutgoingLinks(db, sourceId);
+      ensureOpen()
+      return dbGetOutgoingLinks(db, sourceId)
     },
     getBacklinks(nodeId: string): Link[] {
-      ensureOpen();
-      return dbGetBacklinks(db, nodeId);
+      ensureOpen()
+      return dbGetBacklinks(db, nodeId)
     },
     resolveNode(
       queryStr: string,
       typeOrOptions?: string | { type?: string; taskOnly?: boolean },
     ) {
-      ensureOpen();
-      return dbResolveNode(db, queryStr, typeOrOptions);
+      ensureOpen()
+      return dbResolveNode(db, queryStr, typeOrOptions)
     },
     getRepoRootNode() {
-      ensureOpen();
+      ensureOpen()
       const row = db
         .prepare(
           "SELECT * FROM nodes WHERE parent_id IS NULL AND type = 'folder'",
         )
-        .get() as Record<string, unknown> | undefined;
-      if (!row) return null;
+        .get() as Record<string, unknown> | undefined
+      if (!row) return null
       // Import rowToNode inline to avoid circular dependency
       return {
         id: row.id as string,
@@ -150,90 +150,90 @@ function createQueryMethods(deps: RepoMethodDeps) {
         link_to: row.link_to as string | null,
         link_alias: row.link_alias as string | null,
         data: row.data ? (JSON.parse(row.data as string) as KNode["data"]) : {},
-      } as KNode;
+      } as KNode
     },
     getChildCounts(parentIds: string[]) {
-      ensureOpen();
-      return dbGetChildCountsBatch(db, parentIds);
+      ensureOpen()
+      return dbGetChildCountsBatch(db, parentIds)
     },
     rawQuery<T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],
     ): T[] {
-      ensureOpen();
-      const stmt = db.prepare(sql);
+      ensureOpen()
+      const stmt = db.prepare(sql)
       return (
         params
           ? stmt.all(...(params as Parameters<typeof stmt.all>))
           : stmt.all()
-      ) as T[];
+      ) as T[]
     },
-  };
+  }
 }
 
 /** Create mutation methods shared by createRepo and createBareRepo */
 function createMutationMethods(deps: RepoMethodDeps) {
-  const { dataStore, hooks, ensureOpen } = deps;
+  const { dataStore, hooks, ensureOpen } = deps
   return {
     updateNode(id: string, changes: Partial<KNode>) {
-      ensureOpen();
-      let ctx: MutationContext = { type: "update", nodeId: id, changes };
+      ensureOpen()
+      let ctx: MutationContext = { type: "update", nodeId: id, changes }
       if (hooks?.beforeMutation) {
-        const result = hooks.beforeMutation(ctx);
-        if (result?.cancel) throw new Error("Mutation cancelled by hook");
-        if (result?.context) ctx = result.context;
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
       }
-      dataStore.updateNode(ctx.nodeId, ctx.changes ?? {});
-      hooks?.afterMutation?.(ctx);
+      dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
+      hooks?.afterMutation?.(ctx)
     },
     moveNode(id: string, newParentId: string, position: number) {
-      ensureOpen();
+      ensureOpen()
       let ctx: MutationContext = {
         type: "move",
         nodeId: id,
         newParentId,
         position,
-      };
+      }
       if (hooks?.beforeMutation) {
-        const result = hooks.beforeMutation(ctx);
-        if (result?.cancel) throw new Error("Mutation cancelled by hook");
-        if (result?.context) ctx = result.context;
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
       }
       dataStore.moveNode(
         ctx.nodeId,
         ctx.newParentId ?? newParentId,
         ctx.position ?? position,
-      );
-      hooks?.afterMutation?.(ctx);
+      )
+      hooks?.afterMutation?.(ctx)
     },
     deleteNode(id: string) {
-      ensureOpen();
-      let ctx: MutationContext = { type: "delete", nodeId: id };
+      ensureOpen()
+      let ctx: MutationContext = { type: "delete", nodeId: id }
       if (hooks?.beforeMutation) {
-        const result = hooks.beforeMutation(ctx);
-        if (result?.cancel) throw new Error("Mutation cancelled by hook");
-        if (result?.context) ctx = result.context;
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
       }
-      dataStore.deleteNode(ctx.nodeId);
-      hooks?.afterMutation?.(ctx);
+      dataStore.deleteNode(ctx.nodeId)
+      hooks?.afterMutation?.(ctx)
     },
     addNode(parentId: string | null, node: Partial<KNode>) {
-      ensureOpen();
-      let ctx: MutationContext = { type: "add", nodeId: "", node };
+      ensureOpen()
+      let ctx: MutationContext = { type: "add", nodeId: "", node }
       if (hooks?.beforeMutation) {
-        const result = hooks.beforeMutation(ctx);
-        if (result?.cancel) throw new Error("Mutation cancelled by hook");
-        if (result?.context) ctx = result.context;
+        const result = hooks.beforeMutation(ctx)
+        if (result?.cancel) throw new Error("Mutation cancelled by hook")
+        if (result?.context) ctx = result.context
       }
-      const newId = dataStore.addNode(parentId, ctx.node ?? node);
-      ctx.nodeId = newId;
-      hooks?.afterMutation?.(ctx);
-      return newId;
+      const newId = dataStore.addNode(parentId, ctx.node ?? node)
+      ctx.nodeId = newId
+      hooks?.afterMutation?.(ctx)
+      return newId
     },
     cloneTask(sourceId: string, changes: Partial<KNode>) {
-      ensureOpen();
-      const source = dataStore.getNode(sourceId);
-      if (source?.type !== "task") return null;
+      ensureOpen()
+      const source = dataStore.getNode(sourceId)
+      if (source?.type !== "task") return null
 
       const clonedNode: Partial<KNode> & { type: "task"; content: string } = {
         type: "task",
@@ -251,73 +251,73 @@ function createMutationMethods(deps: RepoMethodDeps) {
           ...changes.data,
           recur_prev: sourceId,
         },
-      };
+      }
 
-      return dataStore.addNode(clonedNode.parent_id ?? null, clonedNode);
+      return dataStore.addNode(clonedNode.parent_id ?? null, clonedNode)
     },
-  };
+  }
 }
 
 /** Check if a repo at rootPath needs rebuild (disk mode helper) */
 function checkNeedsRebuild(rootPath: string, db: Database): boolean {
-  const kmDir = join(rootPath, ".km");
-  const dbPath = join(kmDir, "state.db");
-  const eventsPath = join(kmDir, "events.jsonl");
+  const kmDir = join(rootPath, ".km")
+  const dbPath = join(kmDir, "state.db")
+  const eventsPath = join(kmDir, "events.jsonl")
 
   if (!existsSync(dbPath)) {
-    debug("needsRebuild: yes (no state.db)");
-    return true;
+    debug("needsRebuild: yes (no state.db)")
+    return true
   }
 
   if (!existsSync(eventsPath)) {
-    debug("needsRebuild: no (no events.jsonl)");
-    return false;
+    debug("needsRebuild: no (no events.jsonl)")
+    return false
   }
 
   // Check if there are unapplied events
   const lastApplied = db
     .prepare("SELECT value FROM meta WHERE key = ?")
-    .get("last_event") as { value: string } | undefined;
+    .get("last_event") as { value: string } | undefined
 
-  const lastAppliedId = lastApplied?.value;
+  const lastAppliedId = lastApplied?.value
   if (!lastAppliedId) {
     const content = existsSync(eventsPath)
       ? readFileSync(eventsPath, "utf-8")
-      : "";
-    const hasEvents = content.trim().length > 0;
+      : ""
+    const hasEvents = content.trim().length > 0
     debug("needsRebuild", {
       result: hasEvents ? "yes" : "no",
       reason: "no last_event",
-    });
-    return hasEvents;
+    })
+    return hasEvents
   }
 
   // Check if events file has newer events
-  const content = readFileSync(eventsPath, "utf-8");
-  const lines = content.split("\n").filter((l: string) => l.trim());
+  const content = readFileSync(eventsPath, "utf-8")
+  const lines = content.split("\n").filter((l: string) => l.trim())
   if (lines.length === 0) {
-    debug("needsRebuild: no (no events)");
-    return false;
+    debug("needsRebuild: no (no events)")
+    return false
   }
 
-  const lastLine = lines.at(-1);
+  const lastLine = lines.at(-1)
   if (!lastLine) {
-    debug("needsRebuild: no (empty last line)");
-    return false;
+    debug("needsRebuild: no (empty last line)")
+    return false
   }
 
   try {
-    const lastEvent = JSON.parse(lastLine) as { id: string };
-    const needs = lastEvent.id > lastAppliedId;
+    const lastEvent = JSON.parse(lastLine) as { id: string }
+    const needs = lastEvent.id > lastAppliedId
     debug("needsRebuild", {
       result: needs ? "yes" : "no",
       last: lastEvent.id.slice(-8),
       applied: (lastAppliedId as string).slice(-8),
-    });
-    return needs;
+    })
+    return needs
   } catch {
-    debug("needsRebuild: yes (malformed events)");
-    return true;
+    debug("needsRebuild: yes (malformed events)")
+    return true
   }
 }
 
@@ -330,11 +330,11 @@ function checkNeedsRebuild(rootPath: string, db: Database): boolean {
  */
 export interface RepoStats {
   /** Number of nodes loaded */
-  nodeCount: number;
+  nodeCount: number
   /** Number of links resolved */
-  linkCount: number;
+  linkCount: number
   /** Time to load in milliseconds */
-  duration: number;
+  duration: number
 }
 
 /**
@@ -342,11 +342,11 @@ export interface RepoStats {
  */
 export interface SyncResult {
   /** Number of changes applied from files to data */
-  fromFiles: number;
+  fromFiles: number
   /** Number of changes applied from data to files */
-  fromData: number;
+  fromData: number
   /** Conflicts encountered during sync */
-  conflicts: SyncConflict[];
+  conflicts: SyncConflict[]
 }
 
 /**
@@ -354,11 +354,11 @@ export interface SyncResult {
  */
 export interface SyncConflict {
   /** Node ID involved in conflict */
-  nodeId: string;
+  nodeId: string
   /** Path of conflicting file */
-  path: string;
+  path: string
   /** How the conflict was resolved */
-  resolution: "files_wins" | "data_wins" | "manual";
+  resolution: "files_wins" | "data_wins" | "manual"
 }
 
 /**
@@ -380,74 +380,74 @@ export interface SyncConflict {
  */
 export interface Repo extends Disposable {
   /** Root path of the repository */
-  readonly path: string;
+  readonly path: string
 
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
-  readonly mode: "memory" | "disk";
+  readonly mode: "memory" | "disk"
 
   /** Indexed storage - always present */
-  readonly data: DataStore;
+  readonly data: DataStore
 
   /** Human-editable files - optional (null for bare repos) */
-  readonly files: FileTree | null;
+  readonly files: FileTree | null
 
   /** Configuration */
-  readonly config: Config;
+  readonly config: Config
 
   /** Raw database access (for infrastructure code) */
-  readonly database: Database;
+  readonly database: Database
 
   /** Errors encountered during file loading (empty if loadFiles was false) */
-  readonly loadErrors: LoadError[];
+  readonly loadErrors: LoadError[]
 
   /** Loading statistics (zeroed if loadFiles was false) */
-  readonly stats: RepoStats;
+  readonly stats: RepoStats
 
   /** Files pending deferred parsing (for discoverOnly mode) */
-  readonly deferredFiles: DeferredFile[];
+  readonly deferredFiles: DeferredFile[]
 
   /** Event emitter for this repo (owns kmDir, eventHub, fsSync) */
-  readonly emitter: Emitter;
+  readonly emitter: Emitter
 
   // ===========================================================================
   // Repo-compatible query methods (proxies to data store)
   // ===========================================================================
 
   /** Get a single node by ID */
-  getNode(id: string): KNode | null;
+  getNode(id: string): KNode | null
 
   /** Get children of a node (null for root) */
-  getChildren(parentId: string | null): KNode[];
+  getChildren(parentId: string | null): KNode[]
 
   /** Get full subtree under a node */
-  getSubtree(nodeId: string): KNode[];
+  getSubtree(nodeId: string): KNode[]
 
   /** Get ancestors of a node (from root to parent) */
-  getAncestors(nodeId: string): KNode[];
+  getAncestors(nodeId: string): KNode[]
 
   /** Get all tasks */
-  getAllTasks(): KNode[];
+  getAllTasks(): KNode[]
 
   /** Get tasks by status */
-  getTasksByStatus(status: TaskStatus): KNode[];
+  getTasksByStatus(status: TaskStatus): KNode[]
 
   /** Full-text search */
-  search(query: string): KNode[];
+  search(query: string): KNode[]
 
   /** Execute query language expression */
-  query(expression: string): KNode[];
+  query(expression: string): KNode[]
 
   /** Execute query language expression, returning only tasks */
-  queryTasks(expression: string): KNode[];
+  queryTasks(expression: string): KNode[]
 
   /** Get nodes linking to a target */
-  getLinksTo(targetId: string): KNode[];
+  getLinksTo(targetId: string): KNode[]
 
   /** Get outgoing links from a node */
-  getOutgoingLinks(sourceId: string): Link[];
+  getOutgoingLinks(sourceId: string): Link[]
 
   /** Get backlinks (link records pointing to this node) */
-  getBacklinks(nodeId: string): Link[];
+  getBacklinks(nodeId: string): Link[]
 
   /**
    * Smart node resolver - finds a node by various identifiers.
@@ -457,29 +457,29 @@ export interface Repo extends Disposable {
   resolveNode(
     query: string,
     typeOrOptions?: string | { type?: string; taskOnly?: boolean },
-  ): KNode | null;
+  ): KNode | null
 
   /** Batch get child counts for multiple parent IDs */
-  getChildCounts(parentIds: string[]): Map<string, number>;
+  getChildCounts(parentIds: string[]): Map<string, number>
 
   /** Get the repo root folder node (the virtual parent of all top-level files) */
-  getRepoRootNode(): KNode | null;
+  getRepoRootNode(): KNode | null
 
   // ===========================================================================
   // Repo-compatible mutation methods (proxies to data store)
   // ===========================================================================
 
   /** Update a node's properties */
-  updateNode(id: string, changes: Partial<KNode>): void;
+  updateNode(id: string, changes: Partial<KNode>): void
 
   /** Move a node to a new parent with new sort order */
-  moveNode(id: string, newParentId: string, position: number): void;
+  moveNode(id: string, newParentId: string, position: number): void
 
   /** Delete a node */
-  deleteNode(id: string): void;
+  deleteNode(id: string): void
 
   /** Add a new node */
-  addNode(parentId: string | null, node: Partial<KNode>): string;
+  addNode(parentId: string | null, node: Partial<KNode>): string
 
   /**
    * Clone a task with modifications (e.g., for recurring tasks).
@@ -487,7 +487,7 @@ export interface Repo extends Disposable {
    * @param changes - Changes to apply to the clone
    * @returns ID of the new task, or null if source not found
    */
-  cloneTask(sourceId: string, changes: Partial<KNode>): string | null;
+  cloneTask(sourceId: string, changes: Partial<KNode>): string | null
 
   /**
    * Append a task line to a markdown file.
@@ -500,13 +500,13 @@ export interface Repo extends Disposable {
     filePath: string,
     content: string,
     options?: { ensure?: boolean },
-  ): void;
+  ): void
 
   /**
    * Check if a path exists relative to repo root.
    * @param relativePath - Path relative to repo root
    */
-  pathExists(relativePath: string): boolean;
+  pathExists(relativePath: string): boolean
 
   /**
    * Execute a raw SQL query on the database.
@@ -514,7 +514,7 @@ export interface Repo extends Disposable {
    * @param params - Query parameters
    * @returns Query results as array of objects
    */
-  rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[];
+  rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[]
 
   // ===========================================================================
   // Sync and lifecycle
@@ -528,7 +528,7 @@ export interface Repo extends Disposable {
    *
    * @throws Error if repo has no files (bare repo)
    */
-  sync(): Promise<SyncResult>;
+  sync(): Promise<SyncResult>
 
   /**
    * Create a Watcher for continuous sync.
@@ -538,12 +538,12 @@ export interface Repo extends Disposable {
    *
    * @throws Error if repo has no files (bare repo)
    */
-  watch(options?: Partial<WatcherOptions>): Watcher;
+  watch(options?: Partial<WatcherOptions>): Watcher
 
   /**
    * Close and release all resources.
    */
-  close(): void;
+  close(): void
 
   // ===========================================================================
   // Rebuild helpers
@@ -557,7 +557,7 @@ export interface Repo extends Disposable {
    *
    * @throws Error if called on bare repo
    */
-  needsRebuild(): boolean;
+  needsRebuild(): boolean
 
   /**
    * Refresh the repo state.
@@ -569,7 +569,7 @@ export interface Repo extends Disposable {
    *
    * @throws Error if called on bare repo
    */
-  refresh(): Generator<StepYield, void, unknown>;
+  refresh(): Generator<StepYield, void, unknown>
 }
 
 // =============================================================================
@@ -579,26 +579,26 @@ export interface Repo extends Disposable {
 /** Options for createRepo */
 export interface CreateRepoOptions {
   /** Force memory mode even if .km/ exists */
-  forceMemory?: boolean;
+  forceMemory?: boolean
   /** Skip initial file scan (for faster startup) */
-  lazy?: boolean;
+  lazy?: boolean
   /** Custom config path */
-  configPath?: string;
+  configPath?: string
   /**
    * Load and parse markdown files into the database.
    * When true, discovers files, parses markdown, and populates the database.
    * Default: false (database starts empty, use sync() to populate)
    */
-  loadFiles?: boolean;
+  loadFiles?: boolean
   /** Skip link resolution for faster startup (only when loadFiles is true) */
-  skipLinkResolution?: boolean;
+  skipLinkResolution?: boolean
   /**
    * Discover-only mode for instant render (only when loadFiles is true).
    * Creates stub nodes without parsing - call parseDeferredAsync() afterward.
    */
-  discoverOnly?: boolean;
+  discoverOnly?: boolean
   /** Lifecycle hooks for mutation interception */
-  hooks?: RepoHooks;
+  hooks?: RepoHooks
 }
 
 /**
@@ -643,20 +643,20 @@ export function* createRepo(
   rootPath: string = process.cwd(),
   options: CreateRepoOptions = {},
 ): Generator<StepYield, Repo, unknown> {
-  debug("createRepo", { rootPath, options });
+  debug("createRepo", { rootPath, options })
 
   // Track loading results
-  let loadErrors: LoadError[] = [];
-  let stats: RepoStats = { nodeCount: 0, linkCount: 0, duration: 0 };
-  let deferredFiles: DeferredFile[] = [];
+  let loadErrors: LoadError[] = []
+  let stats: RepoStats = { nodeCount: 0, linkCount: 0, duration: 0 }
+  let deferredFiles: DeferredFile[] = []
 
-  let dataStore: DataStore & HasDatabase;
-  let db: Database;
-  let mode: "memory" | "disk";
-  let emitter: Emitter;
+  let dataStore: DataStore & HasDatabase
+  let db: Database
+  let mode: "memory" | "disk"
+  let emitter: Emitter
 
   // kmDir is used for emitter and disk mode detection
-  const kmDir = join(rootPath, ".km");
+  const kmDir = join(rootPath, ".km")
 
   if (options.loadFiles) {
     // =========================================================================
@@ -665,22 +665,22 @@ export function* createRepo(
     // =========================================================================
 
     // Detect mode and create database BEFORE calling loadRepo
-    const hasKmDir = existsSync(kmDir) && !options.forceMemory;
-    mode = hasKmDir ? "disk" : "memory";
+    const hasKmDir = existsSync(kmDir) && !options.forceMemory
+    mode = hasKmDir ? "disk" : "memory"
 
     // Create emitter early - needed for disk mode DataStore
-    emitter = createEmitter({ kmDir });
+    emitter = createEmitter({ kmDir })
 
     if (mode === "disk") {
       if (!existsSync(kmDir)) {
-        mkdirSync(kmDir, { recursive: true });
+        mkdirSync(kmDir, { recursive: true })
       }
-      const dbPath = join(kmDir, "state.db");
-      db = new Database(dbPath);
-      db.run(SCHEMA);
+      const dbPath = join(kmDir, "state.db")
+      db = new Database(dbPath)
+      db.run(SCHEMA)
     } else {
-      db = new Database(":memory:");
-      db.run(SCHEMA);
+      db = new Database(":memory:")
+      db.run(SCHEMA)
     }
 
     // Now call loadRepo with OUR db (avoids singleton)
@@ -691,22 +691,19 @@ export function* createRepo(
       discoverOnly: options.discoverOnly,
       mode, // Pass our mode decision to loadRepo
       db, // ADR-002: pass db to avoid singleton
-    });
+    })
 
     // Create DataStore - pass emitter for disk mode only
-    dataStore = createDBDataStore(
-      db,
-      mode === "disk" ? { emitter } : undefined,
-    );
+    dataStore = createDBDataStore(db, mode === "disk" ? { emitter } : undefined)
 
     // Capture loading results
-    loadErrors = loadResult.errors;
+    loadErrors = loadResult.errors
     stats = {
       nodeCount: loadResult.nodeCount,
       linkCount: loadResult.linkCount,
       duration: loadResult.duration,
-    };
-    deferredFiles = loadResult.deferredFiles ?? [];
+    }
+    deferredFiles = loadResult.deferredFiles ?? []
 
     // Health check: detect orphaned .km (disk mode with very few nodes)
     // This happens when km init/sync is interrupted after creating .km but before populating
@@ -719,20 +716,20 @@ export function* createRepo(
           (f) =>
             f.endsWith(".md") ||
             (statSync(join(rootPath, f)).isDirectory() && !f.startsWith(".")),
-        );
+        )
 
       if (hasContentFiles) {
         debug(
           "WARNING: orphaned .km detected - database has %d nodes but repo has files. " +
             "Falling back to memory mode for this session.",
           stats.nodeCount,
-        );
+        )
 
         // Close disk db and switch to memory mode
-        db.close();
-        mode = "memory";
-        db = new Database(":memory:");
-        db.run(SCHEMA);
+        db.close()
+        mode = "memory"
+        db = new Database(":memory:")
+        db.run(SCHEMA)
 
         // Re-load files into memory database
         const memLoadResult = yield* loadRepo(rootPath, {
@@ -741,16 +738,16 @@ export function* createRepo(
           discoverOnly: options.discoverOnly,
           mode: "memory",
           db,
-        });
+        })
 
         // Update stats from memory load
-        loadErrors = memLoadResult.errors;
+        loadErrors = memLoadResult.errors
         stats = {
           nodeCount: memLoadResult.nodeCount,
           linkCount: memLoadResult.linkCount,
           duration: memLoadResult.duration,
-        };
-        deferredFiles = memLoadResult.deferredFiles ?? [];
+        }
+        deferredFiles = memLoadResult.deferredFiles ?? []
 
         // Add warning about the orphaned .km
         loadErrors.push({
@@ -759,10 +756,10 @@ export function* createRepo(
           message:
             `Database was incomplete (had 1 node). ` +
             `Using memory mode. Run "km sync" to fix the database.`,
-        });
+        })
 
         // Re-create dataStore for memory mode (no emitter)
-        dataStore = createDBDataStore(db);
+        dataStore = createDBDataStore(db)
       }
     }
 
@@ -771,7 +768,7 @@ export function* createRepo(
       stats.nodeCount,
       stats.linkCount,
       loadErrors.length,
-    );
+    )
   } else {
     // =========================================================================
     // Empty database mode - no file loading
@@ -779,96 +776,96 @@ export function* createRepo(
     // Declare all sub-steps upfront so they appear as pending
     yield {
       declare: ["Detecting mode", "Initializing database", "Scanning files"],
-    };
+    }
 
     // Step 1: Detect mode
-    yield "Detecting mode";
-    const hasKmDir = existsSync(kmDir) && !options.forceMemory;
-    mode = hasKmDir ? "disk" : "memory";
+    yield "Detecting mode"
+    const hasKmDir = existsSync(kmDir) && !options.forceMemory
+    mode = hasKmDir ? "disk" : "memory"
 
     // Create emitter early - needed for disk mode DataStore
-    emitter = createEmitter({ kmDir });
+    emitter = createEmitter({ kmDir })
 
-    debug("detected mode: %s (hasKmDir=%s)", mode, hasKmDir);
+    debug("detected mode: %s (hasKmDir=%s)", mode, hasKmDir)
 
     // Step 2: Initialize database
-    yield "Initializing database";
+    yield "Initializing database"
 
     if (mode === "disk") {
       // Ensure .km directory exists
       if (!existsSync(kmDir)) {
-        mkdirSync(kmDir, { recursive: true });
+        mkdirSync(kmDir, { recursive: true })
       }
 
-      const dbPath = join(kmDir, "state.db");
-      db = new Database(dbPath);
-      db.run(SCHEMA);
-      dataStore = createDBDataStore(db, { emitter });
+      const dbPath = join(kmDir, "state.db")
+      db = new Database(dbPath)
+      db.run(SCHEMA)
+      dataStore = createDBDataStore(db, { emitter })
     } else {
       // Memory mode - ephemeral (no emitter = direct SQL)
-      db = new Database(":memory:");
-      db.run(SCHEMA);
-      dataStore = createDBDataStore(db);
+      db = new Database(":memory:")
+      db.run(SCHEMA)
+      dataStore = createDBDataStore(db)
     }
 
     // Step 3: Scan files (for full repo)
-    yield "Scanning files";
+    yield "Scanning files"
   }
 
   // Create FileTree for the repo root
-  const fileTree = createDiskFileTree(rootPath);
+  const fileTree = createDiskFileTree(rootPath)
 
   // Load config
-  const config = loadConfigObject(rootPath);
+  const config = loadConfigObject(rootPath)
 
   // Capture hooks from options
-  const hooks = options.hooks;
+  const hooks = options.hooks
 
-  let closed = false;
+  let closed = false
   function ensureOpen() {
-    if (closed) throw new Error("Repo is closed");
+    if (closed) throw new Error("Repo is closed")
   }
 
   // Create shared methods using factories
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, ensureOpen };
-  const queryMethods = createQueryMethods(methodDeps);
-  const mutationMethods = createMutationMethods(methodDeps);
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, ensureOpen }
+  const queryMethods = createQueryMethods(methodDeps)
+  const mutationMethods = createMutationMethods(methodDeps)
 
   const repo: Repo = {
     get path() {
-      return rootPath;
+      return rootPath
     },
     get mode() {
-      return mode;
+      return mode
     },
     get data() {
-      ensureOpen();
-      return dataStore;
+      ensureOpen()
+      return dataStore
     },
     get files() {
-      ensureOpen();
-      return fileTree;
+      ensureOpen()
+      return fileTree
     },
     get config() {
-      ensureOpen();
-      return config;
+      ensureOpen()
+      return config
     },
     get database() {
-      ensureOpen();
-      return db;
+      ensureOpen()
+      return db
     },
     get loadErrors() {
-      return loadErrors;
+      return loadErrors
     },
     get stats() {
-      return stats;
+      return stats
     },
     get deferredFiles() {
-      return deferredFiles;
+      return deferredFiles
     },
     get emitter() {
-      ensureOpen();
-      return emitter;
+      ensureOpen()
+      return emitter
     },
 
     // Spread shared query and mutation methods
@@ -877,75 +874,75 @@ export function* createRepo(
 
     // Full-repo specific methods
     appendTaskToFile(filePath, content, opts) {
-      ensureOpen();
+      ensureOpen()
       const relativePath = filePath.startsWith("/")
         ? filePath.slice(rootPath.length + 1)
-        : filePath;
+        : filePath
 
       if (opts?.ensure) {
-        const dir = dirname(relativePath);
+        const dir = dirname(relativePath)
         if (dir && dir !== "." && !fileTree.exists(dir)) {
-          const baseName = basename(relativePath).replace(/\.md$/, "");
-          fileTree.write(relativePath, `---\ntitle: ${baseName}\n---\n\n`);
+          const baseName = basename(relativePath).replace(/\.md$/, "")
+          fileTree.write(relativePath, `---\ntitle: ${baseName}\n---\n\n`)
         }
         if (!fileTree.exists(relativePath)) {
-          const baseName = basename(relativePath).replace(/\.md$/, "");
-          fileTree.write(relativePath, `---\ntitle: ${baseName}\n---\n\n`);
+          const baseName = basename(relativePath).replace(/\.md$/, "")
+          fileTree.write(relativePath, `---\ntitle: ${baseName}\n---\n\n`)
         }
       }
 
-      const existing = fileTree.read(relativePath);
-      fileTree.write(relativePath, existing + content);
+      const existing = fileTree.read(relativePath)
+      fileTree.write(relativePath, existing + content)
     },
 
     pathExists(relativePath) {
-      ensureOpen();
-      return fileTree.exists(relativePath);
+      ensureOpen()
+      return fileTree.exists(relativePath)
     },
 
     sync() {
-      ensureOpen();
-      debug("sync() called - not yet implemented");
-      return Promise.resolve({ fromFiles: 0, fromData: 0, conflicts: [] });
+      ensureOpen()
+      debug("sync() called - not yet implemented")
+      return Promise.resolve({ fromFiles: 0, fromData: 0, conflicts: [] })
     },
 
     watch(watchOptions = {}) {
-      ensureOpen();
-      return createWatcher(rootPath, { db, ...watchOptions });
+      ensureOpen()
+      return createWatcher(rootPath, { db, ...watchOptions })
     },
 
     needsRebuild() {
-      ensureOpen();
+      ensureOpen()
       if (mode === "memory") {
-        debug("needsRebuild: no (memory mode)");
-        return false;
+        debug("needsRebuild: no (memory mode)")
+        return false
       }
-      return checkNeedsRebuild(rootPath, db);
+      return checkNeedsRebuild(rootPath, db)
     },
 
     *refresh() {
-      ensureOpen();
-      debug("refresh not yet implemented");
-      yield "Refreshing";
+      ensureOpen()
+      debug("refresh not yet implemented")
+      yield "Refreshing"
     },
 
     close() {
-      if (closed) return;
-      closed = true;
-      debug("closing repo");
-      hooks?.onClose?.();
-      emitter.close();
-      fileTree.close();
-      dataStore.close();
-      db.close();
+      if (closed) return
+      closed = true
+      debug("closing repo")
+      hooks?.onClose?.()
+      emitter.close()
+      fileTree.close()
+      dataStore.close()
+      db.close()
     },
 
     [Symbol.dispose]() {
-      this.close();
+      this.close()
     },
-  };
+  }
 
-  return repo;
+  return repo
 }
 
 // =============================================================================
@@ -955,15 +952,15 @@ export function* createRepo(
 /** Options for createBareRepo */
 export interface CreateBareRepoOptions {
   /** Configuration (uses defaults if not provided) */
-  config?: Config;
+  config?: Config
   /** Root path for config loading (default: cwd) */
-  configPath?: string;
+  configPath?: string
   /** Lifecycle hooks for mutation interception */
-  hooks?: RepoHooks;
+  hooks?: RepoHooks
   /** Pre-created emitter (if not provided, one is created) */
-  emitter?: Emitter;
+  emitter?: Emitter
   /** Skip persisting events to events.jsonl (useful for tests) */
-  skipPersist?: boolean;
+  skipPersist?: boolean
 }
 
 /**
@@ -995,61 +992,61 @@ export function createBareRepo(
   dataStore: DataStore & HasDatabase,
   options: CreateBareRepoOptions = {},
 ): Repo {
-  debug("createBareRepo", { options });
+  debug("createBareRepo", { options })
 
-  const config = options.config ?? loadConfigObject(options.configPath);
-  const db = dataStore.database;
-  const repoPath = options.configPath ?? process.cwd();
-  const kmDir = join(repoPath, ".km");
+  const config = options.config ?? loadConfigObject(options.configPath)
+  const db = dataStore.database
+  const repoPath = options.configPath ?? process.cwd()
+  const kmDir = join(repoPath, ".km")
   const emitter =
     options.emitter ??
-    createEmitter({ kmDir, db, skipPersist: options.skipPersist });
-  const hooks = options.hooks;
+    createEmitter({ kmDir, db, skipPersist: options.skipPersist })
+  const hooks = options.hooks
 
-  let closed = false;
+  let closed = false
   function ensureOpen() {
-    if (closed) throw new Error("Repo is closed");
+    if (closed) throw new Error("Repo is closed")
   }
 
   // Create shared methods using factories
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, ensureOpen };
-  const queryMethods = createQueryMethods(methodDeps);
-  const mutationMethods = createMutationMethods(methodDeps);
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, ensureOpen }
+  const queryMethods = createQueryMethods(methodDeps)
+  const mutationMethods = createMutationMethods(methodDeps)
 
   const repo: Repo = {
     get path() {
-      return repoPath;
+      return repoPath
     },
     get mode() {
-      return "memory" as const;
+      return "memory" as const
     },
     get data() {
-      ensureOpen();
-      return dataStore;
+      ensureOpen()
+      return dataStore
     },
     get files() {
-      return null;
+      return null
     },
     get config() {
-      ensureOpen();
-      return config;
+      ensureOpen()
+      return config
     },
     get database() {
-      ensureOpen();
-      return db;
+      ensureOpen()
+      return db
     },
     get loadErrors() {
-      return [];
+      return []
     },
     get stats() {
-      return { nodeCount: 0, linkCount: 0, duration: 0 };
+      return { nodeCount: 0, linkCount: 0, duration: 0 }
     },
     get deferredFiles() {
-      return [];
+      return []
     },
     get emitter() {
-      ensureOpen();
-      return emitter;
+      ensureOpen()
+      return emitter
     },
 
     // Spread shared query and mutation methods
@@ -1058,38 +1055,38 @@ export function createBareRepo(
 
     // Bare repo specific methods (throw on file operations)
     appendTaskToFile() {
-      throw new Error("Cannot appendTaskToFile: bare repo has no files");
+      throw new Error("Cannot appendTaskToFile: bare repo has no files")
     },
     pathExists(relativePath) {
-      ensureOpen();
-      return existsSync(join(repoPath, relativePath));
+      ensureOpen()
+      return existsSync(join(repoPath, relativePath))
     },
     sync() {
-      return Promise.reject(new Error("Cannot sync: bare repo has no files"));
+      return Promise.reject(new Error("Cannot sync: bare repo has no files"))
     },
     watch() {
-      throw new Error("Cannot watch: bare repo has no files");
+      throw new Error("Cannot watch: bare repo has no files")
     },
     needsRebuild() {
-      throw new Error("Cannot check needsRebuild: bare repo has no files");
+      throw new Error("Cannot check needsRebuild: bare repo has no files")
     },
     *refresh() {
-      throw new Error("Cannot refresh: bare repo has no files");
+      throw new Error("Cannot refresh: bare repo has no files")
     },
     close() {
-      if (closed) return;
-      closed = true;
-      debug("closing bare repo");
-      hooks?.onClose?.();
-      emitter.close();
+      if (closed) return
+      closed = true
+      debug("closing bare repo")
+      hooks?.onClose?.()
+      emitter.close()
       // Note: caller manages DataStore lifecycle for bare repos
     },
     [Symbol.dispose]() {
-      this.close();
+      this.close()
     },
-  };
+  }
 
-  return repo;
+  return repo
 }
 
 // =============================================================================
@@ -1101,7 +1098,7 @@ export {
   createTestRepo,
   type CreateTestEnvRepoOptions,
   type TestEnvRepoResult,
-} from "./repo-test.ts";
+} from "./repo-test.ts"
 
 // =============================================================================
 // Re-export hook types from repo-hooks.ts
@@ -1112,4 +1109,4 @@ export {
   type MutationContext,
   type MutationType,
   type RepoHooks,
-} from "./repo-hooks.ts";
+} from "./repo-hooks.ts"

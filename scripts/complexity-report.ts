@@ -109,14 +109,14 @@ function parseFindings(output: string): ComplexityFinding[] {
 
     const ruleType = ruleMatch[2] as "cyclomatic" | "cognitive"
     findings.push({
-      file: locationMatch[1],
-      line: parseInt(locationMatch[2], 10),
-      column: parseInt(locationMatch[3], 10),
-      function: ruleMatch[3],
+      file: locationMatch[1]!,
+      line: parseInt(locationMatch[2]!, 10),
+      column: parseInt(locationMatch[3]!, 10),
+      function: ruleMatch[3]!,
       rule: ruleType,
-      complexity: parseInt(ruleMatch[4], 10),
-      threshold: parseInt(ruleMatch[5], 10),
-      breakdown: breakdownMatch?.[1] || "",
+      complexity: parseInt(ruleMatch[4]!, 10),
+      threshold: parseInt(ruleMatch[5]!, 10),
+      breakdown: breakdownMatch?.[1] ?? "",
     })
   }
 
@@ -227,7 +227,7 @@ Examples:
   if (values.json) {
     console.log(formatJson(findings))
   } else {
-    console.log(formatReport(findings, values.brief as boolean))
+    console.log(formatReport(findings, values.brief ?? false))
   }
 
   // Exit with 1 if any findings (for CI purposes)

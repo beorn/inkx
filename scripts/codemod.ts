@@ -38,7 +38,9 @@ function findUp(filename: string, startDir: string): string | null {
  */
 function getOxlintIgnores(configPath: string): string[] {
   try {
-    const config = JSON.parse(readFileSync(configPath, "utf-8"))
+    const config = JSON.parse(readFileSync(configPath, "utf-8")) as {
+      ignorePatterns?: string[]
+    }
     return config.ignorePatterns ?? []
   } catch {
     return []

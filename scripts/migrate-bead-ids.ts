@@ -161,7 +161,7 @@ function getNextNumber(
     .filter((m) => m.newId.startsWith(prefix))
     .map((m) => {
       const match = m.newId.match(/km-[a-z]+-(\d+)/)
-      return match ? parseInt(match[1], 10) : 0
+      return match?.[1] ? parseInt(match[1], 10) : 0
     })
     .reduce((max, n) => Math.max(max, n), 0)
 
@@ -208,11 +208,11 @@ function generateMappings(db: Database, beads: Bead[]): IDMapping[] {
   for (const bead of beads) {
     if (bead.id.includes(".")) {
       const parts = bead.id.split(".")
-      const parentId = parts[0]
+      const parentId = parts[0]! // Guaranteed to exist since id contains "."
       const suffix = parts.slice(1).join(".")
 
       const parentMapping = mappings.get(parentId)
-      if (parentMapping) {
+      if (parentMapping !== undefined) {
         // Parent is active, use its new ID as prefix
         const newId = `${parentMapping.newId}.${suffix}`
         mappings.set(bead.id, {

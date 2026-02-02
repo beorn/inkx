@@ -1,5 +1,6 @@
 import { spawn, type Subprocess } from "bun"
 import type { Readable } from "node:stream"
+import { webStreamToNodeStream } from "../streams"
 
 export interface VitestTapOptions {
 	args?: string[]
@@ -46,7 +47,7 @@ export function runVitestTap(options: VitestTapOptions = {}): VitestTapResult {
 	})
 
 	return {
-		stdout: proc.stdout,
+		stdout: webStreamToNodeStream(proc.stdout),
 		proc,
 		exited: proc.exited,
 	}

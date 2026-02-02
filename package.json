@@ -6,7 +6,8 @@
   "type": "module",
   "catalog": {
     "react": "^19.2.3",
-    "@types/react": "^19.2.7"
+    "@types/react": "^19.2.7",
+    "zod": "^4.3.6"
   },
   "workspaces": [
     "packages/*",
@@ -16,7 +17,8 @@
   ],
   "overrides": {
     "chalkx": "$chalkx",
-    "@beorn/flexx": "$@beorn/flexx"
+    "@beorn/flexx": "$@beorn/flexx",
+    "zod": "^4.3.6"
   },
   "bin": {
     "km": "./apps/km-cli/src/index.ts",

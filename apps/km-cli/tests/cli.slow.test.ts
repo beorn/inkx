@@ -1786,8 +1786,11 @@ describe("km view - state initialization", () => {
 
     // Get node ID from tasks list
     const tasksResult = await km(["tasks", "--json"])
-    const tasks = JSON.parse(tasksResult.stdout)
-    const task = tasks.find((t: { content: string }) => t.content === "Task X")
+    const tasks = JSON.parse(tasksResult.stdout) as {
+      id: string
+      content: string
+    }[]
+    const task = tasks.find((t) => t.content === "Task X")
 
     if (task) {
       // View using node ID

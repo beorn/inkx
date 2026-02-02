@@ -77,7 +77,7 @@ function createLargeBoard(numCols: number, cardsPerCol: number) {
   return item("board", ...columns)
 }
 
-function createDeepTree(depth: number, breadth: number, prefix = "") {
+function createDeepTree(depth: number, breadth: number, prefix = ""): KNode[] {
   if (depth === 0) {
     return item(`${prefix}leaf`)
   }

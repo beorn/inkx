@@ -36,7 +36,7 @@ async function getSubmodulesFromGitmodules(): Promise<string[]> {
 
   for (const line of content.split("\n")) {
     const match = line.match(/^\s*path\s*=\s*(.+)$/)
-    if (match) {
+    if (match?.[1]) {
       paths.push(match[1].trim())
     }
   }
@@ -55,7 +55,7 @@ async function getStaleSubmoduleConfigs(validPaths: Set<string>): Promise<string
   for (const line of result.stdout.toString().split("\n")) {
     // Lines look like: submodule.vendor/beorn-inkz.url git@github.com:...
     const match = line.match(/^submodule\.([^.]+)\./)
-    if (match) {
+    if (match?.[1]) {
       const path = match[1]
       if (!validPaths.has(path)) {
         stale.add(path)
@@ -224,7 +224,7 @@ async function main() {
     } else {
       // Find plugins=(...) and add direnv
       const pluginsMatch = shellrcContent.match(/^plugins=\(([^)]*)\)/m)
-      if (pluginsMatch) {
+      if (pluginsMatch?.[1] !== undefined) {
         const currentPlugins = pluginsMatch[1].trim()
         const newPlugins = currentPlugins ? `${currentPlugins} direnv` : "direnv"
         const newContent = shellrcContent.replace(
@@ -316,10 +316,11 @@ async function main() {
     let hooksDir: string
 
     if (existsSync(gitPath)) {
-      const stat = Bun.file(gitPath)
-      if ((await stat.exists()) && (await stat.text()).startsWith("gitdir:")) {
+      const gitFile = Bun.file(gitPath)
+      const gitFileContent = await gitFile.text()
+      if (gitFileContent.startsWith("gitdir:")) {
         // It's a gitdir file pointing elsewhere
-        const gitdir = (await stat.text()).trim().replace("gitdir: ", "")
+        const gitdir = gitFileContent.trim().replace("gitdir: ", "")
         hooksDir = join(fullPath, gitdir, "hooks")
       } else {
         // It's an actual .git directory

@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-// @ts-nocheck - Utility script for inspecting metadata structure, strict typing not needed
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
+// Utility script for inspecting metadata structure, loose typing acceptable
 /**
  * Quick script to inspect the vitest metadata structure
  */

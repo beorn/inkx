@@ -156,9 +156,9 @@ describe("Markdown Parser Benchmarks", () => {
       const richDoc = generateRichDocument()
       const largeDoc = generateLargeDocument()
 
-      flatNodes = parseMarkdownToNodes(flatList, "test.md").nodes
-      richNodes = parseMarkdownToNodes(richDoc, "test.md").nodes
-      largeNodes = parseMarkdownToNodes(largeDoc, "test.md").nodes
+      flatNodes = parseMarkdownToNodes(flatList, "test.md")
+      richNodes = parseMarkdownToNodes(richDoc, "test.md")
+      largeNodes = parseMarkdownToNodes(largeDoc, "test.md")
     })
 
     bench("Serialize flat list (100 items)", () => {
@@ -184,12 +184,12 @@ describe("Markdown Parser Benchmarks", () => {
     })
 
     bench("Round-trip flat list", () => {
-      const nodes = parseMarkdownToNodes(flatList, "test.md").nodes
+      const nodes = parseMarkdownToNodes(flatList, "test.md")
       nodesToMarkdown(nodes)
     })
 
     bench("Round-trip rich document", () => {
-      const nodes = parseMarkdownToNodes(richDoc, "test.md").nodes
+      const nodes = parseMarkdownToNodes(richDoc, "test.md")
       nodesToMarkdown(nodes)
     })
   })

@@ -16,7 +16,11 @@ interface ConsoleModalProps {
   patchedConsole: PatchedConsole
 }
 
-export function ConsoleModal({ width, height, patchedConsole }: ConsoleModalProps) {
+export function ConsoleModal({
+  width,
+  height,
+  patchedConsole,
+}: ConsoleModalProps) {
   const entries = useConsole(patchedConsole)
 
   // Take last MAX_LINES entries
