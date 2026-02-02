@@ -186,8 +186,21 @@ export function BottomBar({
         )}
       </Box>
       <Box width={rightWidth} flexGrow={0} flexShrink={0}>
-        <Text dimColor wrap="truncate">
-          {right}
+        {/* Nested Text for testable IDs - idiomatic inkx pattern */}
+        <Text dimColor>
+          {" "}
+          <Text id="node-count">📋{dbCount}</Text>
+          {watcherInfo && <Text id="watcher-status">{watcherInfo}</Text>}
+          {ui.viewMode === "columns" && state.columns.length > 1 && (
+            <>
+              {"   "}
+              <Text id="column-position">
+                col {layout.colIndex + 1}/{state.columns.length}
+              </Text>
+            </>
+          )}
+          {"   "}
+          <Text id="view-mode">{viewModeStr}</Text>{" "}
         </Text>
       </Box>
     </Box>
