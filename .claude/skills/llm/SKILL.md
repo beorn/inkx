@@ -1,13 +1,13 @@
 ---
-description: Queries other LLMs for second opinions and research. Use when user mentions GPT, ChatGPT, OpenAI, Gemini, Grok, deep, thinkdeep, or wants a second opinion.
+description: Queries other LLMs for second opinions and research. Use when user mentions GPT, ChatGPT, OpenAI, Gemini, Grok, or wants deep research (NOT DeepSeek), thinkdeep, or a second opinion.
 argument-hint: [deep|opinion|debate] <prompt>
 ---
 
 # LLM - Multi-Model Queries
 
-**Keywords**: gpt, chatgpt, openai, gemini, grok, deep, thinkdeep, second opinion, consensus, research
+**Keywords**: gpt, chatgpt, openai, gemini, grok, deep research, thinkdeep, second opinion, consensus, research
 
-**Claude: Use this when the user wants another model's perspective or deep research.**
+**Claude: Use this when the user wants another model's perspective or deep research (OpenAI's research mode, NOT DeepSeek).**
 
 Run `bun llm` for full help.
 
@@ -26,7 +26,7 @@ Run `bun llm` for full help.
 | Keyword | What | Cost |
 |---------|------|------|
 | *(none)* | Best available model (gpt-5.2 preferred) | ~$0.02 |
-| `deep`/`research`/`think` | Web search, citations, thorough | ~$2-5 |
+| `deep`/`research`/`think` | OpenAI deep research (web search, citations, thorough) | ~$2-5 |
 | `opinion` | Second opinion from different provider | ~$0.02 |
 | `debate` | 3 models from different providers + synthesis | ~$1-3 |
 | `quick`/`cheap`/`mini`/`nano` | Fast/cheap (only if explicitly needed) | ~$0.01 |
@@ -38,8 +38,11 @@ Run `bun llm` for full help.
 | "Ask ChatGPT/GPT about X" | `bun llm "X"` |
 | "Get a second opinion" | `bun llm opinion "X"` |
 | "Research this topic" | `bun llm deep "topic"` |
-| "Deep dive on X" | `bun llm think "topic"` |
+| "Deep dive on X" | `bun llm deep "topic"` |
+| "Think deep about X" | `bun llm deep "topic"` |
 | "What do other models think?" | `bun llm debate "question"` |
+
+**Note**: "deep" refers to OpenAI's deep research mode, NOT DeepSeek. DeepSeek queries are not supported.
 
 ## Smart Model Selection
 
