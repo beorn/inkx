@@ -111,13 +111,18 @@ function VirtualizedTreeCardList({
     Math.floor(height / ESTIMATED_ROW_HEIGHT),
   )
 
-  // Calculate edge-based scroll offset
-  const newScrollOffset = calcEdgeBasedScrollOffset(
-    selectedCardIndex,
-    scrollOffsetRef.current,
-    visibleItemCount,
-    cards.length,
-  )
+  // Only update scroll offset for the selected column
+  // Non-selected columns should keep their scroll position stable
+  // Also clamp the index to valid range to prevent out-of-bounds scrolling
+  const clampedCardIndex = Math.min(selectedCardIndex, cards.length - 1)
+  const newScrollOffset = isSelected
+    ? calcEdgeBasedScrollOffset(
+        Math.max(0, clampedCardIndex),
+        scrollOffsetRef.current,
+        visibleItemCount,
+        cards.length,
+      )
+    : scrollOffsetRef.current // Keep current scroll for non-selected columns
   scrollOffsetRef.current = newScrollOffset
 
   // Calculate virtualization window

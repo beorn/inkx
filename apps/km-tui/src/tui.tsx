@@ -9,12 +9,14 @@ import { writeSync } from "fs"
 import { createTerm, render, patchConsole } from "inkx"
 import createDebug from "debug"
 import React from "react"
+import { createLogger } from "@km/core"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { SyncManager } from "@km/storage"
 
 const debug = createDebug("km:tui")
+const log = createLogger("km:tui")
 
 /**
  * Global event emitter for TUI refresh events
@@ -68,6 +70,7 @@ export async function runBoard(
   state: TUIBoardState | null,
   options?: TuiOptions,
 ): Promise<void> {
+  using run = log.span("run-board")
   debug("runBoard start")
 
   if (!state || !options?.repo) {
@@ -97,6 +100,7 @@ export async function runBoard(
   let syncManager: SyncManager | null = null
 
   if (isInteractive && state.rootPath && options?.watch !== false) {
+    using _ = run.span("sync-manager-init")
     const useWorker = options?.watchWorker !== false
     debug("Creating SyncManager", {
       rootPath: state.rootPath,
@@ -160,17 +164,24 @@ export async function runBoard(
     options?.spinner?.stop()
     debug("Starting TUI", { isInteractive })
 
-    const instance = await render(
-      <RepoProvider repo={options.repo}>
-        <BoardApp
-          initialState={state}
-          initialViewMode={options?.initialViewMode}
-          patchedConsole={patched}
-        />
-      </RepoProvider>,
-      renderOpts,
-      { alternateScreen: isInteractive, patchConsole: false },
-    )
+    let instance: Awaited<ReturnType<typeof render>>
+    {
+      using _ = run.span("render-setup")
+      instance = await render(
+        <RepoProvider repo={options.repo}>
+          <BoardApp
+            initialState={state}
+            initialViewMode={options?.initialViewMode}
+            patchedConsole={patched}
+          />
+        </RepoProvider>,
+        renderOpts,
+        { alternateScreen: isInteractive, patchConsole: false },
+      )
+    }
+
+    // End the run span before blocking on waitUntilExit (TUI is now running)
+    run.end()
 
     await instance.waitUntilExit()
   } finally {

@@ -70,9 +70,11 @@ export function applyEventWithDb(db: Database, event: Event): void {
 function applyNodeCreated(db: Database, event: Event): void {
   const data = event.data as Record<string, unknown>
 
+  // Use INSERT OR IGNORE as safety net for duplicate path-based IDs
+  // This can happen if both discovery and watch handler create the same node
   db.run(
     `
-    INSERT INTO nodes (
+    INSERT OR IGNORE INTO nodes (
       id, type, parent_id, link_to, link_alias, parent_idx,
       fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
       task_status, task_mark, assigned_to, due_date, scheduled_date, priority,

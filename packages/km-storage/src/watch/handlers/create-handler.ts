@@ -9,6 +9,7 @@
 import { basename, dirname } from "path"
 import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
+import { generatePathBasedId } from "../../id-utils.ts"
 import type { KNode } from "@km/core"
 import { emitNodeCreated, type Emitter } from "../../emitter.ts"
 import { getNodeByPath } from "../../db-queries/core-lookup.ts"
@@ -71,8 +72,8 @@ export function handleCreate(options: CreateHandlerOptions): void {
   const stat = parsed ? null : fs.statSync(op.path)
 
   if (stat?.isDirectory()) {
-    // Create folder node
-    const folderId = ulid()
+    // Create folder node - use path-based ID for consistency with discovery.ts
+    const folderId = generatePathBasedId(repoRoot, op.path)
     const folderName = basename(op.path)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
@@ -234,10 +235,10 @@ function ensureFolderHierarchy(
     resolver,
   )
 
-  // Create the parent folder node
+  // Create the parent folder node - use path-based ID for consistency with discovery.ts
   try {
     const stat = fs.statSync(parentPath)
-    const folderId = ulid()
+    const folderId = generatePathBasedId(repoRoot, parentPath)
     const folderName = basename(parentPath)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,

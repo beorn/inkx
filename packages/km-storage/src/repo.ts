@@ -16,7 +16,7 @@
 
 import { Database } from "bun:sqlite"
 import createDebug from "debug"
-import { existsSync, mkdirSync, readFileSync } from "fs"
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 
 import type { KNode, TaskStatus } from "@km/core"
@@ -701,6 +701,64 @@ export function* createRepo(
       duration: loadResult.duration,
     }
     deferredFiles = loadResult.deferredFiles ?? []
+
+    // Health check: detect orphaned .km (disk mode with very few nodes)
+    // This happens when km init/sync is interrupted after creating .km but before populating
+    // Auto-recover by falling back to memory mode and re-loading files
+    if (mode === "disk" && stats.nodeCount <= 1) {
+      // Check if there are any content files in the repo that should have been indexed
+      const hasContentFiles =
+        existsSync(rootPath) &&
+        readdirSync(rootPath).some(
+          (f) =>
+            f.endsWith(".md") ||
+            (statSync(join(rootPath, f)).isDirectory() && !f.startsWith(".")),
+        )
+
+      if (hasContentFiles) {
+        debug(
+          "WARNING: orphaned .km detected - database has %d nodes but repo has files. " +
+            "Falling back to memory mode for this session.",
+          stats.nodeCount,
+        )
+
+        // Close disk db and switch to memory mode
+        db.close()
+        mode = "memory"
+        db = new Database(":memory:")
+        db.run(SCHEMA)
+
+        // Re-load files into memory database
+        const memLoadResult = yield* loadRepo(rootPath, {
+          searchAncestors: false,
+          skipLinkResolution: options.skipLinkResolution,
+          discoverOnly: options.discoverOnly,
+          mode: "memory",
+          db,
+        })
+
+        // Update stats from memory load
+        loadErrors = memLoadResult.errors
+        stats = {
+          nodeCount: memLoadResult.nodeCount,
+          linkCount: memLoadResult.linkCount,
+          duration: memLoadResult.duration,
+        }
+        deferredFiles = memLoadResult.deferredFiles ?? []
+
+        // Add warning about the orphaned .km
+        loadErrors.push({
+          phase: "discover",
+          path: kmDir,
+          message:
+            `Database was incomplete (had 1 node). ` +
+            `Using memory mode. Run "km sync" to fix the database.`,
+        })
+
+        // Re-create dataStore for memory mode (no emitter)
+        dataStore = createDBDataStore(db)
+      }
+    }
 
     debug(
       "loaded files: %d nodes, %d links, %d errors",

@@ -30,6 +30,7 @@ import type {
   DeferredFile,
   LoadError,
 } from "./repo-loader.ts"
+import { generatePathBasedId } from "./id-utils.ts"
 
 // ============================================================================
 // TYPES
@@ -293,14 +294,13 @@ export function countMarkdownFilesFast(
   return count
 }
 
-/** Generate node ID from path */
+/** Generate node ID from path - delegate to shared utility */
 function generateId(
   repoRoot: string,
   filePath: string,
   lineNum?: number,
 ): string {
-  const relPath = relative(repoRoot, filePath)
-  return lineNum !== undefined ? `${relPath}:${lineNum}` : relPath
+  return generatePathBasedId(repoRoot, filePath, lineNum)
 }
 
 /** Create folder event */

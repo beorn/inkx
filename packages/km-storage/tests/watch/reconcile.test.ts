@@ -528,6 +528,99 @@ describe("reconcile.ts", () => {
       }))
   })
 
+  describe("path-based IDs prevent duplicates", () => {
+    test("folder created by watch handler has same ID as discovery would create", () =>
+      withTestEnv(async ({ db, repoDir, emitter }) => {
+        // First, create a folder through the watch handler (applyReconcileOps)
+        const folderPath = join(repoDir, "test-folder")
+        mkdirSync(folderPath)
+
+        const createOps = reconcileDirectory(db, repoDir, repoDir)
+        expect(createOps.length).toBe(1)
+
+        await applyReconcileOps(db, createOps, repoDir, emitter)
+
+        const folderNode = getNodeByPath(db, folderPath)
+        expect(folderNode).not.toBeNull()
+
+        // The ID should be the relative path from repo root (path-based)
+        // This ensures discovery and watch handler create same IDs
+        expect(folderNode!.id).toBe("test-folder")
+      }))
+
+    test("nested folder IDs are path-based", () =>
+      withTestEnv(async ({ db, repoDir, emitter }) => {
+        // Create nested folder structure
+        const level1 = join(repoDir, "level1")
+        const level2 = join(level1, "level2")
+        mkdirSync(level2, { recursive: true })
+
+        // Reconcile from root
+        const rootOps = reconcileDirectory(db, repoDir, repoDir)
+        await applyReconcileOps(db, rootOps, repoDir, emitter)
+
+        // Reconcile level1
+        const level1Ops = reconcileDirectory(db, level1, repoDir)
+        await applyReconcileOps(db, level1Ops, repoDir, emitter)
+
+        const level1Node = getNodeByPath(db, level1)
+        const level2Node = getNodeByPath(db, level2)
+
+        // Both should have path-based IDs
+        expect(level1Node!.id).toBe("level1")
+        expect(level2Node!.id).toBe("level1/level2")
+      }))
+
+    test("re-applying same folder does not create duplicate", () =>
+      withTestEnv(async ({ db, repoDir, emitter }) => {
+        const folderPath = join(repoDir, "no-dup-folder")
+        mkdirSync(folderPath)
+
+        // First application
+        const ops1 = reconcileDirectory(db, repoDir, repoDir)
+        await applyReconcileOps(db, ops1, repoDir, emitter)
+
+        // Count folder nodes
+        const countBefore = db
+          .query(
+            "SELECT COUNT(*) as cnt FROM nodes WHERE type = 'folder' AND name = 'no-dup-folder'",
+          )
+          .get() as { cnt: number }
+        expect(countBefore.cnt).toBe(1)
+
+        // Simulate what would happen if watch handler and discovery both run
+        // The INSERT OR IGNORE should handle this gracefully
+        const { applyEventWithDb } = await import("../../src/db-events.ts")
+        const { generatePathBasedId } = await import("../../src/id-utils.ts")
+
+        // Manually try to insert same folder again (simulating watch handler)
+        const folderId = generatePathBasedId(repoDir, folderPath)
+        expect(folderId).toBe("no-dup-folder")
+
+        // This should not throw due to INSERT OR IGNORE
+        applyEventWithDb(db, {
+          id: folderId,
+          type: "node_created",
+          actor: "test",
+          ts: Date.now(),
+          data: {
+            id: folderId,
+            type: "folder",
+            fs_path: folderPath,
+            name: "no-dup-folder",
+          },
+        })
+
+        // Still should have only 1 folder
+        const countAfter = db
+          .query(
+            "SELECT COUNT(*) as cnt FROM nodes WHERE type = 'folder' AND name = 'no-dup-folder'",
+          )
+          .get() as { cnt: number }
+        expect(countAfter.cnt).toBe(1)
+      }))
+  })
+
   describe("getParentNodeId", () => {
     test("returns null for repo root files", () =>
       withTestEnv(async ({ db, repoDir, emitter }) => {

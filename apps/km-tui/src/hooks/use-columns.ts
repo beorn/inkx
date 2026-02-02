@@ -121,13 +121,15 @@ function kNodeToColumnState(
   const cardNodes = repo.getChildren(node.id)
 
   // Convert children to cards
-  const cards: CardState[] = cardNodes.map((child) => ({
-    node: child,
-    children: foldedNodes.has(child.id)
-      ? [] // Don't load children for folded nodes
-      : repo.getChildren(child.id),
-    childCount: repo.getChildren(child.id).length,
-  }))
+  const cards: CardState[] = cardNodes.map((child) => {
+    const childChildren = repo.getChildren(child.id)
+    const isFolded = foldedNodes.has(child.id)
+    return {
+      node: child,
+      children: isFolded ? [] : childChildren,
+      childCount: childChildren.length,
+    }
+  })
 
   return {
     node,

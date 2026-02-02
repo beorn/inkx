@@ -99,6 +99,7 @@ Before ending: `bun fix && bun run test:all && git push`. Propose next steps wit
 | [tests/](.claude/skills/tests/)     | Writing/running tests  |
 | [code/](.claude/skills/code/)       | Code quality/review    |
 | [tui/](.claude/skills/tui/)         | TUI development        |
+| [explore/](.claude/skills/explore/) | Bug hunting/fuzz testing |
 | [git/](.claude/skills/git/)         | Commits and releases   |
 | [claude/](.claude/skills/claude/)   | Claude Code config     |
 | [logging/](.claude/skills/logging/) | Debug output           |

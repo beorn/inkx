@@ -7,10 +7,12 @@
 
 import createDebug from "debug"
 import { Command } from "@commander-js/extra-typings"
+import { createLogger } from "@km/core"
 import { setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 
 const debug = createDebug("km:cli:view")
+const log = createLogger("km")
 
 type ViewMode = "cards" | "columns" | "list" | "tabs"
 
@@ -27,6 +29,7 @@ export const viewCommand = new Command("view")
   )
   .option("--no-watch", "Disable file watching (faster startup on large repos)")
   .action(async (root, options) => {
+    using startup = log.span("startup", { path: root })
     debug("view command", { root, as: options.as, watch: options.watch })
 
     // Clear the "Loading..." line from bootstrap.ts
@@ -35,11 +38,17 @@ export const viewCommand = new Command("view")
     process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
 
     // Import modules
-    const [storageModule, tuiModule, { loadRepo }] = await Promise.all([
-      import("@km/storage"),
-      import("@km/tui"),
-      import("../load-repo.ts"),
-    ])
+    let storageModule: typeof import("@km/storage")
+    let tuiModule: typeof import("@km/tui")
+    let loadRepo: (typeof import("../load-repo.ts"))["loadRepo"]
+    {
+      using _ = startup.span("import-modules")
+      ;[storageModule, tuiModule, { loadRepo }] = await Promise.all([
+        import("@km/storage"),
+        import("@km/tui"),
+        import("../load-repo.ts"),
+      ])
+    }
 
     // Resolve path and set debug root
     const resolved = storageModule.resolvePathArg(root, getRootPath())
@@ -49,10 +58,14 @@ export const viewCommand = new Command("view")
     const interactive = options.interactive !== false
 
     // Load repo with progress display
-    const createdRepo = await loadRepo(resolved.repoRoot, {
-      showProgress: true,
-      discoverOnly: interactive,
-    })
+    let createdRepo: Awaited<ReturnType<typeof loadRepo>>
+    {
+      using _ = startup.span("repo-load")
+      createdRepo = await loadRepo(resolved.repoRoot, {
+        showProgress: true,
+        discoverOnly: interactive,
+      })
+    }
 
     // Resolve nodeRef to actual node ID
     let rootNodeId: string | undefined
@@ -80,12 +93,16 @@ export const viewCommand = new Command("view")
     }
 
     // Build view state
-    const state = storageModule.runGenerator(
-      tuiModule.initBoardStateGenerator(createdRepo, rootNodeId),
-    )
-    if (state) {
-      state.rootPath = resolved.repoRoot
-    }
+    const state = (() => {
+      using _ = startup.span("build-state")
+      const result = storageModule.runGenerator(
+        tuiModule.initBoardStateGenerator(createdRepo, rootNodeId),
+      )
+      if (result) {
+        result.rootPath = resolved.repoRoot
+      }
+      return result
+    })()
 
     // km-fast-md.7: Extract deferred files for background parsing
     const deferredFiles = createdRepo.deferredFiles
@@ -149,6 +166,9 @@ export const viewCommand = new Command("view")
         }
       })()
     }
+
+    // End startup span before runBoard (TUI takes over interactively)
+    startup.end()
 
     await tuiModule.runBoard(state, {
       interactive,

@@ -214,6 +214,9 @@ export {
 
 export type { PathResolution, ResolvedPathArg } from "./path-utils.ts"
 
+// ID utilities for consistent node ID generation
+export { generatePathBasedId } from "./id-utils.ts"
+
 // Watch and sync (merged from @km/watch)
 export {
   FileSystemWatcher,

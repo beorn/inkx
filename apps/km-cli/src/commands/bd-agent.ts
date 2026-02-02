@@ -135,7 +135,7 @@ bdAgentCommand
       return
     }
 
-    const issue = getIssue(issueId)
+    const issue = getIssue(issueId, { repo })
     if (!issue) {
       console.error(term.red(`Issue not found: ${issueId}`))
       process.exitCode = 1
@@ -165,7 +165,7 @@ bdAgentCommand
       return
     }
 
-    const issue = getIssue(issueId)
+    const issue = getIssue(issueId, { repo })
     if (!issue) {
       console.error(term.red(`Issue not found: ${issueId}`))
       process.exitCode = 1

@@ -12,13 +12,13 @@ import type { Repo } from "@km/storage"
  */
 export function resolveIssueArg(repo: Repo, arg: string): Issue | null {
   // 1. Try as bead short ID first (km-xxxx pattern)
-  const byShortId = getIssue(arg)
+  const byShortId = getIssue(arg, { repo })
   if (byShortId) return byShortId
 
   // 2. Try as path-or-node reference
   const node = repo.resolveNode(arg, "task")
   if (node) {
-    return nodeToIssue(node)
+    return nodeToIssue(node, { repo })
   }
 
   return null

@@ -78,10 +78,12 @@ bdCommand
   .option("-p, --priority <n>", "Filter by priority (0-4)", parseInt)
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
-  .action((scope: string | undefined, opts: ReadyOptions) => {
+  .action(async (scope: string | undefined, opts: ReadyOptions) => {
     const resolved = resolvePathArg(scope)
     const scopePath = resolved.nodeRef ?? undefined
     const configObj = loadConfigObject(resolved.repoRoot)
+
+    using repo = await loadRepo(resolved.repoRoot)
 
     const filter: Partial<IssueFilter> = {}
     if (opts.type) filter.type = opts.type
@@ -91,7 +93,7 @@ bdCommand
     // Use board filter from config unless --all or explicit scope given
     const boardTag =
       (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
-    const issues = queryReady(filter, scopePath, boardTag)
+    const issues = queryReady(filter, scopePath, boardTag, { repo })
 
     if (opts.json) {
       console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
@@ -138,10 +140,12 @@ bdCommand
   .option("--unblocked", "Show only unblocked issues")
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
-  .action((scope: string | undefined, opts: ListOptions) => {
+  .action(async (scope: string | undefined, opts: ListOptions) => {
     const resolved = resolvePathArg(scope)
     const scopePath = resolved.nodeRef ?? undefined
     const configObj = loadConfigObject(resolved.repoRoot)
+
+    using repo = await loadRepo(resolved.repoRoot)
 
     const filter: IssueFilter = {}
     if (opts.status) filter.status = opts.status.split(",")
@@ -154,7 +158,7 @@ bdCommand
     // Use board filter from config unless --all or explicit scope given
     const boardTag =
       (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
-    const issues = queryIssues(filter, scopePath, boardTag)
+    const issues = queryIssues(filter, scopePath, boardTag, { repo })
 
     if (opts.json) {
       console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
@@ -480,7 +484,7 @@ bdCommand
 
     // Query with board filter if configured
     const boardTag = config.board || undefined
-    const issues = queryIssues({}, scopePath, boardTag)
+    const issues = queryIssues({}, scopePath, boardTag, { repo })
 
     console.log(term.bold("Beads Configuration"))
     console.log("===================")
