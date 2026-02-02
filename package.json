@@ -42,7 +42,7 @@
     "format": "oxfmt -c packages/km-infra/oxfmt/config.json --check apps packages infra",
     "format:fix": "oxfmt -c packages/km-infra/oxfmt/config.json --write apps packages infra",
     "codemod": "bun scripts/codemod.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "NODE_OPTIONS='--max-old-space-size=8192' tsc --noEmit",
     "type:coverage": "type-coverage --detail --at-least 90",
     "fix": "bun run codemod && bun run lint:fix && bun run format:fix",
     "test:fast": "bunx --bun vitest run --exclude='**/*.slow.*'",

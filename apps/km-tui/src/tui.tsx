@@ -159,7 +159,6 @@ export async function runBoard(
 
   // Patch console for interactive mode to capture output
   const patched = isInteractive ? patchConsole(console) : null
-  if (patched) enableConsoleDebug() // Route debug() output to <Console>
 
   try {
     // Stop CLI spinner - TUI is about to take over the screen
@@ -181,6 +180,10 @@ export async function runBoard(
         { alternateScreen: isInteractive, patchConsole: false },
       )
     }
+
+    // Now that alternate screen is active, enable debug routing
+    // This flushes buffered debug output to Console component
+    if (patched) enableConsoleDebug()
 
     // End the run span before blocking on waitUntilExit (TUI is now running)
     run.end()

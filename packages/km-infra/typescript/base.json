@@ -1,6 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
     "lib": ["ESNext"],
     "types": ["@total-typescript/ts-reset", "@types/bun"],
     "target": "ESNext",
