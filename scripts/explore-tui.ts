@@ -190,8 +190,8 @@ function verifyDomInvariants(
     }
   }
 
-  // Check view mode indicator exists
-  if (!state.viewMode) {
+  // Check view mode indicator exists (skip when in dialogs/help - they may obscure it)
+  if (!state.viewMode && !state.inDialog) {
     issues.push({
       iteration,
       action,

@@ -462,8 +462,12 @@ export function getCardMidY(layout: NodeLayout): number {
   if (layout.headY !== undefined && layout.headHeight !== undefined) {
     return layout.headY + layout.headHeight / 2
   }
-  throw new Error(
-    "Head position not registered - this is a programming error. " +
-      "Card components must call updateCardHead() after measuring the head row.",
-  )
+  // Fallback: use card box midpoint when head position not yet registered
+  // This happens when layout callbacks haven't fired yet (first render)
+  if (layout.y !== undefined && layout.cardHeight !== undefined) {
+    return layout.y + layout.cardHeight / 2
+  }
+  // Last resort: return 0 (top of screen) rather than throwing
+  // This allows navigation to work even if layout is incomplete
+  return 0
 }

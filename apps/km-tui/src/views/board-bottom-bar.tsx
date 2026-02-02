@@ -2,7 +2,7 @@
  * Board bottom bar - status display component
  */
 import React, { useState, useEffect } from "react"
-import { Box, Text } from "inkx"
+import { Box, Text, displayWidth } from "inkx"
 import type { WatcherStatus } from "@km/storage"
 import type { UIState } from "../ui-reducer.ts"
 import type { TUIBoardState } from "../types.ts"
@@ -150,9 +150,9 @@ export function BottomBar({
   const right = ` ${rightParts.join("   ")} ` // Triple space between groups
 
   // Calculate widths: right side is fixed, left gets remaining space
-  const rightWidth = right.length
+  // Use displayWidth for emoji (📋 is 2 display columns but 1 in .length)
+  const rightWidth = displayWidth(right)
   const leftWidth = Math.max(1, termWidth - rightWidth)
-
   return (
     <Box
       flexDirection="row"
@@ -161,7 +161,13 @@ export function BottomBar({
       id="bottom-bar"
       data-status={ui.status?.level}
     >
-      <Box width={leftWidth} flexShrink={0} flexDirection="row">
+      <Box
+        width={leftWidth}
+        flexGrow={0}
+        flexShrink={0}
+        flexDirection="row"
+        overflow="hidden"
+      >
         {/* Storage mode indicator */}
         <Text dimColor id="storage-mode">
           {modeLabel}
@@ -179,22 +185,9 @@ export function BottomBar({
           </>
         )}
       </Box>
-      <Box width={rightWidth} flexShrink={0}>
-        <Text dimColor>
-          {" "}
-          <Text id="node-count">📋{dbCount}</Text>
-          {watcherInfo && <Text id="watcher-status">{watcherInfo}</Text>}
-          {ui.viewMode === "columns" && state.columns.length > 1 && (
-            <>
-              {"   "}
-              <Text id="column-position">
-                {}
-                col {layout.colIndex + 1}/{state.columns.length}
-              </Text>
-            </>
-          )}
-          {"   "}
-          <Text id="view-mode">{viewModeStr}</Text>{" "}
+      <Box width={rightWidth} flexGrow={0} flexShrink={0}>
+        <Text dimColor wrap="truncate">
+          {right}
         </Text>
       </Box>
     </Box>
