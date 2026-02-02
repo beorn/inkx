@@ -56,3 +56,4 @@ test-*.ts
 .perles/
 tmp-test/
 docs/vs-decker.md
+issue/
