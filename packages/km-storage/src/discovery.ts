@@ -88,8 +88,11 @@ export function* discoverFiles(
   const ignorePatterns = getIgnorePatterns(repoRoot)
 
   // Query for existing repo root node (created by migration)
+  // Use is_repo_root flag to distinguish from other folders with NULL parent_id
   const repoRootRow = db
-    .prepare("SELECT id FROM nodes WHERE parent_id IS NULL AND type = 'folder'")
+    .prepare(
+      "SELECT id FROM nodes WHERE type = 'folder' AND json_extract(data, '$.is_repo_root') = 1",
+    )
     .get() as { id: string } | undefined
 
   if (!repoRootRow) {
