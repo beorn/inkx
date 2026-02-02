@@ -85,15 +85,15 @@ describe("rebuild.ts", () => {
             '{"id":"01HQ1B","type":"node_created","data":{"id":"n2","type":"task"}}\n',
         )
 
-        // Spy on console.warn since readEvents warns about malformed lines
+        // Suppress logger output (uses @beorn/logger which writes to console.warn)
         const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
 
         const events = readEvents(kmDir)
         expect(events.length).toBe(2)
-        expect(warnSpy).toHaveBeenCalledWith(
-          "Skipping malformed event line:",
-          "not json",
-        )
+        expect(events[0]!.id).toBe("01HQ1A")
+        expect(events[1]!.id).toBe("01HQ1B")
+        // Logger called with structured format
+        expect(warnSpy).toHaveBeenCalled()
         warnSpy.mockRestore()
       }))
   })
