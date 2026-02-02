@@ -513,7 +513,7 @@ Each package has focused unit tests:
 
 **Scenarios**: Dropped events, reordering, duplicates, race conditions.
 
-See [archive/chaos-testing.md](../archive/chaos-testing.md) for detailed reference.
+See [chaos-testing.md](chaos-testing.md) for detailed reference.
 
 ### 3.2 Regression Tests
 
@@ -866,7 +866,7 @@ const watcher = new ChaosWatcher({
 
 **Location**: `packages/km-storage/tests/sync/chaos/`
 
-See [archive/chaos-testing.md](../archive/chaos-testing.md) for full scenario reference.
+See [chaos-testing.md](chaos-testing.md) for full scenario reference.
 
 ---
 
