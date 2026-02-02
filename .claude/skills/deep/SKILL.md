@@ -39,6 +39,16 @@ Run: `bun llm debate -y "current state of WebAssembly"`
 - `/deep`: ~$2-5 per query (OpenAI deep research with web search)
 - `/deep:all`: ~$1-3 per query (queries 3 models, synthesizes)
 
+## Auto-Recovery
+
+If a previous deep research call was interrupted, running `/deep` will:
+1. Automatically detect incomplete responses
+2. Attempt to recover them from OpenAI
+3. Display the recovered content
+4. Ask if you want to continue with a new query
+
+Use `--no-recover` to skip this check.
+
 ## Note
 
 This uses OpenAI's deep research feature (NOT DeepSeek). The `/deep` command includes web search and provides citations. The `/deep:all` variant uses the debate system to get multiple perspectives.

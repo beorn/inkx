@@ -6,7 +6,10 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs"
 import { join, dirname } from "node:path"
+import { createLogger } from "@beorn/logger"
 import { parseBeadsIssuesJsonl, type BeadsIssue } from "./schema.ts"
+
+const log = createLogger("km:beads:migrate")
 
 // Re-export for backwards compatibility
 export type { BeadsIssue } from "./schema.ts"
@@ -42,10 +45,9 @@ export function readBeadsIssues(beadsDir: string): BeadsIssue[] {
 
   // Log validation errors but don't fail - allows partial recovery
   if (errors.length > 0) {
-    console.warn(
-      `Skipped ${errors.length} malformed lines in ${issuesPath}:`,
-      errors.map((e) => `line ${e.line}: ${e.error}`).join(", "),
-    )
+    log.warn(`Skipped ${errors.length} malformed lines in ${issuesPath}`, {
+      errors: errors.map((e) => `line ${e.line}: ${e.error}`),
+    })
   }
 
   return issues
