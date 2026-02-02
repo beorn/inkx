@@ -21,7 +21,6 @@ import {
   wrapText,
   truncateText,
   padText,
-  ANSI_REGEX,
 } from "inkx"
 
 // =============================================================================
@@ -31,7 +30,7 @@ import {
 /** Alias for displayWidth for compatibility */
 export const displayLength = displayWidth
 
-export { constrainText, wrapText, truncateText, padText, ANSI_REGEX }
+export { constrainText, wrapText, truncateText, padText }
 
 /**
  * Simple scroll offset calculator for centering selected item in view.

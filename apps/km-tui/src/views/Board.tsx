@@ -18,10 +18,10 @@ import {
 } from "inkx"
 import createDebug from "debug"
 
-const debug = createDebug("km:board")
+const _debug = createDebug("km:board")
 import type { TUIBoardState, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
-import { useRepo, RepoProvider } from "../repo-context.tsx"
+import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "@km/storage"
 import { DetailPane } from "./DetailPane.tsx"
 import { ProjectPicker } from "./ProjectPicker.tsx"

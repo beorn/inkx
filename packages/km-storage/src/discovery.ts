@@ -20,7 +20,7 @@
 
 import type { Database } from "bun:sqlite"
 import { existsSync, readdirSync, readFileSync } from "fs"
-import { join, relative } from "path"
+import { join } from "path"
 import type { Event } from "@km/core"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"

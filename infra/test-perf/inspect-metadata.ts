@@ -30,7 +30,7 @@ if (Array.isArray(metadata) && metadata.length > 0) {
   }
 
   // Dereference using the index structure
-  const root = metadata[0] as any
+  const root: Record<string, unknown> = metadata[0] as Record<string, unknown>
   const filesIdx = parseInt(root.files as string)
   const filesArray = metadata[filesIdx] as any[]
 
@@ -39,7 +39,10 @@ if (Array.isArray(metadata) && metadata.length > 0) {
   // Get first file
   if (filesArray && Array.isArray(filesArray) && filesArray.length > 0) {
     const firstFileIdx = parseInt(filesArray[0] as string)
-    const firstFile = metadata[firstFileIdx] as any
+    const firstFile: Record<string, unknown> = metadata[firstFileIdx] as Record<
+      string,
+      unknown
+    >
     console.log(`\nFirst file object at index ${firstFileIdx}:`)
     console.log(JSON.stringify(firstFile, null, 2))
 

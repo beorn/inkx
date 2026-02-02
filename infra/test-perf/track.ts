@@ -103,7 +103,7 @@ function readMetadata(): unknown {
     const text = new TextDecoder().decode(decompressed)
     return JSON.parse(text) as unknown
   } catch (error) {
-    console.error(`❌ Failed to read metadata: ${error}`)
+    console.error(`❌ Failed to read metadata: ${String(error)}`)
     process.exit(1)
   }
 }
@@ -221,7 +221,7 @@ function storeHistory(perfData: PerformanceData): void {
       writeFileSync(HISTORY_PATH, line)
     }
   } catch (error) {
-    console.error(`⚠️  Failed to write history: ${error}`)
+    console.error(`⚠️  Failed to write history: ${String(error)}`)
   }
 }
 

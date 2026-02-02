@@ -14,6 +14,7 @@
  */
 
 // Node.js/Bun global for yielding to event loop
+// eslint-disable-next-line promise/prefer-await-to-callbacks -- Type declaration, not actual callback
 declare function setImmediate(callback: (value?: unknown) => void): unknown
 
 import createDebug from "debug"

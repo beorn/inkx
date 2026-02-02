@@ -20,7 +20,7 @@ import type { Event } from "@km/core"
 import type { Database } from "bun:sqlite"
 import { applyEventWithDb } from "./db-events.ts"
 
-const debug = createDebug("km:storage:emitter")
+const _debug = createDebug("km:storage:emitter")
 
 // --- Types ---
 

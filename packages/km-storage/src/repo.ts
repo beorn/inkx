@@ -732,6 +732,7 @@ export function* createRepo(
         db.run(SCHEMA)
 
         // Re-load files into memory database
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here
         const memLoadResult = yield* loadRepo(rootPath, {
           searchAncestors: false,
           skipLinkResolution: options.skipLinkResolution,
