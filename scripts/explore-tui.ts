@@ -13,6 +13,12 @@
  *   --seed <n>        Fixed seed for reproducibility
  *   --path <vault>    Use real vault instead of fixtures
  *   --verbose         Show every action
+ *   --quiet           Only output issues (for CI)
+ *   --json            Output results as JSON
+ *
+ * Exit codes:
+ *   0 - No issues found
+ *   1 - Issues found (bugs or errors)
  */
 
 import { testEnv, item } from "../apps/km-tui/tests/helpers/board-test"
@@ -254,14 +260,20 @@ async function main() {
   const seed = seedArg ? parseInt(seedArg) : Date.now() % 100000
   const vaultPath = args.find((a, i) => args[i - 1] === "--path")
   const verbose = args.includes("--verbose")
+  const quiet = args.includes("--quiet")
+  const jsonOutput = args.includes("--json")
 
-  console.log("=" .repeat(60))
-  console.log("TUI EXPLORATION TEST")
-  console.log("=".repeat(60))
-  console.log(`Seed: ${seed}`)
-  console.log(`Iterations: ${iterations}`)
-  console.log(`Vault: ${vaultPath ?? "(fixtures)"}`)
-  console.log()
+  const startTime = performance.now()
+
+  if (!quiet && !jsonOutput) {
+    console.log("=".repeat(60))
+    console.log("TUI EXPLORATION TEST")
+    console.log("=".repeat(60))
+    console.log(`Seed: ${seed}`)
+    console.log(`Iterations: ${iterations}`)
+    console.log(`Vault: ${vaultPath ?? "(fixtures)"}`)
+    console.log()
+  }
 
   const rng = new SeededRandom(seed)
   const issues: Issue[] = []
@@ -292,7 +304,9 @@ async function main() {
   }
 
   // Run iterations
-  console.log(`Running ${iterations} iterations...\n`)
+  if (!quiet && !jsonOutput) {
+    console.log(`Running ${iterations} iterations...\n`)
+  }
 
   for (let i = 1; i <= iterations; i++) {
     const action = rng.weighted(ACTIONS)
@@ -309,13 +323,54 @@ async function main() {
     verifyBufferInvariants(i, action, after, issues)
     verifyExpectedOutcome(i, action, before, after, issues)
 
-    if (verbose || i % 25 === 0) {
+    if (!quiet && !jsonOutput && (verbose || i % 25 === 0)) {
       const cursor = after.cursorText?.slice(0, 20) ?? "none"
       console.log(`  [${i}] ${action} -> cursor="${cursor}" bell=${after.bell}`)
     }
   }
 
-  // Report
+  const duration = Math.round(performance.now() - startTime)
+
+  // Group issues by type for reporting
+  const byType: Record<string, Issue[]> = {}
+  for (const issue of issues) {
+    byType[issue.type] = byType[issue.type] ?? []
+    byType[issue.type].push(issue)
+  }
+
+  // JSON output
+  if (jsonOutput) {
+    const result = {
+      seed,
+      iterations,
+      duration,
+      issueCount: issues.length,
+      viewModesTested: [...viewModes],
+      actionCounts,
+      issuesByType: Object.fromEntries(
+        Object.entries(byType).map(([type, typeIssues]) => [
+          type,
+          { count: typeIssues.length, examples: typeIssues.slice(0, 3) },
+        ])
+      ),
+      reproduce: `bun scripts/explore-tui.ts --seed ${seed} --iterations ${iterations}`,
+    }
+    console.log(JSON.stringify(result, null, 2))
+    process.exit(issues.length > 0 ? 1 : 0)
+  }
+
+  // Quiet output - just summary line
+  if (quiet) {
+    if (issues.length > 0) {
+      const types = Object.keys(byType).join(", ")
+      console.log(`FAIL: ${issues.length} issues (${types}) [seed=${seed}]`)
+    } else {
+      console.log(`OK: ${iterations} iterations in ${duration}ms [seed=${seed}]`)
+    }
+    process.exit(issues.length > 0 ? 1 : 0)
+  }
+
+  // Full report
   console.log("\n" + "=".repeat(60))
   console.log("RESULTS")
   console.log("=".repeat(60))
@@ -325,6 +380,7 @@ async function main() {
   console.log(`|--------|-------|`)
   console.log(`| Bugs found | ${issues.length} |`)
   console.log(`| View modes tested | ${viewModes.size}/4 (${[...viewModes].join(", ")}) |`)
+  console.log(`| Duration | ${duration}ms |`)
   console.log(`| Seed | ${seed} |`)
 
   console.log("\n## Action Distribution\n")
@@ -335,13 +391,6 @@ async function main() {
 
   if (issues.length > 0) {
     console.log(`\n## Issues Found (${issues.length})\n`)
-
-    // Group by type
-    const byType: Record<string, Issue[]> = {}
-    for (const issue of issues) {
-      byType[issue.type] = byType[issue.type] ?? []
-      byType[issue.type].push(issue)
-    }
 
     for (const [type, typeIssues] of Object.entries(byType)) {
       console.log(`### ${type} (${typeIssues.length} occurrences)`)

@@ -42,35 +42,39 @@ Exercises `km view` to discover bugs and performance issues. Supports:
 
 ## Default Workflow (TUI Mode)
 
-**Run the exploration script in one call:**
+**Run the exploration script:**
 
 ```bash
-bun scripts/explore-tui.ts --iterations 100 --seed <random>
+# Quick run (random seed)
+bun scripts/explore-tui.ts --iterations 100
+
+# Reproducible run
+bun scripts/explore-tui.ts --iterations 100 --seed 12345
+
+# Quiet mode for CI
+bun scripts/explore-tui.ts --iterations 100 --quiet
+
+# JSON output for processing
+bun scripts/explore-tui.ts --iterations 100 --json
+
+# With real vault
+bun scripts/explore-tui.ts --path /path/to/vault
 ```
 
-This verifies **both DOM and buffer** for each action:
+**What it verifies (both DOM and buffer):**
 
-**DOM Invariants:**
-- Exactly 1 `[data-cursor]` element (unless in dialog)
-- `#board` element exists
-- `#bottom-bar` element exists
-
-**Buffer Invariants:**
-- Non-empty output
-- No `[object Object]`
-- No error messages (TypeError, ReferenceError)
-- View mode indicator present
-
-**Expected Outcomes per Action:**
-- `j/k` → cursor text should change (unless at boundary/bell)
-- `h/l` → cursor should move to different column
-- `v` → view mode MUST change (CARDS→COLUMNS→LIST→TABS)
-- `o/u` → breadcrumb should change (zoom in/out)
+| Check | What | Issue Type |
+|-------|------|------------|
+| Cursor count | Exactly 1 `[data-cursor]` | `multiple-cursors`, `missing-cursor` |
+| Required elements | `#board`, `#bottom-bar` exist | `missing-board`, `missing-bottom-bar` |
+| Buffer content | No `[object Object]`, no errors | `object-object`, `error-in-buffer` |
+| View mode | Indicator present, `v` cycles mode | `missing-view-mode`, `view-mode-unchanged` |
 
 **When bugs are found:**
-1. Create bead: `bd create "TUI: [description]" --type=bug`
-2. Add test to `apps/km-tui/tests/` with `.skip` if bug not fixed
-3. Reference bead in test comment
+1. Script outputs reproduce command with seed
+2. Create bead: `bd create "TUI: [description]" --type=bug`
+3. Add test to `apps/km-tui/tests/` with `.skip` if not fixing now
+4. Reference bead in test comment (e.g., "See bead km-xyz")
 
 ## Modes
 
