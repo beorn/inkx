@@ -383,12 +383,14 @@ const VirtualizedCardList = forwardRef<
   // Get the slice of cards to render
   const visibleCards = cards.slice(startIndex, endIndex)
 
-  // Calculate scrollTo index using edge-based offset
-  // scrollOffsetRef.current is the logical top card index
-  // We need to translate to the index within our rendered slice
+  // Calculate scrollTo index for inkx
+  // inkx scrollTo expects the INDEX of the child to scroll into view
+  // Account for top placeholder being child 0 when present
   const hasTopPlaceholder = topPlaceholderHeight > 0
-  const scrollToIndex =
-    newScrollOffset - startIndex + (hasTopPlaceholder ? 1 : 0)
+  const selectedIndexInSlice = selectedCardIndex - startIndex
+  const scrollToIndex = hasTopPlaceholder
+    ? selectedIndexInSlice + 1 // +1 for top placeholder
+    : selectedIndexInSlice
 
   return (
     <Box
