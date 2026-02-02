@@ -132,7 +132,7 @@ export function resolveNode(
     }
 
     // Truly ambiguous - warn the user
-    log.warn(
+    log.warn?.(
       `Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`,
       {
         query: q,
