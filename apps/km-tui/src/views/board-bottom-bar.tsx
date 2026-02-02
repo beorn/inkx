@@ -2,7 +2,7 @@
  * Board bottom bar - status display component
  */
 import React, { useState, useEffect } from "react"
-import { Box, Text, displayWidth } from "inkx"
+import { Box, Text } from "inkx"
 import type { WatcherStatus } from "@km/storage"
 import type { UIState } from "../ui-reducer.ts"
 import type { TUIBoardState } from "../types.ts"
@@ -123,22 +123,12 @@ export function BottomBar({
     }
   }
 
-  // Right side info - build string for width calculation
+  // Right side info
   const watcherInfo = ui.watcherStatus
     ? ` ${isLoading ? `${spinnerFrame} ` : ""}${renderWatcherStatus(ui.watcherStatus)}`
     : ""
   const viewModeStr = (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW"
   const showColPosition = ui.viewMode === "columns" && state.columns.length > 1
-  const colPosStr = showColPosition
-    ? `   col ${layout.colIndex + 1}/${state.columns.length}`
-    : ""
-
-  // Calculate right side width using displayWidth (handles emoji correctly)
-  // This is necessary because inkx/flexx doesn't properly handle flexGrow={1}/flexGrow={0}
-  // sibling layout - the left side expands and squeezes the right side
-  const rightStr = ` 📋${nodeCount}${watcherInfo}${colPosStr}   ${viewModeStr} `
-  const rightWidth = displayWidth(rightStr)
-  const leftWidth = Math.max(1, termWidth - rightWidth)
 
   // Left side info
   const modeLabel = storageMode === "memory" ? "MEM" : "DISK"
@@ -151,14 +141,8 @@ export function BottomBar({
       id="bottom-bar"
       data-status={ui.status?.level}
     >
-      {/* Left side: explicit width, truncates overflow */}
-      <Box
-        width={leftWidth}
-        flexGrow={0}
-        flexShrink={0}
-        flexDirection="row"
-        overflow="hidden"
-      >
+      {/* Left side: fills remaining space, truncates overflow */}
+      <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
         <Text dimColor id="storage-mode">
           {modeLabel}
         </Text>
@@ -175,8 +159,8 @@ export function BottomBar({
           </>
         )}
       </Box>
-      {/* Right side: explicit width, nested Text for testable IDs */}
-      <Box width={rightWidth} flexGrow={0} flexShrink={0}>
+      {/* Right side: intrinsic width, nested Text for testable IDs */}
+      <Box flexGrow={0} flexShrink={0}>
         <Text dimColor>
           {" "}
           <Text id="node-count">📋{nodeCount}</Text>
@@ -190,8 +174,7 @@ export function BottomBar({
             </>
           )}
           {"   "}
-          <Text id="view-mode">{viewModeStr}</Text>
-          {" "}
+          <Text id="view-mode">{viewModeStr}</Text>{" "}
         </Text>
       </Box>
     </Box>
