@@ -73,7 +73,7 @@ export function ConsoleModal({ width, height, patchedConsole }: ConsoleModalProp
   )
 }
 
-function getColorForMethod(method: string): string | undefined {
+function getColorForMethod(method: string): string {
   switch (method) {
     case "error":
       return "red"
@@ -84,7 +84,8 @@ function getColorForMethod(method: string): string | undefined {
     case "info":
       return "cyan"
     default:
-      return undefined
+      // console.log - use white to ensure visibility on dark backgrounds
+      return "white"
   }
 }
 

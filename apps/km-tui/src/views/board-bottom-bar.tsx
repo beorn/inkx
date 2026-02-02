@@ -45,6 +45,8 @@ interface BottomBarProps {
   nodeCount: number
   /** Move mode active (from board state) */
   moveMode: boolean
+  /** Console stats (only shown when total > 0) */
+  consoleStats?: { total: number; errors: number; warnings: number }
 }
 
 /**
@@ -58,6 +60,7 @@ export function BottomBar({
   storageMode,
   nodeCount,
   moveMode,
+  consoleStats,
 }: BottomBarProps): React.ReactElement {
   const homeDir = process.env.HOME || ""
 
@@ -84,6 +87,18 @@ export function BottomBar({
   if (ui.showProjectPicker) statusParts.push("[PROJ]")
   if (ui.showNewItemDialog) statusParts.push("[NEW]")
   if (ui.inOutlineMode) statusParts.push("OUT")
+
+  // Console indicator (only when there are lines)
+  if (consoleStats && consoleStats.total > 0) {
+    let consoleText = `🖥️${consoleStats.total}`
+    if (consoleStats.errors > 0 || consoleStats.warnings > 0) {
+      const parts: string[] = []
+      if (consoleStats.errors > 0) parts.push(`${consoleStats.errors}✗`)
+      if (consoleStats.warnings > 0) parts.push(`${consoleStats.warnings}⚠`)
+      consoleText += ` (${parts.join(" ")})`
+    }
+    statusParts.push(consoleText)
+  }
 
   // Status message shown after mode indicators
   if (ui.status) {

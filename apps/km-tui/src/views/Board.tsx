@@ -116,6 +116,8 @@ export interface BoardCoreProps {
   moveMode: boolean;
   /** Patched console for debug output modal */
   patchedConsole?: PatchedConsole | null;
+  /** Console stats for bottom bar indicator */
+  consoleStats?: { total: number; errors: number; warnings: number };
 }
 
 /**
@@ -133,6 +135,7 @@ export function BoardCore({
   dialogHandlers,
   moveMode,
   patchedConsole,
+  consoleStats,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo();
   const termWidth = dimensions.columns;
@@ -423,6 +426,7 @@ export function BoardCore({
               storageMode={repo.mode}
               nodeCount={repo.stats.nodeCount}
               moveMode={moveMode}
+              consoleStats={consoleStats}
             />
             {/* Bell indicator - hidden element for test detection */}
             {ui.bellState && (
@@ -528,6 +532,18 @@ export function Board({
       dispatch(actions.autoOpenConsole());
     }
   }, [consoleEntries.length, ui.consoleAutoOpened]);
+
+  // Calculate console stats for bottom bar
+  const consoleStats = useMemo(() => {
+    if (consoleEntries.length === 0) return undefined;
+    let errors = 0;
+    let warnings = 0;
+    for (const entry of consoleEntries) {
+      if (entry.method === "error") errors++;
+      else if (entry.method === "warn") warnings++;
+    }
+    return { total: consoleEntries.length, errors, warnings };
+  }, [consoleEntries]);
 
   // Ref to track current rootId for event handlers (avoids stale closure)
   const rootIdRef = useRef(boardState.rootId);
@@ -692,6 +708,7 @@ export function Board({
       dialogHandlers={dialogHandlers}
       moveMode={boardState.moveMode}
       patchedConsole={patchedConsole}
+      consoleStats={consoleStats}
     />
   );
 }
