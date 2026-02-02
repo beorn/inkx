@@ -52,7 +52,17 @@ Run `bun llm` for full help.
 
 ## Features
 
+- **Auto-recovery**: Automatically recovers interrupted responses before new queries
+- **Persistence**: Saves progress to disk during streaming (never lose expensive calls)
 - **History check**: Warns if you've researched this before (avoids duplicate spend)
 - **Cost confirmation**: Prompts for `deep` and `debate` (expensive)
 - **Streaming**: Real-time output
 - **Provider warnings**: Shows when better models are available
+
+## Recovery Commands
+
+| Command | What |
+|---------|------|
+| `bun llm recover` | List incomplete responses |
+| `bun llm recover <id>` | Retrieve response by ID from OpenAI |
+| `bun llm partials --clean` | Clean up old partial files |
