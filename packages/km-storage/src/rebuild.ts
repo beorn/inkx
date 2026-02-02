@@ -64,7 +64,7 @@ export function readEvents(kmDir: string): Event[] {
     } catch {
       // Skip malformed lines
       malformed++
-      console.warn("Skipping malformed event line:", line.slice(0, 50))
+      log.warn("Skipping malformed event line", { preview: line.slice(0, 50) })
     }
   }
 

@@ -132,11 +132,13 @@ export function resolveNode(
     }
 
     // Truly ambiguous - warn the user
-    log.debug?.(
-      `resolveNode: AMBIGUOUS - ${matches.length} matches for '${q}' by ${matchType}: ${matches.map((n) => n.id).join(", ")}`,
-    )
-    console.warn(
-      `Warning: Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`,
+    log.warn(
+      `Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`,
+      {
+        query: q,
+        matchType,
+        matches: matches.map((n) => n.id),
+      },
     )
     return best
   }

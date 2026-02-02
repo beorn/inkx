@@ -6,8 +6,11 @@
 
 import { existsSync, writeFileSync, mkdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+import { createLogger } from "@beorn/logger"
 import type { Issue } from "./types.ts"
 import { parseBeadsIssuesJsonl, type BeadsIssue } from "./schema.ts"
+
+const log = createLogger("km:beads:sync")
 
 /**
  * Convert km status to beads status
@@ -113,9 +116,7 @@ export function exportToBeads(
     existingIssues = issues
     // Log validation errors but continue - allows partial recovery
     if (errors.length > 0) {
-      console.warn(
-        `Skipped ${errors.length} malformed lines in existing issues`,
-      )
+      log.warn(`Skipped ${errors.length} malformed lines in existing issues`)
     }
   }
 

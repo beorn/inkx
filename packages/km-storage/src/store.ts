@@ -32,6 +32,9 @@ import {
   findFileByName,
 } from "./db-queries/wikilink-resolver.ts"
 import { rowToNode } from "./db-queries/index.ts"
+import { createLogger } from "@beorn/logger"
+
+const log = createLogger("km:storage:store")
 
 /**
  * NodeStore interface - unified access to node storage
@@ -393,15 +396,13 @@ export class MemoryStore extends BaseStore {
 
     // Log parse errors summary if any occurred
     if (this.parseErrors.length > 0) {
-      console.warn(
-        `Warning: ${this.parseErrors.length} file(s) could not be parsed:`,
-      )
-      for (const { path, error } of this.parseErrors.slice(0, 5)) {
-        console.warn(`  - ${path}: ${error}`)
-      }
-      if (this.parseErrors.length > 5) {
-        console.warn(`  ... and ${this.parseErrors.length - 5} more`)
-      }
+      log.warn(`${this.parseErrors.length} file(s) could not be parsed`, {
+        errors: this.parseErrors
+          .slice(0, 5)
+          .map(({ path, error }) => ({ path, error })),
+        truncated:
+          this.parseErrors.length > 5 ? this.parseErrors.length - 5 : 0,
+      })
     }
   }
 
