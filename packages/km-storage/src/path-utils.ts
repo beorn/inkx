@@ -5,7 +5,7 @@
  * with automatic KM_ROOT detection by walking up parent directories.
  */
 
-import { existsSync, statSync } from "fs"
+import { existsSync, statSync, realpathSync } from "fs"
 import { resolve, dirname, join, basename } from "path"
 
 export interface PathResolution {
@@ -75,9 +75,12 @@ export function findKmRootFromPath(startPath: string): string | null {
 
 /**
  * Resolve a filesystem path to detailed information about it
+ *
+ * Uses realpathSync to resolve symlinks (e.g., /tmp -> /private/tmp on macOS)
+ * so that paths are consistent with database storage and smart resolver.
  */
 export function resolveFsPath(input: string): PathResolution {
-  const absolutePath = resolve(input)
+  let absolutePath = resolve(input)
   let exists = false
   let isFile = false
   let isDirectory = false
@@ -85,6 +88,13 @@ export function resolveFsPath(input: string): PathResolution {
   try {
     if (existsSync(absolutePath)) {
       exists = true
+      // Resolve symlinks for consistent path handling
+      // This ensures /tmp/foo becomes /private/tmp/foo on macOS
+      try {
+        absolutePath = realpathSync(absolutePath)
+      } catch {
+        // Keep original if realpath fails
+      }
       const stat = statSync(absolutePath)
       isFile = stat.isFile()
       isDirectory = stat.isDirectory()

@@ -75,8 +75,7 @@ export const viewCommand = new Command("view")
       }
     } else {
       // No specific node requested - use repo root folder node
-      // The smart resolver finds the folder node with parent_id = null and type = 'folder'
-      const repoRootNode = createdRepo.resolveNode(resolved.repoRoot)
+      const repoRootNode = createdRepo.getRepoRootNode()
       rootNodeId = repoRootNode?.id
     }
 

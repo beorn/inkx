@@ -61,9 +61,20 @@ export const screenshotCommand = new Command("screenshot")
       storageModule.createRepo(resolved.repoRoot, { loadFiles: true }),
     )
 
+    // Resolve nodeRef to actual node ID (matches view.ts logic)
+    let rootNodeId: string | undefined
+    if (resolved.nodeRef) {
+      const node = repo.resolveNode(resolved.nodeRef)
+      rootNodeId = node?.id
+    } else {
+      // No specific node requested - use repo root folder node
+      const repoRootNode = repo.getRepoRootNode()
+      rootNodeId = repoRootNode?.id
+    }
+
     // Initialize board state
     const state = storageModule.runGenerator(
-      tuiModule.initBoardStateGenerator(repo, resolved.nodeRef ?? undefined),
+      tuiModule.initBoardStateGenerator(repo, rootNodeId),
     )
 
     if (!state) {

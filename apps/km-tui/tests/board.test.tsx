@@ -15,7 +15,6 @@ import {
   getNodeDisplayName,
 } from "../src/state.ts"
 import { renderCard } from "../src/render.ts"
-import { StaticBoardView } from "../src/views/StaticBoardView.tsx"
 import { renderStatic } from "inkx"
 import type { CardState } from "../src/types.ts"
 import { BoardCore } from "../src/views/Board.tsx"
@@ -165,78 +164,23 @@ describe("State", () => {
 })
 
 describe("Render", () => {
-  test("StaticBoardView renders columns", async () => {
-    // Build nodes with explicit task_status for deterministic rendering
-    const nodes = [
-      {
-        id: "board",
-        type: "folder" as const,
-        data: { name: "board" },
-        parent_id: null,
-        parent_idx: 0,
-        link_to: null,
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      {
-        id: "Todo",
-        type: "folder" as const,
-        data: { name: "Todo" },
-        parent_id: "board",
-        parent_idx: 0,
-        link_to: null,
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      {
-        id: "Task 1",
-        type: "task" as const,
-        content: "Task 1",
-        task_status: "todo" as const,
-        data: {},
-        parent_id: "Todo",
-        parent_idx: 0,
-        link_to: null,
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      {
-        id: "Done",
-        type: "folder" as const,
-        data: { name: "Done" },
-        parent_id: "board",
-        parent_idx: 1,
-        link_to: null,
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-    ]
+  test("BoardCore renders columns", async () => {
+    // Build nodes using tree builder for cleaner fixture
+    const nodes = item("board", item("Todo", item.task("Task 1")), item("Done"))
     const repo = createFakeRepo({ nodes })
     const state = buildBoardState(repo, "board")
-    const output = await renderStatic(
-      <RepoProvider repo={repo}>
-        <StaticBoardView state={state} />
-      </RepoProvider>,
-      { width: 80 },
-    )
+    const element = renderBoardCore(state, repo, { width: 80, height: 24 })
+    const output = await renderStatic(element, { width: 80 })
     expect(output).toContain("Todo")
     expect(output).toContain("Done")
     expect(output).toContain("Task 1")
   })
 
-  test("StaticBoardView handles empty board", async () => {
+  test("BoardCore handles empty board", async () => {
     const repo = createFakeRepo()
     const state = createEmptyState()
-    const output = await renderStatic(
-      <RepoProvider repo={repo}>
-        <StaticBoardView state={state} />
-      </RepoProvider>,
-      { width: 80 },
-    )
+    const element = renderBoardCore(state, repo, { width: 80, height: 24 })
+    const output = await renderStatic(element, { width: 80 })
     expect(output).toContain("Empty board")
   })
 

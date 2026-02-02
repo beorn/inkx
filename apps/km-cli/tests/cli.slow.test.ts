@@ -1624,4 +1624,178 @@ describe("km view - state initialization", () => {
     expect(viewResult.stdout).toContain("Project 1")
     expect(viewResult.stdout).toContain("Project 2")
   })
+
+  test("km view with ./relative path", async () => {
+    // Create file in subdirectory
+    mkdirSync(join(REPO_DIR, "projects"), { recursive: true })
+    writeFileSync(
+      join(REPO_DIR, "projects/board.md"),
+      `# My Board
+
+## Column
+- [ ] Task here
+`,
+    )
+
+    await km(["sync"])
+
+    // Use ./relative path from repo root
+    const viewResult = await km(
+      ["view", "./projects/board.md", "--no-interactive"],
+      {
+        cwd: REPO_DIR,
+      },
+    )
+    expect(viewResult.exitCode).toBe(0)
+    expect(viewResult.stdout).toContain("Column")
+  })
+
+  test("km view with bare relative path (subdir/file)", async () => {
+    mkdirSync(join(REPO_DIR, "areas"), { recursive: true })
+    writeFileSync(
+      join(REPO_DIR, "areas/work.md"),
+      `# Work
+
+## Active
+- [ ] Project A
+`,
+    )
+
+    await km(["sync"])
+
+    // View using bare relative path without ./
+    const viewResult = await km(["view", "areas/work.md", "--no-interactive"], {
+      cwd: REPO_DIR,
+    })
+    expect(viewResult.exitCode).toBe(0)
+    expect(viewResult.stdout).toContain("Active")
+  })
+
+  test("km view with directory trailing slash", async () => {
+    mkdirSync(join(REPO_DIR, "ref"), { recursive: true })
+    writeFileSync(
+      join(REPO_DIR, "ref/notes.md"),
+      `# Notes
+
+## Ideas
+- Idea 1
+`,
+    )
+
+    await km(["sync"])
+
+    // View using directory with trailing slash
+    const viewResult = await km(["view", "ref/", "--no-interactive"], {
+      cwd: REPO_DIR,
+    })
+    expect(viewResult.exitCode).toBe(0)
+    // Should show the folder contents (the file's heading "Notes")
+    expect(viewResult.stdout).toContain("Notes")
+  })
+
+  test("km view with bare filename", async () => {
+    writeFileSync(
+      join(REPO_DIR, "tasks.md"),
+      `# Tasks
+
+## Todo
+- [ ] Do something
+`,
+    )
+
+    await km(["sync"])
+
+    // View using just filename (no path, no extension)
+    const viewResult = await km(["view", "tasks", "--no-interactive"], {
+      cwd: REPO_DIR,
+    })
+    expect(viewResult.exitCode).toBe(0)
+    expect(viewResult.stdout).toContain("Todo")
+  })
+
+  test("km view with filename and extension", async () => {
+    writeFileSync(
+      join(REPO_DIR, "myfile.md"),
+      `# My File
+
+## Section
+- Item A
+`,
+    )
+
+    await km(["sync"])
+
+    // View using filename with .md extension
+    const viewResult = await km(["view", "myfile.md", "--no-interactive"], {
+      cwd: REPO_DIR,
+    })
+    expect(viewResult.exitCode).toBe(0)
+    expect(viewResult.stdout).toContain("Section")
+  })
+
+  test("km view with nested path without ./ prefix", async () => {
+    mkdirSync(join(REPO_DIR, "docs/guides"), { recursive: true })
+    writeFileSync(
+      join(REPO_DIR, "docs/guides/getting-started.md"),
+      `# Getting Started
+
+## Steps
+- [ ] Step 1
+`,
+    )
+
+    await km(["sync"])
+
+    // View using nested path without ./
+    const viewResult = await km(
+      ["view", "docs/guides/getting-started.md", "--no-interactive"],
+      {
+        cwd: REPO_DIR,
+      },
+    )
+    expect(viewResult.exitCode).toBe(0)
+    expect(viewResult.stdout).toContain("Steps")
+  })
+
+  test("km view with nonexistent file shows error", async () => {
+    await km(["sync"])
+
+    // Try to view a nonexistent file
+    const viewResult = await km(
+      ["view", "nonexistent-file.md", "--no-interactive"],
+      {
+        cwd: REPO_DIR,
+      },
+    )
+    // Should exit with error (no board found)
+    expect(viewResult.exitCode).toBe(1)
+    expect(viewResult.stdout + viewResult.stderr).toContain("No board found")
+  })
+
+  test("km view with node ID", async () => {
+    writeFileSync(
+      join(REPO_DIR, "idtest.md"),
+      `# ID Test
+
+## Column
+- [ ] Task X
+`,
+    )
+
+    await km(["sync"])
+
+    // Get node ID from tasks list
+    const tasksResult = await km(["tasks", "--json"])
+    const tasks = JSON.parse(tasksResult.stdout)
+    const task = tasks.find((t: { content: string }) => t.content === "Task X")
+
+    if (task) {
+      // View using node ID
+      const viewResult = await km(["view", task.id, "--no-interactive"], {
+        cwd: REPO_DIR,
+      })
+      expect(viewResult.exitCode).toBe(0)
+      expect(viewResult.stdout).toContain("Task X")
+    }
+  })
 })

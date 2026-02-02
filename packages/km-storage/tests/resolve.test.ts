@@ -161,4 +161,115 @@ describe("resolveNode", () => {
       const node = resolveNode(db, "nonexistent")
       expect(node).toBeNull()
     }))
+
+  // Additional resolution tests for various path formats
+  test("resolves by relative path without ./ prefix (dir/file)", () =>
+    withTestEnvSync(({ repoDir, db, emitter }) => {
+      const fsPath = join(repoDir, "subdir/test.md")
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: ulid(), type: "file", fs_path: fsPath },
+      })
+
+      const node = resolveNode(db, "subdir/test.md")
+      expect(node).not.toBeNull()
+      expect(node?.fs_path).toBe(fsPath)
+    }))
+
+  test("resolves by relative path without extension (dir/file)", () =>
+    withTestEnvSync(({ repoDir, db, emitter }) => {
+      const fsPath = join(repoDir, "projects/myproject.md")
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: ulid(), type: "file", fs_path: fsPath },
+      })
+
+      // Note: resolveNode adds .md extension for paths
+      const node = resolveNode(db, "projects/myproject")
+      expect(node).not.toBeNull()
+      expect(node?.fs_path).toBe(fsPath)
+    }))
+
+  test("resolves folder by name", () =>
+    withTestEnvSync(({ repoDir, db, emitter }) => {
+      const fsPath = join(repoDir, "inbox")
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: ulid(), type: "folder", fs_path: fsPath, name: "inbox" },
+      })
+
+      const node = resolveNode(db, "inbox")
+      expect(node).not.toBeNull()
+      expect(node?.type).toBe("folder")
+      expect(node?.fs_path).toBe(fsPath)
+    }))
+
+  test("resolves folder by path with trailing slash", () =>
+    withTestEnvSync(({ repoDir, db, emitter }) => {
+      const fsPath = join(repoDir, "projects")
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: ulid(), type: "folder", fs_path: fsPath, name: "projects" },
+      })
+
+      // Trailing slash is normalized
+      const node = resolveNode(db, "projects/")
+      expect(node).not.toBeNull()
+      expect(node?.type).toBe("folder")
+      expect(node?.fs_path).toBe(fsPath)
+    }))
+
+  test("prefers folder over file when both match name", () =>
+    withTestEnvSync(({ repoDir, db, emitter }) => {
+      const folderPath = join(repoDir, "inbox")
+      const filePath = join(repoDir, "inbox/inbox.md")
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: {
+          id: ulid(),
+          type: "folder",
+          fs_path: folderPath,
+          name: "inbox",
+        },
+      })
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: {
+          id: ulid(),
+          type: "file",
+          fs_path: filePath,
+          name: "inbox.md",
+        },
+      })
+
+      // Should prefer folder (parent) over file (child)
+      const node = resolveNode(db, "inbox")
+      expect(node).not.toBeNull()
+      expect(node?.type).toBe("folder")
+    }))
+
+  test("resolves nested directory path", () =>
+    withTestEnvSync(({ repoDir, db, emitter }) => {
+      const fsPath = join(repoDir, "areas/work/projects")
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: {
+          id: ulid(),
+          type: "folder",
+          fs_path: fsPath,
+          name: "projects",
+        },
+      })
+
+      const node = resolveNode(db, "areas/work/projects")
+      expect(node).not.toBeNull()
+      expect(node?.fs_path).toBe(fsPath)
+    }))
 })

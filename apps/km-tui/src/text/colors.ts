@@ -7,13 +7,12 @@
 
 import { createTerm, type StyleChain } from "inkx"
 
-// Module-level term instance for styling (lazily initialized)
-let _term: ReturnType<typeof createTerm> | null = null
-function getTerm(): StyleChain {
-  if (!_term) {
-    _term = createTerm({ color: "truecolor" })
-  }
-  return _term
+/**
+ * Create a term instance with truecolor support.
+ * Called per-invocation to avoid module-level mutable state.
+ */
+function createTermStyle(): StyleChain {
+  return createTerm({ color: "truecolor" })
 }
 
 /**
@@ -46,32 +45,36 @@ export type TermColor =
   | "grey"
 
 /**
- * Get styling function for a color name
+ * Get styling function for a color name.
+ * Optionally pass a term instance to avoid creating one per call.
  */
-export function getTermColor(color: string): (text: string) => string {
-  const term = getTerm()
+export function getTermColor(
+  color: string,
+  term?: StyleChain,
+): (text: string) => string {
+  const t = term ?? createTermStyle()
   switch (color) {
     case "black":
-      return (text: string) => term.black(text)
+      return (text: string) => t.black(text)
     case "red":
-      return (text: string) => term.red(text)
+      return (text: string) => t.red(text)
     case "green":
-      return (text: string) => term.green(text)
+      return (text: string) => t.green(text)
     case "yellow":
-      return (text: string) => term.yellow(text)
+      return (text: string) => t.yellow(text)
     case "blue":
-      return (text: string) => term.blue(text)
+      return (text: string) => t.blue(text)
     case "magenta":
-      return (text: string) => term.magenta(text)
+      return (text: string) => t.magenta(text)
     case "cyan":
-      return (text: string) => term.cyan(text)
+      return (text: string) => t.cyan(text)
     case "white":
-      return (text: string) => term.white(text)
+      return (text: string) => t.white(text)
     case "gray":
     case "grey":
-      return (text: string) => term.gray(text)
+      return (text: string) => t.gray(text)
     default:
-      return (text: string) => term.dim(text) // fallback for unknown colors
+      return (text: string) => t.dim(text) // fallback for unknown colors
   }
 }
 

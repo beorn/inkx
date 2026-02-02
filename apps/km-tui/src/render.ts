@@ -23,14 +23,12 @@ import {
   colorize,
 } from "./text/index.ts"
 
-// Module-level term instance for styling (lazily initialized)
-// Force truecolor support for consistent styling in CLI/TUI utilities
-let _term: ReturnType<typeof createTerm> | null = null
-function getStyle(): StyleChain {
-  if (!_term) {
-    _term = createTerm({ color: "truecolor" })
-  }
-  return _term
+/**
+ * Create a term instance with truecolor support.
+ * Called per-invocation to avoid module-level mutable state.
+ */
+function createTermStyle(): StyleChain {
+  return createTerm({ color: "truecolor" })
 }
 
 /**
@@ -57,7 +55,7 @@ export function renderBoard(
   colIndex = 0,
   cardIndex = 0,
 ): string {
-  const style = getStyle()
+  const style = createTermStyle()
   const lines: string[] = []
   const { width, height } = opts
 
@@ -166,7 +164,7 @@ export function renderCard(
   isSelected: boolean,
   isFolded: boolean,
 ): string {
-  const style = getStyle()
+  const style = createTermStyle()
   const lines: string[] = []
   const { node, children } = card
 
@@ -232,7 +230,7 @@ export function renderCard(
  * Render status bar
  */
 export function renderStatusBar(state: TUIBoardState, width: number): string {
-  const style = getStyle()
+  const style = createTermStyle()
   const parts: string[] = []
 
   if (state.visualMode) {
@@ -254,7 +252,7 @@ export function renderStatusBar(state: TUIBoardState, width: number): string {
  * Render help overlay
  */
 export function renderHelp(width: number): string {
-  const style = getStyle()
+  const style = createTermStyle()
   const help = `
 ${style.bold("BOARDLINER - Keyboard Reference")}
 
@@ -306,7 +304,7 @@ export function renderStatusIcon(status?: TaskStatus): string {
   const icon = getStatusIconBase(status)
   // Handle custom markers with background color (inverted display)
   if (icon.backgroundColor) {
-    return getStyle().bgWhite.black(icon.char)
+    return createTermStyle().bgWhite.black(icon.char)
   }
   // Map icon color to colorize-compatible color
   // Note: "blue" in icon.color maps to "cyan" for visibility

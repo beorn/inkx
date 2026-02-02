@@ -15,14 +15,12 @@ import { createTerm, stripAnsi, ANSI_REGEX, type StyleChain } from "inkx"
 import { dashedUnderline } from "chalkx"
 import stringWidth from "string-width"
 
-// Module-level term instance for styling (lazily initialized)
-// Force truecolor support for consistent styling in CLI/TUI utilities
-let _term: ReturnType<typeof createTerm> | null = null
-function getStyle(): StyleChain {
-  if (!_term) {
-    _term = createTerm({ color: "truecolor" })
-  }
-  return _term
+/**
+ * Create a term instance with truecolor support.
+ * Called per-invocation to avoid module-level mutable state.
+ */
+function createTermStyle(): StyleChain {
+  return createTerm({ color: "truecolor" })
 }
 
 // ============================================================================
@@ -141,6 +139,9 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   // Check if content starts with a draft prefix (Draft:, WIP:, TODO:, FIXME:)
   const isDraft = DRAFT_PREFIX_REGEX.test(text)
 
+  // Create style once per call to avoid module-level state
+  const style = createTermStyle()
+
   // Strip inline fields first
   let result = text.replace(INLINE_FIELD_REGEX, "")
 
@@ -150,7 +151,7 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   result = result.replace(
     MD_LINK_REGEX,
     (_match, linkText: string, _url: string) => {
-      return getStyle().underline(linkText)
+      return style.underline(linkText)
     },
   )
 
@@ -159,7 +160,7 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   // The km:// protocol would be intercepted for navigation, but wrapping breaks it
   result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
     const { display } = extractLinkParts(content)
-    return getStyle().underline(display)
+    return style.underline(display)
   })
 
   // Style sigils (@mention, #tag, +project) - use node color if available, else dim
@@ -175,7 +176,6 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
       // Use sigil's color if provided, otherwise dim white
       // Always dim the sigil to keep it subtle - color + dim for toned-down appearance
       const color = sigilColors.get(sigil)
-      const style = getStyle()
       if (color) {
         // Use the sigil node's color, but dimmed for subtlety
         switch (color) {
@@ -206,7 +206,6 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   )
 
   // Style bold text (must be before italic to avoid conflicts)
-  const style = getStyle()
   result = result.replace(BOLD_REGEX, (_match, content: string) => {
     return style.bold(content)
   })

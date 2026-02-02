@@ -119,6 +119,12 @@ function deriveCursorPosition(
 
   // Cursor node not found in visible columns
   // This can happen after zoom or if node is outside current view
+  // Log a warning for debugging - this should be rare in normal navigation
+  debug(
+    "cursor node %s not found in %d columns (this may indicate a bug if it happens during normal navigation)",
+    cursorNodeId?.slice(-8),
+    columns.length,
+  )
   return {
     colIndex: -1,
     cardIndex: -1,

@@ -133,7 +133,7 @@ export async function createBoardTest(
     const resolved = storageModule.resolvePathArg(file, repoPath)
     if (resolved.nodeRef) {
       // resolveNode converts filename/path/ID to actual node
-      const node = storageModule.resolveNode(repo.database, resolved.nodeRef)
+      const node = repo.resolveNode(resolved.nodeRef)
       rootNodeId = node?.id
     }
   }

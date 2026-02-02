@@ -270,6 +270,61 @@ describe("Keyboard Navigation: boundary behavior", () => {
   })
 })
 
+describe("Keyboard Navigation: scrolling behavior", () => {
+  test("cursor stays on cards when navigating past visible area (scroll)", () => {
+    // Create a column with many cards - more than fit on screen (24 rows)
+    // With ESTIMATED_CARD_HEIGHT of ~4, screen fits ~5-6 cards
+    const cards = Array.from({ length: 15 }, (_, i) => item(`card${i}`))
+
+    const { board } = testEnv(
+      () => item("board", item("col1", ...cards)),
+      { rows: 20 }, // Small screen to force scrolling
+    )
+
+    // Start at first card
+    board.expect("#card0[data-cursor]").toExist()
+
+    // Navigate down through all cards
+    // Each j should move to the next card, never to board level
+    for (let i = 1; i < 15; i++) {
+      board.press("j")
+      // Cursor should be on the current card, NOT on board level
+      board.expect(`#card${i}[data-cursor]`).toExist()
+      board.expect("#board[data-cursor]").not.toExist()
+    }
+
+    // At last card, j should ring bell (boundary)
+    board.press("j")
+    expect(board.bell).toBe(true)
+    board.expect("#card14[data-cursor]").toExist()
+  })
+
+  test("cursor stays on cards when navigating up after scrolling down", () => {
+    const cards = Array.from({ length: 15 }, (_, i) => item(`card${i}`))
+
+    const { board } = testEnv(() => item("board", item("col1", ...cards)), {
+      rows: 20,
+    })
+
+    // Navigate to the last card
+    for (let i = 0; i < 14; i++) {
+      board.press("j")
+    }
+    board.expect("#card14[data-cursor]").toExist()
+
+    // Navigate back up - cursor should stay on cards
+    for (let i = 13; i >= 0; i--) {
+      board.press("k")
+      board.expect(`#card${i}[data-cursor]`).toExist()
+      board.expect("#board[data-cursor]").not.toExist()
+    }
+
+    // At first card, k should move to column header (not board)
+    board.press("k")
+    board.expect("#col1[data-cursor]").toExist()
+  })
+})
+
 describe("Keyboard Navigation: arrow keys (same as hjkl)", () => {
   test("ArrowDown behaves like j", () => {
     const { board } = testEnv(() =>

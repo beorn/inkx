@@ -15,12 +15,7 @@
  */
 
 // Main board component and views
-export {
-  renderInkxBoard,
-  BoardCore,
-  BoardApp,
-  makeSelectionKey,
-} from "./Board.tsx"
+export { BoardCore, BoardApp, makeSelectionKey } from "./Board.tsx"
 
 // Supporting views
 

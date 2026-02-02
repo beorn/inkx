@@ -1,8 +1,8 @@
 # Batch Refactoring Tool - Spec
 
-**Status:** MVP Complete
+**Status:** MVP Complete + LLM Migration
 **Bead:** km-batch
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-01-31
 
 ## Vision
 
@@ -56,6 +56,7 @@ A smart batch refactoring tool that:
 | cclsp                   | ✅ Installed  | `bun global`                              |
 | mcp-refactor-typescript | ✅ Configured | `.mcp.json`                               |
 | /batch command          | ✅ Plugin     | `batch@beorn-claude-tools`                |
+| pattern.migrate         | ✅ Complete   | LLM-powered API migration                 |
 | Confidence scoring      | 📝 Documented | In command instructions                   |
 | Plugin packaging        | ✅ Complete   | `vendor/beorn-claude-tools/plugins/batch` |
 | Marketplace             | ✅ Configured | `beorn-claude-tools`                      |
@@ -334,12 +335,15 @@ interface RefactorPlan {
 - Tests are the source of truth: "No refactoring tool guarantees behavior preservation"
 - Incremental apply + test pattern for extra safety
 
+### Implemented (2026-01-31):
+
+- **LLM-powered API migration** (`pattern.migrate`): For complex API migrations where transformations require context awareness (e.g., adding `await`, changing destructuring patterns, value mapping). Uses ripgrep to find patterns, sends matches with context to LLM in one call, generates editset.
+
 ### Future ideas:
 
 - Integration with PR review workflow (export to branch)
 - Learn from user selections to improve confidence scoring
 - Support for multi-step refactors (rename A→B, then update callers)
-- AST transformation templates (not just rename)
 - `--test` flag to auto-run test suite after apply
 - Bisect which change broke tests (advanced)
 

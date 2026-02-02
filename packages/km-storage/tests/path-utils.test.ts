@@ -11,7 +11,7 @@
 
 import { describe, test, expect, afterEach } from "vitest"
 import { join } from "path"
-import { mkdirSync, rmSync, writeFileSync } from "fs"
+import { mkdirSync, rmSync, writeFileSync, realpathSync } from "fs"
 import { ulid } from "ulid"
 
 import {
@@ -41,7 +41,8 @@ function createTestDir(): string {
   const dir = join("/tmp", `kmtest-path-${ulid()}`)
   mkdirSync(dir, { recursive: true })
   createdDirs.push(dir)
-  return dir
+  // Return realpath for consistent comparison (e.g., /tmp -> /private/tmp on macOS)
+  return realpathSync(dir)
 }
 
 // Pure function tests - no filesystem needed

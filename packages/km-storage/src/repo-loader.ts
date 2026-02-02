@@ -99,6 +99,12 @@ export interface LoadOptions {
    * When provided, avoids getDb() and uses this database directly.
    */
   db?: Database
+  /**
+   * Explicit mode override. When set, bypasses .km directory detection.
+   * - "memory": Scan filesystem, don't read events.jsonl
+   * - "disk": Read from events.jsonl
+   */
+  mode?: "memory" | "disk"
 }
 
 /** Files pending deferred parsing (for discoverOnly mode) */
@@ -146,7 +152,8 @@ export function* loadRepo(
   // 1. Resolve path and detect mode
   const searchAncestors = options?.searchAncestors ?? true
   const { repoRoot, kmDir } = resolveRepoRoot(rootPath, searchAncestors)
-  const mode = kmDir ? "disk" : "memory"
+  // Explicit mode overrides auto-detection based on .km directory
+  const mode = options?.mode ?? (kmDir ? "disk" : "memory")
 
   debug("loadRepo repoRoot=%s mode=%s", repoRoot, mode)
 

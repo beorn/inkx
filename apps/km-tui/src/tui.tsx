@@ -5,27 +5,16 @@
  */
 
 import { EventEmitter } from "events"
-import { createTerm, renderStatic, type StyleChain } from "inkx"
+import { writeSync } from "fs"
+import { createTerm, render, patchConsole } from "inkx"
 import createDebug from "debug"
-import type { TUIBoardState, TuiOptions } from "./types.ts"
-import { RepoProvider, type Repo } from "./repo-context.tsx"
-import { renderInkxBoard } from "./views/index.ts"
-import { StaticBoardView } from "./views/StaticBoardView.tsx"
-import { SyncManager } from "@km/storage"
 import React from "react"
+import type { TUIBoardState, TuiOptions } from "./types.ts"
+import { RepoProvider } from "./repo-context.tsx"
+import { BoardApp } from "./views/index.ts"
+import { SyncManager } from "@km/storage"
 
 const debug = createDebug("km:tui")
-
-// Module-level term instance for styling (lazily initialized)
-// Force truecolor support for consistent styling in CLI/TUI utilities
-// Note: In chalkx, term IS the StyleChain - no .style() method needed
-let _term: StyleChain | null = null
-function getStyle(): StyleChain {
-  if (!_term) {
-    _term = createTerm({ color: "truecolor" })
-  }
-  return _term
-}
 
 /**
  * Global event emitter for TUI refresh events
@@ -37,20 +26,31 @@ export const tuiEvents = new EventEmitter()
 tuiEvents.setMaxListeners(200)
 
 /**
- * Run the board in static (non-interactive) mode
+ * Restore terminal to normal state after crash or exit.
  */
-export async function runBoardStatic(
-  repo: Repo,
-  state: TUIBoardState,
-): Promise<void> {
-  const width = process.stdout.columns || 80
-  const output = await renderStatic(
-    <RepoProvider repo={repo}>
-      <StaticBoardView state={state} />
-    </RepoProvider>,
-    { width },
-  )
-  console.log(output)
+function restoreTerminal(): void {
+  if (process.stdin.isTTY && process.stdin.isRaw) {
+    try {
+      process.stdin.setRawMode(false)
+    } catch {
+      // Ignore errors during cleanup
+    }
+  }
+
+  const sequences = [
+    "\x1b[0m", // Reset text attributes
+    "\x1b[?1007l\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?1006l", // Disable mouse
+    "\x1b[?1l", // Disable application cursor keys
+    "\x1b[?2004l", // Disable bracketed paste
+    "\x1b[?25h", // Show cursor
+    "\x1b[?1049l", // Exit alternate screen
+  ].join("")
+
+  try {
+    writeSync(process.stdout.fd, sequences)
+  } catch {
+    process.stdout.write(sequences)
+  }
 }
 
 /**
@@ -59,64 +59,48 @@ export async function runBoardStatic(
  * State must already be loaded (via loadRepo) and board state built
  * (via initBoardState) before calling this. The CLI handles both with
  * a progress indicator.
+ *
+ * Uses term.hasInput() to detect TTY capability:
+ * - hasInput() = true → interactive mode with keyboard
+ * - hasInput() = false → static mode, render once and exit
  */
 export async function runBoard(
   state: TUIBoardState | null,
   options?: TuiOptions,
 ): Promise<void> {
   debug("runBoard start")
-  const style = getStyle()
 
-  if (!state) {
-    console.error(
-      style.red("No board found. Create a board node or specify a root ID."),
-    )
+  if (!state || !options?.repo) {
+    console.error("No board found or repo missing.")
     process.exit(1)
   }
 
-  // Non-interactive mode: just print and exit
+  const term = createTerm()
   const interactive = options?.interactive !== false
-  const repo = options?.repo
-  if (!interactive) {
-    if (!repo) {
-      console.error(style.red("Repo required for static mode"))
-      process.exit(1)
-    }
-    await runBoardStatic(repo, state)
-    return
-  }
+  const isInteractive = interactive && term.hasInput()
 
-  // Interactive mode: check TTY
-  const stdin = process.stdin
-  const stdout = process.stdout
-  const forceTTY = process.env.FORCE_TTY === "1"
-  if (!forceTTY && (!stdin.isTTY || !stdout.isTTY)) {
-    console.log(style.yellow("Not running in a TTY, using static mode"))
-    if (!repo) {
-      console.error(style.red("Repo required for static mode"))
-      process.exit(1)
-    }
-    await runBoardStatic(repo, state)
-    return
-  }
+  debug("TTY detection", {
+    interactive,
+    hasInput: term.hasInput(),
+    isInteractive,
+  })
 
-  // Initialize filesystem sync if we have a repo path
+  // Use term for interactive, TermDef with stdout for static
+  const renderOpts = isInteractive
+    ? term
+    : { width: term.cols, stdout: process.stdout }
+
+  // Initialize filesystem sync if we have a repo path (only for interactive)
   // Watch can be disabled via: --no-watch CLI flag or config tui.watch=false
   // Note: Disabling watch still allows TUI edits to write to filesystem,
   // it just disables watching for external file changes
-  const watchEnabled = options?.watch !== false
-  const useWorker = options?.watchWorker !== false
   let syncManager: SyncManager | null = null
 
-  if (state.rootPath) {
-    if (!options?.repo) {
-      throw new Error(
-        "Repo required for SyncManager - cannot sync without database",
-      )
-    }
+  if (isInteractive && state.rootPath && options?.watch !== false) {
+    const useWorker = options?.watchWorker !== false
     debug("Creating SyncManager", {
       rootPath: state.rootPath,
-      watch: watchEnabled,
+      watch: true,
       worker: useWorker,
     })
     syncManager = new SyncManager({
@@ -131,33 +115,66 @@ export async function runBoard(
     // Wire up TUI changes → filesystem (always enabled for writes)
     options.repo.emitter.setFsSync(syncManager)
 
-    if (watchEnabled) {
-      // Wire up filesystem changes → TUI refresh
-      syncManager.on("state-change", (newState) => {
-        if (newState === "idle") {
-          tuiEvents.emit("refresh")
-        }
-      })
+    // Wire up filesystem changes → TUI refresh
+    syncManager.on("state-change", (newState) => {
+      if (newState === "idle") {
+        tuiEvents.emit("refresh")
+      }
+    })
 
-      // Forward watcher status to TUI for bottom bar display
-      syncManager.on("watcher-status", (status) => {
-        tuiEvents.emit("watcher-status", status)
-      })
+    // Forward watcher status to TUI for bottom bar display
+    syncManager.on("watcher-status", (status) => {
+      tuiEvents.emit("watcher-status", status)
+    })
 
-      debug("Starting syncManager...")
-      syncManager.start()
-      debug("syncManager started")
-    } else {
-      debug("File watching disabled - TUI edits will still write to filesystem")
-    }
+    debug("Starting syncManager...")
+    syncManager.start()
+    debug("syncManager started")
   }
+
+  // Register error handlers to clean up terminal on crash
+  const handleError = (error: Error) => {
+    restoreTerminal()
+    console.error("\n\nTUI crashed with error:", error.message)
+    console.error(error.stack)
+    process.exit(1)
+  }
+
+  const handleSignal = (signal: string) => {
+    restoreTerminal()
+    process.exit(signal === "SIGINT" ? 130 : 143)
+  }
+
+  process.on("uncaughtException", handleError)
+  process.on("unhandledRejection", (reason) => {
+    handleError(reason instanceof Error ? reason : new Error(String(reason)))
+  })
+  process.once("SIGINT", () => handleSignal("SIGINT"))
+  process.once("SIGTERM", () => handleSignal("SIGTERM"))
+
+  // Patch console for interactive mode to capture output
+  const patched = isInteractive ? patchConsole(console) : null
 
   try {
     // Stop CLI spinner - TUI is about to take over the screen
     options?.spinner?.stop()
-    debug("Starting interactive TUI")
-    await renderInkxBoard(state, options?.initialViewMode, options?.repo)
+    debug("Starting TUI", { isInteractive })
+
+    const instance = await render(
+      <RepoProvider repo={options.repo}>
+        <BoardApp
+          initialState={state}
+          initialViewMode={options?.initialViewMode}
+          patchedConsole={patched}
+        />
+      </RepoProvider>,
+      renderOpts,
+      { alternateScreen: isInteractive, patchConsole: false },
+    )
+
+    await instance.waitUntilExit()
   } finally {
+    patched?.[Symbol.dispose]()
     // Clean up sync manager
     if (syncManager) {
       options?.repo?.emitter.setFsSync(null)

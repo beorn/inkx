@@ -13,14 +13,12 @@ import {
 } from "@km/tree"
 import type { Repo } from "../repo-context.tsx"
 
-// Module-level term instance for styling (lazily initialized)
-// Uses environment detection (respects NO_COLOR, FORCE_COLOR, etc.)
-let _term: ReturnType<typeof createTerm> | null = null
-function getStyle(): StyleChain {
-  if (!_term) {
-    _term = createTerm()
-  }
-  return _term
+/**
+ * Create a term instance with environment detection.
+ * Called per-invocation to avoid module-level mutable state.
+ */
+function createTermStyle(): StyleChain {
+  return createTerm()
 }
 
 /**
@@ -32,7 +30,7 @@ export function formatCollapsedAncestor(
   ca: CollapsedAncestor,
   showId: boolean,
 ): string {
-  const style = getStyle()
+  const style = createTermStyle()
   let prefix = ""
   if (showId) {
     prefix = style.dim(`[${ca.node.id.slice(0, 5)}] `)
@@ -59,7 +57,7 @@ export function formatCollapsedAncestor(
  * Format a node for display in listings.
  */
 export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
-  const style = getStyle()
+  const style = createTermStyle()
   let prefix = ""
   if (showId) {
     prefix = style.dim(`[${node.id.slice(0, 5)}] `)
@@ -104,7 +102,7 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
  * Format task status with color.
  */
 export function formatStatus(status: string): string {
-  const style = getStyle()
+  const style = createTermStyle()
   switch (status) {
     case "done":
       return style.green(status)
@@ -123,7 +121,7 @@ export function formatStatus(status: string): string {
  * Format a node briefly (for tree/children displays).
  */
 export function formatNodeBrief(node: KNode): string {
-  const style = getStyle()
+  const style = createTermStyle()
   const parts: string[] = []
 
   parts.push(style.dim(node.id.slice(0, 8)))

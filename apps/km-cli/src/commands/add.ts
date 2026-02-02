@@ -14,11 +14,7 @@ import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { ulid } from "ulid"
-import {
-  queryTasks,
-  resolvePathArg,
-  emitNodeCreatedWithEmitter,
-} from "@km/storage"
+import { resolvePathArg, emitNodeCreatedWithEmitter } from "@km/storage"
 import type { KNode } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -69,8 +65,8 @@ export const addCommand = new Command("add")
         continue
       }
 
-      // Try as query
-      const queryResults = queryTasks(repo.database, source)
+      // Try as query (only returns tasks, not all nodes)
+      const queryResults = repo.queryTasks(source)
       if (queryResults.length > 0) {
         for (const task of queryResults) {
           // Don't add duplicates

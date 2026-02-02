@@ -616,7 +616,7 @@ Pixel-perfect terminal rendering via browser. Use only when you need to see the 
 ```bash
 # Ad-hoc visual inspection
 TTYD_PORT=$((7700 + RANDOM % 300))
-FORCE_TTY=1 ttyd -W -p $TTYD_PORT bun km view /tmp/repo &
+ttyd -W -p $TTYD_PORT bun km view /tmp/repo &
 sleep 3
 HEADLESS=true bun x playwright screenshot \
   --viewport-size=1000,700 \

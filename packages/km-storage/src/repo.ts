@@ -105,6 +105,11 @@ function createQueryMethods(deps: RepoMethodDeps) {
       const ast = parseQuery(expression)
       return executeQuery(db, ast)
     },
+    queryTasks(expression: string) {
+      ensureOpen()
+      const ast = parseQuery(expression)
+      return executeQuery(db, ast, undefined, { requireTaskStatus: true })
+    },
     getLinksTo(targetId: string) {
       ensureOpen()
       return dbGetLinksTo(db, targetId)
@@ -123,6 +128,29 @@ function createQueryMethods(deps: RepoMethodDeps) {
     ) {
       ensureOpen()
       return dbResolveNode(db, queryStr, typeOrOptions)
+    },
+    getRepoRootNode() {
+      ensureOpen()
+      const row = db
+        .prepare(
+          "SELECT * FROM nodes WHERE parent_id IS NULL AND type = 'folder'",
+        )
+        .get() as Record<string, unknown> | undefined
+      if (!row) return null
+      // Import rowToNode inline to avoid circular dependency
+      return {
+        id: row.id as string,
+        type: row.type as string,
+        parent_id: row.parent_id as string | null,
+        parent_idx: row.parent_idx as number,
+        fs_path: row.fs_path as string | null,
+        name: row.name as string | null,
+        content: row.content as string | null,
+        task_status: row.task_status as TaskStatus | null,
+        link_to: row.link_to as string | null,
+        link_alias: row.link_alias as string | null,
+        data: row.data ? (JSON.parse(row.data as string) as KNode["data"]) : {},
+      } as KNode
     },
     getChildCounts(parentIds: string[]) {
       ensureOpen()
@@ -431,6 +459,9 @@ export interface Repo extends Disposable {
   /** Batch get child counts for multiple parent IDs */
   getChildCounts(parentIds: string[]): Map<string, number>
 
+  /** Get the repo root folder node (the virtual parent of all top-level files) */
+  getRepoRootNode(): KNode | null
+
   // ===========================================================================
   // Repo-compatible mutation methods (proxies to data store)
   // ===========================================================================
@@ -655,6 +686,7 @@ export function* createRepo(
       searchAncestors: false, // rootPath is already the repo root
       skipLinkResolution: options.skipLinkResolution,
       discoverOnly: options.discoverOnly,
+      mode, // Pass our mode decision to loadRepo
       db, // ADR-002: pass db to avoid singleton
     })
 

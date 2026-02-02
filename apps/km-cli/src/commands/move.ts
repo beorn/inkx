@@ -12,7 +12,7 @@ import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
 const term = createTerm(process)
-import { resolveNode, resolvePathArg, findProject } from "@km/storage"
+import { resolvePathArg, findProject } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import { getNodeDisplayName } from "@km/tree"
@@ -37,7 +37,7 @@ export const moveCommand = new Command("move")
     }
 
     // Find the node to move (nodeRef validated above)
-    const node = resolveNode(repo.database, nodeRef)
+    const node = repo.resolveNode(nodeRef)
     if (!node) {
       console.error(term.red(`Node not found: ${nodeArg}`))
       process.exit(1)
@@ -52,7 +52,7 @@ export const moveCommand = new Command("move")
       targetParentId = null
     } else if (options.project) {
       // Find project by name
-      targetParent = findProject(repo.database, options.project)
+      targetParent = findProject(repo.database, options.project) // TODO: Add repo.findProject()
       if (!targetParent) {
         console.error(term.red(`Project not found: ${options.project}`))
         process.exit(1)
@@ -67,7 +67,7 @@ export const moveCommand = new Command("move")
         process.exit(1)
       }
       // Find parent by ID/path/filename (parentRef validated above)
-      targetParent = resolveNode(repo.database, parentRef)
+      targetParent = repo.resolveNode(parentRef)
       if (!targetParent) {
         console.error(term.red(`Parent not found: ${parentArg}`))
         process.exit(1)

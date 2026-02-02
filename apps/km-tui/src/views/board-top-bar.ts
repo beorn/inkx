@@ -7,14 +7,12 @@ import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderPlain } from "../text/index.ts"
 
-// Module-level term instance for styling (lazily initialized)
-// Force truecolor support for consistent styling in CLI/TUI utilities
-let _term: ReturnType<typeof createTerm> | null = null
-function getStyle(): StyleChain {
-  if (!_term) {
-    _term = createTerm({ color: "truecolor" })
-  }
-  return _term
+/**
+ * Create a term instance with truecolor support.
+ * Called per-invocation to avoid module-level mutable state.
+ */
+function createTermStyle(): StyleChain {
+  return createTerm({ color: "truecolor" })
 }
 
 export interface PathSegment {
@@ -142,7 +140,7 @@ export function renderTopBarContent(
   segments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>,
   isBoardSelected: boolean,
 ): string {
-  const style = getStyle()
+  const style = createTermStyle()
   // Find the board root index:
   // - If there are isWithinBoard segments, board root is the last one before them
   // - If no isWithinBoard segments, the last segment is the board root

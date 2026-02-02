@@ -16,15 +16,9 @@ import { createInterface } from "readline"
 import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs"
 import { homedir } from "os"
 import { join } from "path"
-import type { Database } from "bun:sqlite"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
-import {
-  getChildren,
-  resolveNode,
-  resolvePathArg,
-  type Repo,
-} from "@km/storage"
+import { resolvePathArg, type Repo } from "@km/storage"
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
 // Bound version with store dependency (closure will be set after repo init)
@@ -68,17 +62,14 @@ export const shCommand = new Command("sh")
     // Create repo domain object (auto-closes via `using`)
     using repo = await loadRepo(resolved.repoRoot)
 
-    // Use repo's database (ADR-002: no singletons)
-    const db = repo.database
-
     // Initialize bound helper functions
     getNodeDisplayName = (node) =>
-      getNodeDisplayNameBase(node, (parentId) => getChildren(db, parentId))
+      getNodeDisplayNameBase(node, (parentId) => repo.getChildren(parentId))
 
     // Resolve the node reference if provided
     let resolvedNodeId: string | null = null
     if (resolved.nodeRef) {
-      const node = resolveNode(db, resolved.nodeRef)
+      const node = repo.resolveNode(resolved.nodeRef)
       if (node) {
         resolvedNodeId = node.id
       } else if (resolved.wasExplicitPath) {
@@ -101,7 +92,7 @@ export const shCommand = new Command("sh")
       }
     }
 
-    const nodes = buildNodes(db, resolvedNodeId)
+    const nodes = buildNodes(repo, resolvedNodeId)
 
     if (nodes.length === 0) {
       if (options.json) {
@@ -122,7 +113,7 @@ export const shCommand = new Command("sh")
     // e.g., if viewing @inbox.md, this will be "@inbox"
     let rootSlugPath: string | undefined
     if (resolvedNodeId) {
-      const rootNode = resolveNode(db, resolvedNodeId)
+      const rootNode = repo.resolveNode(resolvedNodeId)
       if (rootNode) {
         rootSlugPath = getNodeName(rootNode)
       }
@@ -132,12 +123,7 @@ export const shCommand = new Command("sh")
     const initialState = createBoardState(nodes, resolvedNodeId, repo.path)
 
     // Create mutation handler for storage operations
-    const onMutation = createMutationHandler(
-      db,
-      repo,
-      resolvedNodeId,
-      repo.path,
-    )
+    const onMutation = createMutationHandler(repo, resolvedNodeId, repo.path)
 
     // Output function
     const output = (event: OutputEvent | string) => {
@@ -362,8 +348,8 @@ function getNodeName(node: KNode): string {
 /**
  * Convert KNode to TNode (recursive)
  */
-function kNodeToTNode(db: Database, node: KNode, depth: number): TNode {
-  const children = getChildren(db, node.id)
+function kNodeToTNode(repo: Repo, node: KNode, depth: number): TNode {
+  const children = repo.getChildren(node.id)
   return {
     // KNode base properties
     id: node.id,
@@ -388,7 +374,7 @@ function kNodeToTNode(db: Database, node: KNode, depth: number): TNode {
 
     // TNode tree properties
     children: children.map((child, idx) => {
-      const childNode = kNodeToTNode(db, child, depth + 1)
+      const childNode = kNodeToTNode(repo, child, depth + 1)
       // Update parent reference for the child
       return {
         ...childNode,
@@ -406,22 +392,22 @@ function kNodeToTNode(db: Database, node: KNode, depth: number): TNode {
 /**
  * Build tree nodes from root
  */
-function buildNodes(db: Database, rootId: string | null): TNode[] {
+function buildNodes(repo: Repo, rootId: string | null): TNode[] {
   if (!rootId) {
-    const roots = getChildren(db, null)
+    const roots = repo.getChildren(null)
     if (roots.length === 0) {
       return []
     }
-    return roots.map((node) => kNodeToTNode(db, node, 0))
+    return roots.map((node) => kNodeToTNode(repo, node, 0))
   }
 
-  const node = resolveNode(db, rootId)
+  const node = repo.resolveNode(rootId)
   if (!node) {
     return []
   }
 
-  const children = getChildren(db, node.id)
-  return children.map((child) => kNodeToTNode(db, child, 0))
+  const children = repo.getChildren(node.id)
+  return children.map((child) => kNodeToTNode(repo, child, 0))
 }
 
 /**
@@ -484,7 +470,6 @@ function getNodeAtCursor(state: BoardState): TNode | null {
  * Uses the repo's methods which handle filesystem writes synchronously
  */
 function createMutationHandler(
-  db: Database,
   repo: Repo,
   rootId: string | null,
   rootPath: string,
@@ -521,7 +506,7 @@ function createMutationHandler(
       }
 
       // Rebuild state from storage after mutation
-      const newNodes = buildNodes(db, rootId)
+      const newNodes = buildNodes(repo, rootId)
       const newState = createBoardState(newNodes, rootId, rootPath)
 
       // Preserve cursor position if valid, otherwise reset

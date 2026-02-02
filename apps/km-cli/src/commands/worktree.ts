@@ -15,7 +15,7 @@ import {
   removeWorktree,
   listWorktrees,
   showDefaultInfo,
-} from "../../../../vendor/beorn-claude-tools/tools/worktree"
+} from "@beorn/claude-tools/tools/worktree"
 
 // ============================================
 // Subcommands

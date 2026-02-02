@@ -7,15 +7,15 @@
  * 3. BoardApp - Production entry (useRepo, useStdout, external integrations)
  */
 import React, { useEffect, useReducer, useMemo, useRef } from "react"
-import { writeSync } from "fs"
 import {
   Box,
   Text,
   useInput,
   useApp,
   useStdout,
-  render as inkxRender,
-  createTerm,
+  Console,
+  useConsole,
+  type PatchedConsole,
 } from "inkx"
 import createDebug from "debug"
 
@@ -679,6 +679,8 @@ export interface BoardAppProps {
   initialViewMode?: ViewMode
   /** Optional layout registry for card position tracking (for testing) */
   layoutRegistry?: LayoutRegistry
+  /** Patched console for capturing console output (optional) */
+  patchedConsole?: PatchedConsole | null
 }
 
 /**
@@ -690,14 +692,18 @@ export function BoardApp({
   initialState,
   initialViewMode = "cards",
   layoutRegistry,
+  patchedConsole,
 }: BoardAppProps) {
   const { exit } = useApp()
   const { stdout } = useStdout()
 
+  // Get console entries if we have a patched console
+  const consoleEntries = patchedConsole ? useConsole(patchedConsole) : []
+
   // Create dispatch for dimension sync
   const [dimensionState, dimensionDispatch] = useReducer(
     (
-      state: { columns: number; rows: number },
+      s: { columns: number; rows: number },
       action: { columns: number; rows: number },
     ) => action,
     { columns: stdout?.columns ?? 80, rows: stdout?.rows ?? 24 },
@@ -714,13 +720,19 @@ export function BoardApp({
   )
 
   return (
-    <Board
-      initialState={initialState}
-      initialViewMode={initialViewMode}
-      dimensions={dimensionState}
-      onExit={exit}
-      layoutRegistry={layoutRegistry}
-    />
+    <Box flexDirection="column" height={dimensionState.rows}>
+      {/* Console output at top - only shown if there are entries */}
+      {patchedConsole && consoleEntries.length > 0 && (
+        <Console console={patchedConsole} />
+      )}
+      <Board
+        initialState={initialState}
+        initialViewMode={initialViewMode}
+        dimensions={dimensionState}
+        onExit={exit}
+        layoutRegistry={layoutRegistry}
+      />
+    </Box>
   )
 }
 
@@ -750,87 +762,6 @@ function countVisibleDescendants(
     )
   }
   return count
-}
-
-/**
- * Restore terminal to normal state after crash or exit.
- */
-function restoreTerminal(): void {
-  if (process.stdin.isTTY && process.stdin.isRaw) {
-    try {
-      process.stdin.setRawMode(false)
-    } catch {
-      // Ignore errors during cleanup
-    }
-  }
-
-  const sequences = [
-    "\x1b[0m", // Reset text attributes
-    "\x1b[?1007l\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?1006l", // Disable mouse
-    "\x1b[?1l", // Disable application cursor keys
-    "\x1b[?2004l", // Disable bracketed paste
-    "\x1b[?25h", // Show cursor
-    "\x1b[?1049l", // Exit alternate screen
-  ].join("")
-
-  try {
-    writeSync(process.stdout.fd, sequences)
-  } catch {
-    process.stdout.write(sequences)
-  }
-}
-
-// =============================================================================
-// Render Entry Points
-// =============================================================================
-
-export async function renderInkxBoard(
-  state: TUIBoardState,
-  initialViewMode?: ViewMode,
-  repo?: Repo,
-): Promise<void> {
-  debug("renderInkxBoard start")
-
-  if (!repo) {
-    throw new Error("renderInkxBoard requires a repo")
-  }
-
-  const app = (
-    <RepoProvider repo={repo}>
-      <BoardApp initialState={state} initialViewMode={initialViewMode} />
-    </RepoProvider>
-  )
-
-  // Register error handlers to clean up terminal on crash
-  const handleError = (error: Error) => {
-    restoreTerminal()
-    console.error("\n\nTUI crashed with error:", error.message)
-    console.error(error.stack)
-    process.exit(1)
-  }
-
-  const handleSignal = (signal: string) => {
-    restoreTerminal()
-    process.exit(signal === "SIGINT" ? 130 : 143)
-  }
-
-  process.on("uncaughtException", handleError)
-  process.on("unhandledRejection", (reason) => {
-    handleError(reason instanceof Error ? reason : new Error(String(reason)))
-  })
-  process.once("SIGINT", () => handleSignal("SIGINT"))
-  process.once("SIGTERM", () => handleSignal("SIGTERM"))
-
-  debug("Rendering with inkx")
-  using term = createTerm()
-  const instance = await inkxRender(app, term, {
-    exitOnCtrlC: true,
-    patchConsole: false,
-    alternateScreen: true,
-  })
-
-  debug("Render complete, awaiting exit")
-  await instance.waitUntilExit()
 }
 
 // NOTE: InkBoardTestable removed - use BoardCore directly for testing
