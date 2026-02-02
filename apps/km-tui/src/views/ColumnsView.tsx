@@ -319,8 +319,13 @@ const ColumnTree = React.memo(
       <Box
         id={column.node.id}
         data-view="column"
+        data-column={true}
+        data-col-index={colIndex}
         {...(isSelected && { "data-selected": true })}
-        {...(isColumnHeaderSelected && { "data-cursor": true })}
+        {...(isColumnHeaderSelected && {
+          "data-cursor": true,
+          "data-card-index": -1,
+        })}
         flexDirection="column"
         width={width}
         height={height}

@@ -168,7 +168,7 @@ export interface MemoizedColumnHeaderProps {
 export const MemoizedColumnHeader = React.memo(
   function MemoizedColumnHeader({
     column,
-    colIdx: _colIdx,
+    colIdx,
     isSelected,
     isColSelected,
     width,
@@ -195,7 +195,11 @@ export const MemoizedColumnHeader = React.memo(
         flexDirection="column"
         width={width}
         id={column.node.id}
-        {...(isColSelected && { "data-cursor": true })}
+        {...(isColSelected && {
+          "data-cursor": true,
+          "data-col-index": colIdx,
+          "data-card-index": -1,
+        })}
       >
         {/* Blank line above (except first header in list view) */}
         {showTopSpacer && (

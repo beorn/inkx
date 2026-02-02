@@ -89,7 +89,11 @@ export function TabsView({
               <Box
                 id={column.node.id}
                 backgroundColor={isTabSelected ? "yellow" : undefined}
-                {...(isTabSelected && { "data-cursor": true })}
+                {...(isTabSelected && {
+                  "data-cursor": true,
+                  "data-col-index": cIdx,
+                  "data-card-index": -1,
+                })}
               >
                 <Text
                   bold

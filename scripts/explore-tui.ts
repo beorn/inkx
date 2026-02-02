@@ -303,8 +303,18 @@ function verifyRepoContent(
 
 /**
  * Verify spatial relationships after navigation actions.
- * For h/l/j/k, checks cursor moved to expected relative position.
- * Detects scroll bugs like scrolling too early (before reaching edge).
+ * Works across all view modes (cards, columns, list, tabs).
+ *
+ * View mode considerations:
+ * - Cards/Columns: h/l = column nav, j/k = card within column
+ * - List: j/k can cross column boundaries (flat list)
+ * - Tabs: h/l = tab switch, j/k = item within tab
+ *
+ * Detects:
+ * - Premature scrolling (before reaching edge)
+ * - Cursor outside visible range
+ * - Wrong navigation direction
+ * - Missing data attributes on cursor
  */
 function verifySpatialNavigation(
   iteration: number,
@@ -318,8 +328,27 @@ function verifySpatialNavigation(
   if (!["h", "l", "j", "k"].includes(action)) return
   if (after.bell || after.inDialog) return // Boundary or dialog
 
+  const viewMode = after.viewMode // CARDS, COLUMNS, LIST, TABS
+  const isFlatList = viewMode === "LIST" // In list mode, j/k can cross columns
+
+  // Verify data attributes are present on cursor (all modes should have them)
+  // This catches missing attributes which would indicate incomplete implementation
+  if (after.cursorCount > 0 && after.colIndex === null && after.cardIndex === null) {
+    // Only report once per mode to avoid spam
+    const issueType = `missing-spatial-attrs-${viewMode ?? "unknown"}`
+    const existingIssue = issues.find(i => i.type === issueType)
+    if (!existingIssue) {
+      issues.push({
+        iteration,
+        action,
+        type: issueType,
+        detail: `Cursor element lacks data-col-index and data-card-index in ${viewMode ?? "unknown"} mode`,
+      })
+    }
+  }
+
   // Verify horizontal navigation (h/l) - scroll offset invariants
-  // Skip if colIndex data attributes aren't available (not all boards expose them)
+  // Skip if colIndex data attributes aren't available
   if ((action === "h" || action === "l") &&
       before.colIndex !== null && after.colIndex !== null &&
       before.colIndex >= 0 && after.colIndex >= 0) {
@@ -331,14 +360,17 @@ function verifySpatialNavigation(
       issues.push({
         iteration,
         action,
-        type: "wrong-direction",
+        type: "wrong-direction-horizontal",
         expected: `colIndex ${expectedMove > 0 ? "increase" : "decrease"}`,
         actual: `changed by ${moved}`,
+        detail: `viewMode=${viewMode}`,
       })
     }
 
-    // Verify scroll offset changes only when needed
-    if (before.scrollOffset !== null && after.scrollOffset !== null &&
+    // Verify scroll offset changes only when needed (for multi-column views)
+    // List and Tabs views don't have horizontal scrolling in the same way
+    if (viewMode !== "LIST" && viewMode !== "TABS" &&
+        before.scrollOffset !== null && after.scrollOffset !== null &&
         before.scrollOffset >= 0 && after.scrollOffset >= 0) {
       const scrollChanged = after.scrollOffset !== before.scrollOffset
 
@@ -359,6 +391,7 @@ function verifySpatialNavigation(
           type: "cursor-outside-visible",
           expected: `colIndex in [${minVisible}, ${maxVisible}]`,
           actual: `colIndex=${after.colIndex}, scrollOffset=${after.scrollOffset}`,
+          detail: `viewMode=${viewMode}`,
         })
       }
 
@@ -377,7 +410,7 @@ function verifySpatialNavigation(
             type: "premature-scroll-right",
             expected: `scroll at edge (colIndex >= ${before.scrollOffset + VISIBLE_COLUMNS - 1 - SCROLL_PADDING})`,
             actual: `scrolled at colIndex=${before.colIndex}`,
-            detail: `Scroll changed from ${before.scrollOffset} to ${after.scrollOffset} too early`,
+            detail: `Scroll changed from ${before.scrollOffset} to ${after.scrollOffset} too early (viewMode=${viewMode})`,
           })
         }
         if (action === "h" && !wasAtLeftEdge && after.scrollOffset < before.scrollOffset) {
@@ -387,7 +420,7 @@ function verifySpatialNavigation(
             type: "premature-scroll-left",
             expected: `scroll at edge (colIndex <= ${before.scrollOffset + SCROLL_PADDING})`,
             actual: `scrolled at colIndex=${before.colIndex}`,
-            detail: `Scroll changed from ${before.scrollOffset} to ${after.scrollOffset} too early`,
+            detail: `Scroll changed from ${before.scrollOffset} to ${after.scrollOffset} too early (viewMode=${viewMode})`,
           })
         }
       }
@@ -402,14 +435,19 @@ function verifySpatialNavigation(
     const moved = after.cardIndex - before.cardIndex
     const expectedMove = action === "j" ? 1 : -1
 
-    // If we moved, verify direction is correct (unless column changed)
-    if (moved !== 0 && moved !== expectedMove && before.colIndex === after.colIndex) {
+    // In list mode, j/k can cross column boundaries, so colIndex may change
+    // In other modes, j/k stays within the same column
+    const colChanged = before.colIndex !== after.colIndex
+
+    // If we moved within the same column, verify direction is correct
+    if (!isFlatList && !colChanged && moved !== 0 && moved !== expectedMove) {
       issues.push({
         iteration,
         action,
         type: "wrong-direction-vertical",
         expected: `cardIndex ${expectedMove > 0 ? "increase" : "decrease"}`,
         actual: `changed by ${moved}`,
+        detail: `viewMode=${viewMode}`,
       })
     }
   }
