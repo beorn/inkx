@@ -88,6 +88,9 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
 | Old inkx render    | `createTestRenderer` inside function body (wasteful recreation each call)   |
 | Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer inkx APIs      |
+| Deprecated inkx    | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter` |
+| Deprecated chalkx  | Default chalkX import, `chalk` export, `supportsExtendedUnderline`          |
+| Deprecated storage | `getBeadsConfig`, `getTuiConfig`, `loadRepo`, `createMockWatcher`           |
 | Manual layout calc | `displayWidth()` in app code for layout - should rely on inkx/flexx         |
 | High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
 | `ensure*` checks   | `ensureOpen()`, `ensureValid()` - lower levels throw naturally              |
@@ -138,7 +141,7 @@ Ignore "Configuration hints" section (knip suggestions, not findings).
 
 ### Pattern Detection Script (focus="all", empty, or "layers")
 
-Run pattern detection script that checks for 31 different code issues:
+Run pattern detection script that checks for 35 different code issues:
 
 ```bash
 bash scripts/review-code-patterns.sh 2>&1 | tee /tmp/review-code-patterns.txt
@@ -182,21 +185,31 @@ The script detects:
 - Pattern 20: Import side effects (module-level `let x = init()`)
 - Pattern 21: Inverted pyramid (helpers before main logic)
 
-**Test/TUI issues (2 patterns)**:
+**Test/TUI issues (6 patterns)**:
 
 - Pattern 22: createTestRenderer inside function (`createTestRenderer` called inside test body = wasteful recreation; module-level is correct)
 - Pattern 23: Old lastFrame capture (`lastFrame()` instead of `app.text` or newer inkx APIs)
-
-**Complexity issues (1 pattern)**:
-
+- Pattern 24: stdin.write() for keyboard input (should use `app.press()`)
+- Pattern 25: createTestRenderer in production code (tests only)
+- Pattern 26: Direct chalk imports (should use `createTerm`/`useTerm`)
 - Pattern 27: High complexity functions (cyclomatic>20 or cognitive>15, candidates for refactoring)
+
+**Deprecated APIs (3 patterns)** - see km-deprecations bead:
+
+- Pattern 28: Deprecated inkx APIs (`app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter`)
+- Pattern 29: Deprecated chalkx APIs (default `chalkX` import, `chalk` export, `supportsExtendedUnderline`, `setExtendedUnderlineSupport`)
+- Pattern 30: Deprecated km-storage functions (`getBeadsConfig`, `getTuiConfig`, `getConfigPath`, `loadRepo`, `createMockWatcher`)
+
+**Other issues (1 pattern)**:
+
+- Pattern 31: Manual layout calculations (`displayWidth()` in app code - should rely on inkx/flexx)
 
 **Alignment/guidelines issues (4 patterns)** - from docs/principles.md Quick Reference:
 
-- Pattern 28: `ensure*` defensive checks (`ensureOpen`, `ensureValid` - lower levels should throw naturally)
-- Pattern 29: Getters (`get x()` should be plain properties for simple access)
-- Pattern 30: `opts.ensure` embedded side effects (caller should handle preconditions)
-- Pattern 31: Switch statements (candidates for lookup objects vs discriminated unions - count only)
+- Pattern 32: `ensure*` defensive checks (`ensureOpen`, `ensureValid` - lower levels should throw naturally)
+- Pattern 33: Getters (`get x()` should be plain properties for simple access)
+- Pattern 34: `opts.ensure` embedded side effects (caller should handle preconditions)
+- Pattern 35: Switch statements (candidates for lookup objects vs discriminated unions - count only)
 
 Output is structured with headers like `=== PATTERN 1: Classes ===` for easy parsing.
 
@@ -363,6 +376,14 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | Old inkx render     | Medium           | createTestRenderer inside function body (should be at module level) |
 | Old lastFrame       | Medium           | Should use app.text or other newer inkx APIs      |
 | Manual layout calc  | Low              | High if workaround for inkx bug (see km-inkx-flexgrow) |
+
+**Deprecated API findings** (see km-deprecations bead):
+
+| Finding Type        | Default Severity | Context Adjustments                               |
+| ------------------- | ---------------- | ------------------------------------------------- |
+| Deprecated inkx     | High             | app.html→app.ansi, useLayout→useContentRect, etc  |
+| Deprecated chalkx   | Medium           | Old default/chalk exports, old detection functions |
+| Deprecated storage  | Medium           | High if singleton-related (getDb, emit functions)  |
 
 **Complexity findings:**
 

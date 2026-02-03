@@ -7,6 +7,9 @@
  * These tests use `incremental: true` to match live scheduler behavior.
  */
 import { describe, expect, test } from "vitest"
+import React, { useState } from "react"
+import { Box, Text, useInput, type Key } from "inkx"
+import { createTestRenderer } from "inkx/testing"
 import { item, testEnv } from "./helpers/board-test"
 
 describe("incremental rendering", () => {
@@ -54,10 +57,7 @@ describe("incremental rendering", () => {
   test("multiple cursor movements don't accumulate stale pixels", () => {
     const { board } = testEnv(
       () =>
-        item(
-          "board",
-          item("col1", item("a"), item("b"), item("c"), item("d")),
-        ),
+        item("board", item("col1", item("a"), item("b"), item("c"), item("d"))),
       { incremental: true },
     )
     const app = board._result
@@ -183,14 +183,7 @@ describe("incremental rendering", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item("a"),
-            item("b"),
-            item("c"),
-            item("d"),
-            item("e"),
-          ),
+          item("col1", item("a"), item("b"), item("c"), item("d"), item("e")),
         ),
       { incremental: true, rows: 12 },
     )
@@ -224,11 +217,7 @@ describe("incremental rendering", () => {
 
   test("cursor up also clears highlight", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-        ),
+      () => item("board", item("col1", item("1a"), item("1b"))),
       { incremental: true },
     )
     const app = board._result
@@ -250,5 +239,66 @@ describe("incremental rendering", () => {
     // 1a highlighted again, 1b not
     expect(app.term.cell(box1.x, box1.y).bg).toBe(3)
     expect(app.term.cell(box2.x, box2.y).bg).not.toBe(3)
+  })
+})
+
+describe("incremental rendering: Text node backgroundColor", () => {
+  const render = createTestRenderer({ columns: 40, rows: 10 })
+
+  test("column-header-style Text bg clears when selection changes", () => {
+    // Mimics column headers: <Text backgroundColor={selected ? "yellow" : undefined}>
+    function ColumnHeaders() {
+      const [selected, setSelected] = useState(0)
+
+      useInput((input: string) => {
+        if (input === "l") setSelected((s) => Math.min(2, s + 1))
+        if (input === "h") setSelected((s) => Math.max(0, s - 1))
+      })
+
+      return (
+        <Box flexDirection="row" width={40}>
+          {["Todo", "Doing", "Done"].map((name, i) => (
+            <Box key={i} width={13}>
+              <Text backgroundColor={i === selected ? "yellow" : undefined}>
+                {name}
+              </Text>
+            </Box>
+          ))}
+        </Box>
+      )
+    }
+
+    const app = render(<ColumnHeaders />, { incremental: true })
+
+    // Initial: "Todo" header has yellow bg
+    const todoBox = app.getByText("Todo").boundingBox()!
+    const doingBox = app.getByText("Doing").boundingBox()!
+    const doneBox = app.getByText("Done").boundingBox()!
+
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(3)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(3)
+
+    // Move selection to "Doing"
+    app.press("l")
+
+    // "Todo" yellow should be cleared, "Doing" should be yellow
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(3)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).toBe(3)
+    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(3)
+
+    // Move selection to "Done"
+    app.press("l")
+
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(3)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(3)
+    expect(app.term.cell(doneBox.x, doneBox.y).bg).toBe(3)
+
+    // Move back to "Todo"
+    app.press("h")
+    app.press("h")
+
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(3)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(3)
+    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(3)
   })
 })

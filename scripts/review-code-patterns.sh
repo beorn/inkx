@@ -162,7 +162,7 @@ done || true
 echo ""
 
 # =============================================================================
-# TEST/TUI PATTERNS (Patterns 22-28)
+# TEST/TUI PATTERNS (Patterns 22-27)
 # =============================================================================
 
 echo "=== PATTERN 22: createTestRenderer inside function ==="
@@ -175,8 +175,8 @@ grep -rn "^\s\+.*createTestRenderer" packages apps --include="*.test.ts" --inclu
 echo ""
 
 echo "=== PATTERN 23: Old inkx APIs ==="
-# Old testing patterns that should use modern app.text / app.html:
-#   - lastFrame() - old way, use app.html for ANSI or app.text for plain
+# Old testing patterns that should use modern app.text / app.ansi:
+#   - lastFrame() - old way, use app.ansi for ANSI or app.text for plain
 #   - getContainer() - use app.locator() instead (auto-refreshing)
 # Note: .screenshot() is allowed in test helpers (BoardTestImpl) that wrap app.text
 grep -rn "\.lastFrame()\|\.getContainer()" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
@@ -210,7 +210,47 @@ echo "=== PATTERN 27: High complexity functions ==="
 bun scripts/complexity-report.ts --brief 2>/dev/null || true
 echo ""
 
-echo "=== PATTERN 28: Manual layout calculations in app code ==="
+# =============================================================================
+# DEPRECATED APIS (Patterns 28-30) - see km-deprecations bead
+# =============================================================================
+
+echo "=== PATTERN 28: Deprecated inkx APIs ==="
+# APIs that should be migrated (see km-deprecations bead)
+#   - app.html → app.ansi
+#   - useLayout → useContentRect
+#   - layoutEqual → rectEqual
+#   - computedLayout → contentRect
+#   - ANSI_REGEX → stripAnsi()
+#   - flexx-adapter → flexx-zero-adapter
+grep -rn "app\.html\|useLayout()\|layoutEqual\|computedLayout\|ANSI_REGEX\|flexx-adapter" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/" || true
+echo ""
+
+echo "=== PATTERN 29: Deprecated chalkx APIs ==="
+# Old chalkx patterns (see km-deprecations bead)
+#   - import chalkX from 'chalkx' → import { createTerm } from 'chalkx'
+#   - import { chalk } from 'chalkx' → term.red() etc
+#   - supportsExtendedUnderline() → detectExtendedUnderline()
+#   - setExtendedUnderlineSupport() → createTerm({ extendedUnderline })
+grep -rn "supportsExtendedUnderline\|setExtendedUnderlineSupport\|from.*chalkx.*chalk\b" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/" || true
+grep -rn "import chalkX\|import.*default.*from.*chalkx" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/" || true
+echo ""
+
+echo "=== PATTERN 30: Deprecated km-storage functions ==="
+# Functions that have replacements (see km-deprecations bead)
+#   - config: getBeadsConfig, getTuiConfig, getConfigPath, getOriginalBeadsConfigPath → loadConfigObject()
+#   - testing: createMockWatcher, MockWatcher → createFakeWatcher, FakeWatcher
+# Note: km-storage loadRepo is deprecated but km-cli has its own loadRepo wrapper (not deprecated)
+grep -rn "getBeadsConfig\|getTuiConfig\|getConfigPath\b\|getOriginalBeadsConfigPath\|createMockWatcher\b\|\bMockWatcher\b" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/\|@deprecated" || true
+# km-storage loadRepo - only check within packages/ (km-cli has its own non-deprecated loadRepo)
+grep -rn "from.*repo-loader\|from.*@km/storage.*loadRepo" packages --include="*.ts" 2>/dev/null \
+  | grep -v "node_modules\|vendor/\|@deprecated\|repo-loader\.ts" || true
+echo ""
+
+echo "=== PATTERN 31: Manual layout calculations in app code ==="
 # displayWidth() in app code suggests manual layout that should be handled by inkx/flexx
 # NOTE: Currently a known workaround for km-inkx-flexgrow bug - review when bug is fixed
 # Exclude vendor/ (library code may need it) and test files
@@ -219,30 +259,30 @@ grep -rn "displayWidth(" apps packages --include="*.ts" --include="*.tsx" 2>/dev
 echo ""
 
 # =============================================================================
-# ALIGNMENT/GUIDELINES (Patterns 29-32) - from docs/principles.md Quick Reference
+# ALIGNMENT/GUIDELINES (Patterns 32-35) - from docs/principles.md Quick Reference
 # =============================================================================
 
-echo "=== PATTERN 29: ensure* defensive checks ==="
+echo "=== PATTERN 32: ensure* defensive checks ==="
 # Should let lower levels throw naturally (NOT ensureDir/ensureKmDir - those are setup)
 grep -rn "ensureOpen\|ensureValid\|ensureClosed\|ensureConnected\|ensureInitialized" \
   packages apps --include="*.ts" --exclude="*.test.ts" 2>/dev/null \
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
-echo "=== PATTERN 30: Getters (use plain properties) ==="
+echo "=== PATTERN 33: Getters (use plain properties) ==="
 # get propertyName() should be plain properties for simple access
 grep -rn "^\s*get [a-z][a-zA-Z]*\s*().*{" packages apps --include="*.ts" \
   --exclude="*.test.ts" 2>/dev/null | grep -v "node_modules\|vendor/" || true
 echo ""
 
-echo "=== PATTERN 31: opts.ensure embedded side effects ==="
+echo "=== PATTERN 34: opts.ensure embedded side effects ==="
 # Options that trigger side effects - caller should handle preconditions
 grep -rn "ensure\?: boolean\|ensure: boolean\|\.ensure &&\|\.ensure)" packages apps \
   --include="*.ts" --exclude="*.test.ts" 2>/dev/null \
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
-echo "=== PATTERN 32: Switch statements (review for lookup objects) ==="
+echo "=== PATTERN 35: Switch statements (review for lookup objects) ==="
 # Not violations, but candidates for review - many should be lookup objects
 # Show count only, full output is too noisy
 count=$(grep -rn "switch\s*(" packages apps --include="*.ts" --exclude="*.test.ts" \

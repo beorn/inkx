@@ -16,6 +16,7 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "@beorn/watcher-chaos": "workspace:*"
+    "@beorn/watcher-chaos": "workspace:*",
+    "vitestx": "workspace:*"
   }
 }
