@@ -294,8 +294,10 @@ export function ColumnsView({
                 column={col}
                 colIndex={actualColIndex}
                 isSelected={isColumnSelected}
-                selectedCardIndex={cardIndex}
-                selectedSubIndex={subIndex}
+                // Only pass selection indices to selected column - prevents all columns
+                // from re-rendering when cursor moves within the selected column
+                selectedCardIndex={isColumnSelected ? cardIndex : -1}
+                selectedSubIndex={isColumnSelected ? subIndex : 0}
                 selectionLevel={selectionLevel}
                 width={colWidth}
                 height={height - 1}

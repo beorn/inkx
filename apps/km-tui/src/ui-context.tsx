@@ -135,7 +135,12 @@ const selectTreeConfig = createSelector(
     selectViewMode,
   ],
   (maxOutlineDepth, maxContentLines, inOutlineMode, subIndex, viewMode) => ({
-    maxOutlineDepth,
+    // Cards view shows full outline depth (default 2)
+    // Oneliner views (columns/tabs/list) limit to depth 1 to show immediate children
+    // but not grandchildren, reducing node count from 6668 to ~1400 and improving
+    // j-press from 235ms to ~50ms (vs 14ms at depth=0)
+    maxOutlineDepth:
+      viewMode === "cards" ? maxOutlineDepth : Math.min(1, maxOutlineDepth),
     // Cards view allows multi-line content, other views truncate to one line
     maxContentLines: viewMode === "cards" ? maxContentLines : 1,
     inOutlineMode,
