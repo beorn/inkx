@@ -46,6 +46,8 @@ Use `/git commit`. Follow [Conventional Commits](https://conventionalcommits.org
 
 **Never parallelize git commands** - run them sequentially with `&&`. Parallel git operations cause `.git/index.lock` conflicts.
 
+**Never use destructive git operations** (`git stash`, `git reset --hard`, `git checkout .`, `git restore`, `git clean -f`) - multiple agents may be operating on the same worktree concurrently.
+
 ## Session Completion
 
 Before ending: `bun fix && bun run test:all && git push`. Propose next steps with AskUserQuestion.
