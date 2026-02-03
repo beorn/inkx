@@ -62,9 +62,6 @@
     "prebuild": "bun run build:info",
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
     "storybook": "bun run apps/km-tui/tests/storybook.tsx",
-    "chaos:fuzz": "bun ./scripts/chaos.ts fuzz",
-    "chaos:reproduce": "bun ./scripts/chaos.ts reproduce",
-    "chaos:report": "bun ./scripts/chaos.ts report",
     "release": "release-it",
     "test:flexx:yoga": "cd vendor/beorn-flexx && bun test:yoga"
   },

@@ -33,32 +33,44 @@ The sync system (file watching, reconciliation, write queue) is notoriously hard
 ## Architecture
 
 ```
+gen(fsEventPicker) → chaos transformers → take(n) → reconcile loop → invariants
+```
+
+Uses vitestx's `test.fuzz` with composable async iterable stream transformers.
+
+```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Test Harness                             │
+│                     test.fuzz (vitestx)                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────┐     ┌─────────────────┐                   │
-│  │ ChaosWatcher    │     │ SyncManager     │                   │
-│  │ (injects events)│────►│ (watcher: DI ✅)│                   │
+│  │ gen(picker)      │     │ transformers    │                   │
+│  │ → FsEvent stream │────►│ drop/reorder/.. │                   │
 │  └─────────────────┘     └────────┬────────┘                   │
+│                                   │                             │
+│                            take(n) ─ auto-tracked               │
 │                                   │                             │
 │           ┌───────────────────────┼───────────────────────┐    │
 │           │                       │                       │    │
 │           ▼                       ▼                       ▼    │
 │  ┌─────────────────┐     ┌─────────────────┐     ┌──────────┐ │
-│  │ reconcile()     │     │ WriteQueue      │     │ Database │ │
-│  │ (scanner: DI ✅)│     │ (fs: DI ✅)     │     │ (SQLite) │ │
+│  │ reconcile()     │     │ applyEventToFs  │     │ Database │ │
+│  │ (scanner: DI)   │     │ (mock FS ops)   │     │ (SQLite) │ │
 │  └────────┬────────┘     └────────┬────────┘     └──────────┘ │
 │           │                       │                             │
 │           ▼                       ▼                             │
-│      MockFileSystem          MockFileSystem                    │
+│      FakeFileSystem          FakeFileSystem                    │
 │      (in-memory)             (in-memory)                       │
 │                                                                 │
+│  On failure: auto-shrink → save to __fuzz_cases__/ → regression │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Current state:** Tests use `FakeFileSystem` (in-memory) by default.
-This provides ~9x speedup compared to real filesystem tests in `/tmp`.
+**Key properties:**
+- `take()` records events after all transformations for shrinking
+- Replay yields from saved sequence directly — bypasses gen() and transformers
+- Shrinking finds minimal failing event sequence via delta-debugging
+- `FakeFileSystem` (in-memory) provides ~9x speedup vs real filesystem
 
 ---
 
@@ -115,21 +127,24 @@ const watcher = new ChaosWatcher({
 ## Running Chaos Tests
 
 ```bash
-# Run all watch tests including chaos
-bun test packages/km-storage/tests/watch/
+# Run chaos fuzz tests
+bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
 
-# Run only chaos tests
+# Run all chaos-related tests (includes roundtrip)
 bun test packages/km-storage/tests/sync/chaos/
 
-# Run with verbose output
-bun test packages/km-storage/tests/sync/chaos/ --verbose
+# Reproduce with specific seed
+FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
 ```
 
 ### Test Locations
 
-- `packages/km-storage/tests/sync/chaos/harness.ts` - Test orchestration
+- `packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts` - Fuzz tests (9 tests using gen/take + transformers)
+- `packages/km-storage/tests/sync/chaos/transformers.ts` - 11 chaos stream transformers + combinator
+- `packages/km-storage/tests/sync/chaos/event-picker.ts` - FS event picker for gen()
 - `packages/km-storage/tests/sync/chaos/verifier.ts` - Invariant checking
-- `packages/km-storage/tests/sync/chaos/chaos.test.ts` - Test cases
+- `packages/km-storage/tests/sync/chaos/fake-fs.ts` - In-memory mock filesystem
+- `packages/km-storage/tests/sync/chaos/roundtrip.test.ts` - Content round-trip preservation
 
 ---
 
@@ -138,45 +153,50 @@ bun test packages/km-storage/tests/sync/chaos/ --verbose
 ### Basic Test Structure
 
 ```typescript
-import { runChaosTest } from "./harness.ts"
-import { queueOverflow } from "@beorn/watcher-chaos"
+import { test, describe, expect, gen, take, createSeededRandom } from "vitestx"
+import { chaos, drop, reorder, type ChaosTransformerConfig } from "./transformers.ts"
+import { createFixedSetPicker } from "./chaos-fuzz.slow.test.ts" // or create your own picker
 
-test("handles queue overflow gracefully", async () => {
-  const result = await runChaosTest({
-    name: "queue_overflow_basic",
-    scenario: queueOverflow(0.2),
-    setup: [{ path: "test.md", content: "# Test\n- [ ] Task" }],
-    events: [{ type: "change", path: "test.md" }],
-    expected: {
-      files: ["test.md"],
-    },
-  })
+test.fuzz("sync survives chaos", async () => {
+  const rng = createSeededRandom()
+  const files = ["notes/note1.md", "tasks/task1.md"]
+  const env = setupChaosEnv(files.map(path => ({ path, content: "# Test" })))
 
-  expect(result.passed).toBe(true)
+  try {
+    const base = gen(createFixedSetPicker(files))
+    const chaotic = chaos(base, [
+      { type: "queue_overflow", params: { dropRate: 0.2 } },
+      { type: "reorder_chaos", params: { windowSize: 5 } },
+    ], rng)
+
+    for await (const event of take(chaotic, 100)) {
+      applyEventToFs(env.mockFs, env.repoDir, event, rng)
+      env.handleEvent(event)
+    }
+
+    checkInvariants(env.verifier)
+  } finally {
+    env.db.close()
+  }
 })
 ```
 
-### Test Config Shape
+### Transformer Composition
+
+Transformers are composable async generators:
 
 ```typescript
-interface ChaosTestConfig {
-  name: string
-  scenario: ChaosScenario | ChaosScenario[]
-  setup: Array<{ path: string; content: string }>
-  events: FsEvent[]
-  expected: ExpectedState
-  timeout?: number
-}
+// Individual transformers
+const dropped = drop(source, 0.2, rng)      // 20% event loss
+const reordered = reorder(source, 5, rng)    // Shuffle within window of 5
+const atomic = atomicSave(source, 0.5, rng)  // 50% of changes become unlink+add
 
-interface ExpectedState {
-  files: string[] // Files that should exist in DB
-  deletedFiles?: string[] // Files that should NOT exist
-  nodes?: Array<{
-    // Specific node assertions
-    path: string
-    content?: string
-  }>
-}
+// Combined via chaos() combinator
+const chaotic = chaos(source, [
+  { type: "queue_overflow", params: { dropRate: 0.1 } },
+  { type: "editor_atomic", params: { rate: 0.3 } },
+  { type: "reorder_chaos", params: { windowSize: 5 } },
+], rng)
 ```
 
 ---
@@ -191,34 +211,25 @@ The chaos testing system is designed for iterative bug discovery and fixing:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐ │
-│  │ Generate │───►│ Execute  │───►│ Verify   │───►│ Capture  │ │
-│  │ Scenario │    │ Sync     │    │Invariants│    │ Failures │ │
+│  │ gen()    │───►│ chaos()  │───►│ take(n)  │───►│ verify   │ │
+│  │ events   │    │ transform│    │ reconcile│    │invariants│ │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘ │
 │       │                                               │        │
-│       │              ┌─────────────┐                  │        │
-│       │              │ PASS: Add   │                  │        │
-│       │              │ to coverage │                  │        │
-│       │              └─────────────┘                  │        │
+│       │         PASS: continue fuzzing                │        │
 │       │                                               ▼        │
 │       │         ┌────────────────────────────────────────┐    │
-│       │         │ FAIL: Generate Bug Report              │    │
-│       │         │ - Seed for reproduction                │    │
-│       │         │ - Event sequence                       │    │
-│       │         │ - Expected vs actual state             │    │
+│       │         │ FAIL: auto-shrink → __fuzz_cases__/    │    │
+│       │         │ - Minimal event sequence               │    │
+│       │         │ - Saved for automatic regression       │    │
 │       │         │ - Invariant violated                   │    │
 │       │         └────────────────────────────────────────┘    │
 │       │                          │                             │
 │       │                          ▼                             │
 │       │         ┌────────────────────────────────────────┐    │
-│       │         │ Claude Analyzes & Proposes Fix         │    │
+│       │         │ Analyze & Fix                          │    │
+│       │         │ - Reproduce: FUZZ_SEED=<seed> bun test │    │
 │       │         │ - Root cause analysis                  │    │
-│       │         │ - Code changes                         │    │
-│       │         │ - New invariant if needed              │    │
-│       │         └────────────────────────────────────────┘    │
-│       │                          │                             │
-│       │                          ▼                             │
-│       │         ┌────────────────────────────────────────┐    │
-│       │         │ Apply Fix & Add Regression Test        │    │
+│       │         │ - Fix + regression auto-replayed       │    │
 │       │         └────────────────────────────────────────┘    │
 │       │                          │                             │
 │       └──────────────────────────┘                             │
@@ -231,18 +242,17 @@ The chaos testing system is designed for iterative bug discovery and fixing:
 When a chaos test finds a bug:
 
 ```bash
-# 1. Run the failing test with a specific seed
-bun test packages/km-storage/tests/sync/chaos/ --seed=12345
+# 1. Reproduce with the failing seed
+FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
 
-# 2. Share the failure with Claude
-claude "Analyze this sync bug:
-$(cat .chaos-reports/failure-12345.json)"
+# 2. The shrunk minimal sequence is in __fuzz_cases__/
+# Share with Claude for analysis
 
 # Claude will:
-# - Identify root cause from event sequence
+# - Identify root cause from minimal event sequence
 # - Propose minimal code fix
 # - Suggest new invariant if pattern is novel
-# - Write regression test
+# - Regression is auto-saved and replayed on next run
 ```
 
 ---
@@ -597,26 +607,24 @@ With fake timers, `setInterval` handlers run forever during `runAllAsync()`. Pre
 
 ### Test Locations
 
-| File                 | Purpose                                               |
-| -------------------- | ----------------------------------------------------- |
-| `concurrent.test.ts` | Deterministic concurrent edit tests using fake timers |
-| `chaos.test.ts`      | Property-based chaos tests using ChaosWatcher         |
+| File                       | Purpose                                               |
+| -------------------------- | ----------------------------------------------------- |
+| `concurrent.test.ts`       | Deterministic concurrent edit tests using fake timers |
+| `chaos-fuzz.slow.test.ts`  | Property-based fuzz tests using vitestx gen/take      |
 
 ---
 
 ## Roadmap
 
-See beads for implementation status:
+| Milestone                    | Status | Description                                     |
+| ---------------------------- | ------ | ----------------------------------------------- |
+| M1: Foundation               | ✅     | Watcher DI, ChaosWatcher, initial tests         |
+| M2: Full FS Mocking          | ✅     | FakeFileSystem class for fast testing            |
+| M3: Invariant Framework      | ✅     | Verifier class, structured reports               |
+| M4: vitestx Integration      | ✅     | gen/take + stream transformers + test.fuzz        |
+| M5: Auto-Regression          | ✅     | __fuzz_cases__/ auto-saved on failure             |
 
-| Milestone                  | Bead       | Description                           |
-| -------------------------- | ---------- | ------------------------------------- |
-| ✅ M1: Foundation          | -          | Watcher DI, ChaosWatcher, 25+ tests   |
-| ✅ M2: Full FS Mocking     | km-sync-m2 | MockFileSystem class for fast testing |
-| ✅ M3: Invariant Framework | km-sync-m3 | Verifier class, structured reports    |
-| ✅ M4: Chaos Fuzzer        | km-sync-m4 | Property-based fuzzing, CLI commands  |
-| 🚧 M5: Regression Suite    | km-test-1  | Named cases, CI integration           |
-
-**Performance:** With `--mock-fs` flag, chaos tests run ~9x faster (~60ms vs ~560ms/iteration).
+**Performance:** In-memory FakeFileSystem provides ~9x speedup (~60ms vs ~560ms/iteration).
 
 ---
 

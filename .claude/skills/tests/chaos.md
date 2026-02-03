@@ -1,6 +1,6 @@
 ---
 description: Chaos testing for sync bugs
-argument-hint: [quick | 1000 | 5m | --analyze-only <seed>]
+argument-hint: [quick | seed]
 allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion
 ---
 
@@ -13,47 +13,56 @@ Run chaos testing on km's filesystem sync to discover bugs.
 ## Quick Reference
 
 ```bash
-bun run chaos:fuzz -n 100      # Quick check (~1s)
-bun run chaos:fuzz -n 1000 -v  # Full run with verbose
-bun ./scripts/chaos.ts report -s <seed>  # Analyze failure
-bun ./scripts/chaos.ts reproduce -s <seed>  # Debug specific seed
+# Run chaos fuzz tests
+bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
+
+# Reproduce with specific seed
+FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
+
+# Run all chaos-related tests (includes roundtrip)
+bun test packages/km-storage/tests/sync/chaos/
 ```
 
-## Modes
+## Architecture
 
-| Mode                    | Usage                    | Speed     |
-| ----------------------- | ------------------------ | --------- |
-| `quick` or empty        | 100 iterations           | ~1s       |
-| `<N>` (number)          | N iterations             | ~1000/sec |
-| `<N>m/s/h`              | Duration-based           | ~1000/sec |
-| `--analyze-only <seed>` | Analyze existing failure | instant   |
+```
+gen(fsEventPicker) → chaos transformers → take(n) → test loop + invariants
+```
+
+Uses vitestx's `test.fuzz` with `gen()`/`take()` for auto-shrinking and regression.
+
+### Stream Transformers
+
+Composable async iterable transformers in `transformers.ts`:
+
+| Transformer      | Scenario            | What It Simulates                  |
+| ---------------- | ------------------- | ---------------------------------- |
+| `drop`           | QUEUE_OVERFLOW      | Skip events with probability       |
+| `reorder`        | REORDER_CHAOS       | Shuffle within sliding window      |
+| `atomicSave`     | EDITOR_ATOMIC       | Expand change → unlink+add         |
+| `duplicate`      | DUPLICATE_EVENTS    | Yield some events twice            |
+| `coalesce`       | FSEVENTS_COALESCE   | Replace N file events with dir event |
+| `burst`          | EVENT_STORM         | Collect then emit in rapid bursts  |
+| `delay`          | SLOW_DISK           | Await before yield                 |
+| `partialWrite`   | PARTIAL_WRITES      | Split change into multiple changes |
+| `renameChain`    | RENAME_STORM        | Expand rename → chain of renames   |
+| `rapidSuccession`| RAPID_SUCCESSION    | Identity passthrough               |
+| `initGap`        | INIT_GAP            | Skip first N events               |
+
+Compose with `chaos(source, configs, rng)` combinator.
 
 ## Workflow
 
 ### 1. Run Fuzzer
 
 ```bash
-bun run chaos:fuzz -n <iterations> -v 2>&1 | tee /tmp/chaos-output.txt
+bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
 ```
 
-Flags: `-p/--parallel` (default), `--sequential`, `-r/--real-fs` (slower)
+### 2. On Failure
 
-### 2. Collect Failures
-
-Group by invariant violated:
-
-| Invariant        | Meaning                 |
-| ---------------- | ----------------------- |
-| noDuplicateNodes | Same node created twice |
-| noOrphanedNodes  | Child without parent    |
-| syncMismatch     | DB/FS out of sync       |
-| missingParents   | Parent doesn't exist    |
-
-Generate reports for one seed per invariant (max 5):
-
-```bash
-bun ./scripts/chaos.ts report -s <seed> -o /tmp/chaos-bug-<seed>.md
-```
+vitestx auto-saves failing sequences to `__fuzz_cases__/` for regression.
+Shrinking finds minimal failing event sequence automatically.
 
 ### 3. Analyze Root Cause
 
@@ -63,30 +72,23 @@ bun ./scripts/chaos.ts report -s <seed> -o /tmp/chaos-bug-<seed>.md
 | orphanedNodes  | `reconcile.ts`, `emit.ts`     |
 | syncMismatch   | `writequeue.ts`, `watcher.ts` |
 
-### 4. Present & Create Beads
-
-After user approval:
+### 4. Create Bead
 
 ```bash
 bd create --type=bug --priority=2 --title="Sync: <issue>"
 bd update <id> --add-label "bug/sync"
 ```
 
-### 5. Save Regression
+## Key Files
 
-```bash
-bun ./scripts/chaos.ts save-regression -s <seed> -b <bead-id> \
-  -d "Description of what went wrong"
-```
-
-Creates: `packages/km-storage/tests/sync/chaos/regressions/<bead-id>.md`
-
-## Finding Chaos Bugs
-
-```bash
-bd list --label "bug/sync"          # All chaos bugs
-bun test packages/km-storage/tests/sync/chaos/regression.test.ts  # Run regressions
-```
+| File | Purpose |
+| ---- | ------- |
+| `chaos-fuzz.slow.test.ts` | Fuzz tests using gen/take + transformers |
+| `transformers.ts` | 11 chaos stream transformers + combinator |
+| `event-picker.ts` | FS event picker for gen() |
+| `verifier.ts` | Invariant checking |
+| `fake-fs.ts` | In-memory mock filesystem |
+| `roundtrip.test.ts` | Content round-trip preservation |
 
 ## Anti-Patterns
 

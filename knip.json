@@ -5,8 +5,7 @@
   "workspaces": {
     ".": {
       "entry": [
-        "scripts/*.ts",
-        "packages/km-storage/tests/sync/chaos/fuzzer.ts"
+        "scripts/*.ts"
       ]
     },
     "apps/km-cli": {

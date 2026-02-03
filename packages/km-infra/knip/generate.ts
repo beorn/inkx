@@ -152,10 +152,7 @@ async function main() {
     bun: true,
     workspaces: {
       ".": {
-        entry: [
-          "scripts/*.ts",
-          "packages/km-storage/tests/sync/chaos/fuzzer.ts",
-        ],
+        entry: ["scripts/*.ts"],
       },
     },
   }

@@ -7,7 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { parseMarkdownToNodes, nodesToMarkdown } from "@km/markdown"
-import { SeededRandom } from "./seeded-random.ts"
+import { createSeededRandom, type SeededRandom } from "vitestx"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -287,7 +287,7 @@ const x = 1;
 
   describe("Fuzz Testing", () => {
     test("random simple files round-trip", () => {
-      const random = new SeededRandom(12345)
+      const random = createSeededRandom(12345)
       const failures: string[] = []
 
       for (let i = 0; i < 50; i++) {
@@ -310,7 +310,7 @@ const x = 1;
     })
 
     test("random complex files round-trip", () => {
-      const random = new SeededRandom(67890)
+      const random = createSeededRandom(67890)
       const failures: string[] = []
 
       for (let i = 0; i < 20; i++) {
@@ -339,11 +339,11 @@ const x = 1;
 // ─────────────────────────────────────────────────────────────────────────────
 
 function generateRandomSimpleFile(random: SeededRandom): string {
-  const taskCount = random.nextInt(1, 6)
+  const taskCount = random.int(1, 5)
   const lines: string[] = ["# Tasks", ""]
 
   for (let i = 0; i < taskCount; i++) {
-    const status = random.chance(0.3) ? "x" : " "
+    const status = random.bool(0.3) ? "x" : " "
     const text = `Task ${i + 1}`
     lines.push(`- [${status}] ${text}`)
   }
@@ -355,7 +355,7 @@ function generateRandomComplexFile(random: SeededRandom): string {
   const lines: string[] = []
 
   // Maybe frontmatter
-  if (random.chance(0.3)) {
+  if (random.bool(0.3)) {
     lines.push("---")
     lines.push("tags:")
     lines.push("  - generated")
@@ -368,23 +368,23 @@ function generateRandomComplexFile(random: SeededRandom): string {
   lines.push("")
 
   // Random sections
-  const sectionCount = random.nextInt(1, 4)
+  const sectionCount = random.int(1, 3)
   for (let s = 0; s < sectionCount; s++) {
     lines.push("## " + randomWord(random))
     lines.push("")
 
     // Random tasks in section
-    const taskCount = random.nextInt(0, 5)
+    const taskCount = random.int(0, 4)
     for (let t = 0; t < taskCount; t++) {
-      const status = random.chance(0.3) ? "x" : " "
+      const status = random.bool(0.3) ? "x" : " "
       let task = `- [${status}] ${randomWord(random)}`
 
       // Maybe add metadata
-      if (random.chance(0.2)) {
+      if (random.bool(0.2)) {
         task += ` #${randomWord(random)}`
       }
-      if (random.chance(0.1)) {
-        task += ` @due(2024-0${random.nextInt(1, 10)}-15)`
+      if (random.bool(0.1)) {
+        task += ` @due(2024-0${random.int(1, 9)}-15)`
       }
 
       lines.push(task)
@@ -414,5 +414,5 @@ function randomWord(random: SeededRandom): string {
     "high",
     "medium",
   ]
-  return words[random.nextInt(0, words.length)]!
+  return random.pick(words)
 }
