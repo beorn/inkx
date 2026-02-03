@@ -19,3 +19,6 @@
 [submodule "vendor/beorn-claude-tools"]
 	path = vendor/beorn-claude-tools
 	url = git@github.com:beorn/claude-tools.git
+[submodule "vendor/beorn-vitestx"]
+	path = vendor/beorn-vitestx
+	url = git@github.com:beorn/beorn-vitestx.git
