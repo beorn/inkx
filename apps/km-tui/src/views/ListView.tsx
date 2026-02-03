@@ -4,19 +4,23 @@
  * Full-width tree/outline view of the board hierarchy.
  * Shows the same data as board view but in a hierarchical list format.
  *
- * Uses inkx overflow="scroll" for native scrolling support.
+ * Uses inkx VirtualList for React-level virtualization of large lists.
  *
  * Performance optimization: Pre-caches board pills for all visible nodes
  * to avoid O(n) database queries during render.
  */
 import React, { useMemo, useCallback } from "react"
-import { Box, Text } from "inkx"
+import { Box, Text, VirtualList } from "inkx"
 import type { TUIBoardState, CardState } from "../types.ts"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
 import { useTreeConfig, useRootBoardId } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import type { KNode } from "@km/core"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
+
+// Virtualization constants
+const OVERSCAN = 10
+const MAX_RENDERED_ITEMS = 100
 
 // Type for flattened list items
 type FlatItem =
@@ -112,6 +116,57 @@ export function ListView({
     return selectionLevel === "column" ? idx : idx + 1 + cardIndex
   }, [colIndex, cardIndex, selectionLevel, state.columns])
 
+  // Render item callback for VirtualList
+  const renderItem = useCallback(
+    (item: FlatItem, _index: number) => {
+      if (item.type === "header") {
+        const cIdx = item.colIdx
+        const isColSelected =
+          selectionLevel === "column" && colIndex === cIdx
+        const isSelected = colIndex === cIdx
+
+        return (
+          <Box
+            key={`header-${item.column.node.id}`}
+            position="sticky"
+            stickyTop={0}
+          >
+            <MemoizedColumnHeader
+              column={item.column}
+              colIdx={cIdx}
+              isSelected={isSelected}
+              isColSelected={isColSelected}
+              width={width}
+              showTopSpacer={cIdx > 0}
+            />
+          </Box>
+        )
+      }
+
+      // Card item
+      const cIdx = item.colIdx
+      const cardIdx = item.cardIdx
+      const isCardSelected =
+        selectionLevel === "card" &&
+        colIndex === cIdx &&
+        cardIndex === cardIdx &&
+        (!inOutlineMode || subIndex === 0)
+
+      return (
+        <MemoizedTreeCard
+          key={item.card.node.id}
+          card={item.card}
+          colIndex={cIdx}
+          cardIndex={cardIdx}
+          isSelected={isCardSelected}
+          children={EMPTY_CHILDREN}
+          getBoardPills={getCachedBoardPills}
+        />
+      )
+    },
+    [colIndex, cardIndex, subIndex, selectionLevel, inOutlineMode, width, getCachedBoardPills],
+  )
+
   // Empty state
   if (state.columns.length === 0) {
     return (
@@ -134,61 +189,22 @@ export function ListView({
         <Text> </Text>
       </Box>
 
-      {/* Scrollable list using inkx native scrolling */}
-      <Box
-        flexDirection="column"
-        width={width}
+      {/* Virtualized list using inkx VirtualList */}
+      <VirtualList
+        items={flatItems}
         height={height - 1}
-        overflow="scroll"
+        itemHeight={1}
         scrollTo={selectedFlatIndex}
-      >
-        {flatItems.map((item) => {
-          if (item.type === "header") {
-            const cIdx = item.colIdx
-            const isColSelected =
-              selectionLevel === "column" && colIndex === cIdx
-            const isSelected = colIndex === cIdx
-
-            return (
-              <Box
-                key={`header-${item.column.node.id}`}
-                position="sticky"
-                stickyTop={0}
-              >
-                <MemoizedColumnHeader
-                  column={item.column}
-                  colIdx={cIdx}
-                  isSelected={isSelected}
-                  isColSelected={isColSelected}
-                  width={width}
-                  showTopSpacer={cIdx > 0}
-                />
-              </Box>
-            )
-          }
-
-          // Card item
-          const cIdx = item.colIdx
-          const cardIdx = item.cardIdx
-          const isCardSelected =
-            selectionLevel === "card" &&
-            colIndex === cIdx &&
-            cardIndex === cardIdx &&
-            (!inOutlineMode || subIndex === 0)
-
-          return (
-            <MemoizedTreeCard
-              key={item.card.node.id}
-              card={item.card}
-              colIndex={cIdx}
-              cardIndex={cardIdx}
-              isSelected={isCardSelected}
-              children={EMPTY_CHILDREN}
-              getBoardPills={getCachedBoardPills}
-            />
-          )
-        })}
-      </Box>
+        overscan={OVERSCAN}
+        maxRendered={MAX_RENDERED_ITEMS}
+        keyExtractor={(item) =>
+          item.type === "header"
+            ? `header-${item.column.node.id}`
+            : item.card.node.id
+        }
+        renderItem={renderItem}
+        width={width}
+      />
     </Box>
   )
 }

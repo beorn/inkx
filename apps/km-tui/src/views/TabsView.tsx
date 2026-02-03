@@ -4,15 +4,19 @@
  * Similar to list view but with tab-based navigation between columns.
  * Only shows one column at a time with tabs at the top for switching.
  *
- * Uses inkx overflow="scroll" for native scrolling support.
+ * Uses inkx VirtualList for React-level virtualization.
  */
-import React from "react"
-import { Box, Text } from "inkx"
-import type { TUIBoardState } from "../types.ts"
+import React, { useCallback } from "react"
+import { Box, Text, VirtualList } from "inkx"
+import type { TUIBoardState, CardState } from "../types.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { useTreeConfig } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
+
+// Virtualization constants
+const OVERSCAN = 10
+const MAX_RENDERED_ITEMS = 100
 
 interface TabsViewProps {
   state: TUIBoardState
@@ -119,18 +123,19 @@ export function TabsView({
         <Text dimColor>{"─".repeat(width)}</Text>
       </Box>
 
-      {/* Content area with inkx native scrolling */}
+      {/* Content area with virtualized rendering */}
       <Box flexDirection="column" width={width} flexGrow={1} minHeight={1}>
         {currentColumn ? (
           count > 0 ? (
-            <Box
-              flexDirection="column"
-              flexGrow={1}
-              minHeight={1}
-              overflow="scroll"
+            <VirtualList
+              items={currentColumn.cards}
+              height={height - 3}
+              itemHeight={1}
               scrollTo={cardIndex}
-            >
-              {currentColumn.cards.map((card, actualCardIndex) => {
+              overscan={OVERSCAN}
+              maxRendered={MAX_RENDERED_ITEMS}
+              keyExtractor={(card) => card.node.id}
+              renderItem={(card: CardState, actualCardIndex: number) => {
                 const isCardSelected =
                   selectionLevel === "card" &&
                   actualCardIndex === cardIndex &&
@@ -145,8 +150,8 @@ export function TabsView({
                     isSelected={isCardSelected}
                   />
                 )
-              })}
-            </Box>
+              }}
+            />
           ) : (
             <Box marginLeft={1}>
               <Text dimColor>(empty)</Text>
