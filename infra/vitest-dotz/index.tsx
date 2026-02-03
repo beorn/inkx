@@ -52,13 +52,13 @@ export type StyleFn = () => Term
  * StyleContext allows injecting a style function for testing.
  * When null, components fall back to useTerm().
  */
-export const StyleContext = createContext<StyleFn | null>(null)
+const StyleContext = createContext<StyleFn | null>(null)
 
 /**
  * Hook to get the style chain - uses StyleContext if provided, otherwise useTerm().
  * Note: Term IS the style chain (no  method needed).
  */
-export function useStyle(): Term {
+function useStyle(): Term {
   const styleFromContext = useContext(StyleContext)
   if (styleFromContext) {
     return styleFromContext()

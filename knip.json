@@ -1,37 +1,72 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "ignore": [".claude/**", "archive/**"],
+  "ignoreDependencies": [
+    "@beorn/inkx-ui",
+    "@beorn/watcher-chaos",
+    "@km/agent",
+    "@km/beads",
+    "@km/board",
+    "@km/cli-app",
+    "@km/commands",
+    "@km/connector-caldav",
+    "@km/markdown",
+    "@km/repl",
+    "@km/tree",
+    "@km/tui",
+    "@release-it/conventional-changelog",
+    "chalkx",
+    "oxlint",
+    "oxlint-plugin-complexity",
+    "oxlint-tsgolint",
+    "yaml"
+  ],
+  "ignoreBinaries": ["nix", "which", "direnv", "eslint", "prettier"],
   "bun": true,
   "workspaces": {
     ".": {
       "entry": [
-        "scripts/*.ts"
+        "scripts/*.ts",
+        "release-it.config.js",
+        "benchmarks/*.bench.ts",
+        "infra/vitest-dotz/index.tsx",
+        "website/script.js"
+      ],
+      "project": [
+        "scripts/**/*.ts",
+        "benchmarks/**/*.ts",
+        "infra/**/*.ts",
+        "infra/**/*.tsx",
+        "website/**/*.js"
       ]
     },
     "apps/km-cli": {
       "entry": [
-        "src/index.ts",
+        "src/execute.ts",
         "tests/**/*.test.ts",
-        "tests/**/*.slow.test.ts"
+        "tests/**/*.slow.test.ts",
+        "tests/km-repl.ts",
+        "tests/mdtest-sh-plugin.ts"
       ],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "apps/km-repl": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts", "tests/**/*.test.tsx"],
+      "entry": ["tests/**/*.test.ts"],
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts",
-        "src/**/*.tsx",
-        "tests/**/*.tsx"
+        "src/**/*.tsx"
       ]
     },
     "apps/km-tui": {
       "entry": [
-        "src/tui.ts",
-        "src/index.ts",
         "tests/**/*.test.ts",
         "tests/**/*.test.tsx",
-        "tests/storybook.tsx"
+        "tests/**/*.bench.ts",
+        "tests/storybook.tsx",
+        "tests/explore-*.ts",
+        "tests/profile-*.ts",
+        "tests/perf-*.tsx"
       ],
       "project": [
         "src/**/*.ts",
@@ -41,55 +76,54 @@
       ]
     },
     "packages/km-agent": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "packages/km-beads": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "packages/km-board": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "packages/km-commands": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "packages/km-connector-caldav": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "packages/km-core": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "packages/km-markdown": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "packages/km-storage": {
       "entry": [
-        "src/index.ts",
         "tests/**/*.test.ts",
         "tests/**/*.slow.test.ts"
       ],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "packages/km-tree": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "vendor/beorn-chalkx": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "vendor/beorn-flexx": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "vendor/beorn-inkx": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts", "tests/**/*.test.tsx"],
+      "entry": ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts",
@@ -98,32 +132,39 @@
       ]
     },
     "vendor/beorn-inkx-ui": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts", "tests/**/*.test.tsx"],
+      "entry": ["tests/**/*.test.ts"],
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts",
-        "src/**/*.tsx",
-        "tests/**/*.tsx"
+        "src/**/*.tsx"
       ]
     },
     "vendor/beorn-logger": {
-      "entry": ["src/index.ts"],
       "project": ["src/**/*.ts"]
     },
     "vendor/beorn-mdtest": {
       "entry": [
-        "src/index.ts",
         "tests/**/*.test.ts",
         "tests/**/*.slow.test.ts"
       ],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
     "vendor/beorn-tap": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     },
+    "vendor/beorn-tools": {
+      "entry": [
+        "tools/*.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": ["tools/**/*.ts", "tests/**/*.ts"]
+    },
+    "vendor/beorn-vitestx": {
+      "project": ["src/**/*.ts"]
+    },
     "vendor/beorn-watcher-chaos": {
-      "entry": ["src/index.ts", "tests/**/*.test.ts"],
+      "entry": ["tests/**/*.test.ts"],
       "project": ["src/**/*.ts", "tests/**/*.ts"]
     }
   }

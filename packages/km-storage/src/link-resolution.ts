@@ -65,7 +65,7 @@ export interface LinkResolutionResult {
  * @param pendingLinks - Links to resolve
  * @returns Link data and embedded updates
  */
-export function resolvePendingLinks(
+function resolvePendingLinks(
   db: Database,
   pendingLinks: PendingLink[],
 ): LinkResolutionResult {
@@ -125,10 +125,7 @@ export function resolvePendingLinks(
  * @param db - Database for writing
  * @param result - Resolution result from resolvePendingLinks
  */
-export function applyResolvedLinks(
-  db: Database,
-  result: LinkResolutionResult,
-): void {
+function applyResolvedLinks(db: Database, result: LinkResolutionResult): void {
   const { linksToInsert, embeddedUpdates } = result
 
   if (linksToInsert.length === 0) return

@@ -20,9 +20,6 @@ export {
   drop,
   reorder,
   duplicate,
-  burst,
-  initGap,
-  delay,
   type ChaosConfig,
   type ChaosRegistry,
 } from "vitestx/chaos"
@@ -54,7 +51,7 @@ export async function* atomicSave(
 }
 
 /** Coalesce events from same directory into a single directory event */
-export async function* coalesce(
+async function* coalesce(
   source: AsyncIterable<FsEvent>,
   threshold: number,
   _rng: SeededRandom,
@@ -82,7 +79,7 @@ export async function* coalesce(
 }
 
 /** For change/add events, yield additional change events (simulates partial writes) */
-export async function* partialWrite(
+async function* partialWrite(
   source: AsyncIterable<FsEvent>,
   rate: number,
   rng: SeededRandom,
@@ -101,7 +98,7 @@ export async function* partialWrite(
 }
 
 /** For add events, expand into a chain of renames */
-export async function* renameChain(
+async function* renameChain(
   source: AsyncIterable<FsEvent>,
   depth: number,
   rng: SeededRandom,

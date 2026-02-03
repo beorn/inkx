@@ -29,7 +29,7 @@ const OPERATION_WEIGHTS: Partial<Record<Operation, number>> = {
  * Create a picker that generates random FS events while tracking file state.
  * Returns a picker function suitable for vitestx's gen().
  */
-export function createFsEventPicker(initialFiles: string[]): Picker<FsEvent> {
+function createFsEventPicker(initialFiles: string[]): Picker<FsEvent> {
   const state: FileState = {
     files: new Set(initialFiles),
     directories: new Set<string>(),

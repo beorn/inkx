@@ -54,7 +54,7 @@ export function sid(id: string): string {
  *   span?.debug?.("working...")
  * }
  */
-export const log: ConditionalLogger = createConditionalLogger("km:tui")
+const log: ConditionalLogger = createConditionalLogger("km:tui")
 
 // ============================================================
 // Specialized loggers (pre-wrapped)
@@ -65,6 +65,3 @@ export const renderLog = log.logger("render")
 
 /** Layout logging */
 export const layoutLog = log.logger("layout")
-
-/** Navigation logging */
-export const navLog = log.logger("nav")

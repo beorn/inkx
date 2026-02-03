@@ -46,7 +46,6 @@ export {
   readObsidianIgnore,
   getIgnorePatterns,
   createIgnoreMatcher,
-  createPatternMatcher,
   matchesPattern,
   shouldIgnore,
   isHiddenFile,

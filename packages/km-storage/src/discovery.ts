@@ -253,7 +253,7 @@ export function* discoverFiles(
  * Fast markdown file count using stack-based iteration (no recursion).
  * Used for progress display only - minimal overhead.
  */
-export function countMarkdownFilesFast(
+function countMarkdownFilesFast(
   rootPath: string,
   ignorePatterns: string[],
 ): number {
