@@ -177,7 +177,7 @@ Map user intent phrases to specific actions:
 |-----------|--------|
 | "Ask GPT about X" | `bun llm ask --model gpt-5.2 "X"` |
 | "Get a second opinion" | `bun llm ask "X"` |
-| "Research this topic" | `bun llm research "topic"` |
+| "Research this topic" | `bun llm --deep "topic"` |
 ```
 
 **When to use**: Skills with multiple commands or modes, ambiguous triggers.

@@ -5,36 +5,38 @@ argument-hint: <question>
 
 # Ask - Quick LLM Query
 
-Query the best available model (GPT 5.2 preferred) for a quick answer.
+Shortcut for quick LLM queries. See `/llm` for full documentation.
 
 ## Commands
 
-| Command | What |
-|---------|------|
-| `/ask <question>` | Single model query (~$0.02) |
-| `/ask:all <question>` | Multi-model consensus/debate (~$1-3) |
+| Command | What | Cost |
+|---------|------|------|
+| `/ask <question>` | Single model query | ~$0.02 |
+| `/ask:all <question>` | Multi-model debate | ~$1-3 |
 
 ## Usage
 
-**Single model:**
 ```bash
+# Quick question
 bun llm "<question>"
-```
 
-**Multi-model consensus:**
-```bash
+# Multi-model consensus
 bun llm debate -y "<question>"
 ```
 
-## Examples
+## Context for Codebase Questions
 
-User: `/ask what port does postgres use by default`
-Run: `bun llm "what port does postgres use by default"`
+For questions about this codebase, gather light context first:
 
-User: `/ask:all should we use monorepo or polyrepo for this project`
-Run: `bun llm debate -y "should we use monorepo or polyrepo for this project"`
+1. Note project: km (TypeScript/Bun/Ink/SQLite TUI)
+2. Note current file if relevant
+3. Include in question:
 
-## Cost
+```bash
+bun llm "Context: km project (TypeScript TUI), working on src/foo.ts. Question: <actual question>"
+```
 
-- `/ask`: ~$0.02 per query (single model)
-- `/ask:all`: ~$1-3 per query (queries 3 models, synthesizes)
+## See Also
+
+- `/llm` - Full documentation with all options
+- `/deep` - Deep research with web search

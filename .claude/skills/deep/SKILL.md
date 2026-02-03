@@ -5,50 +5,72 @@ argument-hint: <topic>
 
 # Deep - OpenAI Deep Research
 
-Thorough research using OpenAI's deep research models with web search and citations.
+Thorough research with web search and citations. See `/llm` for full documentation.
 
 ## Commands
 
-| Command | What |
-|---------|------|
-| `/deep <topic>` | Single deep research model (~$2-5) |
-| `/deep:all <topic>` | Multi-model debate/consensus (~$1-3) |
+| Command | What | Cost |
+|---------|------|------|
+| `/deep <topic>` | Deep research | ~$2-5 |
+| `/deep:all <topic>` | Multi-model debate | ~$1-3 |
 
 ## Usage
 
-**Single model (OpenAI deep research):**
 ```bash
-bun llm deep -y "<topic>"
-```
+# Deep research
+bun llm --deep -y "<topic>"
 
-**Multi-model consensus:**
-```bash
+# With context
+bun llm --deep -y --context "Project context here" "<topic>"
+
+# With session history
+bun llm --deep -y --with-history "<topic>"
+
+# Multi-model consensus
 bun llm debate -y "<topic>"
 ```
 
-## Examples
+## Context Gathering (Recommended for Codebase Questions)
 
-User: `/deep best practices for TUI testing 2026`
-Run: `bun llm deep -y "best practices for TUI testing 2026"`
+For better results on codebase-specific questions:
 
-User: `/deep:all current state of WebAssembly`
-Run: `bun llm debate -y "current state of WebAssembly"`
+### Round 1: Understanding
+- Read relevant files mentioned in the topic
+- Check docs/principles.md for constraints
+- Review CLAUDE.md for project context
 
-## Cost
+### Round 2: Framing (~500 words max)
+Synthesize:
+- Project overview (km: TypeScript/Bun/Ink/SQLite TUI)
+- Relevant architecture (which layers involved)
+- Key constraints (patterns, things to avoid)
+- Specific questions to answer
 
-- `/deep`: ~$2-5 per query (OpenAI deep research with web search)
-- `/deep:all`: ~$1-3 per query (queries 3 models, synthesizes)
+### Round 3 (optional): Refinement
+For complex topics, add:
+- Code snippets from existing implementations
+- Similar past decisions (from `bun history`)
+
+### Execute
+```bash
+bun llm --deep -y --context "[synthesized context]" "[topic]"
+```
 
 ## Auto-Recovery
 
-If a previous deep research call was interrupted, running `/deep` will:
-1. Automatically detect incomplete responses
-2. Attempt to recover them from OpenAI
-3. Display the recovered content
-4. Ask if you want to continue with a new query
+If a previous deep research call was interrupted:
+1. Running `/deep` automatically detects incomplete responses
+2. Attempts recovery from OpenAI
+3. Displays recovered content
+4. Asks if you want to continue with a new query
 
 Use `--no-recover` to skip this check.
 
 ## Note
 
-This uses OpenAI's deep research feature (NOT DeepSeek). The `/deep` command includes web search and provides citations. The `/deep:all` variant uses the debate system to get multiple perspectives.
+This uses OpenAI's deep research feature (NOT DeepSeek). Includes web search and provides citations.
+
+## See Also
+
+- `/llm` - Full documentation with all options
+- `/ask` - Quick questions (~$0.02)

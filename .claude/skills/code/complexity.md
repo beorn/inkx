@@ -63,7 +63,7 @@ bun lint:complexity                  # ✓ Handles everything correctly
 2. **Get LLM suggestions** (optional)
 
    ```bash
-   bun llm deep "How to reduce complexity of functionName in file.ts? Focus on extract method, guard clauses, and lookup objects."
+   bun llm --deep "How to reduce complexity of functionName in file.ts? Focus on extract method, guard clauses, and lookup objects."
    ```
 
 3. **Apply common patterns**
