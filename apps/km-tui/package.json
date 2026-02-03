@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@types/react": "catalog:",
-    "string-width": "^8.1.0"
+    "string-width": "^8.1.0",
+    "vitestx": "workspace:*"
   }
 }

@@ -935,10 +935,10 @@ gen((ctx) => {
 })
 ```
 
-**Fuzz terms** (for inkx Provider-based testing):
+**Fuzz terms** (for inkx Provider-based TUI testing):
 
 ```typescript
-import { createFuzzTerm, createReplayTerm } from 'vitestx'
+import { createFuzzTerm, createReplayTerm } from '../helpers/fuzz-term'
 
 // Random key provider for app.run()
 const term = createFuzzTerm({ keys: ['j', 'k', 'Enter'], count: 100, seed: 42 })
@@ -947,7 +947,7 @@ const term = createFuzzTerm({ keys: ['j', 'k', 'Enter'], count: 100, seed: 42 })
 const term = createReplayTerm(['j', 'j', 'k', 'Enter'])
 ```
 
-See `vendor/beorn-vitestx/CLAUDE.md` for full API reference.
+See `apps/km-tui/tests/helpers/fuzz-term.ts` and `vendor/beorn-vitestx/CLAUDE.md` for full API reference.
 
 ---
 

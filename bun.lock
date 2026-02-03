@@ -112,6 +112,7 @@
       "devDependencies": {
         "@types/react": "catalog:",
         "string-width": "^8.1.0",
+        "vitestx": "workspace:*",
       },
     },
     "packages/km-agent": {
