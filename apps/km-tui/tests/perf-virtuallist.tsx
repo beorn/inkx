@@ -38,7 +38,12 @@ function WithVirtualList({ selectedIndex }: { selectedIndex: number }) {
 // Component using raw Box overflow="scroll" (no virtualization)
 function WithoutVirtualization({ selectedIndex }: { selectedIndex: number }) {
   return (
-    <Box height={20} overflow="scroll" scrollTo={selectedIndex} flexDirection="column">
+    <Box
+      height={20}
+      overflow="scroll"
+      scrollTo={selectedIndex}
+      flexDirection="column"
+    >
       {items.map((item, index) => (
         <Text key={item.id} inverse={index === selectedIndex}>
           {item.name}
@@ -83,11 +88,18 @@ async function main() {
   console.log(`Items: ${ITEM_COUNT}, Navigation iterations: ${ITERATIONS}`)
 
   const withVirt = await benchmark("VirtualList", WithVirtualList)
-  const withoutVirt = await benchmark("Box overflow=scroll", WithoutVirtualization)
+  const withoutVirt = await benchmark(
+    "Box overflow=scroll",
+    WithoutVirtualization,
+  )
 
   console.log("\n=== Summary ===")
-  console.log(`Initial render: ${(withoutVirt.initTime / withVirt.initTime).toFixed(1)}x slower without VirtualList`)
-  console.log(`Navigation: ${(withoutVirt.avgNavTime / withVirt.avgNavTime).toFixed(1)}x slower without VirtualList`)
+  console.log(
+    `Initial render: ${(withoutVirt.initTime / withVirt.initTime).toFixed(1)}x slower without VirtualList`,
+  )
+  console.log(
+    `Navigation: ${(withoutVirt.avgNavTime / withVirt.avgNavTime).toFixed(1)}x slower without VirtualList`,
+  )
 }
 
 main().catch(console.error)

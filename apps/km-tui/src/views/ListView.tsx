@@ -121,8 +121,7 @@ export function ListView({
     (item: FlatItem, _index: number) => {
       if (item.type === "header") {
         const cIdx = item.colIdx
-        const isColSelected =
-          selectionLevel === "column" && colIndex === cIdx
+        const isColSelected = selectionLevel === "column" && colIndex === cIdx
         const isSelected = colIndex === cIdx
 
         return (
@@ -164,7 +163,15 @@ export function ListView({
         />
       )
     },
-    [colIndex, cardIndex, subIndex, selectionLevel, inOutlineMode, width, getCachedBoardPills],
+    [
+      colIndex,
+      cardIndex,
+      subIndex,
+      selectionLevel,
+      inOutlineMode,
+      width,
+      getCachedBoardPills,
+    ],
   )
 
   // Empty state
