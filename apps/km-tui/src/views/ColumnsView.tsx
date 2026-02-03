@@ -6,7 +6,12 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
-import React, { useRef, forwardRef, useImperativeHandle, useCallback } from "react"
+import React, {
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+  useCallback,
+} from "react"
 import { useRepo } from "../repo-context.tsx"
 import { Box, Text, VirtualList, type VirtualListHandle } from "inkx"
 import { createConditionalLogger } from "@beorn/logger"
@@ -40,7 +45,6 @@ const OVERSCAN = 20
 
 // Maximum number of items to render at once
 const MAX_RENDERED_ITEMS = 100
-
 
 // =============================================================================
 // ColumnTree Subcomponent
@@ -104,8 +108,14 @@ const ColumnTree = React.memo(
     const iconColor = isColumnHeaderSelected ? "black" : icon.color
 
     // Render item callback for VirtualList
+    // Note: selectedCardIndex and selectedSubIndex are captured from closure
+    // but only used when isSelected is true, so non-selected columns won't
+    // re-render when cursor moves (they get a stable renderCard callback)
     const renderCard = useCallback(
       (card: CardState, actualIndex: number) => {
+        // Calculate selection inside the callback using actualIndex
+        // This way the callback identity only changes when the column's
+        // selection state changes, not when selectedCardIndex changes
         const isCardSelected =
           selectionLevel === "card" &&
           isSelected &&
@@ -125,7 +135,17 @@ const ColumnTree = React.memo(
           />
         )
       },
-      [colIndex, isSelected, selectedCardIndex, selectedSubIndex, selectionLevel, inOutlineMode],
+      // Only include isSelected in deps - when column is not selected,
+      // the callback is stable. When column IS selected, we need to
+      // re-render cards when selection changes within this column.
+      [
+        colIndex,
+        isSelected,
+        isSelected && selectedCardIndex,
+        isSelected && selectedSubIndex,
+        selectionLevel,
+        inOutlineMode,
+      ],
     )
 
     return (
@@ -174,7 +194,13 @@ const ColumnTree = React.memo(
             items={column.cards}
             height={height - 2}
             itemHeight={1}
-            scrollTo={isSelected ? selectedCardIndex : undefined}
+            scrollTo={
+              isSelected &&
+              selectedCardIndex >= 0 &&
+              selectedCardIndex < column.cards.length
+                ? selectedCardIndex
+                : undefined
+            }
             overscan={OVERSCAN}
             maxRendered={MAX_RENDERED_ITEMS}
             keyExtractor={(card) => card.node.id}
