@@ -55,20 +55,20 @@ A smart batch refactoring tool that:
 | ast-grep                | ✅ Installed  | `nix profile`                             |
 | cclsp                   | ✅ Installed  | `bun global`                              |
 | mcp-refactor-typescript | ✅ Configured | `.mcp.json`                               |
-| /batch command          | ✅ Plugin     | `batch@beorn-claude-tools`                |
+| /batch command          | ✅ Plugin     | `batch@beorn-tools`                |
 | pattern.migrate         | ✅ Complete   | LLM-powered API migration                 |
 | Confidence scoring      | 📝 Documented | In command instructions                   |
-| Plugin packaging        | ✅ Complete   | `vendor/beorn-claude-tools/plugins/batch` |
-| Marketplace             | ✅ Configured | `beorn-claude-tools`                      |
+| Plugin packaging        | ✅ Complete   | `vendor/beorn-tools/plugins/batch` |
+| Marketplace             | ✅ Configured | `beorn-tools`                      |
 
 ### Installation
 
 ```bash
 # Add marketplace (one-time)
-claude plugin marketplace add /path/to/vendor/beorn-claude-tools
+claude plugin marketplace add /path/to/vendor/beorn-tools
 
 # Install plugin
-claude plugin install batch@beorn-claude-tools
+claude plugin install batch@beorn-tools
 ```
 
 ## Architecture Options
@@ -192,7 +192,7 @@ Verification: PASSED
 ## Plugin Structure (Current)
 
 ```
-vendor/beorn-claude-tools/
+vendor/beorn-tools/
 ├── .claude-plugin/
 │   └── marketplace.json       # Marketplace manifest
 └── plugins/
@@ -208,10 +208,10 @@ vendor/beorn-claude-tools/
 
 ```bash
 # Add marketplace (one-time)
-claude plugin marketplace add github:beorn/beorn-claude-tools
+claude plugin marketplace add github:beorn/beorn-tools
 
 # Install plugin
-claude plugin install batch@beorn-claude-tools
+claude plugin install batch@beorn-tools
 ```
 
 ## Data Structures & Export Formats
@@ -352,5 +352,5 @@ interface RefactorPlan {
 - [ast-grep docs](https://ast-grep.github.io/)
 - [Claude Code plugins](https://code.claude.com/docs/en/plugins.md)
 - [mcp-refactor-typescript](https://github.com/stefan-nitu/mcp-refactor-typescript)
-- Plugin repo: [beorn/beorn-claude-tools](https://github.com/beorn/beorn-claude-tools)
-- Plugin command: `vendor/beorn-claude-tools/plugins/batch/commands/batch.md`
+- Plugin repo: [beorn/beorn-tools](https://github.com/beorn/beorn-tools)
+- Plugin command: `vendor/beorn-tools/plugins/batch/commands/batch.md`

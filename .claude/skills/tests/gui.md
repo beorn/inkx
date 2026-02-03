@@ -78,7 +78,7 @@ For repeatable regression tests, generate a `.playwright-test.ts` file:
 
 ```typescript
 import { test, expect } from "@playwright/test"
-import { createTTY } from "@beorn/claude-tools/playwright-tty"
+import { createTTY } from "@beorn/tools/playwright-tty"
 
 test("board view renders correctly", async ({ page }) => {
   await using ttyd = createTTY({

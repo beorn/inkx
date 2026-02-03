@@ -13,7 +13,7 @@
     "./mdtest": "./tests/mdtest-plugin.ts"
   },
   "dependencies": {
-    "@beorn/claude-tools": "workspace:*",
+    "@beorn/tools": "workspace:*",
     "@beorn/inkx-ui": "workspace:*",
     "@commander-js/extra-typings": "^14.0.0",
     "@km/agent": "workspace:*",

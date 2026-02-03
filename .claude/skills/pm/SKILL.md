@@ -149,7 +149,7 @@ Beads use group prefixes for package families (configured in `alias_prefixes`):
 | `km-` | km (main project) |
 | `inkx-` | inkx, chalkx, inkx-ui |
 | `flexx-` | flexx layout engine |
-| `beorn-tools-` | beorn-claude-tools |
+| `beorn-tools-` | beorn-tools |
 | `logger-` | logger |
 | `tap-` | tap |
 | `mdtest-` | mdtest |

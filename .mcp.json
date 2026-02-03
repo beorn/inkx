@@ -2,7 +2,7 @@
   "mcpServers": {
     "tty": {
       "command": "bun",
-      "args": ["vendor/beorn-claude-tools/tools/playwright-tty-mcp.ts"]
+      "args": ["vendor/beorn-tools/tools/playwright-tty-mcp.ts"]
     }
   }
 }
