@@ -14,9 +14,9 @@ import React, {
 } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { Box, Text, VirtualList, type VirtualListHandle } from "inkx"
-import { createConditionalLogger } from "@beorn/logger"
+import createDebug from "debug"
 
-const log = createConditionalLogger("km:tui:columns")
+const debug = createDebug("km:tui:columns")
 import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
@@ -27,6 +27,7 @@ import {
   ColumnSeparator,
 } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
+import { getScrollToIndex } from "./scroll-helpers.ts"
 
 // =============================================================================
 // Handle Interfaces
@@ -40,10 +41,17 @@ export interface ColumnTreeHandle {
 // Virtualization Constants
 // =============================================================================
 
-// Number of extra items to render above and below visible area
+/**
+ * Number of extra items to render above and below visible area.
+ * Higher than CARDS view (15) because items are single-row (smaller).
+ */
 const OVERSCAN = 20
 
-// Maximum number of items to render at once
+/**
+ * Maximum number of items to render at once.
+ * Higher than CARDS view (50) because items are simpler to render
+ * (single row, no borders).
+ */
 const MAX_RENDERED_ITEMS = 100
 
 // =============================================================================
@@ -122,7 +130,7 @@ const ColumnTree = React.memo(
           actualIndex === selectedCardIndex &&
           (!inOutlineMode || selectedSubIndex === 0)
 
-        log.debug?.(
+        debug(
           `rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`,
         )
         return (
@@ -135,9 +143,11 @@ const ColumnTree = React.memo(
           />
         )
       },
-      // Only include isSelected in deps - when column is not selected,
-      // the callback is stable. When column IS selected, we need to
-      // re-render cards when selection changes within this column.
+      // Dependency array uses conditional expressions intentionally:
+      // - `isSelected && selectedCardIndex` evaluates to `false` when column is not selected
+      // - This means non-selected columns don't re-render when cursor moves elsewhere
+      // - When column IS selected, the full value is included so selection changes trigger re-render
+      // This pattern provides stable callbacks for non-selected columns.
       [
         colIndex,
         isSelected,
@@ -194,13 +204,11 @@ const ColumnTree = React.memo(
             items={column.cards}
             height={height - 2}
             itemHeight={1}
-            scrollTo={
-              isSelected &&
-              selectedCardIndex >= 0 &&
-              selectedCardIndex < column.cards.length
-                ? selectedCardIndex
-                : undefined
-            }
+            scrollTo={getScrollToIndex(
+              isSelected,
+              selectedCardIndex,
+              column.cards.length,
+            )}
             overscan={OVERSCAN}
             maxRendered={MAX_RENDERED_ITEMS}
             keyExtractor={(card) => card.node.id}
@@ -276,12 +284,16 @@ export function ColumnsView({
           // Distribute extra pixels to the first 'remainder' columns, then cap at maxColWidth
           const rawColWidth = baseColWidth + (i < remainder ? 1 : 0)
           const colWidth = Math.min(rawColWidth, maxColWidth)
+          const isColumnSelected = actualColIndex === colIndex
+          debug(
+            `ColumnsView map: i=${i} actualColIdx=${actualColIndex} colIndex=${colIndex} isSelected=${isColumnSelected}`,
+          )
           return (
             <React.Fragment key={col.node.id}>
               <ColumnTree
                 column={col}
                 colIndex={actualColIndex}
-                isSelected={actualColIndex === colIndex}
+                isSelected={isColumnSelected}
                 selectedCardIndex={cardIndex}
                 selectedSubIndex={subIndex}
                 selectionLevel={selectionLevel}

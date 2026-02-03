@@ -15,18 +15,29 @@ import { TreeNode } from "./TreeNode.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
 import type { NodeLayout } from "../card-positions.ts"
+import { getScrollToIndex } from "./scroll-helpers.ts"
 
 // =============================================================================
 // Virtualization Constants
 // =============================================================================
 
-// Approximate card height (border + content + padding)
+/**
+ * Estimated card height in rows (border + content + padding).
+ * Cards in CARDS view are taller (have borders) compared to COLUMNS view.
+ */
 const ESTIMATED_CARD_HEIGHT = 4
 
-// Number of extra cards to render above and below visible area
+/**
+ * Number of extra cards to render above and below visible area.
+ * Lower than COLUMNS view (20) because cards are taller, so fewer fit on screen.
+ */
 const OVERSCAN = 15
 
-// Maximum number of cards to render at once
+/**
+ * Maximum number of cards to render at once.
+ * Lower than COLUMNS view (100) because cards are more expensive to render
+ * (have borders, more complex layout).
+ */
 const MAX_RENDERED_CARDS = 50
 
 // =============================================================================
@@ -324,7 +335,11 @@ export const Column = React.memo(function Column({
           items={column.cards}
           height={height - 2}
           itemHeight={ESTIMATED_CARD_HEIGHT}
-          scrollTo={selectedCardIndex}
+          scrollTo={getScrollToIndex(
+            isSelected,
+            selectedCardIndex,
+            column.cards.length,
+          )}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_CARDS}
           keyExtractor={(card) => card.node.id}
