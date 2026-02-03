@@ -57,3 +57,4 @@ test-*.ts
 tmp-test/
 docs/vs-decker.md
 issue/
+__fuzz_cases__/
