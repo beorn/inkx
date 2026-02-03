@@ -277,6 +277,8 @@ export function testEnv(
     columns?: number
     rows?: number
     viewMode?: "cards" | "columns" | "list" | "tabs"
+    /** Enable incremental rendering (buffer clone + subtree skip). Default: false */
+    incremental?: boolean
   },
 ) {
   const nodes = treeBuilder()
@@ -308,6 +310,7 @@ export function testEnv(
   })
   const result = render(
     React.createElement(RepoProvider, { repo, children: boardElement }),
+    options?.incremental ? { incremental: true } : undefined,
   )
 
   // Create fluent API using App's auto-refreshing locators
