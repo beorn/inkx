@@ -900,6 +900,57 @@ SKIP_OUTPUT_CHECK=1 bun test path/to/test.ts
 
 ---
 
+## Fuzz Testing (TUI)
+
+TUI components can be fuzz-tested using `vitestx`'s ergonomic API. This generates random keyboard input sequences, checks invariants after each action, and auto-shrinks failures to minimal reproductions.
+
+**Location**: `apps/km-tui/tests/*.slow.test.ts` (fuzz tests are slow)
+
+**Pattern**:
+
+```typescript
+import { test, gen, take } from 'vitestx'
+
+test.fuzz('cursor invariants', async () => {
+  const handle = await run(<Board />, { cols: 80, rows: 24 })
+
+  for await (const key of take(gen(['j', 'k', 'h', 'l', 'Enter']), 100)) {
+    await handle.press(key)
+    expect(handle.locator('[data-cursor]').count()).toBe(1)
+  }
+  // On failure: auto-shrinks, saves to __fuzz_cases__/
+})
+```
+
+**Generators**: Uniform random, weighted, or custom pickers with preconditions:
+
+```typescript
+// Weighted: more navigation, less Enter
+gen([[40, 'j'], [40, 'k'], [10, 'Enter'], [10, 'Escape']])
+
+// Stateful: adapt to current state
+gen((ctx) => {
+  const state = getState()
+  return state.cursor === 0 ? ctx.random.pick(['j', 'l']) : ctx.random.pick(['j', 'k', 'h', 'l'])
+})
+```
+
+**Fuzz terms** (for inkx Provider-based testing):
+
+```typescript
+import { createFuzzTerm, createReplayTerm } from 'vitestx'
+
+// Random key provider for app.run()
+const term = createFuzzTerm({ keys: ['j', 'k', 'Enter'], count: 100, seed: 42 })
+
+// Replay for shrinking
+const term = createReplayTerm(['j', 'j', 'k', 'Enter'])
+```
+
+See `vendor/beorn-vitestx/CLAUDE.md` for full API reference.
+
+---
+
 ## Chaos Testing (Sync)
 
 The sync system (file watching, reconciliation, write queue) is tested using controlled chaos injection via `@beorn/watcher-chaos`.
