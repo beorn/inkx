@@ -80,10 +80,12 @@ bun scripts/explore-tui.ts --path /path/to/vault
 
 | Mode | Speed | Use Case |
 |------|-------|----------|
-| **TUI (default)** | Fast (~1000/s) | Rapid iteration, DOM-level checks |
+| **TUI (default, PREFERRED)** | Fast (~1000/s) | Rapid iteration, DOM-level checks |
 | **GUI (`--gui`)** | Slower (~1/s) | Pixel verification, visual bugs |
 | **Peekaboo (`--peekaboo`)** | Interactive | Inspect live Ghostty terminal |
 | **Targeted** | Varies | User-described scenario first, then expand |
+
+**IMPORTANT: Always prefer TUI mode** (headless `testEnv()`/`board.press()`/`board.screenshot()`) over GUI/TTY mode. TUI tests are faster, more reliable, and catch character-level issues. Only use `--gui` (TTY/Playwright) when pixel-level visual verification is explicitly needed. **If you must use TTY tools, always set timeout to 10000ms (10s)** to avoid hanging on unresponsive sessions.
 
 ---
 
