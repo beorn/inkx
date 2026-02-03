@@ -77,7 +77,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | **TUI Tests** | Term buffer (inkx) | [tui.md](tui.md) |
 | **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
 | **GUI Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
-| **Fuzz (TUI)** | gen/take/test.fuzz (vitestx) | [vendor/beorn-vitestx/CLAUDE.md] |
+| **Fuzz (TUI)** | gen/take/test.fuzz (vitestx) | [vitestx CLAUDE.md](../../../vendor/beorn-vitestx/CLAUDE.md) |
 | **Exploration** | Chaos + monkey testing | [chaos.md](chaos.md), `/explore` |
 | **Bench** | Benchmarks | [bench.md](bench.md) |
 | **Storybook** | Static component rendering | `bun storybook` |

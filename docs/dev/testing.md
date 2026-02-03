@@ -904,7 +904,7 @@ SKIP_OUTPUT_CHECK=1 bun test path/to/test.ts
 
 TUI components can be fuzz-tested using `vitestx`'s ergonomic API. This generates random keyboard input sequences, checks invariants after each action, and auto-shrinks failures to minimal reproductions.
 
-**Location**: `apps/km-tui/tests/*.slow.test.ts` (fuzz tests are slow)
+**Location**: `*.slow.test.ts` files (fuzz tests use the `.slow.` suffix convention)
 
 **Pattern**:
 
