@@ -13,16 +13,9 @@ import { steps } from "@beorn/inkx-ui/progress"
 import { dirname, resolve } from "path"
 
 const log = createConditionalLogger("km:cli:rebuild")
-import {
-  rebuildState,
-  fullReset,
-  freshStart,
-  getLastEventId,
-  findKmRootFromPath,
-  SCHEMA,
-} from "@km/storage"
+import { getLastEventId, findKmRootFromPath, createRepo } from "@km/storage"
 import { Database } from "bun:sqlite"
-import { existsSync, statSync } from "fs"
+import { existsSync, statSync, readdirSync, rmSync, unlinkSync } from "fs"
 import { join } from "path"
 import { formatPath } from "../utils/format-path.ts"
 
@@ -54,7 +47,12 @@ export const rebuildCommand = new Command("rebuild")
 
     if (options.fresh) {
       console.log(term.yellow("Fresh start - deleting all .km data..."))
-      freshStart(kmRoot)
+      // Delete all contents of .km directory
+      if (existsSync(kmRoot)) {
+        for (const entry of readdirSync(kmRoot)) {
+          rmSync(join(kmRoot, entry), { recursive: true, force: true })
+        }
+      }
       console.log(
         term.green("✓"),
         "Fresh start complete - .km directory cleared",
@@ -69,44 +67,43 @@ export const rebuildCommand = new Command("rebuild")
       term.dim(`(repo ${formatPath(repoPath)})`),
     )
 
-    // Open database for rebuild operations
-    const db = new Database(join(kmRoot, "state.db"))
-    db.run(SCHEMA)
-
     try {
       if (options.full) {
         console.log(term.dim("Performing full reset..."))
+        // Delete state.db files before rebuild
+        const dbPath = join(kmRoot, "state.db")
+        for (const suffix of ["", "-wal", "-shm"]) {
+          const path = dbPath + suffix
+          if (existsSync(path)) unlinkSync(path)
+        }
       }
 
+      // Use createRepo with loadFiles to rebuild from events.jsonl
       const results = await steps({
-        rebuildState: options.full
-          ? function* () {
-              return yield* fullReset(kmRoot, db)
-            }
-          : function* () {
-              return yield* rebuildState(kmRoot, db)
-            },
+        rebuildState: function* () {
+          using repo = yield* createRepo(repoPath, { loadFiles: true })
+          return {
+            nodeCount: repo.stats.nodeCount,
+            duration: repo.stats.duration,
+          }
+        },
       }).run({ clear: true })
 
       const result = results.rebuildState as unknown as {
         duration: number
-        eventCount: number
         nodeCount: number
       }
 
       log.debug?.(
-        `rebuild: complete in ${result.duration}ms, events=${result.eventCount} nodes=${result.nodeCount}`,
+        `rebuild: complete in ${result.duration}ms, nodes=${result.nodeCount}`,
       )
 
       console.log(term.green("✓"), "Rebuild complete")
-      console.log(term.dim(`  Events: ${result.eventCount}`))
       console.log(term.dim(`  Nodes: ${result.nodeCount}`))
       console.log(term.dim(`  Time: ${result.duration}ms`))
     } catch (error) {
       console.error(term.red("Rebuild failed:"), error)
       process.exit(1)
-    } finally {
-      db.close()
     }
   })
 

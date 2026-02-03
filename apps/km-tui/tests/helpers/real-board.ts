@@ -25,7 +25,8 @@
 import React from "react"
 import { createTestRenderer, type App } from "inkx/testing"
 import { expect } from "vitest"
-import { createRepo, runGenerator, type Repo } from "@km/storage"
+import { createRepo, type Repo } from "@km/storage"
+import { runGenerator } from "@km/core"
 
 import { Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"

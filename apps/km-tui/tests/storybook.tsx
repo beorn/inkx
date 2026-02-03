@@ -1764,7 +1764,7 @@ if (isStaticMode) {
   // 1. Remove trailing whitespace from each line
   // 2. Remove trailing blank/ANSI-only lines
   const ANSI_REGEX = /\x1b\[[0-9;]*m/g
-  const rawOutput = app.html
+  const rawOutput = app.ansi
   const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")) // trim trailing whitespace
   // Find last line with visible content (not just ANSI codes and whitespace)
   let lastContentLine = lines.length - 1

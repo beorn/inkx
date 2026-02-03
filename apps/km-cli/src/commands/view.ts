@@ -44,14 +44,18 @@ export const viewCommand = new Command("view")
     // Import modules
     let storageModule: typeof import("@km/storage")
     let tuiModule: typeof import("@km/tui")
+    let coreModule: typeof import("@km/core")
     let loadRepo: (typeof import("../load-repo.ts"))["loadRepo"]
     {
       using _ = startup.span("import-modules")
-      ;[storageModule, tuiModule, { loadRepo }] = await Promise.all([
-        import("@km/storage"),
-        import("@km/tui"),
-        import("../load-repo.ts"),
-      ])
+      ;[storageModule, tuiModule, coreModule, { loadRepo }] = await Promise.all(
+        [
+          import("@km/storage"),
+          import("@km/tui"),
+          import("@km/core"),
+          import("../load-repo.ts"),
+        ],
+      )
     }
 
     // Resolve path and set debug root
@@ -99,7 +103,7 @@ export const viewCommand = new Command("view")
     // Build view state
     const state = (() => {
       using _ = startup.span("build-state")
-      const result = storageModule.runGenerator(
+      const result = coreModule.runGenerator(
         tuiModule.initBoardStateGenerator(createdRepo, rootNodeId),
       )
       if (result) {
@@ -115,7 +119,7 @@ export const viewCommand = new Command("view")
 
     // Watch options: CLI flag > config > default (true)
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
-    const tuiConfig = storageModule!.getTuiConfig(resolved.repoRoot)
+    const tuiConfig = storageModule!.loadConfigObject(resolved.repoRoot).tui
     const watchEnabled = options.watch !== false ? tuiConfig.watch : false
     const watchWorker = tuiConfig.watchWorker
     debug.debug?.("watch config", {

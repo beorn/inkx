@@ -15,7 +15,6 @@ import {
 } from "../../src/watch/reconcile.ts"
 import { getNodeByPath } from "../../src/db-queries/core-lookup.ts"
 import { getChildren } from "../../src/db-queries/tree-traversal.ts"
-import { rebuildState } from "../../src/rebuild.ts"
 import { withTestEnv } from "@km/storage"
 
 describe("reconcile.ts", () => {

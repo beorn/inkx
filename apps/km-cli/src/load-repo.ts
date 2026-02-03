@@ -41,7 +41,8 @@ export async function loadRepo(
     createOptions.loadFiles = true
   }
 
-  const { createRepo, runGenerator } = await import("@km/storage")
+  const { createRepo } = await import("@km/storage")
+  const { runGenerator } = await import("@km/core")
 
   if (showProgress) {
     // Use steps runner for progress display

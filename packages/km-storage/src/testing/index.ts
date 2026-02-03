@@ -59,7 +59,3 @@ export {
 
 // Fake watcher for testing without real filesystem
 export { createFakeWatcher, type FakeWatcher } from "./fake-watcher.ts"
-/** @deprecated Use createFakeWatcher instead */
-export { createFakeWatcher as createMockWatcher } from "./fake-watcher.ts"
-/** @deprecated Use FakeWatcher instead */
-export type { FakeWatcher as MockWatcher } from "./fake-watcher.ts"

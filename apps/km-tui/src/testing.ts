@@ -32,7 +32,7 @@ import React from "react"
 import { createTestRenderer, bufferToStyledText } from "inkx/testing"
 import type { AutoLocator, FilterOptions } from "inkx/testing"
 import type { InkxNode } from "inkx"
-import type { KNode } from "@km/core"
+import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
 import type { TUIBoardState } from "./types.ts"
 import { BoardCore } from "./views/index.ts"
@@ -117,7 +117,7 @@ export async function createBoardTest(
   if (typeof repoOrPath === "string") {
     // Load repo from disk (original behavior)
     // searchAncestors: false prevents finding .km in parent directories (e.g., project root)
-    repo = storageModule.runGenerator(
+    repo = runGenerator(
       storageModule.createRepo(repoOrPath, { loadFiles: true }),
     )
     repoPath = repoOrPath
@@ -151,7 +151,7 @@ export async function createBoardTest(
   const tuiModule = await import("./index.ts")
 
   // Initialize board state
-  const state = storageModule.runGenerator(
+  const state = runGenerator(
     tuiModule.initBoardStateGenerator(repo, rootNodeId),
   )
 

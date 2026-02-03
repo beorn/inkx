@@ -15,11 +15,11 @@ import {
   migrateBeadsToMarkdown,
   exportToBeads,
 } from "@km/beads"
+import { join } from "node:path"
 import {
   resolvePathArg,
   loadConfigObject,
   getOriginalBeadsConfig,
-  getOriginalBeadsConfigPath,
 } from "@km/storage"
 
 /**
@@ -52,8 +52,9 @@ export const migrateCommand = new Command("migrate")
 
     // Read original beads config for issue prefix
     const originalConfig = getOriginalBeadsConfig(resolved.repoRoot)
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- CLI migration command needs legacy config access
-    const originalConfigPath = getOriginalBeadsConfigPath()
+    const originalConfigPath = originalConfig
+      ? join(beadsDir, "config.yaml")
+      : undefined
 
     // Show stats first
     const stats = getMigrationStats(beadsDir)

@@ -17,7 +17,7 @@ const log = createConditionalLogger("km:cli:sync")
 import {
   SyncManager,
   findKmRootFromPath,
-  syncState,
+  readEvents,
   SCHEMA,
   migrateToRepoRootNode,
 } from "@km/storage"
@@ -165,20 +165,29 @@ async function runSync(
 
   try {
     // Step 1: Apply any pending events from events.jsonl to state.db
-    // Pass db and kmDir explicitly to avoid singletons (ADR-002)
-    const eventResults = await steps({
-      syncState: function* () {
-        return yield* syncState({ kmDir: kmRoot, db })
-      },
-    }).run({ clear: true })
+    const events = readEvents(kmRoot)
+    const lastApplied = db
+      .prepare("SELECT value FROM meta WHERE key = ?")
+      .get("last_event") as { value: string } | undefined
+    const newEvents = events.filter(
+      (e) => !lastApplied?.value || e.id > lastApplied.value,
+    )
 
-    const eventResult = eventResults.syncState as unknown as {
-      applied: number
-    }
-    if (eventResult.applied > 0) {
+    if (newEvents.length > 0) {
+      const { applyEventWithDb } = await import("@km/storage")
+      db.run("BEGIN IMMEDIATE")
+      try {
+        for (const event of newEvents) {
+          applyEventWithDb(db, event)
+        }
+        db.run("COMMIT")
+      } catch (error) {
+        db.run("ROLLBACK")
+        throw error
+      }
       console.log(
         term.green("✓"),
-        `Applied ${eventResult.applied} event(s) from events.jsonl`,
+        `Applied ${newEvents.length} event(s) from events.jsonl`,
       )
     }
 

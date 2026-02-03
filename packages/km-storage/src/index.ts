@@ -86,29 +86,14 @@ export { MemoryStore } from "./store.ts"
 
 export type { NodeStore } from "./store.ts"
 
-// State rebuild (generators - use runWithProgress or for...of to consume)
+// Unified repo loading
 export {
   readEvents,
-  rebuildState,
-  syncState,
-  fullReset,
-  freshStart,
-  runWithProgress,
-  runGenerator,
-} from "./rebuild.ts"
-
-export type { RebuildResult, SyncResult } from "./rebuild.ts"
-
-// Unified repo loading (the ONE function for loading repos)
-/* eslint-disable @typescript-eslint/no-deprecated -- Re-exporting deprecated loadRepo for backward compatibility */
-export {
-  loadRepo,
   resolveLinksAsync,
   parseDeferredAsync,
   parseStubFile,
   migrateToRepoRootNode,
 } from "./repo-loader.ts"
-/* eslint-enable @typescript-eslint/no-deprecated */
 
 export type {
   LoadResult,
@@ -260,23 +245,15 @@ export type {
   PatternMatcherOptions,
 } from "./watch/index.ts"
 
-// Event emission singletons REMOVED - use Repo.emitter or createEmitter() instead.
-// Legacy consumers can import directly from "./internal/emit.ts" if absolutely necessary,
-// but should migrate to dependency injection patterns.
-
 // Recurrence utilities (moved from @km/core)
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
 
 // Configuration
-/* eslint-disable @typescript-eslint/no-deprecated -- Re-exporting deprecated config functions for backward compatibility */
 export {
   loadConfig,
   clearConfigCache,
-  getTuiConfig,
   getOriginalBeadsConfig,
-  getOriginalBeadsConfigPath,
 } from "./config.ts"
-/* eslint-enable @typescript-eslint/no-deprecated */
 
 export type {
   KmConfig,
@@ -354,7 +331,6 @@ export {
   isRealMode,
   isMockMode,
   createFakeWatcher,
-  createMockWatcher, // deprecated
   // Fixture DSL for building test data
   board,
   column,
@@ -386,6 +362,5 @@ export type {
   TestEnv,
   TestMode,
   FakeWatcher,
-  MockWatcher, // deprecated
   BoardFixture,
 } from "./testing/index.ts"

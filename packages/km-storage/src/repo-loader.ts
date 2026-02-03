@@ -458,6 +458,50 @@ function* discoverMemoryMode(
 }
 
 // ============================================================================
+// EVENT READING
+// ============================================================================
+
+/**
+ * Read all events from events.jsonl.
+ * Handles deduplication and sorting by ULID.
+ *
+ * @param kmDir - Path to .km directory
+ */
+export function readEvents(kmDir: string): Event[] {
+  const eventsPath = join(kmDir, "events.jsonl")
+
+  if (!existsSync(eventsPath)) {
+    log.debug?.(`no events file at ${eventsPath}`)
+    return []
+  }
+
+  const content = readFileSync(eventsPath, "utf-8")
+  const lines = content.split("\n").filter((line) => line.trim())
+
+  log.debug?.(`reading ${lines.length} lines from events.jsonl`)
+
+  const events: Event[] = []
+  const seen = new Set<string>()
+
+  for (const line of lines) {
+    try {
+      const event = JSON.parse(line) as Event
+      if (seen.has(event.id)) continue
+      seen.add(event.id)
+      events.push(event)
+    } catch {
+      // Skip malformed lines
+    }
+  }
+
+  // Sort by ULID (lexicographic = chronological)
+  events.sort((a, b) => a.id.localeCompare(b.id))
+
+  log.debug?.(`read ${events.length} events`)
+  return events
+}
+
+// ============================================================================
 // DISK MODE DISCOVERY
 // ============================================================================
 

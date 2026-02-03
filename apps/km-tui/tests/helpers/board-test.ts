@@ -882,7 +882,7 @@ class BoardTestImpl implements BoardTest {
 
   /** Get ANSI-colored output for visual debugging, vs screenshot() which returns plain text via app.text */
   screenshotAnsi(): string {
-    return this.result.html
+    return this.result.ansi
   }
 
   locator(): AutoLocator {

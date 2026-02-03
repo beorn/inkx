@@ -8,10 +8,8 @@
  *
  * Also reads .beads/config.yaml for beads-specific settings.
  *
- * @deprecated Use loadConfigObject() instead for a proper domain object.
- * The functions loadConfig(), getBeadsConfig(), getTuiConfig() use caching
- * that can lead to stale state. loadConfigObject() returns a Config object
- * with an explicit reload() method.
+ * External callers should prefer loadConfigObject() from config-object.ts
+ * which returns a Config domain object with an explicit reload() method.
  */
 
 import { cosmiconfigSync } from "cosmiconfig"
@@ -93,16 +91,6 @@ function loadOriginalBeadsConfigWithPath(
 }
 
 /**
- * Get path to .beads/config.yaml if found.
- * @deprecated Use loadOriginalBeadsConfigWithPath() which returns both config and path.
- */
-export function getOriginalBeadsConfigPath(
-  searchFrom?: string,
-): string | undefined {
-  return loadOriginalBeadsConfigWithPath(searchFrom)?.filepath
-}
-
-/**
  * Get the original beads config (for migration info)
  */
 export function getOriginalBeadsConfig(
@@ -137,14 +125,6 @@ export function loadConfigWithPath(
 }
 
 /**
- * Get the path to the loaded config file, if any.
- * @deprecated Use loadConfigWithPath() which returns both config and path.
- */
-export function getConfigPath(searchFrom?: string): string | undefined {
-  return loadConfigWithPath(searchFrom)?.filepath
-}
-
-/**
  * Clear the config cache (useful for testing or after config changes).
  */
 export function clearConfigCache(): void {
@@ -153,6 +133,7 @@ export function clearConfigCache(): void {
 
 /**
  * Get beads-specific configuration with defaults applied.
+ * Internal: used by config-object.ts. External callers should use loadConfigObject().
  */
 export function getBeadsConfig(searchFrom?: string): Required<BeadsConfig> {
   const config = loadConfig(searchFrom)
@@ -165,6 +146,7 @@ export function getBeadsConfig(searchFrom?: string): Required<BeadsConfig> {
 
 /**
  * Get TUI-specific configuration with defaults applied.
+ * Internal: used by config-object.ts. External callers should use loadConfigObject().
  */
 export function getTuiConfig(searchFrom?: string): Required<TuiConfig> {
   const config = loadConfig(searchFrom)

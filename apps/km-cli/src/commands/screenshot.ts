@@ -43,21 +43,21 @@ export const screenshotCommand = new Command("screenshot")
     const format: OutputFormat = options.format as OutputFormat
 
     // Import modules
-    const [storageModule, cliModule, tuiModule, inkxModule] = await Promise.all(
-      [
+    const [storageModule, coreModule, cliModule, tuiModule, inkxModule] =
+      await Promise.all([
         import("@km/storage"),
+        import("@km/core"),
         import("../program.ts"),
         import("@km/tui"),
         import("inkx"),
-      ],
-    )
+      ])
 
     // Resolve path and load repo
     const resolved = storageModule.resolvePathArg(root, cliModule.getRootPath())
     setDebugRepoRoot(resolved.repoRoot)
 
     // Load repo (full parse for accurate screenshot)
-    const repo = storageModule.runGenerator(
+    const repo = coreModule.runGenerator(
       storageModule.createRepo(resolved.repoRoot, { loadFiles: true }),
     )
 
@@ -73,7 +73,7 @@ export const screenshotCommand = new Command("screenshot")
     }
 
     // Initialize board state
-    const state = storageModule.runGenerator(
+    const state = coreModule.runGenerator(
       tuiModule.initBoardStateGenerator(repo, rootNodeId),
     )
 

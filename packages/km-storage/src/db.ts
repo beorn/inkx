@@ -5,10 +5,6 @@
  * All code should use Repo domain object (createRepo) instead of these functions.
  */
 
-// Database singleton functions REMOVED - use createRepo() or pass db explicitly.
-// Legacy consumers can import directly from "./internal/db-instance.ts" if absolutely necessary,
-// but should migrate to dependency injection patterns.
-
 // Re-export db-accepting query functions
 export {
   getNode,
