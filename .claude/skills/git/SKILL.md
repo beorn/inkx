@@ -12,10 +12,11 @@ Commit changes and create releases.
 
 ## Quick Commands
 
-| Action             | Command        |
-| ------------------ | -------------- |
-| Commit all changes | `/git commit`  |
-| Create release     | `/git release` |
+| Action             | Command                       |
+| ------------------ | ----------------------------- |
+| Commit all changes | `/git commit`                 |
+| Create release     | `/git release`                |
+| Merge worktree     | `bun worktree merge <name>`   |
 
 ## Commit Rules
 

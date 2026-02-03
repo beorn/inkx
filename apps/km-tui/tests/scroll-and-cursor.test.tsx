@@ -261,6 +261,44 @@ describe("Scroll virtualization doesn't hide content", () => {
     board.expect("#item25[data-cursor]").toExist()
   })
 
+  test("scrolling down in cards mode produces no visual artifacts", () => {
+    // Regression test for incremental contentPhase rendering:
+    // When scrolling, stale pixels from the cloned buffer can bleed through
+    // as extraneous background colors or misplaced content.
+    const cards = Array.from({ length: 20 }, (_, i) => item(`scroll${i}`))
+
+    const { board } = testEnv(() => item("board", item("col1", ...cards)), {
+      rows: 15,
+      columns: 60,
+    })
+
+    // Scroll down through the list, checking for artifacts at each step
+    for (let i = 0; i < 15; i++) {
+      board.press("j")
+      const text = board.screenshot()
+
+      // No error strings or object dumps
+      expect(text).not.toContain("[object Object]")
+      expect(text).not.toContain("undefined")
+      expect(text).not.toMatch(/Error:|TypeError:|ReferenceError:/)
+
+      // Current card should be visible
+      expect(text).toContain(`scroll${i + 1}`)
+
+      // Cursor should exist on exactly one element
+      board.expect("[data-cursor]").toExist()
+    }
+
+    // Scroll back up and verify no artifacts
+    for (let i = 0; i < 15; i++) {
+      board.press("k")
+      const text = board.screenshot()
+      expect(text).not.toContain("[object Object]")
+      expect(text).not.toContain("undefined")
+      board.expect("[data-cursor]").toExist()
+    }
+  })
+
   test("page down (Ctrl+D) scrolls and keeps cursor visible", () => {
     const cards = Array.from({ length: 30 }, (_, i) => item(`page${i}`))
 

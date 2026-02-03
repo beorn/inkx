@@ -13,26 +13,30 @@ Bare `git worktree add` doesn't handle:
 - **Direnv** - needs `direnv allow` per worktree
 - **Validation** - uncommitted changes would be missing from new worktree; unpushed submodule commits would fail to clone
 
-**Tool location**: `vendor/beorn-claude-tools/tools/worktree.ts` (also available as `bun run worktree`)
+**Tool location**: `vendor/beorn-claude-tools/tools/worktree.ts` (also available as `bun worktree`)
 
 ## Quick Reference
 
 ```bash
 # Show status and help
-bun run worktree
+bun worktree
 
 # Create worktree
-bun run worktree create <name> [branch]
-bun run worktree create my-feature          # New branch feat/my-feature
-bun run worktree create bugfix fix/cursor   # Specific branch
-bun run worktree create test main           # Track main
+bun worktree create <name> [branch]
+bun worktree create my-feature          # New branch feat/my-feature
+bun worktree create bugfix fix/cursor   # Specific branch
+bun worktree create test main           # Track main
+
+# Merge worktree branch into main, run tests, clean up
+bun worktree merge <name>
+bun worktree merge my-feature --keep-branch      # Keep branch after merge
 
 # Remove worktree
-bun run worktree remove <name>
-bun run worktree remove my-feature --delete-branch  # Also delete branch
+bun worktree remove <name>
+bun worktree remove my-feature --delete-branch   # Also delete branch
 
 # Detailed status
-bun run worktree list         # Shows uncommitted changes
+bun worktree list         # Shows uncommitted changes
 ```
 
 ## How Worktrees Are Created
@@ -74,7 +78,7 @@ If you see "Found unpushed submodule commits":
 git submodule foreach "git push origin HEAD || true"
 
 # Then retry
-bun run worktree create my-feature
+bun worktree create my-feature
 ```
 
 ## Post-Create Setup
@@ -111,6 +115,30 @@ Use worktrees when you need to:
 - **Compare implementations** side by side
 - **Run long tests** while continuing development
 
+## Merging Back to Main
+
+Use `bun worktree merge <name>` to merge a worktree's branch back into main. This single command:
+
+1. Validates you're on the main worktree
+2. Checks the worktree is clean (no uncommitted changes)
+3. Merges with `--no-ff` (preserves branch history)
+4. Runs `bun run test:fast` to verify
+5. Removes the worktree
+6. Deletes the branch
+
+```bash
+# From main worktree:
+bun worktree merge my-feature
+
+# Keep the branch after merging
+bun worktree merge my-feature --keep-branch
+
+# Run full test suite instead of fast tests
+bun worktree merge my-feature --full-tests
+```
+
+If the merge has conflicts, it aborts and tells you to resolve manually. If tests fail, the merge stays but the worktree is not removed.
+
 ## Remove Safeguards
 
 The `remove` command protects against data loss:
@@ -128,15 +156,15 @@ Your working tree has changes that won't be in the new worktree:
 ```bash
 # Option 1: Commit first
 git add . && git commit -m "WIP"
-bun run worktree create my-feature
+bun worktree create my-feature
 
 # Option 2: Stash
 git stash
-bun run worktree create my-feature
+bun worktree create my-feature
 # Later: git stash pop
 
 # Option 3: Create anyway (worktree won't have your changes)
-bun run worktree create my-feature --allow-dirty
+bun worktree create my-feature --allow-dirty
 ```
 
 ### "Found unpushed submodule commits"
@@ -147,7 +175,7 @@ Push your submodule changes first:
 cd vendor/beorn-inkx
 git push
 cd ../..
-bun run worktree create my-feature
+bun worktree create my-feature
 ```
 
 ### Beads/Database Conflicts
