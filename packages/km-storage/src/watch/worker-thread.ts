@@ -7,12 +7,13 @@
 
 import { watch, type FSWatcher } from "chokidar"
 import { dirname } from "path"
-import { createWorkerLogger } from "@beorn/logger/worker"
 
-// Create worker logger that forwards to main thread
-const log = createWorkerLogger(postMessage, "km:storage:watch:worker")
+const NAMESPACE = "km:storage:watch:worker"
 
-// Helper for debug logging with format string support
+// Wrapper that sends debug messages ONLY to main thread
+// This ensures all debug output goes through main thread's debug-log.ts,
+// which handles DEBUG_LOG redirection properly.
+// Worker threads should NEVER log to stderr directly as it bypasses DEBUG_LOG.
 function debug(message: string, ...args: unknown[]): void {
   // Format the message with args (simple %s/%d/%O replacement)
   let formatted = message
@@ -22,9 +23,18 @@ function debug(message: string, ...args: unknown[]): void {
     if (arg === undefined) return ""
     if (arg === null) return "null"
     if (typeof arg === "object") return JSON.stringify(arg)
+    // After checks above, arg is string | number | boolean | symbol | bigint
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     return String(arg)
   })
-  log.debug?.(formatted)
+
+  // Send to main thread for DEBUG_LOG capture
+  // Main thread's debug-log.ts handles redirection to file or suppression
+  try {
+    postMessage({ type: "debug", namespace: NAMESPACE, message: formatted })
+  } catch {
+    // Worker might not be fully initialized yet
+  }
 }
 
 // Message types from main thread → worker
@@ -60,15 +70,13 @@ export interface WatcherStatus {
 }
 
 // Message types from worker → main thread
-import type { WorkerMessage as LoggerWorkerMessage } from "@beorn/logger/worker"
-
 export type WorkerMessage =
   | { type: "ready"; watchedPaths?: number }
   | { type: "sync"; paths: string[]; directories: string[] }
   | { type: "error"; message: string; stack?: string }
   | { type: "stopped" }
   | { type: "status"; status: WatcherStatus }
-  | LoggerWorkerMessage
+  | { type: "debug"; namespace: string; message: string }
 
 // Worker state
 let watcher: FSWatcher | null = null
