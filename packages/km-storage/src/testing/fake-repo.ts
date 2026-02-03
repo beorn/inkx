@@ -116,58 +116,23 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   }
 
   const repo: FakeRepo = {
-    get path() {
-      return path
-    },
-
-    get mode() {
-      return "memory" as const
-    },
-
-    get loadErrors() {
-      return loadErrors
-    },
+    path,
+    mode: "memory" as const,
+    loadErrors,
 
     get stats() {
       return { ...stats, nodeCount: nodes.size }
     },
 
-    get deferredFiles() {
-      return [] // FakeRepo never has deferred files
-    },
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- FakeRepo returns null as any for database stub
-    get database() {
-      // FakeRepo doesn't have a real database - return null
-      // Tests that need database access should use a real repo
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-      return null as any
-    },
-
-    // Repo-specific properties (stubs for FakeRepo)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- FakeRepo returns null as any for data stub
-    get data() {
-      // FakeRepo doesn't have a real DataStore
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-      return null as any
-    },
-
-    get files() {
-      // FakeRepo doesn't have files
-      return null
-    },
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- FakeRepo returns empty object as any for config stub
-    get config() {
-      // FakeRepo returns minimal config
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-      return {} as any
-    },
-
-    get emitter(): Emitter {
-      // FakeRepo returns a no-op emitter
-      return fakeEmitter
-    },
+    deferredFiles: [],
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    database: null as any,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    data: null as any,
+    files: null,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    config: {} as any,
+    emitter: fakeEmitter,
 
     sync() {
       // FakeRepo is in-memory, sync is a no-op

@@ -32,7 +32,7 @@ import type {
   Paragraph,
   List,
 } from "mdast"
-import { TASK_MARK_REGEX_CLASS } from "@km/core"
+import { TASK_MARK_REGEX_CLASS, extractTitleTaskMark } from "@km/core"
 
 // Re-export types
 export type { Root, RootContent, ListItem, Heading, Paragraph, List }
@@ -46,10 +46,7 @@ const TASK_MARK_REGEX = new RegExp(
   `^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\\]`,
 )
 
-/** Task mark from title (e.g., "[x] Title") */
-const TITLE_TASK_MARK_REGEX = new RegExp(
-  `^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`,
-)
+// TITLE_TASK_MARK_REGEX moved to @km/core (extractTitleTaskMark)
 
 /** Wikilinks: [[target]], [[target|alias]], ![[embed]] */
 const WIKILINK_REGEX =
@@ -148,34 +145,8 @@ export function extractTaskMark(
   return match?.[1]
 }
 
-/**
- * Extract task mark from node title text (works for headings, list items, etc.)
- * Supports: [x], [ ], [/], [!], [-] at the start of text
- * km-fast-md.1: Uses module-level compiled regex
- *
- * Examples:
- *   "[ ] Todo task" → { mark: " ", cleanText: "Todo task" }
- *   "[x] Done task" → { mark: "x", cleanText: "Done task" }
- *   "Regular text" → { mark: undefined, cleanText: "Regular text" }
- */
-export function extractTitleTaskMark(text: string): {
-  mark: string | undefined
-  cleanText: string
-} {
-  const match = text.match(TITLE_TASK_MARK_REGEX)
-
-  if (match) {
-    return {
-      mark: match[1],
-      cleanText: text.slice(match[0].length),
-    }
-  }
-
-  return {
-    mark: undefined,
-    cleanText: text,
-  }
-}
+// Re-export from @km/core for backward compatibility
+export { extractTitleTaskMark }
 
 /**
  * Parse wikilinks from text

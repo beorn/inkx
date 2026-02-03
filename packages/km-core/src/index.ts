@@ -44,7 +44,7 @@ export {
 export type { BuildInfo } from "./build-info.gen.ts"
 
 // Task utilities
-export { getMarkForStatus } from "./types.ts"
+export { getMarkForStatus, extractTitleTaskMark } from "./types.ts"
 
 // Query language parser (pure parsing, no DB)
 export {

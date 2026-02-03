@@ -72,6 +72,39 @@ export function getMarkForStatus(status: TaskStatus): TaskMark {
   }
 }
 
+/** Task mark from title (e.g., "[x] Title") */
+const TITLE_TASK_MARK_REGEX = new RegExp(
+  `^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`,
+)
+
+/**
+ * Extract task mark from title text.
+ * Returns the mark character and the cleaned text without the mark prefix.
+ *
+ * Examples:
+ *   "[ ] Todo task" → { mark: " ", cleanText: "Todo task" }
+ *   "[x] Done task" → { mark: "x", cleanText: "Done task" }
+ *   "Regular text" → { mark: undefined, cleanText: "Regular text" }
+ */
+export function extractTitleTaskMark(text: string): {
+  mark: string | undefined
+  cleanText: string
+} {
+  const match = text.match(TITLE_TASK_MARK_REGEX)
+
+  if (match) {
+    return {
+      mark: match[1],
+      cleanText: text.slice(match[0].length),
+    }
+  }
+
+  return {
+    mark: undefined,
+    cleanText: text,
+  }
+}
+
 // =============================================================================
 // Source Type - Where a node comes from
 // =============================================================================

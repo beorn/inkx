@@ -65,72 +65,57 @@ interface RepoMethodDeps {
   db: Database
   dataStore: DataStore
   hooks?: RepoHooks
-  ensureOpen: () => void
 }
 
 /** Create query methods shared by createRepo and createBareRepo */
 function createQueryMethods(deps: RepoMethodDeps) {
-  const { db, dataStore, ensureOpen } = deps
+  const { db, dataStore } = deps
   return {
     getNode(id: string) {
-      ensureOpen()
       return dataStore.getNode(id)
     },
     getChildren(parentId: string | null) {
-      ensureOpen()
       return dataStore.getChildren(parentId)
     },
     getSubtree(nodeId: string) {
-      ensureOpen()
       return dbGetSubtree(db, nodeId)
     },
     getAncestors(nodeId: string) {
-      ensureOpen()
       return dbGetAncestors(db, nodeId)
     },
     getAllTasks() {
-      ensureOpen()
       return dbGetAllTasks(db)
     },
     getTasksByStatus(status: TaskStatus) {
-      ensureOpen()
       return dbGetTasksByStatus(db, status)
     },
     search(queryStr: string) {
-      ensureOpen()
       return dataStore.search(queryStr)
     },
     query(expression: string) {
-      ensureOpen()
       const ast = parseQuery(expression)
       return executeQuery(db, ast)
     },
     queryTasks(expression: string) {
-      ensureOpen()
       const ast = parseQuery(expression)
       return executeQuery(db, ast, undefined, { requireTaskStatus: true })
     },
     getLinksTo(targetId: string) {
-      ensureOpen()
       return dbGetLinksTo(db, targetId)
     },
     getOutgoingLinks(sourceId: string): Link[] {
-      ensureOpen()
       return dbGetOutgoingLinks(db, sourceId)
     },
     getBacklinks(nodeId: string): Link[] {
-      ensureOpen()
       return dbGetBacklinks(db, nodeId)
     },
     resolveNode(
       queryStr: string,
       typeOrOptions?: string | { type?: string; taskOnly?: boolean },
     ) {
-      ensureOpen()
       return dbResolveNode(db, queryStr, typeOrOptions)
     },
     getRepoRootNode() {
-      ensureOpen()
       const row = db
         .prepare(
           "SELECT * FROM nodes WHERE parent_id IS NULL AND type = 'folder'",
@@ -153,14 +138,12 @@ function createQueryMethods(deps: RepoMethodDeps) {
       } as KNode
     },
     getChildCounts(parentIds: string[]) {
-      ensureOpen()
       return dbGetChildCountsBatch(db, parentIds)
     },
     rawQuery<T = Record<string, unknown>>(
       sql: string,
       params?: unknown[],
     ): T[] {
-      ensureOpen()
       const stmt = db.prepare(sql)
       return (
         params
@@ -173,10 +156,9 @@ function createQueryMethods(deps: RepoMethodDeps) {
 
 /** Create mutation methods shared by createRepo and createBareRepo */
 function createMutationMethods(deps: RepoMethodDeps) {
-  const { dataStore, hooks, ensureOpen } = deps
+  const { dataStore, hooks } = deps
   return {
     updateNode(id: string, changes: Partial<KNode>) {
-      ensureOpen()
       let ctx: MutationContext = { type: "update", nodeId: id, changes }
       if (hooks?.beforeMutation) {
         const result = hooks.beforeMutation(ctx)
@@ -187,7 +169,6 @@ function createMutationMethods(deps: RepoMethodDeps) {
       hooks?.afterMutation?.(ctx)
     },
     moveNode(id: string, newParentId: string, position: number) {
-      ensureOpen()
       let ctx: MutationContext = {
         type: "move",
         nodeId: id,
@@ -207,7 +188,6 @@ function createMutationMethods(deps: RepoMethodDeps) {
       hooks?.afterMutation?.(ctx)
     },
     deleteNode(id: string) {
-      ensureOpen()
       let ctx: MutationContext = { type: "delete", nodeId: id }
       if (hooks?.beforeMutation) {
         const result = hooks.beforeMutation(ctx)
@@ -218,7 +198,6 @@ function createMutationMethods(deps: RepoMethodDeps) {
       hooks?.afterMutation?.(ctx)
     },
     addNode(parentId: string | null, node: Partial<KNode>) {
-      ensureOpen()
       let ctx: MutationContext = { type: "add", nodeId: "", node }
       if (hooks?.beforeMutation) {
         const result = hooks.beforeMutation(ctx)
@@ -231,7 +210,6 @@ function createMutationMethods(deps: RepoMethodDeps) {
       return newId
     },
     cloneTask(sourceId: string, changes: Partial<KNode>) {
-      ensureOpen()
       const source = dataStore.getNode(sourceId)
       if (source?.type !== "task") return null
 
@@ -850,17 +828,13 @@ export function* createRepo(
   }
 
   // Create shared methods using factories
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, ensureOpen }
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks }
   const queryMethods = createQueryMethods(methodDeps)
   const mutationMethods = createMutationMethods(methodDeps)
 
   const repo: Repo = {
-    get path() {
-      return rootPath
-    },
-    get mode() {
-      return mode
-    },
+    path: rootPath,
+    mode,
     get data() {
       ensureOpen()
       return dataStore
@@ -877,19 +851,10 @@ export function* createRepo(
       ensureOpen()
       return db
     },
-    get loadErrors() {
-      return loadErrors
-    },
-    get stats() {
-      return stats
-    },
-    get deferredFiles() {
-      return deferredFiles
-    },
-    get emitter() {
-      ensureOpen()
-      return emitter
-    },
+    loadErrors,
+    stats,
+    deferredFiles,
+    emitter,
 
     // Spread shared query and mutation methods
     ...queryMethods,
@@ -897,7 +862,6 @@ export function* createRepo(
 
     // Full-repo specific methods
     appendTaskToFile(filePath, content, opts) {
-      ensureOpen()
       const relativePath = filePath.startsWith("/")
         ? filePath.slice(rootPath.length + 1)
         : filePath
@@ -919,23 +883,19 @@ export function* createRepo(
     },
 
     pathExists(relativePath) {
-      ensureOpen()
       return fileTree.exists(relativePath)
     },
 
     sync() {
-      ensureOpen()
       log.debug?.("sync() called - not yet implemented")
       return Promise.resolve({ fromFiles: 0, fromData: 0, conflicts: [] })
     },
 
     watch(watchOptions = {}) {
-      ensureOpen()
       return createWatcher(rootPath, { db, ...watchOptions })
     },
 
     needsRebuild() {
-      ensureOpen()
       if (mode === "memory") {
         log.debug?.("needsRebuild: no (memory mode)")
         return false
@@ -944,7 +904,6 @@ export function* createRepo(
     },
 
     *refresh() {
-      ensureOpen()
       log.debug?.("refresh not yet implemented")
       yield "Refreshing"
     },
@@ -1032,24 +991,18 @@ export function createBareRepo(
   }
 
   // Create shared methods using factories
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, ensureOpen }
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks }
   const queryMethods = createQueryMethods(methodDeps)
   const mutationMethods = createMutationMethods(methodDeps)
 
   const repo: Repo = {
-    get path() {
-      return repoPath
-    },
-    get mode() {
-      return "memory" as const
-    },
+    path: repoPath,
+    mode: "memory" as const,
     get data() {
       ensureOpen()
       return dataStore
     },
-    get files() {
-      return null
-    },
+    files: null,
     get config() {
       ensureOpen()
       return config
@@ -1058,15 +1011,9 @@ export function createBareRepo(
       ensureOpen()
       return db
     },
-    get loadErrors() {
-      return []
-    },
-    get stats() {
-      return { nodeCount: 0, linkCount: 0, duration: 0 }
-    },
-    get deferredFiles() {
-      return []
-    },
+    loadErrors: [],
+    stats: { nodeCount: 0, linkCount: 0, duration: 0 },
+    deferredFiles: [],
     get emitter() {
       ensureOpen()
       return emitter
@@ -1081,7 +1028,6 @@ export function createBareRepo(
       throw new Error("Cannot appendTaskToFile: bare repo has no files")
     },
     pathExists(relativePath) {
-      ensureOpen()
       return existsSync(join(repoPath, relativePath))
     },
     sync() {

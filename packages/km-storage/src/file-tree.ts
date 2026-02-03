@@ -142,9 +142,7 @@ export function createDiskFileTree(root: string): FileTree {
   let watcher: FSWatcher | null = null
 
   return {
-    get root() {
-      return root
-    },
+    root,
 
     read(relativePath) {
       ensureOpen()
@@ -229,9 +227,7 @@ export function createMemFileTree(initialRoot = "/mem"): FileTree {
   let closed = false
 
   return {
-    get root() {
-      return initialRoot
-    },
+    root: initialRoot,
 
     read(relativePath) {
       ensureOpen()

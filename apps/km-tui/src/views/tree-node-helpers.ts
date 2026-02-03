@@ -4,8 +4,7 @@
  * Pure functions extracted from TreeNode for testability and clarity.
  */
 
-import type { KNode } from "@km/core"
-import { extractTitleTaskMark } from "@km/markdown"
+import { extractTitleTaskMark, type KNode } from "@km/core"
 import {
   getFoldMarker,
   getStatusIcon,
@@ -24,7 +23,7 @@ import {
 
 /**
  * Strip markdown task mark from the beginning of text.
- * Uses the shared extractTitleTaskMark from @km/markdown.
+ * Uses the shared extractTitleTaskMark from @km/core.
  *
  * Used to remove [x], [ ], [/], etc. from displayed content since
  * the task status is shown via the icon instead.
