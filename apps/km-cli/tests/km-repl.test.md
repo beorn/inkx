@@ -2,6 +2,7 @@
 mdtest:
   plugin: ./km-repl.ts
   fixture: two-columns
+  memory: true
 ---
 
 # km-repl Plugin Test
