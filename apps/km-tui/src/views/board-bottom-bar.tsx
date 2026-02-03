@@ -146,7 +146,7 @@ export function BottomBar({
         <Text dimColor id="storage-mode">
           {modeLabel}
         </Text>
-        <Text dimColor>{" 📁"}</Text>
+        <Text dimColor>{" 📁 "}</Text>
         <Text dimColor id="repo-path">
           {displayPath}
         </Text>

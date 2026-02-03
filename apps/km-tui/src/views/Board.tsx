@@ -661,6 +661,16 @@ export function Board({
     ensureCommandSystemInitialized()
   }, [])
 
+  // Auto-dismiss bell and status after timeout
+  useEffect(() => {
+    if (!ui.bellState && !ui.status) return
+    const timer = setTimeout(() => {
+      dispatch(actions.clearBell())
+      dispatch(actions.clearStatus())
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [ui.bellState, ui.status])
+
   // Handle file drops via bracketed paste
   useEffect(() => createFileDropHandler(dispatch), [])
 

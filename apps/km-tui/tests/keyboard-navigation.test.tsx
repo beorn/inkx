@@ -243,6 +243,96 @@ describe("Keyboard Navigation: boundary behavior", () => {
     board.expect("#2a[data-cursor]").toExist()
   })
 
+  test("bell and status clear on next non-boundary keypress", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"))),
+    )
+
+    // Navigate to last card
+    board.press("j")
+    board.expect("#1b[data-cursor]").toExist()
+
+    // Press j at boundary - triggers bell + status warning
+    board.press("j")
+    expect(board.bell).toBe(true)
+    expect(board.hasStatus).toBe(true)
+    const status = board.getStatus()
+    expect(status?.level).toBe("warning")
+    expect(status?.message).toContain("Can't move")
+    expect(board.screenshot()).toContain("Can't move")
+
+    // Press k (valid move up) - bell and status must clear
+    board.press("k")
+    board.expect("#1a[data-cursor]").toExist()
+    expect(board.bell).toBe(false)
+    expect(board.hasStatus).toBe(false)
+    expect(board.getStatus()).toBeNull()
+    expect(board.screenshot()).not.toContain("Can't move")
+  })
+
+  test("h boundary status clears after pressing j", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+
+    // At first column, press h - boundary
+    board.press("h")
+    expect(board.bell).toBe(true)
+    expect(board.hasStatus).toBe(true)
+    expect(board.getStatus()?.message).toContain("Can't move")
+    expect(board.screenshot()).toContain("Can't move")
+
+    // Press j - valid move, should clear status
+    board.press("j")
+    board.expect("#1b[data-cursor]").toExist()
+    expect(board.bell).toBe(false)
+    expect(board.hasStatus).toBe(false)
+    expect(board.screenshot()).not.toContain("Can't move")
+  })
+
+  test("status clears after l, h, j, k sequence", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+
+    // Move to col2
+    board.press("l")
+    board.expect("#2a[data-cursor]").toExist()
+
+    // l at last column - boundary
+    board.press("l")
+    expect(board.bell).toBe(true)
+    expect(board.screenshot()).toContain("Can't move")
+
+    // h back to col1 - should clear
+    board.press("h")
+    expect(board.bell).toBe(false)
+    expect(board.screenshot()).not.toContain("Can't move")
+
+    // h at first column - boundary again
+    board.press("h")
+    expect(board.bell).toBe(true)
+    expect(board.screenshot()).toContain("Can't move")
+
+    // j down - should clear
+    board.press("j")
+    expect(board.bell).toBe(false)
+    expect(board.screenshot()).not.toContain("Can't move")
+
+    // k up - should still be clear
+    board.press("k")
+    expect(board.bell).toBe(false)
+    expect(board.screenshot()).not.toContain("Can't move")
+  })
+
   test("navigation across multiple columns works correctly", () => {
     const { board } = testEnv(() =>
       item(
