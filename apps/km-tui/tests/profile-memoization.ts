@@ -8,9 +8,12 @@ import { testBoard } from "./helpers/real-board.ts"
 
 // Access global render counter
 const getCardRenderCount = () =>
-  (globalThis as unknown as Record<string, number>).__memoizedTreeCardRenderCount || 0
+  (globalThis as unknown as Record<string, number>)
+    .__memoizedTreeCardRenderCount || 0
 const resetCardRenderCount = () => {
-  ;(globalThis as unknown as Record<string, number>).__memoizedTreeCardRenderCount = 0
+  ;(
+    globalThis as unknown as Record<string, number>
+  ).__memoizedTreeCardRenderCount = 0
 }
 
 async function main() {

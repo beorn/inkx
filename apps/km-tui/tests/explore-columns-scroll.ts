@@ -93,20 +93,21 @@ async function main() {
   ensureCommandSystemInitialized()
 
   const columns = 80
-  const rows = 20  // Small height to force scrolling
+  const rows = 20 // Small height to force scrolling
   const render = createTestRenderer({ columns, rows })
   const registry = createLayoutRegistry()
 
   const result = render(
-    React.createElement(RepoProvider, { repo,
+    React.createElement(RepoProvider, {
+      repo,
       children: React.createElement(Board, {
         initialState,
         initialViewMode: "columns",
         dimensions: { columns, rows },
         onExit: () => {},
         layoutRegistry: registry,
-      })
-    })
+      }),
+    }),
   )
 
   console.log("Initial state:")
@@ -114,7 +115,7 @@ async function main() {
   console.log("\n---")
 
   // Move to col2 and scroll down
-  await result.press("l")  // Move to col2
+  await result.press("l") // Move to col2
 
   console.log("\n=== Scrolling down 15 times in col2 ===\n")
   for (let i = 0; i < 15; i++) {
@@ -127,26 +128,43 @@ async function main() {
 
   // Verify col2 items have actual text content (not just bullets)
   const plainAfter = stripAnsi(textAfterScroll)
-  const col2ContentLines = plainAfter.split("\n").filter(l => l.includes("col2 Item"))
-  const hasFullContent = col2ContentLines.length > 0 && col2ContentLines.some(l => /col2 Item \d+/.test(l))
+  const col2ContentLines = plainAfter
+    .split("\n")
+    .filter((l) => l.includes("col2 Item"))
+  const hasFullContent =
+    col2ContentLines.length > 0 &&
+    col2ContentLines.some((l) => /col2 Item \d+/.test(l))
 
   console.log("\n=== Results ===")
   console.log("Col2 content lines found: " + col2ContentLines.length)
   console.log("Has full content (not just bullets): " + hasFullContent)
 
   if (!hasFullContent) {
-    console.log("\n⚠️  BUG: Col2 items missing text content (only bullets visible)")
+    console.log(
+      "\n⚠️  BUG: Col2 items missing text content (only bullets visible)",
+    )
     process.exit(1)
   } else {
-    console.log("\n✓ PASS: Col2 items render with full text content after scroll")
+    console.log(
+      "\n✓ PASS: Col2 items render with full text content after scroll",
+    )
   }
 
   // Check for vertical scroll indicators
-  const upIndicator = textAfterScroll.includes("▲") || textAfterScroll.includes("↑")
-  const downIndicator = textAfterScroll.includes("▼") || textAfterScroll.includes("↓")
-  console.log("\nVertical scroll indicators: up=" + upIndicator + ", down=" + downIndicator)
+  const upIndicator =
+    textAfterScroll.includes("▲") || textAfterScroll.includes("↑")
+  const downIndicator =
+    textAfterScroll.includes("▼") || textAfterScroll.includes("↓")
+  console.log(
+    "\nVertical scroll indicators: up=" +
+      upIndicator +
+      ", down=" +
+      downIndicator,
+  )
   if (!downIndicator) {
-    console.log("Note: No vertical scroll indicator (inkx requires borders for indicators)")
+    console.log(
+      "Note: No vertical scroll indicator (inkx requires borders for indicators)",
+    )
   }
 }
 
