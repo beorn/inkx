@@ -2,6 +2,8 @@
 description: Maximize parallelization through sub-agents. Use when you have several todos, suspect tasks can be decomposed, or user requests parallel execution.
 ---
 
+**Keywords**: parallel, concurrent, sub-agents, decompose, maximize
+
 # Maximum Parallelization Mode
 
 **User Request**: $ARGUMENTS

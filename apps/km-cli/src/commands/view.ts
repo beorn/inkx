@@ -100,6 +100,12 @@ export const viewCommand = new Command("view")
       rootNodeId = repoRootNode?.id
     }
 
+    // Surface load errors/warnings to the user
+    for (const err of createdRepo.loadErrors) {
+      const prefix = err.path ? `${err.path}: ` : ""
+      process.stderr.write(`⚠ ${prefix}${err.message}\n`)
+    }
+
     // Build view state
     const state = (() => {
       using _ = startup.span("build-state")

@@ -3,6 +3,8 @@ description: Deep research using OpenAI's deep research API. Use when user wants
 argument-hint: <topic>
 ---
 
+**Keywords**: deep research, thorough research, web search, citations, OpenAI deep
+
 # Deep - OpenAI Deep Research
 
 Thorough research with web search and citations. See `/llm` for full documentation.

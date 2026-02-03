@@ -15,7 +15,7 @@ export {
   getCommandNames,
   type ParseResult,
   type ShellCommand,
-} from "./commandParser.ts"
+} from "./command-parser.ts"
 
 // Shell Executor
 export {
@@ -32,7 +32,7 @@ export {
   type ShellContext,
   type MutationResult,
   type MutationHandler,
-} from "./shellExecutor.ts"
+} from "./shell-executor.ts"
 
 // Command Registry (legacy - use @km/commands directly for new code)
 // These re-exports are for backwards compatibility

@@ -570,6 +570,82 @@ export interface Repo extends Disposable {
 }
 
 // =============================================================================
+// Health Check: detect incomplete .km databases
+// =============================================================================
+
+/** Thrown when .km/state.db is corrupt or incomplete. */
+export class IncompleteDatabase extends Error {
+  constructor(reason: string, kmDir: string) {
+    const repoPath = dirname(kmDir)
+    super(
+      `Incomplete database detected\n` +
+        `  Reason: ${reason}\n` +
+        `  Path:   ${kmDir}\n\n` +
+        `  To rebuild the database:\n` +
+        `    km init --force ${repoPath}`,
+    )
+    this.name = "IncompleteDatabase"
+  }
+}
+
+/**
+ * Check if a disk-mode database is incomplete/stale.
+ *
+ * Returns a descriptive string if incomplete, or null if OK.
+ * Checks:
+ * 1. Events.jsonl has content (fresh init with no events is not corrupt)
+ * 2. Root node has no structural children (file/folder) despite filesystem having entries
+ * 3. Database has very few nodes overall (<=1, original check)
+ */
+function isDatabaseIncomplete(
+  db: Database,
+  rootPath: string,
+  kmDir: string,
+): string | null {
+  // Fresh init: empty events.jsonl means sync hasn't run yet — not corrupt
+  const eventsPath = join(kmDir, "events.jsonl")
+  if (existsSync(eventsPath)) {
+    const content = readFileSync(eventsPath, "utf-8").trim()
+    if (content.length === 0) return null
+  }
+
+  // Count filesystem entries that should be indexed
+  if (!existsSync(rootPath)) return null
+  const fsEntries = readdirSync(rootPath).filter(
+    (f) =>
+      f.endsWith(".md") ||
+      (statSync(join(rootPath, f)).isDirectory() && !f.startsWith(".")),
+  )
+  if (fsEntries.length === 0) return null // Empty vault, nothing to check
+
+  // Count total nodes
+  const totalNodes = (
+    db.prepare("SELECT COUNT(*) as cnt FROM nodes").get() as { cnt: number }
+  ).cnt
+  if (totalNodes <= 1) {
+    return `database has ${totalNodes} node(s) but filesystem has ${fsEntries.length} entries`
+  }
+
+  // Check root's structural children (files and folders that should map to fs entries)
+  const rootStructural = (
+    db
+      .prepare(
+        "SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND type IN ('file', 'folder')",
+      )
+      .get() as { cnt: number }
+  ).cnt
+
+  if (rootStructural === 0 && fsEntries.length > 0) {
+    return (
+      `root has 0 file/folder children but filesystem has ${fsEntries.length} entries ` +
+      `(${totalNodes} total nodes in database, likely stale)`
+    )
+  }
+
+  return null
+}
+
+// =============================================================================
 // Factory: createRepo
 // =============================================================================
 
@@ -702,60 +778,14 @@ export function* createRepo(
     }
     deferredFiles = loadResult.deferredFiles ?? []
 
-    // Health check: detect orphaned .km (disk mode with very few nodes)
-    // This happens when km init/sync is interrupted after creating .km but before populating
-    // Auto-recover by falling back to memory mode and re-loading files
-    if (mode === "disk" && stats.nodeCount <= 1) {
-      // Check if there are any content files in the repo that should have been indexed
-      const hasContentFiles =
-        existsSync(rootPath) &&
-        readdirSync(rootPath).some(
-          (f) =>
-            f.endsWith(".md") ||
-            (statSync(join(rootPath, f)).isDirectory() && !f.startsWith(".")),
-        )
-
-      if (hasContentFiles) {
-        log.debug?.(
-          `WARNING: orphaned .km detected - database has ${stats.nodeCount} nodes but repo has files. Falling back to memory mode for this session.`,
-        )
-
-        // Close disk db and switch to memory mode
+    // Health check: detect incomplete .km database
+    // This happens when km init/sync is interrupted, leaving .km with stale/partial data.
+    // Detect by checking if root has structural children matching the filesystem.
+    if (mode === "disk") {
+      const isIncomplete = isDatabaseIncomplete(db, rootPath, kmDir)
+      if (isIncomplete) {
         db.close()
-        mode = "memory"
-        db = new Database(":memory:")
-        db.run(SCHEMA)
-
-        // Re-load files into memory database
-        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here
-        const memLoadResult = yield* loadRepo(rootPath, {
-          searchAncestors: false,
-          skipLinkResolution: options.skipLinkResolution,
-          discoverOnly: options.discoverOnly,
-          mode: "memory",
-          db,
-        })
-
-        // Update stats from memory load
-        loadErrors = memLoadResult.errors
-        stats = {
-          nodeCount: memLoadResult.nodeCount,
-          linkCount: memLoadResult.linkCount,
-          duration: memLoadResult.duration,
-        }
-        deferredFiles = memLoadResult.deferredFiles ?? []
-
-        // Add warning about the orphaned .km
-        loadErrors.push({
-          phase: "discover",
-          path: kmDir,
-          message:
-            `Database was incomplete (had 1 node). ` +
-            `Using memory mode. Run "km sync" to fix the database.`,
-        })
-
-        // Re-create dataStore for memory mode (no emitter)
-        dataStore = createDBDataStore(db)
+        throw new IncompleteDatabase(isIncomplete, kmDir)
       }
     }
 

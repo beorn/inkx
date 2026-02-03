@@ -461,10 +461,10 @@ Every navigable element is a full-width block. Cursor moves between blocks visua
 | `A`      | Select all siblings                |
 | `Escape` | Clear selection / cancel mode      |
 
-### SimplifiedBoardState
+### BoardState
 
 ```typescript
-interface SimplifiedBoardState {
+interface BoardState {
   // Root context
   rootId: string | null // Current view root (zoom level)
   rootPath: string | null // File path for root
@@ -478,12 +478,21 @@ interface SimplifiedBoardState {
   collapsedNodes: Set<string> // Collapsed columns (toggle with 'c')
 
   // Navigation
-  zoomStack: ZoomEntry[] // For 'u' to go back
   navHistory: NavHistoryEntry[] // Back/forward navigation
   navHistoryIndex: number
 
   // Move mode
-  moveSourceId: string | null // Node being moved (m then hjkl)
+  moveMode: boolean
+  moveSourceNodes: string[] // Node IDs being moved (m then hjkl)
+  moveSourceCursorNodeId: string | null // Original cursor node
+
+  // View configuration
+  maxOutlineDepth: number
+  maxContentLines: number
+
+  // Sticky cursor (curswant)
+  curswantX: number | null // Sticky column index for board↔column navigation
+  curswantY: number | null // Sticky card index for cross-column navigation
 }
 ```
 

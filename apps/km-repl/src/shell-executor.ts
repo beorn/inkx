@@ -8,8 +8,8 @@
 import type { BoardState, BoardAction, TPath, TNode } from "./board-types.ts"
 import type { TaskStatus } from "@km/core"
 import { boardReducer, getNodeAtPath } from "./board-reducer.ts"
-import { parseCommand, getCommandHelp } from "./commandParser.ts"
-import type { ShellCommand } from "./commandParser.ts"
+import { parseCommand, getCommandHelp } from "./command-parser.ts"
+import type { ShellCommand } from "./command-parser.ts"
 // Note: renderTree is imported lazily to avoid loading inkx/testing
 // (which sets IS_REACT_ACT_ENVIRONMENT=true) when km-repl is imported
 

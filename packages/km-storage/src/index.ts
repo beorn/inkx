@@ -302,6 +302,7 @@ export {
   createBareRepo,
   createTestRepo,
   createTestEnvRepo,
+  IncompleteDatabase,
 } from "./repo.ts"
 
 export type {

@@ -57,42 +57,9 @@ Run `bun llm` for full help.
 
 ## When to Use Context
 
-**For codebase questions**: Gather context before calling `bun llm`:
+**Quick**: Prepend project context to question: `bun llm "Context: km (TypeScript TUI), [file]. Question: [q]"`
 
-```markdown
-### Quick Context Gathering (for /ask, simple questions)
-1. Note project type from CLAUDE.md (km: TypeScript/Bun/Ink/SQLite TUI)
-2. If discussing code, note current file path
-3. Get recent work: `git log --oneline -3`
-
-Prepend to question:
-bun llm "Context: km project (TypeScript TUI), working on [file]. Question: [user's question]"
-```
-
-**For deep research**: Use 2-3 rounds of Opus context gathering:
-
-```markdown
-### Round 1: Understanding
-- Read relevant files mentioned in the topic
-- Check docs/principles.md for relevant constraints
-- Review CLAUDE.md for project context
-
-### Round 2: Framing (~500 words max)
-Synthesize:
-- Project overview (what km is)
-- Relevant architecture (which layers involved)
-- Key constraints (patterns to follow, things to avoid)
-- Specific questions to answer
-
-### Round 3 (optional): Refinement
-For complex topics:
-- Add code snippets from existing implementations
-- Include similar past decisions (from `bun history`)
-- Clarify ambiguous terms
-
-### Execute
-bun llm --deep -y --context "[synthesized context]" "[topic]"
-```
+**Deep research**: Gather context first (read relevant files, check docs/principles.md), synthesize ~500 words, then: `bun llm --deep -y --context "[context]" "[topic]"`. See `/deep` for detailed workflow.
 
 ## When to Use
 

@@ -19,7 +19,7 @@ import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
-import { existsSync, mkdirSync, writeFileSync } from "fs"
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { SyncManager } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
@@ -96,11 +96,15 @@ export const initCommand = new Command("init")
     // Create .km/ directory
     mkdirSync(kmDir, { recursive: true })
 
+    // --force: remove stale database so loadRepo starts fresh
+    if (options.force) {
+      const staleDb = join(kmDir, "state.db")
+      if (existsSync(staleDb)) unlinkSync(staleDb)
+    }
+
     // Create empty events.jsonl
     const eventsPath = join(kmDir, "events.jsonl")
-    if (!existsSync(eventsPath)) {
-      writeFileSync(eventsPath, "")
-    }
+    writeFileSync(eventsPath, "")
 
     console.log(
       term.bold("Initializing .km"),

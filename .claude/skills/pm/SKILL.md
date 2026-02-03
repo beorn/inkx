@@ -91,69 +91,15 @@ The user's command IS the confirmation. Never re-ask intent that was already exp
 
 ## Session Coordination
 
-**Before creating new beads**: Check if similar issues were discussed before:
-```bash
-bun history "error handling"  # Search past sessions
-bun history -q "TUI rendering bug"  # Find user questions about this
-```
+**Before creating new beads**: Check `bun history "topic"` for similar past issues.
 
-**Actor tracking** (automatic via session prehook):
+**Actor tracking**: Automatic via session prehook (`BD_ACTOR=claude:<sessionId>`). See [beads.md](beads.md#actor-attribution-audit-trail).
 
-- Claude sessions: `BD_ACTOR=claude:<sessionId>` (set by `.claude/settings.json` prehook)
-- User shells: Uses `$USER` (e.g., "beorn")
-- See [beads.md Actor Attribution](beads.md#actor-attribution-audit-trail) for details
+**Claims**: `bd update <id> --claim` to start, `bd update <id> --assignee "" --status open` to release. Agent claims stale after ~20 min, user claims after ~24h.
 
-**Claim management**:
+**Refactoring beads**: Read [/docs/principles.md](/docs/principles.md) and [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md) first. Phase order: Rebase -> Absorb -> Purge -> Remove -> Fix.
 
-| Action                   | Command                                      |
-| ------------------------ | -------------------------------------------- |
-| Claim (start work)       | `bd update <id> --claim`                     |
-| Unclaim (return to pool) | `bd update <id> --assignee "" --status open` |
-| Reassign                 | `bd update <id> --assignee "other-person"`   |
-| View your claims         | `bd list --assignee $USER`                   |
-| View all in-progress     | `bd list --status in_progress`               |
-| Take over stale work     | `bd update <id> --claim` (forcibly reclaims) |
-
-**Stale claim guidelines** (check: `bd show <id> --json | jq -r '.updated_at'`):
-
-- **Agent claims** (`claude:*`): Stale after ~20 min, safe to reclaim
-- **User claims** (`beorn`): Stale after ~24 hours, check before reclaiming
-
-## Big Refactoring & Implementation Projects
-
-When working on refactoring beads (labeled `refactor` or involving API migrations) or complex implementations:
-
-1. **Read first**:
-   - [/docs/principles.md](/docs/principles.md) - Architecture patterns, composability, fast feedback
-   - [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md) - Hard-won lessons on phase order, breaking vs fixing
-2. **Rebase related beads** before starting - outdated beads cause accidental reverts
-3. **Break intentionally** - delete old APIs, let `tsc` guide fixes
-4. **Phase order**: Rebase -> Absorb -> Purge -> Remove -> Fix (not Fix -> Remove)
-
-## Renaming / Re-IDing Beads
-
-When renaming, re-creating, or changing a bead's ID, **always update all references**:
-
-```bash
-grep -r "km-old-id" .claude/ docs/ --include="*.md"
-```
-
-Check `.claude/skills/`, `docs/`, and other beads (parent/deps). Never leave dangling references.
-
-## Package Prefixes
-
-Beads use group prefixes for package families (configured in `alias_prefixes`):
-
-| Prefix | Packages |
-|--------|----------|
-| `km-` | km (main project) |
-| `inkx-` | inkx, chalkx, inkx-ui |
-| `flexx-` | flexx layout engine |
-| `beorn-tools-` | beorn-tools |
-| `logger-` | logger |
-| `tap-` | tap |
-| `mdtest-` | mdtest |
-| `watcher-` | watcher-chaos |
+**Renaming beads**: Always `grep -r "km-old-id" .claude/ docs/ --include="*.md"` to update all references.
 
 ## Sub-Skills
 

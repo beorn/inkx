@@ -16,18 +16,6 @@ bun km view <path>   # Run TUI
 
 **Use bun, not npm:** `bun add` (not `npm install`), `bunx` (not `npx`), `bun run test:all` (not `npm test`).
 
-## Testing Categories
-
-| Category | What | Skill |
-|----------|------|-------|
-| TUI Tests | char-level (inkx) | [tui.md](.claude/skills/tests/tui.md) |
-| CLI Tests | command output (mdtest) | [cli.md](.claude/skills/tests/cli.md) |
-| GUI Tests | pixel-level (ttyd/playwright) | [gui.md](.claude/skills/tests/gui.md) |
-| Bench | benchmarks | [bench.md](.claude/skills/tests/bench.md) |
-| Storybook | static component rendering | `bun storybook` |
-
-Any test can be `.slow.` (manually assigned). Bench and Storybook are not "tests".
-
 ## Architecture
 
 Layered: App → Board → Tree → Storage → Parser → Filesystem. Each layer calls only layer below.
@@ -44,37 +32,8 @@ See [.claude/skills/git/worktree.md] for details.
 
 ## Code Style
 
-**Patterns:**
-
-- Factory functions (`createX()` with `XOptions`), not classes
-- Explicit deps via `options.inject`, no globals/singletons
-- Async generators for pipelines, not `Promise.all` chains
-- `using`/`await using` for cleanup
-
-**Code Layout:**
-
-- Minimize: Let TypeScript infer types, short-but-clear names
-- Readability: Core logic first, hoisted functions after `return` or end of file
-- ESM imports only (`import`/`export`, never `require`)
-- Package names (`inkx`), never relative `../vendor/...`
-
-**Avoid:**
-
-- Prop drilling (use spread, align names across layers)
-- Import side effects (module init must not perform work)
-- Config files (sensible defaults → arguments → config as last resort)
-
-**Tooling:**
-
-- Bun only (`bun add`, `bunx`, `bun run`), never node/deno/npm/pnpm/yarn
-- `catalog:` for shared deps in package.json
-
-See [docs/principles.md](docs/principles.md) for rationale.
-
-**View Quick Reference:**
-```bash
-grep -A80 "^## Quick Reference" docs/principles.md
-```
+Factory functions, `using` cleanup, async generators, explicit DI. No classes, no globals, no `require`.
+See [docs/principles.md](docs/principles.md) for patterns, layout, and quick reference.
 
 ## Issue Tracking
 

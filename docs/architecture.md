@@ -49,28 +49,28 @@ Functionality is exposed through **domain objects created by factory functions**
 │  Application Code                                                   │
 │                                                                     │
 │    using repo = runGenerator(createRepo(path))                      │
-│    const board = createBoardState(repo.data, rootId)                │
+│    const board = createBoardState(rootId)                           │
 │    await using watcher = repo.watch()                               │
 │                                                                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Domain Objects                                                     │
 │                                                                     │
-│    Repo          Board          Watcher         Config              │
-│    ├─ data       ├─ moveCursor()├─ start()      ├─ beads            │
-│    ├─ files      ├─ select()    ├─ stop()       └─ tui              │
-│    ├─ config     ├─ zoom()      └─ on("change")                     │
-│    ├─ watch()    └─ refresh()                                       │
+│    Repo          BoardState     Watcher         Config              │
+│    ├─ data       (plain state)  ├─ start()      ├─ beads            │
+│    ├─ files      Updated via    ├─ stop()       └─ tui              │
+│    ├─ config     boardReducer() └─ on("change")                     │
+│    ├─ watch()    + BoardAction                                      │
 │    └─ close()                                                       │
 │                                                                     │
 │    Disposable    plain object   Service         plain object        │
-│    (sync)                       (async)                             │
+│    (sync)        (reducer)      (async)                             │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Factory Functions                                                  │
 │                                                                     │
 │    createRepo(path, options)    → Repo                              │
-│    createBoardState(data, root) → BoardState                             │
-│    repo.watch()                 → Watcher (Service)                 │
-│    loadConfigObject(repoPath)   → Config                            │
+│    createBoardState(rootId)    → BoardState                        │
+│    repo.watch()                → Watcher (Service)                 │
+│    loadConfigObject(repoPath)  → Config                            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -79,7 +79,7 @@ Functionality is exposed through **domain objects created by factory functions**
 | Object    | Factory              | Lifecycle    | Purpose                                    |
 | --------- | -------------------- | ------------ | ------------------------------------------ |
 | `Repo`    | `createRepo()`       | `Disposable` | DataStore + FileTree + Config              |
-| `Board`   | `createBoardState()` | plain object | Navigation state (cursor, selection, zoom) |
+| `Board`   | `createBoardState()` | plain object | Navigation state (cursor, selection, fold). Updated via `boardReducer()` + `BoardAction` |
 | `Watcher` | `repo.watch()`       | `Service`    | File sync (start/stop lifecycle)           |
 | `Config`  | `loadConfigObject`   | plain object | Repository configuration                   |
 
@@ -103,16 +103,16 @@ interface Service extends AsyncDisposable {
 async function runTui(path: string, rootId: string) {
   // Create domain objects with explicit dependencies
   using repo = runGenerator(createRepo(path))
-  const board = createBoardState(repo.data, rootId)
+  let board = createBoardState(rootId)
   await using watcher = repo.watch()
 
   // Start file watching
   await watcher.start()
-  watcher.on("change", () => board.refresh())
 
-  // Run TUI...
+  // State updates via reducer + actions
+  board = boardReducer(board, { type: "SELECT", nodeId: firstChildId })
 
-  // Cleanup order (reverse): watcher.stop(), board cleanup, repo.close()
+  // Cleanup order (reverse): watcher.stop(), repo.close()
 }
 ```
 
@@ -133,7 +133,7 @@ App Render:      repo + state → columns       (derived at render time)
 | `KNode`                | @km/core    | Flat record with `parent_id` (SQLite, null for repo root only) |
 | `TNode`                | @km/core    | Recursive with `children[]` (legacy paths)                     |
 | `ProcessedMarkdown`    | @km/storage | Parsed file + hash (intermediate data type)                    |
-| `SimplifiedBoardState` | @km/board   | cursorNodeId, fold, zoom (no tree data)                        |
+| `BoardState`           | @km/board   | cursorNodeId, fold, zoom (no tree data)                        |
 | `UIState`              | apps/       | Dialogs, view mode, dimensions                                 |
 
 **Key design:** No tree data in board state. Navigation uses `repo.getChildren()` directly. Columns are derived at render time via `useColumns()`, cursor position via `useCursorPosition()`.

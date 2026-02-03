@@ -3,6 +3,8 @@ description: Quick question to GPT 5.2 (or best available model). Use when user 
 argument-hint: <question>
 ---
 
+**Keywords**: ask, quick question, fast answer, LLM query
+
 # Ask - Quick LLM Query
 
 Shortcut for quick LLM queries. See `/llm` for full documentation.
