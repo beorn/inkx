@@ -393,17 +393,17 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
       const orphanNodeCount = (
         db
           .prepare(
-            "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND type != 'folder'",
+            "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND id != ?",
           )
-          .get() as { count: number }
+          .get(repoRootId) as { count: number }
       ).count
       if (orphanNodeCount > 0) {
         log.debug?.(
-          `migrateToRepoRootNode: updating ${orphanNodeCount} orphan nodes`,
+          `migrateToRepoRootNode: updating ${orphanNodeCount} orphan nodes (including folders)`,
         )
         db.prepare(
-          "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND type != 'folder'",
-        ).run(repoRootId)
+          "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND id != ?",
+        ).run(repoRootId, repoRootId)
       }
 
       db.run("COMMIT")
@@ -418,18 +418,20 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
   const orphanCount = (
     db
       .prepare(
-        "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND type != 'folder'",
+        "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND id != ?",
       )
-      .get() as { count: number }
+      .get(repoRootId) as { count: number }
   ).count
 
   if (orphanCount > 0) {
-    log.debug?.(`migrateToRepoRootNode: updating ${orphanCount} orphan nodes`)
+    log.debug?.(
+      `migrateToRepoRootNode: updating ${orphanCount} orphan nodes (including folders)`,
+    )
     db.run("BEGIN IMMEDIATE")
     try {
       db.prepare(
-        "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND type != 'folder'",
-      ).run(repoRootId)
+        "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND id != ?",
+      ).run(repoRootId, repoRootId)
       db.run("COMMIT")
     } catch (error) {
       db.run("ROLLBACK")

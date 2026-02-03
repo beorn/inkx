@@ -145,8 +145,9 @@ export function getEmbedTargetsOnBoard(
 }
 
 /**
- * Get ancestors of a node (from root to parent)
- * Returns array from root down to immediate parent (excludes the node itself)
+ * Get ancestors of a node (from root to parent).
+ * Returns array from root down to immediate parent (excludes the node itself).
+ * Filters out the repo root node (is_repo_root) since it's a virtual container.
  */
 export function getAncestors(db: Database, nodeId: string): KNode[] {
   const rows = db
@@ -159,6 +160,7 @@ export function getAncestors(db: Database, nodeId: string): KNode[] {
       JOIN ancestors a ON n.id = a.parent_id
     )
     SELECT * FROM ancestors
+    WHERE json_extract(data, '$.is_repo_root') IS NOT 1
   `,
     )
     .all(nodeId) as Record<string, unknown>[]
