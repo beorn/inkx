@@ -1,20 +1,12 @@
 /**
  * Card and Column components for the Board view
  *
- * Uses inkx overflow="scroll" for native scrolling support.
- * Implements React-level virtualization for large card lists.
+ * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
-import React, {
-  forwardRef,
-  useCallback,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import React, { useCallback } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
-import { Box, Text, useScreenRectCallback } from "inkx"
+import { Box, Text, useScreenRectCallback, VirtualList } from "inkx"
 import { styledUnderline } from "chalkx"
 import type { CardState, ColumnState } from "../types.ts"
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts"
@@ -25,21 +17,16 @@ import { useLayoutRegistryOptional } from "../layout-context.tsx"
 import type { NodeLayout } from "../card-positions.ts"
 
 // =============================================================================
-// Virtualization
+// Virtualization Constants
 // =============================================================================
 
 // Approximate card height (border + content + padding)
-// Used to calculate which cards to render
 const ESTIMATED_CARD_HEIGHT = 4
 
 // Number of extra cards to render above and below visible area
-// This provides smooth scrolling without visible gaps
-// Increased from 5 to 15 to prevent blank rendering during scroll
-// when edge-based scrolling preserves offset near window boundaries
 const OVERSCAN = 15
 
 // Maximum number of cards to render at once
-// Beyond this, use placeholder to avoid overwhelming React
 const MAX_RENDERED_CARDS = 50
 
 // =============================================================================
@@ -191,251 +178,6 @@ const Card = React.memo(
   },
 )
 
-// =============================================================================
-// Edge-Based Scrolling
-// =============================================================================
-
-// Padding from edge before scrolling (in items)
-// When cursor is within this many items of the edge, scroll to keep padding
-const SCROLL_PADDING = 2
-
-/**
- * Calculate edge-based scroll offset.
- * Only scrolls when cursor approaches the edge of the visible area.
- *
- * @param selectedIndex - Currently selected item index
- * @param currentOffset - Current scroll offset (top visible item)
- * @param visibleCount - Number of items visible in viewport
- * @param totalCount - Total number of items
- * @returns New scroll offset
- */
-function calcEdgeBasedScrollOffset(
-  selectedIndex: number,
-  currentOffset: number,
-  visibleCount: number,
-  totalCount: number,
-): number {
-  // If nothing to scroll, stay at 0
-  if (totalCount <= visibleCount) return 0
-
-  // Calculate visible range
-  const visibleStart = currentOffset
-  const visibleEnd = currentOffset + visibleCount - 1
-
-  // Check if selected is outside visible range (with padding)
-  const paddedStart = visibleStart + SCROLL_PADDING
-  const paddedEnd = visibleEnd - SCROLL_PADDING
-
-  let newOffset = currentOffset
-
-  if (selectedIndex < paddedStart) {
-    // Cursor is near/above top edge - scroll up
-    // Place cursor at SCROLL_PADDING from top
-    newOffset = Math.max(0, selectedIndex - SCROLL_PADDING)
-  } else if (selectedIndex > paddedEnd) {
-    // Cursor is near/below bottom edge - scroll down
-    // Place cursor at SCROLL_PADDING from bottom
-    newOffset = Math.min(
-      totalCount - visibleCount,
-      selectedIndex - visibleCount + SCROLL_PADDING + 1,
-    )
-  }
-
-  // Clamp to valid range
-  return Math.max(0, Math.min(newOffset, totalCount - visibleCount))
-}
-
-// =============================================================================
-// Virtualized Card List Component
-// =============================================================================
-
-export interface VirtualizedCardListHandle {
-  scrollToItem(index: number): void
-}
-
-interface VirtualizedCardListProps {
-  cards: CardState[]
-  selectedCardIndex: number
-  selectedSubIndex: number
-  isSelected: boolean
-  selectionLevel: "board" | "column" | "card"
-  width: number
-  height: number
-  colIndex: number
-  /** True if this is a virtual body column (cards render borderless) */
-  isVirtualColumn?: boolean
-}
-
-/**
- * Virtualized card list that only renders cards near the visible area.
- *
- * For large card lists (100+), rendering all cards causes significant
- * delays as React/Yoga must process every element. This component:
- * 1. Calculates which cards are likely visible based on height
- * 2. Renders only those cards plus a buffer (OVERSCAN)
- * 3. Uses placeholder elements to maintain scroll position
- * 4. Uses edge-based scrolling (only scrolls when cursor approaches edge)
- */
-const VirtualizedCardList = forwardRef<
-  VirtualizedCardListHandle,
-  VirtualizedCardListProps
->(function VirtualizedCardList(
-  {
-    cards,
-    selectedCardIndex,
-    selectedSubIndex,
-    isSelected,
-    selectionLevel,
-    width,
-    height,
-    colIndex,
-    isVirtualColumn,
-  },
-  ref,
-): React.ReactElement {
-  // Track scroll offset for edge-based scrolling
-  // Using ref to persist across renders without causing re-renders
-  const scrollOffsetRef = useRef(0)
-  // Counter to force re-render when scrollToItem is called
-  const [, setRenderCount] = useState(0)
-
-  // Expose scrollToItem via ref
-  useImperativeHandle(ref, () => ({
-    scrollToItem(index: number) {
-      scrollOffsetRef.current = Math.max(
-        0,
-        Math.min(index, Math.max(0, cards.length - 1)),
-      )
-      setRenderCount((c) => c + 1)
-    },
-  }))
-
-  // Calculate how many cards fit in the viewport
-  const visibleCardCount = Math.max(
-    1,
-    Math.floor(height / ESTIMATED_CARD_HEIGHT),
-  )
-
-  // Calculate edge-based scroll offset
-  const newScrollOffset = calcEdgeBasedScrollOffset(
-    selectedCardIndex,
-    scrollOffsetRef.current,
-    visibleCardCount,
-    cards.length,
-  )
-  scrollOffsetRef.current = newScrollOffset
-
-  // Calculate virtualization window
-  const {
-    startIndex,
-    endIndex,
-    topPlaceholderHeight,
-    bottomPlaceholderHeight,
-  } = useMemo(() => {
-    const totalCards = cards.length
-
-    // For small lists, render everything
-    if (totalCards <= MAX_RENDERED_CARDS) {
-      return {
-        startIndex: 0,
-        endIndex: totalCards,
-        topPlaceholderHeight: 0,
-        bottomPlaceholderHeight: 0,
-      }
-    }
-
-    // Center the window around the selected card
-    const halfWindow = Math.floor(MAX_RENDERED_CARDS / 2)
-    let start = Math.max(0, selectedCardIndex - halfWindow)
-    let end = Math.min(totalCards, start + MAX_RENDERED_CARDS)
-
-    // Adjust start if we hit the end
-    if (end === totalCards) {
-      start = Math.max(0, end - MAX_RENDERED_CARDS)
-    }
-
-    // Add overscan
-    start = Math.max(0, start - OVERSCAN)
-    end = Math.min(totalCards, end + OVERSCAN)
-
-    // Calculate placeholder heights
-    const topHeight = start * ESTIMATED_CARD_HEIGHT
-    const bottomHeight = (totalCards - end) * ESTIMATED_CARD_HEIGHT
-
-    return {
-      startIndex: start,
-      endIndex: end,
-      topPlaceholderHeight: topHeight,
-      bottomPlaceholderHeight: bottomHeight,
-    }
-  }, [cards.length, selectedCardIndex, height])
-
-  if (cards.length === 0) {
-    return (
-      <Box flexDirection="column" flexGrow={1} minHeight={1}>
-        <Box marginTop={1}>
-          <Text dimColor>(empty)</Text>
-        </Box>
-      </Box>
-    )
-  }
-
-  // Get the slice of cards to render
-  const visibleCards = cards.slice(startIndex, endIndex)
-
-  // Calculate scrollTo index for inkx
-  // inkx scrollTo expects the INDEX of the child to scroll into view
-  // Account for top placeholder being child 0 when present
-  const hasTopPlaceholder = topPlaceholderHeight > 0
-  const selectedIndexInSlice = selectedCardIndex - startIndex
-  const scrollToIndex = hasTopPlaceholder
-    ? selectedIndexInSlice + 1 // +1 for top placeholder
-    : selectedIndexInSlice
-
-  return (
-    <Box
-      flexDirection="column"
-      flexGrow={1}
-      height={height}
-      overflow="scroll"
-      scrollTo={Math.max(0, scrollToIndex)}
-    >
-      {/* Top placeholder for cards above visible range */}
-      {topPlaceholderHeight > 0 && (
-        <Box height={topPlaceholderHeight} flexShrink={0} />
-      )}
-
-      {/* Render visible cards */}
-      {visibleCards.map((card: CardState, i: number) => {
-        const actualIndex = startIndex + i
-        const cardIsSelected =
-          isSelected &&
-          actualIndex === selectedCardIndex &&
-          selectionLevel === "card"
-        layoutLog.trace?.(
-          `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
-        )
-        return (
-          <Card
-            key={card.node.id}
-            card={card}
-            isSelected={cardIsSelected}
-            selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
-            width={width}
-            colIndex={colIndex}
-            cardIndex={actualIndex}
-            isVirtualColumn={isVirtualColumn}
-          />
-        )
-      })}
-
-      {/* Bottom placeholder for cards below visible range */}
-      {bottomPlaceholderHeight > 0 && (
-        <Box height={bottomPlaceholderHeight} flexShrink={0} />
-      )}
-    </Box>
-  )
-})
 
 // =============================================================================
 // Column Component
@@ -578,18 +320,43 @@ export const Column = React.memo(function Column({
         >
           <Text dimColor>[collapsed - {count}]</Text>
         </Box>
-      ) : (
-        <VirtualizedCardList
-          cards={column.cards}
-          selectedCardIndex={selectedCardIndex}
-          selectedSubIndex={selectedSubIndex}
-          isSelected={isSelected}
-          selectionLevel={selectionLevel}
-          width={width}
-          height={height - 2} // Subtract header height
-          colIndex={colIndex}
-          isVirtualColumn={isVirtual}
+      ) : column.cards.length > 0 ? (
+        <VirtualList
+          items={column.cards}
+          height={height - 2}
+          itemHeight={ESTIMATED_CARD_HEIGHT}
+          scrollTo={selectedCardIndex}
+          overscan={OVERSCAN}
+          maxRendered={MAX_RENDERED_CARDS}
+          keyExtractor={(card) => card.node.id}
+          renderItem={(card: CardState, actualIndex: number) => {
+            const cardIsSelected =
+              isSelected &&
+              actualIndex === selectedCardIndex &&
+              selectionLevel === "card"
+            layoutLog.trace?.(
+              `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
+            )
+            return (
+              <Card
+                key={card.node.id}
+                card={card}
+                isSelected={cardIsSelected}
+                selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
+                width={width}
+                colIndex={colIndex}
+                cardIndex={actualIndex}
+                isVirtualColumn={isVirtual}
+              />
+            )
+          }}
         />
+      ) : (
+        <Box flexDirection="column" flexGrow={1} minHeight={1}>
+          <Box marginTop={1}>
+            <Text dimColor>(empty)</Text>
+          </Box>
+        </Box>
       )}
     </Box>
   )
