@@ -2,11 +2,20 @@
  * Board layout calculations - pure functions for column/scroll layout
  */
 
+import { calcEdgeBasedScrollOffset } from "inkx/scroll-utils"
+
 // Layout constants - centralized to avoid magic numbers scattered through rendering code
 export const TOP_BAR_HEIGHT = 1
 export const BOTTOM_BAR_HEIGHT = 1
 
-// Padding from edge before scrolling (in columns)
+/**
+ * Padding from edge before scrolling (in columns).
+ *
+ * Uses padding=1 for horizontal column scrolling (same as HorizontalVirtualList).
+ * Columns are wider than list items, so fewer fit on screen, requiring tighter padding.
+ *
+ * @see calcEdgeBasedScrollOffset in inkx/scroll-utils.ts for the algorithm
+ */
 const COLUMN_SCROLL_PADDING = 1
 
 /**
@@ -25,32 +34,13 @@ export function calcEdgeBasedColumnScrollOffset(
   maxVisible: number,
   totalCount: number,
 ): number {
-  // If everything fits, no scrolling needed
-  if (totalCount <= maxVisible) return 0
-
-  // Calculate visible range
-  const visibleStart = currentOffset
-  const visibleEnd = currentOffset + maxVisible - 1
-
-  // Check if selected is outside visible range (with padding)
-  const paddedStart = visibleStart + COLUMN_SCROLL_PADDING
-  const paddedEnd = visibleEnd - COLUMN_SCROLL_PADDING
-
-  let newOffset = currentOffset
-
-  if (selectedIndex < paddedStart) {
-    // Cursor is near/left of left edge - scroll left
-    newOffset = Math.max(0, selectedIndex - COLUMN_SCROLL_PADDING)
-  } else if (selectedIndex > paddedEnd) {
-    // Cursor is near/right of right edge - scroll right
-    newOffset = Math.min(
-      totalCount - maxVisible,
-      selectedIndex - maxVisible + COLUMN_SCROLL_PADDING + 1,
-    )
-  }
-
-  // Clamp to valid range
-  return Math.max(0, Math.min(newOffset, totalCount - maxVisible))
+  return calcEdgeBasedScrollOffset(
+    selectedIndex,
+    currentOffset,
+    maxVisible,
+    totalCount,
+    COLUMN_SCROLL_PADDING,
+  )
 }
 
 /**

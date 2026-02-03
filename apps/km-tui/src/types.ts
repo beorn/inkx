@@ -83,12 +83,31 @@ export interface ColumnRules {
 export type BoardAction = "quit" | "refresh" | null
 
 /**
+ * Special cardIndex value indicating cursor is at column header level.
+ *
+ * When cardIndex === COLUMN_HEADER_INDEX, the cursor is on the column header
+ * (not on any card within the column). This is used for:
+ * - Navigating up from first card in column
+ * - Direct column selection via h/l from another column header
+ * - Visual distinction between column-level and card-level selection
+ */
+export const COLUMN_HEADER_INDEX = -1
+
+/**
+ * Check if a cardIndex represents the column header level.
+ */
+export function isAtColumnHeader(cardIndex: number): boolean {
+  return cardIndex === COLUMN_HEADER_INDEX
+}
+
+/**
  * Derived columns layout with cursor position.
  * Built from Repo + cursor state for rendering.
  */
 export interface ColumnsLayout {
   columns: ColumnState[]
   colIndex: number
+  /** Card index within column, or COLUMN_HEADER_INDEX (-1) if at column header */
   cardIndex: number
   subPath: number[]
   isAtCardLevel: boolean

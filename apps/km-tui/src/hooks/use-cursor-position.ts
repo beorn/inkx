@@ -9,7 +9,7 @@
 
 import { useMemo } from "react"
 import { createConditionalLogger } from "@beorn/logger"
-import type { ColumnState } from "../types.ts"
+import { type ColumnState, COLUMN_HEADER_INDEX } from "../types.ts"
 
 const log = createConditionalLogger("km:perf")
 
@@ -68,7 +68,7 @@ function deriveCursorPosition(
   if (!cursorNodeId || columns.length === 0) {
     return {
       colIndex: -1,
-      cardIndex: -1,
+      cardIndex: COLUMN_HEADER_INDEX,
       isAtCardLevel: false,
       selectionLevel: "board",
     }
@@ -83,7 +83,7 @@ function deriveCursorPosition(
     if (column.node.id === cursorNodeId) {
       return {
         colIndex: colIdx,
-        cardIndex: -1,
+        cardIndex: COLUMN_HEADER_INDEX,
         isAtCardLevel: false,
         selectionLevel: "column",
       }
@@ -123,7 +123,7 @@ function deriveCursorPosition(
   )
   return {
     colIndex: -1,
-    cardIndex: -1,
+    cardIndex: COLUMN_HEADER_INDEX,
     isAtCardLevel: false,
     selectionLevel: "board",
   }

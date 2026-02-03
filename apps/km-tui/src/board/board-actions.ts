@@ -128,6 +128,9 @@ export function handleCommandAction(
 
     // === UI actions ===
     case "CYCLE_VIEW_MODE":
+      // Clear stickyY when changing view mode - Y coordinates are incomparable across views
+      // (cards view has borders, columns view is single-row items, etc.)
+      ctx.positionRegistry.clearStickyY()
       dispatch(actions.cycleViewMode())
       return ok()
     case "SHOW_HELP":

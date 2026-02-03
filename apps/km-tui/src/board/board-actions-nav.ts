@@ -8,6 +8,7 @@ import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { createConditionalLogger } from "@beorn/logger"
 import { getCardMidY } from "../card-positions.ts"
+import { isAtColumnHeader } from "../types.ts"
 
 import {
   clearSelection,
@@ -215,14 +216,58 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     }
 
     const targetCol = state.columns[targetColIndex]
+
+    // Capture stickyY BEFORE checking empty columns, so it persists across empty columns
+    // This is the key fix: we need to remember Y position even when passing through empty columns
+    if (layout.cardIndex >= 0 && positionRegistry.getStickyY() === null) {
+      const hasCurrentPositions = positionRegistry.hasCardsInColumn(
+        layout.colIndex,
+      )
+      if (hasCurrentPositions) {
+        const currentLayoutOpt = positionRegistry.getCardOptional(
+          layout.colIndex,
+          layout.cardIndex,
+        )
+        if (currentLayoutOpt) {
+          const curswantY = getCardMidY(currentLayoutOpt.layout)
+          log.debug?.(`h/l: capturing stickyY=${curswantY} before leaving card`)
+          positionRegistry.setStickyY(curswantY)
+        }
+      }
+    }
+
     if (!targetCol || targetCol.cards.length === 0) {
-      // Target column is empty - just move to column level
+      // Target column is empty - move to column level but KEEP stickyY
+      log.debug?.(
+        `h/l: target column ${targetColIndex} empty, moving to header but keeping stickyY=${positionRegistry.getStickyY()}`,
+      )
       dispatchBoard({ type: "SELECT", nodeId: targetCol?.node.id ?? null })
       return ok()
     }
 
-    // If at column level (cardIndex < 0), move to target column's header (not a card)
-    if (layout.cardIndex < 0) {
+    // If at column level (header selected), use stickyY to find card if available
+    if (isAtColumnHeader(layout.cardIndex)) {
+      const stickyY = positionRegistry.getStickyY()
+      if (
+        stickyY !== null &&
+        positionRegistry.hasCardsInColumn(targetColIndex)
+      ) {
+        // We have a sticky Y from before - use it to find the right card
+        const targetCardIndex = positionRegistry.findCardAtYVisual(
+          targetColIndex,
+          stickyY,
+        )
+        const finalCardIndex = Math.max(0, targetCardIndex)
+        log.debug?.(
+          `h/l from column: using stickyY=${stickyY} -> card ${finalCardIndex}`,
+        )
+        const targetCard = targetCol.cards[finalCardIndex]
+        if (targetCard) {
+          dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
+          return ok()
+        }
+      }
+      // No stickyY or can't find card - move to column header
       dispatchBoard({ type: "SELECT", nodeId: targetCol.node.id })
       return ok()
     }
@@ -269,14 +314,26 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     let curswantY = positionRegistry.getStickyY()
     if (curswantY === null) {
       // First h/l move - get head midpoint of current card from measured position
-      const currentLayout = positionRegistry.getCard(
+      const currentLayoutOpt = positionRegistry.getCardOptional(
         layout.colIndex,
         layout.cardIndex,
       )
+      if (!currentLayoutOpt) {
+        log.debug?.(
+          `h/l: current card col=${layout.colIndex} idx=${layout.cardIndex} NOT in registry. Registry state:\n${positionRegistry.dump()}`,
+        )
+        // Fallback: go to first card
+        const firstCard = targetCol.cards[0]
+        if (firstCard) {
+          dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
+          return ok()
+        }
+        return boundary(dir)
+      }
       log.debug?.(
-        `h/l: getting curswantY from current card col=${layout.colIndex} idx=${layout.cardIndex} layout=${JSON.stringify(currentLayout.layout)}`,
+        `h/l: getting curswantY from current card col=${layout.colIndex} idx=${layout.cardIndex} layout=${JSON.stringify(currentLayoutOpt.layout)}`,
       )
-      curswantY = getCardMidY(currentLayout.layout)
+      curswantY = getCardMidY(currentLayoutOpt.layout)
       log.debug?.(`h/l: computed curswantY=${curswantY}`)
       positionRegistry.setStickyY(curswantY)
     } else {
@@ -287,6 +344,10 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
     const targetCardIndex = positionRegistry.findCardAtYVisual(
       targetColIndex,
       curswantY,
+    )
+
+    log.debug?.(
+      `h/l findCardAtYVisual: targetColIndex=${targetColIndex} curswantY=${curswantY} -> targetCardIndex=${targetCardIndex}`,
     )
 
     // targetCardIndex can be -1 if curswantY is above all cards (land on header)

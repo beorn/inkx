@@ -316,13 +316,23 @@ export function createLayoutRegistry(): LayoutRegistry {
 
       if (!colMap || colMap.size === 0) {
         // No cards - return -1 to indicate column header
+        log.debug?.(
+          `findCardAtYVisual: col=${colIndex} targetY=${targetY} -> -1 (no cards registered)`,
+        )
         return -1
       }
+
+      log.debug?.(
+        `findCardAtYVisual: col=${colIndex} targetY=${targetY} searching ${colMap.size} cards`,
+      )
 
       // First pass: find card whose card box contains targetY (intersection)
       for (const [cardIdx, entry] of colMap) {
         const cardTop = entry.layout.y
         const cardBottom = cardTop + entry.layout.cardHeight
+        log.debug?.(
+          `  card[${cardIdx}]: y=${cardTop}-${cardBottom} (height=${entry.layout.cardHeight})`,
+        )
         if (targetY >= cardTop && targetY < cardBottom) {
           log.debug?.(
             `findCardAtYVisual: col=${colIndex} targetY=${targetY} -> card=${cardIdx} (intersects y=${cardTop}-${cardBottom})`,
@@ -465,9 +475,16 @@ export function getCardMidY(layout: NodeLayout): number {
   // Fallback: use card box midpoint when head position not yet registered
   // This happens when layout callbacks haven't fired yet (first render)
   if (layout.y !== undefined && layout.cardHeight !== undefined) {
+    log.debug?.(
+      `getCardMidY: falling back to card midpoint (headY/headHeight missing), y=${layout.y} cardHeight=${layout.cardHeight}`,
+    )
     return layout.y + layout.cardHeight / 2
   }
   // Last resort: return 0 (top of screen) rather than throwing
   // This allows navigation to work even if layout is incomplete
+  // WARNING: This can cause h/l navigation to land on first card instead of correct Y position
+  log.warn?.(
+    `getCardMidY: layout missing both head and card dimensions, returning 0. Layout: ${JSON.stringify(layout)}`,
+  )
   return 0
 }
