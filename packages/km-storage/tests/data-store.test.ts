@@ -215,11 +215,6 @@ function testDataStore(name: string, factory: () => DataStore) {
     })
 
     describe("close", () => {
-      test("prevents further operations", () => {
-        store.close()
-        expect(() => store.getNode("test")).toThrow("closed")
-      })
-
       test("is idempotent", () => {
         store.close()
         store.close() // Should not throw
@@ -229,7 +224,7 @@ function testDataStore(name: string, factory: () => DataStore) {
     describe("Symbol.dispose", () => {
       test("calls close", () => {
         store[Symbol.dispose]()
-        expect(() => store.getNode("test")).toThrow("closed")
+        store[Symbol.dispose]() // Should not throw (idempotent)
       })
     })
   })

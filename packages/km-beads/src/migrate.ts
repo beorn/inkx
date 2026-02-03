@@ -4,9 +4,9 @@
  * Migrate issues from .beads/issues.jsonl to km markdown tasks.
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { createLogger } from "@beorn/logger"
+import type { BeadsFs } from "./types.ts"
 import { parseBeadsIssuesJsonl, type BeadsIssue } from "./schema.ts"
 
 const log = createLogger("km:beads:migrate")
@@ -17,12 +17,12 @@ export type { BeadsIssue } from "./schema.ts"
 /**
  * Find the .beads directory starting from a path
  */
-export function findBeadsDir(startFrom?: string): string | null {
+export function findBeadsDir(fs: BeadsFs, startFrom?: string): string | null {
   let dir = startFrom || process.cwd()
 
   while (dir !== "/") {
     const beadsDir = join(dir, ".beads")
-    if (existsSync(beadsDir)) {
+    if (fs.existsSync(beadsDir)) {
       return beadsDir
     }
     dir = dirname(dir)
@@ -34,13 +34,13 @@ export function findBeadsDir(startFrom?: string): string | null {
 /**
  * Read issues from .beads/issues.jsonl with validation
  */
-export function readBeadsIssues(beadsDir: string): BeadsIssue[] {
+export function readBeadsIssues(fs: BeadsFs, beadsDir: string): BeadsIssue[] {
   const issuesPath = join(beadsDir, "issues.jsonl")
-  if (!existsSync(issuesPath)) {
+  if (!fs.existsSync(issuesPath)) {
     return []
   }
 
-  const content = readFileSync(issuesPath, "utf-8")
+  const content = fs.readFileSync(issuesPath, "utf-8")
   const { issues, errors } = parseBeadsIssuesJsonl(content)
 
   // Log validation errors but don't fail - allows partial recovery
@@ -165,6 +165,8 @@ export interface MigrateOptions {
   statusFilter?: string[]
   /** Dry run - don't write files */
   dryRun?: boolean
+  /** Filesystem implementation (DI - avoids direct node:fs import) */
+  fs: BeadsFs
 }
 
 export interface MigrateResult {
@@ -181,7 +183,8 @@ export function migrateBeadsToMarkdown(
   beadsDir: string,
   options: MigrateOptions,
 ): MigrateResult {
-  const issues = readBeadsIssues(beadsDir)
+  const { fs } = options
+  const issues = readBeadsIssues(fs, beadsDir)
   const result: MigrateResult = {
     migrated: 0,
     skipped: 0,
@@ -197,8 +200,8 @@ export function migrateBeadsToMarkdown(
   }
 
   // Ensure target directory exists
-  if (!options.dryRun && !existsSync(options.targetDir)) {
-    mkdirSync(options.targetDir, { recursive: true })
+  if (!options.dryRun && !fs.existsSync(options.targetDir)) {
+    fs.mkdirSync(options.targetDir, { recursive: true })
   }
 
   for (const issue of filtered) {
@@ -207,7 +210,7 @@ export function migrateBeadsToMarkdown(
       const filepath = join(options.targetDir, filename)
 
       // Skip if file already exists
-      if (existsSync(filepath)) {
+      if (fs.existsSync(filepath)) {
         result.skipped++
         continue
       }
@@ -215,7 +218,7 @@ export function migrateBeadsToMarkdown(
       const content = issueToMarkdown(issue, options.boardTag)
 
       if (!options.dryRun) {
-        writeFileSync(filepath, content, "utf-8")
+        fs.writeFileSync(filepath, content, "utf-8")
       }
 
       result.migrated++
@@ -233,12 +236,15 @@ export function migrateBeadsToMarkdown(
 /**
  * Get migration stats without migrating
  */
-export function getMigrationStats(beadsDir: string): {
+export function getMigrationStats(
+  fs: BeadsFs,
+  beadsDir: string,
+): {
   total: number
   byStatus: Record<string, number>
   byType: Record<string, number>
 } {
-  const issues = readBeadsIssues(beadsDir)
+  const issues = readBeadsIssues(fs, beadsDir)
 
   const byStatus: Record<string, number> = {}
   const byType: Record<string, number> = {}

@@ -1,11 +1,11 @@
 /**
  * CardDAV Client Tests
  *
- * Tests for CardDAVClient class using mocked fetch responses.
+ * Tests for createCardDAVClient factory using mocked fetch responses.
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest"
-import { CardDAVClient } from "../src/carddav-client.ts"
+import { createCardDAVClient } from "../src/carddav-client.ts"
 import type { Contact } from "../src/types.ts"
 
 // Mock fetch globally
@@ -108,9 +108,9 @@ describe("CardDAVClient", () => {
     restoreFetch()
   })
 
-  describe("constructor", () => {
+  describe("createCardDAVClient", () => {
     test("creates client with config", () => {
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -122,7 +122,7 @@ describe("CardDAVClient", () => {
 
   describe("discover", () => {
     test("uses configured addressbook path when provided", async () => {
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -151,7 +151,7 @@ describe("CardDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -171,7 +171,7 @@ describe("CardDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com/fallback/",
         username: "user",
         password: "pass",
@@ -202,7 +202,7 @@ describe("CardDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -229,7 +229,7 @@ describe("CardDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -264,7 +264,7 @@ describe("CardDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -308,7 +308,7 @@ describe("CardDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -345,7 +345,7 @@ describe("CardDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -370,7 +370,7 @@ describe("CardDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -394,7 +394,7 @@ describe("CardDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",
@@ -419,7 +419,7 @@ describe("CardDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CardDAVClient({
+      const client = createCardDAVClient({
         url: "https://carddav.example.com",
         username: "user",
         password: "pass",

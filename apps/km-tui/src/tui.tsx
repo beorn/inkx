@@ -10,7 +10,6 @@ import { createTerm, render, patchConsole } from "inkx"
 import { createConditionalLogger } from "@beorn/logger"
 import React from "react"
 import { createLogger } from "@km/core"
-import { enableConsoleDebug } from "../../km-cli/src/debug-log.ts"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
@@ -181,9 +180,9 @@ export async function runBoard(
       )
     }
 
-    // Now that alternate screen is active, enable debug routing
-    // This flushes buffered debug output to Console component
-    if (patched) enableConsoleDebug()
+    // Now that alternate screen is active, notify caller (CLI uses this
+    // to flush buffered debug output to Console component)
+    if (patched) options?.onReady?.()
 
     // End the run span before blocking on waitUntilExit (TUI is now running)
     run.end()

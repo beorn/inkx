@@ -111,12 +111,56 @@ test("migrateToRepoRootNode reparents orphan folders to repo root", () => {
   `)
 
   // Pre-create the repo root (as migration would)
-  insertNode.run(".", "folder", null, 0, "root", "root", JSON.stringify({ is_repo_root: true }), now, now, "")
+  insertNode.run(
+    ".",
+    "folder",
+    null,
+    0,
+    "root",
+    "root",
+    JSON.stringify({ is_repo_root: true }),
+    now,
+    now,
+    "",
+  )
 
   // Orphan folders (as they appear after replaying old events)
-  insertNode.run("inbox", "folder", null, 1, "inbox", "inbox", "{}", now, now, "")
-  insertNode.run("projects", "folder", null, 2, "projects", "projects", "{}", now, now, "")
-  insertNode.run("areas", "folder", null, 3, "areas", "areas", "{}", now, now, "")
+  insertNode.run(
+    "inbox",
+    "folder",
+    null,
+    1,
+    "inbox",
+    "inbox",
+    "{}",
+    now,
+    now,
+    "",
+  )
+  insertNode.run(
+    "projects",
+    "folder",
+    null,
+    2,
+    "projects",
+    "projects",
+    "{}",
+    now,
+    now,
+    "",
+  )
+  insertNode.run(
+    "areas",
+    "folder",
+    null,
+    3,
+    "areas",
+    "areas",
+    "{}",
+    now,
+    now,
+    "",
+  )
 
   // Orphan file (should also be migrated)
   insertNode.run("file1", "file", null, 4, "test", "test", "{}", now, now, "")
@@ -134,7 +178,9 @@ test("migrateToRepoRootNode reparents orphan folders to repo root", () => {
 
   // All non-root folders should be children of "."
   const folders = db
-    .prepare("SELECT id, parent_id FROM nodes WHERE type = 'folder' AND id != '.'")
+    .prepare(
+      "SELECT id, parent_id FROM nodes WHERE type = 'folder' AND id != '.'",
+    )
     .all() as { id: string; parent_id: string | null }[]
 
   expect(folders).toHaveLength(3)
@@ -172,14 +218,16 @@ test("vault with folders shows them as board columns", () => {
 
   // All root-level items (folders + files) should be children of repo root
   const repoRoot = db
-    .prepare("SELECT id FROM nodes WHERE json_extract(data, '$.is_repo_root') = 1")
+    .prepare(
+      "SELECT id FROM nodes WHERE json_extract(data, '$.is_repo_root') = 1",
+    )
     .get() as { id: string }
 
   const rootChildren = db
     .prepare("SELECT id, type, name FROM nodes WHERE parent_id = ?")
     .all(repoRoot.id) as { id: string; type: string; name: string }[]
 
-  const childNames = rootChildren.map(c => c.name).sort()
+  const childNames = rootChildren.map((c) => c.name).sort()
 
   // Should include both folders and files
   expect(childNames).toContain("inbox")
@@ -188,7 +236,9 @@ test("vault with folders shows them as board columns", () => {
 
   // No orphan folders (except repo root)
   const orphanFolders = db
-    .prepare("SELECT id FROM nodes WHERE parent_id IS NULL AND type = 'folder' AND json_extract(data, '$.is_repo_root') != 1")
+    .prepare(
+      "SELECT id FROM nodes WHERE parent_id IS NULL AND type = 'folder' AND json_extract(data, '$.is_repo_root') != 1",
+    )
     .all() as { id: string }[]
 
   expect(orphanFolders).toHaveLength(0)

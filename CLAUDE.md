@@ -14,6 +14,8 @@ bun km view <path>   # Run TUI
 
 **Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow and test types.
 
+**When debugging a specific test failure**, run that test file directly (`bun run test:fast -- path/to/file.test.ts`) instead of running `test:all` and grepping for the result.
+
 **Use bun, not npm:** `bun add` (not `npm install`), `bunx` (not `npx`), `bun run test:all` (not `npm test`).
 
 ## Architecture

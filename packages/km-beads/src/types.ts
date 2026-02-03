@@ -19,6 +19,19 @@ export interface Issue {
   dependentCount?: number // Number of issues that depend on this
 }
 
+/**
+ * Minimal filesystem interface for DI.
+ *
+ * Consumers inject this so km-beads never imports node:fs directly,
+ * keeping filesystem access in the storage layer (or test doubles).
+ */
+export interface BeadsFs {
+  existsSync(path: string): boolean
+  readFileSync(path: string, encoding: "utf-8"): string
+  writeFileSync(path: string, content: string, encoding: "utf-8"): void
+  mkdirSync(path: string, options: { recursive: boolean }): void
+}
+
 export interface IssueFilter {
   status?: string | string[]
   priority?: number

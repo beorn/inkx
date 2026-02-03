@@ -198,7 +198,7 @@ bdAgentCommand
     }
 
     // Get ready issues sorted by priority
-    const ready = queryReady()
+    const ready = queryReady({}, undefined, undefined, { repo })
     if (ready.length === 0) {
       console.log(term.yellow("No ready issues to claim."))
       return

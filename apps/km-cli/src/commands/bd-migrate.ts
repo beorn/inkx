@@ -14,13 +14,18 @@ import {
   getMigrationStats,
   migrateBeadsToMarkdown,
   exportToBeads,
+  type BeadsFs,
 } from "@km/beads"
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import {
   resolvePathArg,
   loadConfigObject,
   getOriginalBeadsConfig,
 } from "@km/storage"
+
+/** Real filesystem implementation for BeadsFs DI */
+const nodeFs: BeadsFs = { existsSync, readFileSync, writeFileSync, mkdirSync }
 
 /**
  * bd migrate - Migrate from .beads/issues.jsonl to markdown
@@ -38,7 +43,7 @@ export const migrateCommand = new Command("migrate")
     const configObj = loadConfigObject(resolved.repoRoot)
 
     // Find .beads directory
-    const beadsDir = findBeadsDir(resolved.repoRoot)
+    const beadsDir = findBeadsDir(nodeFs, resolved.repoRoot)
     if (!beadsDir) {
       console.error(term.red("No .beads directory found."))
       console.log(
@@ -57,7 +62,7 @@ export const migrateCommand = new Command("migrate")
       : undefined
 
     // Show stats first
-    const stats = getMigrationStats(beadsDir)
+    const stats = getMigrationStats(nodeFs, beadsDir)
     console.log(term.bold("Migration Source"))
     console.log(`  .beads dir: ${beadsDir}`)
     if (originalConfigPath) {
@@ -114,6 +119,7 @@ export const migrateCommand = new Command("migrate")
       boardTag: beadsConfig.board,
       statusFilter,
       dryRun: opts.dryRun,
+      fs: nodeFs,
     })
 
     console.log(term.bold("Results"))
@@ -166,7 +172,7 @@ export const exportCommand = new Command("export")
     // Determine target directory
     const beadsDir =
       opts.target ||
-      findBeadsDir(resolved.repoRoot) ||
+      findBeadsDir(nodeFs, resolved.repoRoot) ||
       `${resolved.repoRoot}/.beads`
 
     console.log(term.bold("Export Target"))
@@ -184,6 +190,7 @@ export const exportCommand = new Command("export")
       beadsDir,
       mode: opts.mode as "append" | "replace",
       dryRun: opts.dryRun,
+      fs: nodeFs,
     })
 
     console.log(term.bold("Results"))

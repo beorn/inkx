@@ -1,11 +1,11 @@
 /**
  * CalDAV Client Tests
  *
- * Tests for CalDAVClient class using mocked fetch responses.
+ * Tests for createCalDAVClient factory using mocked fetch responses.
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest"
-import { CalDAVClient } from "../src/caldav-client.ts"
+import { createCalDAVClient } from "../src/caldav-client.ts"
 import type { CalendarEvent } from "../src/types.ts"
 
 // Mock fetch globally
@@ -130,9 +130,9 @@ describe("CalDAVClient", () => {
     restoreFetch()
   })
 
-  describe("constructor", () => {
+  describe("createCalDAVClient", () => {
     test("creates client with config", () => {
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -144,7 +144,7 @@ describe("CalDAVClient", () => {
 
   describe("discover", () => {
     test("uses configured calendar path when provided", async () => {
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -174,7 +174,7 @@ describe("CalDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -194,7 +194,7 @@ describe("CalDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com/fallback/",
         username: "user",
         password: "pass",
@@ -227,7 +227,7 @@ describe("CalDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -250,7 +250,7 @@ describe("CalDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -286,7 +286,7 @@ describe("CalDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -330,7 +330,7 @@ describe("CalDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -368,7 +368,7 @@ describe("CalDAVClient", () => {
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -393,7 +393,7 @@ describe("CalDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -416,7 +416,7 @@ describe("CalDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -441,7 +441,7 @@ describe("CalDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",
@@ -465,7 +465,7 @@ describe("CalDAVClient", () => {
       )
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
-      const client = new CalDAVClient({
+      const client = createCalDAVClient({
         url: "https://caldav.example.com",
         username: "user",
         password: "pass",

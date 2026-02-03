@@ -16,10 +16,13 @@ import { Board } from "../src/views/Board.tsx"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createLayoutRegistry, getCardMidY } from "../src/card-positions.ts"
 import { createFakeRepo } from "@km/storage"
-import { buildBoardState } from "../src/state.ts"
 import { ensureCommandSystemInitialized } from "../src/command-bridge.ts"
 import type { TUIBoardState } from "../src/types.ts"
 import { item } from "./helpers/board-test.ts"
+
+// Module-level renderers (created once, reused across tests via auto-cleanup)
+const render80 = createTestRenderer({ columns: 80, rows: 24 })
+const render120 = createTestRenderer({ columns: 120, rows: 40 })
 
 function makeTUIBoardState(rootId: string): TUIBoardState {
   return {
@@ -55,8 +58,7 @@ describe("curswantY regression", () => {
 
     ensureCommandSystemInitialized()
 
-    const render = createTestRenderer({ columns: 80, rows: 24 })
-    render(
+    render80(
       <RepoProvider repo={repo}>
         <Board
           initialState={state}
@@ -108,8 +110,7 @@ describe("curswantY regression", () => {
 
     ensureCommandSystemInitialized()
 
-    const render = createTestRenderer({ columns: 120, rows: 40 })
-    render(
+    render120(
       <RepoProvider repo={repo}>
         <Board
           initialState={state}

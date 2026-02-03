@@ -8,7 +8,7 @@
 import { createConditionalLogger } from "@beorn/logger"
 import { Command } from "@commander-js/extra-typings"
 import { createLogger } from "@km/core"
-import { setDebugRepoRoot } from "../debug-log.ts"
+import { enableConsoleDebug, setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 
 const debug = createConditionalLogger("km:cli:view")
@@ -196,6 +196,7 @@ export const viewCommand = new Command("view")
       watch: watchEnabled,
       watchWorker,
       repo: createdRepo,
+      onReady: enableConsoleDebug,
     })
 
     // Signal background task to stop (don't wait - causes Bun crash on cleanup)

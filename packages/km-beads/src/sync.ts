@@ -4,10 +4,9 @@
  * Export km markdown tasks to .beads/issues.jsonl format for bd compatibility.
  */
 
-import { existsSync, writeFileSync, mkdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { createLogger } from "@beorn/logger"
-import type { Issue } from "./types.ts"
+import type { Issue, BeadsFs } from "./types.ts"
 import { parseBeadsIssuesJsonl, type BeadsIssue } from "./schema.ts"
 
 const log = createLogger("km:beads:sync")
@@ -82,6 +81,8 @@ export interface SyncOptions {
   mode: "append" | "replace"
   /** Dry run - don't write files */
   dryRun?: boolean
+  /** Filesystem implementation (DI - avoids direct node:fs import) */
+  fs: BeadsFs
 }
 
 export interface SyncResult {
@@ -103,15 +104,17 @@ export function exportToBeads(
     outputPath: join(options.beadsDir, "issues.jsonl"),
   }
 
+  const { fs } = options
+
   // Ensure .beads directory exists
-  if (!options.dryRun && !existsSync(options.beadsDir)) {
-    mkdirSync(options.beadsDir, { recursive: true })
+  if (!options.dryRun && !fs.existsSync(options.beadsDir)) {
+    fs.mkdirSync(options.beadsDir, { recursive: true })
   }
 
   // Read existing issues if appending (with validation)
   let existingIssues: BeadsIssue[] = []
-  if (options.mode === "append" && existsSync(result.outputPath)) {
-    const content = readFileSync(result.outputPath, "utf-8")
+  if (options.mode === "append" && fs.existsSync(result.outputPath)) {
+    const content = fs.readFileSync(result.outputPath, "utf-8")
     const { issues, errors } = parseBeadsIssuesJsonl(content)
     existingIssues = issues
     // Log validation errors but continue - allows partial recovery
@@ -151,7 +154,7 @@ export function exportToBeads(
 
     // Write JSONL
     const content = allIssues.map((i) => JSON.stringify(i)).join("\n") + "\n"
-    writeFileSync(result.outputPath, content, "utf-8")
+    fs.writeFileSync(result.outputPath, content, "utf-8")
   }
 
   return result

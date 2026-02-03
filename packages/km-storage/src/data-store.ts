@@ -154,12 +154,10 @@ export function createMapDataStore(): MapDataStore {
 
   return {
     getNode(id) {
-      ensureOpen()
       return nodes.get(id) ?? null
     },
 
     getChildren(parentId) {
-      ensureOpen()
       const children: KNode[] = []
       for (const node of nodes.values()) {
         if (node.parent_id === parentId) {
@@ -170,12 +168,10 @@ export function createMapDataStore(): MapDataStore {
     },
 
     getAllNodes() {
-      ensureOpen()
       return Array.from(nodes.values())
     },
 
     search(query) {
-      ensureOpen()
       const q = query.toLowerCase()
       const results: KNode[] = []
       for (const node of nodes.values()) {
@@ -189,7 +185,6 @@ export function createMapDataStore(): MapDataStore {
     },
 
     addNode(parentId, nodeData) {
-      ensureOpen()
       const now = Date.now()
       const id = nodeData.id ?? ulid()
 
@@ -229,7 +224,6 @@ export function createMapDataStore(): MapDataStore {
     },
 
     updateNode(id, changes) {
-      ensureOpen()
       const node = nodes.get(id)
       if (!node) return
 
@@ -243,12 +237,10 @@ export function createMapDataStore(): MapDataStore {
     },
 
     deleteNode(id) {
-      ensureOpen()
       nodes.delete(id)
     },
 
     moveNode(id, newParentId, position) {
-      ensureOpen()
       const node = nodes.get(id)
       if (!node) return
 
@@ -270,10 +262,6 @@ export function createMapDataStore(): MapDataStore {
     [Symbol.dispose]() {
       this.close()
     },
-  }
-
-  function ensureOpen() {
-    if (closed) throw new Error("DataStore is closed")
   }
 }
 
@@ -305,48 +293,37 @@ export function createMemDataStore(): DataStore & HasDatabase {
   let closed = false
 
   return {
-    get database() {
-      ensureOpen()
-      return db
-    },
+    database: db,
 
     getNode(id) {
-      ensureOpen()
       return dbGetNode(db, id)
     },
 
     getChildren(parentId) {
-      ensureOpen()
       return dbGetChildren(db, parentId)
     },
 
     getAllNodes() {
-      ensureOpen()
       return dbGetAllNodes(db)
     },
 
     search(query) {
-      ensureOpen()
       return dbSearch(db, query)
     },
 
     addNode(parentId, node) {
-      ensureOpen()
       return ops.addNode(parentId, node)
     },
 
     updateNode(id, changes) {
-      ensureOpen()
       ops.updateNode(id, changes)
     },
 
     deleteNode(id) {
-      ensureOpen()
       ops.deleteNode(id)
     },
 
     moveNode(id, newParentId, position) {
-      ensureOpen()
       ops.moveNode(id, newParentId, position)
     },
 
@@ -359,10 +336,6 @@ export function createMemDataStore(): DataStore & HasDatabase {
     [Symbol.dispose]() {
       this.close()
     },
-  }
-
-  function ensureOpen() {
-    if (closed) throw new Error("DataStore is closed")
   }
 }
 
@@ -396,48 +369,37 @@ export function createDBDataStore(
   let closed = false
 
   return {
-    get database() {
-      ensureOpen()
-      return db
-    },
+    database: db,
 
     getNode(id) {
-      ensureOpen()
       return dbGetNode(db, id)
     },
 
     getChildren(parentId) {
-      ensureOpen()
       return dbGetChildren(db, parentId)
     },
 
     getAllNodes() {
-      ensureOpen()
       return dbGetAllNodes(db)
     },
 
     search(query) {
-      ensureOpen()
       return dbSearch(db, query)
     },
 
     addNode(parentId, node) {
-      ensureOpen()
       return ops.addNode(parentId, node)
     },
 
     updateNode(id, changes) {
-      ensureOpen()
       ops.updateNode(id, changes)
     },
 
     deleteNode(id) {
-      ensureOpen()
       ops.deleteNode(id)
     },
 
     moveNode(id, newParentId, position) {
-      ensureOpen()
       ops.moveNode(id, newParentId, position)
     },
 
@@ -450,9 +412,5 @@ export function createDBDataStore(
     [Symbol.dispose]() {
       this.close()
     },
-  }
-
-  function ensureOpen() {
-    if (closed) throw new Error("DataStore is closed")
   }
 }

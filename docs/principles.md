@@ -163,6 +163,8 @@ export class Repo {
 
 **Infrastructure Class Exception**: Classes extending EventEmitter (e.g., `SyncManager`, `WriteQueue`) or managing low-level resources (e.g., `ParsePool`) are acceptable for internal infrastructure. Domain objects still use factory functions.
 
+**App-level Event Bus Exception**: The `tuiEvents` EventEmitter in `apps/km-tui/src/tui.tsx` is an intentional module-level singleton. It serves as the app-level event bus for TUI refresh events (filesystem sync triggers UI refresh). This is acceptable because: (1) it is scoped to the TUI app layer, not a domain package, (2) it coordinates cross-cutting concerns (watcher status, refresh signals) that would otherwise require deep prop drilling through the React component tree, and (3) it has no state beyond listener registration. Domain objects and packages below the app layer must not use this pattern.
+
 **Guidelines:**
 - [ ] Factories not classes — `createRepo()` / not `new Repo()`
 - [ ] Plain properties — `{ path }` / not `get path() { return x }`

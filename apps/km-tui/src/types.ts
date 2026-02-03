@@ -177,4 +177,9 @@ export interface TuiOptions {
    * When provided, TUI uses this instead of global getStore().
    */
   repo?: Repo
+  /**
+   * Called after alternate screen is active and patchConsole is set up.
+   * CLI uses this to flush buffered debug output to Console component.
+   */
+  onReady?: () => void
 }
