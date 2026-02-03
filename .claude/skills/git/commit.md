@@ -190,6 +190,7 @@ git log --oneline -1
 - Only include submodule sections if that submodule has changes
 - Chain submodule pushes only for repos that were committed
 - End with status + log for verification
+- **Parallelism:** Git commands within the **same** repo must be sequential (`&&`). But git commands across **different** vendor directories can and should be parallelized using separate Bash tool calls in a single message — they have independent `.git` dirs and won't conflict.
 
 ## Quick Templates
 
