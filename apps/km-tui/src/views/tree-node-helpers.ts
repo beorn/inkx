@@ -48,7 +48,9 @@ export function stripTaskMark(text: string): string {
  * - multiline: Parent context above title, content can wrap multiple lines
  */
 export const VARIANT_CONFIG = {
-  oneliner: { maxChildren: Infinity, showInfoColumns: true },
+  // Limit children in oneliner to prevent performance issues with large nodes
+  // (e.g., People folder with 3k+ children creating 40k+ inkx nodes)
+  oneliner: { maxChildren: 20, showInfoColumns: true },
   multiline: { maxChildren: 8, showInfoColumns: false },
 } as const
 

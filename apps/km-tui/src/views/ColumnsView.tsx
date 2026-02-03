@@ -246,9 +246,6 @@ const VirtualizedTreeCardList = forwardRef<
             colIndex={colIndex}
             cardIndex={actualIndex}
             isSelected={isCardSelected}
-            // PERF: Only render children for selected card to reduce node count
-            // Non-selected cards show only the title (like kanban boards)
-            children={isCardSelected ? undefined : []}
           />
         )
       })}

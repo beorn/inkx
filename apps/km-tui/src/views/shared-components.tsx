@@ -50,6 +50,9 @@ export const MemoizedTreeCard = React.memo(
     children,
     getBoardPills,
   }: MemoizedTreeCardProps): React.ReactElement {
+    // Count renders for profiling
+    const g = globalThis as unknown as Record<string, number>
+    g.__memoizedTreeCardRenderCount = (g.__memoizedTreeCardRenderCount ?? 0) + 1
     log.debug?.(
       `MemoizedTreeCard render: col=${colIndex} card=${cardIndex} id=${card.node.id.slice(-8)}`,
     )
