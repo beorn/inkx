@@ -9,6 +9,7 @@
  */
 
 import { createConditionalLogger } from "@beorn/logger"
+import { createWorkerLogHandler } from "@beorn/logger/worker"
 import { EventEmitter } from "events"
 import { getIgnorePatterns } from "../ignore.ts"
 import type {
@@ -19,8 +20,8 @@ import type {
 } from "./worker-thread.ts"
 
 const log = createConditionalLogger("km:storage:watch:worker-bridge")
-// For forwarding worker debug messages - uses worker's namespace
-const workerLog = createConditionalLogger("km:storage:watch:worker")
+// Handler for worker logger messages
+const handleWorkerLog = createWorkerLogHandler()
 
 export interface WorkerWatcherConfig {
   debounceMs: number
@@ -227,10 +228,11 @@ export class WorkerWatcher extends EventEmitter {
         this.emit("status", message.status)
         break
 
-      case "debug":
-        // Forward worker debug messages through main thread's logger
-        // This ensures DEBUG_LOG captures worker output
-        workerLog.debug?.(message.message)
+      case "log":
+      case "span":
+      case "console":
+        // Forward worker logger messages through main thread's logger
+        handleWorkerLog(message)
         break
     }
   }

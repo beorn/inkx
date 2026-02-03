@@ -16,8 +16,6 @@ import type {
 } from "./parse-worker.ts"
 
 const log = createConditionalLogger("km:storage:parse-pool")
-// For forwarding worker debug messages
-const workerLog = createConditionalLogger("km:storage:parse-worker")
 
 export interface ParseResult {
   nodeId: string
@@ -231,13 +229,6 @@ function createParsePoolInternal(
 
   // Internal helper function
   function handleWorkerMessage(worker: Worker, message: WorkerResponse): void {
-    if (message.type === "debug") {
-      // Forward worker debug messages through main thread's logger
-      // This ensures DEBUG_LOG captures worker output
-      workerLog.debug?.(message.message)
-      return
-    }
-
     if (message.type === "parsed") {
       const pending = pendingRequests.get(message.id)
       if (pending) {
