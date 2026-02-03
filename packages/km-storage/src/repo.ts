@@ -580,12 +580,11 @@ function isDatabaseIncomplete(
   rootPath: string,
   kmDir: string,
 ): string | null {
-  // Fresh init: empty events.jsonl means sync hasn't run yet — not corrupt
+  // Fresh init: missing or empty events.jsonl means sync hasn't run yet — not corrupt
   const eventsPath = join(kmDir, "events.jsonl")
-  if (existsSync(eventsPath)) {
-    const content = readFileSync(eventsPath, "utf-8").trim()
-    if (content.length === 0) return null
-  }
+  if (!existsSync(eventsPath)) return null
+  const eventsContent = readFileSync(eventsPath, "utf-8").trim()
+  if (eventsContent.length === 0) return null
 
   // Count filesystem entries that should be indexed
   if (!existsSync(rootPath)) return null
@@ -608,7 +607,7 @@ function isDatabaseIncomplete(
   const rootStructural = (
     db
       .prepare(
-        "SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND type IN ('file', 'folder')",
+        "SELECT COUNT(*) as cnt FROM nodes WHERE (parent_id IS NULL OR parent_id = '.') AND id != '.' AND type IN ('file', 'folder')",
       )
       .get() as { cnt: number }
   ).cnt

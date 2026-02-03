@@ -253,7 +253,7 @@ describe("CLI Integration", () => {
       expect(result.exitCode).toBe(0)
 
       // Verify task with verbose output
-      const listResult = await km(["tasks", "--verbose", "--json"])
+      const listResult = await km(["tasks", "--detail", "--json"])
       const tasks = JSON.parse(listResult.stdout) as TaskJson[]
       const newTask = tasks.find((t) => t.content.includes("Task with due"))
       expect(newTask).toBeDefined()

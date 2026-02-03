@@ -35,7 +35,7 @@ export const taskCommand = new Command("tasks")
     "-q, --query <query>",
     "Filter with query syntax (status:todo @person #tag)",
   )
-  .option("-v, --verbose", "Show more details")
+  .option("-V, --detail", "Show more details")
   .option("-f, --flat", "Show path on single line")
   .option("-i, --id", "Show task IDs")
   .option("--json", "Output as JSON")

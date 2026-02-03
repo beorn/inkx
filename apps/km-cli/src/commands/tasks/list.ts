@@ -31,7 +31,7 @@ export interface ListTasksOptions {
   status?: string
   query?: string
   all?: boolean
-  verbose?: boolean
+  detail?: boolean
   flat?: boolean
   id?: boolean
   json?: boolean
@@ -143,7 +143,7 @@ export async function listTasks(
       const rawAncestors = repo.getAncestors(task.id)
       const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
       const lines = formatTaskWithPath(repo, task, collapsedAncestors, {
-        verbose: options.verbose,
+        verbose: options.detail,
         flat: true,
         showId: options.id,
       })
@@ -209,7 +209,7 @@ export async function listTasks(
     const taskPrefix = " ".repeat(taskIndent)
     console.log(
       taskPrefix +
-        formatTaskLine(task, { verbose: options.verbose, showId: options.id }),
+        formatTaskLine(task, { verbose: options.detail, showId: options.id }),
     )
 
     previousAncestorKeys = ancestorKeys

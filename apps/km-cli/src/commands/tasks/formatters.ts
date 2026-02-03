@@ -52,7 +52,7 @@ export function formatTaskWithPath(
   repo: Repo,
   task: KNode,
   collapsedAncestors: CollapsedAncestor[],
-  options: { verbose?: boolean; flat?: boolean; showId?: boolean } = {},
+  options: { detail?: boolean; flat?: boolean; showId?: boolean } = {},
 ): string[] {
   const lines: string[] = []
 
@@ -93,7 +93,7 @@ export function formatTaskWithPath(
  */
 export function formatTaskLine(
   task: KNode,
-  options: { verbose?: boolean; showId?: boolean } = {},
+  options: { detail?: boolean; showId?: boolean } = {},
 ): string {
   const mark = task.task_mark ?? " "
   const status = task.task_status ?? "todo"
@@ -120,7 +120,7 @@ export function formatTaskLine(
   }
   line += content
 
-  if (options.verbose) {
+  if (options.detail) {
     if (task.due_date) {
       line += term.cyan(` 📅 ${task.due_date}`)
     }

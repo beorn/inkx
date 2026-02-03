@@ -145,7 +145,8 @@ Environment:
       const opts = cmd.opts() as GlobalOptions
       rootOption ??= opts.repo
       silentOption ??= opts.silent
-      verboseOption ??= opts.verbose
+      verboseOption ??=
+        typeof opts.verbose === "number" ? opts.verbose : undefined
       logLevelOption ??= opts.logLevel
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- Commander.js Command.parent is any
       cmd = cmd.parent
