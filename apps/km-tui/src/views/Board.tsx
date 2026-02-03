@@ -76,6 +76,9 @@ import {
 } from "./board-effects.ts"
 import { handleBoardKeyInput, handleDetailPaneKeyInput } from "./board-input.ts"
 import { toastQueue } from "@km/core"
+import { getOwnColor } from "../board-pills.ts"
+import { getBoardColorByName, normalizeBoardName } from "../text/index.ts"
+import { getNodeDisplayName } from "../state.ts"
 
 export { makeSelectionKey } from "../types.ts"
 
@@ -189,6 +192,15 @@ export function BoardCore({
   // Build top bar - use board's color as background, or blue if selected/no color
   const isBoardSelected = derivedSelectionLevel === "board"
 
+  // Compute board root color for the disc indicator
+  const rootNode = state.rootId ? repo.getNode(state.rootId) : null
+  const boardColor = rootNode
+    ? (getOwnColor(rootNode) ??
+      getBoardColorByName(
+        normalizeBoardName(getNodeDisplayName(repo, rootNode)),
+      ))
+    : undefined
+
   // Render loading indicator until terminal is ready
   if (!ui.isReady) {
     return (
@@ -223,7 +235,11 @@ export function BoardCore({
               backgroundColor={isBoardSelected ? "yellow" : "white"}
             >
               <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
-                {renderTopBarContent(selectedPathSegments, isBoardSelected)}
+                {renderTopBarContent(
+                  selectedPathSegments,
+                  isBoardSelected,
+                  boardColor,
+                )}
               </Text>
             </Box>
             <Box

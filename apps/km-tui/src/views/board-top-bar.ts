@@ -5,7 +5,7 @@ import { createTerm, type StyleChain } from "inkx"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { renderPlain } from "../text/index.ts"
+import { renderPlain, colorize } from "../text/index.ts"
 
 /**
  * Create a term instance with truecolor support.
@@ -139,6 +139,7 @@ export function getPathSegments(
 export function renderTopBarContent(
   segments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>,
   isBoardSelected: boolean,
+  boardColor?: string,
 ): string {
   const style = createTermStyle()
   // Find the board root index:
@@ -158,7 +159,7 @@ export function renderTopBarContent(
   const boldStyle = isBoardSelected ? style.black.bold : style.gray.bold
   const dimStyle = isBoardSelected ? style.black.dim : style.gray.dim
 
-  let content = " ● "
+  let content = boardColor ? " " + colorize("●", boardColor) + " " : " "
 
   segments.forEach((seg, idx) => {
     const sepPart = seg.sep ? ` ${seg.sep} ` : ""
