@@ -111,14 +111,17 @@ export function useBoardDialogs({
   // Uses "smart zoom" - only zooms when necessary to make target visible
   const handleSearchSelect = useCallback(
     (targetNode: KNode) => {
+      // Debug logging - enable with LOG_LEVEL=debug
       log.debug?.(
-        `handleSearchSelect: targetNode.id=${targetNode.id.slice(-8)} type=${targetNode.type} rootId=${rootId?.slice(-8) ?? "null"}`,
+        `search select: id=${targetNode.id.slice(-8)} type=${targetNode.type} rootId=${rootId?.slice(-8) ?? "null"}`,
       )
       const target = repo.getNode(targetNode.id)
       if (!target) {
-        log.error?.(
-          `handleSearchSelect: node not found in repo: ${targetNode.id}`,
-        )
+        // This is a programming error - the search result came from the repo
+        // but the node is no longer there. This shouldn't happen in normal use.
+        const errMsg = `search: node not found in repo: ${targetNode.id}`
+        log.error?.(errMsg)
+        console.error(errMsg)
         dispatch(actions.hideSearchDialog())
         return
       }
@@ -135,17 +138,14 @@ export function useBoardDialogs({
       let current: KNode | null = target
       let depth = 0
       while (current) {
-        const parentId = current.parent_id
-        const parent = parentId ? repo.getNode(parentId) : null
-        const grandparentId = parent?.parent_id
-        log.debug?.(
-          `  walk[${depth}]: current=${current.id.slice(-8)} parent=${parentId?.slice(-8) ?? "null"} grandparent=${grandparentId?.slice(-8) ?? "null"}`,
-        )
+        const parentId: string | null = current.parent_id
+        const parent: KNode | null = parentId ? repo.getNode(parentId) : null
+        const grandparentId: string | null | undefined = parent?.parent_id
 
         // Check if this ancestor is visible in current view
         if (parentId === rootId || grandparentId === rootId) {
           // Target is a descendant of a visible node, just SELECT
-          log.debug?.(`  → SELECT: target visible at depth ${depth}`)
+          log.debug?.(`search: SELECT visible at depth ${depth}`)
           dispatchBoard({ type: "SELECT", nodeId: target.id })
           dispatch(actions.hideSearchDialog())
           return
@@ -157,42 +157,66 @@ export function useBoardDialogs({
       }
 
       // Target not visible in current view - need to zoom
-      // Find the closest ancestor to zoom to (prefer showing target as card)
-      log.debug?.(
-        `  → ZOOM needed: walked ${depth} levels without finding root`,
-      )
-      const parentId = target.parent_id
-      const parent = parentId ? repo.getNode(parentId) : null
-      const grandparentId = parent?.parent_id
+      // Walk up to find appropriate zoom level where target (or ancestor) is visible as a card
+      // Goal: zoom to great-grandparent so target's grandparent is column, target's parent is card
+      log.debug?.(`search: ZOOM needed, walked ${depth} levels`)
 
-      if (grandparentId) {
-        // Zoom to grandparent: target shows as a card
-        log.debug?.(
-          `  → ZOOM_IN to grandparent=${grandparentId.slice(-8)} cursor=${target.id.slice(-8)}`,
-        )
-        dispatchBoard({
-          type: "ZOOM_IN",
-          nodeId: grandparentId,
-          cursorNodeId: target.id,
-        })
-      } else if (parentId) {
-        // Zoom to parent: target shows as column header
-        log.debug?.(
-          `  → ZOOM_IN to parent=${parentId.slice(-8)} cursor=${target.id.slice(-8)}`,
-        )
-        dispatchBoard({
-          type: "ZOOM_IN",
-          nodeId: parentId,
-          cursorNodeId: target.id,
-        })
-      } else {
-        // No ancestors, zoom into target itself
-        log.debug?.(`  → ZOOM_IN to target itself (no ancestors)`)
-        dispatchBoard({
-          type: "ZOOM_IN",
-          nodeId: target.id,
-        })
+      // Build ancestor chain: [target, parent, grandparent, great-grandparent, ...]
+      const ancestors: KNode[] = [target]
+      let ancestor: KNode | null = target
+      while (ancestor?.parent_id) {
+        const parent = repo.getNode(ancestor.parent_id)
+        if (parent) {
+          ancestors.push(parent)
+        }
+        ancestor = parent
       }
+      log.debug?.(
+        `search: ancestor chain has ${ancestors.length} nodes: ${ancestors.map((n) => n.type).join(" > ")}`,
+      )
+
+      // Find best zoom target:
+      // - If target is at depth >= 3, zoom to great-grandparent (target's parent shows as card)
+      // - If target is at depth 2, zoom to grandparent (target shows as card)
+      // - If target is at depth 1, zoom to parent (target shows as column)
+      // - If target is at depth 0, zoom to target itself
+      // Also find the best cursor target (the first navigable ancestor or target itself)
+      let zoomTarget: KNode = target
+      let cursorTarget: KNode = target
+
+      const greatGrandparent = ancestors[3]
+      const grandparent = ancestors[2]
+      const parent = ancestors[1]
+
+      if (ancestors.length >= 4 && greatGrandparent && parent) {
+        // Deeply nested: zoom to great-grandparent, cursor on parent (which will be a card)
+        zoomTarget = greatGrandparent
+        cursorTarget = parent // parent of target = card
+        log.debug?.(
+          `search: ZOOM_IN to great-grandparent=${zoomTarget.id.slice(-8)}, cursor on parent=${cursorTarget.id.slice(-8)}`,
+        )
+      } else if (ancestors.length >= 3 && grandparent) {
+        // 3 levels: zoom to grandparent, cursor on target (which will be a card)
+        zoomTarget = grandparent
+        log.debug?.(
+          `search: ZOOM_IN to grandparent=${zoomTarget.id.slice(-8)}, cursor on target`,
+        )
+      } else if (ancestors.length >= 2 && parent) {
+        // 2 levels: zoom to parent, cursor on target (which will be a column)
+        zoomTarget = parent
+        log.debug?.(
+          `search: ZOOM_IN to parent=${zoomTarget.id.slice(-8)}, cursor on target`,
+        )
+      } else {
+        // Only target itself, zoom into it
+        log.debug?.(`search: ZOOM_IN to target itself`)
+      }
+
+      dispatchBoard({
+        type: "ZOOM_IN",
+        nodeId: zoomTarget.id,
+        cursorNodeId: cursorTarget.id,
+      })
 
       dispatch(actions.hideSearchDialog())
     },

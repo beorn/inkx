@@ -35,14 +35,15 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(
     // Take last MAX_LINES entries
     const visibleEntries = entries.slice(-MAX_LINES)
 
-    // Calculate dimensions
-    const boxWidth = Math.max(40, Math.min(width - 4, 120))
-    const boxHeight = Math.max(10, height - 4)
+    // Calculate dimensions (same sizing as SearchDialog - 2/3 of screen)
+    const boxWidth = Math.min(90, Math.floor((width * 2) / 3))
+    const boxHeight = Math.min(height - 6, Math.floor((height * 2) / 3))
     const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2))
     const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2))
 
-    // Content height for scrolling (subtract header/footer)
-    const contentHeight = boxHeight - 4
+    // Content height for scrolling (subtract borders + padding + title + spacer + footer_spacer + footer)
+    // Same calculation as SearchDialog: height - 11
+    const contentHeight = Math.max(3, boxHeight - 11)
 
     return (
       <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop}>

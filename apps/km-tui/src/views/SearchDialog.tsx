@@ -11,6 +11,8 @@ import React, {
   useImperativeHandle,
   useDeferredValue,
   useState,
+  useEffect,
+  startTransition,
 } from "react"
 import { Box, Text, useInput, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
@@ -232,7 +234,13 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
     const repo = useRepo()
     const [selectedIndex, setSelectedIndex] = useState(0)
 
+    // Lazy-load node data to allow input handler to register immediately
+    // This prevents keypresses being eaten while the heavy query runs
+    const [allResults, setAllResults] = useState<SearchResult[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+
     // Readline-style line editing for search input
+    // This MUST be before the useEffect so useInput registers on first render
     const lineEdit = useLineEdit({
       onChange: () => setSelectedIndex(0), // Reset selection when query changes
     })
@@ -248,23 +256,26 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
       },
     }))
 
-    // Get all nodes using rawQuery
-    const allNodes = useMemo(
-      () => repo.rawQuery<KNode>("SELECT * FROM nodes"),
-      [repo],
-    )
-
     // Wrap getNodeDisplayName with repo for use in helper functions
     const getDisplayName = useCallback(
       (node: KNode) => getNodeDisplayName(repo, node),
       [repo],
     )
 
-    // Get all search results
-    const allResults = useMemo(
-      () => getSearchResults(allNodes, repo.getNode.bind(repo), getDisplayName),
-      [allNodes, repo, getDisplayName],
-    )
+    // Load nodes asynchronously via useEffect + startTransition
+    // This defers the expensive query so input handling registers first
+    useEffect(() => {
+      startTransition(() => {
+        const allNodes = repo.rawQuery<KNode>("SELECT * FROM nodes")
+        const results = getSearchResults(
+          allNodes,
+          repo.getNode.bind(repo),
+          getDisplayName,
+        )
+        setAllResults(results)
+        setIsLoading(false)
+      })
+    }, [repo, getDisplayName])
 
     // Parse query and filter results (uses deferredQuery for responsive typing)
     const filteredResults = useMemo(() => {
@@ -433,10 +444,11 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
                 </Box>
               )
             })}
-            {filteredResults.length === 0 && deferredQuery && (
+            {isLoading && <Text dimColor> Loading...</Text>}
+            {!isLoading && filteredResults.length === 0 && deferredQuery && (
               <Text dimColor> No matching items</Text>
             )}
-            {filteredResults.length === 0 && !deferredQuery && (
+            {!isLoading && filteredResults.length === 0 && !deferredQuery && (
               <Text dimColor> Start typing to search...</Text>
             )}
           </Box>

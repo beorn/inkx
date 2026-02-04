@@ -189,11 +189,33 @@ export async function runBoard(
 
     await instance.waitUntilExit()
   } finally {
+    // Get captured console entries before disposing
+    const entries = patched?.getSnapshot() ?? []
+
+    // Dispose patched console (restores original console methods)
     patched?.[Symbol.dispose]()
+
     // Clean up sync manager
     if (syncManager) {
       options?.repo?.emitter.setFsSync(null)
       await syncManager.stop()
+    }
+
+    // Dump captured console output to normal terminal (after alt screen exit)
+    // Only show warn/error by default, or all if LOG_LEVEL is debug/trace
+    const logLevel = process.env.LOG_LEVEL?.toLowerCase()
+    const showAll = logLevel === "debug" || logLevel === "trace"
+    const filtered = showAll
+      ? entries
+      : entries.filter((e) => e.method === "warn" || e.method === "error")
+
+    if (filtered.length > 0) {
+      console.error("\n--- Console output from session ---")
+      for (const entry of filtered) {
+        const method = entry.method as keyof Console
+        const fn = console[method] as (...args: unknown[]) => void
+        fn(...entry.args)
+      }
     }
   }
 }
