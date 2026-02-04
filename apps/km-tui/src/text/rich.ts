@@ -87,6 +87,9 @@ const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g // ~~strikethrough~~
 // Markdown link patterns - capture both text and URL
 const MD_LINK_REGEX = /\[([^\]]+)\]\(([^)]+)\)/g // [text](url)
 
+// HTML tag stripping - remove tags entirely, keep inner text
+const HTML_TAG_REGEX = /<[^>]+>/g
+
 // Draft/tentative content patterns - styled with dashed underline
 const DRAFT_PREFIX_REGEX = /^(Draft|WIP|TODO|FIXME):\s*/i
 
@@ -142,8 +145,9 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   // Create style once per call to avoid module-level state
   const style = createTermStyle()
 
-  // Strip inline fields first
+  // Strip inline fields and HTML tags first
   let result = text.replace(INLINE_FIELD_REGEX, "")
+  result = result.replace(HTML_TAG_REGEX, "")
 
   // Style markdown links [text](url) → underlined text
   // NOTE: OSC 8 hyperlinks disabled due to wrap-ansi incompatibility
@@ -265,8 +269,9 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
  * // Returns: "bold and italic text"
  */
 export function renderPlain(text: string): string {
-  // Strip inline fields
+  // Strip inline fields and HTML tags
   let result = text.replace(INLINE_FIELD_REGEX, "")
+  result = result.replace(HTML_TAG_REGEX, "")
 
   // Strip markdown links [text](url) → text
   result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => {

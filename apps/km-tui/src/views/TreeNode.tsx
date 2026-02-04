@@ -219,13 +219,21 @@ function TreeNodeImpl({
 
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
-  // For embedded folders, show folder name with "/" suffix
+  // For embeds: use resolved target's display name, never raw "![[target]]" syntax
   const rawContent =
-    isEmbedded && displayNode.type === "folder"
-      ? getNodeDisplayName(repo, displayNode) + "/"
-      : displayNode.type === "section"
-        ? getNodeDisplayName(repo, displayNode)
-        : displayNode.content || getNodeDisplayName(repo, displayNode)
+    isEmbedded && resolvedNode
+      ? resolvedNode.type === "folder"
+        ? getNodeDisplayName(repo, resolvedNode) + "/"
+        : resolvedNode.type === "section"
+          ? getNodeDisplayName(repo, resolvedNode)
+          : resolvedNode.content || getNodeDisplayName(repo, resolvedNode)
+      : isEmbedded && !resolvedNode
+        ? // Unresolved embed — extract target name from ![[target]] syntax
+          (node.content?.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1") ??
+            getNodeDisplayName(repo, node))
+        : displayNode.type === "section"
+          ? getNodeDisplayName(repo, displayNode)
+          : displayNode.content || getNodeDisplayName(repo, displayNode)
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
 
   // Memoize rich text rendering - only recalc when content or sigil config changes

@@ -158,9 +158,13 @@ export function* buildBoardStateGenerator(
   // Second pass: build columns with pre-fetched child counts
   const columns: ColumnState[] = []
 
-  // Add virtual body column if there's leading content
-  if (bodyNodes.length > 0) {
-    const bodyCards: CardState[] = bodyNodes.map((node) => ({
+  // Add virtual body column if there's meaningful leading content
+  // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
+  const meaningfulBody = bodyNodes.filter(
+    (n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
+  )
+  if (meaningfulBody.length > 0) {
+    const bodyCards: CardState[] = meaningfulBody.map((node) => ({
       node,
       children: [],
       childCount: 0,
@@ -389,9 +393,13 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
   // Second pass: build columns with the pre-fetched child counts
   const columns: ColumnState[] = []
 
-  // Add virtual body column if there's leading content
-  if (bodyNodes.length > 0) {
-    const bodyCards: CardState[] = bodyNodes.map((node) => ({
+  // Add virtual body column if there's meaningful leading content
+  // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
+  const meaningfulBody = bodyNodes.filter(
+    (n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
+  )
+  if (meaningfulBody.length > 0) {
+    const bodyCards: CardState[] = meaningfulBody.map((node) => ({
       node,
       children: [],
       childCount: 0,
