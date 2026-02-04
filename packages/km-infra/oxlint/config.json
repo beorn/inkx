@@ -10,7 +10,6 @@
   },
   "ignorePatterns": [
     "website/**",
-    "vendor/**",
     ".claude/**",
     "test-results/**",
     "node_modules/",
