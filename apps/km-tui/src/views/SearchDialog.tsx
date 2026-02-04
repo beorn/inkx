@@ -416,31 +416,43 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
                   width="100%"
                   height={1}
                   backgroundColor={isSelected ? "cyan" : "black"}
+                  flexDirection="row"
                 >
-                  <Text
-                    color={isSelected ? "black" : undefined}
-                    wrap="truncate"
-                  >
+                  {/* Prefix + icon: fixed width */}
+                  <Text color={isSelected ? "black" : undefined}>
                     {prefix}
                     <Text dimColor={!isSelected}>{typeIcon} </Text>
-                    {result.title}
-                    {result.parentContext && (
+                  </Text>
+                  {/* Title: won't shrink */}
+                  <Box flexShrink={0}>
+                    <Text color={isSelected ? "black" : undefined}>
+                      {result.title}
+                    </Text>
+                  </Box>
+                  {/* Context: shrinks first, truncates */}
+                  {result.parentContext && (
+                    <Box flexShrink={1} overflow="hidden">
                       <Text
+                        wrap="truncate"
                         dimColor={!isSelected}
                         color={isSelected ? "gray" : undefined}
                       >
                         {` < ${result.parentContext}`}
                       </Text>
-                    )}
-                    {result.tags.length > 0 && (
+                    </Box>
+                  )}
+                  {/* Tags: shrinks, truncates */}
+                  {result.tags.length > 0 && (
+                    <Box flexShrink={1} overflow="hidden">
                       <Text
+                        wrap="truncate"
                         color={isSelected ? "blue" : "cyan"}
                         dimColor={!isSelected}
                       >
                         {` #${result.tags.join(" #")}`}
                       </Text>
-                    )}
-                  </Text>
+                    </Box>
+                  )}
                 </Box>
               )
             })}
