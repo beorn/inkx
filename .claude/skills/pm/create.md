@@ -65,10 +65,13 @@ Phase 6: Work Completion (record results, update related)
 | inkx, chalkx, render pipeline, ANSI | `km-inkx` | `km-inkx.<suffix>` |
 | flexx, layout engine, flexbox | `km-flexx` | `km-flexx.<suffix>` |
 | TUI, board, views, columns, cards | `km-tui` | `km-tui.<suffix>` |
-| test, vitest, fuzz, benchmark, mdtest | `km-vitestx` | `km-vitestx.<suffix>` |
-| monorepo, linting, packaging, CI | `km-infra` | `km-infra.<suffix>` |
-| storage, sync, db | `km-storage-N` | (no tracking epic yet) |
-| No clear scope | `km-<keyword>` | (cross-cutting) |
+| vitestx package, dotz reporter | `km-vitestx` | `km-vitestx.<suffix>` |
+| monorepo, linting, packaging, CI, benchmarks | `km-infra` | `km-infra.<suffix>` |
+| storage, sync, db, queries | `km-storage` | `km-storage.<suffix>` |
+| markdown, parser, serializer | `km-markdown` | `km-markdown.<suffix>` |
+| claude skills, tools, MCP, session | `km-tools` | `km-tools.<suffix>` |
+| code review findings | `km-review` | `km-review.<suffix>` |
+| No clear scope | `km-<keyword>` | (standalone) |
 
 **Priority** (from language):
 
@@ -209,10 +212,14 @@ bd update <new-id> --parent <tracking-epic-id>
 | `km-inkx` | inkx/chalkx rendering engine |
 | `km-flexx` | Flexx layout engine |
 | `km-tui` | TUI app views/interaction |
-| `km-vitestx` | Test framework & infra |
-| `km-infra` | Monorepo packaging/linting |
+| `km-vitestx` | vitestx package (test framework) |
+| `km-infra` | Monorepo infra (CI, benchmarks, packaging, linting) |
+| `km-storage` | Storage layer (sync, queries, DB) |
+| `km-markdown` | Markdown parser/serializer |
+| `km-tools` | Claude Code skills & tooling (beorn-tools) |
+| `km-review` | Code review findings (cross-cutting quality) |
 
-If no tracking epic fits, the bead can be standalone (e.g., `km-storage-N`, `km-claude-*`).
+If no tracking epic fits, the bead can be standalone (e.g., `km-<keyword>`).
 
 ### Link dependencies if identified:
 

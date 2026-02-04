@@ -1,7 +1,7 @@
 ---
 description: Searches Claude Code session history with FTS5. Use when recovering lost content, finding past conversations, or checking before LLM queries.
 argument-hint: [query] [-q|-r] [-s time] [-i types] [-p project]
-allowed-tools: Bash, Read
+allowed-tools: Bash
 ---
 
 # Session History
@@ -9,6 +9,8 @@ allowed-tools: Bash, Read
 **Keywords**: history, session, recover, find, previous, lost conversation
 
 Fast SQLite + FTS5 search across all Claude Code sessions.
+
+**NEVER read/cat entire session or tool-results files.** Always use `bun history` or targeted `rg` with `| head`.
 
 ## Quick Reference
 

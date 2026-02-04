@@ -1,6 +1,7 @@
 #!/bin/bash
-# Export CLAUDE_SESSION_ID for /bd claiming functionality
-# This hook runs on SessionStart and makes the session ID available as an env var
+# Hook: SessionStart
+# 1. Export CLAUDE_SESSION_ID for /bd claiming functionality
+# 2. Trigger incremental history index update (background)
 
 SESSION_ID=$(cat | jq -r '.session_id // empty')
 if [ -n "$CLAUDE_ENV_FILE" ] && [ -n "$SESSION_ID" ]; then
@@ -8,4 +9,12 @@ if [ -n "$CLAUDE_ENV_FILE" ] && [ -n "$SESSION_ID" ]; then
   echo "export CLAUDE_SESSION_ID='${SESSION_ID}'" >> "$CLAUDE_ENV_FILE"
   echo "export BD_ACTOR='claude:${SHORT_ID}'" >> "$CLAUDE_ENV_FILE"
 fi
+
+# Incremental history index update (background, silent, best-effort)
+# Keeps FTS5 index fresh so `bun history` finds recent sessions
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+if [ -f "$REPO_ROOT/vendor/beorn-tools/tools/history.ts" ]; then
+  (cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/history.ts index --incremental) >/dev/null 2>&1 &
+fi
+
 exit 0

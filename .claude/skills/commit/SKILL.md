@@ -1,6 +1,6 @@
 ---
 description: "Commit changes to git"
-allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(bd sync:*), Bash(cd vendor/*), Bash(bun run lint:*), Bash(rm -f .git/index.lock:*), Task, AskUserQuestion, Read
+allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(bd sync:*), Bash(cd vendor/*), Bash(bun run lint:*), Bash(rm -f .git/index.lock:*), AskUserQuestion
 ---
 
 # Commit
@@ -17,7 +17,7 @@ allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git p
 
 ## Instructions
 
-All git state is above. Do NOT run git status, git diff, or git log — you don't have those tools.
+**ALL git state is above. Do NOT investigate further.** No git diff, git status, git log, Read, or Task tools — write the commit message from the context above and execute immediately. If diffs are truncated, use the diff stats + file names to infer the change.
 
 1. **Analyze** the context above:
    - What changed (diffs are above; if truncated, use Read on files, NOT git diff)
@@ -60,7 +60,7 @@ git push
 
 ### Many changes (>10 files):
 
-Launch haiku Task to categorize, then execute the plan it returns.
+Group by scope from the diff stats above. One commit per scope, executed sequentially in a single Bash call.
 
 ## Rules
 - `set -e`, `bun run lint --fix` on vendor before commit

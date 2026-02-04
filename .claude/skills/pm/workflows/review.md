@@ -166,7 +166,7 @@ Review survey data. For each open issue, assign to exactly one category:
 **Consolidation pattern** (for scattered beads sharing a theme):
 
 1. **Identify clusters**: Search for beads by keyword across IDs, titles, descriptions
-2. **Create tracking epic**: `km-<scope>` (e.g., `km-inkx`, `km-tui`, `km-vitestx`)
+2. **Create tracking epic**: `km-<scope>` with title `TRACKING: <description>` (e.g., `km-inkx`, `km-tui`, `km-vitestx`). Mark `TRACKING (idle):` if no open children yet.
 3. **Rename sub-beads**: Use `km-<scope>.<suffix>` dot notation (e.g., `km-inkx.bg-bleed`)
    - Create new bead with same content → set parent → close old with "Renamed to ..."
 4. **Categorize carefully**: A bead mentioning X isn't always *about* X — check if it's the primary subject
@@ -448,7 +448,7 @@ If the grooming revealed gaps in this review process itself, consider updating [
 
 - Example: "Check for issues with no activity in 90+ days (not just 14+)"
 - Example: "Detect issues that changed priority 3+ times (priority thrashing)"
-- Example: "Find epics with no children (orphaned epics)"
+- Example: "Find epics with no children (orphaned epics) — tracking epics should be marked `(idle)` in title"
 
 **Severity criteria refinements:**
 

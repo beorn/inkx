@@ -1,7 +1,7 @@
 ---
 description: Search and recover content from Claude session history
 argument-hint: [search-term]
-allowed-tools: Bash, Read
+allowed-tools: Bash
 ---
 
 # Session History Recovery
@@ -9,6 +9,8 @@ allowed-tools: Bash, Read
 **Keywords**: session, history, recover, lost, previous session, find conversation
 
 Search through Claude Code session history to find and recover content from past conversations.
+
+**NEVER read/cat entire session files or tool-results files.** They can be 30k+ tokens and will overflow context. Always use `bun history` (FTS5-indexed, <100ms) or targeted `rg` with patterns.
 
 ## Quick Search (Recommended)
 
@@ -68,21 +70,22 @@ bun history index              # Full rebuild
 bun history index --incremental # Update only
 ```
 
-## Raw Session Access
+## Targeted Raw Search (Last Resort)
 
-For manual searching (slower):
+Only when `bun history` index is stale or missing. **Always use rg with patterns, never read entire files.**
 
 ```bash
-# Search raw JSONL files
-grep -r "search term" ~/.claude/projects/*/sessions/*.jsonl | head -20
+# Search raw JSONL files with rg (NOT cat/Read)
+rg "search term" ~/.claude/projects/*/sessions/*.jsonl | head -20
 
-# Find recent sessions
+# Find recent sessions by modification time
 ls -lt ~/.claude/projects/*/sessions/*.jsonl | head -10
 ```
 
-## Tips
+## Rules
 
-- Use `bun history` for fast indexed search
-- Sessions are JSONL files (one JSON per line)
-- Index stored at `~/.claude/session-index.db`
-- Rebuild index if search seems incomplete
+- **NEVER** use `cat`, `Read`, `head`, or `tail` on session JSONL files — they're 10k-100k+ lines
+- **NEVER** read tool-results files directly — use `bun history` to search them
+- **ALWAYS** pipe through `head -N` when using `rg` on session files
+- Prefer `bun history` over raw `rg` — it's indexed and faster
+- Rebuild index (`bun history index`) if search seems incomplete
