@@ -414,7 +414,7 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
                   key={result.node.id}
                   width="100%"
                   height={1}
-                  backgroundColor={isSelected ? "cyan" : undefined}
+                  backgroundColor={isSelected ? "cyan" : "black"}
                 >
                   <Text
                     color={isSelected ? "black" : undefined}
