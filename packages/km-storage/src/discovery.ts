@@ -211,7 +211,7 @@ export function* discoverFiles(
     fullPath: string,
     parentId: string | null,
     order: number,
-    entryName: string,
+    _entryName: string,
   ): Generator<StepYield, void, unknown> {
     try {
       const content = readFileSync(fullPath, "utf-8")

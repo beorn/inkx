@@ -312,6 +312,7 @@ function handleUnfoldLevel(state: BoardState, depth: number): BoardState {
 /**
  * Board state reducer - handles navigation and UI state
  */
+// oxlint-disable-next-line complexity/max-cyclomatic -- Exhaustive switch reducer pattern
 export function boardReducer(
   state: BoardState,
   action: BoardAction,

@@ -26,6 +26,7 @@ import {
   VerticalScrollIndicator,
   ColumnSeparator,
 } from "./VerticalScrollIndicator.tsx"
+import { calcColumnWidths, getColumnWidth } from "./board-layout.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { getScrollToIndex } from "./scroll-helpers.ts"
 
@@ -241,6 +242,9 @@ interface ColumnsViewProps {
   selectionLevel: "board" | "column" | "card"
 }
 
+// Maximum column width for columns view (tighter than cards view)
+const COLUMNS_VIEW_MAX_WIDTH = 50
+
 export function ColumnsView({
   state,
   width,
@@ -253,19 +257,14 @@ export function ColumnsView({
   effectiveVisibleColumns,
   selectionLevel,
 }: ColumnsViewProps): React.ReactElement {
-  const hasLeftIndicator = effectiveScrollOffset > 0
-  const hasRightIndicator =
-    effectiveScrollOffset + effectiveMaxCols < state.columns.length
-
-  // Calculate column widths with max width constraint
-  // Tighter than cards view to prevent columns from being too wide
-  const maxColWidth = 50
-  const indicatorWidth =
-    (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0)
-  const separatorCount = effectiveVisibleColumns.length - 1
-  const availableWidth = width - indicatorWidth - separatorCount
-  const baseColWidth = Math.floor(availableWidth / effectiveMaxCols)
-  const remainder = availableWidth % effectiveMaxCols
+  // Calculate column widths using shared utility
+  const widths = calcColumnWidths({
+    boardWidth: width,
+    visibleColumnCount: effectiveVisibleColumns.length,
+    maxCols: effectiveMaxCols,
+    scrollOffset: effectiveScrollOffset,
+    totalColumns: state.columns.length,
+  })
 
   return (
     <Box flexDirection="column" width={width} height={height}>
@@ -275,15 +274,20 @@ export function ColumnsView({
       {/* Columns row */}
       <Box flexDirection="row" flexGrow={1}>
         {/* Left scroll indicator */}
-        {hasLeftIndicator && <VerticalScrollIndicator direction="left" />}
+        {widths.hasLeftIndicator && (
+          <VerticalScrollIndicator direction="left" />
+        )}
 
         {/* Columns with tree view inside */}
         {effectiveVisibleColumns.map((col, i) => {
           const actualColIndex = effectiveScrollOffset + i
           const isLastCol = i === effectiveVisibleColumns.length - 1
-          // Distribute extra pixels to the first 'remainder' columns, then cap at maxColWidth
-          const rawColWidth = baseColWidth + (i < remainder ? 1 : 0)
-          const colWidth = Math.min(rawColWidth, maxColWidth)
+          const colWidth = getColumnWidth(
+            i,
+            widths.baseColWidth,
+            widths.remainder,
+            COLUMNS_VIEW_MAX_WIDTH,
+          )
           const isColumnSelected = actualColIndex === colIndex
           debug(
             `ColumnsView map: i=${i} actualColIdx=${actualColIndex} colIndex=${colIndex} isSelected=${isColumnSelected}`,
@@ -309,7 +313,9 @@ export function ColumnsView({
         })}
 
         {/* Right scroll indicator */}
-        {hasRightIndicator && <VerticalScrollIndicator direction="right" />}
+        {widths.hasRightIndicator && (
+          <VerticalScrollIndicator direction="right" />
+        )}
 
         {state.columns.length === 0 && <Text dimColor>Empty board</Text>}
       </Box>

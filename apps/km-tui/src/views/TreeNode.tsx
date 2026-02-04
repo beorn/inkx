@@ -5,7 +5,7 @@
  * - oneliner: Title + parent context inline on one line, truncated (for list/columns/tabs)
  * - multiline: Parent context above title, content can wrap multiple lines (for cards)
  */
-/* oxlint-disable complexity/max-cognitive -- React component — JSX conditionals inflate score */
+/* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
 import { renderLog, sid } from "../log.ts"

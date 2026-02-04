@@ -63,6 +63,8 @@ import {
   TOP_BAR_HEIGHT,
   BOTTOM_BAR_HEIGHT,
   calcEdgeBasedColumnScrollOffset,
+  calcColumnWidths,
+  getColumnWidth,
 } from "./board-layout.ts"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
@@ -124,6 +126,7 @@ export interface BoardCoreProps {
  * Pure rendering component - NO hooks, just JSX.
  * Receives all state as props, making it fully testable.
  */
+// oxlint-disable-next-line complexity/max-cognitive -- React component — JSX conditionals inflate score
 export function BoardCore({
   state,
   layout,
@@ -266,61 +269,61 @@ export function BoardCore({
                       </Box>
                     ) : (
                       <>
-                        {/* Left scroll indicator - full height filled bar */}
-                        {effectiveScrollOffset > 0 && (
-                          <VerticalScrollIndicator direction="left" />
-                        )}
-                        {effectiveVisibleColumns.map((col, i) => {
-                          const actualColIndex = effectiveScrollOffset + i
-                          const isLastCol =
-                            i === effectiveVisibleColumns.length - 1
-                          // Reduce column width if scroll indicators are shown
-                          const hasLeftIndicator = effectiveScrollOffset > 0
-                          const hasRightIndicator =
-                            effectiveScrollOffset + effectiveMaxCols <
-                            state.columns.length
-                          const indicatorWidth =
-                            (hasLeftIndicator ? 1 : 0) +
-                            (hasRightIndicator ? 1 : 0)
-                          // Account for separator lines between columns (1 char each, n-1 separators)
-                          const separatorCount =
-                            effectiveVisibleColumns.length - 1
-                          const availableWidth =
-                            boardWidth - indicatorWidth - separatorCount
-                          const baseColWidth = Math.floor(
-                            availableWidth / effectiveMaxCols,
-                          )
-                          const remainder = availableWidth % effectiveMaxCols
-                          // Distribute extra pixels to the first 'remainder' columns
-                          const adjustedColWidth =
-                            baseColWidth + (i < remainder ? 1 : 0)
+                        {/* Calculate column widths using shared utility */}
+                        {(() => {
+                          const widths = calcColumnWidths({
+                            boardWidth,
+                            visibleColumnCount: effectiveVisibleColumns.length,
+                            maxCols: effectiveMaxCols,
+                            scrollOffset: effectiveScrollOffset,
+                            totalColumns: state.columns.length,
+                          })
                           return (
-                            <React.Fragment key={col.node.id}>
-                              <Column
-                                column={col}
-                                colIndex={actualColIndex}
-                                isSelected={actualColIndex === layout.colIndex}
-                                isCollapsed={ui.collapsedColumns.has(
-                                  actualColIndex,
-                                )}
-                                selectedCardIndex={layout.cardIndex}
-                                selectedSubIndex={
-                                  ui.inOutlineMode ? ui.subIndex : -1
-                                }
-                                width={adjustedColWidth}
-                                height={contentHeight}
-                                selectionLevel={derivedSelectionLevel}
-                              />
-                              {/* Separator line between columns */}
-                              {!isLastCol && <ColumnSeparator />}
-                            </React.Fragment>
+                            <>
+                              {/* Left scroll indicator - full height filled bar */}
+                              {widths.hasLeftIndicator && (
+                                <VerticalScrollIndicator direction="left" />
+                              )}
+                              {effectiveVisibleColumns.map((col, i) => {
+                                const actualColIndex = effectiveScrollOffset + i
+                                const isLastCol =
+                                  i === effectiveVisibleColumns.length - 1
+                                const adjustedColWidth = getColumnWidth(
+                                  i,
+                                  widths.baseColWidth,
+                                  widths.remainder,
+                                )
+                                return (
+                                  <React.Fragment key={col.node.id}>
+                                    <Column
+                                      column={col}
+                                      colIndex={actualColIndex}
+                                      isSelected={
+                                        actualColIndex === layout.colIndex
+                                      }
+                                      isCollapsed={ui.collapsedColumns.has(
+                                        actualColIndex,
+                                      )}
+                                      selectedCardIndex={layout.cardIndex}
+                                      selectedSubIndex={
+                                        ui.inOutlineMode ? ui.subIndex : -1
+                                      }
+                                      width={adjustedColWidth}
+                                      height={contentHeight}
+                                      selectionLevel={derivedSelectionLevel}
+                                    />
+                                    {/* Separator line between columns */}
+                                    {!isLastCol && <ColumnSeparator />}
+                                  </React.Fragment>
+                                )
+                              })}
+                              {/* Right scroll indicator - full height filled bar */}
+                              {widths.hasRightIndicator && (
+                                <VerticalScrollIndicator direction="right" />
+                              )}
+                            </>
                           )
-                        })}
-                        {/* Right scroll indicator - full height filled bar */}
-                        {effectiveScrollOffset + effectiveMaxCols <
-                          state.columns.length && (
-                          <VerticalScrollIndicator direction="right" />
-                        )}
+                        })()}
                       </>
                     )}
                   </Box>
