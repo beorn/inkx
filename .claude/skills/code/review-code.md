@@ -86,7 +86,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Prop drilling      | Same props passed through several layers and/or with unneccessary aliasing  |
 | Import side effect | Module-level initialization, `let x = expensiveInit()` on load              |
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
-| Old inkx render    | `createTestRenderer` inside function body (wasteful recreation each call)   |
+| Old inkx render    | `createRenderer` inside function body (wasteful recreation each call)   |
 | Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer inkx APIs      |
 | Deprecated inkx    | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter` |
 | Deprecated chalkx  | Default chalkX import, `chalk` export, `supportsExtendedUnderline`          |
@@ -187,10 +187,10 @@ The script detects:
 
 **Test/TUI issues (6 patterns)**:
 
-- Pattern 22: createTestRenderer inside function (`createTestRenderer` called inside test body = wasteful recreation; module-level is correct)
+- Pattern 22: createRenderer inside function (`createRenderer` called inside test body = wasteful recreation; module-level is correct)
 - Pattern 23: Old lastFrame capture (`lastFrame()` instead of `app.text` or newer inkx APIs)
 - Pattern 24: stdin.write() for keyboard input (should use `app.press()`)
-- Pattern 25: createTestRenderer in production code (tests only)
+- Pattern 25: createRenderer in production code (tests only)
 - Pattern 26: Direct chalk imports (should use `createTerm`/`useTerm`)
 - Pattern 27: High complexity functions (cyclomatic>20 or cognitive>15, candidates for refactoring)
 
@@ -373,7 +373,7 @@ For each finding (from Iteration 0.5 + Iteration 1):
 
 | Finding Type        | Default Severity | Context Adjustments                               |
 | ------------------- | ---------------- | ------------------------------------------------- |
-| Old inkx render     | Medium           | createTestRenderer inside function body (should be at module level) |
+| Old inkx render     | Medium           | createRenderer inside function body (should be at module level) |
 | Old lastFrame       | Medium           | Should use app.text or other newer inkx APIs      |
 | Manual layout calc  | Low              | High if workaround for inkx bug (see km-inkx-flexgrow) |
 

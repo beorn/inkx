@@ -29,7 +29,7 @@
  */
 
 import React from "react"
-import { createTestRenderer, bufferToStyledText } from "inkx/testing"
+import { createRenderer, bufferToStyledText } from "inkx/testing"
 import type { AutoLocator, FilterOptions } from "inkx/testing"
 import type { InkxNode } from "inkx"
 import { type KNode, runGenerator } from "@km/core"
@@ -162,7 +162,7 @@ export async function createBoardTest(
   state.rootPath = repoPath
 
   // Create test renderer
-  const render = createTestRenderer({ columns: width, rows: height })
+  const render = createRenderer({ cols: width, rows: height })
 
   // Render the board using BoardCore (pure rendering) wrapped in RepoProvider
   const boardCoreElement = React.createElement(BoardCore, {

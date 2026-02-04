@@ -19,8 +19,8 @@ Generated: 2026-01-23
 
 | File                                                                       | Tests | Reason                                             |
 | -------------------------------------------------------------------------- | ----- | -------------------------------------------------- |
-| [tui.playwright.ts](apps/km-tui/tests/tui.playwright.ts)                   | 8     | Use inkx `createTestRenderer()` instead of browser |
-| [body-content.playwright.ts](apps/km-tui/tests/body-content.playwright.ts) | 6     | Use inkx `createTestRenderer()` instead of browser |
+| [tui.playwright.ts](apps/km-tui/tests/tui.playwright.ts)                   | 8     | Use inkx `createRenderer()` instead of browser |
+| [body-content.playwright.ts](apps/km-tui/tests/body-content.playwright.ts) | 6     | Use inkx `createRenderer()` instead of browser |
 
 ### Navigation Tests - No Overlap (Verified)
 

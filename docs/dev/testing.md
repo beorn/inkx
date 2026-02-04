@@ -99,7 +99,7 @@ const syncManager = new SyncManager({ db, useWorker: false })
 │         (end-user visible, documentation-like)              │
 ├──────────────────────────┬──────────────────────────────────┤
 │  VISUAL (TUI)            │  CLI                             │
-│  inkx createTestRenderer │  mdtest (.test.md)               │
+│  inkx createRenderer │  mdtest (.test.md)               │
 │  + InkxLocator           │                                  │
 │  - Screen coordinates    │  - Command output                │
 │  - Representative fixtures│ - Error messages                │
@@ -633,9 +633,9 @@ Dynamic Testing
 Fast, character-based testing for components:
 
 ```typescript
-import { createTestRenderer, createLocator, keyToAnsi } from "inkx/testing";
+import { createRenderer, createLocator, keyToAnsi } from "inkx/testing";
 
-const render = createTestRenderer({ columns: 80, rows: 24 });
+const render = createRenderer({ cols: 80, rows: 24 });
 const { lastFrameText, getContainer, stdin, debug } = render(<Board {...props} />);
 
 // Text assertions
@@ -760,7 +760,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 | Testing Need             | Use This                | Not This         |
 | ------------------------ | ----------------------- | ---------------- |
-| TUI rendering/navigation | inkx createTestRenderer | Playwright       |
+| TUI rendering/navigation | inkx createRenderer | Playwright       |
 | CLI command output       | mdtest (.test.md)       | Unit test        |
 | Domain object behavior   | Unit test with DI       | Integration test |
 | Pure function logic      | Unit test               | mdtest           |

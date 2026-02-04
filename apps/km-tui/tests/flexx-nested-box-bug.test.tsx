@@ -9,11 +9,11 @@
  * Expected: flexShrink=0 child sizes to content (height=1 for single line)
  * Actual: flexShrink=0 child expands to container height (height=20)
  */
-import { createTestRenderer } from "inkx/testing"
+import { createRenderer } from "inkx/testing"
 import { Box, Text } from "inkx"
 import { test, expect, describe } from "vitest"
 
-const render = createTestRenderer({ columns: 80, rows: 24 })
+const render = createRenderer({ cols: 80, rows: 24 })
 
 describe("flexx nested Box bug (km-flexx-improve.11)", () => {
   describe("1. Minimal reproduction", () => {

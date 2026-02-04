@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest"
 import React from "react"
-import { createTestRenderer } from "inkx/testing"
+import { createRenderer } from "inkx/testing"
 
 import {
   Report,
@@ -19,7 +19,7 @@ import {
 } from "./index.tsx"
 import { createTestStore, type TestStore } from "./store.js"
 
-const render = createTestRenderer({ columns: 100, rows: 50 })
+const render = createRenderer({ cols: 100, rows: 50 })
 
 function createOptions(overrides: Partial<Options> = {}): Options {
   return {

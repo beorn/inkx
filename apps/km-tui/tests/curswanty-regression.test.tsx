@@ -11,7 +11,7 @@
  */
 import { test, expect, describe } from "vitest"
 import React from "react"
-import { createTestRenderer } from "inkx/testing"
+import { createRenderer } from "inkx/testing"
 import { Board } from "../src/views/Board.tsx"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createLayoutRegistry, getCardMidY } from "../src/card-positions.ts"
@@ -21,8 +21,8 @@ import type { TUIBoardState } from "../src/types.ts"
 import { item } from "./helpers/board-test.ts"
 
 // Module-level renderers (created once, reused across tests via auto-cleanup)
-const render80 = createTestRenderer({ columns: 80, rows: 24 })
-const render120 = createTestRenderer({ columns: 120, rows: 40 })
+const render80 = createRenderer({ cols: 80, rows: 24 })
+const render120 = createRenderer({ cols: 120, rows: 40 })
 
 function makeTUIBoardState(rootId: string): TUIBoardState {
   return {

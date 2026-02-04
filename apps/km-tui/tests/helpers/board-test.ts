@@ -1,7 +1,7 @@
 /**
  * Board Test Helper - Fluent API for Visual Board Testing
  *
- * Wraps inkx createTestRenderer with a concise, documentation-like API
+ * Wraps inkx createRenderer with a concise, documentation-like API
  * for testing TUI board rendering.
  *
  * ## Architecture (3-layer pattern)
@@ -54,7 +54,7 @@
  */
 
 import React from "react"
-import { createTestRenderer, type App, type AutoLocator } from "inkx/testing"
+import { createRenderer, type App, type AutoLocator } from "inkx/testing"
 import { expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import type { KNode, NodeRules, NodeType } from "@km/core"
@@ -299,7 +299,7 @@ export function testEnv(
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
-  const render = createTestRenderer({ columns, rows })
+  const render = createRenderer({ cols: columns, rows })
   const registry = createLayoutRegistry()
   const boardElement = React.createElement(Board, {
     initialState,
@@ -947,7 +947,7 @@ export function renderBoard(
   // Create a fake repo for static rendering tests
   const repo = createFakeRepo()
 
-  const render = createTestRenderer({ columns, rows })
+  const render = createRenderer({ cols: columns, rows })
   const boardCoreElement = React.createElement(BoardCore, {
     state,
     layout: {

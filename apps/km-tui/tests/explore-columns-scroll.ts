@@ -5,7 +5,7 @@
  */
 
 import React from "react"
-import { createTestRenderer, stripAnsi } from "inkx/testing"
+import { createRenderer, stripAnsi } from "inkx/testing"
 import { createFakeRepo } from "@km/storage"
 import { Board } from "../src/views/Board.tsx"
 import { buildBoardState } from "../src/state.ts"
@@ -94,7 +94,7 @@ async function main() {
 
   const columns = 80
   const rows = 20 // Small height to force scrolling
-  const render = createTestRenderer({ columns, rows })
+  const render = createRenderer({ cols: columns, rows })
   const registry = createLayoutRegistry()
 
   const result = render(

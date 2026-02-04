@@ -165,12 +165,12 @@ echo ""
 # TEST/TUI PATTERNS (Patterns 22-27)
 # =============================================================================
 
-echo "=== PATTERN 22: createTestRenderer inside function ==="
-# Calling createTestRenderer inside a test/function body is wasteful - recreates renderer each call
-# CORRECT: const render = createTestRenderer(...) at module level (created once)
-# WRONG: createTestRenderer(...) indented inside describe/it/test blocks (recreated per test)
-# Detect by finding createTestRenderer calls that are indented (not at column 0/1)
-grep -rn "^\s\+.*createTestRenderer" packages apps --include="*.test.ts" --include="*.test.tsx" 2>/dev/null \
+echo "=== PATTERN 22: createRenderer inside function ==="
+# Calling createRenderer inside a test/function body is wasteful - recreates renderer each call
+# CORRECT: const render = createRenderer(...) at module level (created once)
+# WRONG: createRenderer(...) indented inside describe/it/test blocks (recreated per test)
+# Detect by finding createRenderer calls that are indented (not at column 0/1)
+grep -rn "^\s\+.*createRenderer" packages apps --include="*.test.ts" --include="*.test.tsx" 2>/dev/null \
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
@@ -191,10 +191,10 @@ grep -rn "stdin\.write\|keyToAnsi" packages apps --include="*.ts" --include="*.t
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
-echo "=== PATTERN 25: createTestRenderer in production code ==="
-# createTestRenderer is for tests only - production code should use renderStatic()
+echo "=== PATTERN 25: createRenderer in production code ==="
+# createRenderer is for tests only - production code should use renderStatic()
 # Note: src/testing.ts is a test utility exported for test consumption, not production code
-grep -rn "createTestRenderer" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+grep -rn "createRenderer" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
   | grep -v "node_modules\|vendor/\|\.test\.\|tests/\|storybook\|src/testing\.ts" || true
 echo ""
 

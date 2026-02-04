@@ -7,10 +7,10 @@
 
 import { describe, test, expect, beforeEach } from "vitest"
 import React, { useCallback, useRef } from "react"
-import { createTestRenderer, normalizeFrame } from "inkx/testing"
+import { createRenderer, normalizeFrame } from "inkx/testing"
 import { Box, Text, useScreenRectCallback } from "inkx"
 
-const render = createTestRenderer({ columns: 80, rows: 24 })
+const render = createRenderer({ cols: 80, rows: 24 })
 
 interface RecordedPosition {
   id: string

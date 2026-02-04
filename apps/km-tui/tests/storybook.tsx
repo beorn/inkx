@@ -1757,8 +1757,8 @@ const isStaticMode = process.argv.includes("--static")
 if (isStaticMode) {
   // Static mode: render to string and output (original behavior)
   // Dynamic import to avoid setting IS_REACT_ACT_ENVIRONMENT in interactive mode
-  const { createTestRenderer } = await import("inkx/testing")
-  const render = createTestRenderer({ columns: 120, rows: 500 })
+  const { createRenderer } = await import("inkx/testing")
+  const render = createRenderer({ cols: 120, rows: 500 })
   const app = render(<StaticStorybook />)
   // Clean up output from 500-row buffer:
   // 1. Remove trailing whitespace from each line

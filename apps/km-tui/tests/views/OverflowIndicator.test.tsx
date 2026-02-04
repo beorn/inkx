@@ -6,9 +6,9 @@
 
 import { describe, it, expect } from "vitest"
 import React from "react"
-import { createTestRenderer } from "inkx/testing"
+import { createRenderer } from "inkx/testing"
 
-const render = createTestRenderer()
+const render = createRenderer()
 import { OverflowIndicator } from "../../src/views/OverflowIndicator.tsx"
 
 describe("OverflowIndicator", () => {

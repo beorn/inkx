@@ -4,7 +4,7 @@
 
 Unify production and testing render paths via a pure generator API that separates I/O from rendering logic.
 
-**TL;DR:** Replace `render(term, <App />)` and `createTestRenderer()` with a single generator-based API. Render yields frames, caller handles I/O. Testing becomes `gen.next(input)`, production wires to real terminal.
+**TL;DR:** Replace `render(term, <App />)` and `createRenderer()` with a single generator-based API. Render yields frames, caller handles I/O. Testing becomes `gen.next(input)`, production wires to real terminal.
 
 ---
 
@@ -12,7 +12,7 @@ Unify production and testing render paths via a pure generator API that separate
 
 ### Pain Points Today
 
-1. **Two mental models** — Production uses `render(term, <App />)`, testing uses `createTestRenderer()`. Same operation, different APIs.
+1. **Two mental models** — Production uses `render(term, <App />)`, testing uses `createRenderer()`. Same operation, different APIs.
 
 2. **Test-only debugging** — `getContainer()`, `debugTree()`, frame capture only exist in test renderer. Can't debug production rendering.
 
@@ -59,7 +59,7 @@ await render(term, <App />)
 **Testing:**
 
 ```tsx
-const render = createTestRenderer({ columns: 80, rows: 24 })
+const render = createRenderer({ cols: 80, rows: 24 })
 const result = render(<App />)
 result.stdin.write("\x1b[B")
 expect(result.lastFrameText()).toContain("...")
@@ -152,7 +152,7 @@ function createTestTerm(options): TestTerm
 
 ```tsx
 // Direct generator (maximum control)
-const gen = renderSync(<Counter />, { columns: 80, rows: 24 })
+const gen = renderSync(<Counter />, { cols: 80, rows: 24 })
 const { frame } = gen.next().value!
 expect(frame.text).toContain("Count: 0")
 
@@ -163,7 +163,7 @@ const { frame: next } = gen.next({
 expect(next.text).toContain("Count: 1")
 
 // Convenience wrapper (typical tests)
-using term = createTestTerm({ columns: 80, rows: 24 })
+using term = createTestTerm({ cols: 80, rows: 24 })
 term.render(<Counter />)
 term.press("ArrowUp")
 expect(term.screenshot()).toContain("Count: 1")
@@ -364,7 +364,7 @@ Keep production and test renderers separate, just improve each.
 
 ```tsx
 const renderer = createRenderer({ term }) // production
-const renderer = createRenderer({ columns: 80 }) // testing (headless)
+const renderer = createRenderer({ cols: 80 }) // testing (headless)
 ```
 
 **Pros:** Single entry point
@@ -512,13 +512,13 @@ await run(term, <App />)
 
 // TESTING
 // Before
-const render = createTestRenderer({ columns: 80, rows: 24 })
+const render = createRenderer({ cols: 80, rows: 24 })
 const { stdin, lastFrameText } = render(<App />)
 stdin.write("\x1b[B")
 expect(lastFrameText()).toContain("selected")
 
 // After
-using term = createTestTerm({ columns: 80, rows: 24 })
+using term = createTestTerm({ cols: 80, rows: 24 })
 term.render(<App />).press("ArrowDown")
 expect(term.screenshot()).toContain("selected")
 ```

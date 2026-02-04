@@ -23,7 +23,7 @@
  */
 
 import React from "react"
-import { createTestRenderer, type App } from "inkx/testing"
+import { createRenderer, type App } from "inkx/testing"
 import { expect } from "vitest"
 import { createRepo, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
@@ -107,7 +107,7 @@ export async function testBoard(
   ensureCommandSystemInitialized()
 
   // Render
-  const render = createTestRenderer({ columns, rows })
+  const render = createRenderer({ cols: columns, rows })
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,

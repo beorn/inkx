@@ -1,8 +1,8 @@
 import { describe, test, expect } from "vitest"
 import React from "react"
-import { createTestRenderer } from "inkx/testing"
-const render = createTestRenderer()
-const renderTall = createTestRenderer({ columns: 80, rows: 32 })
+import { createRenderer } from "inkx/testing"
+const render = createRenderer()
+const renderTall = createRenderer({ cols: 80, rows: 32 })
 import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 import {

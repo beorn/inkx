@@ -7,13 +7,13 @@
 
 import { describe, test, expect } from "vitest"
 import React from "react"
-import { createTestRenderer } from "inkx/testing"
+import { createRenderer } from "inkx/testing"
 import { Box, Text } from "inkx"
 
 // Import matchers to register them with Vitest
 import "./matchers.ts"
 
-const render = createTestRenderer({ columns: 80, rows: 24 })
+const render = createRenderer({ cols: 80, rows: 24 })
 
 // =============================================================================
 // Helper Components for Testing

@@ -6,7 +6,7 @@
  * 2. Navigation time (j/k keypresses)
  */
 import React from "react"
-import { createTestRenderer } from "inkx/testing"
+import { createRenderer } from "inkx/testing"
 import { Box, Text, VirtualList } from "inkx"
 
 // Test parameters
@@ -57,7 +57,7 @@ async function benchmark(
   name: string,
   Component: React.ComponentType<{ selectedIndex: number }>,
 ) {
-  const render = createTestRenderer({ columns: 80, rows: 24 })
+  const render = createRenderer({ cols: 80, rows: 24 })
 
   // Measure initial render
   const initStart = performance.now()

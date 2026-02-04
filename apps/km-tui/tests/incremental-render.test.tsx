@@ -9,7 +9,7 @@
 import { describe, expect, test } from "vitest"
 import React, { useState } from "react"
 import { Box, Text, useInput, type Key } from "inkx"
-import { createTestRenderer } from "inkx/testing"
+import { createRenderer } from "inkx/testing"
 import { item, testEnv } from "./helpers/board-test"
 
 describe("incremental rendering", () => {
@@ -243,7 +243,7 @@ describe("incremental rendering", () => {
 })
 
 describe("incremental rendering: Text node backgroundColor", () => {
-  const render = createTestRenderer({ columns: 40, rows: 10 })
+  const render = createRenderer({ cols: 40, rows: 10 })
 
   test("column-header-style Text bg clears when selection changes", () => {
     // Mimics column headers: <Text backgroundColor={selected ? "yellow" : undefined}>

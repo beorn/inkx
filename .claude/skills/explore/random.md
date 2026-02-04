@@ -32,7 +32,7 @@ const { board } = testEnv(() =>
 
 ```typescript
 import React from "react"
-import { createTestRenderer } from "inkx/testing"
+import { createRenderer } from "inkx/testing"
 import { createRepo, runGenerator } from "@km/storage"
 import { Board } from "../src/views/Board.tsx"
 import { buildBoardState } from "../src/state.ts"
@@ -48,7 +48,7 @@ const initialState = buildBoardState(repo, rootNode.id)
 ensureCommandSystemInitialized()
 
 // Render with inkx test renderer
-const render = createTestRenderer({ columns: 80, rows: 24 })
+const render = createRenderer({ cols: 80, rows: 24 })
 const result = render(
   React.createElement(RepoProvider, { repo,
     children: React.createElement(Board, {

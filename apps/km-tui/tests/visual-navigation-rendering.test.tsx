@@ -11,7 +11,7 @@
 
 import { describe, test, expect } from "vitest"
 import React from "react"
-import { createTestRenderer } from "inkx/testing"
+import { createRenderer } from "inkx/testing"
 import { Board } from "../src/views/Board.tsx"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createLayoutRegistry } from "../src/card-positions.ts"
@@ -19,7 +19,7 @@ import { createFakeRepo } from "@km/storage"
 import type { TUIBoardState } from "../src/types.ts"
 import { item } from "./helpers/board-test.ts"
 
-const render = createTestRenderer({ columns: 80, rows: 24 })
+const render = createRenderer({ cols: 80, rows: 24 })
 
 // Helper to create a minimal TUIBoardState (columns are derived from repo now)
 // Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState

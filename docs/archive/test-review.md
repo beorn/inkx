@@ -155,7 +155,7 @@ test("should display cards view", async ({ page }) => {
 })
 ```
 
-**Status**: Deprecated - migrate to inkx `createTestRenderer()`.
+**Status**: Deprecated - migrate to inkx `createRenderer()`.
 
 **When reviewing Playwright tests**:
 
@@ -165,7 +165,7 @@ test("should display cards view", async ({ page }) => {
 
 **Preferred alternatives**:
 
-- `inkx/testing` with `createTestRenderer()` for visual assertions
+- `inkx/testing` with `createRenderer()` for visual assertions
 - `km sh` + mdtest for scripted TUI testing
 
 ### mdtest / `km sh` Tests (`apps/km-cli/tests/sh/*.test.md`)
