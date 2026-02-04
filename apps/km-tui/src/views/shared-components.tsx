@@ -111,7 +111,7 @@ function CardLayoutTracker({
   nodeId,
   colIndex,
   cardIndex,
-  isSelected,
+  isSelected: _isSelected,
   children,
 }: CardLayoutTrackerProps): React.ReactElement {
   const registry = useLayoutRegistryOptional()

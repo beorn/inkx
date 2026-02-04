@@ -19,7 +19,6 @@ import {
   type QueryAST,
   type QueryCondition,
   type QueryRef,
-  type QueryPath,
   type DateRange,
 } from "@km/core"
 

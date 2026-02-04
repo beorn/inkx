@@ -5,11 +5,9 @@
  * Uses parameterized yielding to support generator and promise-based callers.
  *
  * Architecture:
- *   resolvePendingLinks()  ← Core resolution logic (sync)
  *   resolveLinksGen()      ← Generator wrapper for sync progress
  *   resolveLinksAsync()    ← Async wrapper for background resolution
- *
- * The core logic is shared - only the yielding/progress mechanism differs.
+ *   applyResolvedLinks()   ← Database writes (shared)
  */
 
 // Node.js/Bun global for yielding to event loop
@@ -56,67 +54,6 @@ interface LinkResolutionResult {
 // ============================================================================
 // CORE RESOLUTION LOGIC
 // ============================================================================
-
-/**
- * Core link resolution - builds link data from pending links.
- * Pure function: no database writes, no yielding.
- *
- * @param db - Database for creating resolver
- * @param pendingLinks - Links to resolve
- * @returns Link data and embedded updates
- */
-function resolvePendingLinks(
-  db: Database,
-  pendingLinks: PendingLink[],
-): LinkResolutionResult {
-  if (pendingLinks.length === 0) {
-    return { linksToInsert: [], embeddedUpdates: [], resolvedCount: 0 }
-  }
-
-  // Use shared LinkResolver for O(1) lookups
-  const resolver = createLinkResolver(db)
-
-  const linksToInsert: LinkData[] = []
-  const embeddedUpdates: EmbeddedUpdate[] = []
-  let resolvedCount = 0
-
-  for (const { nodeId, link, relationship } of pendingLinks) {
-    // Use resolver for O(1) target and section lookup
-    let targetId = resolver.resolveTarget(link.target)
-    if (targetId && link.section) {
-      const sectionId = resolver.resolveSection(targetId, link.section)
-      if (sectionId) {
-        targetId = sectionId
-      }
-    }
-
-    linksToInsert.push({
-      source_id: nodeId,
-      target_name: link.target,
-      target_id: targetId,
-      section: link.section ?? null,
-      block_id: link.blockId ?? null,
-      alias: link.alias ?? null,
-      embedded: link.embedded ?? false,
-      relationship: relationship ?? null,
-    })
-
-    // Track embedded links that need node updates
-    if (link.embedded && targetId) {
-      embeddedUpdates.push({
-        source_id: nodeId,
-        target_id: targetId,
-        alias: link.alias ?? null,
-      })
-    }
-
-    if (targetId) {
-      resolvedCount++
-    }
-  }
-
-  return { linksToInsert, embeddedUpdates, resolvedCount }
-}
 
 /**
  * Apply resolved links to database.

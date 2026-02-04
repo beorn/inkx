@@ -6,7 +6,7 @@
  *
  * Uses inkx VirtualList for React-level virtualization.
  */
-import React, { useCallback } from "react"
+import React from "react"
 import { Box, Text, VirtualList } from "inkx"
 import type { TUIBoardState, CardState } from "../types.ts"
 import { getNodeDisplayName } from "../state.ts"
