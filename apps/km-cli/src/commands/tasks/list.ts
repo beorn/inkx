@@ -133,15 +133,19 @@ function resolveInput(
     options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
 
   if (queryArg) {
-    return { tasks: resolveFromQuery(repo, queryArg, options), rootNode: null, pathFilter: null }
+    return {
+      tasks: resolveFromQuery(repo, queryArg, options),
+      rootNode: null,
+      pathFilter: null,
+    }
   }
 
   if (pathOrId) {
     const result = resolveFromPathOrId(repo, pathOrId, options)
     if (!result) {
       // pathOrId resolved to a single task - show details as side-effect
-      const rootNode = findNodeByPathOrId(repo, pathOrId)!
-      showTaskDetails(repo, rootNode, options)
+      const rootNode = findNodeByPathOrId(repo, pathOrId)
+      if (rootNode) showTaskDetails(repo, rootNode, options)
       return null
     }
     return result

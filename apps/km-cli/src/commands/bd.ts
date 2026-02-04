@@ -471,6 +471,7 @@ bdCommand.addCommand(bdAgentCommand)
 bdCommand
   .command("info [scope]")
   .description("Show beads configuration and statistics")
+  // oxlint-disable-next-line complexity/max-cognitive -- CLI action with sequential reporting steps
   .action(async (scope) => {
     const resolved = resolvePathArg(scope)
     const kmDir = join(resolved.repoRoot, ".km")
