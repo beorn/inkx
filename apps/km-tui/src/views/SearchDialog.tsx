@@ -266,6 +266,7 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
     const filteredResults = useMemo(() => {
       if (!deferredQuery.trim()) {
         // Show recent items (tasks, files, sections) sorted by updated_at
+        // No artificial limit - let maxVisible control what's shown
         return [...allResults]
           .filter(
             (r) =>
@@ -274,7 +275,6 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
               r.node.type === "section",
           )
           .sort((a, b) => b.node.updated_at - a.node.updated_at)
-          .slice(0, 20)
       }
 
       // Parse query for structured search
@@ -303,11 +303,10 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
             r !== null && r.score >= 0,
         )
         .sort((a, b) => b.score - a.score)
-        .slice(0, 50) // Limit to top 50 results
     }, [allResults, deferredQuery])
 
-    // Max visible items: height - borders(2) - paddingY(2) - title(1) - input(1) - spacer(1) - footer(1) = height - 8
-    const maxVisible = Math.max(1, height - 8)
+    // Max visible items: height - borders(2) - paddingY(2) - title(1) - spacer(1) - input(1) - spacer(1) - footer(1) = height - 9
+    const maxVisible = Math.max(1, height - 9)
 
     // Scroll offset to keep selection visible
     const scrollOffset = Math.max(
@@ -380,12 +379,17 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         height={height}
         footer={footerContent}
       >
+        {/* Spacer after title */}
+        <Text> </Text>
+
         {/* Search input */}
         <Text>
           <Text color="yellow">{"/ "}</Text>
           <Text>{query}</Text>
           <Text inverse> </Text>
         </Text>
+
+        {/* Spacer before results */}
         <Text> </Text>
 
         {/* Results list — flexGrow fills available height */}
