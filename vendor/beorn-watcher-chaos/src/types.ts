@@ -4,12 +4,12 @@
  * Types for simulating file watcher edge cases.
  */
 
-import type { EventEmitter } from "events";
+import type { EventEmitter } from "events"
 
 /**
  * Service status indicates the lifecycle state.
  */
-export type ServiceStatus = "stopped" | "starting" | "running" | "stopping";
+export type ServiceStatus = "stopped" | "starting" | "running" | "stopping"
 
 /**
  * Service interface for objects with start/stop lifecycle.
@@ -17,35 +17,35 @@ export type ServiceStatus = "stopped" | "starting" | "running" | "stopping";
  */
 export interface Service extends AsyncDisposable {
   /** Current lifecycle status */
-  readonly status: ServiceStatus;
+  readonly status: ServiceStatus
 
   /**
    * Start the service.
    * Transitions: stopped → starting → running
    */
-  start(): Promise<void>;
+  start(): Promise<void>
 
   /**
    * Stop the service.
    * Transitions: running → stopping → stopped
    */
-  stop(): Promise<void>;
+  stop(): Promise<void>
 }
 
 /**
  * File system event types matching chokidar
  */
-export type FsEventType = "add" | "change" | "unlink" | "addDir" | "unlinkDir";
+export type FsEventType = "add" | "change" | "unlink" | "addDir" | "unlinkDir"
 
 /**
  * A file system event
  */
 export interface FsEvent {
-  type: FsEventType;
-  path: string;
-  ino?: number;
-  mtime?: number;
-  size?: number;
+  type: FsEventType
+  path: string
+  ino?: number
+  mtime?: number
+  size?: number
 }
 
 /**
@@ -53,22 +53,22 @@ export interface FsEvent {
  */
 export interface EventTiming {
   /** Delay before event is emitted (ms) */
-  delay?: number;
+  delay?: number
   /** If true, event is dropped entirely */
-  drop?: boolean;
+  drop?: boolean
   /** Number of times to duplicate this event */
-  duplicates?: number;
+  duplicates?: number
   /** Delay between duplicates (ms) */
-  duplicateDelay?: number;
+  duplicateDelay?: number
 }
 
 /**
  * A scheduled event with timing information
  */
 export interface ScheduledEvent extends FsEvent {
-  timing?: EventTiming;
+  timing?: EventTiming
   /** Original order index for reordering scenarios */
-  originalIndex?: number;
+  originalIndex?: number
 }
 
 /**
@@ -84,21 +84,21 @@ export type ChaosScenarioType =
   | "rename_storm"
   | "fsevents_coalesce"
   | "init_gap"
-  | "rapid_succession";
+  | "rapid_succession"
 
 export interface ChaosScenario {
-  type: ChaosScenarioType;
-  params: Record<string, unknown>;
+  type: ChaosScenarioType
+  params: Record<string, unknown>
 }
 
 /**
  * Sync event data emitted by watcher
  */
 export interface SyncData {
-  paths: string[];
-  directories: string[];
-  overflow?: boolean;
-  mustScanSubDirs?: boolean;
+  paths: string[]
+  directories: string[]
+  overflow?: boolean
+  mustScanSubDirs?: boolean
 }
 
 /**
@@ -109,22 +109,22 @@ export interface SyncData {
  */
 export interface WatcherInterface extends EventEmitter, Service {
   /** Start watching a directory (repoPath optional if set via config) */
-  start(repoPath?: string): Promise<void>;
+  start(repoPath?: string): Promise<void>
 
   /** Stop watching */
-  stop(): Promise<void>;
+  stop(): Promise<void>
 
   /** Mark a path as in-flight (being written by us) */
-  markInFlight(path: string): void;
+  markInFlight(path: string): void
 
   /** Clear in-flight status after write settles */
-  clearInFlight(path: string, delayMs?: number): void;
+  clearInFlight(path: string, delayMs?: number): void
 
   /** Check if a path is in-flight */
-  isInFlight(path: string): boolean;
+  isInFlight(path: string): boolean
 
   /** Force immediate sync (bypass debounce) */
-  forceSync(): void;
+  forceSync(): void
 
   // Events emitted:
   // "ready" - watcher is ready
@@ -137,17 +137,17 @@ export interface WatcherInterface extends EventEmitter, Service {
  */
 export interface ChaosWatcherConfig {
   /** Base debounce time (ms) */
-  debounceMs: number;
+  debounceMs: number
   /** Repo path to watch (can also be set in start()) */
-  repoPath?: string;
+  repoPath?: string
   /** Chaos scenario to apply */
-  scenario?: ChaosScenario;
+  scenario?: ChaosScenario
   /** Custom event transformer */
-  eventTransformer?: (events: ScheduledEvent[]) => ScheduledEvent[];
+  eventTransformer?: (events: ScheduledEvent[]) => ScheduledEvent[]
   /** Random seed for reproducible chaos */
-  seed?: number;
+  seed?: number
   /** Use virtual time for deterministic testing (default: true) */
-  virtualTime?: boolean;
+  virtualTime?: boolean
 }
 
 /**
@@ -156,48 +156,48 @@ export interface ChaosWatcherConfig {
 export interface IChaosWatcher extends WatcherInterface {
   // Chaos injection methods
   /** Inject a single event */
-  inject(event: FsEvent, timing?: EventTiming): void;
+  inject(event: FsEvent, timing?: EventTiming): void
 
   /** Inject multiple events (transformed individually) */
-  injectEvents(events: FsEvent[]): void;
+  injectEvents(events: FsEvent[]): void
 
   /** Inject a batch of events (transformed as a batch) */
-  injectBatch(events: FsEvent[]): void;
+  injectBatch(events: FsEvent[]): void
 
   // Scenario control
   /** Set the chaos scenario */
-  setScenario(scenario: ChaosScenario): void;
+  setScenario(scenario: ChaosScenario): void
 
   /** Clear the chaos scenario */
-  clearScenario(): void;
+  clearScenario(): void
 
   // Queue simulation
   /** Simulate inotify IN_Q_OVERFLOW */
-  simulateQueueOverflow(): void;
+  simulateQueueOverflow(): void
 
   /** Simulate FSEvents kFSEventStreamEventFlagMustScanSubDirs */
-  simulateFsEventsFlagMustScanSubDirs(dirPath: string): void;
+  simulateFsEventsFlagMustScanSubDirs(dirPath: string): void
 
   // Time manipulation (when virtualTime is enabled)
   /** Advance virtual time and process events */
-  advanceTime(ms: number): Promise<void>;
+  advanceTime(ms: number): Promise<void>
 
   /** Process all pending events immediately */
-  flush(): Promise<void>;
+  flush(): Promise<void>
 
   // Introspection
   /** Get pending events not yet emitted */
-  getPendingEvents(): ScheduledEvent[];
+  getPendingEvents(): ScheduledEvent[]
 
   /** Get all emitted events */
-  getEmittedEvents(): FsEvent[];
+  getEmittedEvents(): FsEvent[]
 
   /** Get all dropped events */
-  getDroppedEvents(): FsEvent[];
+  getDroppedEvents(): FsEvent[]
 
   /** Get current virtual time (if in virtual time mode) */
-  getVirtualTime(): number;
+  getVirtualTime(): number
 
   /** Reset all state for a fresh test */
-  reset(): void;
+  reset(): void
 }

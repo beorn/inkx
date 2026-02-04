@@ -25,7 +25,9 @@ describe("Columns View", () => {
     test("displays board in columns view mode", () => {
       const { board } = testEnv(
         () => item("board", item("col1", item("1a"), item("1b"))),
-        { viewMode: "columns" },
+        {
+          viewMode: "columns",
+        },
       )
       // Should render the cards
       board.expect("#1a").toExist()
@@ -61,7 +63,9 @@ describe("Columns View", () => {
     test("empty column shows placeholder", () => {
       const { board } = testEnv(
         () => item("board", item("col1", item("task")), item("col2")),
-        { viewMode: "columns" },
+        {
+          viewMode: "columns",
+        },
       )
       const output = board.screenshot()
       expect(output).toContain("col2")
@@ -145,7 +149,9 @@ describe("Columns View", () => {
     test("navigate to column headers with k", () => {
       const { board } = testEnv(
         () => item("board", item("col1", item("1a"), item("1b"))),
-        { viewMode: "columns" },
+        {
+          viewMode: "columns",
+        },
       )
       // Start at card
       board.expect("#1a[data-cursor]").toExist()
@@ -164,7 +170,9 @@ describe("Columns View", () => {
     test("j stops at bottom boundary", () => {
       const { board } = testEnv(
         () => item("board", item("col1", item("1a"), item("1b"))),
-        { viewMode: "columns" },
+        {
+          viewMode: "columns",
+        },
       )
       // Navigate to last card
       board.press("j")
@@ -180,7 +188,9 @@ describe("Columns View", () => {
     test("k stops at top boundary", () => {
       const { board } = testEnv(
         () => item("board", item("col1", item("1a"), item("1b"))),
-        { viewMode: "columns" },
+        {
+          viewMode: "columns",
+        },
       )
       // Navigate to board
       board.press("k") // 1a → col1
@@ -364,7 +374,9 @@ describe("Columns View", () => {
     test("view mode indicator shows COLUMNS VIEW", () => {
       const { board } = testEnv(
         () => item("board", item("col1", item("task"))),
-        { viewMode: "columns" },
+        {
+          viewMode: "columns",
+        },
       )
       const output = board.screenshot()
       expect(output).toContain("COLUMNS")
@@ -432,7 +444,9 @@ describe("Columns View", () => {
     test("cards stack vertically within columns", () => {
       const { board } = testEnv(
         () => item("board", item("col1", item("1a"), item("1b"))),
-        { viewMode: "columns" },
+        {
+          viewMode: "columns",
+        },
       )
       const aBox = board.q("#1a").boundingBox()
       const bBox = board.q("#1b").boundingBox()
@@ -483,7 +497,9 @@ describe("Columns View", () => {
     test("Enter opens detail pane for card with children", () => {
       const { board } = testEnv(
         () => item("board", item("col", item("card", item("subcard")))),
-        { viewMode: "columns" },
+        {
+          viewMode: "columns",
+        },
       )
       board.expect("#card[data-cursor]").toExist()
       board.press("\r")
@@ -515,7 +531,9 @@ describe("Columns View", () => {
     test("Escape closes detail pane", () => {
       const { board } = testEnv(
         () => item("board", item("col", item("card", item("subcard")))),
-        { viewMode: "columns" },
+        {
+          viewMode: "columns",
+        },
       )
       board.press("\r")
       board.expect("#subcard").toExist()

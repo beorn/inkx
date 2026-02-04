@@ -3,14 +3,14 @@ import type { Readable } from "node:stream"
 import { webStreamToNodeStream } from "../streams"
 
 export interface VitestTapOptions {
-	args?: string[]
-	cwd?: string
+  args?: string[]
+  cwd?: string
 }
 
 export interface VitestTapResult {
-	stdout: Readable
-	proc: Subprocess
-	exited: Promise<number>
+  stdout: Readable
+  proc: Subprocess
+  exited: Promise<number>
 }
 
 /**
@@ -38,17 +38,17 @@ export interface VitestTapResult {
  * ```
  */
 export function runVitestTap(options: VitestTapOptions = {}): VitestTapResult {
-	const args = ["vitest", "run", "--reporter=tap", ...(options.args ?? [])]
+  const args = ["vitest", "run", "--reporter=tap", ...(options.args ?? [])]
 
-	const proc = spawn(["bunx", "--bun", ...args], {
-		cwd: options.cwd,
-		stdout: "pipe",
-		stderr: "inherit", // Show Vitest errors on stderr
-	})
+  const proc = spawn(["bunx", "--bun", ...args], {
+    cwd: options.cwd,
+    stdout: "pipe",
+    stderr: "inherit", // Show Vitest errors on stderr
+  })
 
-	return {
-		stdout: webStreamToNodeStream(proc.stdout),
-		proc,
-		exited: proc.exited,
-	}
+  return {
+    stdout: webStreamToNodeStream(proc.stdout),
+    proc,
+    exited: proc.exited,
+  }
 }

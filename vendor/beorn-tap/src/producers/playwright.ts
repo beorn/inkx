@@ -16,49 +16,51 @@
  */
 
 import type {
-	FullConfig,
-	FullResult,
-	Reporter,
-	Suite,
-	TestCase,
-	TestResult,
+  FullConfig,
+  FullResult,
+  Reporter,
+  Suite,
+  TestCase,
+  TestResult,
 } from "@playwright/test/reporter"
 
 export default class TapReporter implements Reporter {
-	private count = 0
-	private total = 0
+  private count = 0
+  private total = 0
 
-	onBegin(_config: FullConfig, suite: Suite): void {
-		this.total = suite.allTests().length
-		console.log("TAP version 14")
-		console.log(`1..${this.total}`)
-	}
+  onBegin(_config: FullConfig, suite: Suite): void {
+    this.total = suite.allTests().length
+    console.log("TAP version 14")
+    console.log(`1..${this.total}`)
+  }
 
-	onTestEnd(test: TestCase, result: TestResult): void {
-		this.count++
-		const status = result.status === "passed" ? "ok" : "not ok"
-		const timeComment = `# time=${result.duration}ms`
+  onTestEnd(test: TestCase, result: TestResult): void {
+    this.count++
+    const status = result.status === "passed" ? "ok" : "not ok"
+    const timeComment = `# time=${result.duration}ms`
 
-		if (result.status === "skipped") {
-			console.log(`ok ${this.count} - ${test.title} # SKIP`)
-			return
-		}
+    if (result.status === "skipped") {
+      console.log(`ok ${this.count} - ${test.title} # SKIP`)
+      return
+    }
 
-		console.log(`${status} ${this.count} - ${test.title} ${timeComment}`)
+    console.log(`${status} ${this.count} - ${test.title} ${timeComment}`)
 
-		if (result.status === "failed" && result.error) {
-			console.log("  ---")
-			console.log(`  message: ${result.error.message?.split("\n")[0] ?? "Test failed"}`)
-			if (test.location) {
-				console.log("  at:")
-				console.log(`    file: ${test.location.file}`)
-				console.log(`    line: ${test.location.line}`)
-			}
-			console.log("  ...")
-		}
-	}
+    if (result.status === "failed" && result.error) {
+      console.log("  ---")
+      console.log(
+        `  message: ${result.error.message?.split("\n")[0] ?? "Test failed"}`,
+      )
+      if (test.location) {
+        console.log("  at:")
+        console.log(`    file: ${test.location.file}`)
+        console.log(`    line: ${test.location.line}`)
+      }
+      console.log("  ...")
+    }
+  }
 
-	onEnd(_result: FullResult): void {
-		// Plan already written in onBegin
-	}
+  onEnd(_result: FullResult): void {
+    // Plan already written in onBegin
+  }
 }

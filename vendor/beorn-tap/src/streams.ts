@@ -7,23 +7,23 @@ import { Readable } from "node:stream"
  * @returns Node.js Readable stream compatible with tap-parser and mergeStreams
  */
 export function webStreamToNodeStream(
-	webStream: ReadableStream<Uint8Array>,
+  webStream: ReadableStream<Uint8Array>,
 ): Readable {
-	const reader = webStream.getReader()
-	const decoder = new TextDecoder()
+  const reader = webStream.getReader()
+  const decoder = new TextDecoder()
 
-	return new Readable({
-		async read() {
-			try {
-				const { done, value } = await reader.read()
-				if (done) {
-					this.push(null)
-				} else {
-					this.push(decoder.decode(value, { stream: true }))
-				}
-			} catch (err) {
-				this.destroy(err instanceof Error ? err : new Error(String(err)))
-			}
-		},
-	})
+  return new Readable({
+    async read() {
+      try {
+        const { done, value } = await reader.read()
+        if (done) {
+          this.push(null)
+        } else {
+          this.push(decoder.decode(value, { stream: true }))
+        }
+      } catch (err) {
+        this.destroy(err instanceof Error ? err : new Error(String(err)))
+      }
+    },
+  })
 }

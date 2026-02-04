@@ -8,7 +8,10 @@ describe("Bottom bar VIEW indicator", () => {
   test("shows CARDS VIEW on startup", () => {
     const env = testEnv(
       () => item.root("board", item("Inbox", item("Task 1"))),
-      { rows: 24, columns: 80 },
+      {
+        rows: 24,
+        columns: 80,
+      },
     )
     const text = env.board.screenshot()
     expect(text).toContain("CARDS VIEW")
@@ -17,7 +20,10 @@ describe("Bottom bar VIEW indicator", () => {
   test("shows other VIEW after pressing v", () => {
     const env = testEnv(
       () => item.root("board", item("Inbox", item("Task 1"))),
-      { rows: 24, columns: 80 },
+      {
+        rows: 24,
+        columns: 80,
+      },
     )
     env.board.press("v") // Switch view mode
     const text = env.board.screenshot()

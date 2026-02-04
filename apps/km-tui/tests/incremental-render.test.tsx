@@ -218,7 +218,9 @@ describe("incremental rendering", () => {
   test("cursor up also clears highlight", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("1a"), item("1b"))),
-      { incremental: true },
+      {
+        incremental: true,
+      },
     )
     const app = board._result
 

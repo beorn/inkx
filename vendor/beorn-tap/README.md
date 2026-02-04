@@ -9,6 +9,7 @@ Merge multiple TAP streams, convert non-TAP formats (Bun JUnit, Playwright), and
 Running tests in parallel is fast. Merging their output is hard.
 
 **Before @beorn/tap:**
+
 ```
 Terminal 1: bun test tests/fast/**  → 142 tests passed
 Terminal 2: bun test tests/slow/**  → 23 tests passed
@@ -18,6 +19,7 @@ Result: 3 separate outputs, manual aggregation, no unified summary
 ```
 
 **After @beorn/tap:**
+
 ```
 $ bun run test:all
 ···········X·······································
@@ -70,6 +72,7 @@ tap --help
 ```
 
 **Available Options:**
+
 - `-R, --reporter <type>` - Output format: `tap`, `spec`, `dots`, `json` (default: `spec`)
 - `-j, --jobs <n>` - Number of parallel workers (default: 1)
 - `--dots` - Show colored dots (alias for `-R dots`)
@@ -78,6 +81,7 @@ tap --help
 - `--no-color` - Disable colored output
 
 **In package.json:**
+
 ```json
 {
   "scripts": {
@@ -98,7 +102,11 @@ const orchestrator = createOrchestrator({
   mode: "auto", // TTY detection (default)
   suites: [
     { name: "unit", runner: "bun", files: ["tests/unit/**/*.test.ts"] },
-    { name: "integration", runner: "bun", files: ["tests/integration/**/*.test.ts"] },
+    {
+      name: "integration",
+      runner: "bun",
+      files: ["tests/integration/**/*.test.ts"],
+    },
     {
       name: "e2e",
       runner: "custom",
@@ -125,12 +133,15 @@ import { renderParallel } from "@beorn/tap/parallel-tui"
 
 const orchestrator = createOrchestrator({
   mode: "parallel", // Force parallel TUI
-  suites: [/* ... */],
+  suites: [
+    /* ... */
+  ],
   renderParallel, // Inject inkx renderer
 })
 ```
 
 Output:
+
 ```
 unit         .....X.................  1.2s
 integration  .....................  3.4s
@@ -140,6 +151,7 @@ e2e          .......              5.1s
 ```
 
 **In package.json:**
+
 ```json
 {
   "scripts": {
@@ -149,6 +161,7 @@ e2e          .......              5.1s
 ```
 
 Where `scripts/test-all.ts`:
+
 ```typescript
 import { createOrchestrator } from "@beorn/tap"
 
@@ -207,6 +220,7 @@ consumer.end()
 ```
 
 **Output:**
+
 ```
 ·······X········
 ✗ my failing test
@@ -253,6 +267,7 @@ process.exit(results.failed > 0 ? 1 : 0)
 ```
 
 **Output:**
+
 ```
 ·································································
 ✓ 183 tests: 183 passed, 0 failed, 0 skipped
@@ -269,7 +284,7 @@ import { runBunTap, createConsumer } from "@beorn/tap"
 const { stdout, proc } = runBunTap({
   args: ["tests/**/*.test.ts"],
   // Optional: Bun flags
-  bunArgs: ["--timeout", "5000"]
+  bunArgs: ["--timeout", "5000"],
 })
 
 const consumer = createConsumer({ dots: true })
@@ -299,6 +314,7 @@ export default defineConfig({
 ```
 
 Run tests:
+
 ```bash
 $ playwright test
 TAP version 14
@@ -319,6 +335,7 @@ not ok 3 - Checkout fails # 523ms
 Creates a multi-suite test orchestrator with automatic TTY detection.
 
 **Type:**
+
 ```typescript
 function createOrchestrator(options: OrchestratorOptions): {
   run(): Promise<number>
@@ -326,15 +343,15 @@ function createOrchestrator(options: OrchestratorOptions): {
 
 interface OrchestratorOptions {
   suites: Suite[]
-  mode?: "unified" | "parallel" | "auto"  // Default: "auto"
-  output?: Writable  // Default: process.stdout
-  renderParallel?: (suites: Suite[]) => Promise<number>  // For parallel mode
+  mode?: "unified" | "parallel" | "auto" // Default: "auto"
+  output?: Writable // Default: process.stdout
+  renderParallel?: (suites: Suite[]) => Promise<number> // For parallel mode
 }
 
 interface Suite {
   name: string
   runner: "bun" | "custom"
-  command?: string[]  // For custom runners (e.g., ["playwright", "test"])
+  command?: string[] // For custom runners (e.g., ["playwright", "test"])
   files: string[]
 }
 ```
@@ -342,11 +359,13 @@ interface Suite {
 **Returns:** Orchestrator object with `run()` method that returns exit code (0 = pass, 1 = fail).
 
 **Mode selection:**
+
 - `"auto"` (default) - TTY detection: parallel for terminals, unified for CI/pipes
 - `"unified"` - Force merged TAP stream with interleaved dots
 - `"parallel"` - Force inkx TUI with separate streams (requires renderParallel)
 
 **Example:**
+
 ```typescript
 import { createOrchestrator } from "@beorn/tap"
 
@@ -354,7 +373,12 @@ const orchestrator = createOrchestrator({
   mode: "auto",
   suites: [
     { name: "unit", runner: "bun", files: ["tests/unit/**/*.test.ts"] },
-    { name: "e2e", runner: "custom", command: ["playwright", "test", "--reporter=tap"], files: ["tests/e2e/**/*.spec.ts"] },
+    {
+      name: "e2e",
+      runner: "custom",
+      command: ["playwright", "test", "--reporter=tap"],
+      files: ["tests/e2e/**/*.spec.ts"],
+    },
   ],
 })
 
@@ -369,6 +393,7 @@ process.exit(exitCode)
 Creates a TAP consumer that parses TAP input and displays formatted output.
 
 **Type:**
+
 ```typescript
 function createConsumer(options?: ConsumerOptions): Parser & {
   addTiming(runner: string, ms: number): void
@@ -376,8 +401,8 @@ function createConsumer(options?: ConsumerOptions): Parser & {
 }
 
 interface ConsumerOptions {
-  dots?: boolean        // Show colored dots during test execution (default: false)
-  output?: Writable     // Output stream (default: process.stdout)
+  dots?: boolean // Show colored dots during test execution (default: false)
+  output?: Writable // Output stream (default: process.stdout)
 }
 
 interface ConsumerResult {
@@ -392,12 +417,14 @@ interface ConsumerResult {
 ```
 
 **Returns:** Extended `tap-parser` instance with:
+
 - `.write(chunk)` - Write TAP input
 - `.end()` - Finish parsing and display summary
 - `.addTiming(name, ms)` - Add runner timing info
 - `.getResults()` - Get test results programmatically
 
 **Example:**
+
 ```typescript
 const consumer = createConsumer({ dots: true })
 consumer.write("TAP version 14\n")
@@ -415,18 +442,18 @@ consumer.end()
 Merges multiple TAP streams into a single unified TAP stream.
 
 **Type:**
+
 ```typescript
-function mergeStreams(
-  streams: NamedStream[]
-): Readable
+function mergeStreams(streams: NamedStream[]): Readable
 
 interface NamedStream {
   name: string
-  stream: Readable | ReadableStream<Uint8Array>  // Node or Bun streams
+  stream: Readable | ReadableStream<Uint8Array> // Node or Bun streams
 }
 ```
 
 **Returns:** Node.js `Readable` that outputs unified TAP with:
+
 - Single TAP version header
 - Renumbered assertions (1..N)
 - Runner names in test descriptions (`[runner] test name`)
@@ -436,6 +463,7 @@ interface NamedStream {
 **Stream Auto-Conversion:** Automatically converts Bun's `ReadableStream<Uint8Array>` to Node.js `Readable` streams internally, so you can pass either type.
 
 **Example:**
+
 ```typescript
 import { runBunTap, mergeStreams } from "@beorn/tap"
 
@@ -443,8 +471,8 @@ const { stdout: fast } = runBunTap({ args: ["tests/fast/**"] })
 const { stdout: slow } = runBunTap({ args: ["tests/slow/**"] })
 
 const merged = mergeStreams([
-  { name: "fast", stream: fast },   // Node.js Readable
-  { name: "slow", stream: slow },   // Auto-converted
+  { name: "fast", stream: fast }, // Node.js Readable
+  { name: "slow", stream: slow }, // Auto-converted
 ])
 
 for await (const chunk of merged) {
@@ -457,27 +485,29 @@ for await (const chunk of merged) {
 Runs Bun tests and converts JUnit XML output to TAP.
 
 **Type:**
+
 ```typescript
 function runBunTap(options: BunTapOptions): BunTapResult
 
 interface BunTapOptions {
-  args: string[]          // Test file patterns or paths
-  bunArgs?: string[]      // Additional Bun flags (--timeout, --bail, etc.)
+  args: string[] // Test file patterns or paths
+  bunArgs?: string[] // Additional Bun flags (--timeout, --bail, etc.)
 }
 
 interface BunTapResult {
-  stdout: NodeJS.ReadableStream  // TAP output stream
-  proc: Subprocess               // Bun process
+  stdout: NodeJS.ReadableStream // TAP output stream
+  proc: Subprocess // Bun process
 }
 ```
 
 **Returns:** Object with TAP stdout and process handle.
 
 **Example:**
+
 ```typescript
 const { stdout, proc } = runBunTap({
   args: ["tests/**/*.test.ts"],
-  bunArgs: ["--timeout", "10000"]
+  bunArgs: ["--timeout", "10000"],
 })
 
 // stdout is now a TAP stream
@@ -493,6 +523,7 @@ await proc.exited
 Playwright reporter that outputs TAP format.
 
 **Type:**
+
 ```typescript
 class PlaywrightReporter implements Reporter {
   onBegin(config: FullConfig, suite: Suite): void
@@ -505,38 +536,43 @@ class PlaywrightReporter implements Reporter {
 
 ## Comparison
 
-| Tool                                                        | Purpose         | Stream Merging | Format Conversion    | Terminal Output | Test Framework Integration |
-| ----------------------------------------------------------- | --------------- | -------------- | -------------------- | --------------- | -------------------------- |
-| **@beorn/tap**                                              | Orchestration   | ✅ Parallel     | ✅ Bun, Playwright    | ✅ Colored dots  | Bun, Playwright            |
-| [tap](https://www.npmjs.com/package/tap)                    | Producer        | ❌              | ❌                    | ✅ Fancy output  | Node.js (own framework)    |
-| [tap-parser](https://www.npmjs.com/package/tap-parser)      | Parsing         | ❌              | ❌                    | ❌               | None (library)             |
-| [tap-mocha-reporter](https://www.npmjs.com/package/tap-mocha-reporter) | Formatting      | ❌              | ❌                    | ✅ Various styles | None (formatting only)     |
-| [tape](https://www.npmjs.com/package/tape)                  | Producer        | ❌              | ❌                    | ✅ Basic          | Node.js (own framework)    |
-| [node:test](https://nodejs.org/api/test.html)               | Producer        | ❌              | ❌                    | ✅ TAP or spec    | Node.js (built-in)         |
+| Tool                                                                   | Purpose       | Stream Merging | Format Conversion  | Terminal Output   | Test Framework Integration |
+| ---------------------------------------------------------------------- | ------------- | -------------- | ------------------ | ----------------- | -------------------------- |
+| **@beorn/tap**                                                         | Orchestration | ✅ Parallel    | ✅ Bun, Playwright | ✅ Colored dots   | Bun, Playwright            |
+| [tap](https://www.npmjs.com/package/tap)                               | Producer      | ❌             | ❌                 | ✅ Fancy output   | Node.js (own framework)    |
+| [tap-parser](https://www.npmjs.com/package/tap-parser)                 | Parsing       | ❌             | ❌                 | ❌                | None (library)             |
+| [tap-mocha-reporter](https://www.npmjs.com/package/tap-mocha-reporter) | Formatting    | ❌             | ❌                 | ✅ Various styles | None (formatting only)     |
+| [tape](https://www.npmjs.com/package/tape)                             | Producer      | ❌             | ❌                 | ✅ Basic          | Node.js (own framework)    |
+| [node:test](https://nodejs.org/api/test.html)                          | Producer      | ❌             | ❌                 | ✅ TAP or spec    | Node.js (built-in)         |
 
 ### When to Use Each
 
 **Use @beorn/tap when:**
+
 - Running multiple test suites in parallel (unit, integration, e2e)
 - Converting non-TAP formats to TAP (Bun JUnit, Playwright)
 - Need unified timing across parallel runners
 - Want beautiful colored terminal output with dots
 
 **Use tap/tape when:**
+
 - Writing Node.js tests from scratch
 - Need a TAP producer, not orchestration
 - Want an all-in-one test framework
 
 **Use tap-parser when:**
+
 - Just need TAP parsing, not formatting
 - Building your own custom TAP consumer
 
 **Use tap-mocha-reporter when:**
+
 - Already have TAP output
 - Want different formatting styles (spec, dot, nyan, etc.)
 - Don't need stream merging
 
 **Use node:test when:**
+
 - Using Node.js 18+ built-in test runner
 - Don't need parallel orchestration across different runners
 
@@ -547,6 +583,7 @@ Most TAP tools are either **producers** (generate TAP) or **formatters** (displa
 **The gap:** When you run multiple test runners in parallel (Bun fast tests, Bun slow tests, markdown tests, Playwright e2e), you get 4 separate outputs. Manually aggregating results is tedious and loses timing information.
 
 **@beorn/tap fills this gap** by:
+
 1. Converting non-TAP formats (Bun JUnit, Playwright) to TAP
 2. Merging parallel TAP streams with accurate timing
 3. Providing beautiful unified output

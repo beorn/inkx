@@ -6,15 +6,15 @@
  */
 
 // Main exports
-export { ChaosWatcher, createChaosWatcher } from "./watcher.ts";
-export { SeededRandom } from "./seeded-random.ts";
+export { ChaosWatcher, createChaosWatcher } from "./watcher.ts"
+export { SeededRandom } from "./seeded-random.ts"
 export {
   FakeFileSystem,
   createFakeFileSystem,
   // Deprecated aliases
   MockFileSystem,
   createMockFileSystem,
-} from "./fake-fs.ts";
+} from "./fake-fs.ts"
 
 // Scenarios
 export {
@@ -43,7 +43,7 @@ export {
   // Transformers
   applyScenario,
   combineScenarios,
-} from "./scenarios.ts";
+} from "./scenarios.ts"
 
 // Types
 export type {
@@ -59,7 +59,7 @@ export type {
   IChaosWatcher,
   ServiceStatus,
   Service,
-} from "./types.ts";
+} from "./types.ts"
 
 export type {
   StatResult,
@@ -67,4 +67,4 @@ export type {
   FileSystemOps,
   DirectoryScanner,
   ErrorInjection,
-} from "./fake-fs.ts";
+} from "./fake-fs.ts"
