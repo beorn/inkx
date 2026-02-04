@@ -19,13 +19,13 @@
  *   const resolved = toResolvedLinks(file, resolver)   // syncing path
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import type { Event, KNode } from "@km/core"
 import { parseMarkdownWithLinks, type ParseResult } from "@km/markdown"
 import { hashContent } from "./cas.ts"
 import type { LinkResolver } from "./link-resolver.ts"
 
-const log = createConditionalLogger("km:storage:markdown-data")
+const log = createlogger("km:storage:markdown-data")
 
 // ============================================================================
 // DATA LAYER - Pure data types, no side effects

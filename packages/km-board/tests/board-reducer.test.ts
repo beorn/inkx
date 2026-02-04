@@ -8,7 +8,17 @@
 
 import { describe, it, expect } from "vitest"
 import { boardReducer, createBoardState } from "../src/board-reducer.ts"
-import type { BoardAction } from "../src/board-types.ts"
+import type { BoardAction, BoardState } from "../src/board-types.ts"
+
+// ===== Test Helpers =====
+
+/** Dispatch helper that wraps reducer call pattern */
+const dispatch = (state: BoardState, action: BoardAction): BoardState =>
+  boardReducer(state, action)
+
+/** Chain multiple actions through the reducer */
+const dispatchAll = (state: BoardState, actions: BoardAction[]): BoardState =>
+  actions.reduce((s, action) => dispatch(s, action), state)
 
 // ===== State Initialization =====
 
@@ -65,125 +75,93 @@ describe("createBoardState", () => {
 describe("SELECT action", () => {
   it("sets cursor to specified node", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, { type: "SELECT", nodeId: "node-123" })
+    const newState = dispatch(state, { type: "SELECT", nodeId: "node-123" })
     expect(newState.cursorNodeId).toBe("node-123")
   })
 
   it("allows null cursor", () => {
     const state = createBoardState("root", "/path", "node-1")
-    const newState = boardReducer(state, { type: "SELECT", nodeId: null })
+    const newState = dispatch(state, { type: "SELECT", nodeId: null })
     expect(newState.cursorNodeId).toBeNull()
   })
 
   it("clears sticky cursor on selection", () => {
     const state = createBoardState()
-    const withSticky = boardReducer(state, {
-      type: "SET_CURSWANT",
-      x: 5,
-      y: 10,
-    })
-    const selected = boardReducer(withSticky, {
-      type: "SELECT",
-      nodeId: "node-123",
-    })
+    const selected = dispatchAll(state, [
+      { type: "SET_CURSWANT", x: 5, y: 10 },
+      { type: "SELECT", nodeId: "node-123" },
+    ])
     expect(selected.curswantX).toBeNull()
     expect(selected.curswantY).toBeNull()
   })
 
   it("preserves other state properties", () => {
     const state = createBoardState("root-1", "/file.md", "node-1")
-    const newState = boardReducer(state, { type: "SELECT", nodeId: "node-2" })
+    const newState = dispatch(state, { type: "SELECT", nodeId: "node-2" })
     expect(newState.rootId).toBe("root-1")
     expect(newState.rootPath).toBe("/file.md")
   })
 })
 
-// ===== Fold/Collapse =====
+// ===== Toggle Actions (Fold/Collapse) =====
 
-describe("TOGGLE_FOLD action", () => {
-  it("adds node to folded set when not present", () => {
+describe.each([
+  {
+    actionType: "TOGGLE_FOLD" as const,
+    setName: "foldedNodes" as const,
+    nodeId: "node-123",
+  },
+  {
+    actionType: "TOGGLE_COLLAPSE" as const,
+    setName: "collapsedNodes" as const,
+    nodeId: "col-1",
+  },
+])("$actionType action", ({ actionType, setName, nodeId }) => {
+  it("adds node to set when not present", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, {
-      type: "TOGGLE_FOLD",
-      nodeId: "node-123",
-    })
-    expect(newState.foldedNodes.has("node-123")).toBe(true)
+    const newState = dispatch(state, { type: actionType, nodeId })
+    expect(newState[setName].has(nodeId)).toBe(true)
   })
 
-  it("removes node from folded set when present", () => {
+  it("removes node from set when present", () => {
     const state = createBoardState()
-    const folded = boardReducer(state, {
-      type: "TOGGLE_FOLD",
-      nodeId: "node-123",
-    })
-    const unfolded = boardReducer(folded, {
-      type: "TOGGLE_FOLD",
-      nodeId: "node-123",
-    })
-    expect(unfolded.foldedNodes.has("node-123")).toBe(false)
+    const toggled = dispatchAll(state, [
+      { type: actionType, nodeId },
+      { type: actionType, nodeId },
+    ])
+    expect(toggled[setName].has(nodeId)).toBe(false)
   })
 
   it("does not mutate original state", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, {
-      type: "TOGGLE_FOLD",
-      nodeId: "node-123",
-    })
-    expect(state.foldedNodes.size).toBe(0)
-    expect(newState.foldedNodes.size).toBe(1)
-  })
-
-  it("handles multiple folded nodes independently", () => {
-    const state = createBoardState()
-    const state1 = boardReducer(state, {
-      type: "TOGGLE_FOLD",
-      nodeId: "node-1",
-    })
-    const state2 = boardReducer(state1, {
-      type: "TOGGLE_FOLD",
-      nodeId: "node-2",
-    })
-    expect(state2.foldedNodes.has("node-1")).toBe(true)
-    expect(state2.foldedNodes.has("node-2")).toBe(true)
-    expect(state2.foldedNodes.size).toBe(2)
+    const newState = dispatch(state, { type: actionType, nodeId })
+    expect(state[setName].size).toBe(0)
+    expect(newState[setName].size).toBe(1)
   })
 })
 
-describe("TOGGLE_COLLAPSE action", () => {
-  it("adds node to collapsed set when not present", () => {
+describe("TOGGLE_FOLD action - additional", () => {
+  it("handles multiple folded nodes independently", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, {
-      type: "TOGGLE_COLLAPSE",
-      nodeId: "col-1",
-    })
-    expect(newState.collapsedNodes.has("col-1")).toBe(true)
+    const result = dispatchAll(state, [
+      { type: "TOGGLE_FOLD", nodeId: "node-1" },
+      { type: "TOGGLE_FOLD", nodeId: "node-2" },
+    ])
+    expect(result.foldedNodes.has("node-1")).toBe(true)
+    expect(result.foldedNodes.has("node-2")).toBe(true)
+    expect(result.foldedNodes.size).toBe(2)
   })
+})
 
-  it("removes node from collapsed set when present", () => {
-    const state = createBoardState()
-    const collapsed = boardReducer(state, {
-      type: "TOGGLE_COLLAPSE",
-      nodeId: "col-1",
-    })
-    const expanded = boardReducer(collapsed, {
-      type: "TOGGLE_COLLAPSE",
-      nodeId: "col-1",
-    })
-    expect(expanded.collapsedNodes.has("col-1")).toBe(false)
-  })
-
+describe("TOGGLE_COLLAPSE action - additional", () => {
   it("keeps collapse and fold state separate", () => {
     const state = createBoardState()
-    const folded = boardReducer(state, {
-      type: "TOGGLE_FOLD",
-      nodeId: "node-1",
-    })
-    const collapsed = boardReducer(folded, {
-      type: "TOGGLE_COLLAPSE",
-      nodeId: "node-1",
-    })
-    expect(collapsed.foldedNodes.has("node-1")).toBe(true)
-    expect(collapsed.collapsedNodes.has("node-1")).toBe(true)
+    const result = dispatchAll(state, [
+      { type: "TOGGLE_FOLD", nodeId: "node-1" },
+      { type: "TOGGLE_COLLAPSE", nodeId: "node-1" },
+    ])
+    expect(result.foldedNodes.has("node-1")).toBe(true)
+    expect(result.collapsedNodes.has("node-1")).toBe(true)
   })
 })
 
@@ -192,16 +170,13 @@ describe("TOGGLE_COLLAPSE action", () => {
 describe("ZOOM_IN action", () => {
   it("changes root to specified node", () => {
     const state = createBoardState("root-1", "/file.md", "cursor-1")
-    const newState = boardReducer(state, {
-      type: "ZOOM_IN",
-      nodeId: "new-root",
-    })
+    const newState = dispatch(state, { type: "ZOOM_IN", nodeId: "new-root" })
     expect(newState.rootId).toBe("new-root")
   })
 
   it("sets cursor to provided cursorNodeId", () => {
     const state = createBoardState("root-1", "/file.md", "cursor-1")
-    const newState = boardReducer(state, {
+    const newState = dispatch(state, {
       type: "ZOOM_IN",
       nodeId: "new-root",
       cursorNodeId: "new-cursor",
@@ -211,34 +186,23 @@ describe("ZOOM_IN action", () => {
 
   it("sets cursor to null when cursorNodeId not provided", () => {
     const state = createBoardState("root-1", "/file.md", "cursor-1")
-    const newState = boardReducer(state, {
-      type: "ZOOM_IN",
-      nodeId: "new-root",
-    })
+    const newState = dispatch(state, { type: "ZOOM_IN", nodeId: "new-root" })
     expect(newState.cursorNodeId).toBeNull()
   })
 
   it("clears sticky cursor on zoom", () => {
     const state = createBoardState()
-    const withSticky = boardReducer(state, {
-      type: "SET_CURSWANT",
-      x: 5,
-      y: 10,
-    })
-    const zoomed = boardReducer(withSticky, {
-      type: "ZOOM_IN",
-      nodeId: "new-root",
-    })
+    const zoomed = dispatchAll(state, [
+      { type: "SET_CURSWANT", x: 5, y: 10 },
+      { type: "ZOOM_IN", nodeId: "new-root" },
+    ])
     expect(zoomed.curswantX).toBeNull()
     expect(zoomed.curswantY).toBeNull()
   })
 
   it("allows null node ID for zoom", () => {
     const state = createBoardState("root-1", "/file.md", "cursor-1")
-    const newState = boardReducer(state, {
-      type: "ZOOM_IN",
-      nodeId: null,
-    })
+    const newState = dispatch(state, { type: "ZOOM_IN", nodeId: null })
     expect(newState.rootId).toBeNull()
   })
 })
@@ -246,14 +210,23 @@ describe("ZOOM_IN action", () => {
 // ===== Root Change =====
 
 describe("SET_ROOT action", () => {
+  const setRootAction = (
+    rootId: string,
+    rootPath: string,
+    cursorNodeId: string,
+  ): BoardAction => ({
+    type: "SET_ROOT",
+    rootId,
+    rootPath,
+    cursorNodeId,
+  })
+
   it("changes root to new file", () => {
     const state = createBoardState("root-1", "/file1.md", "cursor-1")
-    const newState = boardReducer(state, {
-      type: "SET_ROOT",
-      rootId: "root-2",
-      rootPath: "/file2.md",
-      cursorNodeId: "cursor-2",
-    })
+    const newState = dispatch(
+      state,
+      setRootAction("root-2", "/file2.md", "cursor-2"),
+    )
     expect(newState.rootId).toBe("root-2")
     expect(newState.rootPath).toBe("/file2.md")
     expect(newState.cursorNodeId).toBe("cursor-2")
@@ -261,12 +234,10 @@ describe("SET_ROOT action", () => {
 
   it("adds current state to navigation history", () => {
     const state = createBoardState("root-1", "/file1.md", "cursor-1")
-    const newState = boardReducer(state, {
-      type: "SET_ROOT",
-      rootId: "root-2",
-      rootPath: "/file2.md",
-      cursorNodeId: "cursor-2",
-    })
+    const newState = dispatch(
+      state,
+      setRootAction("root-2", "/file2.md", "cursor-2"),
+    )
     expect(newState.navHistory).toHaveLength(1)
     expect(newState.navHistory[0]).toEqual({
       rootId: "root-1",
@@ -277,40 +248,28 @@ describe("SET_ROOT action", () => {
 
   it("increments history index", () => {
     const state = createBoardState("root-1", "/file1.md", "cursor-1")
-    const newState = boardReducer(state, {
-      type: "SET_ROOT",
-      rootId: "root-2",
-      rootPath: "/file2.md",
-      cursorNodeId: "cursor-2",
-    })
+    const newState = dispatch(
+      state,
+      setRootAction("root-2", "/file2.md", "cursor-2"),
+    )
     expect(newState.navHistoryIndex).toBe(1)
   })
 
   it("truncates history on non-linear navigation", () => {
     const state = createBoardState("root-1", "/file1.md", "cursor-1")
-    const state2 = boardReducer(state, {
-      type: "SET_ROOT",
-      rootId: "root-2",
-      rootPath: "/file2.md",
-      cursorNodeId: "cursor-2",
-    })
-    const state3 = boardReducer(state2, {
-      type: "SET_ROOT",
-      rootId: "root-3",
-      rootPath: "/file3.md",
-      cursorNodeId: "cursor-3",
-    })
+    const state3 = dispatchAll(state, [
+      setRootAction("root-2", "/file2.md", "cursor-2"),
+      setRootAction("root-3", "/file3.md", "cursor-3"),
+    ])
 
     // Go back in history (simulated by manually setting index)
     const stateBack = { ...state3, navHistoryIndex: 0 }
 
     // Navigate to new location - should truncate future history
-    const stateBranch = boardReducer(stateBack, {
-      type: "SET_ROOT",
-      rootId: "root-branch",
-      rootPath: "/file-branch.md",
-      cursorNodeId: "cursor-branch",
-    })
+    const stateBranch = dispatch(
+      stateBack,
+      setRootAction("root-branch", "/file-branch.md", "cursor-branch"),
+    )
 
     expect(stateBranch.navHistory).toHaveLength(2)
     expect(stateBranch.navHistory[1]?.rootId).toBe("root-3")
@@ -318,28 +277,21 @@ describe("SET_ROOT action", () => {
 
   it("clears sticky cursor on root change", () => {
     const state = createBoardState()
-    const withSticky = boardReducer(state, {
-      type: "SET_CURSWANT",
-      x: 5,
-      y: 10,
-    })
-    const changed = boardReducer(withSticky, {
-      type: "SET_ROOT",
-      rootId: "root-2",
-      rootPath: "/file2.md",
-      cursorNodeId: "cursor-2",
-    })
+    const changed = dispatchAll(state, [
+      { type: "SET_CURSWANT", x: 5, y: 10 },
+      setRootAction("root-2", "/file2.md", "cursor-2"),
+    ])
     expect(changed.curswantX).toBeNull()
     expect(changed.curswantY).toBeNull()
   })
 })
 
-// ===== Selection =====
+// ===== Selection Actions =====
 
 describe("SELECT_NODE_ADD action", () => {
   it("adds node to selection", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, {
+    const newState = dispatch(state, {
       type: "SELECT_NODE_ADD",
       nodeId: "node-1",
     })
@@ -348,21 +300,17 @@ describe("SELECT_NODE_ADD action", () => {
 
   it("preserves existing selections", () => {
     const state = createBoardState()
-    const state1 = boardReducer(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    const state2 = boardReducer(state1, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-2",
-    })
-    expect(state2.selectedNodes.has("node-1")).toBe(true)
-    expect(state2.selectedNodes.has("node-2")).toBe(true)
+    const result = dispatchAll(state, [
+      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
+      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
+    ])
+    expect(result.selectedNodes.has("node-1")).toBe(true)
+    expect(result.selectedNodes.has("node-2")).toBe(true)
   })
 
   it("does not mutate original state", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, {
+    const newState = dispatch(state, {
       type: "SELECT_NODE_ADD",
       nodeId: "node-1",
     })
@@ -374,38 +322,27 @@ describe("SELECT_NODE_ADD action", () => {
 describe("SELECT_NODE_REMOVE action", () => {
   it("removes node from selection", () => {
     const state = createBoardState()
-    const selected = boardReducer(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    const removed = boardReducer(selected, {
-      type: "SELECT_NODE_REMOVE",
-      nodeId: "node-1",
-    })
+    const removed = dispatchAll(state, [
+      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
+      { type: "SELECT_NODE_REMOVE", nodeId: "node-1" },
+    ])
     expect(removed.selectedNodes.has("node-1")).toBe(false)
   })
 
   it("preserves other selections", () => {
     const state = createBoardState()
-    const state1 = boardReducer(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    const state2 = boardReducer(state1, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-2",
-    })
-    const removed = boardReducer(state2, {
-      type: "SELECT_NODE_REMOVE",
-      nodeId: "node-1",
-    })
+    const removed = dispatchAll(state, [
+      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
+      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
+      { type: "SELECT_NODE_REMOVE", nodeId: "node-1" },
+    ])
     expect(removed.selectedNodes.has("node-1")).toBe(false)
     expect(removed.selectedNodes.has("node-2")).toBe(true)
   })
 
   it("does nothing if node not in selection", () => {
     const state = createBoardState()
-    const removed = boardReducer(state, {
+    const removed = dispatch(state, {
       type: "SELECT_NODE_REMOVE",
       nodeId: "node-1",
     })
@@ -416,7 +353,7 @@ describe("SELECT_NODE_REMOVE action", () => {
 describe("SELECT_NODE_TOGGLE action", () => {
   it("adds node when not selected", () => {
     const state = createBoardState()
-    const toggled = boardReducer(state, {
+    const toggled = dispatch(state, {
       type: "SELECT_NODE_TOGGLE",
       nodeId: "node-1",
     })
@@ -425,31 +362,20 @@ describe("SELECT_NODE_TOGGLE action", () => {
 
   it("removes node when already selected", () => {
     const state = createBoardState()
-    const selected = boardReducer(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    const toggled = boardReducer(selected, {
-      type: "SELECT_NODE_TOGGLE",
-      nodeId: "node-1",
-    })
+    const toggled = dispatchAll(state, [
+      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
+      { type: "SELECT_NODE_TOGGLE", nodeId: "node-1" },
+    ])
     expect(toggled.selectedNodes.has("node-1")).toBe(false)
   })
 
   it("preserves other selections", () => {
     const state = createBoardState()
-    const state1 = boardReducer(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    const state2 = boardReducer(state1, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-2",
-    })
-    const toggled = boardReducer(state2, {
-      type: "SELECT_NODE_TOGGLE",
-      nodeId: "node-1",
-    })
+    const toggled = dispatchAll(state, [
+      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
+      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
+      { type: "SELECT_NODE_TOGGLE", nodeId: "node-1" },
+    ])
     expect(toggled.selectedNodes.has("node-1")).toBe(false)
     expect(toggled.selectedNodes.has("node-2")).toBe(true)
   })
@@ -458,21 +384,17 @@ describe("SELECT_NODE_TOGGLE action", () => {
 describe("CLEAR_SELECTION action", () => {
   it("clears all selections", () => {
     const state = createBoardState()
-    const state1 = boardReducer(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    const state2 = boardReducer(state1, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-2",
-    })
-    const cleared = boardReducer(state2, { type: "CLEAR_SELECTION" })
+    const cleared = dispatchAll(state, [
+      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
+      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
+      { type: "CLEAR_SELECTION" },
+    ])
     expect(cleared.selectedNodes.size).toBe(0)
   })
 
   it("does nothing when no selections", () => {
     const state = createBoardState()
-    const cleared = boardReducer(state, { type: "CLEAR_SELECTION" })
+    const cleared = dispatch(state, { type: "CLEAR_SELECTION" })
     expect(cleared.selectedNodes.size).toBe(0)
   })
 })
@@ -482,7 +404,7 @@ describe("CLEAR_SELECTION action", () => {
 describe("ENTER_MOVE_MODE action", () => {
   it("enables move mode with node IDs", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, {
+    const newState = dispatch(state, {
       type: "ENTER_MOVE_MODE",
       nodeIds: ["node-1", "node-2"],
       cursorNodeId: "cursor-1",
@@ -494,7 +416,7 @@ describe("ENTER_MOVE_MODE action", () => {
 
   it("does nothing with empty node array", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, {
+    const newState = dispatch(state, {
       type: "ENTER_MOVE_MODE",
       nodeIds: [],
       cursorNodeId: "cursor-1",
@@ -505,7 +427,7 @@ describe("ENTER_MOVE_MODE action", () => {
 
   it("accepts null cursor node ID", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, {
+    const newState = dispatch(state, {
       type: "ENTER_MOVE_MODE",
       nodeIds: ["node-1"],
       cursorNodeId: null,
@@ -516,41 +438,40 @@ describe("ENTER_MOVE_MODE action", () => {
 })
 
 describe("CONFIRM_MOVE action", () => {
+  const enterMoveMode = (
+    state: BoardState,
+    nodeIds: string[],
+    cursorNodeId: string,
+  ) =>
+    dispatch(state, {
+      type: "ENTER_MOVE_MODE",
+      nodeIds,
+      cursorNodeId,
+    })
+
   it("disables move mode", () => {
     const state = createBoardState()
-    const moveMode = boardReducer(state, {
-      type: "ENTER_MOVE_MODE",
-      nodeIds: ["node-1"],
-      cursorNodeId: "cursor-1",
-    })
-    const confirmed = boardReducer(moveMode, { type: "CONFIRM_MOVE" })
+    const moveMode = enterMoveMode(state, ["node-1"], "cursor-1")
+    const confirmed = dispatch(moveMode, { type: "CONFIRM_MOVE" })
     expect(confirmed.moveMode).toBe(false)
   })
 
   it("clears move source nodes", () => {
     const state = createBoardState()
-    const moveMode = boardReducer(state, {
-      type: "ENTER_MOVE_MODE",
-      nodeIds: ["node-1", "node-2"],
-      cursorNodeId: "cursor-1",
-    })
-    const confirmed = boardReducer(moveMode, { type: "CONFIRM_MOVE" })
+    const moveMode = enterMoveMode(state, ["node-1", "node-2"], "cursor-1")
+    const confirmed = dispatch(moveMode, { type: "CONFIRM_MOVE" })
     expect(confirmed.moveSourceNodes).toEqual([])
     expect(confirmed.moveSourceCursorNodeId).toBeNull()
   })
 
   it("clears selection after move", () => {
     const state = createBoardState()
-    const selected = boardReducer(state, {
+    const selected = dispatch(state, {
       type: "SELECT_NODE_ADD",
       nodeId: "node-1",
     })
-    const moveMode = boardReducer(selected, {
-      type: "ENTER_MOVE_MODE",
-      nodeIds: ["node-1"],
-      cursorNodeId: "cursor-1",
-    })
-    const confirmed = boardReducer(moveMode, { type: "CONFIRM_MOVE" })
+    const moveMode = enterMoveMode(selected, ["node-1"], "cursor-1")
+    const confirmed = dispatch(moveMode, { type: "CONFIRM_MOVE" })
     expect(confirmed.selectedNodes.size).toBe(0)
   })
 })
@@ -558,51 +479,47 @@ describe("CONFIRM_MOVE action", () => {
 describe("CANCEL_MOVE action", () => {
   it("disables move mode", () => {
     const state = createBoardState()
-    const moveMode = boardReducer(state, {
-      type: "ENTER_MOVE_MODE",
-      nodeIds: ["node-1"],
-      cursorNodeId: "cursor-1",
-    })
-    const cancelled = boardReducer(moveMode, { type: "CANCEL_MOVE" })
+    const cancelled = dispatchAll(state, [
+      {
+        type: "ENTER_MOVE_MODE",
+        nodeIds: ["node-1"],
+        cursorNodeId: "cursor-1",
+      },
+      { type: "CANCEL_MOVE" },
+    ])
     expect(cancelled.moveMode).toBe(false)
   })
 
   it("restores original cursor position", () => {
     const state = createBoardState("root", "/path", "original-cursor")
-    const moved = boardReducer(state, { type: "SELECT", nodeId: "new-cursor" })
-    const moveMode = boardReducer(moved, {
-      type: "ENTER_MOVE_MODE",
-      nodeIds: ["node-1"],
-      cursorNodeId: "original-cursor",
-    })
-    const cancelled = boardReducer(moveMode, { type: "CANCEL_MOVE" })
+    const cancelled = dispatchAll(state, [
+      { type: "SELECT", nodeId: "new-cursor" },
+      {
+        type: "ENTER_MOVE_MODE",
+        nodeIds: ["node-1"],
+        cursorNodeId: "original-cursor",
+      },
+      { type: "CANCEL_MOVE" },
+    ])
     expect(cancelled.cursorNodeId).toBe("original-cursor")
   })
 
   it("keeps current cursor if no source cursor", () => {
     const state = createBoardState("root", "/path", "current-cursor")
-    const moveMode = boardReducer(state, {
-      type: "ENTER_MOVE_MODE",
-      nodeIds: ["node-1"],
-      cursorNodeId: null,
-    })
-    const cancelled = boardReducer(moveMode, { type: "CANCEL_MOVE" })
+    const cancelled = dispatchAll(state, [
+      { type: "ENTER_MOVE_MODE", nodeIds: ["node-1"], cursorNodeId: null },
+      { type: "CANCEL_MOVE" },
+    ])
     expect(cancelled.cursorNodeId).toBe("current-cursor")
   })
 
   it("clears sticky cursor", () => {
     const state = createBoardState()
-    const withSticky = boardReducer(state, {
-      type: "SET_CURSWANT",
-      x: 5,
-      y: 10,
-    })
-    const moveMode = boardReducer(withSticky, {
-      type: "ENTER_MOVE_MODE",
-      nodeIds: ["node-1"],
-      cursorNodeId: null,
-    })
-    const cancelled = boardReducer(moveMode, { type: "CANCEL_MOVE" })
+    const cancelled = dispatchAll(state, [
+      { type: "SET_CURSWANT", x: 5, y: 10 },
+      { type: "ENTER_MOVE_MODE", nodeIds: ["node-1"], cursorNodeId: null },
+      { type: "CANCEL_MOVE" },
+    ])
     expect(cancelled.curswantX).toBeNull()
     expect(cancelled.curswantY).toBeNull()
   })
@@ -610,125 +527,109 @@ describe("CANCEL_MOVE action", () => {
 
 // ===== View Configuration =====
 
-describe("INCREASE_OUTLINE_DEPTH action", () => {
-  it("increases outline depth by 1", () => {
-    const state = createBoardState()
-    const initialState = { ...state, maxOutlineDepth: 5 }
-    const newState = boardReducer(initialState, {
-      type: "INCREASE_OUTLINE_DEPTH",
+describe.each([
+  {
+    increaseType: "INCREASE_OUTLINE_DEPTH" as const,
+    decreaseType: "DECREASE_OUTLINE_DEPTH" as const,
+    field: "maxOutlineDepth" as const,
+    defaultValue: 99,
+    max: 99,
+    min: 0,
+  },
+  {
+    increaseType: "INCREASE_CONTENT_LINES" as const,
+    decreaseType: "DECREASE_CONTENT_LINES" as const,
+    field: "maxContentLines" as const,
+    defaultValue: 2,
+    max: 10,
+    min: 0,
+  },
+])(
+  "$field view configuration",
+  ({ increaseType, decreaseType, field, defaultValue, max, min }) => {
+    it(`increases ${field} by 1`, () => {
+      const state = createBoardState()
+      // Start from a value below max to test increase
+      const initialState = {
+        ...state,
+        [field]: Math.min(defaultValue, max - 1),
+      }
+      const newState = dispatch(initialState, { type: increaseType })
+      expect(newState[field]).toBe(initialState[field] + 1)
     })
-    expect(newState.maxOutlineDepth).toBe(6)
-  })
 
-  it("does not exceed maximum of 99", () => {
-    const state = createBoardState()
-    const maxState = { ...state, maxOutlineDepth: 99 }
-    const newState = boardReducer(maxState, { type: "INCREASE_OUTLINE_DEPTH" })
-    expect(newState.maxOutlineDepth).toBe(99)
-  })
-})
+    it(`does not exceed maximum of ${max}`, () => {
+      const state = createBoardState()
+      const maxState = { ...state, [field]: max }
+      const newState = dispatch(maxState, { type: increaseType })
+      expect(newState[field]).toBe(max)
+    })
 
-describe("DECREASE_OUTLINE_DEPTH action", () => {
-  it("decreases outline depth by 1", () => {
-    const state = createBoardState()
-    const newState = boardReducer(state, { type: "DECREASE_OUTLINE_DEPTH" })
-    expect(newState.maxOutlineDepth).toBe(98)
-  })
+    it(`decreases ${field} by 1`, () => {
+      const state = createBoardState()
+      const newState = dispatch(state, { type: decreaseType })
+      expect(newState[field]).toBe(defaultValue - 1)
+    })
 
-  it("does not go below 0", () => {
-    const state = createBoardState()
-    const minState = { ...state, maxOutlineDepth: 0 }
-    const newState = boardReducer(minState, { type: "DECREASE_OUTLINE_DEPTH" })
-    expect(newState.maxOutlineDepth).toBe(0)
-  })
-})
-
-describe("INCREASE_CONTENT_LINES action", () => {
-  it("increases content lines by 1", () => {
-    const state = createBoardState()
-    const newState = boardReducer(state, { type: "INCREASE_CONTENT_LINES" })
-    expect(newState.maxContentLines).toBe(3)
-  })
-
-  it("does not exceed maximum of 10", () => {
-    const state = createBoardState()
-    const maxState = { ...state, maxContentLines: 10 }
-    const newState = boardReducer(maxState, { type: "INCREASE_CONTENT_LINES" })
-    expect(newState.maxContentLines).toBe(10)
-  })
-})
-
-describe("DECREASE_CONTENT_LINES action", () => {
-  it("decreases content lines by 1", () => {
-    const state = createBoardState()
-    const newState = boardReducer(state, { type: "DECREASE_CONTENT_LINES" })
-    expect(newState.maxContentLines).toBe(1)
-  })
-
-  it("does not go below 0", () => {
-    const state = createBoardState()
-    const minState = { ...state, maxContentLines: 0 }
-    const newState = boardReducer(minState, { type: "DECREASE_CONTENT_LINES" })
-    expect(newState.maxContentLines).toBe(0)
-  })
-})
+    it(`does not go below ${min}`, () => {
+      const state = createBoardState()
+      const minState = { ...state, [field]: min }
+      const newState = dispatch(minState, { type: decreaseType })
+      expect(newState[field]).toBe(min)
+    })
+  },
+)
 
 // ===== Sticky Cursor (curswant) =====
 
 describe("SET_CURSWANT action", () => {
   it("sets both x and y coordinates", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, {
-      type: "SET_CURSWANT",
-      x: 5,
-      y: 10,
-    })
+    const newState = dispatch(state, { type: "SET_CURSWANT", x: 5, y: 10 })
     expect(newState.curswantX).toBe(5)
     expect(newState.curswantY).toBe(10)
   })
 
   it("sets only x coordinate when y not provided", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, { type: "SET_CURSWANT", x: 5 })
+    const newState = dispatch(state, { type: "SET_CURSWANT", x: 5 })
     expect(newState.curswantX).toBe(5)
     expect(newState.curswantY).toBeNull()
   })
 
   it("sets only y coordinate when x not provided", () => {
     const state = createBoardState()
-    const newState = boardReducer(state, { type: "SET_CURSWANT", y: 10 })
+    const newState = dispatch(state, { type: "SET_CURSWANT", y: 10 })
     expect(newState.curswantX).toBeNull()
     expect(newState.curswantY).toBe(10)
   })
 
   it("preserves existing x when setting only y", () => {
     const state = createBoardState()
-    const withX = boardReducer(state, { type: "SET_CURSWANT", x: 5 })
-    const withY = boardReducer(withX, { type: "SET_CURSWANT", y: 10 })
+    const withY = dispatchAll(state, [
+      { type: "SET_CURSWANT", x: 5 },
+      { type: "SET_CURSWANT", y: 10 },
+    ])
     expect(withY.curswantX).toBe(5)
     expect(withY.curswantY).toBe(10)
   })
 
   it("preserves existing y when setting only x", () => {
     const state = createBoardState()
-    const withY = boardReducer(state, { type: "SET_CURSWANT", y: 10 })
-    const withX = boardReducer(withY, { type: "SET_CURSWANT", x: 5 })
+    const withX = dispatchAll(state, [
+      { type: "SET_CURSWANT", y: 10 },
+      { type: "SET_CURSWANT", x: 5 },
+    ])
     expect(withX.curswantX).toBe(5)
     expect(withX.curswantY).toBe(10)
   })
 
   it("allows setting to null explicitly", () => {
     const state = createBoardState()
-    const withBoth = boardReducer(state, {
-      type: "SET_CURSWANT",
-      x: 5,
-      y: 10,
-    })
-    const cleared = boardReducer(withBoth, {
-      type: "SET_CURSWANT",
-      x: null,
-      y: null,
-    })
+    const cleared = dispatchAll(state, [
+      { type: "SET_CURSWANT", x: 5, y: 10 },
+      { type: "SET_CURSWANT", x: null, y: null },
+    ])
     expect(cleared.curswantX).toBeNull()
     expect(cleared.curswantY).toBeNull()
   })
@@ -740,7 +641,7 @@ describe("Error handling", () => {
   it("throws on unhandled action type", () => {
     const state = createBoardState()
     const invalidAction = { type: "INVALID_ACTION" } as unknown as BoardAction
-    expect(() => boardReducer(state, invalidAction)).toThrow(
+    expect(() => dispatch(state, invalidAction)).toThrow(
       /Unhandled action: INVALID_ACTION/,
     )
   })
@@ -753,13 +654,11 @@ describe("Edge cases", () => {
     const state = createBoardState()
 
     // Rapid sequence of operations
-    let current = state
-    for (let i = 0; i < 100; i++) {
-      current = boardReducer(current, {
-        type: "SELECT",
-        nodeId: `node-${i}`,
-      })
-    }
+    const actions: BoardAction[] = Array.from({ length: 100 }, (_, i) => ({
+      type: "SELECT",
+      nodeId: `node-${i}`,
+    }))
+    const current = dispatchAll(state, actions)
 
     expect(current.cursorNodeId).toBe("node-99")
   })
@@ -767,22 +666,13 @@ describe("Edge cases", () => {
   it("handles complex state combinations", () => {
     const state = createBoardState("root", "/file.md", "cursor")
 
-    // Build complex state
-    let complex = state
-    complex = boardReducer(complex, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    complex = boardReducer(complex, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-2",
-    })
-    complex = boardReducer(complex, { type: "TOGGLE_FOLD", nodeId: "node-1" })
-    complex = boardReducer(complex, {
-      type: "TOGGLE_COLLAPSE",
-      nodeId: "col-1",
-    })
-    complex = boardReducer(complex, { type: "SET_CURSWANT", x: 5, y: 10 })
+    const complex = dispatchAll(state, [
+      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
+      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
+      { type: "TOGGLE_FOLD", nodeId: "node-1" },
+      { type: "TOGGLE_COLLAPSE", nodeId: "col-1" },
+      { type: "SET_CURSWANT", x: 5, y: 10 },
+    ])
 
     expect(complex.selectedNodes.size).toBe(2)
     expect(complex.foldedNodes.size).toBe(1)
@@ -797,10 +687,10 @@ describe("Edge cases", () => {
     // Save reference to original state
     const original = state
 
-    // Perform various operations
-    boardReducer(state, { type: "SELECT", nodeId: "node-1" })
-    boardReducer(state, { type: "TOGGLE_FOLD", nodeId: "node-1" })
-    boardReducer(state, { type: "SELECT_NODE_ADD", nodeId: "node-1" })
+    // Perform various operations (results discarded)
+    dispatch(state, { type: "SELECT", nodeId: "node-1" })
+    dispatch(state, { type: "TOGGLE_FOLD", nodeId: "node-1" })
+    dispatch(state, { type: "SELECT_NODE_ADD", nodeId: "node-1" })
 
     // Original state should be unchanged
     expect(original.cursorNodeId).toBeNull()
@@ -812,13 +702,13 @@ describe("Edge cases", () => {
     const state = createBoardState()
 
     // Operations on empty state should work
-    const selected = boardReducer(state, { type: "SELECT", nodeId: null })
+    const selected = dispatch(state, { type: "SELECT", nodeId: null })
     expect(selected.cursorNodeId).toBeNull()
 
-    const cleared = boardReducer(state, { type: "CLEAR_SELECTION" })
+    const cleared = dispatch(state, { type: "CLEAR_SELECTION" })
     expect(cleared.selectedNodes.size).toBe(0)
 
-    const cancelled = boardReducer(state, { type: "CANCEL_MOVE" })
+    const cancelled = dispatch(state, { type: "CANCEL_MOVE" })
     expect(cancelled.moveMode).toBe(false)
   })
 })
@@ -827,129 +717,98 @@ describe("Edge cases", () => {
 
 describe("Integration scenarios", () => {
   it("typical navigation flow", () => {
-    // Start with initial state
-    let state = createBoardState("root-1", "/file1.md", null)
+    const state = dispatchAll(createBoardState("root-1", "/file1.md", null), [
+      { type: "SELECT", nodeId: "node-1" },
+      { type: "TOGGLE_FOLD", nodeId: "node-1" },
+      { type: "ZOOM_IN", nodeId: "node-2", cursorNodeId: "node-2-child" },
+    ])
 
-    // Select first node
-    state = boardReducer(state, { type: "SELECT", nodeId: "node-1" })
-    expect(state.cursorNodeId).toBe("node-1")
-
-    // Fold a node
-    state = boardReducer(state, { type: "TOGGLE_FOLD", nodeId: "node-1" })
     expect(state.foldedNodes.has("node-1")).toBe(true)
-
-    // Zoom into a node
-    state = boardReducer(state, {
-      type: "ZOOM_IN",
-      nodeId: "node-2",
-      cursorNodeId: "node-2-child",
-    })
     expect(state.rootId).toBe("node-2")
     expect(state.cursorNodeId).toBe("node-2-child")
   })
 
   it("multi-select and move workflow", () => {
-    let state = createBoardState("root", "/file.md", "cursor-1")
+    const state = dispatchAll(
+      createBoardState("root", "/file.md", "cursor-1"),
+      [
+        { type: "SELECT_NODE_ADD", nodeId: "node-1" },
+        { type: "SELECT_NODE_ADD", nodeId: "node-2" },
+        { type: "SELECT_NODE_ADD", nodeId: "node-3" },
+        {
+          type: "ENTER_MOVE_MODE",
+          nodeIds: ["node-1", "node-2", "node-3"],
+          cursorNodeId: "cursor-1",
+        },
+        { type: "SELECT", nodeId: "destination" },
+        { type: "CONFIRM_MOVE" },
+      ],
+    )
 
-    // Multi-select nodes
-    state = boardReducer(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    state = boardReducer(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-2",
-    })
-    state = boardReducer(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-3",
-    })
-    expect(state.selectedNodes.size).toBe(3)
-
-    // Enter move mode
-    state = boardReducer(state, {
-      type: "ENTER_MOVE_MODE",
-      nodeIds: ["node-1", "node-2", "node-3"],
-      cursorNodeId: "cursor-1",
-    })
-    expect(state.moveMode).toBe(true)
-    expect(state.moveSourceNodes).toHaveLength(3)
-
-    // Navigate to destination
-    state = boardReducer(state, { type: "SELECT", nodeId: "destination" })
-
-    // Confirm move
-    state = boardReducer(state, { type: "CONFIRM_MOVE" })
     expect(state.moveMode).toBe(false)
     expect(state.selectedNodes.size).toBe(0)
   })
 
   it("navigation history flow", () => {
-    let state = createBoardState("root-1", "/file1.md", "cursor-1")
+    const state = dispatchAll(
+      createBoardState("root-1", "/file1.md", "cursor-1"),
+      [
+        {
+          type: "SET_ROOT",
+          rootId: "root-2",
+          rootPath: "/file2.md",
+          cursorNodeId: "cursor-2",
+        },
+        {
+          type: "SET_ROOT",
+          rootId: "root-3",
+          rootPath: "/file3.md",
+          cursorNodeId: "cursor-3",
+        },
+      ],
+    )
 
-    // Navigate to second file
-    state = boardReducer(state, {
-      type: "SET_ROOT",
-      rootId: "root-2",
-      rootPath: "/file2.md",
-      cursorNodeId: "cursor-2",
-    })
-    expect(state.navHistory).toHaveLength(1)
-    expect(state.navHistoryIndex).toBe(1)
-
-    // Navigate to third file
-    state = boardReducer(state, {
-      type: "SET_ROOT",
-      rootId: "root-3",
-      rootPath: "/file3.md",
-      cursorNodeId: "cursor-3",
-    })
     expect(state.navHistory).toHaveLength(2)
     expect(state.navHistoryIndex).toBe(2)
-
-    // Verify history entries
     expect(state.navHistory[0]?.rootId).toBe("root-1")
     expect(state.navHistory[1]?.rootId).toBe("root-2")
   })
 
   it("view configuration adjustment", () => {
-    let state = createBoardState()
     // Start with lower depth to test increase
-    state = { ...state, maxOutlineDepth: 5 }
+    const initialState = { ...createBoardState(), maxOutlineDepth: 5 }
 
-    // Increase outline depth several times
-    state = boardReducer(state, { type: "INCREASE_OUTLINE_DEPTH" })
-    state = boardReducer(state, { type: "INCREASE_OUTLINE_DEPTH" })
-    expect(state.maxOutlineDepth).toBe(7)
+    const state = dispatchAll(initialState, [
+      { type: "INCREASE_OUTLINE_DEPTH" },
+      { type: "INCREASE_OUTLINE_DEPTH" },
+      { type: "INCREASE_CONTENT_LINES" },
+      { type: "INCREASE_CONTENT_LINES" },
+      { type: "DECREASE_OUTLINE_DEPTH" },
+      { type: "DECREASE_CONTENT_LINES" },
+    ])
 
-    // Increase content lines
-    state = boardReducer(state, { type: "INCREASE_CONTENT_LINES" })
-    state = boardReducer(state, { type: "INCREASE_CONTENT_LINES" })
-    expect(state.maxContentLines).toBe(4)
-
-    // Decrease back
-    state = boardReducer(state, { type: "DECREASE_OUTLINE_DEPTH" })
-    state = boardReducer(state, { type: "DECREASE_CONTENT_LINES" })
     expect(state.maxOutlineDepth).toBe(6)
     expect(state.maxContentLines).toBe(3)
   })
 
   it("sticky cursor across navigation", () => {
-    let state = createBoardState("root", "/file.md", "cursor-1")
+    const state = dispatchAll(
+      createBoardState("root", "/file.md", "cursor-1"),
+      [
+        { type: "SET_CURSWANT", x: 2, y: 5 },
+        { type: "SET_CURSWANT", y: 6 },
+      ],
+    )
 
-    // Set sticky cursor for column navigation
-    state = boardReducer(state, { type: "SET_CURSWANT", x: 2, y: 5 })
-    expect(state.curswantX).toBe(2)
-    expect(state.curswantY).toBe(5)
-
-    // Navigate with sticky cursor preserved (manual navigation)
-    state = boardReducer(state, { type: "SET_CURSWANT", y: 6 })
     expect(state.curswantX).toBe(2)
     expect(state.curswantY).toBe(6)
 
     // Explicit selection clears sticky cursor
-    state = boardReducer(state, { type: "SELECT", nodeId: "new-cursor" })
-    expect(state.curswantX).toBeNull()
-    expect(state.curswantY).toBeNull()
+    const afterSelect = dispatch(state, {
+      type: "SELECT",
+      nodeId: "new-cursor",
+    })
+    expect(afterSelect.curswantX).toBeNull()
+    expect(afterSelect.curswantY).toBeNull()
   })
 })

@@ -5,13 +5,13 @@
  * Press 'v' to cycle between views interactively.
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { Command } from "@commander-js/extra-typings"
 import { createLogger } from "@km/core"
 import { enableConsoleDebug, setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 
-const debug = createConditionalLogger("km:cli:view")
+const debug = createlogger("km:cli:view")
 const log = createLogger("km")
 
 type ViewMode = "cards" | "columns" | "list" | "tabs"

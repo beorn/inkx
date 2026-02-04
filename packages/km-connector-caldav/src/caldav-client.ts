@@ -5,7 +5,7 @@
  * Implements RFC 4791 (CalDAV) and RFC 6578 (WebDAV Sync).
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import type {
   CalDAVConfig,
   CalendarEvent,
@@ -15,7 +15,7 @@ import type {
 import { parseICalendar, formatICalendar } from "./icalendar.ts"
 import { createBasicAuthHeader, webdavRequest } from "./webdav-base.ts"
 
-const log = createConditionalLogger("km:caldav:client")
+const log = createlogger("km:caldav:client")
 
 /** CalDAV client interface returned by createCalDAVClient */
 export type CalDAVClient = ReturnType<typeof createCalDAVClient>

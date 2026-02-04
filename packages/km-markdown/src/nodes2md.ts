@@ -4,12 +4,12 @@
  * Serializes km nodes back to markdown format
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 
-const log = createConditionalLogger("km:markdown:nodes2md")
+const log = createlogger("km:markdown:nodes2md")
 
 /**
  * Context for serialization - includes node lookup for embedding reconstruction

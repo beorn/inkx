@@ -8,7 +8,7 @@
  * during FSEvents setup.
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { createWorkerLogHandler } from "@beorn/logger/worker"
 import { EventEmitter } from "events"
 import { getIgnorePatterns } from "../ignore.ts"
@@ -19,7 +19,7 @@ import type {
   WatcherState,
 } from "./worker-thread.ts"
 
-const log = createConditionalLogger("km:storage:watch:worker-bridge")
+const log = createlogger("km:storage:watch:worker-bridge")
 // Handler for worker logger messages
 const handleWorkerLog = createWorkerLogHandler()
 

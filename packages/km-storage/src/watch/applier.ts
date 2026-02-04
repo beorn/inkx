@@ -5,7 +5,7 @@
  * whether markdown files have pre-parsed content available.
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { ulid } from "ulid"
 import type { Emitter } from "../emitter.ts"
@@ -26,7 +26,7 @@ import {
   type ReconcileContext,
 } from "./handlers/index.ts"
 
-const log = createConditionalLogger("km:storage:watch:reconcile")
+const log = createlogger("km:storage:watch:reconcile")
 
 /**
  * Options for apply operations

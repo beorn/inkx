@@ -5,11 +5,11 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import type { KNode } from "@km/core"
 import { rowToNode } from "./utils.ts"
 
-const log = createConditionalLogger("km:storage:db:queries")
+const log = createlogger("km:storage:db:queries")
 
 // =============================================================================
 // Full-Text Search

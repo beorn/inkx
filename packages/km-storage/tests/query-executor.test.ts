@@ -1,146 +1,87 @@
 /**
  * Query Executor Tests
  *
- * Tests for executeQuery, queryTasks, search, and searchWithSnippet —
+ * Tests for executeQuery, queryTasks, search, and searchWithSnippet --
  * all require an in-memory SQLite database.
  *
  * See query-parser.test.ts for pure parsing tests.
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
-import { Database } from "bun:sqlite"
+import type { Database } from "bun:sqlite"
 import { parseQuery, executeQuery, queryTasks } from "../src/query.ts"
 import { search, searchWithSnippet } from "../src/db.ts"
+import {
+  createTestDatabase,
+  seedTestData,
+  formatDate,
+  today,
+  offsetDate,
+} from "./query-test-helpers.ts"
 
 describe("Query Executor", () => {
   let db: Database
 
   beforeEach(() => {
-    // Create in-memory database
-    db = new Database(":memory:")
-    db.run(`
-      CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        parent_id TEXT,
-        link_to TEXT,
-        link_alias TEXT,
-        parent_idx REAL DEFAULT 0,
-        fs_path TEXT,
-        fs_ino INTEGER,
-        md_pos INTEGER,
-        md_slug TEXT,
-        task_status TEXT,
-        task_mark TEXT,
-        assigned_to TEXT,
-        due_date TEXT,
-        scheduled_date TEXT,
-        priority INTEGER,
-        content TEXT,
-        content_hash TEXT,
-        data JSON DEFAULT '{}',
-        created_at INTEGER,
-        updated_at INTEGER,
-        version TEXT
-      );
-    `)
-
-    // Insert test data
-    const now = Date.now()
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, priority, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task1",
-        "task",
-        "todo",
-        1,
-        "Task for @bjorn #urgent",
-        '{"mentions":["bjorn"],"tags":["urgent"]}',
-        now,
-        now,
-        "v1",
-        0,
-      ],
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, priority, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task2",
-        "task",
-        "done",
-        2,
-        "Done task @jane",
-        '{"mentions":["jane"]}',
-        now,
-        now,
-        "v2",
-        1,
-      ],
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, priority, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task3",
-        "task",
-        "todo",
-        null,
-        "Another task +project-alpha",
-        '{"projects":["project-alpha"]}',
-        now,
-        now,
-        "v3",
-        2,
-      ],
-    )
+    db = createTestDatabase()
+    seedTestData(db, [
+      {
+        id: "task1",
+        type: "task",
+        task_status: "todo",
+        priority: 1,
+        content: "Task for @bjorn #urgent",
+        data: '{"mentions":["bjorn"],"tags":["urgent"]}',
+      },
+      {
+        id: "task2",
+        type: "task",
+        task_status: "done",
+        priority: 2,
+        content: "Done task @jane",
+        data: '{"mentions":["jane"]}',
+      },
+      {
+        id: "task3",
+        type: "task",
+        task_status: "todo",
+        priority: null,
+        content: "Another task +project-alpha",
+        data: '{"projects":["project-alpha"]}',
+      },
+    ])
   })
 
   afterEach(() => {
     db.close()
   })
 
-  test("filters by status", () => {
-    const ast = parseQuery("status:todo")
+  // Basic filter tests using test.each
+  test.each([
+    [
+      "status:todo",
+      2,
+      (r: { task_status: string }) => r.task_status === "todo",
+    ],
+    [
+      "status:done",
+      1,
+      (r: { task_status: string }) => r.task_status === "done",
+    ],
+    ["p:1", 1, (r: { id: string }) => r.id === "task1"],
+    ["@bjorn", 1, (r: { id: string }) => r.id === "task1"],
+    ["#urgent", 1, (r: { id: string }) => r.id === "task1"],
+    ["+project-alpha", 1, (r: { id: string }) => r.id === "task3"],
+    [
+      "-status:done",
+      2,
+      (r: { task_status: string }) => r.task_status !== "done",
+    ],
+  ] as const)("filters with %s", (query, expectedCount, predicate) => {
+    const ast = parseQuery(query)
     const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(2)
-    expect(results.every((r) => r.task_status === "todo")).toBe(true)
-  })
-
-  test("filters by priority", () => {
-    const ast = parseQuery("p:1")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task1")
-  })
-
-  test("filters by @mention", () => {
-    const ast = parseQuery("@bjorn")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task1")
-  })
-
-  test("filters by #tag", () => {
-    const ast = parseQuery("#urgent")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task1")
-  })
-
-  test("filters by +project", () => {
-    const ast = parseQuery("+project-alpha")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task3")
-  })
-
-  test("excludes with negation", () => {
-    const ast = parseQuery("-status:done")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(2)
-    expect(results.every((r) => r.task_status !== "done")).toBe(true)
+    expect(results.length).toBe(expectedCount)
+    expect(results.every(predicate)).toBe(true)
   })
 
   test("combines conditions", () => {
@@ -156,15 +97,13 @@ describe("Query Executor", () => {
   })
 
   test("filters with comma-separated values (IN clause)", () => {
-    // task1 is todo, task2 is done, task3 is todo
     const results = queryTasks(db, "status:todo,done")
-    expect(results.length).toBe(3) // Should match all tasks (todo OR done)
+    expect(results.length).toBe(3)
   })
 
   test("excludes with negated comma-separated values (NOT IN clause)", () => {
-    // task1 is todo, task2 is done, task3 is todo
     const results = queryTasks(db, "-status:todo,done")
-    expect(results.length).toBe(0) // Nothing left after excluding todo and done
+    expect(results.length).toBe(0)
   })
 })
 
@@ -172,151 +111,74 @@ describe("Path Pattern Query Execution", () => {
   let db: Database
 
   beforeEach(() => {
-    // Create in-memory database with fs_path
-    db = new Database(":memory:")
-    db.run(`
-      CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        parent_id TEXT,
-        link_to TEXT,
-        link_alias TEXT,
-        parent_idx REAL DEFAULT 0,
-        fs_path TEXT,
-        fs_ino INTEGER,
-        md_pos INTEGER,
-        md_slug TEXT,
-        task_status TEXT,
-        task_mark TEXT,
-        assigned_to TEXT,
-        due_date TEXT,
-        scheduled_date TEXT,
-        priority INTEGER,
-        content TEXT,
-        content_hash TEXT,
-        data JSON DEFAULT '{}',
-        created_at INTEGER,
-        updated_at INTEGER,
-        version TEXT
-      );
-    `)
-
-    const now = Date.now()
-    // Tasks in different paths
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "inbox-task1",
-        "task",
-        "todo",
-        "Task in inbox",
-        "/repo/inbox/tasks.md",
-        "{}",
-        now,
-        now,
-        "v1",
-        0,
-      ],
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "inbox-task2",
-        "task",
-        "todo",
-        "Another inbox task",
-        "/repo/inbox/notes.md",
-        "{}",
-        now,
-        now,
-        "v2",
-        1,
-      ],
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "project-task1",
-        "task",
-        "todo",
-        "Task in project",
-        "/repo/projects/alpha/tasks.md",
-        "{}",
-        now,
-        now,
-        "v3",
-        2,
-      ],
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "archive-task1",
-        "task",
-        "done",
-        "Archived task",
-        "/repo/archive/2024/tasks.md",
-        "{}",
-        now,
-        now,
-        "v4",
-        3,
-      ],
-    )
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "root-task1",
-        "task",
-        "todo",
-        "Task at root",
-        "/repo/root-tasks.md",
-        "{}",
-        now,
-        now,
-        "v5",
-        4,
-      ],
-    )
+    db = createTestDatabase()
+    seedTestData(db, [
+      {
+        id: "inbox-task1",
+        type: "task",
+        task_status: "todo",
+        content: "Task in inbox",
+        fs_path: "/repo/inbox/tasks.md",
+      },
+      {
+        id: "inbox-task2",
+        type: "task",
+        task_status: "todo",
+        content: "Another inbox task",
+        fs_path: "/repo/inbox/notes.md",
+      },
+      {
+        id: "project-task1",
+        type: "task",
+        task_status: "todo",
+        content: "Task in project",
+        fs_path: "/repo/projects/alpha/tasks.md",
+      },
+      {
+        id: "archive-task1",
+        type: "task",
+        task_status: "done",
+        content: "Archived task",
+        fs_path: "/repo/archive/2024/tasks.md",
+      },
+      {
+        id: "root-task1",
+        type: "task",
+        task_status: "todo",
+        content: "Task at root",
+        fs_path: "/repo/root-tasks.md",
+      },
+    ])
   })
 
   afterEach(() => {
     db.close()
   })
 
-  test("filters by recursive path pattern (./inbox/**)", () => {
-    const ast = parseQuery("./inbox/**")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(2)
-    expect(results.every((r) => r.fs_path?.includes("/inbox"))).toBe(true)
-  })
-
-  test("filters by absolute path pattern", () => {
-    const ast = parseQuery("/projects/")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("project-task1")
-  })
-
-  test("filters with recursive nested path pattern", () => {
-    const ast = parseQuery("./archive/**")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("archive-task1")
-  })
-
-  test("excludes with negated path pattern", () => {
-    const ast = parseQuery("-./inbox/**")
-    const results = executeQuery(db, ast, "task")
-    // Should exclude both inbox tasks
-    expect(results.length).toBe(3)
-    expect(results.every((r) => !r.fs_path?.includes("/inbox/"))).toBe(true)
-  })
+  test.each([
+    [
+      "./inbox/**",
+      2,
+      (r: { fs_path?: string | null }) =>
+        r.fs_path?.includes("/inbox") ?? false,
+    ],
+    ["/projects/", 1, (r: { id: string }) => r.id === "project-task1"],
+    ["./archive/**", 1, (r: { id: string }) => r.id === "archive-task1"],
+    [
+      "-./inbox/**",
+      3,
+      (r: { fs_path?: string | null }) =>
+        !(r.fs_path?.includes("/inbox/") ?? false),
+    ],
+  ] as const)(
+    "filters by path pattern %s",
+    (query, expectedCount, predicate) => {
+      const ast = parseQuery(query)
+      const results = executeQuery(db, ast, "task")
+      expect(results.length).toBe(expectedCount)
+      expect(results.every(predicate)).toBe(true)
+    },
+  )
 
   test("combines path pattern with status filter", () => {
     const ast = parseQuery("./inbox/** status:todo")
@@ -328,163 +190,64 @@ describe("Path Pattern Query Execution", () => {
 })
 
 describe("Date Query Execution", () => {
-  // Helper to format date in local timezone (matches implementation)
-  function formatDate(d: Date): string {
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, "0")
-    const day = String(d.getDate()).padStart(2, "0")
-    return `${year}-${month}-${day}`
-  }
-
   let db: Database
 
   beforeEach(() => {
-    db = new Database(":memory:")
-    db.run(`
-      CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        parent_id TEXT,
-        link_to TEXT,
-        link_alias TEXT,
-        parent_idx REAL DEFAULT 0,
-        fs_path TEXT,
-        fs_ino INTEGER,
-        md_pos INTEGER,
-        md_slug TEXT,
-        task_status TEXT,
-        task_mark TEXT,
-        assigned_to TEXT,
-        due_date TEXT,
-        scheduled_date TEXT,
-        priority INTEGER,
-        content TEXT,
-        content_hash TEXT,
-        data JSON DEFAULT '{}',
-        created_at INTEGER,
-        updated_at INTEGER,
-        version TEXT
-      );
-    `)
-
-    const now = Date.now()
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const todayStr = formatDate(today)
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = formatDate(yesterday)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowStr = formatDate(tomorrow)
-
-    // Task due today
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, due_date, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-today",
-        "task",
-        "todo",
-        todayStr,
-        "Task due today",
-        "{}",
-        now,
-        now,
-        "v1",
-        0,
-      ],
-    )
-
-    // Task due yesterday (overdue)
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, due_date, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-overdue",
-        "task",
-        "todo",
-        yesterdayStr,
-        "Overdue task",
-        "{}",
-        now,
-        now,
-        "v2",
-        1,
-      ],
-    )
-
-    // Task due tomorrow
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, due_date, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-tomorrow",
-        "task",
-        "todo",
-        tomorrowStr,
-        "Task due tomorrow",
-        "{}",
-        now,
-        now,
-        "v3",
-        2,
-      ],
-    )
-
-    // Task with no due date
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, due_date, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-nodue",
-        "task",
-        "todo",
-        null,
-        "Task without due date",
-        "{}",
-        now,
-        now,
-        "v4",
-        3,
-      ],
-    )
+    db = createTestDatabase()
+    seedTestData(db, [
+      {
+        id: "task-today",
+        type: "task",
+        task_status: "todo",
+        content: "Task due today",
+        due_date: formatDate(today()),
+      },
+      {
+        id: "task-overdue",
+        type: "task",
+        task_status: "todo",
+        content: "Overdue task",
+        due_date: formatDate(offsetDate(-1)),
+      },
+      {
+        id: "task-tomorrow",
+        type: "task",
+        task_status: "todo",
+        content: "Task due tomorrow",
+        due_date: formatDate(offsetDate(1)),
+      },
+      {
+        id: "task-nodue",
+        type: "task",
+        task_status: "todo",
+        content: "Task without due date",
+        due_date: null,
+      },
+    ])
   })
 
   afterEach(() => {
     db.close()
   })
 
-  test("filters by due:today", () => {
-    const results = queryTasks(db, "due:today")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task-today")
-  })
-
-  test("filters by due:tomorrow", () => {
-    const results = queryTasks(db, "due:tomorrow")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task-tomorrow")
-  })
-
-  test("filters by due:past (overdue)", () => {
-    const results = queryTasks(db, "due:past")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task-overdue")
-  })
-
-  test("filters by due:overdue", () => {
-    const results = queryTasks(db, "due:overdue")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task-overdue")
+  test.each([
+    ["due:today", ["task-today"]],
+    ["due:tomorrow", ["task-tomorrow"]],
+    ["due:past", ["task-overdue"]],
+    ["due:overdue", ["task-overdue"]],
+  ] as const)("filters by %s", (query, expectedIds) => {
+    const results = queryTasks(db, query)
+    expect(results.length).toBe(expectedIds.length)
+    for (const id of expectedIds) {
+      expect(results.some((r) => r.id === id)).toBe(true)
+    }
   })
 
   test("filters by due:week includes today and tomorrow", () => {
     const results = queryTasks(db, "due:week")
     expect(results.length).toBe(2)
-    const ids = results.map((r) => r.id)
-    expect(ids).toContain("task-today")
-    expect(ids).toContain("task-tomorrow")
+    expect(results.map((r) => r.id)).toContain("task-today")
+    expect(results.map((r) => r.id)).toContain("task-tomorrow")
   })
 
   test("negated due:today excludes today's tasks", () => {
@@ -498,118 +261,44 @@ describe("Full-text Search with Phrases", () => {
   let db: Database
 
   beforeEach(() => {
-    db = new Database(":memory:")
-    db.run(`
-      CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        parent_id TEXT,
-        link_to TEXT,
-        link_alias TEXT,
-        parent_idx REAL DEFAULT 0,
-        fs_path TEXT,
-        fs_ino INTEGER,
-        md_pos INTEGER,
-        md_slug TEXT,
-        task_status TEXT,
-        task_mark TEXT,
-        assigned_to TEXT,
-        due_date TEXT,
-        scheduled_date TEXT,
-        priority INTEGER,
-        content TEXT,
-        content_hash TEXT,
-        data JSON DEFAULT '{}',
-        created_at INTEGER,
-        updated_at INTEGER,
-        version TEXT
-      );
-
-      CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
-        id,
-        content,
-        content='nodes',
-        content_rowid='rowid'
-      );
-
-      CREATE TRIGGER IF NOT EXISTS nodes_ai AFTER INSERT ON nodes BEGIN
-        INSERT INTO nodes_fts(rowid, id, content) VALUES (new.rowid, new.id, new.content);
-      END;
-    `)
-
-    const now = Date.now()
-
-    // Insert test data with multi-word content
-    db.run(
-      `INSERT INTO nodes (id, type, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "doc1",
-        "file",
-        "The budget review meeting is scheduled for Monday",
-        "{}",
-        now,
-        now,
-        "v1",
-        0,
-      ],
-    )
-
-    db.run(
-      `INSERT INTO nodes (id, type, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "doc2",
-        "file",
-        "Please review the budget before the deadline",
-        "{}",
-        now,
-        now,
-        "v2",
-        1,
-      ],
-    )
-
-    db.run(
-      `INSERT INTO nodes (id, type, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "doc3",
-        "file",
-        "This document is about quarterly reports",
-        "{}",
-        now,
-        now,
-        "v3",
-        2,
-      ],
-    )
+    db = createTestDatabase()
+    seedTestData(db, [
+      {
+        id: "doc1",
+        type: "file",
+        content: "The budget review meeting is scheduled for Monday",
+      },
+      {
+        id: "doc2",
+        type: "file",
+        content: "Please review the budget before the deadline",
+      },
+      {
+        id: "doc3",
+        type: "file",
+        content: "This document is about quarterly reports",
+      },
+    ])
   })
 
   afterEach(() => {
     db.close()
   })
 
-  test("exact phrase search matches only exact phrases", () => {
-    const results = search(db, '"budget review"', 10)
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("doc1")
-  })
-
-  test("individual terms match documents with those terms in any order", () => {
-    const results = search(db, "budget review", 10)
-    // Should match both doc1 (budget review) and doc2 (review...budget)
-    expect(results.length).toBe(2)
-    const ids = results.map((r) => r.id)
-    expect(ids).toContain("doc1")
-    expect(ids).toContain("doc2")
-  })
-
-  test("phrase search does not match non-adjacent terms", () => {
-    // "review budget" should NOT match doc1's "budget review"
-    const results = search(db, '"review budget"', 10)
-    expect(results.length).toBe(0)
-  })
+  test.each([
+    ['"budget review"', 1, ["doc1"]],
+    ["budget review", 2, ["doc1", "doc2"]],
+    ['"review budget"', 0, []],
+  ] as const)(
+    "phrase search %s finds %d results",
+    (query, count, expectedIds) => {
+      const results = search(db, query, 10)
+      expect(results.length).toBe(count)
+      for (const id of expectedIds) {
+        expect(results.some((r) => r.id === id)).toBe(true)
+      }
+    },
+  )
 
   test("searchWithSnippet returns highlighted snippets", () => {
     const results = searchWithSnippet(db, "budget", 10, {
@@ -617,12 +306,12 @@ describe("Full-text Search with Phrases", () => {
       endMark: ">>",
     })
     expect(results.length).toBeGreaterThan(0)
-    // Check that snippets contain the markers
-    const hasHighlight = results.some(
-      (r: { snippet: string }) =>
-        r.snippet.includes("<<") && r.snippet.includes(">>"),
-    )
-    expect(hasHighlight).toBe(true)
+    expect(
+      results.some(
+        (r: { snippet: string }) =>
+          r.snippet.includes("<<") && r.snippet.includes(">>"),
+      ),
+    ).toBe(true)
   })
 
   test("searchWithSnippet with phrase search", () => {
@@ -646,158 +335,63 @@ describe("Status on Any Node Type", () => {
   let db: Database
 
   beforeEach(() => {
-    db = new Database(":memory:")
-    db.run(`
-      CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        parent_id TEXT,
-        link_to TEXT,
-        link_alias TEXT,
-        parent_idx REAL DEFAULT 0,
-        fs_path TEXT,
-        fs_ino INTEGER,
-        md_pos INTEGER,
-        md_slug TEXT,
-        task_status TEXT,
-        task_mark TEXT,
-        assigned_to TEXT,
-        due_date TEXT,
-        scheduled_date TEXT,
-        priority INTEGER,
-        content TEXT,
-        content_hash TEXT,
-        data JSON DEFAULT '{}',
-        created_at INTEGER,
-        updated_at INTEGER,
-        version TEXT
-      );
-    `)
-
-    const now = Date.now()
-
-    // Regular task (type: task with status)
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, task_mark, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task1",
-        "task",
-        "todo",
-        " ",
-        "Regular checkbox task",
-        "{}",
-        now,
-        now,
-        "v1",
-        0,
-      ],
-    )
-
-    // Section with status (type: section with task_status)
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "section1",
-        "section",
-        "wip",
-        "Project Phase 1",
-        '{"depth": 2}',
-        now,
-        now,
-        "v2",
-        1,
-      ],
-    )
-
-    // File with status (type: file with task_status)
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, fs_path, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "file1",
-        "file",
-        "done",
-        "Completed Document",
-        "/repo/completed.md",
-        "{}",
-        now,
-        now,
-        "v3",
-        2,
-      ],
-    )
-
-    // Paragraph with status (type: paragraph with task_status)
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "para1",
-        "paragraph",
-        "blocked",
-        "Waiting on external review",
-        "{}",
-        now,
-        now,
-        "v4",
-        3,
-      ],
-    )
-
-    // Regular section without status
-    db.run(
-      `INSERT INTO nodes (id, type, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "section2",
-        "section",
-        "Normal section",
-        '{"depth": 2}',
-        now,
-        now,
-        "v5",
-        4,
-      ],
-    )
+    db = createTestDatabase()
+    seedTestData(db, [
+      {
+        id: "task1",
+        type: "task",
+        task_status: "todo",
+        task_mark: " ",
+        content: "Regular checkbox task",
+      },
+      {
+        id: "section1",
+        type: "section",
+        task_status: "wip",
+        content: "Project Phase 1",
+        data: '{"depth": 2}',
+      },
+      {
+        id: "file1",
+        type: "file",
+        task_status: "done",
+        content: "Completed Document",
+        fs_path: "/repo/completed.md",
+      },
+      {
+        id: "para1",
+        type: "paragraph",
+        task_status: "blocked",
+        content: "Waiting on external review",
+      },
+      {
+        id: "section2",
+        type: "section",
+        content: "Normal section",
+        data: '{"depth": 2}',
+      },
+    ])
   })
 
   afterEach(() => {
     db.close()
   })
 
-  test("status:todo matches only nodes with that status, any type", () => {
-    const ast = parseQuery("status:todo")
-    const results = executeQuery(db, ast)
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task1")
-    expect(results[0]!.type).toBe("task")
-  })
-
-  test("status:wip matches section with status", () => {
-    const ast = parseQuery("status:wip")
-    const results = executeQuery(db, ast)
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("section1")
-    expect(results[0]!.type).toBe("section")
-  })
-
-  test("status:done matches file with status", () => {
-    const ast = parseQuery("status:done")
-    const results = executeQuery(db, ast)
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("file1")
-    expect(results[0]!.type).toBe("file")
-  })
-
-  test("status:blocked matches paragraph with status", () => {
-    const ast = parseQuery("status:blocked")
-    const results = executeQuery(db, ast)
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("para1")
-    expect(results[0]!.type).toBe("paragraph")
-  })
+  test.each([
+    ["status:todo", 1, "task1", "task"],
+    ["status:wip", 1, "section1", "section"],
+    ["status:done", 1, "file1", "file"],
+    ["status:blocked", 1, "para1", "paragraph"],
+  ] as const)(
+    "%s matches correct node type",
+    (query, count, expectedId, expectedType) => {
+      const ast = parseQuery(query)
+      const results = executeQuery(db, ast)
+      expect(results.length).toBe(count)
+      expect(results[0]!.id).toBe(expectedId)
+      expect(results[0]!.type).toBe(expectedType)
+    },
+  )
 
   test("type:task only matches checkbox-originated nodes", () => {
     const ast = parseQuery("type:task")
@@ -810,9 +404,8 @@ describe("Status on Any Node Type", () => {
     const ast = parseQuery("type:section")
     const results = executeQuery(db, ast)
     expect(results.length).toBe(2)
-    const ids = results.map((r) => r.id)
-    expect(ids).toContain("section1") // has status
-    expect(ids).toContain("section2") // no status
+    expect(results.map((r) => r.id)).toContain("section1")
+    expect(results.map((r) => r.id)).toContain("section2")
   })
 
   test("combining type and status filters", () => {
@@ -823,7 +416,6 @@ describe("Status on Any Node Type", () => {
   })
 
   test("queryTasks only returns type:task nodes", () => {
-    // queryTasks passes type:"task" to executeQuery
     const results = queryTasks(db, "status:todo")
     expect(results.length).toBe(1)
     expect(results[0]?.type).toBe("task")
@@ -832,7 +424,6 @@ describe("Status on Any Node Type", () => {
   test("-status:done excludes nodes with that status, any type", () => {
     const ast = parseQuery("-status:done")
     const results = executeQuery(db, ast)
-    // Should include task1, section1, para1, section2 (no status counts as not done)
     expect(results.length).toBe(4)
     expect(results.every((r) => r.task_status !== "done")).toBe(true)
   })
@@ -841,9 +432,8 @@ describe("Status on Any Node Type", () => {
     const ast = parseQuery("status:todo,wip")
     const results = executeQuery(db, ast)
     expect(results.length).toBe(2)
-    const ids = results.map((r) => r.id)
-    expect(ids).toContain("task1") // todo
-    expect(ids).toContain("section1") // wip
+    expect(results.map((r) => r.id)).toContain("task1")
+    expect(results.map((r) => r.id)).toContain("section1")
   })
 })
 
@@ -857,203 +447,88 @@ describe("Property Query Execution", () => {
   let db: Database
 
   beforeEach(() => {
-    db = new Database(":memory:")
-    db.run(`
-      CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        name TEXT,
-        parent_id TEXT,
-        link_to TEXT,
-        link_alias TEXT,
-        parent_idx REAL DEFAULT 0,
-        fs_path TEXT,
-        fs_ino INTEGER,
-        md_pos INTEGER,
-        md_slug TEXT,
-        task_status TEXT,
-        task_mark TEXT,
-        assigned_to TEXT,
-        due_date TEXT,
-        scheduled_date TEXT,
-        priority INTEGER,
-        content TEXT,
-        content_hash TEXT,
-        data JSON DEFAULT '{}',
-        created_at INTEGER,
-        updated_at INTEGER,
-        version TEXT
-      );
-    `)
-
-    const now = Date.now()
-
-    // Task with rating property (number)
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-rated",
-        "task",
-        "todo",
-        "Book review rating:: 5",
-        JSON.stringify({
+    db = createTestDatabase()
+    seedTestData(db, [
+      {
+        id: "task-rated",
+        type: "task",
+        task_status: "todo",
+        content: "Book review rating:: 5",
+        data: JSON.stringify({
           props: { rating: { type: "number", value: 5 } },
           propsRaw: { rating: "5" },
         }),
-        now,
-        now,
-        "v1",
-        0,
-      ],
-    )
-
-    // Task with blocked-by property (single link)
-    db.run(
-      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-blocked",
-        "task",
-        "blocked-task",
-        "todo",
-        "Deploy blocked-by:: [[blocker-task]]",
-        JSON.stringify({
+      },
+      {
+        id: "task-blocked",
+        type: "task",
+        name: "blocked-task",
+        task_status: "todo",
+        content: "Deploy blocked-by:: [[blocker-task]]",
+        data: JSON.stringify({
           props: { "blocked-by": { type: "link", target: "blocker-task" } },
           propsRaw: { "blocked-by": "[[blocker-task]]" },
         }),
-        now,
-        now,
-        "v2",
-        1,
-      ],
-    )
-
-    // The blocker task (todo status - not done)
-    db.run(
-      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "blocker-task",
-        "task",
-        "blocker-task",
-        "todo",
-        "This blocks other tasks",
-        "{}",
-        now,
-        now,
-        "v3",
-        2,
-      ],
-    )
-
-    // Task with blocked-by where blocker is done
-    db.run(
-      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-unblocked",
-        "task",
-        "unblocked-task",
-        "todo",
-        "Was blocked blocked-by:: [[done-blocker]]",
-        JSON.stringify({
+      },
+      {
+        id: "blocker-task",
+        type: "task",
+        name: "blocker-task",
+        task_status: "todo",
+        content: "This blocks other tasks",
+      },
+      {
+        id: "task-unblocked",
+        type: "task",
+        name: "unblocked-task",
+        task_status: "todo",
+        content: "Was blocked blocked-by:: [[done-blocker]]",
+        data: JSON.stringify({
           props: { "blocked-by": { type: "link", target: "done-blocker" } },
           propsRaw: { "blocked-by": "[[done-blocker]]" },
         }),
-        now,
-        now,
-        "v4",
-        3,
-      ],
-    )
-
-    // The done blocker
-    db.run(
-      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "done-blocker",
-        "task",
-        "done-blocker",
-        "done",
-        "Completed blocker",
-        "{}",
-        now,
-        now,
-        "v5",
-        4,
-      ],
-    )
-
-    // Task with author property (text)
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-authored",
-        "task",
-        "todo",
-        "Document author:: alice",
-        JSON.stringify({
+      },
+      {
+        id: "done-blocker",
+        type: "task",
+        name: "done-blocker",
+        task_status: "done",
+        content: "Completed blocker",
+      },
+      {
+        id: "task-authored",
+        type: "task",
+        task_status: "todo",
+        content: "Document author:: alice",
+        data: JSON.stringify({
           props: { author: { type: "text", value: "alice" } },
           propsRaw: { author: "alice" },
         }),
-        now,
-        now,
-        "v6",
-        5,
-      ],
-    )
-
-    // Task with low rating
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-low-rated",
-        "task",
-        "todo",
-        "Mediocre book rating:: 2",
-        JSON.stringify({
+      },
+      {
+        id: "task-low-rated",
+        type: "task",
+        task_status: "todo",
+        content: "Mediocre book rating:: 2",
+        data: JSON.stringify({
           props: { rating: { type: "number", value: 2 } },
           propsRaw: { rating: "2" },
         }),
-        now,
-        now,
-        "v7",
-        6,
-      ],
-    )
-
-    // Task without any properties
-    db.run(
-      `INSERT INTO nodes (id, type, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-plain",
-        "task",
-        "todo",
-        "Plain task without properties",
-        "{}",
-        now,
-        now,
-        "v8",
-        7,
-      ],
-    )
-
-    // Task with blocked-by list (multiple blockers)
-    db.run(
-      `INSERT INTO nodes (id, type, name, task_status, content, data, created_at, updated_at, version, parent_idx)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        "task-multi-blocked",
-        "task",
-        "multi-blocked-task",
-        "todo",
-        "Multi blocked blocked-by:: [[blocker-task]], [[done-blocker]]",
-        JSON.stringify({
+      },
+      {
+        id: "task-plain",
+        type: "task",
+        task_status: "todo",
+        content: "Plain task without properties",
+      },
+      {
+        id: "task-multi-blocked",
+        type: "task",
+        name: "multi-blocked-task",
+        task_status: "todo",
+        content:
+          "Multi blocked blocked-by:: [[blocker-task]], [[done-blocker]]",
+        data: JSON.stringify({
           props: {
             "blocked-by": {
               type: "list",
@@ -1065,12 +540,8 @@ describe("Property Query Execution", () => {
           },
           propsRaw: { "blocked-by": "[[blocker-task]], [[done-blocker]]" },
         }),
-        now,
-        now,
-        "v9",
-        8,
-      ],
-    )
+      },
+    ])
   })
 
   afterEach(() => {
@@ -1081,51 +552,31 @@ describe("Property Query Execution", () => {
     const ast = parseQuery("rating::*")
     const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(2)
-    const ids = results.map((r) => r.id)
-    expect(ids).toContain("task-rated")
-    expect(ids).toContain("task-low-rated")
+    expect(results.map((r) => r.id)).toContain("task-rated")
+    expect(results.map((r) => r.id)).toContain("task-low-rated")
   })
 
   test("-prop::* excludes nodes with that property", () => {
     const ast = parseQuery("-rating::*")
     const results = executeQuery(db, ast, "task")
-    // Should exclude task-rated and task-low-rated
     expect(results.every((r) => r.id !== "task-rated")).toBe(true)
     expect(results.every((r) => r.id !== "task-low-rated")).toBe(true)
   })
 
-  test("prop::N matches exact numeric value", () => {
-    const ast = parseQuery("rating::5")
+  // Numeric comparison tests using test.each
+  test.each([
+    ["rating::5", 1, ["task-rated"]],
+    ["rating::>3", 1, ["task-rated"]],
+    ["rating::<3", 1, ["task-low-rated"]],
+    ["rating::>=2", 2, ["task-rated", "task-low-rated"]],
+    ["rating::<=2", 1, ["task-low-rated"]],
+  ] as const)("numeric comparison %s", (query, count, expectedIds) => {
+    const ast = parseQuery(query)
     const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task-rated")
-  })
-
-  test("prop::>N matches greater than", () => {
-    const ast = parseQuery("rating::>3")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task-rated") // rating 5 > 3
-  })
-
-  test("prop::<N matches less than", () => {
-    const ast = parseQuery("rating::<3")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task-low-rated") // rating 2 < 3
-  })
-
-  test("prop::>=N matches greater than or equal", () => {
-    const ast = parseQuery("rating::>=2")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(2) // Both 5 and 2 are >= 2
-  })
-
-  test("prop::<=N matches less than or equal", () => {
-    const ast = parseQuery("rating::<=2")
-    const results = executeQuery(db, ast, "task")
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task-low-rated") // rating 2 <= 2
+    expect(results.length).toBe(count)
+    for (const id of expectedIds) {
+      expect(results.some((r) => r.id === id)).toBe(true)
+    }
   })
 
   test("prop::text matches text property value", () => {
@@ -1138,7 +589,6 @@ describe("Property Query Execution", () => {
   test("prop::target matches link property target", () => {
     const ast = parseQuery("blocked-by::blocker-task")
     const results = executeQuery(db, ast, "task")
-    // Should match task-blocked (single link) and task-multi-blocked (list containing it)
     expect(results.length).toBeGreaterThanOrEqual(1)
     expect(results.some((r) => r.id === "task-blocked")).toBe(true)
   })
@@ -1146,27 +596,21 @@ describe("Property Query Execution", () => {
   test("blocked:true matches tasks with unresolved blockers", () => {
     const ast = parseQuery("blocked:true")
     const results = executeQuery(db, ast, "task")
-    // task-blocked is blocked by blocker-task (todo)
-    // task-multi-blocked is blocked by blocker-task (todo) and done-blocker (done)
-    // task-unblocked is blocked by done-blocker (done) - should NOT match
     const ids = results.map((r) => r.id)
     expect(ids).toContain("task-blocked")
-    expect(ids).toContain("task-multi-blocked") // Has at least one unresolved blocker
-    expect(ids).not.toContain("task-unblocked") // Blocker is done
-    expect(ids).not.toContain("task-plain") // No blocked-by property
+    expect(ids).toContain("task-multi-blocked")
+    expect(ids).not.toContain("task-unblocked")
+    expect(ids).not.toContain("task-plain")
   })
 
   test("blocked:false matches tasks without blockers or with all blockers done", () => {
     const ast = parseQuery("blocked:false")
     const results = executeQuery(db, ast, "task")
     const ids = results.map((r) => r.id)
-    // task-unblocked: blocker is done, so not blocked
-    // task-plain: no blocked-by property
-    // task-rated, task-low-rated, task-authored: no blocked-by property
     expect(ids).toContain("task-unblocked")
     expect(ids).toContain("task-plain")
-    expect(ids).not.toContain("task-blocked") // Still blocked
-    expect(ids).not.toContain("task-multi-blocked") // Still has unresolved blocker
+    expect(ids).not.toContain("task-blocked")
+    expect(ids).not.toContain("task-multi-blocked")
   })
 
   test("combines property query with status filter", () => {
@@ -1179,7 +623,6 @@ describe("Property Query Execution", () => {
   test("combines blocked:false with status:todo", () => {
     const ast = parseQuery("status:todo blocked:false")
     const results = executeQuery(db, ast, "task")
-    // Should return todo tasks that are not blocked
     expect(results.every((r) => r.task_status === "todo")).toBe(true)
     expect(
       results.every(

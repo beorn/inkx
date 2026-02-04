@@ -21,6 +21,7 @@ interface GlobalOptions extends OptionValues {
   repo?: string
   silent?: boolean
   verbose?: number
+  quiet?: number
   logLevel?: string
 }
 
@@ -83,13 +84,19 @@ export function configureProgram(): Command {
     .option("-s, --silent", "Suppress output except errors")
     .option(
       "-v, --verbose",
-      "Increase verbosity (-v, -vv, -vvv)",
+      "Increase verbosity (-v=debug, -vv=trace)",
+      (_, prev) => (prev ?? 0) + 1,
+      0,
+    )
+    .option(
+      "-q, --quiet",
+      "Decrease verbosity (-q=warn, -qq=error, -qqq=silent)",
       (_, prev) => (prev ?? 0) + 1,
       0,
     )
     .option(
       "--log-level <level>",
-      "Log level (trace|debug|verbose|info|warn|error|silent)",
+      "Log level (trace|debug|info|warn|error|silent)",
     )
     .allowUnknownOption(false)
     .allowExcessArguments(false)
@@ -127,7 +134,12 @@ Quick Actions:
 
 Environment:
   KM_ROOT=<path>             Set default repository path
-  DEBUG=km:*                 Enable debug logging`,
+  LOG_LEVEL=<level>          Set log level (trace|debug|info|warn|error|silent)
+
+Verbosity:
+  -v, -vv                    Increase verbosity (-v=debug, -vv=trace)
+  -q, -qq, -qqq              Decrease verbosity (-q=warn, -qq=error, -qqq=silent)
+  -v -q                      Offset (cancels out to info)`,
     )
 
   // Pre-action hook: runs before any command
@@ -138,6 +150,7 @@ Environment:
     let rootOption: string | undefined
     let silentOption: boolean | undefined
     let verboseOption: number | undefined
+    let quietOption: number | undefined
     let logLevelOption: string | undefined
 
     while (cmd) {
@@ -147,20 +160,35 @@ Environment:
       silentOption ??= opts.silent
       verboseOption ??=
         typeof opts.verbose === "number" ? opts.verbose : undefined
+      quietOption ??= typeof opts.quiet === "number" ? opts.quiet : undefined
       logLevelOption ??= opts.logLevel
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- Commander.js Command.parent is any
       cmd = cmd.parent
     }
 
-    // Determine log level (in order of precedence: --log-level, --silent, --verbose)
-    let logLevel: LogLevel = "info" // default
+    // Determine log level
+    // Precedence: --log-level > --silent > -v/-q offset
+    // Log level index: trace=0, debug=1, info=2, warn=3, error=4, silent=5
+    const LOG_LEVELS: LogLevel[] = [
+      "trace",
+      "debug",
+      "info",
+      "warn",
+      "error",
+      "silent",
+    ]
+    let logLevel: LogLevel = "info" // default (index 2)
     if (logLevelOption) {
       logLevel = logLevelOption as LogLevel
     } else if (silentOption) {
       logLevel = "silent"
-    } else if (verboseOption) {
-      if (verboseOption >= 3) logLevel = "trace"
-      else if (verboseOption >= 1) logLevel = "debug"
+    } else {
+      // Apply -v/-q offset from default (info=2)
+      // -v decreases index (more verbose), -q increases index (quieter)
+      const offset = (quietOption ?? 0) - (verboseOption ?? 0)
+      const baseIndex = 2 // info
+      const targetIndex = Math.max(0, Math.min(5, baseIndex + offset))
+      logLevel = LOG_LEVELS[targetIndex]!
     }
     setLogLevel(logLevel)
 

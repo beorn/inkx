@@ -18,7 +18,17 @@ import {
 } from "../src/keybindings.ts"
 import type { TNode } from "../src/types.ts"
 
-// Helper to create minimal TNode for context
+// --- Test Helpers ---
+
+/** Modifier flags for key events */
+type Modifiers = {
+  ctrl?: boolean
+  shift?: boolean
+  alt?: boolean
+  meta?: boolean
+}
+
+/** Create minimal TNode for context */
 function createNode(id: string, opts?: Partial<TNode>): TNode {
   return {
     id,
@@ -41,7 +51,7 @@ function createNode(id: string, opts?: Partial<TNode>): TNode {
   }
 }
 
-// Helper to create keybinding context
+/** Create keybinding context with defaults */
 function createContext(
   overrides?: Partial<KeybindingContext>,
 ): KeybindingContext {
@@ -53,6 +63,16 @@ function createContext(
     currentNode: null,
     ...overrides,
   }
+}
+
+/** Assert that a key resolves to expected command (after initDefaultKeybindings) */
+function expectKey(
+  key: string,
+  commandId: string,
+  mods: Modifiers = {},
+  ctx: KeybindingContext = createContext(),
+): void {
+  expect(resolveKeybinding(key, mods, ctx)).toBe(commandId)
 }
 
 describe("keybindings", () => {
@@ -167,36 +187,16 @@ describe("resolveKeybinding", () => {
   })
 
   describe("modifier matching", () => {
-    it("matches ctrl modifier", () => {
-      registerKeybinding({ key: "z", ctrl: true, commandId: "undo" })
-
+    it.each([
+      ["ctrl", "z", { ctrl: true }, "undo"],
+      ["shift", "Tab", { shift: true }, "shift_left"],
+      ["alt", "ArrowUp", { alt: true }, "shift_up"],
+      ["meta", "s", { meta: true }, "save"],
+    ] as const)("matches %s modifier", (_name, key, mods, commandId) => {
+      registerKeybinding({ key, commandId, ...mods })
       const ctx = createContext()
-      expect(resolveKeybinding("z", { ctrl: true }, ctx)).toBe("undo")
-      expect(resolveKeybinding("z", {}, ctx)).toBeNull()
-    })
-
-    it("matches shift modifier", () => {
-      registerKeybinding({ key: "Tab", shift: true, commandId: "shift_left" })
-
-      const ctx = createContext()
-      expect(resolveKeybinding("Tab", { shift: true }, ctx)).toBe("shift_left")
-      expect(resolveKeybinding("Tab", {}, ctx)).toBeNull()
-    })
-
-    it("matches alt modifier", () => {
-      registerKeybinding({ key: "ArrowUp", alt: true, commandId: "shift_up" })
-
-      const ctx = createContext()
-      expect(resolveKeybinding("ArrowUp", { alt: true }, ctx)).toBe("shift_up")
-      expect(resolveKeybinding("ArrowUp", {}, ctx)).toBeNull()
-    })
-
-    it("matches meta modifier", () => {
-      registerKeybinding({ key: "s", meta: true, commandId: "save" })
-
-      const ctx = createContext()
-      expect(resolveKeybinding("s", { meta: true }, ctx)).toBe("save")
-      expect(resolveKeybinding("s", {}, ctx)).toBeNull()
+      expect(resolveKeybinding(key, mods, ctx)).toBe(commandId)
+      expect(resolveKeybinding(key, {}, ctx)).toBeNull()
     })
 
     it("matches multiple modifiers", () => {
@@ -442,146 +442,97 @@ describe("initDefaultKeybindings", () => {
     expect(all.some((b) => b.commandId === "custom_cmd")).toBe(false)
   })
 
-  it("includes expected navigation keybindings", () => {
+  it.each([
+    // hjkl navigation (visual up/down, left/right columns)
+    ["j", {}, "cursor_down"],
+    ["k", {}, "cursor_up"],
+    ["h", {}, "cursor_left"],
+    ["l", {}, "cursor_right"],
+    ["g", {}, "cursor_first"],
+    ["G", {}, "cursor_last"],
+    ["G", { shift: true }, "cursor_last"], // Ink reports shift+G
+    // Arrow key navigation (same as hjkl per docs/06-ui.md)
+    ["ArrowDown", {}, "cursor_down"],
+    ["ArrowUp", {}, "cursor_up"],
+    ["ArrowLeft", {}, "cursor_left"],
+    ["ArrowRight", {}, "cursor_right"],
+  ] as const)("navigation: %s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
-
-    const ctx = createContext({ mode: "normal" })
-
-    // j/k do visual up/down (enters children, exits to parent)
-    expect(resolveKeybinding("j", {}, ctx)).toBe("cursor_down")
-    expect(resolveKeybinding("k", {}, ctx)).toBe("cursor_up")
-    // TUI uses h/l for left/right column movement, not in/out
-    expect(resolveKeybinding("h", {}, ctx)).toBe("cursor_left")
-    expect(resolveKeybinding("l", {}, ctx)).toBe("cursor_right")
-    expect(resolveKeybinding("g", {}, ctx)).toBe("cursor_first")
-    expect(resolveKeybinding("G", {}, ctx)).toBe("cursor_last")
-    // Capital G with shift modifier (as Ink reports it) should also work
-    expect(resolveKeybinding("G", { shift: true }, ctx)).toBe("cursor_last")
+    expectKey(key, commandId, mods)
   })
 
-  it("includes arrow key navigation (same as hjkl per docs/06-ui.md)", () => {
-    initDefaultKeybindings()
-
-    const ctx = createContext({ mode: "normal" })
-
-    // Per docs/06-ui.md: "j/↓ Move cursor down (visual)" - arrows and hjkl are identical
-    expect(resolveKeybinding("ArrowDown", {}, ctx)).toBe("cursor_down")
-    expect(resolveKeybinding("ArrowUp", {}, ctx)).toBe("cursor_up")
-    expect(resolveKeybinding("ArrowLeft", {}, ctx)).toBe("cursor_left")
-    expect(resolveKeybinding("ArrowRight", {}, ctx)).toBe("cursor_right")
-  })
-
-  it("includes selection keybindings", () => {
-    initDefaultKeybindings()
-
-    const ctx = createContext({ mode: "normal" })
-
+  it.each([
     // TUI: 'v' cycles view mode, not select toggle
-    expect(resolveKeybinding("v", {}, ctx)).toBe("cycle_view_mode")
+    ["v", {}, "cycle_view_mode"],
     // Shift+A for progressive select all
-    expect(resolveKeybinding("A", {}, ctx)).toBe("select_all_progressive")
+    ["A", {}, "select_all_progressive"],
     // Escape is close_or_quit (contextual: clears selection, closes dialogs, or quits)
-    expect(resolveKeybinding("Escape", {}, ctx)).toBe("close_or_quit")
+    ["Escape", {}, "close_or_quit"],
+  ] as const)("selection: %s resolves to %s", (key, mods, commandId) => {
+    initDefaultKeybindings()
+    expectKey(key, commandId, mods)
   })
 
-  it("includes mode-specific keybindings", () => {
-    initDefaultKeybindings()
-
-    const normalCtx = createContext({ mode: "normal" })
-    const moveCtx = createContext({ mode: "move" })
-
+  it.each([
     // TUI: Enter in normal mode opens detail pane
-    expect(resolveKeybinding("Enter", {}, normalCtx)).toBe("open_detail_pane")
-
+    ["Enter", {}, "normal", "open_detail_pane"],
     // Enter in move mode = confirm_move (defined with modes: ["move"])
-    expect(resolveKeybinding("Enter", {}, moveCtx)).toBe("confirm_move")
-
+    ["Enter", {}, "move", "confirm_move"],
     // TUI: 'o' is zoom in
-    expect(resolveKeybinding("o", {}, normalCtx)).toBe("zoom_in")
-
+    ["o", {}, "normal", "zoom_in"],
     // TUI: Escape is close_or_quit (contextual) in normal mode
-    expect(resolveKeybinding("Escape", {}, normalCtx)).toBe("close_or_quit")
+    ["Escape", {}, "normal", "close_or_quit"],
     // In move mode, Escape cancels move (mode-specific binding takes precedence)
-    expect(resolveKeybinding("Escape", {}, moveCtx)).toBe("cancel_move")
+    ["Escape", {}, "move", "cancel_move"],
+  ] as const)(
+    "mode-specific: %s in %s mode resolves to %s",
+    (key, mods, mode, commandId) => {
+      initDefaultKeybindings()
+      expectKey(key, commandId, mods, createContext({ mode }))
+    },
+  )
+
+  it.each([
+    ["ArrowUp", "shift_up"],
+    ["ArrowDown", "shift_down"],
+    ["ArrowLeft", "shift_left"],
+    ["ArrowRight", "shift_right"],
+  ] as const)("meta+%s shifts node (%s)", (key, commandId) => {
+    initDefaultKeybindings()
+    expectKey(key, commandId, { meta: true })
   })
 
-  it("includes shift keybindings with meta modifier", () => {
+  it.each([
+    ["z", { ctrl: true }, "undo"],
+    ["z", { ctrl: true, shift: true }, "redo"],
+    ["y", { ctrl: true }, "redo"],
+  ] as const)("undo/redo: ctrl+%s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
-
-    const ctx = createContext({ mode: "normal" })
-
-    // TUI uses meta (Alt/Opt on Mac) for shifting nodes
-    expect(resolveKeybinding("ArrowUp", { meta: true }, ctx)).toBe("shift_up")
-    expect(resolveKeybinding("ArrowDown", { meta: true }, ctx)).toBe(
-      "shift_down",
-    )
-    expect(resolveKeybinding("ArrowLeft", { meta: true }, ctx)).toBe(
-      "shift_left",
-    )
-    expect(resolveKeybinding("ArrowRight", { meta: true }, ctx)).toBe(
-      "shift_right",
-    )
+    expectKey(key, commandId, mods)
   })
 
-  it("includes undo/redo keybindings", () => {
+  it.each([
+    // Page jump keybindings (Ctrl+D/U)
+    ["d", { ctrl: true }, "page_down"],
+    ["u", { ctrl: true }, "page_up"],
+    // Sibling board navigation (Ctrl+J/K)
+    ["j", { ctrl: true }, "sibling_board_next"],
+    ["k", { ctrl: true }, "sibling_board_prev"],
+    // Enter node keybinding
+    ["i", {}, "zoom_inwards"],
+  ] as const)("ctrl/misc: %s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
-
-    const ctx = createContext({ mode: "normal" })
-
-    expect(resolveKeybinding("z", { ctrl: true }, ctx)).toBe("undo")
-    expect(resolveKeybinding("z", { ctrl: true, shift: true }, ctx)).toBe(
-      "redo",
-    )
-    expect(resolveKeybinding("y", { ctrl: true }, ctx)).toBe("redo")
+    expectKey(key, commandId, mods)
   })
 
-  it("includes page jump keybindings (Ctrl+D/U)", () => {
+  it.each([
+    ["ArrowUp", "extend_select_up"],
+    ["ArrowDown", "extend_select_down"],
+    ["ArrowLeft", "extend_select_left"],
+    ["ArrowRight", "extend_select_right"],
+  ] as const)("shift+%s extends selection (%s)", (key, commandId) => {
     initDefaultKeybindings()
-
-    const ctx = createContext({ mode: "normal" })
-
-    expect(resolveKeybinding("d", { ctrl: true }, ctx)).toBe("page_down")
-    expect(resolveKeybinding("u", { ctrl: true }, ctx)).toBe("page_up")
-  })
-
-  it("includes sibling board navigation keybindings (Ctrl+J/K)", () => {
-    initDefaultKeybindings()
-
-    const ctx = createContext({ mode: "normal" })
-
-    expect(resolveKeybinding("j", { ctrl: true }, ctx)).toBe(
-      "sibling_board_next",
-    )
-    expect(resolveKeybinding("k", { ctrl: true }, ctx)).toBe(
-      "sibling_board_prev",
-    )
-  })
-
-  it("includes enter node keybinding (i)", () => {
-    initDefaultKeybindings()
-
-    const ctx = createContext({ mode: "normal" })
-
-    expect(resolveKeybinding("i", {}, ctx)).toBe("zoom_inwards")
-  })
-
-  it("includes extend selection with shift+arrows", () => {
-    initDefaultKeybindings()
-
-    const ctx = createContext({ mode: "normal" })
-
-    expect(resolveKeybinding("ArrowUp", { shift: true }, ctx)).toBe(
-      "extend_select_up",
-    )
-    expect(resolveKeybinding("ArrowDown", { shift: true }, ctx)).toBe(
-      "extend_select_down",
-    )
-    expect(resolveKeybinding("ArrowLeft", { shift: true }, ctx)).toBe(
-      "extend_select_left",
-    )
-    expect(resolveKeybinding("ArrowRight", { shift: true }, ctx)).toBe(
-      "extend_select_right",
-    )
+    expectKey(key, commandId, { shift: true })
   })
 })
 

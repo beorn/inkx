@@ -56,7 +56,9 @@
       "mcp__tty__list",
       "mcp__tty__stop",
       "Skill(history)",
-      "Skill(commit)"
+      "Skill(commit)",
+      "Skill(code)",
+      "Skill(tui)"
     ],
     "deny": [],
     "ask": []

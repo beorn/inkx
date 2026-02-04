@@ -2,7 +2,6 @@ import { describe, test, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "inkx/testing"
 const render = createRenderer()
-const renderTall = createRenderer({ cols: 80, rows: 32 })
 import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 import {
@@ -14,6 +13,43 @@ import {
 } from "../src/views/DetailPane.tsx"
 import { RepoProvider } from "../src/repo-context.tsx"
 
+// --- Test Helpers ---
+
+/** Default node fields that most tests don't care about */
+const nodeDefaults = {
+  parent_idx: 0,
+  link_to: null,
+  data: {},
+  created_at: Date.now(),
+  updated_at: Date.now(),
+  version: "test",
+} as const
+
+/** Create a test node with sensible defaults */
+function createTestNode(
+  overrides: Partial<KNode> & {
+    id: string
+    type: KNode["type"]
+    content: string
+  },
+): KNode {
+  return {
+    parent_id: null,
+    ...nodeDefaults,
+    ...overrides,
+  } as KNode
+}
+
+/** Create multiple test nodes from minimal specs */
+function createTestNodes(
+  specs: Array<
+    Partial<KNode> & { id: string; type: KNode["type"]; content: string }
+  >,
+): KNode[] {
+  return specs.map((spec) => createTestNode(spec))
+}
+
+/** Render DetailPane with a repo containing the given nodes */
 function renderDetailPane(
   repo: ReturnType<typeof createFakeRepo>,
   node: KNode,
@@ -26,25 +62,56 @@ function renderDetailPane(
   )
 }
 
+/** Helper to format date in local timezone (matches implementation) */
+function localDateStr(d: Date): string {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+/** Get a date relative to today */
+function dateRelativeToToday(daysOffset: number): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const date = new Date(today)
+  date.setDate(date.getDate() + daysOffset)
+  return localDateStr(date)
+}
+
+// --- Tests ---
+
 describe("extractReferences", () => {
-  test("extracts @mentions", () => {
-    const refs = extractReferences("Contact @john and @jane about this")
-    expect(refs.mentions).toEqual(["john", "jane"])
-  })
-  test("extracts #tags", () => {
-    const refs = extractReferences("This is #important and #urgent")
-    expect(refs.tags).toEqual(["important", "urgent"])
-  })
-  test("extracts +projects", () => {
-    const refs = extractReferences("Part of +work and +finance projects")
-    expect(refs.projects).toEqual(["work", "finance"])
-  })
-  test("extracts [[wikilinks]]", () => {
-    const refs = extractReferences(
+  test.each([
+    [
+      "@mentions",
+      "Contact @john and @jane about this",
+      "mentions",
+      ["john", "jane"],
+    ],
+    [
+      "#tags",
+      "This is #important and #urgent",
+      "tags",
+      ["important", "urgent"],
+    ],
+    [
+      "+projects",
+      "Part of +work and +finance projects",
+      "projects",
+      ["work", "finance"],
+    ],
+    [
+      "[[wikilinks]]",
       "See [[Meeting Notes]] and [[Q4 Actuals]] for details",
-    )
-    expect(refs.wikilinks).toEqual(["Meeting Notes", "Q4 Actuals"])
+      "wikilinks",
+      ["Meeting Notes", "Q4 Actuals"],
+    ],
+  ] as const)("extracts %s", (_name, content, refType, expected) => {
+    const refs = extractReferences(content)
+    expect(refs[refType]).toEqual(expected)
   })
+
   test("extracts all reference types", () => {
     const refs = extractReferences("@bjorn #finance +work [[Q4 Budget]] review")
     expect(refs.mentions).toEqual(["bjorn"])
@@ -52,38 +119,33 @@ describe("extractReferences", () => {
     expect(refs.projects).toEqual(["work"])
     expect(refs.wikilinks).toEqual(["Q4 Budget"])
   })
+
   test("deduplicates references", () => {
     const refs = extractReferences("@john said @john should do it @john")
     expect(refs.mentions).toEqual(["john"])
   })
-  test("handles undefined content", () => {
-    const refs = extractReferences(undefined)
+
+  test.each([
+    ["undefined content", undefined],
+    ["empty content", ""],
+  ] as const)("handles %s", (_name, content) => {
+    const refs = extractReferences(content)
     expect(refs.mentions).toEqual([])
     expect(refs.tags).toEqual([])
     expect(refs.projects).toEqual([])
     expect(refs.wikilinks).toEqual([])
   })
-  test("handles empty content", () => {
-    const refs = extractReferences("")
-    expect(refs.mentions).toEqual([])
-  })
 })
 
 describe("formatDate", () => {
-  // Helper to format date in local timezone (matches implementation)
-  function localDateStr(d: Date): string {
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, "0")
-    const day = String(d.getDate()).padStart(2, "0")
-    return `${year}-${month}-${day}`
-  }
-
   test("returns empty string for undefined", () => {
     expect(formatDate(undefined).text).toBe("")
   })
+
   test("returns raw date for invalid date", () => {
     expect(formatDate("not-a-date").text).toBe("not-a-date")
   })
+
   test("formats date in current year as short form", () => {
     const now = new Date()
     const dateStr = `${now.getFullYear()}-01-15`
@@ -91,206 +153,105 @@ describe("formatDate", () => {
     expect(formatted.text).toContain("Jan")
     expect(formatted.text).toContain("15")
   })
+
   test("returns full date for different year", () => {
     const formatted = formatDate("2020-06-15")
     expect(formatted.text).toBe("2020-06-15")
     expect(formatted.urgency).toBe("overdue")
   })
-  test("returns overdue urgency for past dates", () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const pastDate = new Date(today)
-    pastDate.setDate(pastDate.getDate() - 5)
-    const formatted = formatDate(localDateStr(pastDate))
-    expect(formatted.urgency).toBe("overdue")
-  })
-  test("returns urgent urgency for dates due tomorrow", () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const formatted = formatDate(localDateStr(tomorrow))
-    expect(formatted.urgency).toBe("urgent")
-  })
-  test("returns soon urgency for dates due within 3 days", () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const soonDate = new Date(today)
-    soonDate.setDate(soonDate.getDate() + 3)
-    const formatted = formatDate(localDateStr(soonDate))
-    expect(formatted.urgency).toBe("soon")
-  })
-  test("returns normal urgency for future dates", () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const futureDate = new Date(today)
-    futureDate.setDate(futureDate.getDate() + 10)
-    const formatted = formatDate(localDateStr(futureDate))
-    expect(formatted.urgency).toBe("normal")
+
+  test.each([
+    [-5, "overdue", "past dates"],
+    [1, "urgent", "dates due tomorrow"],
+    [3, "soon", "dates due within 3 days"],
+    [10, "normal", "future dates"],
+  ] as const)("returns %s urgency for %s", (daysOffset, expectedUrgency) => {
+    const formatted = formatDate(dateRelativeToToday(daysOffset))
+    expect(formatted.urgency).toBe(expectedUrgency)
   })
 })
 
 describe("getStatusDisplay", () => {
-  test("returns todo for undefined status", () => {
-    const result = getStatusDisplay(undefined)
-    expect(result.text).toBe("todo")
-    expect(result.color).toBe("blue")
-  })
-  test("returns done with green color", () => {
-    const result = getStatusDisplay("done")
-    expect(result.text).toBe("done")
-    expect(result.color).toBe("green")
-  })
-  test("returns wip with yellow color", () => {
-    const result = getStatusDisplay("wip")
-    expect(result.text).toBe("wip")
-    expect(result.color).toBe("yellow")
-  })
-  test("returns blocked with red color", () => {
-    const result = getStatusDisplay("blocked")
-    expect(result.text).toBe("blocked")
-    expect(result.color).toBe("red")
-  })
-  test("returns dropped with gray color", () => {
-    const result = getStatusDisplay("dropped")
-    expect(result.text).toBe("dropped")
-    expect(result.color).toBe("gray")
-  })
+  test.each([
+    [undefined, "todo", "blue"],
+    ["done", "done", "green"],
+    ["wip", "wip", "yellow"],
+    ["blocked", "blocked", "red"],
+    ["dropped", "dropped", "gray"],
+  ] as const)(
+    "status %s returns text=%s color=%s",
+    (status, expectedText, expectedColor) => {
+      const result = getStatusDisplay(status)
+      expect(result.text).toBe(expectedText)
+      expect(result.color).toBe(expectedColor)
+    },
+  )
 })
 
 describe("getProjectPath", () => {
   test("returns empty array for node with no parent", () => {
     const repo = createFakeRepo({
-      nodes: [
-        {
-          id: "task1",
-          type: "task",
-          content: "Standalone task",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
-        },
-      ],
+      nodes: createTestNodes([
+        { id: "task1", type: "task", content: "Standalone task" },
+      ]),
     })
     const node = repo.getNode("task1")!
     expect(getProjectPath(repo, node)).toEqual([])
   })
+
   test("returns folder names in path", () => {
     const repo = createFakeRepo({
-      nodes: [
-        {
-          id: "folder1",
-          type: "folder",
-          content: "Work",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
-        },
+      nodes: createTestNodes([
+        { id: "folder1", type: "folder", content: "Work" },
         {
           id: "folder2",
           type: "folder",
           content: "Finance",
           parent_id: "folder1",
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
         {
           id: "task1",
           type: "task",
           content: "Review budget",
           parent_id: "folder2",
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
-      ],
+      ]),
     })
     const task = repo.getNode("task1")!
-    const path = getProjectPath(repo, task)
-    expect(path).toEqual(["Work", "Finance"])
+    expect(getProjectPath(repo, task)).toEqual(["Work", "Finance"])
   })
+
   test("includes files in path", () => {
     const repo = createFakeRepo({
-      nodes: [
-        {
-          id: "folder1",
-          type: "folder",
-          content: "Projects",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
-        },
-        {
-          id: "file1",
-          type: "file",
-          content: "todo.md",
-          parent_id: "folder1",
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
-        },
+      nodes: createTestNodes([
+        { id: "folder1", type: "folder", content: "Projects" },
+        { id: "file1", type: "file", content: "todo.md", parent_id: "folder1" },
         {
           id: "task1",
           type: "task",
           content: "Do something",
           parent_id: "file1",
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
-      ],
+      ]),
     })
     const task = repo.getNode("task1")!
-    const path = getProjectPath(repo, task)
-    expect(path).toEqual(["Projects", "todo.md"])
+    expect(getProjectPath(repo, task)).toEqual(["Projects", "todo.md"])
   })
 })
 
 describe("DetailPane", () => {
   test("renders with all task fields", () => {
     const repo = createFakeRepo({
-      nodes: [
+      nodes: createTestNodes([
         {
           id: "task1",
           type: "task",
           content: "Review Q1 budget",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
           task_status: "todo",
           due_date: "2026-01-10",
           assigned_to: "bjorn",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
-      ],
+      ]),
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 40, 24)
@@ -302,33 +263,17 @@ describe("DetailPane", () => {
     expect(app.text).toContain("Assigned:")
     expect(app.text).toContain("@bjorn")
   })
+
   test("shows subtasks", () => {
     const repo = createFakeRepo({
-      nodes: [
-        {
-          id: "parent1",
-          type: "task",
-          content: "Parent task",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
-        },
+      nodes: createTestNodes([
+        { id: "parent1", type: "task", content: "Parent task" },
         {
           id: "sub1",
           type: "task",
           content: "Subtask 1",
           parent_id: "parent1",
-          parent_idx: 0,
-          link_to: null,
           task_status: "done",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
         {
           id: "sub2",
@@ -336,14 +281,9 @@ describe("DetailPane", () => {
           content: "Subtask 2",
           parent_id: "parent1",
           parent_idx: 1,
-          link_to: null,
           task_status: "todo",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
-      ],
+      ]),
     })
     const parent = repo.getNode("parent1")!
     const app = renderDetailPane(repo, parent, 40, 24)
@@ -351,23 +291,17 @@ describe("DetailPane", () => {
     expect(app.text).toContain("Subtask 1")
     expect(app.text).toContain("Subtask 2")
   })
+
   test("shows references from content", () => {
     const repo = createFakeRepo({
-      nodes: [
+      nodes: createTestNodes([
         {
           id: "task1",
           type: "task",
           content:
             "Talk to @john about #budget for +work project [[Meeting Notes]]",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
-      ],
+      ]),
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 50, 24)
@@ -376,46 +310,24 @@ describe("DetailPane", () => {
     expect(app.text).toContain("+work")
     expect(app.text).toContain("[[Meeting Notes]]")
   })
+
   test("shows project path", () => {
     const repo = createFakeRepo({
-      nodes: [
-        {
-          id: "folder1",
-          type: "folder",
-          content: "Work",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
-        },
+      nodes: createTestNodes([
+        { id: "folder1", type: "folder", content: "Work" },
         {
           id: "folder2",
           type: "folder",
           content: "Finance",
           parent_id: "folder1",
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
         {
           id: "task1",
           type: "task",
           content: "Review budget",
           parent_id: "folder2",
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
-      ],
+      ]),
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 50, 24)
@@ -423,22 +335,12 @@ describe("DetailPane", () => {
     expect(app.text).toContain("Work")
     expect(app.text).toContain("Finance")
   })
+
   test("shows keybindings hint", () => {
     const repo = createFakeRepo({
-      nodes: [
-        {
-          id: "task1",
-          type: "task",
-          content: "Simple task",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
-        },
-      ],
+      nodes: createTestNodes([
+        { id: "task1", type: "task", content: "Simple task" },
+      ]),
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 50, 24)
@@ -446,56 +348,34 @@ describe("DetailPane", () => {
     // The hint uses flexGrow to push to bottom, but gets clipped
     expect(app.text.length).toBeGreaterThan(0)
   })
+
   test("handles task with done status", () => {
     const repo = createFakeRepo({
-      nodes: [
+      nodes: createTestNodes([
         {
           id: "task1",
           type: "task",
           content: "Completed task",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
           task_status: "done",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
-      ],
+      ]),
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 40, 24)
     expect(app.text).toContain("done")
   })
+
   test("shows backlinks when present", () => {
     const repo = createFakeRepo({
-      nodes: [
-        {
-          id: "target1",
-          type: "task",
-          content: "Target task",
-          parent_id: null,
-          parent_idx: 0,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
-        },
+      nodes: createTestNodes([
+        { id: "target1", type: "task", content: "Target task" },
         {
           id: "source1",
           type: "file",
           content: "Meeting Notes",
-          parent_id: null,
           parent_idx: 1,
-          link_to: null,
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "test",
         },
-      ],
+      ]),
       links: [
         {
           source_id: "source1",

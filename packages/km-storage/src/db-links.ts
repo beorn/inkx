@@ -9,11 +9,11 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { createDbOps } from "./db-ops.ts"
 import { findChildByContent } from "./db-queries/index.ts"
 
-const log = createConditionalLogger("km:storage:db:links")
+const log = createlogger("km:storage:db:links")
 
 // =============================================================================
 // Types

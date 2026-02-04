@@ -5,7 +5,7 @@
  * and handle context appropriately.
  */
 
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect } from "vitest"
 import { allCommands } from "../src/commands/index.ts"
 import { navigationCommands } from "../src/commands/navigation.ts"
 import { selectionCommands } from "../src/commands/selection.ts"
@@ -14,9 +14,18 @@ import { taskCommands } from "../src/commands/task.ts"
 import { viewCommands } from "../src/commands/view.ts"
 import { historyCommands } from "../src/commands/history.ts"
 import { tuiCommands } from "../src/commands/tui.ts"
-import type { CommandContext, TNode, CommandAction } from "../src/types.ts"
+import type {
+  CommandContext,
+  TNode,
+  CommandAction,
+  CommandDef,
+} from "../src/types.ts"
 
-// Helper to create minimal TNode
+// ============================================================================
+// Test Helpers
+// ============================================================================
+
+/** Create minimal TNode for testing */
 function createNode(
   id: string,
   children: TNode[] = [],
@@ -44,10 +53,9 @@ function createNode(
   }
 }
 
-// Helper to create minimal CommandContext
+/** Create minimal CommandContext for testing */
 function createContext(overrides?: Partial<CommandContext>): CommandContext {
   const defaultNode = createNode("current-node")
-
   return {
     currentNode: defaultNode,
     currentNodeId: "current-node",
@@ -63,7 +71,7 @@ function createContext(overrides?: Partial<CommandContext>): CommandContext {
   }
 }
 
-// Helper to create context with task node
+/** Create context with task node */
 function createTaskContext(
   status?: "todo" | "wip" | "done" | "dropped" | "blocked",
 ): CommandContext {
@@ -71,22 +79,13 @@ function createTaskContext(
     isTask: true,
     task_status: status ?? "todo",
   })
-
-  return {
+  return createContext({
     currentNode: taskNode,
     currentNodeId: "task-node",
-    selectedNodes: [],
-    viewMode: "cards",
-    siblingCount: 1,
-    siblingIndex: 0,
-    columnIndex: 0,
-    columnCount: 1,
-    moveMode: false,
-    foldedNodes: new Set(),
-  }
+  })
 }
 
-// Helper to create context with null currentNode
+/** Create context with null currentNode */
 function createNullNodeContext(): CommandContext {
   return {
     currentNode: null,
@@ -100,6 +99,32 @@ function createNullNodeContext(): CommandContext {
     moveMode: false,
     foldedNodes: new Set(),
   }
+}
+
+/** Find command by id in a command list */
+function findCommand(commands: readonly CommandDef[], id: string): CommandDef {
+  const cmd = commands.find((c) => c.id === id)
+  if (!cmd) throw new Error(`Command not found: ${id}`)
+  return cmd
+}
+
+/** Execute a command and return the result */
+function executeCommand(
+  commands: readonly CommandDef[],
+  id: string,
+  ctx: CommandContext = createContext(),
+): CommandAction | null {
+  return findCommand(commands, id).execute(ctx)
+}
+
+/** Assert command returns expected action type */
+function expectAction(
+  commands: readonly CommandDef[],
+  id: string,
+  expected: CommandAction | null,
+  ctx: CommandContext = createContext(),
+): void {
+  expect(executeCommand(commands, id, ctx)).toEqual(expected)
 }
 
 describe("allCommands", () => {
@@ -138,460 +163,308 @@ describe("allCommands", () => {
 
 describe("navigationCommands", () => {
   describe("structural cursor movement (hjkl)", () => {
-    const cursorCommands = [
-      { id: "cursor_prev", dir: "prev" as const },
-      { id: "cursor_next", dir: "next" as const },
-      { id: "cursor_in", dir: "in" as const },
-      { id: "cursor_out", dir: "out" as const },
-      { id: "cursor_first", dir: "first" as const },
-      { id: "cursor_last", dir: "last" as const },
-    ]
-
-    for (const { id, dir } of cursorCommands) {
-      it(`${id} returns CURSOR_MOVE with dir="${dir}"`, () => {
-        const cmd = navigationCommands.find((c) => c.id === id)
-        expect(cmd).toBeDefined()
-
-        const result = cmd!.execute(createContext())
-
-        expect(result).toEqual({ type: "CURSOR_MOVE", dir })
-      })
-    }
+    it.each([
+      ["cursor_prev", "prev"],
+      ["cursor_next", "next"],
+      ["cursor_in", "in"],
+      ["cursor_out", "out"],
+      ["cursor_first", "first"],
+      ["cursor_last", "last"],
+    ] as const)("%s returns CURSOR_MOVE with dir=%s", (id, dir) => {
+      expectAction(navigationCommands, id, { type: "CURSOR_MOVE", dir })
+    })
   })
 
   describe("visual cursor movement (arrows)", () => {
-    const arrowCommands = [
-      { id: "cursor_up", dir: "up" as const },
-      { id: "cursor_down", dir: "down" as const },
-      { id: "cursor_left", dir: "left" as const },
-      { id: "cursor_right", dir: "right" as const },
-    ]
-
-    for (const { id, dir } of arrowCommands) {
-      it(`${id} returns CURSOR_MOVE with dir="${dir}"`, () => {
-        const cmd = navigationCommands.find((c) => c.id === id)
-        expect(cmd).toBeDefined()
-
-        const result = cmd!.execute(createContext())
-
-        expect(result).toEqual({ type: "CURSOR_MOVE", dir })
-      })
-    }
+    it.each([
+      ["cursor_up", "up"],
+      ["cursor_down", "down"],
+      ["cursor_left", "left"],
+      ["cursor_right", "right"],
+    ] as const)("%s returns CURSOR_MOVE with dir=%s", (id, dir) => {
+      expectAction(navigationCommands, id, { type: "CURSOR_MOVE", dir })
+    })
   })
 
   describe("history navigation", () => {
-    it("nav_back returns NAV_BACK action", () => {
-      const cmd = navigationCommands.find((c) => c.id === "nav_back")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "NAV_BACK" })
-    })
-
-    it("nav_forward returns NAV_FORWARD action", () => {
-      const cmd = navigationCommands.find((c) => c.id === "nav_forward")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "NAV_FORWARD" })
+    it.each([
+      ["nav_back", "NAV_BACK"],
+      ["nav_forward", "NAV_FORWARD"],
+    ] as const)("%s returns %s action", (id, type) => {
+      expectAction(navigationCommands, id, { type })
     })
   })
 
   describe("zoom commands", () => {
     it("zoom_in returns ZOOM_IN with nodeId when currentNode exists", () => {
-      const node = createNode("zoom-target")
       const ctx = createContext({
-        currentNode: node,
+        currentNode: createNode("zoom-target"),
         currentNodeId: "zoom-target",
       })
-
-      const cmd = navigationCommands.find((c) => c.id === "zoom_in")
-      const result = cmd!.execute(ctx)
-
-      // Simplified action - just nodeId, no nodes array
-      expect(result).toEqual({
-        type: "ZOOM_IN",
-        nodeId: "zoom-target",
-      })
+      expectAction(
+        navigationCommands,
+        "zoom_in",
+        {
+          type: "ZOOM_IN",
+          nodeId: "zoom-target",
+        },
+        ctx,
+      )
     })
 
     it("zoom_in returns null when currentNode is null", () => {
-      const ctx = createNullNodeContext()
-      const cmd = navigationCommands.find((c) => c.id === "zoom_in")
-      const result = cmd!.execute(ctx)
-
-      expect(result).toBeNull()
+      expectAction(navigationCommands, "zoom_in", null, createNullNodeContext())
     })
   })
 })
 
 describe("selectionCommands", () => {
-  describe("basic selection operations", () => {
-    it("select_toggle returns SELECT_NODE_TOGGLE when currentNodeId exists", () => {
-      const ctx = createContext({ currentNodeId: "node-1" })
-      const cmd = selectionCommands.find((c) => c.id === "select_toggle")
-      const result = cmd!.execute(ctx)
+  describe("node-specific selection operations", () => {
+    it.each([
+      ["select_toggle", "SELECT_NODE_TOGGLE", "node-1"],
+      ["select_add", "SELECT_NODE_ADD", "node-2"],
+      ["select_remove", "SELECT_NODE_REMOVE", "node-3"],
+    ] as const)(
+      "%s returns %s when currentNodeId exists",
+      (id, type, nodeId) => {
+        const ctx = createContext({ currentNodeId: nodeId })
+        expectAction(selectionCommands, id, { type, nodeId }, ctx)
+      },
+    )
 
-      expect(result).toEqual({ type: "SELECT_NODE_TOGGLE", nodeId: "node-1" })
-    })
-
-    it("select_toggle returns null when currentNodeId is null", () => {
-      const ctx = createNullNodeContext()
-      const cmd = selectionCommands.find((c) => c.id === "select_toggle")
-      const result = cmd!.execute(ctx)
-
-      expect(result).toBeNull()
-    })
-
-    it("select_add returns SELECT_NODE_ADD when currentNodeId exists", () => {
-      const ctx = createContext({ currentNodeId: "node-2" })
-      const cmd = selectionCommands.find((c) => c.id === "select_add")
-      const result = cmd!.execute(ctx)
-
-      expect(result).toEqual({ type: "SELECT_NODE_ADD", nodeId: "node-2" })
-    })
-
-    it("select_remove returns SELECT_NODE_REMOVE when currentNodeId exists", () => {
-      const ctx = createContext({ currentNodeId: "node-3" })
-      const cmd = selectionCommands.find((c) => c.id === "select_remove")
-      const result = cmd!.execute(ctx)
-
-      expect(result).toEqual({ type: "SELECT_NODE_REMOVE", nodeId: "node-3" })
-    })
+    it.each([["select_toggle"], ["select_add"], ["select_remove"]])(
+      "%s returns null when currentNodeId is null",
+      (id) => {
+        expectAction(selectionCommands, id, null, createNullNodeContext())
+      },
+    )
   })
 
   describe("bulk selection", () => {
-    it("select_all_siblings returns SELECT_ALL_SIBLINGS", () => {
-      const cmd = selectionCommands.find((c) => c.id === "select_all_siblings")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "SELECT_ALL_SIBLINGS" })
-    })
-
-    it("select_all returns SELECT_ALL", () => {
-      const cmd = selectionCommands.find((c) => c.id === "select_all")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "SELECT_ALL" })
-    })
-
-    it("clear_selection returns CLEAR_SELECTION", () => {
-      const cmd = selectionCommands.find((c) => c.id === "clear_selection")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "CLEAR_SELECTION" })
+    it.each([
+      ["select_all_siblings", "SELECT_ALL_SIBLINGS"],
+      ["select_all", "SELECT_ALL"],
+      ["clear_selection", "CLEAR_SELECTION"],
+    ] as const)("%s returns %s", (id, type) => {
+      expectAction(selectionCommands, id, { type })
     })
   })
 
   describe("extend selection", () => {
-    const extendCommands = [
-      { id: "extend_select_up", type: "EXTEND_SELECT_UP" as const },
-      { id: "extend_select_down", type: "EXTEND_SELECT_DOWN" as const },
-      { id: "extend_select_left", type: "EXTEND_SELECT_LEFT" as const },
-      { id: "extend_select_right", type: "EXTEND_SELECT_RIGHT" as const },
-    ]
-
-    for (const { id, type } of extendCommands) {
-      it(`${id} returns ${type}`, () => {
-        const cmd = selectionCommands.find((c) => c.id === id)
-        const result = cmd!.execute(createContext())
-
-        expect(result).toEqual({ type })
-      })
-    }
+    it.each([
+      ["extend_select_up", "EXTEND_SELECT_UP"],
+      ["extend_select_down", "EXTEND_SELECT_DOWN"],
+      ["extend_select_left", "EXTEND_SELECT_LEFT"],
+      ["extend_select_right", "EXTEND_SELECT_RIGHT"],
+    ] as const)("%s returns %s", (id, type) => {
+      expectAction(selectionCommands, id, { type })
+    })
   })
 })
 
 describe("editCommands", () => {
   describe("move mode", () => {
-    it("enter_move_mode returns ENTER_MOVE_MODE", () => {
-      const cmd = editCommands.find((c) => c.id === "enter_move_mode")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "ENTER_MOVE_MODE" })
+    it.each([
+      ["enter_move_mode", "ENTER_MOVE_MODE"],
+      ["confirm_move", "CONFIRM_MOVE"],
+      ["cancel_move", "CANCEL_MOVE"],
+    ] as const)("%s returns %s", (id, type) => {
+      expectAction(editCommands, id, { type })
     })
 
-    it("confirm_move returns CONFIRM_MOVE", () => {
-      const cmd = editCommands.find((c) => c.id === "confirm_move")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "CONFIRM_MOVE" })
-    })
-
-    it("cancel_move returns CANCEL_MOVE", () => {
-      const cmd = editCommands.find((c) => c.id === "cancel_move")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "CANCEL_MOVE" })
-    })
-
-    it("confirm_move and cancel_move have move mode restriction", () => {
-      const confirmCmd = editCommands.find((c) => c.id === "confirm_move")
-      const cancelCmd = editCommands.find((c) => c.id === "cancel_move")
-
-      expect(confirmCmd!.modes).toContain("move")
-      expect(cancelCmd!.modes).toContain("move")
-    })
+    it.each([["confirm_move"], ["cancel_move"]])(
+      "%s has move mode restriction",
+      (id) => {
+        expect(findCommand(editCommands, id).modes).toContain("move")
+      },
+    )
   })
 
   describe("shift commands", () => {
-    const shiftCommands = [
-      { id: "shift_up", type: "SHIFT_UP" as const },
-      { id: "shift_down", type: "SHIFT_DOWN" as const },
-      { id: "shift_left", type: "SHIFT_LEFT" as const },
-      { id: "shift_right", type: "SHIFT_RIGHT" as const },
-    ]
-
-    for (const { id, type } of shiftCommands) {
-      it(`${id} returns ${type}`, () => {
-        const cmd = editCommands.find((c) => c.id === id)
-        const result = cmd!.execute(createContext())
-
-        expect(result).toEqual({ type })
-      })
-    }
+    it.each([
+      ["shift_up", "SHIFT_UP"],
+      ["shift_down", "SHIFT_DOWN"],
+      ["shift_left", "SHIFT_LEFT"],
+      ["shift_right", "SHIFT_RIGHT"],
+    ] as const)("%s returns %s", (id, type) => {
+      expectAction(editCommands, id, { type })
+    })
   })
 })
 
 describe("taskCommands", () => {
   describe("cycle_task_status", () => {
-    const cmd = taskCommands.find((c) => c.id === "cycle_task_status")!
-
     it("returns null when currentNode is null", () => {
-      const result = cmd.execute(createNullNodeContext())
-      expect(result).toBeNull()
+      expectAction(
+        taskCommands,
+        "cycle_task_status",
+        null,
+        createNullNodeContext(),
+      )
     })
 
     it("returns null when node is not a task", () => {
-      const nonTaskNode = createNode("non-task", [], { isTask: false })
       const ctx = createContext({
-        currentNode: nonTaskNode,
+        currentNode: createNode("non-task", [], { isTask: false }),
         currentNodeId: "non-task",
       })
-
-      const result = cmd.execute(ctx)
-      expect(result).toBeNull()
+      expectAction(taskCommands, "cycle_task_status", null, ctx)
     })
 
-    it("returns TASK_SET_STATUS with next status", () => {
-      const ctx = createTaskContext("todo")
-      const result = cmd.execute(ctx) as CommandAction
-
+    it.each([
+      ["todo", "wip"],
+      ["wip", "done"],
+      ["done", "dropped"],
+      ["dropped", "todo"],
+    ] as const)("cycles %s -> %s", (from, to) => {
+      const result = executeCommand(
+        taskCommands,
+        "cycle_task_status",
+        createTaskContext(from),
+      ) as CommandAction
       expect(result).toEqual({
         type: "TASK_SET_STATUS",
         nodeId: "task-node",
-        status: "wip",
+        status: to,
       })
     })
 
-    it("cycles through statuses: todo -> wip -> done -> dropped -> todo", () => {
-      const statuses: Array<"todo" | "wip" | "done" | "dropped"> = [
-        "todo",
-        "wip",
-        "done",
-        "dropped",
-      ]
-      const expectedNext = ["wip", "done", "dropped", "todo"]
-
-      for (let i = 0; i < statuses.length; i++) {
-        const ctx = createTaskContext(statuses[i]!)
-        const result = cmd.execute(ctx) as { type: string; status: string }
-
-        expect(result.status).toBe(expectedNext[i]!)
-      }
-    })
-
-    it("treats undefined/null status as starting at todo", () => {
-      const taskNode = createNode("task-node", [], {
-        isTask: true,
-        task_status: undefined,
-      })
+    it("treats undefined status as starting at todo", () => {
       const ctx = createContext({
-        currentNode: taskNode,
+        currentNode: createNode("task-node", [], {
+          isTask: true,
+          task_status: undefined,
+        }),
         currentNodeId: "task-node",
       })
-
-      const result = cmd.execute(ctx) as { type: string; status: string }
-      expect(result.status).toBe("todo")
+      const result = executeCommand(
+        taskCommands,
+        "cycle_task_status",
+        ctx,
+      ) as CommandAction
+      expect((result as { status: string }).status).toBe("todo")
     })
   })
 
   describe("toggle_task_done", () => {
-    const cmd = taskCommands.find((c) => c.id === "toggle_task_done")!
-
     it("returns null when currentNode is null", () => {
-      const result = cmd.execute(createNullNodeContext())
-      expect(result).toBeNull()
+      expectAction(
+        taskCommands,
+        "toggle_task_done",
+        null,
+        createNullNodeContext(),
+      )
     })
 
     it("returns null when node is not a task", () => {
-      const ctx = createContext({ currentNode: createNode("not-task") })
-      const result = cmd.execute(ctx)
-      expect(result).toBeNull()
+      expectAction(
+        taskCommands,
+        "toggle_task_done",
+        null,
+        createContext({ currentNode: createNode("not-task") }),
+      )
     })
 
-    it("toggles from todo to done", () => {
-      const ctx = createTaskContext("todo")
-      const result = cmd.execute(ctx) as {
-        type: string
-        nodeId: string
-        status: string
-      }
-
+    it.each([
+      ["todo", "done"],
+      ["done", "todo"],
+      ["wip", "done"],
+    ] as const)("toggles %s -> %s", (from, to) => {
+      const result = executeCommand(
+        taskCommands,
+        "toggle_task_done",
+        createTaskContext(from),
+      ) as CommandAction
       expect(result).toEqual({
         type: "TASK_SET_STATUS",
         nodeId: "task-node",
-        status: "done",
+        status: to,
       })
-    })
-
-    it("toggles from done to todo", () => {
-      const ctx = createTaskContext("done")
-      const result = cmd.execute(ctx) as {
-        type: string
-        nodeId: string
-        status: string
-      }
-
-      expect(result).toEqual({
-        type: "TASK_SET_STATUS",
-        nodeId: "task-node",
-        status: "todo",
-      })
-    })
-
-    it("sets wip to done (not toggle)", () => {
-      const ctx = createTaskContext("wip")
-      const result = cmd.execute(ctx) as { type: string; status: string }
-
-      expect(result.status).toBe("done")
     })
   })
 
   describe("direct status setters", () => {
-    const statusSetters = [
-      { id: "set_status_todo", status: "todo" as const },
-      { id: "set_status_wip", status: "wip" as const },
-      { id: "set_status_blocked", status: "blocked" as const },
-      { id: "set_status_done", status: "done" as const },
-      { id: "set_status_dropped", status: "dropped" as const },
-    ]
+    it.each([
+      ["set_status_todo", "todo"],
+      ["set_status_wip", "wip"],
+      ["set_status_blocked", "blocked"],
+      ["set_status_done", "done"],
+      ["set_status_dropped", "dropped"],
+    ] as const)("%s returns TASK_SET_STATUS with status=%s", (id, status) => {
+      const ctx = createContext({ currentNodeId: "node-1" })
+      expectAction(
+        taskCommands,
+        id,
+        { type: "TASK_SET_STATUS", nodeId: "node-1", status },
+        ctx,
+      )
+    })
 
-    for (const { id, status } of statusSetters) {
-      describe(id, () => {
-        const cmd = taskCommands.find((c) => c.id === id)!
-
-        it(`returns TASK_SET_STATUS with status="${status}"`, () => {
-          const ctx = createContext({ currentNodeId: "node-1" })
-          const result = cmd.execute(ctx)
-
-          expect(result).toEqual({
-            type: "TASK_SET_STATUS",
-            nodeId: "node-1",
-            status,
-          })
-        })
-
-        it("returns null when currentNodeId is null", () => {
-          const ctx = createNullNodeContext()
-          const result = cmd.execute(ctx)
-
-          expect(result).toBeNull()
-        })
-      })
-    }
+    it.each([
+      ["set_status_todo"],
+      ["set_status_wip"],
+      ["set_status_blocked"],
+      ["set_status_done"],
+      ["set_status_dropped"],
+    ])("%s returns null when currentNodeId is null", (id) => {
+      expectAction(taskCommands, id, null, createNullNodeContext())
+    })
   })
 })
 
 describe("viewCommands (fold and view config)", () => {
   describe("fold commands", () => {
     it("toggle_fold returns TOGGLE_FOLD with nodeId", () => {
-      const ctx = createContext({ currentNodeId: "fold-target" })
-      const cmd = viewCommands.find((c) => c.id === "toggle_fold")
-      const result = cmd!.execute(ctx)
-
-      expect(result).toEqual({ type: "TOGGLE_FOLD", nodeId: "fold-target" })
+      expectAction(
+        viewCommands,
+        "toggle_fold",
+        { type: "TOGGLE_FOLD", nodeId: "fold-target" },
+        createContext({ currentNodeId: "fold-target" }),
+      )
     })
 
     it("toggle_fold returns null when currentNodeId is null", () => {
-      const ctx = createNullNodeContext()
-      const cmd = viewCommands.find((c) => c.id === "toggle_fold")
-      const result = cmd!.execute(ctx)
-
-      expect(result).toBeNull()
+      expectAction(viewCommands, "toggle_fold", null, createNullNodeContext())
     })
 
     it("toggle_collapse returns TOGGLE_COLLAPSE with nodeId", () => {
-      const ctx = createContext({ currentNodeId: "collapse-target" })
-      const cmd = viewCommands.find((c) => c.id === "toggle_collapse")
-      const result = cmd!.execute(ctx)
-
-      expect(result).toEqual({
-        type: "TOGGLE_COLLAPSE",
-        nodeId: "collapse-target",
-      })
+      expectAction(
+        viewCommands,
+        "toggle_collapse",
+        { type: "TOGGLE_COLLAPSE", nodeId: "collapse-target" },
+        createContext({ currentNodeId: "collapse-target" }),
+      )
     })
 
-    it("fold_all returns FOLD_LEVEL with depth 1", () => {
-      const cmd = viewCommands.find((c) => c.id === "fold_all")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "FOLD_LEVEL", depth: 1 })
-    })
-
-    it("unfold_all returns UNFOLD_LEVEL with depth 99", () => {
-      const cmd = viewCommands.find((c) => c.id === "unfold_all")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "UNFOLD_LEVEL", depth: 99 })
+    it.each([
+      ["fold_all", "FOLD_LEVEL", 1],
+      ["unfold_all", "UNFOLD_LEVEL", 99],
+    ] as const)("%s returns %s with depth %d", (id, type, depth) => {
+      expectAction(viewCommands, id, { type, depth })
     })
   })
 
   describe("view configuration commands", () => {
-    it("increase_outline_depth returns INCREASE_OUTLINE_DEPTH", () => {
-      const cmd = viewCommands.find((c) => c.id === "increase_outline_depth")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "INCREASE_OUTLINE_DEPTH" })
-    })
-
-    it("decrease_outline_depth returns DECREASE_OUTLINE_DEPTH", () => {
-      const cmd = viewCommands.find((c) => c.id === "decrease_outline_depth")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "DECREASE_OUTLINE_DEPTH" })
-    })
-
-    it("increase_content_lines returns INCREASE_CONTENT_LINES", () => {
-      const cmd = viewCommands.find((c) => c.id === "increase_content_lines")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "INCREASE_CONTENT_LINES" })
-    })
-
-    it("decrease_content_lines returns DECREASE_CONTENT_LINES", () => {
-      const cmd = viewCommands.find((c) => c.id === "decrease_content_lines")
-      const result = cmd!.execute(createContext())
-
-      expect(result).toEqual({ type: "DECREASE_CONTENT_LINES" })
+    it.each([
+      ["increase_outline_depth", "INCREASE_OUTLINE_DEPTH"],
+      ["decrease_outline_depth", "DECREASE_OUTLINE_DEPTH"],
+      ["increase_content_lines", "INCREASE_CONTENT_LINES"],
+      ["decrease_content_lines", "DECREASE_CONTENT_LINES"],
+    ] as const)("%s returns %s", (id, type) => {
+      expectAction(viewCommands, id, { type })
     })
   })
 })
 
 describe("historyCommands", () => {
-  it("undo returns HISTORY_UNDO action", () => {
-    const cmd = historyCommands.find((c) => c.id === "undo")
-    const result = cmd!.execute(createContext())
-
-    expect(result).toEqual({ type: "HISTORY_UNDO" })
+  it.each([
+    ["undo", "HISTORY_UNDO"],
+    ["redo", "HISTORY_REDO"],
+  ] as const)("%s returns %s action", (id, type) => {
+    expectAction(historyCommands, id, { type })
   })
 
-  it("redo returns HISTORY_REDO action", () => {
-    const cmd = historyCommands.find((c) => c.id === "redo")
-    const result = cmd!.execute(createContext())
-
-    expect(result).toEqual({ type: "HISTORY_REDO" })
-  })
-
-  it("history commands are in Edit category", () => {
+  it("all history commands are in Edit category", () => {
     for (const cmd of historyCommands) {
       expect(cmd.category).toBe("Edit")
     }
@@ -599,27 +472,14 @@ describe("historyCommands", () => {
 })
 
 describe("command categories", () => {
-  it("all navigation commands are in Navigation category", () => {
-    for (const cmd of navigationCommands) {
-      expect(cmd.category).toBe("Navigation")
-    }
-  })
-
-  it("all selection commands are in Selection category", () => {
-    for (const cmd of selectionCommands) {
-      expect(cmd.category).toBe("Selection")
-    }
-  })
-
-  it("all edit commands are in Edit category", () => {
-    for (const cmd of editCommands) {
-      expect(cmd.category).toBe("Edit")
-    }
-  })
-
-  it("all task commands are in Task category", () => {
-    for (const cmd of taskCommands) {
-      expect(cmd.category).toBe("Task")
+  it.each([
+    ["navigation", navigationCommands, "Navigation"],
+    ["selection", selectionCommands, "Selection"],
+    ["edit", editCommands, "Edit"],
+    ["task", taskCommands, "Task"],
+  ] as const)("all %s commands are in %s category", (_, commands, category) => {
+    for (const cmd of commands) {
+      expect(cmd.category).toBe(category)
     }
   })
 
@@ -634,51 +494,36 @@ describe("null context handling", () => {
   const nullCtx = createNullNodeContext()
 
   // Commands that should return null when currentNode/currentNodeId is null
-  const nullSafeCommands = [
-    "select_toggle",
-    "select_add",
-    "select_remove",
-    "zoom_in",
-    "toggle_fold",
-    "toggle_collapse",
-    "cycle_task_status",
-    "toggle_task_done",
-    "set_status_todo",
-    "set_status_wip",
-    "set_status_blocked",
-    "set_status_done",
-    "set_status_dropped",
-  ]
-
-  for (const cmdId of nullSafeCommands) {
-    it(`${cmdId} returns null when currentNode is null`, () => {
-      const cmd = allCommands.find((c) => c.id === cmdId)
-      expect(cmd).toBeDefined()
-
-      const result = cmd!.execute(nullCtx)
-      expect(result).toBeNull()
-    })
-  }
+  it.each([
+    ["select_toggle"],
+    ["select_add"],
+    ["select_remove"],
+    ["zoom_in"],
+    ["toggle_fold"],
+    ["toggle_collapse"],
+    ["cycle_task_status"],
+    ["toggle_task_done"],
+    ["set_status_todo"],
+    ["set_status_wip"],
+    ["set_status_blocked"],
+    ["set_status_done"],
+    ["set_status_dropped"],
+  ])("%s returns null when currentNode is null", (cmdId) => {
+    expectAction(allCommands, cmdId, null, nullCtx)
+  })
 
   // Commands that should still return actions regardless of currentNode
-  const alwaysActionCommands = [
-    "cursor_next",
-    "cursor_prev",
-    "select_all",
-    "clear_selection",
-    "enter_move_mode",
-    "undo",
-    "redo",
-    "fold_all",
-  ]
-
-  for (const cmdId of alwaysActionCommands) {
-    it(`${cmdId} returns action even when currentNode is null`, () => {
-      const cmd = allCommands.find((c) => c.id === cmdId)
-      expect(cmd).toBeDefined()
-
-      const result = cmd!.execute(nullCtx)
-      expect(result).not.toBeNull()
-    })
-  }
+  it.each([
+    ["cursor_next"],
+    ["cursor_prev"],
+    ["select_all"],
+    ["clear_selection"],
+    ["enter_move_mode"],
+    ["undo"],
+    ["redo"],
+    ["fold_all"],
+  ])("%s returns action even when currentNode is null", (cmdId) => {
+    const result = executeCommand(allCommands, cmdId, nullCtx)
+    expect(result).not.toBeNull()
+  })
 })

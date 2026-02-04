@@ -30,6 +30,73 @@ function createTestDb(): Database {
   return db
 }
 
+/** Create a node object with sensible defaults */
+function createNode(
+  id: string,
+  overrides: Partial<ParsedFile["nodes"][0]> = {},
+): ParsedFile["nodes"][0] {
+  return {
+    id,
+    type: "file",
+    parent_id: null,
+    parent_idx: 0,
+    link_to: null,
+    data: {},
+    created_at: Date.now(),
+    updated_at: Date.now(),
+    version: "",
+    ...overrides,
+  }
+}
+
+/** Create a parsed file with sensible defaults */
+function createParsedFile(
+  path: string,
+  nodeId: string,
+  overrides: Partial<ParsedFile> = {},
+): ParsedFile {
+  return {
+    path,
+    nodeId,
+    nodes: overrides.nodes ?? [createNode(nodeId)],
+    wikilinks: [],
+    hash: `hash-${nodeId}`,
+    ino: 12345,
+    mtime: Date.now(),
+    isCreate: true,
+    ...overrides,
+  }
+}
+
+/** Create an applied file with sensible defaults */
+function createAppliedFile(
+  nodeId: string,
+  name: string,
+  path: string,
+  wikilinks: AppliedFile["wikilinks"] = [],
+): AppliedFile {
+  return { nodeId, name, path, wikilinks }
+}
+
+/** Create a resolved link with sensible defaults */
+function createResolvedLink(
+  source_id: string,
+  target_name: string,
+  overrides: Partial<ResolvedLink> = {},
+): ResolvedLink {
+  return {
+    source_id,
+    target_name,
+    target_id: overrides.target_id ?? null,
+    section: null,
+    block_id: null,
+    alias: null,
+    embedded: false,
+    relationship: null,
+    ...overrides,
+  }
+}
+
 /** Mock ParsePoolService that returns pre-defined results */
 function createMockPool(
   results: Map<string, Partial<ParsedFile>>,
@@ -109,46 +176,8 @@ describe("parseFiles()", () => {
   test("yields parsed files from pool", async () => {
     const mockPool = createMockPool(
       new Map([
-        [
-          "/test/file1.md",
-          {
-            nodes: [
-              {
-                id: "node1",
-                type: "file",
-                parent_id: null,
-                parent_idx: 0,
-                link_to: null,
-                data: {},
-                created_at: Date.now(),
-                updated_at: Date.now(),
-                version: "",
-              },
-            ],
-            wikilinks: [],
-            hash: "hash1",
-          },
-        ],
-        [
-          "/test/file2.md",
-          {
-            nodes: [
-              {
-                id: "node2",
-                type: "file",
-                parent_id: null,
-                parent_idx: 0,
-                link_to: null,
-                data: {},
-                created_at: Date.now(),
-                updated_at: Date.now(),
-                version: "",
-              },
-            ],
-            wikilinks: [],
-            hash: "hash2",
-          },
-        ],
+        ["/test/file1.md", { nodes: [createNode("node1")], hash: "hash1" }],
+        ["/test/file2.md", { nodes: [createNode("node2")], hash: "hash2" }],
       ]),
     )
 
@@ -193,26 +222,7 @@ describe("parseFiles()", () => {
     controller.abort() // Abort immediately
 
     const mockPool = createMockPool(
-      new Map([
-        [
-          "/test/file.md",
-          {
-            nodes: [
-              {
-                id: "n1",
-                type: "file",
-                parent_id: null,
-                parent_idx: 0,
-                link_to: null,
-                data: {},
-                created_at: Date.now(),
-                updated_at: Date.now(),
-                version: "",
-              },
-            ],
-          },
-        ],
-      ]),
+      new Map([["/test/file.md", { nodes: [createNode("n1")] }]]),
     )
 
     const sources: ParseSource[] = [
@@ -235,30 +245,10 @@ describe("parseFiles()", () => {
 describe("applyNodes()", () => {
   test("inserts nodes for creates", async () => {
     const db = createTestDb()
-
-    const parsedFiles: ParsedFile[] = [
-      {
-        path: "/test/file1.md",
-        nodeId: "file1",
-        nodes: [
-          {
-            id: "file1",
-            type: "file",
-            parent_id: null,
-            parent_idx: 0,
-            link_to: null,
-            data: { name: "file1" },
-            created_at: Date.now(),
-            updated_at: Date.now(),
-            version: "",
-          },
-        ],
-        wikilinks: [],
-        hash: "hash1",
-        ino: 12345,
-        mtime: Date.now(),
-        isCreate: true,
-      },
+    const parsedFiles = [
+      createParsedFile("/test/file1.md", "file1", {
+        nodes: [createNode("file1", { data: { name: "file1" } })],
+      }),
     ]
 
     const results = await collect(applyNodes(fromArray(parsedFiles), db))
@@ -280,29 +270,14 @@ describe("applyNodes()", () => {
        VALUES ('file1', 'file', NULL, 0, '{}', 1000, 1000, '')`,
     )
 
-    const parsedFiles: ParsedFile[] = [
-      {
-        path: "/test/file1.md",
-        nodeId: "file1",
-        nodes: [
-          {
-            id: "file1",
-            type: "file",
-            parent_id: null,
-            parent_idx: 0,
-            link_to: null,
-            data: {},
-            created_at: 1000,
-            updated_at: 1000,
-            version: "",
-          },
-        ],
-        wikilinks: [],
+    const parsedFiles = [
+      createParsedFile("/test/file1.md", "file1", {
+        nodes: [createNode("file1", { created_at: 1000, updated_at: 1000 })],
         hash: "newhash",
         ino: 99999,
         mtime: 2000,
         isCreate: false,
-      },
+      }),
     ]
 
     const results = await collect(applyNodes(fromArray(parsedFiles), db))
@@ -325,40 +300,15 @@ describe("applyNodes()", () => {
   test("skips files with errors", async () => {
     const db = createTestDb()
 
-    const parsedFiles: ParsedFile[] = [
-      {
-        path: "/test/good.md",
-        nodeId: "good1",
-        nodes: [
-          {
-            id: "good1",
-            type: "file",
-            parent_id: null,
-            parent_idx: 0,
-            link_to: null,
-            data: {},
-            created_at: Date.now(),
-            updated_at: Date.now(),
-            version: "",
-          },
-        ],
-        wikilinks: [],
-        hash: "hash1",
-        ino: 12345,
-        mtime: Date.now(),
-        isCreate: true,
-      },
-      {
-        path: "/test/bad.md",
-        nodeId: "bad1",
+    const parsedFiles = [
+      createParsedFile("/test/good.md", "good1"),
+      createParsedFile("/test/bad.md", "bad1", {
         nodes: [],
-        wikilinks: [],
         hash: "",
         ino: 0,
         mtime: 0,
-        isCreate: true,
         error: "Parse failed",
-      },
+      }),
     ]
 
     const results = await collect(applyNodes(fromArray(parsedFiles), db))
@@ -377,32 +327,13 @@ describe("applyNodes()", () => {
   test("passes wikilinks through to output", async () => {
     const db = createTestDb()
 
-    const parsedFiles: ParsedFile[] = [
-      {
-        path: "/test/file1.md",
-        nodeId: "file1",
-        nodes: [
-          {
-            id: "file1",
-            type: "file",
-            parent_id: null,
-            parent_idx: 0,
-            link_to: null,
-            data: {},
-            created_at: Date.now(),
-            updated_at: Date.now(),
-            version: "",
-          },
-        ],
+    const parsedFiles = [
+      createParsedFile("/test/file1.md", "file1", {
         wikilinks: [
           { nodeId: "file1", link: { target: "other" } },
           { nodeId: "file1", link: { target: "another" } },
         ],
-        hash: "hash1",
-        ino: 12345,
-        mtime: Date.now(),
-        isCreate: true,
-      },
+      }),
     ]
 
     const results = await collect(applyNodes(fromArray(parsedFiles), db))
@@ -426,13 +357,10 @@ describe("pipelineResolveLinks()", () => {
        VALUES ('target1', 'file', NULL, 0, '/test/target.md', 'target', '{}', 1000, 1000, '')`,
     )
 
-    const appliedFiles: AppliedFile[] = [
-      {
-        nodeId: "source1",
-        name: "source",
-        path: "/test/source.md",
-        wikilinks: [{ nodeId: "source1", link: { target: "target" } }],
-      },
+    const appliedFiles = [
+      createAppliedFile("source1", "source", "/test/source.md", [
+        { nodeId: "source1", link: { target: "target" } },
+      ]),
     ]
 
     const results = await collect(
@@ -449,19 +377,11 @@ describe("pipelineResolveLinks()", () => {
     const db = createTestDb()
 
     // No pre-existing files - both are in the batch
-    const appliedFiles: AppliedFile[] = [
-      {
-        nodeId: "file1",
-        name: "first",
-        path: "/test/first.md",
-        wikilinks: [{ nodeId: "file1", link: { target: "second" } }],
-      },
-      {
-        nodeId: "file2",
-        name: "second",
-        path: "/test/second.md",
-        wikilinks: [],
-      },
+    const appliedFiles = [
+      createAppliedFile("file1", "first", "/test/first.md", [
+        { nodeId: "file1", link: { target: "second" } },
+      ]),
+      createAppliedFile("file2", "second", "/test/second.md"),
     ]
 
     const results = await collect(
@@ -475,13 +395,10 @@ describe("pipelineResolveLinks()", () => {
   test("returns null target_id for unresolved links", async () => {
     const db = createTestDb()
 
-    const appliedFiles: AppliedFile[] = [
-      {
-        nodeId: "file1",
-        name: "source",
-        path: "/test/source.md",
-        wikilinks: [{ nodeId: "file1", link: { target: "nonexistent" } }],
-      },
+    const appliedFiles = [
+      createAppliedFile("file1", "source", "/test/source.md", [
+        { nodeId: "file1", link: { target: "nonexistent" } },
+      ]),
     ]
 
     const results = await collect(
@@ -502,15 +419,10 @@ describe("pipelineResolveLinks()", () => {
        VALUES ('folder1', 'folder', NULL, 0, '/test/inbox', 'inbox', '{}', 1000, 1000, '')`,
     )
 
-    const appliedFiles: AppliedFile[] = [
-      {
-        nodeId: "file1",
-        name: "board",
-        path: "/test/board.md",
-        wikilinks: [
-          { nodeId: "file1", link: { target: "inbox", embedded: true } },
-        ],
-      },
+    const appliedFiles = [
+      createAppliedFile("file1", "board", "/test/board.md", [
+        { nodeId: "file1", link: { target: "inbox", embedded: true } },
+      ]),
     ]
 
     const results = await collect(
@@ -532,13 +444,10 @@ describe("pipelineResolveLinks()", () => {
        VALUES ('section1', 'section', 'file1', 0, 'my-section', 'My Section', '{"depth":2}', 1000, 1000, '')`,
     )
 
-    const appliedFiles: AppliedFile[] = [
-      {
-        nodeId: "file2",
-        name: "reference",
-        path: "/test/reference.md",
-        wikilinks: [{ nodeId: "file2", link: { target: "my-section" } }],
-      },
+    const appliedFiles = [
+      createAppliedFile("file2", "reference", "/test/reference.md", [
+        { nodeId: "file2", link: { target: "my-section" } },
+      ]),
     ]
 
     const results = await collect(
@@ -557,19 +466,7 @@ describe("pipelineResolveLinks()", () => {
 describe("applyLinks()", () => {
   test("inserts links into database", async () => {
     const db = createTestDb()
-
-    const links: ResolvedLink[] = [
-      {
-        source_id: "src1",
-        target_name: "target",
-        target_id: "tgt1",
-        section: null,
-        block_id: null,
-        alias: null,
-        embedded: false,
-        relationship: null,
-      },
-    ]
+    const links = [createResolvedLink("src1", "target", { target_id: "tgt1" })]
 
     await runPipeline(applyLinks(fromArray(links), db))
 
@@ -586,17 +483,12 @@ describe("applyLinks()", () => {
        VALUES ('src1', 'paragraph', 'file1', 0, '{}', 1000, 1000, '')`,
     )
 
-    const links: ResolvedLink[] = [
-      {
-        source_id: "src1",
-        target_name: "embed",
+    const links = [
+      createResolvedLink("src1", "embed", {
         target_id: "tgt1",
-        section: null,
-        block_id: null,
         alias: "My Alias",
         embedded: true,
-        relationship: null,
-      },
+      }),
     ]
 
     await runPipeline(applyLinks(fromArray(links), db))
@@ -630,38 +522,14 @@ describe("pipeline composition", () => {
         [
           "/test/a.md",
           {
-            nodes: [
-              {
-                id: "a",
-                type: "file",
-                parent_id: null,
-                parent_idx: 0,
-                link_to: null,
-                data: { name: "a" },
-                created_at: Date.now(),
-                updated_at: Date.now(),
-                version: "",
-              },
-            ],
+            nodes: [createNode("a", { data: { name: "a" } })],
             wikilinks: [{ nodeId: "a", link: { target: "b" } }],
           },
         ],
         [
           "/test/b.md",
           {
-            nodes: [
-              {
-                id: "b",
-                type: "file",
-                parent_id: null,
-                parent_idx: 0,
-                link_to: null,
-                data: { name: "b" },
-                created_at: Date.now(),
-                updated_at: Date.now(),
-                version: "",
-              },
-            ],
+            nodes: [createNode("b", { data: { name: "b" } })],
             wikilinks: [{ nodeId: "b", link: { target: "a" } }],
           },
         ],

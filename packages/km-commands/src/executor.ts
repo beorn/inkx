@@ -1,8 +1,8 @@
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import type { CommandContext, CommandAction, ViewMode } from "./types.ts"
 import { getCommand } from "./registry.ts"
 
-const log = createConditionalLogger("km:commands:executor")
+const log = createlogger("km:commands:executor")
 
 export function executeCommand(
   id: string,

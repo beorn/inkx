@@ -4,7 +4,7 @@
  * Rebuild state.db from events.jsonl
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
@@ -12,7 +12,7 @@ const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
 import { dirname, resolve } from "path"
 
-const log = createConditionalLogger("km:cli:rebuild")
+const log = createlogger("km:cli:rebuild")
 import { getLastEventId, findKmRootFromPath, createRepo } from "@km/storage"
 import { Database } from "bun:sqlite"
 import { existsSync, statSync, readdirSync, rmSync, unlinkSync } from "fs"

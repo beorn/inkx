@@ -5,11 +5,11 @@
  * Parsing is done by @km/core query module.
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { rowToNode } from "./db-queries/index.ts"
 
-const log = createConditionalLogger("km:storage:query")
+const log = createlogger("km:storage:query")
 import {
   parseQuery as parse,
   resolveDateQuery as resolveDate,

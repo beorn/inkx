@@ -8,13 +8,13 @@
  */
 
 import { useMemo } from "react"
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import type { ColumnState, CardState, ColumnRules } from "../types.ts"
 import { parseColumnRules } from "../state.ts"
 
-const log = createConditionalLogger("km:perf")
+const log = createlogger("km:perf")
 
 // =============================================================================
 // Non-Column Types (content blocks, not navigable columns)

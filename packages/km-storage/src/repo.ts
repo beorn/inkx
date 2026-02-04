@@ -15,7 +15,7 @@
  */
 
 import { Database } from "bun:sqlite"
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 
@@ -54,7 +54,7 @@ import {
 import { SCHEMA } from "./schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 
-const log = createConditionalLogger("km:storage:repo")
+const log = createlogger("km:storage:repo")
 
 // =============================================================================
 // Shared Method Factories

@@ -23,25 +23,31 @@ import createDebug from "debug"
 const debug = createDebug("km:storage:watch")
 debug("config", { watchEnabled, debounceMs })
 
-// User-facing messages - use logger
-import { createLogger } from "@km/core"
-const logger = createLogger("@km/storage")
-logger.info("Syncing vault...")
-logger.error("Failed to write file", { path, error })
+// User-facing messages - use logger (returns undefined for disabled levels)
+import { createLogger } from "@beorn/logger"
+const log = createLogger("km:storage")
+log.info("Syncing vault...")                        // Always enabled at default level
+log.debug?.(`state: ${JSON.stringify(state)}`)      // Use ?. for debug/trace
+log.error("Failed to write file", { path, error })
 ```
 
 ## CLI Flags
 
 ```bash
-bun km -s sync /tmp/test        # Silent (errors only)
+bun km view /tmp/test           # Default (info level)
 bun km -v view /tmp/test        # Verbose (debug level)
 bun km -vv view /tmp/test       # Very verbose (trace level)
-bun km --log-level trace view   # Explicit level
+bun km -q view /tmp/test        # Quiet (warn level only)
+bun km -qq view /tmp/test       # Quieter (error level only)
+bun km -qqq view /tmp/test      # Silent (no output)
+bun km -v -q view /tmp/test     # Offset: cancels out to info
+bun km -s sync /tmp/test        # Silent (shortcut for -qqq)
+bun km --log-level trace view   # Explicit level (overrides -v/-q)
 LOG_LEVEL=debug bun km view     # Environment variable
 DEBUG=km:* bun km view          # debug() still works independently
 ```
 
-**Log levels:** `silent < error < warn < info < debug < trace`
+**Log levels:** `trace < debug < info < warn < error < silent`
 
 ## Sub-Skills
 

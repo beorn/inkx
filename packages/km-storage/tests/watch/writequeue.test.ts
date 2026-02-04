@@ -5,7 +5,7 @@
  * and permission error handling
  */
 
-import { describe, test, expect, beforeEach } from "vitest"
+import { describe, test, expect } from "vitest"
 import {
   WriteQueue,
   classifyError,
@@ -19,7 +19,11 @@ import {
   type PermissionError,
 } from "../../src/watch/writequeue.ts"
 
-// Event type emitted by WriteQueue on "flushed"
+// ─────────────────────────────────────────────────────────────────────────────
+// Test Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Event type emitted by WriteQueue on "flushed" */
 type FlushedEvent = {
   count: number
   errors: number
@@ -29,50 +33,160 @@ type FlushedEvent = {
   results: OperationResult[]
 }
 
-describe("Error Classification", () => {
-  test("classifies transient errors correctly", () => {
-    const transientCodes = [
-      "EBUSY",
-      "EAGAIN",
-      "EMFILE",
-      "ENFILE",
-      "ENOSPC",
-      "ETXTBSY",
-      "EIO",
-      "ETIMEDOUT",
-      "ECONNRESET",
-      "ENETUNREACH",
-      "EHOSTUNREACH",
-    ]
+/** Default fast retry config for tests */
+const FAST_RETRY: RetryConfig = {
+  maxRetries: 3,
+  baseDelayMs: 1,
+  maxDelayMs: 10,
+  jitterFactor: 0,
+}
 
-    for (const code of transientCodes) {
-      const error = Object.assign(new Error(`Error: ${code}`), { code })
-      expect(classifyError(error)).toBe("transient")
+/** Create a code error from a string code */
+function codeError(code: string, message?: string): Error & { code: string } {
+  return Object.assign(new Error(message ?? `Error: ${code}`), { code })
+}
+
+/**
+ * Create a mock filesystem with configurable failure behavior
+ */
+function createMockFs(
+  options: {
+    /** Number of times to fail before succeeding */
+    failCount?: number
+    /** Error to throw on failure */
+    failError?: Error & { code?: string }
+    /** Track write/delete/rename operations */
+    history?: string[]
+    /** Map of path -> mtime for conflict detection */
+    mtimes?: Map<string, number>
+  } = {},
+): FileSystemOps {
+  let failCount = options.failCount ?? 0
+  const failError = options.failError ?? codeError("EBUSY", "Resource busy")
+  const history = options.history ?? []
+  const mtimes = options.mtimes ?? new Map<string, number>()
+
+  const maybeFail = () => {
+    if (failCount > 0) {
+      failCount--
+      throw failError
     }
+  }
+
+  return {
+    writeFileSync: (path: string, _content: string) => {
+      maybeFail()
+      history.push(`write:${path}`)
+      mtimes.set(path, Date.now())
+    },
+    unlinkSync: (path: string) => {
+      maybeFail()
+      history.push(`delete:${path}`)
+      mtimes.delete(path)
+    },
+    mkdirSync: () => {},
+    existsSync: (path: string) => mtimes.has(path),
+    renameSync: (oldPath: string, newPath: string) => {
+      maybeFail()
+      history.push(`rename:${oldPath}->${newPath}`)
+      const mtime = mtimes.get(oldPath)
+      if (mtime) {
+        mtimes.set(newPath, mtime)
+        mtimes.delete(oldPath)
+      }
+    },
+    readFileSync: () => "",
+    statSync: (path: string) => {
+      const mtime = mtimes.get(path)
+      if (mtime === undefined) {
+        throw codeError("ENOENT")
+      }
+      return {
+        ino: 1,
+        mtimeMs: mtime,
+        size: 100,
+        isDirectory: () => false,
+        isFile: () => true,
+      }
+    },
+  }
+}
+
+/**
+ * Create WriteQueue with test defaults
+ */
+function createWriteQueue(options: {
+  fs: FileSystemOps
+  retry?: Partial<RetryConfig>
+  conflictStrategy?: "last_write_wins" | "fs_wins" | "db_wins"
+}): WriteQueue {
+  return new WriteQueue({
+    debounceMs: 0,
+    fs: options.fs,
+    retry: { ...FAST_RETRY, ...options.retry },
+    conflictStrategy: options.conflictStrategy,
+  })
+}
+
+/**
+ * Run queue operation and capture flushed event
+ */
+async function flushAndCapture(
+  queue: WriteQueue,
+): Promise<{ flushed: FlushedEvent; errors: unknown[] | null }> {
+  let flushed: FlushedEvent | null = null
+  let errors: unknown[] | null = null
+  queue.on("flushed", (e) => (flushed = e as FlushedEvent))
+  queue.on("errors", (e) => (errors = e as unknown[]))
+  await queue.forceFlush()
+  return { flushed: flushed!, errors }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Error Classification
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("Error Classification", () => {
+  const transientCodes = [
+    "EBUSY",
+    "EAGAIN",
+    "EMFILE",
+    "ENFILE",
+    "ENOSPC",
+    "ETXTBSY",
+    "EIO",
+    "ETIMEDOUT",
+    "ECONNRESET",
+    "ENETUNREACH",
+    "EHOSTUNREACH",
+  ]
+
+  const permanentCodes = [
+    "ENOENT",
+    "EACCES",
+    "EPERM",
+    "EEXIST",
+    "EISDIR",
+    "ENOTDIR",
+    "EROFS",
+  ]
+
+  test.each(transientCodes)("classifies %s as transient", (code) => {
+    expect(classifyError(codeError(code))).toBe("transient")
   })
 
-  test("classifies permanent errors correctly", () => {
-    const permanentCodes = [
-      "ENOENT",
-      "EACCES",
-      "EPERM",
-      "EEXIST",
-      "EISDIR",
-      "ENOTDIR",
-      "EROFS",
-    ]
-
-    for (const code of permanentCodes) {
-      const error = Object.assign(new Error(`Error: ${code}`), { code })
-      expect(classifyError(error)).toBe("permanent")
-    }
+  test.each(permanentCodes)("classifies %s as permanent", (code) => {
+    expect(classifyError(codeError(code))).toBe("permanent")
   })
 
   test("classifies errors without code as permanent", () => {
-    const error = new Error("Unknown error")
-    expect(classifyError(error)).toBe("permanent")
+    expect(classifyError(new Error("Unknown error"))).toBe("permanent")
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Backoff Calculation
+// ─────────────────────────────────────────────────────────────────────────────
 
 describe("Backoff Calculation", () => {
   const config: RetryConfig = {
@@ -111,402 +225,268 @@ describe("Backoff Calculation", () => {
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// WriteQueue Retry Logic
+// ─────────────────────────────────────────────────────────────────────────────
+
 describe("WriteQueue Retry Logic", () => {
-  let mockFs: FileSystemOps
-  let writeHistory: string[]
-  let failCount: number
-  let failError: Error & { code?: string }
-
-  beforeEach(() => {
-    writeHistory = []
-    failCount = 0
-    failError = Object.assign(new Error("Resource busy"), { code: "EBUSY" })
-
-    mockFs = {
-      writeFileSync: (path: string, _content: string) => {
-        if (failCount > 0) {
-          failCount--
-          throw failError
-        }
-        writeHistory.push(`write:${path}`)
-      },
-      unlinkSync: (path: string) => {
-        if (failCount > 0) {
-          failCount--
-          throw failError
-        }
-        writeHistory.push(`delete:${path}`)
-      },
-      mkdirSync: () => {},
-      existsSync: () => true,
-      renameSync: (oldPath: string, newPath: string) => {
-        if (failCount > 0) {
-          failCount--
-          throw failError
-        }
-        writeHistory.push(`rename:${oldPath}->${newPath}`)
-      },
-      readFileSync: () => "",
-      statSync: () => ({
-        ino: 1,
-        mtimeMs: Date.now(),
-        size: 100,
-        isDirectory: () => false,
-        isFile: () => true,
-      }),
-    }
-  })
-
   test("succeeds on first attempt when no errors", async () => {
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({ history }),
     })
 
-    let flushedEvent: FlushedEvent | null = null
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
-
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
-    expect(writeHistory).toEqual(["write:/test.md"])
-    expect(flushedEvent!.results[0]?.attempts).toBe(1)
-    expect(flushedEvent!.results[0]?.success).toBe(true)
+    expect(history).toEqual(["write:/test.md"])
+    expect(flushed.results[0]?.attempts).toBe(1)
+    expect(flushed.results[0]?.success).toBe(true)
   })
 
   test("retries transient errors with backoff", async () => {
-    failCount = 2 // Fail twice, succeed on third attempt
-
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 2 }),
     })
 
-    let flushedEvent: FlushedEvent | null = null
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
-
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
-    expect(writeHistory).toEqual(["write:/test.md"])
-    expect(flushedEvent!.results[0]?.attempts).toBe(3)
-    expect(flushedEvent!.results[0]?.success).toBe(true)
-    expect(flushedEvent!.retries).toBe(2)
+    expect(history).toEqual(["write:/test.md"])
+    expect(flushed.results[0]?.attempts).toBe(3)
+    expect(flushed.results[0]?.success).toBe(true)
+    expect(flushed.retries).toBe(2)
   })
 
   test("fails after max retries for transient errors", async () => {
-    failCount = 10 // More failures than max retries
-
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 2, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 10 }),
+      retry: { maxRetries: 2 },
     })
 
-    let errorsEvent: unknown[] | null = null
-    let flushedEvent: FlushedEvent | null = null
-    queue.on("errors", (e) => (errorsEvent = e as unknown[]))
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
-
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })
-    await queue.forceFlush()
+    const { flushed, errors } = await flushAndCapture(queue)
 
-    expect(writeHistory).toEqual([])
-    expect(errorsEvent).toHaveLength(1)
-    expect(flushedEvent!.errors).toBe(1)
-    expect(flushedEvent!.retries).toBe(2) // 2 retries after initial attempt
+    expect(history).toEqual([])
+    expect(errors).toHaveLength(1)
+    expect(flushed.errors).toBe(1)
+    expect(flushed.retries).toBe(2) // 2 retries after initial attempt
   })
 
   test("does not retry permanent errors", async () => {
-    failCount = 10
-    failError = Object.assign(new Error("Permission denied"), {
-      code: "EACCES",
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({
+        history,
+        failCount: 10,
+        failError: codeError("EACCES", "Permission denied"),
+      }),
     })
-
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
-    })
-
-    let flushedEvent: FlushedEvent | null = null
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
 
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
-    expect(writeHistory).toEqual([])
-    expect(flushedEvent!.results[0]?.attempts).toBe(1) // Only one attempt
-    expect(flushedEvent!.results[0]?.success).toBe(false)
-    expect(flushedEvent!.results[0]?.errorClass).toBe("permanent")
-    expect(flushedEvent!.retries).toBe(0)
+    expect(history).toEqual([])
+    expect(flushed.results[0]?.attempts).toBe(1) // Only one attempt
+    expect(flushed.results[0]?.success).toBe(false)
+    expect(flushed.results[0]?.errorClass).toBe("permanent")
+    expect(flushed.retries).toBe(0)
   })
 
   test("retries delete operations", async () => {
-    failCount = 1
-
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
+    const history: string[] = []
+    const mtimes = new Map([["/test.md", Date.now()]])
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 1, mtimes }),
     })
 
     queue.queueDelete("/test.md", "1")
     await queue.forceFlush()
 
-    expect(writeHistory).toEqual(["delete:/test.md"])
+    expect(history).toEqual(["delete:/test.md"])
   })
 
   test("retries rename operations", async () => {
-    failCount = 1
-
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
+    const history: string[] = []
+    const mtimes = new Map([["/old.md", Date.now()]])
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 1, mtimes }),
     })
 
     queue.queueRename("/old.md", "/new.md", "1")
     await queue.forceFlush()
 
-    expect(writeHistory).toEqual(["rename:/old.md->/new.md"])
+    expect(history).toEqual(["rename:/old.md->/new.md"])
   })
 
   test("handles multiple operations with mixed results", async () => {
+    const history: string[] = []
     let callCount = 0
+
+    const mockFs = createMockFs({ history })
     mockFs.writeFileSync = (path: string) => {
       callCount++
-      // Fail first file twice (transient), succeed second file, fail third file permanently
+      // Fail first file twice (transient), succeed second file, fail third permanently
       if (path === "/a.md" && callCount <= 2) {
-        throw Object.assign(new Error("Busy"), { code: "EBUSY" })
+        throw codeError("EBUSY", "Busy")
       }
       if (path === "/c.md") {
-        throw Object.assign(new Error("Permission denied"), { code: "EACCES" })
+        throw codeError("EACCES", "Permission denied")
       }
-      writeHistory.push(`write:${path}`)
+      history.push(`write:${path}`)
     }
 
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 3, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
-    })
-
-    let flushedEvent: FlushedEvent | null = null
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
+    const queue = createWriteQueue({ fs: mockFs })
 
     queue.queue({ path: "/a.md", content: "a", sourceEventId: "1" })
     queue.queue({ path: "/b.md", content: "b", sourceEventId: "2" })
     queue.queue({ path: "/c.md", content: "c", sourceEventId: "3" })
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
     // a.md succeeds after retries, b.md succeeds first try, c.md fails permanently
-    expect(writeHistory).toContain("write:/a.md")
-    expect(writeHistory).toContain("write:/b.md")
-    expect(writeHistory).not.toContain("write:/c.md")
+    expect(history).toContain("write:/a.md")
+    expect(history).toContain("write:/b.md")
+    expect(history).not.toContain("write:/c.md")
 
-    expect(flushedEvent!.errors).toBe(1) // c.md failed
-    expect(flushedEvent!.retries).toBe(2) // a.md needed 2 retries
+    expect(flushed.errors).toBe(1) // c.md failed
+    expect(flushed.retries).toBe(2) // a.md needed 2 retries
   })
 
   test("uses custom retry config", async () => {
-    failCount = 5 // More than default max retries
-
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 5, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 5 }),
+      retry: { maxRetries: 5 },
     })
 
-    let flushedEvent: FlushedEvent | null = null
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
-
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
-    expect(writeHistory).toEqual(["write:/test.md"])
-    expect(flushedEvent!.results[0]?.attempts).toBe(6) // 1 initial + 5 retries
-    expect(flushedEvent!.results[0]?.success).toBe(true)
+    expect(history).toEqual(["write:/test.md"])
+    expect(flushed.results[0]?.attempts).toBe(6) // 1 initial + 5 retries
+    expect(flushed.results[0]?.success).toBe(true)
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Conflict Detection
+// ─────────────────────────────────────────────────────────────────────────────
+
 describe("Conflict Detection", () => {
-  let writeHistory: string[]
-  let fileMtimes: Map<string, number>
-  let mockFs: FileSystemOps
-
-  beforeEach(() => {
-    writeHistory = []
-    fileMtimes = new Map()
-
-    mockFs = {
-      writeFileSync: (path: string, _content: string) => {
-        writeHistory.push(`write:${path}`)
-        fileMtimes.set(path, Date.now()) // Update mtime after write
-      },
-      unlinkSync: (path: string) => {
-        writeHistory.push(`delete:${path}`)
-        fileMtimes.delete(path)
-      },
-      mkdirSync: () => {},
-      existsSync: (path: string) => fileMtimes.has(path),
-      renameSync: (oldPath: string, newPath: string) => {
-        writeHistory.push(`rename:${oldPath}->${newPath}`)
-        const mtime = fileMtimes.get(oldPath)
-        if (mtime) {
-          fileMtimes.set(newPath, mtime)
-          fileMtimes.delete(oldPath)
-        }
-      },
-      readFileSync: () => "",
-      statSync: (path: string) => {
-        const mtime = fileMtimes.get(path)
-        if (mtime === undefined) {
-          throw Object.assign(new Error("ENOENT"), { code: "ENOENT" })
-        }
-        return {
-          ino: 1,
-          mtimeMs: mtime,
-          size: 100,
-          isDirectory: () => false,
-          isFile: () => true,
-        }
-      },
-    }
-  })
-
   test("no conflict when file unchanged", async () => {
-    // Set initial mtime
-    fileMtimes.set("/test.md", 1000)
+    const history: string[] = []
+    const mtimes = new Map([["/test.md", 1000]])
 
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, mtimes }),
       conflictStrategy: "last_write_wins",
     })
 
-    let flushedEvent: FlushedEvent | null = null
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
-
     queue.queue({ path: "/test.md", content: "updated", sourceEventId: "1" })
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
-    expect(writeHistory).toEqual(["write:/test.md"])
-    expect(flushedEvent!.conflicts).toBe(0)
-    expect(flushedEvent!.results[0]?.conflict).toBeUndefined()
+    expect(history).toEqual(["write:/test.md"])
+    expect(flushed.conflicts).toBe(0)
+    expect(flushed.results[0]?.conflict).toBeUndefined()
   })
 
   test("detects conflict when file changed externally (last_write_wins)", async () => {
-    // Set initial mtime
-    fileMtimes.set("/test.md", 1000)
+    const history: string[] = []
+    const mtimes = new Map([["/test.md", 1000]])
 
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, mtimes }),
       conflictStrategy: "last_write_wins",
     })
 
     let conflictsEvent: ConflictInfo[] | null = null
-    let flushedEvent: FlushedEvent | null = null
     queue.on("conflicts", (e) => (conflictsEvent = e as ConflictInfo[]))
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
 
     // Queue write - this captures baseMtime=1000
     queue.queue({ path: "/test.md", content: "tui-edit", sourceEventId: "1" })
 
     // Simulate external edit changing the file before flush
-    fileMtimes.set("/test.md", 2000)
+    mtimes.set("/test.md", 2000)
 
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
     // last_write_wins: should still write despite conflict
-    expect(writeHistory).toEqual(["write:/test.md"])
-    expect(flushedEvent!.conflicts).toBe(1)
+    expect(history).toEqual(["write:/test.md"])
+    expect(flushed.conflicts).toBe(1)
     expect(conflictsEvent).toHaveLength(1)
-    expect(flushedEvent!.results[0]?.conflict?.resolution).toBe("written")
+    expect(flushed.results[0]?.conflict?.resolution).toBe("written")
   })
 
   test("discards write when file changed (fs_wins strategy)", async () => {
-    // Set initial mtime
-    fileMtimes.set("/test.md", 1000)
+    const history: string[] = []
+    const mtimes = new Map([["/test.md", 1000]])
 
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, mtimes }),
       conflictStrategy: "fs_wins",
     })
 
     let conflictsEvent: ConflictInfo[] | null = null
-    let flushedEvent: FlushedEvent | null = null
     queue.on("conflicts", (e) => (conflictsEvent = e as ConflictInfo[]))
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
 
     // Queue write - captures baseMtime=1000
     queue.queue({ path: "/test.md", content: "tui-edit", sourceEventId: "1" })
 
     // Simulate external edit
-    fileMtimes.set("/test.md", 2000)
+    mtimes.set("/test.md", 2000)
 
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
     // fs_wins: should NOT write
-    expect(writeHistory).toEqual([])
-    expect(flushedEvent!.conflicts).toBe(1)
+    expect(history).toEqual([])
+    expect(flushed.conflicts).toBe(1)
     expect(conflictsEvent).toHaveLength(1)
-    expect(flushedEvent!.results[0]?.conflict?.resolution).toBe("discarded")
-    expect(flushedEvent!.results[0]?.success).toBe(true) // Still "success" - not an error
+    expect(flushed.results[0]?.conflict?.resolution).toBe("discarded")
+    expect(flushed.results[0]?.success).toBe(true) // Still "success" - not an error
   })
 
   test("writes with warning when file changed (db_wins strategy)", async () => {
-    // Set initial mtime
-    fileMtimes.set("/test.md", 1000)
+    const history: string[] = []
+    const mtimes = new Map([["/test.md", 1000]])
 
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, mtimes }),
       conflictStrategy: "db_wins",
     })
 
-    let flushedEvent: FlushedEvent | null = null
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
-
     queue.queue({ path: "/test.md", content: "tui-edit", sourceEventId: "1" })
-    fileMtimes.set("/test.md", 2000)
+    mtimes.set("/test.md", 2000)
 
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
     // db_wins: should write despite conflict
-    expect(writeHistory).toEqual(["write:/test.md"])
-    expect(flushedEvent!.conflicts).toBe(1)
-    expect(flushedEvent!.results[0]?.conflict?.resolution).toBe("written")
+    expect(history).toEqual(["write:/test.md"])
+    expect(flushed.conflicts).toBe(1)
+    expect(flushed.results[0]?.conflict?.resolution).toBe("written")
   })
 
   test("no conflict for new files", async () => {
-    // File doesn't exist yet
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
+    const history: string[] = []
+
+    const queue = createWriteQueue({
+      fs: createMockFs({ history }),
       conflictStrategy: "fs_wins",
     })
 
-    let flushedEvent: FlushedEvent | null = null
-    queue.on("flushed", (e) => (flushedEvent = e as FlushedEvent))
-
     queue.queue({ path: "/new.md", content: "new file", sourceEventId: "1" })
-    await queue.forceFlush()
+    const { flushed } = await flushAndCapture(queue)
 
-    expect(writeHistory).toEqual(["write:/new.md"])
-    expect(flushedEvent!.conflicts).toBe(0)
+    expect(history).toEqual(["write:/new.md"])
+    expect(flushed.conflicts).toBe(0)
   })
 
   test("conflict info includes mtime details", async () => {
-    fileMtimes.set("/test.md", 1000)
+    const mtimes = new Map([["/test.md", 1000]])
 
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
+    const queue = createWriteQueue({
+      fs: createMockFs({ mtimes }),
       conflictStrategy: "last_write_wins",
     })
 
@@ -514,7 +494,7 @@ describe("Conflict Detection", () => {
     queue.on("conflicts", (e) => (conflictsEvent = e as ConflictInfo[]))
 
     queue.queue({ path: "/test.md", content: "edit", sourceEventId: "1" })
-    fileMtimes.set("/test.md", 2000)
+    mtimes.set("/test.md", 2000)
     await queue.forceFlush()
 
     expect(conflictsEvent![0]?.path).toBe("/test.md")
@@ -523,208 +503,94 @@ describe("Conflict Detection", () => {
   })
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Permission Error Handling
+// ─────────────────────────────────────────────────────────────────────────────
+
 describe("Permission Error Handling", () => {
-  test("getErrorType classifies permission errors correctly", () => {
-    expect(
-      getErrorType(Object.assign(new Error("EACCES"), { code: "EACCES" })),
-    ).toBe("permission")
-    expect(
-      getErrorType(Object.assign(new Error("EPERM"), { code: "EPERM" })),
-    ).toBe("permission")
-    expect(
-      getErrorType(Object.assign(new Error("EROFS"), { code: "EROFS" })),
-    ).toBe("read_only")
-    expect(
-      getErrorType(Object.assign(new Error("ENOENT"), { code: "ENOENT" })),
-    ).toBe("not_found")
-    expect(
-      getErrorType(Object.assign(new Error("EBUSY"), { code: "EBUSY" })),
-    ).toBe("transient")
-    expect(
-      getErrorType(Object.assign(new Error("EISDIR"), { code: "EISDIR" })),
-    ).toBe("other")
-  })
-
-  test("getPermissionSuggestion provides helpful messages", () => {
-    const eaccesSuggestion = getPermissionSuggestion("/test.md", "EACCES")
-    expect(eaccesSuggestion).toContain("chmod")
-    expect(eaccesSuggestion).toContain("/test.md")
-
-    const epermSuggestion = getPermissionSuggestion("/test.md", "EPERM")
-    expect(epermSuggestion).toContain("not permitted")
-
-    const erofsSuggestion = getPermissionSuggestion("/test.md", "EROFS")
-    expect(erofsSuggestion).toContain("read-only")
-  })
-
-  test("emits permission-denied event on EACCES error", async () => {
-    const mockFs: FileSystemOps = {
-      writeFileSync: () => {
-        throw Object.assign(new Error("Permission denied"), { code: "EACCES" })
-      },
-      unlinkSync: () => {},
-      mkdirSync: () => {},
-      existsSync: () => false,
-      renameSync: () => {},
-      readFileSync: () => "",
-      statSync: () => ({
-        ino: 1,
-        mtimeMs: Date.now(),
-        size: 100,
-        isDirectory: () => false,
-        isFile: () => true,
-      }),
-    }
-
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 0, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
+  describe("getErrorType classification", () => {
+    test.each([
+      ["EACCES", "permission"],
+      ["EPERM", "permission"],
+      ["EROFS", "read_only"],
+      ["ENOENT", "not_found"],
+      ["EBUSY", "transient"],
+      ["EISDIR", "other"],
+    ] as const)("classifies %s as %s", (code, expectedType) => {
+      expect(getErrorType(codeError(code))).toBe(expectedType)
     })
-
-    let permissionEvent: PermissionError[] = []
-    let flushedEvent: { permissionErrors?: number } = {}
-    queue.on(
-      "permission-denied",
-      (e: PermissionError[]) => (permissionEvent = e),
-    )
-    queue.on(
-      "flushed",
-      (e: { permissionErrors?: number }) => (flushedEvent = e),
-    )
-
-    queue.queue({
-      path: "/protected/test.md",
-      content: "test",
-      sourceEventId: "1",
-    })
-    await queue.forceFlush()
-
-    expect(permissionEvent).toHaveLength(1)
-    expect(permissionEvent[0]?.path).toBe("/protected/test.md")
-    expect(permissionEvent[0]?.code).toBe("EACCES")
-    expect(permissionEvent[0]?.operation).toBe("write")
-    expect(permissionEvent[0]?.suggestion).toContain("chmod")
-    expect(flushedEvent.permissionErrors).toBe(1)
   })
 
-  test("emits permission-denied event on EPERM error", async () => {
-    const mockFs: FileSystemOps = {
-      writeFileSync: () => {
-        throw Object.assign(new Error("Operation not permitted"), {
-          code: "EPERM",
+  describe("getPermissionSuggestion messages", () => {
+    test.each([
+      ["EACCES", "/test.md", "chmod"],
+      ["EPERM", "/test.md", "not permitted"],
+      ["EROFS", "/test.md", "read-only"],
+    ] as const)("%s suggestion includes %s", (code, path, expected) => {
+      expect(getPermissionSuggestion(path, code)).toContain(expected)
+    })
+  })
+
+  describe("permission-denied events", () => {
+    test.each([
+      ["EACCES", "/protected/test.md", "chmod"],
+      ["EPERM", "/root/test.md", "not permitted"],
+      ["EROFS", "/readonly/test.md", "read-only"],
+    ] as const)(
+      "emits permission-denied event on %s error",
+      async (code, path, suggestion) => {
+        const mockFs = createMockFs({
+          failError: codeError(code, `Error: ${code}`),
+          failCount: 1,
         })
-      },
-      unlinkSync: () => {},
-      mkdirSync: () => {},
-      existsSync: () => false,
-      renameSync: () => {},
-      readFileSync: () => "",
-      statSync: () => ({
-        ino: 1,
-        mtimeMs: Date.now(),
-        size: 100,
-        isDirectory: () => false,
-        isFile: () => true,
-      }),
-    }
 
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 0, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
-    })
-
-    let permissionEvent: PermissionError[] | null = null
-    queue.on(
-      "permission-denied",
-      (e) => (permissionEvent = e as PermissionError[]),
-    )
-
-    queue.queue({ path: "/root/test.md", content: "test", sourceEventId: "1" })
-    await queue.forceFlush()
-
-    expect(permissionEvent).toHaveLength(1)
-    expect(permissionEvent![0]?.code).toBe("EPERM")
-    expect(permissionEvent![0]?.suggestion).toContain("not permitted")
-  })
-
-  test("emits permission-denied event on EROFS error", async () => {
-    const mockFs: FileSystemOps = {
-      writeFileSync: () => {
-        throw Object.assign(new Error("Read-only file system"), {
-          code: "EROFS",
+        const queue = createWriteQueue({
+          fs: mockFs,
+          retry: { maxRetries: 0 },
         })
+
+        let permissionEvent: PermissionError[] = []
+        let flushedEvent: { permissionErrors?: number } = {}
+        queue.on(
+          "permission-denied",
+          (e) => (permissionEvent = e as PermissionError[]),
+        )
+        queue.on(
+          "flushed",
+          (e) => (flushedEvent = e as { permissionErrors?: number }),
+        )
+
+        queue.queue({ path, content: "test", sourceEventId: "1" })
+        await queue.forceFlush()
+
+        expect(permissionEvent).toHaveLength(1)
+        expect(permissionEvent[0]?.path).toBe(path)
+        expect(permissionEvent[0]?.code).toBe(code)
+        expect(permissionEvent[0]?.operation).toBe("write")
+        expect(permissionEvent[0]?.suggestion).toContain(suggestion)
+        expect(flushedEvent.permissionErrors).toBe(1)
       },
-      unlinkSync: () => {},
-      mkdirSync: () => {},
-      existsSync: () => false,
-      renameSync: () => {},
-      readFileSync: () => "",
-      statSync: () => ({
-        ino: 1,
-        mtimeMs: Date.now(),
-        size: 100,
-        isDirectory: () => false,
-        isFile: () => true,
-      }),
-    }
-
-    const queue = new WriteQueue({
-      debounceMs: 0,
-      fs: mockFs,
-      retry: { maxRetries: 0, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
-    })
-
-    let permissionEvent: PermissionError[] | null = null
-    queue.on(
-      "permission-denied",
-      (e) => (permissionEvent = e as PermissionError[]),
     )
-
-    queue.queue({
-      path: "/readonly/test.md",
-      content: "test",
-      sourceEventId: "1",
-    })
-    await queue.forceFlush()
-
-    expect(permissionEvent).toHaveLength(1)
-    expect(permissionEvent![0]?.code).toBe("EROFS")
-    expect(permissionEvent![0]?.suggestion).toContain("read-only")
   })
 
   test("does not emit permission-denied for non-permission errors", async () => {
-    const mockFs: FileSystemOps = {
-      writeFileSync: () => {
-        throw Object.assign(new Error("File exists"), { code: "EEXIST" })
-      },
-      unlinkSync: () => {},
-      mkdirSync: () => {},
-      existsSync: () => false,
-      renameSync: () => {},
-      readFileSync: () => "",
-      statSync: () => ({
-        ino: 1,
-        mtimeMs: Date.now(),
-        size: 100,
-        isDirectory: () => false,
-        isFile: () => true,
-      }),
-    }
+    const mockFs = createMockFs({
+      failError: codeError("EEXIST", "File exists"),
+      failCount: 1,
+    })
 
-    const queue = new WriteQueue({
-      debounceMs: 0,
+    const queue = createWriteQueue({
       fs: mockFs,
-      retry: { maxRetries: 0, baseDelayMs: 1, maxDelayMs: 10, jitterFactor: 0 },
+      retry: { maxRetries: 0 },
     })
 
     let permissionEvent: PermissionError[] | null = null
     let errorsEvent: unknown[] | null = null
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment -- Test event handler assigns any to typed variable
-    queue.on("permission-denied", (e) => (permissionEvent = e))
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment -- Test event handler assigns any to typed variable
-    queue.on("errors", (e) => (errorsEvent = e))
+    queue.on(
+      "permission-denied",
+      (e) => (permissionEvent = e as PermissionError[]),
+    )
+    queue.on("errors", (e) => (errorsEvent = e as unknown[]))
 
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })
     await queue.forceFlush()

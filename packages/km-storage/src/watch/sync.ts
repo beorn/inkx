@@ -4,11 +4,11 @@
  * Coordinates bidirectional sync between filesystem and database
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { existsSync, mkdirSync, statSync } from "fs"
 import type { Database } from "bun:sqlite"
 
-const log = createConditionalLogger("km:storage:watch:sync")
+const log = createlogger("km:storage:watch:sync")
 import { dirname, join } from "path"
 import { EventEmitter } from "events"
 import {

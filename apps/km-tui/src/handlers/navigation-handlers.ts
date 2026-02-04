@@ -11,11 +11,11 @@
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import type { Repo } from "@km/storage"
 import type { BoardState } from "@km/board"
 
-const log = createConditionalLogger("km:tui:nav")
+const log = createlogger("km:tui:nav")
 
 // =============================================================================
 // Tree Navigation

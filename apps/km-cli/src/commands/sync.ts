@@ -4,7 +4,7 @@
  * One-time sync between filesystem and database, or continuous watch mode
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
@@ -13,7 +13,7 @@ import { steps } from "@beorn/inkx-ui/progress"
 import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
-const log = createConditionalLogger("km:cli:sync")
+const log = createlogger("km:cli:sync")
 import {
   SyncManager,
   findKmRootFromPath,

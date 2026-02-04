@@ -99,6 +99,18 @@ Check for incorrect logging patterns:
 | `console.error` | `log.error()` | CLI error messages, crash handlers |
 | `import debug from 'debug'` | `@beorn/logger` | None - always migrate |
 | Direct `process.stdout.write` | Keep as-is | For raw terminal output (progress bars, etc.) |
+| `log.method(...)` without `?.` | `log.method?.(...)` | None - always use `?.` for all log methods |
+
+**Zero-overhead pattern**: `createLogger` returns `undefined` for disabled levels. Use `?.` on all log calls to skip argument evaluation when the level is disabled:
+
+```typescript
+// All methods support ?. - use it consistently
+log.trace?.(`verbose: ${expensiveDebug()}`)  // Skipped at info level
+log.debug?.(`state: ${getState()}`)          // Skipped at info level
+log.info?.("starting")                       // Enabled at info, skipped at warn
+log.warn?.("deprecated")                     // Enabled at warn, skipped at error
+log.error?.("failed")                        // Enabled at error, skipped at silent
+```
 
 **Quick check**: `grep -r "console\." --include="*.ts" packages/ apps/km-tui/src/`
 

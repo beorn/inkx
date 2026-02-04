@@ -11,10 +11,10 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { findChildByContent } from "./db-queries/wikilink-resolver.ts"
 
-const log = createConditionalLogger("km:storage:link-resolver")
+const log = createlogger("km:storage:link-resolver")
 
 export interface LinkResolver {
   /** Resolve a wikilink target name to a node ID */

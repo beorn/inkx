@@ -10,11 +10,17 @@ Structured logging with spans. Logger-first architecture: Span = Logger + Durati
 
 ```typescript
 import { createLogger } from "@beorn/logger"
-const log = createLogger("myapp")
+const log = createLogger("km:storage")
 
-log.info("Loading vault...")
-log.warn("Config file not found, using defaults")
-log.error("Failed to sync", { error })
+// All methods support ?. for zero-overhead when their level is disabled
+log.trace?.(`very verbose: ${expensiveDebug()}`)  // Skipped at default (info)
+log.debug?.(`state: ${getState()}`)               // Skipped at default (info)
+log.info?.("Loading vault...")                    // Enabled at default
+log.warn?.("Config not found, using defaults")    // Enabled at default
+log.error?.("Failed to sync", { error })          // Enabled at default
+
+// With -q flag, info is also skipped:
+log.info?.("starting")  // Skipped when level=warn
 ```
 
 ## Log Levels
@@ -27,7 +33,7 @@ log.error("Failed to sync", { error })
 | warn   | Recoverable issues                   |
 | error  | Failures (always shown)              |
 
-**Log levels:** `silent < error < warn < info < debug < trace`
+**Log levels (most → least verbose):** `trace > debug > info > warn > error > silent`
 
 ## Environment Variables
 
@@ -41,10 +47,15 @@ log.error("Failed to sync", { error })
 ## CLI Flags
 
 ```bash
-bun km -s sync /tmp/test        # Silent (errors only)
+bun km view /tmp/test           # Default (info level)
 bun km -v view /tmp/test        # Verbose (debug level)
 bun km -vv view /tmp/test       # Very verbose (trace level)
-bun km --log-level trace view   # Explicit level
+bun km -q view /tmp/test        # Quiet (warn level only)
+bun km -qq view /tmp/test       # Quieter (error level only)
+bun km -qqq view /tmp/test      # Silent (no output)
+bun km -v -q view /tmp/test     # Offset: cancels out to info
+bun km -s sync /tmp/test        # Silent (shortcut for -qqq)
+bun km --log-level trace view   # Explicit level (overrides -v/-q)
 LOG_LEVEL=debug bun km view     # Environment variable
 ```
 
@@ -63,9 +74,37 @@ Spans measure operation duration. They implement `Disposable` for automatic clea
 
 Enable spans with `TRACE=1` or `TRACE=namespace`.
 
-## TUI Conditional Logging
+## Zero-Overhead Logging Pattern
 
-For high-frequency code (render loops), use the conditional logger from `apps/km-tui/src/log.ts`:
+`createLogger` returns `undefined` for disabled levels. Use `?.` on debug/trace calls to skip argument evaluation entirely:
+
+```typescript
+import { createLogger } from "@beorn/logger"
+const log = createLogger("km:storage")
+
+// Info/warn/error: always enabled at default level - no ?. needed
+log.info("Starting sync...")
+log.warn("Deprecated config option")
+log.error("Failed to write file", { error })
+
+// Debug/trace: use ?. to skip expensive arg evaluation when disabled
+log.debug?.(`state: ${JSON.stringify(state)}`)
+log.trace?.(`node ${node.id.slice(-8)} children=${children.length}`)
+
+// Child loggers inherit the conditional behavior
+const child = log.logger("import")
+child.debug?.("processing")
+
+// Spans work normally
+{
+  using span = log.span("import")
+  span.info("working...")
+}
+```
+
+### TUI-Specific Loggers
+
+For high-frequency code (render loops), use the loggers from `apps/km-tui/src/log.ts`:
 
 ```typescript
 import { log, sid, renderLog, layoutLog, navLog } from "../log"
@@ -74,16 +113,6 @@ import { log, sid, renderLog, layoutLog, navLog } from "../log"
 renderLog.debug?.(`TreeNode ${sid(node.id)} children=${children.length}`)
 layoutLog.trace?.(`col=${colIndex} card=${cardIndex} y=${y}`)
 navLog.debug?.("cursor move", { from, to })
-
-// Child loggers are also conditional
-const nodeLog = log.logger(sid(node.id))
-nodeLog.debug?.("processing")
-
-// Spans require TRACE env
-{
-  using span = log.span?.("render")
-  span?.debug?.("working...")
-}
 ```
 
 ### Why optional chaining (`?.`)?

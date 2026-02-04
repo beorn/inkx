@@ -5,11 +5,11 @@
  * Implements RFC 5545 (iCalendar).
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import type { CalendarEvent, Attendee } from "./types.ts"
 import { parseEventStatus, parseAttendeeStatus } from "./constants.ts"
 
-const log = createConditionalLogger("km:caldav:ical")
+const log = createlogger("km:caldav:ical")
 
 /**
  * Parse iCalendar data to CalendarEvent

@@ -11,7 +11,7 @@
 
 import type { CommandAction } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { assertNever } from "../action-handlers.ts"
 import { outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import {
@@ -23,7 +23,7 @@ import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { TUIContext } from "../tui-context.ts"
 import { actions } from "../ui-reducer.ts"
 
-const log = createConditionalLogger("km:tui:board-actions")
+const log = createlogger("km:tui:board-actions")
 
 // Import handlers from specialized modules
 import {

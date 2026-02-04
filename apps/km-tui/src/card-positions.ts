@@ -12,9 +12,9 @@
  * - Used to return to same column when moving down
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 
-const log = createConditionalLogger("km:tui:layout")
+const log = createlogger("km:tui:layout")
 
 // =============================================================================
 // Types

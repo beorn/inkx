@@ -99,7 +99,7 @@ Every bead belongs under a tracking epic via `km-<scope>.<suffix>` dot notation.
 
 To update: `bd update <epic-id> --description "..."` with the revised child list. Check current children with `bd list --parent <epic-id>`.
 
-**Idle tracking**: When a tracking epic has no open children, add `(idle)` to its title: `TRACKING (idle): ...`. When new children are added, remove `(idle)`: `TRACKING: ...`. This signals at a glance in `bd list` that the tracker is healthy but has no active work — not stale or forgotten.
+**Idle tracking**: When a tracking epic has no open P1-P3 children, add `(idle)` to its title: `TRACKING (idle): ...`. P4 beads don't count — they're "don't do automatically" items. When new P1-P3 children are added, remove `(idle)`: `TRACKING: ...`. This signals at a glance in `bd list` that the tracker is healthy but has no active work — not stale or forgotten.
 
 ## Staleness Check
 

@@ -4,9 +4,9 @@
  * Shared functionality for CalDAV and CardDAV clients.
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 
-const log = createConditionalLogger("km:webdav:base")
+const log = createlogger("km:webdav:base")
 
 /**
  * Create Basic Auth header from credentials

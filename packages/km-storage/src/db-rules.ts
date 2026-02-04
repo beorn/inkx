@@ -16,7 +16,7 @@
  * - color: Board/section color
  */
 
-import { createConditionalLogger } from "@beorn/logger"
+import { createlogger } from "@beorn/logger"
 import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
 import { queryNodes } from "./query.ts"
@@ -31,7 +31,7 @@ import {
 // because that would require the event system to be set up (which isn't always the case)
 import type { KNode, NodeRules } from "@km/core"
 
-const log = createConditionalLogger("km:storage:db:rules")
+const log = createlogger("km:storage:db:rules")
 
 /** Relationship type for add= rule results */
 const ADD_RULE_RELATIONSHIP = "query:add"

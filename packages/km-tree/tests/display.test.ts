@@ -4,7 +4,7 @@
  * Tests for display name computation and ancestor collapsing functions.
  */
 
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, test } from "vitest"
 import type { KNode } from "@km/core"
 import {
   getNodeDisplayName,
@@ -31,6 +31,14 @@ function createNode(id: string, overrides: Partial<KNode> = {}): KNode {
     version: "test",
     ...overrides,
   }
+}
+
+// Helper to create a chain of folder/file/section nodes with specified titles
+type NodeChainSpec = { type: "folder" | "file" | "section"; title: string }
+function createNodeChain(specs: NodeChainSpec[]): KNode[] {
+  return specs.map((spec, i) =>
+    createNode(`${spec.type}${i + 1}`, { type: spec.type, title: spec.title }),
+  )
 }
 
 // =============================================================================
@@ -182,23 +190,16 @@ describe("getNodeDisplayName", () => {
 // =============================================================================
 
 describe("getTypeIndicator", () => {
-  it("returns / for folder", () => {
-    expect(getTypeIndicator("folder")).toBe("/")
-  })
-
-  it("returns .md for file", () => {
-    expect(getTypeIndicator("file")).toBe(".md")
-  })
-
-  it("returns # for section", () => {
-    expect(getTypeIndicator("section")).toBe("#")
-  })
-
-  it("returns empty string for other types", () => {
-    expect(getTypeIndicator("task")).toBe("")
-    expect(getTypeIndicator("root")).toBe("")
-    expect(getTypeIndicator("block")).toBe("")
-    expect(getTypeIndicator("unknown")).toBe("")
+  test.each([
+    { type: "folder", expected: "/" },
+    { type: "file", expected: ".md" },
+    { type: "section", expected: "#" },
+    { type: "task", expected: "" },
+    { type: "root", expected: "" },
+    { type: "block", expected: "" },
+    { type: "unknown", expected: "" },
+  ])("returns $expected for $type", ({ type, expected }) => {
+    expect(getTypeIndicator(type)).toBe(expected)
   })
 })
 
@@ -207,50 +208,36 @@ describe("getTypeIndicator", () => {
 // =============================================================================
 
 describe("normalizeName", () => {
-  it("removes leading # from sections", () => {
-    expect(normalizeName("# Heading")).toBe("heading")
-    expect(normalizeName("## Sub Heading")).toBe("sub heading")
-    expect(normalizeName("### Deep Heading")).toBe("deep heading")
-  })
-
-  it("removes .md extension", () => {
-    expect(normalizeName("project.md")).toBe("project")
-    expect(normalizeName("MY-FILE.MD")).toBe("my file")
-  })
-
-  it("treats hyphens and underscores as spaces", () => {
-    expect(normalizeName("my-project")).toBe("my project")
-    expect(normalizeName("my_project")).toBe("my project")
-    expect(normalizeName("my-cool_project")).toBe("my cool project")
-  })
-
-  it("removes special characters", () => {
-    expect(normalizeName("project@2024!")).toBe("project2024")
-    expect(normalizeName("file (1)")).toBe("file 1")
-  })
-
-  it("collapses whitespace", () => {
-    expect(normalizeName("my   project")).toBe("my project")
-    expect(normalizeName("  trim  me  ")).toBe("trim me")
-  })
-
-  it("lowercases everything", () => {
-    expect(normalizeName("MyProject")).toBe("myproject")
-    expect(normalizeName("UPPERCASE")).toBe("uppercase")
-  })
-
-  it("handles empty strings", () => {
-    expect(normalizeName("")).toBe("")
-  })
-
-  it("handles unicode characters", () => {
-    expect(normalizeName("cafe")).toBe("cafe")
-    // Non-word chars are stripped, so accents get removed
-    expect(normalizeName("caf\u00e9")).toBe("caf")
-  })
-
-  it("handles combined transformations", () => {
-    expect(normalizeName("## My-Cool_Project.md")).toBe("my cool project")
+  test.each([
+    // Removes leading # from sections
+    { input: "# Heading", expected: "heading" },
+    { input: "## Sub Heading", expected: "sub heading" },
+    { input: "### Deep Heading", expected: "deep heading" },
+    // Removes .md extension
+    { input: "project.md", expected: "project" },
+    { input: "MY-FILE.MD", expected: "my file" },
+    // Treats hyphens and underscores as spaces
+    { input: "my-project", expected: "my project" },
+    { input: "my_project", expected: "my project" },
+    { input: "my-cool_project", expected: "my cool project" },
+    // Removes special characters
+    { input: "project@2024!", expected: "project2024" },
+    { input: "file (1)", expected: "file 1" },
+    // Collapses whitespace
+    { input: "my   project", expected: "my project" },
+    { input: "  trim  me  ", expected: "trim me" },
+    // Lowercases everything
+    { input: "MyProject", expected: "myproject" },
+    { input: "UPPERCASE", expected: "uppercase" },
+    // Handles empty strings
+    { input: "", expected: "" },
+    // Handles unicode characters (non-word chars stripped)
+    { input: "cafe", expected: "cafe" },
+    { input: "caf\u00e9", expected: "caf" },
+    // Combined transformations
+    { input: "## My-Cool_Project.md", expected: "my cool project" },
+  ])("normalizes '$input' to '$expected'", ({ input, expected }) => {
+    expect(normalizeName(input)).toBe(expected)
   })
 })
 
@@ -259,38 +246,29 @@ describe("normalizeName", () => {
 // =============================================================================
 
 describe("namesAreSimilar", () => {
-  it("matches identical names", () => {
-    expect(namesAreSimilar("project", "project")).toBe(true)
-  })
-
-  it("matches names differing only in case", () => {
-    expect(namesAreSimilar("Project", "project")).toBe(true)
-    expect(namesAreSimilar("PROJECT", "project")).toBe(true)
-  })
-
-  it("matches names differing in separators", () => {
-    expect(namesAreSimilar("my-project", "my_project")).toBe(true)
-    expect(namesAreSimilar("my project", "my-project")).toBe(true)
-  })
-
-  it("matches with/without .md extension", () => {
-    expect(namesAreSimilar("project.md", "project")).toBe(true)
-    expect(namesAreSimilar("readme.md", "README")).toBe(true)
-  })
-
-  it("matches section heading with filename", () => {
-    expect(namesAreSimilar("# Project", "project.md")).toBe(true)
-    expect(namesAreSimilar("## My Project", "my-project.md")).toBe(true)
-  })
-
-  it("returns false for different names", () => {
-    expect(namesAreSimilar("project", "other")).toBe(false)
-    expect(namesAreSimilar("foo", "bar")).toBe(false)
-  })
-
-  it("handles empty strings", () => {
-    expect(namesAreSimilar("", "")).toBe(true)
-    expect(namesAreSimilar("", "something")).toBe(false)
+  test.each([
+    // Identical names
+    { a: "project", b: "project", expected: true },
+    // Case differences
+    { a: "Project", b: "project", expected: true },
+    { a: "PROJECT", b: "project", expected: true },
+    // Separator differences
+    { a: "my-project", b: "my_project", expected: true },
+    { a: "my project", b: "my-project", expected: true },
+    // With/without .md extension
+    { a: "project.md", b: "project", expected: true },
+    { a: "readme.md", b: "README", expected: true },
+    // Section heading with filename
+    { a: "# Project", b: "project.md", expected: true },
+    { a: "## My Project", b: "my-project.md", expected: true },
+    // Different names
+    { a: "project", b: "other", expected: false },
+    { a: "foo", b: "bar", expected: false },
+    // Empty strings
+    { a: "", b: "", expected: true },
+    { a: "", b: "something", expected: false },
+  ])("namesAreSimilar('$a', '$b') = $expected", ({ a, b, expected }) => {
+    expect(namesAreSimilar(a, b)).toBe(expected)
   })
 })
 
@@ -378,87 +356,51 @@ describe("collapseRedundantAncestors", () => {
     expect(collapseRedundantAncestors([])).toEqual([])
   })
 
-  it("returns single node unchanged", () => {
-    const node = createNode("abc", { type: "file", title: "Project" })
-    const result = collapseRedundantAncestors([node])
-    expect(result).toHaveLength(1)
-    expect(result[0]?.id).toBe("abc")
-  })
-
-  it("collapses folder and file with same name", () => {
-    const folderNode = createNode("folder1", {
-      type: "folder",
-      title: "Project",
-    })
-    const fileNode = createNode("file1", { type: "file", title: "Project" })
-
-    const result = collapseRedundantAncestors([folderNode, fileNode])
-    expect(result).toHaveLength(1)
-    // Should keep the last (deepest) node
-    expect(result[0]?.id).toBe("file1")
-  })
-
-  it("collapses folder, file, and section with same name", () => {
-    const folderNode = createNode("folder1", {
-      type: "folder",
-      title: "Project",
-    })
-    const fileNode = createNode("file1", { type: "file", title: "Project" })
-    const sectionNode = createNode("section1", {
-      type: "section",
-      title: "# Project",
-    })
-
-    const result = collapseRedundantAncestors([
-      folderNode,
-      fileNode,
-      sectionNode,
-    ])
-    expect(result).toHaveLength(1)
-    expect(result[0]?.id).toBe("section1")
-  })
-
-  it("preserves nodes with different names", () => {
-    const folderNode = createNode("folder1", {
-      type: "folder",
-      title: "Projects",
-    })
-    const fileNode = createNode("file1", { type: "file", title: "My Project" })
-    const sectionNode = createNode("section1", {
-      type: "section",
-      title: "# Details",
-    })
-
-    const result = collapseRedundantAncestors([
-      folderNode,
-      fileNode,
-      sectionNode,
-    ])
-    expect(result).toHaveLength(3)
-    expect(result[0]?.id).toBe("folder1")
-    expect(result[1]?.id).toBe("file1")
-    expect(result[2]?.id).toBe("section1")
-  })
-
-  it("handles partial collapsing", () => {
-    const folderNode = createNode("folder1", {
-      type: "folder",
-      title: "Project",
-    })
-    const fileNode = createNode("file1", { type: "file", title: "Project" })
-    const sectionNode = createNode("section1", {
-      type: "section",
-      title: "# Details",
-    })
-
-    const result = collapseRedundantAncestors([
-      folderNode,
-      fileNode,
-      sectionNode,
-    ])
-    expect(result).toHaveLength(2)
-    expect(result[0]?.id).toBe("file1")
-    expect(result[1]?.id).toBe("section1")
+  test.each([
+    {
+      desc: "single node unchanged",
+      chain: [{ type: "file" as const, title: "Project" }],
+      expectedIds: ["file1"],
+    },
+    {
+      desc: "collapses folder and file with same name",
+      chain: [
+        { type: "folder" as const, title: "Project" },
+        { type: "file" as const, title: "Project" },
+      ],
+      expectedIds: ["file2"],
+    },
+    {
+      desc: "collapses folder, file, and section with same name",
+      chain: [
+        { type: "folder" as const, title: "Project" },
+        { type: "file" as const, title: "Project" },
+        { type: "section" as const, title: "# Project" },
+      ],
+      expectedIds: ["section3"],
+    },
+    {
+      desc: "preserves nodes with different names",
+      chain: [
+        { type: "folder" as const, title: "Projects" },
+        { type: "file" as const, title: "My Project" },
+        { type: "section" as const, title: "# Details" },
+      ],
+      expectedIds: ["folder1", "file2", "section3"],
+    },
+    {
+      desc: "handles partial collapsing",
+      chain: [
+        { type: "folder" as const, title: "Project" },
+        { type: "file" as const, title: "Project" },
+        { type: "section" as const, title: "# Details" },
+      ],
+      expectedIds: ["file2", "section3"],
+    },
+  ])("$desc", ({ chain, expectedIds }) => {
+    const nodes = createNodeChain(chain)
+    const result = collapseRedundantAncestors(nodes)
+    expect(result.map((n) => n.id)).toEqual(expectedIds)
   })
 })
 
@@ -471,60 +413,51 @@ describe("collapseAncestorsWithTypes", () => {
     expect(collapseAncestorsWithTypes([])).toEqual([])
   })
 
-  it("returns node with empty typeSuffix for single node", () => {
-    const node = createNode("abc", { type: "file", title: "Project" })
-    const result = collapseAncestorsWithTypes([node])
-    expect(result).toHaveLength(1)
-    expect(result[0]?.node.id).toBe("abc")
-    expect(result[0]?.typeSuffix).toBe("")
-  })
-
-  it("includes type suffix for collapsed nodes", () => {
-    const folderNode = createNode("folder1", {
-      type: "folder",
-      title: "Project",
-    })
-    const fileNode = createNode("file1", { type: "file", title: "Project" })
-
-    const result = collapseAncestorsWithTypes([folderNode, fileNode])
-    expect(result).toHaveLength(1)
-    expect(result[0]?.node.id).toBe("file1")
-    expect(result[0]?.typeSuffix).toBe("/ .md")
-  })
-
-  it("includes full type suffix for three collapsed nodes", () => {
-    const folderNode = createNode("folder1", {
-      type: "folder",
-      title: "Project",
-    })
-    const fileNode = createNode("file1", { type: "file", title: "Project" })
-    const sectionNode = createNode("section1", {
-      type: "section",
-      title: "# Project",
-    })
-
-    const result = collapseAncestorsWithTypes([
-      folderNode,
-      fileNode,
-      sectionNode,
-    ])
-    expect(result).toHaveLength(1)
-    expect(result[0]?.node.id).toBe("section1")
-    expect(result[0]?.typeSuffix).toBe("/ .md #")
+  test.each([
+    {
+      desc: "single node with empty typeSuffix",
+      chain: [{ type: "file" as const, title: "Project" }],
+      expected: [{ id: "file1", typeSuffix: "" }],
+    },
+    {
+      desc: "includes type suffix for collapsed folder > file",
+      chain: [
+        { type: "folder" as const, title: "Project" },
+        { type: "file" as const, title: "Project" },
+      ],
+      expected: [{ id: "file2", typeSuffix: "/ .md" }],
+    },
+    {
+      desc: "full type suffix for folder > file > section",
+      chain: [
+        { type: "folder" as const, title: "Project" },
+        { type: "file" as const, title: "Project" },
+        { type: "section" as const, title: "# Project" },
+      ],
+      expected: [{ id: "section3", typeSuffix: "/ .md #" }],
+    },
+  ])("$desc", ({ chain, expected }) => {
+    const nodes = createNodeChain(chain)
+    const result = collapseAncestorsWithTypes(nodes)
+    expect(
+      result.map((r) => ({ id: r.node.id, typeSuffix: r.typeSuffix })),
+    ).toEqual(expected)
   })
 
   it("handles multiple collapsed groups", () => {
-    const folder1 = createNode("folder1", { type: "folder", title: "Alpha" })
-    const file1 = createNode("file1", { type: "file", title: "Alpha" })
-    const folder2 = createNode("folder2", { type: "folder", title: "Beta" })
-    const file2 = createNode("file2", { type: "file", title: "Beta" })
-
-    const result = collapseAncestorsWithTypes([folder1, file1, folder2, file2])
-    expect(result).toHaveLength(2)
-    expect(result[0]?.node.id).toBe("file1")
-    expect(result[0]?.typeSuffix).toBe("/ .md")
-    expect(result[1]?.node.id).toBe("file2")
-    expect(result[1]?.typeSuffix).toBe("/ .md")
+    const nodes = [
+      createNode("folder1", { type: "folder", title: "Alpha" }),
+      createNode("file1", { type: "file", title: "Alpha" }),
+      createNode("folder2", { type: "folder", title: "Beta" }),
+      createNode("file2", { type: "file", title: "Beta" }),
+    ]
+    const result = collapseAncestorsWithTypes(nodes)
+    expect(
+      result.map((r) => ({ id: r.node.id, typeSuffix: r.typeSuffix })),
+    ).toEqual([
+      { id: "file1", typeSuffix: "/ .md" },
+      { id: "file2", typeSuffix: "/ .md" },
+    ])
   })
 })
 
