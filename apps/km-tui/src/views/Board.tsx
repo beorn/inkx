@@ -417,15 +417,15 @@ export function BoardCore({
               {ui.showSearchDialog && (
                 <Box
                   position="absolute"
-                  marginLeft={Math.floor(termWidth / 4)}
-                  marginTop={Math.floor(contentHeight / 4)}
+                  marginLeft={Math.floor(termWidth / 6)}
+                  marginTop={Math.floor(contentHeight / 6)}
                   data-dialog="search"
                 >
                   <SearchDialog
                     onSelect={dialogHandlers.handleSearchSelect}
                     onCancel={dialogHandlers.handleSearchCancel}
-                    width={Math.floor(termWidth / 2)}
-                    height={Math.floor(contentHeight / 2)}
+                    width={Math.floor((termWidth * 2) / 3)}
+                    height={Math.floor((contentHeight * 2) / 3)}
                   />
                 </Box>
               )}
@@ -630,11 +630,12 @@ export function Board({
     [boardState, columnsLayout],
   )
 
-  // Dialog handlers (no longer need boardState/dispatchBoard - columns derived from repo)
+  // Dialog handlers
   const dialogHandlers = useBoardDialogs({
     repo,
     state,
     dispatch,
+    dispatchBoard,
     cursorNodeId: boardState.cursorNodeId,
   })
 

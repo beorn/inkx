@@ -6,6 +6,7 @@
  */
 import { useCallback } from "react"
 import type { KNode } from "@km/core"
+import type { BoardAction } from "@km/board"
 import type { Repo } from "../repo-context.tsx"
 import type { TUIBoardState } from "../types.ts"
 import { actions } from "../ui-reducer.ts"
@@ -18,6 +19,7 @@ interface UseBoardDialogsParams {
   repo: Repo
   state: TUIBoardState
   dispatch: (action: ReturnType<(typeof actions)[keyof typeof actions]>) => void
+  dispatchBoard: (action: BoardAction) => void
   /** Current cursor node ID (from board state) */
   cursorNodeId: string | null
 }
@@ -43,6 +45,7 @@ export function useBoardDialogs({
   repo,
   state: _state,
   dispatch,
+  dispatchBoard,
   cursorNodeId,
 }: UseBoardDialogsParams): BoardDialogHandlers {
   // Handle project picker selection
@@ -102,13 +105,12 @@ export function useBoardDialogs({
   const handleSearchSelect = useCallback(
     (targetNode: KNode) => {
       // Navigate to the node by dispatching a SELECT action
-      // The board reducer will handle updating the cursor position
-      repo.getNode(targetNode.id) // Ensure node exists
+      if (repo.getNode(targetNode.id)) {
+        dispatchBoard({ type: "SELECT", nodeId: targetNode.id })
+      }
       dispatch(actions.hideSearchDialog())
-      // TODO: Implement navigation to selected node
-      // This will require adding a SELECT action to the board reducer
     },
-    [repo, dispatch],
+    [repo, dispatch, dispatchBoard],
   )
 
   const handleSearchCancel = useCallback(() => {

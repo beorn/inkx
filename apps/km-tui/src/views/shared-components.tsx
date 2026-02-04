@@ -289,6 +289,7 @@ export function ModalDialog({
       borderColor={borderColor}
       backgroundColor="black"
       paddingX={2}
+      overflow="hidden"
     >
       {children}
     </Box>
