@@ -30,7 +30,6 @@
         "scripts/*.ts",
         "release-it.config.js",
         "benchmarks/*.bench.ts",
-        "infra/vitest-dotz/index.tsx",
         "website/script.js"
       ],
       "project": [
@@ -162,7 +161,8 @@
       "project": ["tools/**/*.ts", "tests/**/*.ts"]
     },
     "vendor/beorn-vitestx": {
-      "project": ["src/**/*.ts"]
+      "entry": ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
+      "project": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"]
     },
     "vendor/beorn-watcher-chaos": {
       "entry": ["tests/**/*.test.ts"],

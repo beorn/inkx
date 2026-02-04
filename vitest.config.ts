@@ -5,6 +5,7 @@ import { availableParallelism } from "node:os"
 export default defineConfig({
 	plugins: [mdtest()],
 	test: {
+		reporter: "dot",
 		includeTaskLocation: true,
 		outputFile: {
 			html: "./test-results/vitest-report.html",
@@ -23,6 +24,7 @@ export default defineConfig({
 			"**/node_modules/**",
 			"**/dist/**",
 			"**/.direnv/**",
+			"**/*fuzz*",
 			// Uses bun:test integration — incompatible with vitest runner
 			"vendor/beorn-mdtest/tests/mdtest-e2e.slow.test.ts",
 		],

@@ -752,7 +752,8 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | ----------- | ------------------------------------------------------------- | ----------------- |
 | `test:fast` | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) | Default iteration |
 | `test:slow` | `*.slow.{test,spec}.{ts,tsx}` only                            | Slow tests only   |
-| `test:all`  | All tests (`*.test.ts`, `*.spec.ts`, `*.test.md`, `*.slow.*`) | Before commit     |
+| `test:all`  | All tests except fuzz/chaos (`*fuzz*` excluded)               | Before commit     |
+| `test:fuzz` | Fuzz + chaos tests (`*fuzz*`, `*chaos*`)                      | Exploratory testing |
 
 **Primary workflow**: `test:fast` (iterate) → `test:all` (commit)
 
