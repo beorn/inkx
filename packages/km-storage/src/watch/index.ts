@@ -5,16 +5,9 @@ export {
   scanDirectoryRecursive,
 } from "./watcher.ts"
 
-export type {
-  WatcherConfig,
-  FileChange,
-  SymlinkInfo,
-  CaseCollision,
-} from "./watcher.ts"
+export type { WatcherConfig, FileChange } from "./watcher.ts"
 
 // Worker-based watcher (non-blocking)
-
-export type { WorkerWatcherConfig } from "./worker-bridge.ts"
 
 // Watcher status types
 export type { WatcherStatus, WatcherState } from "./worker-thread.ts"
@@ -35,7 +28,7 @@ export {
   getParentNodeId,
 } from "./reconcile.ts"
 
-export type { ReconcileOp, FsEntry, DirectoryScanner } from "./reconcile.ts"
+export type { ReconcileOp } from "./reconcile.ts"
 
 // Ignore patterns
 export {
@@ -55,9 +48,4 @@ export type { PatternMatcher, PatternMatcherOptions } from "../ignore.ts"
 // Write queue
 export { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 
-export type {
-  PendingWrite,
-  WriteQueueConfig,
-  InFlightTracker,
-  FileSystemOps,
-} from "./writequeue.ts"
+export type { PendingWrite, WriteQueueConfig } from "./writequeue.ts"

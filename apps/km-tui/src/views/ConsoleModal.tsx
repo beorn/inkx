@@ -10,7 +10,7 @@ import { ModalDialog } from "./shared-components.tsx"
 
 const MAX_LINES = 100
 
-export interface ConsoleModalHandle {
+interface ConsoleModalHandle {
   scrollToBottom(): void
 }
 

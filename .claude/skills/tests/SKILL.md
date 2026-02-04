@@ -39,6 +39,12 @@ bun run test:all:html      # All tests + HTML report + perf tracking
 
 Still run `test:all` before commit.
 
+**Avoid running `test:all` twice.** If you need to inspect results after running it, grep the output directly:
+```bash
+bun run test:all 2>&1 | grep -E "(FAIL|✗|Error|❌|Tests |Test Files)" | tail -30
+```
+Do not run the full suite again just to see what failed.
+
 ### CI / Release
 
 ```bash

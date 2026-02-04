@@ -13,6 +13,7 @@
     "@km/markdown",
     "@km/repl",
     "@km/tree",
+    "@km/infra",
     "@km/tui",
     "@release-it/conventional-changelog",
     "chalkx",

@@ -12,9 +12,6 @@
  */
 import { createConditionalLogger, type ConditionalLogger } from "@beorn/logger"
 
-// Re-export ConditionalLogger type for convenience
-export type { ConditionalLogger }
-
 // ============================================================
 // Short ID helper
 // ============================================================

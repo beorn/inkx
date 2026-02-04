@@ -26,7 +26,7 @@ import type { Event, KNode } from "@km/core"
 import { createEmitter, type Emitter } from "../emitter.ts"
 
 /** Progress info for sync operations */
-export interface SyncProgress {
+interface SyncProgress {
   phase: string
   current: number
   total: number

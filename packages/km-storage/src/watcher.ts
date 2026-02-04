@@ -19,7 +19,7 @@ export type ServiceStatus = "stopped" | "starting" | "running" | "stopping"
  * Base Service interface for objects with start/stop lifecycle.
  * Implements AsyncDisposable for automatic cleanup.
  */
-export interface Service extends AsyncDisposable {
+interface Service extends AsyncDisposable {
   readonly status: ServiceStatus
   start(): Promise<void>
   stop(): Promise<void>

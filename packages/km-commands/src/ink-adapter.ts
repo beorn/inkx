@@ -149,4 +149,4 @@ export function wouldHandleKey(
 
 // Re-export for convenience
 
-export type { CommandContext, CommandAction, ViewMode }
+export type { CommandContext, CommandAction }

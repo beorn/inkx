@@ -33,7 +33,7 @@ import { getScrollToIndex } from "./scroll-helpers.ts"
 // Handle Interfaces
 // =============================================================================
 
-export interface ColumnTreeHandle {
+interface ColumnTreeHandle {
   scrollToItem(index: number): void
 }
 

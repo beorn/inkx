@@ -73,120 +73,117 @@ export interface HistoryRedoAction {
 export type HistoryAction = HistoryUndoAction | HistoryRedoAction
 
 // UI actions (handled by TUI, not board reducer)
-export interface ZoomOutwardsAction {
+interface ZoomOutwardsAction {
   type: "ZOOM_OUTWARDS"
 }
 
-export interface OpenDetailPaneAction {
+interface OpenDetailPaneAction {
   type: "OPEN_DETAIL_PANE"
 }
 
-export interface CloseDetailPaneAction {
+interface CloseDetailPaneAction {
   type: "CLOSE_DETAIL_PANE"
 }
 
-export interface ShowHelpAction {
+interface ShowHelpAction {
   type: "SHOW_HELP"
 }
 
-export interface HideHelpAction {
+interface HideHelpAction {
   type: "HIDE_HELP"
 }
 
-export interface CycleViewModeAction {
+interface CycleViewModeAction {
   type: "CYCLE_VIEW_MODE"
 }
 
-export interface DeleteNodeAction {
+interface DeleteNodeAction {
   type: "DELETE_NODE"
   nodeId: string
 }
 
-export interface SelectAllProgressiveAction {
+interface SelectAllProgressiveAction {
   type: "SELECT_ALL_PROGRESSIVE"
 }
 
 // TUI-specific actions (dialogs, quit, favorites)
-export interface QuitAction {
+interface QuitAction {
   type: "QUIT"
 }
 
-export interface ShowNewItemDialogAction {
+interface ShowNewItemDialogAction {
   type: "SHOW_NEW_ITEM_DIALOG"
 }
 
-export interface ShowProjectPickerAction {
+interface ShowProjectPickerAction {
   type: "SHOW_PROJECT_PICKER"
 }
 
-export interface ShowSearchDialogAction {
+interface ShowSearchDialogAction {
   type: "SHOW_SEARCH_DIALOG"
 }
 
-export interface JumpToFavoriteAction {
+interface JumpToFavoriteAction {
   type: "JUMP_TO_FAVORITE"
   favoriteNumber: number // 1-9
 }
 
-export interface JumpToColumnAction {
+interface JumpToColumnAction {
   type: "JUMP_TO_COLUMN"
   columnNumber: number // 1-9 (maps to column index 0-8)
 }
 
-export interface CloseOrQuitAction {
+interface CloseOrQuitAction {
   type: "CLOSE_OR_QUIT" // Contextual: close dialog/pane/mode, or quit
 }
 
-export interface OutdentNodeAction {
+interface OutdentNodeAction {
   type: "OUTDENT_NODE"
 }
 
-export interface NavSiblingBoardAction {
+interface NavSiblingBoardAction {
   type: "NAV_SIBLING_BOARD"
   direction: "next" | "prev"
 }
 
-export interface ZoomInwardsAction {
+interface ZoomInwardsAction {
   type: "ZOOM_INWARDS" // Zoom in one level closer to selected node
 }
 
-export interface PageJumpAction {
+interface PageJumpAction {
   type: "PAGE_JUMP"
   direction: "up" | "down"
 }
 
 // Move mode command actions (TUI augments with context before dispatching to board)
 // These are returned by commands and converted to full BoardAction by board-actions.ts
-export interface EnterMoveModeAction {
+interface EnterMoveModeAction {
   type: "ENTER_MOVE_MODE"
 }
 
-export interface ConfirmMoveAction {
+interface ConfirmMoveAction {
   type: "CONFIRM_MOVE"
 }
 
-export interface CancelMoveAction {
+interface CancelMoveAction {
   type: "CANCEL_MOVE"
 }
 
-export type MoveAction =
-  | EnterMoveModeAction
-  | ConfirmMoveAction
-  | CancelMoveAction
+type MoveAction = EnterMoveModeAction | ConfirmMoveAction | CancelMoveAction
 
-export interface ShiftUpAction {
+interface ShiftUpAction {
   type: "SHIFT_UP"
 }
 
-export interface ShiftDownAction {
+interface ShiftDownAction {
   type: "SHIFT_DOWN"
 }
 
-export interface ShiftLeftAction {
+interface ShiftLeftAction {
   type: "SHIFT_LEFT"
 }
 
-export interface ShiftRightAction {
+interface ShiftRightAction {
   type: "SHIFT_RIGHT"
 }
 
@@ -221,50 +218,50 @@ export type UIAction =
 
 // High-level navigation actions (interpreted by TUI, not dispatched to reducer)
 // These are returned by commands and converted to BoardAction by the TUI handler
-export interface CursorMoveAction {
+interface CursorMoveAction {
   type: "CURSOR_MOVE"
   dir: NodeDirection
 }
 
-export interface NavBackAction {
+interface NavBackAction {
   type: "NAV_BACK"
 }
 
-export interface NavForwardAction {
+interface NavForwardAction {
   type: "NAV_FORWARD"
 }
 
-export interface FoldLevelAction {
+interface FoldLevelAction {
   type: "FOLD_LEVEL"
   depth: number
 }
 
-export interface UnfoldLevelAction {
+interface UnfoldLevelAction {
   type: "UNFOLD_LEVEL"
   depth: number
 }
 
-export interface SelectAllSiblingsAction {
+interface SelectAllSiblingsAction {
   type: "SELECT_ALL_SIBLINGS"
 }
 
-export interface SelectAllAction {
+interface SelectAllAction {
   type: "SELECT_ALL"
 }
 
-export interface ExtendSelectUpAction {
+interface ExtendSelectUpAction {
   type: "EXTEND_SELECT_UP"
 }
 
-export interface ExtendSelectDownAction {
+interface ExtendSelectDownAction {
   type: "EXTEND_SELECT_DOWN"
 }
 
-export interface ExtendSelectLeftAction {
+interface ExtendSelectLeftAction {
   type: "EXTEND_SELECT_LEFT"
 }
 
-export interface ExtendSelectRightAction {
+interface ExtendSelectRightAction {
   type: "EXTEND_SELECT_RIGHT"
 }
 

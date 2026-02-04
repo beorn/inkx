@@ -42,7 +42,7 @@ export interface ApplyOptions {
 /**
  * Options for async apply with parallel parsing
  */
-export interface ApplyAsyncOptions extends ApplyOptions {
+interface ApplyAsyncOptions extends ApplyOptions {
   parsePool: ParsePoolService
 }
 

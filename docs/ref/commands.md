@@ -26,6 +26,27 @@ The command system is intentionally decoupled from the TUI: commands know nothin
 - **Keybindings are separate from commands**: A `Keybinding` maps a key+modifiers to a `commandId`. A `CommandDef` defines the command logic. This separation allows the same command to have multiple bindings and enables programmatic execution without keybindings.
 - **No global state in commands**: Commands receive all needed state via `CommandContext`. The registry and keybinding list are module-level but created via factory functions for test isolation.
 
+### Package Structure
+
+```
+packages/km-commands/src/
+  types.ts          -- CommandDef, CommandContext, CommandAction, all action interfaces
+  registry.ts       -- CommandRegistry factory + module-level default registry
+  executor.ts       -- executeCommand(), buildContext()
+  keybindings.ts    -- Keybinding type, resolveKeybinding(), defaultKeybindings[]
+  ink-adapter.ts    -- processInkKey(), initCommandSystem(), Ink bridge
+  errors.ts         -- ActionError, ActionResult, helper constructors
+  commands/
+    index.ts        -- allCommands aggregate export
+    navigation.ts   -- Cursor, zoom, history, paging commands
+    selection.ts    -- Select, extend selection, clear
+    edit.ts         -- Move mode, shift, delete, outdent
+    task.ts         -- Cycle status, toggle done, set specific status
+    view.ts         -- View mode, help, fold, outline depth, content lines
+    history.ts      -- Undo/redo
+    tui.ts          -- Quit, new item, project picker, search, favorites, columns, close/quit
+```
+
 ---
 
 ## Core Types
@@ -59,7 +80,7 @@ interface CommandDef {
   name: string
   description: string
   category: CommandCategory  // "Navigation" | "Selection" | "Edit" | "Task" | "Fold" | "View"
-  shortcuts?: string[]
+  shortcuts?: string[]       // Informational only (actual bindings in defaultKeybindings[])
   modes?: CommandMode[]      // "normal" | "move" | "search" | "input"
   execute: (ctx: CommandContext) => CommandAction | CommandAction[] | null
 }
@@ -71,8 +92,8 @@ The union of all action types a command can return:
 
 | Action group       | Dispatched by       | Examples                                    |
 | ------------------ | ------------------- | ------------------------------------------- |
-| `BoardAction`      | Board reducer       | `CURSOR_MOVE`, `ZOOM_IN`, `TOGGLE_FOLD`     |
-| `NavigationAction` | TUI handler         | `NAV_BACK`, `NAV_FORWARD`, `PAGE_JUMP`      |
+| `BoardAction`      | Board reducer       | `ZOOM_IN`, `TOGGLE_FOLD`, `SELECT`          |
+| `NavigationAction` | TUI handler         | `CURSOR_MOVE`, `NAV_BACK`, `NAV_FORWARD`    |
 | `TaskSetStatusAction` | Storage layer    | `TASK_SET_STATUS`                            |
 | `HistoryAction`    | App layer           | `HISTORY_UNDO`, `HISTORY_REDO`              |
 | `UIAction`         | TUI handler         | `QUIT`, `SHOW_HELP`, `CYCLE_VIEW_MODE`      |
@@ -84,14 +105,14 @@ For command action handlers that can fail expectedly:
 
 ```typescript
 type ActionError =
-  | { type: "boundary"; direction: string }   // User at navigation edge (ring bell)
-  | { type: "precondition"; missing: string } // Expected condition not met
+  | { type: "boundary"; direction: string; message?: string }
+  | { type: "precondition"; missing: string }
   | { type: "unimplemented"; feature: string }
 
 type ActionResult = Result<void, ActionError>
 ```
 
-Helper constructors: `boundary(dir)`, `precondition(field)`, `unimplemented(feature)`, `ok()`.
+Helper constructors: `boundary(dir, msg?)`, `precondition(field)`, `unimplemented(feature)`, `ok()`.
 
 ---
 
@@ -124,6 +145,8 @@ interface KeybindingContext {
 
 First matching keybinding wins. Mode filtering is applied before `when` predicates. Move mode bindings (`modes: ["move"]`) take precedence when active.
 
+For uppercase letters (A-Z), the shift modifier is implicit in the character -- bindings do not need explicit `shift: true`.
+
 ```typescript
 resolveKeybinding(key: string, modifiers, ctx: KeybindingContext): string | null
 ```
@@ -143,7 +166,12 @@ processInkKey(input, key, commandCtx, keybindingCtx): InkCommandResult
 
 // Check if a key would be handled (for fallback logic)
 wouldHandleKey(input, key, keybindingCtx): boolean
+
+// Build KeybindingContext from UI state flags
+buildKeybindingContext({ inMoveMode?, inSearchMode?, ... }): KeybindingContext
 ```
+
+Ink maps `meta` to Alt/Option on macOS. The adapter translates this: `key.meta` becomes `alt: true` in the modifier flags passed to `resolveKeybinding()`.
 
 ---
 
@@ -161,7 +189,7 @@ registerCommands(allCommands)
 executeCommand("cursor_down", ctx)
 ```
 
-The registry supports fuzzy filtering for future command palette use:
+The registry supports fuzzy filtering for command palette use:
 
 ```typescript
 filterCommands("cur")  // matches cursor_down, cursor_up, etc.
@@ -170,6 +198,8 @@ filterCommands("cur")  // matches cursor_down, cursor_up, etc.
 ---
 
 ## Command Reference
+
+The `defaultKeybindings[]` array in `keybindings.ts` is the source of truth for which keys are bound. The `shortcuts` field on `CommandDef` is informational metadata only.
 
 ### Navigation
 
@@ -190,7 +220,7 @@ filterCommands("cur")  // matches cursor_down, cursor_up, etc.
 | `zoom_in`             | Zoom In               | `o`                  |
 | `zoom_outwards`       | Zoom Outwards         | `u`                  |
 | `zoom_inwards`        | Zoom Inwards          | `i`                  |
-| `open_detail_pane`    | Open Detail           | `Enter`              |
+| `open_detail_pane`    | Open Detail           | `Enter` (normal mode)|
 | `page_down`           | Page Down             | `Ctrl+D`             |
 | `page_up`             | Page Up               | `Ctrl+U`             |
 | `sibling_board_next`  | Next Sibling Board    | `Ctrl+J`             |
@@ -204,9 +234,9 @@ filterCommands("cur")  // matches cursor_down, cursor_up, etc.
 | `select_add`              | Add to Selection      | (none)                    |
 | `select_remove`           | Remove from Selection | (none)                    |
 | `select_all_siblings`     | Select All Siblings   | (none)                    |
-| `select_all`              | Select All            | `Ctrl+A`                  |
+| `select_all`              | Select All            | (none)                    |
 | `select_all_progressive`  | Progressive Select All| `A`                       |
-| `clear_selection`         | Clear Selection       | `Escape`                  |
+| `clear_selection`         | Clear Selection       | (none)                    |
 | `extend_select_up`        | Extend Selection Up   | `Shift+ArrowUp`, `K`      |
 | `extend_select_down`      | Extend Selection Down | `Shift+ArrowDown`, `J`    |
 | `extend_select_left`      | Extend Selection Left | `Shift+ArrowLeft`, `H`    |
@@ -219,18 +249,19 @@ filterCommands("cur")  // matches cursor_down, cursor_up, etc.
 | `enter_move_mode` | Enter Move Mode | `m`                                |
 | `confirm_move`    | Confirm Move    | `Enter` (move mode)                |
 | `cancel_move`     | Cancel Move     | `Escape` (move mode)               |
-| `shift_up`        | Shift Up        | `Alt+ArrowUp`, `Alt+k`             |
-| `shift_down`      | Shift Down      | `Alt+ArrowDown`, `Alt+j`           |
-| `shift_left`      | Shift Left      | `Alt+ArrowLeft`, `Alt+h`           |
-| `shift_right`     | Shift Right     | `Alt+ArrowRight`, `Alt+l`          |
+| `shift_up`        | Shift Up        | `Meta+ArrowUp`, `Meta+k`           |
+| `shift_down`      | Shift Down      | `Meta+ArrowDown`, `Meta+j`         |
+| `shift_left`      | Shift Left      | `Meta+ArrowLeft`, `Meta+h`         |
+| `shift_right`     | Shift Right     | `Meta+ArrowRight`, `Meta+l`        |
 | `delete_node`     | Delete Node     | `D`                                |
+| `outdent`         | Outdent         | `Shift+Tab`                        |
 
 ### Task
 
 | ID                  | Name            | Default Keys |
 | ------------------- | --------------- | ------------ |
 | `cycle_task_status` | Cycle Status    | `Space`      |
-| `toggle_task_done`  | Toggle Done     | `x`          |
+| `toggle_task_done`  | Toggle Done     | (none)       |
 | `set_status_todo`   | Set Todo        | (none)       |
 | `set_status_wip`    | Set In Progress | (none)       |
 | `set_status_blocked`| Set Blocked     | (none)       |
@@ -259,23 +290,22 @@ filterCommands("cur")  // matches cursor_down, cursor_up, etc.
 
 ### History
 
-| ID     | Name   | Default Keys            |
-| ------ | ------ | ----------------------- |
-| `undo` | Undo   | `Ctrl+Z`               |
-| `redo` | Redo   | `Ctrl+Shift+Z`, `Ctrl+Y` |
+| ID     | Name   | Default Keys                 |
+| ------ | ------ | ---------------------------- |
+| `undo` | Undo   | `Ctrl+Z`                     |
+| `redo` | Redo   | `Ctrl+Shift+Z`, `Ctrl+Y`    |
 
 ### TUI-specific
 
-| ID              | Name           | Default Keys      |
-| --------------- | -------------- | ----------------- |
-| `quit`          | Quit           | `q`               |
-| `new_item`      | New Item       | `n`               |
-| `project_picker`| Project Picker | `p`               |
-| `search`        | Search         | `/`               |
-| `favorite_1`-`9`| Favorite 1-9  | `1`-`9`           |
-| `column_1`-`9`  | Column 1-9     | `!@#$%^&*(` |
-| `close_or_quit` | Close/Quit     | `Escape`          |
-| `outdent`       | Outdent        | `Shift+Tab`       |
+| ID               | Name           | Default Keys                      |
+| ---------------- | -------------- | --------------------------------- |
+| `quit`           | Quit           | `q`                               |
+| `new_item`       | New Item       | `n`                               |
+| `project_picker` | Project Picker | `p`                               |
+| `search`         | Search         | `/`                               |
+| `favorite_1`-`9` | Favorite 1-9  | `1`-`9`                           |
+| `column_1`-`9`  | Column 1-9     | `!@#$%^&*(` (Shift+1-9)          |
+| `close_or_quit`  | Close/Quit     | `Escape`, `Alt+Escape`, `Meta+Escape` |
 
 ---
 
@@ -299,13 +329,13 @@ const myCommand = {
 
 2. **Add to the category's export array** (e.g., `navigationCommands`).
 
-3. **Add a keybinding** in `keybindings.ts` if the command should have a default key:
+3. **Add a keybinding** in `packages/km-commands/src/keybindings.ts` in the `defaultKeybindings` array:
 
 ```typescript
 { key: "key", commandId: "my_command" },
 ```
 
-4. **Add the action type** to `types.ts` and wire up handling in the TUI's `board-actions.ts`.
+4. **Add the action type** to `packages/km-commands/src/types.ts` and wire up handling in the TUI's `board-actions.ts`.
 
 5. **Add tests** in `packages/km-commands/tests/`.
 

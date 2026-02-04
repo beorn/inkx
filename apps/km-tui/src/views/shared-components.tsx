@@ -22,7 +22,7 @@ import { useRepo } from "../repo-context.tsx"
 // Memoized Tree Card Component
 // =============================================================================
 
-export interface MemoizedTreeCardProps {
+interface MemoizedTreeCardProps {
   card: CardState
   colIndex: number
   cardIndex: number
@@ -153,7 +153,7 @@ function CardLayoutTracker({
 // Memoized Column Header Component
 // =============================================================================
 
-export interface MemoizedColumnHeaderProps {
+interface MemoizedColumnHeaderProps {
   column: ColumnState
   colIdx: number
   isSelected: boolean

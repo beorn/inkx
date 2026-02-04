@@ -87,7 +87,7 @@ export function isMockMode(): boolean {
 /**
  * Repo-like object for tests - wraps db functions with db pre-bound
  */
-export interface TestRepo {
+interface TestRepo {
   getNode: (id: string) => KNode | null
   getNodeByPath: (fsPath: string) => KNode | null
   getAllNodes: () => KNode[]

@@ -24,7 +24,7 @@ export interface ReconcileOp {
   mtime?: number
 }
 
-export interface FsEntry {
+interface FsEntry {
   path: string
   ino: number
   mtime: number
@@ -203,6 +203,3 @@ export function getParentNodeId(db: Database, fsPath: string): string | null {
 
 // Re-export applier functions for backwards compatibility
 export { applyReconcileOps, applyReconcileOpsAsync } from "./applier.ts"
-
-// Re-export handler types for consumers
-export type { ReconcileContext } from "./handlers/index.ts"

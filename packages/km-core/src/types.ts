@@ -329,32 +329,3 @@ export interface SessionEndedData {
   summary?: string
   error?: string
 }
-
-// Dependency types (for tasks)
-export interface Dependency {
-  type: "blocks" | "blocked_by" | "parent" | "related" | "waits_for"
-  target_id: string
-}
-
-// Config types
-export interface KmConfig {
-  watch: {
-    debounce_fs: number
-    debounce_apply: number
-    ignore: string[]
-    conflict_strategy: "last_write_wins" | "fs_wins" | "db_wins" | "merge"
-    folder_content: string[]
-  }
-  defaults: {
-    list_sort: string
-    list_status: string[]
-    tree_depth: number
-    board_columns: string[]
-  }
-  tui: {
-    theme: "dark" | "light"
-    icons: boolean
-    vim_keys: boolean
-  }
-  editor: string
-}

@@ -8,12 +8,6 @@ import { createConditionalLogger } from "@beorn/logger"
 
 const log = createConditionalLogger("km:webdav:base")
 
-export interface WebDAVConfig {
-  url: string
-  username: string
-  password: string
-}
-
 /**
  * Create Basic Auth header from credentials
  */

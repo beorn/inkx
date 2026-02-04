@@ -25,7 +25,7 @@ export interface FsEvent {
 /**
  * Timing manipulation for events
  */
-export interface EventTiming {
+interface EventTiming {
   /** Delay before event is emitted (ms) */
   delay?: number
   /** If true, event is dropped entirely */
@@ -39,7 +39,7 @@ export interface EventTiming {
 /**
  * A scheduled event with timing information
  */
-export interface ScheduledEvent extends FsEvent {
+interface ScheduledEvent extends FsEvent {
   timing?: EventTiming
   /** Original order index for reordering scenarios */
   originalIndex?: number
@@ -48,7 +48,7 @@ export interface ScheduledEvent extends FsEvent {
 /**
  * Configuration for the mock watcher
  */
-export interface MockWatcherConfig {
+interface MockWatcherConfig {
   /** Base debounce time (ms) */
   debounceMs: number
   /** Chaos scenario to apply */
@@ -74,7 +74,7 @@ export type ChaosScenarioType =
   | "init_gap"
   | "rapid_succession"
 
-export interface ChaosScenario {
+interface ChaosScenario {
   type: ChaosScenarioType
   params: Record<string, unknown>
 }
@@ -82,7 +82,7 @@ export interface ChaosScenario {
 /**
  * Mock watcher interface - drop-in replacement for FileSystemWatcher/WorkerWatcher
  */
-export interface IMockWatcher extends EventEmitter {
+interface IMockWatcher extends EventEmitter {
   // Standard watcher interface
   start(repoPath: string): void
   stop(): Promise<void>
@@ -204,7 +204,7 @@ export interface IVerifier {
 /**
  * File setup for test initialization
  */
-export interface FileSetup {
+interface FileSetup {
   path: string
   content: string
 }
@@ -212,7 +212,7 @@ export interface FileSetup {
 /**
  * Chaos test configuration
  */
-export interface ChaosTestConfig {
+interface ChaosTestConfig {
   name: string
   scenario: ChaosScenario
   setup: FileSetup[]
@@ -224,7 +224,7 @@ export interface ChaosTestConfig {
 /**
  * Chaos test result
  */
-export interface ChaosTestResult {
+interface ChaosTestResult {
   name: string
   passed: boolean
   verification: VerificationResult
@@ -237,7 +237,7 @@ export interface ChaosTestResult {
  * Generated scenario from fuzzer (minimal definition for regression files)
  * Full definition is in fuzzer.ts
  */
-export interface GeneratedScenario {
+interface GeneratedScenario {
   /** The seed used to generate this specific scenario */
   seed: number
   /** Index within the fuzzer run */
@@ -253,7 +253,7 @@ export interface GeneratedScenario {
 /**
  * Metadata for a regression scenario file
  */
-export interface RegressionMetadata {
+interface RegressionMetadata {
   /** Bead ID for the bug (e.g., "km-91vy") */
   beadId: string
   /** Brief description of what bug this catches */
@@ -269,7 +269,7 @@ export interface RegressionMetadata {
 /**
  * A regression scenario file stored in regressions/ directory
  */
-export interface RegressionScenarioFile {
+interface RegressionScenarioFile {
   metadata: RegressionMetadata
   scenario: GeneratedScenario
 }

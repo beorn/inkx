@@ -47,7 +47,7 @@ export interface EmbeddedUpdate {
 }
 
 /** Result from link resolution */
-export interface LinkResolutionResult {
+interface LinkResolutionResult {
   linksToInsert: LinkData[]
   embeddedUpdates: EmbeddedUpdate[]
   resolvedCount: number

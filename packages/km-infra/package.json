@@ -8,7 +8,6 @@
     "./vitest/setup": "./vitest/setup.ts",
     "./typescript/base.json": "./typescript/base.json",
     "./typescript/generate-paths": "./typescript/generate-paths.ts",
-    "./prettier": "./prettier/index.json",
     "./knip/generate": "./knip/generate.ts",
     "./release-it": "./release-it/index.ts"
   },

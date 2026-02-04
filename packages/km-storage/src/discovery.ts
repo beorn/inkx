@@ -37,7 +37,7 @@ import { generatePathBasedId } from "./id-utils.ts"
 // ============================================================================
 
 /** Discovery mode: "stub" for fast (no parsing), "full" for complete */
-export type DiscoveryMode = "stub" | "full"
+type DiscoveryMode = "stub" | "full"
 
 /** Options for discoverFiles */
 export interface DiscoveryOptions {

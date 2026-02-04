@@ -44,7 +44,7 @@ const MAX_RENDERED_CARDS = 50
 // Card Component
 // =============================================================================
 
-export interface CardProps {
+interface CardProps {
   card: CardState
   isSelected: boolean
   selectedSubIndex: number
@@ -193,7 +193,7 @@ const Card = React.memo(
 // Column Component
 // =============================================================================
 
-export interface ColumnProps {
+interface ColumnProps {
   column: ColumnState
   colIndex: number
   isSelected: boolean

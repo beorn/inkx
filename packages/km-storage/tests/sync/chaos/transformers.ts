@@ -16,13 +16,7 @@ import {
 import type { FsEvent, ChaosScenarioType } from "./types.ts"
 
 // Re-export generic transformers (operate on any AsyncIterable<T>)
-export {
-  drop,
-  reorder,
-  duplicate,
-  type ChaosConfig,
-  type ChaosRegistry,
-} from "vitestx/chaos"
+export { drop, reorder, duplicate, type ChaosConfig } from "vitestx/chaos"
 
 /** Configuration for a chaos scenario in the transformer pipeline */
 export interface ChaosTransformerConfig {

@@ -22,9 +22,6 @@ import type {
   BeforeMutationResult,
 } from "../repo.ts"
 
-// Re-export types for consumers
-export type { RepoHooks, MutationContext, BeforeMutationResult }
-
 /**
  * Configuration for chaos hook behavior
  */

@@ -38,7 +38,7 @@ function disableBracketedPaste(): void {
 /**
  * Result of parsing pasted content
  */
-export interface PasteResult {
+interface PasteResult {
   type: "file" | "files" | "text"
   files?: string[]
   text?: string

@@ -1073,11 +1073,7 @@ const LONG_BOARD = board({
 // Re-exports for convenience
 // =============================================================================
 
-export type { BoardTest, ContentAssertion, CursorPosition, BoardTestOptions }
+export type { BoardTest, BoardTestOptions }
 
-// Re-export layout types and helpers for integration tests
-export {
-  getCardMidY,
-  type LayoutRegistry,
-  type NodeLayout,
-} from "../../src/card-positions.ts"
+// Re-export layout helpers for integration tests
+export { getCardMidY } from "../../src/card-positions.ts"

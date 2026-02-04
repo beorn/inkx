@@ -36,7 +36,7 @@ import {
 } from "./tree-node-helpers.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
 
-export interface TreeNodeProps {
+interface TreeNodeProps {
   node: KNode
   depth: number
   isSelected: boolean

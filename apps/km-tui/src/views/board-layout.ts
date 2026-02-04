@@ -42,23 +42,3 @@ export function calcEdgeBasedColumnScrollOffset(
     COLUMN_SCROLL_PADDING,
   )
 }
-
-/**
- * Compute board layout dimensions based on terminal size and state
- */
-export interface BoardLayoutConfig {
-  termWidth: number
-  termHeight: number
-  columnCount: number
-  showDetailPane: boolean
-  colIndex: number
-  currentScrollOffset: number
-}
-
-export interface BoardLayout {
-  contentHeight: number
-  boardWidth: number
-  detailPaneWidth: number
-  maxCols: number
-  colScrollOffset: number
-}

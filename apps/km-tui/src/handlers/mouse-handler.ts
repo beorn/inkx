@@ -8,13 +8,13 @@
 /**
  * Mouse event types
  */
-export type MouseButton = "left" | "middle" | "right" | "none"
-export type MouseEventType = "down" | "up" | "move" | "scroll"
+type MouseButton = "left" | "middle" | "right" | "none"
+type MouseEventType = "down" | "up" | "move" | "scroll"
 
 /**
  * Mouse event data
  */
-export interface MouseEvent {
+interface MouseEvent {
   type: MouseEventType
   button: MouseButton
   x: number // 1-indexed column

@@ -30,7 +30,6 @@ export {
   type QueryAST,
   type QueryCondition,
   type QueryRef,
-  type QueryPath,
   type DateRange,
 }
 

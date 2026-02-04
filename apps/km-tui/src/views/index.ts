@@ -17,8 +17,4 @@
 // Main board component and views
 export { BoardCore, BoardApp, makeSelectionKey } from "./Board.tsx"
 
-// Supporting views
-
-export type { TreeNodeProps } from "./TreeNode.tsx"
-
 // Re-export text utilities

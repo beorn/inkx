@@ -73,24 +73,6 @@ export interface TUIContext {
   ) => number
 }
 
-/**
- * Minimal key event interface (matches Ink's useInput callback).
- */
-export interface KeyEvent {
-  escape?: boolean
-  return?: boolean
-  ctrl?: boolean
-  upArrow?: boolean
-  downArrow?: boolean
-  leftArrow?: boolean
-  rightArrow?: boolean
-  tab?: boolean
-  backspace?: boolean
-  delete?: boolean
-  shift?: boolean
-  meta?: boolean
-}
-
 // =============================================================================
 // Context Builder
 // =============================================================================

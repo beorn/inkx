@@ -210,14 +210,14 @@ function getSearchResults(
   return results
 }
 
-export interface SearchDialogProps {
+interface SearchDialogProps {
   onSelect: (targetNode: KNode) => void
   onCancel: () => void
   width: number
   height: number
 }
 
-export interface SearchDialogHandle {
+interface SearchDialogHandle {
   focusInput(): void
   clearQuery(): void
 }

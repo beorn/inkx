@@ -557,6 +557,99 @@ function catNode(state: BoardState, pathStr?: string): string {
   return lines.join("\n")
 }
 
+/** Emit text, adapting to JSON or human mode */
+function emitText(ctx: ShellContext, text: string, ts: number): void {
+  if (ctx.jsonMode) {
+    ctx.output({ event: "output", text, ts })
+  } else {
+    ctx.output(text)
+  }
+}
+
+/** Emit error, adapting to JSON or human mode */
+function emitError(ctx: ShellContext, error: string, ts: number): void {
+  if (ctx.jsonMode) {
+    ctx.output({ event: "error", error, ts })
+  } else {
+    ctx.output(`error: ${error}`)
+  }
+}
+
+/** Emit serialized state (JSON mode only — human callers handle their own format) */
+function emitState(ctx: ShellContext, ts: number): void {
+  ctx.output({ event: "state", state: serializeState(ctx.state), ts })
+}
+
+function handleLog(
+  command: Extract<ShellCommand, { type: "LOG" }>,
+  ctx: ShellContext,
+  ts: number,
+): void {
+  const log = ctx.actionLog ?? []
+  if (log.length === 0) {
+    emitText(ctx, "(no actions)", ts)
+    return
+  }
+  const count = command.count ?? log.length
+  const entries = log.slice(-count)
+  const text = entries
+    .map((entry) => `${entry.action.type} → cursor=[${entry.cursor.join(",")}]`)
+    .join("\n")
+  emitText(ctx, text, ts)
+}
+
+function handleCd(
+  command: Extract<ShellCommand, { type: "CD" }>,
+  ctx: ShellContext,
+  ts: number,
+): void {
+  const result = navigateToPath(ctx.state, command.path)
+  if (result.error) {
+    if (ctx.jsonMode) {
+      ctx.output({ event: "error", error: result.error, ts })
+    } else {
+      ctx.output(`cd: ${result.error}`)
+    }
+    return
+  }
+  if (result.newCursor) {
+    ctx.state = { ...ctx.state, cursor: result.newCursor }
+    if (ctx.jsonMode) {
+      emitState(ctx, ts)
+    } else if (ctx.verbose) {
+      const node = getNodeAtPath(ctx.state.nodes, result.newCursor)
+      ctx.output(`cd: ${node?.title ?? "(unknown)"}`)
+    }
+  }
+}
+
+function handleMutation(
+  command: ShellCommand,
+  ctx: ShellContext,
+  ts: number,
+): void {
+  if (!ctx.onMutation) {
+    emitError(ctx, "Mutation commands require storage integration", ts)
+    return
+  }
+  const result = ctx.onMutation(command, ctx.state)
+  if (!result.ok) {
+    emitError(ctx, result.error ?? "Unknown error", ts)
+    return
+  }
+  if (result.newState) {
+    ctx.state = result.newState
+    if (ctx.jsonMode) {
+      emitState(ctx, ts)
+    } else if (ctx.verbose) {
+      const node = getNodeAtPath(ctx.state.nodes, ctx.state.cursor)
+      ctx.output(
+        `mutation: ${command.type} → ${node?.title ?? "(cursor moved)"}`,
+      )
+    }
+  }
+}
+
 /**
  * Execute a shell command (not a BoardAction)
  */
@@ -567,24 +660,17 @@ export async function executeShellCommand(
   const ts = Date.now()
 
   switch (command.type) {
-    case "STATE": {
+    case "STATE":
       if (ctx.jsonMode) {
-        ctx.output({ event: "state", state: serializeState(ctx.state), ts })
+        emitState(ctx, ts)
       } else {
         ctx.output(formatStateHuman(ctx.state))
       }
       return { quit: false }
-    }
 
-    case "VIEW": {
-      const view = renderAsciiView(ctx.state)
-      if (ctx.jsonMode) {
-        ctx.output({ event: "output", text: view, ts })
-      } else {
-        ctx.output(view)
-      }
+    case "VIEW":
+      emitText(ctx, renderAsciiView(ctx.state), ts)
       return { quit: false }
-    }
 
     case "RENDER": {
       // Lazy import to avoid loading inkx at module load time
@@ -594,154 +680,50 @@ export async function executeShellCommand(
         height: command.height,
         ansi: command.ansi,
       })
-      if (ctx.jsonMode) {
-        ctx.output({ event: "output", text: view, ts })
-      } else {
-        ctx.output(view)
-      }
+      emitText(ctx, view, ts)
       return { quit: false }
     }
 
-    case "HELP": {
-      const help = getCommandHelp(command.topic)
-      if (ctx.jsonMode) {
-        ctx.output({ event: "output", text: help, ts })
-      } else {
-        ctx.output(help)
-      }
+    case "HELP":
+      emitText(ctx, getCommandHelp(command.topic), ts)
       return { quit: false }
-    }
 
-    case "LOG": {
-      // Output last n actions (default: all)
-      const log = ctx.actionLog ?? []
-      if (log.length === 0) {
-        if (ctx.jsonMode) {
-          ctx.output({ event: "output", text: "(no actions)", ts })
-        } else {
-          ctx.output("(no actions)")
-        }
-      } else {
-        const count = command.count ?? log.length
-        const entries = log.slice(-count)
-        const lines = entries.map(
-          (entry) =>
-            `${entry.action.type} → cursor=[${entry.cursor.join(",")}]`,
-        )
-        if (ctx.jsonMode) {
-          ctx.output({ event: "output", text: lines.join("\n"), ts })
-        } else {
-          ctx.output(lines.join("\n"))
-        }
-      }
+    case "LOG":
+      handleLog(command, ctx, ts)
       return { quit: false }
-    }
 
     case "QUIT":
       return { quit: true }
 
-    // === Filesystem-like commands (REPL mode) ===
-
-    case "PWD": {
-      const path = getPathAsString(ctx.state)
-      if (ctx.jsonMode) {
-        ctx.output({ event: "output", text: path, ts })
-      } else {
-        ctx.output(path)
-      }
+    case "PWD":
+      emitText(ctx, getPathAsString(ctx.state), ts)
       return { quit: false }
-    }
 
-    case "LS": {
-      const result = listNodes(ctx.state, command.path)
-      if (ctx.jsonMode) {
-        ctx.output({ event: "output", text: result, ts })
-      } else {
-        ctx.output(result)
-      }
+    case "LS":
+      emitText(ctx, listNodes(ctx.state, command.path), ts)
       return { quit: false }
-    }
 
-    case "CD": {
-      const result = navigateToPath(ctx.state, command.path)
-      if (result.error) {
-        if (ctx.jsonMode) {
-          ctx.output({ event: "error", error: result.error, ts })
-        } else {
-          ctx.output(`cd: ${result.error}`)
-        }
-      } else if (result.newCursor) {
-        // Update state cursor
-        ctx.state = { ...ctx.state, cursor: result.newCursor }
-        if (ctx.jsonMode) {
-          ctx.output({ event: "state", state: serializeState(ctx.state), ts })
-        } else if (ctx.verbose) {
-          const node = getNodeAtPath(ctx.state.nodes, result.newCursor)
-          ctx.output(`cd: ${node?.title ?? "(unknown)"}`)
-        }
-      }
+    case "CD":
+      handleCd(command, ctx, ts)
       return { quit: false }
-    }
 
-    case "TREE": {
-      const result = renderTreeCommand(ctx.state, command.path, command.depth)
-      if (ctx.jsonMode) {
-        ctx.output({ event: "output", text: result, ts })
-      } else {
-        ctx.output(result)
-      }
+    case "TREE":
+      emitText(
+        ctx,
+        renderTreeCommand(ctx.state, command.path, command.depth),
+        ts,
+      )
       return { quit: false }
-    }
 
-    case "CAT": {
-      const result = catNode(ctx.state, command.path)
-      if (ctx.jsonMode) {
-        ctx.output({ event: "output", text: result, ts })
-      } else {
-        ctx.output(result)
-      }
+    case "CAT":
+      emitText(ctx, catNode(ctx.state, command.path), ts)
       return { quit: false }
-    }
-
-    // === Mutation commands (require onMutation handler) ===
 
     case "SET_STATUS":
     case "DELETE":
-    case "SHIFT": {
-      if (!ctx.onMutation) {
-        const msg = "Mutation commands require storage integration"
-        if (ctx.jsonMode) {
-          ctx.output({ event: "error", error: msg, ts })
-        } else {
-          ctx.output(`error: ${msg}`)
-        }
-        return { quit: false }
-      }
-
-      const result = ctx.onMutation(command, ctx.state)
-      if (!result.ok) {
-        if (ctx.jsonMode) {
-          ctx.output({
-            event: "error",
-            error: result.error ?? "Unknown error",
-            ts,
-          })
-        } else {
-          ctx.output(`error: ${result.error ?? "Unknown error"}`)
-        }
-      } else if (result.newState) {
-        ctx.state = result.newState
-        if (ctx.jsonMode) {
-          ctx.output({ event: "state", state: serializeState(ctx.state), ts })
-        } else if (ctx.verbose) {
-          const node = getNodeAtPath(ctx.state.nodes, ctx.state.cursor)
-          ctx.output(
-            `mutation: ${command.type} → ${node?.title ?? "(cursor moved)"}`,
-          )
-        }
-      }
+    case "SHIFT":
+      handleMutation(command, ctx, ts)
       return { quit: false }
-    }
   }
 }
 

@@ -1075,6 +1075,5 @@ export {
 export {
   type BeforeMutationResult,
   type MutationContext,
-  type MutationType,
   type RepoHooks,
 } from "./repo-hooks.ts"

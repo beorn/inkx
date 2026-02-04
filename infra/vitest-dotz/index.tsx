@@ -520,7 +520,7 @@ export function Failures({ state }: { state: TestStoreState }) {
 
 const packageNameCache = new Map<string, string>()
 
-export class DotzReporter implements Reporter {
+class DotzReporter implements Reporter {
   private store: TestStore
   private options: Options
   private finishedTests = new Set<string>()

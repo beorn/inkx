@@ -32,7 +32,7 @@ export interface FuzzKeyEvent {
   key: FuzzKey
 }
 
-export interface FuzzKey {
+interface FuzzKey {
   upArrow: boolean
   downArrow: boolean
   leftArrow: boolean
@@ -68,7 +68,7 @@ export interface FuzzTermProvider {
   readonly history: string[]
 }
 
-export type FuzzPick<S = Record<string, unknown>> = (
+type FuzzPick<S = Record<string, unknown>> = (
   state: S,
   history: string[],
   random: SeededRandom,
