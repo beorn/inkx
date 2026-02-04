@@ -39,7 +39,17 @@ export function handleBoardKeyInput(
   exit: () => void,
 ): boolean {
   // Dialog modes have their own input handling via dialog components
-  if (ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog) {
+  if (ui.showNewItemDialog || ui.showProjectPicker) {
+    return false
+  }
+
+  // Search dialog: buffer text input for the dialog to consume on mount
+  // This handles the race condition where keypresses arrive before dialog's useInput registers
+  if (ui.showSearchDialog) {
+    // Buffer printable characters for search input
+    if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
+      dispatch(actions.appendSearchDialogInput(input))
+    }
     return false
   }
 

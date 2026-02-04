@@ -134,7 +134,8 @@ export function useBoardDialogs({
 
       // Walk up ancestor chain to check if target (or any ancestor) is visible
       // A node is visible if its parent is root (column) or grandparent is root (card)
-      // Cursor can be set to any descendant of a visible card
+      // Cards are children of columns (grandparent = root)
+      // Columns are direct children of root (parent = root)
       let current: KNode | null = target
       let depth = 0
       while (current) {
@@ -142,13 +143,24 @@ export function useBoardDialogs({
         const parent: KNode | null = parentId ? repo.getNode(parentId) : null
         const grandparentId: string | null | undefined = parent?.parent_id
 
-        // Check if this ancestor is visible in current view
-        if (parentId === rootId || grandparentId === rootId) {
-          // Target is a descendant of a visible node, just SELECT
-          log.debug?.(`search: SELECT visible at depth ${depth}`)
-          dispatchBoard({ type: "SELECT", nodeId: target.id })
+        // Check if CURRENT node is visible in current view
+        if (grandparentId === rootId) {
+          // current is a card (its grandparent is root, so parent is column)
+          // Select current (the card), not the deeply nested target
+          log.debug?.(
+            `search: SELECT card at depth ${depth}: ${current.id.slice(-8)}`,
+          )
+          dispatchBoard({ type: "SELECT", nodeId: current.id })
           dispatch(actions.hideSearchDialog())
           return
+        }
+        if (parentId === rootId) {
+          // current is a column (direct child of root)
+          // Can't select columns, need to go into it - fall through to zoom logic
+          log.debug?.(
+            `search: found column at depth ${depth}, will zoom instead`,
+          )
+          break
         }
 
         // Move up to parent

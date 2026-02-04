@@ -516,9 +516,8 @@ describe("Cursoring", () => {
     })
   })
 
-  describe.skip("Columns View", () => {
-    // TODO: Repeat key cursoring tests in columns view
-  })
+  // Note: Columns View tests omitted - cards view tests cover the navigation logic,
+  // columns view only changes layout (side-by-side vs stacked)
 
   describe("Tabs View", () => {
     test("vertical (j/k): cards within active tab → boundary", () => {
@@ -700,17 +699,13 @@ describe("Boundaries and Edge Cases", () => {
   })
 
   describe("single column", () => {
-    test("h does nothing (no columns to left)", () => {
+    test.each([
+      { key: "h", desc: "h does nothing (no columns to left)" },
+      { key: "l", desc: "l does nothing (no columns to right)" },
+    ])("$desc", ({ key }) => {
       const { board } = testEnv(() => item("board", item("col", item("task"))))
       board.expect("#task[data-cursor]").toExist()
-      board.press("h")
-      board.expect("#task[data-cursor]").toExist()
-    })
-
-    test("l does nothing (no columns to right)", () => {
-      const { board } = testEnv(() => item("board", item("col", item("task"))))
-      board.expect("#task[data-cursor]").toExist()
-      board.press("l")
+      board.press(key)
       board.expect("#task[data-cursor]").toExist()
     })
   })
@@ -805,75 +800,48 @@ describe("Boundaries and Edge Cases", () => {
     board.expect("#3a[data-cursor]").toExist()
   })
 
-  test("g does nothing at first card", () => {
+  test.each([
+    {
+      key: "g",
+      setup: [],
+      finalId: "#1a",
+      desc: "g does nothing at first card",
+    },
+    {
+      key: "G",
+      setup: ["G"],
+      finalId: "#1c",
+      desc: "G does nothing at last card",
+    },
+  ])("$desc", ({ key, setup, finalId }) => {
     const { board } = testEnv(() =>
       item("board", item("col", item("1a"), item("1b"), item("1c"))),
     )
-    board.expect("#1a[data-cursor]").toExist()
+    // Setup: navigate to the boundary position
+    for (const k of setup) board.press(k)
+    board.expect(`${finalId}[data-cursor]`).toExist()
 
-    // Repeatedly try g - should stay at 1a
-    board.press("g")
-    board.expect("#1a[data-cursor]").toExist()
-    board.press("g")
-    board.expect("#1a[data-cursor]").toExist()
+    // Repeatedly try the key - should stay put
+    board.press(key)
+    board.expect(`${finalId}[data-cursor]`).toExist()
+    board.press(key)
+    board.expect(`${finalId}[data-cursor]`).toExist()
   })
 
-  test("G does nothing at last card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
-    // Jump to last
-    board.press("G")
-    board.expect("#1c[data-cursor]").toExist()
-
-    // Repeatedly try G - should stay at 1c
-    board.press("G")
-    board.expect("#1c[data-cursor]").toExist()
-    board.press("G")
-    board.expect("#1c[data-cursor]").toExist()
-  })
-
-  describe("detail pane boundaries", () => {
-    test("Enter on card without children does nothing", () => {
-      const { board } = testEnv(() => item("board", item("col", item("leaf"))))
-      board.expect("#leaf[data-cursor]").toExist()
-      board.press("\r")
-      // Should stay in board view, not open detail pane
-      board.expect("#leaf[data-cursor]").toExist()
-    })
-
-    test("Escape in board view does nothing", () => {
-      const { board } = testEnv(() => item("board", item("col", item("task"))))
-      board.expect("#task[data-cursor]").toExist()
-      board.press("\x1B")
-      // Should stay at same position
-      board.expect("#task[data-cursor]").toExist()
-    })
-
-    test("[ when no history does nothing", () => {
-      const { board } = testEnv(() => item("board", item("col", item("task"))))
-      board.expect("#task[data-cursor]").toExist()
-      board.press("[")
-      // Should stay at same position
-      board.expect("#task[data-cursor]").toExist()
-    })
-
-    test("] when no forward history does nothing", () => {
-      const { board } = testEnv(() => item("board", item("col", item("task"))))
-      board.expect("#task[data-cursor]").toExist()
-      board.press("]")
-      // Should stay at same position
-      board.expect("#task[data-cursor]").toExist()
-    })
-  })
-
-  describe("folding boundaries", () => {
-    test("z on card without children does nothing", () => {
-      const { board } = testEnv(() => item("board", item("col", item("leaf"))))
-      board.expect("#leaf[data-cursor]").toExist()
-      board.press("z")
-      // Should stay unfolded (no children to fold)
-      board.expect("#leaf[data-cursor]").toExist()
+  // Keys that should do nothing in specific contexts
+  describe("no-op key boundaries", () => {
+    test.each([
+      { key: "\r", startId: "#leaf", desc: "Enter on card without children" },
+      { key: "\x1B", startId: "#task", desc: "Escape in board view" },
+      { key: "[", startId: "#task", desc: "[ when no history" },
+      { key: "]", startId: "#task", desc: "] when no forward history" },
+      { key: "z", startId: "#leaf", desc: "z on card without children" },
+    ])("$desc does nothing", ({ key, startId }) => {
+      const nodeId = startId.replace("#", "")
+      const { board } = testEnv(() => item("board", item("col", item(nodeId))))
+      board.expect(`${startId}[data-cursor]`).toExist()
+      board.press(key)
+      board.expect(`${startId}[data-cursor]`).toExist()
     })
 
     test("z on column header does nothing", () => {
@@ -881,7 +849,6 @@ describe("Boundaries and Edge Cases", () => {
       board.press("k")
       board.expect("#col[data-cursor]").toExist()
       board.press("z")
-      // Should stay at column header
       board.expect("#col[data-cursor]").toExist()
     })
   })
@@ -1366,9 +1333,7 @@ describe("Dialogs", () => {
 })
 
 describe("Folding", () => {
-  test("Enter on card with children shows detail pane", () => {
-    // Already covered in Detail group
-  })
+  // Note: "Enter on card with children shows detail pane" covered in Zooming tests
 
   test("z toggles fold state on card with children", () => {
     const { board } = testEnv(() =>
@@ -1397,51 +1362,9 @@ describe("Folding", () => {
   })
 })
 
-describe("Empty States", () => {
-  test("empty board shows helpful message", () => {
-    const { board } = testEnv(() => item("board"))
-    const output = board.screenshot()
-    expect(output).toContain("Empty board")
-  })
+// Note: Empty States tests consolidated in "Boundaries and Edge Cases > empty states"
 
-  test("empty column shows placeholder", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task")), item("col2")), // col2 is empty
-    )
-    const output = board.screenshot()
-    // Should show column header but no cards
-    expect(output).toContain("col2")
-  })
-
-  test("no columns shows helpful message", () => {
-    const { board } = testEnv(() => item("board"))
-    const output = board.screenshot()
-    expect(output).toMatch(/empty|no columns/i)
-  })
-})
-
-describe("Selection Feedback", () => {
-  test("selected card has visual indicator", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task"))))
-    const output = board.screenshot()
-    // Should have selection styling (cursor attribute tested elsewhere)
-    expect(board.q("#task[data-cursor]")).toBeTruthy()
-  })
-
-  test("selection moves when pressing j", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1"), item("task2"))),
-    )
-    board.expect("#task1[data-cursor]").toExist()
-    board.press("j")
-    board.expect("#task2[data-cursor]").toExist()
-    board.expect("#task1[data-cursor]").not.toExist()
-  })
-
-  test("multiple selections in move mode", () => {
-    // TODO: Implement once move mode is available
-  })
-})
+// Note: Selection Feedback tests covered by Cursoring tests
 
 describe("Text Rendering", () => {
   test("long card content wraps within card bounds", () => {
@@ -1490,20 +1413,7 @@ describe("Text Rendering", () => {
   })
 })
 
-describe("WIP Limits", () => {
-  test("column shows WIP limit indicator", () => {
-    // TODO: Need way to set WIP limits in item() helper
-    // const { board } = testEnv(() =>
-    //   item("board", item("col (3)", item("t1"), item("t2"), item("t3"))),
-    // )
-    // const output = board.screenshot()
-    // expect(output).toContain("3/3")
-  })
-
-  test("WIP limit warning when exceeded", () => {
-    // TODO: Test visual warning when WIP limit is exceeded
-  })
-})
+// Note: WIP Limits tests deferred - feature not yet implemented
 
 describe("Terminal Sizes", () => {
   test("narrow terminal (40 cols) shows single column", () => {
@@ -1574,36 +1484,7 @@ describe("Terminal Sizes", () => {
   })
 })
 
-describe("Move Mode", () => {
-  test("m enters move mode", () => {
-    // TODO: Move mode not implemented yet
-  })
-
-  test("move mode shows visual indicator", () => {
-    // TODO: Test visual feedback when in move mode
-  })
-
-  // SKIP: Move mode node shifting not yet implemented
-  test.skip("node shifting (move to different column)", () => {
-    // TODO: Move mode not implemented yet - need keyboard commands for column-to-column moves
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
-    board.expect("#col1 #1a").toExist()
-    board.expect("#1b").toExist()
-    // board.press(...) - would need move mode command
-    board.expect("#col2 #1a").toExist()
-    board.expect("#col1 #1a").not.toExist()
-  })
-
-  test("Escape cancels move mode", () => {
-    // TODO: Test canceling move mode
-  })
-})
+// Note: Move Mode tests deferred - feature not yet implemented
 
 describe("Search and Filter", () => {
   test("/ opens search dialog with title and footer", () => {
@@ -1645,6 +1526,28 @@ describe("Search and Filter", () => {
     expect(board.screenshot()).toContain("Search")
     board.press("\x1b")
     expect(board.screenshot()).not.toContain("Enter go")
+  })
+
+  test("typing immediately after / captures all characters", () => {
+    // Bug repro: keypresses are eaten while search dialog opens
+    // The lazy loading via useEffect + startTransition should not block input
+    const { board } = testEnv(() =>
+      item("board", item("col", item("alpha"), item("beta"), item("gamma"))),
+    )
+
+    // Type "/" followed immediately by a query - all characters should be captured
+    board.press("/")
+    board.press("a")
+    board.press("l")
+    board.press("p")
+    board.press("h")
+    board.press("a")
+
+    const output = board.screenshot()
+    // The input field should contain "alpha" - no characters lost
+    expect(output).toContain("alpha")
+    // And alpha should be the selected result (filtered to just that match)
+    expect(output).toContain("▸") // Selection indicator on a result
   })
 
   test("search scrolling renders results without artifacts", () => {
@@ -1785,6 +1688,91 @@ describe("Search and Filter", () => {
     expect(output).not.toContain("Enter go") // Dialog closed
     expect(output).toContain("Section A")
   })
+
+  test("Enter on search result puts cursor on the selected item", () => {
+    // Bug repro: search Enter on non-file items doesn't set cursor
+    // Vault > Notes > Doc1 > Section A
+    const { board } = testEnv(() =>
+      item(
+        "Vault",
+        item("Notes", item("Doc1", item("Section A"), item("Section B"))),
+      ),
+    )
+
+    // Zoom out to vault level
+    board.press("Escape")
+
+    // Search for Section A and select it
+    board.press("/")
+    for (const c of "Section A") board.press(c)
+    board.press("Enter")
+
+    // Cursor should be on Section A (or its parent card if section is content)
+    // At minimum, Section A should have [data-cursor] OR be a descendant of cursor
+    const cursorNode = board.q("[data-cursor]")
+    expect(cursorNode.count()).toBeGreaterThan(0)
+
+    // The cursor should be on or contain Section A
+    const output = board.screenshot()
+    expect(output).toContain("Section A")
+
+    // Verify cursor is actually on Section A or Doc1 (the card containing it)
+    const sectionACursor = board.q("#Section-A[data-cursor]").count()
+    const doc1Cursor = board.q("#Doc1[data-cursor]").count()
+    expect(sectionACursor + doc1Cursor).toBeGreaterThan(0)
+  })
+
+  test("Enter on paragraph search result navigates correctly", () => {
+    // Bug repro: search Enter on paragraph/section types doesn't work
+    // Use real node types: file > section > paragraph
+    const { board } = testEnv(() =>
+      item.root(
+        "Vault",
+        item.folder(
+          "Notes",
+          item.file(
+            "MyDoc",
+            item.section(
+              "Intro",
+              item.paragraph("China domicile information"),
+              item.paragraph("Another paragraph"),
+            ),
+          ),
+        ),
+      ),
+    )
+
+    // Zoom out to vault level
+    board.press("Escape")
+
+    // Search for a paragraph inside a section inside a file
+    board.press("/")
+    for (const c of "China") board.press(c)
+    board.press("Enter")
+
+    // Dialog should close
+    const output = board.screenshot()
+    expect(output).not.toContain("Enter go") // Dialog closed
+
+    // The paragraph should be visible (we zoomed to show it)
+    expect(output).toContain("China")
+
+    // Cursor should be on or near the paragraph we searched for
+    // The cursor should be on China paragraph, Intro section, or MyDoc file
+    const chinaCursor = board
+      .q("#China-domicile-information[data-cursor]")
+      .count()
+    const introCursor = board.q("#Intro[data-cursor]").count()
+    const myDocCursor = board.q("#MyDoc[data-cursor]").count()
+
+    // BUG: cursor is NOT on the expected item - it's on Notes folder instead
+    // This test documents the bug: after search+enter, cursor should be on
+    // the searched item (or its closest visible ancestor card), not on Notes
+    expect(
+      chinaCursor + introCursor + myDocCursor,
+      "Cursor should be on the searched paragraph, its section, or its file",
+    ).toBeGreaterThan(0)
+  })
 })
 
 describe("View Modes", () => {
@@ -1808,17 +1796,7 @@ describe("View Modes", () => {
     board.expect("#task2[data-cursor]").toExist()
   })
 
-  test("list view: cursor position maintained", () => {
-    // TODO: Implement once list view is available in testEnv
-  })
-
-  test("tabs view: cursor preserved when switching tabs", () => {
-    // TODO: Implement once tabs view is available in testEnv
-  })
-
-  test("columns view: cursor position in wide terminal", () => {
-    // TODO: Verify columns layout and cursor in columns view mode
-  })
+  // Note: Individual view mode cursor tests covered by "switching between cards/list/columns/tabs views" below
 
   test("switching between cards/list/columns/tabs views", () => {
     const { board } = testEnv(() =>
@@ -1867,46 +1845,24 @@ describe("Boundary Feedback (Bell + Status)", () => {
     expect(board.hasStatus).toBe(false)
   })
 
-  test("h at left boundary shows feedback", () => {
+  test.each([
+    { key: "h", setup: [], finalId: "#1a", desc: "h at left boundary" },
+    { key: "l", setup: ["l"], finalId: "#2a", desc: "l at right boundary" },
+    { key: "j", setup: ["j"], finalId: "#1b", desc: "j at bottom boundary" },
+  ])("$desc shows feedback", ({ key, setup, finalId }) => {
     const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
     )
+    // Navigate to boundary position
+    for (const k of setup) board.press(k)
+    board.expect(`${finalId}[data-cursor]`).toExist()
 
-    // Start at first column
-    board.expect("#1a[data-cursor]").toExist()
-
-    // Try h (left) - should hit boundary
-    board.press("h")
-    expect(board.bell).toBe(true)
-    expect(board.hasStatus).toBe(true)
-  })
-
-  test("l at right boundary shows feedback", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
-
-    // Navigate to last column
-    board.press("l")
-    board.expect("#2a[data-cursor]").toExist()
-
-    // Try l (right) - should hit boundary
-    board.press("l")
-    expect(board.bell).toBe(true)
-    expect(board.hasStatus).toBe(true)
-  })
-
-  test("j at bottom boundary shows feedback", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
-
-    // Navigate to last card
-    board.press("j")
-    board.expect("#1b[data-cursor]").toExist()
-
-    // Try j (down) - should hit boundary
-    board.press("j")
+    // Hit boundary - should ring bell and show status
+    board.press(key)
     expect(board.bell).toBe(true)
     expect(board.hasStatus).toBe(true)
   })
@@ -1946,9 +1902,5 @@ describe("Help and Keyboard Shortcuts", () => {
     board.press("?")
     const output = board.screenshot()
     expect(output).toMatch(/help|shortcuts|keys/i)
-  })
-
-  test("help dialog shows all available commands", () => {
-    // TODO: Test that help dialog lists all commands
   })
 })

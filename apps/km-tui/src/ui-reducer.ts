@@ -33,6 +33,7 @@ export interface UIState {
   showProjectPicker: boolean
   showNewItemDialog: boolean
   showSearchDialog: boolean
+  searchDialogInitialInput: string // Buffer for keypresses during dialog open transition
   showConsole: boolean
   consoleAutoOpened: boolean // Track if console was auto-opened on first output
 
@@ -116,6 +117,7 @@ export function createInitialUIState(
     showProjectPicker: false,
     showNewItemDialog: false,
     showSearchDialog: false,
+    searchDialogInitialInput: "",
     showConsole: false,
     consoleAutoOpened: false,
 
@@ -198,9 +200,18 @@ const uiSlice = createSlice({
     },
     showSearchDialog: (state) => {
       state.showSearchDialog = true
+      state.searchDialogInitialInput = "" // Clear buffer when opening
     },
     hideSearchDialog: (state) => {
       state.showSearchDialog = false
+      state.searchDialogInitialInput = "" // Clear buffer when closing
+    },
+    appendSearchDialogInput: (state, action: PayloadAction<string>) => {
+      // Buffer keypresses that arrive before dialog's useInput is registered
+      state.searchDialogInitialInput += action.payload
+    },
+    clearSearchDialogInput: (state) => {
+      state.searchDialogInitialInput = ""
     },
     toggleConsole: (state) => {
       state.showConsole = !state.showConsole

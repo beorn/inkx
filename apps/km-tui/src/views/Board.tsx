@@ -444,6 +444,10 @@ export function BoardCore({
                         onCancel={dialogHandlers.handleSearchCancel}
                         width={dialogWidth}
                         height={dialogHeight}
+                        initialInput={ui.searchDialogInitialInput}
+                        onConsumeInitialInput={() =>
+                          dispatch(actions.clearSearchDialogInput())
+                        }
                       />
                     </Box>
                   )

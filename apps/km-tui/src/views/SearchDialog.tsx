@@ -219,6 +219,10 @@ interface SearchDialogProps {
   onCancel: () => void
   width: number
   height: number
+  /** Initial input buffered before dialog's useInput registered */
+  initialInput?: string
+  /** Callback to clear the buffer after consuming it */
+  onConsumeInitialInput?: () => void
 }
 
 interface SearchDialogHandle {
@@ -228,7 +232,7 @@ interface SearchDialogHandle {
 
 export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
   function SearchDialog(
-    { onSelect, onCancel, width, height },
+    { onSelect, onCancel, width, height, initialInput, onConsumeInitialInput },
     ref,
   ): React.ReactElement {
     const repo = useRepo()
@@ -241,9 +245,19 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
 
     // Readline-style line editing for search input
     // This MUST be before the useEffect so useInput registers on first render
+    // Use initialInput as starting value to capture buffered keypresses
     const lineEdit = useLineEdit({
+      initialValue: initialInput ?? "",
       onChange: () => setSelectedIndex(0), // Reset selection when query changes
     })
+
+    // Consume the initial input buffer after first render
+    // This prevents the buffer from being re-applied on re-renders
+    useEffect(() => {
+      if (initialInput && onConsumeInitialInput) {
+        onConsumeInitialInput()
+      }
+    }, []) // Only on mount - intentionally not including deps to run once
     const deferredQuery = useDeferredValue(lineEdit.value)
 
     useImperativeHandle(ref, () => ({
@@ -416,43 +430,31 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
                   width="100%"
                   height={1}
                   backgroundColor={isSelected ? "cyan" : "black"}
-                  flexDirection="row"
                 >
-                  {/* Prefix + icon: fixed width */}
-                  <Text color={isSelected ? "black" : undefined}>
+                  <Text
+                    color={isSelected ? "black" : undefined}
+                    wrap="truncate"
+                  >
                     {prefix}
                     <Text dimColor={!isSelected}>{typeIcon} </Text>
-                  </Text>
-                  {/* Title: won't shrink */}
-                  <Box flexShrink={0}>
-                    <Text color={isSelected ? "black" : undefined}>
-                      {result.title}
-                    </Text>
-                  </Box>
-                  {/* Context: shrinks first, truncates */}
-                  {result.parentContext && (
-                    <Box flexShrink={1} overflow="hidden">
+                    {result.title}
+                    {result.parentContext && (
                       <Text
-                        wrap="truncate"
                         dimColor={!isSelected}
                         color={isSelected ? "gray" : undefined}
                       >
                         {` < ${result.parentContext}`}
                       </Text>
-                    </Box>
-                  )}
-                  {/* Tags: shrinks, truncates */}
-                  {result.tags.length > 0 && (
-                    <Box flexShrink={1} overflow="hidden">
+                    )}
+                    {result.tags.length > 0 && (
                       <Text
-                        wrap="truncate"
                         color={isSelected ? "blue" : "cyan"}
                         dimColor={!isSelected}
                       >
                         {` #${result.tags.join(" #")}`}
                       </Text>
-                    </Box>
-                  )}
+                    )}
+                  </Text>
                 </Box>
               )
             })}
