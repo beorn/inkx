@@ -305,8 +305,8 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         .sort((a, b) => b.score - a.score)
     }, [allResults, deferredQuery])
 
-    // Max visible items: height - borders(2) - paddingY(2) - title(1) - spacer(1) - input(1) - spacer(1) - footer(1) = height - 9
-    const maxVisible = Math.max(1, height - 9)
+    // Max visible items: height - borders(2) - paddingY(2) - title(1) - spacer(1) - input(1) - spacer(1) - spacer_footer(1) - footer(1) = height - 10
+    const maxVisible = Math.max(1, height - 10)
 
     // Scroll offset to keep selection visible
     const scrollOffset = Math.max(

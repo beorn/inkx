@@ -278,7 +278,8 @@ export interface ModalDialogProps {
  * - Solid black background (covers board content)
  * - Double border in cyan (configurable)
  * - Horizontal padding (2), vertical padding (1)
- * - Optional title and footer with spacing
+ * - Title: bold, colored, with spacer below
+ * - Footer: centered, dimColor, with spacer above
  */
 export function ModalDialog({
   borderColor = "cyan",
@@ -304,9 +305,23 @@ export function ModalDialog({
           {title}
         </Text>
       )}
-      {children}
-      {footer &&
-        (typeof footer === "string" ? <Text dimColor>{footer}</Text> : footer)}
+      {/* Content area - flexGrow pushes footer to bottom */}
+      <Box flexDirection="column" flexGrow={1}>
+        {children}
+      </Box>
+      {/* Footer with spacer line above, centered */}
+      {footer && (
+        <>
+          <Text> </Text>
+          <Box justifyContent="center">
+            {typeof footer === "string" ? (
+              <Text dimColor>{footer}</Text>
+            ) : (
+              footer
+            )}
+          </Box>
+        </>
+      )}
     </Box>
   )
 }
