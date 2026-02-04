@@ -1350,8 +1350,8 @@ describe("Dialogs", () => {
     board.press("n")
     const output = board.screenshot()
     expect(output).toContain("New")
-    expect(output).toContain("Enter:create")
-    expect(output).toContain("Esc:cancel")
+    expect(output).toContain("Enter create")
+    expect(output).toContain("Esc cancel")
   })
 
   test("new item dialog closes on Escape", () => {
@@ -1361,7 +1361,7 @@ describe("Dialogs", () => {
     expect(output).toContain("New")
     board.press("\x1b")
     output = board.screenshot()
-    expect(output).not.toContain("Enter:create")
+    expect(output).not.toContain("Enter create")
   })
 })
 
