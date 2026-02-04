@@ -165,6 +165,7 @@ const Card = React.memo(
             cardIndex={cardIndex}
             subIndex={0}
             dimInactiveChildren={true}
+            childCount={card.childCount}
           />
         </Box>
       )
@@ -191,6 +192,7 @@ const Card = React.memo(
           cardIndex={cardIndex}
           subIndex={0}
           dimInactiveChildren={!isSelected}
+          childCount={card.childCount}
         />
       </Box>
     )
@@ -201,6 +203,8 @@ const Card = React.memo(
       prev.card.node.id === next.card.node.id &&
       prev.card.node.content === next.card.node.content &&
       prev.card.node.task_status === next.card.node.task_status &&
+      prev.card.childCount === next.card.childCount &&
+      prev.card.children?.length === next.card.children?.length &&
       prev.isSelected === next.isSelected &&
       prev.selectedSubIndex === next.selectedSubIndex &&
       prev.width === next.width &&

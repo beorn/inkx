@@ -137,8 +137,8 @@ export interface PrefixResult {
   foldedCount: string
 }
 
-/** Width reserved for fold marker (single char) */
-const MARKER_SLOT_WIDTH = 1
+/** Width reserved for fold marker (▶/●/•/· are display width 2 in Unicode) */
+const MARKER_SLOT_WIDTH = 2
 
 /**
  * Build the prefix portion of a tree node line.

@@ -71,6 +71,7 @@ export const MemoizedTreeCard = React.memo(
           cardIndex={cardIndex}
           subIndex={0}
           children={children}
+          childCount={card.childCount}
           getBoardPills={getBoardPills}
         />
       </CardLayoutTracker>
@@ -299,12 +300,13 @@ export function ModalDialog({
       paddingY={1}
     >
       {title && (
-        <Text color={borderColor} bold>{title}</Text>
+        <Text color={borderColor} bold>
+          {title}
+        </Text>
       )}
       {children}
-      {footer && (
-        typeof footer === "string" ? <Text dimColor>{footer}</Text> : footer
-      )}
+      {footer &&
+        (typeof footer === "string" ? <Text dimColor>{footer}</Text> : footer)}
     </Box>
   )
 }

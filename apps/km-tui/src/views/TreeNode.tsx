@@ -49,6 +49,8 @@ interface TreeNodeProps {
   dimInactiveChildren?: boolean
   /** Pre-loaded children (optional - if not provided, fetched from storage) */
   children?: KNode[]
+  /** Child count override for fold indicator (optional - used when children array is empty due to folding) */
+  childCount?: number
   /** Pre-computed parent context for embedded tasks (optional) */
   parentContext?: string | null
   /** Callback to fetch children on unfold (optional - defaults to storage lookup) */
@@ -112,6 +114,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
 
   // Pre-computed props
   if (prev.parentContext !== next.parentContext) return false
+  if (prev.childCount !== next.childCount) return false
 
   // Children array - compare by length and IDs for efficiency
   const prevChildren = prev.children
@@ -136,6 +139,7 @@ function TreeNodeImpl({
   subIndex,
   dimInactiveChildren = false,
   children: childrenProp,
+  childCount: childCountProp,
   parentContext: parentContextProp,
   getChildren: getChildrenProp,
   getParentContext: getParentContextProp,
@@ -179,11 +183,13 @@ function TreeNodeImpl({
   const childrenSourceId =
     isEmbedded && resolvedNode ? resolvedNode.id : node.id
   const children = childrenProp ?? resolvedGetChildren(childrenSourceId)
-  const hasChildren = children.length > 0
+  // Use childCountProp if provided (for folded nodes where children array is empty)
+  const childCount = childCountProp ?? children.length
+  const hasChildren = childCount > 0
 
   // Debug logging for render tracking
   renderLog.debug?.(
-    `TreeNode ${sid(node.id)} children=${children.length} content=${displayNode.content?.slice(0, 30) ?? "(empty)"}`,
+    `TreeNode ${sid(node.id)} children=${children.length} childCount=${childCount} content=${displayNode.content?.slice(0, 30) ?? "(empty)"}`,
   )
 
   // A node is a task if it has task_status set, regardless of structural type
@@ -213,8 +219,8 @@ function TreeNodeImpl({
 
   // Memoize prefix - only recalc when fold state or children count changes
   const prefix = useMemo(
-    () => buildPrefix(hasChildren, isFolded, children.length, style.ownColor),
-    [hasChildren, isFolded, children.length, style.ownColor],
+    () => buildPrefix(hasChildren, isFolded, childCount, style.ownColor),
+    [hasChildren, isFolded, childCount, style.ownColor],
   )
 
   // Get content, stripping task marks for nodes with task_status
@@ -230,7 +236,7 @@ function TreeNodeImpl({
       : isEmbedded && !resolvedNode
         ? // Unresolved embed — extract target name from ![[target]] syntax
           (node.content?.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1") ??
-            getNodeDisplayName(repo, node))
+          getNodeDisplayName(repo, node))
         : displayNode.type === "section"
           ? getNodeDisplayName(repo, displayNode)
           : displayNode.content || getNodeDisplayName(repo, displayNode)
