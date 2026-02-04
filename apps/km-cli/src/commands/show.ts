@@ -67,11 +67,7 @@ function outputJson(node: KNode, options: ShowOptions, repo: Repo): void {
     console.log(JSON.stringify(repo.getSubtree(node.id), null, 2))
   } else if (options.children) {
     console.log(
-      JSON.stringify(
-        { node, children: repo.getChildren(node.id) },
-        null,
-        2,
-      ),
+      JSON.stringify({ node, children: repo.getChildren(node.id) }, null, 2),
     )
   } else {
     console.log(JSON.stringify(node, null, 2))
@@ -105,11 +101,7 @@ function displayFields(node: KNode): void {
 /**
  * Display children or subtree when requested
  */
-function displayChildren(
-  node: KNode,
-  options: ShowOptions,
-  repo: Repo,
-): void {
+function displayChildren(node: KNode, options: ShowOptions, repo: Repo): void {
   if (!options.children && !options.tree) return
 
   const children = options.tree

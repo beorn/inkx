@@ -204,9 +204,16 @@ function buildSelectAllSet(
   const selected = new Set<SelectionKey>()
 
   if (scope === "card") {
-    const card = ctx.layout.columns[ctx.layout.colIndex]?.cards[ctx.layout.cardIndex]
+    const card =
+      ctx.layout.columns[ctx.layout.colIndex]?.cards[ctx.layout.cardIndex]
     if (card) {
-      addCardItems(selected, ctx, ctx.layout.colIndex, ctx.layout.cardIndex, card)
+      addCardItems(
+        selected,
+        ctx,
+        ctx.layout.colIndex,
+        ctx.layout.cardIndex,
+        card,
+      )
     }
   } else if (scope === "column") {
     const col = ctx.layout.columns[ctx.layout.colIndex]

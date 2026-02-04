@@ -1640,9 +1640,7 @@ describe("Search and Filter", () => {
   })
 
   test("Escape closes search dialog", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task1"))))
     board.press("/")
     expect(board.screenshot()).toContain("Search")
     board.press("\x1b")

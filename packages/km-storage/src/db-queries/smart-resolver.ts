@@ -65,11 +65,7 @@ export function resolveNode(
   if (isExplicitPath(q)) return resolveExplicitPath(ctx)
   if (q.includes("/")) return resolveRelativePath(ctx)
 
-  return (
-    resolveBareName(ctx) ??
-    resolveIdFuzzy(ctx) ??
-    resolveContent(ctx)
-  )
+  return resolveBareName(ctx) ?? resolveIdFuzzy(ctx) ?? resolveContent(ctx)
 }
 
 // =============================================================================
@@ -107,8 +103,7 @@ function createQueryContext(
     filters.push("task_status IS NOT NULL")
   }
 
-  const filterClause =
-    filters.length > 0 ? " AND " + filters.join(" AND ") : ""
+  const filterClause = filters.length > 0 ? " AND " + filters.join(" AND ") : ""
 
   return {
     q,

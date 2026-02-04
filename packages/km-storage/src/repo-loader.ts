@@ -786,9 +786,7 @@ function parseOneFile(
   } | null
 
   if (!stubRow) {
-    log.debug?.(
-      `parseDeferredSequential: stub ${nodeId} not found, skipping`,
-    )
+    log.debug?.(`parseDeferredSequential: stub ${nodeId} not found, skipping`)
     return null
   }
 

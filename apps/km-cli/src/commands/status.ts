@@ -52,10 +52,7 @@ function getStatusIcon(status: string): string {
 }
 
 /** Display current task status (view mode, no mutation) */
-function displayStatus(
-  node: KNode,
-  options: { json?: boolean },
-): void {
+function displayStatus(node: KNode, options: { json?: boolean }): void {
   const status = node.task_status ?? "todo"
 
   if (options.json) {
@@ -86,8 +83,7 @@ function handleRecurringTask(
   options: { json?: boolean },
 ): boolean {
   const recurrence =
-    (node.data?.recurrence as string) ||
-    (node.recurrence as string | undefined)
+    (node.data?.recurrence as string) || (node.recurrence as string | undefined)
   if (!recurrence) return false
 
   // Convert natural language to RRULE if needed
@@ -116,10 +112,7 @@ function handleRecurringTask(
       }),
     )
   } else {
-    console.log(
-      term.green("✓"),
-      `Marked done: ${node.content?.slice(0, 40)}`,
-    )
+    console.log(term.green("✓"), `Marked done: ${node.content?.slice(0, 40)}`)
     console.log(term.blue("↻"), `Next occurrence: ${nextDue}`)
   }
 

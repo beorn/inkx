@@ -130,7 +130,12 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
       marginTop={marginTop}
       data-dialog="help"
     >
-      <ModalDialog borderColor="cyan" width={boxWidth} title="Keyboard Shortcuts" footer="Press ? or Esc to close">
+      <ModalDialog
+        borderColor="cyan"
+        width={boxWidth}
+        title="Keyboard Shortcuts"
+        footer="Press ? or Esc to close"
+      >
         {shortcuts.map((category) => (
           <Box key={category.category} flexDirection="column">
             <Text bold color="white">

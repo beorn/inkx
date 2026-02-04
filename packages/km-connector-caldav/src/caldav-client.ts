@@ -224,12 +224,7 @@ export function createCalDAVClient(config: CalDAVConfig) {
       }
 
       if (state?.syncToken) {
-        await processIncrementalSync(
-          request,
-          calendarUrl ?? "",
-          state,
-          result,
-        )
+        await processIncrementalSync(request, calendarUrl ?? "", state, result)
       } else {
         await processFullSync(this.getEvents.bind(this), state, result)
       }
@@ -274,9 +269,7 @@ async function processIncrementalSync(
   const text = await response.text()
 
   // Update sync token if server provided a new one
-  const newSyncToken = text.match(
-    /<D:sync-token>([^<]+)<\/D:sync-token>/,
-  )?.[1]
+  const newSyncToken = text.match(/<D:sync-token>([^<]+)<\/D:sync-token>/)?.[1]
   if (newSyncToken) {
     result.state.syncToken = newSyncToken
   }

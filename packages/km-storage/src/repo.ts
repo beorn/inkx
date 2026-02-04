@@ -852,17 +852,10 @@ export function* createRepo(
   const kmDir = join(rootPath, ".km")
 
   // Delegate to the appropriate initialization helper
-  const {
-    db,
-    mode,
-    emitter,
-    dataStore,
-    loadErrors,
-    stats,
-    deferredFiles,
-  } = options.loadFiles
-    ? yield* initWithFileLoading(rootPath, kmDir, options)
-    : yield* initEmptyDb(kmDir, options)
+  const { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles } =
+    options.loadFiles
+      ? yield* initWithFileLoading(rootPath, kmDir, options)
+      : yield* initEmptyDb(kmDir, options)
 
   // Create FileTree for the repo root
   const fileTree = createDiskFileTree(rootPath)
