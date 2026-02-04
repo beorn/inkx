@@ -84,13 +84,13 @@ export function configureProgram(): Command {
     .option("-s, --silent", "Suppress output except errors")
     .option(
       "-v, --verbose",
-      "Increase verbosity (-v=debug, -vv=trace)",
+      "Increase verbosity (-v=info, -vv=debug, -vvv=trace)",
       (_, prev) => (prev ?? 0) + 1,
       0,
     )
     .option(
       "-q, --quiet",
-      "Decrease verbosity (-q=warn, -qq=error, -qqq=silent)",
+      "Decrease verbosity (-q=error, -qq=silent)",
       (_, prev) => (prev ?? 0) + 1,
       0,
     )
@@ -137,9 +137,9 @@ Environment:
   LOG_LEVEL=<level>          Set log level (trace|debug|info|warn|error|silent)
 
 Verbosity:
-  -v, -vv                    Increase verbosity (-v=debug, -vv=trace)
-  -q, -qq, -qqq              Decrease verbosity (-q=warn, -qq=error, -qqq=silent)
-  -v -q                      Offset (cancels out to info)`,
+  -v, -vv, -vvv              Increase verbosity (-v=info, -vv=debug, -vvv=trace)
+  -q, -qq                    Decrease verbosity (-q=error, -qq=silent)
+  -v -q                      Offset (cancels out to warn)`,
     )
 
   // Pre-action hook: runs before any command
@@ -177,16 +177,16 @@ Verbosity:
       "error",
       "silent",
     ]
-    let logLevel: LogLevel = "info" // default (index 2)
+    let logLevel: LogLevel = "warn" // default (index 3)
     if (logLevelOption) {
       logLevel = logLevelOption as LogLevel
     } else if (silentOption) {
       logLevel = "silent"
     } else {
-      // Apply -v/-q offset from default (info=2)
+      // Apply -v/-q offset from default (warn=3)
       // -v decreases index (more verbose), -q increases index (quieter)
       const offset = (quietOption ?? 0) - (verboseOption ?? 0)
-      const baseIndex = 2 // info
+      const baseIndex = 3 // warn
       const targetIndex = Math.max(0, Math.min(5, baseIndex + offset))
       logLevel = LOG_LEVELS[targetIndex]!
     }

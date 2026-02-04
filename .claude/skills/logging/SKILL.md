@@ -34,14 +34,14 @@ log.error("Failed to write file", { path, error })
 ## CLI Flags
 
 ```bash
-bun km view /tmp/test           # Default (info level)
-bun km -v view /tmp/test        # Verbose (debug level)
-bun km -vv view /tmp/test       # Very verbose (trace level)
-bun km -q view /tmp/test        # Quiet (warn level only)
-bun km -qq view /tmp/test       # Quieter (error level only)
-bun km -qqq view /tmp/test      # Silent (no output)
-bun km -v -q view /tmp/test     # Offset: cancels out to info
-bun km -s sync /tmp/test        # Silent (shortcut for -qqq)
+bun km view /tmp/test           # Default (warn level)
+bun km -v view /tmp/test        # Verbose (info level)
+bun km -vv view /tmp/test       # More verbose (debug level)
+bun km -vvv view /tmp/test      # Very verbose (trace level)
+bun km -q view /tmp/test        # Quiet (error level only)
+bun km -qq view /tmp/test       # Quieter (silent)
+bun km -v -q view /tmp/test     # Offset: cancels out to warn
+bun km -s sync /tmp/test        # Silent (shortcut for -qq)
 bun km --log-level trace view   # Explicit level (overrides -v/-q)
 LOG_LEVEL=debug bun km view     # Environment variable
 DEBUG=km:* bun km view          # debug() still works independently

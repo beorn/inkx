@@ -13,25 +13,25 @@ import { createLogger } from "@beorn/logger"
 const log = createLogger("km:storage")
 
 // All methods support ?. for zero-overhead when their level is disabled
-log.trace?.(`very verbose: ${expensiveDebug()}`)  // Skipped at default (info)
-log.debug?.(`state: ${getState()}`)               // Skipped at default (info)
-log.info?.("Loading vault...")                    // Enabled at default
+log.trace?.(`very verbose: ${expensiveDebug()}`)  // Skipped at default (warn)
+log.debug?.(`state: ${getState()}`)               // Skipped at default (warn)
+log.info?.("Loading vault...")                    // Skipped at default (warn)
 log.warn?.("Config not found, using defaults")    // Enabled at default
 log.error?.("Failed to sync", { error })          // Enabled at default
 
-// With -q flag, info is also skipped:
-log.info?.("starting")  // Skipped when level=warn
+// With -v flag, info is enabled:
+log.info?.("starting")  // Enabled when level=info (-v)
 ```
 
 ## Log Levels
 
-| Level  | Purpose                              |
-| ------ | ------------------------------------ |
-| trace  | Verbose debugging (very high volume) |
-| debug  | Debug information (disabled default) |
-| info   | Normal operation                     |
-| warn   | Recoverable issues                   |
-| error  | Failures (always shown)              |
+| Level  | Purpose                                       |
+| ------ | --------------------------------------------- |
+| trace  | Verbose debugging (very high volume)          |
+| debug  | Debug information                             |
+| info   | Normal operation                              |
+| warn   | Recoverable issues (**default CLI level**)    |
+| error  | Failures (always shown)                       |
 
 **Log levels (most → least verbose):** `trace > debug > info > warn > error > silent`
 
@@ -47,14 +47,14 @@ log.info?.("starting")  // Skipped when level=warn
 ## CLI Flags
 
 ```bash
-bun km view /tmp/test           # Default (info level)
-bun km -v view /tmp/test        # Verbose (debug level)
-bun km -vv view /tmp/test       # Very verbose (trace level)
-bun km -q view /tmp/test        # Quiet (warn level only)
-bun km -qq view /tmp/test       # Quieter (error level only)
-bun km -qqq view /tmp/test      # Silent (no output)
-bun km -v -q view /tmp/test     # Offset: cancels out to info
-bun km -s sync /tmp/test        # Silent (shortcut for -qqq)
+bun km view /tmp/test           # Default (warn level)
+bun km -v view /tmp/test        # Verbose (info level)
+bun km -vv view /tmp/test       # More verbose (debug level)
+bun km -vvv view /tmp/test      # Very verbose (trace level)
+bun km -q view /tmp/test        # Quiet (error level only)
+bun km -qq view /tmp/test       # Quieter (silent)
+bun km -v -q view /tmp/test     # Offset: cancels out to warn
+bun km -s sync /tmp/test        # Silent (shortcut for -qq)
 bun km --log-level trace view   # Explicit level (overrides -v/-q)
 LOG_LEVEL=debug bun km view     # Environment variable
 ```
@@ -82,12 +82,12 @@ Enable spans with `TRACE=1` or `TRACE=namespace`.
 import { createLogger } from "@beorn/logger"
 const log = createLogger("km:storage")
 
-// Info/warn/error: always enabled at default level - no ?. needed
-log.info("Starting sync...")
-log.warn("Deprecated config option")
-log.error("Failed to write file", { error })
+// Warn/error: always enabled at default level
+log.warn?.("Deprecated config option")
+log.error?.("Failed to write file", { error })
 
-// Debug/trace: use ?. to skip expensive arg evaluation when disabled
+// Info/debug/trace: use ?. to skip when disabled (info skipped at default warn level)
+log.info?.("Starting sync...")
 log.debug?.(`state: ${JSON.stringify(state)}`)
 log.trace?.(`node ${node.id.slice(-8)} children=${children.length}`)
 
