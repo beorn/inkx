@@ -87,6 +87,44 @@ bun scripts/explore-tui.ts --path /path/to/vault
 
 **IMPORTANT: Always prefer TUI mode** (headless `testEnv()`/`board.press()`/`board.screenshot()`) over GUI/TTY mode. TUI tests are faster, more reliable, and catch character-level issues. Only use `--gui` (TTY/Playwright) when pixel-level visual verification is explicitly needed. **If you must use TTY tools, always set timeout to 10000ms (10s)** to avoid hanging on unresponsive sessions.
 
+## Board Driver API
+
+The `createBoardDriver()` function provides programmatic control of the TUI for AI exploration:
+
+```typescript
+import { createBoardDriver } from '@km/tui/driver.ts'
+import { createFakeRepo } from '@km/storage'
+import { item } from '@km/tui/tests/helpers/board-test.ts'
+
+// Create driver with fixture
+const nodes = item("board", item("col1", item("task1"), item("task2")))
+const repo = createFakeRepo({ nodes })
+const driver = createBoardDriver(repo, "board")
+
+// Execute commands via press()
+await driver.press('j')   // Move cursor down
+await driver.press('/')   // Open search dialog
+
+// Get rich state for AI decision-making
+const state = driver.getState()
+state.cursor       // { col: 0, card: 1, level: 'card' }
+state.selectedNodeId  // 'task2'
+state.dialogs      // { search: true, newItem: false, ... }
+state.screen       // Full rendered text output
+state.commands     // Array of available commands with metadata
+
+// Command introspection (informational only)
+driver.cmd.down.id    // 'cursor_down'
+driver.cmd.down.name  // 'Move Down'
+driver.cmd.down.keys  // ['j', 'ArrowDown']
+driver.cmd.describe() // Human/AI-readable command list
+```
+
+**Use cases:**
+- AI-driven exploration: Pick next action based on `getState()`
+- Fuzz testing: Random command sequences with invariant checks
+- Acceptance tests: Verify cursor movement, dialog state, navigation
+
 ## Sub-Skills
 
 | File | Purpose |

@@ -356,3 +356,202 @@ describe("composed app driver", () => {
     expect(state.commands.length).toBeGreaterThan(10)
   })
 })
+
+// =============================================================================
+// createBoardDriver Tests - Full TUI automation
+// =============================================================================
+
+import { createFakeRepo } from "@km/storage"
+import { createBoardDriver } from "../src/driver.ts"
+import { item } from "./helpers/board-test.ts"
+
+describe("createBoardDriver", () => {
+  test("creates working driver from repo", () => {
+    const nodes = item("board", item("col1", item("1a"), item("1b")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    // Driver should render the board
+    expect(driver.text).toContain("board")
+    expect(driver.text).toContain("col1")
+    expect(driver.text).toContain("1a")
+    expect(driver.text).toContain("1b")
+  })
+
+  test("getState() returns cursor position", () => {
+    const nodes = item("board", item("col1", item("1a"), item("1b")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    const state = driver.getState()
+
+    // Initial state should have cursor at first card
+    expect(state.cursor).toBeDefined()
+    expect(state.cursor.col).toBe(0)
+    expect(state.cursor.card).toBe(0)
+    expect(state.cursor.level).toBe("card")
+  })
+
+  test("getState() returns selected node ID", () => {
+    const nodes = item("board", item("col1", item("1a"), item("1b")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    const state = driver.getState()
+
+    // Should have the first card selected
+    expect(state.selectedNodeId).toBe("1a")
+  })
+
+  test("getState() includes command list for AI", () => {
+    const nodes = item("board", item("col1", item("1a")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    const state = driver.getState()
+
+    // Should include commands for AI to discover
+    expect(state.commands).toBeDefined()
+    expect(state.commands.length).toBeGreaterThan(10)
+
+    // Should have navigation commands
+    const downCmd = state.commands.find((c) => c.id === "cursor_down")
+    expect(downCmd).toBeDefined()
+    expect(downCmd!.keys).toContain("j")
+  })
+
+  test("cmd.* provides command metadata", () => {
+    const nodes = item("board", item("col1", item("1a")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    // Commands should have metadata
+    expect(driver.cmd.down).toBeDefined()
+    expect(driver.cmd.down!.id).toBe("cursor_down")
+    expect(driver.cmd.down!.name).toBe("Move Down")
+    expect(driver.cmd.down!.keys).toContain("j")
+  })
+
+  test("press('j') navigates cursor down", async () => {
+    const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    // Initial state
+    let state = driver.getState()
+    expect(state.selectedNodeId).toBe("1a")
+
+    // Press j to move down
+    await driver.press("j")
+
+    // Should now be on 1b
+    state = driver.getState()
+    expect(state.selectedNodeId).toBe("1b")
+  })
+
+  test("press('k') navigates cursor up", async () => {
+    const nodes = item("board", item("col1", item("1a"), item("1b")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    // Move down first
+    await driver.press("j")
+    let state = driver.getState()
+    expect(state.selectedNodeId).toBe("1b")
+
+    // Press k to move up
+    await driver.press("k")
+
+    // Should now be back on 1a
+    state = driver.getState()
+    expect(state.selectedNodeId).toBe("1a")
+  })
+
+  test("press('l') navigates to next column", async () => {
+    const nodes = item(
+      "board",
+      item("col1", item("1a")),
+      item("col2", item("2a"))
+    )
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    // Initial state - cursor on 1a in col1
+    let state = driver.getState()
+    expect(state.selectedNodeId).toBe("1a")
+
+    // Press l to move right
+    await driver.press("l")
+
+    // Should now be in col2 on 2a
+    state = driver.getState()
+    expect(state.selectedNodeId).toBe("2a")
+    expect(state.cursor.col).toBe(1)
+  })
+
+  test("getState() tracks dialog state", async () => {
+    const nodes = item("board", item("col1", item("1a")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    // Initially no dialogs open
+    let state = driver.getState()
+    expect(state.dialogs.search).toBe(false)
+    expect(state.dialogs.newItem).toBe(false)
+
+    // Open search dialog
+    await driver.press("/")
+
+    // Dialog should be open
+    state = driver.getState()
+    expect(state.dialogs.search).toBe(true)
+  })
+
+  test("getState() tracks view mode", () => {
+    const nodes = item("board", item("col1", item("1a")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    const state = driver.getState()
+
+    // Should report view mode (extracted from bottom bar)
+    // The exact format depends on how the bottom bar renders
+    expect(state.viewMode).toBeDefined()
+  })
+
+  test("screen property returns rendered text", () => {
+    const nodes = item("board", item("col1", item("Task Alpha")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    const state = driver.getState()
+
+    // Screen should contain the task text
+    expect(state.screen).toContain("Task Alpha")
+  })
+
+  test("cmd.describe() returns AI-readable help", () => {
+    const nodes = item("board", item("col1", item("1a")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    const help = driver.cmd.describe()
+
+    // Should include command descriptions
+    expect(help).toContain("cursor_down")
+    expect(help).toContain("j")
+    expect(help).toContain("Move cursor")
+  })
+
+  test("works with custom dimensions", () => {
+    const nodes = item("board", item("col1", item("1a")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board", {
+      columns: 120,
+      rows: 40,
+    })
+
+    // Should render without errors
+    expect(driver.text).toContain("1a")
+  })
+})
