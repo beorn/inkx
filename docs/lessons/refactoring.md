@@ -170,6 +170,38 @@ function oldApi(args) {
 
 ---
 
+## Case Study 4: Complexity Score Reduction
+
+**Bead**: km-rev-0203.2
+
+**Problem**: 132 functions flagged by oxlint cognitive complexity rule. Needed systematic reduction.
+
+**Wrong approach**: Refactor every function blindly to get below threshold.
+
+**Right approach**: Triage-first. Not all functions need refactoring.
+
+**Triage results** (33 functions scored 25-64):
+- 9 functions refactored below 30 using extract-method patterns
+- 24 functions suppressed with `oxlint-disable` comments + reason
+- 0 functions needed no action (already below threshold)
+
+**Key insight**: Exhaustive `switch` statements validated by TypeScript should NOT be converted to lookup objects — the lookup loses compile-time completeness checking. React components with many JSX conditionals inflate scores but are structurally readable. Test helpers don't need low complexity.
+
+**Patterns that worked**:
+
+| Pattern | Score reduction | Example |
+|---------|----------------|---------|
+| Orchestrator + phase helpers | 64 → 28 | `listTasks` → resolveInput + renderTaskList |
+| Strategy extraction | 47 → 18 | `resolveNode` → 5 strategy functions |
+| Shared loop helper | 36 → 18 | `progressiveSelectAll` → `buildSelectAllSet(scope)` |
+| DRY INSERT helper | 39 → 24 | `parseDeferredSequential` → shared `insertNodeRow` |
+
+**Execution**: Two batches of parallel agents (5 + 4), parent-only verification. Total: 9 refactored functions, 24 suppressed, warnings reduced from ~64 to ~42.
+
+**Lesson**: Spend 80% of effort on triage and categorization, 20% on actual refactoring. Most "high complexity" functions are fine with a suppress comment explaining why.
+
+---
+
 ## Quick Checklist
 
 Before starting a big refactor:

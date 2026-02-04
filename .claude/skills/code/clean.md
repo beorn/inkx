@@ -49,12 +49,15 @@ Catalog opportunities in these categories:
 
 | Pattern                | Replace With      | Example                                                             |
 | ---------------------- | ----------------- | ------------------------------------------------------------------- |
-| Switch on value        | Lookup object     | `switch(x){case 'a': return 1}` → `{a:1}[x] ?? default`             |
+| Switch with shared patterns | Lookup object + factories | `switch(x){case 'a': return 1}` → `{a:1}[x] ?? default` (exception: exhaustive switches validated by TS) |
 | Multi-condition if     | Set.has()         | `if(x==='a'\|\|x==='b')` → `new Set(['a','b']).has(x)`              |
 | IIFE for derivation    | Direct expression | `const x = (() => {...})()` → ternary chain or named helper         |
 | Repeated regex matches | Extract helper    | 4x identical `while(match.exec())` → `extractMatches(str, pattern)` |
 | Large destructure      | Dot notation      | `const {a,b,c,d,e,f} = obj` → use `obj.prop` throughout             |
 | Verbose conditionals   | Early returns     | Nested if/else → guard clauses at top                               |
+| High-complexity function (>30) | <15-line orchestrator + helpers | 200-line function with 5 phases → orchestrator + 5 focused helpers |
+| Duplicated loop body   | Shared helper called N times | 3 identical viewport-fill loops → `fillViewport()` called 3x |
+| Sequential if/else type dispatch | Classifier chain or lookup | Token type chain → `classifiers.find(c => c(token))` |
 
 ### Alignment Patterns (from docs/principles.md)
 
@@ -73,6 +76,7 @@ Catalog opportunities in these categories:
 
 ### Narrative Flow
 
+- **Core logic <15 lines** (from principles.md). The main exported function should read as a summary of what happens. Helpers go after return (hoisted `function` declarations) or at bottom of file (module-level). This works for all function types including `function*` and `async function*` — they all hoist.
 - **Top**: Main export (the "what")
 - **Middle**: Implementation details
 - **Bottom**: Helper functions, constants, types
@@ -148,9 +152,25 @@ If all tests pass, summarize changes:
 - Lines removed: ~X
 - Patterns applied: [list]
 
+## When NOT to Refactor
+
+Not all high-complexity functions need extraction. Suppress with `oxlint-disable` when:
+
+| Pattern | Why it's fine | Example |
+|---------|---------------|---------|
+| React components with many conditionals | JSX conditionals inflate scores but structure is readable | `DetailPane`, `BottomBar`, `TreeNode` |
+| Exhaustive `switch` validated by TypeScript | Lookup table **loses** compile-time completeness checking | `handleCommandAction`, `executeCommand` |
+| Test setup helpers | Tests are consumers, not APIs — setup complexity is fine | `createBoardTest`, `createFakeRepo`, fixture builders |
+| CLI action handlers (<45) | Sequential parse→resolve→execute→output is mostly irreducible | Commander.js `.action()` callbacks |
+| RRULE/state machine logic | Switch over enum variants is inherent to the algorithm | `getNextOccurrence`, `shouldIgnore` |
+
+**Threshold guidance**: >50 always refactor. 40-50 try to extract phases. 30-40 usually suppress. <30 skip.
+
 ## Anti-Patterns (Do NOT)
 
 - **Add lines to reduce complexity scores** - if refactoring adds 50+ lines, stop
+- **Extract pure delegators** - don't create `doThing(x) { return otherThing(x) }` just to reduce a score
+- **Significantly increase total line count** - extracting 3 helpers from a 100-line function should produce ~100-110 lines total, not 150
 - **Extract helpers for single-use code** - 3 similar lines is fine, don't create a function
 - **Create abstractions "for future flexibility"** - solve today's problem only
 - **Add type complexity that hurts readability** - inference is usually enough

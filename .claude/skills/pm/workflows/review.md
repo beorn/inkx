@@ -49,13 +49,13 @@ bd stale --days 14 --limit 0
 
 Output a comprehensive table of all open beads with these columns (up to 100 beads):
 
-| ID           | Type    | Title               | Priority | Claimed |
-| ------------ | ------- | ------------------- | -------- | ------- |
-| km-test-4    | epic    | Switch to Vitest    | P2       | -       |
-| km-test-4.3  | task    | Add Vitest producer | P2       | -       |
-| km-test-4.4  | task    | Migrate tree tests  | P2       | -       |
-| km-storage-1 | feature | Full event sourcing | P4       | -       |
-| km-test-3    | bug     | bun tap streaming   | P2       | beorn   |
+| ID                    | Type    | Title                    | Priority | Claimed |
+| --------------------- | ------- | ------------------------ | -------- | ------- |
+| km-inkx               | epic    | inkx & chalkx issues     | P1       | -       |
+| km-inkx.stale-pixels  | bug     | Stale pixel bugs         | P1       | claude  |
+| km-inkx.bg-bleed      | bug     | Background color bleed   | P2       | -       |
+| km-tui                | epic    | TUI app issues           | P2       | -       |
+| km-tui.emptybody      | bug     | Empty body column        | P2       | -       |
 
 **Grouping rules:**
 
@@ -161,6 +161,17 @@ Review survey data. For each open issue, assign to exactly one category:
 | Missing dependency | A must complete before B, but no link |
 | Orphaned subtask   | Related work should be under an epic  |
 | Wrong parent       | Issue miscategorized                  |
+| Scattered beads    | Related beads across mixed prefixes need consolidation |
+
+**Consolidation pattern** (for scattered beads sharing a theme):
+
+1. **Identify clusters**: Search for beads by keyword across IDs, titles, descriptions
+2. **Create tracking epic**: `km-<scope>` (e.g., `km-inkx`, `km-tui`, `km-vitestx`)
+3. **Rename sub-beads**: Use `km-<scope>.<suffix>` dot notation (e.g., `km-inkx.bg-bleed`)
+   - Create new bead with same content → set parent → close old with "Renamed to ..."
+4. **Categorize carefully**: A bead mentioning X isn't always *about* X — check if it's the primary subject
+5. **Update references**: `grep -r "old-id" .` (search entire codebase)
+6. **Verify**: Query `dependencies WHERE type='parent-child' AND depends_on_id='km-scope'`
 
 #### E. Clarify (ask user)
 
@@ -274,11 +285,11 @@ bd ready --limit 10                        # Should look actionable
 When closing, merging, or restructuring beads, **search for and update references**:
 
 ```bash
-# Find all references to affected bead IDs
-grep -r "km-closed-id" .claude/ docs/ --include="*.md"
+# Find all references to affected bead IDs across the entire codebase
+grep -r "km-closed-id" .
 ```
 
-Check `.claude/skills/`, `docs/`, and other beads. Never leave dangling references.
+Never leave dangling references.
 
 ---
 

@@ -255,20 +255,13 @@ No special handling needed in commands - the actor is set automatically based on
 When renaming, re-creating, or changing a bead's ID, **always search for and update references**:
 
 ```bash
-# Find all references to the old ID
-grep -r "km-old-id" .claude/ docs/ --include="*.md"
-
-# Common reference locations:
-# - .claude/skills/**/*.md (workflows, examples)
-# - docs/**/*.md (architecture docs, ADRs)
-# - Other beads (parent, deps, notes fields)
-# - Git commit messages (for context, can't update)
+# Find all references to the old ID across the entire codebase
+grep -r "km-old-id" .
 ```
 
 **Checklist when changing bead IDs:**
-- [ ] Search `.claude/` for old ID references
-- [ ] Search `docs/` for old ID references
-- [ ] Check `bd list --all | grep <old-id>` for parent/dep relationships
+- [ ] `grep -r "old-id" .` — search entire codebase (skills, docs, source, tests, configs)
+- [ ] `bd list --all | grep <old-id>` — check parent/dep relationships in beads DB
 - [ ] Update all found references to new ID
 
 **Never leave dangling references** - they cause confusion and broken links.
@@ -287,7 +280,7 @@ These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
 | `bd update --desc`               | `bd update --description` or `-d`                       |
 | `bd create --id X --parent Y`    | Create first, then `bd update X --parent Y`             |
 | `bd create --id km-...` (in vendor) | Check prefix first: `bd list --limit 1`              |
-| Assume dot notation is km-only   | Dot notation works with any prefix (`beorn-inkx-api.1`) |
+| Assume dot notation is km-only   | Dot notation works with any prefix (`km-inkx.bg-bleed`) |
 
 **Note**: `--description` and `--notes` are BOTH valid on `bd update` but serve different purposes:
 

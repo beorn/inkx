@@ -27,6 +27,7 @@ Create a todo list with TodoWrite showing ALL work units.
 | Multi-file edits   | Same pattern across files     | Parallel Read → Parallel Edit            |
 | Independent tasks  | Unrelated subtasks            | Parallel Task agents                     |
 | Verification       | Type-check, lint, test        | 3 parallel Bash calls                    |
+| Batch refactoring  | Same technique on N functions  | N parallel Task agents (5 max per batch) |
 
 ## Step 3: Launch Agents (MANDATORY)
 

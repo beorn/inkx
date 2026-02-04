@@ -144,6 +144,47 @@ if (canAccess(user)) {
 }
 ```
 
+## Batch Refactoring Workflow
+
+When many functions exceed thresholds, use a triage-first approach:
+
+### 1. Triage
+
+Run `bun lint:complexity --brief` and categorize every function:
+
+| Score | Action |
+|-------|--------|
+| >50 | Always refactor — extract orchestrator + phase helpers |
+| 40-50 | Try to extract phases; suppress if irreducible |
+| 30-40 | Usually suppress with reason comment |
+| <30 | Skip (below threshold) |
+
+### 2. Choose Technique
+
+| Pattern | Score reduction | Best when |
+|---------|----------------|-----------|
+| Orchestrator + phase helpers | 79 → 15 | Function has 3+ sequential concerns |
+| Lookup table + factories | 110 → 15 | Switch with many identical case patterns |
+| Classifier chain | 81 → 12 | Sequential if/else dispatching on type |
+| Shared loop helper | 51 → 20 | 2-3 nearly identical loops |
+| Field array | 59 → 25 | Repeated `if (a.field !== b.field)` |
+| Strategy extraction | 47 → 18 | Cascading resolution with 4+ strategies |
+
+### 3. Execute in Parallel
+
+Use `/max` to run N refactoring agents simultaneously (max 5 per batch). Each agent gets:
+- File path and function name
+- Technique description
+- Instruction NOT to run `bun fix` or tests (parent verifies once)
+
+### 4. Suppress the Rest
+
+For irreducible functions, add suppression comments:
+- **File-level**: `/* oxlint-disable complexity/max-cognitive -- reason */` (React components, test helpers)
+- **Inline**: `// oxlint-disable-next-line complexity/max-cognitive -- reason` (individual functions)
+
+Always include a reason explaining why the complexity is inherent.
+
 ## Integration with Code Review
 
 Pattern 27 in `/code review` runs complexity analysis automatically:
