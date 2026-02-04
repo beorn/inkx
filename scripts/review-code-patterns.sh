@@ -204,6 +204,17 @@ grep -rn "^import.*from ['\"]chalk['\"]" packages apps --include="*.ts" --includ
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
+echo "=== PATTERN 36: Inkx string composition ==="
+# Using useTerm()/useStyle() to build ANSI strings in <Text> — should use <Text> style props
+# Also catches applyColor() which is the helper for this anti-pattern
+# padEnd() in TSX files for layout alignment — should use <Box width={}>
+grep -rn "useStyle()\|applyColor(" packages apps vendor --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules" || true
+# padEnd used for column alignment in TSX (not padStart which is data formatting)
+grep -rn "\.padEnd(" packages apps vendor --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules" || true
+echo ""
+
 echo "=== PATTERN 27: High complexity functions ==="
 # Functions exceeding cyclomatic (>20) or cognitive (>15) complexity thresholds
 # Uses oxlint-plugin-complexity for static analysis

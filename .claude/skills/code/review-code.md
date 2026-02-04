@@ -92,6 +92,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Deprecated chalkx  | Default chalkX import, `chalk` export, `supportsExtendedUnderline`          |
 | Deprecated storage | `getBeadsConfig`, `getTuiConfig`, `loadRepo`, `createMockWatcher`           |
 | Manual layout calc | `displayWidth()` in app code for layout - should rely on inkx/flexx         |
+| Inkx string comp   | `useTerm()` / `useStyle()` to build ANSI strings in `<Text>` — use Text props + Box layout |
 | High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
 | `ensure*` checks   | `ensureOpen()`, `ensureValid()` - lower levels throw naturally              |
 | Getters/setters    | `get path() { return _path }` - use plain properties instead                |
@@ -193,6 +194,7 @@ The script detects:
 - Pattern 25: createRenderer in production code (tests only)
 - Pattern 26: Direct chalk imports (should use `createTerm`/`useTerm`)
 - Pattern 27: High complexity functions (cyclomatic>20 or cognitive>15, candidates for refactoring)
+- Pattern 36: Inkx string composition (`useTerm()`/`useStyle()` to build ANSI strings in `<Text>`, `.padEnd()` for layout instead of `<Box width={}>` + `<Text>` style props)
 
 **Deprecated APIs (3 patterns)** - see km-deprecations bead:
 
@@ -373,6 +375,7 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | Old inkx render     | Medium           | createRenderer inside function body (should be at module level) |
 | Old lastFrame       | Medium           | Should use app.text or other newer inkx APIs      |
 | Manual layout calc  | Low              | High if workaround for inkx bug (see km-inkx-flexgrow) |
+| Inkx string comp    | Medium           | High if in shared components; defeats inkx layout model |
 
 **Deprecated API findings** (see km-deprecations bead):
 
