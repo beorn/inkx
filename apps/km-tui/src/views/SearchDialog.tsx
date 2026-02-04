@@ -16,7 +16,7 @@ import { Box, Text, useInput, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { ModalDialog } from "./shared-components.tsx"
+import { ModalDialog, InputBox } from "./shared-components.tsx"
 import { parseQuery, type QueryAST } from "@km/core"
 
 /**
@@ -305,8 +305,8 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         .sort((a, b) => b.score - a.score)
     }, [allResults, deferredQuery])
 
-    // Max visible items: height - borders(2) - paddingY(2) - title(1) - spacer(1) - input(1) - spacer(1) - spacer_footer(1) - footer(1) = height - 10
-    const maxVisible = Math.max(1, height - 10)
+    // Max visible items: height - borders(2) - paddingY(2) - title(1) - spacer(1) - inputBox(2) - spacer(1) - spacer_footer(1) - footer(1) = height - 11
+    const maxVisible = Math.max(1, height - 11)
 
     // Scroll offset to keep selection visible
     const scrollOffset = Math.max(
@@ -380,11 +380,7 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         footer={footerContent}
       >
         {/* Search input */}
-        <Text>
-          <Text color="yellow">{"/ "}</Text>
-          <Text>{query}</Text>
-          <Text inverse> </Text>
-        </Text>
+        <InputBox value={query} placeholder="type to search..." />
 
         {/* Spacer before results */}
         <Text> </Text>

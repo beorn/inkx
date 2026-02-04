@@ -302,9 +302,11 @@ export function ModalDialog({
     >
       {title && (
         <>
-          <Text color={borderColor} bold>
-            {title}
-          </Text>
+          <Box justifyContent="center">
+            <Text color={borderColor} bold>
+              {title}
+            </Text>
+          </Box>
           <Text> </Text>
         </>
       )}
@@ -325,6 +327,58 @@ export function ModalDialog({
           </Box>
         </>
       )}
+    </Box>
+  )
+}
+
+// =============================================================================
+// Input Box Component
+// =============================================================================
+
+export interface InputBoxProps {
+  /** Input value */
+  value: string
+  /** Prompt/prefix (e.g., "/ " for search) */
+  prompt?: string
+  /** Placeholder text when empty */
+  placeholder?: string
+  /** Prompt color */
+  promptColor?: string
+  /** Whether to show cursor */
+  showCursor?: boolean
+}
+
+/**
+ * Styled text input with cursor.
+ *
+ * Features:
+ * - Single-line input with underline indicator
+ * - Optional colored prompt prefix
+ * - Block cursor (inverse character)
+ * - Placeholder text when empty
+ */
+export function InputBox({
+  value,
+  prompt = "",
+  placeholder = "",
+  promptColor = "yellow",
+  showCursor = true,
+}: InputBoxProps): React.ReactElement {
+  const showPlaceholder = !value && placeholder
+
+  return (
+    <Box flexDirection="column">
+      <Text>
+        {prompt && <Text color={promptColor}>{prompt}</Text>}
+        {showPlaceholder ? (
+          <Text dimColor>{placeholder}</Text>
+        ) : (
+          <Text>{value}</Text>
+        )}
+        {showCursor && <Text inverse> </Text>}
+      </Text>
+      {/* Underline indicator */}
+      <Text dimColor>{"─".repeat(40)}</Text>
     </Box>
   )
 }
