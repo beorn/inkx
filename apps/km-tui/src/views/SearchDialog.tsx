@@ -306,9 +306,8 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         .slice(0, 50) // Limit to top 50 results
     }, [allResults, deferredQuery])
 
-    // Max visible items: inner height = height - 2 (borders)
-    // Fixed rows: title(1) + input(1) + spacer(1) + footer(1) = 4
-    const maxVisible = Math.max(1, height - 6)
+    // Max visible items: height - borders(2) - paddingY(2) - title(1) - input(1) - footer(1) = height - 7
+    const maxVisible = Math.max(1, height - 7)
 
     // Scroll offset to keep selection visible
     const scrollOffset = Math.max(
@@ -364,7 +363,7 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
     const footerContent = (
       <Box flexDirection="row" justifyContent="space-between">
         <Text dimColor>
-          {"  "}↑↓ nav  Enter go  Esc cancel  #tag filter
+          ↑↓ nav  Enter go  Esc cancel  #tag filter
         </Text>
         {filteredResults.length > maxVisible && (
           <Text dimColor>
@@ -380,12 +379,10 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
       <ModalDialog title="Search" width={width} height={height} footer={footerContent}>
         {/* Search input */}
         <Text>
-          {"  "}
           <Text color="yellow">{"/ "}</Text>
           <Text>{query}</Text>
           <Text inverse> </Text>
         </Text>
-        <Text> </Text>
 
         {/* Results list — flexGrow fills available height */}
         <ErrorBoundary fallback={<Text color="red">Search error</Text>}>

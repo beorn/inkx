@@ -296,15 +296,14 @@ export function ModalDialog({
       borderColor={borderColor}
       backgroundColor="black"
       paddingX={2}
+      paddingY={1}
     >
       {title && (
-        <Text color={borderColor} bold>
-          {"  "}{title}
-        </Text>
+        <Text color={borderColor} bold>{title}</Text>
       )}
       {children}
       {footer && (
-        typeof footer === "string" ? <Text dimColor>{"  "}{footer}</Text> : footer
+        typeof footer === "string" ? <Text dimColor>{footer}</Text> : footer
       )}
     </Box>
   )

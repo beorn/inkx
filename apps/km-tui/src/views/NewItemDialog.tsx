@@ -157,13 +157,12 @@ export function NewItemDialog({
       borderColor="green"
       title={`New ${isTask ? "task" : "item"} ${insertContext}`}
       width={width}
-      height={Math.min(height, 10)}
+      height={Math.min(height, 12)}
       footer="Enter create  Esc cancel"
     >
       {/* Input field */}
       <Box flexGrow={1}>
         <Text>
-          {"  "}
           <Text color="green">{isTask ? "[ ] " : "• "}</Text>
           <Text>{content}</Text>
           <Text inverse> </Text>

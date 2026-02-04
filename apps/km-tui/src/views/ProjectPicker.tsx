@@ -283,7 +283,7 @@ export function ProjectPicker({
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
       <Text dimColor>
-        {"  "}↑↓ nav  Enter select  Esc cancel
+        ↑↓ nav  Enter select  Esc cancel
       </Text>
       {filteredOptions.length > maxVisible && (
         <Text dimColor>
@@ -299,12 +299,10 @@ export function ProjectPicker({
     <ModalDialog title="Move to project" width={width} height={height} footer={footerContent}>
       {/* Search input */}
       <Text>
-        {"  "}
         <Text color="yellow">{"/ "}</Text>
         <Text>{query}</Text>
         <Text inverse> </Text>
       </Text>
-      <Text> </Text>
 
       {/* Options list */}
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
