@@ -224,8 +224,8 @@ export function ProjectPicker({
       .sort((a, b) => b.score - a.score)
   }, [allOptions, query])
 
-  // Max visible items based on height
-  const maxVisible = Math.max(1, height - 6) // Reserve space for header, search, hints
+  // Max visible items: height - borders(2) - paddingY(2) - title(1) - input(1) - spacer(1) - footer(1) = height - 8
+  const maxVisible = Math.max(1, height - 8)
 
   // Scroll offset to keep selection visible
   const scrollOffset = Math.max(
@@ -282,9 +282,7 @@ export function ProjectPicker({
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>
-        ↑↓ nav  Enter select  Esc cancel
-      </Text>
+      <Text dimColor>↑↓ nav Enter select Esc cancel</Text>
       {filteredOptions.length > maxVisible && (
         <Text dimColor>
           {scrollOffset > 0 ? "↑" : " "}
@@ -296,13 +294,19 @@ export function ProjectPicker({
   )
 
   return (
-    <ModalDialog title="Move to project" width={width} height={height} footer={footerContent}>
+    <ModalDialog
+      title="Move to project"
+      width={width}
+      height={height}
+      footer={footerContent}
+    >
       {/* Search input */}
       <Text>
         <Text color="yellow">{"/ "}</Text>
         <Text>{query}</Text>
         <Text inverse> </Text>
       </Text>
+      <Text> </Text>
 
       {/* Options list */}
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
@@ -316,12 +320,10 @@ export function ProjectPicker({
             <Box
               key={opt.node.id}
               width="100%"
+              height={1}
               backgroundColor={isSelected ? "cyan" : undefined}
             >
-              <Text
-                color={isSelected ? "black" : undefined}
-                wrap="truncate"
-              >
+              <Text color={isSelected ? "black" : undefined} wrap="truncate">
                 {prefix}
                 {opt.title}
                 {opt.parentContext && (
@@ -333,7 +335,10 @@ export function ProjectPicker({
                   </Text>
                 )}
                 {opt.isRecent && (
-                  <Text color={isSelected ? "blue" : "cyan"} dimColor={!isSelected}>
+                  <Text
+                    color={isSelected ? "blue" : "cyan"}
+                    dimColor={!isSelected}
+                  >
                     {" (recent)"}
                   </Text>
                 )}
@@ -342,7 +347,7 @@ export function ProjectPicker({
           )
         })}
         {filteredOptions.length === 0 && (
-          <Text dimColor>  No matching projects</Text>
+          <Text dimColor> No matching projects</Text>
         )}
       </Box>
     </ModalDialog>

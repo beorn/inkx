@@ -306,8 +306,8 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         .slice(0, 50) // Limit to top 50 results
     }, [allResults, deferredQuery])
 
-    // Max visible items: height - borders(2) - paddingY(2) - title(1) - input(1) - footer(1) = height - 7
-    const maxVisible = Math.max(1, height - 7)
+    // Max visible items: height - borders(2) - paddingY(2) - title(1) - input(1) - spacer(1) - footer(1) = height - 8
+    const maxVisible = Math.max(1, height - 8)
 
     // Scroll offset to keep selection visible
     const scrollOffset = Math.max(
@@ -362,9 +362,7 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
 
     const footerContent = (
       <Box flexDirection="row" justifyContent="space-between">
-        <Text dimColor>
-          ↑↓ nav  Enter go  Esc cancel  #tag filter
-        </Text>
+        <Text dimColor>↑↓ nav Enter go Esc cancel #tag filter</Text>
         {filteredResults.length > maxVisible && (
           <Text dimColor>
             {scrollOffset > 0 ? "↑" : " "}
@@ -376,13 +374,19 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
     )
 
     return (
-      <ModalDialog title="Search" width={width} height={height} footer={footerContent}>
+      <ModalDialog
+        title="Search"
+        width={width}
+        height={height}
+        footer={footerContent}
+      >
         {/* Search input */}
         <Text>
           <Text color="yellow">{"/ "}</Text>
           <Text>{query}</Text>
           <Text inverse> </Text>
         </Text>
+        <Text> </Text>
 
         {/* Results list — flexGrow fills available height */}
         <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
@@ -405,6 +409,7 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
                 <Box
                   key={result.node.id}
                   width="100%"
+                  height={1}
                   backgroundColor={isSelected ? "cyan" : undefined}
                 >
                   <Text
@@ -423,7 +428,10 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
                       </Text>
                     )}
                     {result.tags.length > 0 && (
-                      <Text color={isSelected ? "blue" : "cyan"} dimColor={!isSelected}>
+                      <Text
+                        color={isSelected ? "blue" : "cyan"}
+                        dimColor={!isSelected}
+                      >
                         {` #${result.tags.join(" #")}`}
                       </Text>
                     )}
@@ -432,10 +440,10 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
               )
             })}
             {filteredResults.length === 0 && query && (
-              <Text dimColor>  No matching items</Text>
+              <Text dimColor> No matching items</Text>
             )}
             {filteredResults.length === 0 && !query && (
-              <Text dimColor>  Start typing to search...</Text>
+              <Text dimColor> Start typing to search...</Text>
             )}
           </Box>
         </ErrorBoundary>

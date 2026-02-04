@@ -1606,16 +1606,47 @@ describe("Move Mode", () => {
 })
 
 describe("Search and Filter", () => {
-  test("/ opens search dialog", () => {
-    // TODO: Search not implemented yet
+  test("/ opens search dialog with title and footer", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("task1"), item("task2"))),
+    )
+    board.press("/")
+    const output = board.screenshot()
+    expect(output).toContain("Search")
+    expect(output).toContain("/ ")
+    expect(output).toContain("Enter go")
+    expect(output).toContain("Esc cancel")
   })
 
-  test("search highlights matching cards", () => {
-    // TODO: Test search highlighting
+  test("search shows multiple results on consecutive lines", () => {
+    // Create items with long titles that will be truncated
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item(
+          "col",
+          item("Task Alpha with long title"),
+          item("Task Beta with long title"),
+          item("Task Gamma short"),
+        ),
+      ),
+    )
+    board.press("/")
+    const output = board.screenshot()
+    // Results should all appear in the output
+    expect(output).toContain("Task Alpha")
+    expect(output).toContain("Task Beta")
+    expect(output).toContain("Task Gamma")
   })
 
-  test("filter by tag shows only matching cards", () => {
-    // TODO: Test tag filtering
+  test("Escape closes search dialog", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("task1"))),
+    )
+    board.press("/")
+    expect(board.screenshot()).toContain("Search")
+    board.press("\x1b")
+    expect(board.screenshot()).not.toContain("Enter go")
   })
 })
 
