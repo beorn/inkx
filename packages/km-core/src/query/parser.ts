@@ -202,171 +202,193 @@ export function parseQuery(query: string): QueryAST {
     const term = negated ? token.slice(1) : token
     const offset: QueryOffset = { start, end }
 
-    // @mention
-    if (term.startsWith("@")) {
-      ast.refs.push({
-        type: "person",
-        value: term.slice(1),
-        negated,
-        offset,
-      })
-      continue
+    if (!classifiers.some((c) => c(term, negated, offset, ast))) {
+      // Fallback: plain text search term
+      ast.text.push(negated ? `-${term}` : term)
+      ast.textTerms.push({ value: term, negated, offset })
     }
-
-    // #tag
-    if (term.startsWith("#")) {
-      ast.refs.push({
-        type: "tag",
-        value: term.slice(1),
-        negated,
-        offset,
-      })
-      continue
-    }
-
-    // +project
-    if (term.startsWith("+")) {
-      ast.refs.push({
-        type: "project",
-        value: term.slice(1),
-        negated,
-        offset,
-      })
-      continue
-    }
-
-    // Path patterns: ./path, /path, path/, **
-    // - ./path/** - relative path with recursive
-    // - /absolute/path - absolute path
-    // - path/ - contains path segment
-    if (
-      term.startsWith("./") ||
-      term.startsWith("/") ||
-      term.endsWith("/") ||
-      term.includes("**")
-    ) {
-      const recursive = term.endsWith("**")
-      let pattern = term
-
-      // Remove ** suffix for cleaner pattern matching
-      if (recursive) {
-        pattern = term.slice(0, -2)
-        // Also remove trailing slash if present
-        if (pattern.endsWith("/")) {
-          pattern = pattern.slice(0, -1)
-        }
-      }
-
-      ast.paths.push({
-        pattern,
-        recursive,
-        negated,
-        offset,
-      })
-      continue
-    }
-
-    // Property queries: prop::* (exists), prop::value (equals), prop::>N (comparison)
-    // Pattern: name::value where :: distinguishes from field:value
-    const propMatch = term.match(/^([a-z][a-z0-9_-]*)::(.*)$/i)
-    if (propMatch) {
-      const [, propName, propValue] = propMatch
-
-      if (propValue === "*") {
-        // Existence check: prop::*
-        ast.propConditions.push({
-          prop: propName?.toLowerCase() ?? "",
-          op: "exists",
-          negated,
-          offset,
-        })
-      } else {
-        // Check for comparison operators: >N, <N, >=N, <=N
-        const compMatch = propValue?.match(/^(>=|<=|>|<)(-?\d+(?:\.\d+)?)$/)
-        if (compMatch) {
-          const [, compOp, numStr] = compMatch
-          ast.propConditions.push({
-            prop: propName?.toLowerCase() ?? "",
-            op: compOp as ">" | "<" | ">=" | "<=",
-            value: parseFloat(numStr ?? "0"),
-            negated,
-            offset,
-          })
-        } else {
-          // Value match: prop::value
-          // Check if it's a number
-          const numValue = parseFloat(propValue ?? "")
-          const isNumber =
-            !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "")
-
-          ast.propConditions.push({
-            prop: propName?.toLowerCase() ?? "",
-            op: negated ? "!=" : "=",
-            value: isNumber ? numValue : (propValue ?? ""),
-            negated,
-            offset,
-          })
-        }
-      }
-      continue
-    }
-
-    // Special queries: blocked:true/false
-    if (
-      term.toLowerCase() === "blocked:true" ||
-      term.toLowerCase() === "blocked:false"
-    ) {
-      ast.specials.push({
-        type: "blocked",
-        value: term.toLowerCase() === "blocked:true",
-        offset,
-      })
-      continue
-    }
-
-    // field:value (supports comma-separated values like status:open,blocked)
-    const fieldMatch = term.match(/^([a-z_]+)([:=<>!]+)(.+)$/i)
-    if (fieldMatch) {
-      const [, field, opStr, rawValue] = fieldMatch
-      let op: QueryCondition["op"] = "="
-
-      // Determine operator
-      if (opStr === ":" || opStr === "=") {
-        op = negated ? "!=" : "="
-      } else if (opStr === "!=") {
-        op = "!="
-      } else if (opStr === ">") {
-        op = ">"
-      } else if (opStr === "<") {
-        op = "<"
-      } else if (opStr === ">=") {
-        op = ">="
-      } else if (opStr === "<=") {
-        op = "<="
-      }
-
-      // Map field aliases
-      const mappedField = mapFieldName(field ?? "")
-
-      // Store value as-is (comma-separated values handled by executor)
-      ast.conditions.push({
-        field: mappedField,
-        op,
-        value: rawValue ?? "",
-        negated,
-        offset,
-      })
-      continue
-    }
-
-    // Plain text search term
-    ast.text.push(negated ? `-${term}` : term)
-    ast.textTerms.push({
-      value: term,
-      negated,
-      offset,
-    })
   }
 
   return ast
 }
+
+// --- Token classifiers ---
+
+type Classifier = (
+  term: string,
+  negated: boolean,
+  offset: QueryOffset,
+  ast: QueryAST,
+) => boolean
+
+/** Classify @mention, #tag, +project references */
+function classifyRef(
+  term: string,
+  negated: boolean,
+  offset: QueryOffset,
+  ast: QueryAST,
+): boolean {
+  const prefixMap: Record<string, QueryRef["type"]> = {
+    "@": "person",
+    "#": "tag",
+    "+": "project",
+  }
+  const prefix = term[0] ?? ""
+  const type = prefixMap[prefix]
+  if (!type) return false
+
+  ast.refs.push({ type, value: term.slice(1), negated, offset })
+  return true
+}
+
+/** Classify path patterns: ./path, /path, path/, ** */
+function classifyPath(
+  term: string,
+  negated: boolean,
+  offset: QueryOffset,
+  ast: QueryAST,
+): boolean {
+  if (
+    !term.startsWith("./") &&
+    !term.startsWith("/") &&
+    !term.endsWith("/") &&
+    !term.includes("**")
+  ) {
+    return false
+  }
+
+  const recursive = term.endsWith("**")
+  let pattern = term
+
+  // Remove ** suffix for cleaner pattern matching
+  if (recursive) {
+    pattern = term.slice(0, -2)
+    // Also remove trailing slash if present
+    if (pattern.endsWith("/")) {
+      pattern = pattern.slice(0, -1)
+    }
+  }
+
+  ast.paths.push({ pattern, recursive, negated, offset })
+  return true
+}
+
+/** Classify property queries: prop::* (exists), prop::value, prop::>N */
+function classifyProp(
+  term: string,
+  negated: boolean,
+  offset: QueryOffset,
+  ast: QueryAST,
+): boolean {
+  const propMatch = term.match(/^([a-z][a-z0-9_-]*)::(.*)$/i)
+  if (!propMatch) return false
+
+  const [, propName, propValue] = propMatch
+
+  if (propValue === "*") {
+    // Existence check: prop::*
+    ast.propConditions.push({
+      prop: propName?.toLowerCase() ?? "",
+      op: "exists",
+      negated,
+      offset,
+    })
+    return true
+  }
+
+  // Check for comparison operators: >N, <N, >=N, <=N
+  const compMatch = propValue?.match(/^(>=|<=|>|<)(-?\d+(?:\.\d+)?)$/)
+  if (compMatch) {
+    const [, compOp, numStr] = compMatch
+    ast.propConditions.push({
+      prop: propName?.toLowerCase() ?? "",
+      op: compOp as ">" | "<" | ">=" | "<=",
+      value: parseFloat(numStr ?? "0"),
+      negated,
+      offset,
+    })
+    return true
+  }
+
+  // Value match: prop::value - check if it's a number
+  const numValue = parseFloat(propValue ?? "")
+  const isNumber = !isNaN(numValue) && /^-?\d+(\.\d+)?$/.test(propValue ?? "")
+
+  ast.propConditions.push({
+    prop: propName?.toLowerCase() ?? "",
+    op: negated ? "!=" : "=",
+    value: isNumber ? numValue : (propValue ?? ""),
+    negated,
+    offset,
+  })
+  return true
+}
+
+/** Classify special queries: blocked:true/false */
+function classifySpecial(
+  term: string,
+  _negated: boolean,
+  offset: QueryOffset,
+  ast: QueryAST,
+): boolean {
+  const lower = term.toLowerCase()
+  if (lower !== "blocked:true" && lower !== "blocked:false") return false
+
+  ast.specials.push({
+    type: "blocked",
+    value: lower === "blocked:true",
+    offset,
+  })
+  return true
+}
+
+/** Classify field:value conditions with operator parsing and alias mapping */
+function classifyField(
+  term: string,
+  negated: boolean,
+  offset: QueryOffset,
+  ast: QueryAST,
+): boolean {
+  const fieldMatch = term.match(/^([a-z_]+)([:=<>!]+)(.+)$/i)
+  if (!fieldMatch) return false
+
+  const [, field, opStr, rawValue] = fieldMatch
+  let op: QueryCondition["op"] = "="
+
+  // Determine operator
+  if (opStr === ":" || opStr === "=") {
+    op = negated ? "!=" : "="
+  } else if (opStr === "!=") {
+    op = "!="
+  } else if (opStr === ">") {
+    op = ">"
+  } else if (opStr === "<") {
+    op = "<"
+  } else if (opStr === ">=") {
+    op = ">="
+  } else if (opStr === "<=") {
+    op = "<="
+  }
+
+  // Map field aliases
+  const mappedField = mapFieldName(field ?? "")
+
+  // Store value as-is (comma-separated values handled by executor)
+  ast.conditions.push({
+    field: mappedField,
+    op,
+    value: rawValue ?? "",
+    negated,
+    offset,
+  })
+  return true
+}
+
+/** Ordered classifier chain - first match wins, else falls through to text */
+const classifiers: Classifier[] = [
+  classifyRef,
+  classifyPath,
+  classifyProp,
+  classifySpecial,
+  classifyField,
+]

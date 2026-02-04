@@ -626,6 +626,159 @@ function isDatabaseIncomplete(
 // Factory: createRepo
 // =============================================================================
 
+/** Result from repo initialization helpers */
+interface RepoInitResult {
+  db: Database
+  mode: "memory" | "disk"
+  emitter: Emitter
+  dataStore: DataStore & HasDatabase
+  loadErrors: LoadError[]
+  stats: RepoStats
+  deferredFiles: DeferredFile[]
+}
+
+/**
+ * Initialize repo by loading and parsing markdown files into the database.
+ * ADR-002: Creates its own db instead of relying on singleton.
+ *
+ * @param rootPath - Path to the repo root directory
+ * @param kmDir - Path to the .km directory
+ * @param options - Creation options
+ * @yields Progress info delegated from loadRepo
+ * @returns Initialization result with db, dataStore, and loading stats
+ */
+function* initWithFileLoading(
+  rootPath: string,
+  kmDir: string,
+  options: CreateRepoOptions,
+): Generator<StepYield, RepoInitResult, unknown> {
+  // Detect mode and create database BEFORE calling loadRepo
+  const hasKmDir = existsSync(kmDir) && !options.forceMemory
+  const mode = hasKmDir ? "disk" : "memory"
+
+  // Create emitter early - needed for disk mode DataStore
+  const emitter = createEmitter({ kmDir })
+
+  let db: Database
+  if (mode === "disk") {
+    if (!existsSync(kmDir)) {
+      mkdirSync(kmDir, { recursive: true })
+    }
+    const dbPath = join(kmDir, "state.db")
+    db = new Database(dbPath)
+    db.run(SCHEMA)
+  } else {
+    db = new Database(":memory:")
+    db.run(SCHEMA)
+  }
+
+  // Now call loadRepo with OUR db (avoids singleton)
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here
+  const loadResult = yield* loadRepo(rootPath, {
+    searchAncestors: false, // rootPath is already the repo root
+    skipLinkResolution: options.skipLinkResolution,
+    discoverOnly: options.discoverOnly,
+    mode, // Pass our mode decision to loadRepo
+    db, // ADR-002: pass db to avoid singleton
+  })
+
+  // Create DataStore - pass emitter for disk mode only
+  const dataStore = createDBDataStore(
+    db,
+    mode === "disk" ? { emitter } : undefined,
+  )
+
+  // Capture loading results
+  const loadErrors = loadResult.errors
+  const stats: RepoStats = {
+    nodeCount: loadResult.nodeCount,
+    linkCount: loadResult.linkCount,
+    duration: loadResult.duration,
+  }
+  const deferredFiles = loadResult.deferredFiles ?? []
+
+  // Health check: detect incomplete .km database
+  // This happens when km init/sync is interrupted, leaving .km with stale/partial data.
+  // Detect by checking if root has structural children matching the filesystem.
+  if (mode === "disk") {
+    const isIncomplete = isDatabaseIncomplete(db, rootPath, kmDir)
+    if (isIncomplete) {
+      db.close()
+      throw new IncompleteDatabase(isIncomplete, kmDir)
+    }
+  }
+
+  log.debug?.(
+    `loaded files: ${stats.nodeCount} nodes, ${stats.linkCount} links, ${loadErrors.length} errors`,
+  )
+
+  return { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles }
+}
+
+/**
+ * Initialize repo with an empty database (no file loading).
+ * Yields progress steps for UI feedback.
+ *
+ * @param kmDir - Path to the .km directory
+ * @param options - Creation options
+ * @yields Progress step declarations and step names
+ * @returns Initialization result with db, dataStore, and empty stats
+ */
+function* initEmptyDb(
+  kmDir: string,
+  options: CreateRepoOptions,
+): Generator<StepYield, RepoInitResult, unknown> {
+  // Declare all sub-steps upfront so they appear as pending
+  yield {
+    declare: ["Detecting mode", "Initializing database", "Scanning files"],
+  }
+
+  // Step 1: Detect mode
+  yield "Detecting mode"
+  const hasKmDir = existsSync(kmDir) && !options.forceMemory
+  const mode = hasKmDir ? "disk" : "memory"
+
+  // Create emitter early - needed for disk mode DataStore
+  const emitter = createEmitter({ kmDir })
+
+  log.debug?.(`detected mode: ${mode} (hasKmDir=${hasKmDir})`)
+
+  // Step 2: Initialize database
+  yield "Initializing database"
+
+  let db: Database
+  let dataStore: DataStore & HasDatabase
+  if (mode === "disk") {
+    // Ensure .km directory exists
+    if (!existsSync(kmDir)) {
+      mkdirSync(kmDir, { recursive: true })
+    }
+
+    const dbPath = join(kmDir, "state.db")
+    db = new Database(dbPath)
+    db.run(SCHEMA)
+    dataStore = createDBDataStore(db, { emitter })
+  } else {
+    // Memory mode - ephemeral (no emitter = direct SQL)
+    db = new Database(":memory:")
+    db.run(SCHEMA)
+    dataStore = createDBDataStore(db)
+  }
+
+  // Step 3: Scan files (for full repo)
+  yield "Scanning files"
+
+  return {
+    db,
+    mode,
+    emitter,
+    dataStore,
+    loadErrors: [],
+    stats: { nodeCount: 0, linkCount: 0, duration: 0 },
+    deferredFiles: [],
+  }
+}
+
 /** Options for createRepo */
 export interface CreateRepoOptions {
   /** Force memory mode even if .km/ exists */
@@ -695,122 +848,21 @@ export function* createRepo(
 ): Generator<StepYield, Repo, unknown> {
   log.debug?.(`createRepo rootPath=${rootPath}`)
 
-  // Track loading results
-  let loadErrors: LoadError[] = []
-  let stats: RepoStats = { nodeCount: 0, linkCount: 0, duration: 0 }
-  let deferredFiles: DeferredFile[] = []
-
-  let dataStore: DataStore & HasDatabase
-  let db: Database
-  let mode: "memory" | "disk"
-  let emitter: Emitter
-
   // kmDir is used for emitter and disk mode detection
   const kmDir = join(rootPath, ".km")
 
-  if (options.loadFiles) {
-    // =========================================================================
-    // File loading mode - create db first, then use loadRepo to populate
-    // ADR-002: Create our own db instead of relying on singleton
-    // =========================================================================
-
-    // Detect mode and create database BEFORE calling loadRepo
-    const hasKmDir = existsSync(kmDir) && !options.forceMemory
-    mode = hasKmDir ? "disk" : "memory"
-
-    // Create emitter early - needed for disk mode DataStore
-    emitter = createEmitter({ kmDir })
-
-    if (mode === "disk") {
-      if (!existsSync(kmDir)) {
-        mkdirSync(kmDir, { recursive: true })
-      }
-      const dbPath = join(kmDir, "state.db")
-      db = new Database(dbPath)
-      db.run(SCHEMA)
-    } else {
-      db = new Database(":memory:")
-      db.run(SCHEMA)
-    }
-
-    // Now call loadRepo with OUR db (avoids singleton)
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Internal use of loadRepo is acceptable here
-    const loadResult = yield* loadRepo(rootPath, {
-      searchAncestors: false, // rootPath is already the repo root
-      skipLinkResolution: options.skipLinkResolution,
-      discoverOnly: options.discoverOnly,
-      mode, // Pass our mode decision to loadRepo
-      db, // ADR-002: pass db to avoid singleton
-    })
-
-    // Create DataStore - pass emitter for disk mode only
-    dataStore = createDBDataStore(db, mode === "disk" ? { emitter } : undefined)
-
-    // Capture loading results
-    loadErrors = loadResult.errors
-    stats = {
-      nodeCount: loadResult.nodeCount,
-      linkCount: loadResult.linkCount,
-      duration: loadResult.duration,
-    }
-    deferredFiles = loadResult.deferredFiles ?? []
-
-    // Health check: detect incomplete .km database
-    // This happens when km init/sync is interrupted, leaving .km with stale/partial data.
-    // Detect by checking if root has structural children matching the filesystem.
-    if (mode === "disk") {
-      const isIncomplete = isDatabaseIncomplete(db, rootPath, kmDir)
-      if (isIncomplete) {
-        db.close()
-        throw new IncompleteDatabase(isIncomplete, kmDir)
-      }
-    }
-
-    log.debug?.(
-      `loaded files: ${stats.nodeCount} nodes, ${stats.linkCount} links, ${loadErrors.length} errors`,
-    )
-  } else {
-    // =========================================================================
-    // Empty database mode - no file loading
-    // =========================================================================
-    // Declare all sub-steps upfront so they appear as pending
-    yield {
-      declare: ["Detecting mode", "Initializing database", "Scanning files"],
-    }
-
-    // Step 1: Detect mode
-    yield "Detecting mode"
-    const hasKmDir = existsSync(kmDir) && !options.forceMemory
-    mode = hasKmDir ? "disk" : "memory"
-
-    // Create emitter early - needed for disk mode DataStore
-    emitter = createEmitter({ kmDir })
-
-    log.debug?.(`detected mode: ${mode} (hasKmDir=${hasKmDir})`)
-
-    // Step 2: Initialize database
-    yield "Initializing database"
-
-    if (mode === "disk") {
-      // Ensure .km directory exists
-      if (!existsSync(kmDir)) {
-        mkdirSync(kmDir, { recursive: true })
-      }
-
-      const dbPath = join(kmDir, "state.db")
-      db = new Database(dbPath)
-      db.run(SCHEMA)
-      dataStore = createDBDataStore(db, { emitter })
-    } else {
-      // Memory mode - ephemeral (no emitter = direct SQL)
-      db = new Database(":memory:")
-      db.run(SCHEMA)
-      dataStore = createDBDataStore(db)
-    }
-
-    // Step 3: Scan files (for full repo)
-    yield "Scanning files"
-  }
+  // Delegate to the appropriate initialization helper
+  const {
+    db,
+    mode,
+    emitter,
+    dataStore,
+    loadErrors,
+    stats,
+    deferredFiles,
+  } = options.loadFiles
+    ? yield* initWithFileLoading(rootPath, kmDir, options)
+    : yield* initEmptyDb(kmDir, options)
 
   // Create FileTree for the repo root
   const fileTree = createDiskFileTree(rootPath)

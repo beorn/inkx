@@ -78,6 +78,7 @@ bdCommand
   .option("-p, --priority <n>", "Filter by priority (0-4)", parseInt)
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
+  // oxlint-disable-next-line complexity/max-cognitive -- CLI info display with config/stats sections
   .action(async (scope: string | undefined, opts: ReadyOptions) => {
     const resolved = resolvePathArg(scope)
     const scopePath = resolved.nodeRef ?? undefined

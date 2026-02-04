@@ -52,6 +52,7 @@
  * console.log(b.screenshot());
  * ```
  */
+/* oxlint-disable complexity/max-cognitive -- Test helper — fixture builder complexity is acceptable */
 
 import React from "react"
 import { createRenderer, type App, type AutoLocator } from "inkx/testing"

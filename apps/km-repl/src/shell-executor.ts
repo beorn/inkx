@@ -280,6 +280,7 @@ function findChildByName(
  * Resolve a path string to a cursor path
  * Supports: /, .., relative paths, absolute paths from root
  */
+// oxlint-disable-next-line complexity/max-cognitive -- Path resolution with multiple strategies
 function resolvePath(
   state: BoardState,
   pathStr: string,
@@ -784,6 +785,7 @@ export function executeBoardAction(
  * Execute a single command line
  * Returns new state and whether to quit
  */
+// oxlint-disable-next-line complexity/max-cognitive -- Shell command dispatch with exhaustive switch
 export async function executeCommand(
   line: string,
   ctx: ShellContext,

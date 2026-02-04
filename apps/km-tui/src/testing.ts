@@ -27,6 +27,7 @@
  * board.unmount();
  * ```
  */
+/* oxlint-disable complexity/max-cognitive -- Test helper — setup complexity is acceptable */
 
 import React from "react"
 import { createRenderer, bufferToStyledText } from "inkx/testing"

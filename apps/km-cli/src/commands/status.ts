@@ -16,7 +16,8 @@ const term = createTerm(process)
 import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
-import type { TaskStatus, TaskMark } from "@km/core"
+import type { TaskStatus, TaskMark, KNode } from "@km/core"
+import type { Repo } from "@km/storage"
 
 /**
  * Get task mark for status
@@ -36,6 +37,95 @@ function getMarkForStatus(status: TaskStatus): TaskMark {
   }
 }
 
+/** Get styled status icon for terminal display */
+function getStatusIcon(status: string): string {
+  switch (status) {
+    case "done":
+      return term.green("✓")
+    case "blocked":
+      return term.red("!")
+    case "dropped":
+      return term.dim("-")
+    default:
+      return term.dim("○")
+  }
+}
+
+/** Display current task status (view mode, no mutation) */
+function displayStatus(
+  node: KNode,
+  options: { json?: boolean },
+): void {
+  const status = node.task_status ?? "todo"
+
+  if (options.json) {
+    console.log(
+      JSON.stringify({
+        id: node.id,
+        status,
+        mark: node.task_mark ?? " ",
+        content: node.content,
+      }),
+    )
+    return
+  }
+
+  const icon = getStatusIcon(status)
+  console.log(
+    `${icon} ${status}: ${node.content?.slice(0, 60) ?? "(no content)"}`,
+  )
+}
+
+/**
+ * Handle recurring task completion: clone the task with next due date.
+ * Returns true if the task was recurring (and output was emitted), false otherwise.
+ */
+function handleRecurringTask(
+  repo: Repo,
+  node: KNode,
+  options: { json?: boolean },
+): boolean {
+  const recurrence =
+    (node.data?.recurrence as string) ||
+    (node.recurrence as string | undefined)
+  if (!recurrence) return false
+
+  // Convert natural language to RRULE if needed
+  const rrule = naturalToRRule(recurrence) || recurrence
+
+  // Calculate next due date
+  const baseDate = node.due_date || new Date().toISOString().slice(0, 10)
+  const nextDue = getNextOccurrence(rrule, baseDate)
+  if (!nextDue) return false
+
+  // Clone the task with new due date
+  const newId = repo.cloneTask(node.id, {
+    due_date: nextDue,
+    task_status: "todo",
+    task_mark: " ",
+  })
+
+  if (options.json) {
+    console.log(
+      JSON.stringify({
+        id: node.id,
+        status: "done",
+        recurring: true,
+        next_id: newId,
+        next_due: nextDue,
+      }),
+    )
+  } else {
+    console.log(
+      term.green("✓"),
+      `Marked done: ${node.content?.slice(0, 40)}`,
+    )
+    console.log(term.blue("↻"), `Next occurrence: ${nextDue}`)
+  }
+
+  return true
+}
+
 export const statusCommand = new Command("status")
   .description("View or set task status")
   .argument("<id>", "Task ID, path, or filename")
@@ -53,31 +143,7 @@ export const statusCommand = new Command("status")
 
     // View mode - just show current status
     if (!newStatus) {
-      const status = node.task_status ?? "todo"
-      const statusIcon =
-        status === "done"
-          ? term.green("✓")
-          : status === "blocked"
-            ? term.red("!")
-            : status === "dropped"
-              ? term.dim("-")
-              : term.dim("○")
-
-      if (options.json) {
-        console.log(
-          JSON.stringify({
-            id: node.id,
-            status,
-            mark: node.task_mark ?? " ",
-            content: node.content,
-          }),
-        )
-        return
-      }
-
-      console.log(
-        `${statusIcon} ${status}: ${node.content?.slice(0, 60) ?? "(no content)"}`,
-      )
+      displayStatus(node, options)
       return
     }
 
@@ -90,47 +156,8 @@ export const statusCommand = new Command("status")
     }
 
     // Handle recurring tasks when marking done
-    if (newStatus === "done") {
-      const recurrence =
-        (node.data?.recurrence as string) ||
-        (node.recurrence as string | undefined)
-
-      if (recurrence) {
-        // Convert natural language to RRULE if needed
-        const rrule = naturalToRRule(recurrence) || recurrence
-
-        // Calculate next due date
-        const baseDate = node.due_date || new Date().toISOString().slice(0, 10)
-        const nextDue = getNextOccurrence(rrule, baseDate)
-
-        if (nextDue) {
-          // Clone the task with new due date
-          const newId = repo.cloneTask(node.id, {
-            due_date: nextDue,
-            task_status: "todo",
-            task_mark: " ",
-          })
-
-          if (options.json) {
-            console.log(
-              JSON.stringify({
-                id: node.id,
-                status: "done",
-                recurring: true,
-                next_id: newId,
-                next_due: nextDue,
-              }),
-            )
-          } else {
-            console.log(
-              term.green("✓"),
-              `Marked done: ${node.content?.slice(0, 40)}`,
-            )
-            console.log(term.blue("↻"), `Next occurrence: ${nextDue}`)
-          }
-        }
-      }
-    }
+    const isRecurring =
+      newStatus === "done" && handleRecurringTask(repo, node, options)
 
     const newMark = getMarkForStatus(newStatus as TaskStatus)
 
@@ -140,26 +167,14 @@ export const statusCommand = new Command("status")
     })
 
     if (options.json) {
-      // For non-recurring done, we haven't output yet
-      const recurrence =
-        (node.data?.recurrence as string) ||
-        (node.recurrence as string | undefined)
-      if (newStatus !== "done" || !recurrence) {
+      if (!isRecurring) {
         console.log(JSON.stringify({ id: node.id, status: newStatus }))
       }
       return
     }
 
-    const statusIcon =
-      newStatus === "done"
-        ? term.green("✓")
-        : newStatus === "blocked"
-          ? term.red("!")
-          : newStatus === "dropped"
-            ? term.dim("-")
-            : term.dim("○")
-
+    const icon = getStatusIcon(newStatus)
     console.log(
-      `${statusIcon} ${term.dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
+      `${icon} ${term.dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
     )
   })

@@ -9,8 +9,8 @@ import { createConditionalLogger } from "@beorn/logger"
 import type {
   CalDAVConfig,
   CalendarEvent,
-  SyncState,
   SyncResult,
+  SyncState,
 } from "./types.ts"
 import { parseICalendar, formatICalendar } from "./icalendar.ts"
 import { createBasicAuthHeader, webdavRequest } from "./webdav-base.ts"
@@ -224,84 +224,14 @@ export function createCalDAVClient(config: CalDAVConfig) {
       }
 
       if (state?.syncToken) {
-        // Incremental sync using sync-collection
-        const syncReport = `<?xml version="1.0" encoding="utf-8"?>
-<D:sync-collection xmlns:D="DAV:">
-  <D:sync-token>${state.syncToken}</D:sync-token>
-  <D:sync-level>1</D:sync-level>
-  <D:prop>
-    <D:getetag/>
-  </D:prop>
-</D:sync-collection>`
-
-        const response = await request("REPORT", calendarUrl ?? "", syncReport)
-        const text = await response.text()
-
-        // Parse sync response
-        const newSyncToken = text.match(
-          /<D:sync-token>([^<]+)<\/D:sync-token>/,
-        )?.[1]
-        if (newSyncToken) {
-          result.state.syncToken = newSyncToken
-        }
-
-        // Process changes
-        const changeRegex =
-          /<D:response>[\s\S]*?<D:href>([^<]+)<\/D:href>[\s\S]*?(?:<D:getetag>"?([^"<]+)"?<\/D:getetag>)?[\s\S]*?(?:<D:status>HTTP\/1\.1 (\d+)[^<]*<\/D:status>)?[\s\S]*?<\/D:response>/g
-
-        let match
-        while ((match = changeRegex.exec(text)) !== null) {
-          const href = match[1]
-          const etag = match[2]
-          const status = match[3]
-
-          const uid = href?.match(/([^/]+)\.ics$/)?.[1]
-          if (!uid) continue
-
-          if (status === "404" || !etag) {
-            // Deleted
-            result.deleted.push(uid)
-            delete result.state.etags[uid]
-          } else if (state.etags[uid]) {
-            if (state.etags[uid] !== etag) {
-              // Modified
-              result.modified.push(uid)
-              result.state.etags[uid] = etag
-            }
-          } else {
-            // Added
-            result.added.push(uid)
-            result.state.etags[uid] = etag
-          }
-        }
+        await processIncrementalSync(
+          request,
+          calendarUrl ?? "",
+          state,
+          result,
+        )
       } else {
-        // Full sync - get all events and compare
-        const events = await this.getEvents()
-        const newEtags: Record<string, string> = {}
-
-        for (const event of events) {
-          newEtags[event.uid] = event.etag || ""
-
-          if (state?.etags[event.uid]) {
-            if (state.etags[event.uid] !== event.etag) {
-              result.modified.push(event.uid)
-            }
-          } else {
-            result.added.push(event.uid)
-          }
-        }
-
-        // Find deleted
-        if (state?.etags) {
-          for (const uid of Object.keys(state.etags)) {
-            if (!newEtags[uid]) {
-              result.deleted.push(uid)
-            }
-          }
-        }
-
-        result.state.etags = newEtags
-        result.state.lastSync = Date.now()
+        await processFullSync(this.getEvents.bind(this), state, result)
       }
 
       log.debug?.(
@@ -310,4 +240,111 @@ export function createCalDAVClient(config: CalDAVConfig) {
       return result
     },
   }
+}
+
+/** Type for the internal WebDAV request function */
+type RequestFn = (
+  method: string,
+  url: string,
+  body?: string,
+  headers?: Record<string, string>,
+) => Promise<Response>
+
+/**
+ * Process incremental sync using WebDAV sync-collection (RFC 6578).
+ * Sends a sync-collection REPORT with the existing sync token and
+ * classifies each response as added, modified, or deleted.
+ */
+async function processIncrementalSync(
+  request: RequestFn,
+  calendarUrl: string,
+  state: SyncState,
+  result: SyncResult,
+): Promise<void> {
+  const syncReport = `<?xml version="1.0" encoding="utf-8"?>
+<D:sync-collection xmlns:D="DAV:">
+  <D:sync-token>${state.syncToken}</D:sync-token>
+  <D:sync-level>1</D:sync-level>
+  <D:prop>
+    <D:getetag/>
+  </D:prop>
+</D:sync-collection>`
+
+  const response = await request("REPORT", calendarUrl, syncReport)
+  const text = await response.text()
+
+  // Update sync token if server provided a new one
+  const newSyncToken = text.match(
+    /<D:sync-token>([^<]+)<\/D:sync-token>/,
+  )?.[1]
+  if (newSyncToken) {
+    result.state.syncToken = newSyncToken
+  }
+
+  // Process changes from each response element
+  const changeRegex =
+    /<D:response>[\s\S]*?<D:href>([^<]+)<\/D:href>[\s\S]*?(?:<D:getetag>"?([^"<]+)"?<\/D:getetag>)?[\s\S]*?(?:<D:status>HTTP\/1\.1 (\d+)[^<]*<\/D:status>)?[\s\S]*?<\/D:response>/g
+
+  let match
+  while ((match = changeRegex.exec(text)) !== null) {
+    const href = match[1]
+    const etag = match[2]
+    const status = match[3]
+
+    const uid = href?.match(/([^/]+)\.ics$/)?.[1]
+    if (!uid) continue
+
+    if (status === "404" || !etag) {
+      // Deleted
+      result.deleted.push(uid)
+      delete result.state.etags[uid]
+    } else if (state.etags[uid]) {
+      if (state.etags[uid] !== etag) {
+        // Modified
+        result.modified.push(uid)
+        result.state.etags[uid] = etag
+      }
+    } else {
+      // Added
+      result.added.push(uid)
+      result.state.etags[uid] = etag
+    }
+  }
+}
+
+/**
+ * Process full sync by fetching all events and comparing etags
+ * against the previous state. Used when no sync token is available.
+ */
+async function processFullSync(
+  getEvents: () => Promise<CalendarEvent[]>,
+  state: SyncState | undefined,
+  result: SyncResult,
+): Promise<void> {
+  const events = await getEvents()
+  const newEtags: Record<string, string> = {}
+
+  for (const event of events) {
+    newEtags[event.uid] = event.etag || ""
+
+    if (state?.etags[event.uid]) {
+      if (state.etags[event.uid] !== event.etag) {
+        result.modified.push(event.uid)
+      }
+    } else {
+      result.added.push(event.uid)
+    }
+  }
+
+  // Find deleted: UIDs present in old state but missing from current events
+  if (state?.etags) {
+    for (const uid of Object.keys(state.etags)) {
+      if (!newEtags[uid]) {
+        result.deleted.push(uid)
+      }
+    }
+  }
+
+  result.state.etags = newEtags
+  result.state.lastSync = Date.now()
 }

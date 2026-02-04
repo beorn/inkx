@@ -173,92 +173,90 @@ export function refreshBoardState(
 // Progressive Selection
 // =============================================================================
 
-/** Progressive select all with Shift+A */
-export function progressiveSelectAll(ctx: TUIContext): void {
-  const col = ctx.layout.columns[ctx.layout.colIndex]
-  const card = col?.cards[ctx.layout.cardIndex]
+type SelectionScope = "card" | "column" | "board"
 
-  const currentLevel = ctx.ui.selectAllLevel
-
-  if (currentLevel === 0 && ctx.ui.inOutlineMode && card) {
-    const newSelected = new Set<SelectionKey>()
-    const maxItems =
-      1 +
-      ctx.countVisibleDescendants(
-        card.node,
-        0,
-        ctx.ui.maxOutlineDepth,
-        ctx.ui.foldedNodes,
-      )
-    for (let s = 0; s < maxItems; s++) {
-      newSelected.add(
-        makeSelectionKey(ctx.layout.colIndex, ctx.layout.cardIndex, s),
-      )
-    }
-    ctx.dispatch(actions.setMultiSelected(newSelected))
-    ctx.dispatch(actions.setSelectAllLevel(1))
-    ctx.dispatch(
-      actions.setStatus({
-        level: "info",
-        message: `All ${newSelected.size} items in card selected`,
-      }),
+/** Add all visible items for a single card to the selection set */
+function addCardItems(
+  selected: Set<SelectionKey>,
+  ctx: TUIContext,
+  colIdx: number,
+  cardIdx: number,
+  card: CardState,
+): void {
+  const maxItems =
+    1 +
+    ctx.countVisibleDescendants(
+      card.node,
+      0,
+      ctx.ui.maxOutlineDepth,
+      ctx.ui.foldedNodes,
     )
-  } else if (currentLevel <= 1 && col) {
-    const newSelected = new Set<SelectionKey>()
-    for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
-      const c = col.cards[cardIdx]
-      if (c) {
-        const maxItems =
-          1 +
-          ctx.countVisibleDescendants(
-            c.node,
-            0,
-            ctx.ui.maxOutlineDepth,
-            ctx.ui.foldedNodes,
-          )
-        for (let s = 0; s < maxItems; s++) {
-          newSelected.add(makeSelectionKey(ctx.layout.colIndex, cardIdx, s))
-        }
+  for (let s = 0; s < maxItems; s++) {
+    selected.add(makeSelectionKey(colIdx, cardIdx, s))
+  }
+}
+
+/** Build a selection set for the given scope (card, column, or board) */
+function buildSelectAllSet(
+  ctx: TUIContext,
+  scope: SelectionScope,
+): Set<SelectionKey> {
+  const selected = new Set<SelectionKey>()
+
+  if (scope === "card") {
+    const card = ctx.layout.columns[ctx.layout.colIndex]?.cards[ctx.layout.cardIndex]
+    if (card) {
+      addCardItems(selected, ctx, ctx.layout.colIndex, ctx.layout.cardIndex, card)
+    }
+  } else if (scope === "column") {
+    const col = ctx.layout.columns[ctx.layout.colIndex]
+    if (col) {
+      for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
+        const c = col.cards[cardIdx]
+        if (c) addCardItems(selected, ctx, ctx.layout.colIndex, cardIdx, c)
       }
     }
-    ctx.dispatch(actions.setMultiSelected(newSelected))
-    ctx.dispatch(actions.setSelectAllLevel(2))
-    ctx.dispatch(
-      actions.setStatus({
-        level: "info",
-        message: `All ${newSelected.size} items in column selected`,
-      }),
-    )
   } else {
-    const newSelected = new Set<SelectionKey>()
     for (let colIdx = 0; colIdx < ctx.layout.columns.length; colIdx++) {
       const column = ctx.layout.columns[colIdx]
       if (column) {
         for (let cardIdx = 0; cardIdx < column.cards.length; cardIdx++) {
           const c = column.cards[cardIdx]
-          if (c) {
-            const maxItems =
-              1 +
-              ctx.countVisibleDescendants(
-                c.node,
-                0,
-                ctx.ui.maxOutlineDepth,
-                ctx.ui.foldedNodes,
-              )
-            for (let s = 0; s < maxItems; s++) {
-              newSelected.add(makeSelectionKey(colIdx, cardIdx, s))
-            }
-          }
+          if (c) addCardItems(selected, ctx, colIdx, cardIdx, c)
         }
       }
     }
-    ctx.dispatch(actions.setMultiSelected(newSelected))
-    ctx.dispatch(actions.setSelectAllLevel(0))
-    ctx.dispatch(
-      actions.setStatus({
-        level: "info",
-        message: `All ${newSelected.size} items in board selected`,
-      }),
-    )
   }
+
+  return selected
+}
+
+/** Progressive select all with Shift+A */
+export function progressiveSelectAll(ctx: TUIContext): void {
+  const col = ctx.layout.columns[ctx.layout.colIndex]
+  const card = col?.cards[ctx.layout.cardIndex]
+  const currentLevel = ctx.ui.selectAllLevel
+
+  let scope: SelectionScope
+  let nextLevel: number
+  if (currentLevel === 0 && ctx.ui.inOutlineMode && card) {
+    scope = "card"
+    nextLevel = 1
+  } else if (currentLevel <= 1 && col) {
+    scope = "column"
+    nextLevel = 2
+  } else {
+    scope = "board"
+    nextLevel = 0
+  }
+
+  const newSelected = buildSelectAllSet(ctx, scope)
+  ctx.dispatch(actions.setMultiSelected(newSelected))
+  ctx.dispatch(actions.setSelectAllLevel(nextLevel))
+  ctx.dispatch(
+    actions.setStatus({
+      level: "info",
+      message: `All ${newSelected.size} items in ${scope} selected`,
+    }),
+  )
 }

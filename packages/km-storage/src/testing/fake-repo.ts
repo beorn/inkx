@@ -4,6 +4,7 @@
  * In-memory Repo implementation for unit tests that don't need
  * real SQLite or file parsing. Uses canned data.
  */
+/* oxlint-disable complexity/max-cognitive -- Test helper — setup complexity is acceptable */
 
 import type { KNode, TaskStatus, Event } from "@km/core"
 import type { Repo, RepoStats } from "../repo.ts"

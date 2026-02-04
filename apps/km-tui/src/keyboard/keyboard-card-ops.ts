@@ -14,6 +14,75 @@ import {
 } from "./keyboard-helpers.ts"
 
 // =============================================================================
+// Card Movement - Helpers
+// =============================================================================
+
+/** Effective sort order for a card at a given index within a column */
+function getEffectiveSortOrder(
+  col: { cards: CardState[] },
+  cardIndex: number,
+): number {
+  const c = col.cards[cardIndex]
+  return c
+    ? c.node.parent_idx === 0
+      ? cardIndex
+      : c.node.parent_idx
+    : cardIndex
+}
+
+/**
+ * Calculate the sort order for inserting a card at the given target index.
+ * Places the value between the two neighbors, or beyond the boundary card.
+ */
+function calculateSortOrder(
+  col: { cards: CardState[] },
+  targetIndex: number,
+  direction: "up" | "down",
+): number {
+  if (direction === "up") {
+    if (targetIndex === 0) {
+      return getEffectiveSortOrder(col, 0) - 1
+    }
+    const prevOrder = getEffectiveSortOrder(col, targetIndex - 1)
+    const targetOrder = getEffectiveSortOrder(col, targetIndex)
+    return (prevOrder + targetOrder) / 2
+  }
+  // direction === "down"
+  if (targetIndex >= col.cards.length - 1) {
+    return getEffectiveSortOrder(col, col.cards.length - 1) + 1
+  }
+  const targetOrder = getEffectiveSortOrder(col, targetIndex)
+  const nextOrder = getEffectiveSortOrder(col, targetIndex + 1)
+  return (targetOrder + nextOrder) / 2
+}
+
+/**
+ * Rebuild multi-selection set by matching moved card IDs against
+ * the current column's children after a board state refresh.
+ */
+function rebuildSelectionForMovedCards(
+  ctx: TUIContext,
+  colIndex: number,
+  movedCardIds: string[],
+): void {
+  const newSelected = new Set<SelectionKey>()
+  const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
+  const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
+  const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
+  const newCol = columns[colIndex]
+  if (newCol) {
+    const cards = ctx.repo.getChildren(newCol.id)
+    for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
+      const c = cards[cardIdx]
+      if (c && movedCardIds.includes(c.id)) {
+        newSelected.add(makeSelectionKey(colIndex, cardIdx, 0))
+      }
+    }
+  }
+  ctx.dispatch(actions.setMultiSelected(newSelected))
+}
+
+// =============================================================================
 // Card Movement
 // =============================================================================
 
@@ -52,42 +121,12 @@ export function moveCardInColumn(
     direction === "up" ? firstToMove.index - 1 : firstToMove.index + 1
   if (targetIndex < 0 || targetIndex >= col.cards.length) return
 
-  const getEffectiveSortOrder = (cardIndex: number): number => {
-    const c = col.cards[cardIndex]
-    return c
-      ? c.node.parent_idx === 0
-        ? cardIndex
-        : c.node.parent_idx
-      : cardIndex
-  }
-
   for (const { index: currentIndex, card: cardToMove } of sortedCards) {
     const cardTargetIndex =
       direction === "up" ? currentIndex - 1 : currentIndex + 1
-
     if (cardTargetIndex < 0 || cardTargetIndex >= col.cards.length) continue
 
-    let newSortOrder: number
-    if (direction === "up") {
-      if (cardTargetIndex === 0) {
-        const firstOrder = getEffectiveSortOrder(0)
-        newSortOrder = firstOrder - 1
-      } else {
-        const prevOrder = getEffectiveSortOrder(cardTargetIndex - 1)
-        const targetOrder = getEffectiveSortOrder(cardTargetIndex)
-        newSortOrder = (prevOrder + targetOrder) / 2
-      }
-    } else {
-      if (cardTargetIndex >= col.cards.length - 1) {
-        const lastOrder = getEffectiveSortOrder(col.cards.length - 1)
-        newSortOrder = lastOrder + 1
-      } else {
-        const targetOrder = getEffectiveSortOrder(cardTargetIndex)
-        const nextOrder = getEffectiveSortOrder(cardTargetIndex + 1)
-        newSortOrder = (targetOrder + nextOrder) / 2
-      }
-    }
-
+    const newSortOrder = calculateSortOrder(col, cardTargetIndex, direction)
     ctx.repo.moveNode(cardToMove.node.id, col.node.id, newSortOrder)
   }
 
@@ -98,21 +137,7 @@ export function moveCardInColumn(
   refreshBoardState(ctx, { cardIndex: newCardIndex })
 
   if (movedCardIds.length > 1) {
-    const newSelected = new Set<SelectionKey>()
-    const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
-    const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
-    const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
-    const newCol = columns[ctx.layout.colIndex]
-    if (newCol) {
-      const cards = ctx.repo.getChildren(newCol.id)
-      for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
-        const c = cards[cardIdx]
-        if (c && movedCardIds.includes(c.id)) {
-          newSelected.add(makeSelectionKey(ctx.layout.colIndex, cardIdx, 0))
-        }
-      }
-    }
-    ctx.dispatch(actions.setMultiSelected(newSelected))
+    rebuildSelectionForMovedCards(ctx, ctx.layout.colIndex, movedCardIds)
   }
 }
 
@@ -160,23 +185,7 @@ export function moveCardToColumn(
     cardIndex: (col) => Math.min(expectedCardIndex, col?.cards.length || 0),
   })
 
-  if (movedCardIds.length > 0) {
-    const newSelected = new Set<SelectionKey>()
-    const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
-    const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
-    const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
-    const newCol = columns[targetColIndex]
-    if (newCol) {
-      const cards = ctx.repo.getChildren(newCol.id)
-      for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
-        const c = cards[cardIdx]
-        if (c && movedCardIds.includes(c.id)) {
-          newSelected.add(makeSelectionKey(targetColIndex, cardIdx, 0))
-        }
-      }
-    }
-    ctx.dispatch(actions.setMultiSelected(newSelected))
-  }
+  rebuildSelectionForMovedCards(ctx, targetColIndex, movedCardIds)
 }
 
 // =============================================================================

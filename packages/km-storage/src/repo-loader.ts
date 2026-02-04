@@ -21,7 +21,7 @@ import { createConditionalLogger } from "@beorn/logger"
 import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, statSync } from "fs"
 import { join, dirname, basename } from "path"
-import type { Event } from "@km/core"
+import type { Event, KNode } from "@km/core"
 import { createParsePool } from "./parse-pool.ts"
 import { runDeferredPipeline } from "./pipeline.ts"
 import { parseMarkdownWithLinks } from "@km/markdown"
@@ -564,9 +564,65 @@ function* discoverFromEvents(
 }
 
 // ============================================================================
+// SHARED INSERT HELPERS
+// ============================================================================
+
+/** SQL for the 26-column INSERT used by applyEvents, parseDeferredSequential, and parseStubFile. */
+const INSERT_NODE_SQL = `
+  INSERT INTO nodes (
+    id, type, parent_id, link_to, link_alias, parent_idx,
+    fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
+    task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+    content, content_hash, data,
+    created_at, updated_at, version
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`
+
+/**
+ * Run the 26-column INSERT for a KNode.
+ * Shared by parseDeferredSequential and parseStubFile where the source is a KNode.
+ */
+function insertNodeRow(
+  stmt: ReturnType<Database["prepare"]>,
+  node: KNode,
+  now: number,
+): void {
+  const data = node.data ?? {}
+  stmt.run(
+    node.id,
+    node.type,
+    node.parent_id ?? null,
+    node.link_to ?? null,
+    node.link_alias ?? null,
+    node.parent_idx ?? 0,
+    node.fs_path ?? null,
+    node.fs_ino ?? null,
+    node.fs_mtime ?? null,
+    node.name ?? null,
+    node.title ?? null,
+    node.md_pos ?? null,
+    node.md_line ?? null,
+    node.md_slug ?? null,
+    node.task_status ?? null,
+    node.task_mark ?? null,
+    node.assigned_to ?? null,
+    node.due_date ?? null,
+    node.scheduled_date ?? null,
+    node.priority ?? null,
+    node.content ?? null,
+    node.content_hash ?? null,
+    JSON.stringify(data),
+    now,
+    now,
+    node.version || "",
+  )
+}
+
+// ============================================================================
 // SHARED PIPELINE
 // ============================================================================
 
+// oxlint-disable-next-line complexity/max-cognitive -- Event application with inline SQL statements
 function* applyEvents(
   db: Database,
   events: Event[],
@@ -579,21 +635,7 @@ function* applyEvents(
 
   db.run("BEGIN IMMEDIATE")
   try {
-    const insertStmt = db.prepare(`
-      INSERT INTO nodes (
-        id, type, parent_id, link_to, link_alias, parent_idx,
-        fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
-        task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
-        content, content_hash, data,
-        created_at, updated_at, version
-      ) VALUES (
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?,
-        ?, ?, ?
-      )
-    `)
+    const insertStmt = db.prepare(INSERT_NODE_SQL)
 
     for (const [i, event] of events.entries()) {
       try {
@@ -723,6 +765,51 @@ async function parseDeferredWithPool(
 }
 
 /**
+ * Parse a single deferred file: read markdown, replace stub with full nodes.
+ * Returns the wikilinks found, or null if the stub was not found.
+ */
+function parseOneFile(
+  db: Database,
+  insertStmt: ReturnType<Database["prepare"]>,
+  deleteStmt: ReturnType<Database["prepare"]>,
+  deferredFile: DeferredFile,
+): PendingLink[] | null {
+  const { nodeId, fsPath } = deferredFile
+  const content = readFileSync(fsPath, "utf-8")
+  const { nodes, wikilinks } = parseMarkdownWithLinks(content, fsPath)
+
+  const stubRow = db
+    .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
+    .get(nodeId) as {
+    parent_id: string | null
+    parent_idx: number
+  } | null
+
+  if (!stubRow) {
+    log.debug?.(
+      `parseDeferredSequential: stub ${nodeId} not found, skipping`,
+    )
+    return null
+  }
+
+  deleteStmt.run(nodeId)
+
+  const fileNode = nodes[0]
+  if (fileNode?.type === "file") {
+    fileNode.id = nodeId
+    fileNode.parent_id = stubRow.parent_id
+    fileNode.parent_idx = stubRow.parent_idx
+  }
+
+  const now = Date.now()
+  for (const node of nodes) {
+    insertNodeRow(insertStmt, node, now)
+  }
+
+  return wikilinks
+}
+
+/**
  * Sequential parsing (original implementation, used for small file counts).
  */
 async function parseDeferredSequential(
@@ -740,85 +827,20 @@ async function parseDeferredSequential(
 
   try {
     const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?")
-    const insertStmt = db.prepare(`
-      INSERT INTO nodes (
-        id, type, parent_id, link_to, link_alias, parent_idx,
-        fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
-        task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
-        content, content_hash, data,
-        created_at, updated_at, version
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+    const insertStmt = db.prepare(INSERT_NODE_SQL)
 
-    for (const [i, { nodeId, fsPath }] of deferredFiles.entries()) {
+    for (const [i, deferredFile] of deferredFiles.entries()) {
       try {
-        const content = readFileSync(fsPath, "utf-8")
-        const { nodes, wikilinks } = parseMarkdownWithLinks(content, fsPath)
+        const links = parseOneFile(db, insertStmt, deleteStmt, deferredFile)
+        if (links === null) continue
 
-        const stubRow = db
-          .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
-          .get(nodeId) as {
-          parent_id: string | null
-          parent_idx: number
-        } | null
-
-        if (!stubRow) {
-          log.debug?.(
-            `parseDeferredSequential: stub ${nodeId} not found, skipping`,
-          )
-          continue
-        }
-
-        deleteStmt.run(nodeId)
-
-        const fileNode = nodes[0]
-        if (fileNode?.type === "file") {
-          fileNode.id = nodeId
-          fileNode.parent_id = stubRow.parent_id
-          fileNode.parent_idx = stubRow.parent_idx
-        }
-
-        const now = Date.now()
-        for (const node of nodes) {
-          const data = node.data ?? {}
-          insertStmt.run(
-            node.id,
-            node.type,
-            node.parent_id ?? null,
-            node.link_to ?? null,
-            node.link_alias ?? null,
-            node.parent_idx ?? 0,
-            node.fs_path ?? null,
-            node.fs_ino ?? null,
-            node.fs_mtime ?? null,
-            node.name ?? null,
-            node.title ?? null,
-            node.md_pos ?? null,
-            node.md_line ?? null,
-            node.md_slug ?? null,
-            node.task_status ?? null,
-            node.task_mark ?? null,
-            node.assigned_to ?? null,
-            node.due_date ?? null,
-            node.scheduled_date ?? null,
-            node.priority ?? null,
-            node.content ?? null,
-            node.content_hash ?? null,
-            JSON.stringify(data),
-            now,
-            now,
-            node.version || "",
-          )
-        }
-
-        for (const wikilink of wikilinks) {
+        for (const wikilink of links) {
           pendingLinks.push(wikilink)
         }
-
         parsed++
       } catch (err) {
         log.debug?.(
-          `parseDeferredSequential: error parsing ${fsPath}: ${String(err)}`,
+          `parseDeferredSequential: error parsing ${deferredFile.fsPath}: ${String(err)}`,
         )
       }
 
@@ -857,6 +879,7 @@ async function parseDeferredSequential(
  * @param fsPath - Filesystem path to the markdown file
  * @returns true if parsed successfully, false if stub not found or parse failed
  */
+// oxlint-disable-next-line complexity/max-cognitive -- Stub-to-full parse with INSERT — shares insertNodeRow helper
 export function parseStubFile(
   db: Database,
   nodeId: string,
@@ -900,47 +923,11 @@ export function parseStubFile(
         }
       }
 
-      const insertStmt = db.prepare(`
-        INSERT INTO nodes (
-          id, type, parent_id, link_to, link_alias, parent_idx,
-          fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
-          task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
-          content, content_hash, data,
-          created_at, updated_at, version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `)
+      const insertStmt = db.prepare(INSERT_NODE_SQL)
 
       const now = Date.now()
       for (const node of nodes) {
-        const data = node.data ?? {}
-        insertStmt.run(
-          node.id,
-          node.type,
-          node.parent_id ?? null,
-          node.link_to ?? null,
-          node.link_alias ?? null,
-          node.parent_idx ?? 0,
-          node.fs_path ?? null,
-          node.fs_ino ?? null,
-          node.fs_mtime ?? null,
-          node.name ?? null,
-          node.title ?? null,
-          node.md_pos ?? null,
-          node.md_line ?? null,
-          node.md_slug ?? null,
-          node.task_status ?? null,
-          node.task_mark ?? null,
-          node.assigned_to ?? null,
-          node.due_date ?? null,
-          node.scheduled_date ?? null,
-          node.priority ?? null,
-          node.content ?? null,
-          node.content_hash ?? null,
-          JSON.stringify(data),
-          now,
-          now,
-          node.version || "",
-        )
+        insertNodeRow(insertStmt, node, now)
       }
 
       db.run("COMMIT")

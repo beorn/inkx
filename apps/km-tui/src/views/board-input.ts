@@ -23,6 +23,7 @@ const perfLog = createConditionalLogger("km:perf")
  * Handle main keyboard input through command system
  * Returns true if key was handled
  */
+// oxlint-disable-next-line complexity/max-cognitive -- Keyboard routing with dialog/modal state guards
 export function handleBoardKeyInput(
   input: string,
   key: Key,

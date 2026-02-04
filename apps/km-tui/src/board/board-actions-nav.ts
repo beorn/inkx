@@ -8,7 +8,7 @@ import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { createConditionalLogger } from "@beorn/logger"
 import { getCardMidY } from "../card-positions.ts"
-import { isAtColumnHeader } from "../types.ts"
+import { type CardState, isAtColumnHeader } from "../types.ts"
 
 import {
   clearSelection,
@@ -32,6 +32,7 @@ const log = createConditionalLogger("km:tui:nav")
  * @param dir - "up" (k) or "down" (j)
  * @returns nodeId to select, or null if can't move
  */
+// oxlint-disable-next-line complexity/max-cognitive -- Navigation with fallback chains
 function handleHierarchicalNavigation(
   ctx: TUIContext,
   dir: "up" | "down",
@@ -110,274 +111,305 @@ function handleHierarchicalNavigation(
 
 /**
  * Handle cursor movement in any direction.
+ *
+ * Dispatches to per-mode handlers: outline, selection, horizontal,
+ * vertical (hierarchical), and tree-based navigation.
  */
 export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
-  const { state, layout, ui, dispatch, dispatchBoard, positionRegistry } = ctx
+  const { state, layout, ui, positionRegistry } = ctx
   const col = state.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
-  // Check for special modes first
+  // Outline mode sub-item navigation
   if (ui.inOutlineMode && (dir === "prev" || dir === "next")) {
-    // Outline mode sub-item navigation
-    if (dir === "prev" && ui.subIndex > 0) {
-      dispatch(actions.setSubIndex(ui.subIndex - 1))
+    return handleOutlineNav(ctx, dir, card)
+  }
+
+  // Vertical movement clears sticky Y
+  if (dir === "prev" || dir === "next") positionRegistry.clearStickyY()
+
+  // Selection range extension
+  if (ui.multiSelected.size > 0 && ui.selectionAnchor !== null) {
+    const result = handleSelectionNav(ctx, dir)
+    if (result) return result
+  }
+
+  // Horizontal (h/l)
+  if (dir === "left" || dir === "right") return handleHorizontalNav(ctx, dir)
+
+  // Hierarchical vertical (up/down)
+  if (dir === "up" || dir === "down") return handleVerticalNav(ctx, dir)
+
+  // Tree navigation (first, last, prev, next, in, out)
+  return handleTreeNav(ctx, dir)
+}
+
+/** Outline mode prev/next sub-item navigation. */
+function handleOutlineNav(
+  ctx: TUIContext,
+  dir: "prev" | "next",
+  card: CardState | undefined,
+): ActionResult {
+  const { ui, dispatch } = ctx
+
+  if (dir === "prev" && ui.subIndex > 0) {
+    dispatch(actions.setSubIndex(ui.subIndex - 1))
+    return ok()
+  }
+  if (dir === "next" && card) {
+    const maxIdx = ctx.countVisibleDescendants(
+      card.node,
+      0,
+      ui.maxOutlineDepth,
+      ui.foldedNodes,
+    )
+    if (ui.subIndex < maxIdx) {
+      dispatch(actions.setSubIndex(ui.subIndex + 1))
       return ok()
     }
-    if (dir === "next" && card) {
-      const maxIdx = ctx.countVisibleDescendants(
-        card.node,
-        0,
-        ui.maxOutlineDepth,
-        ui.foldedNodes,
+  }
+  return boundary(dir)
+}
+
+/** Handle navigation while shift-selection is active. Returns null to fall through. */
+function handleSelectionNav(ctx: TUIContext, dir: string): ActionResult | null {
+  const { state, layout, ui, dispatchBoard } = ctx
+  const col = state.columns[layout.colIndex]
+
+  if (dir === "prev" || dir === "next") {
+    // Vertical navigation with selection
+    const targetIdx =
+      dir === "prev"
+        ? Math.max(0, layout.cardIndex - 1)
+        : Math.min((col?.cards.length ?? 1) - 1, layout.cardIndex + 1)
+
+    if (targetIdx !== layout.cardIndex) {
+      const direction = dir === "prev" ? "prev" : "next"
+      const targetId = handleTreeNavigation(
+        direction as TreeDirection,
+        ctx.boardState,
+        ctx.repo,
       )
-      if (ui.subIndex < maxIdx) {
-        dispatch(actions.setSubIndex(ui.subIndex + 1))
+      if (targetId) {
+        dispatchBoard({ type: "SELECT", nodeId: targetId })
+        if (ui.selectionAnchor !== null) {
+          updateSelectionRange(ctx, layout.colIndex, targetIdx, 0)
+        }
         return ok()
       }
     }
     return boundary(dir)
   }
 
-  // Vertical movement (j/k) clears sticky Y
-  if (dir === "prev" || dir === "next") {
-    positionRegistry.clearStickyY()
-  }
-
-  // Selection range extension mode
-  const isShiftSelection =
-    ui.multiSelected.size > 0 && ui.selectionAnchor !== null
-  if (isShiftSelection) {
-    const verticalDirs = ["prev", "next"]
-    const horizontalDirs = ["left", "right"]
-
-    if (verticalDirs.includes(dir)) {
-      // Vertical navigation with selection
-      const targetIdx =
-        dir === "prev"
-          ? Math.max(0, layout.cardIndex - 1)
-          : Math.min((col?.cards.length ?? 1) - 1, layout.cardIndex + 1)
-
-      if (targetIdx !== layout.cardIndex) {
-        const direction = dir === "prev" ? "prev" : "next"
-        const targetId = handleTreeNavigation(
-          direction as TreeDirection,
-          ctx.boardState,
-          ctx.repo,
-        )
-        if (targetId) {
-          dispatchBoard({ type: "SELECT", nodeId: targetId })
-          if (ui.selectionAnchor !== null) {
-            updateSelectionRange(ctx, layout.colIndex, targetIdx, 0)
-          }
-          return ok()
-        }
-      }
-      return boundary(dir)
-    }
-
-    if (horizontalDirs.includes(dir)) {
-      // Horizontal: clear selection and move
-      clearSelection(ctx)
-    }
-  }
-
-  // Horizontal movement (h/l) uses visual Y coordinates for cross-column navigation
-  // Per docs/06-ui.md: curswantY = head midpoint, find card whose box intersects
   if (dir === "left" || dir === "right") {
-    // At board level, h/l should not move - board title spans full width
-    const { cursorNodeId, rootId } = ctx.boardState
-    if (cursorNodeId === rootId) {
-      return boundary(dir)
-    }
+    // Horizontal: clear selection and fall through to horizontal handler
+    clearSelection(ctx)
+  }
 
-    // Find next non-virtual column, skipping body columns
-    let targetColIndex = layout.colIndex
-    const step = dir === "left" ? -1 : 1
-    do {
-      targetColIndex += step
-    } while (
-      targetColIndex >= 0 &&
-      targetColIndex < state.columns.length &&
-      state.columns[targetColIndex]?.isVirtual
-    )
+  return null
+}
 
-    // Clamp to valid range
-    targetColIndex = Math.max(
-      0,
-      Math.min(state.columns.length - 1, targetColIndex),
-    )
+/** Horizontal (h/l) cross-column navigation with stickyY. */
+// oxlint-disable-next-line complexity/max-cognitive -- Extracted from handleCursorMove — residual complexity from navigation logic
+function handleHorizontalNav(
+  ctx: TUIContext,
+  dir: "left" | "right",
+): ActionResult {
+  const { state, layout, dispatchBoard, positionRegistry } = ctx
 
-    // No movement possible (or landed on virtual column at boundary)
-    if (
-      targetColIndex === layout.colIndex ||
-      state.columns[targetColIndex]?.isVirtual
-    ) {
-      return boundary(dir)
-    }
+  // At board level, h/l should not move - board title spans full width
+  const { cursorNodeId, rootId } = ctx.boardState
+  if (cursorNodeId === rootId) {
+    return boundary(dir)
+  }
 
-    const targetCol = state.columns[targetColIndex]
+  // Find next non-virtual column, skipping body columns
+  let targetColIndex = layout.colIndex
+  const step = dir === "left" ? -1 : 1
+  do {
+    targetColIndex += step
+  } while (
+    targetColIndex >= 0 &&
+    targetColIndex < state.columns.length &&
+    state.columns[targetColIndex]?.isVirtual
+  )
 
-    // Capture stickyY BEFORE checking empty columns, so it persists across empty columns
-    // This is the key fix: we need to remember Y position even when passing through empty columns
-    if (layout.cardIndex >= 0 && positionRegistry.getStickyY() === null) {
-      const hasCurrentPositions = positionRegistry.hasCardsInColumn(
-        layout.colIndex,
-      )
-      if (hasCurrentPositions) {
-        const currentLayoutOpt = positionRegistry.getCardOptional(
-          layout.colIndex,
-          layout.cardIndex,
-        )
-        if (currentLayoutOpt) {
-          const curswantY = getCardMidY(currentLayoutOpt.layout)
-          log.debug?.(`h/l: capturing stickyY=${curswantY} before leaving card`)
-          positionRegistry.setStickyY(curswantY)
-        }
-      }
-    }
+  // Clamp to valid range
+  targetColIndex = Math.max(
+    0,
+    Math.min(state.columns.length - 1, targetColIndex),
+  )
 
-    if (!targetCol || targetCol.cards.length === 0) {
-      // Target column is empty - move to column level but KEEP stickyY
-      log.debug?.(
-        `h/l: target column ${targetColIndex} empty, moving to header but keeping stickyY=${positionRegistry.getStickyY()}`,
-      )
-      dispatchBoard({ type: "SELECT", nodeId: targetCol?.node.id ?? null })
-      return ok()
-    }
+  // No movement possible (or landed on virtual column at boundary)
+  if (
+    targetColIndex === layout.colIndex ||
+    state.columns[targetColIndex]?.isVirtual
+  ) {
+    return boundary(dir)
+  }
 
-    // If at column level (header selected), use stickyY to find card if available
-    if (isAtColumnHeader(layout.cardIndex)) {
-      const stickyY = positionRegistry.getStickyY()
-      if (
-        stickyY !== null &&
-        positionRegistry.hasCardsInColumn(targetColIndex)
-      ) {
-        // We have a sticky Y from before - use it to find the right card
-        const targetCardIndex = positionRegistry.findCardAtYVisual(
-          targetColIndex,
-          stickyY,
-        )
-        const finalCardIndex = Math.max(0, targetCardIndex)
-        log.debug?.(
-          `h/l from column: using stickyY=${stickyY} -> card ${finalCardIndex}`,
-        )
-        const targetCard = targetCol.cards[finalCardIndex]
-        if (targetCard) {
-          dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
-          return ok()
-        }
-      }
-      // No stickyY or can't find card - move to column header
-      dispatchBoard({ type: "SELECT", nodeId: targetCol.node.id })
-      return ok()
-    }
+  const targetCol = state.columns[targetColIndex]
 
-    // Position-based navigation: Check if we have registered positions
-    // Positions may be missing during initialization, in test environments,
-    // or if columns are off-screen (virtualized).
-    // Fallback: navigate to first card in target column if positions unavailable.
+  // Capture stickyY BEFORE checking empty columns, so it persists across empty columns
+  // This is the key fix: we need to remember Y position even when passing through empty columns
+  if (layout.cardIndex >= 0 && positionRegistry.getStickyY() === null) {
     const hasCurrentPositions = positionRegistry.hasCardsInColumn(
       layout.colIndex,
     )
-    const hasTargetPositions = positionRegistry.hasCardsInColumn(targetColIndex)
-
-    log.debug?.(
-      `h/l nav: curCol=${layout.colIndex} hasCur=${hasCurrentPositions}, targetCol=${targetColIndex} hasTgt=${hasTargetPositions}`,
-    )
-
-    // Fallback when positions aren't available: go to first card in target column
-    if (!hasTargetPositions) {
-      log.debug?.(
-        `h/l nav: target column ${targetColIndex} has no positions, falling back to first card. Registry:\n${positionRegistry.dump()}`,
-      )
-      const firstCard = targetCol.cards[0]
-      if (firstCard) {
-        dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
-        return ok()
-      }
-      return boundary(dir)
-    }
-
-    if (!hasCurrentPositions) {
-      log.debug?.(
-        `h/l nav: current column ${layout.colIndex} has no positions, can't get curswantY. Falling back to first card. Registry:\n${positionRegistry.dump()}`,
-      )
-      const firstCard = targetCol.cards[0]
-      if (firstCard) {
-        dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
-        return ok()
-      }
-      return boundary(dir)
-    }
-
-    // Get or calculate curswantY (head midpoint of current card)
-    let curswantY = positionRegistry.getStickyY()
-    if (curswantY === null) {
-      // First h/l move - get head midpoint of current card from measured position
+    if (hasCurrentPositions) {
       const currentLayoutOpt = positionRegistry.getCardOptional(
         layout.colIndex,
         layout.cardIndex,
       )
-      if (!currentLayoutOpt) {
-        log.debug?.(
-          `h/l: current card col=${layout.colIndex} idx=${layout.cardIndex} NOT in registry. Registry state:\n${positionRegistry.dump()}`,
-        )
-        // Fallback: go to first card
-        const firstCard = targetCol.cards[0]
-        if (firstCard) {
-          dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
-          return ok()
-        }
-        return boundary(dir)
+      if (currentLayoutOpt) {
+        const curswantY = getCardMidY(currentLayoutOpt.layout)
+        log.debug?.(`h/l: capturing stickyY=${curswantY} before leaving card`)
+        positionRegistry.setStickyY(curswantY)
       }
-      log.debug?.(
-        `h/l: getting curswantY from current card col=${layout.colIndex} idx=${layout.cardIndex} layout=${JSON.stringify(currentLayoutOpt.layout)}`,
+    }
+  }
+
+  if (!targetCol || targetCol.cards.length === 0) {
+    // Target column is empty - move to column level but KEEP stickyY
+    log.debug?.(
+      `h/l: target column ${targetColIndex} empty, moving to header but keeping stickyY=${positionRegistry.getStickyY()}`,
+    )
+    dispatchBoard({ type: "SELECT", nodeId: targetCol?.node.id ?? null })
+    return ok()
+  }
+
+  // If at column level (header selected), use stickyY to find card if available
+  if (isAtColumnHeader(layout.cardIndex)) {
+    const stickyY = positionRegistry.getStickyY()
+    if (stickyY !== null && positionRegistry.hasCardsInColumn(targetColIndex)) {
+      // We have a sticky Y from before - use it to find the right card
+      const targetCardIndex = positionRegistry.findCardAtYVisual(
+        targetColIndex,
+        stickyY,
       )
-      curswantY = getCardMidY(currentLayoutOpt.layout)
-      log.debug?.(`h/l: computed curswantY=${curswantY}`)
-      positionRegistry.setStickyY(curswantY)
-    } else {
-      log.debug?.(`h/l: using sticky curswantY=${curswantY}`)
+      const finalCardIndex = Math.max(0, targetCardIndex)
+      log.debug?.(
+        `h/l from column: using stickyY=${stickyY} -> card ${finalCardIndex}`,
+      )
+      const targetCard = targetCol.cards[finalCardIndex]
+      if (targetCard) {
+        dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
+        return ok()
+      }
     }
+    // No stickyY or can't find card - move to column header
+    dispatchBoard({ type: "SELECT", nodeId: targetCol.node.id })
+    return ok()
+  }
 
-    // Find card in target column whose box intersects curswantY (or closest)
-    const targetCardIndex = positionRegistry.findCardAtYVisual(
-      targetColIndex,
-      curswantY,
-    )
+  // Position-based navigation: Check if we have registered positions
+  // Positions may be missing during initialization, in test environments,
+  // or if columns are off-screen (virtualized).
+  // Fallback: navigate to first card in target column if positions unavailable.
+  const hasCurrentPositions = positionRegistry.hasCardsInColumn(layout.colIndex)
+  const hasTargetPositions = positionRegistry.hasCardsInColumn(targetColIndex)
 
+  log.debug?.(
+    `h/l nav: curCol=${layout.colIndex} hasCur=${hasCurrentPositions}, targetCol=${targetColIndex} hasTgt=${hasTargetPositions}`,
+  )
+
+  // Fallback when positions aren't available: go to first card in target column
+  if (!hasTargetPositions) {
     log.debug?.(
-      `h/l findCardAtYVisual: targetColIndex=${targetColIndex} curswantY=${curswantY} -> targetCardIndex=${targetCardIndex}`,
+      `h/l nav: target column ${targetColIndex} has no positions, falling back to first card. Registry:\n${positionRegistry.dump()}`,
     )
-
-    // targetCardIndex can be -1 if curswantY is above all cards (land on header)
-    // For now, clamp to first card (column header navigation is separate)
-    const finalCardIndex = Math.max(0, targetCardIndex)
-
-    log.debug?.(
-      `h/l visual: curswantY=${curswantY}, targetCol=${targetColIndex}, targetCard=${finalCardIndex}`,
-    )
-
-    const targetCard = targetCol.cards[finalCardIndex]
-    if (targetCard) {
-      dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
+    const firstCard = targetCol.cards[0]
+    if (firstCard) {
+      dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
       return ok()
     }
     return boundary(dir)
   }
 
-  // Hierarchical vertical navigation (j/k)
-  if (dir === "up" || dir === "down") {
-    positionRegistry.clearStickyY()
-    const targetId = handleHierarchicalNavigation(ctx, dir)
-    if (targetId !== null) {
-      dispatchBoard({ type: "SELECT", nodeId: targetId })
+  if (!hasCurrentPositions) {
+    log.debug?.(
+      `h/l nav: current column ${layout.colIndex} has no positions, can't get curswantY. Falling back to first card. Registry:\n${positionRegistry.dump()}`,
+    )
+    const firstCard = targetCol.cards[0]
+    if (firstCard) {
+      dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
       return ok()
     }
     return boundary(dir)
   }
 
-  // Normal cursor movement (first, last, etc.)
+  // Get or calculate curswantY (head midpoint of current card)
+  let curswantY = positionRegistry.getStickyY()
+  if (curswantY === null) {
+    // First h/l move - get head midpoint of current card from measured position
+    const currentLayoutOpt = positionRegistry.getCardOptional(
+      layout.colIndex,
+      layout.cardIndex,
+    )
+    if (!currentLayoutOpt) {
+      log.debug?.(
+        `h/l: current card col=${layout.colIndex} idx=${layout.cardIndex} NOT in registry. Registry state:\n${positionRegistry.dump()}`,
+      )
+      // Fallback: go to first card
+      const firstCard = targetCol.cards[0]
+      if (firstCard) {
+        dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
+        return ok()
+      }
+      return boundary(dir)
+    }
+    log.debug?.(
+      `h/l: getting curswantY from current card col=${layout.colIndex} idx=${layout.cardIndex} layout=${JSON.stringify(currentLayoutOpt.layout)}`,
+    )
+    curswantY = getCardMidY(currentLayoutOpt.layout)
+    log.debug?.(`h/l: computed curswantY=${curswantY}`)
+    positionRegistry.setStickyY(curswantY)
+  } else {
+    log.debug?.(`h/l: using sticky curswantY=${curswantY}`)
+  }
+
+  // Find card in target column whose box intersects curswantY (or closest)
+  const targetCardIndex = positionRegistry.findCardAtYVisual(
+    targetColIndex,
+    curswantY,
+  )
+
+  log.debug?.(
+    `h/l findCardAtYVisual: targetColIndex=${targetColIndex} curswantY=${curswantY} -> targetCardIndex=${targetCardIndex}`,
+  )
+
+  // targetCardIndex can be -1 if curswantY is above all cards (land on header)
+  // For now, clamp to first card (column header navigation is separate)
+  const finalCardIndex = Math.max(0, targetCardIndex)
+
+  log.debug?.(
+    `h/l visual: curswantY=${curswantY}, targetCol=${targetColIndex}, targetCard=${finalCardIndex}`,
+  )
+
+  const targetCard = targetCol.cards[finalCardIndex]
+  if (targetCard) {
+    dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
+    return ok()
+  }
+  return boundary(dir)
+}
+
+/** Hierarchical vertical navigation (j/k up/down). */
+function handleVerticalNav(ctx: TUIContext, dir: "up" | "down"): ActionResult {
+  const { dispatchBoard, positionRegistry } = ctx
+
+  positionRegistry.clearStickyY()
+  const targetId = handleHierarchicalNavigation(ctx, dir)
+  if (targetId !== null) {
+    dispatchBoard({ type: "SELECT", nodeId: targetId })
+    return ok()
+  }
+  return boundary(dir)
+}
+
+/** Default tree navigation (first, last, prev, next, in, out). */
+function handleTreeNav(ctx: TUIContext, dir: string): ActionResult {
+  const { dispatchBoard } = ctx
   const treeDir = dir as TreeDirection
   const targetId = handleTreeNavigation(treeDir, ctx.boardState, ctx.repo)
   if (targetId && targetId !== ctx.boardState.cursorNodeId) {

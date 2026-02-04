@@ -14,6 +14,14 @@ import { loadRepo } from "../load-repo.ts"
 import type { KNode } from "@km/core"
 import { formatStatus, formatNodeBrief } from "@km/tui"
 
+/** Options parsed from the show command flags */
+interface ShowOptions {
+  children?: boolean
+  tree?: boolean
+  links?: boolean
+  json?: boolean
+}
+
 export const showCommand = new Command("show")
   .description("Show node details")
   .argument("<id>", "Node ID, path, or filename")
@@ -42,140 +50,108 @@ export const showCommand = new Command("show")
     }
 
     if (options.json) {
-      if (options.tree) {
-        console.log(JSON.stringify(repo.getSubtree(node.id), null, 2))
-      } else if (options.children) {
-        console.log(
-          JSON.stringify(
-            { node, children: repo.getChildren(node.id) },
-            null,
-            2,
-          ),
-        )
-      } else {
-        console.log(JSON.stringify(node, null, 2))
-      }
+      outputJson(node, options, repo)
       return
     }
 
-    // Display node details
-    console.log(term.bold("ID:"), node.id)
-    console.log(term.bold("Type:"), node.type)
-
-    if (node.fs_path) {
-      console.log(term.bold("Path:"), node.fs_path)
-    }
-
-    // Title can be on node.title (in-memory) or node.data.title (from DB)
-    const title = node.title || (node.data?.title as string | undefined)
-    if (title) {
-      console.log(term.bold("Title:"), title)
-    }
-
-    if (node.content && node.content !== title) {
-      console.log(term.bold("Content:"), node.content)
-    }
-
-    if (node.task_status) {
-      console.log(term.bold("Status:"), formatStatus(node.task_status))
-    }
-
-    if (node.due_date) {
-      console.log(term.bold("Due:"), node.due_date)
-    }
-
-    if (node.priority) {
-      console.log(term.bold("Priority:"), node.priority)
-    }
-
-    if (node.assigned_to) {
-      console.log(term.bold("Assigned:"), node.assigned_to)
-    }
-
-    if (node.parent_id) {
-      console.log(term.bold("Parent:"), node.parent_id.slice(0, 8))
-    }
-
-    console.log(term.bold("Created:"), new Date(node.created_at).toISOString())
-    console.log(term.bold("Updated:"), new Date(node.updated_at).toISOString())
-
-    // Display refs from data
-    const data = node.data as Record<string, unknown>
-    if (
-      data.mentions &&
-      Array.isArray(data.mentions) &&
-      data.mentions.length > 0
-    ) {
-      console.log(
-        term.bold("Refs:"),
-        (data.mentions as string[]).map((m) => term.magenta(`@${m}`)).join(" "),
-      )
-    }
-    if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
-      console.log(
-        term.bold("Tags:"),
-        (data.tags as string[]).map((t) => term.cyan(`#${t}`)).join(" "),
-      )
-    }
-    if (
-      data.projects &&
-      Array.isArray(data.projects) &&
-      data.projects.length > 0
-    ) {
-      console.log(
-        term.bold("Projects:"),
-        (data.projects as string[]).map((p) => term.yellow(`+${p}`)).join(" "),
-      )
-    }
-
-    // Show other data if present
-    const otherData = { ...data }
-    delete otherData.mentions
-    delete otherData.tags
-    delete otherData.projects
-    if (Object.keys(otherData).length > 0) {
-      console.log(term.bold("Data:"), JSON.stringify(otherData, null, 2))
-    }
-
-    // Children
-    if (options.children || options.tree) {
-      const children = options.tree
-        ? repo.getSubtree(node.id).slice(1) // Exclude self
-        : repo.getChildren(node.id)
-
-      if (children.length > 0) {
-        console.log(term.bold("\nChildren:"))
-        for (const child of children) {
-          const prefix = options.tree ? getIndent(child, node.id) : "  "
-          console.log(`${prefix}${formatNodeBrief(child)}`)
-        }
-      }
-    }
-
-    // Links
-    if (options.links) {
-      const outgoing = repo.getOutgoingLinks(node.id)
-      const backlinks = repo.getBacklinks(node.id)
-
-      if (outgoing.length > 0) {
-        console.log(term.bold("\nOutgoing links:"))
-        for (const link of outgoing) {
-          console.log(`  ${formatLink(link, repo)}`)
-        }
-      }
-
-      if (backlinks.length > 0) {
-        console.log(term.bold("\nBacklinks:"))
-        for (const link of backlinks) {
-          console.log(`  ${formatBacklink(link, repo)}`)
-        }
-      }
-
-      if (outgoing.length === 0 && backlinks.length === 0) {
-        console.log(term.dim("\nNo links found."))
-      }
-    }
+    displayFields(node)
+    displayChildren(node, options, repo)
+    displayLinks(node, options, repo)
   })
+
+/**
+ * Output node data as JSON based on the requested mode (tree, children, or single node)
+ */
+function outputJson(node: KNode, options: ShowOptions, repo: Repo): void {
+  if (options.tree) {
+    console.log(JSON.stringify(repo.getSubtree(node.id), null, 2))
+  } else if (options.children) {
+    console.log(
+      JSON.stringify(
+        { node, children: repo.getChildren(node.id) },
+        null,
+        2,
+      ),
+    )
+  } else {
+    console.log(JSON.stringify(node, null, 2))
+  }
+}
+
+/**
+ * Display node fields, refs, and other data
+ */
+function displayFields(node: KNode): void {
+  for (const f of DISPLAY_FIELDS) {
+    const val = f.get?.(node) ?? (node as Record<string, unknown>)[f.key]
+    if (val !== undefined && val !== null) {
+      console.log(term.bold(`${f.label}:`), val)
+    }
+  }
+
+  displayRefs(node)
+
+  // Show other data if present (excluding already-displayed ref fields)
+  const data = node.data as Record<string, unknown>
+  const otherData = { ...data }
+  delete otherData.mentions
+  delete otherData.tags
+  delete otherData.projects
+  if (Object.keys(otherData).length > 0) {
+    console.log(term.bold("Data:"), JSON.stringify(otherData, null, 2))
+  }
+}
+
+/**
+ * Display children or subtree when requested
+ */
+function displayChildren(
+  node: KNode,
+  options: ShowOptions,
+  repo: Repo,
+): void {
+  if (!options.children && !options.tree) return
+
+  const children = options.tree
+    ? repo.getSubtree(node.id).slice(1) // Exclude self
+    : repo.getChildren(node.id)
+
+  if (children.length === 0) return
+
+  console.log(term.bold("\nChildren:"))
+  for (const child of children) {
+    const prefix = options.tree ? getIndent(child, node.id) : "  "
+    console.log(`${prefix}${formatNodeBrief(child)}`)
+  }
+}
+
+/**
+ * Display outgoing links and backlinks when requested
+ */
+function displayLinks(node: KNode, options: ShowOptions, repo: Repo): void {
+  if (!options.links) return
+
+  const outgoing = repo.getOutgoingLinks(node.id)
+  const backlinks = repo.getBacklinks(node.id)
+
+  if (outgoing.length > 0) {
+    console.log(term.bold("\nOutgoing links:"))
+    for (const link of outgoing) {
+      console.log(`  ${formatLink(link, repo)}`)
+    }
+  }
+
+  if (backlinks.length > 0) {
+    console.log(term.bold("\nBacklinks:"))
+    for (const link of backlinks) {
+      console.log(`  ${formatBacklink(link, repo)}`)
+    }
+  }
+
+  if (outgoing.length === 0 && backlinks.length === 0) {
+    console.log(term.dim("\nNo links found."))
+  }
+}
 
 /**
  * Get indentation for tree display
@@ -248,4 +224,88 @@ function formatBacklink(link: Link, repo: Repo): string {
   }
 
   return parts.join(" ")
+}
+
+/**
+ * Field display configuration for node details
+ */
+interface DisplayField {
+  key: string
+  label: string
+  get?: (node: KNode) => unknown
+}
+
+const DISPLAY_FIELDS: DisplayField[] = [
+  { key: "id", label: "ID" },
+  { key: "type", label: "Type" },
+  { key: "fs_path", label: "Path" },
+  {
+    key: "title",
+    label: "Title",
+    get: (n) => n.title || (n.data?.title as string | undefined),
+  },
+  {
+    key: "content",
+    label: "Content",
+    get: (n) => {
+      const title = n.title || (n.data?.title as string | undefined)
+      return n.content && n.content !== title ? n.content : undefined
+    },
+  },
+  {
+    key: "task_status",
+    label: "Status",
+    get: (n) => (n.task_status ? formatStatus(n.task_status) : undefined),
+  },
+  { key: "due_date", label: "Due" },
+  { key: "priority", label: "Priority" },
+  { key: "assigned_to", label: "Assigned" },
+  {
+    key: "parent_id",
+    label: "Parent",
+    get: (n) => (n.parent_id ? n.parent_id.slice(0, 8) : undefined),
+  },
+  {
+    key: "created_at",
+    label: "Created",
+    get: (n) => new Date(n.created_at).toISOString(),
+  },
+  {
+    key: "updated_at",
+    label: "Updated",
+    get: (n) => new Date(n.updated_at).toISOString(),
+  },
+]
+
+/**
+ * Display refs (mentions, tags, projects) from node data
+ */
+function displayRefs(node: KNode): void {
+  const data = node.data as Record<string, unknown>
+  if (
+    data.mentions &&
+    Array.isArray(data.mentions) &&
+    data.mentions.length > 0
+  ) {
+    console.log(
+      term.bold("Refs:"),
+      (data.mentions as string[]).map((m) => term.magenta(`@${m}`)).join(" "),
+    )
+  }
+  if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
+    console.log(
+      term.bold("Tags:"),
+      (data.tags as string[]).map((t) => term.cyan(`#${t}`)).join(" "),
+    )
+  }
+  if (
+    data.projects &&
+    Array.isArray(data.projects) &&
+    data.projects.length > 0
+  ) {
+    console.log(
+      term.bold("Projects:"),
+      (data.projects as string[]).map((p) => term.yellow(`+${p}`)).join(" "),
+    )
+  }
 }

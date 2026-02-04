@@ -345,12 +345,11 @@ function calculateVariableHeightScrollState<T>(
   const safeSelectedIndex = Math.min(selectedIndex, items.length - 1)
   const selectedHeight = heights[safeSelectedIndex] ?? 1
   let heightBefore = 0
-  for (let i = 0; i < safeSelectedIndex; i++) {
-    heightBefore += heights[i] ?? 0
-  }
+  for (let i = 0; i < safeSelectedIndex; i++) heightBefore += heights[i] ?? 0
 
   const targetScrollTop = heightBefore - (availableHeight - selectedHeight) / 2
 
+  // Find initial scroll offset
   let scrollOffset = 0
   let cumulativeHeight = 0
   for (let i = 0; i < items.length; i++) {
@@ -366,39 +365,30 @@ function calculateVariableHeightScrollState<T>(
   const willShowTop = scrollOffset > 0
   let effectiveHeight = availableHeight - (willShowTop ? indicatorHeight : 0)
 
-  let usedHeight = 0
-  let endIndex = scrollOffset
-  for (let i = scrollOffset; i < items.length; i++) {
-    const itemH = heights[i] ?? 1
-    const needsBottomIndicator = i + 1 < items.length
-    const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0
+  let { endIndex } = fillViewport(
+    heights,
+    scrollOffset,
+    items.length,
+    effectiveHeight,
+    indicatorHeight,
+  )
 
-    if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
-      usedHeight += itemH
-      endIndex = i + 1
-    } else {
-      break
-    }
-  }
-
+  // Selected above viewport
   if (safeSelectedIndex < scrollOffset) {
     scrollOffset = safeSelectedIndex
-    usedHeight = 0
-    endIndex = scrollOffset
     effectiveHeight = availableHeight - (scrollOffset > 0 ? indicatorHeight : 0)
-    for (let i = scrollOffset; i < items.length; i++) {
-      const itemH = heights[i] ?? 1
-      const needsBottomIndicator = i + 1 < items.length
-      const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0
-      if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
-        usedHeight += itemH
-        endIndex = i + 1
-      } else {
-        break
-      }
-    }
-  } else if (safeSelectedIndex >= endIndex) {
-    usedHeight = heights[safeSelectedIndex] ?? 1
+    ;({ endIndex } = fillViewport(
+      heights,
+      scrollOffset,
+      items.length,
+      effectiveHeight,
+      indicatorHeight,
+    ))
+  }
+  // Selected below viewport
+  else if (safeSelectedIndex >= endIndex) {
+    // Walk backwards from selected to find scrollOffset
+    let usedHeight = heights[safeSelectedIndex] ?? 1
     scrollOffset = safeSelectedIndex
     const hasBottom = safeSelectedIndex + 1 < items.length
     effectiveHeight =
@@ -412,20 +402,14 @@ function calculateVariableHeightScrollState<T>(
         break
       }
     }
-    usedHeight = 0
-    endIndex = scrollOffset
     effectiveHeight = availableHeight - (scrollOffset > 0 ? indicatorHeight : 0)
-    for (let i = scrollOffset; i < items.length; i++) {
-      const itemH = heights[i] ?? 1
-      const needsBottomIndicator = i + 1 < items.length
-      const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0
-      if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
-        usedHeight += itemH
-        endIndex = i + 1
-      } else {
-        break
-      }
-    }
+    ;({ endIndex } = fillViewport(
+      heights,
+      scrollOffset,
+      items.length,
+      effectiveHeight,
+      indicatorHeight,
+    ))
   }
 
   const visible = items.slice(scrollOffset, endIndex).map((item, i) => ({
@@ -803,4 +787,36 @@ export function createLayoutComponents(fw: Framework) {
     useTruncatedText,
     useScrollState,
   }
+}
+
+// =============================================================================
+// Internal Helpers
+// =============================================================================
+
+/**
+ * Fill the viewport starting from startIndex, reserving space for bottom
+ * overflow indicators when more items follow. Used by variable-height scroll
+ * calculation to avoid duplicating the same forward-fill loop.
+ */
+function fillViewport(
+  heights: number[],
+  startIndex: number,
+  totalItems: number,
+  effectiveHeight: number,
+  indicatorHeight: number,
+): { endIndex: number; usedHeight: number } {
+  let usedHeight = 0
+  let endIndex = startIndex
+  for (let i = startIndex; i < totalItems; i++) {
+    const itemH = heights[i] ?? 1
+    const needsBottomIndicator = i + 1 < totalItems
+    const reserveForBottom = needsBottomIndicator ? indicatorHeight : 0
+    if (usedHeight + itemH <= effectiveHeight - reserveForBottom) {
+      usedHeight += itemH
+      endIndex = i + 1
+    } else {
+      break
+    }
+  }
+  return { endIndex, usedHeight }
 }

@@ -38,6 +38,7 @@ function makeStructuralKey(node: KNode): string {
  *
  * Returns changes and a map from new IDs to existing IDs (for link remapping).
  */
+// oxlint-disable-next-line complexity/max-cognitive -- Field comparison refactored with arrays — residual complexity
 export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const changes: NodeChange[] = []
 
@@ -88,28 +89,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
       idMap.set(node.id, existingNode.id)
 
       // Check for changes
-      const nodeChanges: Record<string, unknown> = {}
-
-      if (node.content !== existingNode.content) {
-        nodeChanges.content = node.content
-      }
-      if (node.task_status !== existingNode.task_status) {
-        nodeChanges.task_status = node.task_status
-      }
-      if (node.task_mark !== existingNode.task_mark) {
-        nodeChanges.task_mark = node.task_mark
-      }
-      // Compare data field for mentions, tags, projects changes
-      const newData = JSON.stringify(node.data ?? {})
-      const existingData = JSON.stringify(existingNode.data ?? {})
-      if (newData !== existingData) {
-        nodeChanges.data = node.data
-      }
-      // Update md_pos since it may have shifted
-      if (node.md_pos !== existingNode.md_pos) {
-        nodeChanges.md_pos = node.md_pos
-      }
-
+      const nodeChanges = diffNodeFields(existingNode, node, CHILD_DIFF_FIELDS)
       if (Object.keys(nodeChanges).length > 0) {
         changes.push({
           type: "updated",
@@ -124,18 +104,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
 
   // Handle file node updates
   if (existingFile && newFile) {
-    const nodeChanges: Record<string, unknown> = {}
-    if (newFile.content !== existingFile.content) {
-      nodeChanges.content = newFile.content
-    }
-    if (newFile.title !== existingFile.title) {
-      nodeChanges.title = newFile.title
-    }
-    const newData = JSON.stringify(newFile.data ?? {})
-    const existingData = JSON.stringify(existingFile.data ?? {})
-    if (newData !== existingData) {
-      nodeChanges.data = newFile.data
-    }
+    const nodeChanges = diffNodeFields(existingFile, newFile, FILE_DIFF_FIELDS)
     if (Object.keys(nodeChanges).length > 0) {
       changes.push({
         type: "updated",
@@ -159,4 +128,41 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   }
 
   return { changes, idMap }
+}
+
+/** Fields to compare for child nodes */
+const CHILD_DIFF_FIELDS = [
+  "content",
+  "task_status",
+  "task_mark",
+  "md_pos",
+] as const
+
+/** Fields to compare for file nodes */
+const FILE_DIFF_FIELDS = ["content", "title"] as const
+
+/**
+ * Compare specific fields between two nodes and return a changes record.
+ * Always compares `data` via JSON to handle nested objects.
+ */
+function diffNodeFields(
+  existing: KNode,
+  newNode: KNode,
+  fields: readonly string[],
+): Record<string, unknown> {
+  const changes: Record<string, unknown> = {}
+  for (const field of fields) {
+    const existingVal = (existing as Record<string, unknown>)[field]
+    const newVal = (newNode as Record<string, unknown>)[field]
+    if (newVal !== existingVal) {
+      changes[field] = newVal
+    }
+  }
+  // Always compare data via JSON (handles nested objects)
+  const newData = JSON.stringify(newNode.data ?? {})
+  const existingData = JSON.stringify(existing.data ?? {})
+  if (newData !== existingData) {
+    changes.data = newNode.data
+  }
+  return changes
 }

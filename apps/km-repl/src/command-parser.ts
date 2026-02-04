@@ -272,308 +272,10 @@ export function parseCommand(input: string): ParseResult {
   }
 
   // Parameterized commands
-  switch (cmd) {
-    // log [n] - show last n actions (default: all)
-    case "log": {
-      const countArg = args[0]
-      if (countArg) {
-        const count = parseInt(countArg, 10)
-        if (isNaN(count) || count < 1) {
-          return { ok: false, error: "log count must be a positive number" }
-        }
-        return { ok: true, command: { type: "LOG", count } }
-      }
-      return { ok: true, command: { type: "LOG" } }
-    }
+  const handler = PARAM_COMMANDS[cmd]
+  if (handler) return handler(args)
 
-    // key <keyspec> - raw key input
-    // Supports: key j, key esc, key enter, key "jjk"
-    case "key": {
-      if (args.length === 0) {
-        return { ok: false, error: "key command requires a key argument" }
-      }
-      const keySpec = args.join(" ")
-
-      // Check if it's a quoted string: key "jjk"
-      if (
-        (keySpec.startsWith('"') && keySpec.endsWith('"')) ||
-        (keySpec.startsWith("'") && keySpec.endsWith("'"))
-      ) {
-        const keys = parseQuotedString(keySpec)
-        if (keys && keys.length > 0) {
-          return { ok: false, error: `KEYS:${keys.join(",")}` }
-        }
-        return { ok: false, error: `Invalid key sequence: ${keySpec}` }
-      }
-
-      // Check if it's a special key name (esc, enter, tab, etc.)
-      const specialKey = SPECIAL_KEYS[keySpec.toLowerCase()]
-      if (specialKey) {
-        return { ok: false, error: `KEY:${specialKey}` }
-      }
-
-      // Single character or use parseKeySpec for <Name> format
-      const key = parseKeySpec(keySpec)
-      if (!key) {
-        return { ok: false, error: `Invalid key specification: ${keySpec}` }
-      }
-      return { ok: false, error: `KEY:${key}` }
-    }
-
-    // toggle_fold <nodeId>
-    case "toggle_fold": {
-      const nodeId = args[0]
-      if (!nodeId) {
-        return { ok: false, error: "toggle_fold requires a nodeId argument" }
-      }
-      return { ok: true, action: { type: "TOGGLE_FOLD", nodeId } }
-    }
-
-    // toggle_collapse <nodeId>
-    case "toggle_collapse": {
-      const nodeId = args[0]
-      if (!nodeId) {
-        return {
-          ok: false,
-          error: "toggle_collapse requires a nodeId argument",
-        }
-      }
-      return { ok: true, action: { type: "TOGGLE_COLLAPSE", nodeId } }
-    }
-
-    // fold_level <depth>
-    case "fold_level": {
-      const depthArg = args[0]
-      if (!depthArg) {
-        return {
-          ok: false,
-          error: "fold_level requires a numeric depth argument",
-        }
-      }
-      const depth = parseInt(depthArg, 10)
-      if (isNaN(depth)) {
-        return {
-          ok: false,
-          error: "fold_level requires a numeric depth argument",
-        }
-      }
-      return { ok: true, action: { type: "FOLD_LEVEL", depth } }
-    }
-
-    // unfold_level <depth>
-    case "unfold_level": {
-      const depthArg = args[0]
-      if (!depthArg) {
-        return {
-          ok: false,
-          error: "unfold_level requires a numeric depth argument",
-        }
-      }
-      const depth = parseInt(depthArg, 10)
-      if (isNaN(depth)) {
-        return {
-          ok: false,
-          error: "unfold_level requires a numeric depth argument",
-        }
-      }
-      return { ok: true, action: { type: "UNFOLD_LEVEL", depth } }
-    }
-
-    // nav_to_path <path> - navigate to specific path (e.g., "0,1,2")
-    case "nav_to_path": {
-      const pathArg = args[0]
-      if (!pathArg) {
-        return { ok: false, error: "nav_to_path requires a path argument" }
-      }
-      const path = pathArg.split(",").map((s) => parseInt(s, 10))
-      if (path.some(isNaN)) {
-        return {
-          ok: false,
-          error: "nav_to_path requires comma-separated numeric indices",
-        }
-      }
-      return { ok: true, action: { type: "NAV_TO_PATH", path } }
-    }
-
-    // select_position <path> - select specific position (alias for nav_to_path)
-    case "select_position": {
-      const pathArg = args[0]
-      if (!pathArg) {
-        return { ok: false, error: "select_position requires a path argument" }
-      }
-      const path = pathArg.split(",").map((s) => parseInt(s, 10))
-      if (path.some(isNaN)) {
-        return {
-          ok: false,
-          error: "select_position requires comma-separated numeric indices",
-        }
-      }
-      return { ok: true, action: { type: "NAV_TO_PATH", path } }
-    }
-
-    // select_node_add <nodeId>
-    case "select_node_add": {
-      const nodeId = args[0]
-      if (!nodeId) {
-        return {
-          ok: false,
-          error: "select_node_add requires a nodeId argument",
-        }
-      }
-      return { ok: true, action: { type: "SELECT_NODE_ADD", nodeId } }
-    }
-
-    // select_node_remove <nodeId>
-    case "select_node_remove": {
-      const nodeId = args[0]
-      if (!nodeId) {
-        return {
-          ok: false,
-          error: "select_node_remove requires a nodeId argument",
-        }
-      }
-      return {
-        ok: true,
-        action: { type: "SELECT_NODE_REMOVE", nodeId },
-      }
-    }
-
-    // select_node_toggle <nodeId>
-    case "select_node_toggle": {
-      const nodeId = args[0]
-      if (!nodeId) {
-        return {
-          ok: false,
-          error: "select_node_toggle requires a nodeId argument",
-        }
-      }
-      return {
-        ok: true,
-        action: { type: "SELECT_NODE_TOGGLE", nodeId },
-      }
-    }
-
-    // === Filesystem-like commands (REPL mode) ===
-
-    // ls [path] - list children of current or specified node
-    case "ls": {
-      const path = args[0]
-      return { ok: true, command: { type: "LS", path } }
-    }
-
-    // cd <path> - change to node (supports .., /, relative paths)
-    case "cd": {
-      const path = args[0]
-      if (!path) {
-        return { ok: false, error: "cd requires a path argument" }
-      }
-      return { ok: true, command: { type: "CD", path } }
-    }
-
-    // tree [path] [depth] - hierarchical listing with box-drawing
-    case "tree": {
-      const pathOrDepth = args[0]
-      const depthArg = args[1]
-
-      // tree (no args) - tree from current node
-      if (!pathOrDepth) {
-        return { ok: true, command: { type: "TREE" } }
-      }
-
-      // Check if first arg is a number (depth only)
-      const firstAsNum = parseInt(pathOrDepth, 10)
-      if (!isNaN(firstAsNum) && String(firstAsNum) === pathOrDepth) {
-        return { ok: true, command: { type: "TREE", depth: firstAsNum } }
-      }
-
-      // tree <path> [depth]
-      let depth: number | undefined
-      if (depthArg) {
-        depth = parseInt(depthArg, 10)
-        if (isNaN(depth)) {
-          return { ok: false, error: "tree depth must be a number" }
-        }
-      }
-      return { ok: true, command: { type: "TREE", path: pathOrDepth, depth } }
-    }
-
-    // cat [path] - show node content/details
-    case "cat": {
-      const path = args[0]
-      return { ok: true, command: { type: "CAT", path } }
-    }
-
-    // === Mutation commands ===
-
-    // set_status <status> - set task status
-    case "set_status": {
-      const statusArg = args[0]?.toLowerCase()
-      const validStatuses: TaskStatus[] = [
-        "todo",
-        "wip",
-        "blocked",
-        "done",
-        "dropped",
-      ]
-      if (!statusArg || !validStatuses.includes(statusArg as TaskStatus)) {
-        return {
-          ok: false,
-          error: `set_status requires a status: ${validStatuses.join(", ")}`,
-        }
-      }
-      return {
-        ok: true,
-        command: { type: "SET_STATUS", status: statusArg as TaskStatus },
-      }
-    }
-
-    // delete - delete current node
-    case "delete": {
-      return { ok: true, command: { type: "DELETE" } }
-    }
-
-    // shift_up / shift_down - move node within siblings
-    case "shift_up": {
-      return { ok: true, command: { type: "SHIFT", direction: "up" } }
-    }
-    case "shift_down": {
-      return { ok: true, command: { type: "SHIFT", direction: "down" } }
-    }
-
-    // render [--width N] [--height N] [--ansi] - render TUI-style view
-    case "render": {
-      let width: number | undefined
-      let height: number | undefined
-      let ansi = false
-
-      for (let i = 0; i < args.length; i++) {
-        const arg = args[i]
-        const nextArg = args[i + 1]
-        if (arg === "--width" && nextArg) {
-          width = parseInt(nextArg, 10)
-          if (isNaN(width)) {
-            return { ok: false, error: "render --width requires a number" }
-          }
-          i++
-        } else if (arg === "--height" && nextArg) {
-          height = parseInt(nextArg, 10)
-          if (isNaN(height)) {
-            return { ok: false, error: "render --height requires a number" }
-          }
-          i++
-        } else if (arg === "--ansi") {
-          ansi = true
-        } else if (arg?.startsWith("--")) {
-          return { ok: false, error: `Unknown render option: ${arg}` }
-        }
-      }
-
-      return { ok: true, command: { type: "RENDER", width, height, ansi } }
-    }
-
-    default:
-      return { ok: false, error: `Unknown command: ${cmd}` }
-  }
+  return { ok: false, error: `Unknown command: ${cmd}` }
 }
 
 /**
@@ -686,26 +388,245 @@ export function getCommandNames(): string[] {
   return [
     ...Object.keys(SIMPLE_ACTIONS),
     ...Object.keys(SHELL_COMMANDS),
-    "toggle_fold",
-    "toggle_collapse",
-    "fold_level",
-    "unfold_level",
-    "nav_to_path",
-    "select_position",
-    "select_node_add",
-    "select_node_remove",
-    "select_node_toggle",
-    "key",
-    "render",
-    // Filesystem-like commands
-    "ls",
-    "cd",
-    "tree",
-    "cat",
-    // Mutation commands
-    "set_status",
-    "delete",
-    "shift_up",
-    "shift_down",
+    ...Object.keys(PARAM_COMMANDS),
   ]
+}
+
+// --- Factory functions for parameterized command patterns ---
+
+/** Factory: command that takes a nodeId argument */
+function nodeIdCommand(type: string) {
+  return (args: string[]): ParseResult => {
+    const nodeId = args[0]
+    if (!nodeId) {
+      return {
+        ok: false,
+        error: `${type.toLowerCase()} requires a nodeId argument`,
+      }
+    }
+    return { ok: true, action: { type, nodeId } as unknown as BoardAction }
+  }
+}
+
+/** Factory: command that takes a numeric depth argument */
+function depthCommand(type: string) {
+  return (args: string[]): ParseResult => {
+    const depthArg = args[0]
+    if (!depthArg) {
+      return {
+        ok: false,
+        error: `${type.toLowerCase()} requires a numeric depth argument`,
+      }
+    }
+    const depth = parseInt(depthArg, 10)
+    if (isNaN(depth)) {
+      return {
+        ok: false,
+        error: `${type.toLowerCase()} requires a numeric depth argument`,
+      }
+    }
+    return { ok: true, action: { type, depth } as unknown as BoardAction }
+  }
+}
+
+/** Factory: command that takes a comma-separated path argument */
+function pathCommand(type: string) {
+  return (args: string[]): ParseResult => {
+    const pathArg = args[0]
+    if (!pathArg) {
+      return {
+        ok: false,
+        error: `${type.toLowerCase()} requires a path argument`,
+      }
+    }
+    const path = pathArg.split(",").map((s) => parseInt(s, 10))
+    if (path.some(isNaN)) {
+      return {
+        ok: false,
+        error: `${type.toLowerCase()} requires comma-separated numeric indices`,
+      }
+    }
+    return { ok: true, action: { type, path } as unknown as BoardAction }
+  }
+}
+
+// --- Individual command parsers ---
+
+function parseLogCommand(args: string[]): ParseResult {
+  const countArg = args[0]
+  if (countArg) {
+    const count = parseInt(countArg, 10)
+    if (isNaN(count) || count < 1) {
+      return { ok: false, error: "log count must be a positive number" }
+    }
+    return { ok: true, command: { type: "LOG", count } }
+  }
+  return { ok: true, command: { type: "LOG" } }
+}
+
+function parseKeyCommand(args: string[]): ParseResult {
+  if (args.length === 0) {
+    return { ok: false, error: "key command requires a key argument" }
+  }
+  const keySpec = args.join(" ")
+
+  // Check if it's a quoted string: key "jjk"
+  if (
+    (keySpec.startsWith('"') && keySpec.endsWith('"')) ||
+    (keySpec.startsWith("'") && keySpec.endsWith("'"))
+  ) {
+    const keys = parseQuotedString(keySpec)
+    if (keys && keys.length > 0) {
+      return { ok: false, error: `KEYS:${keys.join(",")}` }
+    }
+    return { ok: false, error: `Invalid key sequence: ${keySpec}` }
+  }
+
+  // Check if it's a special key name (esc, enter, tab, etc.)
+  const specialKey = SPECIAL_KEYS[keySpec.toLowerCase()]
+  if (specialKey) {
+    return { ok: false, error: `KEY:${specialKey}` }
+  }
+
+  // Single character or use parseKeySpec for <Name> format
+  const key = parseKeySpec(keySpec)
+  if (!key) {
+    return { ok: false, error: `Invalid key specification: ${keySpec}` }
+  }
+  return { ok: false, error: `KEY:${key}` }
+}
+
+function parseLsCommand(args: string[]): ParseResult {
+  return { ok: true, command: { type: "LS", path: args[0] } }
+}
+
+function parseCdCommand(args: string[]): ParseResult {
+  const path = args[0]
+  if (!path) return { ok: false, error: "cd requires a path argument" }
+  return { ok: true, command: { type: "CD", path } }
+}
+
+function parseTreeCommand(args: string[]): ParseResult {
+  const pathOrDepth = args[0]
+  const depthArg = args[1]
+
+  // tree (no args) - tree from current node
+  if (!pathOrDepth) {
+    return { ok: true, command: { type: "TREE" } }
+  }
+
+  // Check if first arg is a number (depth only)
+  const firstAsNum = parseInt(pathOrDepth, 10)
+  if (!isNaN(firstAsNum) && String(firstAsNum) === pathOrDepth) {
+    return { ok: true, command: { type: "TREE", depth: firstAsNum } }
+  }
+
+  // tree <path> [depth]
+  let depth: number | undefined
+  if (depthArg) {
+    depth = parseInt(depthArg, 10)
+    if (isNaN(depth)) {
+      return { ok: false, error: "tree depth must be a number" }
+    }
+  }
+  return { ok: true, command: { type: "TREE", path: pathOrDepth, depth } }
+}
+
+function parseCatCommand(args: string[]): ParseResult {
+  return { ok: true, command: { type: "CAT", path: args[0] } }
+}
+
+function parseSetStatusCommand(args: string[]): ParseResult {
+  const statusArg = args[0]?.toLowerCase()
+  const validStatuses: TaskStatus[] = [
+    "todo",
+    "wip",
+    "blocked",
+    "done",
+    "dropped",
+  ]
+  if (!statusArg || !validStatuses.includes(statusArg as TaskStatus)) {
+    return {
+      ok: false,
+      error: `set_status requires a status: ${validStatuses.join(", ")}`,
+    }
+  }
+  return {
+    ok: true,
+    command: { type: "SET_STATUS", status: statusArg as TaskStatus },
+  }
+}
+
+function parseDeleteCommand(_args: string[]): ParseResult {
+  return { ok: true, command: { type: "DELETE" } }
+}
+
+function parseShiftUpCommand(_args: string[]): ParseResult {
+  return { ok: true, command: { type: "SHIFT", direction: "up" } }
+}
+
+function parseShiftDownCommand(_args: string[]): ParseResult {
+  return { ok: true, command: { type: "SHIFT", direction: "down" } }
+}
+
+function parseRenderCommand(args: string[]): ParseResult {
+  let width: number | undefined
+  let height: number | undefined
+  let ansi = false
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    const nextArg = args[i + 1]
+    if (arg === "--width" && nextArg) {
+      width = parseInt(nextArg, 10)
+      if (isNaN(width)) {
+        return { ok: false, error: "render --width requires a number" }
+      }
+      i++
+    } else if (arg === "--height" && nextArg) {
+      height = parseInt(nextArg, 10)
+      if (isNaN(height)) {
+        return { ok: false, error: "render --height requires a number" }
+      }
+      i++
+    } else if (arg === "--ansi") {
+      ansi = true
+    } else if (arg?.startsWith("--")) {
+      return { ok: false, error: `Unknown render option: ${arg}` }
+    }
+  }
+
+  return { ok: true, command: { type: "RENDER", width, height, ansi } }
+}
+
+// --- Lookup table: command name -> parser function ---
+
+const PARAM_COMMANDS: Record<string, (args: string[]) => ParseResult> = {
+  // Node ID commands
+  toggle_fold: nodeIdCommand("TOGGLE_FOLD"),
+  toggle_collapse: nodeIdCommand("TOGGLE_COLLAPSE"),
+  select_node_add: nodeIdCommand("SELECT_NODE_ADD"),
+  select_node_remove: nodeIdCommand("SELECT_NODE_REMOVE"),
+  select_node_toggle: nodeIdCommand("SELECT_NODE_TOGGLE"),
+
+  // Depth commands
+  fold_level: depthCommand("FOLD_LEVEL"),
+  unfold_level: depthCommand("UNFOLD_LEVEL"),
+
+  // Path commands
+  nav_to_path: pathCommand("NAV_TO_PATH"),
+  select_position: pathCommand("NAV_TO_PATH"),
+
+  // Commands with custom parsing
+  log: parseLogCommand,
+  key: parseKeyCommand,
+  ls: parseLsCommand,
+  cd: parseCdCommand,
+  tree: parseTreeCommand,
+  cat: parseCatCommand,
+  set_status: parseSetStatusCommand,
+  delete: parseDeleteCommand,
+  shift_up: parseShiftUpCommand,
+  shift_down: parseShiftDownCommand,
+  render: parseRenderCommand,
 }

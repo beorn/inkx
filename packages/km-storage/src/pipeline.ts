@@ -190,81 +190,9 @@ export async function* applyNodes(
       if (file.error) continue
 
       if (file.isCreate) {
-        // Get stub info if available (for deferred parsing)
-        const stub = stubInfo?.get(file.nodeId)
-
-        // Set parent info on file node
-        const fileNode = file.nodes[0]
-        if (fileNode && stub) {
-          fileNode.parent_id = stub.parent_id
-          fileNode.parent_idx = stub.parent_idx
-        }
-
-        // Delete stub if it exists
-        if (stub) {
-          deleteStmt.run(file.nodeId)
-        }
-
-        // Insert all nodes
-        for (const node of file.nodes) {
-          const data = node.data ?? {}
-          insertStmt.run(
-            node.id,
-            node.type,
-            node.parent_id ?? null,
-            node.link_to ?? null,
-            node.link_alias ?? null,
-            node.parent_idx ?? 0,
-            node.fs_path ?? null,
-            node.fs_ino ?? null,
-            node.fs_mtime ?? null,
-            node.name ?? null,
-            node.title ?? null,
-            node.md_pos ?? null,
-            node.md_line ?? null,
-            node.md_slug ?? null,
-            node.task_status ?? null,
-            node.task_mark ?? null,
-            node.assigned_to ?? null,
-            node.due_date ?? null,
-            node.scheduled_date ?? null,
-            node.priority ?? null,
-            node.content ?? null,
-            node.content_hash ?? null,
-            JSON.stringify(data),
-            now,
-            now,
-            node.version || "",
-          )
-
-          // Emit event if emitter provided (syncing path)
-          if (emitter) {
-            emitNodeCreated(
-              emitter,
-              "fs-watch",
-              node as unknown as Record<string, unknown>,
-            )
-          }
-        }
+        insertFileNodes(file, insertStmt, deleteStmt, stubInfo, emitter, now)
       } else {
-        // Update path - update file node metadata
-        if (file.nodes[0]) {
-          const updates: Record<string, unknown> = {
-            fs_mtime: file.mtime,
-            fs_ino: file.ino,
-            content_hash: file.hash,
-          }
-
-          db.run(
-            `UPDATE nodes SET fs_mtime = ?, fs_ino = ?, content_hash = ?, updated_at = ? WHERE id = ?`,
-            [file.mtime, file.ino, file.hash, now, file.nodeId],
-          )
-
-          // Emit update event if emitter provided
-          if (emitter) {
-            emitNodeUpdated(emitter, "fs-watch", file.nodeId, updates)
-          }
-        }
+        updateFileMetadata(file, db, emitter, now)
       }
 
       // Yield with wikilinks for next stage
@@ -479,6 +407,105 @@ export async function collect<T>(gen: AsyncGenerator<T>): Promise<T[]> {
 async function* toAsyncGenerator<T>(items: T[]): AsyncGenerator<T> {
   for (const item of items) {
     yield item
+  }
+}
+
+// ============================================================================
+// APPLY HELPERS
+// ============================================================================
+
+/** Insert nodes for a newly created file, handling stub replacement. */
+function insertFileNodes(
+  file: ParsedFile,
+  insertStmt: ReturnType<Database["prepare"]>,
+  deleteStmt: ReturnType<Database["prepare"]>,
+  stubInfo:
+    | Map<string, { parent_id: string | null; parent_idx: number }>
+    | undefined,
+  emitter: Emitter | undefined,
+  now: number,
+): void {
+  // Get stub info if available (for deferred parsing)
+  const stub = stubInfo?.get(file.nodeId)
+
+  // Set parent info on file node
+  const fileNode = file.nodes[0]
+  if (fileNode && stub) {
+    fileNode.parent_id = stub.parent_id
+    fileNode.parent_idx = stub.parent_idx
+  }
+
+  // Delete stub if it exists
+  if (stub) {
+    deleteStmt.run(file.nodeId)
+  }
+
+  // Insert all nodes
+  for (const node of file.nodes) {
+    const data = node.data ?? {}
+    insertStmt.run(
+      node.id,
+      node.type,
+      node.parent_id ?? null,
+      node.link_to ?? null,
+      node.link_alias ?? null,
+      node.parent_idx ?? 0,
+      node.fs_path ?? null,
+      node.fs_ino ?? null,
+      node.fs_mtime ?? null,
+      node.name ?? null,
+      node.title ?? null,
+      node.md_pos ?? null,
+      node.md_line ?? null,
+      node.md_slug ?? null,
+      node.task_status ?? null,
+      node.task_mark ?? null,
+      node.assigned_to ?? null,
+      node.due_date ?? null,
+      node.scheduled_date ?? null,
+      node.priority ?? null,
+      node.content ?? null,
+      node.content_hash ?? null,
+      JSON.stringify(data),
+      now,
+      now,
+      node.version || "",
+    )
+
+    // Emit event if emitter provided (syncing path)
+    if (emitter) {
+      emitNodeCreated(
+        emitter,
+        "fs-watch",
+        node as unknown as Record<string, unknown>,
+      )
+    }
+  }
+}
+
+/** Update file-level metadata for an existing file. */
+function updateFileMetadata(
+  file: ParsedFile,
+  db: Database,
+  emitter: Emitter | undefined,
+  now: number,
+): void {
+  if (!file.nodes[0]) return
+
+  const updates: Record<string, unknown> = {
+    fs_mtime: file.mtime,
+    fs_ino: file.ino,
+    content_hash: file.hash,
+  }
+
+  db.run(
+    `UPDATE nodes SET fs_mtime = ?, fs_ino = ?, content_hash = ?, updated_at = ? WHERE id = ?`,
+    [file.mtime, file.ino, file.hash, now, file.nodeId],
+  )
+
+  // Emit update event if emitter provided
+  if (emitter) {
+    emitNodeUpdated(emitter, "fs-watch", file.nodeId, updates)
   }
 }
 

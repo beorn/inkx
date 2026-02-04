@@ -37,126 +37,152 @@ export interface ListTasksOptions {
   json?: boolean
 }
 
+/** Result of resolving input arguments into a filtered task list */
+interface ResolvedInput {
+  tasks: KNode[]
+  rootNode: KNode | null
+  pathFilter: string | null
+}
+
 /**
- * List tasks (optionally scoped to a root node or filtered by path/query)
+ * Filter tasks by status options (shared across multiple resolution paths).
+ * Returns only tasks matching the requested status/all flags.
+ *
+ * @param defaultMode - "excludeDone" excludes only done tasks (global/path-filter default);
+ *                      "active" keeps only todo/wip tasks (root-scoped default)
  */
-export async function listTasks(
-  pathOrId: string | undefined,
-  options: ListTasksOptions,
-): Promise<void> {
-  const resolved = resolvePathArg(undefined, getRootPath() || process.cwd())
-  using repo = await loadRepo(resolved.repoRoot)
-
-  let tasks: KNode[]
-  let rootNode: KNode | null = null
-  let pathFilter: string | null = null
-
-  // Handle query option first (takes precedence)
-  // Also treat positional arg as query if it looks like one
-  const queryArg =
-    options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
-  if (queryArg) {
-    // Build query string, adding default status filter
-    let queryStr = queryArg
-    if (!options.all && !queryStr.includes("status:")) {
-      queryStr = `-status:done ${queryStr}`
-    }
-    if (options.status) {
-      queryStr = `status:${options.status} ${queryStr}`
-    }
-    tasks = repo.query(queryStr)
-  } else if (pathOrId) {
-    // Try to find an exact node match first
-    rootNode = findNodeByPathOrId(repo, pathOrId)
-
-    if (rootNode) {
-      // If the root IS a task, show its details
-      if (rootNode.type === "task") {
-        showTaskDetails(repo, rootNode, options)
-        return
-      }
-
-      // Get tasks under this root
-      tasks = getTasksUnderNode(repo, rootNode.id)
-    } else {
-      // No exact match - treat as path filter (like `bun test <filter>`)
-      pathFilter = pathOrId
-
-      // Get tasks with status filter via repo
-      const allTasks = repo.getAllTasks().filter((t) => {
-        if (options.status && t.task_status !== options.status) return false
-        if (!options.all && !options.status && t.task_status === "done") {
-          return false
-        }
-        return true
-      })
-
-      // Filter by path match
-      tasks = allTasks.filter(
-        (t) => pathFilter && taskPathMatches(repo, t, pathFilter),
+function filterTasksByStatus(
+  tasks: KNode[],
+  options: Pick<ListTasksOptions, "status" | "all">,
+  defaultMode: "excludeDone" | "active" = "excludeDone",
+): KNode[] {
+  if (options.status) {
+    return tasks.filter((t) => t.task_status === options.status)
+  }
+  if (!options.all) {
+    if (defaultMode === "active") {
+      return tasks.filter(
+        (t) => t.task_status === "todo" || t.task_status === "wip",
       )
     }
-
-    // Apply status filter for root node case
-    if (rootNode) {
-      if (options.status) {
-        tasks = tasks.filter((t) => t.task_status === options.status)
-      } else if (!options.all) {
-        tasks = tasks.filter(
-          (t) => t.task_status === "todo" || t.task_status === "wip",
-        )
-      }
-    }
-  } else {
-    // Global task list via repo
-    tasks = repo.getAllTasks().filter((t) => {
-      if (options.status && t.task_status !== options.status) return false
-      if (!options.all && !options.status && t.task_status === "done") {
-        return false
-      }
-      return true
-    })
+    return tasks.filter((t) => t.task_status !== "done")
   }
+  return tasks
+}
 
-  if (options.json) {
-    console.log(JSON.stringify(tasks, null, 2))
-    return
+/**
+ * Resolve tasks from a query argument (--query flag or query-like positional).
+ * Builds the query string with default status filters and runs it against the repo.
+ */
+function resolveFromQuery(
+  repo: Repo,
+  queryArg: string,
+  options: Pick<ListTasksOptions, "status" | "all">,
+): KNode[] {
+  let queryStr = queryArg
+  if (!options.all && !queryStr.includes("status:")) {
+    queryStr = `-status:done ${queryStr}`
   }
-
-  if (tasks.length === 0) {
-    console.log(term.dim("No tasks found"))
-    return
+  if (options.status) {
+    queryStr = `status:${options.status} ${queryStr}`
   }
+  return repo.query(queryStr)
+}
 
-  // Show context header
+/**
+ * Resolve tasks from a path-or-ID positional argument.
+ * Returns null if the pathOrId points to a single task (caller should show details instead).
+ */
+function resolveFromPathOrId(
+  repo: Repo,
+  pathOrId: string,
+  options: Pick<ListTasksOptions, "status" | "all">,
+): ResolvedInput | null {
+  // Try to find an exact node match first
+  const rootNode = findNodeByPathOrId(repo, pathOrId)
+
   if (rootNode) {
-    console.log(term.bold(getNodeDisplayName(repo, rootNode)))
-    console.log()
-  } else if (pathFilter) {
-    console.log(term.dim(`Filter: ${pathFilter}`))
-    console.log()
+    // If the root IS a task, signal the caller to show details
+    if (rootNode.type === "task") return null
+
+    // Get tasks under this root, then apply status filter.
+    // Root-scoped listing defaults to active tasks only (todo + wip).
+    const subtasks = getTasksUnderNode(repo, rootNode.id)
+    const tasks = filterTasksByStatus(subtasks, options, "active")
+    return { tasks, rootNode, pathFilter: null }
   }
 
-  // Flat mode: simple single-line display
-  if (options.flat) {
-    for (const task of tasks) {
-      const rawAncestors = repo.getAncestors(task.id)
-      const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
-      const lines = formatTaskWithPath(repo, task, collapsedAncestors, {
-        verbose: options.detail,
-        flat: true,
-        showId: options.id,
-      })
-      for (const line of lines) {
-        console.log(line)
-      }
+  // No exact match - treat as path filter (like `bun test <filter>`)
+  const allTasks = filterTasksByStatus(repo.getAllTasks(), options)
+  const tasks = allTasks.filter((t) => taskPathMatches(repo, t, pathOrId))
+  return { tasks, rootNode: null, pathFilter: pathOrId }
+}
+
+/**
+ * Resolve input arguments into a filtered task list and context.
+ * Returns null when the input points to a single task (details shown as side-effect).
+ */
+function resolveInput(
+  repo: Repo,
+  pathOrId: string | undefined,
+  options: ListTasksOptions,
+): ResolvedInput | null {
+  // Handle query option first (takes precedence).
+  // Also treat positional arg as query if it looks like one.
+  const queryArg =
+    options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
+
+  if (queryArg) {
+    return { tasks: resolveFromQuery(repo, queryArg, options), rootNode: null, pathFilter: null }
+  }
+
+  if (pathOrId) {
+    const result = resolveFromPathOrId(repo, pathOrId, options)
+    if (!result) {
+      // pathOrId resolved to a single task - show details as side-effect
+      const rootNode = findNodeByPathOrId(repo, pathOrId)!
+      showTaskDetails(repo, rootNode, options)
+      return null
     }
-    console.log()
-    console.log(term.dim(`${tasks.length} task(s)`))
-    return
+    return result
   }
 
-  // Tree mode: group tasks by shared paths
+  // Global task list (no positional arg, no query)
+  const tasks = filterTasksByStatus(repo.getAllTasks(), options)
+  return { tasks, rootNode: null, pathFilter: null }
+}
+
+/**
+ * Render tasks in flat mode (one line per task with breadcrumb path).
+ */
+function renderFlat(
+  repo: Repo,
+  tasks: KNode[],
+  options: ListTasksOptions,
+): void {
+  for (const task of tasks) {
+    const rawAncestors = repo.getAncestors(task.id)
+    const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
+    const lines = formatTaskWithPath(repo, task, collapsedAncestors, {
+      verbose: options.detail,
+      flat: true,
+      showId: options.id,
+    })
+    for (const line of lines) {
+      console.log(line)
+    }
+  }
+}
+
+/**
+ * Render tasks in tree mode, grouping by shared ancestor paths.
+ * Uses incremental path divergence to avoid repeating shared prefixes.
+ */
+function renderTree(
+  repo: Repo,
+  tasks: KNode[],
+  options: ListTasksOptions,
+): void {
   const tasksWithAncestors = buildTaskTree(repo, tasks)
   const sorted = sortByPath(tasksWithAncestors)
 
@@ -214,9 +240,61 @@ export async function listTasks(
 
     previousAncestorKeys = ancestorKeys
   }
+}
+
+/**
+ * Render the resolved task list (handles JSON, flat, and tree modes).
+ */
+function renderTaskList(
+  repo: Repo,
+  input: ResolvedInput,
+  options: ListTasksOptions,
+): void {
+  const { tasks, rootNode, pathFilter } = input
+
+  if (options.json) {
+    console.log(JSON.stringify(tasks, null, 2))
+    return
+  }
+
+  if (tasks.length === 0) {
+    console.log(term.dim("No tasks found"))
+    return
+  }
+
+  // Show context header
+  if (rootNode) {
+    console.log(term.bold(getNodeDisplayName(repo, rootNode)))
+    console.log()
+  } else if (pathFilter) {
+    console.log(term.dim(`Filter: ${pathFilter}`))
+    console.log()
+  }
+
+  if (options.flat) {
+    renderFlat(repo, tasks, options)
+  } else {
+    renderTree(repo, tasks, options)
+  }
 
   console.log()
   console.log(term.dim(`${tasks.length} task(s)`))
+}
+
+/**
+ * List tasks (optionally scoped to a root node or filtered by path/query)
+ */
+export async function listTasks(
+  pathOrId: string | undefined,
+  options: ListTasksOptions,
+): Promise<void> {
+  const resolved = resolvePathArg(undefined, getRootPath() || process.cwd())
+  using repo = await loadRepo(resolved.repoRoot)
+
+  const input = resolveInput(repo, pathOrId, options)
+  if (!input) return // Single task details already shown
+
+  renderTaskList(repo, input, options)
 }
 
 /**

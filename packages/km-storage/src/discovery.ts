@@ -144,7 +144,6 @@ export function* discoverFiles(
       if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
 
       if (entry.isDirectory()) {
-        // Create folder node
         const folderId = generateId(repoRoot, fullPath)
         events.push(
           createFolderEvent(
@@ -156,91 +155,100 @@ export function* discoverFiles(
             now,
           ),
         )
-
-        // Recurse into subdirectory
         yield* scanDirectory(fullPath, folderId)
-      } else if (entry.isFile()) {
-        if (entry.name.endsWith(".md")) {
-          if (parseMode === "stub") {
-            // Stub mode: create stub node without parsing
-            const fileId = generateId(repoRoot, fullPath)
-            const name = entry.name.replace(/\.md$/i, "")
-
-            events.push(
-              createStubFileEvent(
-                fileId,
-                parentId,
-                order++,
-                fullPath,
-                name,
-                now,
-              ),
-            )
-            deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
-
-            current++
-            if (current % 100 === 0) {
-              yield { current, total }
-            }
-          } else {
-            // Full mode: parse markdown
-            try {
-              const content = readFileSync(fullPath, "utf-8")
-              const { nodes, wikilinks } = parseMarkdownWithLinks(
-                content,
-                fullPath,
-              )
-
-              // First node is always the file node
-              const fileNode = nodes[0]
-              if (fileNode?.type === "file") {
-                fileNode.parent_id = parentId
-                fileNode.parent_idx = order++
-              }
-
-              // Convert nodes to events
-              for (const node of nodes) {
-                const nodeId =
-                  node.id ?? generateId(repoRoot, fullPath, node.md_line)
-                events.push({
-                  id: nodeId,
-                  type: "node_created",
-                  actor: "fs-scan",
-                  ts: now,
-                  data: { ...node, id: nodeId },
-                })
-              }
-
-              // Collect wikilinks for later resolution
-              for (const wikilink of wikilinks) {
-                pendingLinks.push(wikilink)
-              }
-
-              current++
-              // Yield progress every 50 files
-              if (current % 50 === 0) {
-                yield { current, total }
-              }
-            } catch (err) {
-              const message = err instanceof Error ? err.message : String(err)
-              errors.push({ phase: "parse", path: fullPath, message })
-            }
-          }
-        } else {
-          // Non-markdown file node
-          const fileId = generateId(repoRoot, fullPath)
-          events.push(
-            createNonMdFileEvent(
-              fileId,
-              parentId,
-              order++,
-              fullPath,
-              entry.name,
-              now,
-            ),
-          )
-        }
+        continue
       }
+
+      if (!entry.isFile()) continue
+
+      if (!entry.name.endsWith(".md")) {
+        const fileId = generateId(repoRoot, fullPath)
+        events.push(
+          createNonMdFileEvent(
+            fileId,
+            parentId,
+            order++,
+            fullPath,
+            entry.name,
+            now,
+          ),
+        )
+        continue
+      }
+
+      // Markdown file handling
+      if (parseMode === "stub") {
+        yield* handleStubFile(fullPath, parentId, order++, entry.name)
+      } else {
+        yield* handleFullParseFile(fullPath, parentId, order++, entry.name)
+      }
+    }
+  }
+
+  // --- Stub mode: create stub node without parsing ---
+  function* handleStubFile(
+    fullPath: string,
+    parentId: string | null,
+    order: number,
+    entryName: string,
+  ): Generator<StepYield, void, unknown> {
+    const fileId = generateId(repoRoot, fullPath)
+    const name = entryName.replace(/\.md$/i, "")
+
+    events.push(
+      createStubFileEvent(fileId, parentId, order, fullPath, name, now),
+    )
+    deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
+
+    current++
+    if (current % 100 === 0) {
+      yield { current, total }
+    }
+  }
+
+  // --- Full mode: parse markdown and extract wikilinks ---
+  function* handleFullParseFile(
+    fullPath: string,
+    parentId: string | null,
+    order: number,
+    entryName: string,
+  ): Generator<StepYield, void, unknown> {
+    try {
+      const content = readFileSync(fullPath, "utf-8")
+      const { nodes, wikilinks } = parseMarkdownWithLinks(content, fullPath)
+
+      // First node is always the file node
+      const fileNode = nodes[0]
+      if (fileNode?.type === "file") {
+        fileNode.parent_id = parentId
+        fileNode.parent_idx = order
+      }
+
+      // Convert nodes to events
+      for (const node of nodes) {
+        const nodeId = node.id ?? generateId(repoRoot, fullPath, node.md_line)
+        events.push({
+          id: nodeId,
+          type: "node_created",
+          actor: "fs-scan",
+          ts: now,
+          data: { ...node, id: nodeId },
+        })
+      }
+
+      // Collect wikilinks for later resolution
+      for (const wikilink of wikilinks) {
+        pendingLinks.push(wikilink)
+      }
+
+      current++
+      // Yield progress every 50 files
+      if (current % 50 === 0) {
+        yield { current, total }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      errors.push({ phase: "parse", path: fullPath, message })
     }
   }
 }

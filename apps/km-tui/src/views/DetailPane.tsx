@@ -4,6 +4,8 @@
  * Shows full task details in a split-pane view on the right side of the board.
  * Displays content, fields, references, subtasks, and backlinks.
  */
+/* oxlint-disable complexity/max-cognitive -- React component — node detail display with many conditionals */
+
 import React from "react"
 import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
