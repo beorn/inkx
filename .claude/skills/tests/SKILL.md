@@ -62,6 +62,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | `test:fast`        | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) | Fast feedback        |
 | `test:slow`        | `*.slow.{test,spec}.{ts,tsx}` only                            | Integration tests    |
 | `test:all`         | All tests (via Vitest)                                        | Before commit        |
+| `test:vendor`      | Vendor tests only (`--project vendor`)                        | Vendor isolation     |
 | `test:fast:html`   | Fast tests + HTML report + performance tracking               | Performance analysis |
 | `test:all:html`    | All tests + HTML report + performance tracking                | Full analysis        |
 | `test:fast:serial` | Fast tests without parallelization                            | Accurate timing      |
@@ -149,14 +150,27 @@ Use `:html` commands for performance tracking and HTML reports:
 
 ---
 
+## Vitest Projects
+
+Tests are organized into two vitest projects (see `vitest.config.ts`):
+
+| Project  | Scope                          | Console enforcement | Setup file |
+| -------- | ------------------------------ | ------------------- | ---------- |
+| **km**   | `packages/`, `apps/`           | Yes (strict)        | `packages/km-infra/vitest/setup.ts` |
+| **vendor** | `vendor/**`                  | No                  | None       |
+
+Both projects use `bunx --bun` (bun runtime with vitest runner). All test imports use `vitest` (not `bun:test`).
+
 ## Output Rules
 
-**Tests must be silent on success.** Any stdout/stderr output fails the test.
+**km project tests must be silent on success.** Any stdout/stderr output fails the test.
 
 - `console.log/info/debug` are intercepted and fail the test
 - `process.stdout.write` is intercepted
-- If your test needs output, use `spyOn(console, "log").mockImplementation(() => {})`
+- If your test needs output, use `vi.spyOn(console, "log").mockImplementation(() => {})`
 - Debug with: `SKIP_OUTPUT_CHECK=1 bun test path/to/test.ts`
+
+Vendor tests do not have console enforcement (they emit act() warnings from react-reconciler).
 
 See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for details.
 

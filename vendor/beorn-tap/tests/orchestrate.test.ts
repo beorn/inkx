@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "vitest"
 import { createOrchestrator, type Suite } from "../src/orchestrate"
 import { Writable } from "node:stream"
 
