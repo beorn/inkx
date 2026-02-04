@@ -1,0 +1,83 @@
+---
+description: "Commit changes to git"
+allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(bd sync:*), Bash(cd vendor/*), Bash(bun run lint:*), Bash(rm -f .git/index.lock:*), Task, AskUserQuestion, Read
+---
+
+# Commit
+
+## Context
+
+- Branch: !`git branch --show-current`
+- Status: !`git status --porcelain`
+- Diff stats: !`git diff --stat`
+- Diffs (excluding vendor): !`git diff -U2 -- ':!vendor' | head -300`
+- Submodules: !`{ for d in vendor/*/; do [ -e "$d.git" ] || continue; pd=$(git diff -- "$d" 2>/dev/null | head -5); ss=$(cd "$d" && git status --porcelain 2>/dev/null); sl=$(cd "$d" && git log --oneline -3 2>/dev/null); sd=$(cd "$d" && git diff --stat 2>/dev/null); [ -z "$pd" ] && [ -z "$ss" ] && continue; echo "--- $d ---"; echo "pointer: ${pd:-(clean)}"; echo "status: ${ss:-(clean)}"; echo "log: $sl"; echo "diff: ${sd:-(none)}"; done; }`
+- Beads: !`bd list --status in_progress 2>/dev/null | head -5 || echo "(none)"`
+- Recent commits: !`git log --oneline -5`
+
+## Instructions
+
+All git state is above. Do NOT run git status, git diff, or git log — you don't have those tools.
+
+1. **Analyze** the context above:
+   - What changed (diffs are above; if truncated, use Read on files, NOT git diff)
+   - Submodule state (pointer, status, log are above)
+   - Bead correlation: match scope tokens to beads. High → `Resolves:`. Medium → `Refs:`.
+   - Only commit changes from this session. When in doubt, ask user.
+
+2. **Execute** in ONE Bash call — `set -e`, explicit file lists, never `git add -A` on main repo:
+
+### Template — Main repo only:
+
+```bash
+set -e
+bd sync 2>/dev/null || true
+git add file1.ts file2.ts && \
+  git diff --cached --quiet && echo "Already committed by bd sync" || \
+  git commit -m "fix(scope): description
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+git push
+```
+
+### Template — With submodule:
+
+```bash
+set -e
+(cd vendor/beorn-inkx && bun run lint --fix && git add -A && git commit -m "fix(inkx): msg
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>")
+
+bd sync 2>/dev/null || true
+git add vendor/beorn-inkx file1.ts && \
+  git diff --cached --quiet && echo "Already committed by bd sync" || \
+  git commit -m "fix(tui): msg
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+(cd vendor/beorn-inkx && git push)
+git push
+```
+
+### Many changes (>10 files):
+
+Launch haiku Task to categorize, then execute the plan it returns.
+
+## Rules
+- `set -e`, `bun run lint --fix` on vendor before commit
+- `git diff --cached --quiet` guard after `git add` (bd sync may pre-commit)
+- Conventional commit: `type(scope): message`
+- Co-author line: `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`
+
+## When to Ask User
+
+**ASK:** bead unclear, sensitive files, detached HEAD.
+**DON'T ASK:** grouping, obvious beads, fix+test, user-requested work.
+
+## Error Recovery
+
+| Error | Fix |
+|-------|-----|
+| "detached HEAD" | `(cd vendor/X && git checkout main)` |
+| "nothing to commit" | `git diff --cached --quiet` guard handles this |
+| "push rejected" | `git pull --rebase && git push` |
+| "index.lock" | `rm -f .git/index.lock` then retry |

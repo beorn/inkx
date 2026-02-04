@@ -52,6 +52,23 @@ Current branch: !`git branch --show-current`
 Recent commits: !`git log --oneline -5`
 ```
 
+Commands run **before the LLM sees the skill**, so all output is already in context. Combine with `allowed-tools` to prevent the LLM from re-running these commands:
+
+```markdown
+---
+allowed-tools: Bash(git add:*), Bash(git commit:*), Read
+---
+
+# My Skill
+
+- Branch: !`git branch --show-current`
+- Status: !`git status --porcelain`
+
+All state is above. Do NOT run git status — you don't have that tool.
+```
+
+This pattern eliminates investigation turns entirely. The LLM can't run `git status` even if it wants to, because `allowed-tools` only permits `git add` and `git commit`. See `/commit` for a full example.
+
 **Include file contents** with `@`:
 
 ```markdown

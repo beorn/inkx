@@ -38,7 +38,7 @@ Commit changes and create releases.
 
 | File                       | Purpose                                |
 | -------------------------- | -------------------------------------- |
-| [commit.md](commit.md)     | Multi-repo commit workflow, submodules |
+| [/commit](../commit/SKILL.md) | Multi-repo commit workflow, submodules (use `/commit` directly) |
 | [release.md](release.md)   | GitHub release process, versioning     |
 | [worktree.md](worktree.md) | Parallel development with worktrees    |
 
