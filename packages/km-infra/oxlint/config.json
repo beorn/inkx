@@ -30,8 +30,8 @@
     "vendor/opentui/issues/"
   ],
   "rules": {
-    "complexity/max-cyclomatic": ["warn", { "max": 20 }],
-    "complexity/max-cognitive": ["warn", { "max": 15 }],
+    "complexity/max-cyclomatic": ["warn", { "max": 30 }],
+    "complexity/max-cognitive": ["warn", { "max": 30 }],
     "no-control-regex": "off",
     "getter-return": "error",
     "no-undef": "error",

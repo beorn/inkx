@@ -196,7 +196,7 @@ The script detects:
 - Pattern 27: High complexity functions (cyclomatic>20 or cognitive>15, candidates for refactoring)
 - Pattern 36: Inkx string composition (`useTerm()`/`useStyle()` to build ANSI strings in `<Text>`, `.padEnd()` for layout instead of `<Box width={}>` + `<Text>` style props)
 
-**Deprecated APIs (3 patterns)** - see km-deprecations bead:
+**Deprecated APIs (3 patterns)** - see km-inkx.deprecations bead:
 
 - Pattern 28: Deprecated inkx APIs (`app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter`)
 - Pattern 29: Deprecated chalkx APIs (default `chalkX` import, `chalk` export, `supportsExtendedUnderline`, `setExtendedUnderlineSupport`)
@@ -377,7 +377,7 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | Manual layout calc  | Low              | High if workaround for inkx bug (see km-inkx-flexgrow) |
 | Inkx string comp    | Medium           | High if in shared components; defeats inkx layout model |
 
-**Deprecated API findings** (see km-deprecations bead):
+**Deprecated API findings** (see km-inkx.deprecations bead):
 
 | Finding Type        | Default Severity | Context Adjustments                               |
 | ------------------- | ---------------- | ------------------------------------------------- |
