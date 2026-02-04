@@ -128,18 +128,18 @@ const watcher = new ChaosWatcher({
 
 ```bash
 # Run chaos fuzz tests
-bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
+bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 
 # Run all chaos-related tests (includes roundtrip)
 bun test packages/km-storage/tests/sync/chaos/
 
 # Reproduce with specific seed
-FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
+FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 ```
 
 ### Test Locations
 
-- `packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts` - Fuzz tests (9 tests using gen/take + transformers)
+- `packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts` - Fuzz tests (9 tests using gen/take + transformers)
 - `packages/km-storage/tests/sync/chaos/transformers.ts` - 11 chaos stream transformers + combinator
 - `packages/km-storage/tests/sync/chaos/event-picker.ts` - FS event picker for gen()
 - `packages/km-storage/tests/sync/chaos/verifier.ts` - Invariant checking
@@ -155,7 +155,7 @@ FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.te
 ```typescript
 import { test, describe, expect, gen, take, createSeededRandom } from "vitestx"
 import { chaos, drop, reorder, type ChaosTransformerConfig } from "./transformers.ts"
-import { createFixedSetPicker } from "./chaos-fuzz.slow.test.ts" // or create your own picker
+import { createFixedSetPicker } from "./chaos-fuzz.fuzz.ts" // or create your own picker
 
 test.fuzz("sync survives chaos", async () => {
   const rng = createSeededRandom()
@@ -243,7 +243,7 @@ When a chaos test finds a bug:
 
 ```bash
 # 1. Reproduce with the failing seed
-FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
+FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 
 # 2. The shrunk minimal sequence is in __fuzz_cases__/
 # Share with Claude for analysis
@@ -610,7 +610,7 @@ With fake timers, `setInterval` handlers run forever during `runAllAsync()`. Pre
 | File                       | Purpose                                               |
 | -------------------------- | ----------------------------------------------------- |
 | `concurrent.test.ts`       | Deterministic concurrent edit tests using fake timers |
-| `chaos-fuzz.slow.test.ts`  | Property-based fuzz tests using vitestx gen/take      |
+| `chaos-fuzz.fuzz.ts`  | Property-based fuzz tests using vitestx gen/take      |
 
 ---
 

@@ -14,7 +14,7 @@ When a `test.fuzz` test fails, vitestx:
 
 ```bash
 # Reproduce with a specific seed
-FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
+FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 ```
 
 ## Legacy

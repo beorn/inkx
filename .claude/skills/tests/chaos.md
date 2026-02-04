@@ -14,10 +14,10 @@ Run chaos testing on km's filesystem sync to discover bugs.
 
 ```bash
 # Run chaos fuzz tests
-bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
+bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 
 # Reproduce with specific seed
-FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
+FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 
 # Run all chaos-related tests (includes roundtrip)
 bun test packages/km-storage/tests/sync/chaos/
@@ -56,7 +56,7 @@ Compose with `chaos(source, configs, rng)` combinator.
 ### 1. Run Fuzzer
 
 ```bash
-bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.slow.test.ts
+bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 ```
 
 ### 2. On Failure
@@ -83,7 +83,7 @@ bd update <id> --add-label "bug/sync"
 
 | File | Purpose |
 | ---- | ------- |
-| `chaos-fuzz.slow.test.ts` | Fuzz tests using gen/take + transformers |
+| `chaos-fuzz.fuzz.ts` | Fuzz tests using gen/take + transformers |
 | `transformers.ts` | 11 chaos stream transformers + combinator |
 | `event-picker.ts` | FS event picker for gen() |
 | `verifier.ts` | Invariant checking |

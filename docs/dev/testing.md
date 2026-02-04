@@ -76,14 +76,16 @@ const syncManager = new SyncManager({ db, useWorker: false })
 **For unit/integration tests:**
 
 - `.test.ts` - Fast unit/integration tests (<1s each)
-- `.slow.test.ts` - Slow tests (chaos fuzzer, heavy integration)
+- `.slow.test.ts` - Slow tests (heavy integration)
+- `.fuzz.ts` - Fuzz/chaos tests (excluded from test:all, run via test:fuzz)
 - `.test.md` - mdtest CLI tests (current convention, may migrate to `.spec.md`)
 
 | Suffix          | Purpose                   | Test Level | Included in         |
 | --------------- | ------------------------- | ---------- | ------------------- |
 | `.spec.ts`      | TUI acceptance (UI-level) | E2E        | test:fast, test:all |
 | `.test.ts`      | Unit/integration tests    | Unit/Int   | test:fast, test:all |
-| `.slow.test.ts` | Slow integration, chaos   | Int/E2E    | test:all only       |
+| `.slow.test.ts` | Slow integration          | Int/E2E    | test:all only       |
+| `.fuzz.ts`      | Fuzz/chaos tests          | Fuzz       | test:fuzz only      |
 | `.test.md`      | mdtest CLI tests          | E2E        | test:fast, test:all |
 | `.slow.test.md` | Slow mdtest CLI tests     | E2E        | test:all only       |
 
@@ -722,7 +724,8 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | Suffix          | Purpose                         | Included in         |
 | --------------- | ------------------------------- | ------------------- |
 | `.test.ts`      | Fast tests (<1s each)           | test:fast, test:all |
-| `.slow.test.ts` | Slow tests (integration, chaos) | test:all only       |
+| `.slow.test.ts` | Slow tests (integration)        | test:all only       |
+| `.fuzz.ts`      | Fuzz/chaos tests                | test:fuzz only      |
 | `.spec.ts`      | TUI acceptance tests            | test:fast, test:all |
 | `.test.md`      | mdtest CLI tests                | test:fast, test:all |
 | `.slow.test.md` | Slow mdtest CLI tests           | test:all only       |
@@ -752,8 +755,8 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | ----------- | ------------------------------------------------------------- | ----------------- |
 | `test:fast` | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) | Default iteration |
 | `test:slow` | `*.slow.{test,spec}.{ts,tsx}` only                            | Slow tests only   |
-| `test:all`  | All tests except fuzz/chaos (`*fuzz*` excluded)               | Before commit     |
-| `test:fuzz` | Fuzz + chaos tests (`*fuzz*`, `*chaos*`)                      | Exploratory testing |
+| `test:all`  | All `*.{test,spec}.*` files (`.fuzz.ts` excluded by convention) | Before commit     |
+| `test:fuzz` | `*.fuzz.ts` files only                                        | Exploratory testing |
 
 **Primary workflow**: `test:fast` (iterate) → `test:all` (commit)
 

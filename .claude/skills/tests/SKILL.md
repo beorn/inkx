@@ -43,7 +43,7 @@ Still run `test:all` before commit.
 
 Dot reporter is the default (configured in vitest.config.ts) — one dot per test, details only on failure.
 
-**test:fast** runs non-vendor tests only. **test:all** runs everything except fuzz/chaos tests (use `test:fuzz` for those).
+**test:fast** runs non-vendor tests only. **test:all** runs everything except `.fuzz.ts` files (use `test:fuzz` for those).
 
 **When iterating on a package**, run vitest directly on that directory:
 ```bash
@@ -74,8 +74,8 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | ------------------ | ------------------------------------------------------------- | -------------------- |
 | `test:fast`        | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) | Fast feedback        |
 | `test:slow`        | `*.slow.{test,spec}.{ts,tsx}` only                            | Integration tests    |
-| `test:all`         | All tests except fuzz/chaos (via Vitest)                      | Before commit        |
-| `test:fuzz`        | Fuzz + chaos tests (`*fuzz*`, `*chaos*`)                      | Exploratory testing  |
+| `test:all`         | All `*.{test,spec}.*` (`.fuzz.ts` excluded by convention)     | Before commit        |
+| `test:fuzz`        | `*.fuzz.ts` files only                                        | Exploratory testing  |
 | `test:vendor`      | Vendor tests only (`--project vendor`)                        | Vendor isolation     |
 | `test:fast:html`   | Fast tests + HTML report + performance tracking               | Performance analysis |
 | `test:all:html`    | All tests + HTML report + performance tracking                | Full analysis        |
@@ -113,7 +113,8 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | --------------- | ------------------------------- |
 | `.test.ts`      | Unit/component - core logic     |
 | `.spec.ts`      | TUI acceptance - user behavior  |
-| `.slow.test.ts` | Heavy integration - chaos, sync |
+| `.slow.test.ts` | Heavy integration - sync        |
+| `.fuzz.ts`      | Fuzz + chaos tests (excluded from test:all) |
 | `.test.md`      | CLI commands via mdtest         |
 
 **Rule**: Tests taking >1s should be `.slow.test.ts`

@@ -19,12 +19,13 @@ export default defineConfig({
 				inline: ["zod"],
 			},
 		},
-		include: ["**/*.{test,spec}.{ts,tsx,md}"],
+		include: process.env.FUZZ
+			? ["**/*.fuzz.ts"]
+			: ["**/*.{test,spec}.{ts,tsx,md}"],
 		exclude: [
 			"**/node_modules/**",
 			"**/dist/**",
 			"**/.direnv/**",
-			"**/*fuzz*",
 			// Uses bun:test integration — incompatible with vitest runner
 			"vendor/beorn-mdtest/tests/mdtest-e2e.slow.test.ts",
 		],
