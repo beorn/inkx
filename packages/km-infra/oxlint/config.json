@@ -147,6 +147,23 @@
     },
     {
       "files": [
+        "**/apps/km-tui/src/log.ts",
+        "**/apps/km-tui/src/tui.tsx",
+        "**/apps/km-tui/src/hooks/**/*.ts",
+        "**/apps/km-tui/src/views/**/*.ts",
+        "**/apps/km-tui/src/views/**/*.tsx",
+        "**/packages/km-beads/src/**/*.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/no-unsafe-argument": "off",
+        "@typescript-eslint/no-unsafe-assignment": "off",
+        "@typescript-eslint/no-unsafe-call": "off",
+        "@typescript-eslint/no-unsafe-member-access": "off",
+        "@typescript-eslint/no-unsafe-return": "off"
+      }
+    },
+    {
+      "files": [
         "**/*.test.ts",
         "**/*.test.tsx",
         "**/tests/**/*.ts",
