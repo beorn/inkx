@@ -127,7 +127,7 @@ Summarize with impact assessment:
 1. Create todo list with TodoWrite for tracking
 2. Apply one logical change at a time
 3. After each file: verify no type errors (IDE diagnostics)
-4. Run `bun run test:fast` periodically (every 2-3 files)
+4. Run targeted tests on changed files
 
 ### Preserving API
 

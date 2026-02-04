@@ -265,9 +265,6 @@ Compare to CLAUDE.md documented timing. Flag if >50% delta.
 ```bash
 # Check if test:slow passes
 bun run test:slow 2>&1 | tail -20
-
-# Check for React act() warnings in output
-bun run test:fast 2>&1 | grep -i "act()" | head -5
 ```
 
 **3. Layer Violations in Tests**

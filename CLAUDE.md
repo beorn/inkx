@@ -6,15 +6,21 @@ TypeScript, Bun, Ink (React TUI), SQLite. Bidirectional sync: TUI ↔ Model ↔ 
 
 ```bash
 # all bun commands should be preceded with `cd ${repoRoot} ;` - they will not work if your cwd is a subdir
-bun run test:fast    # Fast tests (~11s) - iterate here
-bun run test:all     # Full tests - before commit
+bun run test:fast    # Non-vendor tests (~124 files, ~8s)
+bun run test:vendor  # Vendor tests (~116 files)
+bun run test:all     # All tests (~240 files)
+bun vitest run <dir> # Run tests in a specific directory
 bun fix              # Lint + format - must pass
 bun km view <path>   # Run TUI
 ```
 
 **Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow and test types.
 
-**When debugging a specific test failure**, run that test file directly (`bun run test:fast -- path/to/file.test.ts`) instead of running `test:all` and grepping for the result.
+**When iterating on a specific package**, run vitest directly:
+```bash
+bun vitest run vendor/beorn-inkx/tests/
+bun vitest run apps/km-tui/tests/
+```
 
 **Use bun, not npm:** `bun add` (not `npm install`), `bunx` (not `npx`), `bun run test:all` (not `npm test`).
 
@@ -53,6 +59,7 @@ Use `/git commit`. Follow [Conventional Commits](https://conventionalcommits.org
 ## Session Completion
 
 Before ending: `bun fix && bun run test:all && git push`. Propose next steps with AskUserQuestion.
+Sub-agents skip this — only the top-level session runs verification.
 
 ## Skills (load when needed)
 

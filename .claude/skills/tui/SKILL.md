@@ -39,9 +39,6 @@ bun storyboard
 
 # Run TUI tests
 bun run test:mock
-
-# Check for act() warnings
-bun run test:fast 2>&1 | grep -i "act()"
 ```
 
 **Full design rationale**: [docs/ref/ui.md](../../docs/ref/ui.md)

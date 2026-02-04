@@ -53,7 +53,11 @@ Example for "add logging to storage, cli, and tui":
 After agents complete:
 
 1. Review results for conflicts or integration issues
-2. Run parallel verification: `bun fix` + `bun run test:fast` (if code changed)
+2. **Run verification ONCE from the parent agent only:**
+   ```bash
+   bun fix && bun run test:all
+   ```
+   Sub-agents must NOT run `bun fix`, `test:fast`, or `test:all` — the parent handles all verification.
 3. Update todos as completed
 
 ## Anti-Patterns (NEVER DO)
@@ -63,6 +67,7 @@ After agents complete:
 - ❌ Edit files one at a time when pattern is clear
 - ❌ Run verification steps sequentially
 - ❌ Skip TodoWrite (user can't see your parallel progress)
+- ❌ Let sub-agents run `bun fix` or `test:all` (parent does this once)
 
 ## Sticky Mode
 

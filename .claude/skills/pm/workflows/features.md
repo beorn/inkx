@@ -41,7 +41,7 @@ Close bead with evidence
 **Core commands:**
 
 ```bash
-bun run test:fast    # Quick iteration (<5s)
+bun run test:fast    # Quick iteration (~8s)
 bun fix              # Lint + format
 bd close <id> --reason "<evidence>"
 ```
@@ -121,7 +121,7 @@ Run `bun run test:fast` - should fail.
 ## Step 4: Implement Incrementally
 
 ```bash
-bun run test:fast  # Tight iteration loop (<5s)
+bun run test:fast  # Tight iteration loop (~8s)
 ```
 
 **Guidelines:**

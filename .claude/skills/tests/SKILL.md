@@ -39,11 +39,24 @@ bun run test:all:html      # All tests + HTML report + perf tracking
 
 Still run `test:all` before commit.
 
-**Avoid running `test:all` twice.** If you need to inspect results after running it, grep the output directly:
+### Efficient Test Verification
+
+Dot reporter is the default (configured in vitest.config.ts) — one dot per test, details only on failure.
+
+**test:fast** runs non-vendor tests only. **test:all** runs everything except fuzz/chaos tests (use `test:fuzz` for those).
+
+**When iterating on a package**, run vitest directly on that directory:
 ```bash
-bun run test:all 2>&1 | grep -E "(FAIL|✗|Error|❌|Tests |Test Files)" | tail -30
+bun vitest run vendor/beorn-inkx/tests/
+bun vitest run apps/km-tui/tests/
 ```
-Do not run the full suite again just to see what failed.
+
+**If `test:all` fails:** fix using targeted vitest runs, then `test:all` one final time.
+
+**Do NOT:**
+- Re-run `test:all` to analyze a failure you already saw
+- Pipe test output through grep (dot reporter handles this)
+- Run full suites as "sanity checks" after targeted tests pass
 
 ### CI / Release
 
@@ -61,7 +74,8 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | ------------------ | ------------------------------------------------------------- | -------------------- |
 | `test:fast`        | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) | Fast feedback        |
 | `test:slow`        | `*.slow.{test,spec}.{ts,tsx}` only                            | Integration tests    |
-| `test:all`         | All tests (via Vitest)                                        | Before commit        |
+| `test:all`         | All tests except fuzz/chaos (via Vitest)                      | Before commit        |
+| `test:fuzz`        | Fuzz + chaos tests (`*fuzz*`, `*chaos*`)                      | Exploratory testing  |
 | `test:vendor`      | Vendor tests only (`--project vendor`)                        | Vendor isolation     |
 | `test:fast:html`   | Fast tests + HTML report + performance tracking               | Performance analysis |
 | `test:all:html`    | All tests + HTML report + performance tracking                | Full analysis        |
@@ -150,16 +164,13 @@ Use `:html` commands for performance tracking and HTML reports:
 
 ---
 
-## Vitest Projects
+## Vitest Config
 
-Tests are organized into two vitest projects (see `vitest.config.ts`):
-
-| Project  | Scope                          | Console enforcement | Setup file |
-| -------- | ------------------------------ | ------------------- | ---------- |
-| **km**   | `packages/`, `apps/`           | Yes (strict)        | `packages/km-infra/vitest/setup.ts` |
-| **vendor** | `vendor/**`                  | No                  | None       |
-
-Both projects use `bunx --bun` (bun runtime with vitest runner). All test imports use `vitest` (not `bun:test`).
+Single unified config at `vitest.config.ts`:
+- Reporter: `dot` (built-in, minimal output)
+- setupFiles for console enforcement
+- All test imports use `vitest` (not `bun:test`), all run with `bunx --bun`
+- Vanilla `vitest run` works — scripts are thin wrappers with exclude patterns
 
 ## Output Rules
 
