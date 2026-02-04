@@ -126,8 +126,19 @@ Review survey data. For each open issue, assign to exactly one category:
 | **Stale P4**              | Untouched 60+ days at lowest priority, no blockers         |
 | **Vague orphan**          | No description, no activity, unclear purpose               |
 | **Abandoned in_progress** | Claimed 30+ days ago, no commits, assignee moved on        |
+| **Requirements drifted**  | Feature/task >1 week old, codebase has changed, original requirements no longer apply |
 
 **Requirement**: Every close needs specific evidence.
+
+#### A½. Verify (still relevant but stale)
+
+Features and tasks **older than 1 week** need requirements re-verification before work begins. Bugs are usually still valid (just verify repro). If verified:
+
+```bash
+bd update <id> --notes "Verified YYYY-MM-DD: requirements still current. <any context>"
+```
+
+This resets the staleness clock for ~1-2 weeks. During grooming, check the `notes` field — if the last verification is >2 weeks old, re-verify.
 
 #### B. Merge (duplicates)
 

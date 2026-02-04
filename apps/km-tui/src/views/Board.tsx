@@ -201,11 +201,12 @@ export function BoardCore({
       ))
     : undefined
 
-  // Render loading indicator until terminal is ready
+  // Render loading skeleton until terminal is ready
   if (!ui.isReady) {
     return (
-      <Box height={termHeight} width={termWidth}>
-        <Text>Loading...</Text>
+      <Box height={termHeight} width={termWidth} flexDirection="column">
+        <Text dimColor>{"░".repeat(Math.min(20, termWidth - 2))}</Text>
+        <Text dimColor>{"░".repeat(Math.min(12, termWidth - 2))}</Text>
       </Box>
     )
   }

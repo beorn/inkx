@@ -63,8 +63,9 @@ When user says `/pm work <id>` or `/pm do <id>`:
 
 1. **Claim the bead**: `bd update <id> --claim` (sets assignee + status=in_progress)
 2. **Get bead details**: `bd show <id>` to determine type
-3. **Proceed DIRECTLY to implementation** - DO NOT ask "should I start work?"
-4. **Load appropriate workflow** based on bead type:
+3. **Staleness check**: If bead is >1 week old and type is feature/task, verify requirements against current codebase before implementing. Update notes if verified. (Bugs: just verify repro still applies.)
+4. **Proceed DIRECTLY to implementation** - DO NOT ask "should I start work?"
+5. **Load appropriate workflow** based on bead type:
    - Bug → [workflows/bugs.md](workflows/bugs.md)
    - Feature → [workflows/features.md](workflows/features.md)
    - Task → [workflows/tasks.md](workflows/tasks.md)
@@ -100,13 +101,28 @@ To update: `bd update <epic-id> --description "..."` with the revised child list
 
 **Idle tracking**: When a tracking epic has no open children, add `(idle)` to its title: `TRACKING (idle): ...`. When new children are added, remove `(idle)`: `TRACKING: ...`. This signals at a glance in `bd list` that the tracker is healthy but has no active work — not stale or forgotten.
 
+## Staleness Check
+
+Beads older than **1 week** are suspect — requirements may have drifted. Before working on a stale bead:
+
+1. **Bugs**: Usually still valid (the bug still exists). Quick-verify the repro still applies.
+2. **Features/tasks**: Re-check whether the requirements still match current state. Code may have changed, priorities may have shifted, or the feature may have been partially implemented.
+3. **If still relevant**: Update the bead with a note confirming it's current:
+   ```bash
+   bd update <id> --notes "Verified 2026-02-04: requirements still current. <any updates>"
+   ```
+   This resets the staleness clock — another 1-2 weeks can pass before re-verification.
+4. **If requirements changed**: Update the description, then proceed.
+5. **If no longer relevant**: Close with reason.
+
 ## Workflow
 
 1. **Find work**: `bd ready` or `bd list`
-2. **Claim work**: `bd update <id> --claim` - MANDATORY before coding
-3. **Implement**: Do the work
-4. **Complete**: `bd close <id> --reason "..."`
-5. **Commit**: `git add .beads && git commit -m "chore: sync beads"`
+2. **Staleness check**: If bead is >1 week old, verify requirements (see above)
+3. **Claim work**: `bd update <id> --claim` - MANDATORY before coding
+4. **Implement**: Do the work
+5. **Complete**: `bd close <id> --reason "..."`
+6. **Commit**: `git add .beads && git commit -m "chore: sync beads"`
 
 ## Quick Reference: Common Flag Mistakes
 

@@ -48,6 +48,18 @@ bd close <id> --reason "<evidence>"
 
 ---
 
+## Step 0: Staleness Check
+
+If the bead is **older than 1 week**, re-verify requirements before starting:
+
+1. Check if the codebase has changed in ways that affect this feature
+2. Verify the described behavior/API still matches current architecture
+3. If still relevant: `bd update <id> --notes "Verified YYYY-MM-DD: requirements current"`
+4. If requirements drifted: update the description, then proceed
+5. If no longer needed: close with reason
+
+This doesn't apply to beads created in the current session or verified within the last week.
+
 ## Step 1: Assess Complexity
 
 **Trivial** (implement inline):

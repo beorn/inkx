@@ -6,6 +6,10 @@ description: Task completion workflow - refactoring, cleanup, documentation
 
 Workflow for tasks (refactoring, cleanup, docs, dependency updates).
 
+## Staleness Check
+
+If the bead is **older than 1 week**, re-verify requirements before starting. Tasks are particularly prone to staleness — refactoring targets may have already been cleaned up, docs may have been updated, dependencies may have changed. See [SKILL.md Staleness Check](../SKILL.md#staleness-check).
+
 ## Common TDD Cycle
 
 For tasks requiring tests (refactoring, moves):

@@ -41,6 +41,27 @@ const OVERSCAN = 15
 const MAX_RENDERED_CARDS = 50
 
 // =============================================================================
+// Skeleton Card (loading placeholder)
+// =============================================================================
+
+/** Dim placeholder card shown while content is lazy-loading */
+function SkeletonCard({ width }: { width: number }) {
+  const barWidth = Math.max(1, width - 4) // account for border + padding
+  const bar = "░".repeat(Math.min(barWidth, 20))
+  return (
+    <Box
+      flexDirection="column"
+      flexShrink={0}
+      width={width}
+      borderStyle="round"
+      borderColor="blackBright"
+    >
+      <Text dimColor>{bar}</Text>
+    </Box>
+  )
+}
+
+// =============================================================================
 // Card Component
 // =============================================================================
 
