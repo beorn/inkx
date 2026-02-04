@@ -50,6 +50,9 @@ describe("Outline depth < key - stale positions", () => {
       }
     })(container, "root")
 
-    expect(negatives, `Negative screen positions:\n${negatives.join("\n")}`).toEqual([])
+    expect(
+      negatives,
+      `Negative screen positions:\n${negatives.join("\n")}`,
+    ).toEqual([])
   })
 })
