@@ -22,6 +22,8 @@ interface UseBoardDialogsParams {
   dispatchBoard: (action: BoardAction) => void
   /** Current cursor node ID (from board state) */
   cursorNodeId: string | null
+  /** Current root node ID (from board state) */
+  rootId: string | null
 }
 
 interface BoardDialogHandlers {
@@ -47,6 +49,7 @@ export function useBoardDialogs({
   dispatch,
   dispatchBoard,
   cursorNodeId,
+  rootId,
 }: UseBoardDialogsParams): BoardDialogHandlers {
   // Handle project picker selection
   // For linked nodes (transclusions), re-parent the TARGET node, not the link
@@ -102,15 +105,52 @@ export function useBoardDialogs({
   }, [dispatch])
 
   // Handler for search selection - navigate to the selected node
+  // Uses "smart zoom" to ensure target becomes visible (only zooms when necessary)
   const handleSearchSelect = useCallback(
     (targetNode: KNode) => {
-      // Navigate to the node by dispatching a SELECT action
-      if (repo.getNode(targetNode.id)) {
-        dispatchBoard({ type: "SELECT", nodeId: targetNode.id })
+      const target = repo.getNode(targetNode.id)
+      if (!target) {
+        dispatch(actions.hideSearchDialog())
+        return
       }
+
+      // If target IS the current root, just close dialog (already viewing it)
+      if (target.id === rootId) {
+        dispatch(actions.hideSearchDialog())
+        return
+      }
+
+      // Check if target is visible in current view:
+      // - As a column: target.parent_id === rootId
+      // - As a card: target's parent's parent_id === rootId
+      const parentId = target.parent_id
+      const parent = parentId ? repo.getNode(parentId) : null
+      const grandparentId = parent?.parent_id
+
+      const isVisibleAsColumn = parentId === rootId
+      const isVisibleAsCard = grandparentId === rootId
+
+      if (isVisibleAsColumn || isVisibleAsCard) {
+        // Target already visible, just move cursor
+        dispatchBoard({ type: "SELECT", nodeId: target.id })
+      } else if (parentId) {
+        // Target not visible, zoom to parent to make it visible as a card
+        dispatchBoard({
+          type: "ZOOM_IN",
+          nodeId: parentId,
+          cursorNodeId: target.id,
+        })
+      } else {
+        // No parent (root-level node), zoom into it
+        dispatchBoard({
+          type: "ZOOM_IN",
+          nodeId: target.id,
+        })
+      }
+
       dispatch(actions.hideSearchDialog())
     },
-    [repo, dispatch, dispatchBoard],
+    [repo, dispatch, dispatchBoard, rootId],
   )
 
   const handleSearchCancel = useCallback(() => {
