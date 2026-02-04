@@ -306,8 +306,9 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         .slice(0, 50) // Limit to top 50 results
     }, [allResults, deferredQuery])
 
-    // Max visible items based on height
-    const maxVisible = Math.max(1, height - 6) // Reserve space for header, search, hints
+    // Max visible items: inner height = height - 2 (borders)
+    // Fixed rows: title(1) + input(1) + spacer(1) + footer(1) = 4
+    const maxVisible = Math.max(1, height - 6)
 
     // Scroll offset to keep selection visible
     const scrollOffset = Math.max(
@@ -360,32 +361,39 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
       }
     })
 
-    const innerWidth = Math.max(10, width - 8) // Account for border + paddingX(2)
+    const footerContent = (
+      <Box flexDirection="row" justifyContent="space-between">
+        <Text dimColor>
+          {"  "}↑↓ nav  Enter go  Esc cancel  #tag filter
+        </Text>
+        {filteredResults.length > maxVisible && (
+          <Text dimColor>
+            {scrollOffset > 0 ? "↑" : " "}
+            {` ${selectedIndex + 1}/${filteredResults.length} `}
+            {scrollOffset + maxVisible < filteredResults.length ? "↓" : " "}
+          </Text>
+        )}
+      </Box>
+    )
 
     return (
-      <ModalDialog borderColor="magenta" width={width} height={height}>
-        {/* Header */}
-        <Text bold>Search items:</Text>
-
-        {/* Separator */}
-        <Text dimColor>{"─".repeat(innerWidth)}</Text>
-
+      <ModalDialog title="Search" width={width} height={height} footer={footerContent}>
         {/* Search input */}
         <Text>
-          <Text dimColor>[Search: </Text>
-          <Text color="magenta">{query || " "}</Text>
+          {"  "}
+          <Text color="yellow">{"/ "}</Text>
+          <Text>{query}</Text>
           <Text inverse> </Text>
-          <Text dimColor>]</Text>
         </Text>
+        <Text> </Text>
 
-        {/* Results list */}
+        {/* Results list — flexGrow fills available height */}
         <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
-          <Box flexDirection="column" flexGrow={1}>
+          <Box flexDirection="column" flexGrow={1} overflow="hidden">
             {visibleResults.map((result, i) => {
               const actualIndex = scrollOffset + i
               const isSelected = actualIndex === selectedIndex
 
-              // Calculate available width for content
               const prefix = isSelected ? "▸ " : "  "
               const typeIcon =
                 result.node.type === "task"
@@ -395,74 +403,45 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
                     : result.node.type === "section"
                       ? "§"
                       : "•"
-              const tagSuffix =
-                result.tags.length > 0 ? ` #${result.tags.join(" #")}` : ""
-              const contextSuffix = result.parentContext
-                ? ` < ${result.parentContext}`
-                : ""
-
-              const availableWidth =
-                innerWidth -
-                prefix.length -
-                2 - // typeIcon + space
-                tagSuffix.length -
-                contextSuffix.length -
-                2
-
-              // Truncate title if needed
-              const displayTitle =
-                result.title.length > availableWidth
-                  ? result.title.slice(0, availableWidth - 1) + "…"
-                  : result.title
 
               return (
-                <Text
+                <Box
                   key={result.node.id}
-                  backgroundColor={isSelected ? "magenta" : undefined}
-                  color={isSelected ? "black" : undefined}
-                  wrap="truncate"
+                  width="100%"
+                  backgroundColor={isSelected ? "cyan" : undefined}
                 >
-                  {prefix}
-                  <Text dimColor={!isSelected}>{typeIcon} </Text>
-                  {displayTitle}
-                  {result.parentContext && (
-                    <Text
-                      dimColor={!isSelected}
-                      color={isSelected ? "gray" : undefined}
-                    >
-                      {` < ${result.parentContext}`}
-                    </Text>
-                  )}
-                  {result.tags.length > 0 && (
-                    <Text color="magenta" dimColor={!isSelected}>
-                      {` #${result.tags.join(" #")}`}
-                    </Text>
-                  )}
-                </Text>
+                  <Text
+                    color={isSelected ? "black" : undefined}
+                    wrap="truncate"
+                  >
+                    {prefix}
+                    <Text dimColor={!isSelected}>{typeIcon} </Text>
+                    {result.title}
+                    {result.parentContext && (
+                      <Text
+                        dimColor={!isSelected}
+                        color={isSelected ? "gray" : undefined}
+                      >
+                        {` < ${result.parentContext}`}
+                      </Text>
+                    )}
+                    {result.tags.length > 0 && (
+                      <Text color={isSelected ? "blue" : "cyan"} dimColor={!isSelected}>
+                        {` #${result.tags.join(" #")}`}
+                      </Text>
+                    )}
+                  </Text>
+                </Box>
               )
             })}
             {filteredResults.length === 0 && query && (
-              <Text dimColor>No matching items</Text>
+              <Text dimColor>  No matching items</Text>
             )}
             {filteredResults.length === 0 && !query && (
-              <Text dimColor>Start typing to search...</Text>
+              <Text dimColor>  Start typing to search...</Text>
             )}
           </Box>
         </ErrorBoundary>
-
-        {/* Scroll indicator */}
-        {filteredResults.length > maxVisible && (
-          <Text dimColor>
-            {scrollOffset > 0 ? "↑ " : "  "}
-            {`${selectedIndex + 1}/${filteredResults.length}`}
-            {scrollOffset + maxVisible < filteredResults.length ? " ↓" : ""}
-          </Text>
-        )}
-
-        {/* Hints */}
-        <Text dimColor>
-          ↑↓:nav Enter:select Esc:cancel | Use #tag to filter by tags
-        </Text>
       </ModalDialog>
     )
   },

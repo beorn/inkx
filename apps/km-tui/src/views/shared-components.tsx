@@ -256,12 +256,16 @@ export const MemoizedColumnHeader = React.memo(
 // =============================================================================
 
 export interface ModalDialogProps {
-  /** Border color (cyan, green, etc.) */
+  /** Border color (default: cyan) */
   borderColor?: string
+  /** Dialog title (rendered bold in borderColor) */
+  title?: string
   /** Dialog width */
   width?: number
   /** Dialog height (optional, omit for auto-height) */
   height?: number
+  /** Footer hint text (rendered dimColor at bottom) */
+  footer?: React.ReactNode
   /** Dialog children */
   children: React.ReactNode
 }
@@ -271,13 +275,16 @@ export interface ModalDialogProps {
  *
  * Features:
  * - Solid black background (covers board content)
- * - Double border in configurable color
- * - 2-space horizontal padding
+ * - Double border in cyan (configurable)
+ * - Horizontal padding (2), vertical padding (1)
+ * - Optional title and footer with spacing
  */
 export function ModalDialog({
   borderColor = "cyan",
+  title,
   width,
   height,
+  footer,
   children,
 }: ModalDialogProps): React.ReactElement {
   return (
@@ -289,9 +296,16 @@ export function ModalDialog({
       borderColor={borderColor}
       backgroundColor="black"
       paddingX={2}
-      overflow="hidden"
     >
+      {title && (
+        <Text color={borderColor} bold>
+          {"  "}{title}
+        </Text>
+      )}
       {children}
+      {footer && (
+        typeof footer === "string" ? <Text dimColor>{"  "}{footer}</Text> : footer
+      )}
     </Box>
   )
 }

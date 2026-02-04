@@ -380,55 +380,65 @@ export function BoardCore({
                 />
               )}
               {/* Project picker modal */}
-              {ui.showProjectPicker && (
-                <Box
-                  position="absolute"
-                  marginLeft={Math.floor(termWidth / 4)}
-                  marginTop={Math.floor(contentHeight / 2)}
-                  data-dialog="project-picker"
-                >
-                  <ProjectPicker
-                    onSelect={dialogHandlers.handleProjectSelect}
-                    onCancel={dialogHandlers.handleProjectCancel}
-                    width={Math.floor(termWidth / 2)}
-                    height={Math.floor(contentHeight / 2)}
-                    recentProjectIds={ui.recentProjectIds}
-                  />
-                </Box>
-              )}
+              {ui.showProjectPicker && (() => {
+                const pickerWidth = Math.min(80, Math.floor(termWidth / 2))
+                return (
+                  <Box
+                    position="absolute"
+                    marginLeft={Math.floor((termWidth - pickerWidth) / 2)}
+                    marginTop={Math.floor(contentHeight / 2)}
+                    data-dialog="project-picker"
+                  >
+                    <ProjectPicker
+                      onSelect={dialogHandlers.handleProjectSelect}
+                      onCancel={dialogHandlers.handleProjectCancel}
+                      width={pickerWidth}
+                      height={Math.floor(contentHeight / 2)}
+                      recentProjectIds={ui.recentProjectIds}
+                    />
+                  </Box>
+                )
+              })()}
               {/* New item dialog modal */}
-              {ui.showNewItemDialog && (
-                <Box
-                  position="absolute"
-                  marginLeft={Math.floor(termWidth / 4)}
-                  marginTop={Math.floor(contentHeight / 3)}
-                  data-dialog="new-item"
-                >
-                  <NewItemDialog
-                    cursorNode={selectedCard?.node ?? null}
-                    onCreate={dialogHandlers.handleNewItemCreate}
-                    onCancel={dialogHandlers.handleNewItemCancel}
-                    width={Math.floor(termWidth / 2)}
-                    height={10}
-                  />
-                </Box>
-              )}
+              {ui.showNewItemDialog && (() => {
+                const newItemWidth = Math.min(70, Math.floor(termWidth / 2))
+                return (
+                  <Box
+                    position="absolute"
+                    marginLeft={Math.floor((termWidth - newItemWidth) / 2)}
+                    marginTop={Math.floor(contentHeight / 3)}
+                    data-dialog="new-item"
+                  >
+                    <NewItemDialog
+                      cursorNode={selectedCard?.node ?? null}
+                      onCreate={dialogHandlers.handleNewItemCreate}
+                      onCancel={dialogHandlers.handleNewItemCancel}
+                      width={newItemWidth}
+                      height={10}
+                    />
+                  </Box>
+                )
+              })()}
               {/* Search dialog modal */}
-              {ui.showSearchDialog && (
-                <Box
-                  position="absolute"
-                  marginLeft={Math.floor(termWidth / 6)}
-                  marginTop={Math.floor(contentHeight / 6)}
-                  data-dialog="search"
-                >
-                  <SearchDialog
-                    onSelect={dialogHandlers.handleSearchSelect}
-                    onCancel={dialogHandlers.handleSearchCancel}
-                    width={Math.floor((termWidth * 2) / 3)}
-                    height={Math.floor((contentHeight * 2) / 3)}
-                  />
-                </Box>
-              )}
+              {ui.showSearchDialog && (() => {
+                const dialogWidth = Math.min(90, Math.floor((termWidth * 2) / 3))
+                const dialogHeight = Math.floor((contentHeight * 2) / 3)
+                return (
+                  <Box
+                    position="absolute"
+                    marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
+                    marginTop={Math.floor(contentHeight / 6)}
+                    data-dialog="search"
+                  >
+                    <SearchDialog
+                      onSelect={dialogHandlers.handleSearchSelect}
+                      onCancel={dialogHandlers.handleSearchCancel}
+                      width={dialogWidth}
+                      height={dialogHeight}
+                    />
+                  </Box>
+                )
+              })()}
               {/* Help overlay */}
               {ui.showHelp && (
                 <HelpOverlay width={termWidth} height={contentHeight} />

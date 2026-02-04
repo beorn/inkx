@@ -46,17 +46,12 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(
 
     return (
       <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop}>
-        <ModalDialog borderColor="gray" width={boxWidth}>
-          {/* Header */}
-          <Box justifyContent="space-between" width={boxWidth - 4}>
-            <Text color="gray" bold>
-              Console
-            </Text>
-            <Text dimColor>
-              {entries.length} entries (showing last {MAX_LINES})
-            </Text>
-          </Box>
-
+        <ModalDialog
+          borderColor="gray"
+          width={boxWidth}
+          title="Console"
+          footer={`Press \` or Esc to close  ·  ${entries.length} entries (showing last ${MAX_LINES})`}
+        >
           {/* Scrollable content */}
           <Box
             flexDirection="column"
@@ -80,9 +75,6 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(
               )}
             </ErrorBoundary>
           </Box>
-
-          {/* Footer */}
-          <Text dimColor>Press ` or Esc to close</Text>
         </ModalDialog>
       </Box>
     )

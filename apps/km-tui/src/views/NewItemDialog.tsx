@@ -152,33 +152,23 @@ export function NewItemDialog({
     }
   })
 
-  const innerWidth = Math.max(10, width - 8) // Account for border + paddingX(2)
-
   return (
     <ModalDialog
       borderColor="green"
+      title={`New ${isTask ? "task" : "item"} ${insertContext}`}
       width={width}
       height={Math.min(height, 10)}
+      footer="Enter create  Esc cancel"
     >
-      {/* Header */}
-      <Text bold>
-        New {isTask ? "task" : "item"} {insertContext}
-      </Text>
-
-      {/* Separator */}
-      <Text dimColor>{"─".repeat(innerWidth)}</Text>
-
       {/* Input field */}
       <Box flexGrow={1}>
         <Text>
+          {"  "}
           <Text color="green">{isTask ? "[ ] " : "• "}</Text>
           <Text>{content}</Text>
           <Text inverse> </Text>
         </Text>
       </Box>
-
-      {/* Hints */}
-      <Text dimColor>Enter:create Esc:cancel</Text>
     </ModalDialog>
   )
 }

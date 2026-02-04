@@ -123,15 +123,6 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
   const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2))
   const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2))
 
-  // Content width inside the border (with 2-space padding)
-  const contentWidth = Math.max(10, boxWidth - 8) // Account for border + paddingX(2)
-
-  // Center text within contentWidth
-  const centerText = (text: string) => {
-    const paddedLen = Math.max(0, Math.floor((contentWidth + text.length) / 2))
-    return text.padStart(paddedLen).padEnd(Math.max(paddedLen, contentWidth))
-  }
-
   return (
     <Box
       position="absolute"
@@ -139,14 +130,7 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
       marginTop={marginTop}
       data-dialog="help"
     >
-      <ModalDialog borderColor="cyan" width={boxWidth}>
-        {/* Header */}
-        <Text> </Text>
-        <Text color="cyan" bold>
-          {centerText("Keyboard Shortcuts")}
-        </Text>
-        <Text> </Text>
-
+      <ModalDialog borderColor="cyan" width={boxWidth} title="Keyboard Shortcuts" footer="Press ? or Esc to close">
         {shortcuts.map((category) => (
           <Box key={category.category} flexDirection="column">
             <Text bold color="white">
@@ -164,9 +148,6 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
             <Text> </Text>
           </Box>
         ))}
-
-        <Text dimColor>{centerText("Press ? or Esc to close")}</Text>
-        <Text> </Text>
       </ModalDialog>
     </Box>
   )

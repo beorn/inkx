@@ -280,90 +280,73 @@ export function ProjectPicker({
     }
   })
 
-  const innerWidth = Math.max(10, width - 8) // Account for border + paddingX(2)
+  const footerContent = (
+    <Box flexDirection="row" justifyContent="space-between">
+      <Text dimColor>
+        {"  "}↑↓ nav  Enter select  Esc cancel
+      </Text>
+      {filteredOptions.length > maxVisible && (
+        <Text dimColor>
+          {scrollOffset > 0 ? "↑" : " "}
+          {` ${selectedIndex + 1}/${filteredOptions.length} `}
+          {scrollOffset + maxVisible < filteredOptions.length ? "↓" : " "}
+        </Text>
+      )}
+    </Box>
+  )
 
   return (
-    <ModalDialog borderColor="cyan" width={width} height={height}>
-      {/* Header */}
-      <Text bold>Move to project:</Text>
-
-      {/* Separator */}
-      <Text dimColor>{"─".repeat(innerWidth)}</Text>
-
+    <ModalDialog title="Move to project" width={width} height={height} footer={footerContent}>
       {/* Search input */}
       <Text>
-        <Text dimColor>[Search: </Text>
-        <Text color="cyan">{query || " "}</Text>
+        {"  "}
+        <Text color="yellow">{"/ "}</Text>
+        <Text>{query}</Text>
         <Text inverse> </Text>
-        <Text dimColor>]</Text>
       </Text>
+      <Text> </Text>
 
       {/* Options list */}
-      <Box flexDirection="column" flexGrow={1}>
+      <Box flexDirection="column" flexGrow={1} overflow="hidden">
         {visibleOptions.map((opt, i) => {
           const actualIndex = scrollOffset + i
           const isSelected = actualIndex === selectedIndex
 
-          // Calculate available width for content
           const prefix = isSelected ? "▸ " : "  "
-          const recentSuffix = opt.isRecent ? " (recent)" : ""
-          const contextSuffix = opt.parentContext
-            ? ` < ${opt.parentContext}`
-            : ""
-          const availableWidth =
-            innerWidth -
-            prefix.length -
-            recentSuffix.length -
-            contextSuffix.length -
-            2
-
-          // Truncate title if needed
-          const displayTitle =
-            opt.title.length > availableWidth
-              ? opt.title.slice(0, availableWidth - 1) + "…"
-              : opt.title
 
           return (
-            <Text
+            <Box
               key={opt.node.id}
-              backgroundColor={isSelected ? "yellow" : undefined}
-              color={isSelected ? "black" : undefined}
-              wrap="truncate"
+              width="100%"
+              backgroundColor={isSelected ? "cyan" : undefined}
             >
-              {prefix}
-              {displayTitle}
-              {opt.parentContext && (
-                <Text
-                  dimColor={!isSelected}
-                  color={isSelected ? "gray" : undefined}
-                >
-                  {` < ${opt.parentContext}`}
-                </Text>
-              )}
-              {opt.isRecent && (
-                <Text color="yellow" dimColor={!isSelected}>
-                  {" (recent)"}
-                </Text>
-              )}
-            </Text>
+              <Text
+                color={isSelected ? "black" : undefined}
+                wrap="truncate"
+              >
+                {prefix}
+                {opt.title}
+                {opt.parentContext && (
+                  <Text
+                    dimColor={!isSelected}
+                    color={isSelected ? "gray" : undefined}
+                  >
+                    {` < ${opt.parentContext}`}
+                  </Text>
+                )}
+                {opt.isRecent && (
+                  <Text color={isSelected ? "blue" : "cyan"} dimColor={!isSelected}>
+                    {" (recent)"}
+                  </Text>
+                )}
+              </Text>
+            </Box>
           )
         })}
         {filteredOptions.length === 0 && (
-          <Text dimColor>No matching projects</Text>
+          <Text dimColor>  No matching projects</Text>
         )}
       </Box>
-
-      {/* Scroll indicator */}
-      {filteredOptions.length > maxVisible && (
-        <Text dimColor>
-          {scrollOffset > 0 ? "↑ " : "  "}
-          {`${selectedIndex + 1}/${filteredOptions.length}`}
-          {scrollOffset + maxVisible < filteredOptions.length ? " ↓" : ""}
-        </Text>
-      )}
-
-      {/* Hints */}
-      <Text dimColor>↑↓:nav Enter:select Esc:cancel</Text>
     </ModalDialog>
   )
 }
