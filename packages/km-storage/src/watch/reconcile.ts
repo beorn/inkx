@@ -91,6 +91,10 @@ export function reconcileDirectory(
         path: entry.path,
         ino: entry.ino,
       })
+      // Remove OLD path from dbByPath to prevent spurious delete op
+      if (existingByIno.fs_path) {
+        dbByPath.delete(existingByIno.fs_path)
+      }
     } else if (existingByPath?.fs_ino && existingByPath.fs_ino !== entry.ino) {
       // Atomic write: same path but different inode
       // This happens when editors save via temp file + rename (Vim, VSCode, etc.)
