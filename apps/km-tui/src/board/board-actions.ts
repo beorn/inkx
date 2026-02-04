@@ -332,6 +332,7 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
     ui.multiSelected,
     ui.inOutlineMode,
     boardState.cursorNodeId,
+    ui.foldedNodes,
   )
 
   // Navigate to favorite

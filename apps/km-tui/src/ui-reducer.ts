@@ -66,6 +66,7 @@ export interface UIState {
     subIndex: number
     multiSelected: Set<SelectionKey>
     inOutlineMode: boolean
+    foldedNodes?: Set<string>
   }>
   navHistoryIndex: number
 
@@ -340,6 +341,7 @@ const uiSlice = createSlice({
         subIndex: number
         multiSelected: Set<SelectionKey>
         inOutlineMode: boolean
+        foldedNodes?: Set<string>
       }>,
     ) => {
       // Truncate forward history when adding new entry

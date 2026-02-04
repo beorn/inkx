@@ -56,6 +56,7 @@ export function handleZoomOutwards(ctx: TUIContext): ActionResult {
         ui.multiSelected,
         ui.inOutlineMode,
         boardState.cursorNodeId,
+        ui.foldedNodes,
       )
 
       // When zooming out, keep the current root as the cursor
@@ -100,6 +101,7 @@ export function handleZoomIn(ctx: TUIContext): ActionResult {
     ui.multiSelected,
     ui.inOutlineMode,
     boardState.cursorNodeId,
+    ui.foldedNodes,
   )
 
   // Dispatch zoom to the card node, with first child as initial cursor
@@ -139,6 +141,7 @@ export function handleZoomInNode(
     ui.multiSelected,
     ui.inOutlineMode,
     boardState.cursorNodeId,
+    ui.foldedNodes,
   )
 
   // Dispatch zoom with first child as initial cursor
@@ -199,6 +202,7 @@ export function handleZoomInwards(ctx: TUIContext): ActionResult {
         ui.multiSelected,
         ui.inOutlineMode,
         boardState.cursorNodeId,
+        ui.foldedNodes,
       )
 
       dispatch(actions.exitOutlineMode())

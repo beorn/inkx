@@ -23,6 +23,7 @@ export function pushNavHistoryEntry(
   multiSelected: Set<SelectionKey>,
   inOutlineMode: boolean,
   cursorNodeId: string | null = null,
+  foldedNodes?: Set<string>,
 ): void {
   dispatch(
     actions.pushNavHistory({
@@ -33,6 +34,7 @@ export function pushNavHistoryEntry(
       subIndex,
       multiSelected: new Set(multiSelected),
       inOutlineMode,
+      foldedNodes: foldedNodes ? new Set(foldedNodes) : undefined,
     }),
   )
 }

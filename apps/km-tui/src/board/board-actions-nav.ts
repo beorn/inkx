@@ -458,6 +458,12 @@ export function handleNavBack(ctx: TUIContext): ActionResult {
     dispatch(actions.enterOutlineMode())
     dispatch(actions.setSubIndex(entry.subIndex))
   }
+
+  // Restore folded nodes state
+  if (entry.foldedNodes) {
+    dispatch(actions.setFoldedNodes(entry.foldedNodes))
+  }
+
   return ok()
 }
 
@@ -497,6 +503,12 @@ export function handleNavForward(ctx: TUIContext): ActionResult {
     dispatch(actions.enterOutlineMode())
     dispatch(actions.setSubIndex(entry.subIndex))
   }
+
+  // Restore folded nodes state
+  if (entry.foldedNodes) {
+    dispatch(actions.setFoldedNodes(entry.foldedNodes))
+  }
+
   return ok()
 }
 
@@ -541,6 +553,7 @@ export function handleNavSiblingBoard(
     ui.multiSelected,
     ui.inOutlineMode,
     boardState.cursorNodeId,
+    ui.foldedNodes,
   )
 
   // Navigate to sibling
