@@ -1646,6 +1646,145 @@ describe("Search and Filter", () => {
     board.press("\x1b")
     expect(board.screenshot()).not.toContain("Enter go")
   })
+
+  test("search scrolling renders results without artifacts", () => {
+    // Create many items to trigger scrolling (>13 visible in default 24-row terminal)
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item(
+          "col",
+          item("Task 01"),
+          item("Task 02"),
+          item("Task 03"),
+          item("Task 04"),
+          item("Task 05"),
+          item("Task 06"),
+          item("Task 07"),
+          item("Task 08"),
+          item("Task 09"),
+          item("Task 10"),
+          item("Task 11"),
+          item("Task 12"),
+          item("Task 13"),
+          item("Task 14"),
+          item("Task 15"),
+          item("Task 16"),
+          item("Task 17"),
+          item("Task 18"),
+          item("Task 19"),
+          item("Task 20"),
+        ),
+      ),
+    )
+    board.press("/")
+
+    // Get initial state - first few tasks should be visible
+    let output = board.screenshot()
+    expect(output).toContain("Task 01")
+    expect(output).toContain("Task 02")
+
+    // Navigate down to trigger scrolling (j or ArrowDown moves selection)
+    for (let i = 0; i < 15; i++) {
+      board.press("ArrowDown")
+    }
+
+    // After scrolling, tasks 15-16 should be visible, earlier tasks may scroll out
+    output = board.screenshot()
+    expect(output).toContain("Task 15")
+    expect(output).toContain("Task 16")
+
+    // Key check: Each result line should appear only ONCE (no duplicates/overlap)
+    // Count occurrences of "Task" - should be roughly equal to maxVisible (~13)
+    const taskMatches = output.match(/Task \d+/g) || []
+    // Should have ~13 matches (one per visible row), not more (no duplicates)
+    expect(taskMatches.length).toBeLessThanOrEqual(15) // Allow small buffer
+    // And definitely not 20+ (which would indicate duplicate rendering)
+    expect(taskMatches.length).toBeLessThan(20)
+  })
+
+  test("Enter navigates to visible node (same view)", () => {
+    // Create a board with multiple columns and tasks
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("Col1", item("Task Alpha"), item("Task Beta")),
+        item("Col2", item("Task Gamma"), item("Task Delta")),
+      ),
+    )
+
+    // Open search and type to filter
+    board.press("/")
+    for (const c of "Gamma") board.press(c)
+    board.press("Enter")
+
+    // Dialog should close and navigate to Task Gamma
+    const output = board.screenshot()
+    expect(output).not.toContain("Enter go") // Dialog closed
+    // The navigation should show Task Gamma in the path (zoomed or selected)
+    expect(output).toContain("Task Gamma")
+  })
+
+  test("Enter navigates to nested node (zooms to grandparent)", () => {
+    // Create a deeply nested structure where searching from vault level requires zoom
+    // board > Projects > Active (column) > Task Deep (card)
+    // When viewing board, only Projects is visible as column header
+    // Task Deep is 3 levels down (card of Active, which is card of Projects)
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item(
+          "Projects",
+          item("Active", item("Task Deep")),
+          item("Archive", item("Old Task")),
+        ),
+      ),
+    )
+
+    // Board shows columns at top level - zoom out first to test
+    board.press("Escape") // Zoom out
+    let output = board.screenshot()
+
+    // Open search and select a deeply nested item
+    board.press("/")
+    for (const c of "Task Deep") board.press(c)
+    board.press("Enter")
+
+    // Dialog should close
+    output = board.screenshot()
+    expect(output).not.toContain("Enter go") // Dialog closed
+    // The view should show Task Deep (zoomed in to show it)
+    expect(output).toContain("Task Deep")
+  })
+
+  test("Enter navigates to section within file (deeply nested)", () => {
+    // Simulate file > section structure
+    // Vault > Notes > Doc1 > Section A
+    const { board } = testEnv(() =>
+      item(
+        "Vault",
+        item(
+          "Notes",
+          item("Doc1", item("Section A"), item("Section B")),
+          item("Doc2", item("Section X")),
+        ),
+      ),
+    )
+
+    // Zoom out to vault level first (Escape goes back in history)
+    board.press("Escape")
+    let output = board.screenshot()
+
+    // Search for a deeply nested section
+    board.press("/")
+    for (const c of "Section A") board.press(c)
+    board.press("Enter")
+
+    // Dialog should close and section should be visible after zoom
+    output = board.screenshot()
+    expect(output).not.toContain("Enter go") // Dialog closed
+    expect(output).toContain("Section A")
+  })
 })
 
 describe("View Modes", () => {

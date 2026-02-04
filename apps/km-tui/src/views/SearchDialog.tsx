@@ -5,12 +5,12 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React, {
-  useState,
   useMemo,
   useCallback,
   forwardRef,
   useImperativeHandle,
   useDeferredValue,
+  useState,
 } from "react"
 import { Box, Text, useInput, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
@@ -18,6 +18,7 @@ import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, InputBox } from "./shared-components.tsx"
 import { parseQuery, type QueryAST } from "@km/core"
+import { useLineEdit } from "../hooks/use-line-edit.ts"
 
 /**
  * Simple fuzzy match - check if query chars appear in order in target
@@ -229,17 +230,20 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
     ref,
   ): React.ReactElement {
     const repo = useRepo()
-    const [query, setQuery] = useState("")
-    const deferredQuery = useDeferredValue(query)
     const [selectedIndex, setSelectedIndex] = useState(0)
+
+    // Readline-style line editing for search input
+    const lineEdit = useLineEdit({
+      onChange: () => setSelectedIndex(0), // Reset selection when query changes
+    })
+    const deferredQuery = useDeferredValue(lineEdit.value)
 
     useImperativeHandle(ref, () => ({
       focusInput() {
         // No-op for now - TUI doesn't have native focus
-        // Documents the intent for potential future use
       },
       clearQuery() {
-        setQuery("")
+        lineEdit.clear()
         setSelectedIndex(0)
       },
     }))
@@ -322,6 +326,7 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
       scrollOffset + maxVisible,
     )
 
+    // Handle navigation and selection (text editing handled by useLineEdit)
     useInput((input, key) => {
       if (key.escape) {
         onCancel()
@@ -336,6 +341,7 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         return
       }
 
+      // Result navigation (up/down)
       if (key.upArrow || (key.ctrl && input === "p")) {
         setSelectedIndex((i) => Math.max(0, i - 1))
         return
@@ -343,19 +349,6 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
 
       if (key.downArrow || (key.ctrl && input === "n")) {
         setSelectedIndex((i) => Math.min(filteredResults.length - 1, i + 1))
-        return
-      }
-
-      if (key.backspace || key.delete) {
-        setQuery((q) => q.slice(0, -1))
-        setSelectedIndex(0)
-        return
-      }
-
-      // Regular character input
-      if (input.length === 1 && input >= " ") {
-        setQuery((q) => q + input)
-        setSelectedIndex(0)
       }
     })
 
@@ -379,8 +372,12 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         height={height}
         footer={footerContent}
       >
-        {/* Search input */}
-        <InputBox value={query} placeholder="type to search..." />
+        {/* Search input with readline editing */}
+        <InputBox
+          beforeCursor={lineEdit.beforeCursor}
+          afterCursor={lineEdit.afterCursor}
+          placeholder="type to search..."
+        />
 
         {/* Spacer before results */}
         <Text> </Text>
@@ -436,10 +433,10 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
                 </Box>
               )
             })}
-            {filteredResults.length === 0 && query && (
+            {filteredResults.length === 0 && deferredQuery && (
               <Text dimColor> No matching items</Text>
             )}
-            {filteredResults.length === 0 && !query && (
+            {filteredResults.length === 0 && !deferredQuery && (
               <Text dimColor> Start typing to search...</Text>
             )}
           </Box>

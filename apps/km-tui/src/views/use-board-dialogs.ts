@@ -10,6 +10,9 @@ import type { BoardAction } from "@km/board"
 import type { Repo } from "../repo-context.tsx"
 import type { TUIBoardState } from "../types.ts"
 import { actions } from "../ui-reducer.ts"
+import { createConditionalLogger } from "@beorn/logger"
+
+const log = createConditionalLogger("km:tui:dialogs")
 
 // =============================================================================
 // Types
@@ -108,8 +111,14 @@ export function useBoardDialogs({
   // Uses "smart zoom" - only zooms when necessary to make target visible
   const handleSearchSelect = useCallback(
     (targetNode: KNode) => {
+      log.debug?.(
+        `handleSearchSelect: targetNode.id=${targetNode.id.slice(-8)} type=${targetNode.type} rootId=${rootId?.slice(-8) ?? "null"}`,
+      )
       const target = repo.getNode(targetNode.id)
       if (!target) {
+        log.error?.(
+          `handleSearchSelect: node not found in repo: ${targetNode.id}`,
+        )
         dispatch(actions.hideSearchDialog())
         return
       }
@@ -124,14 +133,19 @@ export function useBoardDialogs({
       // A node is visible if its parent is root (column) or grandparent is root (card)
       // Cursor can be set to any descendant of a visible card
       let current: KNode | null = target
+      let depth = 0
       while (current) {
         const parentId = current.parent_id
         const parent = parentId ? repo.getNode(parentId) : null
         const grandparentId = parent?.parent_id
+        log.debug?.(
+          `  walk[${depth}]: current=${current.id.slice(-8)} parent=${parentId?.slice(-8) ?? "null"} grandparent=${grandparentId?.slice(-8) ?? "null"}`,
+        )
 
         // Check if this ancestor is visible in current view
         if (parentId === rootId || grandparentId === rootId) {
           // Target is a descendant of a visible node, just SELECT
+          log.debug?.(`  → SELECT: target visible at depth ${depth}`)
           dispatchBoard({ type: "SELECT", nodeId: target.id })
           dispatch(actions.hideSearchDialog())
           return
@@ -139,16 +153,23 @@ export function useBoardDialogs({
 
         // Move up to parent
         current = parent
+        depth++
       }
 
       // Target not visible in current view - need to zoom
       // Find the closest ancestor to zoom to (prefer showing target as card)
+      log.debug?.(
+        `  → ZOOM needed: walked ${depth} levels without finding root`,
+      )
       const parentId = target.parent_id
       const parent = parentId ? repo.getNode(parentId) : null
       const grandparentId = parent?.parent_id
 
       if (grandparentId) {
         // Zoom to grandparent: target shows as a card
+        log.debug?.(
+          `  → ZOOM_IN to grandparent=${grandparentId.slice(-8)} cursor=${target.id.slice(-8)}`,
+        )
         dispatchBoard({
           type: "ZOOM_IN",
           nodeId: grandparentId,
@@ -156,6 +177,9 @@ export function useBoardDialogs({
         })
       } else if (parentId) {
         // Zoom to parent: target shows as column header
+        log.debug?.(
+          `  → ZOOM_IN to parent=${parentId.slice(-8)} cursor=${target.id.slice(-8)}`,
+        )
         dispatchBoard({
           type: "ZOOM_IN",
           nodeId: parentId,
@@ -163,6 +187,7 @@ export function useBoardDialogs({
         })
       } else {
         // No ancestors, zoom into target itself
+        log.debug?.(`  → ZOOM_IN to target itself (no ancestors)`)
         dispatchBoard({
           type: "ZOOM_IN",
           nodeId: target.id,

@@ -336,8 +336,10 @@ export function ModalDialog({
 // =============================================================================
 
 export interface InputBoxProps {
-  /** Input value */
-  value: string
+  /** Text before cursor */
+  beforeCursor: string
+  /** Text after cursor */
+  afterCursor: string
   /** Prompt/prefix (e.g., "/ " for search) */
   prompt?: string
   /** Placeholder text when empty */
@@ -354,16 +356,18 @@ export interface InputBoxProps {
  * Features:
  * - Single-line input with underline indicator
  * - Optional colored prompt prefix
- * - Block cursor (inverse character)
+ * - Block cursor at correct position
  * - Placeholder text when empty
  */
 export function InputBox({
-  value,
+  beforeCursor,
+  afterCursor,
   prompt = "",
   placeholder = "",
   promptColor = "yellow",
   showCursor = true,
 }: InputBoxProps): React.ReactElement {
+  const value = beforeCursor + afterCursor
   const showPlaceholder = !value && placeholder
 
   return (
@@ -373,9 +377,13 @@ export function InputBox({
         {showPlaceholder ? (
           <Text dimColor>{placeholder}</Text>
         ) : (
-          <Text>{value}</Text>
+          <>
+            <Text>{beforeCursor}</Text>
+            {showCursor && <Text inverse>{afterCursor[0] || " "}</Text>}
+            <Text>{afterCursor.slice(1)}</Text>
+          </>
         )}
-        {showCursor && <Text inverse> </Text>}
+        {showPlaceholder && showCursor && <Text inverse> </Text>}
       </Text>
       {/* Underline indicator */}
       <Text dimColor>{"─".repeat(40)}</Text>
