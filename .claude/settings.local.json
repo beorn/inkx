@@ -54,7 +54,8 @@
       "mcp__tty__reset",
       "mcp__tty__wait",
       "mcp__tty__list",
-      "mcp__tty__stop"
+      "mcp__tty__stop",
+      "Skill(history)"
     ],
     "deny": [],
     "ask": []
