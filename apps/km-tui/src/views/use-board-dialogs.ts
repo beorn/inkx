@@ -105,7 +105,7 @@ export function useBoardDialogs({
   }, [dispatch])
 
   // Handler for search selection - navigate to the selected node
-  // Uses "smart zoom" to ensure target becomes visible (only zooms when necessary)
+  // Uses "smart zoom" - only zooms when necessary, prefers grandparent (shows target as card)
   const handleSearchSelect = useCallback(
     (targetNode: KNode) => {
       const target = repo.getNode(targetNode.id)
@@ -120,28 +120,37 @@ export function useBoardDialogs({
         return
       }
 
-      // Check if target is visible in current view:
-      // - As a column: target.parent_id === rootId
-      // - As a card: target's parent's parent_id === rootId
+      // Build ancestor chain to find minimal zoom needed
       const parentId = target.parent_id
       const parent = parentId ? repo.getNode(parentId) : null
       const grandparentId = parent?.parent_id
+      const grandparent = grandparentId ? repo.getNode(grandparentId) : null
 
+      // Check if target is already visible in current view:
+      // - As a column header: target.parent_id === rootId
+      // - As a card: target.grandparent_id === rootId
       const isVisibleAsColumn = parentId === rootId
       const isVisibleAsCard = grandparentId === rootId
 
       if (isVisibleAsColumn || isVisibleAsCard) {
         // Target already visible, just move cursor
         dispatchBoard({ type: "SELECT", nodeId: target.id })
+      } else if (grandparentId && grandparent) {
+        // Prefer grandparent: target shows as a card (more natural view)
+        dispatchBoard({
+          type: "ZOOM_IN",
+          nodeId: grandparentId,
+          cursorNodeId: target.id,
+        })
       } else if (parentId) {
-        // Target not visible, zoom to parent to make it visible as a card
+        // Fallback to parent: target shows as column header
         dispatchBoard({
           type: "ZOOM_IN",
           nodeId: parentId,
           cursorNodeId: target.id,
         })
       } else {
-        // No parent (root-level node), zoom into it
+        // No ancestors, zoom into target itself
         dispatchBoard({
           type: "ZOOM_IN",
           nodeId: target.id,
