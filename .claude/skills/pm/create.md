@@ -58,10 +58,17 @@ Phase 6: Work Completion (record results, update related)
 - `/pm feat` → type=feature
 - `/pm task` → type=task
 
-**Scope** (from keywords/files mentioned):
+**Scope** (from keywords/files mentioned) — determines tracking epic:
 
-- storage, board, tui, cli, tree, markdown → `km-<scope>`
-- No clear scope → `km-` (cross-cutting)
+| Keywords/area | Tracking epic | ID pattern |
+|---|---|---|
+| inkx, chalkx, render pipeline, ANSI | `km-inkx` | `km-inkx.<suffix>` |
+| flexx, layout engine, flexbox | `km-flexx` | `km-flexx.<suffix>` |
+| TUI, board, views, columns, cards | `km-tui` | `km-tui.<suffix>` |
+| test, vitest, fuzz, benchmark, mdtest | `km-vitestx` | `km-vitestx.<suffix>` |
+| monorepo, linting, packaging, CI | `km-infra` | `km-infra.<suffix>` |
+| storage, sync, db | `km-storage-N` | (no tracking epic yet) |
+| No clear scope | `km-<keyword>` | (cross-cutting) |
 
 **Priority** (from language):
 
@@ -156,7 +163,7 @@ Exact match (open)?
 
 3. **Construct ID:**
    - `<prefix><scope>-<N+1>`
-   - Example: `km-storage-15` or `beorn-inkx-api-2`
+   - Example: `km-storage-15` or `km-inkx.bg-bleed`
 
 **Note**: Type/priority/labels go in metadata fields, not the ID. See [beads-ids.md](beads-ids.md).
 
@@ -180,25 +187,39 @@ bd create \
 
 ```bash
 # Search for references to old ID before closing/deleting
-grep -r "km-old-id" .claude/ docs/ --include="*.md"
+grep -r "km-old-id" .
 ```
 
 Update all references to point to the new ID. Never leave dangling references.
 
-### Update related beads if dependencies identified:
+### Assign to tracking epic (REQUIRED):
+
+Every new bead **must** be a sub-bead of its tracking epic using dot notation:
+
+```bash
+# ID format: km-<scope>.<suffix>
+# Example: km-inkx.bg-bleed, km-tui.emptybody, km-infra.ci-fuzz
+
+# Set parent AFTER creation (--id and --parent conflict)
+bd update <new-id> --parent <tracking-epic-id>
+```
+
+| Tracking epic | For |
+|---|---|
+| `km-inkx` | inkx/chalkx rendering engine |
+| `km-flexx` | Flexx layout engine |
+| `km-tui` | TUI app views/interaction |
+| `km-vitestx` | Test framework & infra |
+| `km-infra` | Monorepo packaging/linting |
+
+If no tracking epic fits, the bead can be standalone (e.g., `km-storage-N`, `km-claude-*`).
+
+### Link dependencies if identified:
 
 ```bash
 # Add dependency (new-id is blocked by blocking-id)
 bd dep add <new-id> <blocking-id>
-
-# Link to parent epic (AFTER creation - --id and --parent conflict)
-bd update <new-id> --parent <epic-id>
-
-# Or use --deps at creation time (alternative to --parent)
-bd create --id km-tui-8.1 --title "Subtask" --deps "parent-child:km-tui-8"
 ```
-
-**Note**: `--id` and `--parent` cannot be used together. Either use `--deps` at creation time, or set parent via `bd update` after creation.
 
 ---
 

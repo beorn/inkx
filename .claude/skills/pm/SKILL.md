@@ -71,6 +71,27 @@ When user says `/pm work <id>` or `/pm do <id>`:
 
 The user's command IS the confirmation. Never re-ask intent that was already expressed.
 
+## Tracking Epics
+
+Every bead belongs under a tracking epic via `km-<scope>.<suffix>` dot notation:
+
+| Epic | Scope | Example |
+|------|-------|---------|
+| `km-inkx` | inkx/chalkx rendering engine | `km-inkx.bg-bleed` |
+| `km-flexx` | Flexx layout engine | `km-flexx.cold-start` |
+| `km-tui` | TUI app views/interaction | `km-tui.emptybody` |
+| `km-vitestx` | Test framework package | `km-vitestx.mdtest` |
+| `km-infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `km-infra.ci-fuzz` |
+| `km-storage` | Storage layer | `km-storage.split-query` |
+| `km-tools` | Claude Code skills & tooling (beorn-tools) | `km-tools.history` |
+| `km-markdown` | Markdown parser/serializer | `km-markdown.split-roundtrip` |
+| `km-all` | Cross-cutting non-infra (code reviews, etc.) | `km-all.rev-0203` |
+
+**Scoping rule**: If a bead belongs to a specific package, use `km-<package>`. If cross-cutting infra (CI, benchmarks, packaging), use `km-infra`. If cross-cutting non-infra (code reviews, multi-package quality), use `km-all`.
+
+**Creating**: Use `km-<scope>.<suffix>` ID, then `bd update <id> --parent <epic>`.
+**Closing**: The parent-child link is preserved on closed beads automatically.
+
 ## Workflow
 
 1. **Find work**: `bd ready` or `bd list`
@@ -99,7 +120,7 @@ The user's command IS the confirmation. Never re-ask intent that was already exp
 
 **Refactoring beads**: Read [/docs/principles.md](/docs/principles.md) and [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md) first. Phase order: Rebase -> Absorb -> Purge -> Remove -> Fix.
 
-**Renaming beads**: Always `grep -r "km-old-id" .claude/ docs/ --include="*.md"` to update all references.
+**Renaming beads**: Always `grep -r "km-old-id" .` to find all references across the entire codebase, then update them.
 
 ## Sub-Skills
 

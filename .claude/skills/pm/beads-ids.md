@@ -55,8 +55,8 @@ km-<scope>-<N>
 **Examples:**
 
 - `km-storage-15` - Storage package work #15
-- `km-tui-42` - TUI work #42
-- `km-board-3` - Board package work #3
+- `km-tui.persist-nav` - TUI board navigation persistence
+- `km-inkx.bg-bleed` - inkx background color bleed bug
 
 **Metadata carries classification:**
 
@@ -80,13 +80,13 @@ bd create --id km-storage-15 \
 **Examples:**
 
 ```
-km-test-1              # Test milestone epic
-km-test-1.1            # CI integration subtask
-km-test-1.2            # Coverage tracking subtask
+km-vitestx             # Test framework tracking epic
+km-vitestx.mdtest      # mdtest vitest plugin subtask
+km-infra.ci-fuzz       # CI fuzzing (cross-cutting infra)
 
-beorn-inkx-api         # inkx API epic (in vendor/beorn-inkx)
-beorn-inkx-api.1       # First subtask
-beorn-inkx-api.2       # Second subtask
+km-inkx                # inkx/chalkx tracking epic
+km-inkx.stale-pixels   # Stale pixel bugs subtask
+km-inkx.bg-bleed       # Background color bleed subtask
 ```
 
 **Note**: Dot notation works with ANY prefix — not just `km-`. Always check the database prefix first.
@@ -133,7 +133,7 @@ km-<4-5 char random>
 | --------------------- | --------------- | ------------------------------------------ | ------------------------------- |
 | Package-specific bug  | 1: Scoped       | `km-storage-15`, `beorn-inkx-render-3`     | Check prefix first, find next N |
 | Feature in a package  | 1: Scoped       | `km-tui-8`, `beorn-chalkx-color-2`         | Clear scope                     |
-| Epic with subtasks    | 2: Hierarchical | `km-storage-8.1`, `beorn-inkx-api.1`       | Dot notation works with any prefix |
+| Epic with subtasks    | 2: Hierarchical | `km-storage-8.1`, `km-inkx.bg-bleed`       | Dot notation works with any prefix |
 | Cross-package feature | 3: Keyword      | `km-dark-mode`                             | Memorable name                  |
 | Quick bug capture     | 4: Opaque       | `km-5vsut`                                 | Auto-generated                  |
 | Unknown scope yet     | 4: Opaque       | `km-a1b2c`                                 | Refine later                    |
@@ -192,13 +192,13 @@ When creating beads for a package/area not listed above:
 Use `.1`, `.2`, `.3` (numbers) for subtasks under a parent. **Works with any prefix**:
 
 ```
-km-storage-8          # Parent (in km)
+km-storage-8          # Parent epic
 km-storage-8.1        # Subtask 1
 km-storage-8.2        # Subtask 2
 
-beorn-inkx-api        # Parent (in vendor/beorn-inkx)
-beorn-inkx-api.1      # Subtask 1
-beorn-inkx-api.2      # Subtask 2
+km-inkx               # Tracking epic
+km-inkx.stale-pixels  # Named subtask
+km-inkx.bg-bleed      # Named subtask
 ```
 
 **Rules:**
