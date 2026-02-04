@@ -73,7 +73,7 @@ The user's command IS the confirmation. Never re-ask intent that was already exp
 
 ## Tracking Epics
 
-Every bead belongs under a tracking epic via `km-<scope>.<suffix>` dot notation:
+Every bead belongs under a tracking epic via `km-<scope>.<suffix>` dot notation. Tracking epics have "TRACKING:" in their title and serve as live indexes of open work per scope.
 
 | Epic | Scope | Example |
 |------|-------|---------|
@@ -85,12 +85,18 @@ Every bead belongs under a tracking epic via `km-<scope>.<suffix>` dot notation:
 | `km-storage` | Storage layer | `km-storage.split-query` |
 | `km-tools` | Claude Code skills & tooling (beorn-tools) | `km-tools.history` |
 | `km-markdown` | Markdown parser/serializer | `km-markdown.split-roundtrip` |
-| `km-all` | Cross-cutting non-infra (code reviews, etc.) | `km-all.rev-0203` |
+| `km-review` | Code reviews (cross-cutting quality) | `km-review.feb-0203` |
 
-**Scoping rule**: If a bead belongs to a specific package, use `km-<package>`. If cross-cutting infra (CI, benchmarks, packaging), use `km-infra`. If cross-cutting non-infra (code reviews, multi-package quality), use `km-all`.
+**Scoping rule**: If a bead belongs to a specific package, use `km-<package>`. If cross-cutting infra (CI, benchmarks, packaging), use `km-infra`. If cross-cutting non-infra (code reviews, multi-package quality), use `km-review`.
 
 **Creating**: Use `km-<scope>.<suffix>` ID, then `bd update <id> --parent <epic>`.
 **Closing**: The parent-child link is preserved on closed beads automatically.
+
+### Maintaining Tracking Epics
+
+**IMPORTANT**: When you create, close, or reparent beads, update the parent tracking epic's description to reflect the change. Tracking epics list their children by priority — keep this list current so future sessions have an accurate overview.
+
+To update: `bd update <epic-id> --description "..."` with the revised child list. Check current children with `bd list --parent <epic-id>`.
 
 ## Workflow
 
