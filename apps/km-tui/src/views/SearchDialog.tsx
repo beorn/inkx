@@ -379,9 +379,6 @@ export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
         height={height}
         footer={footerContent}
       >
-        {/* Spacer after title */}
-        <Text> </Text>
-
         {/* Search input */}
         <Text>
           <Text color="yellow">{"/ "}</Text>

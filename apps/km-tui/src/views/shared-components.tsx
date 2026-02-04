@@ -301,9 +301,12 @@ export function ModalDialog({
       paddingY={1}
     >
       {title && (
-        <Text color={borderColor} bold>
-          {title}
-        </Text>
+        <>
+          <Text color={borderColor} bold>
+            {title}
+          </Text>
+          <Text> </Text>
+        </>
       )}
       {/* Content area - flexGrow pushes footer to bottom */}
       <Box flexDirection="column" flexGrow={1}>
