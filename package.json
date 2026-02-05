@@ -26,6 +26,7 @@
   "scripts": {
     "setup": "bun run scripts/setup.ts",
     "km": "bun run ./apps/km-cli/src/index.ts",
+    "km:strict": "INKX_STRICT=true bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
     "worktree": "bun vendor/beorn-tools/tools/worktree.ts",
     "history": "bun vendor/beorn-tools/tools/history.ts",
@@ -48,6 +49,7 @@
     "fix": "bun run codemod && bun run lint:fix && bun run format:fix",
     "vitest": "bunx --bun vitest",
     "test:fast": "bun vitest run --exclude='**/*.slow.*' --exclude='vendor/**'",
+    "test:strict": "INKX_STRICT=1 bun vitest run",
     "test:fast2": "bun vitest run --exclude='**/*.slow.*' --reporter=vitestx/dotz",
     "test:slow": "bun vitest run -- '**/*.slow.{test,spec}.{ts,tsx,md}'",
     "test:all": "bun vitest run",
