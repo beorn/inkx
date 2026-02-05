@@ -5,7 +5,7 @@
  * A separate useInputLayer handles Return (confirm) and Escape (cancel).
  */
 
-import React, { useCallback, useId } from "react"
+import React, { useCallback, useId, useRef } from "react"
 import { Text, useInputLayer, type Key } from "inkx"
 import { useLineEdit } from "../hooks/use-line-edit.ts"
 
@@ -26,13 +26,19 @@ export function InlineEditField({
     isActive: true,
   })
 
+  // Use ref to avoid stale value in the confirm handler.
+  // Without this, batched React updates (e.g., rapid key presses in tests)
+  // cause onConfirm to receive an outdated value.
+  const valueRef = useRef(value)
+  valueRef.current = value
+
   // Separate layer for Return/Escape — sits above line-edit layer
   useInputLayer(
     `inline-edit-control-${layerId}`,
     useCallback(
       (_input: string, key: Key): boolean => {
         if (key.return) {
-          onConfirm(value)
+          onConfirm(valueRef.current)
           return true
         }
         if (key.escape) {
@@ -41,7 +47,7 @@ export function InlineEditField({
         }
         return false
       },
-      [value, onConfirm, onCancel],
+      [onConfirm, onCancel],
     ),
   )
 

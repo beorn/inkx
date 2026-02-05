@@ -8,6 +8,7 @@ import {
   useState,
   useCallback,
   useId,
+  useRef,
   type Dispatch,
   type SetStateAction,
 } from "react"
@@ -179,8 +180,10 @@ export function useLineEdit({
     [onChange],
   )
 
-  // Use ref to avoid stale closure issues with the handler
-  const stateRef = { current: state }
+  // Use ref to avoid stale closure issues with the handler.
+  // Must be a real useRef — a local { current: state } creates a new object
+  // each render that the useCallback closure never sees updated.
+  const stateRef = useRef(state)
   stateRef.current = state
 
   useInputLayer(
