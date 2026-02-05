@@ -86,6 +86,17 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
   let nextId = 1
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const batchTimers = new Map<string, any>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dismissTimers = new Map<string, any>()
+
+  function scheduleDismiss(id: string, duration: number): void {
+    // eslint-disable-next-line promise/prefer-await-to-callbacks -- setTimeout requires callback
+    const timer = setTimeout(() => {
+      dismissTimers.delete(id)
+      toasts = toasts.filter((t) => t.id !== id)
+    }, duration)
+    dismissTimers.set(id, timer)
+  }
 
   return {
     push(level, message, opts) {
@@ -94,7 +105,7 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
         id,
         level,
         message,
-        duration: 4000,
+        duration: 10_000,
         dismissible: true,
         ...opts,
       }
@@ -106,11 +117,23 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
         toasts.push(toast)
       }
 
+      // Auto-dismiss after duration
+      if (toast.duration && toast.duration > 0) {
+        scheduleDismiss(id, toast.duration)
+      }
+
       return id
     },
 
     dismiss(id) {
       toasts = toasts.filter((t) => t.id !== id)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
+      const timer = dismissTimers.get(id)
+      if (timer) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
+        clearTimeout(timer)
+        dismissTimers.delete(id)
+      }
     },
 
     dismissAll() {
@@ -121,6 +144,12 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
         clearTimeout(timer)
       }
       batchTimers.clear()
+      // Clear all dismiss timers
+      for (const timer of dismissTimers.values()) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
+        clearTimeout(timer)
+      }
+      dismissTimers.clear()
     },
 
     getAll() {
