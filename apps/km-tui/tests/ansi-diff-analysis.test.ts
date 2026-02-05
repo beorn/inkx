@@ -22,408 +22,637 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { existsSync } from "fs"
-import { loadTestBoard, createTestBoard } from "@km/tui/test"
+import { createTestBoard } from "@km/tui/test"
 // Note: outputPhase isn't exported from inkx public API - using relative path
 import { outputPhase } from "../../../vendor/beorn-inkx/src/pipeline/index.js"
 import { VirtualTerminal } from "inkx"
 import type { TerminalBuffer } from "inkx"
-
-const VAULT_PATH = "/tmp/v2"
+import { item } from "./helpers/board-test.ts"
 
 /**
  * Parse ANSI escape sequences from a string.
  * Returns array of { type, params, raw } for each sequence.
  */
 function parseAnsiSequences(ansi: string): Array<{
-	type: string
-	params: string
-	raw: string
-	index: number
+  type: string
+  params: string
+  raw: string
+  index: number
 }> {
-	const sequences: Array<{ type: string; params: string; raw: string; index: number }> = []
-	const regex = /\x1b\[([0-9;:]*)?([A-Za-z])/g
-	let match
+  const sequences: Array<{
+    type: string
+    params: string
+    raw: string
+    index: number
+  }> = []
+  const regex = /\x1b\[([0-9;:]*)?([A-Za-z])/g
+  let match
 
-	while ((match = regex.exec(ansi)) !== null) {
-		const params = match[1] || ""
-		const type = match[2]!
-		sequences.push({
-			type,
-			params,
-			raw: match[0],
-			index: match.index,
-		})
-	}
+  while ((match = regex.exec(ansi)) !== null) {
+    const params = match[1] || ""
+    const type = match[2]!
+    sequences.push({
+      type,
+      params,
+      raw: match[0],
+      index: match.index,
+    })
+  }
 
-	return sequences
+  return sequences
 }
 
 /**
  * Extract cursor movement sequences (H = absolute position).
  */
-function extractCursorMoves(sequences: ReturnType<typeof parseAnsiSequences>): Array<{
-	row: number
-	col: number
-	index: number
+function extractCursorMoves(
+  sequences: ReturnType<typeof parseAnsiSequences>,
+): Array<{
+  row: number
+  col: number
+  index: number
 }> {
-	return sequences
-		.filter((s) => s.type === "H")
-		.map((s) => {
-			const parts = s.params.split(";")
-			return {
-				row: parseInt(parts[0] || "1", 10),
-				col: parseInt(parts[1] || "1", 10),
-				index: s.index,
-			}
-		})
+  return sequences
+    .filter((s) => s.type === "H")
+    .map((s) => {
+      const parts = s.params.split(";")
+      return {
+        row: parseInt(parts[0] || "1", 10),
+        col: parseInt(parts[1] || "1", 10),
+        index: s.index,
+      }
+    })
 }
 
 /**
  * Summarize ANSI output for debugging.
  */
 function summarizeAnsi(ansi: string): string {
-	const sequences = parseAnsiSequences(ansi)
-	const cursorMoves = extractCursorMoves(sequences)
-	const hasReset = ansi.includes("\x1b[0m")
-	const hasHome = ansi.includes("\x1b[H")
+  const sequences = parseAnsiSequences(ansi)
+  const cursorMoves = extractCursorMoves(sequences)
+  const hasReset = ansi.includes("\x1b[0m")
+  const hasHome = ansi.includes("\x1b[H")
 
-	const lines = [
-		`Total length: ${ansi.length} bytes`,
-		`Total sequences: ${sequences.length}`,
-		`Cursor moves (H): ${cursorMoves.length}`,
-		`Has reset: ${hasReset}`,
-		`Has home: ${hasHome}`,
-	]
+  const lines = [
+    `Total length: ${ansi.length} bytes`,
+    `Total sequences: ${sequences.length}`,
+    `Cursor moves (H): ${cursorMoves.length}`,
+    `Has reset: ${hasReset}`,
+    `Has home: ${hasHome}`,
+  ]
 
-	if (cursorMoves.length > 0 && cursorMoves.length <= 20) {
-		lines.push("Cursor positions:")
-		for (const move of cursorMoves) {
-			lines.push(`  row=${move.row}, col=${move.col}`)
-		}
-	} else if (cursorMoves.length > 20) {
-		lines.push(`First 10 cursor positions:`)
-		for (const move of cursorMoves.slice(0, 10)) {
-			lines.push(`  row=${move.row}, col=${move.col}`)
-		}
-		lines.push(`  ... and ${cursorMoves.length - 10} more`)
-	}
+  if (cursorMoves.length > 0 && cursorMoves.length <= 20) {
+    lines.push("Cursor positions:")
+    for (const move of cursorMoves) {
+      lines.push(`  row=${move.row}, col=${move.col}`)
+    }
+  } else if (cursorMoves.length > 20) {
+    lines.push(`First 10 cursor positions:`)
+    for (const move of cursorMoves.slice(0, 10)) {
+      lines.push(`  row=${move.row}, col=${move.col}`)
+    }
+    lines.push(`  ... and ${cursorMoves.length - 10} more`)
+  }
 
-	return lines.join("\n")
+  return lines.join("\n")
 }
 
 describe("ANSI diff analysis", () => {
-	describe("replay equivalence invariant", () => {
-		test("synthetic: ANSI replay matches target buffer", () => {
-			const board = createTestBoard([
-				"Inbox > Task 1",
-				"Inbox > Task 2",
-				"Projects > Alpha",
-				"Projects > Beta",
-			])
+  describe("replay equivalence invariant", () => {
+    test("synthetic: ANSI replay matches target buffer", () => {
+      const board = createTestBoard([
+        "Inbox > Task 1",
+        "Inbox > Task 2",
+        "Projects > Alpha",
+        "Projects > Beta",
+      ])
 
-			const buffer0 = board.driver.app.lastBuffer()!
-			const vterm = new VirtualTerminal(buffer0.width, buffer0.height)
+      const buffer0 = board.driver.app.lastBuffer()!
+      const vterm = new VirtualTerminal(buffer0.width, buffer0.height)
 
-			// Apply initial render (full buffer to ANSI)
-			const initialAnsi = outputPhase(null, buffer0)
-			vterm.applyAnsi(initialAnsi)
+      // Apply initial render (full buffer to ANSI)
+      const initialAnsi = outputPhase(null, buffer0)
+      vterm.applyAnsi(initialAnsi)
 
-			// Verify initial render matches
-			let mismatches = vterm.compareToBuffer(buffer0)
-			expect(mismatches, "Initial render should match").toHaveLength(0)
+      // Verify initial render matches
+      let mismatches = vterm.compareToBuffer(buffer0)
+      expect(mismatches, "Initial render should match").toHaveLength(0)
 
-			// Navigate k k j j and verify each step
-			const keys = ["k", "k", "j", "j"]
-			let prevBuffer = buffer0
+      // Navigate k k j j and verify each step
+      const keys = ["k", "k", "j", "j"]
+      let prevBuffer = buffer0
 
-			for (const key of keys) {
-				board.press(key)
-				const nextBuffer = board.driver.app.lastBuffer()!
+      for (const key of keys) {
+        board.press(key)
+        const nextBuffer = board.driver.app.lastBuffer()!
 
-				// Get diff ANSI
-				const diff = outputPhase(prevBuffer, nextBuffer)
+        // Get diff ANSI
+        const diff = outputPhase(prevBuffer, nextBuffer)
 
-				// Load prev buffer into virtual terminal (simulates terminal state before diff)
-				const stepVterm = new VirtualTerminal(nextBuffer.width, nextBuffer.height)
-				stepVterm.loadFromBuffer(prevBuffer)
+        // Load prev buffer into virtual terminal (simulates terminal state before diff)
+        const stepVterm = new VirtualTerminal(
+          nextBuffer.width,
+          nextBuffer.height,
+        )
+        stepVterm.loadFromBuffer(prevBuffer)
 
-				// Apply diff
-				stepVterm.applyAnsi(diff)
+        // Apply diff
+        stepVterm.applyAnsi(diff)
 
-				// Compare to target
-				mismatches = stepVterm.compareToBuffer(nextBuffer)
-				if (mismatches.length > 0) {
-					const first5 = mismatches.slice(0, 5)
-					const details = first5
-						.map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
-						.join("\n")
-					expect.fail(`Replay mismatch after '${key}':\n${details}\n  ... and ${mismatches.length - 5} more`)
-				}
+        // Compare to target
+        mismatches = stepVterm.compareToBuffer(nextBuffer)
+        if (mismatches.length > 0) {
+          const first5 = mismatches.slice(0, 5)
+          const details = first5
+            .map(
+              (m) =>
+                `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`,
+            )
+            .join("\n")
+          expect.fail(
+            `Replay mismatch after '${key}':\n${details}\n  ... and ${mismatches.length - 5} more`,
+          )
+        }
 
-				prevBuffer = nextBuffer
-			}
-		})
+        prevBuffer = nextBuffer
+      }
+    })
 
-		test("synthetic: cursor bounds invariant", () => {
-			const board = createTestBoard([
-				"Inbox > Task 1",
-				"Inbox > Task 2",
-				"Projects > Alpha",
-			])
+    test("synthetic: cursor bounds invariant", () => {
+      const board = createTestBoard([
+        "Inbox > Task 1",
+        "Inbox > Task 2",
+        "Projects > Alpha",
+      ])
 
-			const buffer0 = board.driver.app.lastBuffer()!
-			board.press("k")
-			const buffer1 = board.driver.app.lastBuffer()!
+      const buffer0 = board.driver.app.lastBuffer()!
+      board.press("k")
+      const buffer1 = board.driver.app.lastBuffer()!
 
-			const diff = outputPhase(buffer0, buffer1)
-			const sequences = parseAnsiSequences(diff)
-			const cursorMoves = extractCursorMoves(sequences)
+      const diff = outputPhase(buffer0, buffer1)
+      const sequences = parseAnsiSequences(diff)
+      const cursorMoves = extractCursorMoves(sequences)
 
-			// All cursor positions should be within bounds (1-indexed)
-			for (const move of cursorMoves) {
-				expect(move.row, `Row ${move.row} should be >= 1`).toBeGreaterThanOrEqual(1)
-				expect(move.row, `Row ${move.row} should be <= ${buffer1.height}`).toBeLessThanOrEqual(buffer1.height)
-				expect(move.col, `Col ${move.col} should be >= 1`).toBeGreaterThanOrEqual(1)
-				expect(move.col, `Col ${move.col} should be <= ${buffer1.width}`).toBeLessThanOrEqual(buffer1.width)
-			}
-		})
-	})
+      // All cursor positions should be within bounds (1-indexed)
+      for (const move of cursorMoves) {
+        expect(
+          move.row,
+          `Row ${move.row} should be >= 1`,
+        ).toBeGreaterThanOrEqual(1)
+        expect(
+          move.row,
+          `Row ${move.row} should be <= ${buffer1.height}`,
+        ).toBeLessThanOrEqual(buffer1.height)
+        expect(
+          move.col,
+          `Col ${move.col} should be >= 1`,
+        ).toBeGreaterThanOrEqual(1)
+        expect(
+          move.col,
+          `Col ${move.col} should be <= ${buffer1.width}`,
+        ).toBeLessThanOrEqual(buffer1.width)
+      }
+    })
+  })
 
-	test("synthetic: analyze k k j j ANSI diffs", () => {
-		const board = createTestBoard([
-			"Inbox > Task 1",
-			"Inbox > Task 2",
-			"Projects > Alpha",
-			"Projects > Beta",
-		])
+  test("synthetic: analyze k k j j ANSI diffs", () => {
+    const board = createTestBoard([
+      "Inbox > Task 1",
+      "Inbox > Task 2",
+      "Projects > Alpha",
+      "Projects > Beta",
+    ])
 
-		// Get initial buffer
-		const buffer0 = board.driver.app.lastBuffer()!
+    // Get initial buffer
+    const buffer0 = board.driver.app.lastBuffer()!
 
-		// Press k (first)
-		board.press("k")
-		const buffer1 = board.driver.app.lastBuffer()!
-		const diff1 = outputPhase(buffer0, buffer1)
+    // Press k (first)
+    board.press("k")
+    const buffer1 = board.driver.app.lastBuffer()!
+    const diff1 = outputPhase(buffer0, buffer1)
 
-		// Press k (second)
-		board.press("k")
-		const buffer2 = board.driver.app.lastBuffer()!
-		const diff2 = outputPhase(buffer1, buffer2)
+    // Press k (second)
+    board.press("k")
+    const buffer2 = board.driver.app.lastBuffer()!
+    const diff2 = outputPhase(buffer1, buffer2)
 
-		// Press j (first)
-		board.press("j")
-		const buffer3 = board.driver.app.lastBuffer()!
-		const diff3 = outputPhase(buffer2, buffer3)
+    // Press j (first)
+    board.press("j")
+    const buffer3 = board.driver.app.lastBuffer()!
+    const diff3 = outputPhase(buffer2, buffer3)
 
-		// Press j (second)
-		board.press("j")
-		const buffer4 = board.driver.app.lastBuffer()!
-		const diff4 = outputPhase(buffer3, buffer4)
+    // Press j (second)
+    board.press("j")
+    const buffer4 = board.driver.app.lastBuffer()!
+    const diff4 = outputPhase(buffer3, buffer4)
 
-		// Analyze
-		expect(diff1.length).toBeGreaterThan(0)
-		expect(diff2.length).toBeGreaterThan(0)
-		expect(diff3.length).toBeGreaterThan(0)
-		expect(diff4.length).toBeGreaterThan(0)
+    // Analyze
+    expect(diff1.length).toBeGreaterThan(0)
+    expect(diff2.length).toBeGreaterThan(0)
+    expect(diff3.length).toBeGreaterThan(0)
+    expect(diff4.length).toBeGreaterThan(0)
 
-		// The final buffer should match the initial (content-wise)
-		// Compare a few cells
-		for (let y = 1; y < 5; y++) {
-			for (let x = 0; x < 20; x++) {
-				const a = buffer0.getCell(x, y)
-				const b = buffer4.getCell(x, y)
-				expect(a.char, `Cell (${x},${y}) should match`).toBe(b.char)
-			}
-		}
-	})
+    // The final buffer should match the initial (content-wise)
+    // Compare a few cells
+    for (let y = 1; y < 5; y++) {
+      for (let x = 0; x < 20; x++) {
+        const a = buffer0.getCell(x, y)
+        const b = buffer4.getCell(x, y)
+        expect(a.char, `Cell (${x},${y}) should match`).toBe(b.char)
+      }
+    }
+  })
 
-	describe.skipIf(!existsSync(VAULT_PATH))("real vault", () => {
-		test("replay equivalence: ANSI diff produces correct result", async () => {
-			const board = await loadTestBoard(VAULT_PATH, { rows: 40, columns: 120 })
+  /**
+   * Complex fixture tests - replicate real vault scenarios with fixture data.
+   * These tests replace the previous real vault tests that required /tmp/v2.
+   */
+  describe("complex fixture", () => {
+    /**
+     * Create a realistic vault-like fixture with:
+     * - Multiple columns with varied content
+     * - Nested folders that can be expanded
+     * - Names similar to real vault data to test edge cases
+     */
+    function createRealisticBoard() {
+      return createTestBoard(
+        item.root(
+          "vault",
+          // Column 1: Health/Fitness zone-style naming
+          item(
+            "Zone 1: 50-60%",
+            item("Morning run"),
+            item("Evening walk"),
+            item("Recovery jog"),
+          ),
+          // Column 2: Similar naming pattern
+          item(
+            "Health & Fitness",
+            item.folder("Exercise", item("Cardio"), item("Strength")),
+            item.folder("Nutrition", item("Meal prep"), item("Supplements")),
+            item("Sleep tracking"),
+          ),
+          // Column 3: Projects with deeper nesting
+          item(
+            "Projects",
+            item.folder(
+              "Work",
+              item("Quarterly report"),
+              item("Team meeting notes"),
+              item("Performance review"),
+            ),
+            item.folder(
+              "Personal",
+              item("Home renovation"),
+              item("Vacation planning"),
+            ),
+          ),
+          // Column 4: Quick tasks
+          item(
+            "Inbox",
+            item("Reply to email"),
+            item("Schedule dentist"),
+            item("Buy groceries"),
+            item("Call mom"),
+            item("Fix bike tire"),
+          ),
+        ),
+        { rows: 40, columns: 120 },
+      )
+    }
 
-			const buffer0 = board.driver.app.lastBuffer()!
+    test("replay equivalence: ANSI diff produces correct result", () => {
+      const board = createRealisticBoard()
 
-			// Navigate k k j j and verify replay at each step
-			const keys = ["k", "k", "j", "j"]
-			let prevBuffer = buffer0
+      const buffer0 = board.driver.app.lastBuffer()!
 
-			for (const key of keys) {
-				board.press(key)
-				const nextBuffer = board.driver.app.lastBuffer()!
+      // Navigate k k j j and verify replay at each step
+      const keys = ["k", "k", "j", "j"]
+      let prevBuffer = buffer0
 
-				// Get diff ANSI
-				const diff = outputPhase(prevBuffer, nextBuffer)
+      for (const key of keys) {
+        board.press(key)
+        const nextBuffer = board.driver.app.lastBuffer()!
 
-				// Load prev buffer into virtual terminal
-				const vterm = new VirtualTerminal(nextBuffer.width, nextBuffer.height)
-				vterm.loadFromBuffer(prevBuffer)
+        // Get diff ANSI
+        const diff = outputPhase(prevBuffer, nextBuffer)
 
-				// Apply diff
-				vterm.applyAnsi(diff)
+        // Load prev buffer into virtual terminal
+        const vterm = new VirtualTerminal(nextBuffer.width, nextBuffer.height)
+        vterm.loadFromBuffer(prevBuffer)
 
-				// Compare to target - this is the key invariant!
-				const mismatches = vterm.compareToBuffer(nextBuffer)
-				if (mismatches.length > 0) {
-					const first10 = mismatches.slice(0, 10)
-					const details = first10
-						.map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
-						.join("\n")
+        // Apply diff
+        vterm.applyAnsi(diff)
 
-					// Also show the ANSI summary for debugging
-					const summary = summarizeAnsi(diff)
+        // Compare to target - this is the key invariant!
+        const mismatches = vterm.compareToBuffer(nextBuffer)
+        if (mismatches.length > 0) {
+          const first10 = mismatches.slice(0, 10)
+          const details = first10
+            .map(
+              (m) =>
+                `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`,
+            )
+            .join("\n")
 
-					expect.fail(
-						`Replay mismatch after '${key}' (${mismatches.length} cells wrong):\n` +
-							`${details}\n` +
-							(mismatches.length > 10 ? `  ... and ${mismatches.length - 10} more\n` : "") +
-							`\nANSI summary:\n${summary}`,
-					)
-				}
+          // Also show the ANSI summary for debugging
+          const summary = summarizeAnsi(diff)
 
-				prevBuffer = nextBuffer
-			}
-		})
+          expect.fail(
+            `Replay mismatch after '${key}' (${mismatches.length} cells wrong):\n` +
+              `${details}\n` +
+              (mismatches.length > 10
+                ? `  ... and ${mismatches.length - 10} more\n`
+                : "") +
+              `\nANSI summary:\n${summary}`,
+          )
+        }
 
-		test("analyze k k j j ANSI diffs", async () => {
-			const board = await loadTestBoard(VAULT_PATH, { rows: 40, columns: 120 })
+        prevBuffer = nextBuffer
+      }
+    })
 
-			// Get initial buffer
-			const buffer0 = board.driver.app.lastBuffer()!
-			const initialText = bufferToLines(buffer0)
+    test("analyze k k j j ANSI diffs", () => {
+      const board = createRealisticBoard()
 
-			// Capture diffs at each step
-			const diffs: Array<{ key: string; diff: string; buffer: TerminalBuffer }> = []
+      // Get initial buffer
+      const buffer0 = board.driver.app.lastBuffer()!
+      const initialText = bufferToLines(buffer0)
 
-			// Press k (first)
-			board.press("k")
-			const buffer1 = board.driver.app.lastBuffer()!
-			diffs.push({ key: "k1", diff: outputPhase(buffer0, buffer1), buffer: buffer1 })
+      // Capture diffs at each step
+      const diffs: Array<{
+        key: string
+        diff: string
+        buffer: TerminalBuffer
+      }> = []
 
-			// Press k (second)
-			board.press("k")
-			const buffer2 = board.driver.app.lastBuffer()!
-			diffs.push({ key: "k2", diff: outputPhase(buffer1, buffer2), buffer: buffer2 })
+      // Press k (first)
+      board.press("k")
+      const buffer1 = board.driver.app.lastBuffer()!
+      diffs.push({
+        key: "k1",
+        diff: outputPhase(buffer0, buffer1),
+        buffer: buffer1,
+      })
 
-			// Press j (first)
-			board.press("j")
-			const buffer3 = board.driver.app.lastBuffer()!
-			diffs.push({ key: "j1", diff: outputPhase(buffer2, buffer3), buffer: buffer3 })
+      // Press k (second)
+      board.press("k")
+      const buffer2 = board.driver.app.lastBuffer()!
+      diffs.push({
+        key: "k2",
+        diff: outputPhase(buffer1, buffer2),
+        buffer: buffer2,
+      })
 
-			// Press j (second)
-			board.press("j")
-			const buffer4 = board.driver.app.lastBuffer()!
-			diffs.push({ key: "j2", diff: outputPhase(buffer3, buffer4), buffer: buffer4 })
+      // Press j (first)
+      board.press("j")
+      const buffer3 = board.driver.app.lastBuffer()!
+      diffs.push({
+        key: "j1",
+        diff: outputPhase(buffer2, buffer3),
+        buffer: buffer3,
+      })
 
-			const finalText = bufferToLines(buffer4)
+      // Press j (second)
+      board.press("j")
+      const buffer4 = board.driver.app.lastBuffer()!
+      diffs.push({
+        key: "j2",
+        diff: outputPhase(buffer3, buffer4),
+        buffer: buffer4,
+      })
 
-			// Log analysis (will show in test output on failure)
-			const analysis: string[] = []
-			analysis.push("=== ANSI DIFF ANALYSIS ===\n")
+      const finalText = bufferToLines(buffer4)
 
-			for (const { key, diff } of diffs) {
-				analysis.push(`--- After ${key} ---`)
-				analysis.push(summarizeAnsi(diff))
-				analysis.push("")
-			}
+      // Log analysis (will show in test output on failure)
+      const analysis: string[] = []
+      analysis.push("=== ANSI DIFF ANALYSIS ===\n")
 
-			// Check if initial and final match
-			analysis.push("=== BUFFER COMPARISON ===")
-			analysis.push(`Initial line count: ${initialText.length}`)
-			analysis.push(`Final line count: ${finalText.length}`)
+      for (const { key, diff } of diffs) {
+        analysis.push(`--- After ${key} ---`)
+        analysis.push(summarizeAnsi(diff))
+        analysis.push("")
+      }
 
-			let differences = 0
-			for (let i = 0; i < Math.min(initialText.length, finalText.length); i++) {
-				if (initialText[i] !== finalText[i]) {
-					differences++
-					if (differences <= 5) {
-						analysis.push(`Line ${i} differs:`)
-						analysis.push(`  initial: "${initialText[i]?.slice(0, 60)}..."`)
-						analysis.push(`  final:   "${finalText[i]?.slice(0, 60)}..."`)
-					}
-				}
-			}
-			analysis.push(`Total differing lines: ${differences}`)
+      // Check if initial and final match
+      analysis.push("=== BUFFER COMPARISON ===")
+      analysis.push(`Initial line count: ${initialText.length}`)
+      analysis.push(`Final line count: ${finalText.length}`)
 
-			// If there are differences, fail with the analysis
-			if (differences > 0) {
-				expect.fail(analysis.join("\n"))
-			}
-		})
+      let differences = 0
+      for (let i = 0; i < Math.min(initialText.length, finalText.length); i++) {
+        if (initialText[i] !== finalText[i]) {
+          differences++
+          if (differences <= 5) {
+            analysis.push(`Line ${i} differs:`)
+            analysis.push(`  initial: "${initialText[i]?.slice(0, 60)}..."`)
+            analysis.push(`  final:   "${finalText[i]?.slice(0, 60)}..."`)
+          }
+        }
+      }
+      analysis.push(`Total differing lines: ${differences}`)
 
-		test("compare cumulative diff vs fresh render diff", async () => {
-			const board = await loadTestBoard(VAULT_PATH, { rows: 40, columns: 120 })
+      // If there are differences, fail with the analysis
+      if (differences > 0) {
+        expect.fail(analysis.join("\n"))
+      }
+    })
 
-			// Get initial buffer
-			const buffer0 = board.driver.app.lastBuffer()!
+    test("compare cumulative diff vs fresh render diff", () => {
+      // This test verifies that incremental and fresh renders produce identical
+      // buffers for the k k j j navigation sequence.
+      //
+      // Note: The incremental rendering bug (km-tui.level-nav-shift) reproduces
+      // with h/l navigation (cursor_right/cursor_left) but NOT with k/j alone.
+      // See real-vault.test.ts "mixed navigation with level changes" for the
+      // sequence that triggers the bug.
 
-			// Navigate k k j j
-			board.press("k")
-			board.press("k")
-			board.press("j")
-			board.press("j")
+      const board = createRealisticBoard()
 
-			const bufferFinal = board.driver.app.lastBuffer()!
+      // Get initial buffer
+      const buffer0 = board.driver.app.lastBuffer()!
 
-			// Get fresh render
-			const freshBuffer = board.driver.app.freshRender()
+      // Navigate k k j j
+      board.press("k")
+      board.press("k")
+      board.press("j")
+      board.press("j")
 
-			// Compare cumulative diff (buffer0 -> bufferFinal) vs fresh diff (null -> freshBuffer)
-			const cumulativeDiff = outputPhase(buffer0, bufferFinal)
-			const freshDiff = outputPhase(null, freshBuffer)
+      const bufferFinal = board.driver.app.lastBuffer()!
 
-			// These should produce the same visual result
-			// Let's compare the cursor move sequences
-			const cumulativeMoves = extractCursorMoves(parseAnsiSequences(cumulativeDiff))
-			const freshMoves = extractCursorMoves(parseAnsiSequences(freshDiff))
+      // Get fresh render
+      const freshBuffer = board.driver.app.freshRender()
 
-			// Log for debugging
-			const analysis = [
-				"=== CUMULATIVE DIFF ===",
-				summarizeAnsi(cumulativeDiff),
-				"",
-				"=== FRESH DIFF ===",
-				summarizeAnsi(freshDiff),
-			]
+      // Compare cumulative diff (buffer0 -> bufferFinal) vs fresh diff (null -> freshBuffer)
+      const cumulativeDiff = outputPhase(buffer0, bufferFinal)
+      const freshDiff = outputPhase(null, freshBuffer)
 
-			// If there's a mismatch in the number of cursor moves, that's suspicious
-			if (Math.abs(cumulativeMoves.length - freshMoves.length) > 10) {
-				analysis.push(
-					"",
-					`SUSPICIOUS: Cumulative has ${cumulativeMoves.length} cursor moves, fresh has ${freshMoves.length}`,
-				)
-			}
+      // These should produce the same visual result
+      // Let's compare the cursor move sequences
+      const cumulativeMoves = extractCursorMoves(
+        parseAnsiSequences(cumulativeDiff),
+      )
+      const freshMoves = extractCursorMoves(parseAnsiSequences(freshDiff))
 
-			// The buffers should be identical even if the diffs are different
-			for (let y = 0; y < Math.min(bufferFinal.height, freshBuffer.height); y++) {
-				for (let x = 0; x < Math.min(bufferFinal.width, freshBuffer.width); x++) {
-					const a = bufferFinal.getCell(x, y)
-					const b = freshBuffer.getCell(x, y)
-					if (a.char !== b.char) {
-						expect.fail(
-							`Buffer mismatch at (${x},${y}): incremental="${a.char}", fresh="${b.char}"\n\n${analysis.join("\n")}`,
-						)
-					}
-				}
-			}
-		})
-	})
+      // Log for debugging
+      const analysis = [
+        "=== CUMULATIVE DIFF ===",
+        summarizeAnsi(cumulativeDiff),
+        "",
+        "=== FRESH DIFF ===",
+        summarizeAnsi(freshDiff),
+      ]
+
+      // If there's a mismatch in the number of cursor moves, that's suspicious
+      if (Math.abs(cumulativeMoves.length - freshMoves.length) > 10) {
+        analysis.push(
+          "",
+          `SUSPICIOUS: Cumulative has ${cumulativeMoves.length} cursor moves, fresh has ${freshMoves.length}`,
+        )
+      }
+
+      // The buffers should be identical even if the diffs are different
+      for (
+        let y = 0;
+        y < Math.min(bufferFinal.height, freshBuffer.height);
+        y++
+      ) {
+        for (
+          let x = 0;
+          x < Math.min(bufferFinal.width, freshBuffer.width);
+          x++
+        ) {
+          const a = bufferFinal.getCell(x, y)
+          const b = freshBuffer.getCell(x, y)
+          if (a.char !== b.char) {
+            expect.fail(
+              `Buffer mismatch at (${x},${y}): incremental="${a.char}", fresh="${b.char}"\n\n${analysis.join("\n")}`,
+            )
+          }
+        }
+      }
+    })
+
+    test("fold/unfold navigation pattern", () => {
+      // Test fold/unfold - compare incremental vs fresh render
+      // This is more robust than testing ANSI replay directly since
+      // fold/unfold may have intermediate animation states
+      const board = createRealisticBoard()
+
+      // Navigate to a folder and fold/unfold
+      board.press("l") // Move to second column (Health & Fitness)
+      board.press("j") // Move down to a folder
+      board.press("z") // Toggle fold
+
+      // Verify incremental matches fresh after fold
+      const incremental1 = board.driver.app.lastBuffer()!
+      const fresh1 = board.driver.app.freshRender()
+
+      for (let y = 0; y < incremental1.height; y++) {
+        for (let x = 0; x < incremental1.width; x++) {
+          const a = incremental1.getCell(x, y)
+          const b = fresh1.getCell(x, y)
+          if (a.char !== b.char) {
+            expect.fail(
+              `Buffer mismatch after fold at (${x},${y}): incremental="${a.char}", fresh="${b.char}"`,
+            )
+          }
+        }
+      }
+
+      // Unfold and verify again
+      board.press("z") // Toggle unfold
+
+      const incremental2 = board.driver.app.lastBuffer()!
+      const fresh2 = board.driver.app.freshRender()
+
+      for (let y = 0; y < incremental2.height; y++) {
+        for (let x = 0; x < incremental2.width; x++) {
+          const a = incremental2.getCell(x, y)
+          const b = fresh2.getCell(x, y)
+          if (a.char !== b.char) {
+            expect.fail(
+              `Buffer mismatch after unfold at (${x},${y}): incremental="${a.char}", fresh="${b.char}"`,
+            )
+          }
+        }
+      }
+    })
+
+    test("outline depth changes", () => {
+      // Test outline depth increase/decrease which can cause blank cards
+      const board = createRealisticBoard()
+
+      let prevBuffer = board.driver.app.lastBuffer()!
+
+      // Enter outline mode and change depth
+      const keys = [">", ">", ">", "j", "j", "<", "<", "<", ">", "l", "<"]
+
+      for (const key of keys) {
+        board.press(key)
+        const nextBuffer = board.driver.app.lastBuffer()!
+        const diff = outputPhase(prevBuffer, nextBuffer)
+
+        const vterm = new VirtualTerminal(nextBuffer.width, nextBuffer.height)
+        vterm.loadFromBuffer(prevBuffer)
+        vterm.applyAnsi(diff)
+
+        const mismatches = vterm.compareToBuffer(nextBuffer)
+        if (mismatches.length > 0) {
+          expect.fail(
+            `Replay mismatch after '${key}': ${mismatches.length} cells wrong`,
+          )
+        }
+
+        prevBuffer = nextBuffer
+      }
+    })
+
+    test("mixed navigation with level changes", () => {
+      // This sequence triggers the incremental rendering bug
+      const board = createRealisticBoard()
+
+      let prevBuffer = board.driver.app.lastBuffer()!
+
+      // Move right through columns, then up/down levels, then left
+      const keys = ["l", "l", "k", "k", "h", "j", "j", "j", "j", "l", "k", "j"]
+
+      for (const key of keys) {
+        board.press(key)
+        const nextBuffer = board.driver.app.lastBuffer()!
+        const diff = outputPhase(prevBuffer, nextBuffer)
+
+        const vterm = new VirtualTerminal(nextBuffer.width, nextBuffer.height)
+        vterm.loadFromBuffer(prevBuffer)
+        vterm.applyAnsi(diff)
+
+        const mismatches = vterm.compareToBuffer(nextBuffer)
+        if (mismatches.length > 0) {
+          expect.fail(
+            `Replay mismatch after '${key}': ${mismatches.length} cells wrong`,
+          )
+        }
+
+        prevBuffer = nextBuffer
+      }
+    })
+  })
 })
 
 /**
  * Convert buffer to array of text lines (no ANSI).
  */
 function bufferToLines(buffer: TerminalBuffer): string[] {
-	const lines: string[] = []
-	for (let y = 0; y < buffer.height; y++) {
-		let line = ""
-		for (let x = 0; x < buffer.width; x++) {
-			const cell = buffer.getCell(x, y)
-			if (!cell.continuation) {
-				line += cell.char
-			}
-		}
-		lines.push(line.trimEnd())
-	}
-	return lines
+  const lines: string[] = []
+  for (let y = 0; y < buffer.height; y++) {
+    let line = ""
+    for (let x = 0; x < buffer.width; x++) {
+      const cell = buffer.getCell(x, y)
+      if (!cell.continuation) {
+        line += cell.char
+      }
+    }
+    lines.push(line.trimEnd())
+  }
+  return lines
 }
