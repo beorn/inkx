@@ -39,6 +39,11 @@ const { board } = testEnv(() =>
 - Blank cards after fold/unfold
 - Buffer divergence after outline depth changes (`<` / `>`)
 
+**For targeted bug reproduction**, use `withDiagnostics` directly (see [tui/fix.md](../tui/fix.md)):
+- `checkReplay: true` — catches ANSI output bugs (ghost chars)
+- `checkIncremental: true` — catches buffer-level bugs (stale pixels)
+- `checkStability: true` — catches content shifts on cursor moves
+
 ---
 
 ## Test Levels

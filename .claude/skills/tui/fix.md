@@ -7,6 +7,58 @@ argument-hint: [issue] (describe the visual bug, or "explore" for full check)
 
 **Issue**: $ARGUMENTS
 
+## Rules
+
+1. **Failing test FIRST** — no code analysis, no theorizing until you have a test that fails
+2. **Use withDiagnostics** — it has checkIncremental, checkReplay, checkStability
+3. **Write to /tmp/** — diagnostics are exploratory, promote when stable
+4. **If tests pass but bug is visible** — fix the diagnostic tooling, don't blame terminals
+
+## Rendering Bugs (Ghost Chars, Stale Pixels, Wrong Content)
+
+**ALWAYS start with `withDiagnostics`** — it catches 95% of rendering bugs automatically:
+
+```typescript
+// /tmp/diag-rendering.test.ts
+import { createBoardDriver } from "@km/tui/driver.ts"
+import { createFakeRepo } from "@km/storage"
+import { withDiagnostics } from "inkx"
+import { item } from "@km/tui/tests/helpers/board-test.ts"
+
+const nodes = item.root("board",
+  item("Col1", item("Task 1"), item("Task 2")),
+  item("Col2", item("Task 3"), item("Task 4")),
+)
+const driver = withDiagnostics(
+  createBoardDriver(createFakeRepo({ nodes }), "board"),
+  { checkIncremental: true, checkReplay: true, checkStability: true }
+)
+
+// Every command is automatically checked for:
+// 1. Buffer correctness (incremental vs fresh render)
+// 2. ANSI replay correctness (what terminal sees matches buffer)
+// 3. Content stability (cursor moves don't change content)
+await driver.cmd.down()
+await driver.cmd.down()
+await driver.cmd.up()
+// Add view switches, level navigation, etc.
+```
+
+**Three diagnostic checks explained:**
+
+| Check | What it catches | How |
+|-------|----------------|-----|
+| `checkIncremental` | Stale pixels, wrong clearing | Compares incremental render buffer vs fresh render buffer |
+| `checkReplay` | Ghost chars, ANSI output bugs | Simulates terminal receiving ANSI diff, compares to buffer |
+| `checkStability` | Content shifts on cursor move | Compares text before/after cursor commands |
+
+**If all three pass but bug still visible**: The diagnostic tooling has a gap. Fix the tooling (add new checks), don't blame the terminal.
+
+**NEVER:**
+- Theorize about root causes without a failing test
+- Assume "terminal emulator bug" — 99% of the time you're wrong
+- Hand-roll ANSI tests when `withDiagnostics` exists
+
 ## When User Mentions a Vault Path
 
 **IMMEDIATELY** load the real vault - don't start with synthetic data:

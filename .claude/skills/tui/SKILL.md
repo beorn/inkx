@@ -15,6 +15,7 @@ Build and maintain the Ink-based TUI.
 | Need                        | Load                                          |
 | --------------------------- | --------------------------------------------- |
 | **User reports a bug**      | [fix.md](fix.md) (see for important TUI info) |
+| **Rendering bug** (ghost chars, stale pixels) | [fix.md](fix.md) → "Rendering Bugs" section |
 | Colors, icons, styling      | [design.md](design.md)                        |
 | Slow rendering, memoization | [optimization.md](optimization.md)            |
 
