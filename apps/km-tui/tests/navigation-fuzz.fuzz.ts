@@ -26,6 +26,15 @@
  *
  * When a fuzz test finds a bug, convert the minimal failing sequence
  * into a deterministic test in board.spec.ts.
+ *
+ * ## Invariant Library
+ *
+ * See ./helpers/fuzz-invariants.ts for the invariant checking library.
+ * It provides:
+ * - Individual invariant checks (invariants.*)
+ * - Composite checks (checkBasicInvariants, checkAllInvariants)
+ * - Specialized check sets (checkNavigationInvariants, etc.)
+ * - Sequence recording for debugging
  */
 
 import { describe, expect } from "vitest"
@@ -33,91 +42,245 @@ import { test, gen, take, createSeededRandom } from "vitestx/fuzz"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
+import {
+  checkBasicInvariants,
+  checkAllInvariants,
+  checkNavigationInvariants,
+  checkDialogInvariants,
+  checkViewModeInvariants,
+  createSequenceRecorder,
+  type FuzzState,
+} from "./helpers/fuzz-invariants.ts"
+
+// =============================================================================
+// Key Sets - Organized by Command Category
+// =============================================================================
 
 /**
- * Common invariants that should hold after any action
+ * Basic navigation keys (hjkl + arrows)
  */
-function checkInvariants(
-  state: ReturnType<ReturnType<typeof createBoardDriver>["getState"]>,
-  action: string,
-  _before: ReturnType<ReturnType<typeof createBoardDriver>["getState"]>,
-) {
-  // Basic sanity: screen should have content
-  expect(state.screen.length, `Empty screen after ${action}`).toBeGreaterThan(0)
+const NAVIGATION_KEYS = [
+  "j",
+  "k",
+  "h",
+  "l",
+  "ArrowDown",
+  "ArrowUp",
+  "ArrowLeft",
+  "ArrowRight",
+]
 
-  // No error strings in screen
-  expect(
-    state.screen,
-    `[object Object] in screen after ${action}`,
-  ).not.toContain("[object Object]")
-  expect(state.screen, `TypeError in screen after ${action}`).not.toContain(
-    "TypeError:",
+/**
+ * Extended navigation keys (first/last, zoom, history)
+ */
+const EXTENDED_NAV_KEYS = ["g", "G", "o", "u", "i", "[", "]"]
+
+/**
+ * View and fold keys
+ */
+const VIEW_KEYS = ["v", "z", "Z", "Tab", "c", "<", ">", "+", "-"]
+
+/**
+ * Dialog trigger keys
+ */
+const DIALOG_KEYS = ["/", "?", "n", "p"]
+
+/**
+ * Selection keys
+ */
+const SELECTION_KEYS = ["A", "J", "K", "H", "L"]
+
+/**
+ * Action keys (Enter, Escape, Space)
+ */
+const ACTION_KEYS = ["Enter", "Escape", " "]
+
+/**
+ * All keys combined
+ */
+const ALL_KEYS = [
+  ...NAVIGATION_KEYS,
+  ...EXTENDED_NAV_KEYS,
+  ...VIEW_KEYS,
+  ...DIALOG_KEYS,
+  ...SELECTION_KEYS,
+  ...ACTION_KEYS,
+]
+
+/**
+ * Weighted key distribution for realistic usage patterns
+ */
+const WEIGHTED_KEYS: [number, string][] = [
+  // Navigation is most common
+  [15, "j"],
+  [15, "k"],
+  [10, "h"],
+  [10, "l"],
+  // First/last used occasionally
+  [3, "g"],
+  [3, "G"],
+  // Zoom navigation
+  [5, "o"],
+  [3, "u"],
+  [2, "i"],
+  // History navigation
+  [2, "["],
+  [2, "]"],
+  // View mode and fold
+  [5, "v"],
+  [3, "z"],
+  [2, "Z"],
+  [3, "Tab"],
+  [2, "c"],
+  // Dialogs
+  [4, "/"],
+  [2, "?"],
+  [1, "n"],
+  [1, "p"],
+  // Selection
+  [2, "A"],
+  [3, "J"],
+  [3, "K"],
+  [2, "H"],
+  [2, "L"],
+  // Actions
+  [5, "Enter"],
+  [8, "Escape"],
+  [3, " "],
+  // Content lines
+  [1, "+"],
+  [1, "-"],
+  [1, "<"],
+  [1, ">"],
+]
+
+// =============================================================================
+// Test Fixtures
+// =============================================================================
+
+/**
+ * Standard board with multiple columns and nested items
+ */
+function createStandardBoard() {
+  return item.root(
+    "board",
+    item(
+      "Inbox",
+      item("Task 1"),
+      item("Task 2"),
+      item("Task 3"),
+      item("Task 4"),
+    ),
+    item(
+      "Projects",
+      item.folder("Alpha", item("Alpha 1"), item("Alpha 2"), item("Alpha 3")),
+      item.folder("Beta", item("Beta 1"), item("Beta 2")),
+      item.folder("Gamma", item("Gamma 1")),
+    ),
+    item(
+      "Areas",
+      item.folder("Health", item("Exercise"), item("Diet"), item("Sleep")),
+      item.folder("Work", item("Meetings"), item("Reports")),
+    ),
+    item("Archive", item("Old 1"), item("Old 2"), item("Old 3")),
   )
-  expect(
-    state.screen,
-    `ReferenceError in screen after ${action}`,
-  ).not.toContain("ReferenceError:")
-  expect(state.screen, `undefined in screen after ${action}`).not.toContain(
-    "undefined",
-  )
-
-  // Cursor should exist unless in a dialog
-  if (
-    !state.dialogs.search &&
-    !state.dialogs.help &&
-    !state.dialogs.newItem &&
-    !state.dialogs.projectPicker
-  ) {
-    expect(state.cursor, `Cursor missing after ${action}`).toBeDefined()
-    // At board level, cursor.col can be -1 (no column selected)
-    if (state.cursor.level !== "board") {
-      expect(
-        state.cursor.col,
-        `Invalid cursor.col after ${action}`,
-      ).toBeGreaterThanOrEqual(0)
-    }
-  }
-
-  // View mode should be valid
-  expect(
-    ["cards", "list", "columns", "tabs"],
-    `Invalid view mode "${state.viewMode}" after ${action}`,
-  ).toContain(state.viewMode)
 }
+
+/**
+ * Deep nested tree for zoom testing
+ */
+function createDeepTree() {
+  return item.root(
+    "vault",
+    item.folder(
+      "level1",
+      item.folder(
+        "level2",
+        item.folder(
+          "level3",
+          item.file(
+            "doc",
+            item.section(
+              "section1",
+              item.paragraph("para1"),
+              item.paragraph("para2"),
+            ),
+            item.section("section2", item.paragraph("para3")),
+          ),
+        ),
+      ),
+    ),
+    item.folder("sibling1", item("task1"), item("task2")),
+    item.folder("sibling2", item("task3")),
+  )
+}
+
+/**
+ * Wide board with many columns
+ */
+function createWideBoard() {
+  return item.root(
+    "board",
+    item("col1", item("1a"), item("1b"), item("1c")),
+    item("col2", item("2a"), item("2b")),
+    item("col3", item("3a"), item("3b"), item("3c"), item("3d")),
+    item("col4", item("4a")),
+    item("col5", item("5a"), item("5b")),
+    item("col6", item("6a"), item("6b"), item("6c")),
+    item("col7", item("7a")),
+  )
+}
+
+/**
+ * Board with empty columns
+ */
+function createSparseBoard() {
+  return item.root(
+    "board",
+    item("empty1"),
+    item("full", item("task1"), item("task2")),
+    item("empty2"),
+    item("single", item("lonely")),
+    item("empty3"),
+  )
+}
+
+// =============================================================================
+// Fuzz Tests
+// =============================================================================
 
 describe("TUI Fuzz Tests", () => {
   /**
-   * Basic navigation fuzz - exercises j/k/h/l with fixtures
+   * Comprehensive navigation fuzz with all keys
    */
-  test.fuzz("navigation invariants hold under random actions", async () => {
-    const nodes = item.root(
-      "board",
-      item(
-        "Inbox",
-        item("Task 1"),
-        item("Task 2"),
-        item("Task 3"),
-        item("Task 4"),
-      ),
-      item(
-        "Projects",
-        item.folder("Alpha", item("Alpha 1"), item("Alpha 2")),
-        item.folder("Beta", item("Beta 1")),
-      ),
-      item("Areas", item.folder("Health", item("Exercise"), item("Diet"))),
-      item("Archive", item("Old 1"), item("Old 2")),
-    )
+  test.fuzz("comprehensive navigation invariants", async () => {
+    const nodes = createStandardBoard()
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
-    // Navigation keys with some extras
-    const keys = ["j", "k", "h", "l", "g", "G", "v", "z", "/", "Escape"]
-
-    for await (const key of take(gen(keys), 100)) {
+    for await (const key of take(gen(WEIGHTED_KEYS), 200)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
 
-      checkInvariants(after, key, before)
+      checkAllInvariants(after, key, before)
+    }
+  })
+
+  /**
+   * Basic navigation fuzz - exercises hjkl with fixtures
+   */
+  test.fuzz("basic navigation invariants", async () => {
+    const nodes = createStandardBoard()
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
+
+    const keys = [...NAVIGATION_KEYS, "g", "G", "Escape"]
+
+    for await (const key of take(gen(keys), 150)) {
+      const before = driver.getState()
+      driver.press(key)
+      const after = driver.getState()
+
+      checkNavigationInvariants(after, key, before)
     }
   })
 
@@ -125,31 +288,27 @@ describe("TUI Fuzz Tests", () => {
    * Deep tree fuzz - tests zoom behavior
    */
   test.fuzz("zoom navigation invariants", async () => {
-    const nodes = item.root(
-      "vault",
-      item.folder(
-        "deeply",
-        item.folder(
-          "nested",
-          item.folder(
-            "structure",
-            item.file("doc", item.section("heading", item.paragraph("text"))),
-          ),
-        ),
-      ),
-      item.folder("sibling", item("task")),
-    )
+    const nodes = createDeepTree()
     const driver = createBoardDriver(createFakeRepo({ nodes }), "vault")
 
-    // Include Enter for zoom
-    const keys = ["j", "k", "h", "l", "Enter", "Escape", "o", "u", "[", "]"]
+    // Include Enter for zoom, o/u/i for zoom in/out
+    const keys = [
+      ...NAVIGATION_KEYS,
+      "Enter",
+      "Escape",
+      "o",
+      "u",
+      "i",
+      "[",
+      "]",
+    ]
 
-    for await (const key of take(gen(keys), 100)) {
+    for await (const key of take(gen(keys), 150)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
 
-      checkInvariants(after, key, before)
+      checkBasicInvariants(after, key, before)
     }
   })
 
@@ -157,34 +316,38 @@ describe("TUI Fuzz Tests", () => {
    * View mode switching fuzz
    */
   test.fuzz("view mode switching invariants", async () => {
-    const nodes = item.root(
-      "board",
-      item("col1", item("task1"), item("task2"), item("task3")),
-      item("col2", item("taskA"), item("taskB")),
-      item("col3", item("taskX")),
-    )
+    const nodes = createStandardBoard()
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
     // Weighted towards view mode switching
-    const keys = [
-      [10, "v"], // High weight for view mode
+    const keys: [number, string][] = [
+      [15, "v"], // High weight for view mode
       [5, "j"],
       [5, "k"],
       [3, "h"],
       [3, "l"],
       [2, "g"],
       [2, "G"],
-    ] as const
+      [3, "Tab"],
+      [2, "z"],
+      [2, "Z"],
+    ]
 
-    for await (const key of take(gen(keys as [number, string][]), 100)) {
+    for await (const key of take(gen(keys), 150)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
 
-      checkInvariants(after, key, before)
+      checkViewModeInvariants(after, key, before)
 
-      // View mode specific: v should cycle
-      if (key === "v" && !before.dialogs.search && !before.dialogs.help) {
+      // View mode specific: v should cycle when not in dialog
+      if (
+        key === "v" &&
+        !before.dialogs.search &&
+        !before.dialogs.help &&
+        !before.dialogs.newItem &&
+        !before.dialogs.projectPicker
+      ) {
         expect(after.viewMode, "View mode should change after v").not.toBe(
           before.viewMode,
         )
@@ -196,21 +359,12 @@ describe("TUI Fuzz Tests", () => {
    * Search dialog fuzz
    */
   test.fuzz("search dialog invariants", async () => {
-    const nodes = item.root(
-      "board",
-      item(
-        "col",
-        item("Alpha task"),
-        item("Beta task"),
-        item("Gamma task"),
-        item("Delta task"),
-      ),
-    )
+    const nodes = createStandardBoard()
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
     // Keys that interact with search
     const navigationKeys = ["j", "k", "ArrowUp", "ArrowDown"]
-    const typeKeys = ["a", "b", "c", "t", "a", "s", "k"]
+    const typeKeys = ["a", "b", "c", "t", "s", "k", "i", "n"]
 
     let inSearch = false
 
@@ -223,10 +377,51 @@ describe("TUI Fuzz Tests", () => {
             ...navigationKeys,
             "Escape",
             "Enter",
+            "Backspace",
           ])
         } else {
           // Not in search: open search or navigate
           return random.pick(["j", "k", "h", "l", "/"])
+        }
+      }),
+      150,
+    )) {
+      const before = driver.getState()
+      driver.press(key)
+      const after = driver.getState()
+
+      inSearch = after.dialogs.search
+
+      checkDialogInvariants(after, key, before)
+    }
+  })
+
+  /**
+   * Help dialog fuzz
+   */
+  test.fuzz("help dialog invariants", async () => {
+    const nodes = createStandardBoard()
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
+
+    let inHelp = false
+
+    for await (const key of take(
+      gen(({ random }) => {
+        if (inHelp) {
+          // In help: scroll, search, or close
+          return random.pick([
+            "j",
+            "k",
+            "ArrowUp",
+            "ArrowDown",
+            "/",
+            "Escape",
+            "?",
+            "q",
+          ])
+        } else {
+          // Not in help: navigate or open help
+          return random.pick(["j", "k", "h", "l", "?"])
         }
       }),
       100,
@@ -235,79 +430,264 @@ describe("TUI Fuzz Tests", () => {
       driver.press(key)
       const after = driver.getState()
 
-      inSearch = after.dialogs.search
+      inHelp = after.dialogs.help
 
-      checkInvariants(after, key, before)
+      checkBasicInvariants(after, key, before)
     }
   })
 
   /**
-   * Empty state fuzz - edge cases with minimal data
+   * Empty and sparse board fuzz - edge cases
    */
-  test.fuzz("empty state invariants", async () => {
-    const nodes = item.root("board", item("empty-col"))
+  test.fuzz("sparse board invariants", async () => {
+    const nodes = createSparseBoard()
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
-    const keys = ["j", "k", "h", "l", "g", "G", "v", "Enter", "Escape"]
+    const keys = [...NAVIGATION_KEYS, "g", "G", "v", "Enter", "Escape", "Tab"]
 
-    for await (const key of take(gen(keys), 50)) {
+    for await (const key of take(gen(keys), 100)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
 
-      checkInvariants(after, key, before)
+      checkBasicInvariants(after, key, before)
+    }
+  })
+
+  /**
+   * Wide board fuzz - tests horizontal navigation
+   */
+  test.fuzz("wide board navigation invariants", async () => {
+    const nodes = createWideBoard()
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
+
+    // Emphasize horizontal movement
+    const keys: [number, string][] = [
+      [10, "h"],
+      [10, "l"],
+      [5, "j"],
+      [5, "k"],
+      [3, "g"],
+      [3, "G"],
+      [2, "!"], // Jump to column 1
+      [2, "@"], // Jump to column 2
+      [2, "#"], // Jump to column 3
+      [2, "$"], // Jump to column 4
+      [2, "%"], // Jump to column 5
+    ]
+
+    for await (const key of take(gen(keys), 150)) {
+      const before = driver.getState()
+      driver.press(key)
+      const after = driver.getState()
+
+      checkNavigationInvariants(after, key, before)
+    }
+  })
+
+  /**
+   * Selection mode fuzz
+   */
+  test.fuzz("selection mode invariants", async () => {
+    const nodes = createStandardBoard()
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
+
+    // Mix selection keys with navigation
+    const keys: [number, string][] = [
+      [5, "j"],
+      [5, "k"],
+      [3, "h"],
+      [3, "l"],
+      [8, "J"], // Extend select down
+      [8, "K"], // Extend select up
+      [4, "H"], // Extend select left
+      [4, "L"], // Extend select right
+      [3, "A"], // Select all progressive
+      [5, "Escape"], // Clear selection
+    ]
+
+    for await (const key of take(gen(keys), 150)) {
+      const before = driver.getState()
+      driver.press(key)
+      const after = driver.getState()
+
+      checkBasicInvariants(after, key, before)
+    }
+  })
+
+  /**
+   * Fold operations fuzz
+   */
+  test.fuzz("fold operations invariants", async () => {
+    const nodes = createDeepTree()
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "vault")
+
+    const keys: [number, string][] = [
+      [5, "j"],
+      [5, "k"],
+      [3, "h"],
+      [3, "l"],
+      [8, "Tab"], // Toggle fold
+      [4, "z"], // Fold all in column
+      [4, "Z"], // Unfold all in column
+      [3, "c"], // Toggle column collapse
+      [2, "o"], // Zoom in
+      [2, "u"], // Zoom out
+    ]
+
+    for await (const key of take(gen(keys), 150)) {
+      const before = driver.getState()
+      driver.press(key)
+      const after = driver.getState()
+
+      checkBasicInvariants(after, key, before)
+    }
+  })
+
+  /**
+   * Task status cycling fuzz
+   */
+  test.fuzz("task status cycling invariants", async () => {
+    const nodes = createStandardBoard()
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
+
+    // Mix task status with navigation
+    const keys: [number, string][] = [
+      [10, "j"],
+      [10, "k"],
+      [5, "h"],
+      [5, "l"],
+      [15, " "], // Space cycles task status
+      [3, "Escape"],
+    ]
+
+    for await (const key of take(gen(keys), 100)) {
+      const before = driver.getState()
+      driver.press(key)
+      const after = driver.getState()
+
+      checkBasicInvariants(after, key, before)
+    }
+  })
+
+  /**
+   * Rapid key sequences - tests for race conditions
+   */
+  test.fuzz("rapid key sequences invariants", async () => {
+    const nodes = createStandardBoard()
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
+
+    // Generate bursts of similar keys
+    const burstPatterns = [
+      ["j", "j", "j", "j", "j"], // Rapid down
+      ["k", "k", "k", "k", "k"], // Rapid up
+      ["h", "h", "h", "h", "h"], // Rapid left
+      ["l", "l", "l", "l", "l"], // Rapid right
+      ["v", "v", "v"], // Rapid view mode
+      ["/", "Escape", "/", "Escape"], // Rapid dialog toggle
+    ]
+
+    for await (const burst of take(gen(burstPatterns), 30)) {
+      for (const key of burst) {
+        const before = driver.getState()
+        driver.press(key)
+        const after = driver.getState()
+
+        checkBasicInvariants(after, key, before)
+      }
     }
   })
 })
 
+// =============================================================================
+// Diagnostic Helpers
+// =============================================================================
+
 /**
- * Diagnostic helpers for ad-hoc exploration
+ * Create a diagnostic driver for ad-hoc exploration
  *
- * These can be imported and used in scripts:
- *
+ * @example
  * ```typescript
  * import { createDiagnosticDriver, runDiagnostic } from './navigation-fuzz.fuzz.ts'
  *
  * const driver = createDiagnosticDriver()
- * await runDiagnostic(driver, 100)
+ * const result = await runDiagnostic(driver, 100)
+ * console.log(result.issues)
  * ```
  */
 export function createDiagnosticDriver(vaultPath?: string) {
   if (vaultPath) {
-    // This would need to be async in practice
     throw new Error("Use createBoardDriver with createRepo for real vaults")
   }
 
-  const nodes = item.root(
-    "board",
-    item("Inbox", item("Task 1"), item("Task 2")),
-    item("Projects", item.folder("Alpha", item("Alpha 1"))),
-  )
+  const nodes = createStandardBoard()
   return createBoardDriver(createFakeRepo({ nodes }), "board")
 }
 
+/**
+ * Run a diagnostic session and collect issues
+ */
 export async function runDiagnostic(
   driver: ReturnType<typeof createBoardDriver>,
   iterations: number,
   seed?: number,
 ) {
   const rng = createSeededRandom(seed ?? Date.now())
-  const keys = ["j", "k", "h", "l", "g", "G", "v", "/", "Escape"]
+  const recorder = createSequenceRecorder()
   const issues: { iteration: number; key: string; issue: string }[] = []
 
   for (let i = 0; i < iterations; i++) {
-    const key = rng.pick(keys)
+    const key = rng.pick(ALL_KEYS)
     const before = driver.getState()
     driver.press(key)
     const after = driver.getState()
 
+    // Record for debugging
+    recorder.record(i, key, before, after)
+
     // Check invariants and collect issues
     try {
-      checkInvariants(after, key, before)
+      checkAllInvariants(after, key, before)
     } catch (e) {
       issues.push({ iteration: i, key, issue: String(e) })
     }
   }
 
-  return { issues, seed }
+  return {
+    issues,
+    seed,
+    sequence: recorder.getSequence(),
+    log: recorder.format(),
+  }
+}
+
+/**
+ * Replay a specific key sequence for debugging
+ */
+export function replaySequence(
+  driver: ReturnType<typeof createBoardDriver>,
+  sequence: string[],
+) {
+  const recorder = createSequenceRecorder()
+  const issues: { iteration: number; key: string; issue: string }[] = []
+
+  for (let i = 0; i < sequence.length; i++) {
+    const key = sequence[i]
+    const before = driver.getState()
+    driver.press(key)
+    const after = driver.getState()
+
+    recorder.record(i, key, before, after)
+
+    try {
+      checkAllInvariants(after, key, before)
+    } catch (e) {
+      issues.push({ iteration: i, key, issue: String(e) })
+    }
+  }
+
+  return {
+    issues,
+    log: recorder.format(),
+  }
 }

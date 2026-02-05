@@ -159,11 +159,51 @@ function useInputLayer(id: string, handler: InputHandler) {
 
 ### Implementation
 
-See bead: `km-inkx.driver.1` (inkx: Input Layer Stack for dialog input handling)
+**Completed in km-inkx.driver.1**
 
-Files:
-- `vendor/beorn-inkx/src/contexts/InputLayerContext.tsx`
-- `vendor/beorn-inkx/src/hooks/useInputLayer.ts`
+Files created:
+- `vendor/beorn-inkx/src/contexts/InputLayerContext.tsx` - Context and provider
+- `vendor/beorn-inkx/src/hooks/useInputLayer.ts` - Hook re-exports
+- `vendor/beorn-inkx/tests/input-layer.test.tsx` - Tests (14 passing)
+
+Exports added to `vendor/beorn-inkx/src/index.ts`:
+- `InputLayerProvider` - Wrap your app to enable the layer stack
+- `useInputLayer` - Register a layer with a handler
+- `useInputLayerContext` - Access dispatch and layer management
+
+Key design decisions:
+- **Child-first ordering**: Children handle input before parents (like DOM bubbling)
+- **Sibling ordering**: First rendered sibling handles first
+- **Sync registration**: useLayoutEffect ensures handlers are ready before first paint
+- **Position preservation**: Handler updates keep the layer in its original position
+
+### TextInput Integration
+
+The existing `TextInput` component is not modified to preserve backward compatibility.
+To use input layers with text input, create a custom component:
+
+```tsx
+function LayeredTextInput({ value, onChange }) {
+  const valueRef = useRef(value)
+  valueRef.current = value
+
+  useInputLayer('text-input', (input, key) => {
+    if (key.backspace && valueRef.current.length > 0) {
+      onChange(valueRef.current.slice(0, -1))
+      return true
+    }
+    if (input.length === 1 && input >= ' ') {
+      onChange(valueRef.current + input)
+      return true
+    }
+    return false  // Let escape, enter, etc. bubble
+  })
+
+  return <Text>{value}</Text>
+}
+```
+
+Using a ref avoids stale closure issues while keeping the handler stable.
 
 ## Board Driver State Access
 
