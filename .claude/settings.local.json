@@ -58,7 +58,8 @@
       "Skill(history)",
       "Skill(commit)",
       "Skill(code)",
-      "Skill(tui)"
+      "Skill(tui)",
+      "mcp__peekaboo__analyze"
     ],
     "deny": [],
     "ask": []
