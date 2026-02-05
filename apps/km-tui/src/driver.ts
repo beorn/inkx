@@ -4,8 +4,20 @@
  * Provides a unified interface for driving the Board TUI programmatically,
  * enabling AI exploration, fuzz testing, and headless automation.
  *
- * Uses the existing withCommands/withKeybindings plugins from inkx and
- * extracts state from rendered DOM attributes rather than modifying Board.
+ * Uses the existing withCommands/withKeybindings plugins from inkx.
+ *
+ * ==========================================================================
+ * WORKAROUND: This driver uses onStateCaptureREPLACE_WITH_CREATEAPP_STORE
+ * callback to receive state from Board. This is TEMPORARY - see km-tui.4.
+ *
+ * The proper fix is to migrate this driver to use createApp() from inkx/runtime:
+ *   1. Define board state + key handlers via createApp()
+ *   2. Board component uses useApp(selector) for state
+ *   3. Driver accesses state via app.store.getState() directly
+ *   4. Delete all the REPLACE_WITH_CREATEAPP_STORE workarounds
+ *
+ * DO NOT extend the captured state interface - migrate to createApp() instead.
+ * ==========================================================================
  *
  * @example
  * ```typescript
@@ -46,7 +58,7 @@ import {
 } from "@km/commands"
 import type { Repo } from "@km/storage"
 
-import { Board } from "./views/Board.tsx"
+import { Board, type BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createLayoutRegistry, type LayoutRegistry } from "./card-positions.ts"
@@ -76,14 +88,6 @@ export interface CursorPosition {
 }
 
 /**
- * Selected node info for AI decision-making
- */
-export interface SelectedNodeInfo {
-	id: string
-	title: string
-}
-
-/**
  * Rich state for AI introspection
  */
 export interface TUIDriverState extends AppState {
@@ -91,8 +95,8 @@ export interface TUIDriverState extends AppState {
 	cursor: CursorPosition
 	/** ID of the currently selected node */
 	selectedNodeId: string | null
-	/** Current view mode (extracted from bottom bar) */
-	viewMode: string | null
+	/** Current view mode */
+	viewMode: ViewMode | null
 	/** Active dialogs */
 	dialogs: DialogState
 	/** Detail pane open */
@@ -101,6 +105,8 @@ export interface TUIDriverState extends AppState {
 	moveMode: boolean
 	/** Scroll offset for columns */
 	scrollOffset: number
+	/** Raw captured state from Board component */
+	captured: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE | null
 }
 
 /**
@@ -128,102 +134,6 @@ export interface CreateBoardDriverOptions {
 }
 
 // =============================================================================
-// State Extraction from DOM
-// =============================================================================
-
-/**
- * Extract cursor position from rendered DOM.
- *
- * The Board renders data attributes on elements:
- * - data-board on the root Box with data-col-index and data-card-index
- * - data-cursor on the selected element
- * - id attributes on nodes matching their node ID
- */
-function extractCursorPosition(app: App): CursorPosition {
-	// Find the board element with cursor indices
-	const boardEl = app.locator("[data-board]")
-	if (boardEl.count() === 0) {
-		return { col: 0, card: 0, level: "card" }
-	}
-
-	const colIndex = Number.parseInt(boardEl.getAttribute("data-col-index") ?? "0", 10)
-	const cardIndex = Number.parseInt(boardEl.getAttribute("data-card-index") ?? "0", 10)
-
-	// Determine level from indices
-	// cardIndex -1 means column level, colIndex -1 means board level
-	// But actually the data attrs use 0-based positive indices
-	// We detect level by checking if cursor is on board, column header, or card
-	const cursorEl = app.locator("[data-cursor]")
-	let level: "board" | "column" | "card" = "card"
-
-	if (cursorEl.count() > 0) {
-		// Check if the cursor element is the board root
-		const cursorOnBoard = app.locator("[data-board][data-cursor]")
-		if (cursorOnBoard.count() > 0) {
-			level = "board"
-		} else {
-			// Check if cursor is on a column header (has data-column attr)
-			const cursorOnColumn = app.locator("[data-column][data-cursor]")
-			if (cursorOnColumn.count() > 0) {
-				level = "column"
-			}
-		}
-	}
-
-	return { col: colIndex, card: cardIndex, level }
-}
-
-/**
- * Extract selected node ID from cursor element
- */
-function extractSelectedNodeId(app: App): string | null {
-	const cursorEl = app.locator("[data-cursor]")
-	if (cursorEl.count() === 0) return null
-
-	// The id attribute on the cursor element is the node ID
-	return cursorEl.getAttribute("id") ?? null
-}
-
-/**
- * Extract dialog state from rendered DOM
- */
-function extractDialogState(app: App): DialogState {
-	return {
-		search: app.locator("[data-dialog='search']").count() > 0,
-		newItem: app.locator("[data-dialog='new-item']").count() > 0,
-		projectPicker: app.locator("[data-dialog='project-picker']").count() > 0,
-		help: app.text.includes("Keyboard Shortcuts") || app.locator("[data-help]").count() > 0,
-	}
-}
-
-/**
- * Extract view mode from bottom bar
- */
-function extractViewMode(app: App): string | null {
-	const viewModeEl = app.locator("#view-mode")
-	if (viewModeEl.count() === 0) return null
-	return viewModeEl.textContent() ?? null
-}
-
-/**
- * Check if detail pane is open
- */
-function extractDetailPaneOpen(app: App): boolean {
-	// Detail pane is indicated by a specific width split or element
-	// For now, check if there's a detail pane container
-	return app.text.includes("│") && app.locator("[data-detail-pane]").count() > 0
-}
-
-/**
- * Extract scroll offset from board element
- */
-function extractScrollOffset(app: App): number {
-	const boardEl = app.locator("[data-board]")
-	if (boardEl.count() === 0) return 0
-	return Number.parseInt(boardEl.getAttribute("data-scroll-offset") ?? "0", 10)
-}
-
-// =============================================================================
 // Driver Factory
 // =============================================================================
 
@@ -232,6 +142,9 @@ function extractScrollOffset(app: App): number {
  *
  * This renders a full Board component with command and keybinding plugins,
  * enabling programmatic control and rich state introspection.
+ *
+ * WORKAROUND: State is obtained via onStateCaptureREPLACE_WITH_CREATEAPP_STORE
+ * callback. See km-tui.4 for proper fix using createApp() store.
  *
  * @param repo - The repository (real or fake) containing nodes
  * @param rootId - The ID of the root node to display as the board
@@ -257,7 +170,10 @@ export function createBoardDriver(
 	// Build initial board state
 	const initialState = buildBoardState(repo, rootId)
 
-	// Render Board component
+	// WORKAROUND: State capture callback - see km-tui.4 for proper fix via createApp()
+	let capturedState: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE | null = null
+
+	// Render Board component with state capture
 	const render = createRenderer({ cols: columns, rows })
 	const boardElement = React.createElement(Board, {
 		initialState,
@@ -265,6 +181,10 @@ export function createBoardDriver(
 		dimensions: { columns, rows },
 		onExit: () => {},
 		layoutRegistry,
+		// WORKAROUND: Replace this driver with createApp() - see km-tui.4
+		onStateCaptureREPLACE_WITH_CREATEAPP_STORE: (state: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE) => {
+			capturedState = state
+		},
 	})
 	const baseApp = render(
 		React.createElement(RepoProvider, {
@@ -273,23 +193,38 @@ export function createBoardDriver(
 		}),
 	)
 
-	// Build command context from DOM state
+	// Build command context from captured state
 	const getContext = (): CommandContext => {
-		const cursor = extractCursorPosition(baseApp)
-		const selectedNodeId = extractSelectedNodeId(baseApp)
-		const node = selectedNodeId ? repo.getNode(selectedNodeId) : null
+		if (!capturedState) {
+			// Fallback if state not yet captured
+			return {
+				currentNode: null,
+				currentNodeId: null,
+				selectedNodes: [],
+				viewMode: viewMode,
+				siblingIndex: 0,
+				siblingCount: 0,
+				columnIndex: 0,
+				columnCount: 0,
+				moveMode: false,
+				foldedNodes: new Set(),
+			}
+		}
+
+		const { layout, boardState, selectedNode, ui } = capturedState
+		const column = layout.columns[layout.colIndex]
 
 		return {
-			currentNode: node as CommandContext["currentNode"],
-			currentNodeId: selectedNodeId,
-			selectedNodes: [],
-			viewMode: viewMode,
-			siblingIndex: cursor.card,
-			siblingCount: 10, // Approximation - would need to count from DOM
-			columnIndex: cursor.col,
-			columnCount: 5, // Approximation - would need to count from DOM
-			moveMode: false,
-			foldedNodes: new Set(),
+			currentNode: selectedNode as CommandContext["currentNode"],
+			currentNodeId: selectedNode?.id ?? null,
+			selectedNodes: Array.from(boardState.selectedNodes),
+			viewMode: ui.viewMode,
+			siblingIndex: layout.cardIndex,
+			siblingCount: column?.cards.length ?? 0,
+			columnIndex: layout.colIndex,
+			columnCount: layout.columns.length,
+			moveMode: boardState.moveMode,
+			foldedNodes: boardState.foldedNodes,
 		}
 	}
 
@@ -317,22 +252,43 @@ export function createBoardDriver(
 	// Build rich getState for AI introspection
 	const getState = (): TUIDriverState => {
 		const baseState = appWithCmd.getState()
-		const cursor = extractCursorPosition(baseApp)
-		const selectedNodeId = extractSelectedNodeId(baseApp)
-		const dialogs = extractDialogState(baseApp)
-		const viewModeText = extractViewMode(baseApp)
-		const detailPaneOpen = extractDetailPaneOpen(baseApp)
-		const scrollOffset = extractScrollOffset(baseApp)
+
+		if (!capturedState) {
+			// Fallback if state not yet captured
+			return {
+				...baseState,
+				cursor: { col: 0, card: 0, level: "card" },
+				selectedNodeId: null,
+				viewMode: viewMode,
+				dialogs: { search: false, newItem: false, projectPicker: false, help: false },
+				detailPaneOpen: false,
+				moveMode: false,
+				scrollOffset: 0,
+				captured: null,
+			}
+		}
+
+		const { layout, boardState, selectedNode, ui } = capturedState
 
 		return {
 			...baseState,
-			cursor,
-			selectedNodeId,
-			viewMode: viewModeText,
-			dialogs,
-			detailPaneOpen,
-			moveMode: false,
-			scrollOffset,
+			cursor: {
+				col: layout.colIndex,
+				card: layout.cardIndex,
+				level: capturedState.selectionLevel,
+			},
+			selectedNodeId: selectedNode?.id ?? null,
+			viewMode: ui.viewMode,
+			dialogs: {
+				search: ui.showSearchDialog,
+				newItem: ui.showNewItemDialog,
+				projectPicker: ui.showProjectPicker,
+				help: ui.showHelp,
+			},
+			detailPaneOpen: ui.showDetailPane,
+			moveMode: boardState.moveMode,
+			scrollOffset: 0, // TODO: extract from layout if needed
+			captured: capturedState,
 		}
 	}
 
