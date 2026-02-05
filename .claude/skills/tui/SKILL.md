@@ -14,8 +14,8 @@ Build and maintain the Ink-based TUI.
 
 | Need                        | Load                               |
 | --------------------------- | ---------------------------------- |
+| **User reports a bug**      | [fix.md](fix.md)                   |
 | Colors, icons, styling      | [design.md](design.md)             |
-| Rendering bugs, debugging   | [fix.md](fix.md)                   |
 | Slow rendering, memoization | [optimization.md](optimization.md) |
 
 ## Critical Design Rules

@@ -1,250 +1,262 @@
-# Random Exploration
+# AI-Driven Exploration & Diagnostics
 
-Setup, exploration loop, and verification for randomized bug hunting.
+Write ad-hoc test scripts for exploration and diagnostics. Use the primitives.
 
-## Setup
+## Philosophy
 
-### Parse Arguments
+**Don't use a CLI script. Write test files.**
 
-From `$ARGUMENTS`:
-- Extract iteration count (number, default 100)
-- Check for `--gui` flag
-- Extract `--seed <n>` if present
-- Extract `--path <vault>` if present
+When exploring or debugging:
+1. Write a `.fuzz.ts` file with your scenario
+2. Run it with vitest
+3. If it finds a bug, the test becomes a regression test
+4. If not, delete or keep as part of the fuzz suite
 
-### Generate Test Data (if no --path)
+The vitest infrastructure gives you:
+- **Seeded random**: `FUZZ_SEED=12345` for reproducibility
+- **Auto-shrinking**: Finds minimal failing sequence
+- **Regression storage**: Saves failing cases to `__fuzz_cases__/`
+- **CI integration**: Runs with other tests
 
-**TUI Mode with fixtures** - use `testEnv()` with `item()`:
+## Primitives
+
+You have great primitives - use them to write whatever diagnostics you need:
+
+### createBoardDriver - TUI Control
 
 ```typescript
-import { testEnv, item } from "apps/km-tui/tests/helpers/board-test"
+import { createBoardDriver } from '@km/tui/driver.ts'
+import { createFakeRepo } from '@km/storage'
+import { item } from '@km/tui/tests/helpers/board-test.ts'
 
-const { board } = testEnv(() =>
-  item("board",
-    item("col1", item("task1"), item("task2")),
-    item("col2", item("task3"))
-  ),
-  { rows: 24, columns: 80 }
-)
+// Create driver with fixture
+const nodes = item("board", item("col", item("task1"), item("task2")))
+const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
+
+// Execute commands
+driver.press('j')
+driver.press('/')
+for (const c of 'query') driver.press(c)
+
+// Introspect state
+const state = driver.getState()
+state.cursor        // { col: 0, card: 1, level: 'card' }
+state.selectedNodeId   // 'task2'
+state.viewMode      // 'cards' | 'list' | 'columns' | 'tabs'
+state.dialogs       // { search: true, ... }
+state.screen        // Full rendered text
+state.commands      // Available commands with metadata
 ```
 
-**TUI Mode with real vault** - use `createRepo`:
+### gen/take - Random Sequences
 
 ```typescript
-import React from "react"
-import { createRenderer } from "inkx/testing"
-import { createRepo, runGenerator } from "@km/storage"
-import { Board } from "../src/views/Board.tsx"
-import { buildBoardState } from "../src/state.ts"
-import { createLayoutRegistry } from "../src/card-positions.ts"
-import { RepoProvider } from "../src/repo-context.tsx"
-import { ensureCommandSystemInitialized } from "../src/command-bridge.ts"
+import { gen, take, createSeededRandom } from '@beorn/vitestx/fuzz'
 
-// Load real vault
-const repo = await runGenerator(createRepo(vaultPath, { loadFiles: true }))
-const rootNode = repo.getRepoRootNode()
-const initialState = buildBoardState(repo, rootNode.id)
+// Uniform random from array
+for await (const key of take(gen(['j', 'k', 'h', 'l']), 100)) {
+  driver.press(key)
+}
 
-ensureCommandSystemInitialized()
+// Weighted random
+const keys = [
+  [40, 'j'],  // 40% down
+  [40, 'k'],  // 40% up
+  [10, 'v'],  // 10% view switch
+  [10, '/'],  // 10% search
+] as const
+for await (const key of take(gen(keys), 100)) {
+  driver.press(key)
+}
 
-// Render with inkx test renderer
-const render = createRenderer({ cols: 80, rows: 24 })
-const result = render(
-  React.createElement(RepoProvider, { repo,
-    children: React.createElement(Board, {
-      initialState,
-      initialViewMode: "cards",
-      dimensions: { columns: 80, rows: 24 },
-      onExit: () => {},
-      layoutRegistry: createLayoutRegistry(),
-    })
-  })
-)
-
-// Now use result.text for screenshots, result.press(key) for actions
+// Custom picker with state
+for await (const key of take(gen(({ random }) => {
+  const state = driver.getState()
+  if (state.dialogs.search) {
+    return random.pick(['Escape', 'Enter', 'j', 'k'])
+  }
+  return random.pick(['j', 'k', 'h', 'l', '/'])
+}), 100)) {
+  driver.press(key)
+}
 ```
 
-**GUI Mode** - use MCP TTY tools:
+### test.fuzz - Auto-Shrinking Tests
 
 ```typescript
-// Start session with km view
-const { sessionId } = await mcp__tty__start({
-  command: ["bun", "km", "view", vaultPath]
+import { test, gen, take } from '@beorn/vitestx/fuzz'
+
+test.fuzz("navigation invariants", async () => {
+  const driver = createBoardDriver(...)
+
+  for await (const key of take(gen(['j', 'k', 'h', 'l']), 100)) {
+    const before = driver.getState()
+    driver.press(key)
+    const after = driver.getState()
+
+    // These assertions auto-shrink on failure
+    expect(after.screen).not.toContain("[object Object]")
+    expect(after.cursor).toBeDefined()
+  }
 })
-
-// Wait for initial render
-await mcp__tty__wait({ sessionId, for: "VIEW" })
 ```
 
-### Initialize Random with Seed
+### Real Vaults
 
 ```typescript
-class SeededRandom {
-  private seed: number
-  constructor(seed: number) { this.seed = seed }
+import { createRepo, runGenerator } from '@km/storage'
 
-  next(): number {
-    this.seed = (this.seed * 1103515245 + 12345) & 0x7fffffff
-    return this.seed / 0x7fffffff
-  }
+const repo = await runGenerator(createRepo('/path/to/vault', { loadFiles: true }))
+const rootNode = repo.getRepoRootNode()
+const driver = createBoardDriver(repo, rootNode.id)
+```
 
-  pick<T>(items: T[]): T {
-    return items[Math.floor(this.next() * items.length)]
-  }
+## Writing Ad-Hoc Diagnostics
 
-  weighted<T>(items: { weight: number; value: T }[]): T {
-    const total = items.reduce((sum, i) => sum + i.weight, 0)
-    let r = this.next() * total
-    for (const item of items) {
-      r -= item.weight
-      if (r <= 0) return item.value
+Create a file like `apps/km-tui/tests/debug-search.fuzz.ts`:
+
+```typescript
+import { describe, expect } from 'vitest'
+import { test, gen, take } from '@beorn/vitestx/fuzz'
+import { createBoardDriver } from '../src/driver.ts'
+import { createFakeRepo } from '@km/storage'
+import { item } from './helpers/board-test.ts'
+
+describe("Search Bug Investigation", () => {
+  test.fuzz("cursor after search should move with j", async () => {
+    const nodes = item("board", item("col",
+      item("Alpha"), item("Justice"), item("Beta")))
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
+
+    // Open search, type, select
+    driver.press('/')
+    for (const c of 'Justice') driver.press(c)
+    driver.press('Enter')
+
+    const afterSearch = driver.getState()
+    console.log('After search:', afterSearch.selectedNodeId)
+
+    // Now fuzz navigation
+    for await (const key of take(gen(['j', 'k']), 20)) {
+      const before = driver.getState()
+      driver.press(key)
+      const after = driver.getState()
+
+      // Bug check: cursor should move (unless at boundary)
+      if (key === 'j' && before.cursor.card !== after.cursor.card) {
+        console.log(`j: ${before.selectedNodeId} -> ${after.selectedNodeId}`)
+      }
     }
-    return items[items.length - 1].value
-  }
-}
-```
-
----
-
-## Exploration Loop
-
-```
-for iteration = 1 to N:
-  1. Read current state
-  2. Select action (weighted + context-aware)
-  3. Execute action
-  4. Verify invariants
-  5. Log issues (don't abort)
-  6. Progress report every 10 iterations
-```
-
-### Action Categories & Weights
-
-| Category | Weight | Keys |
-|----------|--------|------|
-| Navigation | 40% | `j`, `k`, `h`, `l`, `g`, `G`, `Control+d`, `Control+u` |
-| View Modes | 15% | `v`, `+`, `-`, `<`, `>` |
-| Zoom/Fold | 15% | `o` (zoom in), `u` (zoom out), `z` (fold) |
-| Dialogs | 10% | `/` (search), `n` (new), `p` (project), `?` (help) |
-| Selection | 10% | `A`, `Shift+ArrowDown`, `Shift+ArrowUp` |
-| Edit | 5% | `Space` (toggle), `x` (archive), `m` (move) |
-| Board Switch | 5% | `1`-`9` (favorites) |
-
-### Context-Aware Adjustments
-
-```typescript
-function selectAction(rng: SeededRandom, context: Context): string {
-  const actions = [...baseActions]
-
-  // In dialog: boost navigation + escape
-  if (context.inDialog) {
-    boost(actions, ["j", "k", "Enter", "Escape"], 2.0)
-  }
-
-  // At boundary: boost opposite direction
-  if (context.atTopBoundary) boost(actions, ["j", "G", "Control+d"], 1.5)
-  if (context.atBottomBoundary) boost(actions, ["k", "g", "Control+u"], 1.5)
-  if (context.atLeftBoundary) boost(actions, ["l"], 1.5)
-  if (context.atRightBoundary) boost(actions, ["h"], 1.5)
-
-  // Deep in tree: boost zoom-out
-  if (context.zoomDepth > 2) boost(actions, ["u"], 2.0)
-
-  // Every 10th iteration: boost view mode cycling
-  if (context.iteration % 10 === 0) boost(actions, ["v"], 3.0)
-
-  return rng.weighted(actions)
-}
-```
-
-### Execute Action
-
-**TUI Mode:**
-```typescript
-const before = board.screenshot()
-const startTime = performance.now()
-board.press(action)
-const renderTime = performance.now() - startTime
-const after = board.screenshot()
-```
-
-**GUI Mode:**
-```typescript
-const before = await mcp__tty__text({ sessionId })
-await mcp__tty__press({ sessionId, key: action })
-await mcp__tty__wait({ sessionId, stable: 100 })
-const after = await mcp__tty__text({ sessionId })
-```
-
----
-
-## Verification
-
-### Invariants to Check After Each Action
-
-**TUI Mode (DOM-level):**
-```typescript
-// 1. No crash - content exists
-const text = board.screenshot()
-expect(text.length).toBeGreaterThan(0)
-
-// 2. Cursor exists (unless in dialog)
-if (!context.inDialog) {
-  board.expect("[data-cursor]").toExist()
-}
-
-// 3. No error strings
-expect(text).not.toContain("undefined")
-expect(text).not.toContain("[object Object]")
-expect(text).not.toMatch(/Error:|TypeError:|ReferenceError:/)
-
-// 4. Bell only on boundary (expected)
-if (board.bell && !context.atBoundary) {
-  issues.push({ type: "unexpected-bell", iteration, action })
-}
-
-// 5. Content changed OR bell (something happened)
-if (before === after && !board.bell) {
-  issues.push({ type: "no-effect", iteration, action })
-}
-```
-
-**GUI Mode (text/visual):**
-```typescript
-const text = await mcp__tty__text({ sessionId })
-
-// 1. Terminal has content
-expect(text.length).toBeGreaterThan(0)
-
-// 2. No error messages
-expect(text).not.toContain("Error:")
-expect(text).not.toContain("undefined")
-
-// 3. Visual check (periodic)
-if (iteration % 10 === 0) {
-  const screenshot = await mcp__tty__screenshot({ sessionId })
-  // Inspect for visual glitches
-}
-```
-
-### Performance Thresholds
-
-| Metric | Threshold | Description |
-|--------|-----------|-------------|
-| Navigation (j/k/h/l) | >50ms = slow | Basic cursor movement |
-| View mode switch | >200ms = slow | Cycling cards/list/columns/tabs |
-| Zoom in/out | >150ms = slow | Drill in/out latency |
-| Dialog open | >200ms = slow | Search, new item, project picker |
-| Scroll (Ctrl+D/U) | >100ms = slow | Page up/down |
-
-```typescript
-if (renderTime > threshold) {
-  performance.push({
-    iteration,
-    action,
-    time: renderTime,
-    threshold,
-    context: { viewMode, nodeCount, zoomDepth }
   })
+})
+```
+
+Run it:
+```bash
+bun vitest run apps/km-tui/tests/debug-search.fuzz.ts
+```
+
+## Patterns
+
+### Invariant Checking
+
+```typescript
+function checkInvariants(state, action, before) {
+  // Basic sanity
+  expect(state.screen.length).toBeGreaterThan(0)
+  expect(state.screen).not.toContain("[object Object]")
+  expect(state.screen).not.toContain("TypeError:")
+
+  // Cursor existence (unless in dialog)
+  if (!state.dialogs.search && !state.dialogs.help) {
+    expect(state.cursor).toBeDefined()
+  }
+
+  // View mode validity
+  expect(["cards", "list", "columns", "tabs"]).toContain(state.viewMode)
 }
 ```
+
+### State-Driven Exploration
+
+```typescript
+for await (const action of take(gen(({ random }) => {
+  const state = driver.getState()
+
+  // Pick actions based on current state
+  if (state.dialogs.search) {
+    return random.pick(['Enter', 'Escape', 'ArrowDown', 'ArrowUp'])
+  }
+  if (state.cursor.level === 'board') {
+    return random.pick(['j', 'l'])  // Can only go down or right
+  }
+  return random.pick(state.commands.filter(c => c.keys.length).map(c => c.keys[0]))
+}), 100)) {
+  driver.press(action)
+  checkInvariants(driver.getState(), action, before)
+}
+```
+
+### Performance Checking
+
+```typescript
+for (let i = 0; i < 100; i++) {
+  const key = rng.pick(['j', 'k', 'h', 'l'])
+  const start = performance.now()
+  driver.press(key)
+  const elapsed = performance.now() - start
+
+  if (elapsed > 50) {
+    console.log(`Slow ${key}: ${elapsed}ms at`, driver.getState().cursor)
+  }
+}
+```
+
+## Running Diagnostics
+
+**Ad-hoc diagnostics can live anywhere** - even in `/tmp`:
+
+```bash
+# Write a quick diagnostic anywhere
+cat > /tmp/diagnose-search.ts << 'EOF'
+import { test, expect } from 'vitest'
+import { createBoardDriver } from '/Users/beorn/Code/pim/km/apps/km-tui/src/driver.ts'
+import { createFakeRepo } from '@km/storage'
+import { item } from '/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts'
+
+test("search bug investigation", async () => {
+  const nodes = item("board", item("col", item("Alpha"), item("Justice"), item("Beta")))
+  const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
+
+  driver.press('/')
+  for (const c of 'Justice') driver.press(c)
+  driver.press('Enter')
+  driver.press('j')
+
+  console.log('State:', driver.getState())
+})
+EOF
+
+# Run it directly
+bun vitest run /tmp/diagnose-search.ts
+```
+
+For diagnostics with fuzz testing, use `FUZZ=1` to enable `.fuzz.ts` files:
+
+```bash
+# Run the navigation fuzz suite
+FUZZ=1 bun vitest run apps/km-tui/tests/navigation-fuzz.fuzz.ts
+
+# With specific seed for reproducibility
+FUZZ=1 FUZZ_SEED=12345 bun vitest run apps/km-tui/tests/navigation-fuzz.fuzz.ts
+
+# Watch mode for iteration
+FUZZ=1 bun vitest run apps/km-tui/tests/navigation-fuzz.fuzz.ts --watch
+```
+
+## When Fuzz Test Finds Bug
+
+1. The test fails with minimal sequence (auto-shrunk)
+2. Copy the sequence to a deterministic test in board.spec.ts
+3. Fix the bug
+4. Both tests pass: fuzz test continues protecting, deterministic test documents the bug

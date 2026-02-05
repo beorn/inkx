@@ -114,12 +114,16 @@ Example: typing `/china` in the search dialog - early characters get eaten while
 Input layer stack with event bubbling, similar to DOM event propagation:
 
 ```
-dialog layer     → handles text, enter, escape, arrows
+InputBox layer   → handles text editing (chars, backspace, ctrl+shortcuts)
    ↓ bubbles if not handled (returns false)
+dialog layer     → handles dialog-specific keys (enter=confirm, escape=cancel)
+   ↓ bubbles if not handled
 board layer      → handles navigation commands
    ↓ bubbles if not handled
 app layer        → handles global (quit, help)
 ```
+
+InputBox becomes a focusable element that receives input, similar to DOM focus. This matches the mental model of "focused input field inside a dialog inside a board".
 
 ### Key Design Points
 
@@ -160,6 +164,21 @@ See bead: `km-inkx.driver.1` (inkx: Input Layer Stack for dialog input handling)
 Files:
 - `vendor/beorn-inkx/src/contexts/InputLayerContext.tsx`
 - `vendor/beorn-inkx/src/hooks/useInputLayer.ts`
+
+## Board Driver State Access
+
+### Current State (Workaround)
+
+The driver (`apps/km-tui/src/driver.ts`) uses `onStateCaptureREPLACE_WITH_CREATEAPP_STORE` callback to receive state from Board. This is a temporary workaround to avoid DOM parsing.
+
+### Target State
+
+Migrate driver to use `createApp()` from inkx/runtime:
+1. Define board state + key handlers via `createApp()`
+2. Board component uses `useApp(selector)` for state
+3. Driver accesses state via `app.store.getState()` directly
+
+See bead: `km-tui.4` (refactor: Migrate Board to createApp() store pattern)
 
 ## Sources
 

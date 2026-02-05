@@ -6,17 +6,20 @@ TypeScript, Bun, Ink (React TUI), SQLite. Bidirectional sync: TUI ↔ Model ↔ 
 
 ```bash
 # all bun commands should be preceded with `cd ${repoRoot} ;` - they will not work if your cwd is a subdir
-bun run test:fast    # Non-vendor tests (~124 files, ~8s)
-bun run test:vendor  # Vendor tests (~116 files)
-bun run test:all     # All tests (~240 files)
-bun vitest run <dir> # Run tests in a specific directory
 bun fix              # Lint + format - must pass
 bun km view <path>   # Run TUI
+
+# TEST - DO NOT GREP OR RE-RUN - they use reporter=dot and ONLY include errors:
+bun run test:fast | head -400   # Non-vendor tests (~124 files, ~8s)
+bun run test:vendor | head -400 # Vendor tests (~116 files)
+bun run test:all | head -400    # All tests (~240 files)
+bun vitest run <dir> # Run tests in a specific directory
 ```
 
-**Never** use bare `bun test`. See [.claude/skills/tests/] for TDD workflow and test types.
+**Never** use bare `bun test`. You must read [.claude/skills/tests/] for test commands, test types, and TDD workflow to use.
 
 **When iterating on a specific package**, run vitest directly:
+
 ```bash
 bun vitest run vendor/beorn-inkx/tests/
 bun vitest run apps/km-tui/tests/
@@ -63,15 +66,15 @@ Sub-agents skip this — only the top-level session runs verification.
 
 ## Skills (load when needed)
 
-| Skill                               | Use When               |
-| ----------------------------------- | ---------------------- |
-| [pm/](.claude/skills/pm/)           | Issue tracking (beads) |
-| [tests/](.claude/skills/tests/)     | Writing/running tests  |
-| [code/](.claude/skills/code/)       | Code quality/review    |
-| [tui/](.claude/skills/tui/)         | TUI development        |
-| [explore/](.claude/skills/explore/) | Bug hunting/fuzz testing |
-| [git/](.claude/skills/git/)         | Commits and releases   |
-| [claude/](.claude/skills/claude/)   | Claude Code config     |
-| [logging/](.claude/skills/logging/) | Debug output           |
-| [max/](.claude/skills/max/)         | Parallel agents        |
+| Skill                                                               | Use When                                                              |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [pm/](.claude/skills/pm/)                                           | Issue tracking (beads)                                                |
+| [tests/](.claude/skills/tests/)                                     | Writing/running tests                                                 |
+| [code/](.claude/skills/code/)                                       | Code quality/review                                                   |
+| [tui/](.claude/skills/tui/)                                         | TUI development                                                       |
+| [explore/](.claude/skills/explore/)                                 | Bug hunting/fuzz testing                                              |
+| [git/](.claude/skills/git/)                                         | Commits and releases                                                  |
+| [claude/](.claude/skills/claude/)                                   | Claude Code config                                                    |
+| [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
+| [max/](.claude/skills/max/)                                         | Parallel agents                                                       |
 | [batch-refactor](vendor/beorn-tools/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |

@@ -1,96 +1,107 @@
 ---
-description: Debug and fix TUI rendering issues using inkx tests and GUI inspection
+description: Debug and fix TUI rendering issues using headless tests
 argument-hint: [issue] (describe the visual bug, or "explore" for full check)
-allowed-tools: Task, Read, Glob, Grep, Bash, TodoWrite, AskUserQuestion
 ---
 
 # Fix TUI Rendering Issues
 
-Debug and fix TUI rendering issues through inkx tests and visual inspection.
-
 **Issue**: $ARGUMENTS
 
-**Reference**: [tui.md](../tests/tui.md) for testing patterns
+## When User Mentions a Vault Path
 
-## The Fix Loop
-
-```
-1. REPRODUCE → Write failing test in board.spec.ts OR use storybook
-2. DIAGNOSE  → Identify the layer (text/layout/component)
-3. FIX       → Update rendering code
-4. VERIFY    → Run tests + visual check
-5. COMMIT    → All tests pass
-```
-
-## Step 1: Reproduce
-
-### Option A: Write a failing test (preferred)
+**IMMEDIATELY** load the real vault - don't start with synthetic data:
 
 ```typescript
-// apps/km-tui/tests/board.spec.ts
-test("task text should not overflow", () => {
-  const { board } = testEnv(() =>
-    item("board", item("col", item("very long task text here"))),
-  )
-  const box = board.q("#col").boundingBox()
-  // Assert text doesn't overflow column width
-  expect(box!.width).toBeLessThanOrEqual(40)
+// /tmp/diag-cursor-bug.spec.ts
+import { test, expect } from 'vitest'
+import { loadTestBoard, check } from '@km/tui/test'
+
+test("reproduce bug with real vault", async () => {
+  const board = await loadTestBoard("/tmp/v2")  // LOAD IMMEDIATELY
+
+  // Capture initial state
+  const before = { cursor: board.cursor, text: board.text }
+
+  // Reproduce the issue
+  board.press("k").press("k")  // Navigate to board level
+
+  // Check what changed
+  expect(board.text).toContain("expected content")
+  check.rendering(board)
 })
 ```
 
-Run: `bun test apps/km-tui/tests/board.spec.ts`
+Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
 
-### Option B: Use storybook
+## Ad-hoc Diagnostics Workflow
 
-```bash
-bun storybook
+1. **Write to /tmp first** - diagnostics are exploratory
+2. **Load real vault** if user mentions a path
+3. **Reproduce the bug** - if test fails, bug confirmed
+4. **Fix the code** - iterate on the fix
+5. **Promote to regression** - move to `apps/km-tui/tests/` when stable
+
+## Quick Start (Synthetic Data)
+
+For issues without a specific vault:
+
+```typescript
+import { createTestBoard, check } from '@km/tui/test'
+
+const board = createTestBoard(["Col > Task A", "Col > Task B", "Col > Task C"])
+
+board.press("j").press("j")
+expect(board.cursor.card).toBe(2)
+
+check.all(board)  // Verify nothing broke
 ```
 
-### Option C: Capture screenshot (for debugging only)
+## The API
 
-```bash
-# Get free port
-TTYD_PORT=$((7700 + RANDOM % 300))
-while lsof -i :$TTYD_PORT >/dev/null 2>&1; do TTYD_PORT=$((7700 + RANDOM % 300)); done
+```typescript
+// Load real vault (PREFERRED when path mentioned)
+const board = await loadTestBoard("/path/to/vault")
 
-# Start TUI
-rm -rf /tmp/test-repo && cp -r apps/km-cli/tests/fixtures/tui-test-vault /tmp/test-repo
-ttyd -W -p $TTYD_PORT bun km view -r /tmp/test-repo @next.md &
-sleep 3
+// Create with string DSL (for quick synthetic tests)
+const board = createTestBoard(["Inbox > Task 1", "Projects > Alpha"])
 
-# Capture
-HEADLESS=true bun x playwright screenshot --viewport-size=1000,700 http://localhost:$TTYD_PORT /tmp/tui.png
-pkill -f ttyd
+// Actions (chainable)
+board.press("j").press("k").press("l")
+board.search("query")  // Opens search, types, hits Enter
+
+// State
+board.text       // Screen text
+board.cursor     // { col: 0, card: 1, level: 'card' }
+board.nodeId     // Selected node ID
+board.columns()  // Column info with titles
+board.cards()    // Card info with text
+
+// Checks
+check.rendering(board)   // No errors in screen
+check.cursor(board)      // Cursor exists
+check.all(board)         // Everything (synthetic repos only)
 ```
 
-## Step 2: Diagnose
+## Available Checks
 
-**Quick check**: If `bun storybook` shows the bug → rendering code issue.
-
-| Symptom                 | Layer | Files to Check           |
-| ----------------------- | ----- | ------------------------ |
-| Text not styled         | 1     | `src/text/rich.ts`       |
-| Wrong status icon/color | 1     | `src/text/icons.ts`      |
-| Text overlap            | 2     | `src/layout/truncate.ts` |
-| Selection not visible   | 3     | `src/views/TreeNode.tsx` |
-| View layout broken      | 3     | `src/views/*.tsx`        |
-
-## Step 3: Fix
-
-Edit the relevant files. Use storybook for rapid iteration.
-
-## Step 4: Verify
-
-```bash
-bun test apps/km-tui/tests/board.spec.ts  # Your test passes
-bun run test:fast                          # All tests pass
-bun fix                                    # Lint + format
-bun storybook                              # Visual check
+```typescript
+check.rendering(board)    // Screen not empty, no [object Object], no errors
+check.cursor(board)       // Cursor exists (unless in dialog)
+check.selection(board)    // Selected node exists in repo
+check.parentLinks(board)  // All parent references valid (synthetic only)
+check.nodeLinks(board)    // All link_to references valid (synthetic only)
+check.all(board)          // All of the above (synthetic only)
 ```
 
-## Commit Checklist
+## Debugging Tips
 
-- [ ] `bun run test:all` passes
-- [ ] `bun fix` passes
-- [ ] Visual verification complete (storybook or screenshot)
-- [ ] Added/updated test for the bug
+| Symptom | Check |
+|---------|-------|
+| Screen garbled | `check.rendering(board)` |
+| Cursor disappears | `check.cursor(board)` |
+| Wrong node selected | `expect(board.nodeId).toBe("expected-id")` |
+| Column missing | `expect(board.columns().map(c => c.title)).toContain("name")` |
+
+## See Also
+
+- [explore/random.md](../explore/random.md) — Fuzz testing

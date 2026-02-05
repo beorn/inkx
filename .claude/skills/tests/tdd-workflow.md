@@ -27,8 +27,9 @@ bun fix              # Lint + format - must pass before commit
 **During iteration:**
 
 ```bash
-bun run test:fast    # ~11s feedback loop
-bun lint | tail -100 # Check lint
+bun vitest run --changed              # Fastest: affected tests only
+bun vitest related src/foo.ts         # Tests for specific source file
+bun vitest run apps/km-tui/tests/     # All tests in a directory
 ```
 
 **Before committing:**

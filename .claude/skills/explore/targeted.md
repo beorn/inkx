@@ -1,6 +1,6 @@
 # Targeted Exploration (User-Described Scenarios)
 
-When the user describes a specific issue or scenario, **explore that scenario first** before randomized testing.
+When the user describes a specific issue or scenario, **write a test IMMEDIATELY** before randomized testing.
 
 ## Detecting User Scenarios
 
@@ -12,48 +12,112 @@ Look for patterns in user input:
 
 ## Workflow for Targeted Exploration
 
-1. **Parse the scenario** from user description
-2. **Set up the exact context** (navigate to element, set view mode, etc.)
+1. **Write a test** that reproduces the scenario
+2. **Set up the exact context** (fixture, view mode, navigation)
 3. **Execute the described action sequence**
 4. **Verify and report** what happens
-5. **Expand around the scenario** with variations:
-   - Same action on nearby elements
-   - Same action in different view modes
-   - Similar actions (j→k, h→l)
-   - Same sequence after different navigation paths
+5. **Expand around the scenario** with variations
+6. **Keep the test** as a regression test
 
 ### Example: "going down after Justice node"
 
 ```typescript
-// 1. Set up: Navigate to "Justice" node
-board.press("/")  // Open search
-board.type("Justice")
-board.press("Enter")  // Select result
+// apps/km-tui/tests/board.spec.ts
+import { createBoardDriver } from '../../src/driver.ts'
+import { createFakeRepo } from '@km/storage'
+import { item } from './helpers/board-test.ts'
 
-// 2. Execute described action
-const before = board.screenshot()
-board.press("j")  // "going down"
-const after = board.screenshot()
+test("cursor should move down after searching for Justice", async () => {
+  // SETUP: Create fixture with Justice node
+  const nodes = item("board", item("col",
+    item("Task A"), item("Justice"), item("Task C")))
+  const repo = createFakeRepo({ nodes })
+  const driver = createBoardDriver(repo, "board")
 
-// 3. Verify
-const cursorMoved = before !== after
-const bellRang = board.bell
-console.log({ cursorMoved, bellRang, before, after })
+  // 1. Navigate to "Justice" node
+  await driver.press("/")                    // Open search
+  for (const c of "Justice") await driver.press(c)
+  await driver.press("Enter")                // Select result
 
-// 4. Expand with variations
-const variations = [
-  { action: "k", desc: "going up instead" },
-  { action: "j", repeat: 5, desc: "going down 5 times" },
-  { viewMode: "list", action: "j", desc: "same in list view" },
-  { viewMode: "columns", action: "j", desc: "same in columns view" },
-]
+  // 2. Execute described action
+  const before = driver.getState()
+  await driver.press("j")                    // "going down"
+  const after = driver.getState()
 
-for (const v of variations) {
-  // Reset to Justice node, apply variation, verify
-}
+  // 3. Verify
+  console.log({
+    cursorMoved: after.cursor.card !== before.cursor.card,
+    before: before.selectedNodeId,
+    after: after.selectedNodeId,
+  })
+
+  // 4. Assert expected behavior
+  expect(after.selectedNodeId).toBe("Task C")
+  expect(after.cursor.card).toBe(before.cursor.card + 1)
+})
 ```
 
-### GUI Mode Targeted Exploration
+### Loading User's Real Vault
+
+When debugging a user-reported issue on their actual data:
+
+```typescript
+import { createBoardDriver } from '../../src/driver.ts'
+import { createRepo, runGenerator } from '@km/storage'
+
+test("repro user bug with real vault", async () => {
+  // Load user's vault (or a copy of it)
+  const repo = await runGenerator(createRepo('/path/to/user/vault', { loadFiles: true }))
+  const rootNode = repo.getRepoRootNode()
+  const driver = createBoardDriver(repo, rootNode.id)
+
+  // Now reproduce the user's steps
+  await driver.press('/')
+  for (const c of 'Justice') await driver.press(c)
+  await driver.press('Enter')
+  await driver.press('j')
+
+  const state = driver.getState()
+  console.log(state)
+})
+
+### Testing Variations
+
+Once the base test passes/fails, expand with variations:
+
+```typescript
+describe("cursor after search", () => {
+  const setup = () => {
+    const nodes = item("board", item("col",
+      item("Task A"), item("Justice"), item("Task C")))
+    return createBoardDriver(createFakeRepo({ nodes }), "board")
+  }
+
+  test("j moves down", async () => {
+    const driver = setup()
+    // ... search for Justice ...
+    const before = driver.getState()
+    await driver.press("j")
+    expect(driver.getState().cursor.card).toBe(before.cursor.card + 1)
+  })
+
+  test("k moves up", async () => {
+    const driver = setup()
+    // ... search for Justice ...
+    const before = driver.getState()
+    await driver.press("k")
+    expect(driver.getState().cursor.card).toBe(before.cursor.card - 1)
+  })
+
+  test("works in list view", async () => {
+    const nodes = item("board", item("col", item("Task A"), item("Justice"), item("Task C")))
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "board", { viewMode: "list" })
+    // ... same test ...
+  })
+})
+```
+
+### GUI Mode (only when pixel-level verification needed)
 
 ```typescript
 // Using existing vault with the problematic node
@@ -96,6 +160,9 @@ const afterShot = await mcp__tty__screenshot({ sessionId })
 - **Result**: [describe what happened]
 - **Expected**: Cursor moves to next sibling or child
 
+## Test Added
+`apps/km-tui/tests/board.spec.ts` - "cursor should move down after searching"
+
 ## Variations Tested
 
 | # | Variation | Result |
@@ -109,9 +176,6 @@ const afterShot = await mcp__tty__screenshot({ sessionId })
 ## Findings
 - [Bug/issue if found]
 - [Pattern observed]
-
-## Random Exploration (N additional iterations)
-[Continue with standard randomized testing]
 ```
 
 ---

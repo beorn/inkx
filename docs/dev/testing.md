@@ -694,7 +694,9 @@ pkill -f ttyd
 **Coding Iteration** (every change):
 
 ```bash
-bun run test:fast          # ~11s - run after each change
+bun vitest run --changed              # Fastest: only tests affected by your changes
+bun vitest related src/foo.ts         # Tests importing a specific file
+bun vitest run apps/km-tui/tests/     # All tests in a directory
 ```
 
 **Before Commit**:
@@ -706,10 +708,12 @@ bun run test:all           # Full suite (must pass)
 
 **Working on Specific Areas**:
 
-| Working on...        | Run during iteration |
-| -------------------- | -------------------- |
-| Sync, watcher, chaos | `bun run test:slow`  |
-| Everything else      | `bun run test:fast`  |
+| Working on...        | Run during iteration                    |
+| -------------------- | --------------------------------------- |
+| Specific changes     | `bun vitest run --changed`              |
+| Specific file        | `bun vitest related src/foo.ts`         |
+| Sync, watcher, chaos | `bun run test:slow`                     |
+| Broad non-vendor     | `bun run test:fast`                     |
 
 Still run `test:all` before commit.
 

@@ -7,9 +7,15 @@ argument-hint: [scenario | 100 | --gui | --peekaboo | --seed <n> | --path <vault
 
 **Keywords**: explore, fuzz, random, bug hunting, TUI test, visual test, repro, peekaboo, ghostty
 
-Exercises `km view` to discover bugs and performance issues. Supports:
+The `createBoardDriver()` function provides programmatic control for:
+- **Bug reproduction**: Write failing tests from user-described scenarios (see [tui/fix.md](../tui/fix.md))
+- **AI exploration**: Pick next action based on `getState()`
+- **Fuzz testing**: Random command sequences with invariant checks
+- **Acceptance tests**: Verify cursor movement, dialog state, navigation
+
+Supports multiple modes:
 - **Targeted exploration**: User describes a scenario, we test it + variations
-- **Randomized testing**: Weighted random actions to find edge cases
+- **Randomized testing**: AI-driven random actions to find edge cases
 - **Live terminal inspection**: Use Peekaboo to investigate your running Ghostty terminal
 
 ## Quick Reference
@@ -130,7 +136,12 @@ driver.cmd.describe() // Human/AI-readable command list
 | File | Purpose |
 |------|---------|
 | [targeted.md](targeted.md) | User-described scenarios, vault verification |
-| [random.md](random.md) | Setup, exploration loop, action weights, verification |
+| [random.md](random.md) | Setup, AI-driven exploration, fuzz testing |
 | [reporting.md](reporting.md) | Reports, issue templates, action workflow |
 | [peekaboo.md](peekaboo.md) | Live Ghostty terminal inspection via Peekaboo MCP |
 | [repro.md](repro.md) | Reproducing unreproducible bugs, debug logging |
+
+## See Also
+
+- [tui/fix.md](../tui/fix.md) — Debug workflow for user-reported bugs (start here!)
+- [tests/tui.md](../tests/tui.md) — Full TUI testing patterns and helpers
