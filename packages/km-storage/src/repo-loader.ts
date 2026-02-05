@@ -622,7 +622,7 @@ function insertNodeRow(
 // SHARED PIPELINE
 // ============================================================================
 
-// oxlint-disable-next-line complexity/max-cognitive -- Event application with inline SQL statements
+// oxlint-disable-next-line complexity/max-cognitive, complexity/max-cyclomatic -- Event application with inline SQL and error categorization
 function* applyEvents(
   db: Database,
   events: Event[],
@@ -634,6 +634,7 @@ function* applyEvents(
   if (total === 0) return
 
   db.run("BEGIN IMMEDIATE")
+  let skippedDuplicates = 0
   try {
     const insertStmt = db.prepare(INSERT_NODE_SQL)
 
@@ -674,7 +675,20 @@ function* applyEvents(
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        errors.push({ phase: "apply", message })
+        // UNIQUE constraint failures are expected for stale events in events.jsonl
+        // (events referencing nodes that already exist from file parsing)
+        if (message.includes("UNIQUE constraint failed")) {
+          skippedDuplicates++
+          const nodeId =
+            event.type === "node_created"
+              ? (event.data as Record<string, unknown>).id
+              : "unknown"
+          log.debug?.(
+            `applyEvents: skipping duplicate node_created for ${nodeId} (stale event)`,
+          )
+        } else {
+          errors.push({ phase: "apply", message })
+        }
       }
 
       if (i % 100 === 0 || i === total - 1) {
@@ -682,6 +696,12 @@ function* applyEvents(
       }
     }
     db.run("COMMIT")
+
+    if (skippedDuplicates > 0) {
+      log.debug?.(
+        `applyEvents: skipped ${skippedDuplicates} stale node_created events (nodes already exist)`,
+      )
+    }
   } catch (error) {
     db.run("ROLLBACK")
     throw error
