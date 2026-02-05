@@ -7,10 +7,11 @@
 import {
   useState,
   useCallback,
+  useId,
   type Dispatch,
   type SetStateAction,
 } from "react"
-import { useInput, type Key } from "inkx"
+import { useInputLayer, type Key } from "inkx"
 
 export interface LineEditState {
   /** Current text value */
@@ -151,6 +152,7 @@ export function useLineEdit({
   handleEscape = false,
   handleVerticalArrows = false,
 }: UseLineEditOptions = {}): UseLineEditResult {
+  const layerId = useId()
   const [state, setState] = useState<LineEditState>({
     value: initialValue,
     cursor: initialValue.length,
@@ -177,17 +179,46 @@ export function useLineEdit({
     [onChange],
   )
 
-  useInput(
-    (input, key) => {
-      // Let parent handle Enter/Escape/vertical arrows unless explicitly enabled
-      if (key.return && !handleEnter) return
-      if (key.escape && !handleEscape) return
-      if ((key.upArrow || key.downArrow) && !handleVerticalArrows) return
+  // Use ref to avoid stale closure issues with the handler
+  const stateRef = { current: state }
+  stateRef.current = state
 
-      // Dispatch to handler
-      handleKeyInput(input, key, state, setState, updateValue)
-    },
-    { isActive },
+  useInputLayer(
+    `line-edit-${layerId}`,
+    useCallback(
+      (input: string, key: Key): boolean => {
+        if (!isActive) return false
+
+        // Let parent handle Enter/Escape/vertical arrows unless explicitly enabled
+        if (key.return && !handleEnter) return false
+        if (key.escape && !handleEscape) return false
+        if ((key.upArrow || key.downArrow) && !handleVerticalArrows)
+          return false
+
+        // Check if this is a key we handle
+        const handlesKey =
+          (key.ctrl &&
+            (input === "a" ||
+              input === "e" ||
+              input === "w" ||
+              input === "u" ||
+              input === "k" ||
+              input === "b" ||
+              input === "f")) ||
+          key.leftArrow ||
+          key.rightArrow ||
+          key.backspace ||
+          key.delete ||
+          (input.length === 1 && input >= " " && input !== "\x7f")
+
+        if (!handlesKey) return false
+
+        // Dispatch to handler
+        handleKeyInput(input, key, stateRef.current, setState, updateValue)
+        return true // Consumed
+      },
+      [isActive, handleEnter, handleEscape, handleVerticalArrows, updateValue],
+    ),
   )
 
   return {

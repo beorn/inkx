@@ -4,8 +4,8 @@
  * Fuzzy search picker for re-parenting tasks to different projects.
  * Press 'p' on a task to open, search to filter, Enter to move.
  */
-import React from "react"
-import { Box, Text, useInput } from "inkx"
+import React, { useCallback } from "react"
+import { Box, Text, useInputLayer, type Key } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -320,47 +320,63 @@ export function ProjectPicker({
     )
   }
 
-  useInput((input, key) => {
-    if (key.escape) {
-      onCancel()
-      return
-    }
+  // Use refs to avoid stale closure issues with the handler
+  const selectedIndexRef = React.useRef(selectedIndex)
+  selectedIndexRef.current = selectedIndex
+  const queryRef = React.useRef(query)
+  queryRef.current = query
 
-    if (key.return) {
-      // Need to get results synchronously for selection
-      if (loaderRef.current?.status === "resolved") {
-        const allOptions = loaderRef.current.read()
-        const filtered = filterOptions(allOptions, query)
-        const selected = filtered[selectedIndex]
-        if (selected) {
-          onSelect(selected.node)
+  useInputLayer(
+    "project-picker",
+    useCallback(
+      (input: string, key: Key): boolean => {
+        if (key.escape) {
+          onCancel()
+          return true
         }
-      }
-      return
-    }
 
-    if (key.upArrow || (key.ctrl && input === "p")) {
-      setSelectedIndex((i) => Math.max(0, i - 1))
-      return
-    }
+        if (key.return) {
+          // Need to get results synchronously for selection
+          if (loaderRef.current?.status === "resolved") {
+            const allOptions = loaderRef.current.read()
+            const filtered = filterOptions(allOptions, queryRef.current)
+            const selected = filtered[selectedIndexRef.current]
+            if (selected) {
+              onSelect(selected.node)
+            }
+          }
+          return true
+        }
 
-    if (key.downArrow || (key.ctrl && input === "n")) {
-      setSelectedIndex((i) => i + 1) // Will be clamped by rendering
-      return
-    }
+        if (key.upArrow || (key.ctrl && input === "p")) {
+          setSelectedIndex((i) => Math.max(0, i - 1))
+          return true
+        }
 
-    if (key.backspace || key.delete) {
-      setQuery((q) => q.slice(0, -1))
-      setSelectedIndex(0)
-      return
-    }
+        if (key.downArrow || (key.ctrl && input === "n")) {
+          setSelectedIndex((i) => i + 1) // Will be clamped by rendering
+          return true
+        }
 
-    // Regular character input
-    if (input.length === 1 && input >= " ") {
-      setQuery((q) => q + input)
-      setSelectedIndex(0)
-    }
-  })
+        if (key.backspace || key.delete) {
+          setQuery((q) => q.slice(0, -1))
+          setSelectedIndex(0)
+          return true
+        }
+
+        // Regular character input
+        if (input.length === 1 && input >= " ") {
+          setQuery((q) => q + input)
+          setSelectedIndex(0)
+          return true
+        }
+
+        // Let unhandled keys bubble
+        return false
+      },
+      [onCancel, onSelect],
+    ),
+  )
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">

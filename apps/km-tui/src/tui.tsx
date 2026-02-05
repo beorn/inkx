@@ -11,6 +11,7 @@ import {
   render,
   patchConsole,
   IncrementalRenderMismatchError,
+  InputLayerProvider,
 } from "inkx"
 import { createConditionalLogger } from "@beorn/logger"
 import React from "react"
@@ -187,11 +188,13 @@ export async function runBoard(
       using _ = run.span("render-setup")
       instance = await render(
         <RepoProvider repo={options.repo}>
-          <BoardApp
-            initialState={state}
-            initialViewMode={options?.initialViewMode}
-            patchedConsole={patched}
-          />
+          <InputLayerProvider>
+            <BoardApp
+              initialState={state}
+              initialViewMode={options?.initialViewMode}
+              patchedConsole={patched}
+            />
+          </InputLayerProvider>
         </RepoProvider>,
         renderOpts,
         { alternateScreen: isInteractive, patchConsole: false },

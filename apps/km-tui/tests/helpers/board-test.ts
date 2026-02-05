@@ -56,6 +56,7 @@
 
 import React from "react"
 import { createRenderer, type App, type AutoLocator } from "inkx/testing"
+import { InputLayerProvider } from "inkx"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import type { KNode, NodeRules, NodeType } from "@km/core"
@@ -309,8 +310,14 @@ export function testEnv(
     onExit: () => {},
     layoutRegistry: registry,
   })
+  // Wrap Board in InputLayerProvider (matching tui.tsx production setup)
+  const wrappedElement = React.createElement(
+    InputLayerProvider,
+    null,
+    boardElement,
+  )
   const result = render(
-    React.createElement(RepoProvider, { repo, children: boardElement }),
+    React.createElement(RepoProvider, { repo, children: wrappedElement }),
     options?.incremental ? { incremental: true } : undefined,
   )
 
@@ -424,8 +431,14 @@ export function testEnvWithRepo(
     onExit: () => {},
     layoutRegistry: registry,
   })
+  // Wrap Board in InputLayerProvider (matching tui.tsx production setup)
+  const wrappedElement = React.createElement(
+    InputLayerProvider,
+    null,
+    boardElement,
+  )
   const result = render(
-    React.createElement(RepoProvider, { repo, children: boardElement }),
+    React.createElement(RepoProvider, { repo, children: wrappedElement }),
     options?.incremental ? { incremental: true } : undefined,
   )
 

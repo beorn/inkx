@@ -4,8 +4,8 @@
  * Fuzzy search dialog for finding items by content or tags.
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
-import React from "react"
-import { Box, Text, useInput, ErrorBoundary } from "inkx"
+import React, { useCallback } from "react"
+import { Box, Text, useInputLayer, ErrorBoundary, type Key } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -394,35 +394,51 @@ export const SearchDialog = React.forwardRef<
   const maxVisible = Math.max(1, height - 11)
 
   // Handle navigation and selection (text editing handled by useLineEdit)
-  useInput((input, key) => {
-    if (key.escape) {
-      onCancel()
-      return
-    }
+  // Use refs to avoid stale closure issues with the handler
+  const selectedIndexRef = React.useRef(selectedIndex)
+  selectedIndexRef.current = selectedIndex
+  const trimmedQueryRef = React.useRef(trimmedQuery)
+  trimmedQueryRef.current = trimmedQuery
 
-    if (key.return) {
-      // Need to get results synchronously for selection
-      if (loaderRef.current?.status === "resolved") {
-        const allResults = loaderRef.current.read()
-        const filtered = filterResults(allResults, trimmedQuery)
-        const selected = filtered[selectedIndex]
-        if (selected) {
-          onSelect(selected.node)
+  useInputLayer(
+    "search-dialog",
+    useCallback(
+      (input: string, key: Key): boolean => {
+        if (key.escape) {
+          onCancel()
+          return true
         }
-      }
-      return
-    }
 
-    // Result navigation (up/down)
-    if (key.upArrow || (key.ctrl && input === "p")) {
-      setSelectedIndex((i) => Math.max(0, i - 1))
-      return
-    }
+        if (key.return) {
+          // Need to get results synchronously for selection
+          if (loaderRef.current?.status === "resolved") {
+            const allResults = loaderRef.current.read()
+            const filtered = filterResults(allResults, trimmedQueryRef.current)
+            const selected = filtered[selectedIndexRef.current]
+            if (selected) {
+              onSelect(selected.node)
+            }
+          }
+          return true
+        }
 
-    if (key.downArrow || (key.ctrl && input === "n")) {
-      setSelectedIndex((i) => i + 1) // Will be clamped by rendering
-    }
-  })
+        // Result navigation (up/down)
+        if (key.upArrow || (key.ctrl && input === "p")) {
+          setSelectedIndex((i) => Math.max(0, i - 1))
+          return true
+        }
+
+        if (key.downArrow || (key.ctrl && input === "n")) {
+          setSelectedIndex((i) => i + 1) // Will be clamped by rendering
+          return true
+        }
+
+        // Let unhandled keys bubble (text input handled by useLineEdit layer)
+        return false
+      },
+      [onCancel, onSelect],
+    ),
+  )
 
   // Calculate scroll offset (needs filtered count)
   let scrollOffset = 0

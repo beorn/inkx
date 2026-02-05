@@ -99,7 +99,6 @@ import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import {
-  createSyncTerminalDimensions,
   createFileDropHandler,
   createRefreshHandler,
   createWatcherStatusHandler,
@@ -895,24 +894,30 @@ export function BoardApp({
   const { exit } = useApp()
   const { stdout } = useStdout()
 
-  // Create dispatch for dimension sync
-  const [dimensionState, dimensionDispatch] = useReducer(
-    (
-      s: { columns: number; rows: number },
-      action: { columns: number; rows: number },
-    ) => action,
-    { columns: stdout?.columns ?? 80, rows: stdout?.rows ?? 24 },
-  )
+  // Track terminal dimensions with resize handling
+  const [dimensionState, setDimensions] = React.useState({
+    columns: stdout?.columns ?? 80,
+    rows: stdout?.rows ?? 24,
+  })
 
-  // WORKAROUND: fullscreen-ink alternate buffer race condition
-  useEffect(
-    () =>
-      createSyncTerminalDimensions(
-        stdout,
-        dimensionDispatch as unknown as React.Dispatch<UIAction>,
-      ),
-    [stdout],
-  )
+  // Listen for resize events
+  useEffect(() => {
+    if (!stdout) return
+
+    const handleResize = () => {
+      if (stdout.columns !== undefined && stdout.rows !== undefined) {
+        setDimensions({ columns: stdout.columns, rows: stdout.rows })
+      }
+    }
+
+    // Sync initial dimensions
+    handleResize()
+
+    stdout.on("resize", handleResize)
+    return () => {
+      stdout.off("resize", handleResize)
+    }
+  }, [stdout])
 
   return (
     <Box flexDirection="column" height={dimensionState.rows}>

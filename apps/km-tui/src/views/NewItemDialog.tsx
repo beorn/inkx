@@ -4,8 +4,8 @@
  * Quick capture dialog for creating new items in the board.
  * Uses context from the cursor item for defaults.
  */
-import React, { useState } from "react"
-import { Box, Text, useInput } from "inkx"
+import React, { useState, useCallback } from "react"
+import { Box, Text, useInputLayer, type Key } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -114,43 +114,57 @@ export function NewItemDialog({
   // Determine if cursor is a task (new item will also be a task)
   const isTask = cursorNode?.type === "task" || cursorNode === null
 
-  useInput((input, key) => {
-    // Cancel on Escape
-    if (key.escape) {
-      onCancel()
-      return
-    }
+  // Use refs to avoid stale closure issues with the handler
+  const contentRef = React.useRef(content)
+  contentRef.current = content
 
-    // Create on Enter
-    if (key.return) {
-      if (!content.trim()) {
-        onCancel()
-        return
-      }
+  useInputLayer(
+    "new-item-dialog",
+    useCallback(
+      (input: string, key: Key): boolean => {
+        // Cancel on Escape
+        if (key.escape) {
+          onCancel()
+          return true
+        }
 
-      // Create the new node using repo.addNode
-      const nodeId = repo.addNode(parentId, {
-        type: isTask ? "task" : "paragraph",
-        content: content.trim(),
-        task_status: isTask ? "todo" : undefined,
-        task_mark: isTask ? " " : undefined,
-      })
+        // Create on Enter
+        if (key.return) {
+          if (!contentRef.current.trim()) {
+            onCancel()
+            return true
+          }
 
-      onCreate(nodeId)
-      return
-    }
+          // Create the new node using repo.addNode
+          const nodeId = repo.addNode(parentId, {
+            type: isTask ? "task" : "paragraph",
+            content: contentRef.current.trim(),
+            task_status: isTask ? "todo" : undefined,
+            task_mark: isTask ? " " : undefined,
+          })
 
-    // Backspace
-    if (key.backspace || key.delete) {
-      setContent((c) => c.slice(0, -1))
-      return
-    }
+          onCreate(nodeId)
+          return true
+        }
 
-    // Regular character input
-    if (input.length === 1 && input >= " ") {
-      setContent((c) => c + input)
-    }
-  })
+        // Backspace
+        if (key.backspace || key.delete) {
+          setContent((c) => c.slice(0, -1))
+          return true
+        }
+
+        // Regular character input
+        if (input.length === 1 && input >= " ") {
+          setContent((c) => c + input)
+          return true
+        }
+
+        // Let unhandled keys bubble
+        return false
+      },
+      [onCancel, onCreate, repo, parentId, isTask],
+    ),
+  )
 
   return (
     <ModalDialog

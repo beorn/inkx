@@ -40,12 +40,13 @@ export function VerticalScrollIndicator({
 /**
  * Vertical separator line between columns.
  * Uses a Box with borderLeft to draw a full-height vertical line.
- * The border automatically spans the full height of the container.
+ * Fixed width of 1 character, stretches vertically to fill parent.
  */
 export function ColumnSeparator(): React.ReactElement {
   return (
     <Box
-      flexGrow={1}
+      width={1}
+      alignSelf="stretch"
       borderStyle="single"
       borderLeft
       borderRight={false}
