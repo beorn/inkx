@@ -62,25 +62,28 @@ export function getFoldMarker(
  * Status values: todo, wip, blocked, done, dropped
  * See km-core/src/types.ts for TaskStatus type.
  *
- * Ballot box style icons:
- * - todo: ☐ (ballot box, white)
- * - wip: ☐ (ballot box, orange/yellow)
- * - blocked: ☒ (ballot box with X, red)
- * - done: ☑ (ballot box with check, green)
- * - dropped: ☒ (ballot box with X, gray)
+ * Task status icons (width-1 characters for consistent terminal rendering):
+ * - todo: □ (white square, white)
+ * - wip: □ (white square, orange/yellow)
+ * - blocked: ✗ (ballot X, red)
+ * - done: ✓ (check mark, green)
+ * - dropped: ✗ (ballot X, gray)
+ *
+ * Note: Ballot box characters (☐☑☒) have inconsistent width across terminals
+ * (some render as 1, others as 2). Using simpler characters for reliability.
  */
 export function getStatusIcon(status: string | null | undefined): StatusIcon {
   switch (status) {
     case "todo":
-      return { char: "\u2610", color: "white" } // ☐ ballot box
+      return { char: "\u25A1", color: "white" } // □ white square
     case "wip":
-      return { char: "\u2610", color: "yellow" } // ☐ ballot box (orange/yellow)
+      return { char: "\u25A1", color: "yellow" } // □ white square (orange/yellow)
     case "blocked":
-      return { char: "\u2612", color: "red" } // ☒ ballot box with X
+      return { char: "\u2717", color: "red" } // ✗ ballot X
     case "done":
-      return { char: "\u2611", color: "green" } // ☑ ballot box with check
+      return { char: "\u2713", color: "green" } // ✓ check mark
     case "dropped":
-      return { char: "\u2612", color: "gray" } // ☒ ballot box with X
+      return { char: "\u2717", color: "gray" } // ✗ ballot X
     case null:
     case undefined:
       // Missing status - show red warning triangle

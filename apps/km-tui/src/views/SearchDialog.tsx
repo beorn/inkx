@@ -285,7 +285,7 @@ function SearchResults({
         const prefix = isSelected ? "▸ " : "  "
         const typeIcon =
           result.node.type === "task"
-            ? "☐"
+            ? "□" // U+25A1 white square (width-1)
             : result.node.type === "file"
               ? "📄"
               : result.node.type === "section"

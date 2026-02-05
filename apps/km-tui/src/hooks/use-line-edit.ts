@@ -192,8 +192,9 @@ export function useLineEdit({
         // Let parent handle Enter/Escape/vertical arrows unless explicitly enabled
         if (key.return && !handleEnter) return false
         if (key.escape && !handleEscape) return false
-        if ((key.upArrow || key.downArrow) && !handleVerticalArrows)
+        if ((key.upArrow || key.downArrow) && !handleVerticalArrows) {
           return false
+        }
 
         // Check if this is a key we handle
         const handlesKey =

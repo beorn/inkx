@@ -50,12 +50,12 @@ describe("Board Pure Rendering", () => {
     expect(output).toContain("Move to left column")
   })
 
-  test("renderStatusIcon returns correct icons (ballot box style)", () => {
-    expect(renderStatusIcon("todo")).toContain("☐") // ballot box (white)
-    expect(renderStatusIcon("wip")).toContain("☐") // ballot box (yellow)
-    expect(renderStatusIcon("blocked")).toContain("☒") // ballot box with X (red)
-    expect(renderStatusIcon("done")).toContain("☑") // ballot box with check (green)
-    expect(renderStatusIcon("dropped")).toContain("☒") // ballot box with X (gray)
+  test("renderStatusIcon returns correct icons (width-1 style)", () => {
+    expect(renderStatusIcon("todo")).toContain("□") // white square
+    expect(renderStatusIcon("wip")).toContain("□") // white square (yellow)
+    expect(renderStatusIcon("blocked")).toContain("✗") // ballot X (red)
+    expect(renderStatusIcon("done")).toContain("✓") // check mark (green)
+    expect(renderStatusIcon("dropped")).toContain("✗") // ballot X (gray)
     // undefined/null status shows red warning triangle
     expect(renderStatusIcon(undefined)).toContain("⚠")
   })

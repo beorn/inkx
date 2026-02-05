@@ -7,35 +7,35 @@ import { getStatusIcon, getTypeIcon, type StatusIcon } from "../../src/index.ts"
 
 describe("getStatusIcon", () => {
   // Actual statuses from km-core: todo, wip, blocked, done, dropped
-  // Uses ballot box style icons
+  // Uses width-1 Unicode icons for consistent terminal rendering
 
-  it("returns white ballot box for todo", () => {
+  it("returns white square for todo", () => {
     const icon = getStatusIcon("todo")
-    expect(icon.char).toBe("☐") // U+2610 ballot box
+    expect(icon.char).toBe("□") // U+25A1 white square
     expect(icon.color).toBe("white")
   })
 
-  it("returns yellow ballot box for wip", () => {
+  it("returns yellow square for wip", () => {
     const icon = getStatusIcon("wip")
-    expect(icon.char).toBe("☐") // U+2610 ballot box
+    expect(icon.char).toBe("□") // U+25A1 white square
     expect(icon.color).toBe("yellow")
   })
 
-  it("returns red ballot box with X for blocked", () => {
+  it("returns red ballot X for blocked", () => {
     const icon = getStatusIcon("blocked")
-    expect(icon.char).toBe("☒") // U+2612 ballot box with X
+    expect(icon.char).toBe("✗") // U+2717 ballot X
     expect(icon.color).toBe("red")
   })
 
-  it("returns green ballot box with check for done", () => {
+  it("returns green check mark for done", () => {
     const icon = getStatusIcon("done")
-    expect(icon.char).toBe("☑") // U+2611 ballot box with check
+    expect(icon.char).toBe("✓") // U+2713 check mark
     expect(icon.color).toBe("green")
   })
 
-  it("returns gray ballot box with X for dropped", () => {
+  it("returns gray ballot X for dropped", () => {
     const icon = getStatusIcon("dropped")
-    expect(icon.char).toBe("☒") // U+2612 ballot box with X
+    expect(icon.char).toBe("✗") // U+2717 ballot X
     expect(icon.color).toBe("gray")
   })
 
