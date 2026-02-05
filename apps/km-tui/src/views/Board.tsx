@@ -655,11 +655,26 @@ export function Board({
     if (!ui.showConsole || !onPauseRender || !onResumeRender) return
     onPauseRender()
     process.stdout.write("\x1b[?25h\x1b[?1049l") // show cursor, leave alt screen
+
+    // Replay captured console entries so they're visible on the normal screen.
+    // During TUI, console output goes to the alt buffer which isn't visible here.
+    if (patchedConsole) {
+      const entries = patchedConsole.getSnapshot()
+      for (const entry of entries) {
+        const stream =
+          entry.stream === "stderr" ? process.stderr : process.stdout
+        const args = entry.args
+          .map((a: unknown) => (typeof a === "string" ? a : JSON.stringify(a)))
+          .join(" ")
+        stream.write(args + "\n")
+      }
+    }
+
     return () => {
       process.stdout.write("\x1b[?1049h\x1b[2J\x1b[H\x1b[?25l") // enter alt, clear, hide cursor
       onResumeRender()
     }
-  }, [ui.showConsole, onPauseRender, onResumeRender])
+  }, [ui.showConsole, onPauseRender, onResumeRender, patchedConsole])
 
   // Ref to track current rootId for event handlers (avoids stale closure)
   const rootIdRef = useRef(boardState.rootId)

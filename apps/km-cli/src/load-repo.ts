@@ -55,7 +55,7 @@ export async function loadRepo(
         repo = yield* createRepo(rootPath, createOptions)
         return repo
       },
-    }).run({ clear: true })
+    }).run({ clear: false })
 
     if (!repo) {
       throw new Error("Failed to load repo")

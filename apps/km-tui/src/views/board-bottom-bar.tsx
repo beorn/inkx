@@ -93,13 +93,15 @@ export function BottomBar({
 
   // Console indicator (only when there are lines)
   if (consoleStats && consoleStats.total > 0) {
-    let consoleText = `🖥️${consoleStats.total}`
+    let consoleText = `LOGS 🖥️${consoleStats.total}`
     if (consoleStats.errors > 0 || consoleStats.warnings > 0) {
       const parts: string[] = []
       if (consoleStats.errors > 0) parts.push(`${consoleStats.errors}✗`)
       if (consoleStats.warnings > 0) parts.push(`${consoleStats.warnings}⚠`)
       consoleText += ` (${parts.join(" ")})`
     }
+    // Contextual hint: how to toggle console screen
+    consoleText += ui.showConsole ? " press ESC to close" : " press ` to see"
     statusParts.push(consoleText)
   }
 
