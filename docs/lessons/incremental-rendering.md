@@ -185,6 +185,71 @@ When an invariant fails, you have two choices:
 
 Never disable invariants because they're "too strict." If the invariant fires, either the code or the invariant is wrong — figure out which.
 
+## Get Fresh Eyes: Multi-LLM Review
+
+When you're deep in a debugging session, it's hard to see the big picture. You're "in the picture" — focused on specific code paths, chasing symptoms, building mental models that may be wrong.
+
+### The Problem with Single-Perspective Debugging
+
+- **Tunnel vision**: You've read the same code 20 times and keep missing the bug
+- **Sunk cost**: You've invested in a theory and keep finding evidence to support it
+- **Local maxima**: Your fix works but there's a simpler architectural solution
+- **Blind spots**: You assume certain things "can't be the problem"
+
+### Use Other LLMs for Fresh Perspectives
+
+The `/deep` command queries OpenAI's deep research for thorough analysis:
+
+```bash
+# Comprehensive code review with full source context
+bun llm --deep -y --context "$(cat << 'EOF'
+# Bug: Incremental render shows blank regions after navigation
+
+## Problem
+Children disappear after parent clears its region. INKX_STRICT catches
+mismatch but I can't find the root cause.
+
+## Full Source Code
+[paste content-phase.ts - the ENTIRE file, not snippets]
+
+## What I've Tried
+1. Added parentRegionCleared flag - didn't help
+2. Checked dirty flag propagation - looks correct
+3. ...
+
+## Questions
+1. Is there a fundamental flaw in the fast-path logic?
+2. Am I missing an edge case?
+3. Is there a simpler architectural approach?
+EOF
+)" "Review this rendering bug. Identify root cause and suggest fixes."
+```
+
+### When to Get Outside Perspective
+
+| Situation | Action |
+|-----------|--------|
+| Stuck for 30+ minutes on same bug | `/deep` with full source |
+| Fix works but feels hacky | Ask for architectural review |
+| Not sure if fix is complete | Ask for edge cases you might have missed |
+| Complex algorithm changes | Ask for correctness review |
+
+### What Makes a Good LLM Review Request
+
+1. **Full source code** - Not snippets. Include entire files. LLMs handle large context well.
+2. **Problem description** - Specific symptoms, what you've tried, what failed
+3. **Your current theory** - State it so they can challenge it
+4. **Specific questions** - "Is X correct?" beats "What's wrong?"
+
+### The Meta-Benefit
+
+Even if the other LLM doesn't solve your problem, articulating it clearly often triggers your own insight. The act of preparing context for review forces you to:
+- Organize what you know
+- State your assumptions explicitly
+- Question whether you've tried the obvious things
+
+Sometimes you solve the bug while writing the review request.
+
 ## Incremental Rendering: The Core Concepts
 
 ### The Fast-Path
