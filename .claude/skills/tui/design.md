@@ -82,6 +82,27 @@ When working on TUI code using Ink, you MUST read @docs/dev/ink-patterns.md. Cri
 - **ANSI-aware text length** - Use displayLength() not .length
 - **Text truncation** - Use truncateText() for proper ANSI handling
 
+## Input Architecture
+
+**Rule: Command system for discrete keys, `useInputLayer` only for text input.**
+
+| Layer | Purpose | Example |
+|-------|---------|---------|
+| Command system (`@km/commands`) | ALL discrete key→action mapping | j→cursor_down, h→cursor_left, Esc→close_or_quit |
+| Keybinding `when` predicates | Mode-specific behavior | `h` closes detail pane when `isInDetailPane` |
+| `useInputLayer("board", ...)` | Base layer in Board.tsx — bridge to command system | Single instance, routes all keys |
+| `useLineEdit` (wraps `useInputLayer`) | Raw text input capture | InlineEditField, search input |
+
+**DO NOT:**
+- Add `useInputLayer` to components for discrete commands (h/j/k/Esc)
+- Scatter keybinding logic across components
+- Use `useInputLayer` directly — use `useLineEdit` for text input
+
+**DO:**
+- Add keybindings with `when` predicates for mode-specific behavior
+- Handle all discrete actions in `board-actions.ts` via the command system
+- Keep DetailPane, HelpOverlay, ConsoleModal as pure rendering — no input handling
+
 ## TUI Testing
 
 For testing TUI appearance, see [tui.md](../tests/tui.md):
