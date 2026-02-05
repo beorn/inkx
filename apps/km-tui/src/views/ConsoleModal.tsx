@@ -48,7 +48,6 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(
     return (
       <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop}>
         <ModalDialog
-          borderColor="gray"
           width={boxWidth}
           title="Console"
           footer={`Press \` or Esc to close  ·  ${entries.length} entries (showing last ${MAX_LINES})`}
@@ -99,7 +98,7 @@ function getColorForMethod(method: string): string {
 }
 
 function formatEntry(entry: { method: string; args: unknown[] }): string {
-  const args = entry.args
+  return entry.args
     .map((arg) => {
       if (typeof arg === "string") return arg
       try {
@@ -109,5 +108,5 @@ function formatEntry(entry: { method: string; args: unknown[] }): string {
       }
     })
     .join(" ")
-  return args
+    .replace(/\n+$/, "")
 }

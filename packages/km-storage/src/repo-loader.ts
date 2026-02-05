@@ -679,19 +679,20 @@ function* applyEvents(
         // (events referencing nodes that already exist from file parsing)
         if (message.includes("UNIQUE constraint failed")) {
           skippedDuplicates++
-          // Log with enough context for user to identify the affected content
+          // Per-event detail at debug level (visible with -vv)
+          // Outdated events reference nodes no longer in the database
+          // (from a previous DB instance). Safe to remove.
           if (event.type === "node_created") {
-            const nodeData = event.data as Record<string, unknown>
-            const nodeInfo = [
-              `"${nodeData.name || nodeData.title || nodeData.id}"`,
-              nodeData.type,
-              nodeData.fs_path ? `at ${nodeData.fs_path}` : null,
-            ]
-              .filter(Boolean)
-              .join(" ")
-            log.warn?.(
-              `Stale event: ${nodeInfo} already exists (created from filesystem). ` +
-                `Event ts: ${new Date(event.ts).toISOString()}`,
+            const d = event.data as Record<string, unknown>
+            log.debug?.(
+              `Outdated event: ${d.type} "${d.name || d.title || "(unnamed)"}" ` +
+                `id=${(d.id as string)?.slice(-8) ?? "?"} ` +
+                (d.fs_path ? `path=${d.fs_path} ` : "") +
+                (d.parent_id
+                  ? `parent=${(d.parent_id as string).slice(-8)} `
+                  : "") +
+                `event=${event.id.slice(-8)} ` +
+                `ts=${new Date(event.ts).toISOString()}`,
             )
           }
         } else {
@@ -707,9 +708,8 @@ function* applyEvents(
 
     if (skippedDuplicates > 0) {
       log.warn?.(
-        `Skipped ${skippedDuplicates} stale node_created events. ` +
-          `This happens when the database was rebuilt but events.jsonl wasn't cleared. ` +
-          `Run 'km gc' to remove stale events, or delete .km/events.jsonl to start fresh.`,
+        `Skipped ${skippedDuplicates} outdated events (reference nodes no longer in the database). ` +
+          `Safe to remove: delete .km/events.jsonl and re-sync. Use -vv to see details.`,
       )
     }
   } catch (error) {
