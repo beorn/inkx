@@ -6,14 +6,19 @@
  * 2. Board - State management (useReducer, useInput)
  * 3. BoardApp - Production entry (useRepo, useStdout, external integrations)
  */
-import React, { useEffect, useReducer, useMemo, useRef } from "react"
+import React, {
+  useEffect,
+  useReducer,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import {
   Box,
   Text,
   useInput,
   useApp,
   useStdout,
-  useConsole,
   ErrorBoundary,
   type PatchedConsole,
 } from "inkx"
@@ -618,33 +623,37 @@ export function Board({
       ),
   )
 
-  // Console auto-open on first warn/error (not debug/info — those cause
-  // infinite render loops when pipeline debug logging is enabled via -vv)
-  const consoleEntries = patchedConsole ? useConsole(patchedConsole) : []
-  const significantCount = useMemo(
-    () =>
-      consoleEntries.filter(
-        (e) => e.method === "warn" || e.method === "error",
-      ).length,
-    [consoleEntries],
-  )
+  // Console stats and auto-open via direct subscription.
+  // IMPORTANT: We do NOT use useConsole() here — that triggers re-renders
+  // on every console entry (including debug), which creates an infinite
+  // render loop when -vv pipeline debug logging is enabled.
+  // Instead, subscribe directly and only update state when warn/error count changes.
+  const [consoleStats, setConsoleStats] = useState<
+    { total: number; errors: number; warnings: number } | undefined
+  >()
+  const consoleAutoOpenedRef = useRef(ui.consoleAutoOpened)
+  consoleAutoOpenedRef.current = ui.consoleAutoOpened
   useEffect(() => {
-    if (significantCount > 0 && !ui.consoleAutoOpened) {
-      dispatch(actions.autoOpenConsole())
-    }
-  }, [significantCount, ui.consoleAutoOpened])
-
-  // Calculate console stats for bottom bar
-  const consoleStats = useMemo(() => {
-    if (consoleEntries.length === 0) return undefined
-    let errors = 0
-    let warnings = 0
-    for (const entry of consoleEntries) {
-      if (entry.method === "error") errors++
-      else if (entry.method === "warn") warnings++
-    }
-    return { total: consoleEntries.length, errors, warnings }
-  }, [consoleEntries])
+    if (!patchedConsole) return
+    let prevSignificant = 0
+    return patchedConsole.subscribe(() => {
+      const entries = patchedConsole.getSnapshot()
+      let errors = 0
+      let warnings = 0
+      for (const e of entries) {
+        if (e.method === "error") errors++
+        else if (e.method === "warn") warnings++
+      }
+      const significant = errors + warnings
+      if (significant !== prevSignificant) {
+        prevSignificant = significant
+        setConsoleStats({ total: entries.length, errors, warnings })
+        if (!consoleAutoOpenedRef.current) {
+          dispatch(actions.autoOpenConsole())
+        }
+      }
+    })
+  }, [patchedConsole])
 
   // Ref to track current rootId for event handlers (avoids stale closure)
   const rootIdRef = useRef(boardState.rootId)
