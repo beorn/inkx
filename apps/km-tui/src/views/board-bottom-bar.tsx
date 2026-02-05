@@ -13,6 +13,28 @@ import type { TUIBoardState } from "../types.ts"
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 const SPINNER_INTERVAL = 80
 
+const FLASH_DURATION = 3000
+
+/** Hook for 3-second flash when a value changes */
+function useFlashOnChange(value: number): boolean {
+  const [flash, setFlash] = useState(false)
+  const prevRef = React.useRef(value)
+
+  useEffect(() => {
+    if (value === prevRef.current) return
+    prevRef.current = value
+    if (value === 0) return
+    setFlash(true)
+    // Skip timer during tests
+    // @ts-expect-error - React internal flag set by inkx test renderer
+    if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
+    const timer = setTimeout(() => setFlash(false), FLASH_DURATION)
+    return () => clearTimeout(timer)
+  }, [value])
+
+  return flash
+}
+
 /** Hook for animated spinner frame - uses React from inkx to avoid version mismatch */
 function useSpinnerFrame(enabled: boolean): string {
   const [frameIndex, setFrameIndex] = useState(0)
@@ -75,6 +97,9 @@ export function BottomBar({
   // Only run spinner animation when actually displaying it
   const spinnerFrame = useSpinnerFrame(isLoading)
 
+  // Flash bright white for 3s when console stats change
+  const consoleFlash = useFlashOnChange(consoleStats?.total ?? 0)
+
   // Shorten path: replace home directory with ~/
   let displayPath = state.rootPath || ""
   if (homeDir && displayPath.startsWith(homeDir)) {
@@ -91,18 +116,23 @@ export function BottomBar({
   if (ui.showNewItemDialog) statusParts.push("[NEW]")
   if (ui.inOutlineMode) statusParts.push("OUT")
 
-  // Console indicator (only when there are lines)
+  // Console indicator built separately (needs its own color for flash effect)
+  let consoleText = ""
+  let consoleHint = ""
   if (consoleStats && consoleStats.total > 0) {
-    let consoleText = `LOGS 🖥️${consoleStats.total}`
+    consoleText = `LOGS ${consoleStats.total}`
     if (consoleStats.errors > 0 || consoleStats.warnings > 0) {
       const parts: string[] = []
       if (consoleStats.errors > 0) parts.push(`${consoleStats.errors}✗`)
       if (consoleStats.warnings > 0) parts.push(`${consoleStats.warnings}⚠`)
       consoleText += ` (${parts.join(" ")})`
     }
-    // Contextual hint: how to toggle console screen
-    consoleText += ui.showConsole ? " press ESC to close" : " press ` to see"
-    statusParts.push(consoleText)
+    // Contextual hint only during flash or when console is open
+    if (ui.showConsole) {
+      consoleHint = "  press ESC to close"
+    } else if (consoleFlash) {
+      consoleHint = "  press ` to see"
+    }
   }
 
   // Status message shown after mode indicators
@@ -161,6 +191,19 @@ export function BottomBar({
             <Text dimColor id="status-message">
               {middle}
             </Text>
+          </>
+        )}
+        {consoleText && (
+          <>
+            <Text dimColor>{"   "}</Text>
+            <Text
+              id="console-indicator"
+              dimColor={!consoleFlash && !ui.showConsole}
+              bold={consoleFlash || ui.showConsole}
+            >
+              {consoleText}
+            </Text>
+            {consoleHint && <Text dimColor={!consoleFlash}>{consoleHint}</Text>}
           </>
         )}
       </Box>

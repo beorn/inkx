@@ -186,8 +186,12 @@ export function* loadRepo(
       }
     }
   } else {
-    yield {
-      declare: ["Reading events", "Applying changes", "Evaluating rules"],
+    if (discoverOnly) {
+      yield { declare: ["Reading events", "Applying changes"] }
+    } else {
+      yield {
+        declare: ["Reading events", "Applying changes", "Evaluating rules"],
+      }
     }
   }
 
