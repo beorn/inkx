@@ -38,21 +38,9 @@ export function VerticalScrollIndicator({
 }
 
 /**
- * Vertical separator line between columns.
- * Uses a Box with borderLeft to draw a full-height vertical line.
- * Fixed width of 1 character, stretches vertically to fill parent.
+ * Vertical separator between columns.
+ * Empty 1-character space to visually separate card borders from adjacent columns.
  */
 export function ColumnSeparator(): React.ReactElement {
-  return (
-    <Box
-      width={1}
-      alignSelf="stretch"
-      borderStyle="single"
-      borderLeft
-      borderRight={false}
-      borderTop={false}
-      borderBottom={false}
-      borderColor="gray"
-    />
-  )
+  return <Box width={1} alignSelf="stretch" />
 }
