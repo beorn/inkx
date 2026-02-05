@@ -675,7 +675,7 @@ function* applyEvents(
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        // UNIQUE constraint failures are expected for stale events in events.jsonl
+        // UNIQUE constraint failures indicate stale events in events.jsonl
         // (events referencing nodes that already exist from file parsing)
         if (message.includes("UNIQUE constraint failed")) {
           skippedDuplicates++
@@ -683,8 +683,8 @@ function* applyEvents(
             event.type === "node_created"
               ? (event.data as Record<string, unknown>).id
               : "unknown"
-          log.debug?.(
-            `applyEvents: skipping duplicate node_created for ${nodeId} (stale event)`,
+          log.warn?.(
+            `applyEvents: duplicate node_created for ${nodeId} (stale event in events.jsonl)`,
           )
         } else {
           errors.push({ phase: "apply", message })
@@ -698,8 +698,8 @@ function* applyEvents(
     db.run("COMMIT")
 
     if (skippedDuplicates > 0) {
-      log.debug?.(
-        `applyEvents: skipped ${skippedDuplicates} stale node_created events (nodes already exist)`,
+      log.warn?.(
+        `applyEvents: skipped ${skippedDuplicates} stale node_created events (nodes already exist) - consider running 'km gc' to clean events.jsonl`,
       )
     }
   } catch (error) {
