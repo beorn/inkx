@@ -5,17 +5,13 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React, { useCallback } from "react"
-import { Box, Text, useInputLayer, ErrorBoundary, type Key } from "inkx"
+import { Box, Text, useInputLayer, type Key } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, InputBox } from "./shared-components.tsx"
 import { parseQuery, type QueryAST } from "@km/core"
 import { useLineEdit } from "../hooks/use-line-edit.ts"
-import {
-  createSuspenseLoader,
-  type SuspenseLoader,
-} from "../hooks/use-suspense-loader.ts"
 
 // Minimum query length before searching (prevents heavy queries on single chars)
 const MIN_QUERY_LENGTH = 2
@@ -243,91 +239,6 @@ function filterResults(
 }
 
 // =============================================================================
-// SearchResults component (suspends while loading)
-// =============================================================================
-
-interface SearchResultsProps {
-  loader: SuspenseLoader<SearchResult[]>
-  query: string
-  selectedIndex: number
-  scrollOffset: number
-  maxVisible: number
-}
-
-function SearchResults({
-  loader,
-  query,
-  selectedIndex,
-  scrollOffset,
-  maxVisible,
-}: SearchResultsProps): React.ReactElement {
-  const allResults = loader.read() // Suspends if not ready
-  const filteredResults = React.useMemo(
-    () => filterResults(allResults, query),
-    [allResults, query],
-  )
-
-  const visibleResults = filteredResults.slice(
-    scrollOffset,
-    scrollOffset + maxVisible,
-  )
-
-  if (filteredResults.length === 0) {
-    return <Text dimColor>No matching items</Text>
-  }
-
-  return (
-    <>
-      {visibleResults.map((result, i) => {
-        const actualIndex = scrollOffset + i
-        const isSelected = actualIndex === selectedIndex
-
-        const prefix = isSelected ? "▸ " : "  "
-        const typeIcon =
-          result.node.type === "task"
-            ? "□" // U+25A1 white square (width-1)
-            : result.node.type === "file"
-              ? "📄"
-              : result.node.type === "section"
-                ? "§"
-                : "•"
-
-        return (
-          <Box
-            key={result.node.id}
-            width="100%"
-            height={1}
-            backgroundColor={isSelected ? "cyan" : "black"}
-          >
-            <Text color={isSelected ? "black" : undefined} wrap="truncate">
-              {prefix}
-              <Text dimColor={!isSelected}>{typeIcon} </Text>
-              {result.title}
-              {result.parentContext && (
-                <Text
-                  dimColor={!isSelected}
-                  color={isSelected ? "gray" : undefined}
-                >
-                  {` < ${result.parentContext}`}
-                </Text>
-              )}
-              {result.tags.length > 0 && (
-                <Text
-                  color={isSelected ? "blue" : "cyan"}
-                  dimColor={!isSelected}
-                >
-                  {` #${result.tags.join(" #")}`}
-                </Text>
-              )}
-            </Text>
-          </Box>
-        )
-      })}
-    </>
-  )
-}
-
-// =============================================================================
 // SearchDialog component
 // =============================================================================
 
@@ -370,13 +281,12 @@ export const SearchDialog = React.forwardRef<
     }
   }, []) // Only on mount
 
-  const deferredQuery = React.useDeferredValue(lineEdit.value)
-  const trimmedQuery = deferredQuery.trim()
+  const trimmedQuery = lineEdit.value.trim()
 
-  // Create loader only when query is long enough (lazy load)
-  const loaderRef = React.useRef<SuspenseLoader<SearchResult[]> | null>(null)
-  if (trimmedQuery.length >= MIN_QUERY_LENGTH && !loaderRef.current) {
-    loaderRef.current = createSuspenseLoader(() => loadSearchResults(repo))
+  // Lazy-load all searchable nodes on first query (synchronous SQLite)
+  const allResultsRef = React.useRef<SearchResult[] | null>(null)
+  if (trimmedQuery.length >= MIN_QUERY_LENGTH && !allResultsRef.current) {
+    allResultsRef.current = loadSearchResults(repo)
   }
 
   React.useImperativeHandle(ref, () => ({
@@ -393,12 +303,21 @@ export const SearchDialog = React.forwardRef<
   // But we can't know that until results load, so estimate
   const maxVisible = Math.max(1, height - 11)
 
+  // Filter results synchronously
+  const filteredResults = React.useMemo(
+    () =>
+      allResultsRef.current && trimmedQuery.length >= MIN_QUERY_LENGTH
+        ? filterResults(allResultsRef.current, trimmedQuery)
+        : [],
+    [trimmedQuery],
+  )
+
   // Handle navigation and selection (text editing handled by useLineEdit)
   // Use refs to avoid stale closure issues with the handler
   const selectedIndexRef = React.useRef(selectedIndex)
   selectedIndexRef.current = selectedIndex
-  const trimmedQueryRef = React.useRef(trimmedQuery)
-  trimmedQueryRef.current = trimmedQuery
+  const filteredRef = React.useRef(filteredResults)
+  filteredRef.current = filteredResults
 
   useInputLayer(
     "search-dialog",
@@ -410,14 +329,9 @@ export const SearchDialog = React.forwardRef<
         }
 
         if (key.return) {
-          // Need to get results synchronously for selection
-          if (loaderRef.current?.status === "resolved") {
-            const allResults = loaderRef.current.read()
-            const filtered = filterResults(allResults, trimmedQueryRef.current)
-            const selected = filtered[selectedIndexRef.current]
-            if (selected) {
-              onSelect(selected.node)
-            }
+          const selected = filteredRef.current[selectedIndexRef.current]
+          if (selected) {
+            onSelect(selected.node)
           }
           return true
         }
@@ -440,20 +354,15 @@ export const SearchDialog = React.forwardRef<
     ),
   )
 
-  // Calculate scroll offset (needs filtered count)
-  let scrollOffset = 0
-  let filteredCount = 0
-  if (loaderRef.current?.status === "resolved") {
-    const filtered = filterResults(loaderRef.current.read(), trimmedQuery)
-    filteredCount = filtered.length
-    scrollOffset = Math.max(
-      0,
-      Math.min(
-        selectedIndex - Math.floor(maxVisible / 2),
-        Math.max(0, filteredCount - maxVisible),
-      ),
-    )
-  }
+  // Calculate scroll offset
+  const filteredCount = filteredResults.length
+  const scrollOffset = Math.max(
+    0,
+    Math.min(
+      selectedIndex - Math.floor(maxVisible / 2),
+      Math.max(0, filteredCount - maxVisible),
+    ),
+  )
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
@@ -490,32 +399,68 @@ export const SearchDialog = React.forwardRef<
       </Box>
 
       {/* Results list — flexGrow fills available height */}
-      <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
-        <Box
-          flexDirection="column"
-          flexGrow={1}
-          flexShrink={1}
-          overflow="hidden"
-        >
-          {trimmedQuery.length < MIN_QUERY_LENGTH ? (
-            <Text dimColor>
-              {trimmedQuery.length === 0
-                ? "Type to search..."
-                : `Type ${MIN_QUERY_LENGTH - trimmedQuery.length} more char${MIN_QUERY_LENGTH - trimmedQuery.length > 1 ? "s" : ""}...`}
-            </Text>
-          ) : loaderRef.current ? (
-            <React.Suspense fallback={<Text dimColor> Loading...</Text>}>
-              <SearchResults
-                loader={loaderRef.current}
-                query={trimmedQuery}
-                selectedIndex={selectedIndex}
-                scrollOffset={scrollOffset}
-                maxVisible={maxVisible}
-              />
-            </React.Suspense>
-          ) : null}
-        </Box>
-      </ErrorBoundary>
+      <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
+        {trimmedQuery.length < MIN_QUERY_LENGTH ? (
+          <Text dimColor>
+            {trimmedQuery.length === 0
+              ? "Type to search..."
+              : `Type ${MIN_QUERY_LENGTH - trimmedQuery.length} more char${MIN_QUERY_LENGTH - trimmedQuery.length > 1 ? "s" : ""}...`}
+          </Text>
+        ) : filteredResults.length === 0 ? (
+          <Text dimColor>No matching items</Text>
+        ) : (
+          filteredResults
+            .slice(scrollOffset, scrollOffset + maxVisible)
+            .map((result, i) => {
+              const actualIndex = scrollOffset + i
+              const isSelected = actualIndex === selectedIndex
+
+              const prefix = isSelected ? "▸ " : "  "
+              const typeIcon =
+                result.node.type === "task"
+                  ? "□"
+                  : result.node.type === "file"
+                    ? "📄"
+                    : result.node.type === "section"
+                      ? "§"
+                      : "•"
+
+              return (
+                <Box
+                  key={result.node.id}
+                  width="100%"
+                  height={1}
+                  backgroundColor={isSelected ? "cyan" : "black"}
+                >
+                  <Text
+                    color={isSelected ? "black" : undefined}
+                    wrap="truncate"
+                  >
+                    {prefix}
+                    <Text dimColor={!isSelected}>{typeIcon} </Text>
+                    {result.title}
+                    {result.parentContext && (
+                      <Text
+                        dimColor={!isSelected}
+                        color={isSelected ? "gray" : undefined}
+                      >
+                        {` < ${result.parentContext}`}
+                      </Text>
+                    )}
+                    {result.tags.length > 0 && (
+                      <Text
+                        color={isSelected ? "blue" : "cyan"}
+                        dimColor={!isSelected}
+                      >
+                        {` #${result.tags.join(" #")}`}
+                      </Text>
+                    )}
+                  </Text>
+                </Box>
+              )
+            })
+        )}
+      </Box>
     </ModalDialog>
   )
 })
