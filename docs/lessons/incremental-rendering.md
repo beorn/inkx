@@ -30,6 +30,161 @@ FAST-PATH ANALYSIS:
   ✓ Scroll offset unchanged (fast-path enabled for children)
 ```
 
+## Designing for AI-Assisted Debugging
+
+AI agents (Claude, GPT) are excellent at debugging when given rich diagnostic output. Design your error messages and test infrastructure to maximize AI effectiveness.
+
+### Make Errors Self-Diagnosing
+
+**Bad**: `AssertionError: expected "A" but got "B"`
+
+**Good**: Include everything needed to diagnose without re-running:
+```
+MISMATCH at (12, 5) on render #3
+
+CELL VALUES:
+  incremental: char=" " fg=null bg=6
+  fresh:       char="T" fg=null bg=0
+
+INNERMOST NODE:
+  path: root > #board > [0] > #card-1
+  type: inkx-box
+  backgroundColor: undefined
+
+DIRTY FLAGS:
+  active: (none - node was clean)
+
+FAST-PATH ANALYSIS:
+  ⚠ ALL DIRTY FLAGS FALSE - fast-path likely skipped this node
+  ✓ Node index 1 is in visible range [0..1]
+```
+
+The AI can immediately see: "Clean node in visible range but wrong content → fast-path skipped it when it shouldn't have."
+
+### Capture Rich State for Replay
+
+Build test helpers that capture complete state, not just pass/fail:
+
+```typescript
+// board-test.ts helper captures full context
+export function testEnv(tree: TreeDefinition, options?: TestEnvOptions) {
+  const { board, term, repo } = createBoard(tree, options)
+
+  return {
+    press: (key: string) => {
+      board.press(key)
+      // Auto-captures: cursor position, selected node, scroll state, screen content
+    },
+    getState: () => ({
+      cursor: board.cursor,
+      selectedNodeId: board.selectedNodeId,
+      screen: term.text,
+      scrollOffsets: getScrollOffsets(board),
+    }),
+    // For AI: dump everything needed to reproduce
+    diagnostics: () => ({
+      ...getState(),
+      nodeTree: dumpTree(repo),
+      renderHistory: board.renderHistory,
+    }),
+  }
+}
+```
+
+### Error Messages Should Answer "Why?"
+
+Every error message should answer:
+1. **What** went wrong (the symptom)
+2. **Where** it happened (position, node path, render number)
+3. **Why** it likely happened (analysis of flags, state, conditions)
+4. **How** to reproduce (minimal steps or test case)
+
+## Defensive Programming with Invariants
+
+Incremental rendering bugs are hard because they're **silent** — wrong pixels render without errors. The solution: add invariants that catch mismatches immediately.
+
+### The INKX_STRICT Pattern
+
+Compare fast-path (incremental) vs slow-path (fresh) on every render:
+
+```typescript
+// In scheduler.ts
+if (process.env.INKX_STRICT && this.stats.renderCount > 0) {
+  const freshBuffer = contentPhase(root, null)  // Force fresh render
+  const mismatches = compareBuffers(incrementalBuffer, freshBuffer)
+
+  if (mismatches.length > 0) {
+    const ctx = buildMismatchContext(root, mismatches[0], incrementalBuffer, freshBuffer)
+    throw new IncrementalRenderMismatchError(formatMismatchContext(ctx))
+  }
+}
+```
+
+**Cost**: 2x render time in tests. **Benefit**: Catches bugs immediately instead of subtle visual glitches noticed weeks later.
+
+### Layer Your Invariants
+
+| Layer | What to Check | When |
+|-------|---------------|------|
+| **Unit** | Single function contracts | Every call |
+| **Integration** | Cross-component consistency | After operations |
+| **System** | End-to-end correctness | Every render (in tests) |
+
+For rendering:
+```typescript
+// Unit: Node-level invariants
+if (node.subtreeDirty && !hasAnyDirtyDescendant(node)) {
+  throw new Error(`subtreeDirty=true but no dirty descendants: ${nodePath(node)}`)
+}
+
+// Integration: Layout invariants
+if (child.screenRect && parent.screenRect) {
+  if (!rectContains(parent.screenRect, child.screenRect)) {
+    throw new Error(`Child ${childPath} outside parent bounds`)
+  }
+}
+
+// System: Render invariants (INKX_STRICT)
+const fresh = renderFresh(root)
+const incremental = renderIncremental(root, prevBuffer)
+assertEqual(fresh, incremental, "Incremental render mismatch")
+```
+
+### Enable by Default in Tests
+
+Don't require opt-in for safety checks:
+
+```typescript
+// vitest/setup.ts
+if (!process.env.INKX_STRICT) {
+  process.env.INKX_STRICT = "1"  // On by default for tests
+}
+```
+
+Developers can opt-out for performance testing, but the default catches bugs.
+
+### Invariants as Documentation
+
+Invariants document assumptions that are easy to violate during refactoring:
+
+```typescript
+// This documents: "parentRegionCleared must propagate to children"
+const childHasPrev = parentRegionCleared ? false : hasPrevBuffer
+
+// Without the invariant, a future dev might "optimize" to:
+const childHasPrev = hasPrevBuffer  // Bug: ignores parentRegionCleared
+```
+
+The INKX_STRICT check catches this immediately in tests.
+
+### When Invariants Fail: Fix the Bug, Not the Invariant
+
+When an invariant fails, you have two choices:
+1. **Fix the code** - The invariant caught a real bug
+2. **Update the invariant** - Your understanding of correctness was wrong
+
+Never disable invariants because they're "too strict." If the invariant fires, either the code or the invariant is wrong — figure out which.
+
 ## Incremental Rendering: The Core Concepts
 
 ### The Fast-Path
