@@ -636,23 +636,35 @@ export function Board({
   useEffect(() => {
     if (!patchedConsole) return
     let prevSignificant = 0
-    return patchedConsole.subscribe(() => {
-      const entries = patchedConsole.getSnapshot()
-      let errors = 0
-      let warnings = 0
-      for (const e of entries) {
-        if (e.method === "error") errors++
-        else if (e.method === "warn") warnings++
-      }
-      const significant = errors + warnings
-      if (significant !== prevSignificant) {
-        prevSignificant = significant
-        setConsoleStats({ total: entries.length, errors, warnings })
-        if (!consoleAutoOpenedRef.current) {
-          dispatch(actions.autoOpenConsole())
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+    const unsub = patchedConsole.subscribe(() => {
+      // Debounce: coalesce rapid-fire entries (e.g., 122 stale event warnings
+      // during startup) into a single state update after 200ms of quiet.
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null
+        const entries = patchedConsole.getSnapshot()
+        let errors = 0
+        let warnings = 0
+        for (const e of entries) {
+          if (e.method === "error") errors++
+          else if (e.method === "warn") warnings++
         }
-      }
+        const significant = errors + warnings
+        if (significant !== prevSignificant) {
+          prevSignificant = significant
+          setConsoleStats({ total: entries.length, errors, warnings })
+          if (!consoleAutoOpenedRef.current) {
+            dispatch(actions.autoOpenConsole())
+          }
+        }
+      }, 200)
     })
+    return () => {
+      unsub()
+      if (debounceTimer) clearTimeout(debounceTimer)
+    }
   }, [patchedConsole])
 
   // Ref to track current rootId for event handlers (avoids stale closure)
