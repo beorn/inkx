@@ -52,6 +52,12 @@ Ask user: "Can you provide steps to reproduce? I need to see the bug before fixi
 
 **CRITICAL: Must see bug before fixing.**
 
+**IMPORTANT: When a bug is reproducible with live data, STICK WITH IT until fixed.**
+Live data may change, files may be deleted, or conditions may shift such that the bug
+is no longer reproducible. If you can reproduce a bug now, prioritize fixing it
+immediately rather than deferring. Create a test that captures the reproduction
+conditions if possible.
+
 **For TUI bugs** - headless capture:
 
 ```bash
