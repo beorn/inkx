@@ -167,7 +167,7 @@ export function useLineEdit({
       }
 
       // Regular character input
-      if (input.length === 1 && input >= " ") {
+      if (input.length === 1 && input >= " " && input !== "\x7f") {
         const newValue = value.slice(0, cursor) + input + value.slice(cursor)
         updateValue(newValue, cursor + 1)
       }

@@ -4,23 +4,21 @@
  * Fuzzy search dialog for finding items by content or tags.
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
-import React, {
-  useMemo,
-  useCallback,
-  forwardRef,
-  useImperativeHandle,
-  useDeferredValue,
-  useState,
-  useEffect,
-  startTransition,
-} from "react"
+import React from "react"
 import { Box, Text, useInput, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
-import { useRepo } from "../repo-context.tsx"
+import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, InputBox } from "./shared-components.tsx"
 import { parseQuery, type QueryAST } from "@km/core"
 import { useLineEdit } from "../hooks/use-line-edit.ts"
+import {
+  createSuspenseLoader,
+  type SuspenseLoader,
+} from "../hooks/use-suspense-loader.ts"
+
+// Minimum query length before searching (prevents heavy queries on single chars)
+const MIN_QUERY_LENGTH = 2
 
 /**
  * Simple fuzzy match - check if query chars appear in order in target
@@ -180,13 +178,10 @@ function matchesQuery(
 }
 
 /**
- * Get all searchable nodes
+ * Get all searchable nodes and convert to SearchResult[]
  */
-function getSearchResults(
-  allNodes: KNode[],
-  getNode: (id: string) => KNode | null,
-  getDisplayName: (node: KNode) => string,
-): SearchResult[] {
+function loadSearchResults(repo: RepoContextValue): SearchResult[] {
+  const allNodes = repo.rawQuery<KNode>("SELECT * FROM nodes")
   const results: SearchResult[] = []
 
   for (const node of allNodes) {
@@ -196,9 +191,13 @@ function getSearchResults(
     // Skip links (search target instead)
     if (node.link_to) continue
 
-    const title = getDisplayName(node)
+    const title = getNodeDisplayName(repo, node)
     const content = node.content
-    const parentContext = getParentName(node, getNode, getDisplayName)
+    const parentContext = getParentName(
+      node,
+      repo.getNode.bind(repo),
+      (n) => getNodeDisplayName(repo, n),
+    )
     const tags = extractTags(content)
 
     results.push({
@@ -213,6 +212,126 @@ function getSearchResults(
 
   return results
 }
+
+/**
+ * Filter and score results by query
+ */
+function filterResults(
+  allResults: SearchResult[],
+  query: string,
+): (SearchResult & { score: number })[] {
+  const queryAST = parseQuery(query)
+
+  return allResults
+    .map((result) => {
+      const { matches, matchType } = matchesQuery(result, queryAST)
+      if (!matches) return null
+
+      // Score against title and content
+      const titleScore = fuzzyScore(query, result.title)
+      const contentScore = result.content
+        ? fuzzyScore(query, result.content) * 0.7
+        : -1
+      const tagScore = matchType === "tag" && result.tags.length > 0 ? 100 : 0
+
+      const bestScore = Math.max(titleScore, contentScore) + tagScore
+
+      return { ...result, score: bestScore, matchType }
+    })
+    .filter(
+      (r): r is SearchResult & { score: number } => r !== null && r.score >= 0,
+    )
+    .sort((a, b) => b.score - a.score)
+}
+
+// =============================================================================
+// SearchResults component (suspends while loading)
+// =============================================================================
+
+interface SearchResultsProps {
+  loader: SuspenseLoader<SearchResult[]>
+  query: string
+  selectedIndex: number
+  scrollOffset: number
+  maxVisible: number
+}
+
+function SearchResults({
+  loader,
+  query,
+  selectedIndex,
+  scrollOffset,
+  maxVisible,
+}: SearchResultsProps): React.ReactElement {
+  const allResults = loader.read() // Suspends if not ready
+  const filteredResults = React.useMemo(
+    () => filterResults(allResults, query),
+    [allResults, query],
+  )
+
+  const visibleResults = filteredResults.slice(
+    scrollOffset,
+    scrollOffset + maxVisible,
+  )
+
+  if (filteredResults.length === 0) {
+    return <Text dimColor> No matching items</Text>
+  }
+
+  return (
+    <>
+      {visibleResults.map((result, i) => {
+        const actualIndex = scrollOffset + i
+        const isSelected = actualIndex === selectedIndex
+
+        const prefix = isSelected ? "▸ " : "  "
+        const typeIcon =
+          result.node.type === "task"
+            ? "☐"
+            : result.node.type === "file"
+              ? "📄"
+              : result.node.type === "section"
+                ? "§"
+                : "•"
+
+        return (
+          <Box
+            key={result.node.id}
+            width="100%"
+            height={1}
+            backgroundColor={isSelected ? "cyan" : "black"}
+          >
+            <Text color={isSelected ? "black" : undefined} wrap="truncate">
+              {prefix}
+              <Text dimColor={!isSelected}>{typeIcon} </Text>
+              {result.title}
+              {result.parentContext && (
+                <Text
+                  dimColor={!isSelected}
+                  color={isSelected ? "gray" : undefined}
+                >
+                  {` < ${result.parentContext}`}
+                </Text>
+              )}
+              {result.tags.length > 0 && (
+                <Text
+                  color={isSelected ? "blue" : "cyan"}
+                  dimColor={!isSelected}
+                >
+                  {` #${result.tags.join(" #")}`}
+                </Text>
+              )}
+            </Text>
+          </Box>
+        )
+      })}
+    </>
+  )
+}
+
+// =============================================================================
+// SearchDialog component
+// =============================================================================
 
 interface SearchDialogProps {
   onSelect: (targetNode: KNode) => void
@@ -230,247 +349,158 @@ interface SearchDialogHandle {
   clearQuery(): void
 }
 
-export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
-  function SearchDialog(
-    { onSelect, onCancel, width, height, initialInput, onConsumeInitialInput },
-    ref,
-  ): React.ReactElement {
-    const repo = useRepo()
-    const [selectedIndex, setSelectedIndex] = useState(0)
+export const SearchDialog = React.forwardRef<
+  SearchDialogHandle,
+  SearchDialogProps
+>(function SearchDialog(
+  { onSelect, onCancel, width, height, initialInput, onConsumeInitialInput },
+  ref,
+): React.ReactElement {
+  const repo = useRepo()
+  const [selectedIndex, setSelectedIndex] = React.useState(0)
 
-    // Lazy-load node data to allow input handler to register immediately
-    // This prevents keypresses being eaten while the heavy query runs
-    const [allResults, setAllResults] = useState<SearchResult[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+  // Readline-style line editing for search input
+  const lineEdit = useLineEdit({
+    initialValue: initialInput ?? "",
+    onChange: () => setSelectedIndex(0), // Reset selection when query changes
+  })
 
-    // Readline-style line editing for search input
-    // This MUST be before the useEffect so useInput registers on first render
-    // Use initialInput as starting value to capture buffered keypresses
-    const lineEdit = useLineEdit({
-      initialValue: initialInput ?? "",
-      onChange: () => setSelectedIndex(0), // Reset selection when query changes
-    })
+  // Consume the initial input buffer after first render
+  React.useEffect(() => {
+    if (initialInput && onConsumeInitialInput) {
+      onConsumeInitialInput()
+    }
+  }, []) // Only on mount
 
-    // Consume the initial input buffer after first render
-    // This prevents the buffer from being re-applied on re-renders
-    useEffect(() => {
-      if (initialInput && onConsumeInitialInput) {
-        onConsumeInitialInput()
-      }
-    }, []) // Only on mount - intentionally not including deps to run once
-    const deferredQuery = useDeferredValue(lineEdit.value)
+  const deferredQuery = React.useDeferredValue(lineEdit.value)
+  const trimmedQuery = deferredQuery.trim()
 
-    useImperativeHandle(ref, () => ({
-      focusInput() {
-        // No-op for now - TUI doesn't have native focus
-      },
-      clearQuery() {
-        lineEdit.clear()
-        setSelectedIndex(0)
-      },
-    }))
+  // Create loader only when query is long enough (lazy load)
+  const loaderRef = React.useRef<SuspenseLoader<SearchResult[]> | null>(null)
+  if (trimmedQuery.length >= MIN_QUERY_LENGTH && !loaderRef.current) {
+    loaderRef.current = createSuspenseLoader(() => loadSearchResults(repo))
+  }
 
-    // Wrap getNodeDisplayName with repo for use in helper functions
-    const getDisplayName = useCallback(
-      (node: KNode) => getNodeDisplayName(repo, node),
-      [repo],
-    )
+  React.useImperativeHandle(ref, () => ({
+    focusInput() {
+      // No-op for now - TUI doesn't have native focus
+    },
+    clearQuery() {
+      lineEdit.clear()
+      setSelectedIndex(0)
+    },
+  }))
 
-    // Load nodes asynchronously via useEffect + startTransition
-    // This defers the expensive query so input handling registers first
-    useEffect(() => {
-      startTransition(() => {
-        const allNodes = repo.rawQuery<KNode>("SELECT * FROM nodes")
-        const results = getSearchResults(
-          allNodes,
-          repo.getNode.bind(repo),
-          getDisplayName,
-        )
-        setAllResults(results)
-        setIsLoading(false)
-      })
-    }, [repo, getDisplayName])
+  // For scroll calculation, we need to know filtered count
+  // But we can't know that until results load, so estimate
+  const maxVisible = Math.max(1, height - 11)
 
-    // Parse query and filter results (uses deferredQuery for responsive typing)
-    const filteredResults = useMemo(() => {
-      if (!deferredQuery.trim()) {
-        // Show recent items (tasks, files, sections) sorted by updated_at
-        // No artificial limit - let maxVisible control what's shown
-        return [...allResults]
-          .filter(
-            (r) =>
-              r.node.type === "task" ||
-              r.node.type === "file" ||
-              r.node.type === "section",
-          )
-          .sort((a, b) => b.node.updated_at - a.node.updated_at)
-      }
+  // Handle navigation and selection (text editing handled by useLineEdit)
+  useInput((input, key) => {
+    if (key.escape) {
+      onCancel()
+      return
+    }
 
-      // Parse query for structured search
-      const queryAST = parseQuery(deferredQuery)
-
-      // Filter and score by query
-      return allResults
-        .map((result) => {
-          const { matches, matchType } = matchesQuery(result, queryAST)
-          if (!matches) return null
-
-          // Score against title and content
-          const titleScore = fuzzyScore(deferredQuery, result.title)
-          const contentScore = result.content
-            ? fuzzyScore(deferredQuery, result.content) * 0.7
-            : -1
-          const tagScore =
-            matchType === "tag" && result.tags.length > 0 ? 100 : 0
-
-          const bestScore = Math.max(titleScore, contentScore) + tagScore
-
-          return { ...result, score: bestScore, matchType }
-        })
-        .filter(
-          (r): r is SearchResult & { score: number } =>
-            r !== null && r.score >= 0,
-        )
-        .sort((a, b) => b.score - a.score)
-    }, [allResults, deferredQuery])
-
-    // Max visible items: height - borders(2) - paddingY(2) - title(1) - spacer(1) - inputBox(2) - spacer(1) - spacer_footer(1) - footer(1) = height - 11
-    const maxVisible = Math.max(1, height - 11)
-
-    // Scroll offset to keep selection visible
-    const scrollOffset = Math.max(
-      0,
-      Math.min(
-        selectedIndex - Math.floor(maxVisible / 2),
-        Math.max(0, filteredResults.length - maxVisible),
-      ),
-    )
-
-    const visibleResults = filteredResults.slice(
-      scrollOffset,
-      scrollOffset + maxVisible,
-    )
-
-    // Handle navigation and selection (text editing handled by useLineEdit)
-    useInput((input, key) => {
-      if (key.escape) {
-        onCancel()
-        return
-      }
-
-      if (key.return) {
-        const selected = filteredResults[selectedIndex]
+    if (key.return) {
+      // Need to get results synchronously for selection
+      if (loaderRef.current?.status === "resolved") {
+        const allResults = loaderRef.current.read()
+        const filtered = filterResults(allResults, trimmedQuery)
+        const selected = filtered[selectedIndex]
         if (selected) {
           onSelect(selected.node)
         }
-        return
       }
+      return
+    }
 
-      // Result navigation (up/down)
-      if (key.upArrow || (key.ctrl && input === "p")) {
-        setSelectedIndex((i) => Math.max(0, i - 1))
-        return
-      }
+    // Result navigation (up/down)
+    if (key.upArrow || (key.ctrl && input === "p")) {
+      setSelectedIndex((i) => Math.max(0, i - 1))
+      return
+    }
 
-      if (key.downArrow || (key.ctrl && input === "n")) {
-        setSelectedIndex((i) => Math.min(filteredResults.length - 1, i + 1))
-      }
-    })
+    if (key.downArrow || (key.ctrl && input === "n")) {
+      setSelectedIndex((i) => i + 1) // Will be clamped by rendering
+    }
+  })
 
-    const footerContent = (
-      <Box flexDirection="row" justifyContent="space-between">
-        <Text dimColor>↑↓ nav Enter go Esc cancel #tag filter</Text>
-        {filteredResults.length > maxVisible && (
-          <Text dimColor>
-            {scrollOffset > 0 ? "↑" : " "}
-            {` ${selectedIndex + 1}/${filteredResults.length} `}
-            {scrollOffset + maxVisible < filteredResults.length ? "↓" : " "}
-          </Text>
-        )}
-      </Box>
+  // Calculate scroll offset (needs filtered count)
+  let scrollOffset = 0
+  let filteredCount = 0
+  if (loaderRef.current?.status === "resolved") {
+    const filtered = filterResults(loaderRef.current.read(), trimmedQuery)
+    filteredCount = filtered.length
+    scrollOffset = Math.max(
+      0,
+      Math.min(
+        selectedIndex - Math.floor(maxVisible / 2),
+        Math.max(0, filteredCount - maxVisible),
+      ),
     )
+  }
 
-    return (
-      <ModalDialog
-        title="Search"
-        width={width}
-        height={height}
-        footer={footerContent}
-      >
-        {/* Search input with readline editing */}
+  const footerContent = (
+    <Box flexDirection="row" justifyContent="space-between">
+      <Text dimColor>↑↓ nav Enter go Esc cancel #tag filter</Text>
+      {filteredCount > maxVisible && (
+        <Text dimColor>
+          {scrollOffset > 0 ? "↑" : " "}
+          {` ${selectedIndex + 1}/${filteredCount} `}
+          {scrollOffset + maxVisible < filteredCount ? "↓" : " "}
+        </Text>
+      )}
+    </Box>
+  )
+
+  return (
+    <ModalDialog
+      title="Search"
+      width={width}
+      height={height}
+      footer={footerContent}
+    >
+      {/* Search input with readline editing - flexShrink=0 prevents being pushed out */}
+      <Box flexShrink={0}>
         <InputBox
           beforeCursor={lineEdit.beforeCursor}
           afterCursor={lineEdit.afterCursor}
           placeholder="type to search..."
         />
+      </Box>
 
-        {/* Spacer before results */}
+      {/* Spacer before results - flexShrink=0 to maintain spacing */}
+      <Box flexShrink={0} height={1}>
         <Text> </Text>
+      </Box>
 
-        {/* Results list — flexGrow fills available height */}
-        <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
-          <Box flexDirection="column" flexGrow={1} overflow="hidden">
-            {visibleResults.map((result, i) => {
-              const actualIndex = scrollOffset + i
-              const isSelected = actualIndex === selectedIndex
-
-              const prefix = isSelected ? "▸ " : "  "
-              const typeIcon =
-                result.node.type === "task"
-                  ? "☐"
-                  : result.node.type === "file"
-                    ? "📄"
-                    : result.node.type === "section"
-                      ? "§"
-                      : "•"
-
-              return (
-                <Box
-                  key={result.node.id}
-                  width="100%"
-                  height={1}
-                  backgroundColor={isSelected ? "cyan" : "black"}
-                >
-                  <Text
-                    color={isSelected ? "black" : undefined}
-                    wrap="truncate"
-                  >
-                    {prefix}
-                    <Text dimColor={!isSelected}>{typeIcon} </Text>
-                    {result.title}
-                    {result.parentContext && (
-                      <Text
-                        dimColor={!isSelected}
-                        color={isSelected ? "gray" : undefined}
-                      >
-                        {` < ${result.parentContext}`}
-                      </Text>
-                    )}
-                    {result.tags.length > 0 && (
-                      <Text
-                        color={isSelected ? "blue" : "cyan"}
-                        dimColor={!isSelected}
-                      >
-                        {` #${result.tags.join(" #")}`}
-                      </Text>
-                    )}
-                  </Text>
-                </Box>
-              )
-            })}
-            {isLoading && <Text dimColor> Loading...</Text>}
-            {!isLoading && filteredResults.length === 0 && deferredQuery && (
-              <Text dimColor> No matching items</Text>
-            )}
-            {!isLoading && filteredResults.length === 0 && !deferredQuery && (
-              <Text dimColor> Start typing to search...</Text>
-            )}
-          </Box>
-        </ErrorBoundary>
-      </ModalDialog>
-    )
-  },
-)
+      {/* Results list — flexGrow fills available height */}
+      <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
+        <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
+          {trimmedQuery.length < MIN_QUERY_LENGTH ? (
+            <Text dimColor>
+              {" "}
+              {trimmedQuery.length === 0
+                ? "Type to search..."
+                : `Type ${MIN_QUERY_LENGTH - trimmedQuery.length} more char${MIN_QUERY_LENGTH - trimmedQuery.length > 1 ? "s" : ""}...`}
+            </Text>
+          ) : loaderRef.current ? (
+            <React.Suspense fallback={<Text dimColor> Loading...</Text>}>
+              <SearchResults
+                loader={loaderRef.current}
+                query={trimmedQuery}
+                selectedIndex={selectedIndex}
+                scrollOffset={scrollOffset}
+                maxVisible={maxVisible}
+              />
+            </React.Suspense>
+          ) : null}
+        </Box>
+      </ErrorBoundary>
+    </ModalDialog>
+  )
+})
 
 // Export fuzzy functions for testing
 export { fuzzyMatch, fuzzyScore, extractTags }

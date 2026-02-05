@@ -1513,6 +1513,9 @@ describe("Search and Filter", () => {
       ),
     )
     board.press("/")
+    // Type query to trigger results (min 2 chars required)
+    board.press("T")
+    board.press("a")
     const output = board.screenshot()
     // Results should all appear in the output
     expect(output).toContain("Task Alpha")
@@ -1581,6 +1584,9 @@ describe("Search and Filter", () => {
       ),
     )
     board.press("/")
+    // Type query to trigger results (min 2 chars required)
+    board.press("T")
+    board.press("a")
 
     // Get initial state - first few tasks should be visible
     let output = board.screenshot()

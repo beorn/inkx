@@ -22,6 +22,7 @@ import { createConditionalLogger } from "@beorn/logger"
 const _log = createConditionalLogger("km:board")
 import type { TUIBoardState, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
+import type { BoardState } from "@km/board"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "@km/storage"
 import { DetailPane } from "./DetailPane.tsx"
@@ -57,6 +58,33 @@ import { boardReducer, createBoardState } from "@km/board"
 import { useColumns } from "../hooks/use-columns.ts"
 import { useCursorPosition } from "../hooks/use-cursor-position.ts"
 import type { ColumnsLayout } from "../types.ts"
+
+// =============================================================================
+// Driver/Testing State Capture
+// =============================================================================
+
+/**
+ * Captured internal state exposed via onStateCapture callback.
+ * Enables driver/testing to access rich state without DOM introspection.
+ *
+ * @deprecated TEMPORARY WORKAROUND - Replace with createApp() Zustand store.
+ * See bead km-tui.4 for migration plan. When Board uses createApp(),
+ * driver will access state via app.store.getState() directly.
+ */
+export interface BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE {
+  /** TUI board state (columns, rootId, etc.) */
+  state: TUIBoardState
+  /** Derived columns layout (colIndex, cardIndex from cursorNodeId) */
+  layout: ColumnsLayout
+  /** UI state (dialogs, viewMode, etc.) */
+  ui: UIState
+  /** Board navigation state (moveMode, foldedNodes, etc.) */
+  boardState: BoardState
+  /** Currently selected node (from cursor position) */
+  selectedNode: KNode | null
+  /** Derived selection level */
+  selectionLevel: "board" | "column" | "card"
+}
 
 // Extracted modules
 import {
@@ -512,6 +540,13 @@ export interface BoardProps {
   reducer?: typeof uiReducer
   /** Patched console for debug output modal */
   patchedConsole?: PatchedConsole | null
+  /** Callback to capture internal state (for driver/testing) */
+  /**
+   * @deprecated TEMPORARY WORKAROUND - see km-tui.4
+   * When driver uses createApp(), this callback becomes unnecessary.
+   * Refactor driver.ts to use app.store.getState(), not this callback.
+   */
+  onStateCaptureREPLACE_WITH_CREATEAPP_STORE?: (state: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE) => void
 }
 
 /**
@@ -531,6 +566,8 @@ export function Board({
   layoutRegistry: injectedRegistry,
   reducer = uiReducer,
   patchedConsole,
+  // WORKAROUND: see km-tui.4 - refactor driver.ts to use createApp() store instead
+  onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
 }: BoardProps) {
   const repo = useRepo()
 
@@ -652,6 +689,44 @@ export function Board({
     }),
     [boardState, columnsLayout],
   )
+
+  // Get selected node from cursor position
+  const selectedCol = state.columns[columnsLayout.colIndex]
+  const selectedCard = selectedCol?.cards[columnsLayout.cardIndex]
+  const selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+
+  // ==========================================================================
+  // WORKAROUND: State capture for driver - DO NOT EXTEND OR COPY THIS PATTERN
+  // ==========================================================================
+  // This callback is a TEMPORARY workaround for driver state access.
+  // The proper fix is tracked in bead km-tui.4:
+  //   1. Migrate driver.ts to use createApp() from inkx/runtime
+  //   2. Driver accesses state via app.store.getState()
+  //   3. Delete this callback and BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE
+  //
+  // DO NOT:
+  //   - Add more consumers of this callback
+  //   - Extend the captured state interface
+  //   - Copy this pattern to other components
+  // ==========================================================================
+  useEffect(() => {
+    onStateCaptureREPLACE_WITH_CREATEAPP_STORE?.({
+      state,
+      layout: columnsLayout,
+      ui,
+      boardState,
+      selectedNode,
+      selectionLevel: derivedSelectionLevel,
+    })
+  }, [
+    state,
+    columnsLayout,
+    ui,
+    boardState,
+    selectedNode,
+    derivedSelectionLevel,
+    onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
+  ])
 
   // Dialog handlers
   const dialogHandlers = useBoardDialogs({

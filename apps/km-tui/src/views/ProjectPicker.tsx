@@ -4,12 +4,16 @@
  * Fuzzy search picker for re-parenting tasks to different projects.
  * Press 'p' on a task to open, search to filter, Enter to move.
  */
-import React, { useState, useMemo, useCallback } from "react"
+import React from "react"
 import { Box, Text, useInput } from "inkx"
 import type { KNode } from "@km/core"
-import { useRepo } from "../repo-context.tsx"
+import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
+import {
+  createSuspenseLoader,
+  type SuspenseLoader,
+} from "../hooks/use-suspense-loader.ts"
 
 /**
  * Simple fuzzy match - check if query chars appear in order in target
@@ -121,16 +125,16 @@ interface ProjectOption {
 }
 
 /**
- * Get all available project targets (sections, files, folders)
+ * Load all project options from repo
  */
-function getProjectOptions(
-  allNodes: KNode[],
-  getNode: (id: string) => KNode | null,
-  getDisplayName: (node: KNode) => string,
-  recentIds?: string[],
+function loadProjectOptions(
+  repo: RepoContextValue,
+  recentIds: string[],
 ): ProjectOption[] {
+  const allNodes = repo.rawQuery<KNode>("SELECT * FROM nodes")
   const options: ProjectOption[] = []
-  const recentSet = new Set(recentIds ?? [])
+  const recentSet = new Set(recentIds)
+  const getDisplayName = (node: KNode) => getNodeDisplayName(repo, node)
 
   for (const node of allNodes) {
     // Only show sections, files, and folders as valid targets
@@ -140,8 +144,12 @@ function getProjectOptions(
       node.type === "folder"
     ) {
       const title = getDisplayName(node)
-      const parentContext = getParentName(node, getNode, getDisplayName)
-      const path = getProjectPath(node, getNode, getDisplayName)
+      const parentContext = getParentName(
+        node,
+        repo.getNode.bind(repo),
+        getDisplayName,
+      )
+      const path = getProjectPath(node, repo.getNode.bind(repo), getDisplayName)
       options.push({
         node,
         title,
@@ -154,6 +162,118 @@ function getProjectOptions(
 
   return options
 }
+
+/**
+ * Filter and score options by query
+ */
+function filterOptions(
+  allOptions: ProjectOption[],
+  query: string,
+): (ProjectOption & { score?: number })[] {
+  if (!query) {
+    // Show recent first, then alphabetically by title
+    return [...allOptions].sort((a, b) => {
+      if (a.isRecent && !b.isRecent) return -1
+      if (!a.isRecent && b.isRecent) return 1
+      return a.title.localeCompare(b.title)
+    })
+  }
+
+  // Filter and score by query - match against title, parent, and full path
+  return allOptions
+    .map((opt) => {
+      // Score against title (primary), parent context, and full path
+      const titleScore = fuzzyScore(query, opt.title)
+      const parentScore = opt.parentContext
+        ? fuzzyScore(query, opt.parentContext) * 0.8
+        : -1
+      const pathScore = fuzzyScore(query, opt.path) * 0.6
+      const bestScore = Math.max(titleScore, parentScore, pathScore)
+      return { ...opt, score: bestScore }
+    })
+    .filter((opt) => (opt.score ?? -1) >= 0)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+}
+
+// =============================================================================
+// ProjectOptions component (suspends while loading)
+// =============================================================================
+
+interface ProjectOptionsProps {
+  loader: SuspenseLoader<ProjectOption[]>
+  query: string
+  selectedIndex: number
+  scrollOffset: number
+  maxVisible: number
+}
+
+function ProjectOptions({
+  loader,
+  query,
+  selectedIndex,
+  scrollOffset,
+  maxVisible,
+}: ProjectOptionsProps): React.ReactElement {
+  const allOptions = loader.read() // Suspends if not ready
+  const filteredOptions = React.useMemo(
+    () => filterOptions(allOptions, query),
+    [allOptions, query],
+  )
+
+  const visibleOptions = filteredOptions.slice(
+    scrollOffset,
+    scrollOffset + maxVisible,
+  )
+
+  if (filteredOptions.length === 0) {
+    return <Text dimColor> No matching projects</Text>
+  }
+
+  return (
+    <>
+      {visibleOptions.map((opt, i) => {
+        const actualIndex = scrollOffset + i
+        const isSelected = actualIndex === selectedIndex
+
+        const prefix = isSelected ? "▸ " : "  "
+
+        return (
+          <Box
+            key={opt.node.id}
+            width="100%"
+            height={1}
+            backgroundColor={isSelected ? "cyan" : undefined}
+          >
+            <Text color={isSelected ? "black" : undefined} wrap="truncate">
+              {prefix}
+              {opt.title}
+              {opt.parentContext && (
+                <Text
+                  dimColor={!isSelected}
+                  color={isSelected ? "gray" : undefined}
+                >
+                  {` < ${opt.parentContext}`}
+                </Text>
+              )}
+              {opt.isRecent && (
+                <Text
+                  color={isSelected ? "blue" : "cyan"}
+                  dimColor={!isSelected}
+                >
+                  {" (recent)"}
+                </Text>
+              )}
+            </Text>
+          </Box>
+        )
+      })}
+    </>
+  )
+}
+
+// =============================================================================
+// ProjectPicker component
+// =============================================================================
 
 export interface ProjectPickerProps {
   onSelect: (targetNode: KNode) => void
@@ -171,75 +291,34 @@ export function ProjectPicker({
   recentProjectIds = [],
 }: ProjectPickerProps): React.ReactElement {
   const repo = useRepo()
-  const [query, setQuery] = useState("")
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [query, setQuery] = React.useState("")
+  const [selectedIndex, setSelectedIndex] = React.useState(0)
 
-  // Get all nodes using rawQuery
-  const allNodes = useMemo(
-    () => repo.rawQuery<KNode>("SELECT * FROM nodes"),
-    [repo],
-  )
-
-  // Wrap getNodeDisplayName with repo for use in helper functions
-  const getDisplayName = useCallback(
-    (node: KNode) => getNodeDisplayName(repo, node),
-    [repo],
-  )
-
-  // Get and filter options
-  const allOptions = useMemo(
-    () =>
-      getProjectOptions(
-        allNodes,
-        repo.getNode.bind(repo),
-        getDisplayName,
-        recentProjectIds,
-      ),
-    [allNodes, repo, getDisplayName, recentProjectIds],
-  )
-
-  const filteredOptions = useMemo(() => {
-    if (!query) {
-      // Show recent first, then alphabetically by title
-      return [...allOptions].sort((a, b) => {
-        if (a.isRecent && !b.isRecent) return -1
-        if (!a.isRecent && b.isRecent) return 1
-        return a.title.localeCompare(b.title)
-      })
-    }
-
-    // Filter and score by query - match against title, parent, and full path
-    return allOptions
-      .map((opt) => {
-        // Score against title (primary), parent context, and full path
-        const titleScore = fuzzyScore(query, opt.title)
-        const parentScore = opt.parentContext
-          ? fuzzyScore(query, opt.parentContext) * 0.8
-          : -1
-        const pathScore = fuzzyScore(query, opt.path) * 0.6
-        const bestScore = Math.max(titleScore, parentScore, pathScore)
-        return { ...opt, score: bestScore }
-      })
-      .filter((opt) => opt.score >= 0)
-      .sort((a, b) => b.score - a.score)
-  }, [allOptions, query])
+  // Create loader on mount (loads in background via Suspense)
+  const loaderRef = React.useRef<SuspenseLoader<ProjectOption[]> | null>(null)
+  if (!loaderRef.current) {
+    loaderRef.current = createSuspenseLoader(() =>
+      loadProjectOptions(repo, recentProjectIds),
+    )
+  }
 
   // Max visible items: height - borders(2) - paddingY(2) - title(1) - input(1) - spacer(1) - footer(1) = height - 8
   const maxVisible = Math.max(1, height - 8)
 
-  // Scroll offset to keep selection visible
-  const scrollOffset = Math.max(
-    0,
-    Math.min(
-      selectedIndex - Math.floor(maxVisible / 2),
-      Math.max(0, filteredOptions.length - maxVisible),
-    ),
-  )
-
-  const visibleOptions = filteredOptions.slice(
-    scrollOffset,
-    scrollOffset + maxVisible,
-  )
+  // Calculate scroll offset (needs filtered count)
+  let scrollOffset = 0
+  let filteredCount = 0
+  if (loaderRef.current?.status === "resolved") {
+    const filtered = filterOptions(loaderRef.current.read(), query)
+    filteredCount = filtered.length
+    scrollOffset = Math.max(
+      0,
+      Math.min(
+        selectedIndex - Math.floor(maxVisible / 2),
+        Math.max(0, filteredCount - maxVisible),
+      ),
+    )
+  }
 
   useInput((input, key) => {
     if (key.escape) {
@@ -248,9 +327,14 @@ export function ProjectPicker({
     }
 
     if (key.return) {
-      const selected = filteredOptions[selectedIndex]
-      if (selected) {
-        onSelect(selected.node)
+      // Need to get results synchronously for selection
+      if (loaderRef.current?.status === "resolved") {
+        const allOptions = loaderRef.current.read()
+        const filtered = filterOptions(allOptions, query)
+        const selected = filtered[selectedIndex]
+        if (selected) {
+          onSelect(selected.node)
+        }
       }
       return
     }
@@ -261,7 +345,7 @@ export function ProjectPicker({
     }
 
     if (key.downArrow || (key.ctrl && input === "n")) {
-      setSelectedIndex((i) => Math.min(filteredOptions.length - 1, i + 1))
+      setSelectedIndex((i) => i + 1) // Will be clamped by rendering
       return
     }
 
@@ -270,8 +354,6 @@ export function ProjectPicker({
       setSelectedIndex(0)
       return
     }
-
-    // Tab could toggle between search and create mode (future enhancement)
 
     // Regular character input
     if (input.length === 1 && input >= " ") {
@@ -283,11 +365,11 @@ export function ProjectPicker({
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
       <Text dimColor>↑↓ nav Enter select Esc cancel</Text>
-      {filteredOptions.length > maxVisible && (
+      {filteredCount > maxVisible && (
         <Text dimColor>
           {scrollOffset > 0 ? "↑" : " "}
-          {` ${selectedIndex + 1}/${filteredOptions.length} `}
-          {scrollOffset + maxVisible < filteredOptions.length ? "↓" : " "}
+          {` ${selectedIndex + 1}/${filteredCount} `}
+          {scrollOffset + maxVisible < filteredCount ? "↓" : " "}
         </Text>
       )}
     </Box>
@@ -310,44 +392,16 @@ export function ProjectPicker({
 
       {/* Options list */}
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
-        {visibleOptions.map((opt, i) => {
-          const actualIndex = scrollOffset + i
-          const isSelected = actualIndex === selectedIndex
-
-          const prefix = isSelected ? "▸ " : "  "
-
-          return (
-            <Box
-              key={opt.node.id}
-              width="100%"
-              height={1}
-              backgroundColor={isSelected ? "cyan" : undefined}
-            >
-              <Text color={isSelected ? "black" : undefined} wrap="truncate">
-                {prefix}
-                {opt.title}
-                {opt.parentContext && (
-                  <Text
-                    dimColor={!isSelected}
-                    color={isSelected ? "gray" : undefined}
-                  >
-                    {` < ${opt.parentContext}`}
-                  </Text>
-                )}
-                {opt.isRecent && (
-                  <Text
-                    color={isSelected ? "blue" : "cyan"}
-                    dimColor={!isSelected}
-                  >
-                    {" (recent)"}
-                  </Text>
-                )}
-              </Text>
-            </Box>
-          )
-        })}
-        {filteredOptions.length === 0 && (
-          <Text dimColor> No matching projects</Text>
+        {loaderRef.current && (
+          <React.Suspense fallback={<Text dimColor> Loading...</Text>}>
+            <ProjectOptions
+              loader={loaderRef.current}
+              query={query}
+              selectedIndex={selectedIndex}
+              scrollOffset={scrollOffset}
+              maxVisible={maxVisible}
+            />
+          </React.Suspense>
         )}
       </Box>
     </ModalDialog>
