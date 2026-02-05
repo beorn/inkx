@@ -5,7 +5,14 @@
  * Auto-opens on first output, can be toggled with backtick.
  */
 import React, { forwardRef, useImperativeHandle } from "react"
-import { Box, ErrorBoundary, Text, useConsole, type PatchedConsole } from "inkx"
+import {
+  Box,
+  ErrorBoundary,
+  Text,
+  stripAnsi,
+  useConsole,
+  type PatchedConsole,
+} from "inkx"
 import { ModalDialog } from "./shared-components.tsx"
 
 const MAX_LINES = 100
@@ -98,7 +105,7 @@ function getColorForMethod(method: string): string {
 }
 
 function formatEntry(entry: { method: string; args: unknown[] }): string {
-  return entry.args
+  const raw = entry.args
     .map((arg) => {
       if (typeof arg === "string") return arg
       try {
@@ -108,5 +115,7 @@ function formatEntry(entry: { method: string; args: unknown[] }): string {
       }
     })
     .join(" ")
-    .replace(/\n+$/, "")
+  // Strip ANSI codes (Text component applies its own color via props)
+  // and collapse newlines to avoid blank lines between entries
+  return stripAnsi(raw).replace(/\n+/g, " ").trim()
 }
