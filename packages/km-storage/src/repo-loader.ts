@@ -679,13 +679,21 @@ function* applyEvents(
         // (events referencing nodes that already exist from file parsing)
         if (message.includes("UNIQUE constraint failed")) {
           skippedDuplicates++
-          const nodeId =
-            event.type === "node_created"
-              ? (event.data as Record<string, unknown>).id
-              : "unknown"
-          log.warn?.(
-            `applyEvents: duplicate node_created for ${nodeId} (stale event in events.jsonl)`,
-          )
+          // Log with enough context for user to identify the affected content
+          if (event.type === "node_created") {
+            const nodeData = event.data as Record<string, unknown>
+            const nodeInfo = [
+              `"${nodeData.name || nodeData.title || nodeData.id}"`,
+              nodeData.type,
+              nodeData.fs_path ? `at ${nodeData.fs_path}` : null,
+            ]
+              .filter(Boolean)
+              .join(" ")
+            log.warn?.(
+              `Stale event: ${nodeInfo} already exists (created from filesystem). ` +
+                `Event ts: ${new Date(event.ts).toISOString()}`,
+            )
+          }
         } else {
           errors.push({ phase: "apply", message })
         }
@@ -699,7 +707,9 @@ function* applyEvents(
 
     if (skippedDuplicates > 0) {
       log.warn?.(
-        `applyEvents: skipped ${skippedDuplicates} stale node_created events (nodes already exist) - consider running 'km gc' to clean events.jsonl`,
+        `Skipped ${skippedDuplicates} stale node_created events. ` +
+          `This happens when the database was rebuilt but events.jsonl wasn't cleared. ` +
+          `Run 'km gc' to remove stale events, or delete .km/events.jsonl to start fresh.`,
       )
     }
   } catch (error) {

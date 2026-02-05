@@ -136,7 +136,57 @@ sid("abc123def456789")  // → "f456789" (last 8 chars)
 
 Use for logging node IDs without cluttering output.
 
-## When to Use Which
+## When to Use Each Level
+
+| Level | Use For | Examples | Visible By Default? |
+|-------|---------|----------|---------------------|
+| **error** | Operation failed, cannot complete user request | "Failed to write file", "Database connection lost" | Yes |
+| **warn** | Succeeded but degraded, or will fail soon | "Config not found, using defaults", "Disk 90% full" | Yes |
+| **info** | Significant business events, milestones | "Syncing vault...", "Loaded 500 nodes in 1.2s" | No (-v) |
+| **debug** | Developer diagnostic information | "cache hit", "skipping unchanged file" | No (-vv) |
+| **trace** | Very fine-grained, high-volume | "layout node X at y=50", "diffing cell (3,5)" | No (-vvv) |
+
+### Key Distinction: error vs warn
+
+| error | warn |
+|-------|------|
+| User's requested operation **failed** | Operation **succeeded** but with caveats |
+| "Could not save file" | "Saved file but without metadata (permission denied)" |
+| Something is **broken** | Something is **concerning** |
+| Requires user action to fix | User should be aware, may need action later |
+
+### Decision Flowchart
+
+```
+Is this a programming error or data integrity risk?
+├─ Yes → THROW with clear message (what, why, how to fix)
+└─ No → Is the operation failing?
+         ├─ Yes → Is it recoverable?
+         │        ├─ No → error (operation cannot continue)
+         │        └─ Yes → warn (operation continues but degraded)
+         └─ No → Is it something the user initiated or should see?
+                  ├─ Yes → info (user-facing progress)
+                  └─ No → Is it useful for debugging issues?
+                           ├─ Yes, occasionally → debug
+                           └─ Yes, high-frequency → trace
+```
+
+### Anti-Patterns
+
+| Don't | Do |
+|-------|-----|
+| `log.debug?.("error: ...")` | `log.error?.("...")` — errors should be errors |
+| `log.warn?.("Starting...")` | `log.info?.("Starting...")` — not a warning |
+| `log.error?.("Config missing, using defaults")` | `log.warn?.(...)` — it recovered |
+| `catch (e) { /* ignore */ }` | Throw if programming error, log if expected |
+| `catch (e) { log.debug?.(e) }` | Use appropriate level — debug is invisible by default |
+| `log.warn?.("Duplicate node")` | Include name, type, path so user can find it |
+| `log.warn?.(\`error: ${nodeId}\`)` | Use human-readable name, not raw ID |
+| Log data corruption risk | **Throw** — don't let user continue with bad data |
+
+---
+
+## When to Use Which Logger
 
 | Logger      | Purpose            | When to use                                             |
 | ----------- | ------------------ | ------------------------------------------------------- |

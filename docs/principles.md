@@ -897,6 +897,54 @@ throw new KmUserError("File not found", "FILE_NOT_FOUND")
 
 ---
 
+### Error Messages
+
+**The rule**: Every error message (thrown or logged) should help the user identify the problem and fix it.
+
+**Required context:**
+1. **Human-readable identifier** — Name, title, path (not raw UUIDs)
+2. **Type/category** — What kind of thing (file, folder, task)
+3. **What happened** — Clear description
+4. **Why it matters** — Impact ("changes not saved", "data may be lost")
+5. **What to do** — Actionable next step
+
+```typescript
+// ❌ BAD - no context
+throw new Error("Duplicate node")
+log.warn?.(`error: ${nodeId}`)
+
+// ✅ GOOD - user can identify and act
+throw new Error(
+  `Data conflict: "${name}" was modified externally.\n` +
+  `  File: ${fsPath}\n` +
+  `  Your version: ${hash.slice(0,8)}...\n` +
+  `Recovery: Your edits are in .km/events.jsonl`
+)
+
+log.warn?.(
+  `Stale event: "${name}" ${type} at ${fsPath} already exists. ` +
+  `Run 'km gc' to clean events.jsonl.`
+)
+```
+
+**When to throw vs log:**
+
+| Scenario | Action |
+|----------|--------|
+| Programming error ("shouldn't happen") | **Throw** with bug report request |
+| Data integrity at risk | **Throw** with recovery steps |
+| Gracefully degraded | **Log warn** — operation succeeded but with caveats |
+| User can retry | **Log error** — operation failed but app continues |
+| Expected edge case | **Log warn** — handled scenario user should know about |
+
+**Guidelines:**
+- [ ] Human-readable IDs — `"${name}" ${type}` / not `${nodeId}`
+- [ ] Include path — `at ${fsPath}` / not just name
+- [ ] Explain impact — "changes not saved" / not just "failed"
+- [ ] Actionable — "Run 'km gc'" / not just "error occurred"
+
+---
+
 ### Module Boundaries
 
 **The rule**: Public API through `index.ts`, no deep imports across packages.
