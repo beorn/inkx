@@ -10,6 +10,37 @@ Character-level terminal buffer testing via inkx.
 
 ---
 
+## Diagnostic Mode (START HERE)
+
+**When debugging TUI issues, run with `INKX_STRICT=1` first.** This catches most incremental rendering bugs before you need to investigate manually:
+
+```bash
+# Enable all diagnostic checks
+INKX_STRICT=1 bun vitest run apps/km-tui/tests/
+
+# Or use the dedicated script
+bun run test:strict
+
+# Test a real vault with diagnostics
+INKX_STRICT=1 TEST_VAULT=/tmp/tst-vault bun vitest run apps/km-tui/tests/real-vault.test.ts
+```
+
+**For test files**, enable incremental diagnostics with `testEnv()`:
+
+```typescript
+const { board } = testEnv(() =>
+  item("board", item("col1", item("1a"), item("1b"))),
+  { incremental: true }  // Enable incremental render checks
+)
+```
+
+**What INKX_STRICT catches:**
+- Incremental vs fresh render mismatches
+- Blank cards after fold/unfold
+- Buffer divergence after outline depth changes (`<` / `>`)
+
+---
+
 ## Test Levels
 
 | Level | Suffix | What | Example |

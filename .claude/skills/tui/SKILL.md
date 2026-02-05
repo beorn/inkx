@@ -12,11 +12,11 @@ Build and maintain the Ink-based TUI.
 
 ## Quick Reference
 
-| Need                        | Load                               |
-| --------------------------- | ---------------------------------- |
-| **User reports a bug**      | [fix.md](fix.md)                   |
-| Colors, icons, styling      | [design.md](design.md)             |
-| Slow rendering, memoization | [optimization.md](optimization.md) |
+| Need                        | Load                                          |
+| --------------------------- | --------------------------------------------- |
+| **User reports a bug**      | [fix.md](fix.md) (see for important TUI info) |
+| Colors, icons, styling      | [design.md](design.md)                        |
+| Slow rendering, memoization | [optimization.md](optimization.md)            |
 
 ## Critical Design Rules
 
@@ -34,6 +34,10 @@ Build and maintain the Ink-based TUI.
 ## Common Debug Commands
 
 ```bash
+# FIRST: Run with diagnostic mode (catches incremental render bugs)
+INKX_STRICT=1 bun vitest run apps/km-tui/tests/
+INKX_STRICT=1 bun km view /path/to/vault
+
 # Run visual storybook
 bun storyboard
 

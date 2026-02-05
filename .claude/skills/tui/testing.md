@@ -2,6 +2,42 @@
 
 Programmatically drive inkx apps for testing. Uses Playwright-inspired API with auto-refreshing locators.
 
+## Diagnostic Mode (RECOMMENDED FIRST)
+
+**When debugging TUI rendering issues, start with `INKX_STRICT=1`**. This enables comprehensive invariant checking that catches most incremental rendering bugs:
+
+```bash
+# Test with strict mode enabled (catches incremental render bugs)
+INKX_STRICT=1 bun vitest run apps/km-tui/tests/
+
+# Run TUI with diagnostics
+INKX_STRICT=1 bun km view /path/to/vault
+
+# Or use the dedicated script
+bun run test:strict
+```
+
+**What it catches:**
+- Incremental vs fresh render mismatches (common TUI bugs)
+- Blank cards after fold/unfold or depth changes
+- Buffer content divergence after navigation
+
+**For command-aware diagnostics** in test files, use `withDiagnostics()`:
+
+```typescript
+import { withDiagnostics } from "inkx/toolbelt"
+
+// All checks enabled by default when you call withDiagnostics()
+const driver = withDiagnostics(createBoardDriver(repo, rootId))
+
+// Disable specific checks if needed
+const driver = withDiagnostics(createBoardDriver(repo, rootId), {
+  checkReplay: false  // skip ANSI replay check
+})
+```
+
+See `apps/km-tui/tests/real-vault.test.ts` for testing with real vault data.
+
 ## Quick Start
 
 ```tsx

@@ -57,9 +57,31 @@ Run `bun llm` for full help.
 
 ## When to Use Context
 
-**Quick**: Prepend project context to question: `bun llm "Context: km (TypeScript TUI), [file]. Question: [q]"`
+**Quick questions**: Prepend brief context: `bun llm "Context: km (TypeScript TUI), [file]. Question: [q]"`
 
-**Deep research**: Gather context first (read relevant files, check docs/principles.md), synthesize ~500 words, then: `bun llm --deep -y --context "[context]" "[topic]"`. See `/deep` for detailed workflow.
+**Deep research**: Include **full source code** for specific code questions. Don't be stingy with context - deep research handles large inputs well. The more specific the code, the more specific the answer.
+
+```bash
+# For code bugs: include entire files involved
+bun llm --deep -y --context "$(cat << 'EOF'
+# Problem Description
+[specific symptoms]
+
+# Full Source Code
+
+## file1.ts (235 lines)
+[entire file]
+
+## file2.ts (307 lines)
+[entire file]
+
+# Questions
+1. [specific question]
+EOF
+)" "Review this bug and recommend fix"
+```
+
+See `/deep` for detailed context gathering workflow.
 
 ## When to Use
 
