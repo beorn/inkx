@@ -182,4 +182,10 @@ export interface TuiOptions {
    * CLI uses this to flush buffered debug output to Console component.
    */
   onReady?: () => void
+  /**
+   * Pre-created PatchedConsole instance.
+   * When provided, runBoard uses this instead of creating its own.
+   * Set up early (before loadRepo) to capture startup warnings.
+   */
+  patchedConsole?: import("inkx").PatchedConsole
 }

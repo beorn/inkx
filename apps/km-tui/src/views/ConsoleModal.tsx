@@ -29,6 +29,8 @@ interface ConsoleModalProps {
 
 export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(
   function ConsoleModal({ width, height, patchedConsole }, ref) {
+    // useConsole is debounced (200ms) to prevent infinite render loops
+    // when pipeline debug logging is enabled (-vv).
     const entries = useConsole(patchedConsole)
 
     // Expose imperative handle for parent components

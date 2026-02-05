@@ -65,6 +65,14 @@ export const viewCommand = new Command("view")
     // km-fast-md.7: Use discoverOnly for interactive mode (instant render)
     const interactive = options.interactive !== false
 
+    // Patch console early so startup warnings (stale events, etc.) are captured
+    // in the TUI console panel instead of being lost to stderr before alt screen.
+    const { patchConsole } = await import("inkx")
+    const patchedConsole =
+      interactive && process.stdin.isTTY
+        ? patchConsole(console, { suppress: true })
+        : null
+
     // Load repo with progress display
     let createdRepo: Awaited<ReturnType<typeof loadRepo>>
     {
@@ -196,6 +204,7 @@ export const viewCommand = new Command("view")
       watch: watchEnabled,
       watchWorker,
       repo: createdRepo,
+      patchedConsole: patchedConsole ?? undefined,
       onReady: enableConsoleDebug,
     })
 

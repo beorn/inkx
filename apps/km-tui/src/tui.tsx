@@ -171,11 +171,11 @@ export async function runBoard(
   process.once("SIGINT", () => handleSignal("SIGINT"))
   process.once("SIGTERM", () => handleSignal("SIGTERM"))
 
-  // Patch console for interactive mode to capture output
-  // suppress: true prevents original console methods from writing to terminal
-  // (we want output only in the Console component, not echoed to stdout)
+  // Use pre-created patchedConsole if provided (captures startup warnings),
+  // otherwise create one now. suppress: true prevents console methods from
+  // writing to terminal (output only in the Console component).
   const patched = isInteractive
-    ? patchConsole(console, { suppress: true })
+    ? (options?.patchedConsole ?? patchConsole(console, { suppress: true }))
     : null
 
   try {
@@ -224,7 +224,8 @@ export async function runBoard(
 
     // Dump captured console output to normal terminal (after alt screen exit)
     // Only show warn/error by default, or all if LOG_LEVEL is debug/trace
-    const logLevel = process.env.LOG_LEVEL?.toLowerCase()
+    const { getLogLevel } = await import("@beorn/logger")
+    const logLevel = getLogLevel()
     const showAll = logLevel === "debug" || logLevel === "trace"
     const filtered = showAll
       ? entries

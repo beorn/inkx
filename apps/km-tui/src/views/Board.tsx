@@ -639,8 +639,14 @@ export function Board({
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
     const unsub = patchedConsole.subscribe(() => {
-      // Debounce: coalesce rapid-fire entries (e.g., 122 stale event warnings
-      // during startup) into a single state update after 200ms of quiet.
+      // Auto-open console on first entry (any level). This is a one-time
+      // action gated by consoleAutoOpened, so it doesn't cause repeated renders.
+      if (!consoleAutoOpenedRef.current) {
+        dispatch(actions.autoOpenConsole())
+      }
+
+      // Debounce stats updates: coalesce rapid-fire entries into a single
+      // state update after 200ms of quiet.
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
         debounceTimer = null
@@ -655,9 +661,6 @@ export function Board({
         if (significant !== prevSignificant) {
           prevSignificant = significant
           setConsoleStats({ total: entries.length, errors, warnings })
-          if (!consoleAutoOpenedRef.current) {
-            dispatch(actions.autoOpenConsole())
-          }
         }
       }, 200)
     })
