@@ -19,28 +19,22 @@
  * Static mode (for CI or piping):
  *   bun run apps/km-tui/tests/storybook.tsx --static
  *
- * ## IMPORTANT: Production Code Only
+ * ## Storybook Rules
  *
- * This storybook MUST use production rendering code exclusively.
- * DO NOT use chalk or Ink primitives directly for styling.
+ * 1. **Use BoardCore for view demos** — never reimplement card/column rendering.
+ *    Render `BoardCore` with different `ui.viewMode` values.
  *
- * ✓ DO: Use production components (TreeNode, ListView, ColumnsView, etc.)
- * ✓ DO: Use production functions (renderRich, getStatusIcon, colorize, etc.)
- * ✓ DO: Use production layout helpers (wrapText, truncateText, etc.)
+ * 2. **Production components only** — Layer 1-2 sections use production functions
+ *    (renderRich, getStatusIcon, etc.). Layer 3 uses BoardCore.
  *
- * ✗ DON'T: Use chalk.* for styling (except displayLength demo)
- * ✗ DON'T: Reimplement component styling with raw <Text> props
- * ✗ DON'T: Create custom rendering that doesn't match production
+ * 3. **Follow testing.ts pattern** — `BoardCore` wrapped in `RepoProvider`, with
+ *    mock state from `createInitialUIState` + `createLayoutRegistry`.
+ *    See `src/testing.ts:169-194`.
  *
- * Why? If storybook implements its own styling, it shows output that
- * doesn't match the actual app. Bugs in production rendering go undetected,
- * and the storybook gives false confidence that things work correctly.
+ * 4. **Test both modes** — `bun storybook --static` (CI) + `bun storybook` (interactive).
  *
- * If a component is hard to use here, refactor it to be more reusable.
- * See: docs/dev/ink-patterns.md, bead km-board-2
- *
- * TODO: Several sections still use chalk directly and need refactoring.
- * See bead km-board-2 for the full plan.
+ * 5. **Height handling** — BoardCore receives `dimensions` and handles height
+ *    internally. ViewBox just needs enough space for the board.
  */
 
 import React, { useState } from "react"
@@ -75,16 +69,14 @@ import {
   type PathSegment,
 } from "../src/layout/index.ts"
 import { TreeNode } from "../src/views/TreeNode.tsx"
-import { ListView } from "../src/views/ListView.tsx"
-import { ColumnsView } from "../src/views/ColumnsView.tsx"
-import { TabsView } from "../src/views/TabsView.tsx"
-import { TopBar } from "../src/views/TopBar.tsx"
+import { BoardCore } from "../src/views/Board.tsx"
 import { BottomBar } from "../src/views/board-bottom-bar.tsx"
 import { ToastStack } from "../src/views/ToastStack.tsx"
 import type { KNode } from "@km/core"
 import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts"
 import { UIProvider } from "../src/ui-context.tsx"
 import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
+import { createLayoutRegistry } from "../src/card-positions.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createFakeRepo } from "@km/storage"
 import type { Toast } from "@km/core"
@@ -935,35 +927,24 @@ function createMockTUIBoardState(): TUIBoardState {
   }
 }
 
-// Sample path segments for TopBar demos - uses production TopBar component
-// Separators per production Board.tsx getPathSegments():
-//   "/" = filesystem path (folder/file)
-//   "#" = section (markdown heading)
-//   tasks/other types also use "/" when in path
-const demoPathSegments: PathSegment[] = [
-  { id: "proj", name: "Projects", sep: "", isWithinBoard: false, node: null },
-  { id: "webapp", name: "webapp", sep: "/", isWithinBoard: false, node: null },
-  {
-    id: "inprog",
-    name: "In Progress",
-    sep: "#",
-    isWithinBoard: true,
-    node: null,
-  },
-]
-
 // Wrapper component with border and title
+// height prop is used for BoardCore renders — set to dimensions.rows so BoardCore has space
 function ViewBox({
   title,
   children,
+  height,
 }: {
   title: string
   children: React.ReactNode
+  height?: number
 }): React.ReactElement {
+  // ViewBox overhead: border (2 rows top/bottom) + title (1 row) + marginTop (1 row) = 4 rows
+  const outerHeight = height ? height + 4 : undefined
   return (
     <Box
       flexDirection="column"
-      width={100}
+      width={104}
+      height={outerHeight}
       borderStyle="double"
       borderColor="magenta"
       marginY={1}
@@ -972,181 +953,150 @@ function ViewBox({
       <Text bold color="magenta">
         {title}
       </Text>
-      <Box marginTop={1} flexDirection="column">
+      <Box
+        marginTop={1}
+        flexDirection="column"
+        flexGrow={height ? 1 : undefined}
+      >
         {children}
       </Box>
     </Box>
   )
 }
 
-// Cards View - render cards in columns (simplified version of Board's Card/Column)
-// Uses vertical line separators between columns like production Board.tsx
-function CardsViewDemo({
-  state,
-  width,
-  colIndex = 0,
-  cardIndex = 0,
-}: {
-  state: TUIBoardState
-  width: number
-  colIndex?: number
-  cardIndex?: number
-}): React.ReactElement {
-  const numCols = Math.min(state.columns.length, 4)
-  // Account for separator lines (1 char each) between columns
-  const separatorWidth = numCols - 1
-  const colWidth = Math.floor((width - separatorWidth) / numCols)
+// Helper to create BoardCore props for a given view mode
+function makeBoardCoreProps(
+  state: TUIBoardState,
+  viewMode: "cards" | "columns" | "tabs" | "list",
+  colIndex: number,
+  cardIndex: number,
+  dims: { columns: number; rows: number },
+  selectionLevel: "board" | "column" | "card" = "card",
+) {
+  const noopDialogHandlers = {
+    handleProjectSelect: () => {},
+    handleProjectCancel: () => {},
+    handleNewItemCreate: () => {},
+    handleNewItemCancel: () => {},
+    handleSearchSelect: () => {},
+    handleSearchCancel: () => {},
+  }
 
-  // NOTE: Do NOT use height={height} on the row Box!
-  // Ink clips bordered Box content from TOP (not bottom) when height is constrained.
-  // See bead km-2yys for details on this Ink quirk.
-  return (
-    <Box flexDirection="column" width={width}>
-      <TopBar segments={demoPathSegments} width={width} />
-      <Box flexDirection="row" width={width}>
-        {state.columns.slice(0, 4).map((column, cIdx) => {
-          const isColSelected = cIdx === colIndex
-          const isLastCol = cIdx === numCols - 1
-          return (
-            <React.Fragment key={column.node.id}>
-              <Box flexDirection="column" width={colWidth}>
-                <Text bold color={isColSelected ? "yellow" : "yellowBright"}>
-                  {column.node.content} ({column.cards.length})
-                </Text>
-                {column.cards.slice(0, 3).map((card, cardIdx) => {
-                  const isCardSelected = isColSelected && cardIdx === cardIndex
-                  return (
-                    <Box
-                      key={card.node.id}
-                      borderStyle="round"
-                      borderColor={
-                        isCardSelected ? "cyanBright" : "blackBright"
-                      }
-                      paddingLeft={1}
-                    >
-                      <TreeNode
-                        node={card.node}
-                        depth={0}
-                        isSelected={isCardSelected}
-                        colIndex={cIdx}
-                        cardIndex={cardIdx}
-                        subIndex={0}
-                        dimInactiveChildren={!isCardSelected}
-                        getChildren={getChildrenFromStore}
-                        getParentContext={getParentContextFromStore}
-                      />
-                    </Box>
-                  )
-                })}
-              </Box>
-              {/* Vertical separator between columns */}
-              {!isLastCol && (
-                <Box flexDirection="column" width={1}>
-                  <Text color="gray">│</Text>
-                </Box>
-              )}
-            </React.Fragment>
-          )
-        })}
-      </Box>
-    </Box>
-  )
+  const ui = createInitialUIState(viewMode, [], dims)
+
+  return {
+    state,
+    layout: {
+      columns: state.columns,
+      colIndex,
+      cardIndex,
+      subPath: [] as number[],
+      isAtCardLevel: selectionLevel === "card",
+      isInOutlineMode: false,
+    },
+    ui,
+    derivedSelectionLevel: selectionLevel,
+    dimensions: dims,
+    layoutRegistry: createLayoutRegistry(),
+    dispatch: noopDispatch,
+    dialogHandlers: noopDialogHandlers,
+    moveMode: false,
+    colScrollOffset: 0,
+  }
+}
+
+// Create a fake repo populated with all nodes from the nodeStore.
+// Must be called AFTER createMockTUIBoardState() populates nodeStore.
+function createPopulatedRepo() {
+  return createFakeRepo({ nodes: [...nodeStore.values()] })
 }
 
 function Layer3AllViews(): React.ReactElement {
   const mockState = createMockTUIBoardState()
-  // ViewBox has: border (2 chars) + paddingX (2 chars) = 4 chars overhead
-  // Inner content width is outerWidth - 4
-  const viewWidth = 96 // Fits within ViewBox (100 - 4 for border/padding)
-  const viewHeight = 16
+  // Create repo with all mock nodes so BoardCore's repo lookups work
+  const populatedRepo = createPopulatedRepo()
 
-  // Different selection levels to show variety across views:
-  // - View 1 (Cards): card level - shows card selection + inactive children dimming
-  // - View 2 (Columns): column level - shows column header selection
-  // - View 3 (Tabs): card level in tab view
-  // - View 4 (List): outline level - shows sub-item selection within card
-
-  // Card-level selection (column 0, card 0 selected)
-  const cardLevelProps = {
-    state: mockState,
-    width: viewWidth,
-    height: viewHeight,
-    colIndex: 0,
-    cardIndex: 0,
-    subIndex: 0,
-    selectionLevel: "card" as const,
-  }
-
-  // Column-level selection (selecting column header, not specific card)
-  const columnLevelProps = {
-    state: mockState,
-    width: viewWidth,
-    height: viewHeight,
-    colIndex: 1, // Select "Embedded" column to show linked tasks
-    cardIndex: 0,
-    subIndex: 0,
-    selectionLevel: "column" as const,
-  }
-
-  // List view with card selection in different column
-  const listViewProps = {
-    state: mockState,
-    width: viewWidth,
-    height: viewHeight,
-    colIndex: 2, // Select "Completed" column to show done/dropped dimming
-    cardIndex: 1, // Select second card (has children)
-    subIndex: 0,
-    selectionLevel: "card" as const,
-  }
-
-  // ColumnsView needs these extra props
-  const columnsViewProps = {
-    ...columnLevelProps,
-    effectiveScrollOffset: 0,
-    effectiveMaxCols: 4,
-    effectiveVisibleColumns: mockState.columns,
-  }
+  // BoardCore receives dimensions and handles all internal layout.
+  // Dimensions must match ViewBox inner content area.
+  // ViewBox outer=104, border=2+2, paddingX=1+1 → inner=98
+  const viewCols = 98
+  const viewRows = 20
 
   return (
-    <Box flexDirection="column">
-      <SectionHeader title="Layer 3: All View Modes" />
-      <Text dimColor>
-        Each view renders the same TUIBoardState with varied content:
-      </Text>
-      <Text dimColor>
-        • Fold markers: ● folded, • unfolded, · empty (size variation)
-      </Text>
-      <Text dimColor>
-        • Task status: ▢ todo, ◧ wip, ■ blocked, ▣ done (square style)
-      </Text>
-      <Text dimColor>
-        • Rich text: **bold**, *italic*, `code`, ~~strike~~, [[links]]
-      </Text>
-      <Text dimColor>• Inactive children: dimmed when card not selected</Text>
-      <Text dimColor>• Embedded tasks: show parent context prefix</Text>
-      <Text dimColor>
-        • Selection levels: column → card → outline (sub-items)
-      </Text>
+    <RepoProvider repo={populatedRepo}>
+      <Box flexDirection="column">
+        <SectionHeader title="Layer 3: All View Modes (via BoardCore)" />
+        <Text dimColor>
+          Each view renders the same TUIBoardState via BoardCore:
+        </Text>
+        <Text dimColor>
+          • Fold markers: ● folded, • unfolded, · empty (size variation)
+        </Text>
+        <Text dimColor>
+          • Task status: ▢ todo, ◧ wip, ■ blocked, ▣ done (square style)
+        </Text>
+        <Text dimColor>
+          • Rich text: **bold**, *italic*, `code`, ~~strike~~, [[links]]
+        </Text>
+        <Text dimColor>• Inactive children: dimmed when card not selected</Text>
+        <Text dimColor>• Embedded tasks: show parent context prefix</Text>
+        <Text dimColor>
+          • Selection levels: column → card → outline (sub-items)
+        </Text>
 
-      <ViewBox title="View 1: Cards (card level - first card selected)">
-        <CardsViewDemo state={mockState} width={viewWidth} />
-      </ViewBox>
+        <ViewBox
+          title="View 1: Cards (card level - first card selected)"
+          height={viewRows}
+        >
+          <BoardCore
+            {...makeBoardCoreProps(mockState, "cards", 0, 0, {
+              columns: viewCols,
+              rows: viewRows,
+            })}
+          />
+        </ViewBox>
 
-      <ViewBox title="View 2: Columns (column level - 'Embedded' column selected)">
-        <TopBar segments={demoPathSegments} width={viewWidth} />
-        <ColumnsView {...columnsViewProps} />
-      </ViewBox>
+        <ViewBox
+          title="View 2: Columns (column level - 'Embedded' column selected)"
+          height={viewRows}
+        >
+          <BoardCore
+            {...makeBoardCoreProps(
+              mockState,
+              "columns",
+              1,
+              0,
+              { columns: viewCols, rows: viewRows },
+              "column",
+            )}
+          />
+        </ViewBox>
 
-      <ViewBox title="View 3: Tabs (card level - shows Active column)">
-        <TopBar segments={demoPathSegments} width={viewWidth} />
-        <TabsView {...cardLevelProps} />
-      </ViewBox>
+        <ViewBox
+          title="View 3: Tabs (card level - shows Active column)"
+          height={viewRows}
+        >
+          <BoardCore
+            {...makeBoardCoreProps(mockState, "tabs", 0, 0, {
+              columns: viewCols,
+              rows: viewRows,
+            })}
+          />
+        </ViewBox>
 
-      <ViewBox title="View 4: List (card level - 'Completed' column, 2nd card)">
-        <TopBar segments={demoPathSegments} width={viewWidth} />
-        <ListView {...listViewProps} />
-      </ViewBox>
-    </Box>
+        <ViewBox
+          title="View 4: List (card level - 'Completed' column, 2nd card)"
+          height={viewRows}
+        >
+          <BoardCore
+            {...makeBoardCoreProps(mockState, "list", 2, 1, {
+              columns: viewCols,
+              rows: viewRows,
+            })}
+          />
+        </ViewBox>
+      </Box>
+    </RepoProvider>
   )
 }
 

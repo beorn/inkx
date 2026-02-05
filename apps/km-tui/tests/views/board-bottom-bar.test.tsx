@@ -72,9 +72,8 @@ describe("BottomBar", () => {
     // Bell state
     bellState: null,
 
-    // Console modal
+    // Console
     showConsole: false,
-    consoleAutoOpened: false,
 
     // Status message
     status: null,

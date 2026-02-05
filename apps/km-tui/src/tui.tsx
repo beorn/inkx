@@ -171,11 +171,10 @@ export async function runBoard(
   process.once("SIGINT", () => handleSignal("SIGINT"))
   process.once("SIGTERM", () => handleSignal("SIGTERM"))
 
-  // Use pre-created patchedConsole if provided (captures startup warnings),
-  // otherwise create one now. suppress: true prevents console methods from
-  // writing to terminal (output only in the Console component).
+  // Use pre-created patchedConsole if provided (counts startup warnings),
+  // otherwise create one now. capture: true = store entries for exit dump.
   const patched = isInteractive
-    ? (options?.patchedConsole ?? patchConsole(console, { suppress: true }))
+    ? (options?.patchedConsole ?? patchConsole(console, { capture: true }))
     : null
 
   try {
@@ -210,9 +209,6 @@ export async function runBoard(
 
     await instance.waitUntilExit()
   } finally {
-    // Get captured console entries before disposing
-    const entries = patched?.getSnapshot() ?? []
-
     // Dispose patched console (restores original console methods)
     patched?.[Symbol.dispose]()
 
@@ -222,21 +218,27 @@ export async function runBoard(
       await syncManager.stop()
     }
 
-    // Dump captured console output to normal terminal (after alt screen exit)
-    // Only show warn/error by default, or all if LOG_LEVEL is debug/trace
-    const { getLogLevel } = await import("@beorn/logger")
-    const logLevel = getLogLevel()
-    const showAll = logLevel === "debug" || logLevel === "trace"
-    const filtered = showAll
-      ? entries
-      : entries.filter((e) => e.method === "warn" || e.method === "error")
-
-    if (filtered.length > 0) {
-      console.error("\n--- Console output from session ---")
-      for (const entry of filtered) {
-        const method = entry.method as keyof Console
-        const fn = console[method] as (...args: unknown[]) => void
-        fn(...entry.args)
+    // Replay captured console entries on exit so they're visible in scrollback.
+    // During the TUI session, console output goes to the alt screen buffer
+    // which is lost on exit. Re-emit all entries to the normal terminal.
+    if (patched) {
+      const entries = patched.getSnapshot()
+      if (entries.length > 0) {
+        for (const entry of entries) {
+          const stream =
+            entry.stream === "stderr" ? process.stderr : process.stdout
+          const args = entry.args
+            .map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
+            .join(" ")
+          stream.write(args + "\n")
+        }
+        // Summary only for noisy sessions
+        const stats = patched.getStats()
+        if (stats.total > 10) {
+          process.stderr.write(
+            `[session] ${stats.total} log entries (${stats.errors} errors, ${stats.warnings} warnings)\n`,
+          )
+        }
       }
     }
   }

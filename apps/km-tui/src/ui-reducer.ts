@@ -35,7 +35,6 @@ export interface UIState {
   showSearchDialog: boolean
   searchDialogInitialInput: string // Buffer for keypresses during dialog open transition
   showConsole: boolean
-  consoleAutoOpened: boolean // Track if console was auto-opened on first output
 
   // Selection state (selectionLevel is now derived from cursor depth in Board.tsx)
   subIndex: number
@@ -119,7 +118,6 @@ export function createInitialUIState(
     showSearchDialog: false,
     searchDialogInitialInput: "",
     showConsole: false,
-    consoleAutoOpened: false,
 
     subIndex: 0,
     inOutlineMode: false,
@@ -221,12 +219,6 @@ const uiSlice = createSlice({
     },
     hideConsole: (state) => {
       state.showConsole = false
-    },
-    autoOpenConsole: (state) => {
-      if (!state.consoleAutoOpened) {
-        state.showConsole = true
-        state.consoleAutoOpened = true
-      }
     },
 
     // Detail pane

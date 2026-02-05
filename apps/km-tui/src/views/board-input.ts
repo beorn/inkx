@@ -63,14 +63,14 @@ export function handleBoardKeyInput(
     return true
   }
 
-  // Console modal - can be dismissed with backtick, escape, or q
+  // Console (normal screen) - dismiss with backtick or escape only.
+  // No q-to-quit since user is on the normal terminal and may be reading scrollback.
   if (ui.showConsole) {
-    if (input === "`" || key.escape || input === "q") {
+    if (key.escape || input === "`") {
       dispatch(actions.hideConsole())
       return true
     }
-    // Block other keys while console is showing
-    return true
+    return true // Block all other keys on normal screen
   }
 
   // Toggle console with backtick

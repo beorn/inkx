@@ -317,7 +317,11 @@ function TreeNodeImpl({
   const hiddenCount = children.length - visibleChildren.length
 
   return (
-    <Box flexDirection="column" height={isOneliner ? 1 : undefined}>
+    <Box
+      flexDirection="column"
+      height={isOneliner ? 1 : undefined}
+      overflow={isOneliner ? "hidden" : undefined}
+    >
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
       {!isOneliner && isEmbedded && parentContext && (

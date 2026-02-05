@@ -64,11 +64,7 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(
           footerAlign="flex-start"
         >
           {/* Scrollable content */}
-          <Box
-            flexDirection="column"
-            height={contentHeight}
-            overflow="scroll"
-          >
+          <Box flexDirection="column" height={contentHeight} overflow="scroll">
             <ErrorBoundary fallback={<Text color="red">Console error</Text>}>
               {visibleEntries.length === 0 ? (
                 <Text dimColor>No console output yet</Text>
@@ -118,5 +114,7 @@ function formatEntry(entry: { method: string; args: unknown[] }): string {
     .join(" ")
   // Strip ANSI codes (Text component applies its own color via props)
   // and collapse newlines/carriage returns to avoid blank lines between entries
-  return stripAnsi(raw).replace(/[\r\n]+/g, " ").trim()
+  return stripAnsi(raw)
+    .replace(/[\r\n]+/g, " ")
+    .trim()
 }

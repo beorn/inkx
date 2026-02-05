@@ -6,13 +6,7 @@
  * 2. Board - State management (useReducer, useInput)
  * 3. BoardApp - Production entry (useRepo, useStdout, external integrations)
  */
-import React, {
-  useEffect,
-  useReducer,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import React, { useEffect, useReducer, useMemo, useRef, useState } from "react"
 import {
   Box,
   Text,
@@ -33,7 +27,6 @@ import type { Repo } from "@km/storage"
 import { DetailPane } from "./DetailPane.tsx"
 import { ProjectPicker } from "./ProjectPicker.tsx"
 import { HelpOverlay } from "./HelpOverlay.tsx"
-import { ConsoleModal } from "./ConsoleModal.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
 import { Column } from "./CardColumn.tsx"
@@ -147,8 +140,6 @@ export interface BoardCoreProps {
   }
   /** Move mode active (from board state) */
   moveMode: boolean
-  /** Patched console for debug output modal */
-  patchedConsole?: PatchedConsole | null
   /** Console stats for bottom bar indicator */
   consoleStats?: { total: number; errors: number; warnings: number }
   /** Column scroll offset (edge-based, from parent) */
@@ -170,7 +161,6 @@ export function BoardCore({
   dispatch,
   dialogHandlers,
   moveMode,
-  patchedConsole,
   consoleStats,
   colScrollOffset,
 }: BoardCoreProps): React.ReactElement {
@@ -489,14 +479,7 @@ export function BoardCore({
               {ui.showHelp && (
                 <HelpOverlay width={termWidth} height={contentHeight} />
               )}
-              {/* Console modal */}
-              {ui.showConsole && patchedConsole && (
-                <ConsoleModal
-                  width={termWidth}
-                  height={contentHeight}
-                  patchedConsole={patchedConsole}
-                />
-              )}
+              {/* Console now uses screen switching (pause/resume) instead of overlay */}
             </Box>
             {/* Toast stack - bottom-right corner */}
             <ToastStack
@@ -545,6 +528,10 @@ export interface BoardProps {
   reducer?: typeof uiReducer
   /** Patched console for debug output modal */
   patchedConsole?: PatchedConsole | null
+  /** Pause inkx rendering (for screen switching) */
+  onPauseRender?: () => void
+  /** Resume inkx rendering (for screen switching) */
+  onResumeRender?: () => void
   /** Callback to capture internal state (for driver/testing) */
   /**
    * @deprecated TEMPORARY WORKAROUND - see km-tui.4
@@ -573,6 +560,8 @@ export function Board({
   layoutRegistry: injectedRegistry,
   reducer = uiReducer,
   patchedConsole,
+  onPauseRender,
+  onResumeRender,
   // WORKAROUND: see km-tui.4 - refactor driver.ts to use createApp() store instead
   onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
 }: BoardProps) {
@@ -623,43 +612,34 @@ export function Board({
       ),
   )
 
-  // Console stats and auto-open via direct subscription.
+  // Console stats via direct subscription using getStats().
   // IMPORTANT: We do NOT use useConsole() here — that triggers re-renders
   // on every console entry (including debug), which creates an infinite
   // render loop when -vv pipeline debug logging is enabled.
-  // Instead, subscribe directly and only update state when warn/error count changes.
+  // Instead, subscribe directly and only update state when stats change.
   const [consoleStats, setConsoleStats] = useState<
     { total: number; errors: number; warnings: number } | undefined
   >()
-  const consoleAutoOpenedRef = useRef(ui.consoleAutoOpened)
-  consoleAutoOpenedRef.current = ui.consoleAutoOpened
   useEffect(() => {
     if (!patchedConsole) return
-    let prevTotal = 0
+
+    // Seed initial stats (entries may have arrived before subscription)
+    const initial = patchedConsole.getStats()
+    let prevTotal = initial.total
+    if (initial.total > 0) setConsoleStats(initial)
+
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
     const unsub = patchedConsole.subscribe(() => {
-      // Auto-open console on first entry (any level). This is a one-time
-      // action gated by consoleAutoOpened, so it doesn't cause repeated renders.
-      if (!consoleAutoOpenedRef.current) {
-        dispatch(actions.autoOpenConsole())
-      }
-
       // Debounce stats updates: coalesce rapid-fire entries into a single
       // state update after 200ms of quiet.
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
         debounceTimer = null
-        const entries = patchedConsole.getSnapshot()
-        if (entries.length === prevTotal) return
-        prevTotal = entries.length
-        let errors = 0
-        let warnings = 0
-        for (const e of entries) {
-          if (e.method === "error") errors++
-          else if (e.method === "warn") warnings++
-        }
-        setConsoleStats({ total: entries.length, errors, warnings })
+        const stats = patchedConsole.getStats()
+        if (stats.total === prevTotal) return
+        prevTotal = stats.total
+        setConsoleStats(stats)
       }, 200)
     })
     return () => {
@@ -667,6 +647,19 @@ export function Board({
       if (debounceTimer) clearTimeout(debounceTimer)
     }
   }, [patchedConsole])
+
+  // Screen switching: pause inkx rendering and leave alt screen when console is shown.
+  // When console is dismissed, re-enter alt screen and resume rendering.
+  // In tests: onPauseRender/onResumeRender are undefined → effect returns early.
+  useEffect(() => {
+    if (!ui.showConsole || !onPauseRender || !onResumeRender) return
+    onPauseRender()
+    process.stdout.write("\x1b[?25h\x1b[?1049l") // show cursor, leave alt screen
+    return () => {
+      process.stdout.write("\x1b[?1049h\x1b[2J\x1b[H\x1b[?25l") // enter alt, clear, hide cursor
+      onResumeRender()
+    }
+  }, [ui.showConsole, onPauseRender, onResumeRender])
 
   // Ref to track current rootId for event handlers (avoids stale closure)
   const rootIdRef = useRef(boardState.rootId)
@@ -888,7 +881,6 @@ export function Board({
       dispatch={dispatch}
       dialogHandlers={dialogHandlers}
       moveMode={boardState.moveMode}
-      patchedConsole={patchedConsole}
       consoleStats={consoleStats}
       colScrollOffset={colScrollOffset}
     />
@@ -921,7 +913,7 @@ export function BoardApp({
   layoutRegistry,
   patchedConsole,
 }: BoardAppProps) {
-  const { exit } = useApp()
+  const { exit, pause, resume } = useApp()
   const { stdout } = useStdout()
 
   // Track terminal dimensions with resize handling
@@ -958,6 +950,8 @@ export function BoardApp({
         onExit={exit}
         layoutRegistry={layoutRegistry}
         patchedConsole={patchedConsole}
+        onPauseRender={pause}
+        onResumeRender={resume}
       />
     </Box>
   )
