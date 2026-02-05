@@ -137,6 +137,11 @@ interface CloseOrQuitAction {
   type: "CLOSE_OR_QUIT" // Contextual: close dialog/pane/mode, or quit
 }
 
+interface EnterInlineEditAction {
+  type: "ENTER_INLINE_EDIT"
+  nodeId: string
+}
+
 interface OutdentNodeAction {
   type: "OUTDENT_NODE"
 }
@@ -195,6 +200,7 @@ export type TUIAction =
   | JumpToFavoriteAction
   | JumpToColumnAction
   | CloseOrQuitAction
+  | EnterInlineEditAction
   | OutdentNodeAction
   | NavSiblingBoardAction
   | ZoomInwardsAction

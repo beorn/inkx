@@ -474,8 +474,8 @@ describe("initDefaultKeybindings", () => {
   })
 
   it.each([
-    // TUI: Enter in normal mode opens detail pane
-    ["Enter", {}, "normal", "open_detail_pane"],
+    // TUI: Enter in normal mode triggers inline edit
+    ["Enter", {}, "normal", "enter_inline_edit"],
     // Enter in move mode = confirm_move (defined with modes: ["move"])
     ["Enter", {}, "move", "confirm_move"],
     // TUI: 'o' is zoom in
@@ -567,6 +567,7 @@ describe("defaultKeybindings", () => {
 
     // Edit
     expect(commandIds).toContain("enter_move_mode")
+    expect(commandIds).toContain("enter_inline_edit")
     expect(commandIds).toContain("shift_up")
     expect(commandIds).toContain("delete_node")
 

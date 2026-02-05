@@ -877,31 +877,31 @@ describe("Layout", () => {
 })
 
 describe("Zooming", () => {
-  test("Enter opens detail pane for card with children", () => {
+  test("o zooms into card with children", () => {
     const { board } = testEnv(() =>
       item("board", item("col", item("card", item("subcard")))),
     )
     board.expect("#card").toExist()
     board.expect("#subcard").toExist()
-    board.press("\r")
+    board.press("o")
     board.expect("#subcard").toExist()
   })
 
-  test("Escape closes detail pane", () => {
+  test("Escape after zoom returns to previous level", () => {
     const { board } = testEnv(() =>
       item("board", item("col", item("card", item("subcard")))),
     )
-    board.press("\r")
+    board.press("o")
     board.expect("#subcard").toExist()
     board.press("\x1B")
     board.expect("#col").toExist()
     board.expect("#card").toExist()
   })
 
-  test("Enter on card without children does nothing", () => {
+  test("o on card without children does nothing", () => {
     const { board } = testEnv(() => item("board", item("col", item("leaf"))))
     board.expect("#leaf[data-cursor]").toExist()
-    board.press("\r")
+    board.press("o")
     // Should stay in board view
     board.expect("#leaf[data-cursor]").toExist()
     const output = board.screenshot()
@@ -916,10 +916,10 @@ describe("Zooming", () => {
         item("col2", item("taskA"), item("taskB")),
       ),
     )
-    // Move to column header and press Enter to zoom
+    // Move to column header and press o to zoom
     board.press("k")
     board.expect("#col1[data-cursor]").toExist()
-    board.press("\r")
+    board.press("o")
 
     // Now col1 should be treated as board with tasks as columns
     board.expect("#task1").toExist()
@@ -942,7 +942,7 @@ describe("Zooming", () => {
       ),
     )
     board.expect("#project[data-cursor]").toExist()
-    board.press("\r")
+    board.press("o")
 
     // Should show todo and done as columns
     board.expect("#todo").toExist()
@@ -951,7 +951,7 @@ describe("Zooming", () => {
     board.expect("#d1").toExist()
   })
 
-  test("nested zoom - zoom into detail pane card", () => {
+  test("nested zoom - zoom into multiple levels", () => {
     const { board } = testEnv(() =>
       item(
         "board",
@@ -962,15 +962,15 @@ describe("Zooming", () => {
       ),
     )
     // Zoom into level1
-    board.press("\r")
+    board.press("o")
     board.expect("#level2").toExist()
 
     // Zoom into level2
-    board.press("\r")
+    board.press("o")
     board.expect("#level3").toExist()
 
     // Zoom into level3
-    board.press("\r")
+    board.press("o")
     board.expect("#deepest").toExist()
   })
 
@@ -981,9 +981,9 @@ describe("Zooming", () => {
         item("col", item("level1", item("level2", item("level3")))),
       ),
     )
-    board.press("\r") // Zoom to level1
+    board.press("o") // Zoom to level1
     board.expect("#level2").toExist()
-    board.press("\r") // Zoom to level2
+    board.press("o") // Zoom to level2
     board.expect("#level3").toExist()
 
     // Escape once - back to level1
@@ -1013,7 +1013,7 @@ describe("Zooming", () => {
     board.expect("#card2[data-cursor]").toExist()
 
     // Zoom in
-    board.press("\r")
+    board.press("o")
     board.expect("#sub1").toExist()
 
     // Zoom out
@@ -1026,7 +1026,7 @@ describe("Zooming", () => {
     const { board } = testEnv(() =>
       item("board", item("col", item("parent", item("child")))),
     )
-    board.press("\r")
+    board.press("o")
     const output = board.screenshot()
     // Should show breadcrumb: board > col > parent
     expect(output).toMatch(/board.*col.*parent/i)
@@ -1043,7 +1043,7 @@ describe("Zooming", () => {
       board.expect("#parent[data-cursor]").toExist()
 
       // Zoom in - cursor should go to first child
-      board.press("\r")
+      board.press("o")
       board.expect("#child1[data-cursor]").toExist()
     })
 
@@ -1057,7 +1057,7 @@ describe("Zooming", () => {
       // Move to card2 and zoom in
       board.press("j")
       board.expect("#card2[data-cursor]").toExist()
-      board.press("\r")
+      board.press("o")
       board.expect("#sub1[data-cursor]").toExist()
 
       // Zoom out - cursor should return to card2
@@ -1081,7 +1081,7 @@ describe("Zooming", () => {
           ),
         ),
       )
-      board.press("\r") // Zoom in to parent
+      board.press("o") // Zoom in to parent
       // At zoom parent: columns = [child1, child2], cursor on child1 column header
       // After zoom, cursor is on first column header
       board.expect("#child1[data-cursor]").toExist()
@@ -1152,7 +1152,7 @@ describe("Display", () => {
 })
 
 describe("History", () => {
-  test("back navigation with [ after opening detail pane", () => {
+  test("back navigation with [ after zooming", () => {
     const { board } = testEnv(() =>
       item(
         "board",
@@ -1161,18 +1161,18 @@ describe("History", () => {
     )
     board.press("j")
     board.expect("#card2[data-cursor]").toExist()
-    board.press("\r")
+    board.press("o")
     board.expect("#sub1").toExist()
     board.press("[")
     board.expect("#card1").toExist()
     board.expect("#card2[data-cursor]").toExist()
   })
 
-  test("forward navigation with ] restores detail pane view", () => {
+  test("forward navigation with ] restores zoom view", () => {
     const { board } = testEnv(() =>
       item("board", item("col", item("card", item("childA"), item("childB")))),
     )
-    board.press("\r")
+    board.press("o")
     board.expect("#childA").toExist()
     board.press("[")
     board.expect("#card").toExist()
@@ -1182,7 +1182,7 @@ describe("History", () => {
   })
 
   // NOTE: Navigation history is only pushed by ZOOM operations, not cursor movement.
-  // Tests for [ and ] must use zoom (Enter) to create history entries.
+  // Tests for [ and ] must use zoom (o) to create history entries.
   describe("cursor position after history navigation", () => {
     test("[ restores cursor position after zoom", () => {
       // Create fixture where zooming creates history with cursor position
@@ -1196,7 +1196,7 @@ describe("History", () => {
       board.expect("#parent[data-cursor]").toExist()
 
       // Zoom in (creates history entry with cursor on parent)
-      board.press("\r")
+      board.press("o")
       // Now at zoom parent, cursor on child1
       board.expect("#child1").toExist()
 
@@ -1213,7 +1213,7 @@ describe("History", () => {
         ),
       )
       // Zoom in to parent
-      board.press("\r")
+      board.press("o")
       board.expect("#child1").toExist()
 
       // Go back with [
@@ -1236,7 +1236,7 @@ describe("History", () => {
         ),
       )
       // Zoom to parent (c1 and c2 become columns)
-      board.press("\r")
+      board.press("o")
       board.expect("#c1[data-cursor]").toExist()
 
       // Navigate to c2 column
@@ -1244,7 +1244,7 @@ describe("History", () => {
       board.expect("#c2[data-cursor]").toExist()
 
       // Zoom deeper into c2
-      board.press("\r")
+      board.press("o")
       board.expect("#gc2").toExist()
 
       // Go back twice to return to board

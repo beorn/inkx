@@ -11,6 +11,7 @@ import React, { useCallback, useMemo } from "react"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text } from "inkx"
 import type { KNode } from "@km/core"
+import { extractTitleTaskMark } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
   getNodeDisplayName,
@@ -23,10 +24,13 @@ import { makeSelectionKey } from "../types.ts"
 import {
   useTreeConfig,
   useUISelector,
+  useUIDispatch,
   useRootBoardId,
   useExcludedSigils,
   useSigilColors,
 } from "../ui-context.tsx"
+import { actions } from "../ui-reducer.ts"
+import { InlineEditField } from "./InlineEditField.tsx"
 import {
   getNodeStyle,
   buildPrefix,
@@ -163,6 +167,10 @@ function TreeNodeImpl({
     state.multiSelected.has(selectionKey),
   )
   const isFolded = useUISelector((state) => state.foldedNodes.has(node.id))
+  const isInlineEditing = useUISelector(
+    (state) => state.inlineEditNodeId === node.id,
+  )
+  const uiDispatch = useUIDispatch()
   const excludeBoardIds = rootBoardId
     ? new Set([rootBoardId])
     : new Set<string>()
@@ -241,6 +249,23 @@ function TreeNodeImpl({
           ? getNodeDisplayName(repo, displayNode)
           : displayNode.content || getNodeDisplayName(repo, displayNode)
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
+
+  // Inline edit callbacks
+  const handleInlineEditConfirm = useCallback(
+    (newValue: string) => {
+      // Re-prepend task mark if the node is a task
+      const originalContent = displayNode.content ?? ""
+      const { mark } = extractTitleTaskMark(originalContent)
+      const newContent = mark != null ? `[${mark}] ${newValue}` : newValue
+      repo.updateNode(displayNode.id, { content: newContent })
+      uiDispatch(actions.exitInlineEdit())
+    },
+    [displayNode.id, displayNode.content, repo, uiDispatch],
+  )
+
+  const handleInlineEditCancel = useCallback(() => {
+    uiDispatch(actions.exitInlineEdit())
+  }, [uiDispatch])
 
   // Memoize rich text rendering - only recalc when content or sigil config changes
   // In multiline (cards) mode, truncate with ellipsis to fit on single line
@@ -379,32 +404,50 @@ function TreeNodeImpl({
             flexShrink={1}
             overflow={isOneliner ? "hidden" : undefined}
           >
-            <Text
-              color={style.textColor}
-              dimColor={style.shouldDim}
-              strikethrough={style.shouldStrikethrough}
-              wrap={isOneliner ? "truncate" : "wrap"}
-            >
-              {/* Task status icon prepended to content (new cards style) */}
-              {style.taskStatusIcon && (
-                <Text
-                  color={
-                    isSelected || isMultiSelected
-                      ? style.textColor
-                      : style.taskStatusIcon.color
-                  }
-                >
-                  {style.taskStatusIcon.char}{" "}
-                </Text>
-              )}
-              {!isFolded && styledContent}
-              {!isFolded && infoSuffix && <Text dimColor>{infoSuffix}</Text>}
-              {!isFolded && showInlineContext && (
-                <Text dimColor italic>
-                  {contextSuffix}
-                </Text>
-              )}
-            </Text>
+            {isInlineEditing ? (
+              <Text
+                color={style.textColor}
+                wrap={isOneliner ? "truncate" : "wrap"}
+              >
+                {style.taskStatusIcon && (
+                  <Text color={style.taskStatusIcon.color}>
+                    {style.taskStatusIcon.char}{" "}
+                  </Text>
+                )}
+                <InlineEditField
+                  initialValue={cleanContent}
+                  onConfirm={handleInlineEditConfirm}
+                  onCancel={handleInlineEditCancel}
+                />
+              </Text>
+            ) : (
+              <Text
+                color={style.textColor}
+                dimColor={style.shouldDim}
+                strikethrough={style.shouldStrikethrough}
+                wrap={isOneliner ? "truncate" : "wrap"}
+              >
+                {/* Task status icon prepended to content (new cards style) */}
+                {style.taskStatusIcon && (
+                  <Text
+                    color={
+                      isSelected || isMultiSelected
+                        ? style.textColor
+                        : style.taskStatusIcon.color
+                    }
+                  >
+                    {style.taskStatusIcon.char}{" "}
+                  </Text>
+                )}
+                {!isFolded && styledContent}
+                {!isFolded && infoSuffix && <Text dimColor>{infoSuffix}</Text>}
+                {!isFolded && showInlineContext && (
+                  <Text dimColor italic>
+                    {contextSuffix}
+                  </Text>
+                )}
+              </Text>
+            )}
           </Box>
         </Box>
       </HeadRow>

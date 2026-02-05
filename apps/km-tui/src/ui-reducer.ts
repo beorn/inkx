@@ -84,6 +84,9 @@ export interface UIState {
   // Watcher status (for bottom bar display)
   watcherStatus: WatcherStatus | null
 
+  // Inline edit state - which node is being edited inline (null = not editing)
+  inlineEditNodeId: string | null
+
   // Bell state - set when action hits boundary, cleared on next keypress
   bellState: string | null
 
@@ -149,6 +152,8 @@ export function createInitialUIState(
     loadingStartTime: null,
 
     watcherStatus: null,
+
+    inlineEditNodeId: null,
 
     bellState: null,
     status: null,
@@ -404,6 +409,14 @@ const uiSlice = createSlice({
     // Watcher status
     setWatcherStatus: (state, action: PayloadAction<WatcherStatus | null>) => {
       state.watcherStatus = action.payload
+    },
+
+    // Inline edit
+    enterInlineEdit: (state, action: PayloadAction<string>) => {
+      state.inlineEditNodeId = action.payload
+    },
+    exitInlineEdit: (state) => {
+      state.inlineEditNodeId = null
     },
 
     // Bell state (for boundary feedback)

@@ -68,6 +68,18 @@ const shiftRight = {
   execute: () => ({ type: "SHIFT_RIGHT" }),
 } satisfies CommandDef
 
+const enterInlineEdit = {
+  id: "enter_inline_edit",
+  name: "Edit Inline",
+  description: "Edit node title inline",
+  category: "Edit",
+  shortcuts: ["Enter"],
+  execute: (ctx) =>
+    ctx.currentNodeId
+      ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId }
+      : null,
+} satisfies CommandDef
+
 const deleteNode = {
   id: "delete_node",
   name: "Delete Node",
@@ -84,6 +96,7 @@ export const editCommands: CommandDef[] = [
   enterMoveMode,
   confirmMove,
   cancelMove,
+  enterInlineEdit,
   shiftUp,
   shiftDown,
   shiftLeft,

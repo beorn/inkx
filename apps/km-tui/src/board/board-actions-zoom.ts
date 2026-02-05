@@ -83,10 +83,12 @@ export function handleZoomIn(ctx: TUIContext): ActionResult {
   const col = state.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
-  if (!card) return precondition("card")
+  // Support zoom at both card and column level
+  const nodeId = card?.node.id ?? col?.node.id
+  if (!nodeId) return precondition("card")
 
-  // If card has no children, return boundary (nothing to zoom into)
-  const children = ctx.repo.getChildren(card.node.id)
+  // If node has no children, return boundary (nothing to zoom into)
+  const children = ctx.repo.getChildren(nodeId)
   if (children.length === 0) {
     return boundary("in", "no children")
   }
@@ -104,11 +106,11 @@ export function handleZoomIn(ctx: TUIContext): ActionResult {
     ui.foldedNodes,
   )
 
-  // Dispatch zoom to the card node, with first child as initial cursor
+  // Dispatch zoom to the node, with first child as initial cursor
   const firstChild = children[0]
   dispatchBoard({
     type: "ZOOM_IN",
-    nodeId: card.node.id,
+    nodeId,
     cursorNodeId: firstChild?.id ?? null,
   })
 

@@ -43,6 +43,12 @@ export function handleBoardKeyInput(
     return false
   }
 
+  // Inline edit mode: InlineEditField handles all input via useInputLayer.
+  // Board's useInput must not process keys during inline editing.
+  if (tuiContext.ui.inlineEditNodeId) {
+    return false
+  }
+
   // Search dialog: buffer text input for the dialog to consume on mount
   // This handles the race condition where keypresses arrive before dialog's useInput registers
   if (ui.showSearchDialog) {

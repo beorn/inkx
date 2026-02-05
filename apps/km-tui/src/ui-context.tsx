@@ -106,6 +106,17 @@ export function useUISelector<T>(selector: (state: UIState) => T): T {
   )
 }
 
+/**
+ * Get UI dispatch function (stable reference from context).
+ */
+export function useUIDispatch(): Dispatch<UIAction> {
+  const context = useContext(UIContext)
+  if (!context) {
+    throw new Error("useUIDispatch must be used within UIProvider")
+  }
+  return context.dispatch
+}
+
 // =============================================================================
 // Pre-built Selectors (memoized with reselect)
 // =============================================================================

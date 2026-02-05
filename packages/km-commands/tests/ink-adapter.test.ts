@@ -327,7 +327,7 @@ describe("processInkKey", () => {
 
     // Enter in normal mode
     const normalResult = processInkKey("", { return: true }, cmdCtx, normalCtx)
-    expect(normalResult.commandId).toBe("open_detail_pane")
+    expect(normalResult.commandId).toBe("enter_inline_edit")
 
     // Enter in move mode
     const moveResult = processInkKey("", { return: true }, cmdCtx, moveCtx)

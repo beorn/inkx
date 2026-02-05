@@ -105,6 +105,9 @@ export function handleCommandAction(
       return ok()
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
+    case "ENTER_INLINE_EDIT":
+      dispatch(actions.enterInlineEdit(action.nodeId))
+      return ok()
     case "CLOSE_OR_QUIT":
       return handleCloseOrQuit(ctx)
     case "OUTDENT_NODE":
@@ -373,6 +376,12 @@ function handleCloseOrQuit(ctx: TUIContext): ActionResult {
   // Cancel move mode first (highest priority for escape)
   if (boardState.moveMode) {
     dispatchBoard({ type: "CANCEL_MOVE" })
+    return ok()
+  }
+
+  // Cancel inline edit
+  if (ui.inlineEditNodeId) {
+    dispatch(actions.exitInlineEdit())
     return ok()
   }
 
