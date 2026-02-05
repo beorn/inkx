@@ -38,9 +38,7 @@ describe("Search dialog bugs", () => {
     })
 
     test("rapid backspace doesn't leave artifacts", () => {
-      const { board } = testEnv(() =>
-        item("board", item("col", item("test"))),
-      )
+      const { board } = testEnv(() => item("board", item("col", item("test"))))
 
       board.press("/")
       board.press("t")

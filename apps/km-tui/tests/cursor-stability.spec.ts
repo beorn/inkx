@@ -25,17 +25,25 @@ function getBoardContent(text: string): string {
  * Check that board content is stable after cursor movement.
  * The breadcrumb and status bar can change, but columns/cards should not.
  */
-function expectBoardContentStable(before: string, after: string, action: string) {
+function expectBoardContentStable(
+  before: string,
+  after: string,
+  action: string,
+) {
   const contentBefore = getBoardContent(before)
   const contentAfter = getBoardContent(after)
 
   // If scrolling happened, content can legitimately change
-  const scrolled = contentAfter.includes("▲") !== contentBefore.includes("▲") ||
-                   contentAfter.includes("▼") !== contentBefore.includes("▼") ||
-                   contentAfter.includes("+") !== contentBefore.includes("+")  // "+N more" indicator
+  const scrolled =
+    contentAfter.includes("▲") !== contentBefore.includes("▲") ||
+    contentAfter.includes("▼") !== contentBefore.includes("▼") ||
+    contentAfter.includes("+") !== contentBefore.includes("+") // "+N more" indicator
 
   if (!scrolled) {
-    expect(contentAfter, `Board content changed after ${action} (no scroll)`).toBe(contentBefore)
+    expect(
+      contentAfter,
+      `Board content changed after ${action} (no scroll)`,
+    ).toBe(contentBefore)
   }
 }
 
@@ -59,10 +67,7 @@ describe("Cursor movement preserves text content", () => {
   })
 
   test("synthetic: level changes preserve text", () => {
-    const board = createTestBoard([
-      "Projects > Task A",
-      "Projects > Task B",
-    ])
+    const board = createTestBoard(["Projects > Task A", "Projects > Task B"])
 
     const initial = board.text
 

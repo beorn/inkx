@@ -46,17 +46,35 @@ function checkInvariants(
   expect(state.screen.length, `Empty screen after ${action}`).toBeGreaterThan(0)
 
   // No error strings in screen
-  expect(state.screen, `[object Object] in screen after ${action}`).not.toContain("[object Object]")
-  expect(state.screen, `TypeError in screen after ${action}`).not.toContain("TypeError:")
-  expect(state.screen, `ReferenceError in screen after ${action}`).not.toContain("ReferenceError:")
-  expect(state.screen, `undefined in screen after ${action}`).not.toContain("undefined")
+  expect(
+    state.screen,
+    `[object Object] in screen after ${action}`,
+  ).not.toContain("[object Object]")
+  expect(state.screen, `TypeError in screen after ${action}`).not.toContain(
+    "TypeError:",
+  )
+  expect(
+    state.screen,
+    `ReferenceError in screen after ${action}`,
+  ).not.toContain("ReferenceError:")
+  expect(state.screen, `undefined in screen after ${action}`).not.toContain(
+    "undefined",
+  )
 
   // Cursor should exist unless in a dialog
-  if (!state.dialogs.search && !state.dialogs.help && !state.dialogs.newItem && !state.dialogs.projectPicker) {
+  if (
+    !state.dialogs.search &&
+    !state.dialogs.help &&
+    !state.dialogs.newItem &&
+    !state.dialogs.projectPicker
+  ) {
     expect(state.cursor, `Cursor missing after ${action}`).toBeDefined()
     // At board level, cursor.col can be -1 (no column selected)
-    if (state.cursor.level !== 'board') {
-      expect(state.cursor.col, `Invalid cursor.col after ${action}`).toBeGreaterThanOrEqual(0)
+    if (state.cursor.level !== "board") {
+      expect(
+        state.cursor.col,
+        `Invalid cursor.col after ${action}`,
+      ).toBeGreaterThanOrEqual(0)
     }
   }
 
@@ -74,14 +92,20 @@ describe("TUI Fuzz Tests", () => {
   test.fuzz("navigation invariants hold under random actions", async () => {
     const nodes = item.root(
       "board",
-      item("Inbox", item("Task 1"), item("Task 2"), item("Task 3"), item("Task 4")),
+      item(
+        "Inbox",
+        item("Task 1"),
+        item("Task 2"),
+        item("Task 3"),
+        item("Task 4"),
+      ),
       item(
         "Projects",
         item.folder("Alpha", item("Alpha 1"), item("Alpha 2")),
-        item.folder("Beta", item("Beta 1"))
+        item.folder("Beta", item("Beta 1")),
       ),
       item("Areas", item.folder("Health", item("Exercise"), item("Diet"))),
-      item("Archive", item("Old 1"), item("Old 2"))
+      item("Archive", item("Old 1"), item("Old 2")),
     )
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
@@ -107,10 +131,13 @@ describe("TUI Fuzz Tests", () => {
         "deeply",
         item.folder(
           "nested",
-          item.folder("structure", item.file("doc", item.section("heading", item.paragraph("text"))))
-        )
+          item.folder(
+            "structure",
+            item.file("doc", item.section("heading", item.paragraph("text"))),
+          ),
+        ),
       ),
-      item.folder("sibling", item("task"))
+      item.folder("sibling", item("task")),
     )
     const driver = createBoardDriver(createFakeRepo({ nodes }), "vault")
 
@@ -134,13 +161,13 @@ describe("TUI Fuzz Tests", () => {
       "board",
       item("col1", item("task1"), item("task2"), item("task3")),
       item("col2", item("taskA"), item("taskB")),
-      item("col3", item("taskX"))
+      item("col3", item("taskX")),
     )
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
     // Weighted towards view mode switching
     const keys = [
-      [10, "v"],  // High weight for view mode
+      [10, "v"], // High weight for view mode
       [5, "j"],
       [5, "k"],
       [3, "h"],
@@ -158,7 +185,9 @@ describe("TUI Fuzz Tests", () => {
 
       // View mode specific: v should cycle
       if (key === "v" && !before.dialogs.search && !before.dialogs.help) {
-        expect(after.viewMode, "View mode should change after v").not.toBe(before.viewMode)
+        expect(after.viewMode, "View mode should change after v").not.toBe(
+          before.viewMode,
+        )
       }
     }
   })
@@ -169,7 +198,13 @@ describe("TUI Fuzz Tests", () => {
   test.fuzz("search dialog invariants", async () => {
     const nodes = item.root(
       "board",
-      item("col", item("Alpha task"), item("Beta task"), item("Gamma task"), item("Delta task"))
+      item(
+        "col",
+        item("Alpha task"),
+        item("Beta task"),
+        item("Gamma task"),
+        item("Delta task"),
+      ),
     )
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
@@ -183,7 +218,12 @@ describe("TUI Fuzz Tests", () => {
       gen(({ random }) => {
         if (inSearch) {
           // In search: type, navigate results, or exit
-          return random.pick([...typeKeys, ...navigationKeys, "Escape", "Enter"])
+          return random.pick([
+            ...typeKeys,
+            ...navigationKeys,
+            "Escape",
+            "Enter",
+          ])
         } else {
           // Not in search: open search or navigate
           return random.pick(["j", "k", "h", "l", "/"])
@@ -241,7 +281,7 @@ export function createDiagnosticDriver(vaultPath?: string) {
   const nodes = item.root(
     "board",
     item("Inbox", item("Task 1"), item("Task 2")),
-    item("Projects", item.folder("Alpha", item("Alpha 1")))
+    item("Projects", item.folder("Alpha", item("Alpha 1"))),
   )
   return createBoardDriver(createFakeRepo({ nodes }), "board")
 }
