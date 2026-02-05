@@ -4,8 +4,13 @@
  * Provides readline-style line editing for text input.
  * Supports cursor movement, word deletion, and common editing shortcuts.
  */
-import { useState, useCallback } from "react"
-import { useInput } from "inkx"
+import {
+  useState,
+  useCallback,
+  type Dispatch,
+  type SetStateAction,
+} from "react"
+import { useInput, type Key } from "inkx"
 
 export interface LineEditState {
   /** Current text value */
@@ -42,6 +47,84 @@ export interface UseLineEditResult {
   clear: () => void
   /** Set value programmatically */
   setValue: (value: string) => void
+}
+
+/**
+ * Handle key input for line editing.
+ * Extracted to reduce complexity in the main hook.
+ */
+// oxlint-disable-next-line complexity/max-cognitive -- Key handlers are inherently branchy; sequential if/return is the clearest pattern for input dispatch
+function handleKeyInput(
+  input: string,
+  key: Key,
+  state: LineEditState,
+  setState: Dispatch<SetStateAction<LineEditState>>,
+  updateValue: (newValue: string, newCursor: number) => void,
+): void {
+  const { value, cursor } = state
+
+  // Ctrl+A: Move to beginning
+  if (key.ctrl && input === "a") {
+    setState((s) => ({ ...s, cursor: 0 }))
+    return
+  }
+
+  // Ctrl+E: Move to end
+  if (key.ctrl && input === "e") {
+    setState((s) => ({ ...s, cursor: s.value.length }))
+    return
+  }
+
+  // Ctrl+W: Delete word backwards
+  if (key.ctrl && input === "w") {
+    if (cursor === 0) return
+    let newCursor = cursor
+    while (newCursor > 0 && value[newCursor - 1] === " ") newCursor--
+    while (newCursor > 0 && value[newCursor - 1] !== " ") newCursor--
+    const newValue = value.slice(0, newCursor) + value.slice(cursor)
+    updateValue(newValue, newCursor)
+    return
+  }
+
+  // Ctrl+U: Delete to beginning
+  if (key.ctrl && input === "u") {
+    updateValue(value.slice(cursor), 0)
+    return
+  }
+
+  // Ctrl+K: Delete to end
+  if (key.ctrl && input === "k") {
+    updateValue(value.slice(0, cursor), cursor)
+    return
+  }
+
+  // Ctrl+B or Left: Move cursor left
+  if ((key.ctrl && input === "b") || key.leftArrow) {
+    if (cursor > 0) setState((s) => ({ ...s, cursor: s.cursor - 1 }))
+    return
+  }
+
+  // Ctrl+F or Right: Move cursor right
+  if ((key.ctrl && input === "f") || key.rightArrow) {
+    if (cursor < value.length) setState((s) => ({ ...s, cursor: s.cursor + 1 }))
+    return
+  }
+
+  // Backspace: Delete char before cursor
+  if (key.backspace || key.delete) {
+    if (cursor > 0) {
+      updateValue(value.slice(0, cursor - 1) + value.slice(cursor), cursor - 1)
+    }
+    return
+  }
+
+  // Regular character input
+  if (input.length === 1 && input >= " " && input !== "\x7f") {
+    updateValue(
+      value.slice(0, cursor) + input + value.slice(cursor),
+      cursor + 1,
+    )
+  }
 }
 
 /**
@@ -96,81 +179,13 @@ export function useLineEdit({
 
   useInput(
     (input, key) => {
-      const { value, cursor } = state
-
       // Let parent handle Enter/Escape/vertical arrows unless explicitly enabled
       if (key.return && !handleEnter) return
       if (key.escape && !handleEscape) return
       if ((key.upArrow || key.downArrow) && !handleVerticalArrows) return
 
-      // Ctrl+A: Move to beginning
-      if (key.ctrl && input === "a") {
-        setState((s) => ({ ...s, cursor: 0 }))
-        return
-      }
-
-      // Ctrl+E: Move to end
-      if (key.ctrl && input === "e") {
-        setState((s) => ({ ...s, cursor: s.value.length }))
-        return
-      }
-
-      // Ctrl+W: Delete word backwards
-      if (key.ctrl && input === "w") {
-        if (cursor === 0) return
-        // Find start of previous word (skip spaces, then skip non-spaces)
-        let newCursor = cursor
-        while (newCursor > 0 && value[newCursor - 1] === " ") newCursor--
-        while (newCursor > 0 && value[newCursor - 1] !== " ") newCursor--
-        const newValue = value.slice(0, newCursor) + value.slice(cursor)
-        updateValue(newValue, newCursor)
-        return
-      }
-
-      // Ctrl+U: Delete to beginning
-      if (key.ctrl && input === "u") {
-        const newValue = value.slice(cursor)
-        updateValue(newValue, 0)
-        return
-      }
-
-      // Ctrl+K: Delete to end
-      if (key.ctrl && input === "k") {
-        const newValue = value.slice(0, cursor)
-        updateValue(newValue, cursor)
-        return
-      }
-
-      // Ctrl+B or Left: Move cursor left
-      if ((key.ctrl && input === "b") || key.leftArrow) {
-        if (cursor > 0) {
-          setState((s) => ({ ...s, cursor: s.cursor - 1 }))
-        }
-        return
-      }
-
-      // Ctrl+F or Right: Move cursor right
-      if ((key.ctrl && input === "f") || key.rightArrow) {
-        if (cursor < value.length) {
-          setState((s) => ({ ...s, cursor: s.cursor + 1 }))
-        }
-        return
-      }
-
-      // Backspace: Delete char before cursor
-      if (key.backspace || key.delete) {
-        if (cursor > 0) {
-          const newValue = value.slice(0, cursor - 1) + value.slice(cursor)
-          updateValue(newValue, cursor - 1)
-        }
-        return
-      }
-
-      // Regular character input
-      if (input.length === 1 && input >= " " && input !== "\x7f") {
-        const newValue = value.slice(0, cursor) + input + value.slice(cursor)
-        updateValue(newValue, cursor + 1)
-      }
+      // Dispatch to handler
+      handleKeyInput(input, key, state, setState, updateValue)
     },
     { isActive },
   )

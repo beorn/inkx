@@ -188,7 +188,7 @@ Verbosity:
       const offset = (quietOption ?? 0) - (verboseOption ?? 0)
       const baseIndex = 3 // warn
       const targetIndex = Math.max(0, Math.min(5, baseIndex + offset))
-      logLevel = LOG_LEVELS[targetIndex]!
+      logLevel = LOG_LEVELS[targetIndex] ?? "warn"
     }
     setLogLevel(logLevel)
 

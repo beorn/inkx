@@ -22,6 +22,11 @@ import "../../../apps/km-tui/tests/helpers/matchers.js"
 process.stdout.isTTY = false
 process.stderr.isTTY = false
 
+// INKX_STRICT: opt-in incremental vs fresh render comparison
+// Enable with: INKX_STRICT=1 bun vitest run
+// Catches real rendering bugs but known issues exist - see km-inkx beads
+// Disabled by default until known bugs are fixed
+
 // =============================================================================
 // Console Detection
 // =============================================================================
