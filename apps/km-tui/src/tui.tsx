@@ -6,7 +6,12 @@
 
 import { EventEmitter } from "events"
 import { writeSync } from "fs"
-import { createTerm, render, patchConsole } from "inkx"
+import {
+  createTerm,
+  render,
+  patchConsole,
+  IncrementalRenderMismatchError,
+} from "inkx"
 import { createConditionalLogger } from "@beorn/logger"
 import React from "react"
 import { createLogger } from "@km/core"
@@ -133,10 +138,21 @@ export async function runBoard(
   }
 
   // Register error handlers to clean up terminal on crash
+  // Uses process.stderr.write directly because console.error might still be patched
   const handleError = (error: Error) => {
     restoreTerminal()
-    console.error("\n\nTUI crashed with error:", error.message)
-    console.error(error.stack)
+    if (error instanceof IncrementalRenderMismatchError) {
+      // INKX_CHECK_INCREMENTAL detected a bug - show message and exit
+      process.stderr.write("\n\n[inkx] Incremental render mismatch detected!\n")
+      process.stderr.write(error.message + "\n")
+      process.stderr.write(
+        "\nThis indicates a bug in incremental rendering. File an issue or disable\n",
+      )
+      process.stderr.write("INKX_CHECK_INCREMENTAL to continue using the TUI.\n")
+      process.exit(1)
+    }
+    process.stderr.write(`\n\nTUI crashed with error: ${error.message}\n`)
+    process.stderr.write((error.stack ?? "") + "\n")
     process.exit(1)
   }
 
