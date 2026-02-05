@@ -308,7 +308,7 @@ describe("DetailPane", () => {
     expect(app.text).toContain("#budget")
     expect(app.text).toContain("@john")
     expect(app.text).toContain("+work")
-    expect(app.text).toContain("[[Meeting Notes]]")
+    expect(app.text).toContain("Meeting Notes")
   })
 
   test("shows project path", () => {

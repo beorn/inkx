@@ -273,7 +273,7 @@ function SearchResults({
   )
 
   if (filteredResults.length === 0) {
-    return <Text dimColor> No matching items</Text>
+    return <Text dimColor>No matching items</Text>
   }
 
   return (
@@ -480,7 +480,7 @@ export const SearchDialog = React.forwardRef<
         <InputBox
           beforeCursor={lineEdit.beforeCursor}
           afterCursor={lineEdit.afterCursor}
-          placeholder="type to search..."
+          placeholder="Type to search..."
         />
       </Box>
 
@@ -499,7 +499,6 @@ export const SearchDialog = React.forwardRef<
         >
           {trimmedQuery.length < MIN_QUERY_LENGTH ? (
             <Text dimColor>
-              {" "}
               {trimmedQuery.length === 0
                 ? "Type to search..."
                 : `Type ${MIN_QUERY_LENGTH - trimmedQuery.length} more char${MIN_QUERY_LENGTH - trimmedQuery.length > 1 ? "s" : ""}...`}

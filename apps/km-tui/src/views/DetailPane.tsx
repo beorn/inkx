@@ -11,7 +11,7 @@ import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { renderRich } from "../text/index.ts"
+import { renderRich, renderPlain } from "../text/index.ts"
 import { wrapText } from "../layout/index.ts"
 
 export interface DetailPaneProps {
@@ -116,10 +116,10 @@ export function DetailPane({
       paddingX={1}
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>}>
-        {/* Title - let Ink handle wrapping naturally */}
+        {/* Title - rich rendered */}
         <Box width={innerWidth}>
           <Text bold wrap="wrap">
-            {title}
+            {renderRich(title)}
           </Text>
         </Box>
 
@@ -171,7 +171,7 @@ export function DetailPane({
           <Box>
             <Text>
               <Text dimColor>Project: </Text>
-              <Text>{projectPath.join(" / ")}</Text>
+              <Text>{projectPath.map(renderPlain).join(" / ")}</Text>
             </Text>
           </Box>
         )}
@@ -195,8 +195,8 @@ export function DetailPane({
               </Text>
             ))}
             {refs.wikilinks.map((w) => (
-              <Text key={`wiki-${w}`} color="cyan">
-                [[{w}]]
+              <Text key={`wiki-${w}`} color="cyan" underline>
+                {w.includes("|") ? w.split("|")[1] : w}
               </Text>
             ))}
           </Box>
@@ -239,7 +239,7 @@ export function DetailPane({
                   {getSubtaskCheckbox(task.task_status)}{" "}
                 </Text>
                 <Text dimColor={task.task_status === "done"}>
-                  {task.content || getNodeDisplayName(repo, task)}
+                  {renderRich(task.content || getNodeDisplayName(repo, task))}
                 </Text>
               </Text>
             ))}
@@ -262,7 +262,10 @@ export function DetailPane({
             </Text>
             {backlinkNodes.slice(0, maxBacklinks).map((bl) => (
               <Text key={bl.id} wrap="truncate" dimColor>
-                {"- "}[[{getNodeDisplayName(repo, bl)}]]
+                {"- "}
+                <Text underline>
+                  {renderPlain(getNodeDisplayName(repo, bl))}
+                </Text>
               </Text>
             ))}
             {backlinkNodes.length > maxBacklinks && (

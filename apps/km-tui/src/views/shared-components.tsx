@@ -307,17 +307,17 @@ export function ModalDialog({
       paddingY={1}
     >
       {title && (
-        <>
+        <Box flexShrink={0} flexDirection="column">
           <Box justifyContent={titleAlign}>
             <Text color={borderColor} bold>
               {title}
             </Text>
           </Box>
           <Text> </Text>
-        </>
+        </Box>
       )}
-      {/* Content area - flexGrow pushes footer to bottom */}
-      <Box flexDirection="column" flexGrow={1}>
+      {/* Content area - flexGrow pushes footer to bottom, overflow hidden prevents title displacement */}
+      <Box flexDirection="column" flexGrow={1} overflow="hidden">
         {children}
       </Box>
       {/* Footer with spacer line above */}
