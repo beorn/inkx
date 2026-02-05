@@ -109,6 +109,7 @@
         "chalkx": "workspace:*",
         "inkx": "workspace:*",
         "react": "catalog:",
+        "zustand": "^5.0.11",
       },
       "devDependencies": {
         "@types/react": "catalog:",
@@ -262,10 +263,12 @@
       "peerDependencies": {
         "@beorn/flexx": "github:beorn/flexx",
         "react": "^18.0.0 || ^19.0.0",
+        "react-devtools-core": ">=4.0.0",
         "yoga-wasm-web": "^0.3.3",
       },
       "optionalPeers": [
         "@beorn/flexx",
+        "react-devtools-core",
         "yoga-wasm-web",
       ],
     },

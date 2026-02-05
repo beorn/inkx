@@ -50,6 +50,7 @@ import {
   type UIState,
   type UIAction,
 } from "../ui-reducer.ts"
+import { getBoardStore } from "../board-store.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
@@ -546,7 +547,9 @@ export interface BoardProps {
    * When driver uses createApp(), this callback becomes unnecessary.
    * Refactor driver.ts to use app.store.getState(), not this callback.
    */
-  onStateCaptureREPLACE_WITH_CREATEAPP_STORE?: (state: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE) => void
+  onStateCaptureREPLACE_WITH_CREATEAPP_STORE?: (
+    state: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE,
+  ) => void
 }
 
 /**
@@ -696,20 +699,28 @@ export function Board({
   const selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
 
   // ==========================================================================
-  // WORKAROUND: State capture for driver - DO NOT EXTEND OR COPY THIS PATTERN
+  // State capture for driver access
   // ==========================================================================
-  // This callback is a TEMPORARY workaround for driver state access.
-  // The proper fix is tracked in bead km-tui.4:
-  //   1. Migrate driver.ts to use createApp() from inkx/runtime
-  //   2. Driver accesses state via app.store.getState()
-  //   3. Delete this callback and BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE
+  // Updates the global board store so driver can access state via
+  // getBoardStore().getState() without needing the callback.
   //
-  // DO NOT:
-  //   - Add more consumers of this callback
-  //   - Extend the captured state interface
-  //   - Copy this pattern to other components
+  // The callback (onStateCaptureREPLACE_WITH_CREATEAPP_STORE) is kept for
+  // backward compatibility but will be removed once all consumers migrate
+  // to the store.
   // ==========================================================================
   useEffect(() => {
+    const capturedState = {
+      boardState,
+      ui,
+      layout: columnsLayout,
+      selectedNode,
+      selectionLevel: derivedSelectionLevel,
+    }
+
+    // Update global store for driver access
+    getBoardStore().getState().captureState(capturedState)
+
+    // Legacy callback for backward compatibility
     onStateCaptureREPLACE_WITH_CREATEAPP_STORE?.({
       state,
       layout: columnsLayout,

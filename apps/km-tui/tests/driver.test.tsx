@@ -50,7 +50,10 @@ describe("withCommands", () => {
     foldedNodes: new Set(),
   }
 
-  const createOptions = (): WithCommandsOptions<CommandContext, CommandAction> => ({
+  const createOptions = (): WithCommandsOptions<
+    CommandContext,
+    CommandAction
+  > => ({
     registry,
     getContext: () => mockContext,
     handleAction: (action) => {
@@ -61,7 +64,11 @@ describe("withCommands", () => {
 
   test("cmd.down() executes cursor movement command", async () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     // Execute command
@@ -74,7 +81,11 @@ describe("withCommands", () => {
 
   test("cmd['cursor_down']() works via index access", async () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     // Execute via index access
@@ -88,7 +99,11 @@ describe("withCommands", () => {
 
   test("cmd.down.id returns command id", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     expect(app.cmd.down!.id).toBe("cursor_down")
@@ -96,7 +111,11 @@ describe("withCommands", () => {
 
   test("cmd.down.name returns command name", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     expect(app.cmd.down!.name).toBe("Move Down")
@@ -104,7 +123,11 @@ describe("withCommands", () => {
 
   test("cmd.down.help returns command description", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     expect(app.cmd.down!.help).toContain("Move cursor down")
@@ -112,7 +135,11 @@ describe("withCommands", () => {
 
   test("cmd.down.keys returns keybindings", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     const keys = app.cmd.down!.keys
@@ -122,7 +149,11 @@ describe("withCommands", () => {
 
   test("cmd.all() returns all commands with metadata", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     const commands = app.cmd.all()
@@ -137,7 +168,11 @@ describe("withCommands", () => {
 
   test("cmd.describe() returns human-readable help", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     const help = app.cmd.describe()
@@ -147,7 +182,11 @@ describe("withCommands", () => {
 
   test("getState() returns screen and commands for AI", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Hello World</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Hello World</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     const state = app.getState()
@@ -158,7 +197,11 @@ describe("withCommands", () => {
 
   test("undefined command returns undefined (not error)", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
     const app = withCommands(baseApp, createOptions())
 
     expect(app.cmd.nonexistent_command).toBeUndefined()
@@ -187,7 +230,11 @@ describe("withKeybindings", () => {
 
   test("press('j') triggers cursor_down command", async () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
 
     const registry = createCommandRegistry()
     registry.registerAll(allCommands)
@@ -213,7 +260,11 @@ describe("withKeybindings", () => {
 
   test("press('ArrowDown') also triggers cursor_down", async () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
 
     const registry = createCommandRegistry()
     registry.registerAll(allCommands)
@@ -238,7 +289,11 @@ describe("withKeybindings", () => {
 
   test("press('k') triggers cursor_up command", async () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
 
     const registry = createCommandRegistry()
     registry.registerAll(allCommands)
@@ -263,7 +318,11 @@ describe("withKeybindings", () => {
 
   test("unbound key passes through to original press", async () => {
     const render = createRenderer({ cols: 80, rows: 24 })
-    const baseApp = render(<Box><Text>Test</Text></Box>)
+    const baseApp = render(
+      <Box>
+        <Text>Test</Text>
+      </Box>,
+    )
 
     const registry = createCommandRegistry()
     registry.registerAll(allCommands)
@@ -296,7 +355,7 @@ describe("composed app driver", () => {
         <Text>Item 1</Text>
         <Text>Item 2</Text>
         <Text>Item 3</Text>
-      </Box>
+      </Box>,
     )
 
     const registry = createCommandRegistry()
@@ -328,7 +387,7 @@ describe("composed app driver", () => {
       {
         bindings: defaultKeybindings,
         getKeyContext: () => ({ mode: "normal", hasSelection: false }),
-      }
+      },
     )
 
     // Verify screen content
@@ -433,7 +492,10 @@ describe("createBoardDriver", () => {
   })
 
   test("press('j') navigates cursor down", async () => {
-    const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
+    const nodes = item(
+      "board",
+      item("col1", item("1a"), item("1b"), item("1c")),
+    )
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -471,7 +533,7 @@ describe("createBoardDriver", () => {
     const nodes = item(
       "board",
       item("col1", item("1a")),
-      item("col2", item("2a"))
+      item("col2", item("2a")),
     )
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
@@ -553,5 +615,93 @@ describe("createBoardDriver", () => {
 
     // Should render without errors
     expect(driver.text).toContain("1a")
+  })
+
+  test("store exposes board state directly", () => {
+    const nodes = item("board", item("col1", item("1a"), item("1b")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    // Store should be accessible
+    expect(driver.store).toBeDefined()
+
+    // Store should have captured state from Board
+    const storeState = driver.store.getState()
+    expect(storeState.rootId).toBe("board")
+    expect(storeState.cursorNodeId).toBe("1a")
+    expect(storeState.viewMode).toBe("cards")
+  })
+
+  test("store state updates after navigation", async () => {
+    const nodes = item(
+      "board",
+      item("col1", item("1a"), item("1b"), item("1c")),
+    )
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    // Initial state
+    let storeState = driver.store.getState()
+    expect(storeState.cursorNodeId).toBe("1a")
+
+    // Navigate down
+    await driver.press("j")
+
+    // Store should reflect the new cursor position
+    storeState = driver.store.getState()
+    expect(storeState.cursorNodeId).toBe("1b")
+  })
+
+  test("store provides cursor position", () => {
+    const nodes = item(
+      "board",
+      item("col1", item("1a")),
+      item("col2", item("2a")),
+    )
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    const storeState = driver.store.getState()
+    expect(storeState.cursor.col).toBe(0)
+    expect(storeState.cursor.card).toBe(0)
+    expect(storeState.cursor.level).toBe("card")
+  })
+
+  test("store tracks dialog state", async () => {
+    const nodes = item("board", item("col1", item("1a")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    // Initially no dialogs
+    let storeState = driver.store.getState()
+    expect(storeState.dialogs.search).toBe(false)
+
+    // Open search dialog
+    await driver.press("/")
+
+    // Store should reflect dialog state
+    storeState = driver.store.getState()
+    expect(storeState.dialogs.search).toBe(true)
+  })
+
+  test("store allows subscriptions", async () => {
+    const nodes = item("board", item("col1", item("1a"), item("1b")))
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board")
+
+    const cursorIds: (string | null)[] = []
+    const unsubscribe = driver.store.subscribe((state) => {
+      cursorIds.push(state.cursorNodeId)
+    })
+
+    // Navigate to trigger subscription
+    await driver.press("j")
+
+    // Unsubscribe
+    unsubscribe()
+
+    // Should have received at least one update
+    expect(cursorIds.length).toBeGreaterThan(0)
+    expect(cursorIds).toContain("1b")
   })
 })
