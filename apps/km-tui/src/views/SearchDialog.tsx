@@ -193,10 +193,8 @@ function loadSearchResults(repo: RepoContextValue): SearchResult[] {
 
     const title = getNodeDisplayName(repo, node)
     const content = node.content
-    const parentContext = getParentName(
-      node,
-      repo.getNode.bind(repo),
-      (n) => getNodeDisplayName(repo, n),
+    const parentContext = getParentName(node, repo.getNode.bind(repo), (n) =>
+      getNodeDisplayName(repo, n),
     )
     const tags = extractTags(content)
 
@@ -477,7 +475,12 @@ export const SearchDialog = React.forwardRef<
 
       {/* Results list — flexGrow fills available height */}
       <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
-        <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          flexShrink={1}
+          overflow="hidden"
+        >
           {trimmedQuery.length < MIN_QUERY_LENGTH ? (
             <Text dimColor>
               {" "}

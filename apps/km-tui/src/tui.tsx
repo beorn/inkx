@@ -146,9 +146,11 @@ export async function runBoard(
       process.stderr.write("\n\n[inkx] Incremental render mismatch detected!\n")
       process.stderr.write(error.message + "\n")
       process.stderr.write(
-        "\nThis indicates a bug in incremental rendering. File an issue or disable\n",
+        "\nThis indicates a bug in incremental rendering. File an issue or run\n",
       )
-      process.stderr.write("INKX_CHECK_INCREMENTAL to continue using the TUI.\n")
+      process.stderr.write(
+        "without INKX_STRICT to continue using the TUI (with visual glitches).\n",
+      )
       process.exit(1)
     }
     process.stderr.write(`\n\nTUI crashed with error: ${error.message}\n`)

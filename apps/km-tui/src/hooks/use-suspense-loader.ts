@@ -29,8 +29,7 @@
  */
 
 // Check if running in test environment (vitest sets this)
-const isTestEnv =
-  process.env.NODE_ENV === "test"
+const isTestEnv = process.env.NODE_ENV === "test"
 
 export type LoaderStatus = "idle" | "pending" | "resolved" | "error"
 
