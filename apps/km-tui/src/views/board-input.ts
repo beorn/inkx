@@ -55,20 +55,17 @@ export function handleBoardKeyInput(
 
   // Help overlay blocks most keys - only allow dismiss keys
   if (ui.showHelp) {
-    if (input === "?" || key.escape) {
+    if (input === "?" || key.escape || input === "q") {
       dispatch(actions.hideHelp())
-      return true
-    } else if (input === "q") {
-      exit()
       return true
     }
     // All other keys are blocked while help is showing
     return true
   }
 
-  // Console modal - can be dismissed with backtick or escape
+  // Console modal - can be dismissed with backtick, escape, or q
   if (ui.showConsole) {
-    if (input === "`" || key.escape) {
+    if (input === "`" || key.escape || input === "q") {
       dispatch(actions.hideConsole())
       return true
     }
