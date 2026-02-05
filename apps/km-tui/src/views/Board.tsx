@@ -618,13 +618,21 @@ export function Board({
       ),
   )
 
-  // Console auto-open on first output
+  // Console auto-open on first warn/error (not debug/info — those cause
+  // infinite render loops when pipeline debug logging is enabled via -vv)
   const consoleEntries = patchedConsole ? useConsole(patchedConsole) : []
+  const significantCount = useMemo(
+    () =>
+      consoleEntries.filter(
+        (e) => e.method === "warn" || e.method === "error",
+      ).length,
+    [consoleEntries],
+  )
   useEffect(() => {
-    if (consoleEntries.length > 0 && !ui.consoleAutoOpened) {
+    if (significantCount > 0 && !ui.consoleAutoOpened) {
       dispatch(actions.autoOpenConsole())
     }
-  }, [consoleEntries.length, ui.consoleAutoOpened])
+  }, [significantCount, ui.consoleAutoOpened])
 
   // Calculate console stats for bottom bar
   const consoleStats = useMemo(() => {
