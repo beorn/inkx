@@ -57,7 +57,7 @@
 import React from "react"
 import { createRenderer, type App, type AutoLocator } from "inkx/testing"
 import { expect } from "vitest"
-import { createFakeRepo } from "@km/storage"
+import { createFakeRepo, type Repo } from "@km/storage"
 import type { KNode, NodeRules, NodeType } from "@km/core"
 
 import { BoardCore, Board } from "../../src/views/Board.tsx"
@@ -373,6 +373,116 @@ export function testEnv(
       return level && message ? { level, message } : null
     },
     _result: result,
+  }
+  return { board, registry }
+}
+
+/**
+ * Test environment using an existing Repo instead of treeBuilder.
+ *
+ * Use this to test with real vault data or complex repo configurations
+ * that can't easily be expressed with item() DSL.
+ *
+ * @example
+ * ```typescript
+ * // Load a real repo and test navigation
+ * const repo = await loadRepo('/tmp/test-vault')
+ * using board = testEnvWithRepo(repo, rootId, { incremental: true })
+ *
+ * board.press('l').press('j')
+ * board.expect('#some-card[data-cursor]').toExist()
+ * // Auto-cleanup via `using` — no .unmount() needed
+ * ```
+ */
+export function testEnvWithRepo(
+  repo: Repo,
+  rootId: string,
+  options?: {
+    columns?: number
+    rows?: number
+    viewMode?: "cards" | "columns" | "list" | "tabs"
+    /** Enable incremental rendering diagnostics. Default: false */
+    incremental?: boolean
+  },
+) {
+  // Build initial board state from repo
+  const initialState = buildBoardState(repo, rootId)
+
+  // Ensure command system is initialized before rendering
+  ensureCommandSystemInitialized()
+
+  // Render the full Board component for keyboard navigation + id attributes
+  const columns = options?.columns ?? 80
+  const rows = options?.rows ?? 24
+  const viewMode = options?.viewMode ?? "cards"
+  const render = createRenderer({ cols: columns, rows })
+  const registry = createLayoutRegistry()
+  const boardElement = React.createElement(Board, {
+    initialState,
+    initialViewMode: viewMode,
+    dimensions: { columns, rows },
+    onExit: () => {},
+    layoutRegistry: registry,
+  })
+  const result = render(
+    React.createElement(RepoProvider, { repo, children: boardElement }),
+    options?.incremental ? { incremental: true } : undefined,
+  )
+
+  // Create fluent API with disposable pattern
+  const board = {
+    /** Whether bell was triggered (boundary hit) */
+    get bell(): boolean {
+      return result.locator("[data-bell]").count() > 0
+    },
+    press: (key: string) => {
+      void result.press(key)
+      return board
+    },
+    q: (selector: string) => {
+      return result.locator(selector)
+    },
+    expect: (selector: string) => ({
+      toExist: () => {
+        const loc = result.locator(selector)
+        expect(loc.count()).toBeGreaterThan(0)
+      },
+      not: {
+        toExist: () => {
+          const loc = result.locator(selector)
+          expect(loc.count()).toBe(0)
+        },
+      },
+      toHaveCount: (n: number) => {
+        const loc = result.locator(selector)
+        expect(loc.count()).toBe(n)
+      },
+    }),
+    screenshot: () => result.text,
+    /** Get current status message if visible, or null if no status */
+    getStatus: (): { level: string; message: string } | null => {
+      const bottomBar = result.locator("#bottom-bar")
+      if (bottomBar.count() === 0) {
+        return null
+      }
+      const level = bottomBar.getAttribute("data-status")
+      if (!level) {
+        return null
+      }
+      const statusEl = result.locator("#status-message")
+      if (statusEl.count() === 0) {
+        return null
+      }
+      const text = statusEl.textContent()
+      const spaceIndex = text.indexOf(" ")
+      const message = spaceIndex >= 0 ? text.slice(spaceIndex + 1).trim() : text
+      return level && message ? { level, message } : null
+    },
+    _result: result,
+    // Disposable pattern for automatic cleanup
+    [Symbol.dispose]: () => {
+      result.unmount()
+    },
   }
   return { board, registry }
 }
