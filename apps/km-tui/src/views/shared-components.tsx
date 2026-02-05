@@ -261,12 +261,16 @@ export interface ModalDialogProps {
   borderColor?: string
   /** Dialog title (rendered bold in borderColor) */
   title?: string
+  /** Title alignment (default: center) */
+  titleAlign?: "center" | "flex-start" | "flex-end"
   /** Dialog width */
   width?: number
   /** Dialog height (optional, omit for auto-height) */
   height?: number
   /** Footer hint text (rendered dimColor at bottom) */
   footer?: React.ReactNode
+  /** Footer alignment (default: center) */
+  footerAlign?: "center" | "flex-start" | "flex-end"
   /** Dialog children */
   children: React.ReactNode
 }
@@ -284,9 +288,11 @@ export interface ModalDialogProps {
 export function ModalDialog({
   borderColor = "cyan",
   title,
+  titleAlign = "center",
   width,
   height,
   footer,
+  footerAlign = "center",
   children,
 }: ModalDialogProps): React.ReactElement {
   return (
@@ -302,7 +308,7 @@ export function ModalDialog({
     >
       {title && (
         <>
-          <Box justifyContent="center">
+          <Box justifyContent={titleAlign}>
             <Text color={borderColor} bold>
               {title}
             </Text>
@@ -314,11 +320,11 @@ export function ModalDialog({
       <Box flexDirection="column" flexGrow={1}>
         {children}
       </Box>
-      {/* Footer with spacer line above, centered */}
+      {/* Footer with spacer line above */}
       {footer && (
         <>
           <Text> </Text>
-          <Box justifyContent="center">
+          <Box justifyContent={footerAlign}>
             {typeof footer === "string" ? (
               <Text dimColor>{footer}</Text>
             ) : (

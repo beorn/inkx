@@ -635,7 +635,7 @@ export function Board({
   consoleAutoOpenedRef.current = ui.consoleAutoOpened
   useEffect(() => {
     if (!patchedConsole) return
-    let prevSignificant = 0
+    let prevTotal = 0
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
     const unsub = patchedConsole.subscribe(() => {
@@ -651,17 +651,15 @@ export function Board({
       debounceTimer = setTimeout(() => {
         debounceTimer = null
         const entries = patchedConsole.getSnapshot()
+        if (entries.length === prevTotal) return
+        prevTotal = entries.length
         let errors = 0
         let warnings = 0
         for (const e of entries) {
           if (e.method === "error") errors++
           else if (e.method === "warn") warnings++
         }
-        const significant = errors + warnings
-        if (significant !== prevSignificant) {
-          prevSignificant = significant
-          setConsoleStats({ total: entries.length, errors, warnings })
-        }
+        setConsoleStats({ total: entries.length, errors, warnings })
       }, 200)
     })
     return () => {

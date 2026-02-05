@@ -44,8 +44,8 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(
     // Take last MAX_LINES entries
     const visibleEntries = entries.slice(-MAX_LINES)
 
-    // Calculate dimensions (same sizing as SearchDialog - 2/3 of screen)
-    const boxWidth = Math.min(90, Math.floor((width * 2) / 3))
+    // Calculate dimensions — wider than other dialogs for log readability
+    const boxWidth = Math.min(100, Math.floor((width * 2) / 3))
     const boxHeight = Math.min(height - 6, Math.floor((height * 2) / 3))
     const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2))
     const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2))
@@ -59,14 +59,15 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(
         <ModalDialog
           width={boxWidth}
           title="Console"
-          footer={`Press \` or Esc to close  ·  ${entries.length} entries (showing last ${MAX_LINES})`}
+          titleAlign="flex-start"
+          footer={`\` or Esc to close  ·  ${entries.length} entries (last ${MAX_LINES})`}
+          footerAlign="flex-start"
         >
           {/* Scrollable content */}
           <Box
             flexDirection="column"
             height={contentHeight}
             overflow="scroll"
-            paddingX={1}
           >
             <ErrorBoundary fallback={<Text color="red">Console error</Text>}>
               {visibleEntries.length === 0 ? (
@@ -96,12 +97,10 @@ function getColorForMethod(method: string): string {
       return "red"
     case "warn":
       return "yellow"
-    case "debug":
-      return "gray"
     case "info":
       return "cyan"
     default:
-      // console.log - use white to ensure visibility on dark backgrounds
+      // console.log and console.debug — white for readability
       return "white"
   }
 }
@@ -118,6 +117,6 @@ function formatEntry(entry: { method: string; args: unknown[] }): string {
     })
     .join(" ")
   // Strip ANSI codes (Text component applies its own color via props)
-  // and collapse newlines to avoid blank lines between entries
-  return stripAnsi(raw).replace(/\n+/g, " ").trim()
+  // and collapse newlines/carriage returns to avoid blank lines between entries
+  return stripAnsi(raw).replace(/[\r\n]+/g, " ").trim()
 }
