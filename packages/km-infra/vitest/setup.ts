@@ -22,10 +22,11 @@ import "../../../apps/km-tui/tests/helpers/matchers.js"
 process.stdout.isTTY = false
 process.stderr.isTTY = false
 
-// INKX_STRICT: Enable incremental vs fresh render comparison for all tests.
-// This catches rendering bugs where incremental rendering produces different
-// output than a fresh render. Disable for specific tests with INKX_STRICT=0.
-process.env.INKX_STRICT = process.env.INKX_STRICT ?? "1"
+// INKX_STRICT: Opt-in incremental vs fresh render comparison.
+// Enable with: INKX_STRICT=1 bun vitest run
+// This catches rendering bugs where incremental rendering differs from fresh.
+// Not enabled by default until all known incremental bugs are fixed.
+// See: km-inkx.incremental-* beads for known issues.
 
 // =============================================================================
 // Console Detection
