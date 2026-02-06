@@ -1,10 +1,10 @@
 /**
  * Ink-based Board TUI Component
  *
- * 3-Layer Architecture (L3 — createApp + Zustand):
+ * Architecture (L3 — createApp + Zustand):
  * 1. BoardCore - Pure rendering, no hooks (testable)
  * 2. Board - Connector: reads store via useApp(), computes derived layout, manages effects
- * 3. BoardApp - Production entry (no longer needed — createApp handles it)
+ * 3. BoardApp - Production entry wrapper (gets dimensions/exit from context)
  *
  * State lives in the BoardAppStore (Zustand). Keys flow through term:key handler
  * in board-app.ts. Board is a pure view that reads state and pushes derived layout.
@@ -43,48 +43,15 @@ import { TabsView } from "./TabsView.tsx"
 import { renderPath } from "../layout/index.ts"
 import { UIProvider } from "../ui-context.tsx"
 import { LayoutProvider } from "../layout-context.tsx"
-import { createLayoutRegistry, type LayoutRegistry } from "../card-positions.ts"
-import {
-  uiReducer,
-  createInitialUIState,
-  actions,
-  type UIState,
-  type UIAction,
-} from "../ui-reducer.ts"
-import { getBoardStore } from "../board-store.ts"
+import { type LayoutRegistry } from "../card-positions.ts"
+import { actions, type UIState, type UIAction } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
-import { boardReducer, createBoardState } from "@km/board"
 import { useColumns } from "../hooks/use-columns.ts"
 import { useCursorPosition } from "../hooks/use-cursor-position.ts"
 import type { ColumnsLayout } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
-
-// =============================================================================
-// Driver/Testing State Capture (kept for backward compat during migration)
-// =============================================================================
-
-/**
- * Captured internal state exposed via onStateCapture callback.
- *
- * @deprecated TEMPORARY — driver now uses store.getState() directly.
- * Kept only for backward compat during L3 migration.
- */
-export interface BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE {
-  /** TUI board state (columns, rootId, etc.) */
-  state: TUIBoardState
-  /** Derived columns layout (colIndex, cardIndex from cursorNodeId) */
-  layout: ColumnsLayout
-  /** UI state (dialogs, viewMode, etc.) */
-  ui: UIState
-  /** Board navigation state (moveMode, foldedNodes, etc.) */
-  boardState: BoardState
-  /** Currently selected node (from cursor position) */
-  selectedNode: KNode | null
-  /** Derived selection level */
-  selectionLevel: "board" | "column" | "card"
-}
 
 // Extracted modules
 import {
@@ -531,57 +498,27 @@ export interface BoardProps {
   toastQueue?: ToastQueue
   /** Optional layout registry for card position tracking (for testing) */
   layoutRegistry?: LayoutRegistry
-  /** Optional custom reducer for testing */
-  reducer?: typeof uiReducer
   /** Patched console for debug output modal */
   patchedConsole?: PatchedConsole | null
   /** Pause inkx rendering (for screen switching) */
   onPauseRender?: () => void
   /** Resume inkx rendering (for screen switching) */
   onResumeRender?: () => void
-  /**
-   * @deprecated TEMPORARY WORKAROUND - see km-tui.4
-   * When driver uses createApp(), this callback becomes unnecessary.
-   */
-  onStateCaptureREPLACE_WITH_CREATEAPP_STORE?: (
-    state: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE,
-  ) => void
-  /**
-   * When true, Board reads state from the BoardAppStore via useApp() selectors
-   * instead of using internal useReducer. Set by createBoardApp().
-   */
-  useStore?: boolean
 }
 
 /**
  * Board connector component.
  *
- * In L3 mode (useStore=true): reads ui/boardState from store, computes derived
- * layout, pushes layout back to store, renders BoardCore.
+ * Reads ui/boardState from Zustand store via useApp() selectors,
+ * computes derived layout (useColumns, useCursorPosition),
+ * pushes layout back to store, renders BoardCore.
  *
- * In legacy mode (useStore=false): uses internal useReducer + useInput (L2 path).
+ * Keys are handled by the term:key handler in board-app.ts — not here.
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Board connector with dual-mode (L2/L3) support
-export function Board(props: BoardProps) {
-  if (props.useStore) {
-    return <BoardL3 {...props} />
-  }
-  return <BoardL2 {...props} />
-}
-
-// =============================================================================
-// BoardL3 - Store-based connector (reads from BoardAppStore)
-// =============================================================================
-
-/**
- * L3 Board: reads state from BoardAppStore, computes derived layout,
- * pushes layout back to store. No useReducer, no useInput.
- */
-function BoardL3({
+export function Board({
   patchedConsole,
   onPauseRender,
   onResumeRender,
-  onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
 }: BoardProps) {
   const repo = useRepo()
 
@@ -714,33 +651,6 @@ function BoardL3({
     updateLayout,
   ])
 
-  // Legacy state capture for backward compat
-  useEffect(() => {
-    getBoardStore().getState().captureState({
-      boardState,
-      ui,
-      layout: columnsLayout,
-      selectedNode,
-      selectionLevel: derivedSelectionLevel,
-    })
-    onStateCaptureREPLACE_WITH_CREATEAPP_STORE?.({
-      state: tuiBoardState,
-      layout: columnsLayout,
-      ui,
-      boardState,
-      selectedNode,
-      selectionLevel: derivedSelectionLevel,
-    })
-  }, [
-    tuiBoardState,
-    columnsLayout,
-    ui,
-    boardState,
-    selectedNode,
-    derivedSelectionLevel,
-    onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
-  ])
-
   // Dialog handlers
   const dialogHandlers = useBoardDialogs({
     repo,
@@ -810,300 +720,7 @@ function BoardL3({
 }
 
 // =============================================================================
-// BoardL2 - Legacy connector (useReducer + useInput)
-// =============================================================================
-
-import { useInput } from "inkx"
-import { handleBoardKeyInput } from "./board-input.ts"
-import { textEditTargetRef } from "../text-edit-target.ts"
-import { buildTUIContext } from "../tui-context.ts"
-
-/**
- * L2 Board: original implementation with useReducer + useInput.
- * Kept for backward compat (driver still uses this path until migrated).
- */
-// oxlint-disable-next-line complexity/max-cognitive -- Legacy L2 connector
-function BoardL2({
-  initialState,
-  initialViewMode = "cards",
-  dimensions,
-  onExit,
-  toastQueue: injectedToastQueue,
-  layoutRegistry: injectedRegistry,
-  reducer = uiReducer,
-  patchedConsole,
-  onPauseRender,
-  onResumeRender,
-  onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
-}: BoardProps) {
-  const repo = useRepo()
-  const { useReducer } = React
-
-  const toastQueue = useMemo(
-    () => injectedToastQueue ?? createToastQueue(),
-    [injectedToastQueue],
-  )
-
-  const [ui, dispatch] = useReducer(
-    reducer ?? uiReducer,
-    {
-      initialViewMode,
-      collapsedColumns: [...(initialState.collapsedColumns ?? [])],
-      dimensions,
-      rootBoardId: initialState.rootId,
-    },
-    (init: {
-      initialViewMode: ViewMode
-      collapsedColumns: number[]
-      dimensions: { columns: number; rows: number }
-      rootBoardId: string | null
-    }) =>
-      createInitialUIState(
-        init.initialViewMode,
-        init.collapsedColumns,
-        init.dimensions,
-        init.rootBoardId,
-      ),
-  )
-
-  const initialCursorNodeId = useMemo(() => {
-    if (initialState.columns.length > 0) {
-      const firstCol = initialState.columns[0]
-      if (firstCol && firstCol.cards.length > 0) {
-        const firstCard = firstCol.cards[0]
-        return firstCard?.node.id ?? firstCol.node.id
-      }
-      return firstCol?.node.id ?? null
-    }
-    return null
-  }, [initialState])
-
-  const [boardState, dispatchBoard] = useReducer(boardReducer, null, () =>
-    createBoardState(
-      initialState.rootId,
-      initialState.rootPath,
-      initialCursorNodeId,
-    ),
-  )
-
-  const [consoleStats, setConsoleStats] = useState<
-    { total: number; errors: number; warnings: number } | undefined
-  >()
-  useEffect(() => {
-    if (!patchedConsole) return
-    const initial = patchedConsole.getStats()
-    let prevTotal = initial.total
-    if (initial.total > 0) setConsoleStats(initial)
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null
-    const unsub = patchedConsole.subscribe(() => {
-      if (debounceTimer) clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(() => {
-        debounceTimer = null
-        const stats = patchedConsole.getStats()
-        if (stats.total === prevTotal) return
-        prevTotal = stats.total
-        setConsoleStats(stats)
-      }, 200)
-    })
-    return () => {
-      unsub()
-      if (debounceTimer) clearTimeout(debounceTimer)
-    }
-  }, [patchedConsole])
-
-  useEffect(() => {
-    if (!ui.showConsole || !onPauseRender || !onResumeRender) return
-    onPauseRender()
-    process.stdout.write("\x1b[?25h\x1b[?1049l")
-    if (patchedConsole) {
-      const entries = patchedConsole.getSnapshot()
-      for (const entry of entries) {
-        const stream =
-          entry.stream === "stderr" ? process.stderr : process.stdout
-        const args = entry.args
-          .map((a: unknown) => (typeof a === "string" ? a : JSON.stringify(a)))
-          .join(" ")
-        stream.write(args + "\n")
-      }
-    }
-    return () => {
-      process.stdout.write("\x1b[?1049h\x1b[2J\x1b[H\x1b[?25l")
-      onResumeRender()
-    }
-  }, [ui.showConsole, onPauseRender, onResumeRender, patchedConsole])
-
-  const colScrollOffsetRef = useRef(0)
-
-  const layoutRegistryRef = useRef<LayoutRegistry | null>(null)
-  if (!layoutRegistryRef.current) {
-    layoutRegistryRef.current = injectedRegistry ?? createLayoutRegistry()
-  }
-  const layoutRegistry = layoutRegistryRef.current
-
-  const columns = useColumns(repo, boardState.rootId, boardState.foldedNodes)
-  const cursorPosition = useCursorPosition(columns, boardState.cursorNodeId)
-
-  const columnsLayout: ColumnsLayout = useMemo(
-    () => ({
-      columns,
-      colIndex: cursorPosition.colIndex,
-      cardIndex: cursorPosition.cardIndex,
-      subPath: [],
-      isAtCardLevel: cursorPosition.isAtCardLevel,
-      isInOutlineMode: false,
-    }),
-    [columns, cursorPosition],
-  )
-
-  const derivedSelectionLevel = cursorPosition.selectionLevel
-
-  const state: TUIBoardState = useMemo(
-    () => ({
-      rootId: boardState.rootId,
-      rootPath: boardState.rootPath,
-      columns: columnsLayout.columns,
-      selectedCards: new Set<string>(),
-      visualMode: false,
-      foldedCards: boardState.foldedNodes,
-      collapsedColumns: new Set<number>(),
-      searchQuery: "",
-      searchMode: false,
-      helpMode: false,
-    }),
-    [boardState, columnsLayout],
-  )
-
-  const selectedCol = state.columns[columnsLayout.colIndex]
-  const selectedCard = selectedCol?.cards[columnsLayout.cardIndex]
-  const selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-
-  useEffect(() => {
-    const capturedState = {
-      boardState,
-      ui,
-      layout: columnsLayout,
-      selectedNode,
-      selectionLevel: derivedSelectionLevel,
-    }
-    getBoardStore().getState().captureState(capturedState)
-    onStateCaptureREPLACE_WITH_CREATEAPP_STORE?.({
-      state,
-      layout: columnsLayout,
-      ui,
-      boardState,
-      selectedNode,
-      selectionLevel: derivedSelectionLevel,
-    })
-  }, [
-    state,
-    columnsLayout,
-    ui,
-    boardState,
-    selectedNode,
-    derivedSelectionLevel,
-    onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
-  ])
-
-  const dialogHandlers = useBoardDialogs({
-    repo,
-    state,
-    dispatch,
-    dispatchBoard,
-    cursorNodeId: boardState.cursorNodeId,
-    rootId: boardState.rootId,
-  })
-
-  const termWidth = ui.dimensions.columns
-  const maxCols = Math.min(
-    state.columns.length,
-    Math.max(2, Math.floor(termWidth / 35)),
-  )
-
-  const colScrollOffset = calcEdgeBasedColumnScrollOffset(
-    columnsLayout.colIndex,
-    colScrollOffsetRef.current,
-    maxCols,
-    state.columns.length,
-  )
-  colScrollOffsetRef.current = colScrollOffset
-
-  const tuiContext = buildTUIContext({
-    repo,
-    state,
-    boardState,
-    ui,
-    layout: columnsLayout,
-    positionRegistry: layoutRegistry,
-    toastQueue,
-    textEditTarget: textEditTargetRef.current,
-    dispatch,
-    dispatchBoard,
-    exit: onExit,
-    countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
-      countVisibleDescendants(repo, node, depth, maxDepth, foldedNodes),
-  })
-
-  const tuiContextRef = useRef(tuiContext)
-  tuiContextRef.current = tuiContext
-
-  useEffect(() => {
-    ensureCommandSystemInitialized()
-  }, [])
-
-  useEffect(() => {
-    if (!ui.bellState && !ui.status) return
-    const timer = setTimeout(() => {
-      dispatch(actions.clearBell())
-      dispatch(actions.clearStatus())
-    }, 3000)
-    return () => clearTimeout(timer)
-  }, [ui.bellState, ui.status])
-
-  useEffect(() => createFileDropHandler(dispatch), [])
-  useEffect(
-    () => createWatcherStatusHandler(dispatch, toastQueue),
-    [toastQueue],
-  )
-  useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
-  useEffect(() => createRefreshHandler(), [])
-
-  useInput((input: string, key: import("inkx").Key) => {
-    handleBoardKeyInput(
-      input,
-      key,
-      tuiContextRef.current,
-      {
-        showNewItemDialog: tuiContextRef.current.ui.showNewItemDialog,
-        showProjectPicker: tuiContextRef.current.ui.showProjectPicker,
-        showSearchDialog: tuiContextRef.current.ui.showSearchDialog,
-        showHelp: tuiContextRef.current.ui.showHelp,
-        showConsole: tuiContextRef.current.ui.showConsole,
-      },
-      dispatch,
-      onExit,
-    )
-  })
-
-  return (
-    <BoardCore
-      state={state}
-      layout={columnsLayout}
-      ui={ui}
-      derivedSelectionLevel={derivedSelectionLevel}
-      dimensions={ui.dimensions}
-      layoutRegistry={layoutRegistry}
-      dispatch={dispatch}
-      dialogHandlers={dialogHandlers}
-      moveMode={boardState.moveMode}
-      consoleStats={consoleStats}
-      colScrollOffset={colScrollOffset}
-      toastQueue={toastQueue}
-    />
-  )
-}
-
-// =============================================================================
-// BoardApp - Production Entry (still used for L2 path from tui.tsx)
+// BoardApp - Production Entry (used by tui.tsx)
 // =============================================================================
 
 export interface BoardAppProps {

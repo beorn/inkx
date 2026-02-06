@@ -203,7 +203,12 @@ function createMutationMethods(
       log.info?.(`mutation: update ${id}`, {
         changes: summarizeChanges(changes),
       })
-      notifyFs({ type: "node_updated", actor: "user", target: id, data: changes })
+      notifyFs({
+        type: "node_updated",
+        actor: "user",
+        target: id,
+        data: changes,
+      })
     },
     moveNode(id: string, newParentId: string, position: number) {
       let ctx: MutationContext = {
@@ -263,7 +268,11 @@ function createMutationMethods(
         type: node.type,
         content: node.content?.slice(0, 80),
       })
-      notifyFs({ type: "node_created", actor: "user", data: { ...node, id: newId } })
+      notifyFs({
+        type: "node_created",
+        actor: "user",
+        data: { ...node, id: newId },
+      })
       return newId
     },
     cloneTask(sourceId: string, changes: Partial<KNode>) {

@@ -10,34 +10,14 @@
  * @see apps/km-tui/src/card-positions.ts - getCardMidY()
  */
 import { test, expect, describe } from "vitest"
-import React from "react"
 import { createRenderer } from "inkx/testing"
-import { Board } from "../src/views/Board.tsx"
-import { RepoProvider } from "../src/repo-context.tsx"
 import { createLayoutRegistry, getCardMidY } from "../src/card-positions.ts"
 import { createFakeRepo } from "@km/storage"
-import { ensureCommandSystemInitialized } from "../src/command-bridge.ts"
-import type { TUIBoardState } from "../src/types.ts"
-import { item } from "./helpers/board-test.ts"
+import { item, renderBoardWithStore } from "./helpers/board-test.ts"
 
 // Module-level renderers (created once, reused across tests via auto-cleanup)
 const render80 = createRenderer({ cols: 80, rows: 24 })
 const render120 = createRenderer({ cols: 120, rows: 40 })
-
-function makeTUIBoardState(rootId: string): TUIBoardState {
-  return {
-    rootId,
-    rootPath: null,
-    columns: [],
-    selectedCards: new Set(),
-    foldedCards: new Set(),
-    visualMode: false,
-    helpMode: false,
-    searchMode: false,
-    searchQuery: "",
-    collapsedColumns: new Set(),
-  }
-}
 
 describe("curswantY regression", () => {
   test("headHeight should be 1 (title row), not full card height", () => {
@@ -54,21 +34,11 @@ describe("curswantY regression", () => {
       ),
     )
     const repo = createFakeRepo({ nodes })
-    const state = makeTUIBoardState("board")
 
-    ensureCommandSystemInitialized()
-
-    render80(
-      <RepoProvider repo={repo}>
-        <Board
-          initialState={state}
-          initialViewMode="cards"
-          dimensions={{ columns: 80, rows: 24 }}
-          onExit={() => {}}
-          layoutRegistry={registry}
-        />
-      </RepoProvider>,
-    )
+    renderBoardWithStore(repo, "board", {
+      layoutRegistry: registry,
+      render: render80,
+    })
 
     const card = registry.getCard(0, 0)
     expect(card).toBeDefined()
@@ -106,21 +76,13 @@ describe("curswantY regression", () => {
       ),
     )
     const repo = createFakeRepo({ nodes })
-    const state = makeTUIBoardState("board")
 
-    ensureCommandSystemInitialized()
-
-    render120(
-      <RepoProvider repo={repo}>
-        <Board
-          initialState={state}
-          initialViewMode="cards"
-          dimensions={{ columns: 120, rows: 40 }}
-          onExit={() => {}}
-          layoutRegistry={registry}
-        />
-      </RepoProvider>,
-    )
+    renderBoardWithStore(repo, "board", {
+      columns: 120,
+      rows: 40,
+      layoutRegistry: registry,
+      render: render120,
+    })
 
     // Get curswantY from first card's title midpoint
     const firstCard = registry.getCard(0, 0)

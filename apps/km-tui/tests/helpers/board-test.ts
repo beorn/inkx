@@ -54,11 +54,19 @@
  */
 /* oxlint-disable complexity/max-cognitive -- Test helper — fixture builder complexity is acceptable */
 
-import React from "react"
-import { createRenderer, type App, type AutoLocator } from "inkx/testing"
-import { InputLayerProvider } from "inkx"
+import React, { act } from "react"
+import { createStore, type StoreApi } from "zustand"
+import {
+  createRenderer,
+  keyToAnsi,
+  type App,
+  type AutoLocator,
+} from "inkx/testing"
+import { StoreContext } from "inkx/runtime"
+import { parseKey } from "inkx/runtime"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
+import { createBoardState } from "@km/board"
 import {
   createToastQueue,
   type KNode,
@@ -72,6 +80,12 @@ import { createInitialUIState } from "../../src/ui-reducer.ts"
 import { createLayoutRegistry } from "../../src/card-positions.ts"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
+import {
+  createBoardAppStoreState,
+  type BoardAppStore,
+  type CreateBoardAppStoreParams,
+} from "../../src/board-app-store.ts"
+import { handleKey } from "../../src/board-app.ts"
 import type { TUIBoardState } from "../../src/types.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
@@ -306,16 +320,72 @@ export function testEnv(
   const initialState = buildBoardState(repo, rootNode.id)
 
   // Ensure command system is initialized before rendering
-  // Note: Board.tsx also calls this in useEffect, but in tests that might not run
   ensureCommandSystemInitialized()
 
-  // Render the full Board component (not BoardCore) for keyboard navigation + id attributes
+  // Set up store (same pattern as driver)
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
-  const render = createRenderer({ cols: columns, rows })
   const registry = createLayoutRegistry()
   const toastQueue = createToastQueue()
+
+  // Compute initial cursor
+  let initialCursorNodeId: string | null = null
+  if (initialState.columns.length > 0) {
+    const firstCol = initialState.columns[0]
+    if (firstCol && firstCol.cards.length > 0) {
+      initialCursorNodeId = firstCol.cards[0]?.node.id ?? firstCol.node.id
+    } else if (firstCol) {
+      initialCursorNodeId = firstCol.node.id
+    }
+  }
+
+  const initialLayout = {
+    columns: initialState.columns,
+    colIndex: 0,
+    cardIndex: 0,
+    subPath: [] as string[],
+    isAtCardLevel:
+      initialCursorNodeId !== null &&
+      initialState.columns.length > 0 &&
+      (initialState.columns[0]?.cards.length ?? 0) > 0,
+    isInOutlineMode: false,
+  }
+
+  const selectedCol = initialState.columns[0]
+  const selectedCard = selectedCol?.cards[0]
+  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+  const initialSelectionLevel: "board" | "column" | "card" =
+    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
+
+  const storeParams: CreateBoardAppStoreParams = {
+    repo,
+    toastQueue,
+    layoutRegistry: registry,
+    initialBoardState: createBoardState(
+      initialState.rootId,
+      initialState.rootPath,
+      initialCursorNodeId,
+    ),
+    initialUIState: createInitialUIState(
+      viewMode,
+      [...(initialState.collapsedColumns ?? [])],
+      { columns, rows },
+      initialState.rootId,
+    ),
+    initialLayout,
+    initialTUIBoardState: initialState,
+    initialSelectedNode,
+    initialSelectionLevel,
+    dimensions: { columns, rows },
+  }
+
+  const store = createStore<BoardAppStore>(
+    createBoardAppStoreState(storeParams),
+  )
+
+  // Render Board with StoreContext.Provider for L3 mode
+  const render = createRenderer({ cols: columns, rows })
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,
@@ -324,16 +394,30 @@ export function testEnv(
     toastQueue,
     layoutRegistry: registry,
   })
-  // Wrap Board in InputLayerProvider (matching tui.tsx production setup)
-  const wrappedElement = React.createElement(
-    InputLayerProvider,
-    null,
-    boardElement,
-  )
   const result = render(
-    React.createElement(RepoProvider, { repo, children: wrappedElement }),
+    React.createElement(
+      StoreContext.Provider,
+      { value: store as StoreApi<unknown> },
+      React.createElement(RepoProvider, { repo, children: boardElement }),
+    ),
     options?.incremental ? { incremental: true } : undefined,
   )
+
+  // Override press to route through handleKey (same path as driver/production)
+  const originalPress = result.press.bind(result)
+  const pressKey = (key: string) => {
+    const ansi = keyToAnsi(key)
+    const [input, parsedKey] = parseKey(ansi)
+    act(() => {
+      handleKey(
+        { input, key: parsedKey },
+        { get: store.getState, set: store.setState },
+        () => {},
+      )
+    })
+    // Flush remaining React effects via originalPress
+    void originalPress(key)
+  }
 
   // Create fluent API using App's auto-refreshing locators
   const board = {
@@ -342,9 +426,7 @@ export function testEnv(
       return result.locator("[data-bell]").count() > 0
     },
     press: (key: string) => {
-      // Fire-and-forget - app.press() is async but we don't need to await
-      // because React state updates happen synchronously in the test renderer
-      void result.press(key)
+      pressKey(key)
       return board
     },
     q: (selector: string) => {
@@ -432,13 +514,70 @@ export function testEnvWithRepo(
   // Ensure command system is initialized before rendering
   ensureCommandSystemInitialized()
 
-  // Render the full Board component for keyboard navigation + id attributes
+  // Set up store (same pattern as driver/testEnv)
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
-  const render = createRenderer({ cols: columns, rows })
   const registry = createLayoutRegistry()
   const toastQueue = createToastQueue()
+
+  // Compute initial cursor
+  let initialCursorNodeId: string | null = null
+  if (initialState.columns.length > 0) {
+    const firstCol = initialState.columns[0]
+    if (firstCol && firstCol.cards.length > 0) {
+      initialCursorNodeId = firstCol.cards[0]?.node.id ?? firstCol.node.id
+    } else if (firstCol) {
+      initialCursorNodeId = firstCol.node.id
+    }
+  }
+
+  const initialLayout = {
+    columns: initialState.columns,
+    colIndex: 0,
+    cardIndex: 0,
+    subPath: [] as string[],
+    isAtCardLevel:
+      initialCursorNodeId !== null &&
+      initialState.columns.length > 0 &&
+      (initialState.columns[0]?.cards.length ?? 0) > 0,
+    isInOutlineMode: false,
+  }
+
+  const selectedCol = initialState.columns[0]
+  const selectedCard = selectedCol?.cards[0]
+  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+  const initialSelectionLevel: "board" | "column" | "card" =
+    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
+
+  const storeParams: CreateBoardAppStoreParams = {
+    repo,
+    toastQueue,
+    layoutRegistry: registry,
+    initialBoardState: createBoardState(
+      initialState.rootId,
+      initialState.rootPath,
+      initialCursorNodeId,
+    ),
+    initialUIState: createInitialUIState(
+      viewMode,
+      [...(initialState.collapsedColumns ?? [])],
+      { columns, rows },
+      initialState.rootId,
+    ),
+    initialLayout,
+    initialTUIBoardState: initialState,
+    initialSelectedNode,
+    initialSelectionLevel,
+    dimensions: { columns, rows },
+  }
+
+  const store = createStore<BoardAppStore>(
+    createBoardAppStoreState(storeParams),
+  )
+
+  // Render Board with StoreContext.Provider for L3 mode
+  const render = createRenderer({ cols: columns, rows })
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,
@@ -447,16 +586,28 @@ export function testEnvWithRepo(
     toastQueue,
     layoutRegistry: registry,
   })
-  // Wrap Board in InputLayerProvider (matching tui.tsx production setup)
-  const wrappedElement = React.createElement(
-    InputLayerProvider,
-    null,
-    boardElement,
-  )
   const result = render(
-    React.createElement(RepoProvider, { repo, children: wrappedElement }),
+    React.createElement(
+      StoreContext.Provider,
+      { value: store as StoreApi<unknown> },
+      React.createElement(RepoProvider, { repo, children: boardElement }),
+    ),
     options?.incremental ? { incremental: true } : undefined,
   )
+
+  // Override press to route through handleKey (same path as driver/production)
+  const originalPress = result.press.bind(result)
+  const pressKey = (key: string) => {
+    const [input, parsedKey] = parseKey(key)
+    act(() => {
+      handleKey(
+        { input, key: parsedKey },
+        { get: store.getState, set: store.setState },
+        () => {},
+      )
+    })
+    void originalPress(key)
+  }
 
   // Create fluent API with disposable pattern
   const board = {
@@ -465,7 +616,7 @@ export function testEnvWithRepo(
       return result.locator("[data-bell]").count() > 0
     },
     press: (key: string) => {
-      void result.press(key)
+      pressKey(key)
       return board
     },
     q: (selector: string) => {
@@ -1119,6 +1270,106 @@ export function renderBoard(
   )
 
   return new BoardTestImpl(result)
+}
+
+/**
+ * Render Board with a Zustand store context (for tests that render Board directly).
+ *
+ * Use this when you need to render Board but don't need keyboard handling.
+ * For keyboard tests, use testEnv() instead.
+ */
+export function renderBoardWithStore(
+  repo: Repo,
+  rootId: string,
+  options: {
+    columns?: number
+    rows?: number
+    viewMode?: "cards" | "columns" | "list" | "tabs"
+    layoutRegistry?: ReturnType<typeof createLayoutRegistry>
+    render?: ReturnType<typeof createRenderer>
+  } = {},
+) {
+  const columns = options.columns ?? 80
+  const rows = options.rows ?? 24
+  const viewMode = options.viewMode ?? "cards"
+  const registry = options.layoutRegistry ?? createLayoutRegistry()
+  const toastQueue = createToastQueue()
+  const initialState = buildBoardState(repo, rootId)
+
+  ensureCommandSystemInitialized()
+
+  // Compute initial cursor
+  let initialCursorNodeId: string | null = null
+  if (initialState.columns.length > 0) {
+    const firstCol = initialState.columns[0]
+    if (firstCol && firstCol.cards.length > 0) {
+      initialCursorNodeId = firstCol.cards[0]?.node.id ?? firstCol.node.id
+    } else if (firstCol) {
+      initialCursorNodeId = firstCol.node.id
+    }
+  }
+
+  const initialLayout = {
+    columns: initialState.columns,
+    colIndex: 0,
+    cardIndex: 0,
+    subPath: [] as string[],
+    isAtCardLevel:
+      initialCursorNodeId !== null &&
+      initialState.columns.length > 0 &&
+      (initialState.columns[0]?.cards.length ?? 0) > 0,
+    isInOutlineMode: false,
+  }
+
+  const selectedCol = initialState.columns[0]
+  const selectedCard = selectedCol?.cards[0]
+  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+  const initialSelectionLevel: "board" | "column" | "card" =
+    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
+
+  const storeParams: CreateBoardAppStoreParams = {
+    repo,
+    toastQueue,
+    layoutRegistry: registry,
+    initialBoardState: createBoardState(
+      initialState.rootId,
+      initialState.rootPath,
+      initialCursorNodeId,
+    ),
+    initialUIState: createInitialUIState(
+      viewMode,
+      [...(initialState.collapsedColumns ?? [])],
+      { columns, rows },
+      initialState.rootId,
+    ),
+    initialLayout,
+    initialTUIBoardState: initialState,
+    initialSelectedNode,
+    initialSelectionLevel,
+    dimensions: { columns, rows },
+  }
+
+  const store = createStore<BoardAppStore>(
+    createBoardAppStoreState(storeParams),
+  )
+
+  const renderFn = options.render ?? createRenderer({ cols: columns, rows })
+  const boardElement = React.createElement(Board, {
+    initialState,
+    initialViewMode: viewMode,
+    dimensions: { columns, rows },
+    onExit: () => {},
+    toastQueue,
+    layoutRegistry: registry,
+  })
+
+  return renderFn(
+    React.createElement(
+      StoreContext.Provider,
+      { value: store as StoreApi<unknown> },
+      React.createElement(RepoProvider, { repo, children: boardElement }),
+    ),
+  )
 }
 
 // =============================================================================

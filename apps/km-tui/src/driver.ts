@@ -42,7 +42,7 @@
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
-import { createRenderer, type App } from "inkx/testing"
+import { createRenderer, keyToAnsi, type App } from "inkx/testing"
 import { withCommands } from "inkx"
 import type { AppWithCommands, AppState } from "inkx"
 import { StoreContext } from "inkx/runtime"
@@ -60,10 +60,7 @@ import { createToastQueue } from "@km/core"
 import type { Repo } from "@km/storage"
 import { createBoardState } from "@km/board"
 
-import {
-  Board,
-  type BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE,
-} from "./views/Board.tsx"
+import { Board } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createLayoutRegistry, type LayoutRegistry } from "./card-positions.ts"
@@ -117,8 +114,12 @@ export interface TUIDriverState extends AppState {
   moveMode: boolean
   /** Scroll offset for columns */
   scrollOffset: number
-  /** Raw captured state from Board component */
-  captured: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE | null
+  /** Layout data (columns, colIndex, cardIndex) from store */
+  layout: import("./types.ts").ColumnsLayout
+  /** Raw UI state from store */
+  ui: import("./ui-reducer.ts").UIState
+  /** Raw board state from store */
+  boardState: import("@km/board").BoardState
 }
 
 /**
@@ -260,7 +261,6 @@ export function createBoardDriver(
     onExit: () => {},
     toastQueue,
     layoutRegistry,
-    useStore: true,
   })
   const baseApp = render(
     React.createElement(
@@ -314,7 +314,8 @@ export function createBoardDriver(
     // Must run inside act() so that Zustand → useApp → setState updates are
     // processed synchronously by React, triggering Board L3 re-render +
     // useEffect(updateLayout) within the same act() boundary.
-    const [input, parsedKey] = parseKey(key)
+    const ansi = keyToAnsi(key)
+    const [input, parsedKey] = parseKey(ansi)
     act(() => {
       handleKey(
         { input, key: parsedKey },
@@ -335,16 +336,6 @@ export function createBoardDriver(
     const baseState = appWithCmd.getState()
     const s = store.getState()
 
-    // Build captured state from store (backward compat for tests that access .captured)
-    const captured: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE = {
-      state: s.tuiBoardState,
-      layout: s.layout,
-      ui: s.ui,
-      boardState: s.boardState,
-      selectedNode: s.selectedNode,
-      selectionLevel: s.selectionLevel,
-    }
-
     return {
       ...baseState,
       cursor: {
@@ -363,7 +354,9 @@ export function createBoardDriver(
       detailPaneOpen: s.ui.showDetailPane,
       moveMode: s.boardState.moveMode,
       scrollOffset: 0,
-      captured,
+      layout: s.layout,
+      ui: s.ui,
+      boardState: s.boardState,
     }
   }
 

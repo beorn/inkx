@@ -10,58 +10,27 @@
  */
 
 import { describe, test, expect } from "vitest"
-import React from "react"
 import { createRenderer } from "inkx/testing"
-import { Board } from "../src/views/Board.tsx"
-import { RepoProvider } from "../src/repo-context.tsx"
 import { createLayoutRegistry } from "../src/card-positions.ts"
 import { createFakeRepo } from "@km/storage"
-import type { TUIBoardState } from "../src/types.ts"
-import { item } from "./helpers/board-test.ts"
+import { item, renderBoardWithStore } from "./helpers/board-test.ts"
 
-const render = createRenderer({ cols: 80, rows: 24 })
-
-// Helper to create a minimal TUIBoardState (columns are derived from repo now)
-// Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
-function makeTUIBoardState(rootId: string): TUIBoardState {
-  return {
-    rootId,
-    rootPath: null,
-    columns: [], // Derived from repo
-    selectedCards: new Set(),
-    foldedCards: new Set(),
-    visualMode: false,
-    helpMode: false,
-    searchMode: false,
-    searchQuery: "",
-    collapsedColumns: new Set(),
-  }
-}
+const render80 = createRenderer({ cols: 80, rows: 24 })
 
 describe("Visual navigation integration: card position registration", () => {
   test("cards in single column register with increasing Y positions", () => {
     const registry = createLayoutRegistry()
 
-    // Create repo with nodes: board -> column -> cards
     const nodes = item(
       "board",
       item("col1", item("1a"), item("1b"), item("1c")),
     )
     const repo = createFakeRepo({ nodes })
 
-    const state = makeTUIBoardState("board")
-
-    const app = render(
-      <RepoProvider repo={repo}>
-        <Board
-          initialState={state}
-          initialViewMode="cards"
-          dimensions={{ columns: 80, rows: 24 }}
-          onExit={() => {}}
-          layoutRegistry={registry}
-        />
-      </RepoProvider>,
-    )
+    const app = renderBoardWithStore(repo, "board", {
+      layoutRegistry: registry,
+      render: render80,
+    })
 
     // Verify render contains the tasks
     expect(app.text).toContain("1a")
@@ -83,7 +52,6 @@ describe("Visual navigation integration: card position registration", () => {
   test("cards in same row across columns have same Y position", () => {
     const registry = createLayoutRegistry()
 
-    // Create repo with two columns, each with cards
     const nodes = item(
       "board",
       item("col1", item("1a"), item("1b")),
@@ -91,19 +59,10 @@ describe("Visual navigation integration: card position registration", () => {
     )
     const repo = createFakeRepo({ nodes })
 
-    const state = makeTUIBoardState("board")
-
-    render(
-      <RepoProvider repo={repo}>
-        <Board
-          initialState={state}
-          initialViewMode="cards"
-          dimensions={{ columns: 80, rows: 24 }}
-          onExit={() => {}}
-          layoutRegistry={registry}
-        />
-      </RepoProvider>,
-    )
+    renderBoardWithStore(repo, "board", {
+      layoutRegistry: registry,
+      render: render80,
+    })
 
     // Both columns should have cards registered
     expect(registry.hasCardsInColumn(0)).toBe(true)
@@ -121,7 +80,6 @@ describe("Visual navigation integration: card position registration", () => {
   test("findCardAtYVisual returns correct card index", () => {
     const registry = createLayoutRegistry()
 
-    // Create repo with two columns with different card counts
     const nodes = item(
       "board",
       item("col1", item("1a"), item("1b"), item("1c")),
@@ -129,19 +87,10 @@ describe("Visual navigation integration: card position registration", () => {
     )
     const repo = createFakeRepo({ nodes })
 
-    const state = makeTUIBoardState("board")
-
-    render(
-      <RepoProvider repo={repo}>
-        <Board
-          initialState={state}
-          initialViewMode="cards"
-          dimensions={{ columns: 80, rows: 24 }}
-          onExit={() => {}}
-          layoutRegistry={registry}
-        />
-      </RepoProvider>,
-    )
+    renderBoardWithStore(repo, "board", {
+      layoutRegistry: registry,
+      render: render80,
+    })
 
     // Get the Y position of 1b (card at index 1 in col1)
     const cardA2 = registry.getCard(0, 1)

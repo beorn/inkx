@@ -196,15 +196,15 @@ export const invariants = {
    * State consistency - captured state should match derived state
    */
   stateConsistency(state: FuzzState, action: string): void {
-    if (state.captured) {
+    if (state.ui && state.boardState) {
       // View mode should match
       expect(state.viewMode, `viewMode mismatch after ${action}`).toBe(
-        state.captured.ui.viewMode,
+        state.ui.viewMode,
       )
 
       // Move mode should match
       expect(state.moveMode, `moveMode mismatch after ${action}`).toBe(
-        state.captured.boardState.moveMode,
+        state.boardState.moveMode,
       )
     }
   },

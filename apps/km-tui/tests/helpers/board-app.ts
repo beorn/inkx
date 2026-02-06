@@ -155,10 +155,8 @@ export const nodeLinks: Invariant = (app) => {
 /** Layout indices are within bounds */
 export const layout: Invariant = (app) => {
   const state = app.state
-  if (!state.captured) return
-
-  const { layout: l } = state.captured
-  if (l.columns.length === 0) return
+  const l = state.layout
+  if (!l || l.columns.length === 0) return
 
   // Skip board-level checks
   if (state.cursor?.level === "board") return
@@ -296,9 +294,8 @@ function createBoardApp(
 
     columns() {
       const state = driver.getState()
-      if (!state.captured) return []
-
-      const { layout: l } = state.captured
+      const l = state.layout
+      if (!l) return []
       return l.columns.map((col, index) => {
         const loc = driver.app.locator(`#${col.node.id}`)
         // Use name or data.name for folders
@@ -317,9 +314,8 @@ function createBoardApp(
 
     cards() {
       const state = driver.getState()
-      if (!state.captured) return []
-
-      const { layout: l } = state.captured
+      const l = state.layout
+      if (!l) return []
       const result: CardInfo[] = []
       l.columns.forEach((col, colIndex) => {
         col.cards.forEach((card, cardIndex) => {
