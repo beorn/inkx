@@ -13,7 +13,6 @@ import {
   IncrementalRenderMismatchError,
   InputLayerProvider,
 } from "inkx"
-import { createConditionalLogger } from "@beorn/logger"
 import React from "react"
 import { createLogger, createToastQueue } from "@km/core"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
@@ -21,7 +20,7 @@ import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { SyncManager } from "@km/storage"
 
-const log = createConditionalLogger("km:tui")
+const log = createLogger("km:tui")
 const spanLog = createLogger("km:tui")
 
 /**

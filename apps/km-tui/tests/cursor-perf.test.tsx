@@ -8,10 +8,10 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createConditionalLogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { testEnv, item } from "./helpers/board-test.ts"
 
-const log = createConditionalLogger("km:perf")
+const log = createLogger("km:perf")
 
 describe("Cursor Movement Performance", () => {
   test("measure cursor movement timing in small board", () => {

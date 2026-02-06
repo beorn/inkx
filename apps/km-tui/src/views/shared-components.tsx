@@ -6,9 +6,9 @@
  */
 import React, { useCallback } from "react"
 import { Box, Text, useContentRectCallback } from "inkx"
-import { createConditionalLogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 
-const log = createConditionalLogger("km:tui:layout")
+const log = createLogger("km:tui:layout")
 import type { CardState, ColumnState } from "../types.ts"
 import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"

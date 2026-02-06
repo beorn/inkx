@@ -16,9 +16,9 @@ import {
   ErrorBoundary,
   type PatchedConsole,
 } from "inkx"
-import { createConditionalLogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 
-const _log = createConditionalLogger("km:board")
+const _log = createLogger("km:board")
 import type { TUIBoardState, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import type { BoardState } from "@km/board"

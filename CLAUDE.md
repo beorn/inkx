@@ -46,6 +46,10 @@ See [.claude/skills/git/worktree.md] for details.
 Factory functions, `using` cleanup, async generators, explicit DI. No classes, no globals, no `require`.
 See [docs/principles.md](docs/principles.md) for patterns, layout, and quick reference.
 
+## Problem Solving
+
+Before theorizing about a bug or issue, **search history first**: `bun history "topic"`. Prior sessions may have already diagnosed the problem, attempted fixes, or documented root causes. This avoids duplicating work and prevents re-discovering known issues from scratch.
+
 ## Issue Tracking
 
 Use `/pm` for beads (bugs/tasks/features) and claim before starting: `bd update <id> --claim`.

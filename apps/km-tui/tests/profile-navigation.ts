@@ -4,9 +4,9 @@
  * Run with: DEBUG=km:perf bun apps/km-tui/tests/profile-navigation.ts /tmp/tstN
  */
 import { testBoard } from "./helpers/real-board.ts"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 
-const log = createlogger("km:perf")
+const log = createLogger("km:perf")
 
 async function main() {
   const vaultPath = process.argv[2] || "/tmp/tstN"
