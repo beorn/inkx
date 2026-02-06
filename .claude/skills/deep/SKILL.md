@@ -110,6 +110,21 @@ Structure:
 bun llm --deep -y --context "[comprehensive context with full source]" "[specific question]"
 ```
 
+## Background Execution (for agents)
+
+Deep research takes 2-15 minutes. When running from a sub-agent or background task, **use `TaskOutput` with blocking wait** — never poll output files manually with sleep loops.
+
+```
+# Launch in background
+Task(subagent_type="Bash", run_in_background=true,
+     prompt='bun llm --deep -y "topic"')
+
+# Block-wait for result (up to 10 min)
+TaskOutput(task_id=<id>, block=true, timeout=600000)
+```
+
+See `vendor/beorn-tools/skills/llm/SKILL.md` "Agent Usage" section for full details.
+
 ## Auto-Recovery
 
 If a previous deep research call was interrupted:

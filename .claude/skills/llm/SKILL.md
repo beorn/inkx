@@ -83,6 +83,10 @@ EOF
 
 See `/deep` for detailed context gathering workflow.
 
+## Background Execution (for agents)
+
+Deep research and debate take 2-15 minutes. **Never poll output files manually** — use `TaskOutput(block=true, timeout=600000)` after launching with `Task(run_in_background=true)`. See `vendor/beorn-tools/skills/llm/SKILL.md` "Agent Usage" section.
+
 ## When to Use
 
 | User Says | Action |

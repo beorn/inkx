@@ -41,13 +41,15 @@ Example for "add logging to storage, cli, and tui":
 → Task 3: subagent_type="general-purpose", prompt="Add logging to km-tui. Follow @km/core logger patterns."
 ```
 
-**For research-first tasks**, launch Explore in background:
+**For research-first tasks**, launch in background and block-wait:
 
 ```
 → Task: subagent_type="Explore", run_in_background=true, prompt="Find all X patterns..."
 → Continue with known work while research runs
-→ TaskOutput to retrieve results
+→ TaskOutput(task_id=<id>, block=true, timeout=600000) to retrieve results
 ```
+
+**Never poll output files manually** (sleep + read loops waste turns). `TaskOutput(block=true)` handles the wait.
 
 ## Step 4: Synthesize & Verify
 
