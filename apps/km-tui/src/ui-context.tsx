@@ -30,11 +30,25 @@ export function useUISelector<T>(selector: (state: UIState) => T): T {
 
 /**
  * Get UI dispatch function (stable reference from store).
+ * @deprecated Use useSetUI() for new code — direct field updates without action creators.
  */
 export function useUIDispatch(): (action: UIAction) => void {
   return useAppStore<BoardAppStore, BoardAppStore["dispatchUI"]>(
     (s) => s.dispatchUI,
   )
+}
+
+/**
+ * Get setUI function for direct partial UI state updates.
+ * Replaces useUIDispatch + actions for new code.
+ *
+ * @example
+ * const setUI = useSetUI();
+ * setUI({ showHelp: false });
+ * setUI(prev => ({ maxOutlineDepth: prev.maxOutlineDepth + 1 }));
+ */
+export function useSetUI(): BoardAppStore["setUI"] {
+  return useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
 }
 
 // =============================================================================

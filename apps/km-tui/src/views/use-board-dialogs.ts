@@ -9,7 +9,7 @@ import type { KNode } from "@km/core"
 import type { BoardAction } from "@km/board"
 import type { Repo } from "../repo-context.tsx"
 import type { TUIBoardState } from "../types.ts"
-import { actions } from "../ui-reducer.ts"
+import type { UIState } from "../ui-reducer.ts"
 import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:dialogs")
@@ -18,10 +18,12 @@ const log = createLogger("km:tui:dialogs")
 // Types
 // =============================================================================
 
+type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
+
 interface UseBoardDialogsParams {
   repo: Repo
   state: TUIBoardState
-  dispatch: (action: ReturnType<(typeof actions)[keyof typeof actions]>) => void
+  setUI: SetUI
   dispatchBoard: (action: BoardAction) => void
   /** Current cursor node ID (from board state) */
   cursorNodeId: string | null
@@ -49,7 +51,7 @@ interface BoardDialogHandlers {
 export function useBoardDialogs({
   repo,
   state: _state,
-  dispatch,
+  setUI,
   dispatchBoard,
   cursorNodeId,
   rootId,
@@ -59,14 +61,14 @@ export function useBoardDialogs({
   const handleProjectSelect = useCallback(
     (targetNode: KNode) => {
       if (!cursorNodeId) {
-        dispatch(actions.hideProjectPicker())
+        setUI({ showProjectPicker: false })
         return
       }
 
       // Get the node at the cursor
       const cursorNode = repo.getNode(cursorNodeId)
       if (!cursorNode) {
-        dispatch(actions.hideProjectPicker())
+        setUI({ showProjectPicker: false })
         return
       }
 
@@ -81,31 +83,31 @@ export function useBoardDialogs({
       // Update database via repo (handles memory/disk mode)
       repo.moveNode(nodeToMove, targetNode.id, newSortOrder)
 
-      // Track as recent project
-      dispatch(actions.addRecentProject(targetNode.id))
-
-      // Close picker - columns will be re-derived from repo on next render
-      dispatch(actions.hideProjectPicker())
+      // Track as recent project and close picker
+      setUI((prev) => ({
+        recentProjectIds: [targetNode.id, ...prev.recentProjectIds.filter((id) => id !== targetNode.id)].slice(0, 10),
+        showProjectPicker: false,
+      }))
     },
-    [repo, cursorNodeId, dispatch],
+    [repo, cursorNodeId, setUI],
   )
 
   const handleProjectCancel = useCallback(() => {
-    dispatch(actions.hideProjectPicker())
-  }, [dispatch])
+    setUI({ showProjectPicker: false })
+  }, [setUI])
 
   // Handler for new item creation
   const handleNewItemCreate = useCallback(
     (_newNodeId: string) => {
       // Close dialog - columns will be re-derived from repo on next render
-      dispatch(actions.hideNewItemDialog())
+      setUI({ showNewItemDialog: false })
     },
-    [dispatch],
+    [setUI],
   )
 
   const handleNewItemCancel = useCallback(() => {
-    dispatch(actions.hideNewItemDialog())
-  }, [dispatch])
+    setUI({ showNewItemDialog: false })
+  }, [setUI])
 
   // Handler for search selection - navigate to the selected node
   // Uses "smart zoom" - only zooms when necessary to make target visible
@@ -122,13 +124,13 @@ export function useBoardDialogs({
         const errMsg = `search: node not found in repo: ${targetNode.id}`
         log.error?.(errMsg)
         console.error(errMsg)
-        dispatch(actions.hideSearchDialog())
+        setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
         return
       }
 
       // If target IS the current root, just close dialog (already viewing it)
       if (target.id === rootId) {
-        dispatch(actions.hideSearchDialog())
+        setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
         return
       }
 
@@ -151,7 +153,7 @@ export function useBoardDialogs({
             `search: SELECT card at depth ${depth}: ${current.id.slice(-8)}`,
           )
           dispatchBoard({ type: "SELECT", nodeId: current.id })
-          dispatch(actions.hideSearchDialog())
+          setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
           return
         }
         if (parentId === rootId) {
@@ -230,14 +232,14 @@ export function useBoardDialogs({
         cursorNodeId: cursorTarget.id,
       })
 
-      dispatch(actions.hideSearchDialog())
+      setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
     },
-    [repo, dispatch, dispatchBoard, rootId],
+    [repo, setUI, dispatchBoard, rootId],
   )
 
   const handleSearchCancel = useCallback(() => {
-    dispatch(actions.hideSearchDialog())
-  }, [dispatch])
+    setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
+  }, [setUI])
 
   return {
     handleProjectSelect,

@@ -1253,7 +1253,7 @@ export function renderBoard(
     derivedSelectionLevel: "card",
     dimensions: { columns, rows },
     layoutRegistry: createLayoutRegistry(),
-    dispatch: () => {},
+    setUI: () => {},
     dialogHandlers: {
       handleProjectSelect: () => {},
       handleProjectCancel: () => {},
@@ -1271,6 +1271,7 @@ export function renderBoard(
     ui: createInitialUIState("cards", [], { columns, rows }),
     layoutRegistry: null,
     dispatchUI: () => {},
+    setUI: () => {},
   }))
   const result = render(
     React.createElement(

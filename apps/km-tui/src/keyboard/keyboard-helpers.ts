@@ -6,7 +6,6 @@
 
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
-import { actions } from "../ui-reducer.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
 // =============================================================================
@@ -15,7 +14,7 @@ import type { ActionCtx } from "../tui-context.ts"
 
 /** Push a new entry to navigation history */
 export function pushNavHistoryEntry(
-  dispatchUI: ActionCtx["dispatchUI"],
+  setUI: ActionCtx["setUI"],
   rootId: string | null,
   colIndex: number,
   cardIndex: number,
@@ -25,18 +24,20 @@ export function pushNavHistoryEntry(
   cursorNodeId: string | null = null,
   foldedNodes?: Set<string>,
 ): void {
-  dispatchUI(
-    actions.pushNavHistory({
-      rootId,
-      colIndex,
-      cardIndex,
-      cursorNodeId,
-      subIndex,
-      multiSelected: new Set(multiSelected),
-      inOutlineMode,
-      foldedNodes: foldedNodes ? new Set(foldedNodes) : undefined,
-    }),
-  )
+  const entry = {
+    rootId,
+    colIndex,
+    cardIndex,
+    cursorNodeId,
+    subIndex,
+    multiSelected: new Set(multiSelected),
+    inOutlineMode,
+    foldedNodes: foldedNodes ? new Set(foldedNodes) : undefined,
+  }
+  setUI((prev) => {
+    const h = [...prev.navHistory.slice(0, prev.navHistoryIndex), entry]
+    return { navHistory: h, navHistoryIndex: h.length }
+  })
 }
 
 // =============================================================================
@@ -82,26 +83,26 @@ export function updateSelectionRange(
       }
     }
   }
-  ctx.dispatchUI(actions.setMultiSelected(newSelected))
-
   // Show status feedback
   const count = newSelected.size
   if (count > 1) {
-    ctx.dispatchUI(
-      actions.setStatus({
-        level: "info",
-        message: `${count} items selected`,
-      }),
-    )
+    ctx.setUI({
+      multiSelected: newSelected,
+      status: { level: "info", message: `${count} items selected` },
+    })
+  } else {
+    ctx.setUI({ multiSelected: newSelected })
   }
 }
 
 /** Clear all selection state */
 export function clearSelection(ctx: ActionCtx): void {
-  ctx.dispatchUI(actions.setMultiSelected(new Set()))
-  ctx.dispatchUI(actions.setSelectionAnchor(null))
-  ctx.dispatchUI(actions.setSelectAllLevel(0))
-  ctx.dispatchUI(actions.clearStatus())
+  ctx.setUI({
+    multiSelected: new Set(),
+    selectionAnchor: null,
+    selectAllLevel: 0,
+    status: null,
+  })
 }
 
 /** Get unique selected card indices from multi-selection */
@@ -257,12 +258,9 @@ export function progressiveSelectAll(ctx: ActionCtx): void {
   }
 
   const newSelected = buildSelectAllSet(ctx, scope)
-  ctx.dispatchUI(actions.setMultiSelected(newSelected))
-  ctx.dispatchUI(actions.setSelectAllLevel(nextLevel))
-  ctx.dispatchUI(
-    actions.setStatus({
-      level: "info",
-      message: `All ${newSelected.size} items in ${scope} selected`,
-    }),
-  )
+  ctx.setUI({
+    multiSelected: newSelected,
+    selectAllLevel: nextLevel,
+    status: { level: "info", message: `All ${newSelected.size} items in ${scope} selected` },
+  })
 }

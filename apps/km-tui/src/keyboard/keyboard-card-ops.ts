@@ -6,7 +6,6 @@
 
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
-import { actions } from "../ui-reducer.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import {
   getSelectedCardIndices,
@@ -79,7 +78,7 @@ function rebuildSelectionForMovedCards(
       }
     }
   }
-  ctx.dispatchUI(actions.setMultiSelected(newSelected))
+  ctx.setUI({ multiSelected: newSelected })
 }
 
 // =============================================================================

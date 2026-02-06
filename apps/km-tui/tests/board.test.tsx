@@ -46,7 +46,7 @@ function renderBoardCore(
     derivedSelectionLevel: "card" as const,
     dimensions: { columns: width, rows: height },
     layoutRegistry: createLayoutRegistry(),
-    dispatch: () => {},
+    setUI: () => {},
     dialogHandlers: {
       handleProjectSelect: () => {},
       handleProjectCancel: () => {},
@@ -64,6 +64,7 @@ function renderBoardCore(
     ui: createInitialUIState("cards", [], { columns: width, rows: height }),
     layoutRegistry: null,
     dispatchUI: () => {},
+    setUI: () => {},
   }))
   return React.createElement(
     StoreContext.Provider,

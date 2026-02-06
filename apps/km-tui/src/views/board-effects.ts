@@ -2,8 +2,7 @@
  * Board lifecycle effects - setup/teardown hooks
  */
 import type { WriteStream } from "tty"
-import type { Dispatch } from "react"
-import { actions, type UIAction } from "../ui-reducer.ts"
+import type { UIState } from "../ui-reducer.ts"
 import {
   createPasteHandler,
   supportsFileDrop,
@@ -12,28 +11,26 @@ import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"
 import { kmEvents, type ToastQueue } from "@km/core"
 
+type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
+
 /**
  * Creates the terminal dimension sync effect
  * Polls for valid dimensions and handles resize events
  */
 export function createSyncTerminalDimensions(
   stdout: WriteStream | undefined,
-  dispatch: Dispatch<UIAction>,
+  setUI: SetUI,
 ): () => void | undefined {
   if (!stdout) return () => {}
 
   const handleResize = () => {
-    dispatch(
-      actions.setDimensions({ columns: stdout.columns, rows: stdout.rows }),
-    )
+    setUI({ dimensions: { columns: stdout.columns, rows: stdout.rows } })
   }
 
   // Check if stdout has valid dimensions (not undefined)
   const syncDimensions = () => {
     if (stdout.columns !== undefined && stdout.rows !== undefined) {
-      dispatch(
-        actions.setDimensions({ columns: stdout.columns, rows: stdout.rows }),
-      )
+      setUI({ dimensions: { columns: stdout.columns, rows: stdout.rows } })
       return true
     }
     return false
@@ -45,7 +42,7 @@ export function createSyncTerminalDimensions(
       if (syncDimensions()) {
         clearInterval(interval)
         // Delay before marking ready to ensure alternate buffer is stable
-        setTimeout(() => dispatch(actions.setReady(true)), 50)
+        setTimeout(() => setUI({ isReady: true }), 50)
       }
     }, 10)
     stdout.on("resize", handleResize)
@@ -56,7 +53,7 @@ export function createSyncTerminalDimensions(
   }
 
   // Dimensions available immediately - still delay to avoid race condition
-  const timeout = setTimeout(() => dispatch(actions.setReady(true)), 50)
+  const timeout = setTimeout(() => setUI({ isReady: true }), 50)
 
   stdout.on("resize", handleResize)
   return () => {
@@ -70,15 +67,14 @@ export function createSyncTerminalDimensions(
  * Handles bracketed paste for file drops
  */
 export function createFileDropHandler(
-  dispatch: Dispatch<UIAction>,
+  setUI: SetUI,
 ): () => void | undefined {
   if (!supportsFileDrop()) return () => {}
 
   const cleanup = createPasteHandler((files) => {
-    dispatch(actions.setDroppedFiles(files))
-    dispatch(actions.showDropNotification())
+    setUI({ droppedFiles: files, showDropNotification: true })
     // Auto-hide notification after 3 seconds
-    setTimeout(() => dispatch(actions.hideDropNotification()), 3000)
+    setTimeout(() => setUI({ showDropNotification: false }), 3000)
   })
 
   return cleanup
@@ -108,13 +104,13 @@ export function createRefreshHandler(): () => void {
  * Subscribes to watcher status updates for bottom bar display
  */
 export function createWatcherStatusHandler(
-  dispatch: Dispatch<UIAction>,
+  setUI: SetUI,
   toastQueue?: ToastQueue,
 ): () => void {
   let lastSyncCount = 0
 
   const handleWatcherStatus = (status: WatcherStatus) => {
-    dispatch(actions.setWatcherStatus(status))
+    setUI({ watcherStatus: status })
 
     // Show toast when sync completes with changes
     if (status.state === "idle" || status.state === "ready") {

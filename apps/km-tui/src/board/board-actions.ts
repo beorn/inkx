@@ -26,7 +26,7 @@ import {
 } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { actions } from "../ui-reducer.ts"
+import type { ViewMode } from "../types.ts"
 
 const log = createLogger("km:tui:board-actions")
 
@@ -73,7 +73,7 @@ export function handleCommandAction(
   ctx: ActionCtx,
   action: CommandAction,
 ): ActionResult {
-  const { layout, dispatchUI, exit } = ctx
+  const { layout, exit } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
@@ -83,27 +83,18 @@ export function handleCommandAction(
       exit()
       return ok()
     case "SHOW_NEW_ITEM_DIALOG":
-      dispatchUI(actions.showNewItemDialog())
-      dispatchUI(actions.exitOutlineMode())
-      dispatchUI(actions.setSubIndex(0))
+      ctx.setUI({ showNewItemDialog: true, inOutlineMode: false, subIndex: 0, showDetailPane: false })
       clearSelection(ctx)
-      dispatchUI(actions.setDetailPane(false))
       return ok()
     case "SHOW_PROJECT_PICKER":
       if (card) {
-        dispatchUI(actions.showProjectPicker())
-        dispatchUI(actions.exitOutlineMode())
-        dispatchUI(actions.setSubIndex(0))
+        ctx.setUI({ showProjectPicker: true, inOutlineMode: false, subIndex: 0, showDetailPane: false })
         clearSelection(ctx)
-        dispatchUI(actions.setDetailPane(false))
       }
       return ok()
     case "SHOW_SEARCH_DIALOG":
-      dispatchUI(actions.showSearchDialog())
-      dispatchUI(actions.exitOutlineMode())
-      dispatchUI(actions.setSubIndex(0))
+      ctx.setUI({ showSearchDialog: true, searchDialogInitialInput: "", inOutlineMode: false, subIndex: 0, showDetailPane: false })
       clearSelection(ctx)
-      dispatchUI(actions.setDetailPane(false))
       return ok()
     case "JUMP_TO_FAVORITE":
       handleJumpToFavorite(ctx, action.favoriteNumber)
@@ -111,12 +102,7 @@ export function handleCommandAction(
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
     case "ENTER_INLINE_EDIT":
-      dispatchUI(
-        actions.enterInlineEdit({
-          nodeId: action.nodeId,
-          blockIndex: action.blockIndex ?? 0,
-        }),
-      )
+      ctx.setUI({ inlineEditBlock: { nodeId: action.nodeId, blockIndex: action.blockIndex ?? 0 } })
       return ok()
     case "EDIT_BLOCK_NAVIGATE":
       return handleEditBlockNavigate(ctx, action.direction)
@@ -144,13 +130,17 @@ export function handleCommandAction(
       // Clear stickyY when changing view mode - Y coordinates are incomparable across views
       // (cards view has borders, columns view is single-row items, etc.)
       ctx.layoutRegistry.clearStickyY()
-      dispatchUI(actions.cycleViewMode())
+      ctx.setUI((prev) => {
+        const modes: ViewMode[] = ["cards", "columns", "list", "tabs"]
+        const idx = modes.indexOf(prev.viewMode)
+        return { viewMode: modes[(idx + 1) % modes.length] ?? "cards" }
+      })
       return ok()
     case "SHOW_HELP":
-      dispatchUI(actions.showHelp())
+      ctx.setUI({ showHelp: true })
       return ok()
     case "HIDE_HELP":
-      dispatchUI(actions.hideHelp())
+      ctx.setUI({ showHelp: false })
       return ok()
     case "OPEN_DETAIL_PANE": {
       // If current node has children, zoom into it instead of opening detail pane
@@ -169,11 +159,11 @@ export function handleCommandAction(
         }
       }
       // No children - open detail pane for leaf nodes
-      dispatchUI(actions.setDetailPane(true))
+      ctx.setUI({ showDetailPane: true })
       return ok()
     }
     case "CLOSE_DETAIL_PANE":
-      dispatchUI(actions.setDetailPane(false))
+      ctx.setUI({ showDetailPane: false })
       return ok()
     case "ZOOM_OUTWARDS":
       return handleZoomOutwards(ctx)
@@ -221,7 +211,12 @@ export function handleCommandAction(
       }
       return ok()
     case "TOGGLE_COLLAPSE":
-      dispatchUI(actions.toggleColumnCollapse(layout.colIndex))
+      ctx.setUI((prev) => {
+        const s = new Set(prev.collapsedColumns)
+        if (s.has(layout.colIndex)) s.delete(layout.colIndex)
+        else s.add(layout.colIndex)
+        return { collapsedColumns: s }
+      })
       return ok()
     case "NAV_BACK":
       return handleNavBack(ctx)
@@ -253,16 +248,16 @@ export function handleCommandAction(
       handleExtendSelectHorizontal(ctx, "right")
       return ok()
     case "INCREASE_OUTLINE_DEPTH":
-      dispatchUI(actions.increaseOutlineDepth())
+      ctx.setUI((prev) => ({ maxOutlineDepth: Math.min(10, prev.maxOutlineDepth + 1) }))
       return ok()
     case "DECREASE_OUTLINE_DEPTH":
-      dispatchUI(actions.decreaseOutlineDepth())
+      ctx.setUI((prev) => ({ maxOutlineDepth: Math.max(0, prev.maxOutlineDepth - 1) }))
       return ok()
     case "INCREASE_CONTENT_LINES":
-      dispatchUI(actions.increaseContentLines())
+      ctx.setUI((prev) => ({ maxContentLines: Math.min(10, prev.maxContentLines + 1) }))
       return ok()
     case "DECREASE_CONTENT_LINES":
-      dispatchUI(actions.decreaseContentLines())
+      ctx.setUI((prev) => ({ maxContentLines: Math.max(1, prev.maxContentLines - 1) }))
       return ok()
     case "SHIFT_UP":
       handleShiftCard(ctx, "up")
@@ -362,7 +357,7 @@ export function handleCommandAction(
 
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":
-      dispatchUI(actions.setDetailPane(false))
+      ctx.setUI({ showDetailPane: false })
       return ok()
 
     // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===
@@ -398,7 +393,7 @@ function handleEditBlockNavigate(
   ctx: ActionCtx,
   direction: "up" | "down",
 ): ActionResult {
-  const { dispatchUI, ui } = ctx
+  const { ui } = ctx
   const edit = ui.inlineEditBlock
   if (!edit) return ok()
 
@@ -412,7 +407,7 @@ function handleEditBlockNavigate(
   } else {
     // Moving between blocks within same node → save current block, change index
     blockEditTargetRef.current?.save()
-    dispatchUI(actions.setEditBlockIndex(nextIndex))
+    ctx.setUI({ inlineEditBlock: { ...edit, blockIndex: nextIndex } })
   }
   return ok()
 }
@@ -435,7 +430,7 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
 }
 
 function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
-  const { boardState, ui, dispatchUI, dispatchBoard, layout } = ctx
+  const { boardState, ui, dispatchBoard, layout } = ctx
 
   const favoriteKey =
     `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES
@@ -448,7 +443,7 @@ function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
 
   // Save current state
   pushNavHistoryEntry(
-    dispatchUI,
+    ctx.setUI,
     boardState.rootId,
     layout.colIndex,
     layout.cardIndex,
@@ -493,7 +488,7 @@ function handleJumpToColumn(
 }
 
 function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
-  const { ui, dispatchUI, boardState, dispatchBoard } = ctx
+  const { ui, boardState, dispatchBoard } = ctx
 
   // Cancel move mode first (highest priority for escape)
   if (boardState.moveMode) {
@@ -509,24 +504,23 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
 
   // Close any open overlay first
   if (ui.showDetailPane) {
-    dispatchUI(actions.setDetailPane(false))
+    ctx.setUI({ showDetailPane: false })
     return ok()
   }
   if (ui.inOutlineMode) {
-    dispatchUI(actions.exitOutlineMode())
-    dispatchUI(actions.setSubIndex(0))
+    ctx.setUI({ inOutlineMode: false, subIndex: 0 })
     return ok()
   }
   if (ui.showHelp) {
-    dispatchUI(actions.hideHelp())
+    ctx.setUI({ showHelp: false })
     return ok()
   }
   if (ui.showProjectPicker) {
-    dispatchUI(actions.hideProjectPicker())
+    ctx.setUI({ showProjectPicker: false })
     return ok()
   }
   if (ui.showNewItemDialog) {
-    dispatchUI(actions.hideNewItemDialog())
+    ctx.setUI({ showNewItemDialog: false })
     return ok()
   }
 

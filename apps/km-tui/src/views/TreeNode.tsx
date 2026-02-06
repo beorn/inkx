@@ -26,12 +26,11 @@ import { makeSelectionKey } from "../types.ts"
 import {
   useTreeConfig,
   useUISelector,
-  useUIDispatch,
+  useSetUI,
   useRootBoardId,
   useExcludedSigils,
   useSigilColors,
 } from "../ui-context.tsx"
-import { actions } from "../ui-reducer.ts"
 import { InlineEditField } from "./InlineEditField.tsx"
 import {
   getNodeStyle,
@@ -178,7 +177,7 @@ function TreeNodeImpl({
   )
   const isInlineEditing = editBlockIndex !== null
   const editingTitle = editBlockIndex === 0
-  const uiDispatch = useUIDispatch()
+  const setUI = useSetUI()
   const excludeBoardIds = rootBoardId
     ? new Set([rootBoardId])
     : new Set<string>()
@@ -285,14 +284,14 @@ function TreeNodeImpl({
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
       handleTitleSave(newValue)
-      uiDispatch(actions.exitInlineEdit())
+      setUI({ inlineEditBlock: null })
     },
-    [handleTitleSave, uiDispatch],
+    [handleTitleSave, setUI],
   )
 
   const handleInlineEditCancel = useCallback(() => {
-    uiDispatch(actions.exitInlineEdit())
-  }, [uiDispatch])
+    setUI({ inlineEditBlock: null })
+  }, [setUI])
 
   // Body block save callback (persists content for a body child)
   const handleBlockSave = useCallback(
@@ -502,7 +501,7 @@ function TreeNodeImpl({
                   initialValue={child.content ?? ""}
                   onConfirm={(v) => {
                     handleBlockSave(child.id, v)
-                    uiDispatch(actions.exitInlineEdit())
+                    setUI({ inlineEditBlock: null })
                   }}
                   onCancel={handleInlineEditCancel}
                   onSave={(v) => handleBlockSave(child.id, v)}

@@ -42,7 +42,7 @@ import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { renderPath } from "../layout/index.ts"
 import { type LayoutRegistry } from "../card-positions.ts"
-import { actions, type UIState, type UIAction } from "../ui-reducer.ts"
+import type { UIState } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
@@ -93,8 +93,8 @@ export interface BoardCoreProps {
   dimensions: { columns: number; rows: number }
   /** Layout registry for card position tracking */
   layoutRegistry: LayoutRegistry
-  /** Dispatch to UI reducer */
-  dispatch: React.Dispatch<UIAction>
+  /** Direct UI state setter */
+  setUI: BoardAppStore["setUI"]
   /** Dialog handlers (types match ProjectPicker, NewItemDialog, and SearchDialog props) */
   dialogHandlers: {
     handleProjectSelect: (targetNode: KNode) => void
@@ -126,7 +126,7 @@ export function BoardCore({
   derivedSelectionLevel,
   dimensions,
   layoutRegistry,
-  dispatch,
+  setUI,
   dialogHandlers,
   moveMode,
   consoleStats,
@@ -436,7 +436,7 @@ export function BoardCore({
                         height={dialogHeight}
                         initialInput={ui.searchDialogInitialInput}
                         onConsumeInitialInput={() =>
-                          dispatch(actions.clearSearchDialogInput())
+                          setUI({ searchDialogInitialInput: "" })
                         }
                       />
                     </Box>
@@ -523,8 +523,8 @@ export function Board({
   const layoutRegistry = useAppStore<BoardAppStore, LayoutRegistry>(
     (s) => s.layoutRegistry,
   )
-  const dispatchUI = useAppStore<BoardAppStore, BoardAppStore["dispatchUI"]>(
-    (s) => s.dispatchUI,
+  const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>(
+    (s) => s.setUI,
   )
   const dispatchBoard = useAppStore<
     BoardAppStore,
@@ -534,9 +534,6 @@ export function Board({
     BoardAppStore,
     BoardAppStore["updateLayout"]
   >((s) => s.updateLayout)
-
-  // Wrap dispatchUI as React.Dispatch<UIAction> for components that expect it
-  const dispatch: React.Dispatch<UIAction> = dispatchUI
 
   // Console stats via direct subscription
   const [consoleStats, setConsoleStats] = useState<
@@ -649,7 +646,7 @@ export function Board({
   const dialogHandlers = useBoardDialogs({
     repo,
     state: tuiBoardState,
-    dispatch,
+    setUI,
     dispatchBoard,
     cursorNodeId: boardState.cursorNodeId,
     rootId: boardState.rootId,
@@ -678,17 +675,16 @@ export function Board({
   useEffect(() => {
     if (!ui.bellState && !ui.status) return
     const timer = setTimeout(() => {
-      dispatch(actions.clearBell())
-      dispatch(actions.clearStatus())
+      setUI({ bellState: null, status: null })
     }, 3000)
     return () => clearTimeout(timer)
-  }, [ui.bellState, ui.status, dispatch])
+  }, [ui.bellState, ui.status, setUI])
 
   // Subscribe to external events
-  useEffect(() => createFileDropHandler(dispatch), [dispatch])
+  useEffect(() => createFileDropHandler(setUI), [setUI])
   useEffect(
-    () => createWatcherStatusHandler(dispatch, toastQueue),
-    [dispatch, toastQueue],
+    () => createWatcherStatusHandler(setUI, toastQueue),
+    [setUI, toastQueue],
   )
   useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
   useEffect(() => createRefreshHandler(), [])
@@ -703,7 +699,7 @@ export function Board({
       derivedSelectionLevel={derivedSelectionLevel}
       dimensions={ui.dimensions}
       layoutRegistry={layoutRegistry}
-      dispatch={dispatch}
+      setUI={setUI}
       dialogHandlers={dialogHandlers}
       moveMode={boardState.moveMode}
       consoleStats={consoleStats}

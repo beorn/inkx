@@ -41,10 +41,16 @@ export interface ActionCtx {
   card: CardState | undefined
 
   // === Dispatchers ===
-  /** Dispatch to UI reducer */
+  /** Dispatch to UI reducer (legacy — prefer setUI for new code) */
   dispatchUI: (action: UIAction) => void
   /** Dispatch to board reducer */
   dispatchBoard: (action: BoardAction) => void
+  /** Set UI fields directly (partial update) */
+  setUI: (
+    partial:
+      | Partial<UIState>
+      | ((prev: UIState) => Partial<UIState>),
+  ) => void
   /** Set foldedNodes (single source of truth at store root) */
   setFoldedNodes: (nodes: Set<string>) => void
 

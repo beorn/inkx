@@ -21,7 +21,6 @@ import {
   createBoardAppStoreState,
   type CreateBoardAppStoreParams,
 } from "./board-app-store.ts"
-import { actions } from "./ui-reducer.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext } from "./command-bridge.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
@@ -54,6 +53,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     card,
     dispatchUI: (action) => s.dispatchUI(action),
     dispatchBoard: (action) => s.dispatchBoard(action),
+    setUI: (partial) => s.setUI(partial),
     setFoldedNodes: (nodes) => s.setFoldedNodes(nodes),
     exit,
     countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
@@ -93,7 +93,7 @@ export function handleKey(
   // Help overlay blocks most keys - only allow dismiss keys
   if (ui.showHelp) {
     if (input === "?" || key.escape || input === "q") {
-      get().dispatchUI(actions.hideHelp())
+      get().setUI({ showHelp: false })
     }
     return
   }
@@ -101,20 +101,19 @@ export function handleKey(
   // Console (normal screen) - dismiss with backtick or escape only
   if (ui.showConsole) {
     if (key.escape || input === "`") {
-      get().dispatchUI(actions.hideConsole())
+      get().setUI({ showConsole: false })
     }
     return
   }
 
   // Toggle console with backtick
   if (input === "`") {
-    get().dispatchUI(actions.toggleConsole())
+    get().setUI((prev) => ({ showConsole: !prev.showConsole }))
     return
   }
 
   // Clear bell and status at start of each keypress
-  get().dispatchUI(actions.clearBell())
-  get().dispatchUI(actions.clearStatus())
+  get().setUI({ bellState: null, status: null })
 
   // DEV: Test toast command (Ctrl+T)
   if (key.ctrl && input === "t") {
@@ -186,15 +185,15 @@ function routeThroughCommandSystem(
 
       // Check for boundary errors - ring bell and show status message
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
-        ctx.dispatchUI(actions.setBell(actionResult.error.direction))
-        ctx.dispatchUI(
-          actions.setStatus({
+        ctx.setUI({
+          bellState: actionResult.error.direction,
+          status: {
             level: "warning",
             message:
               actionResult.error.message ??
               `Can't move ${actionResult.error.direction}`,
-          }),
-        )
+          },
+        })
         // Output actual bell character to terminal
         process.stdout.write("\x07")
       }

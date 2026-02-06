@@ -20,7 +20,6 @@ import {
   type TreeDirection,
 } from "../handlers/navigation-handlers.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { actions } from "../ui-reducer.ts"
 
 const log = createLogger("km:tui:nav")
 
@@ -150,10 +149,10 @@ function handleOutlineNav(
   dir: "prev" | "next",
   card: CardState | undefined,
 ): ActionResult {
-  const { ui, dispatchUI } = ctx
+  const { ui } = ctx
 
   if (dir === "prev" && ui.subIndex > 0) {
-    dispatchUI(actions.setSubIndex(ui.subIndex - 1))
+    ctx.setUI({ subIndex: ui.subIndex - 1 })
     return ok()
   }
   if (dir === "next" && card) {
@@ -164,7 +163,7 @@ function handleOutlineNav(
       ctx.boardState.foldedNodes,
     )
     if (ui.subIndex < maxIdx) {
-      dispatchUI(actions.setSubIndex(ui.subIndex + 1))
+      ctx.setUI({ subIndex: ui.subIndex + 1 })
       return ok()
     }
   }
@@ -215,12 +214,12 @@ function handleHorizontalNav(
   ctx: ActionCtx,
   dir: "left" | "right",
 ): ActionResult {
-  const { layout, ui, dispatchUI, dispatchBoard, layoutRegistry } = ctx
+  const { layout, ui, dispatchBoard, layoutRegistry } = ctx
 
   // In non-list views, h closes the detail pane if it's open (before navigation).
   // In list view, showDetailPane defaults to true so h must always navigate.
   if (dir === "left" && ui.showDetailPane && ui.viewMode !== "list") {
-    dispatchUI(actions.setDetailPane(false))
+    ctx.setUI({ showDetailPane: false })
     return ok()
   }
 
@@ -428,7 +427,7 @@ function handleTreeNav(ctx: ActionCtx, dir: string): ActionResult {
  * Navigate back in history.
  */
 export function handleNavBack(ctx: ActionCtx): ActionResult {
-  const { ui, dispatchUI, dispatchBoard } = ctx
+  const { ui, dispatchBoard } = ctx
 
   // Check if we can go back
   if (ui.navHistoryIndex <= 0) {
@@ -443,7 +442,7 @@ export function handleNavBack(ctx: ActionCtx): ActionResult {
   if (!entry) return ok()
 
   // Move index back
-  dispatchUI(actions.setNavHistoryIndex(newIndex))
+  ctx.setUI({ navHistoryIndex: newIndex })
 
   // Navigate to the saved state
   dispatchBoard({
@@ -454,14 +453,17 @@ export function handleNavBack(ctx: ActionCtx): ActionResult {
 
   // Restore selection state
   if (entry.multiSelected && entry.multiSelected.size > 0) {
-    dispatchUI(actions.setMultiSelected(entry.multiSelected))
+    ctx.setUI({
+      multiSelected: entry.multiSelected,
+      ...(entry.inOutlineMode
+        ? { inOutlineMode: true, subIndex: entry.subIndex }
+        : {}),
+    })
   } else {
     clearSelection(ctx)
-  }
-
-  if (entry.inOutlineMode) {
-    dispatchUI(actions.enterOutlineMode())
-    dispatchUI(actions.setSubIndex(entry.subIndex))
+    if (entry.inOutlineMode) {
+      ctx.setUI({ inOutlineMode: true, subIndex: entry.subIndex })
+    }
   }
 
   // Restore folded nodes state
@@ -476,19 +478,20 @@ export function handleNavBack(ctx: ActionCtx): ActionResult {
  * Navigate forward in history.
  */
 export function handleNavForward(ctx: ActionCtx): ActionResult {
-  const { ui, dispatchUI, dispatchBoard } = ctx
+  const { ui, dispatchBoard } = ctx
 
   // Check if we can go forward
   if (ui.navHistoryIndex >= ui.navHistory.length - 1) {
     return boundary("forward", "at end of history")
   }
 
-  // Move index forward
-  dispatchUI(actions.navForward())
-
-  // Get the entry we're navigating to
-  const entry = ui.navHistory[ui.navHistoryIndex + 1]
+  // Get the entry we're navigating to (before incrementing index)
+  const newIndex = ui.navHistoryIndex + 1
+  const entry = ui.navHistory[newIndex]
   if (!entry) return ok()
+
+  // Move index forward
+  ctx.setUI({ navHistoryIndex: newIndex })
 
   // Navigate to the saved state
   dispatchBoard({
@@ -499,14 +502,17 @@ export function handleNavForward(ctx: ActionCtx): ActionResult {
 
   // Restore selection state
   if (entry.multiSelected && entry.multiSelected.size > 0) {
-    dispatchUI(actions.setMultiSelected(entry.multiSelected))
+    ctx.setUI({
+      multiSelected: entry.multiSelected,
+      ...(entry.inOutlineMode
+        ? { inOutlineMode: true, subIndex: entry.subIndex }
+        : {}),
+    })
   } else {
     clearSelection(ctx)
-  }
-
-  if (entry.inOutlineMode) {
-    dispatchUI(actions.enterOutlineMode())
-    dispatchUI(actions.setSubIndex(entry.subIndex))
+    if (entry.inOutlineMode) {
+      ctx.setUI({ inOutlineMode: true, subIndex: entry.subIndex })
+    }
   }
 
   // Restore folded nodes state
@@ -524,7 +530,7 @@ export function handleNavSiblingBoard(
   ctx: ActionCtx,
   direction: "next" | "prev",
 ): ActionResult {
-  const { boardState, ui, dispatchUI, dispatchBoard, layout } = ctx
+  const { boardState, ui, dispatchBoard, layout } = ctx
 
   if (!boardState.rootId) {
     return boundary(direction, "no root")
@@ -550,7 +556,7 @@ export function handleNavSiblingBoard(
 
   // Save current state
   pushNavHistoryEntry(
-    dispatchUI,
+    ctx.setUI,
     boardState.rootId,
     layout.colIndex,
     layout.cardIndex,

@@ -11,7 +11,6 @@ import {
 } from "../handlers/navigation-handlers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey } from "../types.ts"
-import { actions } from "../ui-reducer.ts"
 
 /**
  * Extend selection vertically (up or down).
@@ -20,7 +19,7 @@ export function handleExtendSelectVertical(
   ctx: ActionCtx,
   direction: "up" | "down",
 ): void {
-  const { layout, ui, dispatchUI, dispatchBoard } = ctx
+  const { layout, ui, dispatchBoard } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
@@ -28,22 +27,13 @@ export function handleExtendSelectVertical(
 
   // Initialize selection if starting fresh
   if (ui.multiSelected.size === 0) {
-    dispatchUI(
-      actions.setSelectionAnchor({
-        col: layout.colIndex,
-        card: layout.cardIndex,
-        sub: 0,
-      }),
-    )
     const newSelected = new Set(ui.multiSelected)
     newSelected.add(makeSelectionKey(layout.colIndex, layout.cardIndex, 0))
-    dispatchUI(actions.setMultiSelected(newSelected))
-    dispatchUI(
-      actions.setStatus({
-        level: "info",
-        message: "1 item selected",
-      }),
-    )
+    ctx.setUI({
+      selectionAnchor: { col: layout.colIndex, card: layout.cardIndex, sub: 0 },
+      multiSelected: newSelected,
+      status: { level: "info", message: "1 item selected" },
+    })
   }
 
   // Calculate target
@@ -76,12 +66,10 @@ export function handleExtendSelectHorizontal(
   ctx: ActionCtx,
   _direction: "left" | "right",
 ): void {
-  const { ui, dispatchUI } = ctx
+  const { ui } = ctx
 
   // Clear selection only (TODO: horizontal extend-select doesn't support range selection)
   if (ui.multiSelected.size > 0) {
-    dispatchUI(actions.clearMultiSelection())
-    dispatchUI(actions.setSelectionAnchor(null))
-    dispatchUI(actions.clearStatus())
+    ctx.setUI({ multiSelected: new Set(), selectionAnchor: null, status: null })
   }
 }

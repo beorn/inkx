@@ -14,8 +14,7 @@ import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
-import { useUISelector, useUIDispatch } from "../ui-context.tsx"
-import { actions } from "../ui-reducer.ts"
+import { useUISelector, useSetUI } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import type { NodeLayout } from "../card-positions.ts"
 import { getScrollToIndex } from "./scroll-helpers.ts"
@@ -244,7 +243,7 @@ export const Column = React.memo(function Column({
   selectionLevel,
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
-  const uiDispatch = useUIDispatch()
+  const setUI = useSetUI()
   const nodeId = column.node.id
 
   // Check if this column header is being inline-edited
@@ -263,14 +262,14 @@ export const Column = React.memo(function Column({
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
       repo.updateNode(nodeId, { content: newValue })
-      uiDispatch(actions.exitInlineEdit())
+      setUI({ inlineEditBlock: null })
     },
-    [nodeId, repo, uiDispatch],
+    [nodeId, repo, setUI],
   )
 
   const handleInlineEditCancel = useCallback(() => {
-    uiDispatch(actions.exitInlineEdit())
-  }, [uiDispatch])
+    setUI({ inlineEditBlock: null })
+  }, [setUI])
 
   // Get column's own color (not inherited) for background
   // Virtual body columns use dimmed gray styling
