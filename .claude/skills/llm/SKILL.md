@@ -11,6 +11,10 @@ argument-hint: [deep|opinion|debate] <prompt>
 
 Run `bun llm` for full help.
 
+## Output
+
+By default, the response is written to a file and the file path is printed to stdout. Read the file with `Read` tool. Stale files are auto-cleaned after 7 days. Use `--output -` for classic streaming to stdout.
+
 ## Quick Reference
 
 | Goal | Command |
@@ -46,6 +50,7 @@ Run `bun llm` for full help.
 |------|------|------|
 | `--deep`/`/deep` | OpenAI deep research (web search, citations, thorough) | ~$2-5 |
 | `--ask`/`/ask` | Explicit default mode (syntactic sugar) | ~$0.02 |
+| `--output -` | Stream to stdout instead of writing to file | — |
 
 ## Context Flags
 
@@ -55,37 +60,17 @@ Run `bun llm` for full help.
 | `--context <text>` | Provide explicit context (prepended to topic) |
 | `--context-file <path>` | Read context from a file |
 
-## When to Use Context
+## Gathering Context
+
+Before calling `bun llm`, use `/recall` to search session history for relevant prior work: `bun recall "topic"`. Read the results, extract the relevant insights, and summarize them into `--context` — don't pass raw recall output directly.
 
 **Quick questions**: Prepend brief context: `bun llm "Context: km (TypeScript TUI), [file]. Question: [q]"`
 
-**Deep research**: Include **full source code** for specific code questions. Don't be stingy with context - deep research handles large inputs well. The more specific the code, the more specific the answer.
-
-```bash
-# For code bugs: include entire files involved
-bun llm --deep -y --context "$(cat << 'EOF'
-# Problem Description
-[specific symptoms]
-
-# Full Source Code
-
-## file1.ts (235 lines)
-[entire file]
-
-## file2.ts (307 lines)
-[entire file]
-
-# Questions
-1. [specific question]
-EOF
-)" "Review this bug and recommend fix"
-```
-
-See `/deep` for detailed context gathering workflow.
+**Deep research**: Include **full source code** — see `/deep` for detailed context gathering workflow.
 
 ## Background Execution (for agents)
 
-Deep research and debate take 2-15 minutes. **Never poll output files manually** — use `TaskOutput(block=true, timeout=600000)` after launching with `Task(run_in_background=true)`. See `vendor/beorn-tools/skills/llm/SKILL.md` "Agent Usage" section.
+Stdout contains JSON metadata (including file path) — parse it, then read the file with `Read` tool. Deep research and debate take 2-15 minutes. Use `Task(run_in_background=true)` + `TaskOutput(block=true, timeout=600000)`. See `vendor/beorn-tools/skills/llm/SKILL.md` "Agent Usage" section.
 
 ## When to Use
 
@@ -108,11 +93,12 @@ Deep research and debate take 2-15 minutes. **Never poll output files manually**
 
 ## Features
 
+- **File output**: Response written to file, path on stdout (no truncation issues)
 - **Auto-recovery**: Automatically recovers interrupted responses before new queries
 - **Persistence**: Saves progress to disk during streaming (never lose expensive calls)
 - **History check**: Warns if you've researched this before (avoids duplicate spend)
 - **Cost confirmation**: Prompts for `deep` and `debate` (expensive)
-- **Streaming**: Real-time output
+- **Streaming**: Real-time progress to stderr
 - **Provider warnings**: Shows when better models are available
 
 ## Recovery Commands

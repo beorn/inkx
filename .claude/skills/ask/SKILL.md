@@ -7,38 +7,10 @@ argument-hint: <question>
 
 # Ask - Quick LLM Query
 
-Shortcut for quick LLM queries. See `/llm` for full documentation.
-
-## Commands
-
-| Command | What | Cost |
-|---------|------|------|
-| `/ask <question>` | Single model query | ~$0.02 |
-| `/ask:all <question>` | Multi-model debate | ~$1-3 |
-
-## Usage
-
 ```bash
-# Quick question
 bun llm "<question>"
-
-# Multi-model consensus
-bun llm debate -y "<question>"
 ```
 
-## Context for Codebase Questions
+For codebase questions, include brief context: `bun llm "Context: km (TypeScript TUI), file.ts. Question: <q>"`
 
-For questions about this codebase, gather light context first:
-
-1. Note project: km (TypeScript/Bun/Ink/SQLite TUI)
-2. Note current file if relevant
-3. Include in question:
-
-```bash
-bun llm "Context: km project (TypeScript TUI), working on src/foo.ts. Question: <actual question>"
-```
-
-## See Also
-
-- `/llm` - Full documentation with all options
-- `/deep` - Deep research with web search
+See `/llm` for output format, flags, and background execution.
