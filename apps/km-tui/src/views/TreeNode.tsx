@@ -214,6 +214,7 @@ function TreeNodeImpl({
         isMultiSelected,
         dimInactiveChildren,
         depth,
+        isInlineEditing,
       ),
     [
       displayNode.id,
@@ -222,6 +223,7 @@ function TreeNodeImpl({
       isMultiSelected,
       dimInactiveChildren,
       depth,
+      isInlineEditing,
     ],
   )
 

@@ -1104,7 +1104,7 @@ function VisualLanguageSection(): React.ReactElement {
       <SubsectionHeader title="Selection States (RESERVED COLOR)" />
       <Text dimColor>
         {" "}
-        Cyan bg = selection ONLY (cursor, focused, multi-select)
+        Yellow bg = selection (cursor, focused, multi-select)
       </Text>
       <Text> </Text>
 
@@ -1114,10 +1114,59 @@ function VisualLanguageSection(): React.ReactElement {
           <TreeNode {...commonProps} node={todoTask} isSelected={false} />
         </Box>
         <Box flexDirection="column" width={38}>
-          <Text bold color="cyan">
-            Selected (cyan bg):
+          <Text bold color="yellow">
+            Selected (yellow bg):
           </Text>
           <TreeNode {...commonProps} node={todoTask} isSelected={true} />
+        </Box>
+      </Box>
+      <Text> </Text>
+
+      <SubsectionHeader title="Card Border States (Cards View)" />
+      <Text dimColor> Three visual states via card border color:</Text>
+      <Text> </Text>
+
+      <Box flexDirection="row" gap={1}>
+        <Box
+          flexDirection="column"
+          width={28}
+          borderStyle="round"
+          borderColor="blackBright"
+        >
+          <Text> · Normal card</Text>
+        </Box>
+        <Box
+          flexDirection="column"
+          width={28}
+          borderStyle="round"
+          borderColor="yellow"
+        >
+          <Text backgroundColor="yellow" color="black">
+            {" "}
+            · Selected card
+          </Text>
+        </Box>
+        <Box
+          flexDirection="column"
+          width={28}
+          borderStyle="round"
+          borderColor="cyan"
+        >
+          <Text>
+            {" "}
+            · Editing ca<Text inverse>r</Text>d
+          </Text>
+        </Box>
+      </Box>
+      <Box flexDirection="row" gap={1}>
+        <Box width={28}>
+          <Text dimColor> gray border</Text>
+        </Box>
+        <Box width={28}>
+          <Text dimColor> yellow border + bg</Text>
+        </Box>
+        <Box width={28}>
+          <Text dimColor> cyan border + cursor</Text>
         </Box>
       </Box>
       <Text> </Text>

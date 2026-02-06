@@ -14,6 +14,7 @@ import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
+import { useUISelector } from "../ui-context.tsx"
 import type { NodeLayout } from "../card-positions.ts"
 import { getScrollToIndex } from "./scroll-helpers.ts"
 
@@ -121,6 +122,11 @@ const Card = React.memo(
   }: CardProps): React.ReactElement {
     const nodeId = card.node.id
 
+    // Check if this card is in inline edit mode (for border color)
+    const isEditing = useUISelector(
+      (state) => state.inlineEditNodeId === nodeId,
+    )
+
     // Virtual body content renders borderless (inline body content)
     // This includes: cards in virtual columns OR individual virtual body cards
     if (isVirtualColumn || card.isVirtual) {
@@ -150,13 +156,20 @@ const Card = React.memo(
       )
     }
 
+    // Border: cyan when editing (focus ring), yellow when selected, gray otherwise
+    const borderColor = isEditing
+      ? "cyan"
+      : isSelected
+        ? "yellow"
+        : "blackBright"
+
     return (
       <Box
         flexDirection="column"
         flexShrink={0}
         width={width}
         borderStyle="round"
-        borderColor={isSelected ? "yellow" : "blackBright"}
+        borderColor={borderColor}
       >
         <CardLayoutRegistrar
           colIndex={colIndex}

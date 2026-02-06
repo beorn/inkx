@@ -82,6 +82,7 @@ export function getNodeStyle(
   isMultiSelected: boolean,
   dimInactiveChildren: boolean,
   depth: number,
+  isInlineEditing = false,
 ): NodeStyleResult {
   // A node is a task if it has task_status set, regardless of structural type
   const isTask = node.task_status != null
@@ -93,10 +94,14 @@ export function getNodeStyle(
   // Background/text colors
   // Node colors only affect the fold marker icon, NOT the background
   // Only selection state affects background (yellow bg, black text)
+  // Inline editing: no bg color — cyan card border is the primary indicator
   let backgroundColor: string | undefined
   let textColor: string | undefined
 
-  if (isSelected || isMultiSelected) {
+  if (isInlineEditing) {
+    // Edit mode: no background, normal text color
+    // Cyan card border serves as the "focus ring"
+  } else if (isSelected || isMultiSelected) {
     // Design system: yellow background, black foreground for selection
     backgroundColor = "yellow"
     textColor = "black"
