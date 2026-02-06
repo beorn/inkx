@@ -154,6 +154,21 @@ function createQueryMethods(deps: RepoMethodDeps) {
   }
 }
 
+/** Summarize KNode changes for logging (avoid logging entire node objects) */
+function summarizeChanges(changes: Partial<KNode>): Record<string, unknown> {
+  const summary: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(changes)) {
+    if (key === "content" && typeof value === "string") {
+      summary[key] = value.length > 80 ? value.slice(0, 80) + "…" : value
+    } else if (key === "data" && typeof value === "object") {
+      summary[key] = "{…}"
+    } else {
+      summary[key] = value
+    }
+  }
+  return summary
+}
+
 /** Create mutation methods shared by createRepo and createBareRepo */
 function createMutationMethods(
   deps: RepoMethodDeps,
@@ -172,6 +187,9 @@ function createMutationMethods(
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
+      log.info?.(`mutation: update ${id}`, {
+        changes: summarizeChanges(changes),
+      })
     },
     moveNode(id: string, newParentId: string, position: number) {
       let ctx: MutationContext = {
@@ -193,6 +211,7 @@ function createMutationMethods(
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
+      log.info?.(`mutation: move ${id} → parent=${newParentId} pos=${position}`)
     },
     deleteNode(id: string) {
       let ctx: MutationContext = { type: "delete", nodeId: id }
@@ -205,6 +224,7 @@ function createMutationMethods(
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
+      log.info?.(`mutation: delete ${id}`)
     },
     addNode(parentId: string | null, node: Partial<KNode>) {
       let ctx: MutationContext = { type: "add", nodeId: "", node }
@@ -218,6 +238,10 @@ function createMutationMethods(
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
+      log.info?.(`mutation: add ${newId} parent=${parentId}`, {
+        type: node.type,
+        content: node.content?.slice(0, 80),
+      })
       return newId
     },
     cloneTask(sourceId: string, changes: Partial<KNode>) {

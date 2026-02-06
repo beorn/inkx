@@ -22,6 +22,9 @@ import "../../../apps/km-tui/tests/helpers/matchers.js"
 process.stdout.isTTY = false
 process.stderr.isTTY = false
 
+// Suppress logger output during tests (info/warn/error would trip console detection)
+process.env.LOG_LEVEL = "silent"
+
 // Suppress React act() warnings from useSyncExternalStore:
 // When vitest runs multiple test files in the same thread, IS_REACT_ACT_ENVIRONMENT
 // (set to true by inkx/testing) bleeds across files. This causes non-deterministic
@@ -86,6 +89,14 @@ beforeEach(() => {
   // Spy on console methods
   for (const method of CONSOLE_METHODS) {
     vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+      // Preserve act() warning filter (module-level patch gets overridden by spy)
+      if (
+        method === "error" &&
+        typeof args[0] === "string" &&
+        args[0].includes("was not wrapped in act(")
+      ) {
+        return
+      }
       consoleCalls.push({ method, args })
     })
   }

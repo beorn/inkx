@@ -399,11 +399,13 @@ export class WriteQueue extends EventEmitter {
     switch (op.type) {
       case "delete":
         if (this.fs.existsSync(op.path)) {
+          log.info?.(`fs: delete ${op.path}`)
           this.fs.unlinkSync(op.path)
         }
         break
       case "rename":
         if (this.fs.existsSync(op.path)) {
+          log.info?.(`fs: rename ${op.path} → ${op.newPath}`)
           const newDir = dirname(op.newPath)
           if (!this.fs.existsSync(newDir)) {
             this.fs.mkdirSync(newDir, { recursive: true })
@@ -412,6 +414,7 @@ export class WriteQueue extends EventEmitter {
         }
         break
       case "write": {
+        log.info?.(`fs: write ${op.path} (${op.content.length} bytes)`)
         const dir = dirname(op.path)
         if (!this.fs.existsSync(dir)) {
           this.fs.mkdirSync(dir, { recursive: true })

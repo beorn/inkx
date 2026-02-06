@@ -332,6 +332,60 @@ describe("Inline Edit — Navigate Away Saves", () => {
   })
 })
 
+describe("Inline Edit — useSyncExternalStore (repo→render)", () => {
+  // These tests verify that direct repo mutations (NOT through UI commands)
+  // cause the board to re-render. This catches the production bug where
+  // useSyncExternalStore must drive re-renders independently of UI dispatch.
+
+  test("direct repo.updateNode causes board to show updated content", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("original"), item("1b"))),
+    )
+
+    expect(board.screenshot()).toContain("original")
+
+    // Mutate repo directly — no board command, no UI dispatch.
+    // Only useSyncExternalStore should trigger re-render.
+    repo.updateNode("original", { content: "mutated-directly" })
+
+    // Press an unbound key to trigger act() + doRender() cycle
+    // (the test renderer only flushes frames on sendInput)
+    board.press("0")
+
+    expect(board.screenshot()).toContain("mutated-directly")
+    expect(board.screenshot()).not.toContain("original")
+  })
+
+  test("multiple direct repo mutations accumulate correctly", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("aaa"), item("bbb"))),
+    )
+
+    repo.updateNode("aaa", { content: "AAA" })
+    repo.updateNode("bbb", { content: "BBB" })
+    board.press("0") // flush render
+
+    expect(board.screenshot()).toContain("AAA")
+    expect(board.screenshot()).toContain("BBB")
+    expect(board.screenshot()).not.toContain("aaa")
+    expect(board.screenshot()).not.toContain("bbb")
+  })
+
+  test("repo.deleteNode causes board to remove the node", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("keep"), item("remove"))),
+    )
+
+    expect(board.screenshot()).toContain("remove")
+
+    repo.deleteNode("remove")
+    board.press("0") // flush render
+
+    expect(board.screenshot()).not.toContain("remove")
+    expect(board.screenshot()).toContain("keep")
+  })
+})
+
 describe("Inline Edit — Edge Cases", () => {
   test("edit across different columns", () => {
     const { board, repo } = testEnv(() =>
