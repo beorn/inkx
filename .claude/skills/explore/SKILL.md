@@ -80,7 +80,7 @@ FUZZ_SEED=12345 bun test:fuzz                    # Reproducible run
 | **Peekaboo (`--peekaboo`)** | Interactive | Inspect live Ghostty terminal |
 | **Targeted** | Varies | User-described scenario first, then expand |
 
-**IMPORTANT: Always prefer headless mode** (`testEnv()`/`board.press()`/`board.screenshot()`) over GUI/TTY mode. Headless tests are faster, more reliable, and catch character-level issues. Only use `--gui` (TTY/Playwright) when pixel-level visual verification is explicitly needed. **If you must use TTY tools, always set timeout to 5000ms (5s)** to avoid hanging on unresponsive sessions — except `mcp__tty__start` which needs 10000ms (10s).
+**IMPORTANT: Always prefer headless mode** (`testEnv()`/`board.press()`/`board.screenshot()`) over GUI/TTY mode. Headless tests are faster, more reliable, and catch character-level issues. Only use `--gui` (TTY/Playwright) when pixel-level visual verification is explicitly needed. **If you must use TTY tools, always set timeout to 5000ms (5s)** to avoid hanging on unresponsive sessions — except `mcp__tty__start` which needs 15000ms (15s).
 
 <a name="gui-mode"></a>
 

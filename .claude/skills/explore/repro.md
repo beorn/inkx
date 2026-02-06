@@ -2,6 +2,20 @@
 
 When a bug cannot be reproduced in headless testing (timing-dependent, terminal-specific, etc.):
 
+## Step 0: Search Prior Sessions
+
+Before debugging from scratch:
+
+```bash
+bun recall "symptom keywords"
+bun recall --raw --since 2w "affected component"
+```
+
+Someone may have already investigated this exact issue. Check for:
+- Prior diagnosis or root cause analysis
+- Known workarounds or limitations
+- Related architectural decisions
+
 ## Step 1: Run with Debug Logging
 
 Tell user to run:

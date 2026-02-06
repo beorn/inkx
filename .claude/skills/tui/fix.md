@@ -13,6 +13,8 @@ argument-hint: [issue] (describe the visual bug, or "explore" for full check)
 2. **Use withDiagnostics** — it has checkIncremental, checkReplay, checkStability
 3. **Write to /tmp/** — diagnostics are exploratory, promote when stable
 4. **If tests pass but bug is visible** — fix the diagnostic tooling, don't blame terminals
+5. **Search history first** — `bun recall "bug keywords"` before writing tests. Prior sessions may have diagnosed the same area.
+6. **Root cause after fix** — after fixing, analyze: why did this happen? Why didn't tests catch it? What structural change prevents this class of bug? Create a prevention bead if non-trivial.
 
 ## Rendering Bugs (Ghost Chars, Stale Pixels, Wrong Content)
 
