@@ -22,17 +22,27 @@
  * ```
  */
 
-import React from "react"
-import { createRenderer, type App } from "inkx/testing"
+import React, { act } from "react"
+import { createStore, type StoreApi } from "zustand"
+import { createRenderer, keyToAnsi, type App } from "inkx/testing"
+import { StoreContext, parseKey } from "inkx/runtime"
 import { expect } from "vitest"
 import { createRepo, type Repo } from "@km/storage"
-import { runGenerator } from "@km/core"
+import { createBoardState } from "@km/board"
+import { runGenerator, createToastQueue } from "@km/core"
 
 import { Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
 import { createLayoutRegistry } from "../../src/card-positions.ts"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
+import {
+  createBoardAppStoreState,
+  type BoardAppStore,
+  type CreateBoardAppStoreParams,
+} from "../../src/board-app-store.ts"
+import { createInitialUIState } from "../../src/ui-reducer.ts"
+import { handleKey } from "../../src/board-app.ts"
 
 export interface TestBoardOptions {
   /** Terminal columns (default: 80) */
@@ -106,18 +116,97 @@ export async function testBoard(
   // Ensure command system is initialized before rendering
   ensureCommandSystemInitialized()
 
-  // Render
+  // Compute initial cursor
+  let initialCursorNodeId: string | null = null
+  if (initialState.columns.length > 0) {
+    const firstCol = initialState.columns[0]
+    if (firstCol && firstCol.cards.length > 0) {
+      initialCursorNodeId = firstCol.cards[0]?.node.id ?? firstCol.node.id
+    } else if (firstCol) {
+      initialCursorNodeId = firstCol.node.id
+    }
+  }
+
+  // Set up store (same pattern as driver/testEnv)
+  const registry = createLayoutRegistry()
+  const toastQueue = createToastQueue()
+
+  const initialLayout = {
+    columns: initialState.columns,
+    colIndex: 0,
+    cardIndex: 0,
+    subPath: [] as string[],
+    isAtCardLevel:
+      initialCursorNodeId !== null &&
+      initialState.columns.length > 0 &&
+      (initialState.columns[0]?.cards.length ?? 0) > 0,
+    isInOutlineMode: false,
+  }
+
+  const selectedCol = initialState.columns[0]
+  const selectedCard = selectedCol?.cards[0]
+  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+  const initialSelectionLevel: "board" | "column" | "card" =
+    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
+
+  const storeParams: CreateBoardAppStoreParams = {
+    repo,
+    toastQueue,
+    layoutRegistry: registry,
+    initialBoardState: createBoardState(
+      initialState.rootId,
+      initialState.rootPath,
+      initialCursorNodeId,
+    ),
+    initialUIState: createInitialUIState(
+      viewMode,
+      [...(initialState.collapsedColumns ?? [])],
+      { columns, rows },
+      initialState.rootId,
+    ),
+    initialLayout,
+    initialTUIBoardState: initialState,
+    initialSelectedNode,
+    initialSelectionLevel,
+    dimensions: { columns, rows },
+  }
+
+  const store = createStore<BoardAppStore>(
+    createBoardAppStoreState(storeParams),
+  )
+
+  // Render Board with StoreContext.Provider for L3 mode
   const render = createRenderer({ cols: columns, rows })
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},
-    layoutRegistry: createLayoutRegistry(),
+    toastQueue,
+    layoutRegistry: registry,
   })
   const result = render(
-    React.createElement(RepoProvider, { repo, children: boardElement }),
+    React.createElement(
+      StoreContext.Provider,
+      { value: store as StoreApi<unknown> },
+      React.createElement(RepoProvider, { repo, children: boardElement }),
+    ),
   )
+
+  // Override press to route through handleKey (same path as production)
+  const originalPress = result.press.bind(result)
+  const pressKey = (key: string) => {
+    const ansi = keyToAnsi(key)
+    const [input, parsedKey] = parseKey(ansi)
+    act(() => {
+      handleKey(
+        { input, key: parsedKey },
+        { get: store.getState, set: store.setState },
+        () => {},
+      )
+    })
+    void originalPress(key)
+  }
 
   // Return fluent API matching testEnv().board
   const board: TestBoardResult = {
@@ -125,7 +214,7 @@ export async function testBoard(
       return result.locator("[data-bell]").count() > 0
     },
     press: (key: string) => {
-      void result.press(key)
+      pressKey(key)
       return board
     },
     q: (selector: string) => result.locator(selector),

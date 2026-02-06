@@ -1,24 +1,29 @@
 /**
  * Board TUI
  *
- * Terminal interaction layer using Ink (React for CLI)
+ * Terminal interaction layer using createApp() (Layer 3).
+ * Keys flow through term:key handler → command system → store set() → React re-renders.
  */
 
 import { EventEmitter } from "events"
 import { writeSync } from "fs"
 import {
   createTerm,
-  render,
   patchConsole,
   IncrementalRenderMismatchError,
   InputLayerProvider,
 } from "inkx"
 import React from "react"
 import { createLogger, createToastQueue } from "@km/core"
+import { createBoardState } from "@km/board"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { SyncManager } from "@km/storage"
+import { createBoardApp } from "./board-app.ts"
+import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
+import { createInitialUIState } from "./ui-reducer.ts"
+import { createLayoutRegistry } from "./card-positions.ts"
 
 const log = createLogger("km:tui")
 const spanLog = createLogger("km:tui")
@@ -61,6 +66,20 @@ function restoreTerminal(): void {
 }
 
 /**
+ * Compute initial cursor node from board state.
+ * First card of first column, or first column if no cards.
+ */
+function computeInitialCursor(state: TUIBoardState): string | null {
+  if (state.columns.length === 0) return null
+  const firstCol = state.columns[0]
+  if (!firstCol) return null
+  if (firstCol.cards.length > 0) {
+    return firstCol.cards[0]?.node.id ?? firstCol.node.id
+  }
+  return firstCol.node.id
+}
+
+/**
  * Entry point for the board command
  *
  * State must already be loaded (via loadRepo) and board state built
@@ -92,11 +111,6 @@ export async function runBoard(
   log.debug?.(
     `TTY detection interactive=${interactive} hasInput=${term.hasInput()} isInteractive=${isInteractive}`,
   )
-
-  // Use term for interactive, TermDef with stdout for static
-  const renderOpts = isInteractive
-    ? term
-    : { width: term.cols, stdout: process.stdout }
 
   // Initialize filesystem sync if we have a repo path (only for interactive)
   // Watch can be disabled via: --no-watch CLI flag or config tui.watch=false
@@ -184,33 +198,81 @@ export async function runBoard(
     options?.spinner?.stop()
     log.debug?.(`Starting TUI isInteractive=${isInteractive}`)
 
-    let instance: Awaited<ReturnType<typeof render>>
+    // Build store parameters from initial board state
+    const initialCursorNodeId = computeInitialCursor(state)
+    const cols = term.cols
+    const rows = term.rows
+
+    const initialLayout = {
+      columns: state.columns,
+      colIndex: 0,
+      cardIndex: 0,
+      subPath: [] as string[],
+      isAtCardLevel:
+        initialCursorNodeId !== null &&
+        state.columns.length > 0 &&
+        (state.columns[0]?.cards.length ?? 0) > 0,
+      isInOutlineMode: false,
+    }
+
+    const selectedCol = state.columns[0]
+    const selectedCard = selectedCol?.cards[0]
+    const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+    const initialSelectionLevel: "board" | "column" | "card" =
+      initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
+
+    const viewMode = options?.initialViewMode ?? "cards"
+
+    const storeParams: CreateBoardAppStoreParams = {
+      repo: options.repo,
+      toastQueue,
+      layoutRegistry: createLayoutRegistry(),
+      initialBoardState: createBoardState(
+        state.rootId,
+        state.rootPath,
+        initialCursorNodeId,
+      ),
+      initialUIState: createInitialUIState(
+        viewMode,
+        [...(state.collapsedColumns ?? [])],
+        { columns: cols, rows },
+        state.rootId,
+      ),
+      initialLayout,
+      initialTUIBoardState: state,
+      initialSelectedNode,
+      initialSelectionLevel,
+      dimensions: { columns: cols, rows },
+    }
+
+    // Create L3 app (Zustand store + term:key handler)
+    const boardApp = createBoardApp(storeParams)
+
     {
       using _ = run.span("render-setup")
-      instance = await render(
+      const handle = await boardApp.run(
         <RepoProvider repo={options.repo}>
           <InputLayerProvider>
             <BoardApp
               initialState={state}
-              initialViewMode={options?.initialViewMode}
+              initialViewMode={viewMode}
               patchedConsole={patched}
               toastQueue={toastQueue}
             />
           </InputLayerProvider>
         </RepoProvider>,
-        renderOpts,
-        { alternateScreen: isInteractive, patchConsole: false },
+        isInteractive ? { alternateScreen: true } : { cols, rows }, // headless: cols+rows without stdout
       )
+
+      // Now that alternate screen is active, notify caller (CLI uses this
+      // to flush buffered debug output to Console component)
+      if (patched) options?.onReady?.()
+
+      // End the run span before blocking on waitUntilExit (TUI is now running)
+      run.end()
+
+      await handle.waitUntilExit()
     }
-
-    // Now that alternate screen is active, notify caller (CLI uses this
-    // to flush buffered debug output to Console component)
-    if (patched) options?.onReady?.()
-
-    // End the run span before blocking on waitUntilExit (TUI is now running)
-    run.end()
-
-    await instance.waitUntilExit()
   } finally {
     // toastQueue is cleaned up automatically via `using` (Symbol.dispose)
 
