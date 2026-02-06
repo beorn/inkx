@@ -256,11 +256,14 @@ function TreeNodeImpl({
           : displayNode.content || getNodeDisplayName(repo, displayNode)
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
 
-  // Compute body blocks when editing (for per-block navigation)
-  const bodyChildren = useMemo(() => {
-    if (!isInlineEditing) return []
+  // Compute body/structural split when editing (for per-block navigation)
+  const { bodyChildren, structuralChildren } = useMemo(() => {
+    if (!isInlineEditing) {
+      return { bodyChildren: [] as TNode[], structuralChildren: [] as TNode[] }
+    }
     const allChildren = resolvedGetChildren(childrenSourceId)
-    return extractBody(allChildren).body
+    const { body, items } = extractBody(allChildren)
+    return { bodyChildren: body, structuralChildren: items }
   }, [isInlineEditing, childrenSourceId, resolvedGetChildren])
 
   // Title save callback (persists without exiting edit mode)
@@ -507,8 +510,8 @@ function TreeNodeImpl({
           )
         })}
 
-      {/* Children (normal rendering — hidden when in block edit mode to avoid duplication) */}
-      {!isInlineEditing && hasChildren && !isFolded && depth < maxDepth && (
+      {/* Children: during editing show only structural (body is rendered as editable blocks above) */}
+      {hasChildren && !isFolded && depth < maxDepth && (
         <ErrorBoundary
           fallback={
             <Text color="red" dim>
@@ -517,7 +520,7 @@ function TreeNodeImpl({
           }
         >
           <NodeChildren
-            children={visibleChildren}
+            children={isInlineEditing ? structuralChildren : visibleChildren}
             colIndex={colIndex}
             cardIndex={cardIndex}
             startSubIndex={subIndex + 1}
@@ -525,7 +528,7 @@ function TreeNodeImpl({
             inOutlineMode={inOutlineMode}
             currentSubIndex={currentSubIndex}
             dimInactiveChildren={dimInactiveChildren}
-            hiddenCount={hiddenCount}
+            hiddenCount={isInlineEditing ? 0 : hiddenCount}
             getChildren={resolvedGetChildren}
             getParentContext={resolvedGetParentContext}
             getBoardPills={getBoardPills}
