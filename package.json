@@ -30,6 +30,7 @@
     "km:safe": "./scripts/km-safe.sh",
     "worktree": "bun vendor/beorn-tools/tools/worktree.ts",
     "history": "bun vendor/beorn-tools/tools/history.ts",
+    "recall": "bun vendor/beorn-tools/tools/recall.ts",
     "llm": "bun vendor/beorn-tools/tools/llm.ts",
     "refactor": "bun vendor/beorn-tools/tools/refactor.ts",
     "tap": "bun ./vendor/beorn-tap/src/cli/runner.ts",
