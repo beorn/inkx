@@ -19,6 +19,7 @@ Review tests for pruning, overlap, and architecture alignment.
 - [Phase 1: Inventory](#phase-1-inventory)
 - [Phase 1.5: DI Compliance Check](#phase-15-di-compliance-check)
 - [Phase 1.6: Test Setup Complexity Check](#phase-16-test-setup-complexity-check)
+- [Phase 1.7: Expensive Fixture Setup Check](#phase-17-expensive-fixture-setup-check)
 - [Phase 2: Layer Analysis](#phase-2-layer-analysis)
 - [Phase 3: Overlap Detection](#phase-3-overlap-detection)
 - [Phase 4: Smell Detection](#phase-4-smell-detection)
@@ -152,6 +153,39 @@ grep -rn "^export \(function\|const\) create.*\(For\|In\)Test" packages/*/tests 
 3. If not, refactor production to expose composable construction
 4. Simplify test setup to call production factories with test dependencies
 
+## Phase 1.7: Expensive Fixture Setup Check
+
+Look for test files where fixture setup (testEnv, createTestBoard, createBoardDriver) is duplicated:
+
+```bash
+# Count expensive setup calls per file (testEnv, createTestBoard, createBoardDriver)
+echo "=== Expensive Setup Calls Per File ==="
+for f in apps/km-tui/tests/*.test.ts apps/km-tui/tests/*.spec.ts apps/km-tui/tests/*.test.tsx apps/km-tui/tests/*.spec.tsx; do
+  [ -f "$f" ] || continue
+  count=$(grep -c 'testEnv\|createTestBoard\|createBoardDriver' "$f" 2>/dev/null)
+  [ "$count" -gt 5 ] && echo "  $count calls: $(basename "$f")"
+done | sort -rn
+
+# Find identical fixtures that could be shared
+echo -e "\n=== Potentially Shareable Fixtures ==="
+echo "(Files with >15 setup calls are candidates for combining tests)"
+for f in apps/km-tui/tests/*.test.ts apps/km-tui/tests/*.spec.ts; do
+  [ -f "$f" ] || continue
+  count=$(grep -c 'testEnv\|createTestBoard\|createBoardDriver' "$f" 2>/dev/null)
+  [ "$count" -gt 15 ] && echo "  $count calls: $(basename "$f") - review for shared fixtures"
+done
+```
+
+**Red flags:**
+- **>15 testEnv() calls in a single file**: Tests with identical fixtures should share setup
+- **Identical `item()` trees across tests**: Combine into longer journey tests (per board.spec.ts philosophy)
+- **testEnv() inside test.each()**: Each iteration creates a new board — consider sharing where possible
+
+**Resolution pattern:**
+1. Identify tests with identical fixtures
+2. Combine into longer journey tests that exercise multiple behaviors with one fixture
+3. Preserve test isolation: only combine when navigation can be reset between assertions
+
 ## Phase 2: Layer Analysis
 
 Use Task agents in parallel to analyze each layer:
@@ -213,6 +247,12 @@ Apply checklist from `docs/dev/test-review.md`:
 - > 10 mocks → move up
 - Pure function with database → move down
 
+**Optimize candidates**:
+
+- Identical fixtures across tests (combine into journey tests)
+- >15 testEnv() calls per file (expensive board setup)
+- Loop-based navigation with >20 items (reduce dataset size)
+
 **Refactor candidates** (test setup complexity):
 
 - Test helper that mirrors production factory (e.g., `createTestRepo` vs `createRepo`)
@@ -262,10 +302,11 @@ Output structured findings:
 
 ### Performance
 
-| Metric              | Value | Target | Status |
-| ------------------- | ----- | ------ | ------ |
-| test:fast time      | Xs    | <5s    | ✅/❌  |
-| Unmarked slow tests | N     | 0      | ✅/❌  |
+| Metric                  | Value | Target   | Status |
+| ----------------------- | ----- | -------- | ------ |
+| test:fast time          | Xs    | <5s      | ✅/❌  |
+| Unmarked slow tests     | N     | 0        | ✅/❌  |
+| Fixture setup calls     | N     | <varies> | ⚠️/✅  |
 
 ### By Layer
 

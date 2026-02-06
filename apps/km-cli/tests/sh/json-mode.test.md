@@ -1,6 +1,7 @@
 ---
 mdtest:
   plugin: ../mdtest-sh-plugin.ts
+  # memory: true not feasible - test runs km sync and creates real files
 ---
 
 # km sh - JSON Mode Tests

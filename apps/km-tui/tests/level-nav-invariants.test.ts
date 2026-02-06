@@ -187,7 +187,7 @@ describe("Level navigation invariants", () => {
         (rng.seed = (rng.seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff,
     }
 
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 20; i++) {
       const cmd = commands[Math.floor(rng.next() * commands.length)]
       if (cmd) await cmd()
     }

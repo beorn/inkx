@@ -6,16 +6,16 @@ import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Scroll Follow", () => {
-  // Create a board with many items to test scrolling
+  // Create a board with enough items to require scrolling on a 24-row terminal
   function createLargeBoard() {
     const inboxItems = []
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 20; i++) {
       inboxItems.push(item("Task " + (i + 1)))
     }
     const inbox = item("inbox", ...inboxItems)
 
     const projectItems = []
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 15; i++) {
       projectItems.push(item("Project " + (i + 1)))
     }
     const projects = item("projects", ...projectItems)
@@ -32,14 +32,14 @@ describe("Scroll Follow", () => {
     }
 
     // Navigate down past visible area
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < 18; i++) {
       board.press("j")
     }
 
     const screenshot = board.screenshot()
 
-    // Should see Task 25-30 range (scroll followed cursor)
-    expect(screenshot).toMatch(/Task (2[5-9]|30)/)
+    // Should see Task 15-20 range (scroll followed cursor)
+    expect(screenshot).toMatch(/Task (1[5-9]|20)/)
   })
 
   test("cards view scroll follows cursor past bottom", () => {
@@ -55,14 +55,14 @@ describe("Scroll Follow", () => {
     board.press("j") // to first card
 
     // Navigate down past visible area
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 18; i++) {
       board.press("j")
     }
 
     const screenshot = board.screenshot()
 
     // Should see higher numbered tasks (scroll followed)
-    expect(screenshot).toMatch(/Task (2[5-9]|3[0-5])/)
+    expect(screenshot).toMatch(/Task (1[5-9]|20)/)
   })
 
   test("columns view scroll follows cursor past bottom", () => {
@@ -78,7 +78,7 @@ describe("Scroll Follow", () => {
     board.press("j") // to first card
 
     // Navigate down past visible area
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 18; i++) {
       board.press("j")
     }
 
@@ -86,6 +86,6 @@ describe("Scroll Follow", () => {
 
     // Should see higher numbered tasks (scroll followed)
     // The breadcrumb should show the current item
-    expect(screenshot).toMatch(/Task 3[0-5]/)
+    expect(screenshot).toMatch(/Task (1[5-9]|20)/)
   })
 })

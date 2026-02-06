@@ -317,7 +317,7 @@ describe("ANSI diff analysis", () => {
             item("Fix bike tire"),
           ),
         ),
-        { rows: 40, columns: 120 },
+        { rows: 20, columns: 80 },
       )
     }
 

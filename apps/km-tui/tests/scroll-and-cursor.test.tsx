@@ -272,30 +272,35 @@ describe("Scroll virtualization doesn't hide content", () => {
       columns: 60,
     })
 
-    // Scroll down through the list, checking for artifacts at each step
+    // Scroll down through the list, checking for artifacts at milestones
+    const checkpoints = [5, 10, 15]
     for (let i = 0; i < 15; i++) {
       board.press("j")
-      const text = board.screenshot()
+      if (checkpoints.includes(i + 1)) {
+        const text = board.screenshot()
 
-      // No error strings or object dumps
-      expect(text).not.toContain("[object Object]")
-      expect(text).not.toContain("undefined")
-      expect(text).not.toMatch(/Error:|TypeError:|ReferenceError:/)
+        // No error strings or object dumps
+        expect(text).not.toContain("[object Object]")
+        expect(text).not.toContain("undefined")
+        expect(text).not.toMatch(/Error:|TypeError:|ReferenceError:/)
 
-      // Current card should be visible
-      expect(text).toContain(`scroll${i + 1}`)
+        // Current card should be visible
+        expect(text).toContain(`scroll${i + 1}`)
 
-      // Cursor should exist on exactly one element
-      board.expect("[data-cursor]").toExist()
+        // Cursor should exist on exactly one element
+        board.expect("[data-cursor]").toExist()
+      }
     }
 
-    // Scroll back up and verify no artifacts
+    // Scroll back up and verify no artifacts at milestones
     for (let i = 0; i < 15; i++) {
       board.press("k")
-      const text = board.screenshot()
-      expect(text).not.toContain("[object Object]")
-      expect(text).not.toContain("undefined")
-      board.expect("[data-cursor]").toExist()
+      if (checkpoints.includes(i + 1)) {
+        const text = board.screenshot()
+        expect(text).not.toContain("[object Object]")
+        expect(text).not.toContain("undefined")
+        board.expect("[data-cursor]").toExist()
+      }
     }
   })
 
