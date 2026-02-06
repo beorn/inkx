@@ -28,22 +28,31 @@ Pixel-level screenshot verification for regression testing using the `tty` MCP s
 
 ## MCP Interactive Workflow
 
-Use `mcp__tty__*` tools from the `tty` MCP server:
+Use `mcp__tty__*` tools from the `tty` MCP server.
+
+**CRITICAL: TTY tools frequently hang.** Always use short timeouts to fail fast:
+
+| Tool | Timeout | Why |
+|------|---------|-----|
+| `mcp__tty__start` | 10s | Process launch is slower |
+| All other tools | 5s | Should respond instantly; hang = broken session |
+
+If any call hangs past its timeout, stop the session (`mcp__tty__stop`) and retry from scratch. Do NOT increase timeouts — a hang means the session is stuck.
 
 ```
-1. mcp__tty__start({ command: ["bun", "km", "view", "/path"] })
+1. mcp__tty__start({ command: ["bun", "km", "view", "/path"] })  // timeout: 10s
    -> { sessionId: "abc123", url: "http://127.0.0.1:7701" }
 
-2. mcp__tty__wait({ sessionId: "abc123", for: "BOARD VIEW" })
+2. mcp__tty__wait({ sessionId: "abc123", for: "BOARD VIEW" })    // timeout: 5s
    -> { success: true }
 
-3. mcp__tty__press({ sessionId: "abc123", key: "j" })
+3. mcp__tty__press({ sessionId: "abc123", key: "j" })            // timeout: 5s
    -> { success: true }
 
-4. mcp__tty__screenshot({ sessionId: "abc123" })
+4. mcp__tty__screenshot({ sessionId: "abc123" })                  // timeout: 5s
    -> Returns PNG image
 
-5. mcp__tty__stop({ sessionId: "abc123" })
+5. mcp__tty__stop({ sessionId: "abc123" })                        // timeout: 5s
    -> { success: true }
 ```
 
@@ -118,6 +127,7 @@ Run with: `bunx playwright test example.playwright-test.ts`
 
 | Problem | Solution |
 |---------|----------|
+| Tool call hangs | Stop session, start fresh. Never increase timeout. |
 | Chromium not found | Installed automatically on first `mcp__tty__start` |
 | Session not found | Use `mcp__tty__list` to check active sessions |
 | Blank screenshot | Use `mcp__tty__wait` before screenshot |
