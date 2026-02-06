@@ -131,9 +131,9 @@ export function refreshBoardState(
     cardIndex?: number | ((col: { cards: CardState[] } | undefined) => number)
   },
 ): void {
-  // NOTE: No longer dispatches REFRESH action - columns are now derived from
-  // repo at render time via useColumns hook. React automatically re-renders
-  // when repo.stats.nodeCount changes.
+  // Columns are derived from repo via useColumns hook, which subscribes to
+  // repo mutations via useSyncExternalStore. This function only needs to
+  // update the cursor position after mutations.
 
   // Query repo to calculate new cursor position
   const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
@@ -160,8 +160,7 @@ export function refreshBoardState(
   const maxCardIndex = Math.max(0, cards.length - 1)
   cardIndex = Math.min(cardIndex, maxCardIndex)
 
-  // Always dispatch SELECT to force re-render after mutations.
-  // Mutations change repo.version but useMemo only re-evaluates on re-render.
+  // Dispatch SELECT to update cursor position after mutations.
   const targetCard = cards[cardIndex]
   ctx.dispatchBoard({
     type: "SELECT",

@@ -7,7 +7,7 @@
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
-import { useMemo } from "react"
+import { useMemo, useSyncExternalStore } from "react"
 import { createLogger } from "@beorn/logger"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
@@ -29,6 +29,10 @@ const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
 /**
  * Derive columns from Repo for rendering.
  *
+ * Uses useSyncExternalStore to subscribe to repo mutations — columns
+ * automatically recompute when any mutation (updateNode, moveNode, etc.)
+ * occurs, without requiring manual dispatch at each call site.
+ *
  * @param repo - Repo instance
  * @param rootId - Current zoom root (null for repo root)
  * @param foldedNodes - Set of folded node IDs
@@ -39,6 +43,9 @@ export function useColumns(
   rootId: string | null,
   foldedNodes: Set<string>,
 ): ColumnState[] {
+  // Subscribe to repo mutations — triggers re-render on any mutation
+  const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
+
   return useMemo(() => {
     const start = performance.now()
     const result = deriveColumnsFromRepo(repo, rootId, foldedNodes)
@@ -49,7 +56,7 @@ export function useColumns(
       )
     }
     return result
-  }, [repo.version, rootId, foldedNodes])
+  }, [repoVersion, rootId, foldedNodes])
 }
 
 /**

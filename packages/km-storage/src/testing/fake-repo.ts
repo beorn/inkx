@@ -85,6 +85,10 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   let nextId = 1
   let closed = false
   let mutationVersion = 0
+  const listeners = new Set<() => void>()
+  function notifyListeners() {
+    for (const cb of listeners) cb()
+  }
 
   // Initialize with provided data
   reset()
@@ -127,6 +131,15 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     },
     set version(v: number) {
       mutationVersion = v
+    },
+    subscribe(callback: () => void) {
+      listeners.add(callback)
+      return () => {
+        listeners.delete(callback)
+      }
+    },
+    getSnapshot() {
+      return mutationVersion
     },
 
     get stats() {
@@ -312,6 +325,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       }
       nodes.set(id, { ...node, ...changes, id })
       mutationVersion++
+      notifyListeners()
     },
 
     moveNode(id, newParentId, position) {
@@ -322,6 +336,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       }
       nodes.set(id, { ...node, parent_id: newParentId, parent_idx: position })
       mutationVersion++
+      notifyListeners()
     },
 
     deleteNode(id) {
@@ -330,6 +345,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       // Remove any links from/to this node
       links = links.filter((l) => l.source_id !== id && l.target_id !== id)
       mutationVersion++
+      notifyListeners()
     },
 
     addNode(parentId, nodeData) {
@@ -356,6 +372,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
       nodes.set(id, node)
       mutationVersion++
+      notifyListeners()
       return id
     },
 

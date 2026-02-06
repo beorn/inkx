@@ -157,7 +157,7 @@ function createQueryMethods(deps: RepoMethodDeps) {
 /** Create mutation methods shared by createRepo and createBareRepo */
 function createMutationMethods(
   deps: RepoMethodDeps,
-  repo: { version: number },
+  state: { version: number; notify(): void },
 ) {
   const { dataStore, hooks } = deps
   return {
@@ -169,8 +169,9 @@ function createMutationMethods(
         if (result?.context) ctx = result.context
       }
       dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
-      repo.version++
+      state.version++
       hooks?.afterMutation?.(ctx)
+      state.notify()
     },
     moveNode(id: string, newParentId: string, position: number) {
       let ctx: MutationContext = {
@@ -189,8 +190,9 @@ function createMutationMethods(
         ctx.newParentId ?? newParentId,
         ctx.position ?? position,
       )
-      repo.version++
+      state.version++
       hooks?.afterMutation?.(ctx)
+      state.notify()
     },
     deleteNode(id: string) {
       let ctx: MutationContext = { type: "delete", nodeId: id }
@@ -200,8 +202,9 @@ function createMutationMethods(
         if (result?.context) ctx = result.context
       }
       dataStore.deleteNode(ctx.nodeId)
-      repo.version++
+      state.version++
       hooks?.afterMutation?.(ctx)
+      state.notify()
     },
     addNode(parentId: string | null, node: Partial<KNode>) {
       let ctx: MutationContext = { type: "add", nodeId: "", node }
@@ -212,8 +215,9 @@ function createMutationMethods(
       }
       const newId = dataStore.addNode(parentId, ctx.node ?? node)
       ctx.nodeId = newId
-      repo.version++
+      state.version++
       hooks?.afterMutation?.(ctx)
+      state.notify()
       return newId
     },
     cloneTask(sourceId: string, changes: Partial<KNode>) {
@@ -386,10 +390,18 @@ export interface Repo extends Disposable {
   readonly stats: RepoStats
 
   /** Mutation counter — incremented on every updateNode/moveNode/deleteNode/addNode.
-   *  Use in React useMemo deps to invalidate caches after mutations.
    *  Note: implemented as getter/setter (not plain property) because mutation
    *  methods share state via a versionHolder closure — see createRepo comment. */
   version: number
+
+  /**
+   * Subscribe to mutation events. Callback is invoked after each mutation.
+   * Returns an unsubscribe function. Use with React's useSyncExternalStore.
+   */
+  subscribe(callback: () => void): () => void
+
+  /** Returns current version — stable reference for useSyncExternalStore. */
+  getSnapshot(): number
 
   /** Files pending deferred parsing (for discoverOnly mode) */
   readonly deferredFiles: DeferredFile[]
@@ -889,19 +901,34 @@ export function* createRepo(
   const queryMethods = createQueryMethods(methodDeps)
   // Version holder — shared between mutation methods and the repo object.
   // Getter/setter needed: mutation methods are created before `repo` exists,
-  // so they increment versionHolder.version via closure. The getter aliases
-  // repo.version → versionHolder.version to keep them in sync.
-  const versionHolder = { version: 0 }
-  const mutationMethods = createMutationMethods(methodDeps, versionHolder)
+  // so they increment state.version via closure. The getter aliases
+  // repo.version → state.version to keep them in sync.
+  const listeners = new Set<() => void>()
+  const state = {
+    version: 0,
+    notify() {
+      for (const cb of listeners) cb()
+    },
+  }
+  const mutationMethods = createMutationMethods(methodDeps, state)
 
   const repo: Repo = {
     path: rootPath,
     mode,
     get version() {
-      return versionHolder.version
+      return state.version
     },
     set version(v: number) {
-      versionHolder.version = v
+      state.version = v
+    },
+    subscribe(callback: () => void) {
+      listeners.add(callback)
+      return () => {
+        listeners.delete(callback)
+      }
+    },
+    getSnapshot() {
+      return state.version
     },
     get data() {
       ensureOpen()
@@ -1062,17 +1089,32 @@ export function createBareRepo(
   const methodDeps: RepoMethodDeps = { db, dataStore, hooks }
   const queryMethods = createQueryMethods(methodDeps)
   // See comment in createRepo for why getter/setter is needed here
-  const versionHolder = { version: 0 }
-  const mutationMethods = createMutationMethods(methodDeps, versionHolder)
+  const listeners = new Set<() => void>()
+  const state = {
+    version: 0,
+    notify() {
+      for (const cb of listeners) cb()
+    },
+  }
+  const mutationMethods = createMutationMethods(methodDeps, state)
 
   const repo: Repo = {
     path: repoPath,
     mode: "memory" as const,
     get version() {
-      return versionHolder.version
+      return state.version
     },
     set version(v: number) {
-      versionHolder.version = v
+      state.version = v
+    },
+    subscribe(callback: () => void) {
+      listeners.add(callback)
+      return () => {
+        listeners.delete(callback)
+      }
+    },
+    getSnapshot() {
+      return state.version
     },
     get data() {
       ensureOpen()

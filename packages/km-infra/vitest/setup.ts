@@ -22,9 +22,26 @@ import "../../../apps/km-tui/tests/helpers/matchers.js"
 process.stdout.isTTY = false
 process.stderr.isTTY = false
 
-// Suppress React act() warnings: inkx test renderer handles state updates
-// synchronously without act() wrapping. React's act() detection causes
-// spurious "not wrapped in act(...)" warnings on every press() call.
+// Suppress React act() warnings from useSyncExternalStore:
+// When vitest runs multiple test files in the same thread, IS_REACT_ACT_ENVIRONMENT
+// (set to true by inkx/testing) bleeds across files. This causes non-deterministic
+// "not wrapped in act(...)" warnings when useSyncExternalStore subscriptions fire
+// between act() boundaries. The warnings are harmless — inkx's sendInput() properly
+// wraps mutations in act(). We patch console.error permanently (not via vi.spyOn)
+// to catch warnings that fire between beforeEach/afterEach lifecycle boundaries.
+const _originalConsoleError = console.error
+console.error = function (...args: unknown[]) {
+  if (
+    typeof args[0] === "string" &&
+    args[0].includes("was not wrapped in act(")
+  ) {
+    return
+  }
+  _originalConsoleError.apply(console, args)
+}
+
+// Also set IS_REACT_ACT_ENVIRONMENT to false as a baseline, though inkx/testing
+// will override it to true when imported.
 globalThis.IS_REACT_ACT_ENVIRONMENT = false
 
 // INKX_STRICT: Opt-in incremental vs fresh render comparison.
@@ -69,15 +86,6 @@ beforeEach(() => {
   // Spy on console methods
   for (const method of CONSOLE_METHODS) {
     vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
-      // Suppress React act() warnings — inkx test renderer handles state
-      // updates synchronously; React's act() detection is a false positive.
-      if (
-        method === "error" &&
-        typeof args[0] === "string" &&
-        args[0].includes("was not wrapped in act(...)")
-      ) {
-        return
-      }
       consoleCalls.push({ method, args })
     })
   }
