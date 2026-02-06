@@ -17,7 +17,10 @@ import type { Key } from "inkx"
 import { createLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
-import { createBoardAppStoreState, type CreateBoardAppStoreParams } from "./board-app-store.ts"
+import {
+  createBoardAppStoreState,
+  type CreateBoardAppStoreParams,
+} from "./board-app-store.ts"
 import { actions } from "./ui-reducer.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext } from "./command-bridge.ts"
@@ -50,7 +53,13 @@ function buildContextFromStore(get: () => BoardAppStore): TUIContext {
     dispatchBoard: (action) => state.dispatchBoard(action),
     exit: () => {}, // Set by the app runner
     countVisibleDescendants: (node, depth, maxDepth, foldedNodes) => {
-      return countVisibleDescendants(state.repo, node, depth, maxDepth, foldedNodes)
+      return countVisibleDescendants(
+        state.repo,
+        node,
+        depth,
+        maxDepth,
+        foldedNodes,
+      )
     },
   })
 }
@@ -63,7 +72,7 @@ function buildContextFromStore(get: () => BoardAppStore): TUIContext {
  * but using get()/set() instead of dispatch().
  */
 // oxlint-disable-next-line complexity/max-cognitive, complexity/max-cyclomatic -- Keyboard routing with dialog/modal state guards
-function handleKey(
+export function handleKey(
   data: { input: string; key: Key },
   ctx: EventHandlerContext<BoardAppStore>,
   exitApp: () => void,
@@ -74,23 +83,14 @@ function handleKey(
   ensureCommandSystemInitialized()
 
   const ui = get().ui
+  const dialogOpen =
+    ui.showSearchDialog || ui.showNewItemDialog || ui.showProjectPicker
 
-  // Dialog modes have their own input handling via dialog components
-  if (ui.showNewItemDialog || ui.showProjectPicker) {
+  // When a dialog is open, route through the command system directly
+  // (dialog and text commands are matched via when predicates)
+  if (dialogOpen) {
+    routeThroughCommandSystem(input, key, get, exitApp)
     return
-  }
-
-  // Search dialog: only process text-editing-relevant keys
-  if (ui.showSearchDialog) {
-    const isTextKey =
-      (input.length === 1 && input >= " " && !key.ctrl && !key.meta) ||
-      key.backspace ||
-      key.delete ||
-      (key.ctrl &&
-        ["a", "e", "b", "f", "w", "u", "k"].includes(input.toLowerCase()))
-    if (!isTextKey) {
-      return
-    }
   }
 
   // Help overlay blocks most keys - only allow dismiss keys
@@ -124,10 +124,14 @@ function handleKey(
     const { toastQueue } = get()
     const examples = [
       () => toastQueue.success("Task completed!"),
-      () => toastQueue.error("Failed to save", { description: "Network error" }),
+      () =>
+        toastQueue.error("Failed to save", { description: "Network error" }),
       () => toastQueue.warning("Disk space low"),
       () => toastQueue.info("3 tasks selected"),
-      () => toastQueue.info("File deleted", { action: { label: "Undo", trigger: "z" } }),
+      () =>
+        toastQueue.info("File deleted", {
+          action: { label: "Undo", trigger: "z" },
+        }),
     ]
     const randomToast = examples[Math.floor(Math.random() * examples.length)]
     randomToast?.()
@@ -140,18 +144,44 @@ function handleKey(
     return
   }
 
-  // Build TUIContext from store state for command processing
+  routeThroughCommandSystem(input, key, get, exitApp)
+}
+
+/**
+ * Route key through the command system and handle resulting actions.
+ * When a dialog is open, only dialog.* and text.* commands are processed.
+ */
+function routeThroughCommandSystem(
+  input: string,
+  key: Key,
+  get: () => BoardAppStore,
+  exitApp: () => void,
+): void {
   const tuiContext: TUIContext = {
     ...buildContextFromStore(get),
     exit: exitApp,
   }
 
-  // Route ALL keys through the command system
   const keyStart = performance.now()
   const result = processKeyWithContext(input, key, tuiContext)
 
   if (result.handled && result.actions) {
-    const actionList = Array.isArray(result.actions) ? result.actions : [result.actions]
+    const actionList = Array.isArray(result.actions)
+      ? result.actions
+      : [result.actions]
+
+    // When a dialog is open, only process dialog and text commands
+    const dialogOpen =
+      tuiContext.ui.showSearchDialog ||
+      tuiContext.ui.showNewItemDialog ||
+      tuiContext.ui.showProjectPicker
+    if (dialogOpen && result.commandId) {
+      const isDialogOrTextCommand =
+        result.commandId.startsWith("dialog.") ||
+        result.commandId.startsWith("text.")
+      if (!isDialogOrTextCommand) return
+    }
+
     for (const action of actionList) {
       const actionStart = performance.now()
       const actionResult = handleCommandAction(tuiContext, action)
@@ -166,7 +196,9 @@ function handleKey(
         get().dispatchUI(
           actions.setStatus({
             level: "warning",
-            message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
+            message:
+              actionResult.error.message ??
+              `Can't move ${actionResult.error.direction}`,
           }),
         )
         // Output actual bell character to terminal
@@ -193,10 +225,7 @@ function handleKey(
 export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
   let exitFn: (() => void) | null = null
 
-  const app = createApp<
-    Record<string, unknown>,
-    BoardAppStore
-  >(
+  const app = createApp<Record<string, unknown>, BoardAppStore>(
     () => createBoardAppStoreState(storeParams),
     {
       "term:key": (data, ctx) => {
@@ -217,13 +246,17 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
       const runner = originalRun(...args)
       // Wrap the promise to capture the handle
       return {
-        then: (onfulfilled?: any, onrejected?: any) => {
-          return runner.then((handle: any) => {
+        then(
+          onfulfilled?: ((value: unknown) => unknown) | null,
+          onrejected?: ((reason: unknown) => unknown) | null,
+        ) {
+          return runner.then((handle) => {
             exitFn = () => handle.unmount()
             return onfulfilled ? onfulfilled(handle) : handle
           }, onrejected)
         },
-        [Symbol.asyncIterator]: () => (runner as any)[Symbol.asyncIterator](),
+        [Symbol.asyncIterator]: () =>
+          (runner as AsyncIterable<unknown>)[Symbol.asyncIterator](),
       } as typeof runner
     },
   }
@@ -246,7 +279,13 @@ function countVisibleDescendants(
   const children = repo.getChildren(node.id).slice(0, 10)
   let count = children.length
   for (const child of children) {
-    count += countVisibleDescendants(repo, child, depth + 1, maxDepth, foldedNodes)
+    count += countVisibleDescendants(
+      repo,
+      child,
+      depth + 1,
+      maxDepth,
+      foldedNodes,
+    )
   }
   return count
 }

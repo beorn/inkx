@@ -4,12 +4,17 @@
  * Fuzzy search picker for re-parenting tasks to different projects.
  * Press 'p' on a task to open, search to filter, Enter to move.
  */
-import React, { useCallback } from "react"
-import { Box, Text, useInputLayer, type Key } from "inkx"
+import React from "react"
+import { Box, Text } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
+import { dialogTargetRef } from "../dialog-target.ts"
+import {
+  blockEditTargetRef,
+  type BlockEditTarget,
+} from "../block-edit-target.ts"
 import {
   createSuspenseLoader,
   type SuspenseLoader,
@@ -325,58 +330,87 @@ export function ProjectPicker({
   selectedIndexRef.current = selectedIndex
   const queryRef = React.useRef(query)
   queryRef.current = query
+  const onCancelRef = React.useRef(onCancel)
+  onCancelRef.current = onCancel
+  const onSelectRef = React.useRef(onSelect)
+  onSelectRef.current = onSelect
 
-  useInputLayer(
-    "project-picker",
-    useCallback(
-      (input: string, key: Key): boolean => {
-        if (key.escape) {
-          onCancel()
-          return true
-        }
-
-        if (key.return) {
-          // Need to get results synchronously for selection
-          if (loaderRef.current?.status === "resolved") {
-            const allOptions = loaderRef.current.read()
-            const filtered = filterOptions(allOptions, queryRef.current)
-            const selected = filtered[selectedIndexRef.current]
-            if (selected) {
-              onSelect(selected.node)
-            }
-          }
-          return true
-        }
-
-        if (key.upArrow || (key.ctrl && input === "p")) {
-          setSelectedIndex((i) => Math.max(0, i - 1))
-          return true
-        }
-
-        if (key.downArrow || (key.ctrl && input === "n")) {
-          setSelectedIndex((i) => i + 1) // Will be clamped by rendering
-          return true
-        }
-
-        if (key.backspace || key.delete) {
-          setQuery((q) => q.slice(0, -1))
-          setSelectedIndex(0)
-          return true
-        }
-
-        // Regular character input
-        if (input.length === 1 && input >= " ") {
-          setQuery((q) => q + input)
-          setSelectedIndex(0)
-          return true
-        }
-
-        // Let unhandled keys bubble
-        return false
+  // Register dialog target for command system navigation
+  // and block edit target for text input
+  React.useLayoutEffect(() => {
+    dialogTargetRef.current = {
+      navUp() {
+        setSelectedIndex((i) => Math.max(0, i - 1))
       },
-      [onCancel, onSelect],
-    ),
-  )
+      navDown() {
+        setSelectedIndex((i) => i + 1) // Clamped by rendering
+      },
+      confirm() {
+        if (loaderRef.current?.status === "resolved") {
+          const allOptions = loaderRef.current.read()
+          const filtered = filterOptions(allOptions, queryRef.current)
+          const selected = filtered[selectedIndexRef.current]
+          if (selected) {
+            onSelectRef.current(selected.node)
+          }
+        }
+      },
+      cancel() {
+        onCancelRef.current()
+      },
+    }
+
+    // Simple text edit target for query input
+    const textTarget: BlockEditTarget = {
+      insertChar(char: string) {
+        setQuery((q) => q + char)
+        setSelectedIndex(0)
+      },
+      deleteBackward() {
+        setQuery((q) => q.slice(0, -1))
+        setSelectedIndex(0)
+      },
+      deleteForward() {},
+      cursorLeft() {},
+      cursorRight() {},
+      cursorStart() {},
+      cursorEnd() {},
+      deleteWord() {
+        setQuery((q) => {
+          const trimmed = q.trimEnd()
+          const lastSpace = trimmed.lastIndexOf(" ")
+          return lastSpace === -1 ? "" : trimmed.slice(0, lastSpace)
+        })
+        setSelectedIndex(0)
+      },
+      deleteToStart() {
+        setQuery("")
+        setSelectedIndex(0)
+      },
+      deleteToEnd() {},
+      confirm() {
+        dialogTargetRef.current?.confirm()
+      },
+      cancel() {
+        onCancelRef.current()
+      },
+      save() {},
+      getCursorOffset() {
+        return queryRef.current.length
+      },
+      getContent() {
+        return queryRef.current
+      },
+    }
+    blockEditTargetRef.current = textTarget
+
+    return () => {
+      dialogTargetRef.current = null
+      if (blockEditTargetRef.current === textTarget) {
+        blockEditTargetRef.current = null
+      }
+    }
+  }, [])
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">

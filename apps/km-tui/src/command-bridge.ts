@@ -51,8 +51,15 @@ export function processKeyWithContext(
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
     currentNode: nodeForCtx,
-    textInputFocused: !!ui.inlineEditBlock || ui.showSearchDialog,
+    textInputFocused:
+      !!ui.inlineEditBlock ||
+      ui.showSearchDialog ||
+      ui.showNewItemDialog ||
+      ui.showProjectPicker,
     isInlineEditing: !!ui.inlineEditBlock,
+    searchDialogOpen: ui.showSearchDialog,
+    projectPickerOpen: ui.showProjectPicker,
+    newItemDialogOpen: ui.showNewItemDialog,
   })
 
   const { colIndex, cardIndex, columns } = layout

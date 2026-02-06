@@ -62,3 +62,25 @@ export const isInlineEditing = when(
   "isInlineEditing",
   (ctx) => ctx.isInlineEditing,
 )
+
+export const searchDialogOpen = when(
+  "searchDialogOpen",
+  (ctx) => ctx.searchDialogOpen,
+)
+
+export const projectPickerOpen = when(
+  "projectPickerOpen",
+  (ctx) => ctx.projectPickerOpen,
+)
+
+export const newItemDialogOpen = when(
+  "newItemDialogOpen",
+  (ctx) => ctx.newItemDialogOpen,
+)
+
+/** Any dialog is open (search, project picker, or new item) */
+export const anyDialogOpen = when(
+  "anyDialogOpen",
+  (ctx) =>
+    ctx.searchDialogOpen || ctx.projectPickerOpen || ctx.newItemDialogOpen,
+)

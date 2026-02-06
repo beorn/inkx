@@ -1,6 +1,15 @@
 import type { CommandMode, TNode } from "./types.ts"
 import type { WhenPredicate } from "./when.ts"
-import { textInputFocused, isInDetailPane, isInlineEditing } from "./when.ts"
+import {
+  textInputFocused,
+  isInDetailPane,
+  isInlineEditing,
+  searchDialogOpen,
+  projectPickerOpen,
+  newItemDialogOpen,
+  anyDialogOpen,
+  not,
+} from "./when.ts"
 
 export interface Keybinding {
   key: string
@@ -21,6 +30,9 @@ export interface KeybindingContext {
   isInlineEditing: boolean
   currentNode: TNode | null
   textInputFocused: boolean
+  searchDialogOpen: boolean
+  projectPickerOpen: boolean
+  newItemDialogOpen: boolean
 }
 
 const keybindings: Keybinding[] = []
@@ -76,6 +88,40 @@ export function resolveKeybinding(
 // Default keybindings
 // NOTE: These match docs/06-ui.md Navigation Model
 export const defaultKeybindings: Keybinding[] = [
+  // === Dialog navigation (when any dialog is open) ===
+  // These must come first to intercept keys before normal bindings
+  // Note: Escape sets meta=true in inkx (terminal emulation), so we need both variants
+  { key: "Escape", commandId: "dialog.cancel", when: anyDialogOpen },
+  {
+    key: "Escape",
+    meta: true,
+    commandId: "dialog.cancel",
+    when: anyDialogOpen,
+  },
+  { key: "Enter", commandId: "dialog.confirm", when: anyDialogOpen },
+  {
+    key: "ArrowUp",
+    commandId: "dialog.nav_up",
+    when: anyDialogOpen,
+  },
+  {
+    key: "ArrowDown",
+    commandId: "dialog.nav_down",
+    when: anyDialogOpen,
+  },
+  {
+    key: "p",
+    ctrl: true,
+    commandId: "dialog.nav_up",
+    when: anyDialogOpen,
+  },
+  {
+    key: "n",
+    ctrl: true,
+    commandId: "dialog.nav_down",
+    when: anyDialogOpen,
+  },
+
   // === Block editing (when isInlineEditing) ===
   // Up/Down navigate between blocks (title + body paragraphs)
   // Must come before text editing bindings to intercept these keys

@@ -38,31 +38,11 @@ export function handleBoardKeyInput(
   dispatch: Dispatch<UIAction>,
   _exit: () => void,
 ): boolean {
-  // Dialog modes have their own input handling via dialog components
-  if (ui.showNewItemDialog || ui.showProjectPicker) {
-    return false
-  }
-
-  // Inline edit mode: text editing keys are routed through the command system
-  // via when: textInputFocused predicates. Board's useInput handles them normally.
-
-  // Search dialog: text editing routed through command system (textInputFocused).
-  // Nav keys (Escape, Enter, arrows) handled by SearchDialog's own useInputLayer.
-  // Only process text-editing-relevant keys here; block everything else.
-  if (ui.showSearchDialog) {
-    // Printable chars, Backspace, Delete, and Ctrl+letter editing shortcuts
-    // go through the command system → TextEditTarget. All other keys are
-    // either handled by the search dialog layer or should be blocked.
-    const isTextKey =
-      (input.length === 1 && input >= " " && !key.ctrl && !key.meta) ||
-      key.backspace ||
-      key.delete ||
-      (key.ctrl &&
-        ["a", "e", "b", "f", "w", "u", "k"].includes(input.toLowerCase()))
-    if (!isTextKey) {
-      return false
-    }
-    // Fall through to command system processing for text editing
+  // Dialog modes: route through command system for dialog.* and text.* commands
+  const dialogOpen =
+    ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog
+  if (dialogOpen) {
+    return routeDialogKey(input, key, tuiContext)
   }
 
   // Help overlay blocks most keys - only allow dismiss keys
@@ -160,6 +140,39 @@ export function handleBoardKeyInput(
 
   // Unhandled keys are silently ignored
   return false
+}
+
+/**
+ * Route a key through the command system when a dialog is open.
+ * Only processes dialog.* and text.* commands; blocks everything else.
+ */
+function routeDialogKey(
+  input: string,
+  key: Key,
+  tuiContext: TUIContext,
+): boolean {
+  const result = processKeyWithContext(input, key, tuiContext)
+
+  if (result.handled && result.actions) {
+    // Only allow dialog and text commands when dialog is open
+    if (result.commandId) {
+      const isDialogOrTextCommand =
+        result.commandId.startsWith("dialog.") ||
+        result.commandId.startsWith("text.")
+      if (!isDialogOrTextCommand) return true // Block non-dialog commands
+    }
+
+    const actionList = Array.isArray(result.actions)
+      ? result.actions
+      : [result.actions]
+    for (const action of actionList) {
+      handleCommandAction(tuiContext, action)
+    }
+    return true
+  }
+
+  // Block unhandled keys when dialog is open
+  return true
 }
 
 /**

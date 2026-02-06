@@ -589,10 +589,20 @@ function BoardL3({
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
   const boardState = useAppStore<BoardAppStore, BoardState>((s) => s.boardState)
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
-  const layoutRegistry = useAppStore<BoardAppStore, LayoutRegistry>((s) => s.layoutRegistry)
-  const dispatchUI = useAppStore<BoardAppStore, BoardAppStore["dispatchUI"]>((s) => s.dispatchUI)
-  const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
-  const updateLayout = useAppStore<BoardAppStore, BoardAppStore["updateLayout"]>((s) => s.updateLayout)
+  const layoutRegistry = useAppStore<BoardAppStore, LayoutRegistry>(
+    (s) => s.layoutRegistry,
+  )
+  const dispatchUI = useAppStore<BoardAppStore, BoardAppStore["dispatchUI"]>(
+    (s) => s.dispatchUI,
+  )
+  const dispatchBoard = useAppStore<
+    BoardAppStore,
+    BoardAppStore["dispatchBoard"]
+  >((s) => s.dispatchBoard)
+  const updateLayout = useAppStore<
+    BoardAppStore,
+    BoardAppStore["updateLayout"]
+  >((s) => s.updateLayout)
 
   // Wrap dispatchUI as React.Dispatch<UIAction> for components that expect it
   const dispatch: React.Dispatch<UIAction> = dispatchUI
@@ -631,7 +641,8 @@ function BoardL3({
     if (patchedConsole) {
       const entries = patchedConsole.getSnapshot()
       for (const entry of entries) {
-        const stream = entry.stream === "stderr" ? process.stderr : process.stdout
+        const stream =
+          entry.stream === "stderr" ? process.stderr : process.stdout
         const args = entry.args
           .map((a: unknown) => (typeof a === "string" ? a : JSON.stringify(a)))
           .join(" ")
@@ -689,8 +700,19 @@ function BoardL3({
 
   // Push derived layout back to store so term:key handler has fresh data
   useEffect(() => {
-    updateLayout(columnsLayout, selectedNode, derivedSelectionLevel, tuiBoardState)
-  }, [columnsLayout, selectedNode, derivedSelectionLevel, tuiBoardState, updateLayout])
+    updateLayout(
+      columnsLayout,
+      selectedNode,
+      derivedSelectionLevel,
+      tuiBoardState,
+    )
+  }, [
+    columnsLayout,
+    selectedNode,
+    derivedSelectionLevel,
+    tuiBoardState,
+    updateLayout,
+  ])
 
   // Legacy state capture for backward compat
   useEffect(() => {
@@ -709,7 +731,15 @@ function BoardL3({
       selectedNode,
       selectionLevel: derivedSelectionLevel,
     })
-  }, [tuiBoardState, columnsLayout, ui, boardState, selectedNode, derivedSelectionLevel, onStateCaptureREPLACE_WITH_CREATEAPP_STORE])
+  }, [
+    tuiBoardState,
+    columnsLayout,
+    ui,
+    boardState,
+    selectedNode,
+    derivedSelectionLevel,
+    onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
+  ])
 
   // Dialog handlers
   const dialogHandlers = useBoardDialogs({
@@ -752,7 +782,10 @@ function BoardL3({
 
   // Subscribe to external events
   useEffect(() => createFileDropHandler(dispatch), [dispatch])
-  useEffect(() => createWatcherStatusHandler(dispatch, toastQueue), [dispatch, toastQueue])
+  useEffect(
+    () => createWatcherStatusHandler(dispatch, toastQueue),
+    [dispatch, toastQueue],
+  )
   useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
   useEffect(() => createRefreshHandler(), [])
 
@@ -819,7 +852,12 @@ function BoardL2({
       dimensions,
       rootBoardId: initialState.rootId,
     },
-    (init: { initialViewMode: ViewMode; collapsedColumns: number[]; dimensions: { columns: number; rows: number }; rootBoardId: string | null }) =>
+    (init: {
+      initialViewMode: ViewMode
+      collapsedColumns: number[]
+      dimensions: { columns: number; rows: number }
+      rootBoardId: string | null
+    }) =>
       createInitialUIState(
         init.initialViewMode,
         init.collapsedColumns,
@@ -840,15 +878,12 @@ function BoardL2({
     return null
   }, [initialState])
 
-  const [boardState, dispatchBoard] = useReducer(
-    boardReducer,
-    null,
-    () =>
-      createBoardState(
-        initialState.rootId,
-        initialState.rootPath,
-        initialCursorNodeId,
-      ),
+  const [boardState, dispatchBoard] = useReducer(boardReducer, null, () =>
+    createBoardState(
+      initialState.rootId,
+      initialState.rootPath,
+      initialCursorNodeId,
+    ),
   )
 
   const [consoleStats, setConsoleStats] = useState<
@@ -883,7 +918,8 @@ function BoardL2({
     if (patchedConsole) {
       const entries = patchedConsole.getSnapshot()
       for (const entry of entries) {
-        const stream = entry.stream === "stderr" ? process.stderr : process.stdout
+        const stream =
+          entry.stream === "stderr" ? process.stderr : process.stdout
         const args = entry.args
           .map((a: unknown) => (typeof a === "string" ? a : JSON.stringify(a)))
           .join(" ")
@@ -958,7 +994,15 @@ function BoardL2({
       selectedNode,
       selectionLevel: derivedSelectionLevel,
     })
-  }, [state, columnsLayout, ui, boardState, selectedNode, derivedSelectionLevel, onStateCaptureREPLACE_WITH_CREATEAPP_STORE])
+  }, [
+    state,
+    columnsLayout,
+    ui,
+    boardState,
+    selectedNode,
+    derivedSelectionLevel,
+    onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
+  ])
 
   const dialogHandlers = useBoardDialogs({
     repo,
@@ -1016,7 +1060,10 @@ function BoardL2({
   }, [ui.bellState, ui.status])
 
   useEffect(() => createFileDropHandler(dispatch), [])
-  useEffect(() => createWatcherStatusHandler(dispatch, toastQueue), [toastQueue])
+  useEffect(
+    () => createWatcherStatusHandler(dispatch, toastQueue),
+    [toastQueue],
+  )
   useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
   useEffect(() => createRefreshHandler(), [])
 

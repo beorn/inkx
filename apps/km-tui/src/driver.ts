@@ -4,15 +4,12 @@
  * Provides a unified interface for driving the Board TUI programmatically,
  * enabling AI exploration, fuzz testing, and headless automation.
  *
- * Uses the existing withCommands/withKeybindings plugins from inkx.
+ * Uses a local BoardAppStore (Zustand) for state management — the same store
+ * type used in production via createBoardApp(). Board renders in L3 mode
+ * (useStore=true), reading state from the store via useApp() selectors.
  *
- * State Access:
- * The driver can access board state in two ways:
- * 1. Via getState() - returns TUIDriverState for AI/test use
- * 2. Via store - direct access to the Zustand store for reactive use
- *
- * The store is populated by the Board component via getBoardStore().
- * This enables direct state access without callbacks.
+ * Key handling goes through handleKey() from board-app.ts — the same path
+ * as production — which updates the store via get()/set().
  *
  * @example
  * ```typescript
@@ -43,10 +40,13 @@
  * ```
  */
 
-import React from "react"
+import React, { act } from "react"
+import { createStore, type StoreApi } from "zustand"
 import { createRenderer, type App } from "inkx/testing"
 import { withCommands } from "inkx"
 import type { AppWithCommands, AppState } from "inkx"
+import { StoreContext } from "inkx/runtime"
+import { parseKey } from "inkx/runtime"
 import {
   createCommandRegistry,
   allCommands,
@@ -56,7 +56,9 @@ import {
   type Keybinding,
   type ViewMode,
 } from "@km/commands"
+import { createToastQueue } from "@km/core"
 import type { Repo } from "@km/storage"
+import { createBoardState } from "@km/board"
 
 import {
   Board,
@@ -67,11 +69,12 @@ import { buildBoardState } from "./state.ts"
 import { createLayoutRegistry, type LayoutRegistry } from "./card-positions.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import {
-  getBoardStore,
-  resetBoardStore,
-  type BoardStore,
-} from "./board-store.ts"
-import type { StoreApi } from "zustand"
+  createBoardAppStoreState,
+  type BoardAppStore,
+  type CreateBoardAppStoreParams,
+} from "./board-app-store.ts"
+import { createInitialUIState } from "./ui-reducer.ts"
+import { handleKey } from "./board-app.ts"
 
 // =============================================================================
 // Types
@@ -129,10 +132,10 @@ export interface BoardDriver extends AppWithCommands {
   /** Layout registry for position tracking */
   readonly layoutRegistry: LayoutRegistry
   /**
-   * Direct access to the board store for reactive state access.
+   * Direct access to the board app store for reactive state access.
    * Use store.subscribe() for state change notifications.
    */
-  readonly store: StoreApi<BoardStore>
+  readonly store: StoreApi<BoardAppStore>
 }
 
 /**
@@ -156,12 +159,9 @@ export interface CreateBoardDriverOptions {
 /**
  * Create a board driver for AI/test automation.
  *
- * This renders a full Board component with command and keybinding plugins,
- * enabling programmatic control and rich state introspection.
- *
- * State is available via:
- * - driver.getState() - TUIDriverState for AI/test use
- * - driver.store - Zustand store for reactive state access
+ * This renders a full Board component in L3 mode (useStore=true) with a local
+ * BoardAppStore. Keys are processed through handleKey() — the same path as
+ * production — and state is read from store.getState().
  *
  * @param repo - The repository (real or fake) containing nodes
  * @param rootId - The ID of the root node to display as the board
@@ -182,100 +182,124 @@ export function createBoardDriver(
   // Initialize command system
   ensureCommandSystemInitialized()
 
-  // Reset the global store for this driver instance
-  // This ensures each driver gets a fresh store
-  resetBoardStore()
-  const store = getBoardStore()
+  // Build initial board state for computing initial store params
+  const initialTUIState = buildBoardState(repo, rootId)
+
+  // Compute initial cursor node
+  let initialCursorNodeId: string | null = null
+  if (initialTUIState.columns.length > 0) {
+    const firstCol = initialTUIState.columns[0]
+    if (firstCol && firstCol.cards.length > 0) {
+      const firstCard = firstCol.cards[0]
+      initialCursorNodeId = firstCard?.node.id ?? firstCol.node.id
+    } else if (firstCol) {
+      initialCursorNodeId = firstCol.node.id
+    }
+  }
+
+  // Create layout registry for position tracking
+  const layoutRegistry = createLayoutRegistry()
+  const toastQueue = createToastQueue()
+
+  // Compute initial layout from TUI state
+  const initialLayout = {
+    columns: initialTUIState.columns,
+    colIndex: 0,
+    cardIndex: 0,
+    subPath: [] as string[],
+    isAtCardLevel:
+      initialCursorNodeId !== null &&
+      initialTUIState.columns.length > 0 &&
+      (initialTUIState.columns[0]?.cards.length ?? 0) > 0,
+    isInOutlineMode: false,
+  }
+
+  const selectedCol = initialTUIState.columns[0]
+  const selectedCard = selectedCol?.cards[0]
+  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+  const initialSelectionLevel: "board" | "column" | "card" =
+    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
+
+  // Create the BoardAppStore (same type as production createBoardApp)
+  const storeParams: CreateBoardAppStoreParams = {
+    repo,
+    toastQueue,
+    layoutRegistry,
+    initialBoardState: createBoardState(
+      initialTUIState.rootId,
+      initialTUIState.rootPath,
+      initialCursorNodeId,
+    ),
+    initialUIState: createInitialUIState(
+      viewMode,
+      [...(initialTUIState.collapsedColumns ?? [])],
+      { columns, rows },
+      initialTUIState.rootId,
+    ),
+    initialLayout,
+    initialTUIBoardState: initialTUIState,
+    initialSelectedNode,
+    initialSelectionLevel,
+    dimensions: { columns, rows },
+  }
+
+  const store = createStore<BoardAppStore>(
+    createBoardAppStoreState(storeParams),
+  )
 
   // Create command registry
   const registry = createCommandRegistry()
   registry.registerAll(allCommands)
 
-  // Create layout registry for position tracking
-  const layoutRegistry = createLayoutRegistry()
-
-  // Build initial board state
-  const initialState = buildBoardState(repo, rootId)
-
-  // State capture callback - kept for backward compatibility with captured field
-  // The Board also updates the store directly via getBoardStore()
-  let capturedState: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE | null =
-    null
-
-  // Render Board component with state capture
+  // Render Board component with StoreContext.Provider for L3 mode
   const render = createRenderer({ cols: columns, rows })
   const boardElement = React.createElement(Board, {
-    initialState,
+    initialState: initialTUIState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},
+    toastQueue,
     layoutRegistry,
-    // WORKAROUND: Replace this driver with createApp() - see km-tui.4
-    onStateCaptureREPLACE_WITH_CREATEAPP_STORE: (
-      state: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE,
-    ) => {
-      capturedState = state
-    },
+    useStore: true,
   })
-  // Note: incremental rendering is now the default in createRenderer()
-  // Pass incremental: false explicitly if needed to disable
   const baseApp = render(
-    React.createElement(RepoProvider, {
-      repo,
-      children: boardElement,
-    }),
+    React.createElement(
+      StoreContext.Provider,
+      { value: store as StoreApi<unknown> },
+      React.createElement(RepoProvider, {
+        repo,
+        children: boardElement,
+      }),
+    ),
     incremental === false ? { incremental: false } : undefined,
   )
 
-  // Build command context from captured state
+  // Build command context from store state
   const getContext = (): CommandContext => {
-    if (!capturedState) {
-      // Fallback if state not yet captured
-      return {
-        currentNode: null,
-        currentNodeId: null,
-        selectedNodes: [],
-        viewMode: viewMode,
-        siblingIndex: 0,
-        siblingCount: 0,
-        columnIndex: 0,
-        columnCount: 0,
-        moveMode: false,
-        foldedNodes: new Set(),
-      }
-    }
-
-    const { layout, boardState, selectedNode, ui } = capturedState
-    const column = layout.columns[layout.colIndex]
+    const s = store.getState()
+    const column = s.layout.columns[s.layout.colIndex]
 
     return {
-      currentNode: selectedNode as CommandContext["currentNode"],
-      currentNodeId: selectedNode?.id ?? null,
-      selectedNodes: Array.from(boardState.selectedNodes),
-      viewMode: ui.viewMode,
-      siblingIndex: layout.cardIndex,
+      currentNode: s.selectedNode as CommandContext["currentNode"],
+      currentNodeId: s.selectedNode?.id ?? null,
+      selectedNodes: Array.from(s.boardState.selectedNodes),
+      viewMode: s.ui.viewMode,
+      siblingIndex: s.layout.cardIndex,
       siblingCount: column?.cards.length ?? 0,
-      columnIndex: layout.colIndex,
-      columnCount: layout.columns.length,
-      moveMode: boardState.moveMode,
-      foldedNodes: boardState.foldedNodes,
+      columnIndex: s.layout.colIndex,
+      columnCount: s.layout.columns.length,
+      moveMode: s.boardState.moveMode,
+      foldedNodes: s.boardState.foldedNodes,
     }
   }
 
-  // Handle actions - just log for now, actual state changes happen via press()
-  const handleAction = (_action: CommandAction): void => {
-    // Commands executed via cmd.* are informational only.
-    // Actual state updates happen through the Board's useInput handlers.
-  }
+  // Handle actions - informational only (actual state changes happen via handleKey)
+  const handleAction = (_action: CommandAction): void => {}
 
   // Get keybindings for command metadata
   const getKeybindings = (): Keybinding[] => defaultKeybindings
 
-  // Apply withCommands plugin for introspection only
-  // Note: We don't use withKeybindings because the Board component already
-  // has its own useInput handler that processes keys through the command system.
-  // The driver's press() goes directly to the base app's press(), which
-  // triggers the Board's useInput, which processes keys via command-bridge.ts
+  // Apply withCommands plugin for introspection
   const appWithCmd = withCommands(baseApp, {
     registry,
     getContext,
@@ -283,59 +307,71 @@ export function createBoardDriver(
     getKeybindings,
   })
 
+  // Override press() to route through handleKey (same path as production)
+  const originalPress = baseApp.press.bind(baseApp)
+  const driverPress = async (key: string): Promise<App> => {
+    // Parse the key and route through the board-app key handler.
+    // Must run inside act() so that Zustand → useApp → setState updates are
+    // processed synchronously by React, triggering Board L3 re-render +
+    // useEffect(updateLayout) within the same act() boundary.
+    const [input, parsedKey] = parseKey(key)
+    act(() => {
+      handleKey(
+        { input, key: parsedKey },
+        { get: store.getState, set: store.setState },
+        () => {},
+      )
+    })
+
+    // Trigger a second act() to flush any remaining effects (e.g. updateLayout
+    // writing back to store → further useApp subscriptions → re-renders).
+    // originalPress sends the raw key through stdin which Board L3 ignores,
+    // but the act() boundary inside sendInput flushes pending React work.
+    return originalPress(key)
+  }
+
   // Build rich getState for AI introspection
-  const getState = (): TUIDriverState => {
+  const getDriverState = (): TUIDriverState => {
     const baseState = appWithCmd.getState()
+    const s = store.getState()
 
-    if (!capturedState) {
-      // Fallback if state not yet captured
-      return {
-        ...baseState,
-        cursor: { col: 0, card: 0, level: "card" },
-        selectedNodeId: null,
-        viewMode: viewMode,
-        dialogs: {
-          search: false,
-          newItem: false,
-          projectPicker: false,
-          help: false,
-        },
-        detailPaneOpen: false,
-        moveMode: false,
-        scrollOffset: 0,
-        captured: null,
-      }
+    // Build captured state from store (backward compat for tests that access .captured)
+    const captured: BoardCapturedState_REPLACE_WITH_CREATEAPP_STORE = {
+      state: s.tuiBoardState,
+      layout: s.layout,
+      ui: s.ui,
+      boardState: s.boardState,
+      selectedNode: s.selectedNode,
+      selectionLevel: s.selectionLevel,
     }
-
-    const { layout, boardState, selectedNode, ui } = capturedState
 
     return {
       ...baseState,
       cursor: {
-        col: layout.colIndex,
-        card: layout.cardIndex,
-        level: capturedState.selectionLevel,
+        col: s.layout.colIndex,
+        card: s.layout.cardIndex,
+        level: s.selectionLevel,
       },
-      selectedNodeId: selectedNode?.id ?? null,
-      viewMode: ui.viewMode,
+      selectedNodeId: s.selectedNode?.id ?? null,
+      viewMode: s.ui.viewMode,
       dialogs: {
-        search: ui.showSearchDialog,
-        newItem: ui.showNewItemDialog,
-        projectPicker: ui.showProjectPicker,
-        help: ui.showHelp,
+        search: s.ui.showSearchDialog,
+        newItem: s.ui.showNewItemDialog,
+        projectPicker: s.ui.showProjectPicker,
+        help: s.ui.showHelp,
       },
-      detailPaneOpen: ui.showDetailPane,
-      moveMode: boardState.moveMode,
-      scrollOffset: 0, // TODO: extract from layout if needed
-      captured: capturedState,
+      detailPaneOpen: s.ui.showDetailPane,
+      moveMode: s.boardState.moveMode,
+      scrollOffset: 0,
+      captured,
     }
   }
 
   // Return driver with all capabilities
-  // The press() method from baseApp triggers the Board's useInput handler
   return {
     ...appWithCmd,
-    getState,
+    press: driverPress,
+    getState: getDriverState,
     app: baseApp,
     layoutRegistry,
     store,

@@ -4,14 +4,15 @@
  * Fuzzy search dialog for finding items by content or tags.
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
-import React, { useCallback } from "react"
-import { Box, Text, useInputLayer, ErrorBoundary, type Key } from "inkx"
+import React from "react"
+import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, InputBox } from "./shared-components.tsx"
 import { parseQuery, type QueryAST } from "@km/core"
 import { useLineEdit } from "../hooks/use-line-edit.ts"
+import { dialogTargetRef } from "../dialog-target.ts"
 import {
   createSuspenseLoader,
   type SuspenseLoader,
@@ -393,52 +394,43 @@ export const SearchDialog = React.forwardRef<
   // But we can't know that until results load, so estimate
   const maxVisible = Math.max(1, height - 11)
 
-  // Handle navigation and selection (text editing handled by useLineEdit)
-  // Use refs to avoid stale closure issues with the handler
+  // Register dialog target for command system navigation
+  // Use refs to avoid stale closure issues
   const selectedIndexRef = React.useRef(selectedIndex)
   selectedIndexRef.current = selectedIndex
   const trimmedQueryRef = React.useRef(trimmedQuery)
   trimmedQueryRef.current = trimmedQuery
+  const onCancelRef = React.useRef(onCancel)
+  onCancelRef.current = onCancel
+  const onSelectRef = React.useRef(onSelect)
+  onSelectRef.current = onSelect
 
-  useInputLayer(
-    "search-dialog",
-    useCallback(
-      (input: string, key: Key): boolean => {
-        if (key.escape) {
-          onCancel()
-          return true
-        }
-
-        if (key.return) {
-          // Need to get results synchronously for selection
-          if (loaderRef.current?.status === "resolved") {
-            const allResults = loaderRef.current.read()
-            const filtered = filterResults(allResults, trimmedQueryRef.current)
-            const selected = filtered[selectedIndexRef.current]
-            if (selected) {
-              onSelect(selected.node)
-            }
-          }
-          return true
-        }
-
-        // Result navigation (up/down)
-        if (key.upArrow || (key.ctrl && input === "p")) {
-          setSelectedIndex((i) => Math.max(0, i - 1))
-          return true
-        }
-
-        if (key.downArrow || (key.ctrl && input === "n")) {
-          setSelectedIndex((i) => i + 1) // Will be clamped by rendering
-          return true
-        }
-
-        // Let unhandled keys bubble (text input handled by useLineEdit layer)
-        return false
+  React.useLayoutEffect(() => {
+    dialogTargetRef.current = {
+      navUp() {
+        setSelectedIndex((i) => Math.max(0, i - 1))
       },
-      [onCancel, onSelect],
-    ),
-  )
+      navDown() {
+        setSelectedIndex((i) => i + 1) // Clamped by rendering
+      },
+      confirm() {
+        if (loaderRef.current?.status === "resolved") {
+          const allResults = loaderRef.current.read()
+          const filtered = filterResults(allResults, trimmedQueryRef.current)
+          const selected = filtered[selectedIndexRef.current]
+          if (selected) {
+            onSelectRef.current(selected.node)
+          }
+        }
+      },
+      cancel() {
+        onCancelRef.current()
+      },
+    }
+    return () => {
+      dialogTargetRef.current = null
+    }
+  }, [])
 
   // Calculate scroll offset (needs filtered count)
   let scrollOffset = 0

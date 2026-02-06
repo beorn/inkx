@@ -207,6 +207,22 @@ interface CloseOrQuitAction {
   type: "CLOSE_OR_QUIT" // Contextual: close dialog/pane/mode, or quit
 }
 
+interface DialogNavUpAction {
+  type: "DIALOG_NAV_UP"
+}
+
+interface DialogNavDownAction {
+  type: "DIALOG_NAV_DOWN"
+}
+
+interface DialogConfirmAction {
+  type: "DIALOG_CONFIRM"
+}
+
+interface DialogCancelAction {
+  type: "DIALOG_CANCEL"
+}
+
 interface OpenInSystemAction {
   type: "OPEN_IN_SYSTEM"
   nodeId: string
@@ -299,6 +315,10 @@ export type TUIAction =
   | MoveAction
   | OpenInSystemAction
   | OpenInTerminalAction
+  | DialogNavUpAction
+  | DialogNavDownAction
+  | DialogConfirmAction
+  | DialogCancelAction
 
 export type UIAction =
   | ZoomOutwardsAction

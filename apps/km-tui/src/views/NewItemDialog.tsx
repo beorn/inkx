@@ -4,12 +4,17 @@
  * Quick capture dialog for creating new items in the board.
  * Uses context from the cursor item for defaults.
  */
-import React, { useState, useCallback } from "react"
-import { Box, Text, useInputLayer, type Key } from "inkx"
+import React, { useState } from "react"
+import { Box, Text } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
+import { dialogTargetRef } from "../dialog-target.ts"
+import {
+  blockEditTargetRef,
+  type BlockEditTarget,
+} from "../block-edit-target.ts"
 
 export interface NewItemDialogProps {
   /** The currently selected node (for context/defaults) */
@@ -117,54 +122,82 @@ export function NewItemDialog({
   // Use refs to avoid stale closure issues with the handler
   const contentRef = React.useRef(content)
   contentRef.current = content
+  const onCancelRef = React.useRef(onCancel)
+  onCancelRef.current = onCancel
+  const onCreateRef = React.useRef(onCreate)
+  onCreateRef.current = onCreate
 
-  useInputLayer(
-    "new-item-dialog",
-    useCallback(
-      (input: string, key: Key): boolean => {
-        // Cancel on Escape
-        if (key.escape) {
-          onCancel()
-          return true
-        }
+  // Register dialog target for command system navigation (Enter/Escape)
+  // and block edit target for text input (char insert, backspace, etc.)
+  React.useLayoutEffect(() => {
+    const doCreate = () => {
+      if (!contentRef.current.trim()) {
+        onCancelRef.current()
+        return
+      }
+      const nodeId = repo.addNode(parentId, {
+        type: isTask ? "task" : "paragraph",
+        content: contentRef.current.trim(),
+        task_status: isTask ? "todo" : undefined,
+        task_mark: isTask ? " " : undefined,
+      })
+      onCreateRef.current(nodeId)
+    }
 
-        // Create on Enter
-        if (key.return) {
-          if (!contentRef.current.trim()) {
-            onCancel()
-            return true
-          }
-
-          // Create the new node using repo.addNode
-          const nodeId = repo.addNode(parentId, {
-            type: isTask ? "task" : "paragraph",
-            content: contentRef.current.trim(),
-            task_status: isTask ? "todo" : undefined,
-            task_mark: isTask ? " " : undefined,
-          })
-
-          onCreate(nodeId)
-          return true
-        }
-
-        // Backspace
-        if (key.backspace || key.delete) {
-          setContent((c) => c.slice(0, -1))
-          return true
-        }
-
-        // Regular character input
-        if (input.length === 1 && input >= " ") {
-          setContent((c) => c + input)
-          return true
-        }
-
-        // Let unhandled keys bubble
-        return false
+    dialogTargetRef.current = {
+      navUp() {},
+      navDown() {},
+      confirm: doCreate,
+      cancel() {
+        onCancelRef.current()
       },
-      [onCancel, onCreate, repo, parentId, isTask],
-    ),
-  )
+    }
+
+    // Simple text edit target for character input
+    const textTarget: BlockEditTarget = {
+      insertChar(char: string) {
+        setContent((c) => c + char)
+      },
+      deleteBackward() {
+        setContent((c) => c.slice(0, -1))
+      },
+      deleteForward() {},
+      cursorLeft() {},
+      cursorRight() {},
+      cursorStart() {},
+      cursorEnd() {},
+      deleteWord() {
+        setContent((c) => {
+          const trimmed = c.trimEnd()
+          const lastSpace = trimmed.lastIndexOf(" ")
+          return lastSpace === -1 ? "" : trimmed.slice(0, lastSpace)
+        })
+      },
+      deleteToStart() {
+        setContent("")
+      },
+      deleteToEnd() {},
+      confirm: doCreate,
+      cancel() {
+        onCancelRef.current()
+      },
+      save() {},
+      getCursorOffset() {
+        return contentRef.current.length
+      },
+      getContent() {
+        return contentRef.current
+      },
+    }
+    blockEditTargetRef.current = textTarget
+
+    return () => {
+      dialogTargetRef.current = null
+      if (blockEditTargetRef.current === textTarget) {
+        blockEditTargetRef.current = null
+      }
+    }
+  }, [repo, parentId, isTask])
 
   return (
     <ModalDialog

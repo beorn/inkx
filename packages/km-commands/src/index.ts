@@ -31,6 +31,10 @@ export type {
   CloseOrQuitAction,
   EditBlockNavigateAction,
   OutdentNodeAction,
+  DialogNavUpAction,
+  DialogNavDownAction,
+  DialogConfirmAction,
+  DialogCancelAction,
   BoardAction,
   TNode,
   ViewMode,
@@ -95,6 +99,7 @@ export {
   detailPaneCommands,
   allCommands,
   blockEditCommands,
+  dialogCommands,
   type TaskAction,
 } from "./commands/index.ts"
 
@@ -110,6 +115,10 @@ export {
   isInOutlineMode,
   isInlineEditing,
   hasSelection,
+  searchDialogOpen,
+  projectPickerOpen,
+  newItemDialogOpen,
+  anyDialogOpen,
 } from "./when.ts"
 
 // Ink Adapter (for TUI integration)

@@ -625,11 +625,11 @@ describe("createBoardDriver", () => {
     // Store should be accessible
     expect(driver.store).toBeDefined()
 
-    // Store should have captured state from Board
+    // Store should have captured state from Board (BoardAppStore shape)
     const storeState = driver.store.getState()
-    expect(storeState.rootId).toBe("board")
-    expect(storeState.cursorNodeId).toBe("1a")
-    expect(storeState.viewMode).toBe("cards")
+    expect(storeState.boardState.rootId).toBe("board")
+    expect(storeState.boardState.cursorNodeId).toBe("1a")
+    expect(storeState.ui.viewMode).toBe("cards")
   })
 
   test("store state updates after navigation", async () => {
@@ -642,14 +642,14 @@ describe("createBoardDriver", () => {
 
     // Initial state
     let storeState = driver.store.getState()
-    expect(storeState.cursorNodeId).toBe("1a")
+    expect(storeState.boardState.cursorNodeId).toBe("1a")
 
     // Navigate down
     await driver.press("j")
 
     // Store should reflect the new cursor position
     storeState = driver.store.getState()
-    expect(storeState.cursorNodeId).toBe("1b")
+    expect(storeState.boardState.cursorNodeId).toBe("1b")
   })
 
   test("store provides cursor position", () => {
@@ -662,9 +662,9 @@ describe("createBoardDriver", () => {
     const driver = createBoardDriver(repo, "board")
 
     const storeState = driver.store.getState()
-    expect(storeState.cursor.col).toBe(0)
-    expect(storeState.cursor.card).toBe(0)
-    expect(storeState.cursor.level).toBe("card")
+    expect(storeState.layout.colIndex).toBe(0)
+    expect(storeState.layout.cardIndex).toBe(0)
+    expect(storeState.selectionLevel).toBe("card")
   })
 
   test("store tracks dialog state", async () => {
@@ -674,14 +674,14 @@ describe("createBoardDriver", () => {
 
     // Initially no dialogs
     let storeState = driver.store.getState()
-    expect(storeState.dialogs.search).toBe(false)
+    expect(storeState.ui.showSearchDialog).toBe(false)
 
     // Open search dialog
     await driver.press("/")
 
     // Store should reflect dialog state
     storeState = driver.store.getState()
-    expect(storeState.dialogs.search).toBe(true)
+    expect(storeState.ui.showSearchDialog).toBe(true)
   })
 
   test("store allows subscriptions", async () => {
@@ -691,7 +691,7 @@ describe("createBoardDriver", () => {
 
     const cursorIds: (string | null)[] = []
     const unsubscribe = driver.store.subscribe((state) => {
-      cursorIds.push(state.cursorNodeId)
+      cursorIds.push(state.boardState.cursorNodeId)
     })
 
     // Navigate to trigger subscription

@@ -17,6 +17,7 @@ import { createLogger } from "@beorn/logger"
 import { assertNever } from "../action-handlers.ts"
 import { outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
+import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody } from "@km/tree"
 import {
   clearSelection,
@@ -354,6 +355,20 @@ export function handleCommandAction(
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":
       dispatch(actions.setDetailPane(false))
+      return ok()
+
+    // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===
+    case "DIALOG_NAV_UP":
+      dialogTargetRef.current?.navUp()
+      return ok()
+    case "DIALOG_NAV_DOWN":
+      dialogTargetRef.current?.navDown()
+      return ok()
+    case "DIALOG_CONFIRM":
+      dialogTargetRef.current?.confirm()
+      return ok()
+    case "DIALOG_CANCEL":
+      dialogTargetRef.current?.cancel()
       return ok()
 
     default:

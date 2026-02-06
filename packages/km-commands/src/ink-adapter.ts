@@ -143,6 +143,9 @@ export function buildKeybindingContext(options: {
   isInlineEditing?: boolean
   currentNode?: TNode | null
   textInputFocused?: boolean
+  searchDialogOpen?: boolean
+  projectPickerOpen?: boolean
+  newItemDialogOpen?: boolean
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -157,6 +160,9 @@ export function buildKeybindingContext(options: {
     isInlineEditing: options.isInlineEditing ?? false,
     currentNode: options.currentNode ?? null,
     textInputFocused: options.textInputFocused ?? false,
+    searchDialogOpen: options.searchDialogOpen ?? false,
+    projectPickerOpen: options.projectPickerOpen ?? false,
+    newItemDialogOpen: options.newItemDialogOpen ?? false,
   }
 }
 
