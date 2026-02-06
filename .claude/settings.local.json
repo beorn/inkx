@@ -61,7 +61,8 @@
       "Skill(code)",
       "Skill(tui)",
       "mcp__peekaboo__analyze",
-      "mcp__tty__type"
+      "mcp__tty__type",
+      "mcp__tty__text"
     ],
     "deny": [],
     "ask": []
