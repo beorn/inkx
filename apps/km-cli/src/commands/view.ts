@@ -69,7 +69,7 @@ export const viewCommand = new Command("view")
     const { patchConsole } = await import("inkx")
     const patchedConsole =
       interactive && process.stdin.isTTY
-        ? patchConsole(console, { capture: true })
+        ? patchConsole(console, { capture: true, suppress: true })
         : null
 
     // Load repo with progress display

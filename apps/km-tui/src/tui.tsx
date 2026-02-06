@@ -175,7 +175,8 @@ export async function runBoard(
   // Use pre-created patchedConsole if provided (counts startup warnings),
   // otherwise create one now. capture: true = store entries for exit dump.
   const patched = isInteractive
-    ? (options?.patchedConsole ?? patchConsole(console, { capture: true }))
+    ? (options?.patchedConsole ??
+      patchConsole(console, { capture: true, suppress: true }))
     : null
 
   try {

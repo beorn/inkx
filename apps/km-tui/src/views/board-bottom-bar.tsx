@@ -36,19 +36,15 @@ function useFlashOnChange(value: number): boolean {
   return flash
 }
 
-/** Hook to fire a toast when console log count increases */
+/** Hook to fire a one-time toast when first console log arrives */
 function useLogToast(total: number, toastQueue?: ToastQueue): void {
-  const prevRef = React.useRef(total)
+  const firedRef = React.useRef(false)
 
   useEffect(() => {
-    if (total <= prevRef.current) {
-      prevRef.current = total
-      return
-    }
-    prevRef.current = total
-    if (total === 0 || !toastQueue) return
+    if (firedRef.current || total === 0 || !toastQueue) return
     // @ts-expect-error - React internal flag set by inkx test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
+    firedRef.current = true
     toastQueue.info(`${total} log messages — press \` to see`)
   }, [total, toastQueue])
 }
