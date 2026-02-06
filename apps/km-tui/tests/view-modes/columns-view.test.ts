@@ -406,12 +406,12 @@ describe("Columns View", () => {
   })
 
   describe("Zooming", () => {
-    test("Enter opens detail pane for card with children", () => {
+    test("e zooms into card with children", () => {
       const { board } = columnsBoard(() =>
         item("board", item("col", item("card", item("subcard")))),
       )
       board.expect("#card[data-cursor]").toExist()
-      board.press("\r")
+      board.press("e")
       board.expect("#subcard").toExist()
     })
 
@@ -435,11 +435,11 @@ describe("Columns View", () => {
       board.expect("#col2").not.toExist()
     })
 
-    test("Escape closes detail pane", () => {
+    test("Escape after zoom returns to parent", () => {
       const { board } = columnsBoard(() =>
         item("board", item("col", item("card", item("subcard")))),
       )
-      board.press("\r")
+      board.press("e")
       board.expect("#subcard").toExist()
       board.press("\x1B")
       board.expect("#card[data-cursor]").toExist()

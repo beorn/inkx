@@ -126,7 +126,7 @@ const Card = React.memo(
 
     // Check if this card is in inline edit mode (for border color)
     const isEditing = useUISelector(
-      (state) => state.inlineEditNodeId === nodeId,
+      (state) => state.inlineEditBlock?.nodeId === nodeId,
     )
 
     // Virtual body content renders borderless (inline body content)
@@ -248,7 +248,7 @@ export const Column = React.memo(function Column({
 
   // Check if this column header is being inline-edited
   const isInlineEditing = useUISelector(
-    (state) => state.inlineEditNodeId === nodeId,
+    (state) => state.inlineEditBlock?.nodeId === nodeId,
   )
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"

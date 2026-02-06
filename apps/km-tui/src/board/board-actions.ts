@@ -16,7 +16,8 @@ import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createlogger } from "@beorn/logger"
 import { assertNever } from "../action-handlers.ts"
 import { outdentNode } from "../keyboard/keyboard-card-ops.ts"
-import { textEditTargetRef } from "../text-edit-target.ts"
+import { blockEditTargetRef } from "../block-edit-target.ts"
+import { extractBody } from "@km/tree"
 import {
   clearSelection,
   progressiveSelectAll,
@@ -109,8 +110,15 @@ export function handleCommandAction(
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
     case "ENTER_INLINE_EDIT":
-      dispatch(actions.enterInlineEdit(action.nodeId))
+      dispatch(
+        actions.enterInlineEdit({
+          nodeId: action.nodeId,
+          blockIndex: action.blockIndex ?? 0,
+        }),
+      )
       return ok()
+    case "EDIT_BLOCK_NAVIGATE":
+      return handleEditBlockNavigate(ctx, action.direction)
     case "CLOSE_OR_QUIT":
       return handleCloseOrQuit(ctx)
     case "OUTDENT_NODE":
@@ -191,8 +199,8 @@ export function handleCommandAction(
       // Calling confirm() saves the value and exits inline edit mode.
       // This fires synchronously before navigation so React picks up
       // both the repo mutation and cursor change in the same render.
-      if (ctx.ui.inlineEditNodeId && textEditTargetRef.current) {
-        textEditTargetRef.current.confirm()
+      if (ctx.ui.inlineEditBlock && blockEditTargetRef.current) {
+        blockEditTargetRef.current.confirm()
       }
       return handleCursorMove(ctx, action.dir)
     case "TOGGLE_FOLD":
@@ -307,40 +315,40 @@ export function handleCommandAction(
     // Read from shared ref directly (not TUIContext snapshot) because
     // the target is set by useEffect after render.
     case "TEXT_INSERT":
-      textEditTargetRef.current?.insertChar(action.char)
+      blockEditTargetRef.current?.insertChar(action.char)
       return ok()
     case "TEXT_DELETE_BACKWARD":
-      textEditTargetRef.current?.deleteBackward()
+      blockEditTargetRef.current?.deleteBackward()
       return ok()
     case "TEXT_DELETE_FORWARD":
-      textEditTargetRef.current?.deleteForward()
+      blockEditTargetRef.current?.deleteForward()
       return ok()
     case "TEXT_CURSOR_LEFT":
-      textEditTargetRef.current?.cursorLeft()
+      blockEditTargetRef.current?.cursorLeft()
       return ok()
     case "TEXT_CURSOR_RIGHT":
-      textEditTargetRef.current?.cursorRight()
+      blockEditTargetRef.current?.cursorRight()
       return ok()
     case "TEXT_CURSOR_START":
-      textEditTargetRef.current?.cursorStart()
+      blockEditTargetRef.current?.cursorStart()
       return ok()
     case "TEXT_CURSOR_END":
-      textEditTargetRef.current?.cursorEnd()
+      blockEditTargetRef.current?.cursorEnd()
       return ok()
     case "TEXT_DELETE_WORD":
-      textEditTargetRef.current?.deleteWord()
+      blockEditTargetRef.current?.deleteWord()
       return ok()
     case "TEXT_DELETE_TO_START":
-      textEditTargetRef.current?.deleteToStart()
+      blockEditTargetRef.current?.deleteToStart()
       return ok()
     case "TEXT_DELETE_TO_END":
-      textEditTargetRef.current?.deleteToEnd()
+      blockEditTargetRef.current?.deleteToEnd()
       return ok()
     case "TEXT_CONFIRM":
-      textEditTargetRef.current?.confirm()
+      blockEditTargetRef.current?.confirm()
       return ok()
     case "TEXT_CANCEL":
-      textEditTargetRef.current?.cancel()
+      blockEditTargetRef.current?.cancel()
       return ok()
 
     // === Detail pane ===
@@ -356,6 +364,35 @@ export function handleCommandAction(
 // =============================================================================
 // Helper Functions (local to this file)
 // =============================================================================
+
+function getBlockCount(ctx: TUIContext, nodeId: string): number {
+  const children = ctx.repo.getChildren(nodeId)
+  const { body } = extractBody(children)
+  return 1 + body.length // 1 for title + N body children
+}
+
+function handleEditBlockNavigate(
+  ctx: TUIContext,
+  direction: "up" | "down",
+): ActionResult {
+  const { dispatch, ui } = ctx
+  const edit = ui.inlineEditBlock
+  if (!edit) return ok()
+
+  const blockCount = getBlockCount(ctx, edit.nodeId)
+  const nextIndex = edit.blockIndex + (direction === "down" ? 1 : -1)
+
+  if (nextIndex < 0 || nextIndex >= blockCount) {
+    // Past edges → confirm (save + exit edit mode) and navigate to adjacent card
+    blockEditTargetRef.current?.confirm()
+    return handleCursorMove(ctx, direction === "down" ? "down" : "up")
+  } else {
+    // Moving between blocks within same node → save current block, change index
+    blockEditTargetRef.current?.save()
+    dispatch(actions.setEditBlockIndex(nextIndex))
+  }
+  return ok()
+}
 
 function handleToggleFold(ctx: TUIContext): ActionResult {
   const { state, layout, dispatch, repo } = ctx
@@ -441,7 +478,7 @@ function handleCloseOrQuit(ctx: TUIContext): ActionResult {
   }
 
   // Cancel inline edit
-  if (ui.inlineEditNodeId) {
+  if (ui.inlineEditBlock) {
     dispatch(actions.exitInlineEdit())
     return ok()
   }

@@ -173,6 +173,19 @@ describe("Inline Edit — Readline Integration", () => {
     expect(board.screenshot()).toContain("aXb")
   })
 
+  test("Delete key works in edit mode (forward delete)", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("ab"))))
+
+    board.press("Enter")
+    // ab| → Ctrl+A → |ab → Delete → |b
+    board.press("Control+a")
+    board.press("Delete")
+    board.press("Enter")
+
+    expect(board.screenshot()).toContain("b")
+    expect(board.screenshot()).not.toContain("ab")
+  })
+
   test("Ctrl shortcuts (Control+A, Control+W) work through input layers", () => {
     const { board } = testEnv(() => item("board", item("col1", item("xyz"))))
 
