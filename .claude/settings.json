@@ -12,6 +12,29 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd $CLAUDE_PROJECT_DIR && bun vendor/beorn-tools/tools/recall.ts hook",
+            "timeout": 30000,
+            "statusMessage": "Searching memory..."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd $CLAUDE_PROJECT_DIR && bun vendor/beorn-tools/tools/recall.ts remember",
+            "timeout": 30000
+          }
+        ]
+      }
     ]
   }
 }
