@@ -9,6 +9,24 @@ argument-hint: [deep|opinion|debate] <prompt>
 
 **Claude: Use this when the user wants another model's perspective or deep research (OpenAI's research mode, NOT DeepSeek).**
 
+**In the same response where you call `bun llm`, include a summary for the user.** The user can't easily read the prompt from the command output. Write your summary text and make the tool call together — don't use a separate turn. Cover:
+
+- **Question/topic**: What you're actually asking, in enough detail that the user could judge whether it's the right question
+- **Motivation**: What you're trying to learn or decide, and how it connects to the task at hand
+- **Context included**: Which files, code snippets, session history, or other material you're sending — with sizes or line counts so the user knows the scope
+- **Mode and rationale**: Which mode (ask, opinion, deep, debate) and a brief why
+
+The JSON output also includes a `query` field with the raw question, but the summary should be more readable than the raw prompt.
+
+Example:
+
+> Asking GPT to evaluate two refactoring approaches for `syncEngine.ts`:
+> - **Option A**: Orchestrator + phase helpers (split the 3 sequential concerns into `resolveConflicts()`, `applyMutations()`, `broadcastChanges()`)
+> - **Option B**: Strategy pattern with a `SyncStrategy` interface for each sync mode (full, incremental, selective)
+>
+> Including `syncEngine.ts` (200 lines), the three mutation functions it calls from `mutations.ts` (80 lines), and the `SyncMode` type definition.
+> Using `opinion` mode — we're leaning toward Option A but want a sanity check before committing to the refactor.
+
 Run `bun llm` for full help.
 
 ## Output
