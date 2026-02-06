@@ -11,7 +11,9 @@ import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"
 import { kmEvents, type ToastQueue } from "@km/core"
 
-type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
+type SetUI = (
+  partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>),
+) => void
 
 /**
  * Creates the terminal dimension sync effect
@@ -66,9 +68,7 @@ export function createSyncTerminalDimensions(
  * Creates the file drop handler effect
  * Handles bracketed paste for file drops
  */
-export function createFileDropHandler(
-  setUI: SetUI,
-): () => void | undefined {
+export function createFileDropHandler(setUI: SetUI): () => void | undefined {
   if (!supportsFileDrop()) return () => {}
 
   const cleanup = createPasteHandler((files) => {

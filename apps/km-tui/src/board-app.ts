@@ -2,14 +2,7 @@
  * Board App — createApp() definition (Layer 3)
  *
  * Defines the board application with Zustand store + term:key event handler.
- * Key flow: stdin → TermProvider → term:key handler → command system → set() store → React re-renders
- *
- * This replaces:
- * - Board.tsx useInput() handler → term:key handler here
- * - Board.tsx useReducer(uiReducer) → store.ui + dispatchUI
- * - Board.tsx useReducer(boardReducer) → store.boardState + dispatchBoard
- * - board-input.ts handleBoardKeyInput() → term:key handler here
- * - onStateCaptureREPLACE_WITH_CREATEAPP_STORE → store.getState() directly
+ * Key flow: stdin → TermProvider → term:key handler → command system → set()/setUI() → React re-renders
  */
 
 import { createApp, type EventHandlerContext } from "inkx/runtime"
@@ -25,7 +18,6 @@ import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext } from "./command-bridge.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
 import type { ActionCtx } from "./tui-context.ts"
-import { blockEditTargetRef } from "./block-edit-target.ts"
 
 const perfLog = createLogger("km:perf")
 
@@ -51,7 +43,6 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     selectedNode: s.selectedNode,
     column,
     card,
-    dispatchUI: (action) => s.dispatchUI(action),
     dispatchBoard: (action) => s.dispatchBoard(action),
     setUI: (partial) => s.setUI(partial),
     setFoldedNodes: (nodes) => s.setFoldedNodes(nodes),
@@ -63,10 +54,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
 
 /**
  * Handle term:key event — the single entry point for all keyboard input.
- *
- * Replaces handleBoardKeyInput from board-input.ts.
- * Same dialog guards, command routing, bell/status handling —
- * but using get()/set() instead of dispatch().
+ * Dialog guards → command routing → action handling → bell/status feedback.
  */
 // oxlint-disable-next-line complexity/max-cognitive, complexity/max-cyclomatic -- Keyboard routing with dialog/modal state guards
 export function handleKey(
@@ -75,7 +63,7 @@ export function handleKey(
   exitApp: () => void,
 ): void | "exit" {
   const { input, key } = data
-  const { get, set } = ctx
+  const { get } = ctx
 
   ensureCommandSystemInitialized()
 

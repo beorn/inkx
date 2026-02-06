@@ -1,28 +1,20 @@
 /**
  * Board App Store — Zustand store for createApp() integration
  *
- * This is the canonical state for the board TUI. Board.tsx reads via useApp(selector).
- * The term:key handler in board-app.ts reads/writes via get()/set().
- * The driver reads via handle.store.getState().
+ * Canonical state for the board TUI:
+ * - Board.tsx reads via useApp(selector)
+ * - term:key handler reads/writes via get()/set()/setUI()
+ * - driver reads via handle.store.getState()
  *
- * Phase 6 Step 1-2:
- * - BoardState fields are flat at store root (Step 1)
- * - foldedNodes consolidated to flat store root (Step 2)
- * - maxOutlineDepth/maxContentLines kept in ui only (Step 2)
- * - setUI added for direct UI state updates (Step 2)
- * - boardState is a derived field for backward compat
+ * Board nav fields are flat at store root. UI fields are grouped under `ui`.
+ * `boardState` is a derived field assembled from flat fields for backward compat.
  */
 
 import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardState, BoardAction, NavHistoryEntry } from "@km/board"
 import type { TUIBoardState, ColumnsLayout } from "./types.ts"
-import {
-  uiReducer,
-  actions,
-  type UIState,
-  type UIAction,
-} from "./ui-reducer.ts"
+import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
 import type { BlockEditTarget } from "./block-edit-target.ts"
 
@@ -57,7 +49,7 @@ export interface BoardAppState {
   // --- Board navigation (derived — backward compat) ---
   boardState: BoardState
 
-  // --- UI state (from uiReducer) ---
+  // --- UI state ---
   ui: UIState
 
   // --- Derived layout (recomputed on state changes) ---
@@ -86,11 +78,10 @@ export interface BoardAppState {
  * Actions on the store.
  */
 export interface BoardAppActions {
-  // Adapter bridges: apply reducer actions via set()
-  dispatchUI(action: UIAction): void
+  // Board action dispatcher (inlined from boardReducer)
   dispatchBoard(action: BoardAction): void
 
-  // Direct UI state update (replaces dispatchUI for simple field sets)
+  // Direct UI state update (shallow merge into ui)
   setUI(partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)): void
 
   // Fold operations (single source of truth at store root)
@@ -242,15 +233,9 @@ export function createBoardAppStoreState(
     // Dimensions
     dimensions: params.dimensions,
 
-    // --- Adapter bridges ---
+    // --- Board action dispatcher (inlined from boardReducer) ---
 
-    dispatchUI(action: UIAction) {
-      set((state) => ({
-        ui: uiReducer(state.ui, action),
-      }))
-    },
-
-    // oxlint-disable-next-line complexity/max-cognitive -- Exhaustive switch over BoardAction union, inlined from boardReducer
+    // oxlint-disable-next-line complexity/max-cognitive -- Exhaustive switch over BoardAction union
     dispatchBoard(action: BoardAction) {
       set((state) => {
         let flatUpdate: Partial<BoardAppState>
@@ -380,7 +365,7 @@ export function createBoardAppStoreState(
             break
           }
 
-          // View config: kept in UIState only via dispatchUI.
+          // View config: kept in UIState only via setUI.
           // These cases are kept for backward compat with @km/board's BoardAction type.
           case "INCREASE_OUTLINE_DEPTH":
           case "DECREASE_OUTLINE_DEPTH":
@@ -429,7 +414,7 @@ export function createBoardAppStoreState(
     setDimensions(dims: { columns: number; rows: number }) {
       set((state) => ({
         dimensions: dims,
-        ui: uiReducer(state.ui, actions.setDimensions(dims)),
+        ui: { ...state.ui, dimensions: dims },
       }))
     },
 

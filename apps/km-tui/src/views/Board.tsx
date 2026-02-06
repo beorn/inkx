@@ -208,269 +208,266 @@ export function BoardCore({
 
   return (
     <ConstraintRoot>
-          <Box
-            id={state.rootId ?? undefined}
-            data-view="board"
-            data-board={true}
-            data-scroll-offset={colScrollOffset}
-            data-col-index={layout.colIndex}
-            data-card-index={layout.cardIndex}
-            {...(isBoardSelected && { "data-cursor": true })}
-            flexDirection="column"
-            width={termWidth}
-            height={termHeight}
-            minHeight={3}
-            overflow="hidden"
-          >
-            {/* Top bar: full path from root to selected item, spans full width */}
-            <Box
-              flexShrink={0}
-              width={termWidth}
-              backgroundColor={isBoardSelected ? "yellow" : "white"}
-            >
-              <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
-                {renderTopBarContent(
-                  selectedPathSegments,
-                  isBoardSelected,
-                  boardColor,
-                )}
-              </Text>
-            </Box>
-            <Box
-              flexGrow={1}
-              flexDirection="row"
-              minHeight={1}
-              maxHeight={contentHeight}
-              overflow="hidden"
-            >
-              {/* Cards, Columns, or List view */}
-              {ui.viewMode === "cards" ? (
-                <ErrorBoundary
-                  fallback={<Text color="red">Error loading cards view</Text>}
-                >
-                  <Box
-                    flexDirection="row"
-                    width={boardWidth}
-                    height={contentHeight}
-                  >
-                    {state.columns.length === 0 ? (
-                      <Box flexDirection="column" padding={1}>
-                        <Text dimColor>Empty board</Text>
-                      </Box>
-                    ) : (
-                      <>
-                        {/* Calculate column widths using shared utility */}
-                        {(() => {
-                          const widths = calcColumnWidths({
-                            boardWidth,
-                            visibleColumnCount: effectiveVisibleColumns.length,
-                            maxCols: effectiveMaxCols,
-                            scrollOffset: effectiveScrollOffset,
-                            totalColumns: state.columns.length,
-                          })
-                          return (
-                            <>
-                              {/* Left scroll indicator - full height filled bar */}
-                              {widths.hasLeftIndicator && (
-                                <VerticalScrollIndicator direction="left" />
-                              )}
-                              {effectiveVisibleColumns.map((col, i) => {
-                                const actualColIndex = effectiveScrollOffset + i
-                                const isLastCol =
-                                  i === effectiveVisibleColumns.length - 1
-                                const adjustedColWidth = getColumnWidth(
-                                  i,
-                                  widths.baseColWidth,
-                                  widths.remainder,
-                                )
-                                return (
-                                  <React.Fragment key={col.node.id}>
-                                    <Column
-                                      column={col}
-                                      colIndex={actualColIndex}
-                                      isSelected={
-                                        actualColIndex === layout.colIndex
-                                      }
-                                      isCollapsed={ui.collapsedColumns.has(
-                                        actualColIndex,
-                                      )}
-                                      selectedCardIndex={layout.cardIndex}
-                                      selectedSubIndex={
-                                        ui.inOutlineMode ? ui.subIndex : -1
-                                      }
-                                      width={adjustedColWidth}
-                                      height={contentHeight}
-                                      selectionLevel={derivedSelectionLevel}
-                                    />
-                                    {/* Separator line between columns */}
-                                    {!isLastCol && <ColumnSeparator />}
-                                  </React.Fragment>
-                                )
-                              })}
-                              {/* Right scroll indicator - full height filled bar */}
-                              {widths.hasRightIndicator && (
-                                <VerticalScrollIndicator direction="right" />
-                              )}
-                            </>
-                          )
-                        })()}
-                      </>
-                    )}
-                  </Box>
-                </ErrorBoundary>
-              ) : ui.viewMode === "columns" ? (
-                <ErrorBoundary
-                  fallback={<Text color="red">Error loading columns view</Text>}
-                >
-                  <ColumnsView
-                    state={state}
-                    width={boardWidth}
-                    height={contentHeight}
-                    colIndex={layout.colIndex}
-                    cardIndex={layout.cardIndex}
-                    subIndex={ui.subIndex}
-                    effectiveScrollOffset={effectiveScrollOffset}
-                    effectiveMaxCols={effectiveMaxCols}
-                    effectiveVisibleColumns={effectiveVisibleColumns}
-                    selectionLevel={derivedSelectionLevel}
-                  />
-                </ErrorBoundary>
-              ) : ui.viewMode === "list" ? (
-                <ErrorBoundary
-                  fallback={<Text color="red">Error loading list view</Text>}
-                >
-                  <ListView
-                    state={state}
-                    width={boardWidth}
-                    height={contentHeight}
-                    colIndex={layout.colIndex}
-                    cardIndex={layout.cardIndex}
-                    subIndex={ui.subIndex}
-                    selectionLevel={derivedSelectionLevel}
-                  />
-                </ErrorBoundary>
-              ) : (
-                <ErrorBoundary
-                  fallback={<Text color="red">Error loading tabs view</Text>}
-                >
-                  <TabsView
-                    state={state}
-                    width={boardWidth}
-                    height={contentHeight}
-                    colIndex={layout.colIndex}
-                    cardIndex={layout.cardIndex}
-                    subIndex={ui.subIndex}
-                    selectionLevel={derivedSelectionLevel}
-                  />
-                </ErrorBoundary>
-              )}
-              {/* Detail pane */}
-              {ui.showDetailPane && selectedCard && (
-                <DetailPane
-                  node={selectedCard.node}
-                  width={detailPaneWidth}
-                  height={contentHeight}
-                />
-              )}
-              {/* Project picker modal */}
-              {ui.showProjectPicker &&
-                (() => {
-                  const pickerWidth = Math.min(80, Math.floor(termWidth / 2))
-                  return (
-                    <Box
-                      position="absolute"
-                      marginLeft={Math.floor((termWidth - pickerWidth) / 2)}
-                      marginTop={Math.floor(contentHeight / 2)}
-                      data-dialog="project-picker"
-                    >
-                      <ProjectPicker
-                        onSelect={dialogHandlers.handleProjectSelect}
-                        onCancel={dialogHandlers.handleProjectCancel}
-                        width={pickerWidth}
-                        height={Math.floor(contentHeight / 2)}
-                        recentProjectIds={ui.recentProjectIds}
-                      />
-                    </Box>
-                  )
-                })()}
-              {/* New item dialog modal */}
-              {ui.showNewItemDialog &&
-                (() => {
-                  const newItemWidth = Math.min(70, Math.floor(termWidth / 2))
-                  return (
-                    <Box
-                      position="absolute"
-                      marginLeft={Math.floor((termWidth - newItemWidth) / 2)}
-                      marginTop={Math.floor(contentHeight / 3)}
-                      data-dialog="new-item"
-                    >
-                      <NewItemDialog
-                        cursorNode={selectedCard?.node ?? null}
-                        onCreate={dialogHandlers.handleNewItemCreate}
-                        onCancel={dialogHandlers.handleNewItemCancel}
-                        width={newItemWidth}
-                        height={10}
-                      />
-                    </Box>
-                  )
-                })()}
-              {/* Search dialog modal */}
-              {ui.showSearchDialog &&
-                (() => {
-                  const dialogWidth = Math.min(
-                    90,
-                    Math.floor((termWidth * 2) / 3),
-                  )
-                  const dialogHeight = Math.floor((contentHeight * 2) / 3)
-                  return (
-                    <Box
-                      position="absolute"
-                      marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
-                      marginTop={Math.floor(contentHeight / 6)}
-                      data-dialog="search"
-                    >
-                      <SearchDialog
-                        onSelect={dialogHandlers.handleSearchSelect}
-                        onCancel={dialogHandlers.handleSearchCancel}
-                        width={dialogWidth}
-                        height={dialogHeight}
-                        initialInput={ui.searchDialogInitialInput}
-                        onConsumeInitialInput={() =>
-                          setUI({ searchDialogInitialInput: "" })
-                        }
-                      />
-                    </Box>
-                  )
-                })()}
-              {/* Help overlay */}
-              {ui.showHelp && (
-                <HelpOverlay width={termWidth} height={contentHeight} />
-              )}
-              {/* Console now uses screen switching (pause/resume) instead of overlay */}
-            </Box>
-            {/* Toast stack - bottom-right corner */}
-            <ToastStack
-              toasts={toastQueue?.getAll() ?? []}
-              termWidth={termWidth}
-              termHeight={termHeight}
-            />
-            {/* Bottom bar (includes status messages) */}
-            <BottomBar
-              ui={ui}
-              state={state}
-              layout={layout}
-              termWidth={termWidth}
-              storageMode={repo.mode}
-              nodeCount={repo.stats.nodeCount}
-              moveMode={moveMode}
-              consoleStats={consoleStats}
-              toastQueue={toastQueue}
-            />
-            {/* Bell indicator - hidden element for test detection */}
-            {ui.bellState && (
-              <Text data-bell={ui.bellState}>{/* Bell triggered */}</Text>
+      <Box
+        id={state.rootId ?? undefined}
+        data-view="board"
+        data-board={true}
+        data-scroll-offset={colScrollOffset}
+        data-col-index={layout.colIndex}
+        data-card-index={layout.cardIndex}
+        {...(isBoardSelected && { "data-cursor": true })}
+        flexDirection="column"
+        width={termWidth}
+        height={termHeight}
+        minHeight={3}
+        overflow="hidden"
+      >
+        {/* Top bar: full path from root to selected item, spans full width */}
+        <Box
+          flexShrink={0}
+          width={termWidth}
+          backgroundColor={isBoardSelected ? "yellow" : "white"}
+        >
+          <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
+            {renderTopBarContent(
+              selectedPathSegments,
+              isBoardSelected,
+              boardColor,
             )}
-          </Box>
+          </Text>
+        </Box>
+        <Box
+          flexGrow={1}
+          flexDirection="row"
+          minHeight={1}
+          maxHeight={contentHeight}
+          overflow="hidden"
+        >
+          {/* Cards, Columns, or List view */}
+          {ui.viewMode === "cards" ? (
+            <ErrorBoundary
+              fallback={<Text color="red">Error loading cards view</Text>}
+            >
+              <Box
+                flexDirection="row"
+                width={boardWidth}
+                height={contentHeight}
+              >
+                {state.columns.length === 0 ? (
+                  <Box flexDirection="column" padding={1}>
+                    <Text dimColor>Empty board</Text>
+                  </Box>
+                ) : (
+                  <>
+                    {/* Calculate column widths using shared utility */}
+                    {(() => {
+                      const widths = calcColumnWidths({
+                        boardWidth,
+                        visibleColumnCount: effectiveVisibleColumns.length,
+                        maxCols: effectiveMaxCols,
+                        scrollOffset: effectiveScrollOffset,
+                        totalColumns: state.columns.length,
+                      })
+                      return (
+                        <>
+                          {/* Left scroll indicator - full height filled bar */}
+                          {widths.hasLeftIndicator && (
+                            <VerticalScrollIndicator direction="left" />
+                          )}
+                          {effectiveVisibleColumns.map((col, i) => {
+                            const actualColIndex = effectiveScrollOffset + i
+                            const isLastCol =
+                              i === effectiveVisibleColumns.length - 1
+                            const adjustedColWidth = getColumnWidth(
+                              i,
+                              widths.baseColWidth,
+                              widths.remainder,
+                            )
+                            return (
+                              <React.Fragment key={col.node.id}>
+                                <Column
+                                  column={col}
+                                  colIndex={actualColIndex}
+                                  isSelected={
+                                    actualColIndex === layout.colIndex
+                                  }
+                                  isCollapsed={ui.collapsedColumns.has(
+                                    actualColIndex,
+                                  )}
+                                  selectedCardIndex={layout.cardIndex}
+                                  selectedSubIndex={
+                                    ui.inOutlineMode ? ui.subIndex : -1
+                                  }
+                                  width={adjustedColWidth}
+                                  height={contentHeight}
+                                  selectionLevel={derivedSelectionLevel}
+                                />
+                                {/* Separator line between columns */}
+                                {!isLastCol && <ColumnSeparator />}
+                              </React.Fragment>
+                            )
+                          })}
+                          {/* Right scroll indicator - full height filled bar */}
+                          {widths.hasRightIndicator && (
+                            <VerticalScrollIndicator direction="right" />
+                          )}
+                        </>
+                      )
+                    })()}
+                  </>
+                )}
+              </Box>
+            </ErrorBoundary>
+          ) : ui.viewMode === "columns" ? (
+            <ErrorBoundary
+              fallback={<Text color="red">Error loading columns view</Text>}
+            >
+              <ColumnsView
+                state={state}
+                width={boardWidth}
+                height={contentHeight}
+                colIndex={layout.colIndex}
+                cardIndex={layout.cardIndex}
+                subIndex={ui.subIndex}
+                effectiveScrollOffset={effectiveScrollOffset}
+                effectiveMaxCols={effectiveMaxCols}
+                effectiveVisibleColumns={effectiveVisibleColumns}
+                selectionLevel={derivedSelectionLevel}
+              />
+            </ErrorBoundary>
+          ) : ui.viewMode === "list" ? (
+            <ErrorBoundary
+              fallback={<Text color="red">Error loading list view</Text>}
+            >
+              <ListView
+                state={state}
+                width={boardWidth}
+                height={contentHeight}
+                colIndex={layout.colIndex}
+                cardIndex={layout.cardIndex}
+                subIndex={ui.subIndex}
+                selectionLevel={derivedSelectionLevel}
+              />
+            </ErrorBoundary>
+          ) : (
+            <ErrorBoundary
+              fallback={<Text color="red">Error loading tabs view</Text>}
+            >
+              <TabsView
+                state={state}
+                width={boardWidth}
+                height={contentHeight}
+                colIndex={layout.colIndex}
+                cardIndex={layout.cardIndex}
+                subIndex={ui.subIndex}
+                selectionLevel={derivedSelectionLevel}
+              />
+            </ErrorBoundary>
+          )}
+          {/* Detail pane */}
+          {ui.showDetailPane && selectedCard && (
+            <DetailPane
+              node={selectedCard.node}
+              width={detailPaneWidth}
+              height={contentHeight}
+            />
+          )}
+          {/* Project picker modal */}
+          {ui.showProjectPicker &&
+            (() => {
+              const pickerWidth = Math.min(80, Math.floor(termWidth / 2))
+              return (
+                <Box
+                  position="absolute"
+                  marginLeft={Math.floor((termWidth - pickerWidth) / 2)}
+                  marginTop={Math.floor(contentHeight / 2)}
+                  data-dialog="project-picker"
+                >
+                  <ProjectPicker
+                    onSelect={dialogHandlers.handleProjectSelect}
+                    onCancel={dialogHandlers.handleProjectCancel}
+                    width={pickerWidth}
+                    height={Math.floor(contentHeight / 2)}
+                    recentProjectIds={ui.recentProjectIds}
+                  />
+                </Box>
+              )
+            })()}
+          {/* New item dialog modal */}
+          {ui.showNewItemDialog &&
+            (() => {
+              const newItemWidth = Math.min(70, Math.floor(termWidth / 2))
+              return (
+                <Box
+                  position="absolute"
+                  marginLeft={Math.floor((termWidth - newItemWidth) / 2)}
+                  marginTop={Math.floor(contentHeight / 3)}
+                  data-dialog="new-item"
+                >
+                  <NewItemDialog
+                    cursorNode={selectedCard?.node ?? null}
+                    onCreate={dialogHandlers.handleNewItemCreate}
+                    onCancel={dialogHandlers.handleNewItemCancel}
+                    width={newItemWidth}
+                    height={10}
+                  />
+                </Box>
+              )
+            })()}
+          {/* Search dialog modal */}
+          {ui.showSearchDialog &&
+            (() => {
+              const dialogWidth = Math.min(90, Math.floor((termWidth * 2) / 3))
+              const dialogHeight = Math.floor((contentHeight * 2) / 3)
+              return (
+                <Box
+                  position="absolute"
+                  marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
+                  marginTop={Math.floor(contentHeight / 6)}
+                  data-dialog="search"
+                >
+                  <SearchDialog
+                    onSelect={dialogHandlers.handleSearchSelect}
+                    onCancel={dialogHandlers.handleSearchCancel}
+                    width={dialogWidth}
+                    height={dialogHeight}
+                    initialInput={ui.searchDialogInitialInput}
+                    onConsumeInitialInput={() =>
+                      setUI({ searchDialogInitialInput: "" })
+                    }
+                  />
+                </Box>
+              )
+            })()}
+          {/* Help overlay */}
+          {ui.showHelp && (
+            <HelpOverlay width={termWidth} height={contentHeight} />
+          )}
+          {/* Console now uses screen switching (pause/resume) instead of overlay */}
+        </Box>
+        {/* Toast stack - bottom-right corner */}
+        <ToastStack
+          toasts={toastQueue?.getAll() ?? []}
+          termWidth={termWidth}
+          termHeight={termHeight}
+        />
+        {/* Bottom bar (includes status messages) */}
+        <BottomBar
+          ui={ui}
+          state={state}
+          layout={layout}
+          termWidth={termWidth}
+          storageMode={repo.mode}
+          nodeCount={repo.stats.nodeCount}
+          moveMode={moveMode}
+          consoleStats={consoleStats}
+          toastQueue={toastQueue}
+        />
+        {/* Bell indicator - hidden element for test detection */}
+        {ui.bellState && (
+          <Text data-bell={ui.bellState}>{/* Bell triggered */}</Text>
+        )}
+      </Box>
     </ConstraintRoot>
   )
 }

@@ -12,7 +12,7 @@ import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardState, BoardAction } from "@km/board"
 import type { ColumnsLayout, ColumnState, CardState } from "./types.ts"
-import type { UIState, UIAction } from "./ui-reducer.ts"
+import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
 
 /**
@@ -41,15 +41,11 @@ export interface ActionCtx {
   card: CardState | undefined
 
   // === Dispatchers ===
-  /** Dispatch to UI reducer (legacy — prefer setUI for new code) */
-  dispatchUI: (action: UIAction) => void
-  /** Dispatch to board reducer */
+  /** Dispatch to board state (for SELECT, ZOOM_IN, MOVE, etc.) */
   dispatchBoard: (action: BoardAction) => void
-  /** Set UI fields directly (partial update) */
+  /** Set UI fields directly (partial update, shallow merge) */
   setUI: (
-    partial:
-      | Partial<UIState>
-      | ((prev: UIState) => Partial<UIState>),
+    partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>),
   ) => void
   /** Set foldedNodes (single source of truth at store root) */
   setFoldedNodes: (nodes: Set<string>) => void

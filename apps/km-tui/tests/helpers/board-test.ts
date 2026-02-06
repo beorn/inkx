@@ -1270,7 +1270,6 @@ export function renderBoard(
     foldedNodes: new Set<string>(),
     ui: createInitialUIState("cards", [], { columns, rows }),
     layoutRegistry: null,
-    dispatchUI: () => {},
     setUI: () => {},
   }))
   const result = render(

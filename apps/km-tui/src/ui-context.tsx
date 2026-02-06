@@ -1,14 +1,12 @@
 /**
  * UI Hooks for Board Components
  *
- * Provides UI state selectors and dispatch via the Zustand store.
- * Uses reselect for memoized compound selectors to prevent unnecessary re-renders.
+ * Provides UI state selectors via the Zustand store.
  */
 
 import { useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
-import { createSelector } from "reselect"
-import type { UIState, UIAction } from "./ui-reducer.ts"
+import type { UIState } from "./ui-reducer.ts"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { useRepo } from "./repo-context.tsx"
 
@@ -29,18 +27,7 @@ export function useUISelector<T>(selector: (state: UIState) => T): T {
 }
 
 /**
- * Get UI dispatch function (stable reference from store).
- * @deprecated Use useSetUI() for new code — direct field updates without action creators.
- */
-export function useUIDispatch(): (action: UIAction) => void {
-  return useAppStore<BoardAppStore, BoardAppStore["dispatchUI"]>(
-    (s) => s.dispatchUI,
-  )
-}
-
-/**
  * Get setUI function for direct partial UI state updates.
- * Replaces useUIDispatch + actions for new code.
  *
  * @example
  * const setUI = useSetUI();
@@ -52,67 +39,49 @@ export function useSetUI(): BoardAppStore["setUI"] {
 }
 
 // =============================================================================
-// Pre-built Selectors (memoized with reselect)
+// Convenience Hooks
 // =============================================================================
 
-// Base selectors
-const selectMaxOutlineDepth = (state: UIState) => state.maxOutlineDepth
-const selectMaxContentLines = (state: UIState) => state.maxContentLines
-const selectViewMode = (state: UIState) => state.viewMode
-const selectInOutlineMode = (state: UIState) => state.inOutlineMode
-const selectSubIndex = (state: UIState) => state.subIndex
-// Note: selectionLevel is now derived from cursor depth in Board.tsx, not stored in UIState
-const selectRootBoardId = (state: UIState) => state.rootBoardId
-
 /**
- * Get tree rendering config (commonly used together)
+ * Get tree rendering config (memoized by individual field subscriptions).
  *
  * View-mode specific behavior:
  * - Cards view: multiline variant (parent context above, content can wrap)
  * - Other views (list, columns, tabs): oneliner variant (inline context, truncate)
  */
-const selectTreeConfig = createSelector(
-  [
-    selectMaxOutlineDepth,
-    selectMaxContentLines,
-    selectInOutlineMode,
-    selectSubIndex,
-    selectViewMode,
-  ],
-  (maxOutlineDepth, maxContentLines, inOutlineMode, subIndex, viewMode) => ({
-    // Cards view shows full outline depth (default 2)
-    // Oneliner views (columns/tabs/list) limit to depth 1 to show immediate children
-    // but not grandchildren, reducing node count from 6668 to ~1400 and improving
-    // j-press from 235ms to ~50ms (vs 14ms at depth=0)
-    maxOutlineDepth:
-      viewMode === "cards" ? maxOutlineDepth : Math.min(1, maxOutlineDepth),
-    // Cards view allows multi-line content, other views truncate to one line
-    maxContentLines: viewMode === "cards" ? maxContentLines : 1,
-    inOutlineMode,
-    currentSubIndex: subIndex,
-    // Cards view uses multiline (parent above), other views use oneliner (inline)
-    variant: (viewMode === "cards" ? "multiline" : "oneliner") as
-      | "oneliner"
-      | "multiline",
-  }),
-)
-
-// =============================================================================
-// Convenience Hooks (using pre-built selectors)
-// =============================================================================
-
-/**
- * Get tree rendering config
- */
 export function useTreeConfig() {
-  return useUISelector(selectTreeConfig)
+  const maxOutlineDepth = useUISelector((s) => s.maxOutlineDepth)
+  const maxContentLines = useUISelector((s) => s.maxContentLines)
+  const viewMode = useUISelector((s) => s.viewMode)
+  const inOutlineMode = useUISelector((s) => s.inOutlineMode)
+  const subIndex = useUISelector((s) => s.subIndex)
+
+  return useMemo(
+    () => ({
+      // Cards view shows full outline depth (default 2)
+      // Oneliner views (columns/tabs/list) limit to depth 1 to show immediate children
+      // but not grandchildren, reducing node count from 6668 to ~1400 and improving
+      // j-press from 235ms to ~50ms (vs 14ms at depth=0)
+      maxOutlineDepth:
+        viewMode === "cards" ? maxOutlineDepth : Math.min(1, maxOutlineDepth),
+      // Cards view allows multi-line content, other views truncate to one line
+      maxContentLines: viewMode === "cards" ? maxContentLines : 1,
+      inOutlineMode,
+      currentSubIndex: subIndex,
+      // Cards view uses multiline (parent above), other views use oneliner (inline)
+      variant: (viewMode === "cards" ? "multiline" : "oneliner") as
+        | "oneliner"
+        | "multiline",
+    }),
+    [maxOutlineDepth, maxContentLines, viewMode, inOutlineMode, subIndex],
+  )
 }
 
 /**
  * Get the current board's root ID (for excluding from board pills)
  */
 export function useRootBoardId(): string | null {
-  return useUISelector(selectRootBoardId)
+  return useUISelector((s) => s.rootBoardId)
 }
 
 /**

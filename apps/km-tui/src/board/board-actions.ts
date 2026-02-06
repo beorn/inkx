@@ -83,17 +83,33 @@ export function handleCommandAction(
       exit()
       return ok()
     case "SHOW_NEW_ITEM_DIALOG":
-      ctx.setUI({ showNewItemDialog: true, inOutlineMode: false, subIndex: 0, showDetailPane: false })
+      ctx.setUI({
+        showNewItemDialog: true,
+        inOutlineMode: false,
+        subIndex: 0,
+        showDetailPane: false,
+      })
       clearSelection(ctx)
       return ok()
     case "SHOW_PROJECT_PICKER":
       if (card) {
-        ctx.setUI({ showProjectPicker: true, inOutlineMode: false, subIndex: 0, showDetailPane: false })
+        ctx.setUI({
+          showProjectPicker: true,
+          inOutlineMode: false,
+          subIndex: 0,
+          showDetailPane: false,
+        })
         clearSelection(ctx)
       }
       return ok()
     case "SHOW_SEARCH_DIALOG":
-      ctx.setUI({ showSearchDialog: true, searchDialogInitialInput: "", inOutlineMode: false, subIndex: 0, showDetailPane: false })
+      ctx.setUI({
+        showSearchDialog: true,
+        searchDialogInitialInput: "",
+        inOutlineMode: false,
+        subIndex: 0,
+        showDetailPane: false,
+      })
       clearSelection(ctx)
       return ok()
     case "JUMP_TO_FAVORITE":
@@ -102,7 +118,12 @@ export function handleCommandAction(
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
     case "ENTER_INLINE_EDIT":
-      ctx.setUI({ inlineEditBlock: { nodeId: action.nodeId, blockIndex: action.blockIndex ?? 0 } })
+      ctx.setUI({
+        inlineEditBlock: {
+          nodeId: action.nodeId,
+          blockIndex: action.blockIndex ?? 0,
+        },
+      })
       return ok()
     case "EDIT_BLOCK_NAVIGATE":
       return handleEditBlockNavigate(ctx, action.direction)
@@ -248,16 +269,24 @@ export function handleCommandAction(
       handleExtendSelectHorizontal(ctx, "right")
       return ok()
     case "INCREASE_OUTLINE_DEPTH":
-      ctx.setUI((prev) => ({ maxOutlineDepth: Math.min(10, prev.maxOutlineDepth + 1) }))
+      ctx.setUI((prev) => ({
+        maxOutlineDepth: Math.min(10, prev.maxOutlineDepth + 1),
+      }))
       return ok()
     case "DECREASE_OUTLINE_DEPTH":
-      ctx.setUI((prev) => ({ maxOutlineDepth: Math.max(0, prev.maxOutlineDepth - 1) }))
+      ctx.setUI((prev) => ({
+        maxOutlineDepth: Math.max(0, prev.maxOutlineDepth - 1),
+      }))
       return ok()
     case "INCREASE_CONTENT_LINES":
-      ctx.setUI((prev) => ({ maxContentLines: Math.min(10, prev.maxContentLines + 1) }))
+      ctx.setUI((prev) => ({
+        maxContentLines: Math.min(10, prev.maxContentLines + 1),
+      }))
       return ok()
     case "DECREASE_CONTENT_LINES":
-      ctx.setUI((prev) => ({ maxContentLines: Math.max(1, prev.maxContentLines - 1) }))
+      ctx.setUI((prev) => ({
+        maxContentLines: Math.max(1, prev.maxContentLines - 1),
+      }))
       return ok()
     case "SHIFT_UP":
       handleShiftCard(ctx, "up")

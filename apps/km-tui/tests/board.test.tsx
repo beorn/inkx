@@ -63,7 +63,6 @@ function renderBoardCore(
     foldedNodes: new Set<string>(),
     ui: createInitialUIState("cards", [], { columns: width, rows: height }),
     layoutRegistry: null,
-    dispatchUI: () => {},
     setUI: () => {},
   }))
   return React.createElement(

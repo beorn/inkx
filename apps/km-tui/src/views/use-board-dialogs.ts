@@ -18,7 +18,9 @@ const log = createLogger("km:tui:dialogs")
 // Types
 // =============================================================================
 
-type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
+type SetUI = (
+  partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>),
+) => void
 
 interface UseBoardDialogsParams {
   repo: Repo
@@ -85,7 +87,10 @@ export function useBoardDialogs({
 
       // Track as recent project and close picker
       setUI((prev) => ({
-        recentProjectIds: [targetNode.id, ...prev.recentProjectIds.filter((id) => id !== targetNode.id)].slice(0, 10),
+        recentProjectIds: [
+          targetNode.id,
+          ...prev.recentProjectIds.filter((id) => id !== targetNode.id),
+        ].slice(0, 10),
         showProjectPicker: false,
       }))
     },

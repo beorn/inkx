@@ -261,6 +261,9 @@ export function progressiveSelectAll(ctx: ActionCtx): void {
   ctx.setUI({
     multiSelected: newSelected,
     selectAllLevel: nextLevel,
-    status: { level: "info", message: `All ${newSelected.size} items in ${scope} selected` },
+    status: {
+      level: "info",
+      message: `All ${newSelected.size} items in ${scope} selected`,
+    },
   })
 }
