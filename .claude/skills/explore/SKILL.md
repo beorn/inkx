@@ -1,40 +1,34 @@
 ---
 description: TUI exploration - targeted scenario testing + randomized bug hunting. Use when exercising km view to find bugs, test scenarios, or inspect the live terminal.
-argument-hint: [scenario | 100 | --gui | --peekaboo | --seed <n> | --path <vault>]
+argument-hint: [scenario | --gui | --peekaboo | --path <vault> | km view <path>]
 ---
 
 # TUI Exploration Testing
 
 **Keywords**: explore, fuzz, random, bug hunting, TUI test, visual test, repro, peekaboo, ghostty
 
-The `createBoardDriver()` function provides programmatic control for:
-- **Bug reproduction**: Write failing tests from user-described scenarios (see [tui/fix.md](../tui/fix.md))
-- **AI exploration**: Pick next action based on `getState()`
-- **Fuzz testing**: Random command sequences with invariant checks
-- **Acceptance tests**: Verify cursor movement, dialog state, navigation
+## Decision Tree — Pick ONE, Act Immediately
 
-Supports multiple modes:
-- **Targeted exploration**: User describes a scenario, we test it + variations
-- **Randomized testing**: AI-driven random actions to find edge cases
-- **Live terminal inspection**: Use Peekaboo to investigate your running Ghostty terminal
+**Parse the arguments first, then run the right command:**
 
-## Quick Reference
+| User says | Action | Command |
+|-----------|--------|---------|
+| `/explore km view <path>` or `/explore --path <path>` | Test real vault with diagnostics | `TEST_VAULT=<path> bun vitest run apps/km-tui/tests/real-vault.test.ts` |
+| `/explore` (no args) | Run fuzz suite | `bun test:fuzz` |
+| `/explore --gui` or `/explore --gui <path>` | Visual TTY mode | See [TTY section](#gui-mode) below |
+| `/explore --peekaboo ...` | Live Ghostty inspection | See [peekaboo.md](peekaboo.md) |
+| `/explore <scenario description>` | Targeted bug repro | Write a test first — see [targeted.md](targeted.md) |
 
-| Argument | Description |
-|----------|-------------|
-| `<N>` | Number of iterations (default: 100) |
-| `--gui` | Visual mode via ttyd/Playwright (pixel-level) |
-| `--peekaboo` | Inspect live Ghostty terminal via Peekaboo MCP |
-| `--seed <n>` | Fixed seed for reproducibility |
-| `--path <vault>` | Use existing vault instead of generated data |
+**Do NOT**: read fuzz test source files, try deprecated scripts, or guess vitest CLI flags. The commands above work as-is.
 
-**Examples:**
+## Examples
+
 ```
-/explore 50              # Quick 50-iteration headless run
-/explore --seed 12345    # Reproducible run
-/explore --gui           # Visual mode with screenshots
-/explore --path /tmp/tst-vault-linking  # Test existing vault
-/explore --peekaboo      # Inspect your live Ghostty terminal
+/explore km view /tmp/vt            # Real vault diagnostics (TEST_VAULT)
+/explore --path /tmp/tst-vault      # Same thing
+/explore                            # Fuzz suite (bun test:fuzz)
+/explore --gui                      # Visual mode with screenshots
+/explore --peekaboo                 # Inspect your live Ghostty terminal
 
 # Targeted exploration (describe the scenario)
 /explore going down after "Justice" node causes cursor to jump
@@ -43,55 +37,52 @@ Supports multiple modes:
 
 # Live investigation with Peekaboo
 /explore --peekaboo check why the cursor is misaligned
-/explore --peekaboo investigate the rendering glitch in cards view
 ```
 
-## Default Workflow (TUI Mode)
-
-**Run the exploration script:**
+## Commands
 
 ```bash
-# Quick run (random seed)
-bun scripts/explore-tui.ts --iterations 100
+# Real vault diagnostics (incremental render checks, fold/unfold, random nav)
+TEST_VAULT=/tmp/vt bun vitest run apps/km-tui/tests/real-vault.test.ts
 
-# Reproducible run
-bun scripts/explore-tui.ts --iterations 100 --seed 12345
-
-# Quiet mode for CI
-bun scripts/explore-tui.ts --iterations 100 --quiet
-
-# JSON output for processing
-bun scripts/explore-tui.ts --iterations 100 --json
-
-# With real vault
-bun scripts/explore-tui.ts --path /path/to/vault
+# Fuzz suite (navigation, view modes, dialogs, selection, fold, etc.)
+bun test:fuzz                                    # All fuzz tests
+bun test:fuzz apps/km-tui/tests/navigation-fuzz  # Specific fuzz file
+FUZZ_SEED=12345 bun test:fuzz                    # Reproducible run
 ```
 
-**What it verifies (both DOM and buffer):**
+**What the real vault tests verify** (with `withDiagnostics` wrapper):
+- Incremental render matches fresh render after each action
+- Level navigation (k k j j) with cursor invariants
+- Fold/unfold stability
+- Outline depth changes (< >) don't cause blank cards
+- Random 30-action sequences with mixed navigation
 
-| Check | What | Issue Type |
-|-------|------|------------|
-| Cursor count | Exactly 1 `[data-cursor]` | `multiple-cursors`, `missing-cursor` |
-| Required elements | `#board`, `#bottom-bar` exist | `missing-board`, `missing-bottom-bar` |
-| Buffer content | No `[object Object]`, no errors | `object-object`, `error-in-buffer` |
-| View mode | Indicator present, `v` cycles mode | `missing-view-mode`, `view-mode-unchanged` |
+**What the fuzz tests verify** (with invariant library):
+- No `[object Object]`, `TypeError:`, `NaN` in rendered output
+- Valid cursor at all times (level, col, card indices)
+- Valid view mode, mutually exclusive dialogs
+- Non-negative scroll offset, state consistency
+- No total screen replacement (render failure detection)
 
 **When bugs are found:**
-1. Script outputs reproduce command with seed
+1. Fuzz tests auto-shrink to minimal failing sequence
 2. Create bead: `bd create "TUI: [description]" --type=bug`
-3. Add test to `apps/km-tui/tests/` with `.skip` if not fixing now
+3. Copy minimal sequence to a deterministic test in `apps/km-tui/tests/`
 4. Reference bead in test comment (e.g., "See bead km-xyz")
 
 ## Modes
 
 | Mode | Speed | Use Case |
 |------|-------|----------|
-| **TUI (default, PREFERRED)** | Fast (~1000/s) | Rapid iteration, DOM-level checks |
+| **Headless (default, PREFERRED)** | Fast (~1000/s) | `bun test:fuzz`, `TEST_VAULT=...`, DOM-level checks |
 | **GUI (`--gui`)** | Slower (~1/s) | Pixel verification, visual bugs |
 | **Peekaboo (`--peekaboo`)** | Interactive | Inspect live Ghostty terminal |
 | **Targeted** | Varies | User-described scenario first, then expand |
 
-**IMPORTANT: Always prefer TUI mode** (headless `testEnv()`/`board.press()`/`board.screenshot()`) over GUI/TTY mode. TUI tests are faster, more reliable, and catch character-level issues. Only use `--gui` (TTY/Playwright) when pixel-level visual verification is explicitly needed. **If you must use TTY tools, always set timeout to 5000ms (5s)** to avoid hanging on unresponsive sessions — except `mcp__tty__start` which needs 10000ms (10s).
+**IMPORTANT: Always prefer headless mode** (`testEnv()`/`board.press()`/`board.screenshot()`) over GUI/TTY mode. Headless tests are faster, more reliable, and catch character-level issues. Only use `--gui` (TTY/Playwright) when pixel-level visual verification is explicitly needed. **If you must use TTY tools, always set timeout to 5000ms (5s)** to avoid hanging on unresponsive sessions — except `mcp__tty__start` which needs 10000ms (10s).
+
+<a name="gui-mode"></a>
 
 ## Board Driver API
 

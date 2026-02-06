@@ -2,15 +2,33 @@
 
 Write ad-hoc test scripts for exploration and diagnostics. Use the primitives.
 
+## Quick Commands
+
+```bash
+# Run existing fuzz suite (preferred first step)
+bun test:fuzz                                       # All fuzz tests
+bun test:fuzz apps/km-tui/tests/navigation-fuzz     # Specific file
+FUZZ_SEED=12345 bun test:fuzz                       # Reproducible
+
+# Real vault diagnostics
+TEST_VAULT=/tmp/vt bun vitest run apps/km-tui/tests/real-vault.test.ts
+
+# Ad-hoc fuzz file you just wrote
+FUZZ=1 bun vitest run apps/km-tui/tests/my-debug.fuzz.ts
+```
+
+**NOTE**: `.fuzz.ts` files need `FUZZ=1` env var (or `bun test:fuzz`). They are NOT included in `bun run test:fast`.
+
 ## Philosophy
 
 **Don't use a CLI script. Write test files.**
 
 When exploring or debugging:
-1. Write a `.fuzz.ts` file with your scenario
-2. Run it with vitest
-3. If it finds a bug, the test becomes a regression test
-4. If not, delete or keep as part of the fuzz suite
+1. First, run `bun test:fuzz` — the existing suite may already catch the issue
+2. If not, write a `.fuzz.ts` file with your scenario
+3. Run it with `FUZZ=1 bun vitest run <file>`
+4. If it finds a bug, the test becomes a regression test
+5. If not, delete or keep as part of the fuzz suite
 
 The vitest infrastructure gives you:
 - **Seeded random**: `FUZZ_SEED=12345` for reproducibility
@@ -241,17 +259,20 @@ EOF
 bun vitest run /tmp/diagnose-search.ts
 ```
 
-For diagnostics with fuzz testing, use `FUZZ=1` to enable `.fuzz.ts` files:
+For diagnostics with fuzz testing:
 
 ```bash
-# Run the navigation fuzz suite
-FUZZ=1 bun vitest run apps/km-tui/tests/navigation-fuzz.fuzz.ts
+# Run existing fuzz suite first
+bun test:fuzz
+
+# Run your ad-hoc fuzz file
+FUZZ=1 bun vitest run apps/km-tui/tests/my-debug.fuzz.ts
 
 # With specific seed for reproducibility
-FUZZ=1 FUZZ_SEED=12345 bun vitest run apps/km-tui/tests/navigation-fuzz.fuzz.ts
+FUZZ_SEED=12345 bun test:fuzz
 
 # Watch mode for iteration
-FUZZ=1 bun vitest run apps/km-tui/tests/navigation-fuzz.fuzz.ts --watch
+FUZZ=1 bun vitest apps/km-tui/tests/my-debug.fuzz.ts --watch
 ```
 
 ## When Fuzz Test Finds Bug
