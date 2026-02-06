@@ -14,7 +14,9 @@ import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
-import { useUISelector } from "../ui-context.tsx"
+import { useUISelector, useUIDispatch } from "../ui-context.tsx"
+import { actions } from "../ui-reducer.ts"
+import { InlineEditField } from "./InlineEditField.tsx"
 import type { NodeLayout } from "../card-positions.ts"
 import { getScrollToIndex } from "./scroll-helpers.ts"
 
@@ -241,12 +243,33 @@ export const Column = React.memo(function Column({
   selectionLevel,
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
+  const uiDispatch = useUIDispatch()
+  const nodeId = column.node.id
+
+  // Check if this column header is being inline-edited
+  const isInlineEditing = useUISelector(
+    (state) => state.inlineEditNodeId === nodeId,
+  )
+
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = renderPlain(getNodeDisplayName(repo, column.node))
   const typeSuffix = getCollapsedTypeSuffix(repo, column.node)
   const count = column.cards.length
   const wipLimit = column.wipLimit
   const isVirtual = column.isVirtual ?? false
+
+  // Inline edit callbacks
+  const handleInlineEditConfirm = useCallback(
+    (newValue: string) => {
+      repo.updateNode(nodeId, { content: newValue })
+      uiDispatch(actions.exitInlineEdit())
+    },
+    [nodeId, repo, uiDispatch],
+  )
+
+  const handleInlineEditCancel = useCallback(() => {
+    uiDispatch(actions.exitInlineEdit())
+  }, [uiDispatch])
 
   // Get column's own color (not inherited) for background
   // Virtual body columns use dimmed gray styling
@@ -260,7 +283,13 @@ export const Column = React.memo(function Column({
   const collapsedIndicator = isCollapsed ? " \u25B8" : ""
 
   const isColumnSelected = isSelected && selectionLevel === "column"
-  const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnSelected)
+  const headerStyle = isInlineEditing
+    ? {
+        color: "white",
+        backgroundColor: "blueBright" as string | undefined,
+        dimColor: false,
+      }
+    : getHeaderStyle(ownColor, isSelected, isColumnSelected)
 
   // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
   // - Non-tasks with color: filled circle (●) in that color
@@ -294,47 +323,64 @@ export const Column = React.memo(function Column({
       {/* Bold text, bullet uses getNodeIcon for consistent styling with TreeNode */}
       {/* Note: backgroundColor on Text (not Box) ensures fg color applies correctly */}
       <Box height={1} flexShrink={0} width={width}>
-        <Text
-          bold
-          color={headerStyle.color}
-          backgroundColor={headerStyle.backgroundColor}
-          dimColor={headerStyle.dimColor}
-          wrap="truncate"
-        >
-          {" "}
-          <Text color={iconColor}>{icon.char}</Text> {name}
-          {typeSuffix ? (
-            <Text
-              color={isColumnSelected ? "gray" : undefined}
-              dimColor={!isColumnSelected}
-            >{` ${typeSuffix}`}</Text>
-          ) : (
-            ""
-          )}
-          {wipExceeded ? (
-            <Text color="red">
-              {` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}
-            </Text>
-          ) : (
-            <Text
-              color={isColumnSelected ? "gray" : undefined}
-              dimColor={!isColumnSelected}
-            >{` ${countDisplay}`}</Text>
-          )}
-          {collapsedIndicator}
-          {/* Pad to full column width */}
-          {" ".repeat(
-            Math.max(
-              0,
-              width -
-                4 -
-                name.length -
-                countDisplay.length -
-                (typeSuffix?.length ?? 0) -
-                (collapsedIndicator?.length ?? 0),
-            ),
-          )}
-        </Text>
+        {isInlineEditing ? (
+          <Text
+            bold
+            color={headerStyle.color}
+            backgroundColor={headerStyle.backgroundColor}
+            wrap="truncate"
+          >
+            {" "}
+            <Text color={iconColor}>{icon.char}</Text>{" "}
+            <InlineEditField
+              initialValue={name}
+              onConfirm={handleInlineEditConfirm}
+              onCancel={handleInlineEditCancel}
+            />
+          </Text>
+        ) : (
+          <Text
+            bold
+            color={headerStyle.color}
+            backgroundColor={headerStyle.backgroundColor}
+            dimColor={headerStyle.dimColor}
+            wrap="truncate"
+          >
+            {" "}
+            <Text color={iconColor}>{icon.char}</Text> {name}
+            {typeSuffix ? (
+              <Text
+                color={isColumnSelected ? "gray" : undefined}
+                dimColor={!isColumnSelected}
+              >{` ${typeSuffix}`}</Text>
+            ) : (
+              ""
+            )}
+            {wipExceeded ? (
+              <Text color="red">
+                {` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}
+              </Text>
+            ) : (
+              <Text
+                color={isColumnSelected ? "gray" : undefined}
+                dimColor={!isColumnSelected}
+              >{` ${countDisplay}`}</Text>
+            )}
+            {collapsedIndicator}
+            {/* Pad to full column width */}
+            {" ".repeat(
+              Math.max(
+                0,
+                width -
+                  4 -
+                  name.length -
+                  countDisplay.length -
+                  (typeSuffix?.length ?? 0) -
+                  (collapsedIndicator?.length ?? 0),
+              ),
+            )}
+          </Text>
+        )}
       </Box>
 
       {isCollapsed ? (

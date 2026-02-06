@@ -118,7 +118,7 @@ const zoomIn = {
   name: "Zoom In",
   description: "Focus on current node as root",
   category: "Navigation",
-  shortcuts: ["o"], // TUI uses 'o' for zoom in
+  shortcuts: ["e"],
   execute: (ctx) => {
     if (!ctx.currentNode) return null
     // BoardAction: just the nodeId, no tree data needed
@@ -195,6 +195,33 @@ const zoomInwards = {
 } satisfies CommandDef
 
 // All navigation commands
+// Open file/folder in macOS default app (Finder for folders, default editor for files)
+const openInSystem = {
+  id: "open_in_system",
+  name: "Open in System",
+  description:
+    "Open file/folder in macOS (Finder for folders, default app for files)",
+  category: "Navigation",
+  shortcuts: ["o"],
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null
+    return { type: "OPEN_IN_SYSTEM", nodeId: ctx.currentNodeId }
+  },
+} satisfies CommandDef
+
+// Open terminal at closest folder
+const openInTerminal = {
+  id: "open_in_terminal",
+  name: "Open in Terminal",
+  description: "Open terminal at the closest folder",
+  category: "Navigation",
+  shortcuts: ["O"],
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null
+    return { type: "OPEN_IN_TERMINAL", nodeId: ctx.currentNodeId }
+  },
+} satisfies CommandDef
+
 export const navigationCommands: CommandDef[] = [
   cursorPrev,
   cursorNext,
@@ -216,4 +243,6 @@ export const navigationCommands: CommandDef[] = [
   siblingBoardNext,
   siblingBoardPrev,
   zoomInwards,
+  openInSystem,
+  openInTerminal,
 ]

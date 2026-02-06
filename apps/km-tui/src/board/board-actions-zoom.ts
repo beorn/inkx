@@ -166,8 +166,10 @@ export function handleZoomInwards(ctx: TUIContext): ActionResult {
   const col = state.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
+  // If at column level (no card selected), zoom into the column directly
   if (!card) {
-    return precondition("card")
+    if (!col) return precondition("card")
+    return handleZoomInNode(ctx, col.node.id)
   }
 
   // If we're in outline mode with a sub-selection, zoom to that child

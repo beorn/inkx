@@ -325,11 +325,11 @@ describe("processInkKey", () => {
     const moveCtx = buildKeybindingContext({ inMoveMode: true })
     const cmdCtx = createCommandContext()
 
-    // Enter in normal mode
+    // Enter in normal mode → enter_inline_edit
     const normalResult = processInkKey("", { return: true }, cmdCtx, normalCtx)
     expect(normalResult.commandId).toBe("enter_inline_edit")
 
-    // Enter in move mode
+    // Enter in move mode → confirm_move
     const moveResult = processInkKey("", { return: true }, cmdCtx, moveCtx)
     expect(moveResult.commandId).toBe("confirm_move")
   })

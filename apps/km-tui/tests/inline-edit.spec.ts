@@ -116,7 +116,7 @@ describe("Inline Editing", () => {
     board.expect("#1b[data-cursor]").toExist()
   })
 
-  test("inline edit then navigate works (edit → Escape → j/k)", () => {
+  test("inline edit then navigate works (Enter → Escape → j/k)", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"), item("1c"))),
     )

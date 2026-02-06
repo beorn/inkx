@@ -207,6 +207,16 @@ interface CloseOrQuitAction {
   type: "CLOSE_OR_QUIT" // Contextual: close dialog/pane/mode, or quit
 }
 
+interface OpenInSystemAction {
+  type: "OPEN_IN_SYSTEM"
+  nodeId: string
+}
+
+interface OpenInTerminalAction {
+  type: "OPEN_IN_TERMINAL"
+  nodeId: string
+}
+
 interface EnterInlineEditAction {
   type: "ENTER_INLINE_EDIT"
   nodeId: string
@@ -280,6 +290,8 @@ export type TUIAction =
   | ShiftLeftAction
   | ShiftRightAction
   | MoveAction
+  | OpenInSystemAction
+  | OpenInTerminalAction
 
 export type UIAction =
   | ZoomOutwardsAction

@@ -9,6 +9,8 @@
  * but this extraction is a first step to make Board.tsx manageable.
  */
 
+import { spawn } from "node:child_process"
+import { dirname } from "node:path"
 import type { CommandAction } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createlogger } from "@beorn/logger"
@@ -120,6 +122,12 @@ export function handleCommandAction(
       return handleZoomInwards(ctx)
     case "PAGE_JUMP":
       handlePageJump(ctx, action.direction)
+      return ok()
+    case "OPEN_IN_SYSTEM":
+      handleOpenInSystem(ctx, action.nodeId)
+      return ok()
+    case "OPEN_IN_TERMINAL":
+      handleOpenInTerminal(ctx, action.nodeId)
       return ok()
 
     // === UI actions ===
@@ -461,4 +469,52 @@ function handleCloseOrQuit(ctx: TUIContext): ActionResult {
 
   // Nothing to close or navigate - indicate boundary
   return boundary("escape", "nothing to close")
+}
+
+// =============================================================================
+// Open in System / Terminal
+// =============================================================================
+
+/** Walk up the tree to find the nearest node with fs_path. */
+function resolveNodeFsPath(
+  repo: TUIContext["repo"],
+  nodeId: string,
+): { fsPath: string; isFolder: boolean } | null {
+  let current = repo.data.getNode(nodeId)
+  while (current) {
+    if (current.fs_path) {
+      return {
+        fsPath: current.fs_path,
+        isFolder: current.type === "folder",
+      }
+    }
+    if (!current.parent_id) break
+    current = repo.data.getNode(current.parent_id)
+  }
+  return null
+}
+
+function handleOpenInSystem(ctx: TUIContext, nodeId: string): void {
+  const result = resolveNodeFsPath(ctx.repo, nodeId)
+  if (!result) {
+    log.debug?.("open_in_system: no fs_path for node %s", nodeId)
+    return
+  }
+  log.debug?.("open_in_system: opening %s", result.fsPath)
+  spawn("open", [result.fsPath], { detached: true, stdio: "ignore" }).unref()
+}
+
+function handleOpenInTerminal(ctx: TUIContext, nodeId: string): void {
+  const result = resolveNodeFsPath(ctx.repo, nodeId)
+  if (!result) {
+    log.debug?.("open_in_terminal: no fs_path for node %s", nodeId)
+    return
+  }
+  // For files, open terminal at the parent directory
+  const dir = result.isFolder ? result.fsPath : dirname(result.fsPath)
+  log.debug?.("open_in_terminal: opening terminal at %s", dir)
+  spawn("open", ["-a", "Terminal", dir], {
+    detached: true,
+    stdio: "ignore",
+  }).unref()
 }

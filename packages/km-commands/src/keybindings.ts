@@ -166,10 +166,12 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "k", ctrl: true, commandId: "sibling_board_prev" },
 
   // Zoom/Navigate
-  { key: "o", commandId: "zoom_in" }, // TUI uses 'o' for zoom in (focus on node)
+  { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] }, // Edit node title inline
+  { key: "e", commandId: "zoom_in" }, // Zoom into node (show children as board)
+  { key: "o", commandId: "open_in_system" }, // Open file/folder in macOS (Finder/editor)
+  { key: "O", commandId: "open_in_terminal" }, // Open terminal at closest folder
   { key: "i", commandId: "zoom_inwards" }, // Zoom in one level closer to selected node
   { key: "u", commandId: "zoom_outwards" }, // Zoom out one level (parent of root)
-  { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] }, // Edit node title inline
 
   // === Selection ===
   // NOTE: 'v' is NOT select_toggle in TUI - it cycles view mode

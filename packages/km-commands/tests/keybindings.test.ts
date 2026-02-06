@@ -479,8 +479,10 @@ describe("initDefaultKeybindings", () => {
     ["Enter", {}, "normal", "enter_inline_edit"],
     // Enter in move mode = confirm_move (defined with modes: ["move"])
     ["Enter", {}, "move", "confirm_move"],
-    // TUI: 'o' is zoom in
-    ["o", {}, "normal", "zoom_in"],
+    // TUI: 'e' zooms in, 'o' opens in system, 'i' zooms inwards
+    ["e", {}, "normal", "zoom_in"],
+    ["o", {}, "normal", "open_in_system"],
+    ["i", {}, "normal", "zoom_inwards"],
     // TUI: Escape is close_or_quit (contextual) in normal mode
     ["Escape", {}, "normal", "close_or_quit"],
     // In move mode, Escape cancels move (mode-specific binding takes precedence)
@@ -559,6 +561,7 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("cursor_down")
     expect(commandIds).toContain("cursor_up")
     expect(commandIds).toContain("zoom_in")
+    expect(commandIds).toContain("zoom_inwards")
     expect(commandIds).toContain("zoom_outwards")
 
     // Selection
