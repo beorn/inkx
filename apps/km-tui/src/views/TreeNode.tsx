@@ -8,6 +8,8 @@
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
+import { useApp as useAppStore } from "inkx/runtime"
+import type { BoardAppStore } from "../board-app-store.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text } from "inkx"
 import type { KNode } from "@km/core"
@@ -166,7 +168,9 @@ function TreeNodeImpl({
   const isMultiSelected = useUISelector((state) =>
     state.multiSelected.has(selectionKey),
   )
-  const isFolded = useUISelector((state) => state.foldedNodes.has(node.id))
+  const isFolded = useAppStore<BoardAppStore, boolean>((s) =>
+    s.foldedNodes.has(node.id),
+  )
   const editBlockIndex = useUISelector((state) =>
     state.inlineEditBlock?.nodeId === node.id
       ? state.inlineEditBlock.blockIndex

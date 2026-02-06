@@ -56,7 +56,7 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
         ui.multiSelected,
         ui.inOutlineMode,
         boardState.cursorNodeId,
-        ui.foldedNodes,
+        ctx.boardState.foldedNodes,
       )
 
       // When zooming out, keep the current root as the cursor
@@ -103,7 +103,7 @@ export function handleZoomIn(ctx: ActionCtx): ActionResult {
     ui.multiSelected,
     ui.inOutlineMode,
     boardState.cursorNodeId,
-    ui.foldedNodes,
+    ctx.boardState.foldedNodes,
   )
 
   // Dispatch zoom to the node, with first child as initial cursor
@@ -140,7 +140,7 @@ export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
     ui.multiSelected,
     ui.inOutlineMode,
     boardState.cursorNodeId,
-    ui.foldedNodes,
+    ctx.boardState.foldedNodes,
   )
 
   // Dispatch zoom with first child as initial cursor
@@ -183,7 +183,7 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
       const nodeChildren = ctx.repo.getChildren(nodeId)
       for (const child of nodeChildren) {
         flatChildren.push({ node: child, depth })
-        if (!ui.foldedNodes.has(child.id)) {
+        if (!ctx.boardState.foldedNodes.has(child.id)) {
           collectVisible(child.id, depth + 1, maxDepth)
         }
       }
@@ -203,7 +203,7 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
         ui.multiSelected,
         ui.inOutlineMode,
         boardState.cursorNodeId,
-        ui.foldedNodes,
+        ctx.boardState.foldedNodes,
       )
 
       dispatchUI(actions.exitOutlineMode())

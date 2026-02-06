@@ -207,10 +207,18 @@ export function handleCommandAction(
     case "TOGGLE_FOLD":
       return handleToggleFold(ctx)
     case "FOLD_LEVEL":
-      if (col) dispatchUI(actions.foldAll(col.cards.map((c) => c.node.id)))
+      if (col) {
+        const newFolded = new Set(ctx.boardState.foldedNodes)
+        for (const c of col.cards) newFolded.add(c.node.id)
+        ctx.setFoldedNodes(newFolded)
+      }
       return ok()
     case "UNFOLD_LEVEL":
-      if (col) dispatchUI(actions.unfoldAll(col.cards.map((c) => c.node.id)))
+      if (col) {
+        const newFolded = new Set(ctx.boardState.foldedNodes)
+        for (const c of col.cards) newFolded.delete(c.node.id)
+        ctx.setFoldedNodes(newFolded)
+      }
       return ok()
     case "TOGGLE_COLLAPSE":
       dispatchUI(actions.toggleColumnCollapse(layout.colIndex))
@@ -410,7 +418,7 @@ function handleEditBlockNavigate(
 }
 
 function handleToggleFold(ctx: ActionCtx): ActionResult {
-  const { layout, dispatchUI, repo } = ctx
+  const { layout, repo } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
@@ -422,7 +430,7 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
     return boundary("fold", "no children to fold")
   }
 
-  dispatchUI(actions.toggleFold(card.node.id))
+  ctx.dispatchBoard({ type: "TOGGLE_FOLD", nodeId: card.node.id })
   return ok()
 }
 
@@ -448,7 +456,7 @@ function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
     ui.multiSelected,
     ui.inOutlineMode,
     boardState.cursorNodeId,
-    ui.foldedNodes,
+    boardState.foldedNodes,
   )
 
   // Navigate to favorite

@@ -90,7 +90,7 @@ export function UIProvider({
  * Only re-renders when the selected value changes.
  *
  * @example
- * const foldedNodes = useUISelector(state => state.foldedNodes);
+ * const showHelp = useUISelector(state => state.showHelp);
  * const isSelected = useUISelector(state => state.multiSelected.has(myKey));
  */
 export function useUISelector<T>(selector: (state: UIState) => T): T {

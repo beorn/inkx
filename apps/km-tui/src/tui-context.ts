@@ -45,6 +45,8 @@ export interface ActionCtx {
   dispatchUI: (action: UIAction) => void
   /** Dispatch to board reducer */
   dispatchBoard: (action: BoardAction) => void
+  /** Set foldedNodes (single source of truth at store root) */
+  setFoldedNodes: (nodes: Set<string>) => void
 
   // === Lifecycle ===
   /** Exit the application */

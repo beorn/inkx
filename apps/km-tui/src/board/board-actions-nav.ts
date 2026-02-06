@@ -161,7 +161,7 @@ function handleOutlineNav(
       card.node,
       0,
       ui.maxOutlineDepth,
-      ui.foldedNodes,
+      ctx.boardState.foldedNodes,
     )
     if (ui.subIndex < maxIdx) {
       dispatchUI(actions.setSubIndex(ui.subIndex + 1))
@@ -466,7 +466,7 @@ export function handleNavBack(ctx: ActionCtx): ActionResult {
 
   // Restore folded nodes state
   if (entry.foldedNodes) {
-    dispatchUI(actions.setFoldedNodes(entry.foldedNodes))
+    ctx.setFoldedNodes(entry.foldedNodes)
   }
 
   return ok()
@@ -511,7 +511,7 @@ export function handleNavForward(ctx: ActionCtx): ActionResult {
 
   // Restore folded nodes state
   if (entry.foldedNodes) {
-    dispatchUI(actions.setFoldedNodes(entry.foldedNodes))
+    ctx.setFoldedNodes(entry.foldedNodes)
   }
 
   return ok()
@@ -558,7 +558,7 @@ export function handleNavSiblingBoard(
     ui.multiSelected,
     ui.inOutlineMode,
     boardState.cursorNodeId,
-    ui.foldedNodes,
+    boardState.foldedNodes,
   )
 
   // Navigate to sibling

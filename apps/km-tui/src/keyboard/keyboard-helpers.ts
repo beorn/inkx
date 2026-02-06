@@ -74,7 +74,7 @@ export function updateSelectionRange(
             card.node,
             0,
             ctx.ui.maxOutlineDepth,
-            ctx.ui.foldedNodes,
+            ctx.boardState.foldedNodes,
           )
         for (let s = 0; s < maxItems; s++) {
           newSelected.add(makeSelectionKey(toCol, c, s))
@@ -188,7 +188,7 @@ function addCardItems(
       card.node,
       0,
       ctx.ui.maxOutlineDepth,
-      ctx.ui.foldedNodes,
+      ctx.boardState.foldedNodes,
     )
   for (let s = 0; s < maxItems; s++) {
     selected.add(makeSelectionKey(colIdx, cardIdx, s))

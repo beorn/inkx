@@ -1265,8 +1265,16 @@ export function renderBoard(
     moveMode: false,
     colScrollOffset: 0,
   })
+  // Wrap in StoreContext so TreeNode's useAppStore(s => s.foldedNodes) works
+  const store = createStore(() => ({
+    foldedNodes: new Set<string>(),
+  }))
   const result = render(
-    React.createElement(RepoProvider, { repo, children: boardCoreElement }),
+    React.createElement(
+      StoreContext.Provider,
+      { value: store as StoreApi<unknown> },
+      React.createElement(RepoProvider, { repo, children: boardCoreElement }),
+    ),
   )
 
   return new BoardTestImpl(result)

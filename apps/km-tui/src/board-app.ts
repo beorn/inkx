@@ -54,6 +54,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     card,
     dispatchUI: (action) => s.dispatchUI(action),
     dispatchBoard: (action) => s.dispatchBoard(action),
+    setFoldedNodes: (nodes) => s.setFoldedNodes(nodes),
     exit,
     countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
       countVisibleDescendants(s.repo, node, depth, maxDepth, foldedNodes),

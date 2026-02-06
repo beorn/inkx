@@ -16,6 +16,8 @@ import {
 } from "../src/state.ts"
 import { renderCard } from "../src/render.ts"
 import { renderStatic } from "inkx"
+import { StoreContext } from "inkx/runtime"
+import { createStore, type StoreApi } from "zustand"
 import type { CardState } from "../src/types.ts"
 import { BoardCore } from "../src/views/Board.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
@@ -56,10 +58,18 @@ function renderBoardCore(
     moveMode: false,
     colScrollOffset: 0,
   })
-  return React.createElement(RepoProvider, {
-    repo,
-    children: boardCoreElement,
-  })
+  // Wrap in StoreContext so TreeNode's useAppStore(s => s.foldedNodes) works
+  const store = createStore(() => ({
+    foldedNodes: new Set<string>(),
+  }))
+  return React.createElement(
+    StoreContext.Provider,
+    { value: store as StoreApi<unknown> },
+    React.createElement(RepoProvider, {
+      repo,
+      children: boardCoreElement,
+    }),
+  )
 }
 
 describe("State", () => {
