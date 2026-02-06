@@ -87,10 +87,6 @@ export interface UIState {
   // Inline edit state - which node is being edited inline (null = not editing)
   inlineEditNodeId: string | null
 
-  // Repo mutation counter — bumped after repo.updateNode() etc. to invalidate
-  // useColumns memoization (repo.stats.nodeCount doesn't track content changes)
-  repoVersion: number
-
   // Bell state - set when action hits boundary, cleared on next keypress
   bellState: string | null
 
@@ -158,7 +154,6 @@ export function createInitialUIState(
     watcherStatus: null,
 
     inlineEditNodeId: null,
-    repoVersion: 0,
 
     bellState: null,
     status: null,
@@ -422,9 +417,6 @@ const uiSlice = createSlice({
     },
     exitInlineEdit: (state) => {
       state.inlineEditNodeId = null
-    },
-    bumpRepoVersion: (state) => {
-      state.repoVersion++
     },
 
     // Bell state (for boundary feedback)

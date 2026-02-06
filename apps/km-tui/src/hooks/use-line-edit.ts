@@ -113,9 +113,17 @@ function handleKeyInput(
   }
 
   // Backspace: Delete char before cursor
-  if (key.backspace || key.delete) {
+  if (key.backspace) {
     if (cursor > 0) {
       updateValue(value.slice(0, cursor - 1) + value.slice(cursor), cursor - 1)
+    }
+    return
+  }
+
+  // Delete: Delete char after cursor (forward delete)
+  if (key.delete) {
+    if (cursor < value.length) {
+      updateValue(value.slice(0, cursor) + value.slice(cursor + 1), cursor)
     }
     return
   }

@@ -155,7 +155,10 @@ function createQueryMethods(deps: RepoMethodDeps) {
 }
 
 /** Create mutation methods shared by createRepo and createBareRepo */
-function createMutationMethods(deps: RepoMethodDeps) {
+function createMutationMethods(
+  deps: RepoMethodDeps,
+  repo: { version: number },
+) {
   const { dataStore, hooks } = deps
   return {
     updateNode(id: string, changes: Partial<KNode>) {
@@ -166,6 +169,7 @@ function createMutationMethods(deps: RepoMethodDeps) {
         if (result?.context) ctx = result.context
       }
       dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
+      repo.version++
       hooks?.afterMutation?.(ctx)
     },
     moveNode(id: string, newParentId: string, position: number) {
@@ -185,6 +189,7 @@ function createMutationMethods(deps: RepoMethodDeps) {
         ctx.newParentId ?? newParentId,
         ctx.position ?? position,
       )
+      repo.version++
       hooks?.afterMutation?.(ctx)
     },
     deleteNode(id: string) {
@@ -195,6 +200,7 @@ function createMutationMethods(deps: RepoMethodDeps) {
         if (result?.context) ctx = result.context
       }
       dataStore.deleteNode(ctx.nodeId)
+      repo.version++
       hooks?.afterMutation?.(ctx)
     },
     addNode(parentId: string | null, node: Partial<KNode>) {
@@ -206,6 +212,7 @@ function createMutationMethods(deps: RepoMethodDeps) {
       }
       const newId = dataStore.addNode(parentId, ctx.node ?? node)
       ctx.nodeId = newId
+      repo.version++
       hooks?.afterMutation?.(ctx)
       return newId
     },
@@ -377,6 +384,10 @@ export interface Repo extends Disposable {
 
   /** Loading statistics (zeroed if loadFiles was false) */
   readonly stats: RepoStats
+
+  /** Mutation counter — incremented on every updateNode/moveNode/deleteNode/addNode.
+   *  Use in React useMemo deps to invalidate caches after mutations. */
+  version: number
 
   /** Files pending deferred parsing (for discoverOnly mode) */
   readonly deferredFiles: DeferredFile[]
@@ -874,11 +885,19 @@ export function* createRepo(
   // Create shared methods using factories
   const methodDeps: RepoMethodDeps = { db, dataStore, hooks }
   const queryMethods = createQueryMethods(methodDeps)
-  const mutationMethods = createMutationMethods(methodDeps)
+  // version holder — passed to mutation methods so they can increment it
+  const versionHolder = { version: 0 }
+  const mutationMethods = createMutationMethods(methodDeps, versionHolder)
 
   const repo: Repo = {
     path: rootPath,
     mode,
+    get version() {
+      return versionHolder.version
+    },
+    set version(v: number) {
+      versionHolder.version = v
+    },
     get data() {
       ensureOpen()
       return dataStore
@@ -1037,11 +1056,18 @@ export function createBareRepo(
   // Create shared methods using factories
   const methodDeps: RepoMethodDeps = { db, dataStore, hooks }
   const queryMethods = createQueryMethods(methodDeps)
-  const mutationMethods = createMutationMethods(methodDeps)
+  const versionHolder = { version: 0 }
+  const mutationMethods = createMutationMethods(methodDeps, versionHolder)
 
   const repo: Repo = {
     path: repoPath,
     mode: "memory" as const,
+    get version() {
+      return versionHolder.version
+    },
+    set version(v: number) {
+      versionHolder.version = v
+    },
     get data() {
       ensureOpen()
       return dataStore

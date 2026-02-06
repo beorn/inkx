@@ -84,6 +84,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   let links: Link[] = []
   let nextId = 1
   let closed = false
+  let mutationVersion = 0
 
   // Initialize with provided data
   reset()
@@ -120,6 +121,13 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     path,
     mode: "memory" as const,
     loadErrors,
+
+    get version() {
+      return mutationVersion
+    },
+    set version(v: number) {
+      mutationVersion = v
+    },
 
     get stats() {
       return { ...stats, nodeCount: nodes.size }
@@ -303,6 +311,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         throw new Error(`Node ${id} not found`)
       }
       nodes.set(id, { ...node, ...changes, id })
+      mutationVersion++
     },
 
     moveNode(id, newParentId, position) {
@@ -312,6 +321,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         throw new Error(`Node ${id} not found`)
       }
       nodes.set(id, { ...node, parent_id: newParentId, parent_idx: position })
+      mutationVersion++
     },
 
     deleteNode(id) {
@@ -319,6 +329,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       nodes.delete(id)
       // Remove any links from/to this node
       links = links.filter((l) => l.source_id !== id && l.target_id !== id)
+      mutationVersion++
     },
 
     addNode(parentId, nodeData) {
@@ -344,6 +355,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       } as KNode
 
       nodes.set(id, node)
+      mutationVersion++
       return id
     },
 

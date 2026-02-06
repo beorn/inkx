@@ -692,15 +692,9 @@ export function Board({
   }
   const layoutRegistry = layoutRegistryRef.current
 
-  // NEW: Derive columns from Repo (not from state.nodes)
-  const columns = useColumns(
-    repo,
-    boardState.rootId,
-    boardState.foldedNodes,
-    ui.repoVersion,
-  )
+  const columns = useColumns(repo, boardState.rootId, boardState.foldedNodes)
 
-  // NEW: Derive cursor position from cursorNodeId (not from state.cursor path)
+  // Derive cursor position from cursorNodeId
   const cursorPosition = useCursorPosition(columns, boardState.cursorNodeId)
 
   const columnsLayout: ColumnsLayout = useMemo(

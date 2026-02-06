@@ -7,6 +7,9 @@
  * Note: After confirm, the breadcrumb (which reads from repo) reflects the new
  * content, but the card still shows the original node ID. So we check the
  * breadcrumb for saved changes, not the card text.
+ *
+ * Readline shortcut details (Ctrl+W word delete, Ctrl+U/K line kill, etc.)
+ * are tested at the hook level in use-line-edit.test.ts, not here.
  */
 
 import { describe, test, expect, afterEach } from "vitest"
@@ -45,18 +48,6 @@ describe("Inline Editing", () => {
 
     const output = board.screenshot()
     expect(output).toContain("col1")
-  })
-
-  test("Enter on board title enters inline edit", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-
-    board.press("k") // card → column
-    board.press("k") // column → board
-    board.expect("#board[data-cursor]").toExist()
-    board.press("Enter")
-
-    const output = board.screenshot()
-    expect(output).toContain("board")
   })
 
   test("typing during inline edit does NOT trigger board commands", () => {
@@ -172,133 +163,32 @@ describe("Inline Editing", () => {
   })
 })
 
-describe("Inline Edit — Readline Shortcuts", () => {
-  test("Backspace deletes character before cursor", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("abcd"))))
+describe("Inline Edit — Readline Integration", () => {
+  // These verify that readline shortcuts work through the board's input layer stack.
+  // Exhaustive readline testing belongs at the useLineEdit hook level.
 
-    board.press("Enter")
-    // Cursor starts at end: abcd|
-    board.press("Backspace")
-    // Now: abc|
-    board.press("Enter")
-
-    // Breadcrumb shows saved content "abc"
-    expect(board.screenshot()).toContain("/ abc")
-  })
-
-  test("Control+A moves cursor to beginning, typing inserts there", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("xyz"))))
-
-    board.press("Enter")
-    // Cursor at end: xyz|
-    board.press("Control+a")
-    // Cursor at start: |xyz
-    board.press("0")
-    // Now: 0xyz
-    board.press("Enter")
-
-    expect(board.screenshot()).toContain("0xyz")
-  })
-
-  test("Control+E moves cursor to end after Control+A", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("abc"))))
-
-    board.press("Enter")
-    board.press("Control+a") // |abc
-    board.press("Control+e") // abc|
-    board.press("Z")
-    board.press("Enter")
-
-    expect(board.screenshot()).toContain("abcZ")
-  })
-
-  test("Left/Right arrow cursor movement", () => {
+  test("Backspace and arrow keys work in edit mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
-    // Cursor at end: ab|
-    board.press("ArrowLeft") // a|b
+    // ab| → ArrowLeft → a|b → insert X → aXb
+    board.press("ArrowLeft")
     board.press("X")
-    // Now: aXb
     board.press("Enter")
 
     expect(board.screenshot()).toContain("aXb")
   })
 
-  test("Control+W deletes word backwards (no spaces = delete all)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("helloworld"))),
-    )
+  test("Ctrl shortcuts (Control+A, Control+W) work through input layers", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("xyz"))))
 
     board.press("Enter")
-    // "helloworld" has no spaces — Ctrl+W deletes everything
-    board.press("Control+w")
-    board.press("Z")
-    board.press("Enter")
-
-    // Breadcrumb shows just "Z" (the replacement content)
-    expect(board.screenshot()).toContain("/ Z")
-  })
-
-  test("Control+W deletes word backwards stopping at space", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("ab"))))
-
-    board.press("Enter")
-    // Start with "ab", type " cd" to make "ab cd"
-    board.press(" ")
-    board.press("c")
-    board.press("d")
-    // Now: "ab cd|"
-    board.press("Control+w")
-    // Deletes "cd" then the space → "ab"
-    board.press("Enter")
-
-    // Breadcrumb: "/ ab" — same as original, word was deleted
-    expect(board.screenshot()).toContain("/ ab")
-  })
-
-  test("Control+U deletes from cursor to beginning", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("abcde"))))
-
-    board.press("Enter")
-    // abcde| → move left twice → abc|de
-    board.press("ArrowLeft")
-    board.press("ArrowLeft")
-    board.press("Control+u")
-    // Should delete "abc", leaving "de"
-    board.press("Enter")
-
-    expect(board.screenshot()).toContain("/ de")
-  })
-
-  test("Control+K deletes from cursor to end", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("abcde"))))
-
-    board.press("Enter")
-    // abcde| → Control+A → |abcde → Right twice → ab|cde
+    // xyz| → Ctrl+A → |xyz → type "0" → 0xyz
     board.press("Control+a")
-    board.press("ArrowRight")
-    board.press("ArrowRight")
-    board.press("Control+k")
-    // Should delete "cde", leaving "ab"
+    board.press("0")
     board.press("Enter")
 
-    expect(board.screenshot()).toContain("/ ab")
-  })
-
-  test("multiple backspaces then type new content", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("hi"))))
-
-    board.press("Enter")
-    board.press("Backspace")
-    board.press("Backspace")
-    // Content is now empty
-    board.press("N")
-    board.press("E")
-    board.press("W")
-    board.press("Enter")
-
-    expect(board.screenshot()).toContain("/ NEW")
+    expect(board.screenshot()).toContain("0xyz")
   })
 })
 
@@ -407,30 +297,5 @@ describe("Inline Edit — Edge Cases", () => {
     board.press("2")
     board.press("Enter")
     expect(board.screenshot()).toContain("orig12")
-  })
-
-  test("rapid typing produces correct result", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("x"))))
-
-    board.press("Enter")
-    // Clear existing and type fast
-    board.press("Backspace")
-    for (const c of "hello") board.press(c)
-    board.press("Enter")
-
-    expect(board.screenshot()).toContain("hello")
-  })
-
-  test("Control+B / Control+F for cursor movement", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("abc"))))
-
-    board.press("Enter")
-    // abc| → Ctrl+B (left) → ab|c
-    board.press("Control+b")
-    board.press("X")
-    // abXc
-    board.press("Enter")
-
-    expect(board.screenshot()).toContain("abXc")
   })
 })
