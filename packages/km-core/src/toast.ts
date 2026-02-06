@@ -1,8 +1,8 @@
 /**
- * Toast notification system - Sonner-compatible API for TUI
+ * Toast notification system - Sonner-inspired API for TUI
  *
  * Provides a simple toast queue for showing temporary notifications
- * with optional actions (like undo). API mirrors Sonner for future
+ * with optional actions (like undo). API inspired by Sonner for future
  * web UI compatibility.
  */
 
@@ -30,7 +30,7 @@ export interface Toast {
   level: NotificationLevel
   message: string
   description?: string
-  duration?: number // milliseconds (default 4000)
+  duration?: number // milliseconds (default 10000)
   dismissible?: boolean // default true
   action?: ToastAction
   // For batching similar toasts
@@ -75,7 +75,7 @@ export interface ToastQueue extends Disposable {
   /** Get the most recent toast (for single-toast display) */
   getLatest(): Toast | null
 
-  // Convenience methods (Sonner-compatible)
+  // Convenience methods (Sonner-inspired)
   info(message: string, options?: ToastOptions): string
   success(message: string, options?: ToastOptions): string
   warning(message: string, options?: ToastOptions): string

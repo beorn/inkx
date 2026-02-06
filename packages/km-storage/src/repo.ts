@@ -386,7 +386,9 @@ export interface Repo extends Disposable {
   readonly stats: RepoStats
 
   /** Mutation counter — incremented on every updateNode/moveNode/deleteNode/addNode.
-   *  Use in React useMemo deps to invalidate caches after mutations. */
+   *  Use in React useMemo deps to invalidate caches after mutations.
+   *  Note: implemented as getter/setter (not plain property) because mutation
+   *  methods share state via a versionHolder closure — see createRepo comment. */
   version: number
 
   /** Files pending deferred parsing (for discoverOnly mode) */
@@ -885,7 +887,10 @@ export function* createRepo(
   // Create shared methods using factories
   const methodDeps: RepoMethodDeps = { db, dataStore, hooks }
   const queryMethods = createQueryMethods(methodDeps)
-  // version holder — passed to mutation methods so they can increment it
+  // Version holder — shared between mutation methods and the repo object.
+  // Getter/setter needed: mutation methods are created before `repo` exists,
+  // so they increment versionHolder.version via closure. The getter aliases
+  // repo.version → versionHolder.version to keep them in sync.
   const versionHolder = { version: 0 }
   const mutationMethods = createMutationMethods(methodDeps, versionHolder)
 
@@ -1056,6 +1061,7 @@ export function createBareRepo(
   // Create shared methods using factories
   const methodDeps: RepoMethodDeps = { db, dataStore, hooks }
   const queryMethods = createQueryMethods(methodDeps)
+  // See comment in createRepo for why getter/setter is needed here
   const versionHolder = { version: 0 }
   const mutationMethods = createMutationMethods(methodDeps, versionHolder)
 

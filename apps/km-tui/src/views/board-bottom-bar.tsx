@@ -96,7 +96,6 @@ interface BottomBarProps {
 /**
  * BottomBar component - displays storage mode, path, and status indicators
  */
-// oxlint-disable-next-line complexity/max-cyclomatic -- React component with many UI state indicators
 export function BottomBar({
   ui,
   state,

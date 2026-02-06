@@ -88,19 +88,13 @@ export function createFileDropHandler(
  * Creates the refresh handler effect
  * Subscribes to external refresh events (filesystem changes)
  *
- * NEW ARCHITECTURE: No longer dispatches REFRESH action.
- * The useColumns hook depends on repo.stats.nodeCount, so React
- * automatically re-renders when repo changes.
- *
- * TODO: Verify repo stats update triggers re-render correctly.
- * May need to add a forceUpdate mechanism if repo mutation doesn't
- * change stats reference.
+ * Columns are derived from repo at render time. The useColumns hook
+ * depends on repo.version, so React re-renders when repo changes.
+ * This handler keeps the event subscription alive for future use.
  */
 export function createRefreshHandler(): () => void {
-  // The refresh event is still useful for logging/debugging
   const handleRefresh = () => {
-    // No-op: columns are derived from repo at render time
-    // React will re-render when repo.stats changes
+    // No-op: useColumns re-derives from repo.version changes
   }
 
   tuiEvents.on("refresh", handleRefresh)

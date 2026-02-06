@@ -738,7 +738,7 @@ dispatch(actions.clearStatus())
 
 ## Toast Notifications
 
-km uses a Sonner-compatible toast API for temporary notifications with optional actions (like undo).
+km uses a Sonner-inspired toast API for temporary notifications with optional actions (like undo).
 
 ### Quick Start
 
@@ -814,7 +814,7 @@ Toasts appear above the bottom bar:
 ```typescript
 interface ToastOptions {
   description?: string // Secondary text on line 2
-  duration?: number // milliseconds (default 4000)
+  duration?: number // milliseconds (default 10000)
   dismissible?: boolean // default true
   action?: ToastAction // Optional action button
   batchKey?: string // For coalescing similar toasts
