@@ -56,8 +56,10 @@ export interface ToastQueueOptions {
 
 /**
  * ToastQueue interface - simple toast queue with batching support.
+ *
+ * Disposable: clears all timers on dispose (use `using` for automatic cleanup).
  */
-export interface ToastQueue {
+export interface ToastQueue extends Disposable {
   /** Add a toast to the queue. Returns toast ID. */
   push(
     level: NotificationLevel,
@@ -72,6 +74,12 @@ export interface ToastQueue {
   getAll(): Toast[]
   /** Get the most recent toast (for single-toast display) */
   getLatest(): Toast | null
+
+  // Convenience methods (Sonner-compatible)
+  info(message: string, options?: ToastOptions): string
+  success(message: string, options?: ToastOptions): string
+  warning(message: string, options?: ToastOptions): string
+  error(message: string, options?: ToastOptions): string
 }
 
 /**
@@ -159,6 +167,24 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
     getLatest() {
       return toasts[toasts.length - 1] ?? null
     },
+
+    // Convenience methods
+    info(message, opts) {
+      return this.push("info", message, opts)
+    },
+    success(message, opts) {
+      return this.push("success", message, opts)
+    },
+    warning(message, opts) {
+      return this.push("warning", message, opts)
+    },
+    error(message, opts) {
+      return this.push("error", message, opts)
+    },
+
+    [Symbol.dispose]() {
+      this.dismissAll()
+    },
   }
 
   // Internal helper functions
@@ -237,62 +263,3 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
     return match?.[1] ? parseInt(match[1], 10) : 1
   }
 }
-
-// =============================================================================
-// Sonner-compatible API
-// =============================================================================
-
-/**
- * Global toast queue instance.
- * In TUI, this is rendered in the toast area above the bottom bar.
- */
-export const toastQueue = createToastQueue()
-
-/**
- * Sonner-compatible toast API.
- * Each method returns the toast ID for later manipulation.
- */
-export const toast = Object.assign(
-  // Default toast (info level)
-  (message: string, options?: ToastOptions): string => {
-    return toastQueue.push("info", message, options)
-  },
-  {
-    success: (message: string, options?: ToastOptions): string => {
-      return toastQueue.push("success", message, options)
-    },
-
-    error: (message: string, options?: ToastOptions): string => {
-      return toastQueue.push("error", message, options)
-    },
-
-    warning: (message: string, options?: ToastOptions): string => {
-      return toastQueue.push("warning", message, options)
-    },
-
-    info: (message: string, options?: ToastOptions): string => {
-      return toastQueue.push("info", message, options)
-    },
-
-    dismiss: (id?: string): void => {
-      if (id) {
-        toastQueue.dismiss(id)
-      } else {
-        toastQueue.dismissAll()
-      }
-    },
-
-    // Promise helper (future - not implemented yet)
-    promise: <T>(
-      _promise: Promise<T>,
-      _opts: {
-        loading: string
-        success: string | ((data: T) => string)
-        error: string | ((err: Error) => string)
-      },
-    ): string => {
-      // TODO: Implement promise handling when needed
-      throw new Error("toast.promise() not yet implemented")
-    },
-  },
-)

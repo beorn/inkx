@@ -99,5 +99,5 @@ export { kmEvents, DisposableStore } from "./events.ts"
 export type { KmEvents, Subscription } from "./events.ts"
 
 // Toast notifications
-export { toast, toastQueue } from "./toast.ts"
+export { createToastQueue } from "./toast.ts"
 export type { Toast, ToastOptions, ToastAction, ToastQueue } from "./toast.ts"

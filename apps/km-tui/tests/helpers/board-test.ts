@@ -59,7 +59,12 @@ import { createRenderer, type App, type AutoLocator } from "inkx/testing"
 import { InputLayerProvider } from "inkx"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
-import type { KNode, NodeRules, NodeType } from "@km/core"
+import {
+  createToastQueue,
+  type KNode,
+  type NodeRules,
+  type NodeType,
+} from "@km/core"
 
 import { BoardCore, Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
@@ -303,11 +308,13 @@ export function testEnv(
   const viewMode = options?.viewMode ?? "cards"
   const render = createRenderer({ cols: columns, rows })
   const registry = createLayoutRegistry()
+  const toastQueue = createToastQueue()
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},
+    toastQueue,
     layoutRegistry: registry,
   })
   // Wrap Board in InputLayerProvider (matching tui.tsx production setup)
@@ -381,7 +388,7 @@ export function testEnv(
     },
     _result: result,
   }
-  return { board, registry }
+  return { board, registry, toastQueue }
 }
 
 /**
@@ -424,11 +431,13 @@ export function testEnvWithRepo(
   const viewMode = options?.viewMode ?? "cards"
   const render = createRenderer({ cols: columns, rows })
   const registry = createLayoutRegistry()
+  const toastQueue = createToastQueue()
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},
+    toastQueue,
     layoutRegistry: registry,
   })
   // Wrap Board in InputLayerProvider (matching tui.tsx production setup)
@@ -497,7 +506,7 @@ export function testEnvWithRepo(
       result.unmount()
     },
   }
-  return { board, registry }
+  return { board, registry, toastQueue }
 }
 
 // =============================================================================

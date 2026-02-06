@@ -15,7 +15,7 @@ import type { TUIContext } from "../tui-context.ts"
 import { handleTreeNavigation } from "../handlers/navigation-handlers.ts"
 import { processKeyWithContext } from "../command-bridge.ts"
 import { handleCommandAction } from "../board/board-actions.ts"
-import { isErr, toast, toastQueue } from "@km/core"
+import { isErr } from "@km/core"
 
 const perfLog = createlogger("km:perf")
 
@@ -91,13 +91,15 @@ export function handleBoardKeyInput(
 
   // DEV: Test toast command (Ctrl+T)
   if (key.ctrl && input === "t") {
+    const { toastQueue } = tuiContext
     const examples = [
-      () => toast.success("Task completed!"),
-      () => toast.error("Failed to save", { description: "Network error" }),
-      () => toast.warning("Disk space low"),
-      () => toast.info("3 tasks selected"),
+      () => toastQueue.success("Task completed!"),
       () =>
-        toast("File deleted", {
+        toastQueue.error("Failed to save", { description: "Network error" }),
+      () => toastQueue.warning("Disk space low"),
+      () => toastQueue.info("3 tasks selected"),
+      () =>
+        toastQueue.info("File deleted", {
           action: { label: "Undo", trigger: "z" },
         }),
     ]
@@ -107,8 +109,8 @@ export function handleBoardKeyInput(
   }
 
   // Escape dismisses toast if present
-  if (key.escape && toastQueue.getLatest()) {
-    toastQueue.dismissAll()
+  if (key.escape && tuiContext.toastQueue.getLatest()) {
+    tuiContext.toastQueue.dismissAll()
     return true
   }
 

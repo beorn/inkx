@@ -10,7 +10,7 @@ import {
 } from "../handlers/paste-handler.ts"
 import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"
-import { toast, kmEvents } from "@km/core"
+import { kmEvents, type ToastQueue } from "@km/core"
 
 /**
  * Creates the terminal dimension sync effect
@@ -115,6 +115,7 @@ export function createRefreshHandler(): () => void {
  */
 export function createWatcherStatusHandler(
   dispatch: Dispatch<UIAction>,
+  toastQueue?: ToastQueue,
 ): () => void {
   let lastSyncCount = 0
 
@@ -125,7 +126,7 @@ export function createWatcherStatusHandler(
     if (status.state === "idle" || status.state === "ready") {
       const syncedCount = status.pendingPaths
       if (syncedCount > 0 && syncedCount !== lastSyncCount) {
-        toast.success(
+        toastQueue?.success(
           `Synced ${syncedCount} file${syncedCount === 1 ? "" : "s"}`,
           {
             batchKey: "sync",
@@ -147,10 +148,10 @@ export function createWatcherStatusHandler(
  * Creates the error/warning event handler effect
  * Subscribes to cross-layer error/warning events and displays toasts
  */
-export function createErrorWarningHandler(): () => void {
+export function createErrorWarningHandler(toastQueue?: ToastQueue): () => void {
   // Parse errors
   const unsubParseError = kmEvents.on("parse-error", (e) => {
-    toast.error(`Parse error in ${e.file}:${e.line}`, {
+    toastQueue?.error(`Parse error in ${e.file}:${e.line}`, {
       description: e.message,
       batchKey: "parse-error",
     })
@@ -158,7 +159,7 @@ export function createErrorWarningHandler(): () => void {
 
   // Sync errors
   const unsubSyncError = kmEvents.on("sync-error", (e) => {
-    toast.error(`Sync error: ${e.path}`, {
+    toastQueue?.error(`Sync error: ${e.path}`, {
       description: e.message,
       batchKey: "sync-error",
     })
@@ -166,7 +167,7 @@ export function createErrorWarningHandler(): () => void {
 
   // Validation warnings
   const unsubValidationWarning = kmEvents.on("validation-warning", (e) => {
-    toast.warning("Validation warning", {
+    toastQueue?.warning("Validation warning", {
       description: e.message,
       batchKey: "validation",
     })

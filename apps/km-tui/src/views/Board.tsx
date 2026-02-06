@@ -103,7 +103,8 @@ import {
   createErrorWarningHandler,
 } from "./board-effects.ts"
 import { handleBoardKeyInput, handleDetailPaneKeyInput } from "./board-input.ts"
-import { toastQueue } from "@km/core"
+import type { ToastQueue } from "@km/core"
+import { createToastQueue } from "@km/core"
 import { getOwnColor } from "../board-pills.ts"
 import { getBoardColorByName, normalizeBoardName } from "../text/index.ts"
 import { getNodeDisplayName } from "../state.ts"
@@ -144,6 +145,8 @@ export interface BoardCoreProps {
   consoleStats?: { total: number; errors: number; warnings: number }
   /** Column scroll offset (edge-based, from parent) */
   colScrollOffset: number
+  /** Toast queue instance (injected, not global). Optional for static render tests. */
+  toastQueue?: ToastQueue
 }
 
 /**
@@ -163,6 +166,7 @@ export function BoardCore({
   moveMode,
   consoleStats,
   colScrollOffset,
+  toastQueue,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
   const termWidth = dimensions.columns
@@ -483,7 +487,7 @@ export function BoardCore({
             </Box>
             {/* Toast stack - bottom-right corner */}
             <ToastStack
-              toasts={toastQueue.getAll()}
+              toasts={toastQueue?.getAll() ?? []}
               termWidth={termWidth}
               termHeight={termHeight}
             />
@@ -497,6 +501,7 @@ export function BoardCore({
               nodeCount={repo.stats.nodeCount}
               moveMode={moveMode}
               consoleStats={consoleStats}
+              toastQueue={toastQueue}
             />
             {/* Bell indicator - hidden element for test detection */}
             {ui.bellState && (
@@ -522,6 +527,8 @@ export interface BoardProps {
   dimensions: { columns: number; rows: number }
   /** Exit callback */
   onExit: () => void
+  /** Toast queue instance (injected, not global) */
+  toastQueue?: ToastQueue
   /** Optional layout registry for card position tracking (for testing) */
   layoutRegistry?: LayoutRegistry
   /** Optional custom reducer for testing */
@@ -557,6 +564,7 @@ export function Board({
   initialViewMode = "cards",
   dimensions,
   onExit,
+  toastQueue: injectedToastQueue,
   layoutRegistry: injectedRegistry,
   reducer = uiReducer,
   patchedConsole,
@@ -566,6 +574,12 @@ export function Board({
   onStateCaptureREPLACE_WITH_CREATEAPP_STORE,
 }: BoardProps) {
   const repo = useRepo()
+
+  // Toast queue — injected from parent, or create a local one for tests
+  const toastQueue = useMemo(
+    () => injectedToastQueue ?? createToastQueue(),
+    [injectedToastQueue],
+  )
 
   // UI state managed by reducer (enables extracting input handlers)
   const [ui, dispatch] = useReducer(
@@ -809,6 +823,7 @@ export function Board({
     ui,
     layout: columnsLayout,
     positionRegistry: layoutRegistry,
+    toastQueue,
     dispatch,
     dispatchBoard,
     exit: onExit,
@@ -839,10 +854,13 @@ export function Board({
   useEffect(() => createFileDropHandler(dispatch), [])
 
   // Subscribe to watcher status updates
-  useEffect(() => createWatcherStatusHandler(dispatch), [])
+  useEffect(
+    () => createWatcherStatusHandler(dispatch, toastQueue),
+    [toastQueue],
+  )
 
   // Subscribe to error/warning events
-  useEffect(() => createErrorWarningHandler(), [])
+  useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
 
   // Subscribe to external refresh events (filesystem changes)
   useEffect(() => createRefreshHandler(), [])
@@ -897,6 +915,7 @@ export function Board({
       moveMode={boardState.moveMode}
       consoleStats={consoleStats}
       colScrollOffset={colScrollOffset}
+      toastQueue={toastQueue}
     />
   )
 }
@@ -910,6 +929,8 @@ export interface BoardAppProps {
   initialState: TUIBoardState
   /** Initial view mode (default: "cards") */
   initialViewMode?: ViewMode
+  /** Toast queue instance (injected from runBoard) */
+  toastQueue?: ToastQueue
   /** Optional layout registry for card position tracking (for testing) */
   layoutRegistry?: LayoutRegistry
   /** Patched console for capturing console output (optional) */
@@ -924,6 +945,7 @@ export interface BoardAppProps {
 export function BoardApp({
   initialState,
   initialViewMode = "cards",
+  toastQueue,
   layoutRegistry,
   patchedConsole,
 }: BoardAppProps) {
@@ -962,6 +984,7 @@ export function BoardApp({
         initialViewMode={initialViewMode}
         dimensions={dimensionState}
         onExit={exit}
+        toastQueue={toastQueue}
         layoutRegistry={layoutRegistry}
         patchedConsole={patchedConsole}
         onPauseRender={pause}

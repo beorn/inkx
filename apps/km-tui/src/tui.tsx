@@ -15,7 +15,7 @@ import {
 } from "inkx"
 import { createConditionalLogger } from "@beorn/logger"
 import React from "react"
-import { createLogger, toastQueue } from "@km/core"
+import { createLogger, createToastQueue } from "@km/core"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
@@ -84,6 +84,7 @@ export async function runBoard(
     process.exit(1)
   }
 
+  using toastQueue = createToastQueue()
   const term = createTerm()
   const interactive = options?.interactive !== false
   const isInteractive = interactive && term.hasInput()
@@ -192,6 +193,7 @@ export async function runBoard(
               initialState={state}
               initialViewMode={options?.initialViewMode}
               patchedConsole={patched}
+              toastQueue={toastQueue}
             />
           </InputLayerProvider>
         </RepoProvider>,
@@ -209,8 +211,7 @@ export async function runBoard(
 
     await instance.waitUntilExit()
   } finally {
-    // Clear toast auto-dismiss timers so they don't keep the event loop alive
-    toastQueue.dismissAll()
+    // toastQueue is cleaned up automatically via `using` (Symbol.dispose)
 
     // Dispose patched console (restores original console methods)
     patched?.[Symbol.dispose]()

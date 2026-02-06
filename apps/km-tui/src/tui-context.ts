@@ -7,7 +7,7 @@
  * Inspired by Decker's CmdContext pattern where all commands receive full context.
  */
 
-import type { KNode } from "@km/core"
+import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardState, BoardAction } from "@km/board"
 import type {
@@ -47,6 +47,10 @@ export interface TUIContext {
   /** Card position registry for h/l navigation (Y-position tracking) */
   positionRegistry: LayoutRegistry
 
+  // === Services ===
+  /** Toast notification queue */
+  toastQueue: ToastQueue
+
   // === Derived (computed once) ===
   /** Current column (from layout) */
   column: ColumnState | undefined
@@ -85,6 +89,8 @@ export interface BuildTUIContextParams {
   layout: ColumnsLayout
   /** Card position registry for h/l navigation */
   positionRegistry: LayoutRegistry
+  /** Toast notification queue */
+  toastQueue: ToastQueue
   dispatch: TUIContext["dispatch"]
   dispatchBoard: TUIContext["dispatchBoard"]
   exit: TUIContext["exit"]
@@ -111,6 +117,7 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
     ui,
     layout,
     positionRegistry,
+    toastQueue: params.toastQueue,
     column,
     card,
     selectedNode,

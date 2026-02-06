@@ -110,14 +110,8 @@
  * through the public interface (keyboard input → visual output).
  */
 
-import { describe, test, expect, afterEach } from "vitest"
+import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { toastQueue } from "@km/core"
-
-// Clean up global state after each test to prevent pollution
-afterEach(() => {
-  toastQueue.dismissAll()
-})
 
 describe("Cursoring", () => {
   // Default view mode tests (cards view)

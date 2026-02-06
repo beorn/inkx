@@ -12,14 +12,8 @@
  * are tested at the hook level in use-line-edit.test.ts, not here.
  */
 
-import { describe, test, expect, afterEach } from "vitest"
+import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { toastQueue } from "@km/core"
-
-// Clean up toast state between tests
-afterEach(() => {
-  toastQueue.dismissAll()
-})
 
 describe("Inline Editing", () => {
   test("Enter on card enters inline edit, shows editable text", () => {

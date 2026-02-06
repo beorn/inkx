@@ -743,35 +743,33 @@ km uses a Sonner-compatible toast API for temporary notifications with optional 
 ### Quick Start
 
 ```typescript
-import { toast } from "@km/core"
+import { createToastQueue } from "@km/core"
 
-// Simple toast
-toast("Task created")
+// Create a queue (Disposable — use `using` for automatic cleanup)
+using toastQueue = createToastQueue()
 
-// Typed variants
-toast.success("Saved successfully")
-toast.error("Failed to sync")
-toast.warning("Network connection unstable")
-toast.info("3 tasks selected")
+// Convenience methods
+toastQueue.success("Saved successfully")
+toastQueue.error("Failed to sync")
+toastQueue.warning("Network connection unstable")
+toastQueue.info("3 tasks selected")
 
 // With description
-toast.error("Failed to save", {
+toastQueue.error("Failed to save", {
   description: "Network connection lost",
 })
 
 // With action (undo, retry, etc.)
-toast("Task archived", {
+toastQueue.info("Task archived", {
   action: { label: "Undo", trigger: "z" },
 })
 ```
 
 ### Toast Queue
 
-The global `toastQueue` manages all active toasts:
+Each `ToastQueue` instance manages its own active toasts:
 
 ```typescript
-import { toastQueue } from "@km/core"
-
 const allToasts = toastQueue.getAll()
 const latest = toastQueue.getLatest()
 toastQueue.dismiss(id)
@@ -783,9 +781,9 @@ toastQueue.dismissAll()
 Similar toasts can be automatically batched using a `batchKey`:
 
 ```typescript
-toast("item archived", { batchKey: "archive" })
-toast("item archived", { batchKey: "archive" })
-toast("item archived", { batchKey: "archive" })
+toastQueue.info("item archived", { batchKey: "archive" })
+toastQueue.info("item archived", { batchKey: "archive" })
+toastQueue.info("item archived", { batchKey: "archive" })
 // → Shows "3 item archived" (batched within 100ms window)
 ```
 

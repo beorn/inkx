@@ -6,7 +6,7 @@
 import React from "react"
 import { Box, Text } from "inkx"
 import type { Toast as ToastType } from "@km/core"
-import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT } from "./board-layout.ts"
+import { BOTTOM_BAR_HEIGHT } from "./board-layout.ts"
 
 interface ToastStackProps {
   toasts: ToastType[]
@@ -89,11 +89,8 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
 /**
  * Toast stack - displays multiple toasts in bottom-right corner
  *
- * Mimics shadcn/ui toast behavior:
- * - Shows latest 5 toasts
- * - Stacked vertically from bottom to top
- * - Each toast has border and black background
- * - Positioned in bottom-right corner
+ * Uses column-reverse layout to anchor toasts above the bottom bar.
+ * No height estimation needed — flex handles positioning automatically.
  */
 export function ToastStack({
   toasts,
@@ -105,40 +102,21 @@ export function ToastStack({
   // Show latest 5 toasts (newest at bottom)
   const visibleToasts = toasts.slice(-5)
 
-  // Position in bottom-right corner using margins
-  // Calculate margins to push toasts to bottom-right
-  const toastMaxWidth = 62 // Max toast width (60) + border (2)
-  const marginRight = 2
-  const reservedRows = TOP_BAR_HEIGHT + BOTTOM_BAR_HEIGHT
-
-  // Calculate height needed for all toasts
-  // Each toast: 2 (border) + 1 (message) + description + visible items
-  const estimatedHeight = visibleToasts.reduce((total, t) => {
-    let lines = 3 // border top + message + border bottom
-    if (t.description) lines += 1
-    const threshold = t.itemThreshold ?? 3
-    if (t.items && t.items.length > 0 && t.items.length < threshold) {
-      lines += t.items.length
-    }
-    return total + lines
-  }, 0)
-  // Add gaps between toasts (gap={1} adds N-1 gaps for N toasts)
-  const totalHeight = estimatedHeight + Math.max(0, visibleToasts.length - 1)
-
-  const marginTop = Math.max(0, termHeight - reservedRows - totalHeight)
-  const marginLeft = Math.max(0, termWidth - toastMaxWidth - marginRight)
-
   return (
     <Box
       position="absolute"
-      flexDirection="column-reverse" // Stack from bottom to top (newest at bottom)
-      marginTop={marginTop}
-      marginLeft={marginLeft}
-      gap={1}
+      height={termHeight}
+      width={termWidth}
+      flexDirection="column-reverse"
+      paddingBottom={BOTTOM_BAR_HEIGHT}
+      alignItems="flex-end"
+      paddingRight={2}
     >
-      {visibleToasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} />
-      ))}
+      <Box flexDirection="column-reverse" gap={1}>
+        {visibleToasts.map((toast) => (
+          <ToastItem key={toast.id} toast={toast} />
+        ))}
+      </Box>
     </Box>
   )
 }

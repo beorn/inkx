@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from "react"
 import { Box, Text } from "inkx"
-import { toast } from "@km/core"
+import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import type { UIState } from "../ui-reducer.ts"
 import type { TUIBoardState } from "../types.ts"
@@ -37,7 +37,7 @@ function useFlashOnChange(value: number): boolean {
 }
 
 /** Hook to fire a toast when console log count increases */
-function useLogToast(total: number): void {
+function useLogToast(total: number, toastQueue?: ToastQueue): void {
   const prevRef = React.useRef(total)
 
   useEffect(() => {
@@ -46,11 +46,11 @@ function useLogToast(total: number): void {
       return
     }
     prevRef.current = total
-    if (total === 0) return
+    if (total === 0 || !toastQueue) return
     // @ts-expect-error - React internal flag set by inkx test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
-    toast.info(`${total} log messages — press \` to see`)
-  }, [total])
+    toastQueue.info(`${total} log messages — press \` to see`)
+  }, [total, toastQueue])
 }
 
 /** Hook for animated spinner frame - uses React from inkx to avoid version mismatch */
@@ -89,6 +89,8 @@ interface BottomBarProps {
   moveMode: boolean
   /** Console stats (only shown when total > 0) */
   consoleStats?: { total: number; errors: number; warnings: number }
+  /** Toast queue instance (for log toast notifications) */
+  toastQueue?: ToastQueue
 }
 
 /**
@@ -104,6 +106,7 @@ export function BottomBar({
   nodeCount,
   moveMode,
   consoleStats,
+  toastQueue,
 }: BottomBarProps): React.ReactElement {
   const homeDir = process.env.HOME || ""
 
@@ -124,7 +127,7 @@ export function BottomBar({
   const fileFlash = useFlashOnChange(ui.watcherStatus?.watchedPaths ?? 0)
 
   // Toast notification when new logs arrive (debounced by console subscription)
-  useLogToast(logTotal)
+  useLogToast(logTotal, toastQueue)
 
   // Shorten path: replace home directory with ~/
   let displayPath = state.rootPath || ""

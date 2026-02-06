@@ -1,13 +1,8 @@
 /**
  * Toast System Tests
  */
-import { describe, test, expect, beforeEach, afterEach } from "vitest"
-import {
-  toast,
-  toastQueue,
-  createToastQueue,
-  type ToastQueue,
-} from "../src/toast.ts"
+import { describe, test, expect, beforeEach } from "vitest"
+import { createToastQueue, type ToastQueue } from "../src/toast.ts"
 
 describe("ToastQueue", () => {
   let queue: ToastQueue
@@ -100,98 +95,87 @@ describe("ToastQueue", () => {
   })
 })
 
-describe("toast API", () => {
+describe("ToastQueue convenience methods", () => {
+  let queue: ToastQueue
+
   beforeEach(() => {
-    toastQueue.dismissAll()
+    queue = createToastQueue()
   })
 
-  afterEach(() => {
-    toastQueue.dismissAll()
-  })
-
-  test("toast() creates info toast", () => {
-    const id = toast("Test message")
+  test("info() creates info toast", () => {
+    const id = queue.info("Test message")
 
     expect(id).toMatch(/^toast-\d+$/)
-    const latest = toastQueue.getLatest()
+    const latest = queue.getLatest()
     expect(latest?.level).toBe("info")
     expect(latest?.message).toBe("Test message")
   })
 
-  test("toast.success()", () => {
-    toast.success("Success message")
+  test("success() creates success toast", () => {
+    queue.success("Success message")
 
-    const latest = toastQueue.getLatest()
+    const latest = queue.getLatest()
     expect(latest?.level).toBe("success")
     expect(latest?.message).toBe("Success message")
   })
 
-  test("toast.error()", () => {
-    toast.error("Error message")
+  test("error() creates error toast", () => {
+    queue.error("Error message")
 
-    const latest = toastQueue.getLatest()
+    const latest = queue.getLatest()
     expect(latest?.level).toBe("error")
     expect(latest?.message).toBe("Error message")
   })
 
-  test("toast.warning()", () => {
-    toast.warning("Warning message")
+  test("warning() creates warning toast", () => {
+    queue.warning("Warning message")
 
-    const latest = toastQueue.getLatest()
+    const latest = queue.getLatest()
     expect(latest?.level).toBe("warning")
     expect(latest?.message).toBe("Warning message")
   })
 
-  test("toast.info()", () => {
-    toast.info("Info message")
-
-    const latest = toastQueue.getLatest()
-    expect(latest?.level).toBe("info")
-    expect(latest?.message).toBe("Info message")
-  })
-
-  test("toast.dismiss(id) removes specific toast", () => {
-    const id1 = toast("First")
-    const id2 = toast("Second")
-
-    expect(toastQueue.getAll()).toHaveLength(2)
-
-    toast.dismiss(id1)
-    expect(toastQueue.getAll()).toHaveLength(1)
-    expect(toastQueue.getLatest()?.message).toBe("Second")
-
-    toast.dismiss(id2)
-    expect(toastQueue.getAll()).toHaveLength(0)
-  })
-
-  test("toast.dismiss() without ID clears all toasts", () => {
-    toast("First")
-    toast("Second")
-    toast("Third")
-
-    expect(toastQueue.getAll()).toHaveLength(3)
-
-    toast.dismiss()
-    expect(toastQueue.getAll()).toHaveLength(0)
-  })
-
-  test("toast with action", () => {
-    toast("File deleted", {
-      action: { label: "Undo", trigger: "z" },
-    })
-
-    const latest = toastQueue.getLatest()
-    expect(latest?.action?.label).toBe("Undo")
-    expect(latest?.action?.trigger).toBe("z")
-  })
-
-  test("toast with description", () => {
-    toast.error("Failed to save", {
+  test("convenience methods accept options", () => {
+    queue.error("Failed to save", {
       description: "Network connection lost",
     })
 
-    const latest = toastQueue.getLatest()
+    const latest = queue.getLatest()
     expect(latest?.message).toBe("Failed to save")
     expect(latest?.description).toBe("Network connection lost")
+  })
+
+  test("convenience methods accept action options", () => {
+    queue.info("File deleted", {
+      action: { label: "Undo", trigger: "z" },
+    })
+
+    const latest = queue.getLatest()
+    expect(latest?.action?.label).toBe("Undo")
+    expect(latest?.action?.trigger).toBe("z")
+  })
+})
+
+describe("ToastQueue Disposable", () => {
+  test("Symbol.dispose clears all toasts", () => {
+    const queue = createToastQueue()
+    queue.info("First")
+    queue.info("Second")
+    expect(queue.getAll()).toHaveLength(2)
+
+    queue[Symbol.dispose]()
+    expect(queue.getAll()).toHaveLength(0)
+  })
+
+  test("using keyword disposes queue", () => {
+    let externalRef: ToastQueue
+    {
+      using queue = createToastQueue()
+      queue.info("Test")
+      expect(queue.getAll()).toHaveLength(1)
+      externalRef = queue
+    }
+    // After block exits, queue should be disposed
+    expect(externalRef!.getAll()).toHaveLength(0)
   })
 })
