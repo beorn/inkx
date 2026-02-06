@@ -147,12 +147,13 @@
     },
     {
       "files": [
-        "**/apps/km-tui/src/log.ts",
-        "**/apps/km-tui/src/tui.tsx",
-        "**/apps/km-tui/src/hooks/**/*.ts",
-        "**/apps/km-tui/src/views/**/*.ts",
-        "**/apps/km-tui/src/views/**/*.tsx",
-        "**/packages/km-beads/src/**/*.ts"
+        "**/apps/km-tui/src/**/*.ts",
+        "**/apps/km-tui/src/**/*.tsx",
+        "**/packages/km-beads/src/**/*.ts",
+        "**/packages/km-board/src/**/*.ts",
+        "**/packages/km-commands/src/**/*.ts",
+        "**/packages/km-storage/src/**/*.ts",
+        "**/packages/km-connector-caldav/src/**/*.ts"
       ],
       "rules": {
         "@typescript-eslint/no-unsafe-argument": "off",

@@ -14,12 +14,12 @@
 // eslint-disable-next-line promise/prefer-await-to-callbacks -- Type declaration, not actual callback
 declare function setImmediate(callback: (value?: unknown) => void): unknown
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { createLinkResolver } from "./link-resolver.ts"
 import type { StepYield, PendingLink, LoadError } from "./repo-loader.ts"
 
-const log = createlogger("km:storage:link-resolution")
+const log = createLogger("km:storage:link-resolution")
 
 // ============================================================================
 // TYPES

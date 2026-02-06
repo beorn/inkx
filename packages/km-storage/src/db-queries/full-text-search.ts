@@ -5,11 +5,11 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import type { KNode } from "@km/core"
 import { rowToNode } from "./utils.ts"
 
-const log = createlogger("km:storage:db:queries")
+const log = createLogger("km:storage:db:queries")
 
 // =============================================================================
 // Full-Text Search

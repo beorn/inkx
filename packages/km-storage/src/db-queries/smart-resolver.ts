@@ -8,7 +8,7 @@
  * - Names (bare, no '/') → search by name field, may be ambiguous
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { resolve } from "path"
@@ -16,7 +16,7 @@ import { realpathSync, existsSync } from "fs"
 import { isExplicitPath } from "../path-utils.ts"
 import { rowToNode } from "./utils.ts"
 
-const log = createlogger("km:storage:db:queries")
+const log = createLogger("km:storage:db:queries")
 
 // =============================================================================
 // Smart Node Resolution

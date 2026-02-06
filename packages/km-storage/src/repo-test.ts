@@ -6,7 +6,7 @@
  */
 
 import { Database } from "bun:sqlite"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { join } from "path"
 
 import type { DataStore, HasDatabase } from "./data-store.ts"
@@ -16,7 +16,7 @@ import type { Repo } from "./repo.ts"
 import { createBareRepo } from "./repo.ts"
 import { SCHEMA } from "./schema.ts"
 
-const log = createlogger("km:storage:repo:test")
+const log = createLogger("km:storage:repo:test")
 
 /**
  * Create a test Repo with in-memory DataStore and optional in-memory FileTree.

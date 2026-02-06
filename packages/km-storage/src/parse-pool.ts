@@ -6,7 +6,7 @@
  * km-disposable.3: Wrapped with Service factory pattern
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { cpus } from "os"
 import type { ServiceStatus } from "./watcher.ts"
 import type {
@@ -15,7 +15,7 @@ import type {
   WorkerResponse,
 } from "./parse-worker.ts"
 
-const log = createlogger("km:storage:parse-pool")
+const log = createLogger("km:storage:parse-pool")
 
 export interface ParseResult {
   nodeId: string

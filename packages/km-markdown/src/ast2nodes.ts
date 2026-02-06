@@ -20,10 +20,10 @@
  * For the reverse operation (KNodes → markdown), see nodes2md.ts.
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { ulid } from "ulid"
 
-const log = createlogger("km:markdown:ast2nodes")
+const log = createLogger("km:markdown:ast2nodes")
 import type { Root, RootContent, Heading, List, ListItem } from "mdast"
 import { parse as parseYaml } from "yaml"
 import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core"

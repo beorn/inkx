@@ -4,11 +4,11 @@
  * Manages the km daemon - a background process for sync and automation
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { createServer, connect } from "net"
 import type { Socket } from "net"
 
-const log = createlogger("km:cli:daemon")
+const log = createLogger("km:cli:daemon")
 import {
   existsSync,
   readFileSync,

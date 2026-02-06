@@ -5,13 +5,12 @@
  * Press 'v' to cycle between views interactively.
  */
 
-import { createlogger } from "@beorn/logger"
 import { Command } from "@commander-js/extra-typings"
 import { createLogger } from "@km/core"
 import { enableConsoleDebug, setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 
-const debug = createlogger("km:cli:view")
+const debug = createLogger("km:cli:view")
 const log = createLogger("km")
 
 type ViewMode = "cards" | "columns" | "list" | "tabs"

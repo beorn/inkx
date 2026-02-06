@@ -26,7 +26,7 @@
  *   await runPipeline(done)
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { basename } from "path"
 import type { KNode } from "@km/core"
@@ -36,7 +36,7 @@ import { emitNodeCreated, emitNodeUpdated } from "./emitter.ts"
 import { createLinkResolver, type LinkResolver } from "./link-resolver.ts"
 import type { WikilinkRef, ResolvedLink } from "./markdown-processing.ts"
 
-const log = createlogger("km:storage:pipeline")
+const log = createLogger("km:storage:pipeline")
 
 // ============================================================================
 // TYPES

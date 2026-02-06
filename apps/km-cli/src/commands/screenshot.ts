@@ -6,10 +6,10 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { setDebugRepoRoot } from "../debug-log.ts"
 
-const log = createlogger("km:cli:screenshot")
+const log = createLogger("km:cli:screenshot")
 
 type ViewMode = "cards" | "columns" | "list" | "tabs"
 type OutputFormat = "text" | "ansi" | "debug"

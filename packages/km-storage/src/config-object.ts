@@ -5,7 +5,7 @@
  * Created via loadConfigObject() factory function.
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import {
   loadConfigWithPath,
   clearConfigCache,
@@ -16,7 +16,7 @@ import {
   type TuiConfig,
 } from "./config.ts"
 
-const log = createlogger("km:storage:config")
+const log = createLogger("km:storage:config")
 
 /**
  * Config interface - repo configuration.

@@ -22,6 +22,11 @@ import "../../../apps/km-tui/tests/helpers/matchers.js"
 process.stdout.isTTY = false
 process.stderr.isTTY = false
 
+// Suppress React act() warnings: inkx test renderer handles state updates
+// synchronously without act() wrapping. React's act() detection causes
+// spurious "not wrapped in act(...)" warnings on every press() call.
+globalThis.IS_REACT_ACT_ENVIRONMENT = false
+
 // INKX_STRICT: Opt-in incremental vs fresh render comparison.
 // Enable with: INKX_STRICT=1 bun vitest run
 // This catches rendering bugs where incremental rendering differs from fresh.
@@ -64,6 +69,15 @@ beforeEach(() => {
   // Spy on console methods
   for (const method of CONSOLE_METHODS) {
     vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+      // Suppress React act() warnings — inkx test renderer handles state
+      // updates synchronously; React's act() detection is a false positive.
+      if (
+        method === "error" &&
+        typeof args[0] === "string" &&
+        args[0].includes("was not wrapped in act(...)")
+      ) {
+        return
+      }
       consoleCalls.push({ method, args })
     })
   }

@@ -154,7 +154,7 @@ export function getStoreHealth(
 /** Count files and directories in the worktree (respecting ignore patterns) */
 function countWorktree(
   repoPath: string,
-  kmDir: string,
+  _kmDir: string,
 ): { fileCount: number; dirCount: number } {
   let fileCount = 0
   let dirCount = 0

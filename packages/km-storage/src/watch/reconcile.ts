@@ -5,7 +5,7 @@
  * Operations are applied using the applier module.
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { dirname } from "path"
 import type { KNode } from "@km/core"
@@ -13,7 +13,7 @@ import { getNodesUnderPath, getNodeByPath } from "../db-queries/core-lookup.ts"
 import { scanDirectory } from "./watcher.ts"
 import type { PatternMatcher } from "../ignore.ts"
 
-const log = createlogger("km:storage:watch:reconcile")
+const log = createLogger("km:storage:watch:reconcile")
 
 export interface ReconcileOp {
   type: "create" | "update" | "rename" | "delete"

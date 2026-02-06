@@ -5,7 +5,7 @@
  * Replaces the old rebuild command with a structured set of subcommands.
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
@@ -13,15 +13,13 @@ const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
 import { dirname, resolve, join } from "path"
 
-const log = createlogger("km:cli:doctor")
+const log = createLogger("km:cli:doctor")
 import {
   findKmRootFromPath,
   createRepo,
   getStoreHealth,
   compactEvents,
   vacuumDb,
-  getNodeCount,
-  getLastEventId,
 } from "@km/storage"
 import { Database } from "bun:sqlite"
 import { existsSync, unlinkSync } from "fs"

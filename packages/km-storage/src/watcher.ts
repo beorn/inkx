@@ -5,12 +5,12 @@
  * Created via createWatcher() or repo.watch().
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import { SyncManager, type SyncConfig } from "./watch/index.ts"
 import type { FileChange } from "./watch/index.ts"
 
-const log = createlogger("km:storage:watcher")
+const log = createLogger("km:storage:watcher")
 
 /** Service status for lifecycle control */
 export type ServiceStatus = "stopped" | "starting" | "running" | "stopping"

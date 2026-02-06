@@ -12,7 +12,7 @@
  *   emitter.close()
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
@@ -20,7 +20,7 @@ import type { Event } from "@km/core"
 import type { Database } from "bun:sqlite"
 import { applyEventWithDb } from "./db-events.ts"
 
-const _log = createlogger("km:storage:emitter")
+const _log = createLogger("km:storage:emitter")
 
 // --- Types ---
 

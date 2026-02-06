@@ -4,12 +4,12 @@
  * Manages pending filesystem writes with debouncing and retry logic
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import * as fs from "fs"
 import { dirname } from "path"
 import { EventEmitter } from "events"
 
-const log = createlogger("km:storage:watch:writequeue")
+const log = createLogger("km:storage:watch:writequeue")
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Error Classification

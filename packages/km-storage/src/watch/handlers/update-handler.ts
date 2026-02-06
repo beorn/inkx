@@ -6,7 +6,7 @@
  * - Pre-parsed content (from parallel parsing pipeline)
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import {
@@ -32,7 +32,7 @@ import type { ParseResult } from "../../parse-pool.ts"
 import type { ReconcileContext } from "./create-handler.ts"
 import { diffNodes } from "./node-differ.ts"
 
-const log = createlogger("km:storage:watch:reconcile")
+const log = createLogger("km:storage:watch:reconcile")
 
 /**
  * Options for update handler

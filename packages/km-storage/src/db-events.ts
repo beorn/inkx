@@ -5,10 +5,10 @@
  * Events are the source of truth for all state changes.
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import type { Database, SQLQueryBindings } from "bun:sqlite"
 
-const log = createlogger("km:storage:db:events")
+const log = createLogger("km:storage:db:events")
 import { readFileSync } from "fs"
 import { getMarkForStatus } from "@km/core"
 import type { Event, TaskStatus } from "@km/core"

@@ -8,10 +8,10 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { ulid } from "ulid"
 
-const log = createlogger("km:storage:db:ops")
+const log = createLogger("km:storage:db:ops")
 import type { KNode } from "@km/core"
 import type { Emitter } from "./emitter.ts"
 

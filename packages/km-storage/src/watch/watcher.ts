@@ -4,10 +4,10 @@
  * Watches for filesystem changes and triggers reconciliation
  */
 
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { watch, type FSWatcher } from "chokidar"
 
-const log = createlogger("km:storage:watch:watcher")
+const log = createLogger("km:storage:watch:watcher")
 import { dirname, join } from "path"
 import {
   statSync,
