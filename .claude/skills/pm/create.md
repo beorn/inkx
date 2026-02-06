@@ -172,18 +172,25 @@ Exact match (open)?
 
 ### Create bead:
 
+**WARNING: `--id` and `--parent` CANNOT be used together.** Always create first, then set parent.
+
 ```bash
+# Step 1: Create (NO --parent flag here!)
 bd create \
   --id <generated-id> \
   --type <type> \
   --title "<concise title from description>" \
   --description "<expanded description with context>" \
   --priority <inferred-priority>
+
+# Step 2: Set parent AFTER creation
+bd update <generated-id> --parent <tracking-epic-id>
 ```
 
 **Error handling:**
 
 - If ID conflict → increment sequence, retry (max 3 attempts)
+- `--id` + `--parent` together → **WILL FAIL** — always two-step
 - If create fails → report error with suggestion
 
 **If replacing an existing bead** (new ID for same work):
@@ -197,14 +204,17 @@ Update all references to point to the new ID. Never leave dangling references.
 
 ### Assign to tracking epic (REQUIRED):
 
-Every new bead **must** be a sub-bead of its tracking epic using dot notation:
+Every new bead **must** be a sub-bead of its tracking epic. Use two-step create + parent:
 
 ```bash
 # ID format: km-<scope>.<suffix>
 # Example: km-inkx.bg-bleed, km-tui.emptybody, km-infra.ci-fuzz
 
-# Set parent AFTER creation (--id and --parent conflict)
-bd update <new-id> --parent <tracking-epic-id>
+# Step 1: Create
+bd create --id km-tui.emptybody --type bug --title "Empty body rendering" --priority 2
+
+# Step 2: Set parent (MUST be separate command)
+bd update km-tui.emptybody --parent km-tui
 ```
 
 | Tracking epic | For |

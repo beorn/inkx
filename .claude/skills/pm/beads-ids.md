@@ -95,7 +95,7 @@ km-inkx.bg-bleed       # Background color bleed subtask
 
 - Subtasks use parent ID + `.` + number
 - Numbers are sequential: 1, 2, 3, ...
-- Create dependency with `--deps parent-child:<parent-id>`
+- **`--id` and `--parent` CANNOT be combined** — create first, then `bd update <id> --parent <parent-id>`
 
 ### Pattern 3: Keyword-Based (For Named Initiatives)
 
@@ -206,7 +206,7 @@ km-inkx.bg-bleed      # Named subtask
 - Subtasks use the parent ID + `.` + number
 - Numbers are sequential: 1, 2, 3, ... (not letters)
 - For 10+ subtasks, continue: 10, 11, 12, ...
-- Create with `--deps parent-child:<parent-id>`
+- **`--id` and `--parent` CANNOT be combined** — create first, then `bd update <id> --parent <parent-id>`
 - **Dot notation works with ANY prefix** — not just `km-`
 
 **Query subtasks:**
@@ -307,16 +307,12 @@ bd create --id km-tui-8 \
   --type feat \
   --title "Add vim keybindings"
 
-# Subtasks
-bd create --id km-tui-8.1 \
-  --type task \
-  --title "Normal mode navigation" \
-  --deps "parent-child:km-tui-8"
+# Subtasks (NOTE: --id and --parent CANNOT be combined, use two steps)
+bd create --id km-tui-8.1 --type task --title "Normal mode navigation"
+bd update km-tui-8.1 --parent km-tui-8
 
-bd create --id km-tui-8.2 \
-  --type task \
-  --title "Visual selection mode" \
-  --deps "parent-child:km-tui-8"
+bd create --id km-tui-8.2 --type task --title "Visual selection mode"
+bd update km-tui-8.2 --parent km-tui-8
 ```
 
 ### Cross-Cutting Epic

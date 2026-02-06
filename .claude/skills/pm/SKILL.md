@@ -126,11 +126,18 @@ Beads older than **1 week** are suspect — requirements may have drifted. Befor
 
 ## Quick Reference: Common Flag Mistakes
 
-| Command     | Wrong    | Correct                                      |
-| ----------- | -------- | -------------------------------------------- |
-| `bd update` | `--desc` | `--description` or `-d`                      |
-| `bd close`  | `--note` | `--reason` or `-r`                           |
-| `bd create` | `--name` | `--title` or positional: `bd create <title>` |
+**CRITICAL**: `--id` and `--parent` CANNOT be combined on `bd create`. Always two-step:
+```bash
+bd create --id km-tui.foo --type task --title "Foo"   # Step 1
+bd update km-tui.foo --parent km-tui                    # Step 2
+```
+
+| Command     | Wrong                         | Correct                                      |
+| ----------- | ----------------------------- | -------------------------------------------- |
+| `bd create` | `--id X --parent Y`           | Create first, then `bd update X --parent Y`  |
+| `bd update` | `--desc`                      | `--description` or `-d`                      |
+| `bd close`  | `--note`                      | `--reason` or `-r`                           |
+| `bd create` | `--name`                      | `--title` or positional: `bd create <title>` |
 
 **Note**: `--description` and `--notes` are both valid on `bd update` (different fields).
 

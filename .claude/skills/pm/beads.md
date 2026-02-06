@@ -270,6 +270,17 @@ grep -r "km-old-id" .
 
 ## Common Mistakes
 
+### CRITICAL: --id and --parent CANNOT be combined
+
+`bd create --id X --parent Y` **ALWAYS FAILS**. Use two steps:
+
+```bash
+bd create --id km-tui.foo --type task --title "Foo"   # Step 1: create
+bd update km-tui.foo --parent km-tui                    # Step 2: set parent
+```
+
+### Other flag mistakes
+
 These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
 
 | Wrong                            | Correct                                                 |
@@ -278,7 +289,6 @@ These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
 | `bd update --id km-x`            | `bd update km-x` (positional)                           |
 | `bd create --name`               | `bd create --title` or `bd create <title>` (positional) |
 | `bd update --desc`               | `bd update --description` or `-d`                       |
-| `bd create --id X --parent Y`    | Create first, then `bd update X --parent Y`             |
 | `bd create --id km-...` (in vendor) | Check prefix first: `bd list --limit 1`              |
 | Assume dot notation is km-only   | Dot notation works with any prefix (`km-inkx.bg-bleed`) |
 
