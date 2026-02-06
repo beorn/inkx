@@ -10,7 +10,7 @@
  * log.debug?.("render %s children=%d", sid(node.id), children.length)
  * log.trace?.("layout col=%d card=%d", colIndex, cardIndex)
  */
-import { createlogger, type ConditionalLogger } from "@beorn/logger"
+import { createLogger, type ConditionalLogger } from "@beorn/logger"
 
 // ============================================================
 // Short ID helper
@@ -51,7 +51,7 @@ export function sid(id: string): string {
  *   span?.debug?.("working...")
  * }
  */
-export const log: ConditionalLogger = createlogger("km:tui")
+export const log: ConditionalLogger = createLogger("km:tui")
 
 // ============================================================
 // Specialized loggers (pre-wrapped)

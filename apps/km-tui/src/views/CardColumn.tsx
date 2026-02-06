@@ -231,6 +231,7 @@ interface ColumnProps {
  * The Column still re-renders, but memoized Cards skip unless their
  * isSelected prop changed.
  */
+// oxlint-disable-next-line complexity/max-cognitive -- React component — JSX ternaries inflate score
 export const Column = React.memo(function Column({
   column,
   colIndex,

@@ -220,6 +220,12 @@ interface OpenInTerminalAction {
 interface EnterInlineEditAction {
   type: "ENTER_INLINE_EDIT"
   nodeId: string
+  blockIndex?: number // 0 = title (default), 1+ = body children
+}
+
+interface EditBlockNavigateAction {
+  type: "EDIT_BLOCK_NAVIGATE"
+  direction: "up" | "down"
 }
 
 interface OutdentNodeAction {
@@ -281,6 +287,7 @@ export type TUIAction =
   | JumpToColumnAction
   | CloseOrQuitAction
   | EnterInlineEditAction
+  | EditBlockNavigateAction
   | OutdentNodeAction
   | NavSiblingBoardAction
   | ZoomInwardsAction

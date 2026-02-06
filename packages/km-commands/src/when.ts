@@ -57,3 +57,8 @@ export const isInOutlineMode = when(
 )
 
 export const hasSelection = when("hasSelection", (ctx) => ctx.hasSelection)
+
+export const isInlineEditing = when(
+  "isInlineEditing",
+  (ctx) => ctx.isInlineEditing,
+)

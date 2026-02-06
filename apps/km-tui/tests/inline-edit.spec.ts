@@ -4,9 +4,9 @@
  * Tests for inline node editing via Enter key.
  * Verifies the full flow: Enter → edit mode → type → Enter/Escape → confirm/cancel.
  *
- * Note: After confirm, the breadcrumb (which reads from repo) reflects the new
- * content, but the card still shows the original node ID. So we check the
- * breadcrumb for saved changes, not the card text.
+ * Every test that edits content verifies BOTH:
+ * 1. repo.getNode() returns updated content (data layer)
+ * 2. board.screenshot() reflects the change (rendering layer)
  *
  * Readline shortcut details (Ctrl+W word delete, Ctrl+U/K line kill, etc.)
  * are tested at the hook level in use-line-edit.test.ts, not here.
@@ -69,7 +69,7 @@ describe("Inline Editing", () => {
   })
 
   test("Escape during inline edit cancels without saving", () => {
-    const { board } = testEnv(() =>
+    const { board, repo } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )
 
@@ -84,7 +84,10 @@ describe("Inline Editing", () => {
     // Cancel with Escape
     board.press("Escape")
 
-    // Original content should be preserved
+    // Repo should NOT be modified
+    expect(repo.getNode("1a")?.content).toBe("1a")
+
+    // Original content should be preserved on screen
     const output = board.screenshot()
     expect(output).toContain("1a")
 
@@ -94,7 +97,7 @@ describe("Inline Editing", () => {
   })
 
   test("Enter confirms inline edit and saves to repo", () => {
-    const { board } = testEnv(() =>
+    const { board, repo } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )
 
@@ -107,9 +110,11 @@ describe("Inline Editing", () => {
     // Confirm with Enter
     board.press("Enter")
 
-    // The breadcrumb path updates from repo — check it shows the edit
-    const output = board.screenshot()
-    expect(output).toContain("1a-edited")
+    // Verify repo was updated (data layer)
+    expect(repo.getNode("1a")?.content).toBe("1a-edited")
+
+    // Verify screenshot reflects the save (rendering layer)
+    expect(board.screenshot()).toContain("1a-edited")
 
     // Board should be back in normal mode
     board.press("j")
@@ -162,7 +167,9 @@ describe("Inline Edit — Readline Integration", () => {
   // Exhaustive readline testing belongs at the useLineEdit hook level.
 
   test("Backspace and arrow keys work in edit mode", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("ab"))))
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("ab"))),
+    )
 
     board.press("Enter")
     // ab| → ArrowLeft → a|b → insert X → aXb
@@ -170,11 +177,14 @@ describe("Inline Edit — Readline Integration", () => {
     board.press("X")
     board.press("Enter")
 
+    expect(repo.getNode("ab")?.content).toBe("aXb")
     expect(board.screenshot()).toContain("aXb")
   })
 
   test("Delete key works in edit mode (forward delete)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("ab"))))
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("ab"))),
+    )
 
     board.press("Enter")
     // ab| → Ctrl+A → |ab → Delete → |b
@@ -182,12 +192,14 @@ describe("Inline Edit — Readline Integration", () => {
     board.press("Delete")
     board.press("Enter")
 
-    expect(board.screenshot()).toContain("b")
+    expect(repo.getNode("ab")?.content).toBe("b")
     expect(board.screenshot()).not.toContain("ab")
   })
 
   test("Ctrl shortcuts (Control+A, Control+W) work through input layers", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("xyz"))))
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("xyz"))),
+    )
 
     board.press("Enter")
     // xyz| → Ctrl+A → |xyz → type "0" → 0xyz
@@ -195,13 +207,14 @@ describe("Inline Edit — Readline Integration", () => {
     board.press("0")
     board.press("Enter")
 
+    expect(repo.getNode("xyz")?.content).toBe("0xyz")
     expect(board.screenshot()).toContain("0xyz")
   })
 })
 
 describe("Inline Edit — Task Marks", () => {
   test("editing a task node preserves task mark on save", () => {
-    const { board } = testEnv(() => {
+    const { board, repo } = testEnv(() => {
       const nodes = item("board", item("col1", item("task1")))
       // Make task1 a proper task with a mark
       const taskNode = nodes.find((n) => n.id === "task1")!
@@ -219,13 +232,13 @@ describe("Inline Edit — Task Marks", () => {
     for (const c of "-ok") board.press(c)
     board.press("Enter")
 
-    // After save, the content in repo should have "[x] task1-ok"
-    // The display should show the edited title
+    // Repo should have mark preserved
+    expect(repo.getNode("task1")?.content).toBe("[x] task1-ok")
     expect(board.screenshot()).toContain("task1-ok")
   })
 
   test("editing a todo task preserves todo mark", () => {
-    const { board } = testEnv(() => {
+    const { board, repo } = testEnv(() => {
       const nodes = item("board", item("col1", item("mytodo")))
       const taskNode = nodes.find((n) => n.id === "mytodo")!
       taskNode.content = "[ ] mytodo"
@@ -239,13 +252,14 @@ describe("Inline Edit — Task Marks", () => {
     for (const c of "-done") board.press(c)
     board.press("Enter")
 
+    expect(repo.getNode("mytodo")?.content).toBe("[ ] mytodo-done")
     expect(board.screenshot()).toContain("mytodo-done")
   })
 })
 
 describe("Inline Edit — Navigate Away Saves", () => {
   test("ArrowDown during edit saves and navigates to next card", () => {
-    const { board } = testEnv(() =>
+    const { board, repo } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )
 
@@ -261,12 +275,13 @@ describe("Inline Edit — Navigate Away Saves", () => {
     // Cursor should have moved to next card
     board.expect("#1b[data-cursor]").toExist()
 
-    // Edit should have been saved (check breadcrumb/screenshot for saved content)
+    // Verify repo was updated
+    expect(repo.getNode("1a")?.content).toBe("1a-ok")
     expect(board.screenshot()).toContain("1a-ok")
   })
 
   test("ArrowUp during edit saves and navigates to previous card", () => {
-    const { board } = testEnv(() =>
+    const { board, repo } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )
 
@@ -282,11 +297,12 @@ describe("Inline Edit — Navigate Away Saves", () => {
     board.press("ArrowUp")
 
     board.expect("#1a[data-cursor]").toExist()
+    expect(repo.getNode("1b")?.content).toBe("1b-up")
     expect(board.screenshot()).toContain("1b-up")
   })
 
   test("navigate away without changes does not save (no-op)", () => {
-    const { board } = testEnv(() =>
+    const { board, repo } = testEnv(() =>
       item("board", item("col1", item("orig"), item("1b"))),
     )
 
@@ -295,12 +311,13 @@ describe("Inline Edit — Navigate Away Saves", () => {
     board.press("ArrowDown")
 
     board.expect("#1b[data-cursor]").toExist()
-    // Original content should be unchanged
+    // Repo should be unchanged
+    expect(repo.getNode("orig")?.content).toBe("orig")
     expect(board.screenshot()).toContain("orig")
   })
 
   test("Escape during edit cancels without saving (no auto-save)", () => {
-    const { board } = testEnv(() =>
+    const { board, repo } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )
 
@@ -310,15 +327,14 @@ describe("Inline Edit — Navigate Away Saves", () => {
     // Escape cancels — should NOT save
     board.press("Escape")
 
-    // Original content should be preserved (no "-nope")
-    expect(board.screenshot()).toContain("1a")
+    expect(repo.getNode("1a")?.content).toBe("1a")
     expect(board.screenshot()).not.toContain("1a-nope")
   })
 })
 
 describe("Inline Edit — Edge Cases", () => {
   test("edit across different columns", () => {
-    const { board } = testEnv(() =>
+    const { board, repo } = testEnv(() =>
       item("board", item("col1", item("c1")), item("col2", item("c2"))),
     )
 
@@ -326,6 +342,7 @@ describe("Inline Edit — Edge Cases", () => {
     board.press("Enter")
     board.press("X")
     board.press("Enter")
+    expect(repo.getNode("c1")?.content).toBe("c1X")
     expect(board.screenshot()).toContain("c1X")
 
     // Navigate to col2
@@ -336,21 +353,27 @@ describe("Inline Edit — Edge Cases", () => {
     board.press("Enter")
     board.press("Y")
     board.press("Enter")
+    expect(repo.getNode("c2")?.content).toBe("c2Y")
     expect(board.screenshot()).toContain("c2Y")
   })
 
   test("confirm with no changes preserves original", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("keep"))))
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("keep"))),
+    )
 
     board.press("Enter")
     // Immediately confirm without typing
     board.press("Enter")
 
+    expect(repo.getNode("keep")?.content).toBe("keep")
     expect(board.screenshot()).toContain("keep")
   })
 
   test("backspace all then confirm saves empty content", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("ab"))))
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("ab"))),
+    )
 
     board.press("Enter")
     board.press("Backspace")
@@ -358,24 +381,28 @@ describe("Inline Edit — Edge Cases", () => {
     // Content empty
     board.press("Enter")
 
+    expect(repo.getNode("ab")?.content).toBe("")
     // Node should still exist — board shouldn't crash
-    const output = board.screenshot()
-    expect(output).toContain("col1")
+    expect(board.screenshot()).toContain("col1")
   })
 
   test("edit then confirm then edit same node again", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("orig"))))
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("orig"))),
+    )
 
     // First edit: append "1"
     board.press("Enter")
     board.press("1")
     board.press("Enter")
+    expect(repo.getNode("orig")?.content).toBe("orig1")
     expect(board.screenshot()).toContain("orig1")
 
     // Second edit should start with "orig1" (not stale "orig")
     board.press("Enter")
     board.press("2")
     board.press("Enter")
+    expect(repo.getNode("orig")?.content).toBe("orig12")
     expect(board.screenshot()).toContain("orig12")
   })
 })

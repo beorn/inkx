@@ -84,8 +84,9 @@ export interface UIState {
   // Watcher status (for bottom bar display)
   watcherStatus: WatcherStatus | null
 
-  // Inline edit state - which node is being edited inline (null = not editing)
-  inlineEditNodeId: string | null
+  // Inline edit state - which block is being edited (null = not editing)
+  // blockIndex 0 = title, 1+ = body children (1-indexed into extractBody result)
+  inlineEditBlock: { nodeId: string; blockIndex: number } | null
 
   // Bell state - set when action hits boundary, cleared on next keypress
   bellState: string | null
@@ -153,7 +154,7 @@ export function createInitialUIState(
 
     watcherStatus: null,
 
-    inlineEditNodeId: null,
+    inlineEditBlock: null,
 
     bellState: null,
     status: null,
@@ -411,12 +412,20 @@ const uiSlice = createSlice({
       state.watcherStatus = action.payload
     },
 
-    // Inline edit
-    enterInlineEdit: (state, action: PayloadAction<string>) => {
-      state.inlineEditNodeId = action.payload
+    // Inline edit (block-level: title = index 0, body children = 1+)
+    enterInlineEdit: (
+      state,
+      action: PayloadAction<{ nodeId: string; blockIndex: number }>,
+    ) => {
+      state.inlineEditBlock = action.payload
     },
     exitInlineEdit: (state) => {
-      state.inlineEditNodeId = null
+      state.inlineEditBlock = null
+    },
+    setEditBlockIndex: (state, action: PayloadAction<number>) => {
+      if (state.inlineEditBlock) {
+        state.inlineEditBlock.blockIndex = action.payload
+      }
     },
 
     // Bell state (for boundary feedback)

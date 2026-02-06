@@ -13,7 +13,7 @@ import { spawn } from "node:child_process"
 import { dirname } from "node:path"
 import type { CommandAction } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { assertNever } from "../action-handlers.ts"
 import { outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
@@ -27,7 +27,7 @@ import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { TUIContext } from "../tui-context.ts"
 import { actions } from "../ui-reducer.ts"
 
-const log = createlogger("km:tui:board-actions")
+const log = createLogger("km:tui:board-actions")
 
 // Import handlers from specialized modules
 import {
@@ -477,9 +477,9 @@ function handleCloseOrQuit(ctx: TUIContext): ActionResult {
     return ok()
   }
 
-  // Cancel inline edit
+  // Cancel inline edit (must call cancel() so auto-save on unmount is suppressed)
   if (ui.inlineEditBlock) {
-    dispatch(actions.exitInlineEdit())
+    blockEditTargetRef.current?.cancel()
     return ok()
   }
 

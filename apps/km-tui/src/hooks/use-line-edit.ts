@@ -6,8 +6,8 @@
  * dispatch text editing actions to this component.
  */
 import { useState, useCallback, useLayoutEffect, useMemo, useRef } from "react"
-import type { TextEditTarget } from "../text-edit-target.ts"
-import { textEditTargetRef } from "../text-edit-target.ts"
+import type { BlockEditTarget } from "../block-edit-target.ts"
+import { blockEditTargetRef } from "../block-edit-target.ts"
 
 export interface LineEditState {
   /** Current text value */
@@ -25,6 +25,8 @@ export interface UseLineEditOptions {
   onConfirm?: (value: string) => void
   /** Called when Escape is pressed (text.cancel command) */
   onCancel?: () => void
+  /** Called when save() is invoked (auto-save on block navigate) */
+  onSave?: (value: string) => void
 }
 
 export interface UseLineEditResult {
@@ -69,6 +71,7 @@ export function useLineEdit({
   onChange,
   onConfirm,
   onCancel,
+  onSave,
 }: UseLineEditOptions = {}): UseLineEditResult {
   const [state, setState] = useState<LineEditState>({
     value: initialValue,
@@ -105,14 +108,16 @@ export function useLineEdit({
   onConfirmRef.current = onConfirm
   const onCancelRef = useRef(onCancel)
   onCancelRef.current = onCancel
+  const onSaveRef = useRef(onSave)
+  onSaveRef.current = onSave
 
   // Track whether cancel() was explicitly called (Escape).
   // If not cancelled and value changed, auto-save on unmount (navigate-away saves).
   const cancelledRef = useRef(false)
   const initialValueRef = useRef(initialValue)
 
-  // Build TextEditTarget (stable reference via useMemo with no deps)
-  const target: TextEditTarget = useMemo(
+  // Build BlockEditTarget (stable reference via useMemo with no deps)
+  const target: BlockEditTarget = useMemo(
     () => ({
       insertChar(char: string) {
         const { value, cursor } = stateRef.current
@@ -180,6 +185,18 @@ export function useLineEdit({
         cancelledRef.current = true // Prevent auto-save on unmount
         onCancelRef.current?.()
       },
+      save() {
+        const fn = onSaveRef.current ?? onConfirmRef.current
+        fn?.(stateRef.current.value)
+        // Update initialValue so auto-save on unmount doesn't re-save
+        initialValueRef.current = stateRef.current.value
+      },
+      getCursorOffset() {
+        return stateRef.current.cursor
+      },
+      getContent() {
+        return stateRef.current.value
+      },
     }),
     [],
   )
@@ -190,10 +207,10 @@ export function useLineEdit({
   // This implements "navigate away saves" — moving cursor away from an edited node
   // unmounts the InlineEditField, triggering a save of the edited content.
   useLayoutEffect(() => {
-    textEditTargetRef.current = target
+    blockEditTargetRef.current = target
     return () => {
-      if (textEditTargetRef.current === target) {
-        textEditTargetRef.current = null
+      if (blockEditTargetRef.current === target) {
+        blockEditTargetRef.current = null
       }
       // Auto-save on unmount if value was modified and not explicitly cancelled/confirmed
       if (!cancelledRef.current) {

@@ -167,9 +167,13 @@ function TreeNodeImpl({
     state.multiSelected.has(selectionKey),
   )
   const isFolded = useUISelector((state) => state.foldedNodes.has(node.id))
-  const isInlineEditing = useUISelector(
-    (state) => state.inlineEditNodeId === node.id,
+  const editBlockIndex = useUISelector((state) =>
+    state.inlineEditBlock?.nodeId === node.id
+      ? state.inlineEditBlock.blockIndex
+      : null,
   )
+  const isInlineEditing = editBlockIndex !== null
+  const editingTitle = editBlockIndex === 0
   const uiDispatch = useUIDispatch()
   const excludeBoardIds = rootBoardId
     ? new Set([rootBoardId])
@@ -252,22 +256,44 @@ function TreeNodeImpl({
           : displayNode.content || getNodeDisplayName(repo, displayNode)
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
 
-  // Inline edit callbacks
-  const handleInlineEditConfirm = useCallback(
+  // Compute body blocks when editing (for per-block navigation)
+  const bodyChildren = useMemo(() => {
+    if (!isInlineEditing) return []
+    const allChildren = resolvedGetChildren(childrenSourceId)
+    return extractBody(allChildren).body
+  }, [isInlineEditing, childrenSourceId, resolvedGetChildren])
+
+  // Title save callback (persists without exiting edit mode)
+  const handleTitleSave = useCallback(
     (newValue: string) => {
-      // Re-prepend task mark if the node is a task
       const originalContent = displayNode.content ?? ""
       const { mark } = extractTitleTaskMark(originalContent)
       const newContent = mark != null ? `[${mark}] ${newValue}` : newValue
       repo.updateNode(displayNode.id, { content: newContent })
+    },
+    [displayNode.id, displayNode.content, repo],
+  )
+
+  // Inline edit callbacks
+  const handleInlineEditConfirm = useCallback(
+    (newValue: string) => {
+      handleTitleSave(newValue)
       uiDispatch(actions.exitInlineEdit())
     },
-    [displayNode.id, displayNode.content, repo, uiDispatch],
+    [handleTitleSave, uiDispatch],
   )
 
   const handleInlineEditCancel = useCallback(() => {
     uiDispatch(actions.exitInlineEdit())
   }, [uiDispatch])
+
+  // Body block save callback (persists content for a body child)
+  const handleBlockSave = useCallback(
+    (childId: string, newValue: string) => {
+      repo.updateNode(childId, { content: newValue })
+    },
+    [repo],
+  )
 
   // Memoize rich text rendering - only recalc when content or sigil config changes
   // In multiline (cards) mode, truncate with ellipsis to fit on single line
@@ -406,7 +432,7 @@ function TreeNodeImpl({
             flexShrink={1}
             overflow={isOneliner ? "hidden" : undefined}
           >
-            {isInlineEditing ? (
+            {editingTitle ? (
               <Text
                 color={style.textColor}
                 wrap={isOneliner ? "truncate" : "wrap"}
@@ -420,6 +446,7 @@ function TreeNodeImpl({
                   initialValue={cleanContent}
                   onConfirm={handleInlineEditConfirm}
                   onCancel={handleInlineEditCancel}
+                  onSave={handleTitleSave}
                 />
               </Text>
             ) : (
@@ -454,8 +481,34 @@ function TreeNodeImpl({
         </Box>
       </HeadRow>
 
-      {/* Children */}
-      {hasChildren && !isFolded && depth < maxDepth && (
+      {/* Body block editing: when editing this node, show body children as editable blocks */}
+      {isInlineEditing &&
+        bodyChildren.length > 0 &&
+        bodyChildren.map((child, i) => {
+          const blockIndex = i + 1 // 0 is title
+          const isActiveBlock = editBlockIndex === blockIndex
+          return (
+            <Box key={child.id} paddingLeft={depth + 1}>
+              <Text dimColor>{"  "}</Text>
+              {isActiveBlock ? (
+                <InlineEditField
+                  initialValue={child.content ?? ""}
+                  onConfirm={(v) => {
+                    handleBlockSave(child.id, v)
+                    uiDispatch(actions.exitInlineEdit())
+                  }}
+                  onCancel={handleInlineEditCancel}
+                  onSave={(v) => handleBlockSave(child.id, v)}
+                />
+              ) : (
+                <Text dimColor>{renderRich(child.content ?? "")}</Text>
+              )}
+            </Box>
+          )
+        })}
+
+      {/* Children (normal rendering — hidden when in block edit mode to avoid duplication) */}
+      {!isInlineEditing && hasChildren && !isFolded && depth < maxDepth && (
         <ErrorBoundary
           fallback={
             <Text color="red" dim>

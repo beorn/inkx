@@ -1,6 +1,6 @@
 import type { CommandMode, TNode } from "./types.ts"
 import type { WhenPredicate } from "./when.ts"
-import { textInputFocused, isInDetailPane } from "./when.ts"
+import { textInputFocused, isInDetailPane, isInlineEditing } from "./when.ts"
 
 export interface Keybinding {
   key: string
@@ -18,6 +18,7 @@ export interface KeybindingContext {
   hasSelection: boolean
   isInDetailPane: boolean
   isInOutlineMode: boolean
+  isInlineEditing: boolean
   currentNode: TNode | null
   textInputFocused: boolean
 }
@@ -75,6 +76,20 @@ export function resolveKeybinding(
 // Default keybindings
 // NOTE: These match docs/06-ui.md Navigation Model
 export const defaultKeybindings: Keybinding[] = [
+  // === Block editing (when isInlineEditing) ===
+  // Up/Down navigate between blocks (title + body paragraphs)
+  // Must come before text editing bindings to intercept these keys
+  {
+    key: "ArrowUp",
+    commandId: "edit_block.navigate_up",
+    when: isInlineEditing,
+  },
+  {
+    key: "ArrowDown",
+    commandId: "edit_block.navigate_down",
+    when: isInlineEditing,
+  },
+
   // === Text editing (when textInputFocused) ===
   // These must come first so they take priority over navigation keys
   {
@@ -127,7 +142,12 @@ export const defaultKeybindings: Keybinding[] = [
     commandId: "text.delete_to_end",
     when: textInputFocused,
   },
-  { key: "Enter", commandId: "text.confirm", when: textInputFocused },
+  // Enter during text input → confirm (save+exit for inline edit, submit for search)
+  {
+    key: "Enter",
+    commandId: "text.confirm",
+    when: textInputFocused,
+  },
   { key: "Escape", commandId: "text.cancel", when: textInputFocused },
 
   // === Detail pane (when isInDetailPane) ===

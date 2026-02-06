@@ -1,7 +1,7 @@
 /**
- * InlineEditField — inline text editor for node titles.
+ * InlineEditField — inline text editor for node titles and body blocks.
  *
- * Uses useLineEdit which registers a TextEditTarget.
+ * Uses useLineEdit which registers a BlockEditTarget.
  * All key handling is done by the command system via when: textInputFocused.
  * No component-level useInputLayer needed.
  */
@@ -14,17 +14,21 @@ interface InlineEditFieldProps {
   initialValue: string
   onConfirm: (newValue: string) => void
   onCancel: () => void
+  /** Called when save() is invoked (auto-save on block navigate) */
+  onSave?: (newValue: string) => void
 }
 
 export function InlineEditField({
   initialValue,
   onConfirm,
   onCancel,
+  onSave,
 }: InlineEditFieldProps): React.ReactElement {
   const { beforeCursor, afterCursor } = useLineEdit({
     initialValue,
     onConfirm,
     onCancel,
+    onSave,
   })
 
   // Cursor character: show inverse block at cursor position

@@ -6,7 +6,7 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { getCardMidY } from "../card-positions.ts"
 import { type CardState, isAtColumnHeader } from "../types.ts"
 
@@ -22,7 +22,7 @@ import {
 import type { TUIContext } from "../tui-context.ts"
 import { actions } from "../ui-reducer.ts"
 
-const log = createlogger("km:tui:nav")
+const log = createLogger("km:tui:nav")
 
 /**
  * Handle hierarchical vertical navigation (j/k).

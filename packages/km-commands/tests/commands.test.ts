@@ -18,6 +18,7 @@ import {
   textEditingCommands,
   detailPaneCommands,
 } from "../src/commands/text-editing.ts"
+import { blockEditCommands } from "../src/commands/block-edit.ts"
 import type {
   CommandContext,
   TNode,
@@ -142,7 +143,8 @@ describe("allCommands", () => {
       historyCommands.length +
       tuiCommands.length +
       textEditingCommands.length +
-      detailPaneCommands.length
+      detailPaneCommands.length +
+      blockEditCommands.length
 
     expect(allCommands.length).toBe(expectedCount)
   })

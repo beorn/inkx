@@ -72,6 +72,7 @@ function restoreTerminal(): void {
  * - hasInput() = true → interactive mode with keyboard
  * - hasInput() = false → static mode, render once and exit
  */
+// oxlint-disable-next-line complexity/max-cognitive -- 31/30: async setup with nested callbacks, not worth extracting
 export async function runBoard(
   state: TUIBoardState | null,
   options?: TuiOptions,

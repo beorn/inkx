@@ -7,7 +7,7 @@
  */
 import type { Key } from "inkx"
 import type { Dispatch } from "react"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { actions, type UIAction } from "../ui-reducer.ts"
 import type { BoardState, BoardAction } from "@km/board"
 import type { Repo } from "../repo-context.tsx"
@@ -17,7 +17,7 @@ import { processKeyWithContext } from "../command-bridge.ts"
 import { handleCommandAction } from "../board/board-actions.ts"
 import { isErr } from "@km/core"
 
-const perfLog = createlogger("km:perf")
+const perfLog = createLogger("km:perf")
 
 /**
  * Handle main keyboard input through command system

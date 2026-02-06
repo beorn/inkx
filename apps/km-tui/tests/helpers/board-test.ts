@@ -395,7 +395,7 @@ export function testEnv(
     },
     _result: result,
   }
-  return { board, registry, toastQueue }
+  return { board, repo, registry, toastQueue }
 }
 
 /**

@@ -60,6 +60,7 @@ function createContext(
     hasSelection: false,
     isInDetailPane: false,
     isInOutlineMode: false,
+    isInlineEditing: false,
     currentNode: null,
     textInputFocused: false,
     ...overrides,

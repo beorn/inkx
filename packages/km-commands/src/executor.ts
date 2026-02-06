@@ -1,8 +1,8 @@
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import type { CommandContext, CommandAction, ViewMode } from "./types.ts"
 import { getCommand } from "./registry.ts"
 
-const log = createlogger("km:commands:executor")
+const log = createLogger("km:commands:executor")
 
 export function executeCommand(
   id: string,

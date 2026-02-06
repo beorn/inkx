@@ -10,9 +10,9 @@ import type { BoardAction } from "@km/board"
 import type { Repo } from "../repo-context.tsx"
 import type { TUIBoardState } from "../types.ts"
 import { actions } from "../ui-reducer.ts"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 
-const log = createlogger("km:tui:dialogs")
+const log = createLogger("km:tui:dialogs")
 
 // =============================================================================
 // Types

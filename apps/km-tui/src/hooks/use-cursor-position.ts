@@ -8,10 +8,10 @@
  */
 
 import { useMemo } from "react"
-import { createlogger } from "@beorn/logger"
+import { createLogger } from "@beorn/logger"
 import { type ColumnState, COLUMN_HEADER_INDEX } from "../types.ts"
 
-const log = createlogger("km:perf")
+const log = createLogger("km:perf")
 
 // =============================================================================
 // Types

@@ -29,6 +29,7 @@ export type {
   JumpToFavoriteAction,
   JumpToColumnAction,
   CloseOrQuitAction,
+  EditBlockNavigateAction,
   OutdentNodeAction,
   BoardAction,
   TNode,
@@ -93,6 +94,7 @@ export {
   textEditingCommands,
   detailPaneCommands,
   allCommands,
+  blockEditCommands,
   type TaskAction,
 } from "./commands/index.ts"
 
@@ -106,6 +108,7 @@ export {
   inMoveMode,
   isInDetailPane,
   isInOutlineMode,
+  isInlineEditing,
   hasSelection,
 } from "./when.ts"
 

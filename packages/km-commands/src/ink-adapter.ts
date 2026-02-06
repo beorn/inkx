@@ -140,6 +140,7 @@ export function buildKeybindingContext(options: {
   hasSelection?: boolean
   isInDetailPane?: boolean
   isInOutlineMode?: boolean
+  isInlineEditing?: boolean
   currentNode?: TNode | null
   textInputFocused?: boolean
 }): KeybindingContext {
@@ -153,6 +154,7 @@ export function buildKeybindingContext(options: {
     hasSelection: options.hasSelection ?? false,
     isInDetailPane: options.isInDetailPane ?? false,
     isInOutlineMode: options.isInOutlineMode ?? false,
+    isInlineEditing: options.isInlineEditing ?? false,
     currentNode: options.currentNode ?? null,
     textInputFocused: options.textInputFocused ?? false,
   }

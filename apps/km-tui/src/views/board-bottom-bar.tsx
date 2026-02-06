@@ -1,7 +1,7 @@
 /**
  * Board bottom bar - status display component
  */
-/* oxlint-disable complexity/max-cognitive -- React component — status bar with many indicator conditionals */
+/* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — status bar with many indicator conditionals */
 
 import React, { useState, useEffect } from "react"
 import { Box, Text } from "inkx"
