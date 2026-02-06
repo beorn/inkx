@@ -39,6 +39,11 @@ const doctorGcCommand = new Command("gc")
     const { kmDir, repoPath } = resolveKmDir(path)
     const dbPath = join(kmDir, "state.db")
 
+    console.log(
+      term.bold("km doctor gc"),
+      term.dim(`(repo ${formatPath(repoPath)})`),
+    )
+
     if (!existsSync(dbPath)) {
       console.error(
         term.red("No state.db found. Run 'km doctor rebuild' first."),
@@ -115,6 +120,11 @@ const doctorRebuildCommand = new Command("rebuild")
   .action(async (path, options) => {
     const { kmDir, repoPath } = resolveKmDir(path)
 
+    console.log(
+      term.bold("km doctor rebuild"),
+      term.dim(`(repo ${formatPath(repoPath)})`),
+    )
+
     if (options.dryRun) {
       const dbPath = join(kmDir, "state.db")
       console.log(`  Would delete: ${dbPath}`)
@@ -123,10 +133,6 @@ const doctorRebuildCommand = new Command("rebuild")
     }
 
     log.debug?.(`rebuild: starting`)
-    console.log(
-      term.bold("Rebuilding .km/state.db from events + worktree"),
-      term.dim(`(repo ${formatPath(repoPath)})`),
-    )
 
     // Delete state.db files before rebuild
     const dbPath = join(kmDir, "state.db")
@@ -167,6 +173,11 @@ const doctorResetCommand = new Command("reset")
   .action(async (path, options) => {
     const { kmDir, repoPath } = resolveKmDir(path)
 
+    console.log(
+      term.bold("km doctor reset"),
+      term.dim(`(repo ${formatPath(repoPath)})`),
+    )
+
     const targets = ["events.jsonl", "state.db", "state.db-wal", "state.db-shm"]
     const toDelete = targets
       .map((f) => join(kmDir, f))
@@ -184,11 +195,6 @@ const doctorResetCommand = new Command("reset")
       console.log("  Would re-sync from worktree files")
       return
     }
-
-    console.log(
-      term.bold("Resetting to worktree only"),
-      term.dim(`(repo ${formatPath(repoPath)})`),
-    )
 
     // Delete events.jsonl and state.db (preserve config/blobs)
     for (const p of toDelete) {
