@@ -7,7 +7,7 @@
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import { actions } from "../ui-reducer.ts"
-import type { TUIContext } from "../tui-context.ts"
+import type { ActionCtx } from "../tui-context.ts"
 
 // =============================================================================
 // Navigation History
@@ -15,7 +15,7 @@ import type { TUIContext } from "../tui-context.ts"
 
 /** Push a new entry to navigation history */
 export function pushNavHistoryEntry(
-  dispatch: TUIContext["dispatch"],
+  dispatchUI: ActionCtx["dispatchUI"],
   rootId: string | null,
   colIndex: number,
   cardIndex: number,
@@ -25,7 +25,7 @@ export function pushNavHistoryEntry(
   cursorNodeId: string | null = null,
   foldedNodes?: Set<string>,
 ): void {
-  dispatch(
+  dispatchUI(
     actions.pushNavHistory({
       rootId,
       colIndex,
@@ -45,7 +45,7 @@ export function pushNavHistoryEntry(
 
 /** Update multi-selection range from anchor to current position */
 export function updateSelectionRange(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   toCol: number,
   toCard: number,
   toSub: number,
@@ -82,12 +82,12 @@ export function updateSelectionRange(
       }
     }
   }
-  ctx.dispatch(actions.setMultiSelected(newSelected))
+  ctx.dispatchUI(actions.setMultiSelected(newSelected))
 
   // Show status feedback
   const count = newSelected.size
   if (count > 1) {
-    ctx.dispatch(
+    ctx.dispatchUI(
       actions.setStatus({
         level: "info",
         message: `${count} items selected`,
@@ -97,15 +97,15 @@ export function updateSelectionRange(
 }
 
 /** Clear all selection state */
-export function clearSelection(ctx: TUIContext): void {
-  ctx.dispatch(actions.setMultiSelected(new Set()))
-  ctx.dispatch(actions.setSelectionAnchor(null))
-  ctx.dispatch(actions.setSelectAllLevel(0))
-  ctx.dispatch(actions.clearStatus())
+export function clearSelection(ctx: ActionCtx): void {
+  ctx.dispatchUI(actions.setMultiSelected(new Set()))
+  ctx.dispatchUI(actions.setSelectionAnchor(null))
+  ctx.dispatchUI(actions.setSelectAllLevel(0))
+  ctx.dispatchUI(actions.clearStatus())
 }
 
 /** Get unique selected card indices from multi-selection */
-export function getSelectedCardIndices(ctx: TUIContext): number[] {
+export function getSelectedCardIndices(ctx: ActionCtx): number[] {
   if (ctx.ui.multiSelected.size === 0) return []
   const indices = new Set<number>()
   for (const key of ctx.ui.multiSelected) {
@@ -125,7 +125,7 @@ export function getSelectedCardIndices(ctx: TUIContext): number[] {
 
 /** Rebuild board state after a mutation, preserving navigation context */
 export function refreshBoardState(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   options?: {
     colIndex?: number
     cardIndex?: number | ((col: { cards: CardState[] } | undefined) => number)
@@ -177,7 +177,7 @@ type SelectionScope = "card" | "column" | "board"
 /** Add all visible items for a single card to the selection set */
 function addCardItems(
   selected: Set<SelectionKey>,
-  ctx: TUIContext,
+  ctx: ActionCtx,
   colIdx: number,
   cardIdx: number,
   card: CardState,
@@ -197,7 +197,7 @@ function addCardItems(
 
 /** Build a selection set for the given scope (card, column, or board) */
 function buildSelectAllSet(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   scope: SelectionScope,
 ): Set<SelectionKey> {
   const selected = new Set<SelectionKey>()
@@ -238,7 +238,7 @@ function buildSelectAllSet(
 }
 
 /** Progressive select all with Shift+A */
-export function progressiveSelectAll(ctx: TUIContext): void {
+export function progressiveSelectAll(ctx: ActionCtx): void {
   const col = ctx.layout.columns[ctx.layout.colIndex]
   const card = col?.cards[ctx.layout.cardIndex]
   const currentLevel = ctx.ui.selectAllLevel
@@ -257,9 +257,9 @@ export function progressiveSelectAll(ctx: TUIContext): void {
   }
 
   const newSelected = buildSelectAllSet(ctx, scope)
-  ctx.dispatch(actions.setMultiSelected(newSelected))
-  ctx.dispatch(actions.setSelectAllLevel(nextLevel))
-  ctx.dispatch(
+  ctx.dispatchUI(actions.setMultiSelected(newSelected))
+  ctx.dispatchUI(actions.setSelectAllLevel(nextLevel))
+  ctx.dispatchUI(
     actions.setStatus({
       level: "info",
       message: `All ${newSelected.size} items in ${scope} selected`,

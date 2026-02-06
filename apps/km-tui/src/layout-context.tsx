@@ -27,7 +27,7 @@ interface LayoutProviderProps {
 
 /**
  * Provider that makes the card position registry available to child components.
- * The registry is created by the parent (Board) so it can also be passed to TUIContext.
+ * The registry is created by the parent (Board) so it can also be passed to ActionCtx.
  */
 export function LayoutProvider({
   registry,

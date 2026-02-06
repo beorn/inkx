@@ -25,7 +25,7 @@ import { actions } from "./ui-reducer.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext } from "./command-bridge.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
-import { buildTUIContext, type TUIContext } from "./tui-context.ts"
+import type { ActionCtx } from "./tui-context.ts"
 import { blockEditTargetRef } from "./block-edit-target.ts"
 
 const perfLog = createLogger("km:perf")
@@ -35,33 +35,29 @@ const perfLog = createLogger("km:perf")
 // =============================================================================
 
 /**
- * Build a TUIContext from store state.
+ * Build an ActionCtx from store state.
  * Called on each key event to get fresh state.
  */
-function buildContextFromStore(get: () => BoardAppStore): TUIContext {
-  const state = get()
-  return buildTUIContext({
-    repo: state.repo,
-    state: state.tuiBoardState,
-    boardState: state.boardState,
-    ui: state.ui,
-    layout: state.layout,
-    positionRegistry: state.layoutRegistry,
-    toastQueue: state.toastQueue,
-    textEditTarget: state.textEditTarget ?? blockEditTargetRef.current,
-    dispatch: (action) => state.dispatchUI(action),
-    dispatchBoard: (action) => state.dispatchBoard(action),
-    exit: () => {}, // Set by the app runner
-    countVisibleDescendants: (node, depth, maxDepth, foldedNodes) => {
-      return countVisibleDescendants(
-        state.repo,
-        node,
-        depth,
-        maxDepth,
-        foldedNodes,
-      )
-    },
-  })
+function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
+  const s = get()
+  const column = s.layout.columns[s.layout.colIndex]
+  const card = column?.cards[s.layout.cardIndex]
+  return {
+    repo: s.repo,
+    boardState: s.boardState,
+    ui: s.ui,
+    layout: s.layout,
+    layoutRegistry: s.layoutRegistry,
+    toastQueue: s.toastQueue,
+    selectedNode: s.selectedNode,
+    column,
+    card,
+    dispatchUI: (action) => s.dispatchUI(action),
+    dispatchBoard: (action) => s.dispatchBoard(action),
+    exit,
+    countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
+      countVisibleDescendants(s.repo, node, depth, maxDepth, foldedNodes),
+  }
 }
 
 /**
@@ -157,13 +153,10 @@ function routeThroughCommandSystem(
   get: () => BoardAppStore,
   exitApp: () => void,
 ): void {
-  const tuiContext: TUIContext = {
-    ...buildContextFromStore(get),
-    exit: exitApp,
-  }
+  const ctx = buildActionCtx(get, exitApp)
 
   const keyStart = performance.now()
-  const result = processKeyWithContext(input, key, tuiContext)
+  const result = processKeyWithContext(input, key, ctx)
 
   if (result.handled && result.actions) {
     const actionList = Array.isArray(result.actions)
@@ -172,9 +165,9 @@ function routeThroughCommandSystem(
 
     // When a dialog is open, only process dialog and text commands
     const dialogOpen =
-      tuiContext.ui.showSearchDialog ||
-      tuiContext.ui.showNewItemDialog ||
-      tuiContext.ui.showProjectPicker
+      ctx.ui.showSearchDialog ||
+      ctx.ui.showNewItemDialog ||
+      ctx.ui.showProjectPicker
     if (dialogOpen && result.commandId) {
       const isDialogOrTextCommand =
         result.commandId.startsWith("dialog.") ||
@@ -184,7 +177,7 @@ function routeThroughCommandSystem(
 
     for (const action of actionList) {
       const actionStart = performance.now()
-      const actionResult = handleCommandAction(tuiContext, action)
+      const actionResult = handleCommandAction(ctx, action)
       const actionDuration = performance.now() - actionStart
       if (actionDuration > 5) {
         perfLog.debug?.(`action ${action.type}: ${actionDuration.toFixed(2)}ms`)
@@ -192,8 +185,8 @@ function routeThroughCommandSystem(
 
       // Check for boundary errors - ring bell and show status message
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
-        get().dispatchUI(actions.setBell(actionResult.error.direction))
-        get().dispatchUI(
+        ctx.dispatchUI(actions.setBell(actionResult.error.direction))
+        ctx.dispatchUI(
           actions.setStatus({
             level: "warning",
             message:

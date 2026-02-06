@@ -7,7 +7,7 @@
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import { actions } from "../ui-reducer.ts"
-import type { TUIContext } from "../tui-context.ts"
+import type { ActionCtx } from "../tui-context.ts"
 import {
   getSelectedCardIndices,
   refreshBoardState,
@@ -61,7 +61,7 @@ function calculateSortOrder(
  * the current column's children after a board state refresh.
  */
 function rebuildSelectionForMovedCards(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   colIndex: number,
   movedCardIds: string[],
 ): void {
@@ -79,7 +79,7 @@ function rebuildSelectionForMovedCards(
       }
     }
   }
-  ctx.dispatch(actions.setMultiSelected(newSelected))
+  ctx.dispatchUI(actions.setMultiSelected(newSelected))
 }
 
 // =============================================================================
@@ -88,7 +88,7 @@ function rebuildSelectionForMovedCards(
 
 /** Move card within column (up/down) */
 export function moveCardInColumn(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   card: CardState,
   direction: "up" | "down",
 ): void {
@@ -143,7 +143,7 @@ export function moveCardInColumn(
 
 /** Move card to different column (left/right) */
 export function moveCardToColumn(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   card: CardState,
   direction: "left" | "right",
 ): void {
@@ -193,7 +193,7 @@ export function moveCardToColumn(
 // =============================================================================
 
 /** Outdent node: make it a sibling of its parent */
-export function outdentNode(ctx: TUIContext, card: CardState): void {
+export function outdentNode(ctx: ActionCtx, card: CardState): void {
   const parentId = card.node.parent_id
   if (!parentId) {
     process.stdout.write("\x07")

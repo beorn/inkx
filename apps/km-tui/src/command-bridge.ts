@@ -14,7 +14,7 @@ import {
   type InkCommandResult,
   type TNode,
 } from "@km/commands"
-import type { TUIContext } from "./tui-context.ts"
+import type { ActionCtx } from "./tui-context.ts"
 
 export function ensureCommandSystemInitialized(): void {
   initCommandSystem()
@@ -23,7 +23,7 @@ export function ensureCommandSystemInitialized(): void {
 export function processKeyWithContext(
   input: string,
   key: InkKeyEvent,
-  ctx: TUIContext,
+  ctx: ActionCtx,
 ): InkCommandResult {
   ensureCommandSystemInitialized()
 

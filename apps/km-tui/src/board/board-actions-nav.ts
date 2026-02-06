@@ -19,7 +19,7 @@ import {
   handleTreeNavigation,
   type TreeDirection,
 } from "../handlers/navigation-handlers.ts"
-import type { TUIContext } from "../tui-context.ts"
+import type { ActionCtx } from "../tui-context.ts"
 import { actions } from "../ui-reducer.ts"
 
 const log = createLogger("km:tui:nav")
@@ -34,12 +34,12 @@ const log = createLogger("km:tui:nav")
  */
 // oxlint-disable-next-line complexity/max-cognitive -- Navigation with fallback chains
 function handleHierarchicalNavigation(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   dir: "up" | "down",
 ): string | null {
-  const { state, layout, boardState, repo, positionRegistry } = ctx
+  const { layout, boardState, repo, layoutRegistry } = ctx
   const { cursorNodeId, rootId } = boardState
-  const col = state.columns[layout.colIndex]
+  const col = layout.columns[layout.colIndex]
 
   if (!cursorNodeId) {
     // No cursor - can't navigate
@@ -48,7 +48,7 @@ function handleHierarchicalNavigation(
   }
 
   // Determine current level in hierarchy using repo (not layout state)
-  // This is more reliable than checking state.columns which may be stale
+  // This is more reliable than checking layout.columns which may be stale
   const cursorNode = repo.getNode(cursorNodeId)
   const isAtBoardLevel = cursorNodeId === rootId
   const isAtColumnLevel = cursorNode?.parent_id === rootId && !isAtBoardLevel
@@ -62,10 +62,10 @@ function handleHierarchicalNavigation(
     // j: move down through hierarchy
     if (isAtBoardLevel) {
       // Board → column header (use stickyX to remember which column)
-      const stickyX = positionRegistry.getStickyX()
+      const stickyX = layoutRegistry.getStickyX()
       const targetColIdx =
-        stickyX !== null && stickyX < state.columns.length ? stickyX : 0
-      const targetCol = state.columns[targetColIdx]
+        stickyX !== null && stickyX < layout.columns.length ? stickyX : 0
+      const targetCol = layout.columns[targetColIdx]
       return targetCol?.node.id ?? null
     }
 
@@ -96,7 +96,7 @@ function handleHierarchicalNavigation(
 
     if (isAtColumnLevel) {
       // Column header → board title (save column index for return)
-      positionRegistry.setStickyX(layout.colIndex)
+      layoutRegistry.setStickyX(layout.colIndex)
       return rootId
     }
 
@@ -115,9 +115,9 @@ function handleHierarchicalNavigation(
  * Dispatches to per-mode handlers: outline, selection, horizontal,
  * vertical (hierarchical), and tree-based navigation.
  */
-export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
-  const { state, layout, ui, positionRegistry } = ctx
-  const col = state.columns[layout.colIndex]
+export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
+  const { layout, ui, layoutRegistry } = ctx
+  const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   // Outline mode sub-item navigation
@@ -126,7 +126,7 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
   }
 
   // Vertical movement clears sticky Y
-  if (dir === "prev" || dir === "next") positionRegistry.clearStickyY()
+  if (dir === "prev" || dir === "next") layoutRegistry.clearStickyY()
 
   // Selection range extension
   if (ui.multiSelected.size > 0 && ui.selectionAnchor !== null) {
@@ -146,14 +146,14 @@ export function handleCursorMove(ctx: TUIContext, dir: string): ActionResult {
 
 /** Outline mode prev/next sub-item navigation. */
 function handleOutlineNav(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   dir: "prev" | "next",
   card: CardState | undefined,
 ): ActionResult {
-  const { ui, dispatch } = ctx
+  const { ui, dispatchUI } = ctx
 
   if (dir === "prev" && ui.subIndex > 0) {
-    dispatch(actions.setSubIndex(ui.subIndex - 1))
+    dispatchUI(actions.setSubIndex(ui.subIndex - 1))
     return ok()
   }
   if (dir === "next" && card) {
@@ -164,7 +164,7 @@ function handleOutlineNav(
       ui.foldedNodes,
     )
     if (ui.subIndex < maxIdx) {
-      dispatch(actions.setSubIndex(ui.subIndex + 1))
+      dispatchUI(actions.setSubIndex(ui.subIndex + 1))
       return ok()
     }
   }
@@ -172,9 +172,9 @@ function handleOutlineNav(
 }
 
 /** Handle navigation while shift-selection is active. Returns null to fall through. */
-function handleSelectionNav(ctx: TUIContext, dir: string): ActionResult | null {
-  const { state, layout, ui, dispatchBoard } = ctx
-  const col = state.columns[layout.colIndex]
+function handleSelectionNav(ctx: ActionCtx, dir: string): ActionResult | null {
+  const { layout, ui, dispatchBoard } = ctx
+  const col = layout.columns[layout.colIndex]
 
   if (dir === "prev" || dir === "next") {
     // Vertical navigation with selection
@@ -212,15 +212,15 @@ function handleSelectionNav(ctx: TUIContext, dir: string): ActionResult | null {
 /** Horizontal (h/l) cross-column navigation with stickyY. */
 // oxlint-disable-next-line complexity/max-cognitive -- Extracted from handleCursorMove — residual complexity from navigation logic
 function handleHorizontalNav(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   dir: "left" | "right",
 ): ActionResult {
-  const { state, layout, ui, dispatch, dispatchBoard, positionRegistry } = ctx
+  const { layout, ui, dispatchUI, dispatchBoard, layoutRegistry } = ctx
 
   // In non-list views, h closes the detail pane if it's open (before navigation).
   // In list view, showDetailPane defaults to true so h must always navigate.
   if (dir === "left" && ui.showDetailPane && ui.viewMode !== "list") {
-    dispatch(actions.setDetailPane(false))
+    dispatchUI(actions.setDetailPane(false))
     return ok()
   }
 
@@ -237,41 +237,39 @@ function handleHorizontalNav(
     targetColIndex += step
   } while (
     targetColIndex >= 0 &&
-    targetColIndex < state.columns.length &&
-    state.columns[targetColIndex]?.isVirtual
+    targetColIndex < layout.columns.length &&
+    layout.columns[targetColIndex]?.isVirtual
   )
 
   // Clamp to valid range
   targetColIndex = Math.max(
     0,
-    Math.min(state.columns.length - 1, targetColIndex),
+    Math.min(layout.columns.length - 1, targetColIndex),
   )
 
   // No movement possible (or landed on virtual column at boundary)
   if (
     targetColIndex === layout.colIndex ||
-    state.columns[targetColIndex]?.isVirtual
+    layout.columns[targetColIndex]?.isVirtual
   ) {
     return boundary(dir)
   }
 
-  const targetCol = state.columns[targetColIndex]
+  const targetCol = layout.columns[targetColIndex]
 
   // Capture stickyY BEFORE checking empty columns, so it persists across empty columns
   // This is the key fix: we need to remember Y position even when passing through empty columns
-  if (layout.cardIndex >= 0 && positionRegistry.getStickyY() === null) {
-    const hasCurrentPositions = positionRegistry.hasCardsInColumn(
-      layout.colIndex,
-    )
+  if (layout.cardIndex >= 0 && layoutRegistry.getStickyY() === null) {
+    const hasCurrentPositions = layoutRegistry.hasCardsInColumn(layout.colIndex)
     if (hasCurrentPositions) {
-      const currentLayoutOpt = positionRegistry.getCardOptional(
+      const currentLayoutOpt = layoutRegistry.getCardOptional(
         layout.colIndex,
         layout.cardIndex,
       )
       if (currentLayoutOpt) {
         const curswantY = getCardMidY(currentLayoutOpt.layout)
         log.debug?.(`h/l: capturing stickyY=${curswantY} before leaving card`)
-        positionRegistry.setStickyY(curswantY)
+        layoutRegistry.setStickyY(curswantY)
       }
     }
   }
@@ -279,7 +277,7 @@ function handleHorizontalNav(
   if (!targetCol || targetCol.cards.length === 0) {
     // Target column is empty - move to column level but KEEP stickyY
     log.debug?.(
-      `h/l: target column ${targetColIndex} empty, moving to header but keeping stickyY=${positionRegistry.getStickyY()}`,
+      `h/l: target column ${targetColIndex} empty, moving to header but keeping stickyY=${layoutRegistry.getStickyY()}`,
     )
     dispatchBoard({ type: "SELECT", nodeId: targetCol?.node.id ?? null })
     return ok()
@@ -287,10 +285,10 @@ function handleHorizontalNav(
 
   // If at column level (header selected), use stickyY to find card if available
   if (isAtColumnHeader(layout.cardIndex)) {
-    const stickyY = positionRegistry.getStickyY()
-    if (stickyY !== null && positionRegistry.hasCardsInColumn(targetColIndex)) {
+    const stickyY = layoutRegistry.getStickyY()
+    if (stickyY !== null && layoutRegistry.hasCardsInColumn(targetColIndex)) {
       // We have a sticky Y from before - use it to find the right card
-      const targetCardIndex = positionRegistry.findCardAtYVisual(
+      const targetCardIndex = layoutRegistry.findCardAtYVisual(
         targetColIndex,
         stickyY,
       )
@@ -313,8 +311,8 @@ function handleHorizontalNav(
   // Positions may be missing during initialization, in test environments,
   // or if columns are off-screen (virtualized).
   // Fallback: navigate to first card in target column if positions unavailable.
-  const hasCurrentPositions = positionRegistry.hasCardsInColumn(layout.colIndex)
-  const hasTargetPositions = positionRegistry.hasCardsInColumn(targetColIndex)
+  const hasCurrentPositions = layoutRegistry.hasCardsInColumn(layout.colIndex)
+  const hasTargetPositions = layoutRegistry.hasCardsInColumn(targetColIndex)
 
   log.debug?.(
     `h/l nav: curCol=${layout.colIndex} hasCur=${hasCurrentPositions}, targetCol=${targetColIndex} hasTgt=${hasTargetPositions}`,
@@ -323,7 +321,7 @@ function handleHorizontalNav(
   // Fallback when positions aren't available: go to first card in target column
   if (!hasTargetPositions) {
     log.debug?.(
-      `h/l nav: target column ${targetColIndex} has no positions, falling back to first card. Registry:\n${positionRegistry.dump()}`,
+      `h/l nav: target column ${targetColIndex} has no positions, falling back to first card. Registry:\n${layoutRegistry.dump()}`,
     )
     const firstCard = targetCol.cards[0]
     if (firstCard) {
@@ -335,7 +333,7 @@ function handleHorizontalNav(
 
   if (!hasCurrentPositions) {
     log.debug?.(
-      `h/l nav: current column ${layout.colIndex} has no positions, can't get curswantY. Falling back to first card. Registry:\n${positionRegistry.dump()}`,
+      `h/l nav: current column ${layout.colIndex} has no positions, can't get curswantY. Falling back to first card. Registry:\n${layoutRegistry.dump()}`,
     )
     const firstCard = targetCol.cards[0]
     if (firstCard) {
@@ -346,16 +344,16 @@ function handleHorizontalNav(
   }
 
   // Get or calculate curswantY (head midpoint of current card)
-  let curswantY = positionRegistry.getStickyY()
+  let curswantY = layoutRegistry.getStickyY()
   if (curswantY === null) {
     // First h/l move - get head midpoint of current card from measured position
-    const currentLayoutOpt = positionRegistry.getCardOptional(
+    const currentLayoutOpt = layoutRegistry.getCardOptional(
       layout.colIndex,
       layout.cardIndex,
     )
     if (!currentLayoutOpt) {
       log.debug?.(
-        `h/l: current card col=${layout.colIndex} idx=${layout.cardIndex} NOT in registry. Registry state:\n${positionRegistry.dump()}`,
+        `h/l: current card col=${layout.colIndex} idx=${layout.cardIndex} NOT in registry. Registry state:\n${layoutRegistry.dump()}`,
       )
       // Fallback: go to first card
       const firstCard = targetCol.cards[0]
@@ -370,13 +368,13 @@ function handleHorizontalNav(
     )
     curswantY = getCardMidY(currentLayoutOpt.layout)
     log.debug?.(`h/l: computed curswantY=${curswantY}`)
-    positionRegistry.setStickyY(curswantY)
+    layoutRegistry.setStickyY(curswantY)
   } else {
     log.debug?.(`h/l: using sticky curswantY=${curswantY}`)
   }
 
   // Find card in target column whose box intersects curswantY (or closest)
-  const targetCardIndex = positionRegistry.findCardAtYVisual(
+  const targetCardIndex = layoutRegistry.findCardAtYVisual(
     targetColIndex,
     curswantY,
   )
@@ -402,10 +400,10 @@ function handleHorizontalNav(
 }
 
 /** Hierarchical vertical navigation (j/k up/down). */
-function handleVerticalNav(ctx: TUIContext, dir: "up" | "down"): ActionResult {
-  const { dispatchBoard, positionRegistry } = ctx
+function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
+  const { dispatchBoard, layoutRegistry } = ctx
 
-  positionRegistry.clearStickyY()
+  layoutRegistry.clearStickyY()
   const targetId = handleHierarchicalNavigation(ctx, dir)
   if (targetId !== null) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
@@ -415,7 +413,7 @@ function handleVerticalNav(ctx: TUIContext, dir: "up" | "down"): ActionResult {
 }
 
 /** Default tree navigation (first, last, prev, next, in, out). */
-function handleTreeNav(ctx: TUIContext, dir: string): ActionResult {
+function handleTreeNav(ctx: ActionCtx, dir: string): ActionResult {
   const { dispatchBoard } = ctx
   const treeDir = dir as TreeDirection
   const targetId = handleTreeNavigation(treeDir, ctx.boardState, ctx.repo)
@@ -429,8 +427,8 @@ function handleTreeNav(ctx: TUIContext, dir: string): ActionResult {
 /**
  * Navigate back in history.
  */
-export function handleNavBack(ctx: TUIContext): ActionResult {
-  const { ui, dispatch, dispatchBoard } = ctx
+export function handleNavBack(ctx: ActionCtx): ActionResult {
+  const { ui, dispatchUI, dispatchBoard } = ctx
 
   // Check if we can go back
   if (ui.navHistoryIndex <= 0) {
@@ -445,7 +443,7 @@ export function handleNavBack(ctx: TUIContext): ActionResult {
   if (!entry) return ok()
 
   // Move index back
-  dispatch(actions.setNavHistoryIndex(newIndex))
+  dispatchUI(actions.setNavHistoryIndex(newIndex))
 
   // Navigate to the saved state
   dispatchBoard({
@@ -456,19 +454,19 @@ export function handleNavBack(ctx: TUIContext): ActionResult {
 
   // Restore selection state
   if (entry.multiSelected && entry.multiSelected.size > 0) {
-    dispatch(actions.setMultiSelected(entry.multiSelected))
+    dispatchUI(actions.setMultiSelected(entry.multiSelected))
   } else {
     clearSelection(ctx)
   }
 
   if (entry.inOutlineMode) {
-    dispatch(actions.enterOutlineMode())
-    dispatch(actions.setSubIndex(entry.subIndex))
+    dispatchUI(actions.enterOutlineMode())
+    dispatchUI(actions.setSubIndex(entry.subIndex))
   }
 
   // Restore folded nodes state
   if (entry.foldedNodes) {
-    dispatch(actions.setFoldedNodes(entry.foldedNodes))
+    dispatchUI(actions.setFoldedNodes(entry.foldedNodes))
   }
 
   return ok()
@@ -477,8 +475,8 @@ export function handleNavBack(ctx: TUIContext): ActionResult {
 /**
  * Navigate forward in history.
  */
-export function handleNavForward(ctx: TUIContext): ActionResult {
-  const { ui, dispatch, dispatchBoard } = ctx
+export function handleNavForward(ctx: ActionCtx): ActionResult {
+  const { ui, dispatchUI, dispatchBoard } = ctx
 
   // Check if we can go forward
   if (ui.navHistoryIndex >= ui.navHistory.length - 1) {
@@ -486,7 +484,7 @@ export function handleNavForward(ctx: TUIContext): ActionResult {
   }
 
   // Move index forward
-  dispatch(actions.navForward())
+  dispatchUI(actions.navForward())
 
   // Get the entry we're navigating to
   const entry = ui.navHistory[ui.navHistoryIndex + 1]
@@ -501,19 +499,19 @@ export function handleNavForward(ctx: TUIContext): ActionResult {
 
   // Restore selection state
   if (entry.multiSelected && entry.multiSelected.size > 0) {
-    dispatch(actions.setMultiSelected(entry.multiSelected))
+    dispatchUI(actions.setMultiSelected(entry.multiSelected))
   } else {
     clearSelection(ctx)
   }
 
   if (entry.inOutlineMode) {
-    dispatch(actions.enterOutlineMode())
-    dispatch(actions.setSubIndex(entry.subIndex))
+    dispatchUI(actions.enterOutlineMode())
+    dispatchUI(actions.setSubIndex(entry.subIndex))
   }
 
   // Restore folded nodes state
   if (entry.foldedNodes) {
-    dispatch(actions.setFoldedNodes(entry.foldedNodes))
+    dispatchUI(actions.setFoldedNodes(entry.foldedNodes))
   }
 
   return ok()
@@ -523,10 +521,10 @@ export function handleNavForward(ctx: TUIContext): ActionResult {
  * Navigate to sibling board.
  */
 export function handleNavSiblingBoard(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   direction: "next" | "prev",
 ): ActionResult {
-  const { boardState, ui, dispatch, dispatchBoard, layout } = ctx
+  const { boardState, ui, dispatchUI, dispatchBoard, layout } = ctx
 
   if (!boardState.rootId) {
     return boundary(direction, "no root")
@@ -552,7 +550,7 @@ export function handleNavSiblingBoard(
 
   // Save current state
   pushNavHistoryEntry(
-    dispatch,
+    dispatchUI,
     boardState.rootId,
     layout.colIndex,
     layout.cardIndex,
@@ -576,12 +574,9 @@ export function handleNavSiblingBoard(
 /**
  * Page jump up or down.
  */
-export function handlePageJump(
-  ctx: TUIContext,
-  direction: "up" | "down",
-): void {
-  const { state, layout, ui, dispatchBoard } = ctx
-  const col = state.columns[layout.colIndex]
+export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
+  const { layout, ui, dispatchBoard } = ctx
+  const col = layout.columns[layout.colIndex]
 
   if (!col) return
 

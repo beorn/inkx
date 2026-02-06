@@ -10,14 +10,14 @@ import {
   moveCardToColumn,
 } from "../keyboard/keyboard-card-ops.ts"
 import { refreshBoardState } from "../keyboard/keyboard-helpers.ts"
-import type { TUIContext } from "../tui-context.ts"
+import type { ActionCtx } from "../tui-context.ts"
 
 /**
  * Delete the selected node.
  */
-export function handleDeleteNode(ctx: TUIContext): void {
-  const { state, layout } = ctx
-  const col = state.columns[layout.colIndex]
+export function handleDeleteNode(ctx: ActionCtx): void {
+  const { layout } = ctx
+  const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   if (!card) return
@@ -31,7 +31,7 @@ export function handleDeleteNode(ctx: TUIContext): void {
 /**
  * Confirm move operation - move selected nodes to target column.
  */
-export function handleConfirmMove(ctx: TUIContext): void {
+export function handleConfirmMove(ctx: ActionCtx): void {
   const { boardState, layout, repo, dispatchBoard } = ctx
   const sourceNodeIds = boardState.moveSourceNodes
   if (sourceNodeIds.length === 0) return
@@ -55,9 +55,9 @@ export function handleConfirmMove(ctx: TUIContext): void {
 /**
  * Cycle task status (todo → wip → blocked → done → dropped).
  */
-export function handleTaskStatusCycle(ctx: TUIContext): void {
-  const { state, layout } = ctx
-  const col = state.columns[layout.colIndex]
+export function handleTaskStatusCycle(ctx: ActionCtx): void {
+  const { layout } = ctx
+  const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   if (!card) return
@@ -95,11 +95,11 @@ export function handleTaskStatusCycle(ctx: TUIContext): void {
  * Shift card in a direction (up/down within column, left/right between columns).
  */
 export function handleShiftCard(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   direction: "up" | "down" | "left" | "right",
 ): void {
-  const { state, layout } = ctx
-  const col = state.columns[layout.colIndex]
+  const { layout } = ctx
+  const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   if (!card) return

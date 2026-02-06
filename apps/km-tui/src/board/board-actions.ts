@@ -25,7 +25,7 @@ import {
   pushNavHistoryEntry,
 } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
-import type { TUIContext } from "../tui-context.ts"
+import type { ActionCtx } from "../tui-context.ts"
 import { actions } from "../ui-reducer.ts"
 
 const log = createLogger("km:tui:board-actions")
@@ -70,11 +70,11 @@ import {
  */
 // oxlint-disable-next-line complexity/max-cognitive, complexity/max-cyclomatic -- Exhaustive action switch — TS validates completeness
 export function handleCommandAction(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   action: CommandAction,
 ): ActionResult {
-  const { state, layout, dispatch, exit } = ctx
-  const col = state.columns[layout.colIndex]
+  const { layout, dispatchUI, exit } = ctx
+  const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   switch (action.type) {
@@ -83,27 +83,27 @@ export function handleCommandAction(
       exit()
       return ok()
     case "SHOW_NEW_ITEM_DIALOG":
-      dispatch(actions.showNewItemDialog())
-      dispatch(actions.exitOutlineMode())
-      dispatch(actions.setSubIndex(0))
+      dispatchUI(actions.showNewItemDialog())
+      dispatchUI(actions.exitOutlineMode())
+      dispatchUI(actions.setSubIndex(0))
       clearSelection(ctx)
-      dispatch(actions.setDetailPane(false))
+      dispatchUI(actions.setDetailPane(false))
       return ok()
     case "SHOW_PROJECT_PICKER":
       if (card) {
-        dispatch(actions.showProjectPicker())
-        dispatch(actions.exitOutlineMode())
-        dispatch(actions.setSubIndex(0))
+        dispatchUI(actions.showProjectPicker())
+        dispatchUI(actions.exitOutlineMode())
+        dispatchUI(actions.setSubIndex(0))
         clearSelection(ctx)
-        dispatch(actions.setDetailPane(false))
+        dispatchUI(actions.setDetailPane(false))
       }
       return ok()
     case "SHOW_SEARCH_DIALOG":
-      dispatch(actions.showSearchDialog())
-      dispatch(actions.exitOutlineMode())
-      dispatch(actions.setSubIndex(0))
+      dispatchUI(actions.showSearchDialog())
+      dispatchUI(actions.exitOutlineMode())
+      dispatchUI(actions.setSubIndex(0))
       clearSelection(ctx)
-      dispatch(actions.setDetailPane(false))
+      dispatchUI(actions.setDetailPane(false))
       return ok()
     case "JUMP_TO_FAVORITE":
       handleJumpToFavorite(ctx, action.favoriteNumber)
@@ -111,7 +111,7 @@ export function handleCommandAction(
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
     case "ENTER_INLINE_EDIT":
-      dispatch(
+      dispatchUI(
         actions.enterInlineEdit({
           nodeId: action.nodeId,
           blockIndex: action.blockIndex ?? 0,
@@ -143,18 +143,18 @@ export function handleCommandAction(
     case "CYCLE_VIEW_MODE":
       // Clear stickyY when changing view mode - Y coordinates are incomparable across views
       // (cards view has borders, columns view is single-row items, etc.)
-      ctx.positionRegistry.clearStickyY()
-      dispatch(actions.cycleViewMode())
+      ctx.layoutRegistry.clearStickyY()
+      dispatchUI(actions.cycleViewMode())
       return ok()
     case "SHOW_HELP":
-      dispatch(actions.showHelp())
+      dispatchUI(actions.showHelp())
       return ok()
     case "HIDE_HELP":
-      dispatch(actions.hideHelp())
+      dispatchUI(actions.hideHelp())
       return ok()
     case "OPEN_DETAIL_PANE": {
       // If current node has children, zoom into it instead of opening detail pane
-      const curCol = state.columns[layout.colIndex]
+      const curCol = layout.columns[layout.colIndex]
       const curCard = curCol?.cards[layout.cardIndex]
       const curNodeId = curCard?.node.id ?? curCol?.node.id
       log.debug?.(
@@ -169,11 +169,11 @@ export function handleCommandAction(
         }
       }
       // No children - open detail pane for leaf nodes
-      dispatch(actions.setDetailPane(true))
+      dispatchUI(actions.setDetailPane(true))
       return ok()
     }
     case "CLOSE_DETAIL_PANE":
-      dispatch(actions.setDetailPane(false))
+      dispatchUI(actions.setDetailPane(false))
       return ok()
     case "ZOOM_OUTWARDS":
       return handleZoomOutwards(ctx)
@@ -207,13 +207,13 @@ export function handleCommandAction(
     case "TOGGLE_FOLD":
       return handleToggleFold(ctx)
     case "FOLD_LEVEL":
-      if (col) dispatch(actions.foldAll(col.cards.map((c) => c.node.id)))
+      if (col) dispatchUI(actions.foldAll(col.cards.map((c) => c.node.id)))
       return ok()
     case "UNFOLD_LEVEL":
-      if (col) dispatch(actions.unfoldAll(col.cards.map((c) => c.node.id)))
+      if (col) dispatchUI(actions.unfoldAll(col.cards.map((c) => c.node.id)))
       return ok()
     case "TOGGLE_COLLAPSE":
-      dispatch(actions.toggleColumnCollapse(layout.colIndex))
+      dispatchUI(actions.toggleColumnCollapse(layout.colIndex))
       return ok()
     case "NAV_BACK":
       return handleNavBack(ctx)
@@ -245,16 +245,16 @@ export function handleCommandAction(
       handleExtendSelectHorizontal(ctx, "right")
       return ok()
     case "INCREASE_OUTLINE_DEPTH":
-      dispatch(actions.increaseOutlineDepth())
+      dispatchUI(actions.increaseOutlineDepth())
       return ok()
     case "DECREASE_OUTLINE_DEPTH":
-      dispatch(actions.decreaseOutlineDepth())
+      dispatchUI(actions.decreaseOutlineDepth())
       return ok()
     case "INCREASE_CONTENT_LINES":
-      dispatch(actions.increaseContentLines())
+      dispatchUI(actions.increaseContentLines())
       return ok()
     case "DECREASE_CONTENT_LINES":
-      dispatch(actions.decreaseContentLines())
+      dispatchUI(actions.decreaseContentLines())
       return ok()
     case "SHIFT_UP":
       handleShiftCard(ctx, "up")
@@ -313,7 +313,7 @@ export function handleCommandAction(
       return ok()
 
     // === Text editing actions (dispatched to TextEditTarget) ===
-    // Read from shared ref directly (not TUIContext snapshot) because
+    // Read from shared ref directly (not ActionCtx snapshot) because
     // the target is set by useEffect after render.
     case "TEXT_INSERT":
       blockEditTargetRef.current?.insertChar(action.char)
@@ -354,7 +354,7 @@ export function handleCommandAction(
 
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":
-      dispatch(actions.setDetailPane(false))
+      dispatchUI(actions.setDetailPane(false))
       return ok()
 
     // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===
@@ -380,17 +380,17 @@ export function handleCommandAction(
 // Helper Functions (local to this file)
 // =============================================================================
 
-function getBlockCount(ctx: TUIContext, nodeId: string): number {
+function getBlockCount(ctx: ActionCtx, nodeId: string): number {
   const children = ctx.repo.getChildren(nodeId)
   const { body } = extractBody(children)
   return 1 + body.length // 1 for title + N body children
 }
 
 function handleEditBlockNavigate(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   direction: "up" | "down",
 ): ActionResult {
-  const { dispatch, ui } = ctx
+  const { dispatchUI, ui } = ctx
   const edit = ui.inlineEditBlock
   if (!edit) return ok()
 
@@ -404,14 +404,14 @@ function handleEditBlockNavigate(
   } else {
     // Moving between blocks within same node → save current block, change index
     blockEditTargetRef.current?.save()
-    dispatch(actions.setEditBlockIndex(nextIndex))
+    dispatchUI(actions.setEditBlockIndex(nextIndex))
   }
   return ok()
 }
 
-function handleToggleFold(ctx: TUIContext): ActionResult {
-  const { state, layout, dispatch, repo } = ctx
-  const col = state.columns[layout.colIndex]
+function handleToggleFold(ctx: ActionCtx): ActionResult {
+  const { layout, dispatchUI, repo } = ctx
+  const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   if (!card) return boundary("fold", "no card selected")
@@ -422,12 +422,12 @@ function handleToggleFold(ctx: TUIContext): ActionResult {
     return boundary("fold", "no children to fold")
   }
 
-  dispatch(actions.toggleFold(card.node.id))
+  dispatchUI(actions.toggleFold(card.node.id))
   return ok()
 }
 
-function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
-  const { boardState, ui, dispatch, dispatchBoard, layout } = ctx
+function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
+  const { boardState, ui, dispatchUI, dispatchBoard, layout } = ctx
 
   const favoriteKey =
     `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES
@@ -440,7 +440,7 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
 
   // Save current state
   pushNavHistoryEntry(
-    dispatch,
+    dispatchUI,
     boardState.rootId,
     layout.colIndex,
     layout.cardIndex,
@@ -461,19 +461,20 @@ function handleJumpToFavorite(ctx: TUIContext, favoriteNumber: number): void {
 }
 
 function handleJumpToColumn(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   columnNumber: number,
 ): ActionResult {
-  const { state, dispatchBoard } = ctx
+  const columns = ctx.layout.columns
+  const { dispatchBoard } = ctx
 
   // Column numbers are 1-indexed for user, 0-indexed internally
   const targetColIdx = columnNumber - 1
 
-  if (targetColIdx < 0 || targetColIdx >= state.columns.length) {
+  if (targetColIdx < 0 || targetColIdx >= columns.length) {
     return boundary("column", `column ${columnNumber} does not exist`)
   }
 
-  const targetCol = state.columns[targetColIdx]
+  const targetCol = columns[targetColIdx]
   if (targetCol && targetCol.cards.length > 0) {
     const firstCard = targetCol.cards[0]
     if (firstCard) {
@@ -483,8 +484,8 @@ function handleJumpToColumn(
   return ok()
 }
 
-function handleCloseOrQuit(ctx: TUIContext): ActionResult {
-  const { ui, dispatch, boardState, dispatchBoard } = ctx
+function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
+  const { ui, dispatchUI, boardState, dispatchBoard } = ctx
 
   // Cancel move mode first (highest priority for escape)
   if (boardState.moveMode) {
@@ -500,24 +501,24 @@ function handleCloseOrQuit(ctx: TUIContext): ActionResult {
 
   // Close any open overlay first
   if (ui.showDetailPane) {
-    dispatch(actions.setDetailPane(false))
+    dispatchUI(actions.setDetailPane(false))
     return ok()
   }
   if (ui.inOutlineMode) {
-    dispatch(actions.exitOutlineMode())
-    dispatch(actions.setSubIndex(0))
+    dispatchUI(actions.exitOutlineMode())
+    dispatchUI(actions.setSubIndex(0))
     return ok()
   }
   if (ui.showHelp) {
-    dispatch(actions.hideHelp())
+    dispatchUI(actions.hideHelp())
     return ok()
   }
   if (ui.showProjectPicker) {
-    dispatch(actions.hideProjectPicker())
+    dispatchUI(actions.hideProjectPicker())
     return ok()
   }
   if (ui.showNewItemDialog) {
-    dispatch(actions.hideNewItemDialog())
+    dispatchUI(actions.hideNewItemDialog())
     return ok()
   }
 
@@ -536,7 +537,7 @@ function handleCloseOrQuit(ctx: TUIContext): ActionResult {
 
 /** Walk up the tree to find the nearest node with fs_path. */
 function resolveNodeFsPath(
-  repo: TUIContext["repo"],
+  repo: ActionCtx["repo"],
   nodeId: string,
 ): { fsPath: string; isFolder: boolean } | null {
   let current = repo.data.getNode(nodeId)
@@ -553,7 +554,7 @@ function resolveNodeFsPath(
   return null
 }
 
-function handleOpenInSystem(ctx: TUIContext, nodeId: string): void {
+function handleOpenInSystem(ctx: ActionCtx, nodeId: string): void {
   const result = resolveNodeFsPath(ctx.repo, nodeId)
   if (!result) {
     log.debug?.("open_in_system: no fs_path for node %s", nodeId)
@@ -563,7 +564,7 @@ function handleOpenInSystem(ctx: TUIContext, nodeId: string): void {
   spawn("open", [result.fsPath], { detached: true, stdio: "ignore" }).unref()
 }
 
-function handleOpenInTerminal(ctx: TUIContext, nodeId: string): void {
+function handleOpenInTerminal(ctx: ActionCtx, nodeId: string): void {
   const result = resolveNodeFsPath(ctx.repo, nodeId)
   if (!result) {
     log.debug?.("open_in_terminal: no fs_path for node %s", nodeId)

@@ -9,7 +9,7 @@ import {
   handleTreeNavigation,
   type TreeDirection,
 } from "../handlers/navigation-handlers.ts"
-import type { TUIContext } from "../tui-context.ts"
+import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey } from "../types.ts"
 import { actions } from "../ui-reducer.ts"
 
@@ -17,18 +17,18 @@ import { actions } from "../ui-reducer.ts"
  * Extend selection vertically (up or down).
  */
 export function handleExtendSelectVertical(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   direction: "up" | "down",
 ): void {
-  const { state, layout, ui, dispatch, dispatchBoard } = ctx
-  const col = state.columns[layout.colIndex]
+  const { layout, ui, dispatchUI, dispatchBoard } = ctx
+  const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   if (!card || !col) return
 
   // Initialize selection if starting fresh
   if (ui.multiSelected.size === 0) {
-    dispatch(
+    dispatchUI(
       actions.setSelectionAnchor({
         col: layout.colIndex,
         card: layout.cardIndex,
@@ -37,8 +37,8 @@ export function handleExtendSelectVertical(
     )
     const newSelected = new Set(ui.multiSelected)
     newSelected.add(makeSelectionKey(layout.colIndex, layout.cardIndex, 0))
-    dispatch(actions.setMultiSelected(newSelected))
-    dispatch(
+    dispatchUI(actions.setMultiSelected(newSelected))
+    dispatchUI(
       actions.setStatus({
         level: "info",
         message: "1 item selected",
@@ -73,15 +73,15 @@ export function handleExtendSelectVertical(
  * Currently just clears selection - horizontal range selection not yet implemented.
  */
 export function handleExtendSelectHorizontal(
-  ctx: TUIContext,
+  ctx: ActionCtx,
   _direction: "left" | "right",
 ): void {
-  const { ui, dispatch } = ctx
+  const { ui, dispatchUI } = ctx
 
   // Clear selection only (TODO: horizontal extend-select doesn't support range selection)
   if (ui.multiSelected.size > 0) {
-    dispatch(actions.clearMultiSelection())
-    dispatch(actions.setSelectionAnchor(null))
-    dispatch(actions.clearStatus())
+    dispatchUI(actions.clearMultiSelection())
+    dispatchUI(actions.setSelectionAnchor(null))
+    dispatchUI(actions.clearStatus())
   }
 }

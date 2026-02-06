@@ -1,72 +1,52 @@
 /**
- * Unified TUI Context
+ * Action Context
  *
- * Single context object built once per input event and passed to all handlers.
- * Consolidates KeyboardContext, command system context building, and derived state.
+ * Context object for action handlers. Built from the Zustand store
+ * once per key event and passed to all handlers.
  *
- * Inspired by Decker's CmdContext pattern where all commands receive full context.
+ * Field names match BoardAppStore to eliminate the mapping layer.
+ * Derived fields (column, card) are pre-computed for convenience.
  */
 
 import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardState, BoardAction } from "@km/board"
-import type {
-  TUIBoardState,
-  CardState,
-  ColumnState,
-  ColumnsLayout,
-} from "./types.ts"
-import type { UIState } from "./ui-reducer.ts"
-import { actions } from "./ui-reducer.ts"
+import type { ColumnsLayout, ColumnState, CardState } from "./types.ts"
+import type { UIState, UIAction } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
-import type { TextEditTarget } from "./text-edit-target.ts"
-
-// =============================================================================
-// Types
-// =============================================================================
 
 /**
- * Unified context for all TUI input handling.
+ * Context for all TUI action handlers.
  *
- * Built once per input event in Board.tsx, passed to all handlers.
- * Eliminates redundant context building in keyboard-handler.ts and command-bridge.ts.
+ * Built once per key event from the Zustand store, passed to all handlers.
+ * Names align with BoardAppStore fields (no mapping layer).
  */
-export interface TUIContext {
+export interface ActionCtx {
   // === Storage ===
-  /** Repo for storage operations */
   repo: Repo
 
-  // === State ===
-  /** TUI rendering state (columns/cards structure) */
-  state: TUIBoardState
-  /** Board state from boardReducer */
+  // === State (from store, names match store fields) ===
   boardState: BoardState
-  /** UI state (dialogs, view mode, selection) */
   ui: UIState
-  /** Derived column layout from tree state */
   layout: ColumnsLayout
-  /** Card position registry for h/l navigation (Y-position tracking) */
-  positionRegistry: LayoutRegistry
-
-  // === Services ===
-  /** Toast notification queue */
+  layoutRegistry: LayoutRegistry
   toastQueue: ToastQueue
-  /** Active text edit target (set by useLineEdit, null when no text input) */
-  textEditTarget: TextEditTarget | null
 
-  // === Derived (computed once) ===
-  /** Current column (from layout) */
+  // === Derived (computed once per key event) ===
+  /** Currently selected node (null if none) */
+  selectedNode: KNode | null
+  /** Current column from layout */
   column: ColumnState | undefined
-  /** Current card (from layout) */
+  /** Current card from layout */
   card: CardState | undefined
-  /** Currently selected node */
-  selectedNode: KNode | undefined
 
   // === Dispatchers ===
   /** Dispatch to UI reducer */
-  dispatch: React.Dispatch<ReturnType<(typeof actions)[keyof typeof actions]>>
+  dispatchUI: (action: UIAction) => void
   /** Dispatch to board reducer */
-  dispatchBoard: React.Dispatch<BoardAction>
+  dispatchBoard: (action: BoardAction) => void
+
+  // === Lifecycle ===
   /** Exit the application */
   exit: () => void
 
@@ -78,58 +58,4 @@ export interface TUIContext {
     maxDepth: number,
     foldedNodes: Set<string>,
   ) => number
-}
-
-// =============================================================================
-// Context Builder
-// =============================================================================
-
-export interface BuildTUIContextParams {
-  repo: Repo
-  state: TUIBoardState
-  boardState: BoardState
-  ui: UIState
-  layout: ColumnsLayout
-  /** Card position registry for h/l navigation */
-  positionRegistry: LayoutRegistry
-  /** Toast notification queue */
-  toastQueue: ToastQueue
-  /** Active text edit target (null when no text input) */
-  textEditTarget: TextEditTarget | null
-  dispatch: TUIContext["dispatch"]
-  dispatchBoard: TUIContext["dispatchBoard"]
-  exit: TUIContext["exit"]
-  countVisibleDescendants: TUIContext["countVisibleDescendants"]
-}
-
-/**
- * Build unified TUI context from component state.
- * Call this once per render, then pass to all handlers.
- */
-export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
-  const { repo, state, boardState, ui, layout, positionRegistry } = params
-
-  // Derive current column and card from layout
-  const column = layout.columns[layout.colIndex]
-  const card = column?.cards[layout.cardIndex]
-  // At column level (cardIndex -1), use column node; at card level, use card node
-  const selectedNode = card?.node ?? column?.node
-
-  return {
-    repo,
-    state,
-    boardState,
-    ui,
-    layout,
-    positionRegistry,
-    toastQueue: params.toastQueue,
-    textEditTarget: params.textEditTarget,
-    column,
-    card,
-    selectedNode,
-    dispatch: params.dispatch,
-    dispatchBoard: params.dispatchBoard,
-    exit: params.exit,
-    countVisibleDescendants: params.countVisibleDescendants,
-  }
 }

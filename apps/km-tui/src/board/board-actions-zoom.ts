@@ -12,24 +12,24 @@ import {
   clearSelection,
   pushNavHistoryEntry,
 } from "../keyboard/keyboard-helpers.ts"
-import type { TUIContext } from "../tui-context.ts"
+import type { ActionCtx } from "../tui-context.ts"
 import { actions } from "../ui-reducer.ts"
 
 /**
  * Zoom out to parent level.
  * Handles detail pane, outline mode, and actual zoom operations.
  */
-export function handleZoomOutwards(ctx: TUIContext): ActionResult {
-  const { boardState, ui, layout, dispatch, dispatchBoard } = ctx
+export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
+  const { boardState, ui, layout, dispatchUI, dispatchBoard } = ctx
 
   // Close overlays first
   if (ui.showDetailPane) {
-    dispatch(actions.setDetailPane(false))
+    dispatchUI(actions.setDetailPane(false))
     return ok()
   }
   if (ui.inOutlineMode) {
-    dispatch(actions.exitOutlineMode())
-    dispatch(actions.setSubIndex(0))
+    dispatchUI(actions.exitOutlineMode())
+    dispatchUI(actions.setSubIndex(0))
     clearSelection(ctx)
     return ok()
   }
@@ -48,7 +48,7 @@ export function handleZoomOutwards(ctx: TUIContext): ActionResult {
     const parentNode = ctx.repo.getNode(currentRoot.parent_id)
     if (parentNode) {
       pushNavHistoryEntry(
-        dispatch,
+        dispatchUI,
         boardState.rootId,
         layout.colIndex,
         layout.cardIndex,
@@ -78,9 +78,9 @@ export function handleZoomOutwards(ctx: TUIContext): ActionResult {
 /**
  * Zoom into the selected card.
  */
-export function handleZoomIn(ctx: TUIContext): ActionResult {
-  const { state, boardState, ui, dispatch, dispatchBoard, layout } = ctx
-  const col = state.columns[layout.colIndex]
+export function handleZoomIn(ctx: ActionCtx): ActionResult {
+  const { boardState, ui, dispatchUI, dispatchBoard, layout } = ctx
+  const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   // Support zoom at both card and column level
@@ -95,7 +95,7 @@ export function handleZoomIn(ctx: TUIContext): ActionResult {
 
   // Save current state to history
   pushNavHistoryEntry(
-    dispatch,
+    dispatchUI,
     boardState.rootId,
     layout.colIndex,
     layout.cardIndex,
@@ -121,11 +121,8 @@ export function handleZoomIn(ctx: TUIContext): ActionResult {
 /**
  * Zoom into a specific node by ID (works for both cards and columns)
  */
-export function handleZoomInNode(
-  ctx: TUIContext,
-  nodeId: string,
-): ActionResult {
-  const { boardState, ui, dispatch, dispatchBoard, layout } = ctx
+export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
+  const { boardState, ui, dispatchUI, dispatchBoard, layout } = ctx
 
   // Verify node has children
   const children = ctx.repo.getChildren(nodeId)
@@ -135,7 +132,7 @@ export function handleZoomInNode(
 
   // Save current state to history
   pushNavHistoryEntry(
-    dispatch,
+    dispatchUI,
     boardState.rootId,
     layout.colIndex,
     layout.cardIndex,
@@ -161,9 +158,9 @@ export function handleZoomInNode(
 /**
  * Zoom inwards - handles outline mode sub-selection or standard zoom.
  */
-export function handleZoomInwards(ctx: TUIContext): ActionResult {
-  const { state, boardState, ui, dispatch, dispatchBoard, layout } = ctx
-  const col = state.columns[layout.colIndex]
+export function handleZoomInwards(ctx: ActionCtx): ActionResult {
+  const { boardState, ui, dispatchUI, dispatchBoard, layout } = ctx
+  const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   // If at column level (no card selected), zoom into the column directly
@@ -198,7 +195,7 @@ export function handleZoomInwards(ctx: TUIContext): ActionResult {
     if (targetChild?.node) {
       // Save state and zoom to child
       pushNavHistoryEntry(
-        dispatch,
+        dispatchUI,
         boardState.rootId,
         layout.colIndex,
         layout.cardIndex,
@@ -209,8 +206,8 @@ export function handleZoomInwards(ctx: TUIContext): ActionResult {
         ui.foldedNodes,
       )
 
-      dispatch(actions.exitOutlineMode())
-      dispatch(actions.setSubIndex(0))
+      dispatchUI(actions.exitOutlineMode())
+      dispatchUI(actions.setSubIndex(0))
 
       // Get first child of zoom target for cursor initialization
       const targetChildChildren = ctx.repo.getChildren(targetChild.node.id)
