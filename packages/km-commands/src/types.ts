@@ -13,6 +13,7 @@ export type CommandCategory =
   | "Task"
   | "Fold"
   | "View"
+  | "TextEdit"
 
 export type CommandMode = "normal" | "move" | "search" | "input"
 
@@ -52,6 +53,75 @@ export interface CommandDef {
   shortcuts?: string[]
   modes?: CommandMode[]
   execute: (ctx: CommandContext) => CommandAction | CommandAction[] | null
+}
+
+// Text editing action types (dispatched to TextEditTarget)
+export interface TextInsertAction {
+  type: "TEXT_INSERT"
+  char: string
+}
+
+export interface TextDeleteBackwardAction {
+  type: "TEXT_DELETE_BACKWARD"
+}
+
+export interface TextDeleteForwardAction {
+  type: "TEXT_DELETE_FORWARD"
+}
+
+export interface TextCursorLeftAction {
+  type: "TEXT_CURSOR_LEFT"
+}
+
+export interface TextCursorRightAction {
+  type: "TEXT_CURSOR_RIGHT"
+}
+
+export interface TextCursorStartAction {
+  type: "TEXT_CURSOR_START"
+}
+
+export interface TextCursorEndAction {
+  type: "TEXT_CURSOR_END"
+}
+
+export interface TextDeleteWordAction {
+  type: "TEXT_DELETE_WORD"
+}
+
+export interface TextDeleteToStartAction {
+  type: "TEXT_DELETE_TO_START"
+}
+
+export interface TextDeleteToEndAction {
+  type: "TEXT_DELETE_TO_END"
+}
+
+export interface TextConfirmAction {
+  type: "TEXT_CONFIRM"
+}
+
+export interface TextCancelAction {
+  type: "TEXT_CANCEL"
+}
+
+export type TextEditAction =
+  | TextInsertAction
+  | TextDeleteBackwardAction
+  | TextDeleteForwardAction
+  | TextCursorLeftAction
+  | TextCursorRightAction
+  | TextCursorStartAction
+  | TextCursorEndAction
+  | TextDeleteWordAction
+  | TextDeleteToStartAction
+  | TextDeleteToEndAction
+  | TextConfirmAction
+  | TextCancelAction
+
+// Detail pane action
+export interface DetailPaneCloseAction {
+  type: "DETAIL_PANE_CLOSE"
 }
 
 // Custom action types for commands that operate outside the board reducer
@@ -291,6 +361,8 @@ export type CommandAction =
   | TaskSetStatusAction
   | HistoryAction
   | UIAction
+  | TextEditAction
+  | DetailPaneCloseAction
 
 // Re-export for convenience
 export type { BoardAction, TNode, ViewMode, TaskStatus }

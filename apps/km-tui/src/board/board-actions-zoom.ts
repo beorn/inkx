@@ -225,6 +225,24 @@ export function handleZoomInwards(ctx: TUIContext): ActionResult {
     }
   }
 
-  // Standard zoom in behavior
-  return handleZoomIn(ctx)
+  // Zoom one level inward toward the cursor node.
+  // Walk up from cursor to find the child of root on the path.
+  const cursorId = card.node.id
+  const rootId = boardState.rootId
+
+  // Find the child of current root that is an ancestor of (or is) the cursor
+  let target = cursorId
+  let node = ctx.repo.getNode(target)
+  while (node && node.parent_id && node.parent_id !== rootId) {
+    target = node.parent_id
+    node = ctx.repo.getNode(target)
+  }
+
+  if (!node) {
+    // Cursor isn't a descendant of root — shouldn't happen, fall back
+    return handleZoomIn(ctx)
+  }
+
+  // target is now the child of root on the path to cursor
+  return handleZoomInNode(ctx, target)
 }

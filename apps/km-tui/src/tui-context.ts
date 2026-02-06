@@ -19,6 +19,7 @@ import type {
 import type { UIState } from "./ui-reducer.ts"
 import { actions } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
+import type { TextEditTarget } from "./text-edit-target.ts"
 
 // =============================================================================
 // Types
@@ -50,6 +51,8 @@ export interface TUIContext {
   // === Services ===
   /** Toast notification queue */
   toastQueue: ToastQueue
+  /** Active text edit target (set by useLineEdit, null when no text input) */
+  textEditTarget: TextEditTarget | null
 
   // === Derived (computed once) ===
   /** Current column (from layout) */
@@ -91,6 +94,8 @@ export interface BuildTUIContextParams {
   positionRegistry: LayoutRegistry
   /** Toast notification queue */
   toastQueue: ToastQueue
+  /** Active text edit target (null when no text input) */
+  textEditTarget: TextEditTarget | null
   dispatch: TUIContext["dispatch"]
   dispatchBoard: TUIContext["dispatchBoard"]
   exit: TUIContext["exit"]
@@ -118,6 +123,7 @@ export function buildTUIContext(params: BuildTUIContextParams): TUIContext {
     layout,
     positionRegistry,
     toastQueue: params.toastQueue,
+    textEditTarget: params.textEditTarget,
     column,
     card,
     selectedNode,

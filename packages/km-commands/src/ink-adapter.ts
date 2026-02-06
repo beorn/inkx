@@ -91,6 +91,29 @@ export function processInkKey(
   const keyStr = inkKeyToString(input, key)
   const modifiers = inkKeyToModifiers(key)
 
+  // Text input priority: when textInputFocused and input is a printable character
+  // (not a special key), short-circuit to text insert BEFORE keybinding resolution.
+  // This prevents normal-mode bindings (e.g., "-" → decrease_content_lines) from
+  // intercepting text that should be typed into the editor.
+  if (
+    kbCtx.textInputFocused &&
+    input.length === 1 &&
+    input >= " " &&
+    !key.ctrl &&
+    !key.meta &&
+    !key.return &&
+    !key.escape &&
+    !key.backspace &&
+    !key.delete &&
+    !key.tab
+  ) {
+    return {
+      commandId: "text.insert",
+      actions: { type: "TEXT_INSERT", char: input },
+      handled: true,
+    }
+  }
+
   const commandId = resolveKeybinding(keyStr, modifiers, kbCtx)
 
   if (!commandId) {
@@ -118,6 +141,7 @@ export function buildKeybindingContext(options: {
   isInDetailPane?: boolean
   isInOutlineMode?: boolean
   currentNode?: TNode | null
+  textInputFocused?: boolean
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -130,6 +154,7 @@ export function buildKeybindingContext(options: {
     isInDetailPane: options.isInDetailPane ?? false,
     isInOutlineMode: options.isInOutlineMode ?? false,
     currentNode: options.currentNode ?? null,
+    textInputFocused: options.textInputFocused ?? false,
   }
 }
 

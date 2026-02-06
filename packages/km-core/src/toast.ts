@@ -92,10 +92,8 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
   // Internal state
   let toasts: Toast[] = []
   let nextId = 1
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const batchTimers = new Map<string, any>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dismissTimers = new Map<string, any>()
+  const batchTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
   function scheduleDismiss(id: string, duration: number): void {
     // eslint-disable-next-line promise/prefer-await-to-callbacks -- setTimeout requires callback
@@ -135,10 +133,8 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
 
     dismiss(id) {
       toasts = toasts.filter((t) => t.id !== id)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
       const timer = dismissTimers.get(id)
       if (timer) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
         clearTimeout(timer)
         dismissTimers.delete(id)
       }
@@ -148,13 +144,11 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
       toasts = []
       // Clear all batch timers
       for (const timer of batchTimers.values()) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
         clearTimeout(timer)
       }
       batchTimers.clear()
       // Clear all dismiss timers
       for (const timer of dismissTimers.values()) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
         clearTimeout(timer)
       }
       dismissTimers.clear()
@@ -194,10 +188,8 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
     const key = toast.batchKey
 
     // Cancel existing batch timer
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Timer ID from Map<string, any>
     const existingTimer = batchTimers.get(key)
     if (existingTimer) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Timer ID from Map<string, any>
       clearTimeout(existingTimer)
     }
 

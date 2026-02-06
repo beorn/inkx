@@ -53,6 +53,7 @@ import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { buildTUIContext, type TUIContext } from "../tui-context.ts"
+import { textEditTargetRef } from "../text-edit-target.ts"
 import { boardReducer, createBoardState } from "@km/board"
 import { useColumns } from "../hooks/use-columns.ts"
 import { useCursorPosition } from "../hooks/use-cursor-position.ts"
@@ -102,7 +103,7 @@ import {
   createWatcherStatusHandler,
   createErrorWarningHandler,
 } from "./board-effects.ts"
-import { handleBoardKeyInput, handleDetailPaneKeyInput } from "./board-input.ts"
+import { handleBoardKeyInput } from "./board-input.ts"
 import type { ToastQueue } from "@km/core"
 import { createToastQueue } from "@km/core"
 import { getOwnColor } from "../board-pills.ts"
@@ -824,6 +825,7 @@ export function Board({
     layout: columnsLayout,
     positionRegistry: layoutRegistry,
     toastQueue,
+    textEditTarget: textEditTargetRef.current,
     dispatch,
     dispatchBoard,
     exit: onExit,
@@ -884,23 +886,9 @@ export function Board({
     )
   })
 
-  // Handle detail pane navigation (j/k to move cards while pane is open)
-  useInput(
-    (input, key) => {
-      handleDetailPaneKeyInput(
-        input,
-        key,
-        repo,
-        boardState,
-        dispatch,
-        dispatchBoard,
-        onExit,
-      )
-    },
-    {
-      isActive: ui.showDetailPane,
-    },
-  )
+  // Detail pane navigation (h/Esc to close) is now handled by
+  // when: isInDetailPane predicates in the command system keybindings.
+  // j/k navigation works through normal cursor_down/cursor_up commands.
 
   return (
     <BoardCore

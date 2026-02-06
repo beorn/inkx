@@ -2,17 +2,12 @@
  * useLineEdit Hook
  *
  * Provides readline-style line editing for text input.
- * Supports cursor movement, word deletion, and common editing shortcuts.
+ * Registers a TextEditTarget on mount so the command system can
+ * dispatch text editing actions to this component.
  */
-import {
-  useState,
-  useCallback,
-  useId,
-  useRef,
-  type Dispatch,
-  type SetStateAction,
-} from "react"
-import { useInputLayer, type Key } from "inkx"
+import { useState, useCallback, useLayoutEffect, useMemo, useRef } from "react"
+import type { TextEditTarget } from "../text-edit-target.ts"
+import { textEditTargetRef } from "../text-edit-target.ts"
 
 export interface LineEditState {
   /** Current text value */
@@ -26,14 +21,10 @@ export interface UseLineEditOptions {
   initialValue?: string
   /** Called when value changes */
   onChange?: (value: string) => void
-  /** Whether input is active */
-  isActive?: boolean
-  /** Handle Enter key (default: false - let parent handle) */
-  handleEnter?: boolean
-  /** Handle Escape key (default: false - let parent handle) */
-  handleEscape?: boolean
-  /** Handle Up/Down arrows (default: false - let parent handle for list navigation) */
-  handleVerticalArrows?: boolean
+  /** Called when Enter is pressed (text.confirm command) */
+  onConfirm?: (value: string) => void
+  /** Called when Escape is pressed (text.cancel command) */
+  onCancel?: () => void
 }
 
 export interface UseLineEditResult {
@@ -52,116 +43,33 @@ export interface UseLineEditResult {
 }
 
 /**
- * Handle key input for line editing.
- * Extracted to reduce complexity in the main hook.
- */
-// oxlint-disable-next-line complexity/max-cognitive -- Key handlers are inherently branchy; sequential if/return is the clearest pattern for input dispatch
-function handleKeyInput(
-  input: string,
-  key: Key,
-  state: LineEditState,
-  setState: Dispatch<SetStateAction<LineEditState>>,
-  updateValue: (newValue: string, newCursor: number) => void,
-): void {
-  const { value, cursor } = state
-
-  // Ctrl+A: Move to beginning
-  if (key.ctrl && input === "a") {
-    setState((s) => ({ ...s, cursor: 0 }))
-    return
-  }
-
-  // Ctrl+E: Move to end
-  if (key.ctrl && input === "e") {
-    setState((s) => ({ ...s, cursor: s.value.length }))
-    return
-  }
-
-  // Ctrl+W: Delete word backwards
-  if (key.ctrl && input === "w") {
-    if (cursor === 0) return
-    let newCursor = cursor
-    while (newCursor > 0 && value[newCursor - 1] === " ") newCursor--
-    while (newCursor > 0 && value[newCursor - 1] !== " ") newCursor--
-    const newValue = value.slice(0, newCursor) + value.slice(cursor)
-    updateValue(newValue, newCursor)
-    return
-  }
-
-  // Ctrl+U: Delete to beginning
-  if (key.ctrl && input === "u") {
-    updateValue(value.slice(cursor), 0)
-    return
-  }
-
-  // Ctrl+K: Delete to end
-  if (key.ctrl && input === "k") {
-    updateValue(value.slice(0, cursor), cursor)
-    return
-  }
-
-  // Ctrl+B or Left: Move cursor left
-  if ((key.ctrl && input === "b") || key.leftArrow) {
-    if (cursor > 0) setState((s) => ({ ...s, cursor: s.cursor - 1 }))
-    return
-  }
-
-  // Ctrl+F or Right: Move cursor right
-  if ((key.ctrl && input === "f") || key.rightArrow) {
-    if (cursor < value.length) setState((s) => ({ ...s, cursor: s.cursor + 1 }))
-    return
-  }
-
-  // Backspace: Delete char before cursor
-  if (key.backspace) {
-    if (cursor > 0) {
-      updateValue(value.slice(0, cursor - 1) + value.slice(cursor), cursor - 1)
-    }
-    return
-  }
-
-  // Delete: Delete char after cursor (forward delete)
-  if (key.delete) {
-    if (cursor < value.length) {
-      updateValue(value.slice(0, cursor) + value.slice(cursor + 1), cursor)
-    }
-    return
-  }
-
-  // Regular character input
-  if (input.length === 1 && input >= " " && input !== "\x7f") {
-    updateValue(
-      value.slice(0, cursor) + input + value.slice(cursor),
-      cursor + 1,
-    )
-  }
-}
-
-/**
  * Hook for readline-style line editing.
  *
- * Supported shortcuts:
- * - Ctrl+A: Move to beginning
- * - Ctrl+E: Move to end
- * - Ctrl+W: Delete word backwards
- * - Ctrl+U: Delete to beginning
- * - Ctrl+K: Delete to end
- * - Ctrl+B / Left: Move cursor left
- * - Ctrl+F / Right: Move cursor right
- * - Backspace: Delete char before cursor
+ * Instead of handling keys directly via useInputLayer,
+ * this hook registers a TextEditTarget. The command system
+ * dispatches text editing actions to the target when
+ * textInputFocused is true.
  *
- * By default, does NOT handle Enter, Escape, or Up/Down arrows
- * to allow parent components to use those for other purposes.
+ * Supported operations (via command system):
+ * - text.cursor_start (Ctrl+A): Move to beginning
+ * - text.cursor_end (Ctrl+E): Move to end
+ * - text.delete_word (Ctrl+W): Delete word backwards
+ * - text.delete_to_start (Ctrl+U): Delete to beginning
+ * - text.delete_to_end (Ctrl+K): Delete to end
+ * - text.cursor_left (Ctrl+B / Left): Move cursor left
+ * - text.cursor_right (Ctrl+F / Right): Move cursor right
+ * - text.delete_backward (Backspace): Delete char before cursor
+ * - text.delete_forward (Delete): Delete char after cursor
+ * - text.insert (printable chars): Insert character at cursor
+ * - text.confirm (Enter): Confirm edit
+ * - text.cancel (Escape): Cancel edit
  */
 export function useLineEdit({
   initialValue = "",
   onChange,
-  isActive = true,
-  handleEnter = false,
-  handleEscape = false,
-  handleVerticalArrows = false,
+  onConfirm,
+  onCancel,
 }: UseLineEditOptions = {}): UseLineEditResult {
-  const layerId = useId()
   const [state, setState] = useState<LineEditState>({
     value: initialValue,
     cursor: initialValue.length,
@@ -188,50 +96,97 @@ export function useLineEdit({
     [onChange],
   )
 
-  // Use ref to avoid stale closure issues with the handler.
-  // Must be a real useRef — a local { current: state } creates a new object
-  // each render that the useCallback closure never sees updated.
+  // Use refs to avoid stale closures in the TextEditTarget methods
   const stateRef = useRef(state)
   stateRef.current = state
+  const updateValueRef = useRef(updateValue)
+  updateValueRef.current = updateValue
+  const onConfirmRef = useRef(onConfirm)
+  onConfirmRef.current = onConfirm
+  const onCancelRef = useRef(onCancel)
+  onCancelRef.current = onCancel
 
-  useInputLayer(
-    `line-edit-${layerId}`,
-    useCallback(
-      (input: string, key: Key): boolean => {
-        if (!isActive) return false
-
-        // Let parent handle Enter/Escape/vertical arrows unless explicitly enabled
-        if (key.return && !handleEnter) return false
-        if (key.escape && !handleEscape) return false
-        if ((key.upArrow || key.downArrow) && !handleVerticalArrows) {
-          return false
-        }
-
-        // Check if this is a key we handle
-        const handlesKey =
-          (key.ctrl &&
-            (input === "a" ||
-              input === "e" ||
-              input === "w" ||
-              input === "u" ||
-              input === "k" ||
-              input === "b" ||
-              input === "f")) ||
-          key.leftArrow ||
-          key.rightArrow ||
-          key.backspace ||
-          key.delete ||
-          (input.length === 1 && input >= " " && input !== "\x7f")
-
-        if (!handlesKey) return false
-
-        // Dispatch to handler
-        handleKeyInput(input, key, stateRef.current, setState, updateValue)
-        return true // Consumed
+  // Build TextEditTarget (stable reference via useMemo with no deps)
+  const target: TextEditTarget = useMemo(
+    () => ({
+      insertChar(char: string) {
+        const { value, cursor } = stateRef.current
+        updateValueRef.current(
+          value.slice(0, cursor) + char + value.slice(cursor),
+          cursor + 1,
+        )
       },
-      [isActive, handleEnter, handleEscape, handleVerticalArrows, updateValue],
-    ),
+      deleteBackward() {
+        const { value, cursor } = stateRef.current
+        if (cursor > 0) {
+          updateValueRef.current(
+            value.slice(0, cursor - 1) + value.slice(cursor),
+            cursor - 1,
+          )
+        }
+      },
+      deleteForward() {
+        const { value, cursor } = stateRef.current
+        if (cursor < value.length) {
+          updateValueRef.current(
+            value.slice(0, cursor) + value.slice(cursor + 1),
+            cursor,
+          )
+        }
+      },
+      cursorLeft() {
+        setState((s) => (s.cursor > 0 ? { ...s, cursor: s.cursor - 1 } : s))
+      },
+      cursorRight() {
+        setState((s) =>
+          s.cursor < s.value.length ? { ...s, cursor: s.cursor + 1 } : s,
+        )
+      },
+      cursorStart() {
+        setState((s) => ({ ...s, cursor: 0 }))
+      },
+      cursorEnd() {
+        setState((s) => ({ ...s, cursor: s.value.length }))
+      },
+      deleteWord() {
+        const { value, cursor } = stateRef.current
+        if (cursor === 0) return
+        let newCursor = cursor
+        while (newCursor > 0 && value[newCursor - 1] === " ") newCursor--
+        while (newCursor > 0 && value[newCursor - 1] !== " ") newCursor--
+        updateValueRef.current(
+          value.slice(0, newCursor) + value.slice(cursor),
+          newCursor,
+        )
+      },
+      deleteToStart() {
+        const { value, cursor } = stateRef.current
+        updateValueRef.current(value.slice(cursor), 0)
+      },
+      deleteToEnd() {
+        const { value, cursor } = stateRef.current
+        updateValueRef.current(value.slice(0, cursor), cursor)
+      },
+      confirm() {
+        onConfirmRef.current?.(stateRef.current.value)
+      },
+      cancel() {
+        onCancelRef.current?.()
+      },
+    }),
+    [],
   )
+
+  // Register as active text edit target on mount, clear on unmount.
+  // useLayoutEffect ensures registration happens before the next input event.
+  useLayoutEffect(() => {
+    textEditTargetRef.current = target
+    return () => {
+      if (textEditTargetRef.current === target) {
+        textEditTargetRef.current = null
+      }
+    }
+  }, [target])
 
   return {
     value: state.value,

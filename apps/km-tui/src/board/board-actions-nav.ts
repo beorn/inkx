@@ -215,7 +215,14 @@ function handleHorizontalNav(
   ctx: TUIContext,
   dir: "left" | "right",
 ): ActionResult {
-  const { state, layout, dispatchBoard, positionRegistry } = ctx
+  const { state, layout, ui, dispatch, dispatchBoard, positionRegistry } = ctx
+
+  // In non-list views, h closes the detail pane if it's open (before navigation).
+  // In list view, showDetailPane defaults to true so h must always navigate.
+  if (dir === "left" && ui.showDetailPane && ui.viewMode !== "list") {
+    dispatch(actions.setDetailPane(false))
+    return ok()
+  }
 
   // At board level, h/l should not move - board title spans full width
   const { cursorNodeId, rootId } = ctx.boardState

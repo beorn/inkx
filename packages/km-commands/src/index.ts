@@ -34,6 +34,22 @@ export type {
   TNode,
   ViewMode,
   TaskStatus,
+  // Text editing action types
+  TextEditAction,
+  TextInsertAction,
+  TextDeleteBackwardAction,
+  TextDeleteForwardAction,
+  TextCursorLeftAction,
+  TextCursorRightAction,
+  TextCursorStartAction,
+  TextCursorEndAction,
+  TextDeleteWordAction,
+  TextDeleteToStartAction,
+  TextDeleteToEndAction,
+  TextConfirmAction,
+  TextCancelAction,
+  // Detail pane action
+  DetailPaneCloseAction,
 } from "./types.ts"
 
 // Registry
@@ -74,9 +90,24 @@ export {
   taskCommands,
   historyCommands,
   tuiCommands,
+  textEditingCommands,
+  detailPaneCommands,
   allCommands,
   type TaskAction,
 } from "./commands/index.ts"
+
+// When predicates
+export type { WhenPredicate } from "./when.ts"
+export {
+  when,
+  not,
+  and,
+  textInputFocused,
+  inMoveMode,
+  isInDetailPane,
+  isInOutlineMode,
+  hasSelection,
+} from "./when.ts"
 
 // Ink Adapter (for TUI integration)
 export {

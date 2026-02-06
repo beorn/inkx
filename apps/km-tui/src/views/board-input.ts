@@ -23,7 +23,7 @@ const perfLog = createlogger("km:perf")
  * Handle main keyboard input through command system
  * Returns true if key was handled
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Keyboard routing with dialog/modal state guards
+// oxlint-disable-next-line complexity/max-cognitive, complexity/max-cyclomatic -- Keyboard routing with dialog/modal state guards
 export function handleBoardKeyInput(
   input: string,
   key: Key,
@@ -36,27 +36,33 @@ export function handleBoardKeyInput(
     showConsole: boolean
   },
   dispatch: Dispatch<UIAction>,
-  exit: () => void,
+  _exit: () => void,
 ): boolean {
   // Dialog modes have their own input handling via dialog components
   if (ui.showNewItemDialog || ui.showProjectPicker) {
     return false
   }
 
-  // Inline edit mode: InlineEditField handles all input via useInputLayer.
-  // Board's useInput must not process keys during inline editing.
-  if (tuiContext.ui.inlineEditNodeId) {
-    return false
-  }
+  // Inline edit mode: text editing keys are routed through the command system
+  // via when: textInputFocused predicates. Board's useInput handles them normally.
 
-  // Search dialog: buffer text input for the dialog to consume on mount
-  // This handles the race condition where keypresses arrive before dialog's useInput registers
+  // Search dialog: text editing routed through command system (textInputFocused).
+  // Nav keys (Escape, Enter, arrows) handled by SearchDialog's own useInputLayer.
+  // Only process text-editing-relevant keys here; block everything else.
   if (ui.showSearchDialog) {
-    // Buffer printable characters for search input
-    if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
-      dispatch(actions.appendSearchDialogInput(input))
+    // Printable chars, Backspace, Delete, and Ctrl+letter editing shortcuts
+    // go through the command system → TextEditTarget. All other keys are
+    // either handled by the search dialog layer or should be blocked.
+    const isTextKey =
+      (input.length === 1 && input >= " " && !key.ctrl && !key.meta) ||
+      key.backspace ||
+      key.delete ||
+      (key.ctrl &&
+        ["a", "e", "b", "f", "w", "u", "k"].includes(input.toLowerCase()))
+    if (!isTextKey) {
+      return false
     }
-    return false
+    // Fall through to command system processing for text editing
   }
 
   // Help overlay blocks most keys - only allow dismiss keys

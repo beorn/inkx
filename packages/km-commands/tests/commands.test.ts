@@ -14,6 +14,10 @@ import { taskCommands } from "../src/commands/task.ts"
 import { viewCommands } from "../src/commands/view.ts"
 import { historyCommands } from "../src/commands/history.ts"
 import { tuiCommands } from "../src/commands/tui.ts"
+import {
+  textEditingCommands,
+  detailPaneCommands,
+} from "../src/commands/text-editing.ts"
 import type {
   CommandContext,
   TNode,
@@ -136,7 +140,9 @@ describe("allCommands", () => {
       taskCommands.length +
       viewCommands.length +
       historyCommands.length +
-      tuiCommands.length
+      tuiCommands.length +
+      textEditingCommands.length +
+      detailPaneCommands.length
 
     expect(allCommands.length).toBe(expectedCount)
   })

@@ -1026,6 +1026,67 @@ describe("Zooming", () => {
     expect(output).toMatch(/board.*col.*parent/i)
   })
 
+  test("i zooms one level toward cursor, not all the way", () => {
+    // board > col > level1 > level2 > level3
+    // With cursor on level1 (which has children), pressing 'i' should zoom
+    // into col (one level deeper from root toward cursor), not jump to level1
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item(
+          "col",
+          item("level1", item("level2", item("level3"))),
+          item("other"),
+        ),
+      ),
+    )
+    // Cursor starts at level1 (first card in col)
+    board.expect("#level1[data-cursor]").toExist()
+
+    // Press i - should zoom one level inward (root becomes col)
+    // col is the child of board on the path to level1
+    board.press("i")
+
+    // Now we're zoomed to col. level1 and other should be visible as columns.
+    board.expect("#level1").toExist()
+    board.expect("#other").toExist()
+    // board should NOT be visible as a column anymore (we zoomed past it)
+    board.expect("#board").not.toExist()
+  })
+
+  test("i at cursor's parent level acts like o (zoom to cursor)", () => {
+    // When cursor is already a direct child of root, i = one level = zoom to cursor
+    const { board } = testEnv(() =>
+      item("board", item("col", item("card", item("sub")))),
+    )
+    board.expect("#card[data-cursor]").toExist()
+
+    // col is direct child of board, and card is child of col.
+    // i should zoom to col (one level toward card).
+    board.press("i")
+    board.expect("#card").toExist()
+    board.expect("#board").not.toExist()
+  })
+
+  test("u zooms out one level", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col", item("card1"), item("card2", item("sub1"), item("sub2"))),
+      ),
+    )
+    // Zoom in to card2
+    board.press("j")
+    board.press("o")
+    board.expect("#sub1").toExist()
+    board.expect("#col").not.toExist()
+
+    // u zooms out one level (back to col as root)
+    board.press("u")
+    board.expect("#card1").toExist()
+    board.expect("#card2").toExist()
+  })
+
   describe("cursor position after zooming", () => {
     test("zoom in preserves cursor on first child", () => {
       const { board } = testEnv(() =>
@@ -1902,5 +1963,266 @@ describe("Help and Keyboard Shortcuts", () => {
     board.press("?")
     const output = board.screenshot()
     expect(output).toMatch(/help|shortcuts|keys/i)
+  })
+})
+
+// =============================================================================
+// Selection
+// =============================================================================
+
+describe("Selection", () => {
+  // ---------------------------------------------------------------------------
+  // Extend selection down (J = Shift+J = extend_select_down)
+  // ---------------------------------------------------------------------------
+
+  test("J extends selection down from first card", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"), item("1b"), item("1c"))),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    board.press("J") // Shift+J = extend_select_down
+    board.expect("#1b[data-cursor]").toExist()
+    // Status shows selection feedback
+    const status = board.getStatus()
+    expect(status?.message).toContain("selected")
+  })
+
+  test("J twice extends selection through multiple cards", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"), item("1b"), item("1c"))),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    board.press("J")
+    expect(board.getStatus()?.message).toMatch(/1 item/)
+
+    board.press("J")
+    board.expect("#1c[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/3 items/)
+  })
+
+  test("J at bottom boundary does not extend past last card", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"), item("1b"))),
+    )
+    board.press("j") // Move to 1b normally
+    board.expect("#1b[data-cursor]").toExist()
+
+    board.press("J") // Init selection anchor at 1b
+    const status1 = board.getStatus()
+    expect(status1?.message).toContain("selected")
+
+    board.press("J") // Try to extend past bottom - stays at 1b
+    board.expect("#1b[data-cursor]").toExist()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Extend selection up (K = Shift+K = extend_select_up)
+  // ---------------------------------------------------------------------------
+
+  test("K extends selection up from last card", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"), item("1b"), item("1c"))),
+    )
+    board.press("j").press("j") // Navigate to 1c
+    board.expect("#1c[data-cursor]").toExist()
+
+    board.press("K") // Shift+K = extend_select_up
+    board.expect("#1b[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toContain("selected")
+  })
+
+  test("K twice extends selection up through multiple cards", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"), item("1b"), item("1c"))),
+    )
+    board.press("j").press("j") // Navigate to 1c
+    board.expect("#1c[data-cursor]").toExist()
+
+    board.press("K")
+    expect(board.getStatus()?.message).toMatch(/1 item/)
+
+    board.press("K")
+    board.expect("#1a[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/3 items/)
+  })
+
+  test("K at top boundary does not extend past first card", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"), item("1b"))),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    board.press("K") // Init selection anchor at 1a
+    expect(board.getStatus()?.message).toContain("selected")
+
+    board.press("K") // Try to extend past top - stays at 1a
+    board.expect("#1a[data-cursor]").toExist()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Extend selection across columns (H/L = Shift+H/L)
+  // Horizontal extend-select is not yet implemented; H/L clear selection.
+  // ---------------------------------------------------------------------------
+
+  test("H clears selection (horizontal extend not yet implemented)", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Create a vertical selection first
+    board.press("J")
+    expect(board.getStatus()?.message).toContain("selected")
+
+    // H clears the multi-selection
+    board.press("H")
+    expect(board.getStatus()).toBeNull()
+  })
+
+  test("L clears selection (horizontal extend not yet implemented)", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Create a vertical selection first
+    board.press("J")
+    expect(board.getStatus()?.message).toContain("selected")
+
+    // L clears the multi-selection
+    board.press("L")
+    expect(board.getStatus()).toBeNull()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Progressive select all (A = Shift+A = select_all_progressive)
+  // In cards view (no outline mode): column -> board -> column -> ...
+  // Card scope requires outline mode.
+  // ---------------------------------------------------------------------------
+
+  test("A selects progressively: column then board", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // First A - selects entire column (card scope requires outline mode)
+    board.press("A")
+    const s1 = board.getStatus()
+    expect(s1?.message).toContain("column")
+    expect(s1?.message).toContain("selected")
+
+    // Second A - selects entire board
+    board.press("A")
+    const s2 = board.getStatus()
+    expect(s2?.message).toContain("board")
+    expect(s2?.message).toContain("selected")
+  })
+
+  test("A wraps around after board level", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // First A -> column, Second A -> board
+    board.press("A")
+    board.press("A")
+    expect(board.getStatus()?.message).toContain("board")
+
+    // Third A wraps back to column
+    board.press("A")
+    expect(board.getStatus()?.message).toContain("column")
+  })
+
+  test("A on single-item column still works", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("only-card"))),
+    )
+    board.expect("#only-card[data-cursor]").toExist()
+
+    board.press("A")
+    const status = board.getStatus()
+    expect(status?.message).toContain("selected")
+  })
+
+  // ---------------------------------------------------------------------------
+  // Escape behavior with selection
+  // Note: Escape routes to close_or_quit, which does not clear multi-selection.
+  // This tests the current behavior (boundary warning). When close_or_quit is
+  // updated to clear selection first, this test should be updated accordingly.
+  // ---------------------------------------------------------------------------
+
+  test("Escape with active selection triggers boundary (close_or_quit)", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"), item("1b"), item("1c"))),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Create selection
+    board.press("A")
+    expect(board.getStatus()?.message).toContain("selected")
+
+    // Escape goes to close_or_quit, which currently doesn't check multiSelected
+    board.press("Escape")
+    const status = board.getStatus()
+    expect(status?.level).toBe("warning")
+  })
+
+  // ---------------------------------------------------------------------------
+  // Combined selection workflows
+  // ---------------------------------------------------------------------------
+
+  test("J then K shrinks selection back toward anchor", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"), item("1b"), item("1c"))),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Extend down twice
+    board.press("J")
+    board.expect("#1b[data-cursor]").toExist()
+
+    board.press("J")
+    board.expect("#1c[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/3 items/)
+
+    // Extend back up - shrinks selection toward anchor
+    board.press("K")
+    board.expect("#1b[data-cursor]").toExist()
+    // Selection shrinks: anchor(1a) to cursor(1b) = 2 items
+    expect(board.getStatus()?.message).toMatch(/2 items/)
+  })
+
+  test("column-level data-selected attribute is set for cursor column", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+    // data-selected on column indicates which column contains the cursor
+    board.expect("[data-selected]").toExist()
+    const selected = board.q("[data-selected]")
+    expect(selected.count()).toBe(1)
   })
 })

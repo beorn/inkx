@@ -5,6 +5,7 @@ export { editCommands } from "./edit.ts"
 export { taskCommands, type TaskAction } from "./task.ts"
 export { historyCommands } from "./history.ts"
 export { tuiCommands } from "./tui.ts"
+export { textEditingCommands, detailPaneCommands } from "./text-editing.ts"
 
 import { navigationCommands } from "./navigation.ts"
 import { selectionCommands } from "./selection.ts"
@@ -13,6 +14,7 @@ import { editCommands } from "./edit.ts"
 import { taskCommands } from "./task.ts"
 import { historyCommands } from "./history.ts"
 import { tuiCommands } from "./tui.ts"
+import { textEditingCommands, detailPaneCommands } from "./text-editing.ts"
 
 export const allCommands = [
   ...navigationCommands,
@@ -22,4 +24,6 @@ export const allCommands = [
   ...taskCommands,
   ...historyCommands,
   ...tuiCommands,
+  ...textEditingCommands,
+  ...detailPaneCommands,
 ]

@@ -39,6 +39,7 @@ export function processKeyWithContext(
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
     currentNode: (selectedNode as TNode) ?? null,
+    textInputFocused: !!ui.inlineEditNodeId || ui.showSearchDialog,
   })
 
   const { colIndex, cardIndex, columns } = layout

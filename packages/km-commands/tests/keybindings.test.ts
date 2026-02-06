@@ -61,6 +61,7 @@ function createContext(
     isInDetailPane: false,
     isInOutlineMode: false,
     currentNode: null,
+    textInputFocused: false,
     ...overrides,
   }
 }

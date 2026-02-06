@@ -1,4 +1,6 @@
 import type { CommandMode, TNode } from "./types.ts"
+import type { WhenPredicate } from "./when.ts"
+import { textInputFocused, isInDetailPane } from "./when.ts"
 
 export interface Keybinding {
   key: string
@@ -8,7 +10,7 @@ export interface Keybinding {
   alt?: boolean
   commandId: string
   modes?: CommandMode[]
-  when?: (ctx: KeybindingContext) => boolean
+  when?: WhenPredicate | ((ctx: KeybindingContext) => boolean)
 }
 
 export interface KeybindingContext {
@@ -17,6 +19,7 @@ export interface KeybindingContext {
   isInDetailPane: boolean
   isInOutlineMode: boolean
   currentNode: TNode | null
+  textInputFocused: boolean
 }
 
 const keybindings: Keybinding[] = []
@@ -72,6 +75,68 @@ export function resolveKeybinding(
 // Default keybindings
 // NOTE: These match docs/06-ui.md Navigation Model
 export const defaultKeybindings: Keybinding[] = [
+  // === Text editing (when textInputFocused) ===
+  // These must come first so they take priority over navigation keys
+  {
+    key: "Backspace",
+    commandId: "text.delete_backward",
+    when: textInputFocused,
+  },
+  { key: "Delete", commandId: "text.delete_forward", when: textInputFocused },
+  { key: "ArrowLeft", commandId: "text.cursor_left", when: textInputFocused },
+  { key: "ArrowRight", commandId: "text.cursor_right", when: textInputFocused },
+  {
+    key: "a",
+    ctrl: true,
+    commandId: "text.cursor_start",
+    when: textInputFocused,
+  },
+  {
+    key: "e",
+    ctrl: true,
+    commandId: "text.cursor_end",
+    when: textInputFocused,
+  },
+  {
+    key: "b",
+    ctrl: true,
+    commandId: "text.cursor_left",
+    when: textInputFocused,
+  },
+  {
+    key: "f",
+    ctrl: true,
+    commandId: "text.cursor_right",
+    when: textInputFocused,
+  },
+  {
+    key: "w",
+    ctrl: true,
+    commandId: "text.delete_word",
+    when: textInputFocused,
+  },
+  {
+    key: "u",
+    ctrl: true,
+    commandId: "text.delete_to_start",
+    when: textInputFocused,
+  },
+  {
+    key: "k",
+    ctrl: true,
+    commandId: "text.delete_to_end",
+    when: textInputFocused,
+  },
+  { key: "Enter", commandId: "text.confirm", when: textInputFocused },
+  { key: "Escape", commandId: "text.cancel", when: textInputFocused },
+
+  // === Detail pane (when isInDetailPane) ===
+  // Escape closes detail pane (before normal Escape handling)
+  // Note: h does NOT have a separate detail_pane.close binding.
+  // Instead, cursor_left handles detail pane close contextually in board-actions-nav.ts
+  // because in list view showDetailPane=true by default and h must still navigate.
+  { key: "Escape", commandId: "detail_pane.close", when: isInDetailPane },
+
   // === Navigation ===
   // Visual navigation (j/k/arrows) - document traversal, crosses tree levels
   // Per docs/06-ui.md: j at column level enters first card, k at first card exits to column

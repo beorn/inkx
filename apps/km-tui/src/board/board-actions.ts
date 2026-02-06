@@ -14,6 +14,7 @@ import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createlogger } from "@beorn/logger"
 import { assertNever } from "../action-handlers.ts"
 import { outdentNode } from "../keyboard/keyboard-card-ops.ts"
+import { textEditTargetRef } from "../text-edit-target.ts"
 import {
   clearSelection,
   progressiveSelectAll,
@@ -285,6 +286,51 @@ export function handleCommandAction(
       return ok()
     case "CANCEL_MOVE":
       ctx.dispatchBoard(action)
+      return ok()
+
+    // === Text editing actions (dispatched to TextEditTarget) ===
+    // Read from shared ref directly (not TUIContext snapshot) because
+    // the target is set by useEffect after render.
+    case "TEXT_INSERT":
+      textEditTargetRef.current?.insertChar(action.char)
+      return ok()
+    case "TEXT_DELETE_BACKWARD":
+      textEditTargetRef.current?.deleteBackward()
+      return ok()
+    case "TEXT_DELETE_FORWARD":
+      textEditTargetRef.current?.deleteForward()
+      return ok()
+    case "TEXT_CURSOR_LEFT":
+      textEditTargetRef.current?.cursorLeft()
+      return ok()
+    case "TEXT_CURSOR_RIGHT":
+      textEditTargetRef.current?.cursorRight()
+      return ok()
+    case "TEXT_CURSOR_START":
+      textEditTargetRef.current?.cursorStart()
+      return ok()
+    case "TEXT_CURSOR_END":
+      textEditTargetRef.current?.cursorEnd()
+      return ok()
+    case "TEXT_DELETE_WORD":
+      textEditTargetRef.current?.deleteWord()
+      return ok()
+    case "TEXT_DELETE_TO_START":
+      textEditTargetRef.current?.deleteToStart()
+      return ok()
+    case "TEXT_DELETE_TO_END":
+      textEditTargetRef.current?.deleteToEnd()
+      return ok()
+    case "TEXT_CONFIRM":
+      textEditTargetRef.current?.confirm()
+      return ok()
+    case "TEXT_CANCEL":
+      textEditTargetRef.current?.cancel()
+      return ok()
+
+    // === Detail pane ===
+    case "DETAIL_PANE_CLOSE":
+      dispatch(actions.setDetailPane(false))
       return ok()
 
     default:
