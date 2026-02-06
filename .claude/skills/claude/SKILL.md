@@ -27,7 +27,7 @@ Manage Claude Code: slash commands, plugins, MCP servers.
 | Create slash command    | [skill-format.md](skill-format.md) |
 | Create/install plugin   | [plugins.md](plugins.md)           |
 | Configure MCP server    | [mcp.md](mcp.md)                   |
-| Search session history  | [/history](../history/SKILL.md)    |
+| Search session history  | [/recall](../recall/SKILL.md)      |
 
 ## Skill File Format (Quick)
 
@@ -63,7 +63,7 @@ Use $ARGUMENTS for all args, or $1, $2 for positional.
 | [skill-format.md](skill-format.md)         | Skill format, dynamic content    |
 | [plugins.md](plugins.md)                   | Plugin creation, manifest        |
 | [mcp.md](mcp.md)                           | Server configuration             |
-| [/history](../history/SKILL.md)            | Session history search (FTS5)    |
+| [/recall](../recall/SKILL.md)              | Session history search (FTS5)    |
 | [session.md](session.md)                   | Session recovery commands        |
 | [session-errors.md](session-errors.md)     | Analyze sessions for cmd errors  |
 | [review-claude.md](review-claude.md)       | Audit steering docs (infrequent) |

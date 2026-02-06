@@ -55,7 +55,6 @@
       "mcp__tty__wait",
       "mcp__tty__list",
       "mcp__tty__stop",
-      "Skill(history)",
       "Skill(recall)",
       "Skill(commit)",
       "Skill(code)",

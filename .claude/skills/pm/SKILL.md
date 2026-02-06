@@ -143,7 +143,7 @@ bd update km-tui.foo --parent km-tui                    # Step 2
 
 ## Session Coordination
 
-**Before creating new beads**: Check `bun history "topic"` for similar past issues.
+**Before creating new beads**: Check `bun recall "topic"` for similar past issues.
 
 **Actor tracking**: Automatic via session prehook (`BD_ACTOR=claude:<sessionId>`). See [beads.md](beads.md#actor-attribution-audit-trail).
 

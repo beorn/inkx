@@ -1,96 +1,142 @@
 ---
-description: Search and synthesize past session knowledge. Use proactively when encountering errors, starting work, or wondering "has this been done before?"
-argument-hint: <query> [--since time] [--raw]
+description: Search and manage Claude Code session history. Use proactively when encountering errors, starting work, or recovering lost content.
+argument-hint: <query> [--raw] [--since time] [-q|-r] [-i types]
 allowed-tools: Bash
 ---
 
-# Recall — Session Memory Search
+# Recall — Session History Search
 
-**Keywords**: recall, memory, remember, history, previous session, prior knowledge, "has this been done"
+**Keywords**: recall, memory, history, session, recover, find, previous session, lost conversation
 
-Search and synthesize knowledge from past Claude Code sessions.
+Unified CLI for searching, managing, and recovering Claude Code session history.
+
+**NEVER read/cat entire session or tool-results files.** Always use `bun recall` (FTS5-indexed, <100ms).
 
 ## Auto-Recall
 
 Memory recall fires automatically on every non-trivial prompt via UserPromptSubmit hook.
 You usually don't need to search manually — prior knowledge appears as "Session Memory" context.
 
-## Manual Recall
-
-For deeper investigation beyond what auto-recall provides:
+## Search (default command)
 
 ```bash
-# Quick search + synthesis
+# Search + LLM synthesis (default)
 bun recall "inline edit keyboard handling"
 
-# Raw results (no LLM synthesis)
+# Raw results, no LLM synthesis
 bun recall --raw "createRepo"
+bun recall "createRepo" --raw
 
-# Time-scoped search
+# Time-scoped
 bun recall --since 1w "flicker bug"
 
-# JSON output (for programmatic use)
+# JSON output
 bun recall --json "command system design"
 
 # Limit results
-bun recall --limit 15 "storage layer"
+bun recall -n 15 "storage layer"
 ```
+
+### Power-user filters (imply --raw)
+
+```bash
+# User questions only
+bun recall -q "how do I"
+bun recall -q -s today
+
+# Assistant responses only
+bun recall -r -s 1w "error"
+
+# Tool-specific messages
+bun recall -t Write -p "*km*" -s 1d
+
+# Content types: p=plan, m=message, s=summary, t=todo, f=first_prompt
+bun recall -i p,m "refactor"
+
+# Regex search (slower, scans raw files)
+bun recall -g "function\s+\w+Async"
+
+# Specific session
+bun recall --session abc123 "bug"
+```
+
+## Status Dashboard
+
+```bash
+bun recall status          # Index health, activity, hooks, recommendations
+bun recall status --json   # Structured output
+```
+
+Shows: index health, active sessions, today's activity, message breakdown, hook config, recommendations.
+
+## Sessions
+
+```bash
+bun recall sessions              # List all sessions (last 30d)
+bun recall sessions abc123       # Show session details
+bun recall sessions -p "*km*"   # Filter by project
+```
+
+## Files (writes/recovery)
+
+```bash
+bun recall files                 # List recent writes (last 100)
+bun recall files "*.tsx"         # Search writes by file path
+bun recall files --restore path  # Restore file content
+bun recall files --date 2026-02  # Filter by date
+```
+
+## Index
+
+```bash
+bun recall index                 # Full rebuild
+bun recall index --incremental   # Update new sessions only
+```
+
+## Search Options
+
+| Option | Description |
+|--------|-------------|
+| `--raw` | Skip LLM synthesis, show raw results |
+| `--json` | JSON output |
+| `-s, --since <time>` | Time window: `1h`, `1d`, `1w`, `today`, `yesterday` (default: 30d) |
+| `-n, --limit <num>` | Max results (default: 10) |
+| `--timeout <ms>` | LLM timeout (default: 8000) |
+| `-p, --project <glob>` | Project glob match (e.g., `*km*`) |
+| `-g, --grep` | Regex mode (slower, scans files) |
+| `-q, --question` | Only user questions (implies --raw) |
+| `-r, --response` | Only assistant responses (implies --raw) |
+| `-t, --tool <name>` | Messages with specific tool (implies --raw) |
+| `--session <id>` | Specific session (implies --raw) |
+| `-i, --include <types>` | Content types: p,m,s,t,f (implies --raw) |
+
+## Time Formats
+
+| Format | Meaning |
+|--------|---------|
+| `1h`, `2h` | Hours ago |
+| `1d`, `7d` | Days ago |
+| `1w`, `2w` | Weeks ago |
+| `today` | Since midnight |
+| `yesterday` | Since yesterday midnight |
 
 ## When to Use Manually
 
 - **Errors you've seen before**: `bun recall "error message text"`
 - **Architecture decisions**: `bun recall "why did we choose X"`
 - **Deeper investigation**: When auto-recall summary isn't enough, use `--raw` for full snippets
-- **Cross-project knowledge**: `bun recall -p "*other-project*" "pattern"`
+- **File recovery**: `bun recall files --restore path/to/file`
+- **Activity check**: `bun recall status`
 
-## For Deeper History Search
-
-Use `bun history` directly (the /history skill) for:
-- Regex search (`-g` flag)
-- Tool-specific filtering (`-t Write`)
-- Session browsing and file recovery
-- Activity dashboards
-
-## Review & Diagnostics
-
-Check if the memory system is working well:
+## Internal Hook Commands
 
 ```bash
-bun recall review
-bun recall review --json   # Structured output
+bun recall hook              # UserPromptSubmit — reads stdin JSON, returns additionalContext
+bun recall remember          # SessionEnd — extract lessons from transcript
 ```
 
-This runs diagnostics on:
-- **Index health**: size, staleness, content types indexed
-- **Hook configuration**: are hooks installed and executable?
-- **Search quality**: benchmark queries, latency, result diversity
-- **Recall synthesis**: LLM working? reasonable cost/latency?
-- **Actionable recommendations**: what to fix and how
+## Performance
 
-Run review when:
-- Starting work on memory system improvements
-- Suspecting recall isn't finding relevant results
-- After changing hook configuration
-- Periodically to ensure system health
-
-## Subcommands
-
-The recall tool has subcommands used by Claude Code hooks:
-
-```bash
-bun recall hook              # UserPromptSubmit hook — reads stdin JSON, returns additionalContext
-bun recall remember \        # SessionEnd hook — extract lessons from transcript
-  --transcript <path> \
-  --session-id <id> \
-  --memory-dir <dir>
-```
-
-Hooks are thin bash wrappers that delegate to these subcommands.
-Errors propagate to stderr (fail loud per principles.md).
-
-## How It Works
-
-1. FTS5 search across ~350K indexed messages (<100ms)
-2. Also searches plans, summaries, todos, and session first-prompts
-3. Cheap LLM (gpt-5-nano, ~$0.001) synthesizes top results into actionable summary
-4. Total latency: ~3-25 seconds (depends on LLM response time)
+- FTS5 search: <100ms on 6GB+ data
+- Index rebuild: ~2-4 min for full history
+- Database: `~/.claude/session-index.db`
