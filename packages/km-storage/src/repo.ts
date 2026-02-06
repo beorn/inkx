@@ -19,7 +19,8 @@ import { createLogger } from "@beorn/logger"
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 
-import type { KNode, TaskStatus } from "@km/core"
+import type { Event, KNode, TaskStatus } from "@km/core"
+import { ulid } from "ulid"
 import type { Config } from "./config-object.ts"
 import { loadConfigObject } from "./config-object.ts"
 import type { DataStore, HasDatabase } from "./data-store.ts"
@@ -173,8 +174,20 @@ function summarizeChanges(changes: Partial<KNode>): Record<string, unknown> {
 function createMutationMethods(
   deps: RepoMethodDeps,
   state: { version: number; notify(): void },
+  emitter?: Emitter,
 ) {
   const { dataStore, hooks } = deps
+
+  // Notify filesystem sync (SyncManager) about a mutation.
+  // Bypasses emitter.emit() to avoid double-writing to DB/events.jsonl —
+  // the DataStore mutation already happened above.
+  function notifyFs(event: Omit<Event, "id" | "ts">): void {
+    const fsSync = emitter?.getFsSync()
+    if (!fsSync) return
+    const fullEvent = { id: ulid(), ts: Date.now(), ...event } as Event
+    fsSync.applyEventToFs(fullEvent)
+  }
+
   return {
     updateNode(id: string, changes: Partial<KNode>) {
       let ctx: MutationContext = { type: "update", nodeId: id, changes }
@@ -190,6 +203,7 @@ function createMutationMethods(
       log.info?.(`mutation: update ${id}`, {
         changes: summarizeChanges(changes),
       })
+      notifyFs({ type: "node_updated", actor: "user", target: id, data: changes })
     },
     moveNode(id: string, newParentId: string, position: number) {
       let ctx: MutationContext = {
@@ -212,6 +226,12 @@ function createMutationMethods(
       hooks?.afterMutation?.(ctx)
       state.notify()
       log.info?.(`mutation: move ${id} → parent=${newParentId} pos=${position}`)
+      notifyFs({
+        type: "node_moved",
+        actor: "user",
+        target: id,
+        data: { parent_id: newParentId, parent_idx: position },
+      })
     },
     deleteNode(id: string) {
       let ctx: MutationContext = { type: "delete", nodeId: id }
@@ -225,6 +245,7 @@ function createMutationMethods(
       hooks?.afterMutation?.(ctx)
       state.notify()
       log.info?.(`mutation: delete ${id}`)
+      notifyFs({ type: "node_deleted", actor: "user", target: id, data: {} })
     },
     addNode(parentId: string | null, node: Partial<KNode>) {
       let ctx: MutationContext = { type: "add", nodeId: "", node }
@@ -242,6 +263,7 @@ function createMutationMethods(
         type: node.type,
         content: node.content?.slice(0, 80),
       })
+      notifyFs({ type: "node_created", actor: "user", data: { ...node, id: newId } })
       return newId
     },
     cloneTask(sourceId: string, changes: Partial<KNode>) {
@@ -934,7 +956,7 @@ export function* createRepo(
       for (const cb of listeners) cb()
     },
   }
-  const mutationMethods = createMutationMethods(methodDeps, state)
+  const mutationMethods = createMutationMethods(methodDeps, state, emitter)
 
   const repo: Repo = {
     path: rootPath,
@@ -1120,7 +1142,7 @@ export function createBareRepo(
       for (const cb of listeners) cb()
     },
   }
-  const mutationMethods = createMutationMethods(methodDeps, state)
+  const mutationMethods = createMutationMethods(methodDeps, state, emitter)
 
   const repo: Repo = {
     path: repoPath,

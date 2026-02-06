@@ -10,6 +10,7 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs"
 import { join } from "path"
 
 import { runGenerator } from "@km/core"
+import type { Event } from "@km/core"
 import {
   createRepo,
   createBareRepo,
@@ -18,6 +19,7 @@ import {
   type Repo,
   type StepYield,
 } from "../src/index.ts"
+import { createEmitter, type FsSync } from "../src/emitter.ts"
 
 // =============================================================================
 // Test Helpers
@@ -479,5 +481,108 @@ describe("Repo.refresh", () => {
         // Should throw before yielding
       }
     }).toThrow("bare repo")
+  })
+})
+
+// =============================================================================
+// Mutation → FsSync notification tests
+// =============================================================================
+
+describe("Repo mutations notify FsSync", () => {
+  let tempDir: string
+
+  beforeEach(() => {
+    tempDir = createTempDir()
+  })
+
+  afterEach(() => {
+    cleanupTempDir(tempDir)
+  })
+
+  function createRepoWithFsSpy(): { repo: Repo; events: Event[] } {
+    const events: Event[] = []
+    const fsSpy: FsSync = {
+      applyEventToFs(event: Event) {
+        events.push(event)
+      },
+    }
+
+    const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
+    repo.emitter.setFsSync(fsSpy)
+    return { repo, events }
+  }
+
+  test("updateNode notifies FsSync with node_updated event", () => {
+    const { repo, events } = createRepoWithFsSpy()
+
+    const id = repo.addNode(null, { type: "task", content: "original" })
+    events.length = 0 // clear the node_created event
+
+    repo.updateNode(id, { content: "changed" })
+
+    expect(events).toHaveLength(1)
+    expect(events[0]!.type).toBe("node_updated")
+    expect(events[0]!.target).toBe(id)
+    expect(events[0]!.actor).toBe("user")
+
+    repo.close()
+  })
+
+  test("moveNode notifies FsSync with node_moved event", () => {
+    const { repo, events } = createRepoWithFsSpy()
+
+    const parentA = repo.addNode(null, { type: "section", content: "A" })
+    const parentB = repo.addNode(null, { type: "section", content: "B" })
+    const child = repo.addNode(parentA, { type: "task", content: "child" })
+    events.length = 0
+
+    repo.moveNode(child, parentB, 0)
+
+    expect(events).toHaveLength(1)
+    expect(events[0]!.type).toBe("node_moved")
+    expect(events[0]!.target).toBe(child)
+    expect(events[0]!.actor).toBe("user")
+
+    repo.close()
+  })
+
+  test("deleteNode notifies FsSync with node_deleted event", () => {
+    const { repo, events } = createRepoWithFsSpy()
+
+    const id = repo.addNode(null, { type: "task", content: "to-delete" })
+    events.length = 0
+
+    repo.deleteNode(id)
+
+    expect(events).toHaveLength(1)
+    expect(events[0]!.type).toBe("node_deleted")
+    expect(events[0]!.target).toBe(id)
+    expect(events[0]!.actor).toBe("user")
+
+    repo.close()
+  })
+
+  test("addNode notifies FsSync with node_created event", () => {
+    const { repo, events } = createRepoWithFsSpy()
+
+    events.length = 0
+    const id = repo.addNode(null, { type: "task", content: "new-task" })
+
+    expect(events).toHaveLength(1)
+    expect(events[0]!.type).toBe("node_created")
+    expect(events[0]!.actor).toBe("user")
+    expect((events[0]!.data as Record<string, unknown>).id).toBe(id)
+
+    repo.close()
+  })
+
+  test("no FsSync notification when no FsSync is set", () => {
+    const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
+    // Don't set FsSync — should not throw
+    const id = repo.addNode(null, { type: "task", content: "no-spy" })
+    repo.updateNode(id, { content: "changed" })
+    repo.deleteNode(id)
+    // If we got here, no errors from notifyFs with null fsSync
+    repo.close()
   })
 })
