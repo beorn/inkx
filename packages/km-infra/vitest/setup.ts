@@ -22,8 +22,8 @@ import "../../../apps/km-tui/tests/helpers/matchers.js"
 process.stdout.isTTY = false
 process.stderr.isTTY = false
 
-// Suppress logger output during tests (info/warn/error would trip console detection)
-process.env.LOG_LEVEL = "silent"
+// Suppress logger output during tests (info would trip console detection)
+process.env.LOG_LEVEL = "warn"
 
 // Suppress React act() warnings from useSyncExternalStore:
 // When vitest runs multiple test files in the same thread, IS_REACT_ACT_ENVIRONMENT
