@@ -11,9 +11,6 @@
  *
  *   Keyboard controls:
  *   - j/k or arrows: Navigate between sections
- *   - Enter/Space: Toggle section expand/collapse
- *   - e: Expand all sections
- *   - c: Collapse all sections
  *   - q or Escape: Quit
  *
  * Static mode (for CI or piping):
@@ -124,6 +121,14 @@ const mockUIState = createInitialUIState("cards", [], {
   rows: 40,
 })
 const noopDispatch = () => {}
+const noopDialogHandlers = {
+  handleProjectSelect: () => {},
+  handleProjectCancel: () => {},
+  handleNewItemCreate: () => {},
+  handleNewItemCancel: () => {},
+  handleSearchSelect: () => {},
+  handleSearchCancel: () => {},
+}
 
 // ============================================================================
 // Section Header Components
@@ -571,64 +576,7 @@ function Layer2Layout(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="renderPath() - Breadcrumb Truncation" />
-      {(() => {
-        const segments: PathSegment[] = [
-          {
-            id: "proj-1",
-            name: "Projects",
-            sep: "/",
-            isWithinBoard: false,
-            node: null,
-          },
-          {
-            id: "work-1",
-            name: "Work",
-            sep: "/",
-            isWithinBoard: false,
-            node: null,
-          },
-          {
-            id: "q1-2024",
-            name: "Q1-2024",
-            sep: ">",
-            isWithinBoard: true,
-            node: null,
-          },
-          {
-            id: "sprint-1",
-            name: "Sprint 1",
-            sep: ">",
-            isWithinBoard: true,
-            node: null,
-          },
-          {
-            id: "tasks-1",
-            name: "Tasks",
-            sep: "",
-            isWithinBoard: true,
-            node: null,
-          },
-        ]
-        // Helper to convert segments to string
-        const segsToStr = (segs: PathSegment[]): string =>
-          segs.map((s) => s.name + (s.sep ? ` ${s.sep} ` : "")).join("")
-        return (
-          <>
-            <Text dimColor>Full path (length=44):</Text>
-            <Text> |{segsToStr(renderPath(segments, 60))}|</Text>
-            <Text> </Text>
-            <Text dimColor>
-              Width=60: |{segsToStr(renderPath(segments, 60))}|
-            </Text>
-            <Text dimColor>
-              Width=40: |{segsToStr(renderPath(segments, 40))}|
-            </Text>
-            <Text dimColor>
-              Width=25: |{segsToStr(renderPath(segments, 25))}|
-            </Text>
-          </>
-        )
-      })()}
+      <RenderPathDemo />
       <Text> </Text>
 
       <SubsectionHeader title="renderParentPath() - Separate Line Context" />
@@ -644,6 +592,45 @@ function Layer2Layout(): React.ReactElement {
         Width=20: |{renderParentPath("Projects/Work/Tasks/Subtask", 20)}|
       </Text>
     </Box>
+  )
+}
+
+const pathDemoSegments: PathSegment[] = [
+  {
+    id: "proj-1",
+    name: "Projects",
+    sep: "/",
+    isWithinBoard: false,
+    node: null,
+  },
+  { id: "work-1", name: "Work", sep: "/", isWithinBoard: false, node: null },
+  { id: "q1-2024", name: "Q1-2024", sep: ">", isWithinBoard: true, node: null },
+  {
+    id: "sprint-1",
+    name: "Sprint 1",
+    sep: ">",
+    isWithinBoard: true,
+    node: null,
+  },
+  { id: "tasks-1", name: "Tasks", sep: "", isWithinBoard: true, node: null },
+]
+
+function segsToStr(segs: PathSegment[]): string {
+  return segs.map((s) => s.name + (s.sep ? ` ${s.sep} ` : "")).join("")
+}
+
+function RenderPathDemo(): React.ReactElement {
+  return (
+    <>
+      <Text dimColor>Full path (length=44):</Text>
+      <Text> |{segsToStr(renderPath(pathDemoSegments, 60))}|</Text>
+      <Text> </Text>
+      {[60, 40, 25].map((w) => (
+        <Text key={w} dimColor>
+          Width={w}: |{segsToStr(renderPath(pathDemoSegments, w))}|
+        </Text>
+      ))}
+    </>
   )
 }
 
@@ -681,20 +668,11 @@ function mockNode(
   return node
 }
 
-function Layer3Views(): React.ReactElement {
-  // Create sample nodes for TreeNode rendering
-  const todoTask = mockNode("todo-1", "Setup CI pipeline", "todo")
-  const wipTask = mockNode("wip-1", "Review PR #42", "wip")
-  const doneTask = mockNode("done-1", "Implement auth", "done")
-  const blockedTask = mockNode("blocked-1", "Wait on API", "blocked")
-  const droppedTask = mockNode("dropped-1", "Old approach", "dropped")
-
-  // TreeNode now gets foldedNodes, maxDepth, maxContentLines, inOutlineMode,
-  // currentSubIndex, variant, and multiSelected from context.
-  // DI props (getChildren, getParentContext) use the in-memory store.
-  const commonProps = {
+// Shared TreeNode props for storybook demos (DI uses in-memory store)
+function treeProps(width = 40) {
+  return {
     depth: 0,
-    width: 40,
+    width,
     colIndex: 0,
     cardIndex: 0,
     subIndex: 0,
@@ -703,6 +681,16 @@ function Layer3Views(): React.ReactElement {
     getParentContext: getParentContextFromStore,
     getBoardPills: getBoardPillsFromStore,
   }
+}
+
+function Layer3Views(): React.ReactElement {
+  // Create sample nodes for TreeNode rendering
+  const todoTask = mockNode("todo-1", "Setup CI pipeline", "todo")
+  const wipTask = mockNode("wip-1", "Review PR #42", "wip")
+  const doneTask = mockNode("done-1", "Implement auth", "done")
+  const blockedTask = mockNode("blocked-1", "Wait on API", "blocked")
+  const droppedTask = mockNode("dropped-1", "Old approach", "dropped")
+  const commonProps = treeProps(40)
 
   return (
     <Box flexDirection="column">
@@ -973,15 +961,6 @@ function makeBoardCoreProps(
   dims: { columns: number; rows: number },
   selectionLevel: "board" | "column" | "card" = "card",
 ) {
-  const noopDialogHandlers = {
-    handleProjectSelect: () => {},
-    handleProjectCancel: () => {},
-    handleNewItemCreate: () => {},
-    handleNewItemCancel: () => {},
-    handleSearchSelect: () => {},
-    handleSearchCancel: () => {},
-  }
-
   const ui = createInitialUIState(viewMode, [], dims)
 
   return {
@@ -1005,15 +984,20 @@ function makeBoardCoreProps(
   }
 }
 
+// Lazy singleton — populated once, reused across sections
+let _mockBoardState: TUIBoardState | undefined
+function getMockBoardState(): TUIBoardState {
+  return (_mockBoardState ??= createMockTUIBoardState())
+}
+
 // Create a fake repo populated with all nodes from the nodeStore.
-// Must be called AFTER createMockTUIBoardState() populates nodeStore.
+// Must be called AFTER getMockBoardState() populates nodeStore.
 function createPopulatedRepo() {
   return createFakeRepo({ nodes: [...nodeStore.values()] })
 }
 
 function Layer3AllViews(): React.ReactElement {
-  const mockState = createMockTUIBoardState()
-  // Create repo with all mock nodes so BoardCore's repo lookups work
+  const mockState = getMockBoardState()
   const populatedRepo = createPopulatedRepo()
 
   // BoardCore receives dimensions and handles all internal layout.
@@ -1109,19 +1093,7 @@ function VisualLanguageSection(): React.ReactElement {
   const wipTask = mockNode("vl-2", "Work in progress task", "wip")
   const doneTask = mockNode("vl-3", "Completed task item", "done")
 
-  // TreeNode now gets most props from context.
-  // DI props (getChildren, getParentContext) use the in-memory store.
-  const commonProps = {
-    depth: 0,
-    width: 35,
-    colIndex: 0,
-    cardIndex: 0,
-    subIndex: 0,
-    dimInactiveChildren: false,
-    getChildren: getChildrenFromStore,
-    getParentContext: getParentContextFromStore,
-    getBoardPills: getBoardPillsFromStore,
-  }
+  const commonProps = treeProps(35)
 
   return (
     <Box flexDirection="column">
@@ -1335,7 +1307,7 @@ function ToastAndStatusSection(): React.ReactElement {
     status: { level: "info", message: "Move mode active" },
   }
 
-  const mockState = createMockTUIBoardState()
+  const mockState = getMockBoardState()
 
   return (
     <Box flexDirection="column">
@@ -1347,55 +1319,23 @@ function ToastAndStatusSection(): React.ReactElement {
       </Text>
       <Text> </Text>
 
-      <ViewBox title="Info Toast">
-        <Box width={demoTermWidth} height={10} position="relative">
-          <ToastStack
-            toasts={[getToast(0)]}
-            termWidth={demoTermWidth}
-            termHeight={10}
-          />
-        </Box>
-      </ViewBox>
-
-      <ViewBox title="Success Toast">
-        <Box width={demoTermWidth} height={10} position="relative">
-          <ToastStack
-            toasts={[getToast(1)]}
-            termWidth={demoTermWidth}
-            termHeight={10}
-          />
-        </Box>
-      </ViewBox>
-
-      <ViewBox title="Warning Toast with Description">
-        <Box width={demoTermWidth} height={10} position="relative">
-          <ToastStack
-            toasts={[getToast(2)]}
-            termWidth={demoTermWidth}
-            termHeight={10}
-          />
-        </Box>
-      </ViewBox>
-
-      <ViewBox title="Error Toast with Description">
-        <Box width={demoTermWidth} height={10} position="relative">
-          <ToastStack
-            toasts={[getToast(3)]}
-            termWidth={demoTermWidth}
-            termHeight={10}
-          />
-        </Box>
-      </ViewBox>
-
-      <ViewBox title="Toast with Action Button">
-        <Box width={demoTermWidth} height={10} position="relative">
-          <ToastStack
-            toasts={[getToast(4)]}
-            termWidth={demoTermWidth}
-            termHeight={10}
-          />
-        </Box>
-      </ViewBox>
+      {[
+        { title: "Info Toast", idx: 0 },
+        { title: "Success Toast", idx: 1 },
+        { title: "Warning Toast with Description", idx: 2 },
+        { title: "Error Toast with Description", idx: 3 },
+        { title: "Toast with Action Button", idx: 4 },
+      ].map(({ title, idx }) => (
+        <ViewBox key={idx} title={title}>
+          <Box width={demoTermWidth} height={10} position="relative">
+            <ToastStack
+              toasts={[getToast(idx)]}
+              termWidth={demoTermWidth}
+              termHeight={10}
+            />
+          </Box>
+        </ViewBox>
+      ))}
 
       <SubsectionHeader title="Stacked Toasts (shadcn/ui pattern)" />
       <Text dimColor>Multiple toasts stack vertically, newest at bottom</Text>
@@ -1538,9 +1478,6 @@ function InteractiveStorybook(): React.ReactElement {
   const { exit } = useApp()
   const { stdout } = useStdout()
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set([sections[0]?.id ?? ""]),
-  )
 
   // Terminal dimensions
   const termWidth = stdout?.columns ?? 120
@@ -1556,29 +1493,6 @@ function InteractiveStorybook(): React.ReactElement {
     } else if (input === "k" || key.upArrow) {
       setSelectedIndex((prev) => Math.max(prev - 1, 0))
     }
-    // Toggle expand/collapse
-    else if (input === " " || key.return) {
-      const section = sections[selectedIndex]
-      if (section) {
-        setExpandedSections((prev) => {
-          const next = new Set(prev)
-          if (next.has(section.id)) {
-            next.delete(section.id)
-          } else {
-            next.add(section.id)
-          }
-          return next
-        })
-      }
-    }
-    // Expand all
-    else if (input === "e") {
-      setExpandedSections(new Set(sections.map((s) => s.id)))
-    }
-    // Collapse all
-    else if (input === "c") {
-      setExpandedSections(new Set())
-    }
     // Quit
     else if (input === "q" || key.escape) {
       exit()
@@ -1587,9 +1501,6 @@ function InteractiveStorybook(): React.ReactElement {
 
   // Get the currently selected section
   const currentSection = sections[selectedIndex]
-  const isExpanded = currentSection
-    ? expandedSections.has(currentSection.id)
-    : false
 
   return (
     <RepoProvider repo={mockRepo}>
@@ -1601,9 +1512,7 @@ function InteractiveStorybook(): React.ReactElement {
               TUI Storybook
             </Text>
             <Text>{"  "}</Text>
-            <Text dimColor>
-              j/k:nav Enter/Space:toggle e:expand-all c:collapse-all q:quit
-            </Text>
+            <Text dimColor>j/k:nav q:quit</Text>
           </Box>
 
           {/* Main content area */}
@@ -1622,46 +1531,27 @@ function InteractiveStorybook(): React.ReactElement {
               <Text dimColor>────────────────────────</Text>
               {sections.map((section, idx) => {
                 const isSelected = idx === selectedIndex
-                const isSectionExpanded = expandedSections.has(section.id)
-                const marker = isSectionExpanded ? "▼" : "▶"
                 return (
                   <Text
                     key={section.id}
                     backgroundColor={isSelected ? "cyan" : undefined}
-                    color={
-                      isSelected
-                        ? "black"
-                        : isSectionExpanded
-                          ? "white"
-                          : "gray"
-                    }
+                    color={isSelected ? "black" : "white"}
                   >
-                    {marker} {section.title.slice(0, sidebarWidth - 5)}
+                    {isSelected ? "▸" : " "}{" "}
+                    {section.title.slice(0, sidebarWidth - 5)}
                   </Text>
                 )
               })}
             </Box>
 
-            {/* Divider */}
-            <Box flexDirection="column" width={1}>
-              <Text color="gray">│</Text>
-            </Box>
-
-            {/* Content area */}
-            <Box flexDirection="column" flexGrow={1} paddingX={1}>
-              {isExpanded && currentSection ? (
-                <currentSection.component />
-              ) : (
-                <Box
-                  flexDirection="column"
-                  justifyContent="center"
-                  alignItems="center"
-                  height="100%"
-                >
-                  <Text dimColor>Press Enter or Space to expand section</Text>
-                  <Text dimColor>"{currentSection?.title ?? ""}"</Text>
-                </Box>
-              )}
+            {/* Content area — always shows selected section */}
+            <Box
+              flexDirection="column"
+              flexGrow={1}
+              paddingX={1}
+              overflow="hidden"
+            >
+              {currentSection && <currentSection.component />}
             </Box>
           </Box>
         </Box>

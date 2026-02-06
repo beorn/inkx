@@ -174,9 +174,7 @@ describe("Inline Editing", () => {
 
 describe("Inline Edit — Readline Shortcuts", () => {
   test("Backspace deletes character before cursor", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("abcd"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("abcd"))))
 
     board.press("Enter")
     // Cursor starts at end: abcd|
@@ -189,9 +187,7 @@ describe("Inline Edit — Readline Shortcuts", () => {
   })
 
   test("Control+A moves cursor to beginning, typing inserts there", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("xyz"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("xyz"))))
 
     board.press("Enter")
     // Cursor at end: xyz|
@@ -205,9 +201,7 @@ describe("Inline Edit — Readline Shortcuts", () => {
   })
 
   test("Control+E moves cursor to end after Control+A", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("abc"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("abc"))))
 
     board.press("Enter")
     board.press("Control+a") // |abc
@@ -219,9 +213,7 @@ describe("Inline Edit — Readline Shortcuts", () => {
   })
 
   test("Left/Right arrow cursor movement", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("ab"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
     // Cursor at end: ab|
@@ -249,9 +241,7 @@ describe("Inline Edit — Readline Shortcuts", () => {
   })
 
   test("Control+W deletes word backwards stopping at space", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("ab"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
     // Start with "ab", type " cd" to make "ab cd"
@@ -268,9 +258,7 @@ describe("Inline Edit — Readline Shortcuts", () => {
   })
 
   test("Control+U deletes from cursor to beginning", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("abcde"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("abcde"))))
 
     board.press("Enter")
     // abcde| → move left twice → abc|de
@@ -284,9 +272,7 @@ describe("Inline Edit — Readline Shortcuts", () => {
   })
 
   test("Control+K deletes from cursor to end", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("abcde"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("abcde"))))
 
     board.press("Enter")
     // abcde| → Control+A → |abcde → Right twice → ab|cde
@@ -301,9 +287,7 @@ describe("Inline Edit — Readline Shortcuts", () => {
   })
 
   test("multiple backspaces then type new content", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("hi"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("hi"))))
 
     board.press("Enter")
     board.press("Backspace")
@@ -386,9 +370,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("confirm with no changes preserves original", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("keep"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("keep"))))
 
     board.press("Enter")
     // Immediately confirm without typing
@@ -398,9 +380,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("backspace all then confirm saves empty content", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("ab"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
     board.press("Backspace")
@@ -414,9 +394,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("rapid typing produces correct result", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("x"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("x"))))
 
     board.press("Enter")
     // Clear existing and type fast
@@ -428,9 +406,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("Control+B / Control+F for cursor movement", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("abc"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("abc"))))
 
     board.press("Enter")
     // abc| → Ctrl+B (left) → ab|c

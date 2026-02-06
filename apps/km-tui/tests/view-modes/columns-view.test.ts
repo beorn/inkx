@@ -249,7 +249,7 @@ describe("Columns View", () => {
       board.press("z")
       board.expect("#child1").not.toExist()
       board.expect("#child2").not.toExist()
-      expect(board.screenshot()).toContain("\u25B6 2") // Folded indicator
+      expect(board.screenshot()).toContain("\u25B6\uFE0F 2") // Folded indicator (VS16 for emoji presentation)
     })
   })
 

@@ -1,13 +1,12 @@
 /**
  * Ghost Character Diagnostic Test (km-inkx.1)
  *
- * Tests rendering correctness at multiple levels:
- * 1. Board driver level (real TUI app) — press() + manual ANSI replay
- * 2. Component level (storybook pattern) — sidebar + content switching
+ * Key insight: a real terminal accumulates ALL ANSI diffs from startup.
+ * Pairwise replay (prev→next) might pass while cumulative replay diverges.
  *
- * The ghost character bug: when content area shrinks, old characters
- * persist at the right edge of lines. This happens in the ANSI diff
- * output, not in the buffer.
+ * This test maintains a RUNNING VirtualTerminal across all navigations,
+ * applying each diff sequentially — exactly like a real terminal would.
+ * After each step, it compares the terminal state to the buffer.
  */
 
 import React, { useState } from "react"
@@ -18,328 +17,251 @@ import { VirtualTerminal, Box, Text, useInput } from "inkx"
 import { createRenderer } from "inkx/testing"
 import { outputPhase } from "inkx/toolbelt"
 import { item } from "./helpers/board-test.ts"
+import type { TerminalBuffer } from "inkx/src/buffer.js"
 
 // =============================================================================
-// Helpers
+// Running Terminal — simulates what a real terminal accumulates
 // =============================================================================
 
 /**
- * Verify ANSI replay correctness between two buffer states.
- * This simulates what a real terminal would display after receiving the diff.
+ * A running terminal that accumulates ANSI diffs, exactly like a real terminal.
+ * After each step, compare its state to the expected buffer.
  */
-function verifyReplay(
-  prevBuffer: ReturnType<ReturnType<typeof createRenderer>["lastBuffer"]>,
-  afterBuffer: ReturnType<ReturnType<typeof createRenderer>["lastBuffer"]>,
-  label: string,
-) {
-  if (!prevBuffer || !afterBuffer) return
+function createRunningTerminal(width: number, height: number) {
+  const vterm = new VirtualTerminal(width, height)
+  let prevBuffer: TerminalBuffer | null = null
+  let stepCount = 0
 
-  const ansiDiff = outputPhase(prevBuffer, afterBuffer)
-  const vterm = new VirtualTerminal(afterBuffer.width, afterBuffer.height)
-  vterm.loadFromBuffer(prevBuffer)
-  vterm.applyAnsi(ansiDiff)
+  return {
+    /**
+     * Feed the current buffer. Computes diff from previous buffer,
+     * applies it to the running VirtualTerminal, then compares.
+     */
+    update(buffer: TerminalBuffer, label: string) {
+      const ansiDiff = outputPhase(prevBuffer, buffer)
+      vterm.applyAnsi(ansiDiff)
+      prevBuffer = buffer
+      stepCount++
 
-  const mismatches = vterm.compareToBuffer(afterBuffer)
-  if (mismatches.length > 0) {
-    const details = mismatches
-      .slice(0, 10)
-      .map(
-        (m) =>
-          `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`,
-      )
-      .join("\n")
-    expect.fail(
-      `ANSI replay mismatch after ${label}: ${mismatches.length} cells differ:\n${details}`,
-    )
-  }
-}
-
-/**
- * Verify incremental vs fresh render match.
- */
-function verifyIncremental(
-  app: ReturnType<ReturnType<typeof createRenderer>>,
-  label: string,
-) {
-  const incremental = app.lastBuffer()
-  let fresh: ReturnType<typeof app.freshRender> | undefined
-  try {
-    fresh = app.freshRender()
-  } catch {
-    return
-  }
-  if (!incremental || !fresh) return
-
-  for (let y = 0; y < incremental.height; y++) {
-    for (let x = 0; x < incremental.width; x++) {
-      const incCell = incremental.getCell(x, y)
-      const freshCell = fresh.getCell(x, y)
-      if (incCell.char !== freshCell.char) {
+      // Compare running terminal state to expected buffer
+      const mismatches = vterm.compareToBuffer(buffer)
+      if (mismatches.length > 0) {
+        const details = mismatches
+          .slice(0, 15)
+          .map(
+            (m) =>
+              `  (${m.x},${m.y}): buffer="${m.expected}" terminal="${m.actual}"`,
+          )
+          .join("\n")
         expect.fail(
-          `Incremental/fresh mismatch after ${label} at (${x},${y}): ` +
-            `incremental="${incCell.char}" fresh="${freshCell.char}"`,
+          `GHOST CHARS after step ${stepCount} (${label}):\n` +
+            `  ${mismatches.length} cells differ between buffer and terminal:\n` +
+            details +
+            (mismatches.length > 15
+              ? `\n  ... and ${mismatches.length - 15} more`
+              : ""),
         )
       }
-    }
+    },
+    get steps() {
+      return stepCount
+    },
   }
 }
 
 // =============================================================================
-// Part 1: Board Driver Tests (real TUI app)
+// Storybook pattern: sidebar + content sections of different sizes
 // =============================================================================
 
-const boardNodes = item.root(
-  "board",
-  item(
-    "Inbox",
-    item("Short task"),
-    item("A much longer task name that fills up more horizontal space"),
-    item("Medium task name"),
-  ),
-  item(
-    "In Progress",
-    item("Working on feature X with a long description"),
-    item("Bug fix"),
-  ),
-  item(
-    "Done",
-    item("Completed task alpha"),
-    item("Beta release"),
-    item("Gamma"),
-  ),
-)
+const sections = [
+  {
+    title: "Rich Text",
+    lines: [
+      "Rich Text Rendering Demo - Very long line of content here!",
+      "  Bold, italic, underline, strikethrough styling applied",
+      "  Colors: red, green, blue, cyan, magenta, yellow",
+      "  Background colors and dim text for contrast",
+      "  Nested styling with multiple attributes combined",
+    ],
+  },
+  {
+    title: "Tags",
+    lines: ["Tag Pills", "  Simple two-line section"],
+  },
+  {
+    title: "Fold Markers",
+    lines: [
+      "Fold Markers (Cards Style)",
+      "  Fold State Indicators",
+      "  Marker Constants Applied",
+      "  Colored Fold Markers for Visual Variety",
+    ],
+  },
+  {
+    title: "Layout",
+    lines: [
+      "Layout Helpers",
+      "  wrapText with long lines for testing truncation behavior",
+      "  padText and constrainText utilities",
+    ],
+  },
+  {
+    title: "Views",
+    lines: ["Board Views", "  Cards, Columns, List, Tabs"],
+  },
+]
 
-function createDiagDriver() {
-  return createBoardDriver(createFakeRepo({ nodes: boardNodes }), "board", {
-    incremental: true,
-    columns: 80,
-    rows: 24,
-  })
-}
-
-/** Press a key and verify both replay and incremental correctness */
-function pressAndVerify(
-  driver: ReturnType<typeof createBoardDriver>,
-  key: string,
-) {
-  const before = driver.lastBuffer()
-  driver.press(key)
-  verifyReplay(before, driver.lastBuffer(), `press("${key}")`)
-  verifyIncremental(driver, `press("${key}")`)
-}
-
-describe("Ghost characters - Board driver (real app)", () => {
-  test("basic j/k navigation", () => {
-    const driver = createDiagDriver()
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "k")
-    pressAndVerify(driver, "j")
+function StorybookApp() {
+  const [idx, setIdx] = useState(0)
+  useInput((input) => {
+    if (input === "j") {
+      setIdx((prev) => Math.min(prev + 1, sections.length - 1))
+    }
+    if (input === "k") setIdx((prev) => Math.max(prev - 1, 0))
   })
 
-  test("column navigation (h/l)", () => {
-    const driver = createDiagDriver()
-    pressAndVerify(driver, "l")
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "l")
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "h")
-    pressAndVerify(driver, "h")
-    pressAndVerify(driver, "k")
-  })
-
-  test("view mode switching (v)", () => {
-    const driver = createDiagDriver()
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "v")
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "v")
-    pressAndVerify(driver, "k")
-  })
-
-  test("level navigation (zoom in/out)", () => {
-    const driver = createDiagDriver()
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "l")
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "h")
-    pressAndVerify(driver, "h")
-    pressAndVerify(driver, "l")
-    pressAndVerify(driver, "k")
-  })
-
-  test("mixed navigation", () => {
-    const driver = createDiagDriver()
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "l")
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "h")
-    pressAndVerify(driver, "k")
-    pressAndVerify(driver, "v")
-    pressAndVerify(driver, "j")
-    pressAndVerify(driver, "l")
-    pressAndVerify(driver, "v")
-    pressAndVerify(driver, "h")
-    pressAndVerify(driver, "k")
-    pressAndVerify(driver, "k")
-  })
-})
-
-// =============================================================================
-// Part 2: Storybook Pattern (sidebar + content switching)
-// =============================================================================
-
-const render = createRenderer({ incremental: true, cols: 80, rows: 24 })
-
-describe("Ghost characters - Storybook pattern (sidebar + content switching)", () => {
-  test("switching from long content to short content clears old chars", async () => {
-    const sections = [
-      {
-        title: "Rich Text",
-        content: [
-          "Rich Text Rendering Demo - Very long line content here",
-          "  Bold, italic, underline, strikethrough styles",
-          "  Colors: red, green, blue, cyan, magenta",
-          "  Background colors and dim text applied",
-          "  Nested styling with multiple attributes",
-        ],
-      },
-      {
-        title: "Tags",
-        content: ["Tags Section", "  Simple"],
-      },
-      {
-        title: "Fold Markers",
-        content: [
-          "Fold Markers Section",
-          "  Fold State Indicators",
-          "  Marker Constants",
-          "  Colored Fold Markers Applied",
-        ],
-      },
-    ]
-
-    function SidebarApp() {
-      const [idx, setIdx] = useState(0)
-      useInput((input) => {
-        if (input === "j")
-          setIdx((prev) => Math.min(prev + 1, sections.length - 1))
-        if (input === "k") setIdx((prev) => Math.max(prev - 1, 0))
-      })
-
-      const section = sections[idx]!
-      return (
-        <Box flexDirection="row" width={70} height={20}>
-          {/* Sidebar */}
-          <Box
-            flexDirection="column"
-            width={20}
-            borderStyle="single"
-            borderColor="gray"
+  const section = sections[idx]!
+  return (
+    <Box flexDirection="row" width={70} height={20}>
+      <Box
+        flexDirection="column"
+        width={20}
+        borderStyle="single"
+        borderColor="gray"
+        paddingX={1}
+      >
+        <Text bold color="yellow">
+          Sections
+        </Text>
+        {sections.map((s, i) => (
+          <Text
+            key={s.title}
+            backgroundColor={i === idx ? "cyan" : undefined}
+            color={i === idx ? "black" : "white"}
           >
-            <Text bold>Sections</Text>
-            {sections.map((s, i) => (
-              <Text
-                key={s.title}
-                backgroundColor={i === idx ? "cyan" : undefined}
-                color={i === idx ? "black" : "white"}
-              >
-                {i === idx ? ">" : " "} {s.title}
-              </Text>
-            ))}
-          </Box>
-          {/* Content */}
-          <Box flexDirection="column" flexGrow={1} overflow="hidden">
-            {section.content.map((line, i) => (
-              <Text key={i}>{line}</Text>
-            ))}
-          </Box>
-        </Box>
-      )
+            {i === idx ? "▸" : " "} {s.title}
+          </Text>
+        ))}
+      </Box>
+      <Box flexDirection="column" flexGrow={1} paddingX={1} overflow="hidden">
+        {section.lines.map((line, i) => (
+          <Text key={i}>{line}</Text>
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
+describe("Ghost characters — cumulative terminal replay", () => {
+  test("storybook: navigate all sections down then back up", async () => {
+    const render = createRenderer({ incremental: true, cols: 80, rows: 24 })
+    const app = render(<StorybookApp />)
+    const term = createRunningTerminal(80, 24)
+
+    // Initial render
+    term.update(app.lastBuffer()!, "initial")
+
+    // Capture screen text at each section on first visit
+    const firstVisit: string[] = [app.text]
+
+    // Navigate down through all sections
+    for (let i = 1; i < sections.length; i++) {
+      await app.press("j")
+      term.update(app.lastBuffer()!, `j → ${sections[i]!.title}`)
+      firstVisit.push(app.text)
     }
 
-    const app = render(<SidebarApp />)
-    expect(app.text).toContain("Rich Text Rendering Demo")
+    // Navigate all the way back up
+    for (let i = sections.length - 2; i >= 0; i--) {
+      await app.press("k")
+      term.update(app.lastBuffer()!, `k → ${sections[i]!.title}`)
 
-    // Long → Short: most likely to cause ghost chars
-    const buf0 = app.lastBuffer()
-    await app.press("j")
-    verifyReplay(buf0, app.lastBuffer(), "Rich Text → Tags")
-    verifyIncremental(app, "Rich Text → Tags")
-    expect(app.text).toContain("Tags Section")
-    expect(app.text).not.toContain("Rich Text Rendering Demo")
-    expect(app.text).not.toContain("Background colors")
-
-    // Short → Long
-    const buf1 = app.lastBuffer()
-    await app.press("j")
-    verifyReplay(buf1, app.lastBuffer(), "Tags → Fold Markers")
-    verifyIncremental(app, "Tags → Fold Markers")
-    expect(app.text).toContain("Fold Markers Section")
-
-    // Long → Short (back)
-    const buf2 = app.lastBuffer()
-    await app.press("k")
-    verifyReplay(buf2, app.lastBuffer(), "Fold Markers → Tags")
-    verifyIncremental(app, "Fold Markers → Tags")
-    expect(app.text).toContain("Tags Section")
-    expect(app.text).not.toContain("Fold Markers Section")
-    expect(app.text).not.toContain("Colored Fold Markers")
+      // Screen should be identical to first visit of this section
+      expect(app.text).toBe(firstVisit[i])
+    }
   })
 
-  test("styled content switching preserves border integrity", async () => {
-    function App() {
-      const [idx, setIdx] = useState(0)
-      useInput((input) => {
-        if (input === "j") setIdx(1)
-        if (input === "k") setIdx(0)
-      })
+  test("storybook: bounce between long and short sections", async () => {
+    const render = createRenderer({ incremental: true, cols: 80, rows: 24 })
+    const app = render(<StorybookApp />)
+    const term = createRunningTerminal(80, 24)
 
-      return (
-        <Box flexDirection="row" width={60} height={10}>
-          <Box flexDirection="column" width={15} borderStyle="single">
-            <Text>Sidebar</Text>
-            <Text>{idx === 0 ? "> A" : "  A"}</Text>
-            <Text>{idx === 1 ? "> B" : "  B"}</Text>
-          </Box>
-          <Box flexDirection="column" flexGrow={1} overflow="hidden">
-            {idx === 0 ? (
-              <>
-                <Text color="red">
-                  Long colored line that fills the content area
-                </Text>
-                <Text color="green">
-                  Another styled line with green text here
-                </Text>
-                <Text color="blue">Third line in blue for visual variety</Text>
-              </>
-            ) : (
-              <Text>Short plain text</Text>
-            )}
-          </Box>
-        </Box>
-      )
-    }
+    term.update(app.lastBuffer()!, "initial (Rich Text)")
 
-    const app = render(<App />)
-    expect(app.text).toContain("Long colored line")
-
-    // Switch to shorter content — styled text should be fully cleared
-    const buf0 = app.lastBuffer()
+    // Rich Text (5 lines) → Tags (2 lines) — big shrink
     await app.press("j")
-    verifyReplay(buf0, app.lastBuffer(), "styled long → short")
-    verifyIncremental(app, "styled long → short")
-    expect(app.text).toContain("Short plain text")
-    expect(app.text).not.toContain("Long colored line")
-    expect(app.text).not.toContain("green text")
-    expect(app.text).not.toContain("blue for visual")
+    term.update(app.lastBuffer()!, "j → Tags")
 
-    // Switch back to longer content
-    const buf1 = app.lastBuffer()
+    // Tags → Rich Text — back to long
     await app.press("k")
-    verifyReplay(buf1, app.lastBuffer(), "short → styled long")
-    verifyIncremental(app, "short → styled long")
-    expect(app.text).toContain("Long colored line")
+    term.update(app.lastBuffer()!, "k → Rich Text")
+
+    // Again: Rich Text → Tags → Fold Markers → Tags → Rich Text
+    await app.press("j")
+    term.update(app.lastBuffer()!, "j → Tags (2nd)")
+    await app.press("j")
+    term.update(app.lastBuffer()!, "j → Fold Markers")
+    await app.press("k")
+    term.update(app.lastBuffer()!, "k → Tags (3rd)")
+    await app.press("k")
+    term.update(app.lastBuffer()!, "k → Rich Text (3rd)")
+
+    // Rapid bounce: j j k k j j k k
+    for (const key of ["j", "j", "k", "k", "j", "j", "k", "k"]) {
+      await app.press(key)
+      term.update(app.lastBuffer()!, `rapid ${key}`)
+    }
+  })
+
+  test("board driver: navigate and switch views", async () => {
+    const nodes = item.root(
+      "board",
+      item(
+        "Inbox",
+        item("Short task"),
+        item("A much longer task name that fills more horizontal space"),
+        item("Medium task"),
+      ),
+      item(
+        "In Progress",
+        item("Working on feature X with a long description text"),
+        item("Bug fix"),
+      ),
+      item(
+        "Done",
+        item("Completed task alpha"),
+        item("Beta release"),
+        item("Gamma"),
+      ),
+    )
+
+    const driver = createBoardDriver(createFakeRepo({ nodes }), "board", {
+      incremental: true,
+      columns: 80,
+      rows: 24,
+    })
+
+    const term = createRunningTerminal(80, 24)
+    term.update(driver.lastBuffer()!, "initial")
+
+    // Navigate: j j l j j h k v j v k k
+    const sequence = [
+      "j",
+      "j",
+      "l",
+      "j",
+      "j",
+      "h",
+      "k",
+      "v",
+      "j",
+      "v",
+      "k",
+      "k",
+    ]
+    for (const key of sequence) {
+      driver.press(key)
+      term.update(driver.lastBuffer()!, `press("${key}")`)
+    }
   })
 })

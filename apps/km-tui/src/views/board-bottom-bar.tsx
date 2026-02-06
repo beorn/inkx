@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from "react"
 import { Box, Text } from "inkx"
+import { toast } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import type { UIState } from "../ui-reducer.ts"
 import type { TUIBoardState } from "../types.ts"
@@ -33,6 +34,23 @@ function useFlashOnChange(value: number): boolean {
   }, [value])
 
   return flash
+}
+
+/** Hook to fire a toast when console log count increases */
+function useLogToast(total: number): void {
+  const prevRef = React.useRef(total)
+
+  useEffect(() => {
+    if (total <= prevRef.current) {
+      prevRef.current = total
+      return
+    }
+    prevRef.current = total
+    if (total === 0) return
+    // @ts-expect-error - React internal flag set by inkx test renderer
+    if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
+    toast.info(`${total} log messages — press \` to see`)
+  }, [total])
 }
 
 /** Hook for animated spinner frame - uses React from inkx to avoid version mismatch */
@@ -97,8 +115,16 @@ export function BottomBar({
   // Only run spinner animation when actually displaying it
   const spinnerFrame = useSpinnerFrame(isLoading)
 
-  // Flash bright white for 3s when console stats change
-  const consoleFlash = useFlashOnChange(consoleStats?.total ?? 0)
+  // Flash white for 3s when any counter changes
+  const logTotal = consoleStats?.total ?? 0
+  const hasWarnings =
+    (consoleStats?.errors ?? 0) > 0 || (consoleStats?.warnings ?? 0) > 0
+  const logFlash = useFlashOnChange(logTotal)
+  const nodeFlash = useFlashOnChange(nodeCount)
+  const fileFlash = useFlashOnChange(ui.watcherStatus?.watchedPaths ?? 0)
+
+  // Toast notification when new logs arrive (debounced by console subscription)
+  useLogToast(logTotal)
 
   // Shorten path: replace home directory with ~/
   let displayPath = state.rootPath || ""
@@ -115,25 +141,6 @@ export function BottomBar({
   if (ui.showProjectPicker) statusParts.push("[PROJ]")
   if (ui.showNewItemDialog) statusParts.push("[NEW]")
   if (ui.inOutlineMode) statusParts.push("OUT")
-
-  // Console indicator built separately (needs its own color for flash effect)
-  let consoleText = ""
-  let consoleHint = ""
-  if (consoleStats && consoleStats.total > 0) {
-    consoleText = `LOGS ${consoleStats.total}`
-    if (consoleStats.errors > 0 || consoleStats.warnings > 0) {
-      const parts: string[] = []
-      if (consoleStats.errors > 0) parts.push(`${consoleStats.errors}✗`)
-      if (consoleStats.warnings > 0) parts.push(`${consoleStats.warnings}⚠`)
-      consoleText += ` (${parts.join(" ")})`
-    }
-    // Contextual hint only during flash or when console is open
-    if (ui.showConsole) {
-      consoleHint = "  press ESC to close"
-    } else if (consoleFlash) {
-      consoleHint = "  press ` to see"
-    }
-  }
 
   // Status message shown after mode indicators
   if (ui.status) {
@@ -193,26 +200,28 @@ export function BottomBar({
             </Text>
           </>
         )}
-        {consoleText && (
-          <>
-            <Text dimColor>{"   "}</Text>
-            <Text
-              id="console-indicator"
-              dimColor={!consoleFlash && !ui.showConsole}
-              bold={consoleFlash || ui.showConsole}
-            >
-              {consoleText}
-            </Text>
-            {consoleHint && <Text dimColor={!consoleFlash}>{consoleHint}</Text>}
-          </>
-        )}
       </Box>
-      {/* Right side: intrinsic width, nested Text for testable IDs */}
+      {/* Right side: counters group + view info */}
       <Box flexGrow={0} flexShrink={0}>
         <Text dimColor>
           {" "}
-          <Text id="node-count">📋{nodeCount}</Text>
-          {watcherInfo && <Text id="watcher-status">{watcherInfo}</Text>}
+          {/* Log counter (only when logs exist) */}
+          {logTotal > 0 && (
+            <Text dimColor={!logFlash} id="console-indicator">
+              {hasWarnings ? "⚠" : "💬"}
+              {logTotal}{" "}
+            </Text>
+          )}
+          {/* Node counter */}
+          <Text dimColor={!nodeFlash} id="node-count">
+            📋{nodeCount}
+          </Text>
+          {/* Watcher/file counter */}
+          {watcherInfo && (
+            <Text dimColor={!fileFlash} id="watcher-status">
+              {watcherInfo}
+            </Text>
+          )}
           {showColPosition && (
             <>
               {"   "}

@@ -1346,7 +1346,7 @@ describe("Folding", () => {
     board.press("z")
     board.expect("#child1").not.toExist()
     const output = board.screenshot()
-    expect(output).toContain("▶ 2") // Folded indicator
+    expect(output).toContain("▶\uFE0F 2") // Folded indicator (VS16 for emoji presentation)
   })
 
   test("folded card shows count indicator", () => {
@@ -1358,7 +1358,7 @@ describe("Folding", () => {
     )
     board.press("z")
     const output = board.screenshot()
-    expect(output).toContain("▶ 3")
+    expect(output).toContain("▶\uFE0F 3")
   })
 })
 
