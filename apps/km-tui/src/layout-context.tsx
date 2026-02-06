@@ -1,51 +1,26 @@
 /**
- * Layout Context
+ * Layout Hook
  *
- * Provides card position registry to child components.
+ * Provides card position registry via the Zustand store.
  * Components register their positions during useLayoutEffect,
  * which are then available for h/l navigation to find cards by Y position.
  */
 
-import React, { createContext, useContext } from "react"
+import { useApp as useAppStore } from "inkx/runtime"
+import type { BoardAppStore } from "./board-app-store.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
 
-// =============================================================================
-// Context
-// =============================================================================
-
-const LayoutContext = createContext<LayoutRegistry | null>(null)
-
-// =============================================================================
-// Provider
-// =============================================================================
-
-interface LayoutProviderProps {
-  /** The position registry instance (created by parent) */
-  registry: LayoutRegistry
-  children: React.ReactNode
-}
-
 /**
- * Provider that makes the card position registry available to child components.
- * The registry is created by the parent (Board) so it can also be passed to ActionCtx.
- */
-export function LayoutProvider({
-  registry,
-  children,
-}: LayoutProviderProps): React.ReactElement {
-  return (
-    <LayoutContext.Provider value={registry}>{children}</LayoutContext.Provider>
-  )
-}
-
-// =============================================================================
-// Hooks
-// =============================================================================
-
-/**
- * Get the layout registry, returning null if not within LayoutProvider.
+ * Get the layout registry from the store, returning null if no store context.
  * Use this for optional position tracking (e.g., in tests).
  */
 export function useLayoutRegistryOptional(): LayoutRegistry | null {
-  return useContext(LayoutContext)
+  try {
+    return useAppStore<BoardAppStore, LayoutRegistry | null>(
+      (s) => s.layoutRegistry ?? null,
+    )
+  } catch {
+    // No StoreContext available (e.g., static rendering tests)
+    return null
+  }
 }

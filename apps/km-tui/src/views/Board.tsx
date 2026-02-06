@@ -41,8 +41,6 @@ import { ColumnsView } from "./ColumnsView.tsx"
 import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { renderPath } from "../layout/index.ts"
-import { UIProvider } from "../ui-context.tsx"
-import { LayoutProvider } from "../layout-context.tsx"
 import { type LayoutRegistry } from "../card-positions.ts"
 import { actions, type UIState, type UIAction } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
@@ -210,8 +208,6 @@ export function BoardCore({
 
   return (
     <ConstraintRoot>
-      <LayoutProvider registry={layoutRegistry}>
-        <UIProvider state={ui} dispatch={dispatch}>
           <Box
             id={state.rootId ?? undefined}
             data-view="board"
@@ -475,8 +471,6 @@ export function BoardCore({
               <Text data-bell={ui.bellState}>{/* Bell triggered */}</Text>
             )}
           </Box>
-        </UIProvider>
-      </LayoutProvider>
     </ConstraintRoot>
   )
 }

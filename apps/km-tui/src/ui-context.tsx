@@ -1,120 +1,40 @@
 /**
- * UI Context for Board Component
+ * UI Hooks for Board Components
  *
- * Provides UI state and dispatch to child components via React context.
- * Uses reselect for memoized selectors to prevent unnecessary re-renders.
+ * Provides UI state selectors and dispatch via the Zustand store.
+ * Uses reselect for memoized compound selectors to prevent unnecessary re-renders.
  */
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useSyncExternalStore,
-  type Dispatch,
-} from "react"
+import { useMemo } from "react"
+import { useApp as useAppStore } from "inkx/runtime"
 import { createSelector } from "reselect"
 import type { UIState, UIAction } from "./ui-reducer.ts"
+import type { BoardAppStore } from "./board-app-store.ts"
 import { useRepo } from "./repo-context.tsx"
 
 // =============================================================================
-// Context Types
-// =============================================================================
-
-interface UIContextValue {
-  getState: () => UIState
-  dispatch: Dispatch<UIAction>
-  subscribe: (callback: () => void) => () => void
-}
-
-const UIContext = createContext<UIContextValue | null>(null)
-
-// =============================================================================
-// Provider Component
-// =============================================================================
-
-interface UIProviderProps {
-  state: UIState
-  dispatch: Dispatch<UIAction>
-  children: React.ReactNode
-}
-
-/**
- * Provider that makes UI state available to child components.
- * Uses a subscription model for fine-grained re-renders.
- */
-export function UIProvider({
-  state,
-  dispatch,
-  children,
-}: UIProviderProps): React.ReactElement {
-  // Use ref to always have current state without causing re-renders
-  const stateRef = useRef(state)
-  const listenersRef = useRef(new Set<() => void>())
-
-  // Update ref synchronously so getState() returns current value
-  stateRef.current = state
-
-  // Notify listeners AFTER render completes to avoid "Cannot update component
-  // while rendering" React error. This is critical for inkx which re-renders
-  // more aggressively than stock ink.
-  useEffect(() => {
-    for (const listener of listenersRef.current) {
-      listener()
-    }
-  }, [state])
-
-  const value = useMemo(
-    () => ({
-      getState: () => stateRef.current,
-      dispatch,
-      // eslint-disable-next-line promise/prefer-await-to-callbacks -- subscribe pattern requires callback
-      subscribe: (callback: () => void) => {
-        listenersRef.current.add(callback)
-        return () => listenersRef.current.delete(callback)
-      },
-    }),
-    [dispatch],
-  )
-
-  return <UIContext.Provider value={value}>{children}</UIContext.Provider>
-}
-
-// =============================================================================
-// Hooks
+// Core Hooks
 // =============================================================================
 
 /**
  * Select a slice of UI state with automatic memoization.
- * Only re-renders when the selected value changes.
+ * Only re-renders when the selected value changes (via Zustand + React useState).
  *
  * @example
  * const showHelp = useUISelector(state => state.showHelp);
  * const isSelected = useUISelector(state => state.multiSelected.has(myKey));
  */
 export function useUISelector<T>(selector: (state: UIState) => T): T {
-  const context = useContext(UIContext)
-  if (!context) {
-    throw new Error("useUISelector must be used within UIProvider")
-  }
-
-  return useSyncExternalStore(
-    context.subscribe,
-    () => selector(context.getState()),
-    () => selector(context.getState()),
-  )
+  return useAppStore<BoardAppStore, T>((s) => selector(s.ui))
 }
 
 /**
- * Get UI dispatch function (stable reference from context).
+ * Get UI dispatch function (stable reference from store).
  */
-export function useUIDispatch(): Dispatch<UIAction> {
-  const context = useContext(UIContext)
-  if (!context) {
-    throw new Error("useUIDispatch must be used within UIProvider")
-  }
-  return context.dispatch
+export function useUIDispatch(): (action: UIAction) => void {
+  return useAppStore<BoardAppStore, BoardAppStore["dispatchUI"]>(
+    (s) => s.dispatchUI,
+  )
 }
 
 // =============================================================================

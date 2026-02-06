@@ -58,9 +58,12 @@ function renderBoardCore(
     moveMode: false,
     colScrollOffset: 0,
   })
-  // Wrap in StoreContext so TreeNode's useAppStore(s => s.foldedNodes) works
+  // Wrap in StoreContext so TreeNode's store-backed hooks work
   const store = createStore(() => ({
     foldedNodes: new Set<string>(),
+    ui: createInitialUIState("cards", [], { columns: width, rows: height }),
+    layoutRegistry: null,
+    dispatchUI: () => {},
   }))
   return React.createElement(
     StoreContext.Provider,
