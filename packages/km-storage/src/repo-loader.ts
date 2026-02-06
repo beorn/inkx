@@ -711,7 +711,7 @@ function* applyEvents(
     db.run("COMMIT")
 
     if (skippedDuplicates > 0) {
-      log.warn?.(
+      log.debug?.(
         `Skipped ${skippedDuplicates} stale events. ` +
           `Run 'km doctor gc' to compact, or 'km doctor' for details. Use -vv to see per-event info.`,
       )
