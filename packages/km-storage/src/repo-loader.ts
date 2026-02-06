@@ -549,13 +549,13 @@ function* discoverFromEvents(
 
   // Filter to only new events (unless force rebuild)
   let events: Event[]
+  const lastApplied = db
+    .prepare("SELECT value FROM meta WHERE key = ?")
+    .get("last_event") as { value: string } | undefined
+
   if (force) {
     events = allEvents
   } else {
-    const lastApplied = db
-      .prepare("SELECT value FROM meta WHERE key = ?")
-      .get("last_event") as { value: string } | undefined
-
     events = lastApplied?.value
       ? allEvents.filter((e) => e.id > lastApplied.value)
       : allEvents
@@ -571,9 +571,11 @@ function* discoverFromEvents(
 // SHARED INSERT HELPERS
 // ============================================================================
 
-/** SQL for the 26-column INSERT used by applyEvents, parseDeferredSequential, and parseStubFile. */
+/** SQL for the 26-column INSERT used by applyEvents, parseDeferredSequential, and parseStubFile.
+ * Uses INSERT OR IGNORE to match applyEventWithDb behavior — in disk mode,
+ * events.jsonl may contain events for nodes that already exist in state.db. */
 const INSERT_NODE_SQL = `
-  INSERT INTO nodes (
+  INSERT OR IGNORE INTO nodes (
     id, type, parent_id, link_to, link_alias, parent_idx,
     fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
     task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
@@ -626,7 +628,6 @@ function insertNodeRow(
 // SHARED PIPELINE
 // ============================================================================
 
-// oxlint-disable-next-line complexity/max-cognitive, complexity/max-cyclomatic -- Event application with inline SQL and error categorization
 function* applyEvents(
   db: Database,
   events: Event[],
@@ -638,7 +639,6 @@ function* applyEvents(
   if (total === 0) return
 
   db.run("BEGIN IMMEDIATE")
-  let skippedDuplicates = 0
   try {
     const insertStmt = db.prepare(INSERT_NODE_SQL)
 
@@ -646,6 +646,9 @@ function* applyEvents(
       try {
         if (event.type === "node_created") {
           const data = event.data as Record<string, unknown>
+          // INSERT OR IGNORE: in disk mode, state.db may already have nodes
+          // from km sync that events.jsonl also references (last_event cursor
+          // may not cover all events). Matches applyEventWithDb behavior.
           insertStmt.run(
             data.id as string,
             data.type as string,
@@ -679,29 +682,7 @@ function* applyEvents(
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        // UNIQUE constraint failures indicate stale events in events.jsonl
-        // (events referencing nodes that already exist from file parsing)
-        if (message.includes("UNIQUE constraint failed")) {
-          skippedDuplicates++
-          // Per-event detail at debug level (visible with -vv)
-          // Outdated events reference nodes no longer in the database
-          // (from a previous DB instance). Safe to remove.
-          if (event.type === "node_created") {
-            const d = event.data as Record<string, unknown>
-            log.debug?.(
-              `Outdated event: ${d.type} "${d.name || d.title || "(unnamed)"}" ` +
-                `id=${(d.id as string)?.slice(-8) ?? "?"} ` +
-                (d.fs_path ? `path=${d.fs_path} ` : "") +
-                (d.parent_id
-                  ? `parent=${(d.parent_id as string).slice(-8)} `
-                  : "") +
-                `event=${event.id.slice(-8)} ` +
-                `ts=${new Date(event.ts).toISOString()}`,
-            )
-          }
-        } else {
-          errors.push({ phase: "apply", message })
-        }
+        errors.push({ phase: "apply", message })
       }
 
       if (i % 100 === 0 || i === total - 1) {
@@ -709,13 +690,6 @@ function* applyEvents(
       }
     }
     db.run("COMMIT")
-
-    if (skippedDuplicates > 0) {
-      log.debug?.(
-        `Skipped ${skippedDuplicates} stale events. ` +
-          `Run 'km doctor gc' to compact, or 'km doctor' for details. Use -vv to see per-event info.`,
-      )
-    }
   } catch (error) {
     db.run("ROLLBACK")
     throw error
