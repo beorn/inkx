@@ -937,8 +937,8 @@ watch:
 ```bash
 km watch              # Start watch daemon
 km sync               # One-time sync
-km rebuild --from-fs  # Rebuild state from filesystem
-km rebuild --from-db  # Rebuild filesystem from state
+km doctor rebuild     # Rebuild state.db from events + worktree
+km doctor reset       # Reset from worktree only (trust filesystem)
 ```
 
 ---

@@ -137,7 +137,7 @@ export const migrateCommand = new Command("migrate")
       console.log(
         term.green(`✓ Migrated ${result.migrated} issues to ${targetDir}`),
       )
-      console.log(term.dim("Run 'km rebuild' to index the new files."))
+      console.log(term.dim("Run 'km doctor rebuild' to index the new files."))
     }
   })
 

@@ -139,7 +139,10 @@ km init --no-gtd            # Skip GTD boards
 
 km sync                     # Sync filesystem changes
 km sync --watch             # Watch mode - continuous sync
-km rebuild                  # Rebuild state.db from events.jsonl
+km doctor                   # Diagnose store health
+km doctor gc                # Compact stale events + vacuum db
+km doctor rebuild           # Rebuild state.db from events + worktree
+km doctor reset             # Reset from worktree only
 ```
 
 ---

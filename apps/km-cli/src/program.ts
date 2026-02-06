@@ -32,7 +32,7 @@ import { showCommand } from "./commands/show.ts"
 import { viewCommand } from "./commands/view.ts"
 import { syncCommand } from "./commands/sync.ts"
 import { watchCommand } from "./commands/watch.ts"
-import { rebuildCommand } from "./commands/rebuild.ts"
+import { doctorCommand } from "./commands/doctor.ts"
 import { taskCommand } from "./commands/tasks.ts"
 import { listCommand } from "./commands/list.ts"
 import { initCommand } from "./commands/init.ts"
@@ -276,7 +276,7 @@ Verbosity:
   program.addCommand(initCommand) // km init - create .km/ for disk mode
   program.addCommand(syncCommand) // km sync [--watch] - sync filesystem (with optional continuous watch)
   program.addCommand(watchCommand) // km watch - deprecated, use 'km sync --watch' instead
-  program.addCommand(rebuildCommand) // km rebuild - rebuild state
+  program.addCommand(doctorCommand) // km doctor - diagnose and repair stores
   program.addCommand(daemonCommand) // km daemon {start,stop,status} - background daemon
   program.addCommand(shCommand) // km sh [root] - scripting shell for TUI2 debugging
   program.addCommand(bdCommand) // km bd - issue tracking (beads-compatible)

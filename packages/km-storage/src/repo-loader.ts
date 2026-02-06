@@ -712,8 +712,8 @@ function* applyEvents(
 
     if (skippedDuplicates > 0) {
       log.warn?.(
-        `Skipped ${skippedDuplicates} outdated events (reference nodes no longer in the database). ` +
-          `Safe to remove: delete .km/events.jsonl and re-sync. Use -vv to see details.`,
+        `Skipped ${skippedDuplicates} stale events. ` +
+          `Run 'km doctor gc' to compact, or 'km doctor' for details. Use -vv to see per-event info.`,
       )
     }
   } catch (error) {

@@ -49,6 +49,7 @@ See [docs/principles.md](docs/principles.md) for patterns, layout, and quick ref
 ## Issue Tracking
 
 Use `/pm` for beads (bugs/tasks/features) and claim before starting: `bd update <id> --claim`.
+Any significant work (features, bug fixes, refactors) should have a bead — consider creating one when planning.
 See [.claude/skills/pm/] for commands and common mistakes.
 
 ## Commits

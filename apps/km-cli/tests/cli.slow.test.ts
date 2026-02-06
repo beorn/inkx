@@ -325,21 +325,28 @@ describe("CLI Integration", () => {
   // Note: km search removed - use 'km list' for filtering
   // Note: km tree removed - use 'km view' with 'v' to toggle board/tree
 
-  describe("km rebuild", () => {
+  describe("km doctor", () => {
     beforeEach(async () => {
       createFile("test.md", "# Test\n\n- [ ] Task\n")
       await km(["sync"])
     })
 
-    test("should rebuild database from events", async () => {
-      const result = await km(["rebuild"])
+    test("should show store health", async () => {
+      const result = await km(["doctor"])
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain("Worktree")
+      expect(result.stdout).toContain("state.db")
+    })
+
+    test("should rebuild database", async () => {
+      const result = await km(["doctor", "rebuild"])
       expect(result.exitCode).toBe(0)
       const listResult = await km(["tasks"])
       expect(listResult.stdout).toContain("Task")
     })
 
-    test("should support --fresh flag", async () => {
-      const result = await km(["rebuild", "--fresh"])
+    test("should reset from worktree", async () => {
+      const result = await km(["doctor", "reset"])
       expect(result.exitCode).toBe(0)
     })
   })

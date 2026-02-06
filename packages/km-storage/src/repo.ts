@@ -573,7 +573,7 @@ export class IncompleteDatabase extends Error {
         `  Reason: ${reason}\n` +
         `  Path:   ${kmDir}\n\n` +
         `  To rebuild the database:\n` +
-        `    km init --force ${repoPath}`,
+        `    km doctor rebuild ${repoPath}`,
     )
     this.name = "IncompleteDatabase"
   }

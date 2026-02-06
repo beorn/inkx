@@ -104,6 +104,16 @@ export type {
 } from "./repo-loader.ts"
 export type { LoadError as RepoLoaderError } from "./repo-loader.ts"
 
+// Event compaction & store health diagnostics
+export {
+  identifyStaleEvents,
+  compactEvents,
+  vacuumDb,
+  getStoreHealth,
+} from "./event-compaction.ts"
+
+export type { CompactionResult, StoreHealth } from "./event-compaction.ts"
+
 // km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
 export { createParsePool } from "./parse-pool.ts"
