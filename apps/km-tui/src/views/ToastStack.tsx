@@ -6,6 +6,7 @@
 import React from "react"
 import { Box, Text } from "inkx"
 import type { Toast as ToastType } from "@km/core"
+import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT } from "./board-layout.ts"
 
 interface ToastStackProps {
   toasts: ToastType[]
@@ -108,16 +109,23 @@ export function ToastStack({
   // Calculate margins to push toasts to bottom-right
   const toastMaxWidth = 62 // Max toast width (60) + border (2)
   const marginRight = 2
-  const bottomBarHeight = 1
+  const reservedRows = TOP_BAR_HEIGHT + BOTTOM_BAR_HEIGHT
 
-  // Calculate approximate height needed for all toasts
-  // Each toast is roughly 3-4 lines (border + content + possible description + gap)
+  // Calculate height needed for all toasts
+  // Each toast: 2 (border) + 1 (message) + description + visible items
   const estimatedHeight = visibleToasts.reduce((total, t) => {
-    const hasDescription = !!t.description
-    return total + (hasDescription ? 4 : 3) + 1 // +1 for gap
+    let lines = 3 // border top + message + border bottom
+    if (t.description) lines += 1
+    const threshold = t.itemThreshold ?? 3
+    if (t.items && t.items.length > 0 && t.items.length < threshold) {
+      lines += t.items.length
+    }
+    return total + lines
   }, 0)
+  // Add gaps between toasts (gap={1} adds N-1 gaps for N toasts)
+  const totalHeight = estimatedHeight + Math.max(0, visibleToasts.length - 1)
 
-  const marginTop = Math.max(0, termHeight - bottomBarHeight - estimatedHeight)
+  const marginTop = Math.max(0, termHeight - reservedRows - totalHeight)
   const marginLeft = Math.max(0, termWidth - toastMaxWidth - marginRight)
 
   return (

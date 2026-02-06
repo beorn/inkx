@@ -15,7 +15,7 @@ import {
 } from "inkx"
 import { createConditionalLogger } from "@beorn/logger"
 import React from "react"
-import { createLogger } from "@km/core"
+import { createLogger, toastQueue } from "@km/core"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
@@ -209,6 +209,9 @@ export async function runBoard(
 
     await instance.waitUntilExit()
   } finally {
+    // Clear toast auto-dismiss timers so they don't keep the event loop alive
+    toastQueue.dismissAll()
+
     // Dispose patched console (restores original console methods)
     patched?.[Symbol.dispose]()
 

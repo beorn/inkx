@@ -164,4 +164,51 @@ describe("Toast rendering", () => {
     const toastEls = board.q("#toast")
     expect(toastEls.count()).toBe(3)
   })
+
+  test("toast does not overlap the bottom bar", () => {
+    const rows = 24
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))), {
+      rows,
+    })
+
+    toast.info("Hello world")
+    board.press("l")
+    board.press("h")
+
+    // Toast should exist
+    const toastEl = board.q("#toast")
+    expect(toastEl.count()).toBe(1)
+
+    // Bottom bar is at the last row (row index = rows - 1 = 23)
+    const bottomBarBox = board.q("#bottom-bar").boundingBox()
+    const toastBox = toastEl.boundingBox()
+
+    // Toast bottom edge must not reach the bottom bar row
+    expect(toastBox.y + toastBox.height).toBeLessThanOrEqual(bottomBarBox.y)
+  })
+
+  test("toast with items does not overlap the bottom bar", () => {
+    const rows = 24
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))), {
+      rows,
+    })
+
+    // Toast with items - items add extra rows that the height estimation
+    // does not account for, causing overlap with the bottom bar
+    toast.info("Files synced", {
+      items: ["file1.md", "file2.md"],
+      itemThreshold: 3,
+    })
+    board.press("l")
+    board.press("h")
+
+    const toastEl = board.q("#toast")
+    expect(toastEl.count()).toBe(1)
+
+    const bottomBarBox = board.q("#bottom-bar").boundingBox()
+    const toastBox = toastEl.boundingBox()
+
+    // Toast bottom edge must be above the bottom bar
+    expect(toastBox.y + toastBox.height).toBeLessThanOrEqual(bottomBarBox.y)
+  })
 })
