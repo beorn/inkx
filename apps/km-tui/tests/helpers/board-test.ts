@@ -243,7 +243,14 @@ item.code = (content: string): KNode[] => makeNodeWithType(content, "code", {})
 item.quote = (content: string): KNode[] =>
   makeNodeWithType(content, "quote", {})
 
-item.task = (content: string): KNode[] => makeNodeWithType(content, "task", {})
+item.task = (content: string, status?: string): KNode[] => {
+  const nodes = makeNodeWithType(content, "task", {})
+  if (nodes[0]) {
+    nodes[0].task_status = (status ?? "todo") as KNode["task_status"]
+    nodes[0].task_mark = " " as KNode["task_mark"]
+  }
+  return nodes
+}
 
 /**
  * Standard board fixture for common tests

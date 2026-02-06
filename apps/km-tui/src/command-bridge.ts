@@ -29,6 +29,18 @@ export function processKeyWithContext(
 
   const { boardState, ui, layout, selectedNode } = ctx
 
+  // Compute TNode derived fields from KNode for the command system
+  const nodeForCtx: TNode | null = selectedNode
+    ? ({
+        ...selectedNode,
+        isTask: selectedNode.task_status != null,
+        children: [],
+        depth: 0,
+        childCount: 0,
+        childrenLoaded: true,
+      } as TNode)
+    : null
+
   const kbCtx = buildKeybindingContext({
     inMoveMode: boardState.moveMode,
     inSearchMode: ui.showSearchDialog,
@@ -38,16 +50,15 @@ export function processKeyWithContext(
       boardState.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
-    currentNode: (selectedNode as TNode) ?? null,
+    currentNode: nodeForCtx,
     textInputFocused: !!ui.inlineEditNodeId || ui.showSearchDialog,
   })
 
   const { colIndex, cardIndex, columns } = layout
   const column = columns[colIndex]
 
-  // Build CommandContext directly - no legacy shim needed
   const cmdCtx = buildContext(ui.viewMode, {
-    currentNode: (selectedNode as TNode) ?? null,
+    currentNode: nodeForCtx,
     currentNodeId: selectedNode?.id ?? null,
     selectedNodes: Array.from(boardState.selectedNodes),
     siblingCount: column?.cards.length ?? 0,

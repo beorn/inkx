@@ -114,13 +114,13 @@ describe("inkKeyToModifiers", () => {
     expect(result.meta).toBe(false)
   })
 
-  it("maps Ink meta to alt (macOS Option key)", () => {
-    // In Ink, meta represents Alt/Option
+  it("maps Ink meta to meta (Alt/Option on macOS)", () => {
+    // In Ink/inkx, meta represents Alt/Option — pass through as meta
     const result = inkKeyToModifiers({ meta: true })
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(false)
-    expect(result.alt).toBe(true)
-    expect(result.meta).toBe(false) // Our meta stays false
+    expect(result.alt).toBe(false)
+    expect(result.meta).toBe(true)
   })
 
   it("handles multiple modifiers", () => {
@@ -135,8 +135,8 @@ describe("inkKeyToModifiers", () => {
     const result = inkKeyToModifiers({ ctrl: true, shift: true, meta: true })
     expect(result.ctrl).toBe(true)
     expect(result.shift).toBe(true)
-    expect(result.alt).toBe(true) // meta → alt
-    expect(result.meta).toBe(false)
+    expect(result.alt).toBe(false)
+    expect(result.meta).toBe(true) // Ink meta passes through
   })
 
   it("handles empty key event", () => {

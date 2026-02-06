@@ -160,15 +160,13 @@ export function refreshBoardState(
   const maxCardIndex = Math.max(0, cards.length - 1)
   cardIndex = Math.min(cardIndex, maxCardIndex)
 
-  // Dispatch navigation if cursor changed
-  if (colIndex !== ctx.layout.colIndex || cardIndex !== ctx.layout.cardIndex) {
-    // Get the target card node ID
-    const targetCard = cards[cardIndex]
-    ctx.dispatchBoard({
-      type: "SELECT",
-      nodeId: targetCard?.id ?? null,
-    })
-  }
+  // Always dispatch SELECT to force re-render after mutations.
+  // Mutations change repo.version but useMemo only re-evaluates on re-render.
+  const targetCard = cards[cardIndex]
+  ctx.dispatchBoard({
+    type: "SELECT",
+    nodeId: targetCard?.id ?? ctx.boardState.cursorNodeId,
+  })
 }
 
 // =============================================================================

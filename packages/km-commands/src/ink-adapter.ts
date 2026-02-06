@@ -58,9 +58,9 @@ export function inkKeyToModifiers(key: InkKeyEvent): {
 } {
   return {
     ctrl: !!key.ctrl,
-    meta: false, // Ink uses meta for Alt
+    meta: !!key.meta, // Alt/Option on macOS terminals
     shift: !!key.shift,
-    alt: !!key.meta, // In Ink, meta is Alt/Option
+    alt: false,
   }
 }
 

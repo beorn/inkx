@@ -264,9 +264,8 @@ export const defaultKeybindings: Keybinding[] = [
 
   // Contextual close/quit (Escape)
   // Closes dialogs, panes, modes, or quits if nothing to close
-  // Note: Allow Meta/Alt modifier (terminal emulation quirk)
+  // Note: Allow Meta modifier (terminal emulation quirk — some terminals send Alt+Escape)
   { key: "Escape", commandId: "close_or_quit" },
-  { key: "Escape", alt: true, commandId: "close_or_quit" },
   { key: "Escape", meta: true, commandId: "close_or_quit" },
 ]
 
