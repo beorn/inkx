@@ -519,9 +519,18 @@ function handleOpenInTerminal(ctx: TUIContext, nodeId: string): void {
   }
   // For files, open terminal at the parent directory
   const dir = result.isFolder ? result.fsPath : dirname(result.fsPath)
-  log.debug?.("open_in_terminal: opening terminal at %s", dir)
-  spawn("open", ["-a", "Terminal", dir], {
-    detached: true,
-    stdio: "ignore",
-  }).unref()
+  const termProgram = process.env.TERM_PROGRAM
+  if (termProgram) {
+    log.debug?.("open_in_terminal: opening %s at %s", termProgram, dir)
+    spawn("open", ["-a", termProgram, dir], {
+      detached: true,
+      stdio: "ignore",
+    }).unref()
+  } else {
+    log.debug?.("open_in_terminal: opening Terminal.app at %s", dir)
+    spawn("open", ["-a", "Terminal", dir], {
+      detached: true,
+      stdio: "ignore",
+    }).unref()
+  }
 }
