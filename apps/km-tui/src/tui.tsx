@@ -200,8 +200,9 @@ export async function runBoard(
 
     // Build store parameters from initial board state
     const initialCursorNodeId = computeInitialCursor(state)
-    const cols = term.cols
-    const rows = term.rows
+    // term.cols/rows are undefined when not a TTY; fall back to stdout then defaults
+    const cols = term.cols ?? process.stdout.columns ?? 80
+    const rows = term.rows ?? process.stdout.rows ?? 24
 
     const initialLayout = {
       columns: state.columns,
