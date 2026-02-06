@@ -393,6 +393,22 @@ describe("Inline Edit — Edge Cases", () => {
     expect(output).toContain("col1")
   })
 
+  test("edit then confirm then edit same node again", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("orig"))))
+
+    // First edit: append "1"
+    board.press("Enter")
+    board.press("1")
+    board.press("Enter")
+    expect(board.screenshot()).toContain("orig1")
+
+    // Second edit should start with "orig1" (not stale "orig")
+    board.press("Enter")
+    board.press("2")
+    board.press("Enter")
+    expect(board.screenshot()).toContain("orig12")
+  })
+
   test("rapid typing produces correct result", () => {
     const { board } = testEnv(() => item("board", item("col1", item("x"))))
 

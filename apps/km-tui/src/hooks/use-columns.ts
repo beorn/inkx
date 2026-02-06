@@ -38,6 +38,7 @@ export function useColumns(
   repo: Repo,
   rootId: string | null,
   foldedNodes: Set<string>,
+  repoVersion = 0,
 ): ColumnState[] {
   return useMemo(() => {
     const start = performance.now()
@@ -49,7 +50,7 @@ export function useColumns(
       )
     }
     return result
-  }, [repo.stats.nodeCount, rootId, foldedNodes])
+  }, [repo.stats.nodeCount, rootId, foldedNodes, repoVersion])
 }
 
 /**

@@ -259,6 +259,7 @@ function TreeNodeImpl({
       const newContent = mark != null ? `[${mark}] ${newValue}` : newValue
       repo.updateNode(displayNode.id, { content: newContent })
       uiDispatch(actions.exitInlineEdit())
+      uiDispatch(actions.bumpRepoVersion())
     },
     [displayNode.id, displayNode.content, repo, uiDispatch],
   )
