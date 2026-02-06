@@ -230,6 +230,79 @@ describe("Inline Edit — Task Marks", () => {
   })
 })
 
+describe("Inline Edit — Navigate Away Saves", () => {
+  test("ArrowDown during edit saves and navigates to next card", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"))),
+    )
+
+    board.expect("#1a[data-cursor]").toExist()
+    board.press("Enter")
+
+    // Type some text
+    for (const c of "-ok") board.press(c)
+
+    // Navigate away with ArrowDown — should save and move cursor
+    board.press("ArrowDown")
+
+    // Cursor should have moved to next card
+    board.expect("#1b[data-cursor]").toExist()
+
+    // Edit should have been saved (check breadcrumb/screenshot for saved content)
+    expect(board.screenshot()).toContain("1a-ok")
+  })
+
+  test("ArrowUp during edit saves and navigates to previous card", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"))),
+    )
+
+    // Navigate to second card
+    board.press("j")
+    board.expect("#1b[data-cursor]").toExist()
+
+    // Edit second card
+    board.press("Enter")
+    for (const c of "-up") board.press(c)
+
+    // Navigate away with ArrowUp — should save and move cursor
+    board.press("ArrowUp")
+
+    board.expect("#1a[data-cursor]").toExist()
+    expect(board.screenshot()).toContain("1b-up")
+  })
+
+  test("navigate away without changes does not save (no-op)", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("orig"), item("1b"))),
+    )
+
+    board.press("Enter")
+    // Don't type anything, just navigate away
+    board.press("ArrowDown")
+
+    board.expect("#1b[data-cursor]").toExist()
+    // Original content should be unchanged
+    expect(board.screenshot()).toContain("orig")
+  })
+
+  test("Escape during edit cancels without saving (no auto-save)", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"))),
+    )
+
+    board.press("Enter")
+    for (const c of "-nope") board.press(c)
+
+    // Escape cancels — should NOT save
+    board.press("Escape")
+
+    // Original content should be preserved (no "-nope")
+    expect(board.screenshot()).toContain("1a")
+    expect(board.screenshot()).not.toContain("1a-nope")
+  })
+})
+
 describe("Inline Edit — Edge Cases", () => {
   test("edit across different columns", () => {
     const { board } = testEnv(() =>

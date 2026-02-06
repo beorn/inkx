@@ -106,6 +106,11 @@ export function useLineEdit({
   const onCancelRef = useRef(onCancel)
   onCancelRef.current = onCancel
 
+  // Track whether cancel() was explicitly called (Escape).
+  // If not cancelled and value changed, auto-save on unmount (navigate-away saves).
+  const cancelledRef = useRef(false)
+  const initialValueRef = useRef(initialValue)
+
   // Build TextEditTarget (stable reference via useMemo with no deps)
   const target: TextEditTarget = useMemo(
     () => ({
@@ -168,9 +173,11 @@ export function useLineEdit({
         updateValueRef.current(value.slice(0, cursor), cursor)
       },
       confirm() {
+        cancelledRef.current = true // Prevent auto-save on unmount
         onConfirmRef.current?.(stateRef.current.value)
       },
       cancel() {
+        cancelledRef.current = true // Prevent auto-save on unmount
         onCancelRef.current?.()
       },
     }),
@@ -179,11 +186,21 @@ export function useLineEdit({
 
   // Register as active text edit target on mount, clear on unmount.
   // useLayoutEffect ensures registration happens before the next input event.
+  // On unmount: if not explicitly cancelled/confirmed and value changed, auto-save.
+  // This implements "navigate away saves" — moving cursor away from an edited node
+  // unmounts the InlineEditField, triggering a save of the edited content.
   useLayoutEffect(() => {
     textEditTargetRef.current = target
     return () => {
       if (textEditTargetRef.current === target) {
         textEditTargetRef.current = null
+      }
+      // Auto-save on unmount if value was modified and not explicitly cancelled/confirmed
+      if (!cancelledRef.current) {
+        const currentValue = stateRef.current.value
+        if (currentValue !== initialValueRef.current) {
+          onConfirmRef.current?.(currentValue)
+        }
       }
     }
   }, [target])

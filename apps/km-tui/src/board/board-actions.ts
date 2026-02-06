@@ -187,6 +187,13 @@ export function handleCommandAction(
 
     // === Board/navigation actions ===
     case "CURSOR_MOVE":
+      // Navigate-away saves: confirm inline edit before moving cursor.
+      // Calling confirm() saves the value and exits inline edit mode.
+      // This fires synchronously before navigation so React picks up
+      // both the repo mutation and cursor change in the same render.
+      if (ctx.ui.inlineEditNodeId && textEditTargetRef.current) {
+        textEditTargetRef.current.confirm()
+      }
       return handleCursorMove(ctx, action.dir)
     case "TOGGLE_FOLD":
       return handleToggleFold(ctx)
