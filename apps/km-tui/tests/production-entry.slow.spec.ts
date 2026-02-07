@@ -242,10 +242,7 @@ describe("production smoke: console toggle", () => {
     expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
 
     // Escape should close console
-    // NOTE: L3 createApp.press() doesn't call keyToAnsi(), so we must send
-    // the raw escape byte (\x1b) instead of "Escape". This is an L3 bug
-    // (km-tui.console / beorn-inkx issue) — L2's press() uses keyToAnsi().
-    await handle.press("\x1b")
+    await handle.press("Escape")
     expect(handle.store.getState().ui.showConsole).toBe(false)
 
     // Now j should work again — check SCREEN not just state
