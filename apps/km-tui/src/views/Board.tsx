@@ -672,15 +672,17 @@ export function Board({
     ensureCommandSystemInitialized()
   }, [])
 
-  // Auto-dismiss bell (10ms flash) and status (3s)
+  // Auto-dismiss status messages after 3s.
+  // Bell state is cleared at the START of the next keypress (board-app.ts line 104),
+  // not via timeout — a timeout would keep the white background visible for the
+  // full render duration during slow renders.
   useEffect(() => {
-    if (!ui.bellState && !ui.status) return
-    const delay = ui.bellState ? 10 : 3000
+    if (!ui.status) return
     const timer = setTimeout(() => {
-      setUI({ bellState: null, status: null })
-    }, delay)
+      setUI({ status: null })
+    }, 3000)
     return () => clearTimeout(timer)
-  }, [ui.bellState, ui.status, setUI])
+  }, [ui.status, setUI])
 
   // Subscribe to external events
   useEffect(() => createFileDropHandler(setUI), [setUI])

@@ -502,6 +502,139 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
   })
 })
 
+describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerender)", () => {
+  test("repo.updateNode() via notifyFs triggers SyncManager write", async () => {
+    // Diagnostic test: verifies the production wiring where
+    // Repo.updateNode() → notifyFs() → emitter.getFsSync().applyEventToFs()
+    // → SyncManager.handleNodeUpdated() → writeQueue → file on disk.
+    const { writeFileSync, readFileSync } = await import("fs")
+    const { join } = await import("path")
+    const { withTestEnv, getAllNodes, createTestEnvRepo } = await import(
+      "@km/storage"
+    )
+    const { SyncManager } = await import(
+      "../../../../packages/km-storage/src/watch/sync.ts"
+    )
+
+    await withTestEnv(async ({ repoDir, db, emitter }) => {
+      // Create a markdown file with a task
+      const testFile = join(repoDir, "tasks.md")
+      writeFileSync(testFile, "# Tasks\n\n- [ ] Original title\n")
+
+      // Create SyncManager (no worker, zero debounce for test)
+      const syncManager = new SyncManager({
+        db,
+        repoPath: repoDir,
+        debounceFs: 100,
+        debounceApply: 0,
+        conflictStrategy: "last_write_wins",
+        useWorker: false,
+      })
+
+      // Wire up fsSync on the emitter (same as tui.tsx line 137)
+      emitter.setFsSync(syncManager)
+
+      // Initial sync to load files into DB
+      await syncManager.syncFromFs()
+
+      // Find the task node
+      const allNodes = getAllNodes(db)
+      const task = allNodes.find((n) => n.type === "task")
+      expect(task).toBeDefined()
+      expect(task!.content).toContain("Original title")
+
+      // Now create a Repo that uses this same db+emitter
+      // (simulating the production path where Repo.updateNode calls notifyFs)
+      const { repo } = createTestEnvRepo({
+        db,
+        repoPath: repoDir,
+        skipPersist: true,
+      })
+
+      // Wire the SAME syncManager to the repo's emitter
+      repo.emitter.setFsSync(syncManager)
+
+      // Use REPO.updateNode() (not data.updateNode()) — this exercises notifyFs()
+      repo.updateNode(task!.id, { content: "Edited title" })
+
+      // Wait for write queue to flush (debounce is 0, but flush is async)
+      await Bun.sleep(200)
+
+      // Verify the file was updated on disk
+      const content = readFileSync(testFile, "utf-8")
+      expect(content).toContain("Edited title")
+      expect(content).not.toContain("Original title")
+
+      // Clean up
+      emitter.setFsSync(null)
+      repo.emitter.setFsSync(null)
+      await syncManager.stop()
+      repo.close()
+    })
+  })
+
+  test("emitter.getFsSync() returns non-null when wired in tui.tsx pattern", async () => {
+    // Diagnostic: verifies the production wiring step
+    const { withTestEnv } = await import("@km/storage")
+    const { SyncManager } = await import(
+      "../../../../packages/km-storage/src/watch/sync.ts"
+    )
+
+    await withTestEnv(async ({ repoDir, db, emitter }) => {
+      const syncManager = new SyncManager({
+        db,
+        repoPath: repoDir,
+        debounceFs: 100,
+        debounceApply: 0,
+        conflictStrategy: "last_write_wins",
+        useWorker: false,
+      })
+
+      // Before wiring, should be null
+      expect(emitter.getFsSync()).toBeNull()
+
+      // Wire up (same as tui.tsx line 137)
+      emitter.setFsSync(syncManager)
+
+      // After wiring, should be non-null
+      expect(emitter.getFsSync()).not.toBeNull()
+
+      // Clean up
+      emitter.setFsSync(null)
+      await syncManager.stop()
+    })
+  })
+
+  test("shouldApplyToFs returns true for actor=user", async () => {
+    const { shouldApplyToFs } = await import(
+      "../../../../packages/km-storage/src/watch/writequeue.ts"
+    )
+    expect(shouldApplyToFs("user")).toBe(true)
+    expect(shouldApplyToFs("fs-watch")).toBe(false)
+  })
+
+  test("repo.subscribe fires on updateNode (useSyncExternalStore contract)", () => {
+    // Verifies the contract useSyncExternalStore relies on:
+    // subscribe(cb) registers listener, updateNode increments version, cb fires.
+    const nodes = item("board", item("col1", item("task1")))
+    const repo = createFakeRepo({ nodes })
+
+    let callCount = 0
+    const versionBefore = repo.getSnapshot()
+    const unsub = repo.subscribe(() => {
+      callCount++
+    })
+
+    repo.updateNode("task1", { content: "new content" })
+
+    expect(callCount).toBe(1)
+    expect(repo.getSnapshot()).toBe(versionBefore + 1)
+    expect(repo.getNode("task1")?.content).toBe("new content")
+
+    unsub()
+  })
+})
+
 describe("production smoke: store dimensions", () => {
   test("createInitialUIState: undefined dimensions → isReady false", () => {
     // Regression guard: if dimensions are undefined (no TTY), isReady must
@@ -568,6 +701,132 @@ describe("production smoke: store dimensions", () => {
     expect(handle.text.trim().length).toBeGreaterThan(0)
     expect(handle.text).toContain("col1")
     expect(handle.text).toContain("task1")
+
+    handle.unmount()
+  })
+})
+
+describe("perf: processEvent render count", () => {
+  test("single keypress triggers minimal store notifications", async () => {
+    // Before the fix, processEvent would: (1) handler calls set() → store
+    // subscription fires synchronous doRender(), (2) processEvent calls
+    // doRender() again. With the fix, isRendering guard defers the
+    // subscription render and processEvent does a single doRender().
+    const nodes = item("board", item("col1", item("task1"), item("task2")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Count store subscription notifications during a single keypress
+    let subscriptionCount = 0
+    const unsub = handle.store.subscribe(() => {
+      subscriptionCount++
+    })
+
+    await handle.press("j")
+
+    unsub()
+
+    // Cursor should have moved
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+
+    // Should have minimal store notifications (1 for cursor move, possibly
+    // 1 for layout update from effect — but NOT 3+ from double-render)
+    expect(subscriptionCount).toBeLessThanOrEqual(2)
+
+    handle.unmount()
+  })
+
+  test("rapid keypresses: 10x j moves cursor 10 positions without bells", async () => {
+    // Create a board with enough items for 10 cursor moves
+    const items = Array.from({ length: 12 }, (_, i) => item(`task${i + 1}`))
+    const nodes = item("board", item("col1", ...items))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Verify start position
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+
+    // Press j 10 times rapidly
+    for (let i = 0; i < 10; i++) {
+      await handle.press("j")
+    }
+
+    // Cursor should be on task11 (started at task1, moved 10 times)
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task11")
+
+    // No bell should have fired (we didn't hit any boundary)
+    expect(handle.store.getState().ui.bellState).toBeNull()
+
+    handle.unmount()
+  })
+
+  test("visual bell clears on next keypress", async () => {
+    // Bell is set when cursor hits boundary, and should clear at the
+    // start of the next keypress (board-app.ts line 104), not via timeout.
+    const nodes = item("board", item("col1", item("task1"), item("task2")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Move to last item
+    await handle.press("j")
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+
+    // Try to move past the boundary — should trigger bell
+    await handle.press("j")
+    expect(handle.store.getState().ui.bellState).not.toBeNull()
+
+    // Press a valid key — bell should clear at start of keypress
+    await handle.press("k")
+    expect(handle.store.getState().ui.bellState).toBeNull()
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
 
     handle.unmount()
   })
