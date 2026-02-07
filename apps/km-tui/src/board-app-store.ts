@@ -367,7 +367,7 @@ export function createBoardAppStoreState(
           }
 
           case "ENTER_MOVE_MODE": {
-            if (action.nodeIds.length === 0) return {}
+            if (action.nodeIds.length === 0) return state
             flatUpdate = {
               moveMode: true,
               moveSourceNodes: action.nodeIds,
@@ -404,7 +404,7 @@ export function createBoardAppStoreState(
           case "DECREASE_OUTLINE_DEPTH":
           case "INCREASE_CONTENT_LINES":
           case "DECREASE_CONTENT_LINES":
-            return {}
+            return state
 
           case "SET_CURSWANT": {
             flatUpdate = {
@@ -453,14 +453,17 @@ export function createBoardAppStoreState(
 
     updateLayout(layout, selectedNode, selectionLevel, tuiBoardState) {
       set((state) => {
-        // Skip update if nothing changed (avoids render feedback loop)
+        // Skip update if nothing changed (avoids render feedback loop).
+        // CRITICAL: return `state` (same ref), not `{}`. Zustand uses
+        // Object.is(nextState, state) to skip notifications — returning
+        // {} creates a new ref that always triggers subscribers.
         if (
           state.layout === layout &&
           state.selectedNode === selectedNode &&
           state.selectionLevel === selectionLevel &&
           state.tuiBoardState === tuiBoardState
         ) {
-          return {}
+          return state
         }
         return { layout, selectedNode, selectionLevel, tuiBoardState }
       })

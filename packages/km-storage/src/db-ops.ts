@@ -74,15 +74,18 @@ function moveNodeImpl(
     `moveNode: ${nodeId} → parent=${newParentId} idx=${newParentIdx} emitter=${!!emitter}`,
   )
   if (emitter) {
-    emitter.emit({
-      type: "node_moved",
-      actor: "user",
-      target: nodeId,
-      data: {
-        parent_id: newParentId,
-        parent_idx: newParentIdx,
+    emitter.emit(
+      {
+        type: "node_moved",
+        actor: "user",
+        target: nodeId,
+        data: {
+          parent_id: newParentId,
+          parent_idx: newParentIdx,
+        },
       },
-    })
+      { db },
+    )
   } else {
     db.run(
       "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
@@ -103,12 +106,15 @@ function updateNodeImpl(
     )
   }
   if (emitter) {
-    emitter.emit({
-      type: "node_updated",
-      actor: "user",
-      target: nodeId,
-      data: updates,
-    })
+    emitter.emit(
+      {
+        type: "node_updated",
+        actor: "user",
+        target: nodeId,
+        data: updates,
+      },
+      { db },
+    )
   } else {
     const sets: string[] = []
     const values: (string | number | null)[] = []
@@ -130,12 +136,15 @@ function updateNodeImpl(
 function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
   log.debug?.(`deleteNode: ${nodeId} emitter=${!!emitter}`)
   if (emitter) {
-    emitter.emit({
-      type: "node_deleted",
-      actor: "user",
-      target: nodeId,
-      data: {},
-    })
+    emitter.emit(
+      {
+        type: "node_deleted",
+        actor: "user",
+        target: nodeId,
+        data: {},
+      },
+      { db },
+    )
   } else {
     db.run("DELETE FROM nodes WHERE id = ?", [nodeId])
   }
@@ -181,11 +190,14 @@ function addNodeImpl(
   }
 
   if (emitter) {
-    emitter.emit({
-      type: "node_created",
-      actor: "user",
-      data: nodeData,
-    })
+    emitter.emit(
+      {
+        type: "node_created",
+        actor: "user",
+        data: nodeData,
+      },
+      { db },
+    )
   } else {
     db.run(
       `INSERT INTO nodes (
