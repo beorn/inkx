@@ -509,12 +509,10 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
     // → SyncManager.handleNodeUpdated() → writeQueue → file on disk.
     const { writeFileSync, readFileSync } = await import("fs")
     const { join } = await import("path")
-    const { withTestEnv, getAllNodes, createTestEnvRepo } = await import(
-      "@km/storage"
-    )
-    const { SyncManager } = await import(
-      "../../../../packages/km-storage/src/watch/sync.ts"
-    )
+    const { withTestEnv, getAllNodes, createTestEnvRepo } =
+      await import("@km/storage")
+    const { SyncManager } =
+      await import("../../../../packages/km-storage/src/watch/sync.ts")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       // Create a markdown file with a task
@@ -576,9 +574,8 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
   test("emitter.getFsSync() returns non-null when wired in tui.tsx pattern", async () => {
     // Diagnostic: verifies the production wiring step
     const { withTestEnv } = await import("@km/storage")
-    const { SyncManager } = await import(
-      "../../../../packages/km-storage/src/watch/sync.ts"
-    )
+    const { SyncManager } =
+      await import("../../../../packages/km-storage/src/watch/sync.ts")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       const syncManager = new SyncManager({
@@ -606,9 +603,8 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
   })
 
   test("shouldApplyToFs returns true for actor=user", async () => {
-    const { shouldApplyToFs } = await import(
-      "../../../../packages/km-storage/src/watch/writequeue.ts"
-    )
+    const { shouldApplyToFs } =
+      await import("../../../../packages/km-storage/src/watch/writequeue.ts")
     expect(shouldApplyToFs("user")).toBe(true)
     expect(shouldApplyToFs("fs-watch")).toBe(false)
   })
