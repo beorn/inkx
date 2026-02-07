@@ -101,7 +101,7 @@ bun recall index --incremental   # Update new sessions only
 | `--json` | JSON output |
 | `-s, --since <time>` | Time window: `1h`, `1d`, `1w`, `today`, `yesterday` (default: 30d) |
 | `-n, --limit <num>` | Max results (default: 10) |
-| `--timeout <ms>` | LLM timeout (default: 8000) |
+| `--timeout <ms>` | LLM timeout (default: 4000) |
 | `-p, --project <glob>` | Project glob match (e.g., `*km*`) |
 | `-g, --grep` | Regex mode (slower, scans files) |
 | `-q, --question` | Only user questions (implies --raw) |
