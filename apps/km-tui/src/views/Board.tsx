@@ -605,21 +605,31 @@ export function Board({
 
   const derivedSelectionLevel = cursorPosition.selectionLevel
 
-  // Assemble TUIBoardState for rendering
+  // Assemble TUIBoardState for rendering.
+  // Uses individual fields as deps (not boardState which is a new object every dispatch).
+  const emptyStringSet = useMemo(() => new Set<string>(), [])
+  const emptyNumberSet = useMemo(() => new Set<number>(), [])
   const tuiBoardState: TUIBoardState = useMemo(
     () => ({
       rootId: boardState.rootId,
       rootPath: boardState.rootPath,
       columns: columnsLayout.columns,
-      selectedCards: new Set<string>(),
+      selectedCards: emptyStringSet,
       visualMode: false,
       foldedCards: boardState.foldedNodes,
-      collapsedColumns: new Set<number>(),
+      collapsedColumns: emptyNumberSet,
       searchQuery: "",
       searchMode: false,
       helpMode: false,
     }),
-    [boardState, columnsLayout],
+    [
+      boardState.rootId,
+      boardState.rootPath,
+      columnsLayout.columns,
+      boardState.foldedNodes,
+      emptyStringSet,
+      emptyNumberSet,
+    ],
   )
 
   // Get selected node
@@ -627,8 +637,30 @@ export function Board({
   const selectedCard = selectedCol?.cards[columnsLayout.cardIndex]
   const selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
 
-  // Push derived layout back to store so term:key handler has fresh data
+  // Push derived layout back to store so term:key handler has fresh data.
+  // Gated: only call updateLayout when something actually changed (by using
+  // a ref to track what was last pushed). This avoids the re-render feedback loop
+  // where updateLayout → set() → subscription → re-render → updateLayout → ...
+  const lastLayoutRef = useRef<{
+    columnsLayout: ColumnsLayout
+    selectedNode: KNode | null
+    selectionLevel: string
+  } | null>(null)
   useEffect(() => {
+    const last = lastLayoutRef.current
+    if (
+      last &&
+      last.columnsLayout === columnsLayout &&
+      last.selectedNode === selectedNode &&
+      last.selectionLevel === derivedSelectionLevel
+    ) {
+      return // Nothing changed, skip the store update
+    }
+    lastLayoutRef.current = {
+      columnsLayout,
+      selectedNode,
+      selectionLevel: derivedSelectionLevel,
+    }
     updateLayout(
       columnsLayout,
       selectedNode,
@@ -672,17 +704,17 @@ export function Board({
     ensureCommandSystemInitialized()
   }, [])
 
-  // Auto-dismiss status messages after 3s.
-  // Bell state is cleared at the START of the next keypress (board-app.ts line 104),
-  // not via timeout — a timeout would keep the white background visible for the
-  // full render duration during slow renders.
+  // Auto-dismiss bell (150ms flash) and status (3s).
+  // Bell is also cleared at the start of the next keypress (board-app.ts line 104).
   useEffect(() => {
-    if (!ui.status) return
+    if (!ui.bellState && !ui.status) return
+    const delay = ui.bellState ? 150 : 3000
     const timer = setTimeout(() => {
-      setUI({ status: null })
-    }, 3000)
+      if (ui.bellState) setUI({ bellState: null })
+      if (ui.status) setUI({ status: null })
+    }, delay)
     return () => clearTimeout(timer)
-  }, [ui.status, setUI])
+  }, [ui.bellState, ui.status, setUI])
 
   // Subscribe to external events
   useEffect(() => createFileDropHandler(setUI), [setUI])

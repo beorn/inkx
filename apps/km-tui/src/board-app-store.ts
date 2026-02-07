@@ -111,8 +111,35 @@ export type BoardAppStore = BoardAppState &
  * Assemble a BoardState object from flat store fields + ui.
  * Used to keep boardState in sync for backward compatibility.
  * maxOutlineDepth/maxContentLines come from ui (their canonical location).
+ *
+ * Returns the SAME object reference when no fields changed (shallow compare),
+ * so useApp(s => s.boardState) + Object.is check skips re-renders.
  */
-function assembleBoardState(s: BoardAppState): BoardState {
+function assembleBoardState(
+  s: BoardAppState,
+  prev: BoardState | null,
+): BoardState {
+  // Shallow compare: if all fields match the previous boardState, return it
+  if (
+    prev &&
+    prev.rootId === s.rootId &&
+    prev.rootPath === s.rootPath &&
+    prev.cursorNodeId === s.cursorNodeId &&
+    prev.selectedNodes === s.selectedNodes &&
+    prev.foldedNodes === s.foldedNodes &&
+    prev.collapsedNodes === s.collapsedNodes &&
+    prev.navHistory === s.navHistory &&
+    prev.navHistoryIndex === s.navHistoryIndex &&
+    prev.moveMode === s.moveMode &&
+    prev.moveSourceNodes === s.moveSourceNodes &&
+    prev.moveSourceCursorNodeId === s.moveSourceCursorNodeId &&
+    prev.maxOutlineDepth === s.ui.maxOutlineDepth &&
+    prev.maxContentLines === s.ui.maxContentLines &&
+    prev.curswantX === s.curswantX &&
+    prev.curswantY === s.curswantY
+  ) {
+    return prev
+  }
   return {
     rootId: s.rootId,
     rootPath: s.rootPath,
@@ -140,7 +167,10 @@ function withBoardState(
   flatUpdate: Partial<BoardAppState>,
 ): Partial<BoardAppStore> {
   const merged = { ...state, ...flatUpdate } as BoardAppState
-  return { ...flatUpdate, boardState: assembleBoardState(merged) }
+  return {
+    ...flatUpdate,
+    boardState: assembleBoardState(merged, state.boardState),
+  }
 }
 
 // =============================================================================
@@ -193,23 +223,26 @@ export function createBoardAppStoreState(
     curswantY: bs.curswantY,
 
     // Board navigation (derived — backward compat)
-    boardState: assembleBoardState({
-      ...({} as BoardAppState),
-      rootId: bs.rootId,
-      rootPath: bs.rootPath,
-      cursorNodeId: bs.cursorNodeId,
-      selectedNodes: bs.selectedNodes,
-      foldedNodes: bs.foldedNodes,
-      collapsedNodes: bs.collapsedNodes,
-      navHistory: bs.navHistory,
-      navHistoryIndex: bs.navHistoryIndex,
-      moveMode: bs.moveMode,
-      moveSourceNodes: bs.moveSourceNodes,
-      moveSourceCursorNodeId: bs.moveSourceCursorNodeId,
-      curswantX: bs.curswantX,
-      curswantY: bs.curswantY,
-      ui: params.initialUIState,
-    }),
+    boardState: assembleBoardState(
+      {
+        ...({} as BoardAppState),
+        rootId: bs.rootId,
+        rootPath: bs.rootPath,
+        cursorNodeId: bs.cursorNodeId,
+        selectedNodes: bs.selectedNodes,
+        foldedNodes: bs.foldedNodes,
+        collapsedNodes: bs.collapsedNodes,
+        navHistory: bs.navHistory,
+        navHistoryIndex: bs.navHistoryIndex,
+        moveMode: bs.moveMode,
+        moveSourceNodes: bs.moveSourceNodes,
+        moveSourceCursorNodeId: bs.moveSourceCursorNodeId,
+        curswantX: bs.curswantX,
+        curswantY: bs.curswantY,
+        ui: params.initialUIState,
+      },
+      null,
+    ),
 
     // UI state
     ui: params.initialUIState,
@@ -419,7 +452,18 @@ export function createBoardAppStoreState(
     },
 
     updateLayout(layout, selectedNode, selectionLevel, tuiBoardState) {
-      set({ layout, selectedNode, selectionLevel, tuiBoardState })
+      set((state) => {
+        // Skip update if nothing changed (avoids render feedback loop)
+        if (
+          state.layout === layout &&
+          state.selectedNode === selectedNode &&
+          state.selectionLevel === selectionLevel &&
+          state.tuiBoardState === tuiBoardState
+        ) {
+          return {}
+        }
+        return { layout, selectedNode, selectionLevel, tuiBoardState }
+      })
     },
   })
 }
