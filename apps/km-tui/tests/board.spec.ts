@@ -1896,30 +1896,29 @@ describe("Boundary Feedback (Bell + Status)", () => {
     expect(board.hasStatus).toBe(true)
   })
 
-  test("boundary bell flashes top bar red", () => {
+  test("boundary bell flashes entire screen white", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )
-    // Top bar should be white initially (card selected, not board)
-    const topBar = board.q("#top-bar")
-    expect(topBar.getAttribute("backgroundColor")).toBe("white")
+    // No flash initially
+    expect(board.q("[data-bell-flash]").count()).toBe(0)
 
     // Hit left boundary
     board.press("h")
     expect(board.bell).toBe(true)
-    expect(topBar.getAttribute("backgroundColor")).toBe("red")
+    expect(board.q("[data-bell-flash]").count()).toBe(1)
 
-    // Next keypress clears bell and restores top bar color
+    // Next keypress clears bell and restores
     board.press("j")
-    expect(topBar.getAttribute("backgroundColor")).toBe("white")
+    expect(board.q("[data-bell-flash]").count()).toBe(0)
   })
 
-  test("unhandled key triggers visual bell", () => {
+  test("unhandled key triggers visual bell flash", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
     // Press an unbound key (; has no command binding)
     board.press(";")
     expect(board.bell).toBe(true)
-    expect(board.q("#top-bar").getAttribute("backgroundColor")).toBe("red")
+    expect(board.q("[data-bell-flash]").count()).toBe(1)
   })
 
   test("unhandled key bell clears on next valid key", () => {
@@ -1931,7 +1930,7 @@ describe("Boundary Feedback (Bell + Status)", () => {
 
     board.press("j") // valid key
     expect(board.bell).toBe(false)
-    expect(board.q("#top-bar").getAttribute("backgroundColor")).toBe("white")
+    expect(board.q("[data-bell-flash]").count()).toBe(0)
   })
 })
 

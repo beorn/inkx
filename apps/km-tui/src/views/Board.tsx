@@ -221,20 +221,17 @@ export function BoardCore({
         height={termHeight}
         minHeight={3}
         overflow="hidden"
+        backgroundColor={ui.bellState ? "white" : undefined}
+        {...(ui.bellState && { "data-bell-flash": true })}
       >
-        {/* Top bar — visual bell flashes red when bellState is set */}
+        {/* Top bar */}
         <Box
           id="top-bar"
           flexShrink={0}
           width={termWidth}
-          backgroundColor={
-            ui.bellState ? "red" : isBoardSelected ? "yellow" : "white"
-          }
+          backgroundColor={isBoardSelected ? "yellow" : "white"}
         >
-          <Text
-            color={ui.bellState ? "white" : isBoardSelected ? "black" : "gray"}
-            wrap="truncate"
-          >
+          <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
             {renderTopBarContent(
               selectedPathSegments,
               isBoardSelected,
@@ -675,12 +672,13 @@ export function Board({
     ensureCommandSystemInitialized()
   }, [])
 
-  // Auto-dismiss bell and status
+  // Auto-dismiss bell (10ms flash) and status (3s)
   useEffect(() => {
     if (!ui.bellState && !ui.status) return
+    const delay = ui.bellState ? 10 : 3000
     const timer = setTimeout(() => {
       setUI({ bellState: null, status: null })
-    }, 3000)
+    }, delay)
     return () => clearTimeout(timer)
   }, [ui.bellState, ui.status, setUI])
 

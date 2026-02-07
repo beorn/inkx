@@ -28,12 +28,15 @@ Create a todo list with TodoWrite showing ALL work units.
 | Independent tasks  | Unrelated subtasks            | Parallel Task agents                     |
 | Verification       | Type-check, lint, test        | 3 parallel Bash calls                    |
 | Batch refactoring  | Same technique on N functions  | N parallel Task agents (5 max per batch) |
+| Complex projects   | 3+ tasks with coordination    | TeamCreate + teammate agents             |
 
 ## Step 3: Launch Agents (MANDATORY)
 
-**In a SINGLE message**, launch all independent Task agents. Do NOT launch sequentially.
+**Choose the right execution model:**
 
-Example for "add logging to storage, cli, and tui":
+### Option A: Parallel Task agents (fire-and-forget, no coordination)
+
+Best for independent tasks that don't need to communicate. **In a SINGLE message**, launch all independent Task agents:
 
 ```
 → Task 1: subagent_type="general-purpose", prompt="Add logging to @km/storage. Follow @km/core logger patterns."
@@ -50,6 +53,20 @@ Example for "add logging to storage, cli, and tui":
 ```
 
 **Never poll output files manually** (sleep + read loops waste turns). `TaskOutput(block=true)` handles the wait.
+
+### Option B: Agent teams (coordinated, shared task list)
+
+Best for complex projects (3+ tasks) where agents need to coordinate, share progress, or have dependencies. Use `TeamCreate` to create a team, `TaskCreate` for the shared task list, then spawn teammates with `Task(team_name=...)`:
+
+```
+1. TeamCreate(team_name="feature-x")
+2. TaskCreate tasks for each work unit
+3. Task(team_name="feature-x", name="researcher", subagent_type="general-purpose", prompt="...")
+4. Task(team_name="feature-x", name="implementer", subagent_type="general-purpose", prompt="...")
+5. Assign tasks via TaskUpdate, coordinate via SendMessage
+```
+
+**Prefer teams when:** tasks have dependencies, need shared state, or require back-and-forth coordination. **Prefer parallel Task agents when:** tasks are fully independent and need no communication.
 
 ## Step 4: Synthesize & Verify
 

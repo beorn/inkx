@@ -414,6 +414,12 @@ export function testEnv(
         { get: store.getState, set: store.setState },
         () => {},
       )
+      // Trigger a no-op Zustand store update to ensure any pending
+      // useSyncExternalStore updates (from repo mutations done outside
+      // of press) get flushed during this act() cycle. Without this,
+      // external store changes aren't reflected until the next
+      // state-changing keypress.
+      store.setState((s) => s)
     })
     // Flush remaining React effects via originalPress
     void originalPress(key)

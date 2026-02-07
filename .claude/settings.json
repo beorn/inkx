@@ -18,8 +18,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd $CLAUDE_PROJECT_DIR && bun vendor/beorn-tools/tools/recall.ts remember",
-            "timeout": 30000
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-end.sh",
+            "timeout": 5000
           }
         ]
       }

@@ -7,13 +7,13 @@
  * the actual production wiring.
  */
 import React from "react"
-import { test, expect, describe } from "vitest"
+import { test, expect, describe, vi } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { createBoardState } from "@km/board"
 import { createToastQueue } from "@km/core"
 import { InputLayerProvider } from "inkx"
 import { item } from "./helpers/board-test.ts"
-import { createBoardApp } from "../src/board-app.ts"
+import { createBoardApp, handleKey } from "../src/board-app.ts"
 import { type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createLayoutRegistry } from "../src/card-positions.ts"
@@ -254,6 +254,53 @@ describe("production smoke: console toggle", () => {
   })
 })
 
+describe("console toggle: resume re-entrancy (km-tui.console)", () => {
+  test("console round-trip doesn't break keypress handling", async () => {
+    // Bug: resume() in create-app.tsx calls doRender() recursively when
+    // invoked from a React effect during an outer doRender() call. This
+    // can corrupt reconciler state in non-headless mode. In headless mode,
+    // pause/resume are undefined so the Board effect skips screen switching.
+    // This test verifies the state machine works correctly after toggle.
+    const nodes = item("board", item("col1", item("task1"), item("task2")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Toggle console on then off
+    await handle.press("`")
+    expect(handle.store.getState().ui.showConsole).toBe(true)
+    await handle.press("`")
+    expect(handle.store.getState().ui.showConsole).toBe(false)
+
+    // After round-trip, keyboard input must still work
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+    await handle.press("j")
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+
+    // Screen must render correctly after round-trip
+    expect(handle.text).toContain("col1")
+    expect(handle.text).toContain("task1")
+    expect(handle.text).toContain("task2")
+
+    handle.unmount()
+  })
+})
+
 describe("production smoke: inline edit + re-render", () => {
   test("inline edit confirm updates repo AND screen reflects change", async () => {
     // Regression (km-tui.6, km-tui.save-rerender): after inline edit confirm,
@@ -334,6 +381,122 @@ describe("production smoke: inline edit + re-render", () => {
     // unnecessary re-renders but screen doesn't actually change)
     const textAfter = handle.text
     expect(textAfter).toContain("task2")
+
+    handle.unmount()
+  })
+})
+
+describe("perf regression: unnecessary setUI on keypress (km-tui.perf-regr)", () => {
+  test("pressing j does not call setUI to clear already-null bellState/status", async () => {
+    // Bug: handleKey() unconditionally calls get().setUI({ bellState: null, status: null })
+    // on every keypress, even when both are already null. This creates a new ui object
+    // reference, triggering ALL store subscribers (7+ useAppStore calls in Board.tsx).
+    const nodes = item("board", item("col1", item("task1"), item("task2")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Verify bellState and status start as null
+    expect(handle.store.getState().ui.bellState).toBeNull()
+    expect(handle.store.getState().ui.status).toBeNull()
+
+    // Spy on setUI via store subscription - count how many times ui reference changes
+    let uiChangeCount = 0
+    const prevUi = { ref: handle.store.getState().ui }
+    const unsub = handle.store.subscribe(() => {
+      const newUi = handle.store.getState().ui
+      if (newUi !== prevUi.ref) {
+        uiChangeCount++
+        prevUi.ref = newUi
+      }
+    })
+
+    // Press 'j' to move cursor
+    await handle.press("j")
+
+    unsub()
+
+    // Cursor should have moved (verifies the keypress was handled)
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+
+    // bellState and status should still be null
+    expect(handle.store.getState().ui.bellState).toBeNull()
+    expect(handle.store.getState().ui.status).toBeNull()
+
+    // The key fix: ui should NOT have changed at all during a simple cursor move.
+    // Before the fix, setUI({ bellState: null, status: null }) creates a new ui
+    // object even though nothing changed, causing uiChangeCount >= 1.
+    expect(uiChangeCount).toBe(0)
+
+    handle.unmount()
+  })
+})
+
+describe("save re-render: press() flushes all pending re-renders (km-tui.save-rerender)", () => {
+  test("screen reflects repo mutation immediately after press() returns", async () => {
+    // Bug: press() may return before all pending re-renders are flushed.
+    // If an effect during doRender() triggers set() which queues a microtask,
+    // and that microtask's render also triggers set(), press() might return
+    // with stale screen content. The fix is to loop until stable.
+    const nodes = item("board", item("col1", item("task1"), item("task2")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Enter inline edit mode
+    await handle.press("Enter")
+    expect(handle.store.getState().ui.inlineEditBlock).not.toBeNull()
+
+    // Type new text
+    for (const c of "-updated") await handle.press(c)
+
+    // Confirm edit
+    await handle.press("Enter")
+
+    // Inline edit must be exited
+    expect(handle.store.getState().ui.inlineEditBlock).toBeNull()
+
+    // Repo must be updated
+    expect(repo.getNode("task1")?.content).toBe("task1-updated")
+
+    // CRITICAL: Screen must show updated text IMMEDIATELY after press() returns.
+    // No additional setTimeout or manual doRender should be needed.
+    expect(handle.text).toContain("task1-updated")
+
+    // Navigate to verify board is still interactive
+    await handle.press("j")
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+    expect(handle.text).toContain("task2")
 
     handle.unmount()
   })

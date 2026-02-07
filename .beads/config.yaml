@@ -1,4 +1,4 @@
 repos:
   primary: "."
   additional:
-    - "../cloudi"
+    - "/Users/beorn/Code/pim/cloudi"
