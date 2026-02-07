@@ -21,6 +21,10 @@ import type { ActionCtx } from "./tui-context.ts"
 
 const perfLog = createLogger("km:perf")
 
+// Bell rate limiting — suppress terminal \x07 on rapid auto-repeat
+let lastBellTime = 0
+const BELL_COOLDOWN_MS = 300
+
 // =============================================================================
 // Key Handler
 // =============================================================================
@@ -185,6 +189,10 @@ function routeThroughCommandSystem(
 
       // Check for boundary errors - ring bell and show status message
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
+        const now = Date.now()
+        const isRepeat = now - lastBellTime < BELL_COOLDOWN_MS
+        lastBellTime = now
+
         ctx.setUI({
           bellState: actionResult.error.direction,
           status: {
@@ -194,8 +202,10 @@ function routeThroughCommandSystem(
               `Can't move ${actionResult.error.direction}`,
           },
         })
-        // Output actual bell character to terminal
-        process.stdout.write("\x07")
+        // Only send terminal bell on first hit, not auto-repeat
+        if (!isRepeat) {
+          process.stdout.write("\x07")
+        }
       }
     }
     const totalDuration = performance.now() - keyStart
