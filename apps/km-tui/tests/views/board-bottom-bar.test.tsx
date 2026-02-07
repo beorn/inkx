@@ -347,4 +347,200 @@ describe("BottomBar", () => {
     // Status message should also be visible
     expect(output).toContain("Test message")
   })
+
+  // ===========================================================================
+  // Flash-on-update tests
+  // ===========================================================================
+
+  describe("flash-on-update", () => {
+    // In test environment (IS_REACT_ACT_ENVIRONMENT=true), the flash timer
+    // is skipped so flash stays true once triggered, making it testable.
+
+    it("node count starts dim (no flash on initial render)", () => {
+      const app = render(
+        <BottomBar
+          ui={mockUIState}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+        />,
+      )
+      // Initially no flash — dimColor should be true (dim)
+      const nodeCountEl = app.locator("#node-count")
+      expect(nodeCountEl.count()).toBeGreaterThan(0)
+      expect(nodeCountEl.getAttribute("dimColor")).toBe("true")
+    })
+
+    it("node count flashes bright when value changes", () => {
+      const app = render(
+        <BottomBar
+          ui={mockUIState}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+        />,
+      )
+      // Re-render with changed node count
+      app.rerender(
+        <BottomBar
+          ui={mockUIState}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={43}
+          moveMode={false}
+        />,
+      )
+      // Flash triggered — dimColor should be false (bright)
+      const nodeCountEl = app.locator("#node-count")
+      expect(nodeCountEl.getAttribute("dimColor")).toBe("false")
+    })
+
+    it("console indicator flashes when log count changes", () => {
+      const app = render(
+        <BottomBar
+          ui={mockUIState}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+          consoleStats={{ total: 5, errors: 0, warnings: 0 }}
+        />,
+      )
+      // Re-render with increased log count
+      app.rerender(
+        <BottomBar
+          ui={mockUIState}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+          consoleStats={{ total: 10, errors: 0, warnings: 0 }}
+        />,
+      )
+      const consoleEl = app.locator("#console-indicator")
+      expect(consoleEl.count()).toBeGreaterThan(0)
+      expect(consoleEl.getAttribute("dimColor")).toBe("false")
+    })
+
+    it("watcher file count flashes when watched paths change", () => {
+      const uiWithWatcher: UIState = {
+        ...mockUIState,
+        watcherStatus: {
+          state: "idle",
+          pendingPaths: 0,
+          watchedPaths: 5,
+        },
+      }
+      const app = render(
+        <BottomBar
+          ui={uiWithWatcher}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+        />,
+      )
+      // Re-render with more watched paths
+      const uiWithMoreFiles: UIState = {
+        ...mockUIState,
+        watcherStatus: {
+          state: "idle",
+          pendingPaths: 0,
+          watchedPaths: 8,
+        },
+      }
+      app.rerender(
+        <BottomBar
+          ui={uiWithMoreFiles}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+        />,
+      )
+      const watcherEl = app.locator("#watcher-status")
+      expect(watcherEl.count()).toBeGreaterThan(0)
+      expect(watcherEl.getAttribute("dimColor")).toBe("false")
+    })
+
+    it("no flash when value stays the same", () => {
+      const app = render(
+        <BottomBar
+          ui={mockUIState}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+        />,
+      )
+      // Re-render with same node count
+      app.rerender(
+        <BottomBar
+          ui={mockUIState}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+        />,
+      )
+      // No change — should stay dim
+      const nodeCountEl = app.locator("#node-count")
+      expect(nodeCountEl.getAttribute("dimColor")).toBe("true")
+    })
+
+    it("console indicator shows warning icon when errors present", () => {
+      const app = render(
+        <BottomBar
+          ui={mockUIState}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+          consoleStats={{ total: 3, errors: 1, warnings: 0 }}
+        />,
+      )
+      const output = app.text
+      expect(output).toContain("⚠")
+      expect(output).toContain("3")
+    })
+
+    it("console indicator not shown when total is 0", () => {
+      const app = render(
+        <BottomBar
+          ui={mockUIState}
+          state={mockBoardState}
+          layout={mockLayout}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+          consoleStats={{ total: 0, errors: 0, warnings: 0 }}
+        />,
+      )
+      const consoleEl = app.locator("#console-indicator")
+      expect(consoleEl.count()).toBe(0)
+    })
+  })
 })

@@ -100,8 +100,10 @@ export function handleKey(
     return
   }
 
-  // Clear bell and status at start of each keypress
-  get().setUI({ bellState: null, status: null })
+  // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders)
+  if (ui.bellState !== null || ui.status !== null) {
+    get().setUI({ bellState: null, status: null })
+  }
 
   // DEV: Test toast command (Ctrl+T)
   if (key.ctrl && input === "t") {
@@ -146,16 +148,26 @@ function routeThroughCommandSystem(
   const keyStart = performance.now()
   const result = processKeyWithContext(input, key, ctx)
 
-  if (result.handled && result.actions) {
+  // When a dialog is open, unhandled keys are expected (limited key set)
+  const dialogOpen =
+    ctx.ui.showSearchDialog ||
+    ctx.ui.showNewItemDialog ||
+    ctx.ui.showProjectPicker
+
+  if (!result.handled) {
+    // Visual bell for unhandled keys (only outside dialogs)
+    if (!dialogOpen) {
+      ctx.setUI({ bellState: "unhandled" })
+    }
+    return
+  }
+
+  if (result.actions) {
     const actionList = Array.isArray(result.actions)
       ? result.actions
       : [result.actions]
 
     // When a dialog is open, only process dialog and text commands
-    const dialogOpen =
-      ctx.ui.showSearchDialog ||
-      ctx.ui.showNewItemDialog ||
-      ctx.ui.showProjectPicker
     if (dialogOpen && result.commandId) {
       const isDialogOrTextCommand =
         result.commandId.startsWith("dialog.") ||

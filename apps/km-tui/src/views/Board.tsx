@@ -222,13 +222,19 @@ export function BoardCore({
         minHeight={3}
         overflow="hidden"
       >
-        {/* Top bar: full path from root to selected item, spans full width */}
+        {/* Top bar — visual bell flashes red when bellState is set */}
         <Box
+          id="top-bar"
           flexShrink={0}
           width={termWidth}
-          backgroundColor={isBoardSelected ? "yellow" : "white"}
+          backgroundColor={
+            ui.bellState ? "red" : isBoardSelected ? "yellow" : "white"
+          }
         >
-          <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
+          <Text
+            color={ui.bellState ? "white" : isBoardSelected ? "black" : "gray"}
+            wrap="truncate"
+          >
             {renderTopBarContent(
               selectedPathSegments,
               isBoardSelected,
@@ -418,19 +424,20 @@ export function BoardCore({
           {ui.showSearchDialog &&
             (() => {
               const dialogWidth = Math.min(90, Math.floor((termWidth * 2) / 3))
-              const dialogHeight = Math.floor((contentHeight * 2) / 3)
+              const dialogMaxHeight = Math.floor((contentHeight * 2) / 3)
+              const dialogTop = Math.floor(contentHeight / 6)
               return (
                 <Box
                   position="absolute"
                   marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
-                  marginTop={Math.floor(contentHeight / 6)}
+                  marginTop={dialogTop}
                   data-dialog="search"
                 >
                   <SearchDialog
                     onSelect={dialogHandlers.handleSearchSelect}
                     onCancel={dialogHandlers.handleSearchCancel}
                     width={dialogWidth}
-                    height={dialogHeight}
+                    maxHeight={dialogMaxHeight}
                     initialInput={ui.searchDialogInitialInput}
                     onConsumeInitialInput={() =>
                       setUI({ searchDialogInitialInput: "" })
