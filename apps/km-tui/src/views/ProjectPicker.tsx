@@ -9,7 +9,8 @@ import { Box, Text } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { ModalDialog } from "./shared-components.tsx"
+import { ModalDialog, NodeLine } from "./shared-components.tsx"
+import { fuzzyMatch, fuzzyScore, getParentName } from "./search-utils.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
 import {
   blockEditTargetRef,
@@ -19,69 +20,6 @@ import {
   createSuspenseLoader,
   type SuspenseLoader,
 } from "../hooks/use-suspense-loader.ts"
-
-/**
- * Simple fuzzy match - check if query chars appear in order in target
- */
-function fuzzyMatch(query: string, target: string): boolean {
-  const lowerQuery = query.toLowerCase()
-  const lowerTarget = target.toLowerCase()
-
-  let queryIndex = 0
-  for (
-    let i = 0;
-    i < lowerTarget.length && queryIndex < lowerQuery.length;
-    i++
-  ) {
-    if (lowerTarget[i] === lowerQuery[queryIndex]) {
-      queryIndex++
-    }
-  }
-  return queryIndex === lowerQuery.length
-}
-
-/**
- * Score a fuzzy match (higher = better)
- */
-function fuzzyScore(query: string, target: string): number {
-  const lowerQuery = query.toLowerCase()
-  const lowerTarget = target.toLowerCase()
-
-  if (!fuzzyMatch(query, target)) return -1
-
-  let score = 0
-  let queryIndex = 0
-  let consecutive = 0
-
-  for (
-    let i = 0;
-    i < lowerTarget.length && queryIndex < lowerQuery.length;
-    i++
-  ) {
-    if (lowerTarget[i] === lowerQuery[queryIndex]) {
-      // Bonus for consecutive matches
-      consecutive++
-      score += consecutive * 2
-
-      // Bonus for match at start
-      if (i === 0) score += 10
-
-      // Bonus for match after separator
-      if (i > 0 && (lowerTarget[i - 1] === "/" || lowerTarget[i - 1] === " ")) {
-        score += 5
-      }
-
-      queryIndex++
-    } else {
-      consecutive = 0
-    }
-  }
-
-  // Penalty for longer targets (prefer shorter matches)
-  score -= lowerTarget.length * 0.1
-
-  return score
-}
 
 /**
  * Get project path from a node (folder/file ancestors)
@@ -102,20 +40,6 @@ function getProjectPath(
   }
 
   return parts.join(" / ")
-}
-
-/**
- * Get parent display name for context
- */
-function getParentName(
-  node: KNode,
-  getNode: (id: string) => KNode | null,
-  getDisplayName: (node: KNode) => string,
-): string | null {
-  if (!node.parent_id) return null
-  const parent = getNode(node.parent_id)
-  if (!parent) return null
-  return getDisplayName(parent)
 }
 
 /**
@@ -240,36 +164,20 @@ function ProjectOptions({
         const actualIndex = scrollOffset + i
         const isSelected = actualIndex === selectedIndex
 
-        const prefix = isSelected ? "▸ " : "  "
-
         return (
-          <Box
+          <NodeLine
             key={opt.node.id}
-            width="100%"
-            height={1}
-            backgroundColor={isSelected ? "cyan" : undefined}
+            node={opt.node}
+            title={opt.title}
+            parentContext={opt.parentContext}
+            isSelected={isSelected}
           >
-            <Text color={isSelected ? "black" : undefined} wrap="truncate">
-              {prefix}
-              {opt.title}
-              {opt.parentContext && (
-                <Text
-                  dimColor={!isSelected}
-                  color={isSelected ? "gray" : undefined}
-                >
-                  {` < ${opt.parentContext}`}
-                </Text>
-              )}
-              {opt.isRecent && (
-                <Text
-                  color={isSelected ? "blue" : "cyan"}
-                  dimColor={!isSelected}
-                >
-                  {" (recent)"}
-                </Text>
-              )}
-            </Text>
-          </Box>
+            {opt.isRecent && (
+              <Text color={isSelected ? "blue" : "cyan"} dimColor={!isSelected}>
+                {" (recent)"}
+              </Text>
+            )}
+          </NodeLine>
         )
       })}
     </>
@@ -457,5 +365,3 @@ export function ProjectPicker({
     </ModalDialog>
   )
 }
-
-// Export fuzzy functions for testing

@@ -13,6 +13,7 @@ import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderRich, renderPlain } from "../text/index.ts"
 import { wrapText } from "../layout/index.ts"
+import { NodeLine } from "./shared-components.tsx"
 
 export interface DetailPaneProps {
   node: KNode
@@ -234,14 +235,11 @@ export function DetailPane({
               Subtasks ({subtasks.length})
             </Text>
             {subtasks.slice(0, maxSubtasks).map((task) => (
-              <Text key={task.id} wrap="truncate">
-                <Text dimColor={task.task_status === "done"}>
-                  {getSubtaskCheckbox(task.task_status)}{" "}
-                </Text>
-                <Text dimColor={task.task_status === "done"}>
-                  {renderRich(task.content || getNodeDisplayName(repo, task))}
-                </Text>
-              </Text>
+              <NodeLine
+                key={task.id}
+                node={task}
+                title={task.content || getNodeDisplayName(repo, task)}
+              />
             ))}
             {subtasks.length > maxSubtasks && (
               <Text dimColor> +{subtasks.length - maxSubtasks} more</Text>
@@ -261,12 +259,11 @@ export function DetailPane({
               Backlinks ({backlinkNodes.length})
             </Text>
             {backlinkNodes.slice(0, maxBacklinks).map((bl) => (
-              <Text key={bl.id} wrap="truncate" dimColor>
-                {"- "}
-                <Text underline>
-                  {renderPlain(getNodeDisplayName(repo, bl))}
-                </Text>
-              </Text>
+              <NodeLine
+                key={bl.id}
+                node={bl}
+                title={getNodeDisplayName(repo, bl)}
+              />
             ))}
             {backlinkNodes.length > maxBacklinks && (
               <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>
@@ -351,18 +348,6 @@ const STATUS_DISPLAY: Record<string, { text: string; color: string }> = {
 
 function getStatusDisplay(status?: string): { text: string; color: string } {
   return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "blue" }
-}
-
-// Checkbox marks for subtask display (markdown style)
-const CHECKBOX_MARKS: Record<string, string> = {
-  done: "[x]",
-  wip: "[/]",
-  blocked: "[!]",
-  dropped: "[-]",
-}
-
-function getSubtaskCheckbox(status?: string): string {
-  return CHECKBOX_MARKS[status ?? ""] ?? "[ ]"
 }
 
 // Extract references from content

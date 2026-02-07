@@ -9,7 +9,13 @@ import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { ModalDialog, InputBox } from "./shared-components.tsx"
+import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
+import {
+  fuzzyMatch,
+  fuzzyScore,
+  getParentName,
+  extractTags,
+} from "./search-utils.ts"
 import { parseQuery, type QueryAST } from "@km/core"
 import { useLineEdit } from "../hooks/use-line-edit.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
@@ -20,97 +26,6 @@ import {
 
 // Minimum query length before searching (prevents heavy queries on single chars)
 const MIN_QUERY_LENGTH = 2
-
-/**
- * Simple fuzzy match - check if query chars appear in order in target
- */
-function fuzzyMatch(query: string, target: string): boolean {
-  const lowerQuery = query.toLowerCase()
-  const lowerTarget = target.toLowerCase()
-
-  let queryIndex = 0
-  for (
-    let i = 0;
-    i < lowerTarget.length && queryIndex < lowerQuery.length;
-    i++
-  ) {
-    if (lowerTarget[i] === lowerQuery[queryIndex]) {
-      queryIndex++
-    }
-  }
-  return queryIndex === lowerQuery.length
-}
-
-/**
- * Score a fuzzy match (higher = better)
- */
-function fuzzyScore(query: string, target: string): number {
-  const lowerQuery = query.toLowerCase()
-  const lowerTarget = target.toLowerCase()
-
-  if (!fuzzyMatch(query, target)) return -1
-
-  let score = 0
-  let queryIndex = 0
-  let consecutive = 0
-
-  for (
-    let i = 0;
-    i < lowerTarget.length && queryIndex < lowerQuery.length;
-    i++
-  ) {
-    if (lowerTarget[i] === lowerQuery[queryIndex]) {
-      // Bonus for consecutive matches
-      consecutive++
-      score += consecutive * 2
-
-      // Bonus for match at start
-      if (i === 0) score += 10
-
-      // Bonus for match after separator
-      if (i > 0 && (lowerTarget[i - 1] === "/" || lowerTarget[i - 1] === " ")) {
-        score += 5
-      }
-
-      queryIndex++
-    } else {
-      consecutive = 0
-    }
-  }
-
-  // Penalty for longer targets (prefer shorter matches)
-  score -= lowerTarget.length * 0.1
-
-  return score
-}
-
-/**
- * Get parent display name for context
- */
-function getParentName(
-  node: KNode,
-  getNode: (id: string) => KNode | null,
-  getDisplayName: (node: KNode) => string,
-): string | null {
-  if (!node.parent_id) return null
-  const parent = getNode(node.parent_id)
-  if (!parent) return null
-  return getDisplayName(parent)
-}
-
-/**
- * Extract tags from content (words starting with #)
- */
-function extractTags(content: string | undefined): string[] {
-  if (!content) return []
-  const tagRegex = /#(\w+)/g
-  const tags: string[] = []
-  let match
-  while ((match = tagRegex.exec(content)) !== null) {
-    if (match[1]) tags.push(match[1])
-  }
-  return tags
-}
 
 /**
  * Search result item
@@ -283,45 +198,20 @@ function SearchResults({
         const actualIndex = scrollOffset + i
         const isSelected = actualIndex === selectedIndex
 
-        const prefix = isSelected ? "▸ " : "  "
-        const typeIcon =
-          result.node.type === "task"
-            ? "□"
-            : result.node.type === "file"
-              ? "📄"
-              : result.node.type === "section"
-                ? "§"
-                : "•"
-
         return (
-          <Box
+          <NodeLine
             key={result.node.id}
-            width="100%"
-            height={1}
-            backgroundColor={isSelected ? "cyan" : "black"}
+            node={result.node}
+            title={result.title}
+            parentContext={result.parentContext}
+            isSelected={isSelected}
           >
-            <Text color={isSelected ? "black" : undefined} wrap="truncate">
-              {prefix}
-              <Text dimColor={!isSelected}>{typeIcon} </Text>
-              {result.title}
-              {result.parentContext && (
-                <Text
-                  dimColor={!isSelected}
-                  color={isSelected ? "gray" : undefined}
-                >
-                  {` < ${result.parentContext}`}
-                </Text>
-              )}
-              {result.tags.length > 0 && (
-                <Text
-                  color={isSelected ? "blue" : "cyan"}
-                  dimColor={!isSelected}
-                >
-                  {` #${result.tags.join(" #")}`}
-                </Text>
-              )}
-            </Text>
-          </Box>
+            {result.tags.length > 0 && (
+              <Text color={isSelected ? "blue" : "cyan"} dimColor={!isSelected}>
+                {` #${result.tags.join(" #")}`}
+              </Text>
+            )}
+          </NodeLine>
         )
       })}
     </>
@@ -336,7 +226,7 @@ interface SearchDialogProps {
   onSelect: (targetNode: KNode) => void
   onCancel: () => void
   width: number
-  height: number
+  maxHeight: number
   /** Initial input buffered before dialog's useInput registered */
   initialInput?: string
   /** Callback to clear the buffer after consuming it */
@@ -352,7 +242,7 @@ export const SearchDialog = React.forwardRef<
   SearchDialogHandle,
   SearchDialogProps
 >(function SearchDialog(
-  { onSelect, onCancel, width, height, initialInput, onConsumeInitialInput },
+  { onSelect, onCancel, width, maxHeight, initialInput, onConsumeInitialInput },
   ref,
 ): React.ReactElement {
   const repo = useRepo()
@@ -390,9 +280,9 @@ export const SearchDialog = React.forwardRef<
     },
   }))
 
-  // For scroll calculation, we need to know filtered count
-  // But we can't know that until results load, so estimate
-  const maxVisible = Math.max(1, height - 11)
+  // Dialog chrome overhead: border(2) + paddingY(2) + title+spacer(2) + input(2) + spacer(1) + footer(2) = 11
+  const DIALOG_CHROME = 11
+  const maxVisible = Math.max(1, maxHeight - DIALOG_CHROME)
 
   // Register dialog target for command system navigation
   // Use refs to avoid stale closure issues
@@ -432,7 +322,7 @@ export const SearchDialog = React.forwardRef<
     }
   }, [])
 
-  // Calculate scroll offset (needs filtered count)
+  // Calculate scroll offset and content-based height
   let scrollOffset = 0
   let filteredCount = 0
   if (loaderRef.current?.status === "resolved") {
@@ -446,6 +336,13 @@ export const SearchDialog = React.forwardRef<
       ),
     )
   }
+
+  // Auto-size: chrome + content rows, capped at maxHeight
+  const contentRows =
+    trimmedQuery.length < MIN_QUERY_LENGTH
+      ? 1 // "Type to search..." or "Type N more chars..."
+      : Math.min(filteredCount || 1, maxVisible) // results or "No matching items"
+  const dialogHeight = Math.min(DIALOG_CHROME + contentRows, maxHeight)
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
@@ -464,7 +361,7 @@ export const SearchDialog = React.forwardRef<
     <ModalDialog
       title="Search"
       width={width}
-      height={height}
+      height={dialogHeight}
       footer={footerContent}
     >
       {/* Search input with readline editing - flexShrink=0 prevents being pushed out */}
@@ -472,7 +369,6 @@ export const SearchDialog = React.forwardRef<
         <InputBox
           beforeCursor={lineEdit.beforeCursor}
           afterCursor={lineEdit.afterCursor}
-          placeholder="Type to search..."
         />
       </Box>
 
@@ -512,5 +408,5 @@ export const SearchDialog = React.forwardRef<
   )
 })
 
-// Export fuzzy functions for testing
-export { fuzzyMatch, fuzzyScore, extractTags }
+// Re-export for testing
+export { fuzzyMatch, fuzzyScore, extractTags } from "./search-utils.ts"

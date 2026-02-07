@@ -14,7 +14,7 @@ import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts"
-import { getNodeIcon, renderPlain } from "../text/index.ts"
+import { getNodeIcon, renderPlain, renderRich } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 
@@ -393,6 +393,59 @@ export function InputBox({
       </Text>
       {/* Underline indicator */}
       <Text dimColor>{"─".repeat(40)}</Text>
+    </Box>
+  )
+}
+
+// =============================================================================
+// Node Line Component — reusable one-liner for node display in lists/dialogs
+// =============================================================================
+
+export interface NodeLineProps {
+  /** Node to display (used for type icon) */
+  node: KNode
+  /** Display title (rendered with rich text styling) */
+  title: string
+  /** Parent name shown as context after title */
+  parentContext?: string | null
+  /** Whether this line is the selected/highlighted item */
+  isSelected?: boolean
+  /** Optional suffix content (tags, badges, etc.) */
+  children?: React.ReactNode
+}
+
+/**
+ * Compact one-line node display: icon + rich title + parent context + optional suffix.
+ *
+ * Used in SearchDialog, ProjectPicker, and any list that shows nodes as one-liners.
+ */
+export function NodeLine({
+  node,
+  title,
+  parentContext,
+  isSelected = false,
+  children,
+}: NodeLineProps): React.ReactElement {
+  const prefix = isSelected ? "▸ " : "  "
+  const icon = getNodeIcon(node.task_status, undefined, node.type === "task")
+
+  return (
+    <Box
+      width="100%"
+      height={1}
+      backgroundColor={isSelected ? "cyan" : "black"}
+    >
+      <Text color={isSelected ? "black" : undefined} wrap="truncate">
+        {prefix}
+        <Text color={isSelected ? "black" : icon.color}>{icon.char} </Text>
+        {renderRich(title)}
+        {parentContext && (
+          <Text dimColor={!isSelected} color={isSelected ? "gray" : undefined}>
+            {` < ${parentContext}`}
+          </Text>
+        )}
+        {children}
+      </Text>
     </Box>
   )
 }
