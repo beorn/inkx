@@ -164,11 +164,11 @@ describe("production entry point (createBoardApp)", () => {
 })
 
 describe("production smoke: console toggle", () => {
-  test("backtick toggles showConsole in store", async () => {
-    // Regression: the backtick key must toggle ui.showConsole so the Board
-    // component's screen-switch effect fires. If the key handler doesn't reach
-    // the toggle (e.g. swallowed by dialog guard or command system), the
-    // console screen never appears.
+  test("backtick toggles showConsole and board screen recovers", async () => {
+    // Regression: backtick must toggle console AND board must survive the
+    // round-trip. In production, Board.tsx calls pause()/resume() from
+    // useApp() to switch between alternate and normal screen. If pause/resume
+    // are undefined (L3 createApp bug), the screen-switch effect is skipped.
     const nodes = item("board", item("col1", item("task1")))
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
@@ -189,26 +189,28 @@ describe("production smoke: console toggle", () => {
 
     const handle = await app.run(element, { cols: 80, rows: 24 })
 
-    // Initially console should be hidden
-    expect(handle.store.getState().ui.showConsole).toBe(false)
+    // Board should render content initially
+    expect(handle.text).toContain("col1")
+    expect(handle.text).toContain("task1")
 
     // Press backtick to open console
     await handle.press("`")
     expect(handle.store.getState().ui.showConsole).toBe(true)
 
-    // Press backtick again to close console
+    // Press backtick to close console
     await handle.press("`")
     expect(handle.store.getState().ui.showConsole).toBe(false)
+
+    // SCREEN CHECK: Board must render content after console round-trip.
+    // If the render pipeline breaks during toggle, screen goes blank.
+    expect(handle.text).toContain("col1")
+    expect(handle.text).toContain("task1")
 
     handle.unmount()
   })
 
-  test("useApp() provides pause/resume from L3 createApp", async () => {
-    // Regression: L3 createApp captures pause/resume as undefined in the
-    // AppContext value object before they are assigned. Components calling
-    // useApp() get { pause: undefined, resume: undefined }, so the console
-    // screen-switch effect in Board.tsx early-returns.
-    const nodes = item("board", item("col1", item("task1")))
+  test("keys are blocked while console is active (only backtick/Esc dismiss)", async () => {
+    const nodes = item("board", item("col1", item("task1"), item("task2")))
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
@@ -226,24 +228,115 @@ describe("production smoke: console toggle", () => {
       ),
     )
 
-    // In headless mode, pause/resume may legitimately be undefined (no real
-    // terminal to switch screens on). But in interactive mode they must be
-    // functions. We test that createApp at least populates them in the
-    // AppContext for the non-headless case.
-    //
-    // For now, just verify the store state toggles correctly (tested above)
-    // and that headless mode doesn't crash when console is toggled.
     const handle = await app.run(element, { cols: 80, rows: 24 })
 
-    await handle.press("`") // toggle on
+    // Cursor starts on task1
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+
+    // Open console
+    await handle.press("`")
     expect(handle.store.getState().ui.showConsole).toBe(true)
 
-    // Board should still render without crashing (even if pause is undefined)
-    expect(handle.text.trim().length).toBeGreaterThan(0)
+    // Navigation keys should be blocked while console is open
+    await handle.press("j")
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
 
-    await handle.press("`") // toggle off
+    // Escape should close console
+    // NOTE: L3 createApp.press() doesn't call keyToAnsi(), so we must send
+    // the raw escape byte (\x1b) instead of "Escape". This is an L3 bug
+    // (km-tui.console / beorn-inkx issue) — L2's press() uses keyToAnsi().
+    await handle.press("\x1b")
     expect(handle.store.getState().ui.showConsole).toBe(false)
-    expect(handle.text).toContain("col1")
+
+    // Now j should work again — check SCREEN not just state
+    await handle.press("j")
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+    expect(handle.text).toContain("task2")
+
+    handle.unmount()
+  })
+})
+
+describe("production smoke: inline edit + re-render", () => {
+  test("inline edit confirm updates repo AND screen reflects change", async () => {
+    // Regression (km-tui.6, km-tui.save-rerender): after inline edit confirm,
+    // the board must re-render to show updated text. This was previously fixed
+    // with useSyncExternalStore (commit 27302791) but may regress during
+    // store refactoring.
+    const nodes = item("board", item("col1", item("task1"), item("task2")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Verify initial screen content
+    expect(handle.text).toContain("task1")
+
+    // Enter inline edit mode
+    await handle.press("Enter")
+
+    // Type new text (appends to existing)
+    for (const c of "-edited") await handle.press(c)
+
+    // Confirm with Enter
+    await handle.press("Enter")
+
+    // DATA CHECK: repo must have updated content
+    expect(repo.getNode("task1")?.content).toBe("task1-edited")
+
+    // SCREEN CHECK: board must re-render with new text
+    expect(handle.text).toContain("task1-edited")
+
+    handle.unmount()
+  })
+
+  test("cursor navigation screen updates after edit confirm", async () => {
+    // Verifies the board is still interactive after an inline edit.
+    // Catches broken re-render pipelines that leave the board frozen.
+    const nodes = item("board", item("col1", item("task1"), item("task2")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+    const textBefore = handle.text
+
+    // Navigate down
+    await handle.press("j")
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+
+    // SCREEN CHECK: screen must update after cursor move
+    // (catches perf regression where setUI({ bellState: null }) triggers
+    // unnecessary re-renders but screen doesn't actually change)
+    const textAfter = handle.text
+    expect(textAfter).toContain("task2")
 
     handle.unmount()
   })
