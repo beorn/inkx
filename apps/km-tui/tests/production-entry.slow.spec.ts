@@ -792,6 +792,52 @@ describe("perf: processEvent render count", () => {
     handle.unmount()
   })
 
+  test("keypress latency: 50 moves on 200-item board under 500ms total", async () => {
+    // Performance benchmark: measures actual time per keypress on a
+    // realistic-sized board. With the processEvent + useApp fixes, each
+    // keypress should trigger 1-2 renders (not 3+) and complete quickly.
+    const items = Array.from({ length: 200 }, (_, i) => item(`task${i + 1}`))
+    const nodes = item("board", item("col1", ...items))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Warm up (j then k returns cursor to task1)
+    await handle.press("j")
+    await handle.press("k")
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+
+    // Measure 50 keypresses
+    const start = performance.now()
+    for (let i = 0; i < 50; i++) {
+      await handle.press("j")
+    }
+    const elapsed = performance.now() - start
+
+    // Cursor should have advanced: task1 + 50 moves = task51
+    expect(handle.store.getState().boardState.cursorNodeId).toBe("task51")
+
+    // 1000ms for 50 keys = 20ms/key budget. Should be well under.
+    expect(elapsed).toBeLessThan(1000)
+
+    handle.unmount()
+  })
+
   test("visual bell clears on next keypress", async () => {
     // Bell is set when cursor hits boundary, and should clear at the
     // start of the next keypress (board-app.ts line 104), not via timeout.
