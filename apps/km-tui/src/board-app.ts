@@ -21,16 +21,17 @@ import type { ActionCtx } from "./tui-context.ts"
 
 const perfLog = createLogger("km:perf")
 
-// Bell rate limiting — suppress terminal \x07 AND visual bell on rapid boundary hits.
-// Without this, holding a key at a boundary triggers bellState on every repeat,
-// causing full Board re-renders (white flash + status text) ~30× per second.
-//
-// Strategy: track whether we're in a "boundary streak" — consecutive boundary
-// errors without any successful action in between. First hit fires bell + status.
-// All subsequent boundary hits (same or different key) are suppressed until a
-// non-boundary action resets the streak. This handles auto-repeat (j j j j),
-// alternating boundary keys (h l h l at column edge), and rapid typing near bounds.
+// Bell rate limiting — suppress repeated boundary bells during auto-repeat.
+// Only the FIRST boundary hit fires bell + status. All subsequent boundary
+// hits are suppressed until a non-boundary action succeeds (resets the streak).
+// This handles auto-repeat (j j j j), alternating boundary keys (h l h l),
+// and rapid typing near bounds — no re-renders, no white flashes.
 let inBoundaryStreak = false
+
+/** Reset boundary streak state. Called when creating a new app instance (and in tests). */
+export function resetBoundaryStreak(): void {
+  inBoundaryStreak = false
+}
 
 // =============================================================================
 // Key Handler
@@ -111,12 +112,12 @@ export function handleKey(
     return
   }
 
-  // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders)
+  // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders).
+  // Note: inBoundaryStreak is NOT reset here — it only resets when a non-boundary action
+  // succeeds (line ~220). This prevents the alternating-reset bug where every 3rd key
+  // at a boundary would re-fire the bell.
   if (ui.bellState !== null || ui.status !== null) {
     get().setUI({ bellState: null, status: null })
-  } else {
-    // No active bell/status → reset boundary streak so next boundary can fire
-    inBoundaryStreak = false
   }
 
   // DEV: Test toast command (Ctrl+T)
@@ -238,6 +239,7 @@ function routeThroughCommandSystem(
  * @returns AppDefinition that can be .run() with a React element
  */
 export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
+  resetBoundaryStreak()
   let exitFn: (() => void) | null = null
 
   const app = createApp<Record<string, unknown>, BoardAppStore>(

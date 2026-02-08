@@ -85,7 +85,7 @@ import {
   type BoardAppStore,
   type CreateBoardAppStoreParams,
 } from "../../src/board-app-store.ts"
-import { handleKey } from "../../src/board-app.ts"
+import { handleKey, resetBoundaryStreak } from "../../src/board-app.ts"
 import type { TUIBoardState } from "../../src/types.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
@@ -309,6 +309,9 @@ export function testEnv(
     incremental?: boolean
   },
 ) {
+  // Reset module-level boundary streak state from board-app.ts so tests are isolated
+  resetBoundaryStreak()
+
   const nodes = treeBuilder()
   const repo = createFakeRepo({ nodes })
   const rootNode = nodes[0]
@@ -514,6 +517,9 @@ export function testEnvWithRepo(
     incremental?: boolean
   },
 ) {
+  // Reset module-level boundary streak state from board-app.ts so tests are isolated
+  resetBoundaryStreak()
+
   // Build initial board state from repo
   const initialState = buildBoardState(repo, rootId)
 

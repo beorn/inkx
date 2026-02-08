@@ -221,7 +221,6 @@ export function BoardCore({
         height={termHeight}
         minHeight={3}
         overflow="hidden"
-        backgroundColor={ui.bellState ? "white" : undefined}
         {...(ui.bellState && { "data-bell-flash": true })}
       >
         {/* Top bar */}

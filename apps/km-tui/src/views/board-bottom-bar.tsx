@@ -180,6 +180,7 @@ export function BottomBar({
       width={termWidth}
       id="bottom-bar"
       data-status={ui.status?.level}
+      backgroundColor={ui.bellState ? "red" : undefined}
     >
       {/* Left side: fills remaining space, truncates overflow */}
       <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
