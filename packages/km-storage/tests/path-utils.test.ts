@@ -20,6 +20,8 @@ import {
   findKmRootFromPath,
   getEffectiveRoot,
   resolvePathArg,
+  toRelativeFsPath,
+  toAbsoluteFsPath,
 } from "../src/path-utils.ts"
 
 // Track created directories for cleanup
@@ -254,5 +256,40 @@ describe("resolvePathArg", () => {
     expect(result.repoRoot).toBe("/fallback")
     expect(result.nodeRef).toBe("@inbox")
     expect(result.wasExplicitPath).toBe(false)
+  })
+})
+
+// ============================================================================
+// toRelativeFsPath / toAbsoluteFsPath — only test non-obvious behavior
+// ============================================================================
+
+describe("toRelativeFsPath", () => {
+  test("returns '.' for repoRoot itself (not empty string)", () => {
+    expect(toRelativeFsPath("/repo", "/repo")).toBe(".")
+  })
+
+  test("returns absolute path unchanged if outside repo (safety)", () => {
+    expect(toRelativeFsPath("/repo", "/other/file.md")).toBe("/other/file.md")
+  })
+})
+
+describe("toAbsoluteFsPath", () => {
+  test("resolves '.' to repoRoot", () => {
+    expect(toAbsoluteFsPath("/repo", ".")).toBe("/repo")
+  })
+
+  test("passes through already-absolute paths", () => {
+    expect(toAbsoluteFsPath("/repo", "/already/absolute")).toBe(
+      "/already/absolute",
+    )
+  })
+})
+
+describe("toRelativeFsPath / toAbsoluteFsPath round-trip", () => {
+  test("round-trips root and nested paths", () => {
+    const root = "/private/tmp/vt"
+    expect(toAbsoluteFsPath(root, toRelativeFsPath(root, root))).toBe(root)
+    const nested = "/private/tmp/vt/sub/file.md"
+    expect(toAbsoluteFsPath(root, toRelativeFsPath(root, nested))).toBe(nested)
   })
 })
