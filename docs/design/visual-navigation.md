@@ -71,7 +71,7 @@ Every node is rendered as a visual box. The key distinction is whether a node's 
 
 Cards are the only visual container. "Inside a card" is a real visual state — blocks are spatially within the card boundary. "Inside a column" isn't — you're just among its children, which are independent items.
 
-This is what creates navigation boundaries: exiting a card is visually meaningful (you're leaving a container), moving between a column's children is not.
+The one consequence: **h/l from inside a card hits the card boundary and selects the card.** That's the only special behavior cards create — lateral movement can't pass through the card's visual box without selecting the card first. j/k is unaffected.
 
 ## The navigation rule
 
@@ -79,9 +79,7 @@ One rule for all directions, all views:
 
 **Move to the next selectable node in that direction.**
 
-What's "selectable" depends on the view and where the cursor currently is. If the cursor is on a block inside a card, the card is a navigation boundary — h/l exits to the card rather than crossing to the next column. If the cursor is on a card, h/l moves to the next column. This falls out naturally from the visual model: cards wrap their children, so lateral movement from inside a card hits the card boundary first.
-
-The selectable set isn't static. A modifier or mode change can make blocks inside cards independently selectable — the rule doesn't change, just the set of selectable nodes. When blocks are selectable, j/k moves between blocks within the card; when cards are the selectable unit, j/k moves between cards.
+The selectable set isn't static — a modifier or mode change can make deeper nodes selectable. The rule doesn't change, just the set of selectable nodes.
 
 ## Relationship to rendering
 
