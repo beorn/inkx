@@ -114,6 +114,9 @@ export function handleKey(
   // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders)
   if (ui.bellState !== null || ui.status !== null) {
     get().setUI({ bellState: null, status: null })
+  } else {
+    // No active bell/status → reset boundary streak so next boundary can fire
+    inBoundaryStreak = false
   }
 
   // DEV: Test toast command (Ctrl+T)
