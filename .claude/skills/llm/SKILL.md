@@ -29,9 +29,24 @@ Example:
 
 Run `bun llm` for full help.
 
-## Output
+## Output & Presenting Results
 
-By default, the response is written to a file and the file path is printed to stdout. Read the file with `Read` tool. Stale files are auto-cleaned after 7 days. Use `--output -` for classic streaming to stdout.
+By default, the response is written to a file and the file path is printed to stdout. Stale files are auto-cleaned after 7 days. Use `--output -` for classic streaming to stdout.
+
+**CRITICAL: After the LLM responds, you MUST read the output file and present a comprehensive report to the user.** Don't reduce a detailed response to a brief summary — the user wants to see what the other model said.
+
+### How to Present Results
+
+1. **Read the full output file** using `Read` (use `offset`/`limit` for very large files).
+2. **Present a report capped at ~40 lines** that covers all major points. Structure as:
+   - **Key findings/answers** — the substance, with specifics (code patterns, numbers, trade-offs)
+   - **Recommendations** — what the LLM suggests, in priority order
+   - **Notable insights** — anything surprising or that adds perspective
+   - **Citations/sources** — if deep research, include the most relevant URLs
+3. **Preserve technical detail** — include code snippets, function names, concrete numbers. Don't reduce "use a shared queue with background pump" to "batch events."
+4. **Short responses** (`/ask`): present nearly verbatim. **Long responses** (`/deep`): distill to ~40 lines, preserving all key points and specifics — cut repetition and filler, not substance.
+5. **Always show the output file path** at the end of your report so the user can click it to read the full response.
+6. Do NOT silently read the file and move on without reporting. Do NOT say "it recommends X" without the reasoning.
 
 ## Quick Reference
 

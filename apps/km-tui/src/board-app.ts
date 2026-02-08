@@ -21,17 +21,16 @@ import type { ActionCtx } from "./tui-context.ts"
 
 const perfLog = createLogger("km:perf")
 
-// Bell rate limiting — suppress terminal \x07 AND visual bell on rapid auto-repeat.
+// Bell rate limiting — suppress terminal \x07 AND visual bell on rapid boundary hits.
 // Without this, holding a key at a boundary triggers bellState on every repeat,
 // causing full Board re-renders (white flash + status text) ~30× per second.
 //
-// Strategy: track consecutive boundary hits for the same key within a time window.
-// First hit always fires. Subsequent same-key hits within COOLDOWN_MS are suppressed.
-// Different keys or non-boundary actions reset the tracker.
-let lastBellTime = 0
-let lastBellInput = ""
-let bellHitCount = 0
-const BELL_COOLDOWN_MS = 300
+// Strategy: track whether we're in a "boundary streak" — consecutive boundary
+// errors without any successful action in between. First hit fires bell + status.
+// All subsequent boundary hits (same or different key) are suppressed until a
+// non-boundary action resets the streak. This handles auto-repeat (j j j j),
+// alternating boundary keys (h l h l at column edge), and rapid typing near bounds.
+let inBoundaryStreak = false
 
 // =============================================================================
 // Key Handler
@@ -198,22 +197,9 @@ function routeThroughCommandSystem(
 
       // Check for boundary errors - ring bell and show status message
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
-        const now = Date.now()
-        const isSameKey = input === lastBellInput
-        const inCooldown = now - lastBellTime < BELL_COOLDOWN_MS
-
-        if (isSameKey && inCooldown) {
-          bellHitCount++
-        } else {
-          bellHitCount = 1
-        }
-        lastBellTime = now
-        lastBellInput = input
-
-        // Only the first hit shows bell. Auto-repeat (hit 2+) is suppressed
-        // entirely to avoid white-flash re-renders at ~30×/sec.
-        // Terminal bell is only on first hit.
-        if (bellHitCount <= 1) {
+        if (!inBoundaryStreak) {
+          // First boundary hit — show feedback
+          inBoundaryStreak = true
           ctx.setUI({
             bellState: actionResult.error.direction,
             status: {
@@ -223,16 +209,12 @@ function routeThroughCommandSystem(
                 `Can't move ${actionResult.error.direction}`,
             },
           })
-          if (bellHitCount === 1) {
-            process.stdout.write("\x07")
-          }
+          process.stdout.write("\x07")
         }
-        // 3+ consecutive same-key boundary hits: auto-repeat, skip re-renders
+        // Subsequent boundary hits: suppressed entirely (no re-renders)
       } else {
-        // Non-boundary action: reset bell tracker
-        lastBellTime = 0
-        lastBellInput = ""
-        bellHitCount = 0
+        // Non-boundary action: reset streak
+        inBoundaryStreak = false
       }
     }
     const totalDuration = performance.now() - keyStart

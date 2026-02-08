@@ -2,11 +2,11 @@
 description: GUI testing with TTY MCP - pixel-level screenshot verification
 ---
 
-# GUI Tests (Playwright TTY)
+# GUI Tests (TTY MCP)
 
 Pixel-level screenshot verification for regression testing using the `tty` MCP server.
 
-**Keywords**: GUI test, pixel-level, screenshot, ttyd, playwright, visual
+**Keywords**: GUI test, pixel-level, screenshot, playwright, visual
 
 ---
 
@@ -22,7 +22,6 @@ Pixel-level screenshot verification for regression testing using the `tty` MCP s
 ## File Pattern
 
 - `*.slow.spec.ts` (always slow - involves browser automation)
-- `*.playwright-test.ts` (standalone Playwright tests)
 
 ---
 
@@ -30,29 +29,22 @@ Pixel-level screenshot verification for regression testing using the `tty` MCP s
 
 Use `mcp__tty__*` tools from the `tty` MCP server.
 
-**CRITICAL: TTY tools frequently hang.** Always use short timeouts to fail fast:
-
-| Tool | Timeout | Why |
-|------|---------|-----|
-| `mcp__tty__start` | 10s | Process launch is slower |
-| All other tools | 5s | Should respond instantly; hang = broken session |
-
-If any call hangs past its timeout, stop the session (`mcp__tty__stop`) and retry from scratch. Do NOT increase timeouts — a hang means the session is stuck.
+**Architecture**: Bun PTY + xterm-headless (in-process terminal emulation). Browser is only launched lazily for screenshots.
 
 ```
-1. mcp__tty__start({ command: ["bun", "km", "view", "/path"] })  // timeout: 10s
-   -> { sessionId: "abc123", url: "http://127.0.0.1:7701" }
+1. mcp__tty__start({ command: ["bun", "km", "view", "/path"] })
+   -> { sessionId: "abc123" }
 
-2. mcp__tty__wait({ sessionId: "abc123", for: "BOARD VIEW" })    // timeout: 5s
+2. mcp__tty__wait({ sessionId: "abc123", for: "BOARD VIEW" })
    -> { success: true }
 
-3. mcp__tty__press({ sessionId: "abc123", key: "j" })            // timeout: 5s
+3. mcp__tty__press({ sessionId: "abc123", key: "j" })
    -> { success: true }
 
-4. mcp__tty__screenshot({ sessionId: "abc123" })                  // timeout: 5s
+4. mcp__tty__screenshot({ sessionId: "abc123" })
    -> Returns PNG image
 
-5. mcp__tty__stop({ sessionId: "abc123" })                        // timeout: 5s
+5. mcp__tty__stop({ sessionId: "abc123" })
    -> { success: true }
 ```
 
@@ -60,12 +52,11 @@ If any call hangs past its timeout, stop the session (`mcp__tty__stop`) and retr
 
 | Tool | Description |
 |------|-------------|
-| `mcp__tty__start` | Start ttyd + connect browser |
-| `mcp__tty__reset` | Restart TTY, keep browser open |
-| `mcp__tty__stop` | Close browser + stop ttyd |
+| `mcp__tty__start` | Start PTY + xterm-headless emulator |
+| `mcp__tty__stop` | Close session and kill process |
 | `mcp__tty__press` | Press keyboard key(s) |
 | `mcp__tty__type` | Type text |
-| `mcp__tty__screenshot` | Capture screenshot |
+| `mcp__tty__screenshot` | Capture screenshot (lazy browser launch) |
 | `mcp__tty__text` | Get terminal text |
 | `mcp__tty__wait` | Wait for text/stability |
 | `mcp__tty__list` | List active sessions |
@@ -79,47 +70,48 @@ j, k, q (single chars)
 Control+c, Control+d, Shift+Tab (modifiers)
 ```
 
----
-
-## Playwright Test Files
-
-For repeatable regression tests, generate a `.playwright-test.ts` file:
+### start Parameters
 
 ```typescript
-import { test, expect } from "@playwright/test"
-import { createTTY } from "@beorn/tools/playwright-tty"
+{
+  command: string[]              // Required: ["bun", "km", "view", "/path"]
+  env?: Record<string, string>   // Optional: { DEBUG: "inkx:*" }
+  cols?: number                  // Terminal columns (default: 120)
+  rows?: number                  // Terminal rows (default: 40)
+  cwd?: string                   // Working directory
+  waitFor?: "content" | "stable" | string  // Wait condition
+  timeout?: number               // Wait timeout in ms (default: 5000)
+}
+```
 
-test("board view renders correctly", async ({ page }) => {
-  await using ttyd = createTTY({
-    command: ["bun", "km", "view", "/tmp/test"],
-  })
-  await ttyd.ready
+---
 
-  await page.goto(ttyd.url)
-  await page.setViewportSize({ width: 1000, height: 700 })
+## Headless Screenshots (Preferred)
 
-  await expect(page.locator("body")).toContainText("BOARD VIEW")
+For most cases, prefer headless `app.screenshot()` over TTY MCP. The inkx App now supports direct screenshot capture:
 
-  await page.keyboard.press("j")
-  await page.keyboard.press("j")
+```typescript
+const driver = createBoardDriver(repo, rootId)
+await driver.cmd.down()
+const png = await driver.screenshot('/tmp/board.png')
+```
 
-  await expect(page).toHaveScreenshot("board-after-navigation.png")
+This uses `bufferToHTML()` + lazy Playwright rendering — no PTY, no external processes.
+
+### withDiagnostics Screenshot Capture
+
+Enable automatic screenshot capture on diagnostic failures:
+
+```typescript
+const driver = withDiagnostics(createBoardDriver(repo, rootId), {
+  checkIncremental: true,
+  checkStability: true,
+  captureOnFailure: true,              // Capture screenshot on failure
+  screenshotDir: "/tmp/inkx-diagnostics", // Default directory
 })
 ```
 
-Run with: `bunx playwright test example.playwright-test.ts`
-
----
-
-## When to Use MCP vs Test Files
-
-| Scenario | Use MCP | Use Test File |
-|----------|---------|---------------|
-| Ad-hoc debugging | Yes | |
-| Quick screenshot | Yes | |
-| Repeatable regression test | | Yes |
-| Complex multi-step test | | Yes |
-| CI integration | | Yes |
+When a diagnostic check fails, the screenshot is saved and its path is included in the error message.
 
 ---
 
@@ -127,21 +119,23 @@ Run with: `bunx playwright test example.playwright-test.ts`
 
 | Problem | Solution |
 |---------|----------|
-| Tool call hangs | Stop session, start fresh. Never increase timeout. |
-| Chromium not found | Installed automatically on first `mcp__tty__start` |
+| Tool call hangs | Stop session, start fresh |
+| Chromium not found | Installed automatically on first `mcp__tty__screenshot` |
 | Session not found | Use `mcp__tty__list` to check active sessions |
 | Blank screenshot | Use `mcp__tty__wait` before screenshot |
-| ttyd missing | `brew install ttyd` |
 
 ---
 
-## CLI Debugging Alternative
+## CLI Alternative
 
-For quick capture without browser automation:
+For one-shot capture without the MCP server:
 
 ```bash
-km screenshot /path/to/repo --width 80 --height 24
-km screenshot /path/to/file.md --format ansi -o /tmp/out.txt
+# Text + screenshot
+bun tools/tty.ts capture --command "bun km view /path" --keys "j,Enter" --screenshot /tmp/out.png --text
+
+# Text-only (no Chromium needed)
+bun tools/tty.ts capture --command "bun km view /path" --wait-for "BOARD" --text
 ```
 
 ---
@@ -151,6 +145,7 @@ km screenshot /path/to/file.md --format ansi -o /tmp/out.txt
 | Need | Use |
 |------|-----|
 | Automated TUI tests | [TUI tests (inkx)](tui.md) |
-| Pixel-level verification | GUI tests (this) |
+| Headless screenshots | `app.screenshot()` / `withDiagnostics({ captureOnFailure })` |
+| Pixel-level verification | TTY MCP `mcp__tty__screenshot` |
 | Debug visual issue | TTY MCP |
-| Share TUI state in bug report | km screenshot |
+| One-shot capture | `bun tools/tty.ts capture` |

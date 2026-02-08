@@ -18,6 +18,8 @@ See `/llm` for output format, flags, and background execution.
 
 **Note**: This is OpenAI's deep research (NOT DeepSeek). Takes 2-15 minutes; interrupted calls auto-recover.
 
+**CRITICAL — Presenting Results**: Deep research costs $2-5. After it completes, you MUST read the full output file and present a comprehensive report (~40 lines unless it warrants more) — not a brief summary. Preserve code snippets, specific recommendations, trade-offs, and citations. See `/llm` "Output & Presenting Results" for the full protocol.
+
 ## Context Gathering (CRITICAL for Code Questions)
 
 **First**: Use `/recall` to search session history for prior work on the topic: `bun recall "topic"`. Read the results, extract relevant insights, and summarize them into `--context` — don't pass raw recall output.
