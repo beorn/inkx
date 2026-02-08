@@ -31,7 +31,9 @@ Run `bun llm` for full help.
 
 ## Output & Presenting Results
 
-By default, the response is written to a file and the file path is printed to stdout. Stale files are auto-cleaned after 7 days. Use `--output -` for classic streaming to stdout.
+By default, the response is written to a file and the file path is printed to stdout (as JSON). Stale files are auto-cleaned after 7 days.
+
+**WARNING**: Do NOT use `--output -` — it streams to stdout which is unretrievable from background tasks and causes agents to lose the output. Always use the default file output.
 
 **CRITICAL: After the LLM responds, you MUST read the output file and present a comprehensive report to the user.** Don't reduce a detailed response to a brief summary — the user wants to see what the other model said.
 
@@ -83,7 +85,7 @@ By default, the response is written to a file and the file path is printed to st
 |------|------|------|
 | `--deep`/`/deep` | OpenAI deep research (web search, citations, thorough) | ~$2-5 |
 | `--ask`/`/ask` | Explicit default mode (syntactic sugar) | ~$0.02 |
-| `--output -` | Stream to stdout instead of writing to file | — |
+| ~~`--output -`~~ | **DEPRECATED** — Do NOT use. Breaks background tasks. Use default file output. | — |
 
 ## Context Flags
 

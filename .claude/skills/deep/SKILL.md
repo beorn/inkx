@@ -20,6 +20,48 @@ See `/llm` for output format, flags, and background execution.
 
 **CRITICAL — Presenting Results**: Deep research costs $2-5. After it completes, you MUST read the full output file and present a comprehensive report (~40 lines unless it warrants more) — not a brief summary. Preserve code snippets, specific recommendations, trade-offs, and citations. See `/llm` "Output & Presenting Results" for the full protocol.
 
+## Execution Pattern
+
+**IMPORTANT**: Deep research takes 2-15 minutes. Use ONE of these patterns:
+
+### Pattern A: Foreground with long timeout (SIMPLEST, preferred)
+
+```
+Bash(command='bun llm --deep -y "topic"', timeout=600000)
+```
+
+This blocks for up to 10 minutes. Stdout contains JSON with the output file path. Read the file after.
+
+### Pattern B: Background + do other work
+
+```
+# Step 1: Launch
+Bash(command='bun llm --deep -y "topic"', run_in_background=true)
+# Returns task_id
+
+# Step 2: Do other work while waiting...
+
+# Step 3: Retrieve (blocks up to 10 min)
+TaskOutput(task_id=<id>, block=true, timeout=600000)
+# Parse JSON from stdout, read the output file
+```
+
+### Anti-patterns (NEVER do these)
+
+```
+# BAD: --output - streams to stdout — unretrievable from background tasks
+bun llm --deep --output - "topic"
+
+# BAD: Sleep-polling wastes turns and gets killed
+Bash("sleep 30 && wc -c output.txt")  # 5 turns of sleeping = killed
+Bash("sleep 60 && wc -c output.txt")
+
+# BAD: Subagent without skill context — agent won't know the correct pattern
+Task(subagent_type="general-purpose", prompt="run deep research on X")
+```
+
+**If running from a subagent/Task**: Use Pattern A (foreground with `timeout=600000`). Subagents don't have skill context, so keep it simple.
+
 ## Context Gathering (CRITICAL for Code Questions)
 
 **First**: Use `/recall` to search session history for prior work on the topic: `bun recall "topic"`. Read the results, extract relevant insights, and summarize them into `--context` — don't pass raw recall output.
