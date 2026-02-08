@@ -1861,16 +1861,13 @@ describe("Boundary Feedback (Bell + Status)", () => {
     board.press("j")
     expect(board.hasStatus).toBe(false)
 
-    // Hit another boundary (bottom)
-    board.press("j") // board → col1
-    board.press("j") // col1 → 1a
-    board.press("j") // 1a → 1b
-    board.expect("#1b[data-cursor]").toExist()
-    board.press("j") // 1b → bottom boundary
+    // Hit another boundary (different direction)
+    board.press("h") // hit left boundary from board level
+    expect(board.bell).toBe(true)
     expect(board.hasStatus).toBe(true)
 
-    // Clear again
-    board.press("k")
+    // Non-boundary key clears status
+    board.press("j") // board → col1 (valid move)
     expect(board.hasStatus).toBe(false)
   })
 

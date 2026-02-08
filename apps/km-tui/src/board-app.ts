@@ -210,10 +210,10 @@ function routeThroughCommandSystem(
         lastBellTime = now
         lastBellInput = input
 
-        // First 2 hits always show bell (first hit + one confirmation).
-        // After that, suppress to avoid rapid flashing on auto-repeat.
+        // Only the first hit shows bell. Auto-repeat (hit 2+) is suppressed
+        // entirely to avoid white-flash re-renders at ~30×/sec.
         // Terminal bell is only on first hit.
-        if (bellHitCount <= 2) {
+        if (bellHitCount <= 1) {
           ctx.setUI({
             bellState: actionResult.error.direction,
             status: {
