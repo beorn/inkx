@@ -452,21 +452,20 @@ export function createBoardAppStoreState(
     },
 
     updateLayout(layout, selectedNode, selectionLevel, tuiBoardState) {
-      set((state) => {
-        // Skip update if nothing changed (avoids render feedback loop).
-        // CRITICAL: return `state` (same ref), not `{}`. Zustand uses
-        // Object.is(nextState, state) to skip notifications — returning
-        // {} creates a new ref that always triggers subscribers.
-        if (
-          state.layout === layout &&
-          state.selectedNode === selectedNode &&
-          state.selectionLevel === selectionLevel &&
-          state.tuiBoardState === tuiBoardState
-        ) {
-          return state
-        }
-        return { layout, selectedNode, selectionLevel, tuiBoardState }
-      })
+      // Silent mutation: update derived fields WITHOUT triggering Zustand
+      // subscribers. This prevents the double-render-per-keypress issue:
+      //   1. Key handler sets cursorNodeId → doRender() → React renders Board
+      //   2. Board effect computes new layout → calls updateLayout
+      //   3. If updateLayout calls set(), Zustand fires subscriber → pendingRerender → 2nd doRender()
+      //   4. The 2nd render is WASTED — React already has the correct state
+      //
+      // By mutating getState() directly, the key handler sees fresh layout
+      // (via get().layout) without triggering a re-render cycle.
+      const state = _get()
+      state.layout = layout
+      state.selectedNode = selectedNode
+      state.selectionLevel = selectionLevel
+      state.tuiBoardState = tuiBoardState
     },
   })
 }
