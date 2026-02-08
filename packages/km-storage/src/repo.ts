@@ -688,6 +688,25 @@ export class IncompleteDatabase extends Error {
 }
 
 /**
+ * Detect absolute fs_path values in the database.
+ * These indicate a pre-migration database that must be rebuilt.
+ *
+ * Returns a descriptive string if absolute paths found, or null if OK.
+ */
+function detectAbsolutePaths(db: Database): string | null {
+  const row = db
+    .prepare(
+      "SELECT COUNT(*) as cnt FROM nodes WHERE fs_path LIKE '/%'",
+    )
+    .get() as { cnt: number }
+  if (row.cnt === 0) return null
+  return (
+    `database contains ${row.cnt} node(s) with absolute fs_path values. ` +
+    `Since v0.x, fs_path must be relative to the repo root`
+  )
+}
+
+/**
  * Check if a disk-mode database is incomplete/stale.
  *
  * Returns a descriptive string if incomplete, or null if OK.
@@ -818,10 +837,16 @@ function* initWithFileLoading(
   }
   const deferredFiles = loadResult.deferredFiles ?? []
 
-  // Health check: detect incomplete .km database
-  // This happens when km init/sync is interrupted, leaving .km with stale/partial data.
-  // Detect by checking if root has structural children matching the filesystem.
+  // Health checks for disk mode
   if (mode === "disk") {
+    // Detect absolute fs_path values (pre-migration database)
+    const hasAbsolute = detectAbsolutePaths(db)
+    if (hasAbsolute) {
+      db.close()
+      throw new IncompleteDatabase(hasAbsolute, kmDir)
+    }
+
+    // Detect incomplete .km database (interrupted init/sync)
     const isIncomplete = isDatabaseIncomplete(db, rootPath, kmDir)
     if (isIncomplete) {
       db.close()
