@@ -253,8 +253,9 @@ function getNextSibling(nodeId: string, repo: Repo): string | null {
   if (!node) throw new Error(`[nav] node not in repo: ${nodeId}`)
   const siblings = repo.getChildren(node.parent_id)
   const idx = siblings.findIndex((n) => n.id === nodeId)
-  if (idx < 0)
+  if (idx < 0) {
     throw new Error(`[nav] node ${nodeId} not found in parent's children`)
+  }
   if (idx >= siblings.length - 1) return null // last sibling
   return siblings[idx + 1]?.id ?? null
 }
@@ -264,8 +265,9 @@ function getPreviousSibling(nodeId: string, repo: Repo): string | null {
   if (!node) throw new Error(`[nav] node not in repo: ${nodeId}`)
   const siblings = repo.getChildren(node.parent_id)
   const idx = siblings.findIndex((n) => n.id === nodeId)
-  if (idx < 0)
+  if (idx < 0) {
     throw new Error(`[nav] node ${nodeId} not found in parent's children`)
+  }
   if (idx === 0) return null // first sibling
   return siblings[idx - 1]?.id ?? null
 }
@@ -287,8 +289,9 @@ function findAncestorAtDepth(
   while (currentId !== rootId && currentId !== null) {
     chain.push(currentId)
     const node = repo.getNode(currentId)
-    if (!node)
+    if (!node) {
       throw new Error(`[nav] broken parent chain: ${currentId} not in repo`)
+    }
     currentId = node.parent_id
   }
 
@@ -297,9 +300,10 @@ function findAncestorAtDepth(
   const targetIndex = chain.length - depth
   if (targetIndex < 0 || targetIndex >= chain.length) return null
   const result = chain[targetIndex]
-  if (!result)
+  if (!result) {
     throw new Error(
       `[nav] chain index ${targetIndex} missing after bounds check`,
     )
+  }
   return result
 }

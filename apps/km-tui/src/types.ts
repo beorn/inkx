@@ -109,9 +109,7 @@ export interface ColumnsLayout {
   colIndex: number
   /** Card index within column, or COLUMN_HEADER_INDEX (-1) if at column header */
   cardIndex: number
-  subPath: number[]
   isAtCardLevel: boolean
-  isInOutlineMode: boolean
 }
 
 /**

@@ -603,9 +603,7 @@ export function Board({ patchedConsole }: BoardProps) {
       columns,
       colIndex: cursorPosition.colIndex,
       cardIndex: cursorPosition.cardIndex,
-      subPath: [],
       isAtCardLevel: cursorPosition.isAtCardLevel,
-      isInOutlineMode: false,
     }),
     [columns, cursorPosition],
   )

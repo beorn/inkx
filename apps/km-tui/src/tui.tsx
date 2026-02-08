@@ -208,12 +208,10 @@ export async function runBoard(
       columns: state.columns,
       colIndex: 0,
       cardIndex: 0,
-      subPath: [] as string[],
       isAtCardLevel:
         initialCursorNodeId !== null &&
         state.columns.length > 0 &&
         (state.columns[0]?.cards.length ?? 0) > 0,
-      isInOutlineMode: false,
     }
 
     const selectedCol = state.columns[0]

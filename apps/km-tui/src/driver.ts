@@ -205,12 +205,10 @@ export function createBoardDriver(
     columns: initialTUIState.columns,
     colIndex: 0,
     cardIndex: 0,
-    subPath: [] as string[],
     isAtCardLevel:
       initialCursorNodeId !== null &&
       initialTUIState.columns.length > 0 &&
       (initialTUIState.columns[0]?.cards.length ?? 0) > 0,
-    isInOutlineMode: false,
   }
 
   const selectedCol = initialTUIState.columns[0]

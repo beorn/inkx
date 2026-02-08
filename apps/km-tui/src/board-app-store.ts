@@ -129,9 +129,7 @@ function recomputeLayout(get: () => BoardAppStore, cursorOnly?: boolean): void {
     columns,
     colIndex: cursor.colIndex,
     cardIndex: cursor.cardIndex,
-    subPath: [],
     isAtCardLevel: cursor.isAtCardLevel,
-    isInOutlineMode: false,
   }
 
   const selectedCol = columns[cursor.colIndex]
