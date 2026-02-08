@@ -113,10 +113,16 @@ export type BoardAppStore = BoardAppState &
  * subscribers are NOT notified. This is safe because:
  * - React already has the correct layout from useColumns/useCursorPosition hooks
  * - The key handler just needs fresh layout data for the NEXT keypress
+ *
+ * @param cursorOnly - When true, skip column derivation and only re-derive
+ *   cursor position using existing columns. Used for SELECT and SET_CURSWANT
+ *   actions where only cursorNodeId changes.
  */
-function recomputeLayout(get: () => BoardAppStore): void {
+function recomputeLayout(get: () => BoardAppStore, cursorOnly?: boolean): void {
   const s = get()
-  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+  const columns = cursorOnly
+    ? s.layout.columns
+    : deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
   const cursor = deriveCursorPosition(columns, s.cursorNodeId)
 
   const layout: ColumnsLayout = {
@@ -213,11 +219,15 @@ export function createBoardAppStoreState(
 
     // oxlint-disable-next-line complexity/max-cognitive -- Exhaustive switch over BoardAction union
     dispatchBoard(action: BoardAction) {
+      // Track whether this action only changes cursor position (no column changes)
+      let cursorOnly = false
+
       set((state) => {
         let flatUpdate: Partial<BoardAppState>
 
         switch (action.type) {
           case "SELECT": {
+            cursorOnly = true
             flatUpdate = {
               cursorNodeId: action.nodeId,
               curswantX: null,
@@ -350,6 +360,7 @@ export function createBoardAppStoreState(
             return state
 
           case "SET_CURSWANT": {
+            cursorOnly = true
             flatUpdate = {
               curswantX: action.x !== undefined ? action.x : state.curswantX,
               curswantY: action.y !== undefined ? action.y : state.curswantY,
@@ -368,7 +379,8 @@ export function createBoardAppStoreState(
         return flatUpdate
       })
       // Synchronously derive layout so key handler has fresh data immediately
-      recomputeLayout(_get)
+      // For cursor-only moves (SELECT, SET_CURSWANT), skip column derivation
+      recomputeLayout(_get, cursorOnly)
     },
 
     // --- Direct setters ---

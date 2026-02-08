@@ -18,6 +18,7 @@ import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext } from "./command-bridge.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
 import type { ActionCtx } from "./tui-context.ts"
+import { createCardsViewNavigation } from "./view-navigation.ts"
 
 const perfLog = createLogger("km:perf")
 
@@ -32,6 +33,9 @@ let inBoundaryStreak = false
 export function resetBoundaryStreak(): void {
   inBoundaryStreak = false
 }
+
+// Singleton — stateless, so one instance suffices for all key events
+const cardsViewNavigation = createCardsViewNavigation()
 
 // =============================================================================
 // Key Handler
@@ -65,6 +69,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     ui: s.ui,
     layout: s.layout,
     layoutRegistry: s.layoutRegistry,
+    viewNavigation: cardsViewNavigation,
     toastQueue: s.toastQueue,
     selectedNode: s.selectedNode,
     column,

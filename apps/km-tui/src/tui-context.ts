@@ -14,6 +14,7 @@ import type { BoardAction, NavHistoryEntry } from "./board-types.ts"
 import type { ColumnsLayout, ColumnState, CardState } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
+import type { ViewNavigation } from "./view-navigation.ts"
 
 /**
  * Context for all TUI action handlers.
@@ -46,6 +47,7 @@ export interface ActionCtx {
   ui: UIState
   layout: ColumnsLayout
   layoutRegistry: LayoutRegistry
+  viewNavigation: ViewNavigation
   toastQueue: ToastQueue
 
   // === Derived (computed once per key event) ===

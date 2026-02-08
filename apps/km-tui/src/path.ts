@@ -145,11 +145,10 @@ export const NodePath = {
     }
 
     const parentPath = Path.parent(path)
-    const parentNode = parentPath.length === 0
-      ? null
-      : NodePath.nodeAt(repo, rootId, parentPath)
+    const parentNode =
+      parentPath.length === 0 ? null : NodePath.nodeAt(repo, rootId, parentPath)
 
-    const parentId = parentPath.length === 0 ? rootId : parentNode?.id ?? null
+    const parentId = parentPath.length === 0 ? rootId : (parentNode?.id ?? null)
     return repo.getChildren(parentId)
   },
 }
