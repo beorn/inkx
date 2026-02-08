@@ -145,8 +145,7 @@ describe("Architecture Benchmark", () => {
     for (let i = 0; i < 5; i++) board.press("j")
     const lStats = benchPress(board, "l", 4)
     const hStats = benchPress(board, "h", 4)
-    benchResults["h_l"] =
-      `l=${formatMs(lStats.avg)} h=${formatMs(hStats.avg)}`
+    benchResults["h_l"] = `l=${formatMs(lStats.avg)} h=${formatMs(hStats.avg)}`
 
     // Baseline: ~19ms avg (isolated). Horizontal is slower than vertical (column scroll).
     expect(lStats.avg).toBeLessThan(60)
