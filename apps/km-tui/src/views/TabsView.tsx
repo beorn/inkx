@@ -10,7 +10,7 @@ import React from "react"
 import { Box, Text, VirtualList } from "inkx"
 import type { TUIBoardState, CardState } from "../types.ts"
 import { getNodeDisplayName } from "../state.ts"
-import { useTreeConfig } from "../ui-context.tsx"
+import { useTreeRenderContext } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 
@@ -38,7 +38,9 @@ export function TabsView({
   selectionLevel,
 }: TabsViewProps): React.ReactElement {
   const repo = useRepo()
-  const { inOutlineMode } = useTreeConfig()
+  const {
+    treeConfig: { inOutlineMode },
+  } = useTreeRenderContext()
 
   // Get current column
   const currentColumn = state.columns[colIndex]

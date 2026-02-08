@@ -23,6 +23,7 @@ import { BoardCore } from "../src/views/Board.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createLayoutRegistry } from "../src/card-positions.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
+import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
 import type { TUIBoardState } from "../src/types.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
@@ -58,19 +59,29 @@ function renderBoardCore(
     moveMode: false,
     colScrollOffset: 0,
   })
-  // Wrap in StoreContext so TreeNode's store-backed hooks work
+  // Wrap in StoreContext + TreeRenderProvider so TreeNode's hooks work
+  const initialUI = createInitialUIState("cards", [], {
+    columns: width,
+    rows: height,
+  })
   const store = createStore(() => ({
     foldedNodes: new Set<string>(),
-    ui: createInitialUIState("cards", [], { columns: width, rows: height }),
+    ui: initialUI,
     layoutRegistry: null,
     setUI: () => {},
   }))
+  const treeConfig = deriveTreeConfig(initialUI)
+  const wrappedElement = React.createElement(
+    TreeRenderProvider,
+    { treeConfig, setUI: () => {}, rootBoardId: null },
+    boardCoreElement,
+  )
   return React.createElement(
     StoreContext.Provider,
     { value: store as StoreApi<unknown> },
     React.createElement(RepoProvider, {
       repo,
-      children: boardCoreElement,
+      children: wrappedElement,
     }),
   )
 }

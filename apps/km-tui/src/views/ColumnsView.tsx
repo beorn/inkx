@@ -20,7 +20,7 @@ const debug = createDebug("km:tui:columns")
 import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
-import { useTreeConfig } from "../ui-context.tsx"
+import { useTreeRenderContext } from "../ui-context.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import {
   VerticalScrollIndicator,
@@ -97,7 +97,9 @@ const ColumnTree = React.memo(
     }))
 
     const repo = useRepo()
-    const { inOutlineMode } = useTreeConfig()
+    const {
+      treeConfig: { inOutlineMode },
+    } = useTreeRenderContext()
 
     // Render name with wiki links stripped: [[target|alias]] → "alias"
     const name = renderPlain(getNodeDisplayName(repo, column.node))

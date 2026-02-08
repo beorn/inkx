@@ -2,9 +2,11 @@
  * UI Hooks for Board Components
  *
  * Provides UI state selectors via the Zustand store.
+ * TreeRenderContext provides global rendering config to TreeNode
+ * without per-node store subscriptions.
  */
 
-import { useMemo } from "react"
+import React, { createContext, useContext, useMemo } from "react"
 import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
 import type { UIState } from "./ui-reducer.ts"
 import type { BoardAppStore } from "./board-app-store.ts"
@@ -136,6 +138,8 @@ const GTD_SIGIL_COLORS: Record<string, string> = {
   "@blocked": "red",
 }
 
+const STATIC_SIGIL_COLORS = new Map(Object.entries(GTD_SIGIL_COLORS))
+
 /**
  * Get colors for sigils based on GTD defaults or node colors.
  *
@@ -145,4 +149,99 @@ export function useSigilColors(): Map<string, string> {
   // Return static GTD colors for now
   // Future: could look up actual node colors from storage
   return useMemo(() => new Map(Object.entries(GTD_SIGIL_COLORS)), [])
+}
+
+// =============================================================================
+// TreeRenderContext — Global rendering config for TreeNode
+// =============================================================================
+
+/**
+ * Tree rendering config computed from UI state.
+ * Stable across cursor moves (only changes on view mode / outline changes).
+ */
+export interface TreeConfig {
+  maxOutlineDepth: number
+  maxContentLines: number
+  inOutlineMode: boolean
+  currentSubIndex: number
+  variant: "oneliner" | "multiline"
+}
+
+/**
+ * Global rendering context for the tree component tree.
+ * Eliminates per-node store subscriptions for global state.
+ *
+ * Values change rarely (view mode switch, outline toggle, etc.)
+ * and when they do, all nodes need re-render anyway.
+ */
+export interface TreeRenderCtx {
+  treeConfig: TreeConfig
+  sigilColors: Map<string, string>
+  setUI: BoardAppStore["setUI"]
+  rootBoardId: string | null
+}
+
+const TreeRenderContext = createContext<TreeRenderCtx | null>(null)
+
+/**
+ * Read global tree rendering config from context.
+ * Must be called inside a TreeRenderProvider.
+ */
+export function useTreeRenderContext(): TreeRenderCtx {
+  const ctx = useContext(TreeRenderContext)
+  if (!ctx) {
+    throw new Error(
+      "useTreeRenderContext must be used inside TreeRenderProvider",
+    )
+  }
+  return ctx
+}
+
+/**
+ * Derive TreeConfig from UI state. Pure computation.
+ */
+export function deriveTreeConfig(ui: UIState): TreeConfig {
+  const viewMode = ui.viewMode
+  return {
+    maxOutlineDepth:
+      viewMode === "cards"
+        ? ui.maxOutlineDepth
+        : Math.min(1, ui.maxOutlineDepth),
+    maxContentLines: viewMode === "cards" ? ui.maxContentLines : 1,
+    inOutlineMode: ui.inOutlineMode,
+    currentSubIndex: ui.subIndex,
+    variant: viewMode === "cards" ? "multiline" : "oneliner",
+  }
+}
+
+/**
+ * Provider for tree rendering context.
+ * Placed at the Board level to give all TreeNode instances
+ * access to global config without per-node store subscriptions.
+ */
+export function TreeRenderProvider({
+  treeConfig,
+  setUI,
+  rootBoardId,
+  children,
+}: {
+  treeConfig: TreeConfig
+  setUI: BoardAppStore["setUI"]
+  rootBoardId: string | null
+  children: React.ReactNode
+}): React.ReactElement {
+  const ctx = useMemo(
+    () => ({
+      treeConfig,
+      sigilColors: STATIC_SIGIL_COLORS,
+      setUI,
+      rootBoardId,
+    }),
+    [treeConfig, setUI, rootBoardId],
+  )
+  return (
+    <TreeRenderContext.Provider value={ctx}>
+      {children}
+    </TreeRenderContext.Provider>
+  )
 }

@@ -8,7 +8,7 @@
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
-import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
+import { useAppShallow } from "inkx/runtime"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text } from "inkx"
@@ -23,12 +23,7 @@ import { extractBody } from "@km/tree"
 import { renderRich } from "../text/index.ts"
 import { truncateText } from "../layout/index.ts"
 import { makeSelectionKey } from "../types.ts"
-import {
-  useTreeConfig,
-  useSetUI,
-  deriveExcludedSigils,
-  useSigilColors,
-} from "../ui-context.tsx"
+import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import {
   getNodeStyle,
@@ -148,18 +143,17 @@ function TreeNodeImpl({
   getParentContext: getParentContextProp,
   getBoardPills = () => [],
 }: TreeNodeProps): React.ReactElement {
-  // Get UI state from context — single shallow subscription for tree config
+  // Global tree rendering config from context (no per-node subscription)
+  const { treeConfig, sigilColors, setUI, rootBoardId } = useTreeRenderContext()
   const {
     maxOutlineDepth: maxDepth,
     inOutlineMode,
     currentSubIndex,
     variant,
-  } = useTreeConfig()
-  const sigilColors = useSigilColors()
+  } = treeConfig
 
-  // Single shallow subscription for all per-node state from the store.
-  // Combines what was 4 separate subscriptions (isMultiSelected, isFolded,
-  // editBlockIndex, rootBoardId) into 1 with shallow comparison.
+  // Single store subscription for per-node state only.
+  // On cursor move: none of these change → no re-render from store.
   const selectionKey = makeSelectionKey(colIndex, cardIndex, subIndex)
   const nodeState = useAppShallow<
     BoardAppStore,
@@ -167,7 +161,6 @@ function TreeNodeImpl({
       isMultiSelected: boolean
       isFolded: boolean
       editBlockIndex: number | null
-      rootBoardId: string | null
     }
   >((s) => ({
     isMultiSelected: s.ui.multiSelected.has(selectionKey),
@@ -176,13 +169,11 @@ function TreeNodeImpl({
       s.ui.inlineEditBlock?.nodeId === node.id
         ? s.ui.inlineEditBlock.blockIndex
         : null,
-    rootBoardId: s.ui.rootBoardId,
   }))
-  const { isMultiSelected, isFolded, rootBoardId } = nodeState
+  const { isMultiSelected, isFolded } = nodeState
   const editBlockIndex = nodeState.editBlockIndex
   const isInlineEditing = editBlockIndex !== null
   const editingTitle = editBlockIndex === 0
-  const setUI = useSetUI()
   const excludeBoardIds = rootBoardId
     ? new Set([rootBoardId])
     : new Set<string>()

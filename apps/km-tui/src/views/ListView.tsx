@@ -13,7 +13,7 @@ import React, { useMemo, useCallback } from "react"
 import { Box, Text, VirtualList } from "inkx"
 import type { TUIBoardState, CardState } from "../types.ts"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
-import { useTreeConfig, useRootBoardId } from "../ui-context.tsx"
+import { useTreeRenderContext } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import type { KNode } from "@km/core"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
@@ -61,8 +61,8 @@ export function ListView({
   subIndex,
   selectionLevel,
 }: ListViewProps): React.ReactElement {
-  const { inOutlineMode } = useTreeConfig()
-  const rootBoardId = useRootBoardId()
+  const { treeConfig, rootBoardId } = useTreeRenderContext()
+  const { inOutlineMode } = treeConfig
   const repo = useRepo()
 
   // Flatten all cards into a single list

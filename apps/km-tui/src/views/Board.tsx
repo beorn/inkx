@@ -58,6 +58,11 @@ import {
   calcColumnWidths,
   getColumnWidth,
 } from "./board-layout.ts"
+import {
+  TreeRenderProvider,
+  deriveTreeConfig,
+  type TreeConfig,
+} from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
 import { ToastStack } from "./ToastStack.tsx"
@@ -729,21 +734,39 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // NO useInput — keys handled by term:key in board-app.ts
 
+  // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
+  const treeConfig: TreeConfig = useMemo(
+    () => deriveTreeConfig(ui),
+    [
+      ui.viewMode,
+      ui.maxOutlineDepth,
+      ui.maxContentLines,
+      ui.inOutlineMode,
+      ui.subIndex,
+    ],
+  )
+
   return (
-    <BoardCore
-      state={tuiBoardState}
-      layout={columnsLayout}
-      ui={ui}
-      derivedSelectionLevel={derivedSelectionLevel}
-      dimensions={ui.dimensions}
-      layoutRegistry={layoutRegistry}
+    <TreeRenderProvider
+      treeConfig={treeConfig}
       setUI={setUI}
-      dialogHandlers={dialogHandlers}
-      moveMode={moveMode}
-      consoleStats={consoleStats}
-      colScrollOffset={colScrollOffset}
-      toastQueue={toastQueue}
-    />
+      rootBoardId={ui.rootBoardId}
+    >
+      <BoardCore
+        state={tuiBoardState}
+        layout={columnsLayout}
+        ui={ui}
+        derivedSelectionLevel={derivedSelectionLevel}
+        dimensions={ui.dimensions}
+        layoutRegistry={layoutRegistry}
+        setUI={setUI}
+        dialogHandlers={dialogHandlers}
+        moveMode={moveMode}
+        consoleStats={consoleStats}
+        colScrollOffset={colScrollOffset}
+        toastQueue={toastQueue}
+      />
+    </TreeRenderProvider>
   )
 }
 

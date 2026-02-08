@@ -81,7 +81,11 @@ const benchResults: Record<string, string> = {}
 describe("Architecture Benchmark", { timeout: 30000 }, () => {
   // Print all results after tests complete (vitest summary includes test names)
   afterAll(() => {
-    // Results are embedded in test names via expect() messages
+    console.log("\n--- Architecture Benchmark Results ---")
+    for (const [key, value] of Object.entries(benchResults)) {
+      console.log(`  ${key}: ${value}`)
+    }
+    console.log("---")
   })
 
   // Current baseline (2026-02-07, isolated run, 1440-node board 200x60):
