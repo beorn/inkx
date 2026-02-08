@@ -61,9 +61,9 @@ export function useColumns(
 
 /**
  * Pure function to derive columns from Repo.
- * Can be used outside of React for testing.
+ * Can be used outside of React for testing and in the store for synchronous layout.
  */
-function deriveColumnsFromRepo(
+export function deriveColumnsFromRepo(
   repo: Repo,
   rootId: string | null,
   foldedNodes: Set<string>,

@@ -11,11 +11,13 @@
 
 import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction, NavHistoryEntry } from "./board-types.ts"
+import type { BoardAction, BoardState, NavHistoryEntry } from "./board-types.ts"
 import type { TUIBoardState, ColumnsLayout } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
 import type { BlockEditTarget } from "./block-edit-target.ts"
+import { deriveColumnsFromRepo } from "./hooks/use-columns.ts"
+import { deriveCursorPosition } from "./hooks/use-cursor-position.ts"
 
 // =============================================================================
 // Store Types
@@ -102,6 +104,39 @@ export type BoardAppStore = BoardAppState &
 // Helpers
 // =============================================================================
 
+/**
+ * Synchronously derive layout from state and silently update the store.
+ * Called after dispatchBoard() and setFoldedNodes() to ensure the store
+ * has fresh layout data immediately — no React effect round-trip needed.
+ *
+ * Uses silent mutation (direct property assignment on getState()) so Zustand
+ * subscribers are NOT notified. This is safe because:
+ * - React already has the correct layout from useColumns/useCursorPosition hooks
+ * - The key handler just needs fresh layout data for the NEXT keypress
+ */
+function recomputeLayout(get: () => BoardAppStore): void {
+  const s = get()
+  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+  const cursor = deriveCursorPosition(columns, s.cursorNodeId)
+
+  const layout: ColumnsLayout = {
+    columns,
+    colIndex: cursor.colIndex,
+    cardIndex: cursor.cardIndex,
+    subPath: [],
+    isAtCardLevel: cursor.isAtCardLevel,
+    isInOutlineMode: false,
+  }
+
+  const selectedCol = columns[cursor.colIndex]
+  const selectedCard = selectedCol?.cards[cursor.cardIndex]
+  const selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+
+  // Silent mutation — no Zustand notification
+  s.layout = layout
+  s.selectedNode = selectedNode
+  s.selectionLevel = cursor.selectionLevel
+}
 
 // =============================================================================
 // Store Factory
@@ -332,6 +367,8 @@ export function createBoardAppStoreState(
 
         return flatUpdate
       })
+      // Synchronously derive layout so key handler has fresh data immediately
+      recomputeLayout(_get)
     },
 
     // --- Direct setters ---
@@ -346,6 +383,7 @@ export function createBoardAppStoreState(
 
     setFoldedNodes(nodes: Set<string>) {
       set({ foldedNodes: nodes })
+      recomputeLayout(_get)
     },
 
     setTextEditTarget(target: BlockEditTarget | null) {
