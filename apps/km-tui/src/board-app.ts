@@ -175,6 +175,7 @@ export function handleKey(
  * Route key through the command system and handle resulting actions.
  * When a dialog is open, only dialog.* and text.* commands are processed.
  */
+// oxlint-disable-next-line complexity/max-cognitive -- Sequential key routing with dialog/boundary state guards
 function routeThroughCommandSystem(
   input: string,
   key: Key,

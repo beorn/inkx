@@ -54,14 +54,10 @@ export interface ViewNavigation {
  * - Board title at top, columns side by side, cards stacked vertically in columns
  * - j/k: navigate through hierarchy (board → column → card → next/prev card)
  * - h/l: cross-column movement using curswantY for vertical position matching
- *
- * This extracts the logic from handleHierarchicalNavigation and handleHorizontalNav.
  */
 export function createCardsViewNavigation(): ViewNavigation {
   return {
     navigate(dir, state, repo, layoutRegistry) {
-      const { cursorNodeId, rootId } = state
-
       if (dir === "up" || dir === "down") {
         return navigateVertical(dir, state, repo, layoutRegistry)
       }
@@ -111,13 +107,13 @@ function navigateVertical(
 
     if (isAtCardLevel) {
       // Card → next sibling
-      return getNextSibling(cursorNodeId, repo)
+      return getSibling(cursorNodeId, repo, 1)
     }
   } else {
     // k: move up
     if (isAtCardLevel) {
       // Try previous sibling first
-      const prev = getPreviousSibling(cursorNodeId, repo)
+      const prev = getSibling(cursorNodeId, repo, -1)
       if (prev) return prev
       // At first card → parent (column header)
       return cursorNode.parent_id
@@ -177,16 +173,7 @@ function navigateHorizontal(
 
   const isAtColumnLevel = cursorNode.parent_id === rootId
 
-  // Find target column, skipping virtual columns (isVirtual not available from
-  // repo alone — but virtual columns are only for body columns which don't
-  // have standard folder type, so we skip them)
-  const step = dir === "left" ? -1 : 1
-  let targetColIdx = colIdx + step
-  while (targetColIdx >= 0 && targetColIdx < columns.length) {
-    // Accept any non-virtual column (we don't have isVirtual from pure repo,
-    // so accept all for now — the rendering layer filters virtual columns)
-    break
-  }
+  const targetColIdx = colIdx + (dir === "left" ? -1 : 1)
 
   if (targetColIdx < 0 || targetColIdx >= columns.length) return null
   if (targetColIdx === colIdx) return null
@@ -248,7 +235,7 @@ function cardAt(cards: { id: string }[], idx: number): string {
   return card.id
 }
 
-function getNextSibling(nodeId: string, repo: Repo): string | null {
+function getSibling(nodeId: string, repo: Repo, delta: 1 | -1): string | null {
   const node = repo.getNode(nodeId)
   if (!node) throw new Error(`[nav] node not in repo: ${nodeId}`)
   const siblings = repo.getChildren(node.parent_id)
@@ -256,20 +243,9 @@ function getNextSibling(nodeId: string, repo: Repo): string | null {
   if (idx < 0) {
     throw new Error(`[nav] node ${nodeId} not found in parent's children`)
   }
-  if (idx >= siblings.length - 1) return null // last sibling
-  return siblings[idx + 1]?.id ?? null
-}
-
-function getPreviousSibling(nodeId: string, repo: Repo): string | null {
-  const node = repo.getNode(nodeId)
-  if (!node) throw new Error(`[nav] node not in repo: ${nodeId}`)
-  const siblings = repo.getChildren(node.parent_id)
-  const idx = siblings.findIndex((n) => n.id === nodeId)
-  if (idx < 0) {
-    throw new Error(`[nav] node ${nodeId} not found in parent's children`)
-  }
-  if (idx === 0) return null // first sibling
-  return siblings[idx - 1]?.id ?? null
+  const targetIdx = idx + delta
+  if (targetIdx < 0 || targetIdx >= siblings.length) return null
+  return siblings[targetIdx]?.id ?? null
 }
 
 /**

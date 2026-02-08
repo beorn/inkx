@@ -19,6 +19,7 @@ import {
   type TreeDirection,
 } from "../handlers/navigation-handlers.ts"
 import type { ActionCtx } from "../tui-context.ts"
+import type { NavState } from "../view-navigation.ts"
 
 /**
  * Handle cursor movement in any direction.
@@ -152,12 +153,7 @@ function handleHorizontalNav(
   if (ctx.cursorNodeId) {
     const targetId = viewNavigation.navigate(
       dir,
-      {
-        cursorNodeId: ctx.cursorNodeId,
-        rootId: ctx.rootId,
-        foldedNodes: ctx.foldedNodes,
-        collapsedNodes: ctx.collapsedNodes,
-      },
+      navStateFrom(ctx),
       ctx.repo,
       layoutRegistry,
     )
@@ -180,12 +176,7 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
   if (ctx.cursorNodeId) {
     const targetId = viewNavigation.navigate(
       dir,
-      {
-        cursorNodeId: ctx.cursorNodeId,
-        rootId: ctx.rootId,
-        foldedNodes: ctx.foldedNodes,
-        collapsedNodes: ctx.collapsedNodes,
-      },
+      navStateFrom(ctx),
       ctx.repo,
       layoutRegistry,
     )
@@ -196,8 +187,8 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
     return boundary(dir)
   }
 
-  // Fallback for no cursor
-  return boundary(dir)
+  // No cursor is a programming error — key handler shouldn't dispatch navigation without one
+  throw new Error("[nav] handleVerticalNav called without cursorNodeId")
 }
 
 /** Default tree navigation (first, last, prev, next, in, out). */
@@ -388,5 +379,15 @@ export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
     if (targetCard) {
       dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
     }
+  }
+}
+
+/** Build NavState from action context. */
+function navStateFrom(ctx: ActionCtx): NavState {
+  return {
+    cursorNodeId: ctx.cursorNodeId!,
+    rootId: ctx.rootId,
+    foldedNodes: ctx.foldedNodes,
+    collapsedNodes: ctx.collapsedNodes,
   }
 }

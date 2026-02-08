@@ -52,34 +52,7 @@ export function useSetUI(): BoardAppStore["setUI"] {
  * - Other views (list, columns, tabs): oneliner variant (inline context, truncate)
  */
 export function useTreeConfig() {
-  return useAppShallow<
-    BoardAppStore,
-    {
-      maxOutlineDepth: number
-      maxContentLines: number
-      inOutlineMode: boolean
-      currentSubIndex: number
-      variant: "oneliner" | "multiline"
-    }
-  >((s) => {
-    const viewMode = s.ui.viewMode
-    return {
-      // Cards view shows full outline depth (default 2)
-      // Oneliner views (columns/tabs/list) limit to depth 1 to show immediate children
-      // but not grandchildren, reducing node count from 6668 to ~1400 and improving
-      // j-press from 235ms to ~50ms (vs 14ms at depth=0)
-      maxOutlineDepth:
-        viewMode === "cards"
-          ? s.ui.maxOutlineDepth
-          : Math.min(1, s.ui.maxOutlineDepth),
-      // Cards view allows multi-line content, other views truncate to one line
-      maxContentLines: viewMode === "cards" ? s.ui.maxContentLines : 1,
-      inOutlineMode: s.ui.inOutlineMode,
-      currentSubIndex: s.ui.subIndex,
-      // Cards view uses multiline (parent above), other views use oneliner (inline)
-      variant: viewMode === "cards" ? "multiline" : "oneliner",
-    }
-  })
+  return useAppShallow<BoardAppStore, TreeConfig>((s) => deriveTreeConfig(s.ui))
 }
 
 /**
@@ -146,9 +119,7 @@ const STATIC_SIGIL_COLORS = new Map(Object.entries(GTD_SIGIL_COLORS))
  * @returns Map of sigil to color (e.g., { "@next": "cyan" })
  */
 export function useSigilColors(): Map<string, string> {
-  // Return static GTD colors for now
-  // Future: could look up actual node colors from storage
-  return useMemo(() => new Map(Object.entries(GTD_SIGIL_COLORS)), [])
+  return STATIC_SIGIL_COLORS
 }
 
 // =============================================================================
