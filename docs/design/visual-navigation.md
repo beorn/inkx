@@ -10,12 +10,14 @@ A `Path` is a `number[]` describing a node's position in the tree by sibling ind
 
 ```
 []        = board level (no selection)
-[2]       = 3rd top-level node (column header in cards view)
-[2, 5]    = 6th child of that node (card in cards view)
-[2, 5, 0] = 1st child of that card (block in outline mode)
+[2]       = 3rd child of root
+[2, 5]    = 6th child of that node
+[2, 5, 0] = 1st child of that node
 ```
 
-Path is the **structural** coordinate system. It's derived lazily from `cursorNodeId` via `NodePath.pathOf(repo, rootId, nodeId)` — one `getAncestors` CTE + depth `getChildren` queries, ~0.3ms total.
+Path is the **structural** coordinate system — it describes tree position, not visual role. What a given depth means visually (column, card, block, etc.) depends entirely on the view mode and the tree structure. Path doesn't know or care about visual types.
+
+Derived lazily from `cursorNodeId` via `NodePath.pathOf(repo, rootId, nodeId)` — one `getAncestors` CTE + depth `getChildren` queries, ~0.3ms total.
 
 Path helpers (pure arithmetic, no repo):
 - `Path.parent(path)` — `[2, 5, 0]` -> `[2, 5]`
@@ -62,33 +64,34 @@ Sticky vertical position (same concept as vim's curswant). Set by j/k movement, 
 
 ## h/l rules by view
 
+The rules are defined in terms of the **visual role** the cursor node plays in that view, not tree depth. The same node at the same depth may be a "card" in one view and a "visible block" in another.
+
 ### Cards view
 
-| Cursor depth | h/l behavior |
+| Cursor is on | h/l behavior |
 |-------------|--------------|
-| 3+ (block) | Ascend to parent card. No column crossing. |
-| 2 (card) | Lateral to adjacent column, match card by curswantY. |
-| 1 (column) | Lateral to adjacent column header. |
+| Block inside a card | Ascend to the parent card. No column crossing. |
+| Card | Lateral to adjacent column, match card by curswantY. |
+| Column header | Lateral to adjacent column header. |
 
-In cards view, h/l at block level ascends to the parent card first — blocks are "inside" cards, so you exit the card before crossing columns.
+Blocks are visually "inside" cards — you exit the card before crossing columns.
 
 ### List view
 
-Single column. h = zoom out (ascend root), l = zoom in (descend into selected). No lateral.
+Single visual group. h = zoom out (ascend root), l = zoom in (descend into selected). No lateral movement.
 
 ### Columns view (outline per column)
 
-| Cursor depth | h/l behavior |
+| Cursor is on | h/l behavior |
 |-------------|--------------|
-| 3+ (block) | Lateral to block at curswantY in adjacent column. |
-| 2 (card) | Lateral to card at curswantY in adjacent column. |
-| 1 (column) | Lateral to adjacent column header. |
+| Any node in a column | Lateral to node at curswantY in adjacent column. |
+| Column header | Lateral to adjacent column header. |
 
-In columns view, blocks are top-level visible items — h/l moves laterally at any depth.
+All nodes are top-level visible items within their column — h/l moves laterally regardless of tree depth.
 
 ### Tabs view
 
-h/l switches active tab (top-level group). Within a tab, j/k navigates cards.
+h/l switches active tab (top-level group). Within a tab, j/k navigates vertically.
 
 ## Relationship to rendering
 
