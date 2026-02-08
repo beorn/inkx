@@ -161,6 +161,10 @@ export function handleKey(
   // Escape dismisses toast if present
   if (key.escape && get().toastQueue.getLatest()) {
     get().toastQueue.dismissAll()
+    // Force re-render so ToastStack picks up the now-empty toast list.
+    // toastQueue is external state (not in Zustand), so dismissAll() alone
+    // doesn't trigger React updates. setUI({}) creates a new ui object ref.
+    get().setUI({})
     return
   }
 
