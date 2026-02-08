@@ -9,6 +9,7 @@
 import { createLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
+import { toRelativeFsPath } from "../../path-utils.ts"
 import {
   emitNodeCreated,
   emitNodeUpdated,
@@ -40,6 +41,7 @@ const log = createLogger("km:storage:watch:reconcile")
 export interface UpdateHandlerOptions {
   db: Database
   op: ReconcileOp
+  repoRoot: string
   emitter: Emitter
   fs: FileSystemOps
   ctx: ReconcileContext
@@ -53,7 +55,7 @@ export interface UpdateHandlerOptions {
  * Unified handler that works with both filesystem parsing and pre-parsed content.
  */
 export function handleUpdate(options: UpdateHandlerOptions): void {
-  const { db, op, emitter, fs, ctx, parsed } = options
+  const { db, op, repoRoot, emitter, fs, ctx, parsed } = options
 
   if (!op.nodeId) {
     return
@@ -106,8 +108,8 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
     return
   }
 
-  // Get existing nodes for this file
-  const existingNodes = getFileWithChildren(db, op.path)
+  // Get existing nodes for this file (DB stores relative paths)
+  const existingNodes = getFileWithChildren(db, toRelativeFsPath(repoRoot, op.path))
 
   log.debug?.(
     `handleUpdate: existing nodes count=${existingNodes.length}, new nodes count=${newNodes.length}`,

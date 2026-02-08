@@ -19,7 +19,8 @@ import {
   writeFileSync,
   appendFileSync,
 } from "fs"
-import { join, dirname, basename, relative } from "path"
+import { join, dirname, basename, relative, isAbsolute } from "path"
+import { toRelativeFsPath } from "./path-utils.ts"
 import { getMarkForStatus } from "@km/core"
 import type { KNode, TaskStatus } from "@km/core"
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
@@ -98,9 +99,11 @@ abstract class BaseStore implements NodeStore {
   }
 
   getNodeByPath(fsPath: string): KNode | null {
+    // Convert absolute paths to relative (DB stores relative paths)
+    const queryPath = isAbsolute(fsPath) ? toRelativeFsPath(this.rootPath, fsPath) : fsPath
     const row = this.db
       .query("SELECT * FROM nodes WHERE fs_path = ?")
-      .get(fsPath) as Record<string, unknown> | null
+      .get(queryPath) as Record<string, unknown> | null
     return row ? rowToNode(row) : null
   }
 
@@ -507,7 +510,7 @@ export class MemoryStore extends BaseStore {
           id: folderId,
           type: "folder",
           parent_id: parentId,
-          fs_path: fullPath,
+          fs_path: toRelativeFsPath(this.rootPath, fullPath),
           name: entry.name, // Folder name for link resolution (e.g., "inbox" for [[inbox]])
           content: entry.name,
           parent_idx: order++,
@@ -539,7 +542,7 @@ export class MemoryStore extends BaseStore {
             id: fileId,
             type: "file",
             parent_id: parentId,
-            fs_path: fullPath,
+            fs_path: toRelativeFsPath(this.rootPath, fullPath),
             content: entry.name,
             parent_idx: order++,
           })
@@ -573,9 +576,10 @@ export class MemoryStore extends BaseStore {
         return
       }
 
-      // Set the file node's parent to the folder
+      // Set the file node's parent to the folder, store relative path
       fileNode.parent_id = folderParentId
       fileNode.parent_idx = sortOrder
+      fileNode.fs_path = toRelativeFsPath(this.rootPath, filePath)
 
       // Insert all nodes
       for (const node of nodes) {
@@ -715,9 +719,10 @@ export class MemoryStore extends BaseStore {
     // Write through to markdown file for task status changes
     if (changes.task_status !== undefined && node.md_line !== undefined) {
       // Tasks may not have fs_path directly - look up from parent file node
-      const filePath = node.fs_path || this.getFilePathForNode(node)
-      if (filePath) {
-        this.writeTaskStatusToFile(filePath, node.md_line, changes.task_status)
+      const relPath = node.fs_path || this.getFilePathForNode(node)
+      if (relPath) {
+        const absPath = join(this.rootPath, relPath)
+        this.writeTaskStatusToFile(absPath, node.md_line, changes.task_status)
       }
     }
   }
@@ -762,7 +767,7 @@ export class MemoryStore extends BaseStore {
     appendFileSync(fullPath, content)
 
     // Re-parse the file to update in-memory state
-    const existingFileNode = this.getNodeByPath(fullPath)
+    const existingFileNode = this.getNodeByPath(toRelativeFsPath(this.rootPath, fullPath))
     if (existingFileNode) {
       // Remove the file node and all its children, then re-parse
       this.db.run(`DELETE FROM nodes WHERE fs_path = ?`, [fullPath])
@@ -827,7 +832,8 @@ export class MemoryStore extends BaseStore {
     )
 
     // If the source task is in a file, append the new task to that file
-    const filePath = this.getFilePathForNode(source)
+    const relPath = this.getFilePathForNode(source)
+    const filePath = relPath ? join(this.rootPath, relPath) : null
     if (filePath && content) {
       let taskLine = `\n- [ ] ${content}`
       taskLine = taskLine.replace(/\s*due:\d{4}-\d{2}-\d{2}/g, "")

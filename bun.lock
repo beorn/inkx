@@ -97,7 +97,6 @@
     "apps/km-tui": {
       "name": "@km/tui",
       "dependencies": {
-        "@km/board": "workspace:*",
         "@km/commands": "workspace:*",
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",

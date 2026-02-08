@@ -12,6 +12,7 @@ import type { KNode } from "@km/core"
 import { getNodesUnderPath, getNodeByPath } from "../db-queries/core-lookup.ts"
 import { scanDirectory } from "./watcher.ts"
 import type { PatternMatcher } from "../ignore.ts"
+import { toRelativeFsPath } from "../path-utils.ts"
 
 const log = createLogger("km:storage:watch:reconcile")
 
@@ -57,43 +58,47 @@ export function reconcileDirectory(
     ? scanner(dirPath, ignorePatterns)
     : scanDirectory(dirPath, ignorePatterns)
 
+  // Convert dirPath to relative for DB queries (DB stores relative paths)
+  const relDirPath = toRelativeFsPath(repoRoot, dirPath)
+
   // Get database state for this directory (using km-storage abstraction)
-  const dbNodes = getNodesUnderPath(db, dirPath)
+  const dbNodes = getNodesUnderPath(db, relDirPath)
 
   log.debug?.(
     `reconciling dirPath=${dirPath} fsEntries=${fsEntries.length} dbNodes=${dbNodes.length}`,
   )
 
-  // Index by inode and path for efficient lookup
+  // Index by inode and relative path for efficient lookup
   const dbByIno = new Map<number, KNode>()
-  const dbByPath = new Map<string, KNode>()
+  const dbByRelPath = new Map<string, KNode>()
 
   for (const node of dbNodes) {
     if (node.fs_ino) {
       dbByIno.set(node.fs_ino, node)
     }
     if (node.fs_path) {
-      dbByPath.set(node.fs_path, node)
+      dbByRelPath.set(node.fs_path, node)
     }
   }
 
-  // Process filesystem entries
+  // Process filesystem entries — convert to relative for comparison
   for (const entry of fsEntries) {
+    const relPath = toRelativeFsPath(repoRoot, entry.path)
     const existingByIno = dbByIno.get(entry.ino)
-    const existingByPath = dbByPath.get(entry.path)
+    const existingByPath = dbByRelPath.get(relPath)
 
-    if (existingByIno && existingByIno.fs_path !== entry.path) {
+    if (existingByIno && existingByIno.fs_path !== relPath) {
       // Renamed (same inode, different path)
       ops.push({
         type: "rename",
         nodeId: existingByIno.id,
         oldPath: existingByIno.fs_path,
-        path: entry.path,
+        path: entry.path, // Keep absolute for FS operations
         ino: entry.ino,
       })
-      // Remove OLD path from dbByPath to prevent spurious delete op
+      // Remove OLD path from dbByRelPath to prevent spurious delete op
       if (existingByIno.fs_path) {
-        dbByPath.delete(existingByIno.fs_path)
+        dbByRelPath.delete(existingByIno.fs_path)
       }
     } else if (existingByPath?.fs_ino && existingByPath.fs_ino !== entry.ino) {
       // Atomic write: same path but different inode
@@ -105,7 +110,7 @@ export function reconcileDirectory(
       ops.push({
         type: "update",
         nodeId: existingByPath.id,
-        path: entry.path,
+        path: entry.path, // Keep absolute for FS operations
         ino: entry.ino, // New inode to track
         mtime: entry.mtime,
       })
@@ -113,7 +118,7 @@ export function reconcileDirectory(
       // New file/folder
       ops.push({
         type: "create",
-        path: entry.path,
+        path: entry.path, // Keep absolute for FS operations
         ino: entry.ino,
         mtime: entry.mtime,
       })
@@ -124,24 +129,24 @@ export function reconcileDirectory(
       ops.push({
         type: "update",
         nodeId: existingByPath.id,
-        path: entry.path,
+        path: entry.path, // Keep absolute for FS operations
         ino: entry.ino, // Also track inode in normal updates for consistency
         mtime: entry.mtime,
       })
     }
 
-    // Remove from dbByPath so we can find deletions
-    dbByPath.delete(entry.path)
+    // Remove from dbByRelPath so we can find deletions
+    dbByRelPath.delete(relPath)
   }
 
-  // Remaining in dbByPath are deleted
-  for (const [path, node] of dbByPath) {
-    // Only include if it's directly in this directory
-    if (dirname(path) === dirPath) {
+  // Remaining in dbByRelPath are deleted
+  for (const [relPath, node] of dbByRelPath) {
+    // Only include if it's directly in this directory (compare relative paths)
+    if (dirname(relPath) === relDirPath) {
       ops.push({
         type: "delete",
         nodeId: node.id,
-        path,
+        path: relPath, // Relative path — handlers only need nodeId for delete
       })
     }
   }
@@ -198,6 +203,7 @@ export function reconcileDirectoryRecursive(
 
 /**
  * Get parent node ID from filesystem path
+ * @param fsPath - Relative filesystem path (as stored in DB)
  */
 export function getParentNodeId(db: Database, fsPath: string): string | null {
   const parentPath = dirname(fsPath)

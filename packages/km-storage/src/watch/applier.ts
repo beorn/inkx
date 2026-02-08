@@ -204,10 +204,10 @@ function applyOp(
       handleCreate({ db, op, repoRoot, emitter, fs, ctx, parsed })
       break
     case "update":
-      handleUpdate({ db, op, emitter, fs, ctx, parsed })
+      handleUpdate({ db, op, repoRoot, emitter, fs, ctx, parsed })
       break
     case "rename":
-      handleRename(emitter, op)
+      handleRename(emitter, op, repoRoot)
       break
     case "delete":
       handleDelete(emitter, op)

@@ -93,11 +93,12 @@ interface RepoMethodDeps {
   dataStore: DataStore
   hooks?: RepoHooks
   childrenCache: ChildrenCache
+  rootPath: string
 }
 
 /** Create query methods shared by createRepo and createBareRepo */
 function createQueryMethods(deps: RepoMethodDeps) {
-  const { db, dataStore, childrenCache } = deps
+  const { db, dataStore, childrenCache, rootPath } = deps
   return {
     getNode(id: string) {
       return dataStore.getNode(id)
@@ -141,7 +142,10 @@ function createQueryMethods(deps: RepoMethodDeps) {
       queryStr: string,
       typeOrOptions?: string | { type?: string; taskOnly?: boolean },
     ) {
-      return dbResolveNode(db, queryStr, typeOrOptions)
+      const baseOpts = typeof typeOrOptions === "string"
+        ? { type: typeOrOptions }
+        : (typeOrOptions ?? {})
+      return dbResolveNode(db, queryStr, { ...baseOpts, repoRoot: rootPath })
     },
     getRepoRootNode() {
       const row = db
@@ -990,7 +994,7 @@ export function* createRepo(
 
   // Create shared methods using factories
   const childrenCache = createChildrenCache(dataStore)
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache }
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache, rootPath }
   const queryMethods = createQueryMethods(methodDeps)
   // Version holder — shared between mutation methods and the repo object.
   // Getter/setter needed: mutation methods are created before `repo` exists,
@@ -1180,7 +1184,7 @@ export function createBareRepo(
 
   // Create shared methods using factories
   const childrenCache = createChildrenCache(dataStore)
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache }
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache, rootPath: repoPath }
   const queryMethods = createQueryMethods(methodDeps)
   // See comment in createRepo for why getter/setter is needed here
   const listeners = new Set<() => void>()

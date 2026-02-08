@@ -7,6 +7,7 @@
  */
 
 import { basename, dirname } from "path"
+import { toRelativeFsPath } from "../../path-utils.ts"
 import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
 import { generatePathBasedId } from "../../id-utils.ts"
@@ -78,7 +79,7 @@ export function handleCreate(options: CreateHandlerOptions): void {
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
       type: "folder",
-      fs_path: op.path,
+      fs_path: toRelativeFsPath(repoRoot, op.path),
       fs_ino: op.ino,
       fs_mtime: op.mtime ?? stat.mtimeMs,
       parent_id: parentId,
@@ -98,7 +99,7 @@ export function handleCreate(options: CreateHandlerOptions): void {
     emitNodeCreated(emitter, "fs-watch", {
       id: ulid(),
       type: "file",
-      fs_path: op.path,
+      fs_path: toRelativeFsPath(repoRoot, op.path),
       fs_ino: op.ino,
       fs_mtime: op.mtime ?? stat.mtimeMs,
       parent_id: parentId,
@@ -117,7 +118,7 @@ function handleMarkdownCreate(
   parentId: string | null,
   stat: ReturnType<FileSystemOps["statSync"]> | null,
 ): void {
-  const { db, op, emitter, fs, ctx, parsed } = options
+  const { db, op, repoRoot, emitter, fs, ctx, parsed } = options
 
   // Get nodes and wikilinks - either from parsed result or parse from filesystem
   let nodes: KNode[]
@@ -155,8 +156,8 @@ function handleMarkdownCreate(
   if (fileNode) {
     fileNode.parent_id = parentId
     fileNode.content_hash = hash
-    // Ensure fs metadata is set
-    fileNode.fs_path = op.path
+    // Ensure fs metadata is set — store relative path
+    fileNode.fs_path = toRelativeFsPath(repoRoot, op.path)
     if (ino !== undefined) fileNode.fs_ino = ino
     fileNode.fs_mtime = mtime
   }
@@ -219,8 +220,8 @@ function ensureFolderHierarchy(
     return null
   }
 
-  // Check if parent folder node already exists
-  const parentNode = getNodeByPath(db, parentPath)
+  // Check if parent folder node already exists (DB stores relative paths)
+  const parentNode = getNodeByPath(db, toRelativeFsPath(repoRoot, parentPath))
   if (parentNode) {
     return parentNode.id
   }
@@ -243,7 +244,7 @@ function ensureFolderHierarchy(
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
       type: "folder",
-      fs_path: parentPath,
+      fs_path: toRelativeFsPath(repoRoot, parentPath),
       fs_ino: stat.ino,
       fs_mtime: stat.mtimeMs,
       parent_id: grandparentId,

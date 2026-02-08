@@ -13,7 +13,7 @@ import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { resolve } from "path"
 import { realpathSync, existsSync } from "fs"
-import { isExplicitPath } from "../path-utils.ts"
+import { isExplicitPath, toRelativeFsPath } from "../path-utils.ts"
 import { rowToNode } from "./utils.ts"
 
 const log = createLogger("km:storage:db:queries")
@@ -27,6 +27,8 @@ interface ResolveOptions {
   type?: string
   /** Only return nodes with task_status set */
   taskOnly?: boolean
+  /** Repo root path — needed for explicit path resolution (DB stores relative paths) */
+  repoRoot?: string
 }
 
 /**
@@ -79,6 +81,8 @@ interface QueryContext {
   filterClause: string
   /** Parameters for the filter clause */
   params: (string | number)[]
+  /** Repo root path for path conversion (optional) */
+  repoRoot?: string
   /** Get a single row matching the SQL query */
   getOne(sql: string, ...p: (string | number)[]): KNode | null
   /** Get all rows matching the SQL query */
@@ -109,6 +113,7 @@ function createQueryContext(
     q,
     filterClause,
     params,
+    repoRoot: options.repoRoot,
 
     getOne(sql, ...p) {
       const row = db.query(sql).get(...p) as Record<string, unknown> | null
@@ -131,7 +136,7 @@ function createQueryContext(
 
 /** Strategy 1: Explicit filesystem paths (/, ./, ../) */
 function resolveExplicitPath(ctx: QueryContext): KNode | null {
-  const { q, filterClause, params, getOne } = ctx
+  const { q, filterClause, params, getOne, repoRoot } = ctx
 
   // Resolve to absolute path, then normalize with realpath if file exists
   // This handles symlinks like /tmp -> /private/tmp on macOS
@@ -145,25 +150,30 @@ function resolveExplicitPath(ctx: QueryContext): KNode | null {
   }
   log.debug?.(`resolveNode: explicit path -> ${absolutePath}`)
 
-  // Exact absolute path match
+  // Convert to relative path for DB lookup (DB stores relative paths)
+  const queryPath = repoRoot
+    ? toRelativeFsPath(repoRoot, absolutePath)
+    : absolutePath
+
+  // Exact path match
   const node = getOne(
     `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-    absolutePath,
+    queryPath,
     ...params,
   )
   if (node) return node
 
   // Try .md extension and index.md variants
-  if (!absolutePath.endsWith(".md")) {
+  if (!queryPath.endsWith(".md")) {
     return (
       getOne(
         `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-        `${absolutePath}.md`,
+        `${queryPath}.md`,
         ...params,
       ) ??
       getOne(
         `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-        `${absolutePath}/index.md`,
+        `${queryPath}/index.md`,
         ...params,
       )
     )
