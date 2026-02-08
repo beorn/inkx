@@ -59,7 +59,12 @@ allowed-tools: Bash, Read, Glob, Grep, Task, AskUserQuestion
    - Decided: <decisions>
    - Impact: <changes to approach, or "none">
    ```
-3. Resume implementation (same as `/discuss continue`).
+3. **Update related artifacts** — if the discussion changed the approach:
+   - Update bead **description/design** (not just notes) to reflect the new plan
+   - Update or replace affected phase descriptions, acceptance criteria, approach options
+   - If the discussion invalidates prior phases or steps, mark them clearly
+   - Update MEMORY.md if a reusable insight emerged
+4. Resume implementation (same as `/discuss continue`).
 
 ## `/discuss history`
 
