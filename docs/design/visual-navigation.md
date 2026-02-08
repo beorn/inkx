@@ -1,6 +1,6 @@
 # Visual Navigation
 
-Design document for km's navigation model. Informed by SlateJS (Path arithmetic) and Decker (DOM-based visual navigation).
+Design document for km's navigation and rendering model. Informed by SlateJS (Path arithmetic) and Decker (DOM-based visual navigation, store only IDs).
 
 ## Core concepts
 
@@ -15,9 +15,9 @@ A `Path` is a `number[]` describing a node's position in the tree by sibling ind
 [2, 5, 0] = 1st child of that node
 ```
 
-Path is the **structural** coordinate system — it describes tree position, not visual role. What a given depth means visually (column, card, block, etc.) depends entirely on the view mode and the tree structure. Path doesn't know or care about visual types.
+Path is the **structural** coordinate system — it describes tree position, not visual role. What a given depth means visually (column, card, block, etc.) depends entirely on the view mode. Path doesn't know or care about visual types.
 
-Derived lazily from `cursorNodeId` via `NodePath.pathOf(repo, rootId, nodeId)` — one `getAncestors` CTE + depth `getChildren` queries, ~0.3ms total.
+Derived lazily from `cursorNodeId` via cache lookups (no SQL after first access).
 
 Path helpers (pure arithmetic, no repo):
 - `Path.parent(path)` — `[2, 5, 0]` -> `[2, 5]`
@@ -32,6 +32,19 @@ Repo-aware resolution:
 - `NodePath.pathOf(repo, rootId, nodeId)` — cursor -> path
 - `NodePath.nodeAt(repo, rootId, path)` — path -> node
 - `NodePath.siblings(repo, rootId, path)` — siblings at path level
+
+### Per-node children cache
+
+The repo caches `getChildren(parentId)` results per parent node. Populated lazily on first access. Surgical invalidation:
+
+| Mutation | Invalidate |
+|----------|-----------|
+| `addNode(parentId)` | parentId |
+| `deleteNode(id)` | node's parent |
+| `moveNode(id, newParent)` | old parent + new parent |
+| `updateNode(id, changes)` | nothing |
+
+All consumers benefit: rendering, navigation, path derivation. After first render, all `getChildren` calls are cache hits. Path derivation becomes pure map lookups.
 
 ### All navigation is visual
 
@@ -56,11 +69,11 @@ interface ViewNavigation {
 }
 ```
 
-The navigation layer asks "where should I go?", the view answers with a nodeId. No column/index concepts exist in the navigation layer.
+The navigation layer asks "where should I go?", the view answers with a nodeId.
 
 ### curswantY
 
-Sticky vertical position (same concept as vim's curswant). Set by j/k movement, preserved across h/l movement. Used for ALL cross-group lateral navigation — "I was at visual row 5, stay near row 5 in the target group."
+Sticky vertical position (same concept as vim's curswant). Set by j/k movement, preserved across h/l movement. Used for ALL cross-group lateral navigation.
 
 ## Visual model
 
@@ -81,28 +94,57 @@ One rule for all directions, all views:
 
 The selectable set isn't static — a modifier or mode change can make deeper nodes selectable. The rule doesn't change, just the set of selectable nodes.
 
-## Relationship to rendering
+## Flows
+
+### Key input
 
 ```
-Store (minimal):
-  cursorNodeId: string
-  rootId: string
-  foldedNodes: Set<string>
-
-Key input:
-  keypress
-    -> view.navigate(dir, cursorNodeId, curswantY)
-    -> store.set({ cursorNodeId: resultId })
-
-Render:
-  cursorNodeId changed -> Board re-renders
-    -> useColumns(repo, rootId, foldedNodes)  // memoized, cache hit on cursor move
-    -> cursorPath = NodePath.pathOf(repo, rootId, cursorNodeId)
-    -> pass cursorPath to view for highlighting
-    -> no store feedback loop
+keypress
+  → view.navigate(dir, cursorNodeId, curswantY)
+    → repo.getChildren (cache hits) to find next selectable node
+  → store.set({ cursorNodeId: newId })
 ```
 
-The key handler and renderer derive what they need independently from the same source (`cursorNodeId + repo`). No `recomputeLayout()`, no `updateLayout()` effect, no store-React-store feedback loop.
+### Render
+
+```
+cursorNodeId changed → Zustand notifies
+  → Board re-renders
+    → useChildren(repo, rootId)    — cache hit
+    → Column: useChildren(repo, colId)  — cache hit
+    → Card: useChildren(repo, cardId)   — cache hit
+    → isSelected via store selector (per component)
+    → React.memo: only old + new cursor nodes re-render
+  → inkx: reconcile → yoga → paint → diff → output
+```
+
+### Mutation
+
+```
+action → repo.mutate(...)
+  → cache: surgical invalidation (affected parents only)
+  → store.set({ cursorNodeId: targetId })
+  → re-render
+    → useChildren: cache miss for affected parents, hits for rest
+```
+
+### What's gone
+
+No `recomputeLayout()`. No `deriveCursorPosition()`. No `updateLayout()` effect. No `useColumns`. No `ColumnsLayout`/`ColumnState`/`CardState` types. No `colIndex`/`cardIndex`/`selectionLevel`. No store→React→store feedback loop.
+
+## Store
+
+Minimal — only primary state, no derived fields:
+
+```ts
+cursorNodeId: string
+rootId: string | null
+foldedNodes: Set<string>
+selectedNodes: Set<string>
+viewMode: ViewMode
+```
+
+UI state (isSelected, isFolded, etc.) consumed via store selectors in each component.
 
 ## Future: selection
 
