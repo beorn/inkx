@@ -46,8 +46,7 @@ export function processKeyWithContext(
     inSearchMode: ui.showSearchDialog,
     inInputMode:
       ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog,
-    hasSelection:
-      ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
+    hasSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
     currentNode: nodeForCtx,

@@ -624,7 +624,14 @@ export function Board({ patchedConsole }: BoardProps) {
       searchMode: false,
       helpMode: false,
     }),
-    [rootId, rootPath, columnsLayout.columns, foldedNodes, emptyStringSet, emptyNumberSet],
+    [
+      rootId,
+      rootPath,
+      columnsLayout.columns,
+      foldedNodes,
+      emptyStringSet,
+      emptyNumberSet,
+    ],
   )
 
   // Get selected node

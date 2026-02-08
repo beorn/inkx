@@ -46,11 +46,7 @@ export function handleExtendSelectVertical(
 
   // Move cursor
   const treeDir = direction === "up" ? "prev" : "next"
-  const targetId = handleTreeNavigation(
-    treeDir as TreeDirection,
-    ctx,
-    ctx.repo,
-  )
+  const targetId = handleTreeNavigation(treeDir as TreeDirection, ctx, ctx.repo)
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
     // Update selection range (will also set status)

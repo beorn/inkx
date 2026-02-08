@@ -5,7 +5,7 @@
  */
 
 import { useMemo } from "react"
-import { useApp as useAppStore } from "inkx/runtime"
+import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
 import type { UIState } from "./ui-reducer.ts"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { useRepo } from "./repo-context.tsx"
@@ -43,38 +43,41 @@ export function useSetUI(): BoardAppStore["setUI"] {
 // =============================================================================
 
 /**
- * Get tree rendering config (memoized by individual field subscriptions).
+ * Get tree rendering config (single shallow subscription for all fields).
  *
  * View-mode specific behavior:
  * - Cards view: multiline variant (parent context above, content can wrap)
  * - Other views (list, columns, tabs): oneliner variant (inline context, truncate)
  */
 export function useTreeConfig() {
-  const maxOutlineDepth = useUISelector((s) => s.maxOutlineDepth)
-  const maxContentLines = useUISelector((s) => s.maxContentLines)
-  const viewMode = useUISelector((s) => s.viewMode)
-  const inOutlineMode = useUISelector((s) => s.inOutlineMode)
-  const subIndex = useUISelector((s) => s.subIndex)
-
-  return useMemo(
-    () => ({
+  return useAppShallow<
+    BoardAppStore,
+    {
+      maxOutlineDepth: number
+      maxContentLines: number
+      inOutlineMode: boolean
+      currentSubIndex: number
+      variant: "oneliner" | "multiline"
+    }
+  >((s) => {
+    const viewMode = s.ui.viewMode
+    return {
       // Cards view shows full outline depth (default 2)
       // Oneliner views (columns/tabs/list) limit to depth 1 to show immediate children
       // but not grandchildren, reducing node count from 6668 to ~1400 and improving
       // j-press from 235ms to ~50ms (vs 14ms at depth=0)
       maxOutlineDepth:
-        viewMode === "cards" ? maxOutlineDepth : Math.min(1, maxOutlineDepth),
+        viewMode === "cards"
+          ? s.ui.maxOutlineDepth
+          : Math.min(1, s.ui.maxOutlineDepth),
       // Cards view allows multi-line content, other views truncate to one line
-      maxContentLines: viewMode === "cards" ? maxContentLines : 1,
-      inOutlineMode,
-      currentSubIndex: subIndex,
+      maxContentLines: viewMode === "cards" ? s.ui.maxContentLines : 1,
+      inOutlineMode: s.ui.inOutlineMode,
+      currentSubIndex: s.ui.subIndex,
       // Cards view uses multiline (parent above), other views use oneliner (inline)
-      variant: (viewMode === "cards" ? "multiline" : "oneliner") as
-        | "oneliner"
-        | "multiline",
-    }),
-    [maxOutlineDepth, maxContentLines, viewMode, inOutlineMode, subIndex],
-  )
+      variant: viewMode === "cards" ? "multiline" : "oneliner",
+    }
+  })
 }
 
 /**
@@ -85,6 +88,22 @@ export function useRootBoardId(): string | null {
 }
 
 /**
+ * Derive excluded sigils from rootBoardId. Pure computation, no subscription.
+ */
+export function deriveExcludedSigils(
+  repo: { getNode(id: string): { fs_path?: string } | undefined },
+  rootBoardId: string | null,
+): string[] {
+  if (!rootBoardId) return []
+  const node = repo.getNode(rootBoardId)
+  if (!node?.fs_path) return []
+  const filename = node.fs_path.split("/").pop() || ""
+  const name = filename.replace(/\.md$/, "")
+  if (/^[@#\+]/.test(name)) return [name]
+  return []
+}
+
+/**
  * Get the board's excluded sigils (for filtering from card content).
  *
  * For boards named with sigil patterns (e.g., @issue.md, @next.md),
@@ -92,26 +111,15 @@ export function useRootBoardId(): string | null {
  *
  * @returns Array of sigils to exclude (e.g., ["@issue"])
  */
-export function useExcludedSigils(): string[] {
+export function useExcludedSigils(rootBoardIdParam?: string | null): string[] {
   const rootBoardId = useRootBoardId()
+  const effectiveId =
+    rootBoardIdParam !== undefined ? rootBoardIdParam : rootBoardId
   const repo = useRepo()
-  return useMemo(() => {
-    if (!rootBoardId) return []
-
-    const node = repo.getNode(rootBoardId)
-    if (!node?.fs_path) return []
-
-    // Extract filename without extension (e.g., "@issue.md" → "@issue")
-    const filename = node.fs_path.split("/").pop() || ""
-    const name = filename.replace(/\.md$/, "")
-
-    // If the filename starts with a sigil (@, #, +), include it
-    if (/^[@#\+]/.test(name)) {
-      return [name]
-    }
-
-    return []
-  }, [rootBoardId, repo])
+  return useMemo(
+    () => deriveExcludedSigils(repo, effectiveId),
+    [effectiveId, repo],
+  )
 }
 
 /**
