@@ -61,22 +61,49 @@ const log = createLogger("km:storage:repo")
 // Shared Method Factories
 // =============================================================================
 
+/** Per-node children cache with surgical invalidation */
+interface ChildrenCache {
+  get(parentId: string | null): KNode[]
+  bust(parentId: string | null): void
+  clear(): void
+}
+
+function createChildrenCache(dataStore: DataStore): ChildrenCache {
+  const cache = new Map<string | null, KNode[]>()
+  return {
+    get(parentId) {
+      const cached = cache.get(parentId)
+      if (cached) return cached
+      const result = dataStore.getChildren(parentId)
+      cache.set(parentId, result)
+      return result
+    },
+    bust(parentId) {
+      cache.delete(parentId)
+    },
+    clear() {
+      cache.clear()
+    },
+  }
+}
+
 /** Dependencies for creating repo methods */
 interface RepoMethodDeps {
   db: Database
   dataStore: DataStore
   hooks?: RepoHooks
+  childrenCache: ChildrenCache
 }
 
 /** Create query methods shared by createRepo and createBareRepo */
 function createQueryMethods(deps: RepoMethodDeps) {
-  const { db, dataStore } = deps
+  const { db, dataStore, childrenCache } = deps
   return {
     getNode(id: string) {
       return dataStore.getNode(id)
     },
     getChildren(parentId: string | null) {
-      return dataStore.getChildren(parentId)
+      return childrenCache.get(parentId)
     },
     getSubtree(nodeId: string) {
       return dbGetSubtree(db, nodeId)
@@ -176,7 +203,7 @@ function createMutationMethods(
   state: { version: number; notify(): void },
   emitter?: Emitter,
 ) {
-  const { dataStore, hooks } = deps
+  const { dataStore, hooks, childrenCache } = deps
 
   // Notify filesystem sync (SyncManager) about a mutation.
   // Bypasses emitter.emit() to avoid double-writing to DB/events.jsonl —
@@ -197,6 +224,7 @@ function createMutationMethods(
         if (result?.context) ctx = result.context
       }
       dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
+      // updateNode: no cache bust — children unchanged
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
@@ -222,11 +250,14 @@ function createMutationMethods(
         if (result?.cancel) throw new Error("Mutation cancelled by hook")
         if (result?.context) ctx = result.context
       }
+      const oldParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
       dataStore.moveNode(
         ctx.nodeId,
         ctx.newParentId ?? newParentId,
         ctx.position ?? position,
       )
+      childrenCache.bust(oldParentId)
+      childrenCache.bust(ctx.newParentId ?? newParentId)
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
@@ -245,7 +276,9 @@ function createMutationMethods(
         if (result?.cancel) throw new Error("Mutation cancelled by hook")
         if (result?.context) ctx = result.context
       }
+      const deletedParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
       dataStore.deleteNode(ctx.nodeId)
+      childrenCache.bust(deletedParentId)
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
@@ -261,6 +294,7 @@ function createMutationMethods(
       }
       const newId = dataStore.addNode(parentId, ctx.node ?? node)
       ctx.nodeId = newId
+      childrenCache.bust(parentId)
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
@@ -297,7 +331,10 @@ function createMutationMethods(
         },
       }
 
-      return dataStore.addNode(clonedNode.parent_id ?? null, clonedNode)
+      const cloneParentId = clonedNode.parent_id ?? null
+      const id = dataStore.addNode(cloneParentId, clonedNode)
+      childrenCache.bust(cloneParentId)
+      return id
     },
   }
 }
@@ -952,7 +989,8 @@ export function* createRepo(
   }
 
   // Create shared methods using factories
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks }
+  const childrenCache = createChildrenCache(dataStore)
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache }
   const queryMethods = createQueryMethods(methodDeps)
   // Version holder — shared between mutation methods and the repo object.
   // Getter/setter needed: mutation methods are created before `repo` exists,
@@ -1141,7 +1179,8 @@ export function createBareRepo(
   }
 
   // Create shared methods using factories
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks }
+  const childrenCache = createChildrenCache(dataStore)
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache }
   const queryMethods = createQueryMethods(methodDeps)
   // See comment in createRepo for why getter/setter is needed here
   const listeners = new Set<() => void>()
