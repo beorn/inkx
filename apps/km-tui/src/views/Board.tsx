@@ -495,10 +495,6 @@ export interface BoardProps {
   layoutRegistry?: LayoutRegistry
   /** Patched console for debug output modal */
   patchedConsole?: PatchedConsole | null
-  /** Pause inkx rendering (for screen switching) */
-  onPauseRender?: () => void
-  /** Resume inkx rendering (for screen switching) */
-  onResumeRender?: () => void
 }
 
 /**
@@ -510,11 +506,11 @@ export interface BoardProps {
  *
  * Keys are handled by the term:key handler in board-app.ts — not here.
  */
-export function Board({
-  patchedConsole,
-  onPauseRender,
-  onResumeRender,
-}: BoardProps) {
+export function Board({ patchedConsole }: BoardProps) {
+  // Read pause/resume directly from AppContext (via mutable ref).
+  // BoardApp doesn't re-render after initial mount, so passing these as props
+  // would capture the initial undefined values permanently.
+  const { pause: onPauseRender, resume: onResumeRender } = useApp()
   const repo = useRepo()
 
   // Read state from store
@@ -773,7 +769,7 @@ export function BoardApp({
   layoutRegistry,
   patchedConsole,
 }: BoardAppProps) {
-  const { exit, pause, resume } = useApp()
+  const { exit } = useApp()
   const { stdout } = useStdout()
 
   const [dimensionState, setDimensions] = React.useState({
@@ -805,8 +801,6 @@ export function BoardApp({
         toastQueue={toastQueue}
         layoutRegistry={layoutRegistry}
         patchedConsole={patchedConsole}
-        onPauseRender={pause}
-        onResumeRender={resume}
       />
     </Box>
   )
