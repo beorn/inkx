@@ -62,36 +62,15 @@ The navigation layer asks "where should I go?", the view answers with a nodeId. 
 
 Sticky vertical position (same concept as vim's curswant). Set by j/k movement, preserved across h/l movement. Used for ALL cross-group lateral navigation — "I was at visual row 5, stay near row 5 in the target group."
 
-## h/l rules by view
+## The navigation rule
 
-The rules are defined in terms of the **visual role** the cursor node plays in that view, not tree depth. The same node at the same depth may be a "card" in one view and a "visible block" in another.
+One rule for all directions, all views:
 
-### Cards view
+**Move to the next selectable node in that direction.**
 
-| Cursor is on | h/l behavior |
-|-------------|--------------|
-| Block inside a card | Ascend to the parent card. No column crossing. |
-| Card | Lateral to adjacent column, match card by curswantY. |
-| Column header | Lateral to adjacent column header. |
+What's "selectable" is view-determined. In cards view, blocks inside cards aren't selectable via h/l — the card is the selectable unit. So h/l from a block lands on the parent card. In columns view (outline), every node is selectable, so h/l moves laterally to the adjacent column.
 
-Blocks are visually "inside" cards — you exit the card before crossing columns.
-
-### List view
-
-Single visual group. h = zoom out (ascend root), l = zoom in (descend into selected). No lateral movement.
-
-### Columns view (outline per column)
-
-| Cursor is on | h/l behavior |
-|-------------|--------------|
-| Any node in a column | Lateral to node at curswantY in adjacent column. |
-| Column header | Lateral to adjacent column header. |
-
-All nodes are top-level visible items within their column — h/l moves laterally regardless of tree depth.
-
-### Tabs view
-
-h/l switches active tab (top-level group). Within a tab, j/k navigates vertically.
+The view resolves this through its `navigate()` implementation. There are no per-direction rule tables — the view knows its selectable nodes and their visual positions.
 
 ## Relationship to rendering
 
