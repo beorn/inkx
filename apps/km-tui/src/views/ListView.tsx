@@ -17,6 +17,7 @@ import { useTreeRenderContext } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import type { KNode } from "@km/core"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
+import { useCursorPosition } from "../cursor-context.tsx"
 
 // Virtualization constants
 const OVERSCAN = 10
@@ -56,14 +57,21 @@ export function ListView({
   state,
   width,
   height,
-  colIndex,
-  cardIndex,
-  subIndex,
-  selectionLevel,
+  colIndex: _colIndexProp,
+  cardIndex: _cardIndexProp,
+  subIndex: subIndexProp,
+  selectionLevel: _selectionLevelProp,
 }: ListViewProps): React.ReactElement {
   const { treeConfig, rootBoardId } = useTreeRenderContext()
   const { inOutlineMode } = treeConfig
   const repo = useRepo()
+
+  // Use CursorStore for cursor position (self-subscription, bypasses Board re-render)
+  const cursorPos = useCursorPosition()
+  const colIndex = cursorPos.colIndex
+  const cardIndex = cursorPos.cardIndex
+  const selectionLevel = cursorPos.selectionLevel
+  const subIndex = subIndexProp
 
   // Flatten all cards into a single list
   const flatItems = useMemo(() => {

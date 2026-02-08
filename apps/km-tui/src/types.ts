@@ -110,6 +110,8 @@ export interface ColumnsLayout {
   /** Card index within column, or COLUMN_HEADER_INDEX (-1) if at column header */
   cardIndex: number
   isAtCardLevel: boolean
+  /** O(1) nodeId → position index, built alongside column derivation */
+  nodeIndex?: Map<string, { colIndex: number; cardIndex: number }>
 }
 
 /**

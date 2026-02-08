@@ -16,7 +16,11 @@ import type { TUIBoardState, ColumnsLayout } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
 import type { BlockEditTarget } from "./block-edit-target.ts"
-import { deriveColumnsFromRepo } from "./hooks/use-columns.ts"
+import type { CursorStore } from "./cursor-store.ts"
+import {
+  deriveColumnsFromRepo,
+  buildNodeIndex,
+} from "./hooks/use-columns.ts"
 import { deriveCursorPosition } from "./hooks/use-cursor-position.ts"
 
 // =============================================================================
@@ -69,6 +73,9 @@ export interface BoardAppState {
 
   // --- Dimensions ---
   dimensions: { columns: number; rows: number }
+
+  // --- Cursor store (lightweight pub/sub, bypasses Zustand for cursor moves) ---
+  cursorStore: CursorStore
 }
 
 /**
@@ -118,18 +125,18 @@ export type BoardAppStore = BoardAppState &
  *   cursor position using existing columns. Used for SELECT and SET_CURSWANT
  *   actions where only cursorNodeId changes.
  */
-function recomputeLayout(get: () => BoardAppStore, cursorOnly?: boolean): void {
+function recomputeLayout(get: () => BoardAppStore): void {
   const s = get()
-  const columns = cursorOnly
-    ? s.layout.columns
-    : deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
-  const cursor = deriveCursorPosition(columns, s.cursorNodeId)
+  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+  const nodeIndex = buildNodeIndex(columns)
+  const cursor = deriveCursorPosition(columns, s.cursorNodeId, nodeIndex)
 
   const layout: ColumnsLayout = {
     columns,
     colIndex: cursor.colIndex,
     cardIndex: cursor.cardIndex,
     isAtCardLevel: cursor.isAtCardLevel,
+    nodeIndex,
   }
 
   const selectedCol = columns[cursor.colIndex]
@@ -140,6 +147,14 @@ function recomputeLayout(get: () => BoardAppStore, cursorOnly?: boolean): void {
   s.layout = layout
   s.selectedNode = selectedNode
   s.selectionLevel = cursor.selectionLevel
+
+  // Sync cursor position to CursorStore so cursor-aware components update
+  s.cursorStore.setState({
+    cursorNodeId: s.cursorNodeId,
+    colIndex: cursor.colIndex,
+    cardIndex: cursor.cardIndex,
+    selectionLevel: cursor.selectionLevel,
+  })
 }
 
 // =============================================================================
@@ -150,6 +165,7 @@ export interface CreateBoardAppStoreParams {
   repo: Repo
   toastQueue: ToastQueue
   layoutRegistry: LayoutRegistry
+  cursorStore: CursorStore
   initialBoardState: BoardState
   initialUIState: UIState
   initialLayout: ColumnsLayout
@@ -213,6 +229,9 @@ export function createBoardAppStoreState(
     // Dimensions
     dimensions: params.dimensions,
 
+    // Cursor store
+    cursorStore: params.cursorStore,
+
     // --- Board action dispatcher (inlined from boardReducer) ---
 
     // oxlint-disable-next-line complexity/max-cognitive -- Exhaustive switch over BoardAction union
@@ -220,19 +239,63 @@ export function createBoardAppStoreState(
       // Track whether this action only changes cursor position (no column changes)
       let cursorOnly = false
 
+      // --- Fast path: SELECT bypasses Zustand set() entirely ---
+      if (action.type === "SELECT") {
+        const s = _get()
+        // Silent mutation on Zustand state (no subscriber notification)
+        s.cursorNodeId = action.nodeId
+        s.curswantX = null
+        s.curswantY = null
+
+        // O(1) position lookup via nodeIndex
+        const pos = s.layout.nodeIndex?.get(action.nodeId)
+        const colIndex = pos?.colIndex ?? -1
+        const cardIndex = pos?.cardIndex ?? -1
+        const isColumnHeader = cardIndex === -1
+        const selectionLevel = !pos
+          ? ("board" as const)
+          : isColumnHeader
+            ? ("column" as const)
+            : ("card" as const)
+
+        // Update layout silently
+        s.layout = {
+          ...s.layout,
+          colIndex,
+          cardIndex,
+          isAtCardLevel: !isColumnHeader && !!pos,
+        }
+        const selectedCol = s.layout.columns[colIndex]
+        const selectedCard = selectedCol?.cards[cardIndex]
+        s.selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+        s.selectionLevel = selectionLevel
+
+        // Notify CursorStore subscribers (only cursor-aware components re-render)
+        s.cursorStore.setState({
+          cursorNodeId: action.nodeId,
+          colIndex,
+          cardIndex,
+          selectionLevel,
+        })
+        return
+      }
+
+      // --- Fast path: SET_CURSWANT also bypasses Zustand set() ---
+      if (action.type === "SET_CURSWANT") {
+        const s = _get()
+        if (action.x !== undefined) s.curswantX = action.x
+        if (action.y !== undefined) s.curswantY = action.y
+        return
+      }
+
       set((state) => {
         let flatUpdate: Partial<BoardAppState>
 
         switch (action.type) {
-          case "SELECT": {
-            cursorOnly = true
-            flatUpdate = {
-              cursorNodeId: action.nodeId,
-              curswantX: null,
-              curswantY: null,
-            }
-            break
-          }
+          // SELECT and SET_CURSWANT handled above (fast path)
+          case "SELECT":
+          case "SET_CURSWANT":
+            return state
 
           case "TOGGLE_FOLD": {
             const newFolded = new Set(state.foldedNodes)
@@ -357,15 +420,6 @@ export function createBoardAppStoreState(
           case "DECREASE_CONTENT_LINES":
             return state
 
-          case "SET_CURSWANT": {
-            cursorOnly = true
-            flatUpdate = {
-              curswantX: action.x !== undefined ? action.x : state.curswantX,
-              curswantY: action.y !== undefined ? action.y : state.curswantY,
-            }
-            break
-          }
-
           default: {
             const unhandled = action as { type: string }
             throw new Error(
@@ -377,8 +431,8 @@ export function createBoardAppStoreState(
         return flatUpdate
       })
       // Synchronously derive layout so key handler has fresh data immediately
-      // For cursor-only moves (SELECT, SET_CURSWANT), skip column derivation
-      recomputeLayout(_get, cursorOnly)
+      // SELECT and SET_CURSWANT use the fast path above (no set(), no recomputeLayout)
+      recomputeLayout(_get)
     },
 
     // --- Direct setters ---

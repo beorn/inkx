@@ -24,6 +24,7 @@ import { createBoardApp } from "./board-app.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createLayoutRegistry } from "./card-positions.ts"
+import { createCursorStore } from "./cursor-store.ts"
 
 const log = createLogger("km:tui")
 const spanLog = createLogger("km:tui")
@@ -226,6 +227,12 @@ export async function runBoard(
       repo: options.repo,
       toastQueue,
       layoutRegistry: createLayoutRegistry(),
+      cursorStore: createCursorStore({
+        cursorNodeId: initialCursorNodeId,
+        colIndex: 0,
+        cardIndex: 0,
+        selectionLevel: initialSelectionLevel,
+      }),
       initialBoardState: createBoardState(
         state.rootId,
         state.rootPath,

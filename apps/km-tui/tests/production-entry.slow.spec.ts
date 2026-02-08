@@ -20,6 +20,7 @@ import { createLayoutRegistry } from "../src/card-positions.ts"
 import { buildBoardState } from "../src/state.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
+import { createCursorStore } from "../src/cursor-store.ts"
 
 /**
  * Build store params from a tree — same logic as tui.tsx's runBoard().
@@ -72,6 +73,12 @@ function buildStoreParams(
     repo,
     toastQueue,
     layoutRegistry: createLayoutRegistry(),
+    cursorStore: createCursorStore({
+      cursorNodeId: initialCursorNodeId,
+      colIndex: 0,
+      cardIndex: 0,
+      selectionLevel: initialSelectionLevel,
+    }),
     initialBoardState: createBoardState(rootId, null, initialCursorNodeId),
     initialUIState: createInitialUIState(
       viewMode,

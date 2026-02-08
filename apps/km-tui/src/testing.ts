@@ -40,6 +40,8 @@ import { BoardCore } from "./views/index.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createLayoutRegistry } from "./card-positions.ts"
 import { RepoProvider } from "./repo-context.tsx"
+import { CursorStoreProvider } from "./cursor-context.tsx"
+import { createCursorStore } from "./cursor-store.ts"
 
 /**
  * Options for creating a board test harness
@@ -191,8 +193,19 @@ export async function createBoardTest(
     colScrollOffset: 0,
   })
 
+  const cursorStore = createCursorStore({
+    cursorNodeId: null,
+    colIndex: 0,
+    cardIndex: 0,
+    selectionLevel: "card",
+  })
+
   const app = render(
-    React.createElement(RepoProvider, { repo, children: boardCoreElement }),
+    React.createElement(
+      CursorStoreProvider,
+      { store: cursorStore },
+      React.createElement(RepoProvider, { repo, children: boardCoreElement }),
+    ),
   )
 
   // Current state - updated after each input

@@ -9,6 +9,7 @@ import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import type { UIState } from "../ui-reducer.ts"
 import type { TUIBoardState } from "../types.ts"
+import { useCursorPosition } from "../cursor-context.tsx"
 
 // Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -95,7 +96,7 @@ interface BottomBarProps {
 export function BottomBar({
   ui,
   state,
-  layout,
+  layout: _layoutProp,
   termWidth,
   storageMode,
   nodeCount,
@@ -103,6 +104,9 @@ export function BottomBar({
   consoleStats,
   toastQueue,
 }: BottomBarProps): React.ReactElement {
+  // Use CursorStore for cursor position (self-subscription, bypasses Board re-render)
+  const cursorPos = useCursorPosition()
+  const layout = { colIndex: cursorPos.colIndex, cardIndex: cursorPos.cardIndex }
   const homeDir = process.env.HOME || ""
 
   // Determine if we need spinner animation

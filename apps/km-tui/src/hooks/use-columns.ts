@@ -60,6 +60,50 @@ export function useColumns(
 }
 
 /**
+ * Build a nodeId → {colIndex, cardIndex} map for O(1) cursor position lookup.
+ * Includes column header nodes (cardIndex = COLUMN_HEADER_INDEX) and card nodes.
+ * Also checks card children for descendant mapping.
+ */
+export function buildNodeIndex(
+  columns: ColumnState[],
+): Map<string, { colIndex: number; cardIndex: number }> {
+  const index = new Map<string, { colIndex: number; cardIndex: number }>()
+  for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+    const col = columns[colIdx]
+    if (!col) continue
+    // Column header node
+    index.set(col.node.id, { colIndex: colIdx, cardIndex: -1 })
+    // Card nodes
+    for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
+      const card = col.cards[cardIdx]
+      if (!card) continue
+      index.set(card.node.id, { colIndex: colIdx, cardIndex: cardIdx })
+      // Map descendants to this card position
+      for (const child of card.children) {
+        mapDescendants(child, colIdx, cardIdx, index)
+      }
+    }
+  }
+  return index
+}
+
+function mapDescendants(
+  node: { id: string; children?: unknown[] },
+  colIndex: number,
+  cardIndex: number,
+  index: Map<string, { colIndex: number; cardIndex: number }>,
+): void {
+  index.set(node.id, { colIndex, cardIndex })
+  const children = (node as { children?: { id: string; children?: unknown[] }[] })
+    .children
+  if (children) {
+    for (const child of children) {
+      mapDescendants(child, colIndex, cardIndex, index)
+    }
+  }
+}
+
+/**
  * Pure function to derive columns from Repo.
  * Can be used outside of React for testing and in the store for synchronous layout.
  */

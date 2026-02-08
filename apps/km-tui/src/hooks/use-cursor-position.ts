@@ -37,15 +37,17 @@ export interface CursorPosition {
  *
  * @param columns - Current column layout
  * @param cursorNodeId - Currently selected node ID
+ * @param nodeIndex - Optional O(1) lookup map for fast position resolution
  * @returns CursorPosition with indices and selection level
  */
 export function useCursorPosition(
   columns: ColumnState[],
   cursorNodeId: string | null,
+  nodeIndex?: Map<string, { colIndex: number; cardIndex: number }>,
 ): CursorPosition {
   return useMemo(() => {
     const start = performance.now()
-    const result = deriveCursorPosition(columns, cursorNodeId)
+    const result = deriveCursorPosition(columns, cursorNodeId, nodeIndex)
     const duration = performance.now() - start
     if (duration > 1) {
       log.debug?.(
@@ -53,16 +55,19 @@ export function useCursorPosition(
       )
     }
     return result
-  }, [columns, cursorNodeId])
+  }, [columns, cursorNodeId, nodeIndex])
 }
 
 /**
  * Pure function to derive cursor position.
  * Can be used outside of React for testing and in the store for synchronous layout.
+ *
+ * @param nodeIndex - Optional O(1) lookup map. When provided, skips O(n) scan.
  */
 export function deriveCursorPosition(
   columns: ColumnState[],
   cursorNodeId: string | null,
+  nodeIndex?: Map<string, { colIndex: number; cardIndex: number }>,
 ): CursorPosition {
   // No cursor = board level
   if (!cursorNodeId || columns.length === 0) {
@@ -74,7 +79,31 @@ export function deriveCursorPosition(
     }
   }
 
-  // Search for cursor node in columns
+  // Fast path: O(1) lookup via nodeIndex
+  if (nodeIndex) {
+    const pos = nodeIndex.get(cursorNodeId)
+    if (pos) {
+      const isColumnHeader = pos.cardIndex === COLUMN_HEADER_INDEX
+      return {
+        colIndex: pos.colIndex,
+        cardIndex: pos.cardIndex,
+        isAtCardLevel: !isColumnHeader,
+        selectionLevel: isColumnHeader ? "column" : "card",
+      }
+    }
+    // Fall through to not-found case
+    log.debug?.(
+      `cursor node ${cursorNodeId?.slice(-8)} not found in nodeIndex (${nodeIndex.size} entries)`,
+    )
+    return {
+      colIndex: -1,
+      cardIndex: COLUMN_HEADER_INDEX,
+      isAtCardLevel: false,
+      selectionLevel: "board",
+    }
+  }
+
+  // Slow path: O(n) scan (fallback when no nodeIndex)
   for (let colIdx = 0; colIdx < columns.length; colIdx++) {
     const column = columns[colIdx]
     if (!column) continue
@@ -116,8 +145,6 @@ export function deriveCursorPosition(
   }
 
   // Cursor node not found in visible columns
-  // This can happen after zoom or if node is outside current view
-  // Log a warning for debugging - this should be rare in normal navigation
   log.debug?.(
     `cursor node ${cursorNodeId?.slice(-8)} not found in ${columns.length} columns (this may indicate a bug if it happens during normal navigation)`,
   )

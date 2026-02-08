@@ -72,6 +72,7 @@ import {
 } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { handleKey } from "./board-app.ts"
+import { createCursorStore } from "./cursor-store.ts"
 
 // =============================================================================
 // Types
@@ -222,6 +223,12 @@ export function createBoardDriver(
     repo,
     toastQueue,
     layoutRegistry,
+    cursorStore: createCursorStore({
+      cursorNodeId: initialCursorNodeId,
+      colIndex: 0,
+      cardIndex: 0,
+      selectionLevel: initialSelectionLevel,
+    }),
     initialBoardState: createBoardState(
       initialTUIState.rootId,
       initialTUIState.rootPath,

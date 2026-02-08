@@ -3,7 +3,7 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
-import React, { useCallback } from "react"
+import React, { useCallback, useSyncExternalStore } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback, VirtualList } from "inkx"
@@ -18,6 +18,7 @@ import { useUISelector, useSetUI } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import type { NodeLayout } from "../card-positions.ts"
 import { getScrollToIndex } from "./scroll-helpers.ts"
+import { useIsCursorInColumn, useIsCursorAtCard } from "../cursor-context.tsx"
 
 // =============================================================================
 // Virtualization Constants
@@ -48,7 +49,7 @@ const MAX_RENDERED_CARDS = 50
 
 interface CardProps {
   card: CardState
-  isSelected: boolean
+  isSelected?: boolean
   selectedSubIndex: number
   width: number
   colIndex: number
@@ -114,7 +115,7 @@ function CardLayoutRegistrar({
 const Card = React.memo(
   function Card({
     card,
-    isSelected,
+    isSelected: isSelectedProp,
     selectedSubIndex,
     width,
     colIndex,
@@ -122,6 +123,11 @@ const Card = React.memo(
     isVirtualColumn,
   }: CardProps): React.ReactElement {
     const nodeId = card.node.id
+
+    // Get selection state from CursorStore (self-subscription)
+    // Falls back to prop if CursorStore not available
+    const cursorIsSelected = useIsCursorAtCard(colIndex, cardIndex)
+    const isSelected = isSelectedProp ?? cursorIsSelected
 
     // Check if this card is in inline edit mode (for border color)
     const isEditing = useUISelector(
@@ -192,6 +198,8 @@ const Card = React.memo(
   },
   (prev, next) => {
     // Fast equality check for Card props
+    // Note: isSelected is now primarily driven by CursorStore self-subscription,
+    // so we still compare it but CursorStore triggers re-renders independently.
     return (
       prev.card.node.id === next.card.node.id &&
       prev.card.node.content === next.card.node.content &&
@@ -234,17 +242,27 @@ interface ColumnProps {
 export const Column = React.memo(function Column({
   column,
   colIndex,
-  isSelected,
+  isSelected: isSelectedProp,
   isCollapsed,
-  selectedCardIndex,
+  selectedCardIndex: selectedCardIndexProp,
   selectedSubIndex,
   width,
   height,
-  selectionLevel,
+  selectionLevel: selectionLevelProp,
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
   const setUI = useSetUI()
   const nodeId = column.node.id
+
+  // Get cursor state from CursorStore (self-subscription)
+  const cursorInCol = useIsCursorInColumn(colIndex)
+  const isSelected = cursorInCol.isSelected || isSelectedProp
+  const selectedCardIndex = cursorInCol.isSelected
+    ? cursorInCol.cardIndex
+    : selectedCardIndexProp
+  const selectionLevel = cursorInCol.isSelected
+    ? cursorInCol.selectionLevel
+    : selectionLevelProp
 
   // Check if this column header is being inline-edited
   const isInlineEditing = useUISelector(

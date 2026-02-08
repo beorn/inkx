@@ -29,6 +29,7 @@ import {
 import { calcColumnWidths, getColumnWidth } from "./board-layout.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { getScrollToIndex } from "./scroll-helpers.ts"
+import { useCursorPosition } from "../cursor-context.tsx"
 
 // =============================================================================
 // Handle Interfaces
@@ -251,14 +252,19 @@ export function ColumnsView({
   state,
   width,
   height,
-  colIndex,
-  cardIndex,
+  colIndex: _colIndexProp,
+  cardIndex: _cardIndexProp,
   subIndex,
   effectiveScrollOffset,
   effectiveMaxCols,
   effectiveVisibleColumns,
-  selectionLevel,
+  selectionLevel: _selectionLevelProp,
 }: ColumnsViewProps): React.ReactElement {
+  // Use CursorStore for cursor position (self-subscription, bypasses Board re-render)
+  const cursorPos = useCursorPosition()
+  const colIndex = cursorPos.colIndex
+  const cardIndex = cursorPos.cardIndex
+  const selectionLevel = cursorPos.selectionLevel
   // Calculate column widths using shared utility
   const widths = calcColumnWidths({
     boardWidth: width,

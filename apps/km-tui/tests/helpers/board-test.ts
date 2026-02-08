@@ -88,6 +88,7 @@ import {
 } from "../../src/board-app-store.ts"
 import { handleKey, resetBoundaryStreak } from "../../src/board-app.ts"
 import type { TUIBoardState } from "../../src/types.ts"
+import { createCursorStore } from "../../src/cursor-store.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
 // Board includes useReducer + useInput - use for keyboard navigation tests.
@@ -366,6 +367,12 @@ export function testEnv(
     repo,
     toastQueue,
     layoutRegistry: registry,
+    cursorStore: createCursorStore({
+      cursorNodeId: initialCursorNodeId,
+      colIndex: 0,
+      cardIndex: 0,
+      selectionLevel: initialSelectionLevel,
+    }),
     initialBoardState: createBoardState(
       initialState.rootId,
       initialState.rootPath,
@@ -567,6 +574,12 @@ export function testEnvWithRepo(
     repo,
     toastQueue,
     layoutRegistry: registry,
+    cursorStore: createCursorStore({
+      cursorNodeId: initialCursorNodeId,
+      colIndex: 0,
+      cardIndex: 0,
+      selectionLevel: initialSelectionLevel,
+    }),
     initialBoardState: createBoardState(
       initialState.rootId,
       initialState.rootPath,
@@ -1362,6 +1375,12 @@ export function renderBoardWithStore(
     repo,
     toastQueue,
     layoutRegistry: registry,
+    cursorStore: createCursorStore({
+      cursorNodeId: initialCursorNodeId,
+      colIndex: 0,
+      cardIndex: 0,
+      selectionLevel: initialSelectionLevel,
+    }),
     initialBoardState: createBoardState(
       initialState.rootId,
       initialState.rootPath,

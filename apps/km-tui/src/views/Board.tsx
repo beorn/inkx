@@ -9,7 +9,13 @@
  * State lives in the BoardAppStore (Zustand). Keys flow through term:key handler
  * in board-app.ts. Board is a pure view that reads state and pushes derived layout.
  */
-import React, { useEffect, useMemo, useRef, useState } from "react"
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react"
 import {
   Box,
   Text,
@@ -45,8 +51,10 @@ import type { UIState } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
-import { useColumns } from "../hooks/use-columns.ts"
-import { useCursorPosition } from "../hooks/use-cursor-position.ts"
+import { useColumns, buildNodeIndex } from "../hooks/use-columns.ts"
+import { deriveCursorPosition } from "../hooks/use-cursor-position.ts"
+import { CursorStoreProvider, useCursorPosition, useCursorColIndex } from "../cursor-context.tsx"
+import type { CursorStore } from "../cursor-store.ts"
 import type { ColumnsLayout } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 
@@ -127,7 +135,7 @@ export function BoardCore({
   state,
   layout,
   ui,
-  derivedSelectionLevel,
+  derivedSelectionLevel: _derivedSelectionLevelProp,
   dimensions,
   layoutRegistry,
   setUI,
@@ -141,6 +149,11 @@ export function BoardCore({
   const termWidth = dimensions.columns
   const termHeight = dimensions.rows
 
+  // Get cursor position from CursorStore (self-subscription — only re-renders
+  // BoardCore when cursor changes, not the whole Board → Column → Card cascade)
+  const cursorPos = useCursorPosition()
+  const derivedSelectionLevel = cursorPos.selectionLevel
+
   const maxCols = Math.min(
     state.columns.length,
     Math.max(2, Math.floor(termWidth / 35)),
@@ -149,8 +162,8 @@ export function BoardCore({
   // colScrollOffset is passed from parent (edge-based calculation)
 
   // Build selected item path segments for colorized top bar
-  const selectedCol = state.columns[layout.colIndex]
-  const selectedCard = selectedCol?.cards[layout.cardIndex]
+  const selectedCol = state.columns[cursorPos.colIndex]
+  const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
 
   // Determine which node to show path to based on selection level
   const pathNodeId =
@@ -217,8 +230,8 @@ export function BoardCore({
         data-view="board"
         data-board={true}
         data-scroll-offset={colScrollOffset}
-        data-col-index={layout.colIndex}
-        data-card-index={layout.cardIndex}
+        data-col-index={cursorPos.colIndex}
+        data-card-index={cursorPos.cardIndex}
         {...(isBoardSelected && { "data-cursor": true })}
         flexDirection="column"
         width={termWidth}
@@ -520,8 +533,9 @@ export function Board({ patchedConsole }: BoardProps) {
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
   const rootId = useAppStore<BoardAppStore, string | null>((s) => s.rootId)
   const rootPath = useAppStore<BoardAppStore, string | null>((s) => s.rootPath)
-  const cursorNodeId = useAppStore<BoardAppStore, string | null>(
-    (s) => s.cursorNodeId,
+  // CursorStore provides cursor state without triggering Board re-render on SELECT
+  const cursorStore = useAppStore<BoardAppStore, CursorStore>(
+    (s) => s.cursorStore,
   )
   const foldedNodes = useAppStore<BoardAppStore, Set<string>>(
     (s) => s.foldedNodes,
@@ -596,7 +610,30 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Derive columns from repo (reactive to repo mutations via useSyncExternalStore)
   const columns = useColumns(repo, rootId, foldedNodes)
-  const cursorPosition = useCursorPosition(columns, cursorNodeId)
+  const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
+
+  // Subscribe to cursor colIndex from CursorStore (NOT full cursor version).
+  // Board re-renders on column change (h/l) for scroll offset,
+  // but NOT on j/k within the same column.
+  const cursorColIndexRef = useRef(0)
+  const cursorColIndex = useSyncExternalStore(
+    cursorStore.subscribe,
+    () => {
+      const colIndex = cursorStore.getState().colIndex
+      if (colIndex === cursorColIndexRef.current) return cursorColIndexRef.current
+      cursorColIndexRef.current = colIndex
+      return colIndex
+    },
+  )
+
+  // Compute cursor position only when columns change (NOT on every cursor move).
+  // For cursor-only moves (j/k), the SELECT fast path in dispatchBoard already
+  // updates the store silently — Board doesn't need to re-render.
+  // Column/Card handle cursor highlighting via CursorStore self-subscription.
+  const cursorPosition = useMemo(() => {
+    const cs = cursorStore.getState()
+    return deriveCursorPosition(columns, cs.cursorNodeId, nodeIndex)
+  }, [columns, cursorStore, nodeIndex, cursorColIndex])
 
   const columnsLayout: ColumnsLayout = useMemo(
     () => ({
@@ -604,8 +641,9 @@ export function Board({ patchedConsole }: BoardProps) {
       colIndex: cursorPosition.colIndex,
       cardIndex: cursorPosition.cardIndex,
       isAtCardLevel: cursorPosition.isAtCardLevel,
+      nodeIndex,
     }),
-    [columns, cursorPosition],
+    [columns, cursorPosition, nodeIndex],
   )
 
   const derivedSelectionLevel = cursorPosition.selectionLevel
@@ -672,21 +710,40 @@ export function Board({ patchedConsole }: BoardProps) {
       derivedSelectionLevel,
       tuiBoardState,
     )
+    // Sync cursor position to CursorStore so Card/Column self-subscriptions
+    // pick up the correct position after column changes (e.g., card shift)
+    const cs = cursorStore.getState()
+    if (
+      cs.colIndex !== columnsLayout.colIndex ||
+      cs.cardIndex !== columnsLayout.cardIndex ||
+      cs.selectionLevel !== derivedSelectionLevel
+    ) {
+      cursorStore.setState({
+        cursorNodeId: cs.cursorNodeId,
+        colIndex: columnsLayout.colIndex,
+        cardIndex: columnsLayout.cardIndex,
+        selectionLevel: derivedSelectionLevel,
+      })
+    }
   }, [
     columnsLayout,
     selectedNode,
     derivedSelectionLevel,
     tuiBoardState,
     updateLayout,
+    cursorStore,
   ])
 
-  // Dialog handlers
+  // Dialog handlers — read cursorNodeId from Zustand (silently mutated by SELECT)
+  const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>(
+    (s) => s.cursorNodeId,
+  )
   const dialogHandlers = useBoardDialogs({
     repo,
     state: tuiBoardState,
     setUI,
     dispatchBoard,
-    cursorNodeId,
+    cursorNodeId: dialogCursorNodeId,
     rootId,
   })
 
@@ -745,26 +802,28 @@ export function Board({ patchedConsole }: BoardProps) {
   )
 
   return (
-    <TreeRenderProvider
-      treeConfig={treeConfig}
-      setUI={setUI}
-      rootBoardId={ui.rootBoardId}
-    >
-      <BoardCore
-        state={tuiBoardState}
-        layout={columnsLayout}
-        ui={ui}
-        derivedSelectionLevel={derivedSelectionLevel}
-        dimensions={ui.dimensions}
-        layoutRegistry={layoutRegistry}
+    <CursorStoreProvider store={cursorStore}>
+      <TreeRenderProvider
+        treeConfig={treeConfig}
         setUI={setUI}
-        dialogHandlers={dialogHandlers}
-        moveMode={moveMode}
-        consoleStats={consoleStats}
-        colScrollOffset={colScrollOffset}
-        toastQueue={toastQueue}
-      />
-    </TreeRenderProvider>
+        rootBoardId={ui.rootBoardId}
+      >
+        <BoardCore
+          state={tuiBoardState}
+          layout={columnsLayout}
+          ui={ui}
+          derivedSelectionLevel={derivedSelectionLevel}
+          dimensions={ui.dimensions}
+          layoutRegistry={layoutRegistry}
+          setUI={setUI}
+          dialogHandlers={dialogHandlers}
+          moveMode={moveMode}
+          consoleStats={consoleStats}
+          colScrollOffset={colScrollOffset}
+          toastQueue={toastQueue}
+        />
+      </TreeRenderProvider>
+    </CursorStoreProvider>
   )
 }
 

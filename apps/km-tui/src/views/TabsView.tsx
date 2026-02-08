@@ -13,6 +13,7 @@ import { getNodeDisplayName } from "../state.ts"
 import { useTreeRenderContext } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
+import { useCursorPosition } from "../cursor-context.tsx"
 
 // Virtualization constants
 const OVERSCAN = 10
@@ -32,15 +33,21 @@ export function TabsView({
   state,
   width,
   height,
-  colIndex,
-  cardIndex,
+  colIndex: _colIndexProp,
+  cardIndex: _cardIndexProp,
   subIndex,
-  selectionLevel,
+  selectionLevel: _selectionLevelProp,
 }: TabsViewProps): React.ReactElement {
   const repo = useRepo()
   const {
     treeConfig: { inOutlineMode },
   } = useTreeRenderContext()
+
+  // Use CursorStore for cursor position (self-subscription, bypasses Board re-render)
+  const cursorPos = useCursorPosition()
+  const colIndex = cursorPos.colIndex
+  const cardIndex = cursorPos.cardIndex
+  const selectionLevel = cursorPos.selectionLevel
 
   // Get current column
   const currentColumn = state.columns[colIndex]
