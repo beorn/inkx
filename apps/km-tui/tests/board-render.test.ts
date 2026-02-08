@@ -36,8 +36,8 @@ describe("Board Pure Rendering", () => {
 
   test("renderStatusBar shows selection count", () => {
     const state = createEmptyState()
-    state.selectedCards.add("card-1")
-    state.selectedCards.add("card-2")
+    state.selectedNodes.add("card-1")
+    state.selectedNodes.add("card-2")
 
     const output = renderStatusBar(state, 80)
     expect(output).toContain("2 selected")

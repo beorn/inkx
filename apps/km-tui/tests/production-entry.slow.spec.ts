@@ -9,7 +9,7 @@
 import React from "react"
 import { test, expect, describe, vi } from "vitest"
 import { createFakeRepo } from "@km/storage"
-import { createBoardState } from "@km/board"
+import { createBoardState } from "../src/board-types.ts"
 import { createToastQueue } from "@km/core"
 import { InputLayerProvider } from "inkx"
 import { item } from "./helpers/board-test.ts"
@@ -118,7 +118,7 @@ describe("production entry point (createBoardApp)", () => {
     const handle = await app.run(element, { cols: 80, rows: 24 })
 
     // Should have a working store with correct root
-    expect(handle.store.getState().boardState.rootId).toBe("board")
+    expect(handle.store.getState().rootId).toBe("board")
 
     // Should render text (BoardApp renders Board which renders columns)
     expect(handle.text).toContain("col1")
@@ -150,14 +150,14 @@ describe("production entry point (createBoardApp)", () => {
 
     // Initial cursor should be on first card
     const state = handle.store.getState()
-    expect(state.boardState.cursorNodeId).toBe("task1")
+    expect(state.cursorNodeId).toBe("task1")
 
     // Press 'j' (cursor down) via the production key handler
     await handle.press("j")
 
     // Cursor should have moved
     const newState = handle.store.getState()
-    expect(newState.boardState.cursorNodeId).toBe("task2")
+    expect(newState.cursorNodeId).toBe("task2")
 
     handle.unmount()
   })
@@ -231,7 +231,7 @@ describe("production smoke: console toggle", () => {
     const handle = await app.run(element, { cols: 80, rows: 24 })
 
     // Cursor starts on task1
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+    expect(handle.store.getState().cursorNodeId).toBe("task1")
 
     // Open console
     await handle.press("`")
@@ -239,7 +239,7 @@ describe("production smoke: console toggle", () => {
 
     // Navigation keys should be blocked while console is open
     await handle.press("j")
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+    expect(handle.store.getState().cursorNodeId).toBe("task1")
 
     // Escape should close console
     await handle.press("Escape")
@@ -247,7 +247,7 @@ describe("production smoke: console toggle", () => {
 
     // Now j should work again — check SCREEN not just state
     await handle.press("j")
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+    expect(handle.store.getState().cursorNodeId).toBe("task2")
     expect(handle.text).toContain("task2")
 
     handle.unmount()
@@ -288,9 +288,9 @@ describe("console toggle: resume re-entrancy (km-tui.console)", () => {
     expect(handle.store.getState().ui.showConsole).toBe(false)
 
     // After round-trip, keyboard input must still work
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+    expect(handle.store.getState().cursorNodeId).toBe("task1")
     await handle.press("j")
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+    expect(handle.store.getState().cursorNodeId).toBe("task2")
 
     // Screen must render correctly after round-trip
     expect(handle.text).toContain("col1")
@@ -374,7 +374,7 @@ describe("production smoke: inline edit + re-render", () => {
 
     // Navigate down
     await handle.press("j")
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+    expect(handle.store.getState().cursorNodeId).toBe("task2")
 
     // SCREEN CHECK: screen must update after cursor move
     // (catches perf regression where setUI({ bellState: null }) triggers
@@ -432,7 +432,7 @@ describe("perf regression: unnecessary setUI on keypress (km-tui.perf-regr)", ()
     unsub()
 
     // Cursor should have moved (verifies the keypress was handled)
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+    expect(handle.store.getState().cursorNodeId).toBe("task2")
 
     // bellState and status should still be null
     expect(handle.store.getState().ui.bellState).toBeNull()
@@ -495,7 +495,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
 
     // Navigate to verify board is still interactive
     await handle.press("j")
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+    expect(handle.store.getState().cursorNodeId).toBe("task2")
     expect(handle.text).toContain("task2")
 
     handle.unmount()
@@ -739,7 +739,7 @@ describe("perf: processEvent render count", () => {
     unsub()
 
     // Cursor should have moved
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+    expect(handle.store.getState().cursorNodeId).toBe("task2")
 
     // Should have minimal store notifications (1 for cursor move, possibly
     // 1 for layout update from effect — but NOT 3+ from double-render)
@@ -772,7 +772,7 @@ describe("perf: processEvent render count", () => {
     const handle = await app.run(element, { cols: 80, rows: 24 })
 
     // Verify start position
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+    expect(handle.store.getState().cursorNodeId).toBe("task1")
 
     // Press j 10 times rapidly
     for (let i = 0; i < 10; i++) {
@@ -780,7 +780,7 @@ describe("perf: processEvent render count", () => {
     }
 
     // Cursor should be on task11 (started at task1, moved 10 times)
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task11")
+    expect(handle.store.getState().cursorNodeId).toBe("task11")
 
     // No bell should have fired (we didn't hit any boundary)
     expect(handle.store.getState().ui.bellState).toBeNull()
@@ -816,7 +816,7 @@ describe("perf: processEvent render count", () => {
     // Warm up (j then k returns cursor to task1)
     await handle.press("j")
     await handle.press("k")
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+    expect(handle.store.getState().cursorNodeId).toBe("task1")
 
     // Measure 50 keypresses
     const start = performance.now()
@@ -826,7 +826,7 @@ describe("perf: processEvent render count", () => {
     const elapsed = performance.now() - start
 
     // Cursor should have advanced: task1 + 50 moves = task51
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task51")
+    expect(handle.store.getState().cursorNodeId).toBe("task51")
 
     // 1000ms for 50 keys = 20ms/key budget. Should be well under.
     expect(elapsed).toBeLessThan(1000)
@@ -859,7 +859,7 @@ describe("perf: processEvent render count", () => {
 
     // Move to last item
     await handle.press("j")
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task2")
+    expect(handle.store.getState().cursorNodeId).toBe("task2")
 
     // Try to move past the boundary — should trigger bell
     await handle.press("j")
@@ -868,7 +868,7 @@ describe("perf: processEvent render count", () => {
     // Press a valid key — bell should clear at start of keypress
     await handle.press("k")
     expect(handle.store.getState().ui.bellState).toBeNull()
-    expect(handle.store.getState().boardState.cursorNodeId).toBe("task1")
+    expect(handle.store.getState().cursorNodeId).toBe("task1")
 
     handle.unmount()
   })

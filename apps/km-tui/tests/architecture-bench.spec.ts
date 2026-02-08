@@ -20,15 +20,20 @@ import { describe, test, expect, afterAll } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 // =============================================================================
-// Fixture: Large board (5 cols × 40 cards = 200 cards)
+// Fixture: Large board (8 cols × 60 cards × 3 sub-items = 1440+ nodes)
 // =============================================================================
 
 function largeBoardFixture(): ReturnType<typeof item> {
   const cols: ReturnType<typeof item>[] = []
-  for (let c = 0; c < 5; c++) {
+  for (let c = 0; c < 8; c++) {
     const cards: ReturnType<typeof item>[] = []
-    for (let i = 0; i < 40; i++) {
-      cards.push(item(`c${c}-card-${i}`))
+    for (let i = 0; i < 60; i++) {
+      // Each card has 3 nested sub-items (deeper hierarchy)
+      const subs: ReturnType<typeof item>[] = []
+      for (let s = 0; s < 3; s++) {
+        subs.push(item(`c${c}-card-${i}-sub-${s}`))
+      }
+      cards.push(item(`c${c}-card-${i}`, ...subs))
     }
     cols.push(item(`col-${c}`, ...cards))
   }
@@ -73,111 +78,107 @@ const benchResults: Record<string, string> = {}
 // Benchmarks
 // =============================================================================
 
-describe("Architecture Benchmark", () => {
+describe("Architecture Benchmark", { timeout: 30000 }, () => {
   // Print all results after tests complete (vitest summary includes test names)
   afterAll(() => {
     // Results are embedded in test names via expect() messages
   })
 
-  // Current baseline (2026-02-07, isolated run):
-  //   cards ~15ms, list ~26ms, columns ~10ms, h/l ~19ms
-  // Target after per-node atoms refactor: all < 5ms
-  // NOTE: Thresholds are generous (2x) to pass under concurrent test load.
+  // Current baseline (2026-02-07, isolated run, 1440-node board 200x60):
+  //   cards j ~85ms, list j ~35ms, columns j ~34ms, h/l ~150ms, zoom ~200ms
+  // Target after per-node atoms refactor: all < 10ms
+  // NOTE: Thresholds are generous (2-4x) to pass under concurrent test load.
   // For accurate timings, run in isolation:
   //   bun vitest run apps/km-tui/tests/architecture-bench.spec.ts
 
-  test("cards view: j-press (200 cards, 5 cols)", () => {
+  test("cards view: j-press (1440 nodes, 8 cols, 3 levels)", () => {
     const { board } = testEnv(() => largeBoardFixture(), {
-      columns: 120,
-      rows: 40,
+      columns: 200,
+      rows: 60,
     })
 
     // Warm up (first few presses may be slower due to lazy init)
-    for (let i = 0; i < 3; i++) board.press("j")
+    for (let i = 0; i < 5; i++) board.press("j")
 
-    // Benchmark: press j 30 times
-    const stats = benchPress(board, "j", 30)
+    // Benchmark: press j 50 times
+    const stats = benchPress(board, "j", 50)
     benchResults["cards_j"] =
       `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)}`
 
-    // Baseline: ~15ms avg (isolated). Tighten as architecture improves.
-    expect(stats.avg).toBeLessThan(50)
+    expect(stats.avg).toBeLessThan(200)
   })
 
-  test("list view: j-press (200 cards, 5 cols)", () => {
+  test("list view: j-press (1440 nodes, 8 cols, 3 levels)", () => {
     const { board } = testEnv(() => largeBoardFixture(), {
-      columns: 120,
-      rows: 40,
+      columns: 200,
+      rows: 60,
       viewMode: "list",
     })
 
-    for (let i = 0; i < 3; i++) board.press("j")
-    const stats = benchPress(board, "j", 30)
+    for (let i = 0; i < 5; i++) board.press("j")
+    const stats = benchPress(board, "j", 50)
     benchResults["list_j"] =
       `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)}`
 
-    // Baseline: ~26ms avg. List view is slowest (renders all 200 items).
-    expect(stats.avg).toBeLessThan(50)
+    expect(stats.avg).toBeLessThan(200)
   })
 
-  test("columns view: j-press (200 cards, 5 cols)", () => {
+  test("columns view: j-press (1440 nodes, 8 cols, 3 levels)", () => {
     const { board } = testEnv(() => largeBoardFixture(), {
-      columns: 120,
-      rows: 40,
+      columns: 200,
+      rows: 60,
       viewMode: "columns",
     })
 
-    for (let i = 0; i < 3; i++) board.press("j")
-    const stats = benchPress(board, "j", 30)
+    for (let i = 0; i < 5; i++) board.press("j")
+    const stats = benchPress(board, "j", 50)
     benchResults["cols_j"] =
       `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)}`
 
-    // Baseline: ~10ms avg (isolated). Columns view is fastest (fewer visible items).
-    expect(stats.avg).toBeLessThan(50)
+    expect(stats.avg).toBeLessThan(200)
   })
 
-  test("h/l horizontal navigation (200 cards)", () => {
+  test("h/l horizontal navigation (1440 nodes, 8 cols)", () => {
     const { board } = testEnv(() => largeBoardFixture(), {
-      columns: 120,
-      rows: 40,
+      columns: 200,
+      rows: 60,
     })
 
-    for (let i = 0; i < 5; i++) board.press("j")
-    const lStats = benchPress(board, "l", 4)
-    const hStats = benchPress(board, "h", 4)
+    for (let i = 0; i < 10; i++) board.press("j")
+    const lStats = benchPress(board, "l", 7)
+    const hStats = benchPress(board, "h", 7)
     benchResults["h_l"] = `l=${formatMs(lStats.avg)} h=${formatMs(hStats.avg)}`
 
-    // Baseline: ~19ms avg (isolated). Horizontal is slower than vertical (column scroll).
-    expect(lStats.avg).toBeLessThan(60)
-    expect(hStats.avg).toBeLessThan(60)
+    expect(lStats.avg).toBeLessThan(250)
+    expect(hStats.avg).toBeLessThan(250)
   })
 
   test("cursor correctness after rapid mixed navigation", () => {
     const { board } = testEnv(() => largeBoardFixture(), {
-      columns: 120,
-      rows: 40,
+      columns: 200,
+      rows: 60,
     })
 
-    // Navigate: down 5, right 2, down 3, left 1, up 2
+    // Navigate: down 10, right 4, down 5, left 2, up 3
+    for (let i = 0; i < 10; i++) board.press("j")
+    for (let i = 0; i < 4; i++) board.press("l")
     for (let i = 0; i < 5; i++) board.press("j")
-    for (let i = 0; i < 2; i++) board.press("l")
-    for (let i = 0; i < 3; i++) board.press("j")
-    board.press("h")
-    for (let i = 0; i < 2; i++) board.press("k")
+    for (let i = 0; i < 2; i++) board.press("h")
+    for (let i = 0; i < 3; i++) board.press("k")
 
     // Verify cursor is positioned on a valid node
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
 
-    // Should be somewhere in col-1 (moved right 2 then left 1)
+    // Should be in col-2 (moved right 4 then left 2)
     const cursorId = cursor.getAttribute("id")
-    expect(cursorId).toMatch(/^c1-card-/)
+    expect(cursorId).toMatch(/^c2-card-/)
   })
 
-  test("subscription baseline: 120 items × 10 subs = ~1200 total", () => {
+  test("subscription baseline: visible items × 10 subs", () => {
     const { board } = testEnv(() => largeBoardFixture(), {
-      columns: 120,
-      rows: 40,
+      columns: 200,
+      rows: 60,
     })
 
     const items = board.q("[data-view='item']")
@@ -185,15 +186,14 @@ describe("Architecture Benchmark", () => {
     benchResults["subs"] =
       `items=${itemCount} est_subs=~${itemCount * 10} ideal=~${itemCount * 3 + 7} (-${Math.round((1 - (itemCount * 3 + 7) / (itemCount * 10)) * 100)}%)`
 
-    // Current architecture: ~10 subscriptions per TreeNode
-    // Ideal (per-node atoms): ~3 per-node + 7 global
-    expect(itemCount).toBeGreaterThan(50)
+    // With 1440 nodes, many more should be visible on 200x60 terminal
+    expect(itemCount).toBeGreaterThan(100)
   })
 
   test("screen diff: j-press changes <= 5 lines", () => {
     const { board } = testEnv(() => largeBoardFixture(), {
-      columns: 120,
-      rows: 40,
+      columns: 200,
+      rows: 60,
     })
 
     board.press("j")
@@ -213,7 +213,27 @@ describe("Architecture Benchmark", () => {
       `changed=${changedLines}/${beforeLines.length} (ideal=2)`
 
     // In cards view, cursor movement should change very few lines
-    // (just the old and new cursor positions, plus possibly top bar path)
     expect(changedLines).toBeLessThanOrEqual(5)
+  })
+
+  test("outline depth navigation (< and > keys)", () => {
+    const { board } = testEnv(() => largeBoardFixture(), {
+      columns: 200,
+      rows: 60,
+    })
+
+    // Navigate down, then zoom into sub-items with >
+    for (let i = 0; i < 5; i++) board.press("j")
+    const zoomInStats = benchPress(board, ">", 3)
+    benchResults["zoom_in"] = `avg=${formatMs(zoomInStats.avg)}`
+
+    // Navigate some, then zoom out
+    for (let i = 0; i < 3; i++) board.press("j")
+    const zoomOutStats = benchPress(board, "<", 3)
+    benchResults["zoom_out"] = `avg=${formatMs(zoomOutStats.avg)}`
+
+    // Zoom involves full re-layout of the board — much more expensive than cursor moves
+    expect(zoomInStats.avg).toBeLessThan(500)
+    expect(zoomOutStats.avg).toBeLessThan(500)
   })
 })

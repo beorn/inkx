@@ -75,7 +75,7 @@ export function updateSelectionRange(
             card.node,
             0,
             ctx.ui.maxOutlineDepth,
-            ctx.boardState.foldedNodes,
+            ctx.foldedNodes,
           )
         for (let s = 0; s < maxItems; s++) {
           newSelected.add(makeSelectionKey(toCol, c, s))
@@ -138,7 +138,7 @@ export function refreshBoardState(
 
   // Query repo to calculate new cursor position
   const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
-  const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
+  const allChildren = ctx.repo.getChildren(ctx.rootId)
   const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
 
   // Calculate new cursor position
@@ -165,7 +165,7 @@ export function refreshBoardState(
   const targetCard = cards[cardIndex]
   ctx.dispatchBoard({
     type: "SELECT",
-    nodeId: targetCard?.id ?? ctx.boardState.cursorNodeId,
+    nodeId: targetCard?.id ?? ctx.cursorNodeId,
   })
 }
 
@@ -189,7 +189,7 @@ function addCardItems(
       card.node,
       0,
       ctx.ui.maxOutlineDepth,
-      ctx.boardState.foldedNodes,
+      ctx.foldedNodes,
     )
   for (let s = 0; s < maxItems; s++) {
     selected.add(makeSelectionKey(colIdx, cardIdx, s))

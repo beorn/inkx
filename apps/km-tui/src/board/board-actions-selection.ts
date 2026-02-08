@@ -48,7 +48,7 @@ export function handleExtendSelectVertical(
   const treeDir = direction === "up" ? "prev" : "next"
   const targetId = handleTreeNavigation(
     treeDir as TreeDirection,
-    ctx.boardState,
+    ctx,
     ctx.repo,
   )
   if (targetId) {

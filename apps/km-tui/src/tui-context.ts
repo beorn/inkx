@@ -10,7 +10,7 @@
 
 import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardState, BoardAction } from "@km/board"
+import type { BoardAction, NavHistoryEntry } from "./board-types.ts"
 import type { ColumnsLayout, ColumnState, CardState } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
@@ -25,8 +25,24 @@ export interface ActionCtx {
   // === Storage ===
   repo: Repo
 
-  // === State (from store, names match store fields) ===
-  boardState: BoardState
+  // === Board navigation (flat fields from store) ===
+  rootId: string | null
+  rootPath: string | null
+  cursorNodeId: string | null
+  selectedNodes: Set<string>
+  foldedNodes: Set<string>
+  collapsedNodes: Set<string>
+  moveMode: boolean
+  moveSourceNodes: string[]
+  moveSourceCursorNodeId: string | null
+  maxOutlineDepth: number
+  maxContentLines: number
+  curswantX: number | null
+  curswantY: number | null
+  navHistory: NavHistoryEntry[]
+  navHistoryIndex: number
+
+  // === State (from store) ===
   ui: UIState
   layout: ColumnsLayout
   layoutRegistry: LayoutRegistry

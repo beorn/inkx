@@ -32,8 +32,8 @@ export function handleDeleteNode(ctx: ActionCtx): void {
  * Confirm move operation - move selected nodes to target column.
  */
 export function handleConfirmMove(ctx: ActionCtx): void {
-  const { boardState, layout, repo, dispatchBoard } = ctx
-  const sourceNodeIds = boardState.moveSourceNodes
+  const { layout, repo, dispatchBoard } = ctx
+  const sourceNodeIds = ctx.moveSourceNodes
   if (sourceNodeIds.length === 0) return
   const targetCol = layout.columns[layout.colIndex]
   if (!targetCol) return

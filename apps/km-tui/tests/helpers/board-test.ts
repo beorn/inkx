@@ -66,7 +66,7 @@ import { StoreContext } from "inkx/runtime"
 import { parseKey } from "inkx/runtime"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
-import { createBoardState } from "@km/board"
+import { createBoardState } from "../../src/board-types.ts"
 import {
   createToastQueue,
   type KNode,

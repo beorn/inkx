@@ -28,7 +28,7 @@ import { createRenderer, keyToAnsi, type App } from "inkx/testing"
 import { StoreContext, parseKey } from "inkx/runtime"
 import { expect } from "vitest"
 import { createRepo, type Repo } from "@km/storage"
-import { createBoardState } from "@km/board"
+import { createBoardState } from "../../src/board-types.ts"
 import { runGenerator, createToastQueue } from "@km/core"
 
 import { Board } from "../../src/views/Board.tsx"

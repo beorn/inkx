@@ -13,7 +13,6 @@
 
 import { createLogger } from "@beorn/logger"
 import type { Repo } from "@km/storage"
-import type { BoardState } from "@km/board"
 
 const log = createLogger("km:tui:nav")
 
@@ -37,18 +36,27 @@ export type TreeDirection =
   | "parent"
 
 /**
+ * Navigation state fields needed for tree navigation.
+ */
+export interface TreeNavState {
+  cursorNodeId: string | null
+  rootId: string | null
+  foldedNodes: Set<string>
+}
+
+/**
  * Handle tree-based navigation.
  *
  * Uses Repo for tree structure queries. No visual layout involved.
  *
  * @param direction - Navigation direction ("next"/"prev" for siblings, "child"/"parent" for tree traversal)
- * @param state - Current board state (for cursorNodeId, rootId, foldedNodes)
+ * @param state - Navigation state (cursorNodeId, rootId, foldedNodes)
  * @param repo - Repo for tree queries
  * @returns New cursorNodeId, or null if can't move
  */
 export function handleTreeNavigation(
   direction: TreeDirection,
-  state: BoardState,
+  state: TreeNavState,
   repo: Repo,
 ): string | null {
   const { cursorNodeId, rootId, foldedNodes } = state

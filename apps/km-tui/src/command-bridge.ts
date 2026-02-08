@@ -27,7 +27,7 @@ export function processKeyWithContext(
 ): InkCommandResult {
   ensureCommandSystemInitialized()
 
-  const { boardState, ui, layout, selectedNode } = ctx
+  const { ui, layout, selectedNode } = ctx
 
   // Compute TNode derived fields from KNode for the command system
   const nodeForCtx: TNode | null = selectedNode
@@ -42,12 +42,12 @@ export function processKeyWithContext(
     : null
 
   const kbCtx = buildKeybindingContext({
-    inMoveMode: boardState.moveMode,
+    inMoveMode: ctx.moveMode,
     inSearchMode: ui.showSearchDialog,
     inInputMode:
       ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog,
     hasSelection:
-      boardState.selectedNodes.size > 0 || ui.multiSelected.size > 0,
+      ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
     currentNode: nodeForCtx,
@@ -68,13 +68,13 @@ export function processKeyWithContext(
   const cmdCtx = buildContext(ui.viewMode, {
     currentNode: nodeForCtx,
     currentNodeId: selectedNode?.id ?? null,
-    selectedNodes: Array.from(boardState.selectedNodes),
+    selectedNodes: Array.from(ctx.selectedNodes),
     siblingCount: column?.cards.length ?? 0,
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,
     columnIndex: colIndex >= 0 ? colIndex : 0,
     columnCount: columns.length,
-    moveMode: boardState.moveMode,
-    foldedNodes: boardState.foldedNodes,
+    moveMode: ctx.moveMode,
+    foldedNodes: ctx.foldedNodes,
   })
 
   return processInkKey(input, key, cmdCtx, kbCtx)

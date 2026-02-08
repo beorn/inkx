@@ -36,8 +36,8 @@ function handleHierarchicalNavigation(
   ctx: ActionCtx,
   dir: "up" | "down",
 ): string | null {
-  const { layout, boardState, repo, layoutRegistry } = ctx
-  const { cursorNodeId, rootId } = boardState
+  const { layout, repo, layoutRegistry } = ctx
+  const { cursorNodeId, rootId } = ctx
   const col = layout.columns[layout.colIndex]
 
   if (!cursorNodeId) {
@@ -79,13 +79,13 @@ function handleHierarchicalNavigation(
 
     if (isAtCardLevel) {
       // Card → next card (sibling navigation)
-      return handleTreeNavigation("next", boardState, repo)
+      return handleTreeNavigation("next", ctx, repo)
     }
   } else {
     // k: move up through hierarchy
     if (isAtCardLevel) {
       // Try to move to previous card first
-      const prevCard = handleTreeNavigation("prev", boardState, repo)
+      const prevCard = handleTreeNavigation("prev", ctx, repo)
       if (prevCard) {
         return prevCard
       }
@@ -160,7 +160,7 @@ function handleOutlineNav(
       card.node,
       0,
       ui.maxOutlineDepth,
-      ctx.boardState.foldedNodes,
+      ctx.foldedNodes,
     )
     if (ui.subIndex < maxIdx) {
       ctx.setUI({ subIndex: ui.subIndex + 1 })
@@ -186,7 +186,7 @@ function handleSelectionNav(ctx: ActionCtx, dir: string): ActionResult | null {
       const direction = dir === "prev" ? "prev" : "next"
       const targetId = handleTreeNavigation(
         direction as TreeDirection,
-        ctx.boardState,
+        ctx,
         ctx.repo,
       )
       if (targetId) {
@@ -224,7 +224,7 @@ function handleHorizontalNav(
   }
 
   // At board level, h/l should not move - board title spans full width
-  const { cursorNodeId, rootId } = ctx.boardState
+  const { cursorNodeId, rootId } = ctx
   if (cursorNodeId === rootId) {
     return boundary(dir)
   }
@@ -415,8 +415,8 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
 function handleTreeNav(ctx: ActionCtx, dir: string): ActionResult {
   const { dispatchBoard } = ctx
   const treeDir = dir as TreeDirection
-  const targetId = handleTreeNavigation(treeDir, ctx.boardState, ctx.repo)
-  if (targetId && targetId !== ctx.boardState.cursorNodeId) {
+  const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
+  if (targetId && targetId !== ctx.cursorNodeId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
     return ok()
   }
@@ -530,13 +530,13 @@ export function handleNavSiblingBoard(
   ctx: ActionCtx,
   direction: "next" | "prev",
 ): ActionResult {
-  const { boardState, ui, dispatchBoard, layout } = ctx
+  const { ui, dispatchBoard, layout } = ctx
 
-  if (!boardState.rootId) {
+  if (!ctx.rootId) {
     return boundary(direction, "no root")
   }
 
-  const currentRoot = ctx.repo.getNode(boardState.rootId)
+  const currentRoot = ctx.repo.getNode(ctx.rootId)
   if (!currentRoot?.parent_id) {
     return boundary(direction, "no parent")
   }
@@ -557,14 +557,14 @@ export function handleNavSiblingBoard(
   // Save current state
   pushNavHistoryEntry(
     ctx.setUI,
-    boardState.rootId,
+    ctx.rootId,
     layout.colIndex,
     layout.cardIndex,
     ui.subIndex,
     ui.multiSelected,
     ui.inOutlineMode,
-    boardState.cursorNodeId,
-    boardState.foldedNodes,
+    ctx.cursorNodeId,
+    ctx.foldedNodes,
   )
 
   // Navigate to sibling

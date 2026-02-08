@@ -16,9 +16,9 @@ export interface TUIBoardState {
   rootId: string | null
   rootPath: string | null // Filesystem path to the board root (for display)
   columns: ColumnState[]
-  selectedCards: Set<string>
+  selectedNodes: Set<string>
   visualMode: boolean
-  foldedCards: Set<string>
+  foldedNodes: Set<string>
   collapsedColumns: Set<number> // Column indices that are collapsed (show count only)
   searchQuery: string
   searchMode: boolean

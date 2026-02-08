@@ -24,7 +24,6 @@ import { createLogger } from "@beorn/logger"
 const _log = createLogger("km:board")
 import type { TUIBoardState, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
-import type { BoardState } from "@km/board"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "@km/storage"
 import { DetailPane } from "./DetailPane.tsx"
@@ -499,7 +498,7 @@ export interface BoardProps {
 /**
  * Board connector component.
  *
- * Reads ui/boardState from Zustand store via useApp() selectors,
+ * Reads ui and board nav fields from Zustand store via useApp() selectors,
  * computes derived layout (useColumns, useCursorPosition),
  * pushes layout back to store, renders BoardCore.
  *
@@ -514,7 +513,15 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Read state from store
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
-  const boardState = useAppStore<BoardAppStore, BoardState>((s) => s.boardState)
+  const rootId = useAppStore<BoardAppStore, string | null>((s) => s.rootId)
+  const rootPath = useAppStore<BoardAppStore, string | null>((s) => s.rootPath)
+  const cursorNodeId = useAppStore<BoardAppStore, string | null>(
+    (s) => s.cursorNodeId,
+  )
+  const foldedNodes = useAppStore<BoardAppStore, Set<string>>(
+    (s) => s.foldedNodes,
+  )
+  const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.moveMode)
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const layoutRegistry = useAppStore<BoardAppStore, LayoutRegistry>(
     (s) => s.layoutRegistry,
@@ -583,8 +590,8 @@ export function Board({ patchedConsole }: BoardProps) {
   const colScrollOffsetRef = useRef(0)
 
   // Derive columns from repo (reactive to repo mutations via useSyncExternalStore)
-  const columns = useColumns(repo, boardState.rootId, boardState.foldedNodes)
-  const cursorPosition = useCursorPosition(columns, boardState.cursorNodeId)
+  const columns = useColumns(repo, rootId, foldedNodes)
+  const cursorPosition = useCursorPosition(columns, cursorNodeId)
 
   const columnsLayout: ColumnsLayout = useMemo(
     () => ({
@@ -601,30 +608,23 @@ export function Board({ patchedConsole }: BoardProps) {
   const derivedSelectionLevel = cursorPosition.selectionLevel
 
   // Assemble TUIBoardState for rendering.
-  // Uses individual fields as deps (not boardState which is a new object every dispatch).
+  // Uses individual fields as deps for stable memoization.
   const emptyStringSet = useMemo(() => new Set<string>(), [])
   const emptyNumberSet = useMemo(() => new Set<number>(), [])
   const tuiBoardState: TUIBoardState = useMemo(
     () => ({
-      rootId: boardState.rootId,
-      rootPath: boardState.rootPath,
+      rootId,
+      rootPath,
       columns: columnsLayout.columns,
-      selectedCards: emptyStringSet,
+      selectedNodes: emptyStringSet,
       visualMode: false,
-      foldedCards: boardState.foldedNodes,
+      foldedNodes,
       collapsedColumns: emptyNumberSet,
       searchQuery: "",
       searchMode: false,
       helpMode: false,
     }),
-    [
-      boardState.rootId,
-      boardState.rootPath,
-      columnsLayout.columns,
-      boardState.foldedNodes,
-      emptyStringSet,
-      emptyNumberSet,
-    ],
+    [rootId, rootPath, columnsLayout.columns, foldedNodes, emptyStringSet, emptyNumberSet],
   )
 
   // Get selected node
@@ -676,8 +676,8 @@ export function Board({ patchedConsole }: BoardProps) {
     state: tuiBoardState,
     setUI,
     dispatchBoard,
-    cursorNodeId: boardState.cursorNodeId,
-    rootId: boardState.rootId,
+    cursorNodeId,
+    rootId,
   })
 
   // Scroll offset
@@ -732,7 +732,7 @@ export function Board({ patchedConsole }: BoardProps) {
       layoutRegistry={layoutRegistry}
       setUI={setUI}
       dialogHandlers={dialogHandlers}
-      moveMode={boardState.moveMode}
+      moveMode={moveMode}
       consoleStats={consoleStats}
       colScrollOffset={colScrollOffset}
       toastQueue={toastQueue}

@@ -219,14 +219,14 @@ export function handleCommandAction(
       return handleToggleFold(ctx)
     case "FOLD_LEVEL":
       if (col) {
-        const newFolded = new Set(ctx.boardState.foldedNodes)
+        const newFolded = new Set(ctx.foldedNodes)
         for (const c of col.cards) newFolded.add(c.node.id)
         ctx.setFoldedNodes(newFolded)
       }
       return ok()
     case "UNFOLD_LEVEL":
       if (col) {
-        const newFolded = new Set(ctx.boardState.foldedNodes)
+        const newFolded = new Set(ctx.foldedNodes)
         for (const c of col.cards) newFolded.delete(c.node.id)
         ctx.setFoldedNodes(newFolded)
       }
@@ -315,7 +315,7 @@ export function handleCommandAction(
     // Commands return minimal actions; TUI augments with context before dispatching
     case "ENTER_MOVE_MODE": {
       // Convert ui.multiSelected (SelectionKey format) to node IDs
-      // TODO: Unify selection systems - boardState.selectedNodes vs ui.multiSelected
+      // TODO: Unify selection systems - ctx.selectedNodes vs ui.multiSelected
       const nodeIds: string[] = []
       if (ctx.ui.multiSelected.size > 0) {
         for (const selKey of ctx.ui.multiSelected) {
@@ -330,10 +330,10 @@ export function handleCommandAction(
         }
       }
       // Fall back to cursor node if no selection
-      if (nodeIds.length === 0 && ctx.boardState.cursorNodeId) {
-        nodeIds.push(ctx.boardState.cursorNodeId)
+      if (nodeIds.length === 0 && ctx.cursorNodeId) {
+        nodeIds.push(ctx.cursorNodeId)
       }
-      const cursorNodeId = ctx.boardState.cursorNodeId
+      const cursorNodeId = ctx.cursorNodeId
       ctx.dispatchBoard({ type: "ENTER_MOVE_MODE", nodeIds, cursorNodeId })
       return ok()
     }
@@ -459,7 +459,7 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
 }
 
 function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
-  const { boardState, ui, dispatchBoard, layout } = ctx
+  const { ui, dispatchBoard, layout } = ctx
 
   const favoriteKey =
     `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES
@@ -473,14 +473,14 @@ function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
   // Save current state
   pushNavHistoryEntry(
     ctx.setUI,
-    boardState.rootId,
+    ctx.rootId,
     layout.colIndex,
     layout.cardIndex,
     ui.subIndex,
     ui.multiSelected,
     ui.inOutlineMode,
-    boardState.cursorNodeId,
-    boardState.foldedNodes,
+    ctx.cursorNodeId,
+    ctx.foldedNodes,
   )
 
   // Navigate to favorite
@@ -517,10 +517,10 @@ function handleJumpToColumn(
 }
 
 function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
-  const { ui, boardState, dispatchBoard } = ctx
+  const { ui, dispatchBoard } = ctx
 
   // Cancel move mode first (highest priority for escape)
-  if (boardState.moveMode) {
+  if (ctx.moveMode) {
     dispatchBoard({ type: "CANCEL_MOVE" })
     return ok()
   }

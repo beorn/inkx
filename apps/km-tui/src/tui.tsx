@@ -15,7 +15,7 @@ import {
 } from "inkx"
 import React from "react"
 import { createLogger, createToastQueue } from "@km/core"
-import { createBoardState } from "@km/board"
+import { createBoardState } from "./board-types.ts"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"

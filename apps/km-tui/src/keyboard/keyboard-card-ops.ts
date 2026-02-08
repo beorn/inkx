@@ -66,7 +66,7 @@ function rebuildSelectionForMovedCards(
 ): void {
   const newSelected = new Set<SelectionKey>()
   const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
-  const allChildren = ctx.repo.getChildren(ctx.boardState.rootId)
+  const allChildren = ctx.repo.getChildren(ctx.rootId)
   const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
   const newCol = columns[colIndex]
   if (newCol) {

@@ -627,8 +627,8 @@ describe("createBoardDriver", () => {
 
     // Store should have captured state from Board (BoardAppStore shape)
     const storeState = driver.store.getState()
-    expect(storeState.boardState.rootId).toBe("board")
-    expect(storeState.boardState.cursorNodeId).toBe("1a")
+    expect(storeState.rootId).toBe("board")
+    expect(storeState.cursorNodeId).toBe("1a")
     expect(storeState.ui.viewMode).toBe("cards")
   })
 
@@ -642,14 +642,14 @@ describe("createBoardDriver", () => {
 
     // Initial state
     let storeState = driver.store.getState()
-    expect(storeState.boardState.cursorNodeId).toBe("1a")
+    expect(storeState.cursorNodeId).toBe("1a")
 
     // Navigate down
     await driver.press("j")
 
     // Store should reflect the new cursor position
     storeState = driver.store.getState()
-    expect(storeState.boardState.cursorNodeId).toBe("1b")
+    expect(storeState.cursorNodeId).toBe("1b")
   })
 
   test("store provides cursor position", () => {
@@ -691,7 +691,7 @@ describe("createBoardDriver", () => {
 
     const cursorIds: (string | null)[] = []
     const unsubscribe = driver.store.subscribe((state) => {
-      cursorIds.push(state.boardState.cursorNodeId)
+      cursorIds.push(state.cursorNodeId)
     })
 
     // Navigate to trigger subscription

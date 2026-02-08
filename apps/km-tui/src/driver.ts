@@ -58,7 +58,7 @@ import {
 } from "@km/commands"
 import { createToastQueue } from "@km/core"
 import type { Repo } from "@km/storage"
-import { createBoardState } from "@km/board"
+import { createBoardState } from "./board-types.ts"
 
 import { Board } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
@@ -118,8 +118,6 @@ export interface TUIDriverState extends AppState {
   layout: import("./types.ts").ColumnsLayout
   /** Raw UI state from store */
   ui: import("./ui-reducer.ts").UIState
-  /** Raw board state from store */
-  boardState: import("@km/board").BoardState
 }
 
 /**
@@ -282,14 +280,14 @@ export function createBoardDriver(
     return {
       currentNode: s.selectedNode as CommandContext["currentNode"],
       currentNodeId: s.selectedNode?.id ?? null,
-      selectedNodes: Array.from(s.boardState.selectedNodes),
+      selectedNodes: Array.from(s.selectedNodes),
       viewMode: s.ui.viewMode,
       siblingIndex: s.layout.cardIndex,
       siblingCount: column?.cards.length ?? 0,
       columnIndex: s.layout.colIndex,
       columnCount: s.layout.columns.length,
-      moveMode: s.boardState.moveMode,
-      foldedNodes: s.boardState.foldedNodes,
+      moveMode: s.moveMode,
+      foldedNodes: s.foldedNodes,
     }
   }
 
@@ -352,11 +350,10 @@ export function createBoardDriver(
         help: s.ui.showHelp,
       },
       detailPaneOpen: s.ui.showDetailPane,
-      moveMode: s.boardState.moveMode,
+      moveMode: s.moveMode,
       scrollOffset: 0,
       layout: s.layout,
       ui: s.ui,
-      boardState: s.boardState,
     }
   }
 

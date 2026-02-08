@@ -7,12 +7,11 @@
  * - driver reads via handle.store.getState()
  *
  * Board nav fields are flat at store root. UI fields are grouped under `ui`.
- * `boardState` is a derived field assembled from flat fields for backward compat.
  */
 
 import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardState, BoardAction, NavHistoryEntry } from "@km/board"
+import type { BoardAction, NavHistoryEntry } from "./board-types.ts"
 import type { TUIBoardState, ColumnsLayout } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
@@ -28,7 +27,6 @@ import type { BlockEditTarget } from "./block-edit-target.ts"
  * Board navigation fields are flat at store root.
  * foldedNodes is the single source of truth (removed from UIState).
  * maxOutlineDepth/maxContentLines live in ui only.
- * boardState is a derived field assembled from flat fields + ui for backward compat.
  */
 export interface BoardAppState {
   // --- Board navigation (flat — source of truth) ---
@@ -45,9 +43,6 @@ export interface BoardAppState {
   moveSourceCursorNodeId: string | null
   curswantX: number | null
   curswantY: number | null
-
-  // --- Board navigation (derived — backward compat) ---
-  boardState: BoardState
 
   // --- UI state ---
   ui: UIState
@@ -107,71 +102,6 @@ export type BoardAppStore = BoardAppState &
 // Helpers
 // =============================================================================
 
-/**
- * Assemble a BoardState object from flat store fields + ui.
- * Used to keep boardState in sync for backward compatibility.
- * maxOutlineDepth/maxContentLines come from ui (their canonical location).
- *
- * Returns the SAME object reference when no fields changed (shallow compare),
- * so useApp(s => s.boardState) + Object.is check skips re-renders.
- */
-function assembleBoardState(
-  s: BoardAppState,
-  prev: BoardState | null,
-): BoardState {
-  // Shallow compare: if all fields match the previous boardState, return it
-  if (
-    prev &&
-    prev.rootId === s.rootId &&
-    prev.rootPath === s.rootPath &&
-    prev.cursorNodeId === s.cursorNodeId &&
-    prev.selectedNodes === s.selectedNodes &&
-    prev.foldedNodes === s.foldedNodes &&
-    prev.collapsedNodes === s.collapsedNodes &&
-    prev.navHistory === s.navHistory &&
-    prev.navHistoryIndex === s.navHistoryIndex &&
-    prev.moveMode === s.moveMode &&
-    prev.moveSourceNodes === s.moveSourceNodes &&
-    prev.moveSourceCursorNodeId === s.moveSourceCursorNodeId &&
-    prev.maxOutlineDepth === s.ui.maxOutlineDepth &&
-    prev.maxContentLines === s.ui.maxContentLines &&
-    prev.curswantX === s.curswantX &&
-    prev.curswantY === s.curswantY
-  ) {
-    return prev
-  }
-  return {
-    rootId: s.rootId,
-    rootPath: s.rootPath,
-    cursorNodeId: s.cursorNodeId,
-    selectedNodes: s.selectedNodes,
-    foldedNodes: s.foldedNodes,
-    collapsedNodes: s.collapsedNodes,
-    navHistory: s.navHistory,
-    navHistoryIndex: s.navHistoryIndex,
-    moveMode: s.moveMode,
-    moveSourceNodes: s.moveSourceNodes,
-    moveSourceCursorNodeId: s.moveSourceCursorNodeId,
-    maxOutlineDepth: s.ui.maxOutlineDepth,
-    maxContentLines: s.ui.maxContentLines,
-    curswantX: s.curswantX,
-    curswantY: s.curswantY,
-  }
-}
-
-/**
- * Apply a flat field update and re-derive boardState.
- */
-function withBoardState(
-  state: BoardAppState,
-  flatUpdate: Partial<BoardAppState>,
-): Partial<BoardAppStore> {
-  const merged = { ...state, ...flatUpdate } as BoardAppState
-  return {
-    ...flatUpdate,
-    boardState: assembleBoardState(merged, state.boardState),
-  }
-}
 
 // =============================================================================
 // Store Factory
@@ -221,28 +151,6 @@ export function createBoardAppStoreState(
     moveSourceCursorNodeId: bs.moveSourceCursorNodeId,
     curswantX: bs.curswantX,
     curswantY: bs.curswantY,
-
-    // Board navigation (derived — backward compat)
-    boardState: assembleBoardState(
-      {
-        ...({} as BoardAppState),
-        rootId: bs.rootId,
-        rootPath: bs.rootPath,
-        cursorNodeId: bs.cursorNodeId,
-        selectedNodes: bs.selectedNodes,
-        foldedNodes: bs.foldedNodes,
-        collapsedNodes: bs.collapsedNodes,
-        navHistory: bs.navHistory,
-        navHistoryIndex: bs.navHistoryIndex,
-        moveMode: bs.moveMode,
-        moveSourceNodes: bs.moveSourceNodes,
-        moveSourceCursorNodeId: bs.moveSourceCursorNodeId,
-        curswantX: bs.curswantX,
-        curswantY: bs.curswantY,
-        ui: params.initialUIState,
-      },
-      null,
-    ),
 
     // UI state
     ui: params.initialUIState,
@@ -422,7 +330,7 @@ export function createBoardAppStoreState(
           }
         }
 
-        return withBoardState(state, flatUpdate)
+        return flatUpdate
       })
     },
 
@@ -437,7 +345,7 @@ export function createBoardAppStoreState(
     },
 
     setFoldedNodes(nodes: Set<string>) {
-      set((state) => withBoardState(state, { foldedNodes: nodes }))
+      set({ foldedNodes: nodes })
     },
 
     setTextEditTarget(target: BlockEditTarget | null) {

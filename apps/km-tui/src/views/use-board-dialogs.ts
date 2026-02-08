@@ -6,7 +6,7 @@
  */
 import { useCallback } from "react"
 import type { KNode } from "@km/core"
-import type { BoardAction } from "@km/board"
+import type { BoardAction } from "../board-types.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { TUIBoardState } from "../types.ts"
 import type { UIState } from "../ui-reducer.ts"

@@ -105,8 +105,8 @@ export function renderBoard(
       }
 
       const isCurrentCard = ci === colIndex && row === cardIndex
-      const isSelected = state.selectedCards.has(card.node.id)
-      const isFolded = state.foldedCards.has(card.node.id)
+      const isSelected = state.selectedNodes.has(card.node.id)
+      const isFolded = state.foldedNodes.has(card.node.id)
 
       return renderCard(
         repo,
@@ -237,8 +237,8 @@ export function renderStatusBar(state: TUIBoardState, width: number): string {
     parts.push(style.bgYellow.black(" VISUAL "))
   }
 
-  if (state.selectedCards.size > 0) {
-    parts.push(style.yellow(`${state.selectedCards.size} selected`))
+  if (state.selectedNodes.size > 0) {
+    parts.push(style.yellow(`${state.selectedNodes.size} selected`))
   }
 
   const left = parts.join(" ")
