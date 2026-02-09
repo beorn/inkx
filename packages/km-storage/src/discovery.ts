@@ -31,6 +31,7 @@ import type {
   LoadError,
 } from "./repo-loader.ts"
 import { generatePathBasedId } from "./id-utils.ts"
+import { toRelativeFsPath } from "./path-utils.ts"
 
 // ============================================================================
 // TYPES
@@ -150,7 +151,7 @@ export function* discoverFiles(
             folderId,
             parentId,
             order++,
-            fullPath,
+            toRelativeFsPath(repoRoot, fullPath),
             entry.name,
             now,
           ),
@@ -168,7 +169,7 @@ export function* discoverFiles(
             fileId,
             parentId,
             order++,
-            fullPath,
+            toRelativeFsPath(repoRoot, fullPath),
             entry.name,
             now,
           ),
@@ -196,7 +197,7 @@ export function* discoverFiles(
     const name = entryName.replace(/\.md$/i, "")
 
     events.push(
-      createStubFileEvent(fileId, parentId, order, fullPath, name, now),
+      createStubFileEvent(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), name, now),
     )
     deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
 
@@ -222,6 +223,7 @@ export function* discoverFiles(
       if (fileNode?.type === "file") {
         fileNode.parent_id = parentId
         fileNode.parent_idx = order
+        fileNode.fs_path = toRelativeFsPath(repoRoot, fullPath)
       }
 
       // Convert nodes to events

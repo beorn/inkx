@@ -7,7 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { mkdirSync, rmSync, writeFileSync, statSync, utimesSync } from "fs"
-import { join } from "path"
+import { join, relative } from "path"
 import type { Database } from "bun:sqlite"
 import {
   reconcileDirectory,
@@ -54,13 +54,37 @@ async function syncDir(
   await applyReconcileOps(db, ops, repoDir, emitter)
 }
 
-/** Assert node exists at path with expected type */
+/**
+ * Module-level repoDir set by withTestEnvRel wrapper.
+ * Used by assertNodeExists/assertNodeNotExists to convert absolute paths to
+ * relative (DB stores relative fs_path).
+ */
+let _repoDir = ""
+
+/** Wrap withTestEnv to set _repoDir for path helpers */
+function withTestEnvRel<T>(
+  fn: (env: { db: Database; repoDir: string; emitter: Emitter }) => T,
+): Promise<T> {
+  return withTestEnv((env) => {
+    _repoDir = env.repoDir
+    return fn(env)
+  }) as Promise<T>
+}
+
+/** Convert absolute path to relative for DB queries (DB stores relative fs_path) */
+function toRel(absPath: string): string {
+  if (!absPath.startsWith("/")) return absPath
+  return relative(_repoDir, absPath) || "."
+}
+
+/** Assert node exists at path with expected type.
+ * Absolute paths are converted to relative (DB stores relative fs_path). */
 function assertNodeExists(
   db: Database,
   path: string,
   expectedType?: string,
 ): NonNullable<ReturnType<typeof getNodeByPath>> {
-  const node = getNodeByPath(db, path)
+  const node = getNodeByPath(db, toRel(path))
   expect(node).not.toBeNull()
   if (expectedType) expect(node!.type).toBe(expectedType)
   return node!
@@ -68,7 +92,7 @@ function assertNodeExists(
 
 /** Assert node does not exist at path */
 function assertNodeNotExists(db: Database, path: string): void {
-  expect(getNodeByPath(db, path)).toBeNull()
+  expect(getNodeByPath(db, toRel(path))).toBeNull()
 }
 
 /** Get children of a specific type */
@@ -120,7 +144,7 @@ describe("reconcile.ts", () => {
         setup: (dir: string) => createFolder(dir, "subfolder"),
       },
     ])("detects new $name", ({ setup }) =>
-      withTestEnv(({ db, repoDir }) => {
+      withTestEnvRel(({ db, repoDir }) => {
         const path = setup(repoDir)
         const ops = reconcileDirectory(db, repoDir, repoDir)
 
@@ -131,7 +155,7 @@ describe("reconcile.ts", () => {
     )
 
     test("detects multiple new items", () =>
-      withTestEnv(({ db, repoDir }) => {
+      withTestEnvRel(({ db, repoDir }) => {
         createMdFile(repoDir, "file1.md", "# File 1")
         createMdFile(repoDir, "file2.md", "# File 2")
         createFolder(repoDir, "folder1")
@@ -143,7 +167,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("detects deleted files", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const filePath = createMdFile(repoDir, "delete-me.md", "# Delete Me")
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -153,7 +177,7 @@ describe("reconcile.ts", () => {
         const deleteOps = reconcileDirectory(db, repoDir, repoDir)
         expect(deleteOps.length).toBe(1)
         expect(deleteOps[0]!.type).toBe("delete")
-        expect(deleteOps[0]!.path).toBe(filePath)
+        expect(deleteOps[0]!.path).toBe(toRel(filePath))
         expect(deleteOps[0]!.nodeId).toBe(node.id)
       }))
 
@@ -165,7 +189,7 @@ describe("reconcile.ts", () => {
         desc: "past mtime",
       },
     ])("detects modified files by mtime ($scenario)", ({ offsetMs }) =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const filePath = createMdFile(repoDir, "modify-me.md", "# Original")
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -184,7 +208,7 @@ describe("reconcile.ts", () => {
     )
 
     test("detects renamed files by inode", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const oldPath = createMdFile(repoDir, "old-name.md", "# Content")
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -199,13 +223,13 @@ describe("reconcile.ts", () => {
         const renameOps = reconcileDirectory(db, repoDir, repoDir)
         const renameOp = renameOps.find((op) => op.type === "rename")
         expect(renameOp).toBeDefined()
-        expect(renameOp!.oldPath).toBe(oldPath)
+        expect(renameOp!.oldPath).toBe(toRel(oldPath))
         expect(renameOp!.path).toBe(newPath)
         expect(renameOp!.nodeId).toBe(node.id)
       }))
 
     test("returns empty array when nothing changed", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         createMdFile(repoDir, "stable.md", "# Stable")
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -214,7 +238,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("ignores non-markdown files", () =>
-      withTestEnv(({ db, repoDir }) => {
+      withTestEnvRel(({ db, repoDir }) => {
         writeFileSync(join(repoDir, "image.png"), "fake image data")
         createMdFile(repoDir, "test.md", "# Real markdown")
 
@@ -245,7 +269,7 @@ describe("reconcile.ts", () => {
         checkChildren: false,
       },
     ])("creates $name", ({ setup, expectedType, checkChildren }) =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const path = setup(repoDir)
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -259,7 +283,7 @@ describe("reconcile.ts", () => {
     )
 
     test("deletes node on delete op", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const filePath = createMdFile(repoDir, "to-delete.md", "# To Delete")
         await syncDir(db, repoDir, repoDir, emitter)
         assertNodeExists(db, filePath)
@@ -271,7 +295,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("handles rename operations and updates database", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const oldPath = createMdFile(repoDir, "rename-old.md", "# Rename Me")
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -286,20 +310,20 @@ describe("reconcile.ts", () => {
         expect(renameOp).toBeDefined()
         expect(renameOp!.nodeId).toBe(originalId)
         expect(renameOp!.path).toBe(newPath)
-        expect(renameOp!.oldPath).toBe(oldPath)
+        expect(renameOp!.oldPath).toBe(toRel(oldPath))
 
         await syncDir(db, repoDir, repoDir, emitter)
 
         // Node should now have new path, same ID preserved
         const renamedNode = assertNodeExists(db, newPath)
         expect(renamedNode.id).toBe(originalId)
-        expect(renamedNode.fs_path).toBe(newPath)
+        expect(renamedNode.fs_path).toBe(toRel(newPath))
 
         assertNodeNotExists(db, oldPath)
       }))
 
     test("rename preserves children fs_path for folders", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const oldFolder = createFolder(repoDir, "old-folder")
         const filePath = join(oldFolder, "child.md")
         writeFileSync(filePath, "# Child File")
@@ -326,7 +350,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("creates folder hierarchy for nested files", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const nestedDir = createFolder(repoDir, "level1/level2")
         const filePath = createMdFile(nestedDir, "nested.md", "# Nested File")
 
@@ -344,7 +368,7 @@ describe("reconcile.ts", () => {
 
   describe("update preserves nested nodes", () => {
     test("file update does not duplicate or delete nested tasks", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const filePath = createMdFile(repoDir, "nested-tasks.md", BOARD_CONTENT)
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -381,7 +405,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("file update with content change correctly diffs nodes", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const filePath = createMdFile(
           repoDir,
           "diff-test.md",
@@ -424,7 +448,7 @@ describe("reconcile.ts", () => {
 
   describe("TUI refresh scenario", () => {
     test("folder children remain visible after file touch in subfolder", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const issueFolder = createFolder(repoDir, "issue")
         const task1Path = createMdFile(
           issueFolder,
@@ -460,7 +484,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("nested tasks remain visible after parent file touch", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const issueFolder = createFolder(repoDir, "issue")
         const taskPath = createMdFile(issueFolder, "project.md", BOARD_CONTENT)
 
@@ -498,7 +522,7 @@ describe("reconcile.ts", () => {
 
   describe("path-based IDs prevent duplicates", () => {
     test("folder created by watch handler has same ID as discovery would create", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const folderPath = createFolder(repoDir, "test-folder")
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -508,7 +532,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("nested folder IDs are path-based", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const level1 = createFolder(repoDir, "level1")
         const level2 = createFolder(level1, "level2")
 
@@ -520,7 +544,7 @@ describe("reconcile.ts", () => {
       }))
 
     test("re-applying same folder does not create duplicate", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const folderPath = createFolder(repoDir, "no-dup-folder")
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -544,7 +568,7 @@ describe("reconcile.ts", () => {
           data: {
             id: folderId,
             type: "folder",
-            fs_path: folderPath,
+            fs_path: toRel(folderPath),
             name: "no-dup-folder",
           },
         })
@@ -555,22 +579,22 @@ describe("reconcile.ts", () => {
 
   describe("getParentNodeId", () => {
     test("returns null for repo root files", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const filePath = createMdFile(repoDir, "root-file.md", "# Root")
         await syncDir(db, repoDir, repoDir, emitter)
 
-        expect(getParentNodeId(db, filePath)).toBeNull()
+        expect(getParentNodeId(db, toRel(filePath))).toBeNull()
       }))
 
     test("returns folder node ID for nested files", () =>
-      withTestEnv(async ({ db, repoDir, emitter }) => {
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const folderPath = createFolder(repoDir, "parent-folder")
         await syncDir(db, repoDir, repoDir, emitter)
 
         const folderNode = assertNodeExists(db, folderPath)
         const filePath = createMdFile(folderPath, "child.md", "# Child")
 
-        expect(getParentNodeId(db, filePath)).toBe(folderNode.id)
+        expect(getParentNodeId(db, toRel(filePath))).toBe(folderNode.id)
       }))
   })
 })

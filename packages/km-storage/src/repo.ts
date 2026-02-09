@@ -93,11 +93,12 @@ interface RepoMethodDeps {
   dataStore: DataStore
   hooks?: RepoHooks
   childrenCache: ChildrenCache
+  rootPath: string
 }
 
 /** Create query methods shared by createRepo and createBareRepo */
 function createQueryMethods(deps: RepoMethodDeps) {
-  const { db, dataStore, childrenCache } = deps
+  const { db, dataStore, childrenCache, rootPath } = deps
   return {
     getNode(id: string) {
       return dataStore.getNode(id)
@@ -141,7 +142,10 @@ function createQueryMethods(deps: RepoMethodDeps) {
       queryStr: string,
       typeOrOptions?: string | { type?: string; taskOnly?: boolean },
     ) {
-      return dbResolveNode(db, queryStr, typeOrOptions)
+      const baseOpts = typeof typeOrOptions === "string"
+        ? { type: typeOrOptions }
+        : (typeOrOptions ?? {})
+      return dbResolveNode(db, queryStr, { ...baseOpts, repoRoot: rootPath })
     },
     getRepoRootNode() {
       const row = db
@@ -684,6 +688,25 @@ export class IncompleteDatabase extends Error {
 }
 
 /**
+ * Detect absolute fs_path values in the database.
+ * These indicate a pre-migration database that must be rebuilt.
+ *
+ * Returns a descriptive string if absolute paths found, or null if OK.
+ */
+function detectAbsolutePaths(db: Database): string | null {
+  const row = db
+    .prepare(
+      "SELECT COUNT(*) as cnt FROM nodes WHERE fs_path LIKE '/%'",
+    )
+    .get() as { cnt: number }
+  if (row.cnt === 0) return null
+  return (
+    `database contains ${row.cnt} node(s) with absolute fs_path values. ` +
+    `Since v0.x, fs_path must be relative to the repo root`
+  )
+}
+
+/**
  * Check if a disk-mode database is incomplete/stale.
  *
  * Returns a descriptive string if incomplete, or null if OK.
@@ -814,10 +837,16 @@ function* initWithFileLoading(
   }
   const deferredFiles = loadResult.deferredFiles ?? []
 
-  // Health check: detect incomplete .km database
-  // This happens when km init/sync is interrupted, leaving .km with stale/partial data.
-  // Detect by checking if root has structural children matching the filesystem.
+  // Health checks for disk mode
   if (mode === "disk") {
+    // Detect absolute fs_path values (pre-migration database)
+    const hasAbsolute = detectAbsolutePaths(db)
+    if (hasAbsolute) {
+      db.close()
+      throw new IncompleteDatabase(hasAbsolute, kmDir)
+    }
+
+    // Detect incomplete .km database (interrupted init/sync)
     const isIncomplete = isDatabaseIncomplete(db, rootPath, kmDir)
     if (isIncomplete) {
       db.close()
@@ -990,7 +1019,7 @@ export function* createRepo(
 
   // Create shared methods using factories
   const childrenCache = createChildrenCache(dataStore)
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache }
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache, rootPath }
   const queryMethods = createQueryMethods(methodDeps)
   // Version holder — shared between mutation methods and the repo object.
   // Getter/setter needed: mutation methods are created before `repo` exists,
@@ -1180,7 +1209,7 @@ export function createBareRepo(
 
   // Create shared methods using factories
   const childrenCache = createChildrenCache(dataStore)
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache }
+  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache, rootPath: repoPath }
   const queryMethods = createQueryMethods(methodDeps)
   // See comment in createRepo for why getter/setter is needed here
   const listeners = new Set<() => void>()

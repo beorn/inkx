@@ -8,9 +8,14 @@
 
 import { describe, test, expect } from "vitest"
 import { mkdirSync, existsSync, writeFileSync, readFileSync } from "fs"
-import { join } from "path"
+import { join, relative } from "path"
 
 import { getNodeByPath, getAllNodes, getAncestors } from "@km/storage"
+
+/** Convert absolute path to relative (matching DB storage format) */
+function toRel(repoDir: string, absPath: string): string {
+  return relative(repoDir, absPath)
+}
 
 interface ParsedEvent {
   type: string
@@ -51,10 +56,10 @@ This is a paragraph.
         const allNodes = getAllNodes(db)
         expect(allNodes.length).toBeGreaterThan(0)
 
-        const fileNode = getNodeByPath(db, testFile)
+        const fileNode = getNodeByPath(db, toRel(repoDir, testFile))
         expect(fileNode).not.toBeNull()
         expect(fileNode!.type).toBe("file")
-        expect(fileNode!.fs_path).toBe(testFile)
+        expect(fileNode!.fs_path).toBe(toRel(repoDir, testFile))
 
         const tasks = allNodes.filter((n) => n.type === "task")
         expect(tasks.length).toBe(2)
@@ -88,7 +93,7 @@ This is a paragraph.
         const fileNodes = allNodes.filter((n) => n.type === "file")
         expect(fileNodes.length).toBeGreaterThan(0)
 
-        const fileNode = fileNodes.find((n) => n.fs_path === testFile)
+        const fileNode = fileNodes.find((n) => n.fs_path === toRel(repoDir, testFile))
         expect(fileNode).toBeDefined()
       }))
 
@@ -119,7 +124,7 @@ Some content here.
 
         await manager.syncFromFs()
 
-        const fileNode = getNodeByPath(db, testFile)
+        const fileNode = getNodeByPath(db, toRel(repoDir, testFile))
         expect(fileNode).not.toBeNull()
         expect(fileNode!.type).toBe("file")
         expect(fileNode!.data).toBeDefined()
@@ -341,8 +346,8 @@ code
         const folderNodes = allNodes.filter((n) => n.type === "folder")
         expect(folderNodes.length).toBeGreaterThanOrEqual(2)
 
-        const projectsFolder = getNodeByPath(db, subFolder)
-        const activeFolder = getNodeByPath(db, deepFolder)
+        const projectsFolder = getNodeByPath(db, toRel(repoDir, subFolder))
+        const activeFolder = getNodeByPath(db, toRel(repoDir, deepFolder))
 
         expect(projectsFolder).not.toBeNull()
         expect(projectsFolder!.type).toBe("folder")
@@ -369,8 +374,8 @@ code
 
         await manager.syncFromFs()
 
-        const fileNode = getNodeByPath(db, testFile)
-        const folderNode = getNodeByPath(db, subFolder)
+        const fileNode = getNodeByPath(db, toRel(repoDir, testFile))
+        const folderNode = getNodeByPath(db, toRel(repoDir, subFolder))
 
         expect(fileNode).not.toBeNull()
         expect(folderNode).not.toBeNull()
@@ -398,10 +403,10 @@ code
 
         await manager.syncFromFs()
 
-        const folder1 = getNodeByPath(db, level1)
-        const folder2 = getNodeByPath(db, level2)
-        const folder3 = getNodeByPath(db, level3)
-        const file = getNodeByPath(db, testFile)
+        const folder1 = getNodeByPath(db, toRel(repoDir, level1))
+        const folder2 = getNodeByPath(db, toRel(repoDir, level2))
+        const folder3 = getNodeByPath(db, toRel(repoDir, level3))
+        const file = getNodeByPath(db, toRel(repoDir, testFile))
 
         expect(folder1).not.toBeNull()
         expect(folder2).not.toBeNull()
@@ -450,11 +455,11 @@ code
 
         const folderAncestor = ancestors.find((a) => a.type === "folder")
         expect(folderAncestor).toBeDefined()
-        expect(folderAncestor!.fs_path).toBe(subFolder)
+        expect(folderAncestor!.fs_path).toBe(toRel(repoDir, subFolder))
 
         const fileAncestor = ancestors.find((a) => a.type === "file")
         expect(fileAncestor).toBeDefined()
-        expect(fileAncestor!.fs_path).toBe(testFile)
+        expect(fileAncestor!.fs_path).toBe(toRel(repoDir, testFile))
 
         const sectionAncestors = ancestors.filter((a) => a.type === "section")
         expect(sectionAncestors.length).toBeGreaterThanOrEqual(1)
@@ -481,13 +486,14 @@ code
 
         const allNodes = getAllNodes(db)
 
+        const relSubFolder = toRel(repoDir, subFolder)
         const folderNodes = allNodes.filter(
-          (n) => n.type === "folder" && n.fs_path === subFolder,
+          (n) => n.type === "folder" && n.fs_path === relSubFolder,
         )
         expect(folderNodes.length).toBe(1)
 
         const fileNodes = allNodes.filter(
-          (n) => n.type === "file" && n.fs_path?.startsWith(subFolder),
+          (n) => n.type === "file" && n.fs_path?.startsWith(relSubFolder),
         )
         expect(fileNodes.length).toBe(3)
 

@@ -208,6 +208,8 @@ export {
   resolveFsPath,
   getEffectiveRoot,
   resolvePathArg,
+  toRelativeFsPath,
+  toAbsoluteFsPath,
 } from "./path-utils.ts"
 
 export type { PathResolution, ResolvedPathArg } from "./path-utils.ts"

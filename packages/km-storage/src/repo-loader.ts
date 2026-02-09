@@ -20,7 +20,8 @@ declare function setImmediate(callback: (value?: unknown) => void): unknown
 import { createLogger } from "@beorn/logger"
 import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, statSync } from "fs"
-import { join, dirname, basename } from "path"
+import { join, dirname, basename, isAbsolute } from "path"
+import { toRelativeFsPath } from "./path-utils.ts"
 import type { Event, KNode } from "@km/core"
 import { createParsePool } from "./parse-pool.ts"
 import { runDeferredPipeline } from "./pipeline.ts"
@@ -213,7 +214,7 @@ export function* loadRepo(
         )
 
   // 4. Shared pipeline
-  yield* applyEvents(db, source.events, errors)
+  yield* applyEvents(db, source.events, errors, repoRoot)
 
   // 5. Resolve links and evaluate rules
   let linkCount = 0
@@ -386,7 +387,7 @@ export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
         "folder",
         null,
         0,
-        repoRoot,
+        ".", // Relative path — repo root is "."
         basename(repoRoot),
         JSON.stringify({ name: basename(repoRoot), is_repo_root: true }),
         now,
@@ -633,6 +634,7 @@ function* applyEvents(
   db: Database,
   events: Event[],
   errors: LoadError[],
+  repoRoot: string,
 ): Generator<StepYield, void, unknown> {
   yield "Applying changes"
 
@@ -647,6 +649,11 @@ function* applyEvents(
       try {
         if (event.type === "node_created") {
           const data = event.data as Record<string, unknown>
+          // Normalize fs_path: old events may have absolute paths
+          const rawFsPath = (data.fs_path as string) ?? null
+          const fsPath = rawFsPath && isAbsolute(rawFsPath)
+            ? toRelativeFsPath(repoRoot, rawFsPath)
+            : rawFsPath
           // INSERT OR IGNORE: in disk mode, state.db may already have nodes
           // from km sync that events.jsonl also references (last_event cursor
           // may not cover all events). Matches applyEventWithDb behavior.
@@ -657,7 +664,7 @@ function* applyEvents(
             (data.link_to as string) ?? null,
             (data.link_alias as string) ?? null,
             (data.parent_idx as number) ?? 0,
-            (data.fs_path as string) ?? null,
+            fsPath,
             (data.fs_ino as number) ?? null,
             (data.fs_mtime as number) ?? null,
             (data.name as string) ?? null,

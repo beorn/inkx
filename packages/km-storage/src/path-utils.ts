@@ -6,7 +6,7 @@
  */
 
 import { existsSync, statSync, realpathSync } from "fs"
-import { resolve, dirname, join, basename } from "path"
+import { resolve, dirname, join, basename, relative, isAbsolute } from "path"
 
 export interface PathResolution {
   /** Resolved absolute path */
@@ -239,4 +239,47 @@ export function resolvePathArg(
     nodeRef: arg,
     wasExplicitPath: false,
   }
+}
+
+// ============================================================================
+// RELATIVE PATH UTILITIES
+// ============================================================================
+
+/**
+ * Convert an absolute filesystem path to a repo-relative path.
+ * Returns "." for the repoRoot itself.
+ *
+ * @example
+ * toRelativeFsPath("/repo", "/repo/inbox.md") // => "inbox.md"
+ * toRelativeFsPath("/repo", "/repo/sub/file.md") // => "sub/file.md"
+ * toRelativeFsPath("/repo", "/repo") // => "."
+ */
+export function toRelativeFsPath(
+  repoRoot: string,
+  absolutePath: string,
+): string {
+  if (absolutePath === repoRoot) return "."
+  const rel = relative(repoRoot, absolutePath)
+  // Sanity: if relative() returns something starting with "..", the path
+  // is outside the repo — return as-is (caller error, but don't corrupt).
+  if (rel.startsWith("..")) return absolutePath
+  return rel
+}
+
+/**
+ * Resolve a repo-relative fs_path to an absolute path.
+ * Handles "." (repoRoot) and already-absolute paths gracefully.
+ *
+ * @example
+ * toAbsoluteFsPath("/repo", "inbox.md") // => "/repo/inbox.md"
+ * toAbsoluteFsPath("/repo", ".") // => "/repo"
+ * toAbsoluteFsPath("/repo", "/already/absolute") // => "/already/absolute"
+ */
+export function toAbsoluteFsPath(
+  repoRoot: string,
+  relativePath: string,
+): string {
+  if (relativePath === ".") return repoRoot
+  if (isAbsolute(relativePath)) return relativePath
+  return join(repoRoot, relativePath)
 }

@@ -10,6 +10,7 @@ import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:sync")
 import { dirname, join } from "path"
+import { toAbsoluteFsPath } from "../path-utils.ts"
 import { EventEmitter } from "events"
 import {
   FileSystemWatcher,
@@ -444,6 +445,8 @@ export class SyncManager extends EventEmitter {
     const fileNode = findFileNode(this.db, node)
     if (!fileNode?.fs_path) return
 
+    const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
+
     // Check if file has been modified externally (mtime differs from DB)
     // If so, reconcile first to avoid losing external changes
     this.reconcileIfChanged(fileNode)
@@ -453,7 +456,7 @@ export class SyncManager extends EventEmitter {
     const content = nodesToMarkdown(allNodes)
 
     this.writeQueue.queue({
-      path: fileNode.fs_path,
+      path: absPath,
       content,
       sourceEventId: event.id,
     })
@@ -464,19 +467,21 @@ export class SyncManager extends EventEmitter {
    * This prevents data loss when DB changes race with FS changes.
    */
   private reconcileIfChanged(fileNode: KNode): void {
-    if (!fileNode.fs_path || !existsSync(fileNode.fs_path)) return
+    if (!fileNode.fs_path) return
+    const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
+    if (!existsSync(absPath)) return
 
     try {
-      const stat = statSync(fileNode.fs_path)
+      const stat = statSync(absPath)
       const dbMtime = fileNode.fs_mtime
 
       if (dbMtime !== undefined && stat.mtimeMs !== dbMtime) {
         log.debug?.(
-          `reconcile-before-write: file changed externally, reconciling path=${fileNode.fs_path} dbMtime=${dbMtime} fsMtime=${stat.mtimeMs}`,
+          `reconcile-before-write: file changed externally, reconciling path=${absPath} dbMtime=${dbMtime} fsMtime=${stat.mtimeMs}`,
         )
 
         // Reconcile this directory to bring FS changes into DB
-        const dir = dirname(fileNode.fs_path)
+        const dir = dirname(absPath)
         const ops = reconcileDirectory(
           this.db,
           dir,
@@ -503,16 +508,18 @@ export class SyncManager extends EventEmitter {
     const data = event.data as Partial<KNode>
 
     if (data.type === "folder" && data.fs_path) {
-      // Create directory
+      // Create directory — resolve relative path for FS operation
+      const absPath = toAbsoluteFsPath(this.config.repoPath, data.fs_path)
       try {
-        mkdirSync(data.fs_path, { recursive: true })
+        mkdirSync(absPath, { recursive: true })
       } catch {
         // Ignore errors
       }
     } else if (data.type === "file" && data.fs_path) {
-      // Create file
+      // Create file — resolve relative path for FS operation
+      const absPath = toAbsoluteFsPath(this.config.repoPath, data.fs_path)
       this.writeQueue.queue({
-        path: data.fs_path,
+        path: absPath,
         content: "",
         sourceEventId: event.id,
       })
@@ -529,7 +536,8 @@ export class SyncManager extends EventEmitter {
     const node = getNode(this.db, event.target)
 
     if (node?.fs_path && (node.type === "file" || node.type === "folder")) {
-      this.writeQueue.queueDelete(node.fs_path, event.id)
+      const absPath = toAbsoluteFsPath(this.config.repoPath, node.fs_path)
+      this.writeQueue.queueDelete(absPath, event.id)
     }
   }
 
@@ -552,11 +560,12 @@ export class SyncManager extends EventEmitter {
       // Check if file has been modified externally and reconcile if needed
       this.reconcileIfChanged(fileNode)
 
+      const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
       const allNodes = getSubtree(this.db, fileNode.id)
       const content = nodesToMarkdown(allNodes)
 
       this.writeQueue.queue({
-        path: fileNode.fs_path,
+        path: absPath,
         content,
         sourceEventId: event.id,
       })
@@ -712,14 +721,16 @@ export class SyncManager extends EventEmitter {
         }
 
         // Find the file node and regenerate its content
+        // pendingWriteBack stores relative paths (as in DB)
         const fileNode = getAllNodes(this.db).find(
           (n) => n.fs_path === filePath,
         )
         if (fileNode) {
+          const absPath = toAbsoluteFsPath(this.config.repoPath, filePath)
           const subtree = getSubtree(this.db, fileNode.id)
           const content = nodesToMarkdown(subtree)
           this.writeQueue.queue({
-            path: filePath,
+            path: absPath,
             content,
             sourceEventId: "rule-evaluation",
           })
@@ -756,11 +767,12 @@ export class SyncManager extends EventEmitter {
 
     for (const fileNode of fileNodes) {
       if (!fileNode.fs_path) continue
+      const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
       const subtree = getSubtree(this.db, fileNode.id)
       const content = nodesToMarkdown(subtree)
 
       this.writeQueue.queue({
-        path: fileNode.fs_path,
+        path: absPath,
         content,
         sourceEventId: "sync-to-fs",
       })
