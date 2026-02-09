@@ -178,6 +178,24 @@ Not all high-complexity functions need extraction. Suppress with `oxlint-disable
 
 **Threshold guidance**: >50 always refactor. 40-50 try to extract phases. 30-40 usually suppress. <30 skip.
 
+## Fail Loudly (No Silent Fallbacks)
+
+**Programming errors must throw, never return defaults.** If a code path should be unreachable, don't paper over it with a fallback — throw an exception so the bug is found immediately.
+
+| Bad (silent fallback) | Good (fail loudly) |
+|-----------------------|--------------------|
+| `return node?.fs_path ?? ""` | `if (!node?.fs_path) throw new Error(\`node ${id} missing fs_path\`)` |
+| `const root = config.root \|\| process.cwd()` | `if (!config.root) throw new Error("config.root required")` |
+| `return defaultValue` when value should exist | `throw new Error("expected X but got undefined")` |
+| `if (!x) return` (silently bail) | `if (!x) throw new Error("x required")` |
+
+**When fallbacks ARE appropriate:**
+- User input validation (show error message, not crash)
+- Optional configuration with documented defaults
+- Graceful degradation for external systems (network, filesystem)
+
+**Rule of thumb**: If the fallback masks a bug that would be better caught during development, throw instead. Silent fallbacks turn immediate crashes into mysterious downstream failures.
+
 ## Anti-Patterns (Do NOT)
 
 - **Add lines to reduce complexity scores** - if refactoring adds 50+ lines, stop
