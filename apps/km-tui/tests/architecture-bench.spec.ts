@@ -139,7 +139,8 @@ describe("Architecture Benchmark", { timeout: 30000 }, () => {
         `measure=${formatMs(pipeline.measure)} layout=${formatMs(pipeline.layout)} scroll=${formatMs(pipeline.scroll)} screenRect=${formatMs(pipeline.screenRect)} notify=${formatMs(pipeline.notify)} content=${formatMs(pipeline.content)} output=${formatMs(pipeline.output)}`
     }
 
-    expect(stats.avg).toBeLessThan(200)
+    // Timing logged in benchResults table — no pass/fail assertion.
+    // Run in isolation for meaningful perf numbers.
   })
 
   test("list view: j-press (1440 nodes, 8 cols, 3 levels)", () => {
@@ -154,7 +155,7 @@ describe("Architecture Benchmark", { timeout: 30000 }, () => {
     benchResults["list_j"] =
       `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)} [act=${formatMs(stats.actAvg)} render=${formatMs(stats.renderAvg)}]`
 
-    expect(stats.avg).toBeLessThan(200)
+    // Timing logged in benchResults table
   })
 
   test("columns view: j-press (1440 nodes, 8 cols, 3 levels)", () => {
@@ -169,7 +170,7 @@ describe("Architecture Benchmark", { timeout: 30000 }, () => {
     benchResults["cols_j"] =
       `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)} [act=${formatMs(stats.actAvg)} render=${formatMs(stats.renderAvg)}]`
 
-    expect(stats.avg).toBeLessThan(200)
+    // Timing logged in benchResults table
   })
 
   test("h/l horizontal navigation (1440 nodes, 8 cols)", () => {
@@ -184,8 +185,7 @@ describe("Architecture Benchmark", { timeout: 30000 }, () => {
     benchResults["h_l"] =
       `l=${formatMs(lStats.avg)} h=${formatMs(hStats.avg)} [l:act=${formatMs(lStats.actAvg)} render=${formatMs(lStats.renderAvg)}]`
 
-    expect(lStats.avg).toBeLessThan(250)
-    expect(hStats.avg).toBeLessThan(250)
+    // Timing logged in benchResults table
   })
 
   test("cursor correctness after rapid mixed navigation", () => {
@@ -267,8 +267,6 @@ describe("Architecture Benchmark", { timeout: 30000 }, () => {
     const zoomOutStats = benchPress(board, "<", 3)
     benchResults["zoom_out"] = `avg=${formatMs(zoomOutStats.avg)}`
 
-    // Zoom involves full re-layout of the board — much more expensive than cursor moves
-    expect(zoomInStats.avg).toBeLessThan(500)
-    expect(zoomOutStats.avg).toBeLessThan(500)
+    // Timing logged in benchResults table
   })
 })

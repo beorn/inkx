@@ -286,7 +286,9 @@ export async function runBoard(
             />
           </InputLayerProvider>
         </RepoProvider>,
-        isInteractive ? { alternateScreen: true } : { cols, rows }, // headless: cols+rows without stdout
+        isInteractive
+          ? { alternateScreen: true }
+          : { cols, rows, stdout: process.stdout },
       )
 
       // Now that alternate screen is active, notify caller (CLI uses this
@@ -296,7 +298,12 @@ export async function runBoard(
       // End the run span before blocking on waitUntilExit (TUI is now running)
       run.end()
 
-      await handle.waitUntilExit()
+      if (isInteractive) {
+        await handle.waitUntilExit()
+      } else {
+        // Non-interactive: initial render already wrote to stdout, tear down immediately
+        handle.unmount()
+      }
     }
   } finally {
     // Remove ALL process handlers to prevent segfault on exit (dangling closures
