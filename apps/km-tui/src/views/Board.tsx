@@ -53,7 +53,12 @@ import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex } from "../hooks/use-columns.ts"
 import { deriveCursorPosition } from "../hooks/use-cursor-position.ts"
-import { CursorStoreProvider, useCursorPosition, useCursorColIndex, useCursorSelectionLevel } from "../cursor-context.tsx"
+import {
+  CursorStoreProvider,
+  useCursorPosition,
+  useCursorColIndex,
+  useCursorSelectionLevel,
+} from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { ColumnsLayout } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
@@ -171,11 +176,7 @@ function BoardTopBar({
       backgroundColor={isBoardSelected ? "yellow" : "white"}
     >
       <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
-        {renderTopBarContent(
-          selectedPathSegments,
-          isBoardSelected,
-          boardColor,
-        )}
+        {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
       </Text>
     </Box>
   )
@@ -671,21 +672,20 @@ export function Board({ patchedConsole }: BoardProps) {
   // Board re-renders on column change (h/l) or level change (K/J),
   // but NOT on j/k within the same column at the same level.
   const cursorColIndexRef = useRef(0)
-  const cursorColIndex = useSyncExternalStore(
-    cursorStore.subscribe,
-    () => {
-      const colIndex = cursorStore.getState().colIndex
-      if (colIndex === cursorColIndexRef.current) return cursorColIndexRef.current
-      cursorColIndexRef.current = colIndex
-      return colIndex
-    },
-  )
+  const cursorColIndex = useSyncExternalStore(cursorStore.subscribe, () => {
+    const colIndex = cursorStore.getState().colIndex
+    if (colIndex === cursorColIndexRef.current) return cursorColIndexRef.current
+    cursorColIndexRef.current = colIndex
+    return colIndex
+  })
   const cursorSelectionLevelRef = useRef<"board" | "column" | "card">("board")
   const cursorSelectionLevel = useSyncExternalStore(
     cursorStore.subscribe,
     () => {
       const level = cursorStore.getState().selectionLevel
-      if (level === cursorSelectionLevelRef.current) return cursorSelectionLevelRef.current
+      if (level === cursorSelectionLevelRef.current) {
+        return cursorSelectionLevelRef.current
+      }
       cursorSelectionLevelRef.current = level
       return level
     },

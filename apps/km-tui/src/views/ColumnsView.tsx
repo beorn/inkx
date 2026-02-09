@@ -6,9 +6,7 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
-import React, {
-  useCallback,
-} from "react"
+import React, { useCallback } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { Box, Text } from "inkx"
 import createDebug from "debug"
@@ -64,121 +62,119 @@ interface ColumnTreeProps {
  * ScrollTrackingVirtualList handles cardIndex subscription.
  * Cards use CursorStore self-subscription for selection state.
  */
-const ColumnTree = React.memo(
-  function ColumnTree({
-    column,
-    colIndex,
-    selectedSubIndex,
-    width,
-    height,
-  }: ColumnTreeProps) {
-    const repo = useRepo()
-    const {
-      treeConfig: { inOutlineMode },
-    } = useTreeRenderContext()
+const ColumnTree = React.memo(function ColumnTree({
+  column,
+  colIndex,
+  selectedSubIndex,
+  width,
+  height,
+}: ColumnTreeProps) {
+  const repo = useRepo()
+  const {
+    treeConfig: { inOutlineMode },
+  } = useTreeRenderContext()
 
-    // Subscribe to column selection only (stable on j/k within same column)
-    const columnSelected = useIsColumnSelected(colIndex)
-    const isSelected = columnSelected.isSelected
-    const selectionLevel = columnSelected.selectionLevel
+  // Subscribe to column selection only (stable on j/k within same column)
+  const columnSelected = useIsColumnSelected(colIndex)
+  const isSelected = columnSelected.isSelected
+  const selectionLevel = columnSelected.selectionLevel
 
-    // Render name with wiki links stripped: [[target|alias]] → "alias"
-    const name = renderPlain(getNodeDisplayName(repo, column.node))
-    const count = column.cards.length
-    const ownColor = getOwnColor(column.node)
+  // Render name with wiki links stripped: [[target|alias]] → "alias"
+  const name = renderPlain(getNodeDisplayName(repo, column.node))
+  const count = column.cards.length
+  const ownColor = getOwnColor(column.node)
 
-    // Column header is selected when at column level
-    const isColumnHeaderSelected = isSelected && selectionLevel === "column"
-    const headerStyle = getHeaderStyle(
-      ownColor,
-      isSelected,
-      isColumnHeaderSelected,
-    )
+  // Column header is selected when at column level
+  const isColumnHeaderSelected = isSelected && selectionLevel === "column"
+  const headerStyle = getHeaderStyle(
+    ownColor,
+    isSelected,
+    isColumnHeaderSelected,
+  )
 
-    // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
-    const icon = getNodeIcon(null, ownColor, false)
-    const iconColor = isColumnHeaderSelected ? "black" : icon.color
+  // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
+  const icon = getNodeIcon(null, ownColor, false)
+  const iconColor = isColumnHeaderSelected ? "black" : icon.color
 
-    // Stable renderCard callback — doesn't depend on cardIndex.
-    // MemoizedTreeCard gets selection state from CursorStore self-subscription.
-    const renderCard = useCallback(
-      (card: CardState, actualIndex: number) => {
-        debug(
-          `rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`,
-        )
-        return (
-          <MemoizedTreeCard
-            key={card.node.id}
-            card={card}
-            colIndex={colIndex}
-            cardIndex={actualIndex}
-          />
-        )
-      },
-      [colIndex],
-    )
+  // Stable renderCard callback — doesn't depend on cardIndex.
+  // MemoizedTreeCard gets selection state from CursorStore self-subscription.
+  const renderCard = useCallback(
+    (card: CardState, actualIndex: number) => {
+      debug(
+        `rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`,
+      )
+      return (
+        <MemoizedTreeCard
+          key={card.node.id}
+          card={card}
+          colIndex={colIndex}
+          cardIndex={actualIndex}
+        />
+      )
+    },
+    [colIndex],
+  )
 
-    return (
-      <Box
-        id={column.node.id}
-        data-view="column"
-        data-column={true}
-        data-col-index={colIndex}
-        {...(isSelected && { "data-selected": true })}
-        {...(isColumnHeaderSelected && {
-          "data-cursor": true,
-          "data-card-index": -1,
-        })}
-        flexDirection="column"
-        width={width}
-        height={height}
-        overflow="hidden"
-      >
-        {/* Header section */}
-        <Box flexDirection="column" height={2} flexShrink={0}>
-          {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
-          <Box>
+  return (
+    <Box
+      id={column.node.id}
+      data-view="column"
+      data-column={true}
+      data-col-index={colIndex}
+      {...(isSelected && { "data-selected": true })}
+      {...(isColumnHeaderSelected && {
+        "data-cursor": true,
+        "data-card-index": -1,
+      })}
+      flexDirection="column"
+      width={width}
+      height={height}
+      overflow="hidden"
+    >
+      {/* Header section */}
+      <Box flexDirection="column" height={2} flexShrink={0}>
+        {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
+        <Box>
+          <Text
+            bold
+            color={headerStyle.color}
+            backgroundColor={headerStyle.backgroundColor}
+            wrap="truncate"
+          >
+            {" "}
+            <Text color={iconColor}>{icon.char}</Text> {name}
             <Text
-              bold
-              color={headerStyle.color}
-              backgroundColor={headerStyle.backgroundColor}
-              wrap="truncate"
-            >
-              {" "}
-              <Text color={iconColor}>{icon.char}</Text> {name}
-              <Text
-                color={isColumnHeaderSelected ? "gray" : undefined}
-                dimColor={!isColumnHeaderSelected}
-              >{` (${count})`}</Text>
-            </Text>
-          </Box>
-          <Text dimColor wrap="truncate">
-            {"─".repeat(100)}
+              color={isColumnHeaderSelected ? "gray" : undefined}
+              dimColor={!isColumnHeaderSelected}
+            >{` (${count})`}</Text>
           </Text>
         </Box>
-
-        {/* Cards with ScrollTrackingVirtualList */}
-        {column.cards.length > 0 ? (
-            <ScrollTrackingVirtualList
-              colIndex={colIndex}
-              isSelected={isSelected}
-              items={column.cards}
-              height={height - 2}
-              itemHeight={1}
-              overscan={OVERSCAN}
-              maxRendered={MAX_RENDERED_ITEMS}
-              keyExtractor={(card) => card.node.id}
-              renderItem={renderCard}
-            />
-        ) : (
-          <Box flexDirection="column" flexGrow={1} minHeight={1}>
-            <Text dimColor>(empty)</Text>
-          </Box>
-        )}
+        <Text dimColor wrap="truncate">
+          {"─".repeat(100)}
+        </Text>
       </Box>
-    )
-  },
-)
+
+      {/* Cards with ScrollTrackingVirtualList */}
+      {column.cards.length > 0 ? (
+        <ScrollTrackingVirtualList
+          colIndex={colIndex}
+          isSelected={isSelected}
+          items={column.cards}
+          height={height - 2}
+          itemHeight={1}
+          overscan={OVERSCAN}
+          maxRendered={MAX_RENDERED_ITEMS}
+          keyExtractor={(card) => card.node.id}
+          renderItem={renderCard}
+        />
+      ) : (
+        <Box flexDirection="column" flexGrow={1} minHeight={1}>
+          <Text dimColor>(empty)</Text>
+        </Box>
+      )}
+    </Box>
+  )
+})
 
 // =============================================================================
 // ColumnsView Component

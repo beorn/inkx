@@ -6,7 +6,12 @@
  * whose selection status changed will re-render on j/k.
  */
 
-import React, { createContext, useContext, useRef, useSyncExternalStore } from "react"
+import React, {
+  createContext,
+  useContext,
+  useRef,
+  useSyncExternalStore,
+} from "react"
 import type { CursorStore } from "./cursor-store.ts"
 
 // =============================================================================
@@ -55,21 +60,18 @@ export function useIsCursorAtCard(
   const store = useContext(CursorStoreContext)
   const cacheRef = useRef(false)
 
-  return useSyncExternalStore(
-    store?.subscribe ?? noopSubscribe,
-    () => {
-      if (!store) return false
-      const s = store.getState()
-      const isSelected =
-        s.colIndex === colIndex &&
-        s.cardIndex === cardIndex &&
-        s.selectionLevel === "card"
-      // Return cached value to avoid infinite loop — only update when value changes
-      if (isSelected === cacheRef.current) return cacheRef.current
-      cacheRef.current = isSelected
-      return isSelected
-    },
-  )
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return false
+    const s = store.getState()
+    const isSelected =
+      s.colIndex === colIndex &&
+      s.cardIndex === cardIndex &&
+      s.selectionLevel === "card"
+    // Return cached value to avoid infinite loop — only update when value changes
+    if (isSelected === cacheRef.current) return cacheRef.current
+    cacheRef.current = isSelected
+    return isSelected
+  })
 }
 
 /**
@@ -84,34 +86,31 @@ export function useIsCursorInColumn(colIndex: number): {
   const store = useContext(CursorStoreContext)
   const cacheRef = useRef(falseColumnResult)
 
-  return useSyncExternalStore(
-    store?.subscribe ?? noopSubscribe,
-    () => {
-      if (!store) return falseColumnResult
-      const s = store.getState()
-      if (s.colIndex !== colIndex) {
-        if (!cacheRef.current.isSelected) return cacheRef.current
-        cacheRef.current = falseColumnResult
-        return falseColumnResult
-      }
-      // Column is selected — check if result changed
-      const prev = cacheRef.current
-      if (
-        prev.isSelected &&
-        prev.cardIndex === s.cardIndex &&
-        prev.selectionLevel === s.selectionLevel
-      ) {
-        return prev
-      }
-      const next = {
-        isSelected: true as const,
-        cardIndex: s.cardIndex,
-        selectionLevel: s.selectionLevel,
-      }
-      cacheRef.current = next
-      return next
-    },
-  )
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return falseColumnResult
+    const s = store.getState()
+    if (s.colIndex !== colIndex) {
+      if (!cacheRef.current.isSelected) return cacheRef.current
+      cacheRef.current = falseColumnResult
+      return falseColumnResult
+    }
+    // Column is selected — check if result changed
+    const prev = cacheRef.current
+    if (
+      prev.isSelected &&
+      prev.cardIndex === s.cardIndex &&
+      prev.selectionLevel === s.selectionLevel
+    ) {
+      return prev
+    }
+    const next = {
+      isSelected: true as const,
+      cardIndex: s.cardIndex,
+      selectionLevel: s.selectionLevel,
+    }
+    cacheRef.current = next
+    return next
+  })
 }
 
 /**
@@ -127,28 +126,25 @@ export function useIsColumnSelected(colIndex: number): {
   const store = useContext(CursorStoreContext)
   const cacheRef = useRef(falseColumnSelectedResult)
 
-  return useSyncExternalStore(
-    store?.subscribe ?? noopSubscribe,
-    () => {
-      if (!store) return falseColumnSelectedResult
-      const s = store.getState()
-      if (s.colIndex !== colIndex) {
-        if (!cacheRef.current.isSelected) return cacheRef.current
-        cacheRef.current = falseColumnSelectedResult
-        return falseColumnSelectedResult
-      }
-      const prev = cacheRef.current
-      if (prev.isSelected && prev.selectionLevel === s.selectionLevel) {
-        return prev
-      }
-      const next = {
-        isSelected: true as const,
-        selectionLevel: s.selectionLevel,
-      }
-      cacheRef.current = next
-      return next
-    },
-  )
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return falseColumnSelectedResult
+    const s = store.getState()
+    if (s.colIndex !== colIndex) {
+      if (!cacheRef.current.isSelected) return cacheRef.current
+      cacheRef.current = falseColumnSelectedResult
+      return falseColumnSelectedResult
+    }
+    const prev = cacheRef.current
+    if (prev.isSelected && prev.selectionLevel === s.selectionLevel) {
+      return prev
+    }
+    const next = {
+      isSelected: true as const,
+      selectionLevel: s.selectionLevel,
+    }
+    cacheRef.current = next
+    return next
+  })
 }
 
 /**
@@ -160,17 +156,14 @@ export function useCursorCardIndex(colIndex: number): number {
   const store = useContext(CursorStoreContext)
   const cacheRef = useRef(-1)
 
-  return useSyncExternalStore(
-    store?.subscribe ?? noopSubscribe,
-    () => {
-      if (!store) return -1
-      const s = store.getState()
-      const cardIndex = s.colIndex === colIndex ? s.cardIndex : -1
-      if (cardIndex === cacheRef.current) return cacheRef.current
-      cacheRef.current = cardIndex
-      return cardIndex
-    },
-  )
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return -1
+    const s = store.getState()
+    const cardIndex = s.colIndex === colIndex ? s.cardIndex : -1
+    if (cardIndex === cacheRef.current) return cacheRef.current
+    cacheRef.current = cardIndex
+    return cardIndex
+  })
 }
 
 /**
@@ -186,28 +179,25 @@ export function useCursorPosition(): {
   const store = useContext(CursorStoreContext)
   const cacheRef = useRef(defaultCursorPosition)
 
-  return useSyncExternalStore(
-    store?.subscribe ?? noopSubscribe,
-    () => {
-      if (!store) return defaultCursorPosition
-      const s = store.getState()
-      const prev = cacheRef.current
-      if (
-        prev.colIndex === s.colIndex &&
-        prev.cardIndex === s.cardIndex &&
-        prev.selectionLevel === s.selectionLevel
-      ) {
-        return prev
-      }
-      const next = {
-        colIndex: s.colIndex,
-        cardIndex: s.cardIndex,
-        selectionLevel: s.selectionLevel,
-      }
-      cacheRef.current = next
-      return next
-    },
-  )
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return defaultCursorPosition
+    const s = store.getState()
+    const prev = cacheRef.current
+    if (
+      prev.colIndex === s.colIndex &&
+      prev.cardIndex === s.cardIndex &&
+      prev.selectionLevel === s.selectionLevel
+    ) {
+      return prev
+    }
+    const next = {
+      colIndex: s.colIndex,
+      cardIndex: s.cardIndex,
+      selectionLevel: s.selectionLevel,
+    }
+    cacheRef.current = next
+    return next
+  })
 }
 
 /**
@@ -219,16 +209,13 @@ export function useCursorColIndex(): number {
   const store = useContext(CursorStoreContext)
   const cacheRef = useRef(0)
 
-  return useSyncExternalStore(
-    store?.subscribe ?? noopSubscribe,
-    () => {
-      if (!store) return 0
-      const colIndex = store.getState().colIndex
-      if (colIndex === cacheRef.current) return cacheRef.current
-      cacheRef.current = colIndex
-      return colIndex
-    },
-  )
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return 0
+    const colIndex = store.getState().colIndex
+    if (colIndex === cacheRef.current) return cacheRef.current
+    cacheRef.current = colIndex
+    return colIndex
+  })
 }
 
 /**
@@ -240,16 +227,13 @@ export function useCursorSelectionLevel(): "board" | "column" | "card" {
   const store = useContext(CursorStoreContext)
   const cacheRef = useRef<"board" | "column" | "card">("board")
 
-  return useSyncExternalStore(
-    store?.subscribe ?? noopSubscribe,
-    () => {
-      if (!store) return "board"
-      const level = store.getState().selectionLevel
-      if (level === cacheRef.current) return cacheRef.current
-      cacheRef.current = level
-      return level
-    },
-  )
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return "board"
+    const level = store.getState().selectionLevel
+    if (level === cacheRef.current) return cacheRef.current
+    cacheRef.current = level
+    return level
+  })
 }
 
 // Stable references

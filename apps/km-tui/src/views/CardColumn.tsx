@@ -427,17 +427,17 @@ export const Column = React.memo(function Column({
           <Text dimColor>[collapsed - {count}]</Text>
         </Box>
       ) : column.cards.length > 0 ? (
-          <ScrollTrackingVirtualList
-            colIndex={colIndex}
-            isSelected={isSelected}
-            items={column.cards}
-            height={height - 2}
-            itemHeight={ESTIMATED_CARD_HEIGHT}
-            overscan={OVERSCAN}
-            maxRendered={MAX_RENDERED_CARDS}
-            keyExtractor={keyExtractor}
-            renderItem={renderItem}
-          />
+        <ScrollTrackingVirtualList
+          colIndex={colIndex}
+          isSelected={isSelected}
+          items={column.cards}
+          height={height - 2}
+          itemHeight={ESTIMATED_CARD_HEIGHT}
+          overscan={OVERSCAN}
+          maxRendered={MAX_RENDERED_CARDS}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+        />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
           <Box marginTop={1}>

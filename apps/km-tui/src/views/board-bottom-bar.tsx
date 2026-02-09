@@ -106,7 +106,10 @@ export function BottomBar({
 }: BottomBarProps): React.ReactElement {
   // Use CursorStore for cursor position (self-subscription, bypasses Board re-render)
   const cursorPos = useCursorPosition()
-  const layout = { colIndex: cursorPos.colIndex, cardIndex: cursorPos.cardIndex }
+  const layout = {
+    colIndex: cursorPos.colIndex,
+    cardIndex: cursorPos.cardIndex,
+  }
   const homeDir = process.env.HOME || ""
 
   // Determine if we need spinner animation

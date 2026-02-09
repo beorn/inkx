@@ -411,7 +411,7 @@ export function testEnv(
       { value: store as StoreApi<unknown> },
       React.createElement(RepoProvider, { repo, children: boardElement }),
     ),
-    { incremental: options?.incremental ?? false },
+    { incremental: options?.incremental ?? true },
   )
 
   // Override press to route through handleKey (same path as driver/production)
@@ -618,7 +618,7 @@ export function testEnvWithRepo(
       { value: store as StoreApi<unknown> },
       React.createElement(RepoProvider, { repo, children: boardElement }),
     ),
-    { incremental: options?.incremental ?? false },
+    { incremental: options?.incremental ?? true },
   )
 
   // Override press to route through handleKey (same path as driver/production)

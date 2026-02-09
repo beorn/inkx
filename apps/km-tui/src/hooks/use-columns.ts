@@ -94,8 +94,9 @@ function mapDescendants(
   index: Map<string, { colIndex: number; cardIndex: number }>,
 ): void {
   index.set(node.id, { colIndex, cardIndex })
-  const children = (node as { children?: { id: string; children?: unknown[] }[] })
-    .children
+  const children = (
+    node as { children?: { id: string; children?: unknown[] }[] }
+  ).children
   if (children) {
     for (const child of children) {
       mapDescendants(child, colIndex, cardIndex, index)

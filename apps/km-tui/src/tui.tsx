@@ -150,11 +150,17 @@ export async function runBoard(
     })
 
     // Surface write errors as toasts via cross-layer event system
-    syncManager.on("write-errors", (errors: { path: string; error: Error }[]) => {
-      for (const e of errors) {
-        kmEvents.emit("sync-error", { path: e.path, message: e.error.message })
-      }
-    })
+    syncManager.on(
+      "write-errors",
+      (errors: { path: string; error: Error }[]) => {
+        for (const e of errors) {
+          kmEvents.emit("sync-error", {
+            path: e.path,
+            message: e.error.message,
+          })
+        }
+      },
+    )
     syncManager.on("error", (error: Error) => {
       kmEvents.emit("sync-error", { path: "", message: error.message })
     })

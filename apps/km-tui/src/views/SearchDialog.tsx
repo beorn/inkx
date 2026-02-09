@@ -299,7 +299,10 @@ export const SearchDialog = React.forwardRef<
       },
       confirm() {
         if (allResultsRef.current) {
-          const filtered = filterResults(allResultsRef.current, trimmedQueryRef.current)
+          const filtered = filterResults(
+            allResultsRef.current,
+            trimmedQueryRef.current,
+          )
           const selected = filtered[selectedIndexRef.current]
           if (selected) {
             onSelectRef.current(selected.node)

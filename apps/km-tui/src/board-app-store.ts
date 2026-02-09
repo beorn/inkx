@@ -17,10 +17,7 @@ import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
 import type { BlockEditTarget } from "./block-edit-target.ts"
 import type { CursorStore } from "./cursor-store.ts"
-import {
-  deriveColumnsFromRepo,
-  buildNodeIndex,
-} from "./hooks/use-columns.ts"
+import { deriveColumnsFromRepo, buildNodeIndex } from "./hooks/use-columns.ts"
 import { deriveCursorPosition } from "./hooks/use-cursor-position.ts"
 
 // =============================================================================
