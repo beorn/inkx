@@ -416,7 +416,7 @@ code
         expect(file!.parent_id).toBe(folder3!.id)
         expect(folder3!.parent_id).toBe(folder2!.id)
         expect(folder2!.parent_id).toBe(folder1!.id)
-        expect(folder1!.parent_id).toBeNull()
+        expect(folder1!.parent_id).toBe(".")
       }))
 
     test("getAncestors should return full path from root to parent", () =>

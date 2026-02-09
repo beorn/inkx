@@ -211,12 +211,13 @@ function ensureFolderHierarchy(
 ): string | null {
   const parentPath = dirname(path)
 
-  // If we're at or above the repo root, no parent
-  if (
-    parentPath === repoRoot ||
-    parentPath === dirname(repoRoot) ||
-    parentPath === path
-  ) {
+  // At repo root → parent is the root node "."
+  if (parentPath === repoRoot) {
+    return "."
+  }
+
+  // Above the repo root or at filesystem root → no parent
+  if (parentPath === dirname(repoRoot) || parentPath === path) {
     return null
   }
 

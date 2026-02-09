@@ -146,6 +146,45 @@ export function getStoreHealth(
     const nodeCount = getNodeCount(db)
     const lastEventId = getLastEventId(db)
     dbInfo = { nodeCount, size, lastEventId }
+
+    // Check for orphan nodes (parent_id IS NULL but not the root)
+    const orphanCount = (
+      db
+        .prepare(
+          "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND id != '.'",
+        )
+        .get() as { count: number }
+    ).count
+    if (orphanCount > 0) {
+      issues.push(
+        `${orphanCount} orphan node(s) without parent\n` +
+          `      Run 'km doctor rebuild' to fix`,
+      )
+    }
+
+    // Check for absolute fs_path values
+    const absoluteCount = (
+      db
+        .prepare("SELECT COUNT(*) as count FROM nodes WHERE fs_path LIKE '/%'")
+        .get() as { count: number }
+    ).count
+    if (absoluteCount > 0) {
+      issues.push(
+        `${absoluteCount} node(s) with absolute fs_path\n` +
+          `      Run 'km doctor rebuild' to fix`,
+      )
+    }
+
+    // Check for missing root node
+    const rootExists = db
+      .prepare("SELECT id FROM nodes WHERE id = '.'")
+      .get() as { id: string } | undefined
+    if (!rootExists && nodeCount > 0) {
+      issues.push(
+        `Missing root node (.)\n` +
+          `      Run 'km doctor rebuild' to fix`,
+      )
+    }
   }
 
   return { worktree, events, db: dbInfo, issues }

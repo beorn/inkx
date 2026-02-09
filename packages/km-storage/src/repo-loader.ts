@@ -199,8 +199,8 @@ export function* loadRepo(
   // 2. Set up database
   const db = setupDatabase(options)
 
-  // 2a. Migration: ensure repo root node exists
-  migrateToRepoRootNode(db, repoRoot)
+  // 2a. Ensure repo root node exists (discovery needs it for parent_id)
+  ensureRepoRootNode(db, repoRoot)
 
   // 3. Mode-specific event source
   const source: EventSource =
@@ -213,7 +213,7 @@ export function* loadRepo(
           errors,
         )
 
-  // 4. Shared pipeline
+  // 4. Shared pipeline (normalizes parent_id: null → ".")
   yield* applyEvents(db, source.events, errors, repoRoot)
 
   // 5. Resolve links and evaluate rules
@@ -339,110 +339,38 @@ function setupDatabase(options?: LoadOptions): Database {
 }
 
 // ============================================================================
-// MIGRATION
+// REPO ROOT NODE
 // ============================================================================
 
 /**
- * Migrate existing repos to have a repo root node.
- * This ensures all nodes have a parent_id (either a folder or the repo root).
+ * Ensure the repo root node (id=".") exists in the database.
+ * Creates it if missing; no-op if already present.
  */
-export function migrateToRepoRootNode(db: Database, repoRoot: string): void {
-  // Check if repo root node already exists
-  const existingRoot = db
-    .prepare("SELECT id FROM nodes WHERE parent_id IS NULL AND type = 'folder'")
+export function ensureRepoRootNode(db: Database, repoRoot: string): void {
+  const existing = db
+    .prepare("SELECT id FROM nodes WHERE id = '.'")
     .get() as { id: string } | undefined
 
-  let repoRootId: string
+  if (existing) return
 
-  if (existingRoot) {
-    log.debug?.(
-      `migrateToRepoRootNode: repo root node already exists (${existingRoot.id})`,
-    )
-    repoRootId = existingRoot.id
-  } else {
-    const orphanCount = (
-      db
-        .prepare("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL")
-        .get() as {
-        count: number
-      }
-    ).count
-
-    log.debug?.(
-      `migrateToRepoRootNode: creating repo root node (${orphanCount} orphan nodes to migrate)`,
-    )
-
-    repoRootId = "."
-    const now = Date.now()
-
-    db.run("BEGIN IMMEDIATE")
-    try {
-      db.prepare(`
-        INSERT INTO nodes (
-          id, type, parent_id, parent_idx, fs_path, content, data,
-          created_at, updated_at, version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        repoRootId,
-        "folder",
-        null,
-        0,
-        ".", // Relative path — repo root is "."
-        basename(repoRoot),
-        JSON.stringify({ name: basename(repoRoot), is_repo_root: true }),
-        now,
-        now,
-        "",
-      )
-
-      const orphanNodeCount = (
-        db
-          .prepare(
-            "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND id != ?",
-          )
-          .get(repoRootId) as { count: number }
-      ).count
-      if (orphanNodeCount > 0) {
-        log.debug?.(
-          `migrateToRepoRootNode: updating ${orphanNodeCount} orphan nodes (including folders)`,
-        )
-        db.prepare(
-          "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND id != ?",
-        ).run(repoRootId, repoRootId)
-      }
-
-      db.run("COMMIT")
-      log.debug?.("migrateToRepoRootNode: migration complete")
-    } catch (error) {
-      db.run("ROLLBACK")
-      throw error
-    }
-  }
-
-  // Update orphan nodes even if repo root already exists
-  const orphanCount = (
-    db
-      .prepare(
-        "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND id != ?",
-      )
-      .get(repoRootId) as { count: number }
-  ).count
-
-  if (orphanCount > 0) {
-    log.debug?.(
-      `migrateToRepoRootNode: updating ${orphanCount} orphan nodes (including folders)`,
-    )
-    db.run("BEGIN IMMEDIATE")
-    try {
-      db.prepare(
-        "UPDATE nodes SET parent_id = ? WHERE parent_id IS NULL AND id != ?",
-      ).run(repoRootId, repoRootId)
-      db.run("COMMIT")
-    } catch (error) {
-      db.run("ROLLBACK")
-      throw error
-    }
-  }
+  const now = Date.now()
+  db.prepare(`
+    INSERT INTO nodes (
+      id, type, parent_id, parent_idx, fs_path, content, data,
+      created_at, updated_at, version
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    ".",
+    "folder",
+    null,
+    0,
+    ".",
+    basename(repoRoot),
+    JSON.stringify({ name: basename(repoRoot), is_repo_root: true }),
+    now,
+    now,
+    "",
+  )
 }
 
 // ============================================================================
@@ -654,13 +582,15 @@ function* applyEvents(
           const fsPath = rawFsPath && isAbsolute(rawFsPath)
             ? toRelativeFsPath(repoRoot, rawFsPath)
             : rawFsPath
+          // Normalize parent_id: null → "." (repo root)
+          const parentId = (data.parent_id as string) ?? "."
           // INSERT OR IGNORE: in disk mode, state.db may already have nodes
           // from km sync that events.jsonl also references (last_event cursor
           // may not cover all events). Matches applyEventWithDb behavior.
           insertStmt.run(
             data.id as string,
             data.type as string,
-            (data.parent_id as string) ?? null,
+            parentId,
             (data.link_to as string) ?? null,
             (data.link_alias as string) ?? null,
             (data.parent_idx as number) ?? 0,

@@ -147,6 +147,142 @@ describe("absolute path detection", () => {
   })
 })
 
+describe("disk mode root node", () => {
+  test("events.jsonl with parent_id:null folders get reparented under root '.'", () => {
+    const dir = createTempDir("disk-root")
+    setupFiles(dir)
+    mkdirSync(join(dir, ".km"), { recursive: true })
+
+    // Create events.jsonl with top-level folders having parent_id: null
+    // (this is how older events.jsonl files look — folders are root-level)
+    const now = Date.now()
+    const events = [
+      {
+        id: "01AAA0000000000000000001",
+        ts: now,
+        type: "node_created",
+        actor: "fs-watch",
+        data: {
+          id: "Projects",
+          type: "folder",
+          fs_path: "Projects",
+          parent_id: null,
+          name: "Projects",
+          content: "Projects",
+          data: {},
+        },
+      },
+      {
+        id: "01AAA0000000000000000002",
+        ts: now + 1,
+        type: "node_created",
+        actor: "fs-watch",
+        data: {
+          id: "ref",
+          type: "folder",
+          fs_path: "ref",
+          parent_id: null,
+          name: "ref",
+          content: "ref",
+          data: {},
+        },
+      },
+      {
+        id: "01AAA0000000000000000003",
+        ts: now + 2,
+        type: "node_created",
+        actor: "fs-watch",
+        data: {
+          id: "inbox-file",
+          type: "file",
+          fs_path: "@inbox.md",
+          parent_id: null,
+          name: "@inbox",
+          content: "Inbox",
+          data: {},
+        },
+      },
+    ]
+
+    writeFileSync(
+      join(dir, ".km/events.jsonl"),
+      events.map((e) => JSON.stringify(e)).join("\n") + "\n",
+    )
+
+    using repo = runGenerator(createRepo(dir, { loadFiles: true }))
+
+    // Root node "." must exist
+    const root = repo.getRepoRootNode()
+    expect(root).not.toBeNull()
+    expect(root!.id).toBe(".")
+    expect(root!.fs_path).toBe(".")
+
+    // All top-level folders/files should be children of "."
+    const projects = repo.data.getNode("Projects")
+    expect(projects).not.toBeNull()
+    expect(projects!.parent_id).toBe(".")
+
+    const ref = repo.data.getNode("ref")
+    expect(ref).not.toBeNull()
+    expect(ref!.parent_id).toBe(".")
+
+    const inbox = repo.data.getNode("inbox-file")
+    expect(inbox).not.toBeNull()
+    expect(inbox!.parent_id).toBe(".")
+  })
+})
+
+describe("km init: SyncManager creates nodes under root '.'", () => {
+  test("syncFromFs puts top-level files/folders under root '.'", async () => {
+    const dir = createTempDir("sync-root")
+    setupFiles(dir)
+    mkdirSync(join(dir, ".km"), { recursive: true })
+    writeFileSync(join(dir, ".km/events.jsonl"), "")
+
+    // Load repo (creates root "." node via ensureRepoRootNode)
+    using repo = runGenerator(createRepo(dir, { loadFiles: true }))
+
+    // Sync from filesystem (this is what km init does)
+    const { SyncManager } = await import("../../src/watch/sync.ts")
+    const manager = new SyncManager({
+      db: repo.database,
+      repoPath: dir,
+      debounceFs: 0,
+      debounceApply: 0,
+      conflictStrategy: "last_write_wins",
+    })
+    for await (const _progress of manager.syncFromFsWithProgress()) {
+      // drain progress
+    }
+
+    // Root "." must exist (check raw DB in case DataStore has issues)
+    const rootRow = repo.database
+      .prepare("SELECT id, parent_id, fs_path FROM nodes WHERE id = '.'")
+      .get() as { id: string } | undefined
+    expect(rootRow, "Root node '.' missing from DB").toBeDefined()
+
+    // All top-level nodes must be children of ".", not orphans
+    const orphans = repo.database
+      .prepare(
+        "SELECT id, type, fs_path FROM nodes WHERE parent_id IS NULL AND id != '.'",
+      )
+      .all() as { id: string; type: string; fs_path: string }[]
+
+    expect(
+      orphans,
+      `Expected 0 orphans but found ${orphans.length}: ${JSON.stringify(orphans)}`,
+    ).toHaveLength(0)
+
+    // Verify specific nodes are under root
+    const projects = repo.database
+      .prepare("SELECT parent_id FROM nodes WHERE fs_path = 'Projects'")
+      .get() as { parent_id: string } | undefined
+    if (projects) {
+      expect(projects.parent_id).toBe(".")
+    }
+  })
+})
+
 describe("portable repo", () => {
   test("repo can be copied to a new location and still works", () => {
     const dirA = createTempDir("portable-a")

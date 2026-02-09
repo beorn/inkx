@@ -110,23 +110,17 @@ if (currentNode.parent_id === null) {
 }
 ```
 
-### Migration
+### Root Node
 
-Both memory and disk modes automatically migrate existing repos via `migrateToRepoRootNode()`:
+The repo root node (`id = "."`) is created by `ensureRepoRootNode()` before discovery or event replay.
 
-1. Checks if repo root node already exists (`parent_id IS NULL AND type = 'folder'`)
-2. If not, creates repo root node with ID = `"."` (since `relative(repoRoot, repoRoot)` returns `""`)
-3. Updates all orphan nodes (`parent_id IS NULL AND type != 'folder'`) to have `parent_id = "."`
-4. Migration is idempotent - safe to run multiple times
+- ID is `"."` (the relative path for repo root)
+- `fs_path = "."`, `is_repo_root = true` in data
+- Only node with `parent_id = NULL` — all other nodes must have a parent
 
-**Note on ID Generation:**
-The repo root folder node uses `"."` as its ID instead of an empty string. This is because `generateId(repoRoot, repoRoot)` would return `relative(repoRoot, repoRoot)` which is an empty string, causing database issues.
+In `applyEvents`, any `parent_id: null` from old events.jsonl is normalized to `"."`.
 
-**Orphan File Handling:**
-In disk mode with `km sync`, the migration runs twice:
-
-1. Before sync: Creates repo root node and migrates existing orphans
-2. After sync: Catches new files discovered during sync (which have `parent_id = null`)
+`km doctor` detects orphan nodes and absolute `fs_path` values as health issues.
 
 #### Pre-Launch Flexibility
 
@@ -141,25 +135,12 @@ Why this matters:
 
 Once km launches publicly, we'll maintain strict backwards compatibility. Until then, breaking changes that improve the architecture are encouraged.
 
-From `/Users/beorn/Code/pim/km/packages/km-storage/src/repo-loader.ts`:
+From `ensureRepoRootNode()` in `repo-loader.ts`:
 
 ```typescript
-const repoRootId = generateId(repoRoot, repoRoot)
-events.push({
-  id: repoRootId,
-  type: "node_created",
-  actor: "fs-scan",
-  ts: now,
-  data: {
-    id: repoRootId,
-    type: "folder",
-    parent_id: null, // Top level - repo root has no parent
-    parent_idx: 0,
-    fs_path: repoRoot,
-    content: basename(repoRoot),
-    data: { name: basename(repoRoot), is_repo_root: true },
-  },
-})
+db.prepare(`INSERT INTO nodes (...) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+  .run(".", "folder", null, 0, ".", basename(repoRoot),
+    JSON.stringify({ name: basename(repoRoot), is_repo_root: true }), now, now, "")
 ```
 
 ### Clarification: `parent_id = null` Meaning

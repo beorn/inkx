@@ -19,7 +19,7 @@ import {
   findKmRootFromPath,
   readEvents,
   SCHEMA,
-  migrateToRepoRootNode,
+  ensureRepoRootNode,
 } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 
@@ -57,8 +57,8 @@ export const syncCommand = new Command("sync")
     const db = new Database(join(kmRoot, "state.db"))
     db.run(SCHEMA)
 
-    // Ensure repo root folder node exists (migration)
-    migrateToRepoRootNode(db, repoPath)
+    // Ensure repo root folder node exists
+    ensureRepoRootNode(db, repoPath)
 
     if (options.watch) {
       const debounceMs = parseInt(options.debounce, 10)
@@ -220,9 +220,8 @@ async function runSync(
         `Synced ${result.processed} change(s) in ${result.directories} directories (${result.duration}ms)`,
       )
 
-      // Re-run migration after sync to catch any new orphan files
-      // Files discovered during sync have parent_id = null, so we need to update them
-      migrateToRepoRootNode(db, repoPath)
+      // Ensure repo root exists after sync
+      ensureRepoRootNode(db, repoPath)
     }
   } catch (error) {
     console.error(term.red("Sync failed:"), error)

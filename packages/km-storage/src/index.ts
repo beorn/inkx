@@ -92,7 +92,7 @@ export {
   resolveLinksAsync,
   parseDeferredAsync,
   parseStubFile,
-  migrateToRepoRootNode,
+  ensureRepoRootNode,
 } from "./repo-loader.ts"
 
 export type {
