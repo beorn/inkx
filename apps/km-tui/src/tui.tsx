@@ -14,7 +14,7 @@ import {
   InputLayerProvider,
 } from "inkx"
 import React from "react"
-import { createLogger, createToastQueue } from "@km/core"
+import { createLogger, createToastQueue, kmEvents } from "@km/core"
 import { createBoardState } from "./board-types.ts"
 import type { TUIBoardState, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
@@ -147,6 +147,16 @@ export async function runBoard(
     // Forward watcher status to TUI for bottom bar display
     syncManager.on("watcher-status", (status) => {
       tuiEvents.emit("watcher-status", status)
+    })
+
+    // Surface write errors as toasts via cross-layer event system
+    syncManager.on("write-errors", (errors: { path: string; error: Error }[]) => {
+      for (const e of errors) {
+        kmEvents.emit("sync-error", { path: e.path, message: e.error.message })
+      }
+    })
+    syncManager.on("error", (error: Error) => {
+      kmEvents.emit("sync-error", { path: "", message: error.message })
     })
 
     log.debug?.("Starting syncManager...")

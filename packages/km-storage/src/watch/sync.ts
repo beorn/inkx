@@ -512,8 +512,8 @@ export class SyncManager extends EventEmitter {
       const absPath = toAbsoluteFsPath(this.config.repoPath, data.fs_path)
       try {
         mkdirSync(absPath, { recursive: true })
-      } catch {
-        // Ignore errors
+      } catch (err) {
+        this.emit("error", err instanceof Error ? err : new Error(String(err)))
       }
     } else if (data.type === "file" && data.fs_path) {
       // Create file — resolve relative path for FS operation
