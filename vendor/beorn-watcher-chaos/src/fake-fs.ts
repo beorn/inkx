@@ -345,6 +345,18 @@ export class FakeFileSystem implements FileSystemOps {
 
     this.files.delete(normalizedOld)
     this.files.set(normalizedNew, { ...entry, mtime: Date.now() })
+
+    // When renaming a directory, cascade to all children (like a real filesystem)
+    if (entry.type === "dir") {
+      const oldPrefix = normalizedOld + "/"
+      const newPrefix = normalizedNew + "/"
+      for (const [childPath, childEntry] of this.files) {
+        if (childPath.startsWith(oldPrefix)) {
+          this.files.delete(childPath)
+          this.files.set(newPrefix + childPath.slice(oldPrefix.length), childEntry)
+        }
+      }
+    }
   }
 
   statSync(path: string): StatResult {

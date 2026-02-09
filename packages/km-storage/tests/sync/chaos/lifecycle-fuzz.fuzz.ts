@@ -404,26 +404,12 @@ function applyOp(
       const oldAbs = abs(op.oldPath)
       const newAbs = abs(op.newPath)
       if (!mockFs.existsSync(oldAbs)) break
-      // FakeFileSystem.renameSync only renames the single entry — it doesn't
-      // update child paths like real fs.renameSync does for directories.
-      // We need to manually rename all children.
-      const allPaths = mockFs.getAllPaths()
-      const prefix = oldAbs + "/"
-      const childPaths = allPaths.filter((p) => p.startsWith(prefix))
-
-      // Rename the directory itself first
-      mockFs.renameSync(oldAbs, newAbs)
-
-      // Rename all children (deepest first to avoid parent-before-child issues)
-      const sorted = childPaths.sort((a, b) => b.length - a.length)
-      for (const childOld of sorted) {
-        const childNew = newAbs + childOld.slice(oldAbs.length)
-        const childNewDir = dirname(childNew)
-        if (!mockFs.existsSync(childNewDir)) {
-          mockFs.mkdirSync(childNewDir, { recursive: true })
-        }
-        mockFs.renameSync(childOld, childNew)
+      const newDir = dirname(newAbs)
+      if (!mockFs.existsSync(newDir)) {
+        mockFs.mkdirSync(newDir, { recursive: true })
       }
+      // FakeFileSystem.renameSync cascades children automatically
+      mockFs.renameSync(oldAbs, newAbs)
       break
     }
   }
@@ -981,6 +967,43 @@ describe("Lifecycle Fuzz Tests", () => {
       // No folder renames — but parent integrity still broken (reconciler issue)
       checkInvariants(env.verifier, "delete-cascade")
       checkFsDbSync(env.db, env.mockFs, env.repoDir, "delete-cascade")
+    } finally {
+      env.db.close()
+    }
+  })
+
+  test.fuzz("folder rename after recreate with new children", async () => {
+    // Minimal repro for stale-node bug:
+    // 1. Rename notes/ away, 2. Create new notes/ with new files,
+    // 3. Rename new notes/ → cascade should update children
+    const rng = createSeededRandom()
+    const setup = [
+      { path: "notes/note1.md", content: generateFileContent(rng) },
+      { path: "tasks/task1.md", content: generateFileContent(rng) },
+    ]
+    const env = setupEnv(setup)
+
+    try {
+      const operations: FsOp[] = [
+        // Rename original notes away
+        { type: "folder_rename", oldPath: "notes", newPath: "archive" },
+        // Add new notes/ folder with a file
+        { type: "file_add", path: "notes/fresh.md", content: "# Fresh\n" },
+        // Add a subfolder
+        { type: "folder_add", path: "notes/sub" },
+        // Rename the file
+        { type: "file_rename", oldPath: "notes/fresh.md", newPath: "notes/renamed.md" },
+        // Now rename the recreated notes/ folder
+        { type: "folder_rename", oldPath: "notes", newPath: "work" },
+      ]
+
+      for (const op of operations) {
+        applyOp(env.mockFs, env.repoDir, op)
+        env.reconcile()
+      }
+
+      checkInvariants(env.verifier, "recreate-rename")
+      checkFsDbSync(env.db, env.mockFs, env.repoDir, "recreate-rename")
     } finally {
       env.db.close()
     }

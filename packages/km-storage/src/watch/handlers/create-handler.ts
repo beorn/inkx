@@ -74,12 +74,13 @@ export function handleCreate(options: CreateHandlerOptions): void {
 
   if (stat?.isDirectory()) {
     // Create folder node - use path-based ID for consistency with discovery.ts
-    const folderId = generatePathBasedId(repoRoot, op.path)
+    const relPath = toRelativeFsPath(repoRoot, op.path)
+    const folderId = getFolderNodeId(db, repoRoot, op.path, relPath)
     const folderName = basename(op.path)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
       type: "folder",
-      fs_path: toRelativeFsPath(repoRoot, op.path),
+      fs_path: relPath,
       fs_ino: op.ino,
       fs_mtime: op.mtime ?? stat.mtimeMs,
       parent_id: parentId,
@@ -197,6 +198,29 @@ function handleMarkdownCreate(
 }
 
 /**
+ * Generate a folder node ID, handling the case where a folder was renamed away
+ * and a new folder was created at the same path. The path-based ID would collide
+ * with the old (renamed) node, so we fall back to ULID.
+ */
+function getFolderNodeId(
+  db: Database,
+  repoRoot: string,
+  absPath: string,
+  relPath: string,
+): string {
+  const pathId = generatePathBasedId(repoRoot, absPath)
+  // Check if the path-based ID is already used by a DIFFERENT node (renamed away)
+  const existing = db
+    .prepare("SELECT fs_path FROM nodes WHERE id = ?")
+    .get(pathId) as { fs_path: string } | null
+  if (existing && existing.fs_path !== relPath) {
+    // ID collision: old folder was renamed away, use ULID for new folder
+    return ulid()
+  }
+  return pathId
+}
+
+/**
  * Ensure all ancestor folders exist as nodes, creating them if needed.
  * Returns the ID of the immediate parent folder node.
  * Adds created folders to the resolver for link resolution.
@@ -240,12 +264,13 @@ function ensureFolderHierarchy(
   // Create the parent folder node - use path-based ID for consistency with discovery.ts
   try {
     const stat = fs.statSync(parentPath)
-    const folderId = generatePathBasedId(repoRoot, parentPath)
+    const relPath = toRelativeFsPath(repoRoot, parentPath)
+    const folderId = getFolderNodeId(db, repoRoot, parentPath, relPath)
     const folderName = basename(parentPath)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
       type: "folder",
-      fs_path: toRelativeFsPath(repoRoot, parentPath),
+      fs_path: relPath,
       fs_ino: stat.ino,
       fs_mtime: stat.mtimeMs,
       parent_id: grandparentId,
