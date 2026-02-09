@@ -84,4 +84,5 @@ Sub-agents skip this — only the top-level session runs verification.
 | [max/](.claude/skills/max/)                                         | Parallel agents                                                       |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [discuss/](.claude/skills/discuss/)                                 | Pause implementation to discuss architecture/alternatives             |
+| [fresh/](.claude/skills/fresh/)                                     | Fresh perspective via deep research when stuck on a problem           |
 | [batch-refactor](vendor/beorn-tools/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |
