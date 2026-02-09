@@ -53,7 +53,7 @@ import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex } from "../hooks/use-columns.ts"
 import { deriveCursorPosition } from "../hooks/use-cursor-position.ts"
-import { CursorStoreProvider, useCursorPosition, useCursorColIndex } from "../cursor-context.tsx"
+import { CursorStoreProvider, useCursorPosition, useCursorColIndex, useCursorSelectionLevel } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { ColumnsLayout } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
@@ -127,15 +127,121 @@ export interface BoardCoreProps {
 }
 
 /**
- * Pure rendering component - NO hooks, just JSX.
- * Receives all state as props, making it fully testable.
+ * TopBar - subscribes to cursor position for path display.
+ * Extracted from BoardCore so BoardCore doesn't re-render on j/k.
+ */
+function BoardTopBar({
+  state,
+  termWidth,
+}: {
+  state: TUIBoardState
+  termWidth: number
+}): React.ReactElement {
+  const repo = useRepo()
+  const cursorPos = useCursorPosition()
+  const isBoardSelected = cursorPos.selectionLevel === "board"
+
+  const selectedCol = state.columns[cursorPos.colIndex]
+  const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
+
+  const pathNodeId =
+    isBoardSelected || !selectedCol
+      ? state.rootId
+      : cursorPos.selectionLevel === "column" || !selectedCard
+        ? selectedCol.node.id
+        : selectedCard.node.id
+  const selectedPathSegments = renderPath(
+    getPathSegments(repo, pathNodeId, state.rootId),
+    termWidth - 4,
+  )
+
+  const rootNode = state.rootId ? repo.getNode(state.rootId) : null
+  const boardColor = rootNode
+    ? (getOwnColor(rootNode) ??
+      getBoardColorByName(
+        normalizeBoardName(getNodeDisplayName(repo, rootNode)),
+      ))
+    : undefined
+
+  return (
+    <Box
+      id="top-bar"
+      flexShrink={0}
+      width={termWidth}
+      backgroundColor={isBoardSelected ? "yellow" : "white"}
+    >
+      <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
+        {renderTopBarContent(
+          selectedPathSegments,
+          isBoardSelected,
+          boardColor,
+        )}
+      </Text>
+    </Box>
+  )
+}
+
+/**
+ * CursorAwareDetailPane - only subscribes to cursor position when visible.
+ * Prevents BoardCore from subscribing just for detail pane cursor tracking.
+ */
+function CursorAwareDetailPane({
+  state,
+  width,
+  height,
+}: {
+  state: TUIBoardState
+  width: number
+  height: number
+}): React.ReactElement | null {
+  const cursorPos = useCursorPosition()
+  const selectedCol = state.columns[cursorPos.colIndex]
+  const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
+  if (!selectedCard) return null
+  return <DetailPane node={selectedCard.node} width={width} height={height} />
+}
+
+/**
+ * CursorAwareNewItemDialog - subscribes to cursor position for cursorNode.
+ */
+function CursorAwareNewItemDialog({
+  state,
+  onCreate,
+  onCancel,
+  width,
+  height,
+}: {
+  state: TUIBoardState
+  onCreate: (newNodeId: string) => void
+  onCancel: () => void
+  width: number
+  height: number
+}): React.ReactElement {
+  const cursorPos = useCursorPosition()
+  const selectedCol = state.columns[cursorPos.colIndex]
+  const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
+  return (
+    <NewItemDialog
+      cursorNode={selectedCard?.node ?? null}
+      onCreate={onCreate}
+      onCancel={onCancel}
+      width={width}
+      height={height}
+    />
+  )
+}
+
+/**
+ * Pure rendering component - NO cursor subscription.
+ * Uses derivedSelectionLevel prop (stable on j/k).
+ * TopBar, DetailPane, and NewItemDialog subscribe independently.
  */
 // oxlint-disable-next-line complexity/max-cognitive -- React component — JSX conditionals inflate score
 export function BoardCore({
   state,
   layout,
   ui,
-  derivedSelectionLevel: _derivedSelectionLevelProp,
+  derivedSelectionLevel,
   dimensions,
   layoutRegistry,
   setUI,
@@ -149,33 +255,12 @@ export function BoardCore({
   const termWidth = dimensions.columns
   const termHeight = dimensions.rows
 
-  // Get cursor position from CursorStore (self-subscription — only re-renders
-  // BoardCore when cursor changes, not the whole Board → Column → Card cascade)
-  const cursorPos = useCursorPosition()
-  const derivedSelectionLevel = cursorPos.selectionLevel
-
   const maxCols = Math.min(
     state.columns.length,
     Math.max(2, Math.floor(termWidth / 35)),
   )
 
-  // colScrollOffset is passed from parent (edge-based calculation)
-
-  // Build selected item path segments for colorized top bar
-  const selectedCol = state.columns[cursorPos.colIndex]
-  const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
-
-  // Determine which node to show path to based on selection level
-  const pathNodeId =
-    derivedSelectionLevel === "board" || !selectedCol
-      ? state.rootId
-      : derivedSelectionLevel === "column" || !selectedCard
-        ? selectedCol.node.id
-        : selectedCard.node.id
-  const selectedPathSegments = renderPath(
-    getPathSegments(repo, pathNodeId, state.rootId),
-    termWidth - 4,
-  )
+  const isBoardSelected = derivedSelectionLevel === "board"
 
   // Calculate widths for split view
   const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
@@ -201,18 +286,6 @@ export function BoardCore({
     effectiveScrollOffset + effectiveMaxCols,
   )
 
-  // Build top bar - use board's color as background, or blue if selected/no color
-  const isBoardSelected = derivedSelectionLevel === "board"
-
-  // Compute board root color for the disc indicator
-  const rootNode = state.rootId ? repo.getNode(state.rootId) : null
-  const boardColor = rootNode
-    ? (getOwnColor(rootNode) ??
-      getBoardColorByName(
-        normalizeBoardName(getNodeDisplayName(repo, rootNode)),
-      ))
-    : undefined
-
   // Render loading skeleton until terminal is ready
   if (!ui.isReady) {
     return (
@@ -230,8 +303,8 @@ export function BoardCore({
         data-view="board"
         data-board={true}
         data-scroll-offset={colScrollOffset}
-        data-col-index={cursorPos.colIndex}
-        data-card-index={cursorPos.cardIndex}
+        data-col-index={layout.colIndex}
+        data-card-index={layout.cardIndex}
         {...(isBoardSelected && { "data-cursor": true })}
         flexDirection="column"
         width={termWidth}
@@ -240,21 +313,8 @@ export function BoardCore({
         overflow="hidden"
         {...(ui.bellState && { "data-bell-flash": true })}
       >
-        {/* Top bar */}
-        <Box
-          id="top-bar"
-          flexShrink={0}
-          width={termWidth}
-          backgroundColor={isBoardSelected ? "yellow" : "white"}
-        >
-          <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
-            {renderTopBarContent(
-              selectedPathSegments,
-              isBoardSelected,
-              boardColor,
-            )}
-          </Text>
-        </Box>
+        {/* Top bar — subscribes to cursor position independently */}
+        <BoardTopBar state={state} termWidth={termWidth} />
         <Box
           flexGrow={1}
           flexDirection="row"
@@ -378,10 +438,10 @@ export function BoardCore({
               />
             </ErrorBoundary>
           )}
-          {/* Detail pane */}
-          {ui.showDetailPane && selectedCard && (
-            <DetailPane
-              node={selectedCard.node}
+          {/* Detail pane — subscribes to cursor position independently */}
+          {ui.showDetailPane && (
+            <CursorAwareDetailPane
+              state={state}
               width={detailPaneWidth}
               height={contentHeight}
             />
@@ -418,8 +478,8 @@ export function BoardCore({
                   marginTop={Math.floor(contentHeight / 3)}
                   data-dialog="new-item"
                 >
-                  <NewItemDialog
-                    cursorNode={selectedCard?.node ?? null}
+                  <CursorAwareNewItemDialog
+                    state={state}
                     onCreate={dialogHandlers.handleNewItemCreate}
                     onCancel={dialogHandlers.handleNewItemCancel}
                     width={newItemWidth}
@@ -607,9 +667,9 @@ export function Board({ patchedConsole }: BoardProps) {
   const columns = useColumns(repo, rootId, foldedNodes)
   const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
 
-  // Subscribe to cursor colIndex from CursorStore (NOT full cursor version).
-  // Board re-renders on column change (h/l) for scroll offset,
-  // but NOT on j/k within the same column.
+  // Subscribe to cursor colIndex + selectionLevel from CursorStore.
+  // Board re-renders on column change (h/l) or level change (K/J),
+  // but NOT on j/k within the same column at the same level.
   const cursorColIndexRef = useRef(0)
   const cursorColIndex = useSyncExternalStore(
     cursorStore.subscribe,
@@ -620,15 +680,23 @@ export function Board({ patchedConsole }: BoardProps) {
       return colIndex
     },
   )
+  const cursorSelectionLevelRef = useRef<"board" | "column" | "card">("board")
+  const cursorSelectionLevel = useSyncExternalStore(
+    cursorStore.subscribe,
+    () => {
+      const level = cursorStore.getState().selectionLevel
+      if (level === cursorSelectionLevelRef.current) return cursorSelectionLevelRef.current
+      cursorSelectionLevelRef.current = level
+      return level
+    },
+  )
 
-  // Compute cursor position only when columns change (NOT on every cursor move).
-  // For cursor-only moves (j/k), the SELECT fast path in dispatchBoard already
-  // updates the store silently — Board doesn't need to re-render.
-  // Column/Card handle cursor highlighting via CursorStore self-subscription.
+  // Compute cursor position only when columns change, column index changes,
+  // or selection level changes (NOT on j/k within the same column).
   const cursorPosition = useMemo(() => {
     const cs = cursorStore.getState()
     return deriveCursorPosition(columns, cs.cursorNodeId, nodeIndex)
-  }, [columns, cursorStore, nodeIndex, cursorColIndex])
+  }, [columns, cursorStore, nodeIndex, cursorColIndex, cursorSelectionLevel])
 
   const columnsLayout: ColumnsLayout = useMemo(
     () => ({

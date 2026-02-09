@@ -231,6 +231,27 @@ export function useCursorColIndex(): number {
   )
 }
 
+/**
+ * Subscribe to cursor selection level only.
+ * Re-renders only when selection level changes (K/J level nav).
+ * Does NOT re-render on j/k or h/l within the same level.
+ */
+export function useCursorSelectionLevel(): "board" | "column" | "card" {
+  const store = useContext(CursorStoreContext)
+  const cacheRef = useRef<"board" | "column" | "card">("board")
+
+  return useSyncExternalStore(
+    store?.subscribe ?? noopSubscribe,
+    () => {
+      if (!store) return "board"
+      const level = store.getState().selectionLevel
+      if (level === cacheRef.current) return cacheRef.current
+      cacheRef.current = level
+      return level
+    },
+  )
+}
+
 // Stable references
 const defaultCursorPosition = {
   colIndex: 0,
