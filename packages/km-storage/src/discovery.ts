@@ -197,7 +197,14 @@ export function* discoverFiles(
     const name = entryName.replace(/\.md$/i, "")
 
     events.push(
-      createStubFileEvent(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), name, now),
+      createStubFileEvent(
+        fileId,
+        parentId,
+        order,
+        toRelativeFsPath(repoRoot, fullPath),
+        name,
+        now,
+      ),
     )
     deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
 

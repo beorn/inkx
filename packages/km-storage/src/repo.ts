@@ -142,16 +142,15 @@ function createQueryMethods(deps: RepoMethodDeps) {
       queryStr: string,
       typeOrOptions?: string | { type?: string; taskOnly?: boolean },
     ) {
-      const baseOpts = typeof typeOrOptions === "string"
-        ? { type: typeOrOptions }
-        : (typeOrOptions ?? {})
+      const baseOpts =
+        typeof typeOrOptions === "string"
+          ? { type: typeOrOptions }
+          : (typeOrOptions ?? {})
       return dbResolveNode(db, queryStr, { ...baseOpts, repoRoot: rootPath })
     },
     getRepoRootNode() {
       const row = db
-        .prepare(
-          "SELECT * FROM nodes WHERE id = '.' AND type = 'folder'",
-        )
+        .prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'folder'")
         .get() as Record<string, unknown> | undefined
       if (!row) return null
       // Import rowToNode inline to avoid circular dependency
@@ -695,9 +694,7 @@ export class IncompleteDatabase extends Error {
  */
 function detectAbsolutePaths(db: Database): string | null {
   const row = db
-    .prepare(
-      "SELECT COUNT(*) as cnt FROM nodes WHERE fs_path LIKE '/%'",
-    )
+    .prepare("SELECT COUNT(*) as cnt FROM nodes WHERE fs_path LIKE '/%'")
     .get() as { cnt: number }
   if (row.cnt === 0) return null
   return (
@@ -1019,7 +1016,13 @@ export function* createRepo(
 
   // Create shared methods using factories
   const childrenCache = createChildrenCache(dataStore)
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache, rootPath }
+  const methodDeps: RepoMethodDeps = {
+    db,
+    dataStore,
+    hooks,
+    childrenCache,
+    rootPath,
+  }
   const queryMethods = createQueryMethods(methodDeps)
   // Version holder — shared between mutation methods and the repo object.
   // Getter/setter needed: mutation methods are created before `repo` exists,
@@ -1209,7 +1212,13 @@ export function createBareRepo(
 
   // Create shared methods using factories
   const childrenCache = createChildrenCache(dataStore)
-  const methodDeps: RepoMethodDeps = { db, dataStore, hooks, childrenCache, rootPath: repoPath }
+  const methodDeps: RepoMethodDeps = {
+    db,
+    dataStore,
+    hooks,
+    childrenCache,
+    rootPath: repoPath,
+  }
   const queryMethods = createQueryMethods(methodDeps)
   // See comment in createRepo for why getter/setter is needed here
   const listeners = new Set<() => void>()

@@ -93,7 +93,9 @@ This is a paragraph.
         const fileNodes = allNodes.filter((n) => n.type === "file")
         expect(fileNodes.length).toBeGreaterThan(0)
 
-        const fileNode = fileNodes.find((n) => n.fs_path === toRel(repoDir, testFile))
+        const fileNode = fileNodes.find(
+          (n) => n.fs_path === toRel(repoDir, testFile),
+        )
         expect(fileNode).toBeDefined()
       }))
 

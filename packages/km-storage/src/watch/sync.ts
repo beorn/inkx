@@ -458,7 +458,11 @@ export class SyncManager extends EventEmitter {
     }
 
     // File rename: content change on the file node itself → rename .md file on disk
-    if (node.id === fileNode.id && changes.content && fileNode.fs_path.endsWith(".md")) {
+    if (
+      node.id === fileNode.id &&
+      changes.content &&
+      fileNode.fs_path.endsWith(".md")
+    ) {
       this.handleFileRename(fileNode, changes.content, event.id)
       // After rename, still regenerate content at the new path (fall through)
     }
@@ -535,7 +539,8 @@ export class SyncManager extends EventEmitter {
     const oldFsPath = fileNode.fs_path!
     const newFileName = titleToFilename(newTitle)
     const parentDir = dirname(oldFsPath)
-    const newFsPath = parentDir === "." ? newFileName : join(parentDir, newFileName)
+    const newFsPath =
+      parentDir === "." ? newFileName : join(parentDir, newFileName)
 
     if (oldFsPath === newFsPath) return
 

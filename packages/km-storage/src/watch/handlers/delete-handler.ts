@@ -15,7 +15,11 @@ import type { ReconcileOp } from "../reconcile.ts"
 /**
  * Handle file/folder rename
  */
-export function handleRename(emitter: Emitter, op: ReconcileOp, repoRoot: string): void {
+export function handleRename(
+  emitter: Emitter,
+  op: ReconcileOp,
+  repoRoot: string,
+): void {
   if (!op.nodeId) return
 
   emitNodeUpdated(emitter, "fs-watch", op.nodeId, {

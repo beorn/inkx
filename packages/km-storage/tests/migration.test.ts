@@ -16,9 +16,12 @@ test("ensureRepoRootNode creates root node in empty DB", () => {
 
   ensureRepoRootNode(db, tmpDir)
 
-  const root = db
-    .prepare("SELECT * FROM nodes WHERE id = '.'")
-    .get() as { id: string; type: string; fs_path: string; data: string }
+  const root = db.prepare("SELECT * FROM nodes WHERE id = '.'").get() as {
+    id: string
+    type: string
+    fs_path: string
+    data: string
+  }
 
   expect(root).toBeDefined()
   expect(root.type).toBe("folder")
@@ -34,9 +37,9 @@ test("ensureRepoRootNode is idempotent", () => {
   ensureRepoRootNode(db, tmpDir)
   ensureRepoRootNode(db, tmpDir) // second call should be no-op
 
-  const roots = db
-    .prepare("SELECT id FROM nodes WHERE id = '.'")
-    .all() as { id: string }[]
+  const roots = db.prepare("SELECT id FROM nodes WHERE id = '.'").all() as {
+    id: string
+  }[]
 
   expect(roots).toHaveLength(1)
 })
@@ -58,9 +61,9 @@ test("loadRepo creates root and reparents all top-level nodes", () => {
   }
 
   // Verify repo root exists
-  const root = db
-    .prepare("SELECT id FROM nodes WHERE id = '.'")
-    .get() as { id: string }
+  const root = db.prepare("SELECT id FROM nodes WHERE id = '.'").get() as {
+    id: string
+  }
   expect(root).toBeDefined()
 
   // Only root should have parent_id = NULL
@@ -104,9 +107,7 @@ test("vault with folders shows them as board columns", () => {
 
   // No orphan folders (except repo root)
   const orphanFolders = db
-    .prepare(
-      "SELECT id FROM nodes WHERE parent_id IS NULL AND id != '.'",
-    )
+    .prepare("SELECT id FROM nodes WHERE parent_id IS NULL AND id != '.'")
     .all() as { id: string }[]
 
   expect(orphanFolders).toHaveLength(0)

@@ -434,9 +434,10 @@ function checkInvariants(verifier: Verifier, label: string) {
 
   // All file/folder nodes have valid fs_path
   const paths = verifier.verifyFilePaths()
-  expect(paths.passed, `[${label}] File paths: ${paths.errors.join(", ")}`).toBe(
-    true,
-  )
+  expect(
+    paths.passed,
+    `[${label}] File paths: ${paths.errors.join(", ")}`,
+  ).toBe(true)
 }
 
 /** Get FS .md files (relative) and DB file node paths */
@@ -553,10 +554,7 @@ describe("Lifecycle Fuzz Tests", () => {
           const suffix = random.bool(0.5) ? `-${random.int(1, 99)}` : ""
           const name = random.pick(DIR_NAMES) + suffix
           const depth = random.int(0, 1)
-          const path =
-            depth > 0
-              ? random.pick(DIR_NAMES) + "/" + name
-              : name
+          const path = depth > 0 ? random.pick(DIR_NAMES) + "/" + name : name
           return { type: "folder_add", path }
         } else if (roll < 0.5) {
           // Folder rename — pick an existing folder from FS
@@ -576,16 +574,13 @@ describe("Lifecycle Fuzz Tests", () => {
           }
           const oldAbs = random.pick(dirs)
           const oldRel = oldAbs.slice(env.repoDir.length + 1)
-          const newName =
-            random.pick(DIR_NAMES) + `-${random.int(1, 999)}`
+          const newName = random.pick(DIR_NAMES) + `-${random.int(1, 999)}`
           const parent = dirname(oldRel)
           const newRel = parent === "." ? newName : join(parent, newName)
           return { type: "folder_rename", oldPath: oldRel, newPath: newRel }
         } else if (roll < 0.65) {
           // File add into random folder
-          const path =
-            random.pick(DIR_NAMES) +
-            `/file-${random.int(1, 999)}.md`
+          const path = random.pick(DIR_NAMES) + `/file-${random.int(1, 999)}.md`
           return {
             type: "file_add",
             path,
@@ -772,8 +767,7 @@ describe("Lifecycle Fuzz Tests", () => {
     // Start with more files
     const manyFiles = Array.from(
       { length: 15 },
-      (_, i) =>
-        `${rng.pick(DIR_NAMES)}/file${i}.md`,
+      (_, i) => `${rng.pick(DIR_NAMES)}/file${i}.md`,
     )
     // Deduplicate
     const uniqueFiles = [...new Set(manyFiles)]
@@ -826,9 +820,7 @@ describe("Lifecycle Fuzz Tests", () => {
           const depth = rng.int(0, 3)
           const parts: string[] = []
           for (let d = 0; d < depth; d++) {
-            parts.push(
-              String.fromCharCode(97 + rng.int(0, 3)) /* a-d */,
-            )
+            parts.push(String.fromCharCode(97 + rng.int(0, 3)) /* a-d */)
           }
           parts.push(`file-${rng.int(1, 999)}.md`)
           op = {
@@ -904,8 +896,7 @@ describe("Lifecycle Fuzz Tests", () => {
             const oldRel = oldAbs.slice(env.repoDir.length + 1)
             const parent = dirname(oldRel)
             const newName = `d-${rng.int(1, 9999)}`
-            const newRel =
-              parent === "." ? newName : join(parent, newName)
+            const newRel = parent === "." ? newName : join(parent, newName)
             op = {
               type: "folder_rename",
               oldPath: oldRel,
@@ -950,7 +941,11 @@ describe("Lifecycle Fuzz Tests", () => {
           content: generateFileContent(rng),
         },
         // And rename the safe file
-        { type: "file_rename", oldPath: "safe/keeper.md", newPath: "safe/renamed-keeper.md" },
+        {
+          type: "file_rename",
+          oldPath: "safe/keeper.md",
+          newPath: "safe/renamed-keeper.md",
+        },
         // Add more files in fresh directories
         {
           type: "file_add",
@@ -992,7 +987,11 @@ describe("Lifecycle Fuzz Tests", () => {
         // Add a subfolder
         { type: "folder_add", path: "notes/sub" },
         // Rename the file
-        { type: "file_rename", oldPath: "notes/fresh.md", newPath: "notes/renamed.md" },
+        {
+          type: "file_rename",
+          oldPath: "notes/fresh.md",
+          newPath: "notes/renamed.md",
+        },
         // Now rename the recreated notes/ folder
         { type: "folder_rename", oldPath: "notes", newPath: "work" },
       ]

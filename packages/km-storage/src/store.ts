@@ -101,7 +101,9 @@ abstract class BaseStore implements NodeStore {
 
   getNodeByPath(fsPath: string): KNode | null {
     // Convert absolute paths to relative (DB stores relative paths)
-    const queryPath = isAbsolute(fsPath) ? toRelativeFsPath(this.rootPath, fsPath) : fsPath
+    const queryPath = isAbsolute(fsPath)
+      ? toRelativeFsPath(this.rootPath, fsPath)
+      : fsPath
     const row = this.db
       .query("SELECT * FROM nodes WHERE fs_path = ?")
       .get(queryPath) as Record<string, unknown> | null
@@ -762,7 +764,9 @@ export class MemoryStore extends BaseStore {
     appendFileSync(fullPath, content)
 
     // Re-parse the file to update in-memory state
-    const existingFileNode = this.getNodeByPath(toRelativeFsPath(this.rootPath, fullPath))
+    const existingFileNode = this.getNodeByPath(
+      toRelativeFsPath(this.rootPath, fullPath),
+    )
     if (existingFileNode) {
       // Remove the file node and all its children, then re-parse
       this.db.run(`DELETE FROM nodes WHERE fs_path = ?`, [fullPath])

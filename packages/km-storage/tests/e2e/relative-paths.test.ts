@@ -40,7 +40,10 @@ afterEach(() => {
 /** Set up a minimal repo with markdown files (no .km — memory mode scans files) */
 function setupFiles(dir: string): void {
   mkdirSync(join(dir, "Projects"), { recursive: true })
-  writeFileSync(join(dir, "@inbox.md"), "# Inbox\n\n- [ ] Buy milk\n- [x] Done task\n")
+  writeFileSync(
+    join(dir, "@inbox.md"),
+    "# Inbox\n\n- [ ] Buy milk\n- [x] Done task\n",
+  )
   writeFileSync(join(dir, "Projects/work.md"), "# Work\n\n- [ ] Ship feature\n")
 }
 
@@ -83,7 +86,10 @@ describe("relative fs_path storage", () => {
     using repo = runGenerator(createRepo(dir, { loadFiles: true }))
 
     const nodes = repo.data.getAllNodes()
-    const fsPaths = nodes.map((n) => n.fs_path).filter(Boolean).sort()
+    const fsPaths = nodes
+      .map((n) => n.fs_path)
+      .filter(Boolean)
+      .sort()
 
     expect(fsPaths).toContain(".")
     expect(fsPaths).toContain("@inbox.md")
@@ -322,10 +328,14 @@ describe("portable repo", () => {
     }
 
     // Edit a node — DB update works at new location
-    const inboxNode = repo.data.getAllNodes().find((n) => n.fs_path === "@inbox.md")
+    const inboxNode = repo.data
+      .getAllNodes()
+      .find((n) => n.fs_path === "@inbox.md")
     expect(inboxNode).toBeDefined()
 
-    repo.updateNode(inboxNode!.id, { content: "# Inbox\n\n- [ ] Updated task\n" })
+    repo.updateNode(inboxNode!.id, {
+      content: "# Inbox\n\n- [ ] Updated task\n",
+    })
     const updated = repo.data.getNode(inboxNode!.id)
     expect(updated?.content).toContain("Updated task")
   })

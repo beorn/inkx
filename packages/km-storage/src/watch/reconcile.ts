@@ -135,7 +135,8 @@ export function reconcileDirectory(
         const newPrefix = relPath + "/"
         for (const [descRelPath, descNode] of dbByRelPath) {
           if (descRelPath.startsWith(oldPrefix)) {
-            const newDescRelPath = newPrefix + descRelPath.slice(oldPrefix.length)
+            const newDescRelPath =
+              newPrefix + descRelPath.slice(oldPrefix.length)
             ops.push({
               type: "rename",
               nodeId: descNode.id,

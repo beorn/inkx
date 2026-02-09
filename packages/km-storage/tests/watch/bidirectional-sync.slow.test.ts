@@ -615,7 +615,10 @@ describe("File & Folder Renames", () => {
 
         const subDir = join(repoDir, "notes")
         mkdirSync(subDir)
-        writeFileSync(join(subDir, "draft.md"), "# Draft\n\nWork in progress.\n")
+        writeFileSync(
+          join(subDir, "draft.md"),
+          "# Draft\n\nWork in progress.\n",
+        )
 
         await syncManager.syncFromFs()
 
@@ -656,7 +659,7 @@ describe("File & Folder Renames", () => {
         expect(fileNode).toBeDefined()
 
         // Title with filesystem-unsafe chars
-        repo.updateNode(fileNode!.id, { content: "What/When: A \"Plan\"" })
+        repo.updateNode(fileNode!.id, { content: 'What/When: A "Plan"' })
         await Bun.sleep(200)
 
         // Should sanitize slashes, colons and quotes
@@ -731,7 +734,9 @@ describe("File & Folder Renames", () => {
         expect(existsSync(join(repoDir, "archive", "readme.md"))).toBe(true)
 
         // DB should reflect new paths
-        const updatedFolder = getAllNodes(db).find((n) => n.id === folderNode!.id)
+        const updatedFolder = getAllNodes(db).find(
+          (n) => n.id === folderNode!.id,
+        )
         expect(updatedFolder!.fs_path).toBe("archive")
         expect(updatedFolder!.name).toBe("archive")
 

@@ -124,13 +124,15 @@ export function getNodeByPath(db: Database, fsPath: string): KNode | null {
 export function getNodesUnderPath(db: Database, dirPath: string): KNode[] {
   // For repo root ("."), match all file/folder nodes except the root node itself.
   // For subdirectories, use prefix match (e.g., "sub" matches "sub/file.md").
-  const query = dirPath === "."
-    ? `SELECT * FROM nodes WHERE fs_path IS NOT NULL AND id != '.' AND (type = 'folder' OR type = 'file')`
-    : `SELECT * FROM nodes WHERE (fs_path LIKE ? || '/%' OR fs_path = ?) AND (type = 'folder' OR type = 'file')`
+  const query =
+    dirPath === "."
+      ? `SELECT * FROM nodes WHERE fs_path IS NOT NULL AND id != '.' AND (type = 'folder' OR type = 'file')`
+      : `SELECT * FROM nodes WHERE (fs_path LIKE ? || '/%' OR fs_path = ?) AND (type = 'folder' OR type = 'file')`
 
-  const rows = dirPath === "."
-    ? db.query(query).all() as Record<string, unknown>[]
-    : db.query(query).all(dirPath, dirPath) as Record<string, unknown>[]
+  const rows =
+    dirPath === "."
+      ? (db.query(query).all() as Record<string, unknown>[])
+      : (db.query(query).all(dirPath, dirPath) as Record<string, unknown>[])
 
   return rows.map(rowToNode)
 }

@@ -181,8 +181,7 @@ export function getStoreHealth(
       .get() as { id: string } | undefined
     if (!rootExists && nodeCount > 0) {
       issues.push(
-        `Missing root node (.)\n` +
-          `      Run 'km doctor rebuild' to fix`,
+        `Missing root node (.)\n` + `      Run 'km doctor rebuild' to fix`,
       )
     }
   }

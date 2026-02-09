@@ -347,9 +347,9 @@ function setupDatabase(options?: LoadOptions): Database {
  * Creates it if missing; no-op if already present.
  */
 export function ensureRepoRootNode(db: Database, repoRoot: string): void {
-  const existing = db
-    .prepare("SELECT id FROM nodes WHERE id = '.'")
-    .get() as { id: string } | undefined
+  const existing = db.prepare("SELECT id FROM nodes WHERE id = '.'").get() as
+    | { id: string }
+    | undefined
 
   if (existing) return
 
@@ -579,9 +579,10 @@ function* applyEvents(
           const data = event.data as Record<string, unknown>
           // Normalize fs_path: old events may have absolute paths
           const rawFsPath = (data.fs_path as string) ?? null
-          const fsPath = rawFsPath && isAbsolute(rawFsPath)
-            ? toRelativeFsPath(repoRoot, rawFsPath)
-            : rawFsPath
+          const fsPath =
+            rawFsPath && isAbsolute(rawFsPath)
+              ? toRelativeFsPath(repoRoot, rawFsPath)
+              : rawFsPath
           // Normalize parent_id: null → "." (repo root)
           const parentId = (data.parent_id as string) ?? "."
           // INSERT OR IGNORE: in disk mode, state.db may already have nodes

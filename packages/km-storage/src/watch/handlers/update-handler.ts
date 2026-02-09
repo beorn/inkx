@@ -109,7 +109,10 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   }
 
   // Get existing nodes for this file (DB stores relative paths)
-  const existingNodes = getFileWithChildren(db, toRelativeFsPath(repoRoot, op.path))
+  const existingNodes = getFileWithChildren(
+    db,
+    toRelativeFsPath(repoRoot, op.path),
+  )
 
   log.debug?.(
     `handleUpdate: existing nodes count=${existingNodes.length}, new nodes count=${newNodes.length}`,
