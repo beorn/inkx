@@ -28,6 +28,7 @@ import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA } from "./schema.ts"
 import { addLink } from "./db.ts"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
+import { ensureRepoRootNode } from "./repo-loader.ts"
 import {
   findChildByContent,
   findFileByName,
@@ -108,20 +109,12 @@ abstract class BaseStore implements NodeStore {
   }
 
   getChildren(parentId: string | null): KNode[] {
-    let rows: Record<string, unknown>[]
-    if (parentId === null) {
-      rows = this.db
-        .query(
-          "SELECT * FROM nodes WHERE parent_id IS NULL ORDER BY parent_idx, created_at",
-        )
-        .all() as Record<string, unknown>[]
-    } else {
-      rows = this.db
-        .query(
-          "SELECT * FROM nodes WHERE parent_id = ? ORDER BY parent_idx, created_at",
-        )
-        .all(parentId) as Record<string, unknown>[]
-    }
+    const pid = parentId ?? "."
+    const rows = this.db
+      .query(
+        "SELECT * FROM nodes WHERE parent_id = ? ORDER BY parent_idx, created_at",
+      )
+      .all(pid) as Record<string, unknown>[]
     return rows.map(rowToNode)
   }
 
@@ -379,11 +372,12 @@ export class MemoryStore extends BaseStore {
     // Second pass: scan and parse in a transaction for performance
     // This matches disk mode's BEGIN/COMMIT pattern
     this.fileCount = 0
+    ensureRepoRootNode(this.db, this.rootPath)
     this.db.run("BEGIN IMMEDIATE")
     try {
       yield* this.scanDirectoryAsync(
         this.rootPath,
-        null,
+        ".",
         0,
         total,
         ignorePatterns,
@@ -454,11 +448,12 @@ export class MemoryStore extends BaseStore {
   private scanFilesystem(): void {
     this.parseErrors = []
     const ignorePatterns = getIgnorePatterns(this.rootPath)
+    ensureRepoRootNode(this.db, this.rootPath)
     this.db.run("BEGIN IMMEDIATE")
     try {
       for (const _ of this.scanDirectoryAsync(
         this.rootPath,
-        null,
+        ".",
         0,
         0,
         ignorePatterns,
@@ -488,7 +483,7 @@ export class MemoryStore extends BaseStore {
 
     // Skip ignored directories (but not the root directory)
     if (
-      parentId !== null &&
+      parentId !== "." &&
       shouldIgnore(dirPath, ignorePatterns, this.rootPath)
     ) {
       return

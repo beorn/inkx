@@ -165,7 +165,7 @@ function addNodeImpl(
   const nodeData = {
     id: nodeId,
     type: node.type ?? "task",
-    parent_id: parentId,
+    parent_id: parentId ?? ".",
     parent_idx: node.parent_idx ?? now,
     link_to: node.link_to ?? null,
     link_alias: node.link_alias ?? null,

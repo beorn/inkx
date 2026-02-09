@@ -93,9 +93,9 @@ describe("MemoryStore", () => {
     const files = allNodes.filter((n) => n.type === "file")
     expect(files.length).toBe(6) // tasks.md, notes.md, project-a.md, document.pdf, image.png, readme.txt
 
-    // Should have folders
+    // Should have folders (includes repo root node ".")
     const folders = allNodes.filter((n) => n.type === "folder")
-    expect(folders.length).toBe(2) // projects/, inbox/
+    expect(folders.length).toBe(3) // "." (root), projects/, inbox/
   })
 
   test("should include non-markdown files as nodes", () => {

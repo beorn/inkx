@@ -7,7 +7,7 @@
 
 import { createLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
-import { dirname } from "path"
+import { dirname, join } from "path"
 import type { KNode } from "@km/core"
 import { getNodesUnderPath, getNodeByPath } from "../db-queries/core-lookup.ts"
 import { scanDirectory } from "./watcher.ts"
@@ -88,6 +88,33 @@ export function reconcileDirectory(
     const existingByPath = dbByRelPath.get(relPath)
 
     if (existingByIno && existingByIno.fs_path !== relPath) {
+      // If the target path already has a DIFFERENT node, it's been displaced
+      // (e.g., folder A renamed to B, then later folder C renamed to B).
+      // Delete the displaced node and its descendants before renaming.
+      if (existingByPath && existingByPath.id !== existingByIno.id) {
+        ops.push({
+          type: "delete",
+          nodeId: existingByPath.id,
+          path: relPath,
+        })
+        dbByRelPath.delete(relPath)
+
+        // Also delete displaced descendants (they're ghost nodes now)
+        if (entry.isDirectory) {
+          const displacedPrefix = relPath + "/"
+          for (const [descPath, descNode] of dbByRelPath) {
+            if (descPath.startsWith(displacedPrefix)) {
+              ops.push({
+                type: "delete",
+                nodeId: descNode.id,
+                path: descPath,
+              })
+              dbByRelPath.delete(descPath)
+            }
+          }
+        }
+      }
+
       // Renamed (same inode, different path)
       ops.push({
         type: "rename",
@@ -99,6 +126,26 @@ export function reconcileDirectory(
       // Remove OLD path from dbByRelPath to prevent spurious delete op
       if (existingByIno.fs_path) {
         dbByRelPath.delete(existingByIno.fs_path)
+      }
+
+      // Cascade rename to all descendants when a directory is renamed.
+      // Without this, descendants keep their old fs_path and become stale nodes.
+      if (entry.isDirectory && existingByIno.fs_path) {
+        const oldPrefix = existingByIno.fs_path + "/"
+        const newPrefix = relPath + "/"
+        for (const [descRelPath, descNode] of dbByRelPath) {
+          if (descRelPath.startsWith(oldPrefix)) {
+            const newDescRelPath = newPrefix + descRelPath.slice(oldPrefix.length)
+            ops.push({
+              type: "rename",
+              nodeId: descNode.id,
+              oldPath: descRelPath,
+              path: join(repoRoot, newDescRelPath),
+              ino: descNode.fs_ino ?? 0,
+            })
+            dbByRelPath.delete(descRelPath)
+          }
+        }
       }
     } else if (existingByPath?.fs_ino && existingByPath.fs_ino !== entry.ino) {
       // Atomic write: same path but different inode
@@ -180,21 +227,40 @@ export function reconcileDirectoryRecursive(
     ...reconcileDirectory(db, dirPath, repoRoot, ignorePatterns, scanner),
   )
 
+  // Track paths already handled by parent-level ops (rename cascade + displaced deletes).
+  // When a folder is renamed, reconcileDirectory generates rename ops for all
+  // descendants and delete ops for any displaced nodes. Recursive descent into
+  // the renamed directory would generate duplicate ops for the same paths.
+  const handledPaths = new Set<string>()
+  for (const op of ops) {
+    if (op.type === "rename") {
+      handledPaths.add(op.path)
+    }
+  }
+
   // Get subdirectories and recursively reconcile them
   const fsEntries = scanner
     ? scanner(dirPath, ignorePatterns)
     : scanDirectory(dirPath, ignorePatterns)
   for (const entry of fsEntries) {
     if (entry.isDirectory) {
-      ops.push(
-        ...reconcileDirectoryRecursive(
-          db,
-          entry.path,
-          repoRoot,
-          ignorePatterns,
-          scanner,
-        ),
+      const childOps = reconcileDirectoryRecursive(
+        db,
+        entry.path,
+        repoRoot,
+        ignorePatterns,
+        scanner,
       )
+      for (const op of childOps) {
+        // Skip ops for paths already handled by parent cascade/displacement
+        if (handledPaths.has(op.path)) {
+          log.debug?.(
+            `skipping duplicate op for already-handled path: ${op.path}`,
+          )
+          continue
+        }
+        ops.push(op)
+      }
     }
   }
 

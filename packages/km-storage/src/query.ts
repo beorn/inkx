@@ -408,28 +408,39 @@ function buildPathCondition(
     //   - /root/inbox.md (the folder itself as a file)
     if (negated) {
       params.push(
-        `%/${normalizedPattern}/%`, // files inside folder
-        `%/${normalizedPattern}.md`, // the folder file itself
-        `%/${normalizedPattern}`, // exact match at end
+        `${normalizedPattern}/%`, // relative: files inside folder
+        `%/${normalizedPattern}/%`, // nested: files inside folder
+        `${normalizedPattern}.md`, // relative: the folder file itself
+        `%/${normalizedPattern}.md`, // nested: the folder file itself
+        normalizedPattern, // exact match (folder name)
       )
-      return ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ?))`
+      return ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} != ?))`
     }
     params.push(
-      `%/${normalizedPattern}/%`, // files inside folder
-      `%/${normalizedPattern}.md`, // the folder file itself
-      `%/${normalizedPattern}`, // exact match at end (for folder names without extension)
+      `${normalizedPattern}/%`, // relative: files inside folder
+      `%/${normalizedPattern}/%`, // nested: files inside folder
+      `${normalizedPattern}.md`, // relative: the folder file itself
+      `%/${normalizedPattern}.md`, // nested: the folder file itself
+      normalizedPattern, // exact match (folder name)
     )
-    return ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ?)`
+    return ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} = ?)`
   }
 
   // Non-recursive pattern (e.g., ./inbox$) - direct children only
   // Only matches files directly in the folder, not subfolders
   if (negated) {
-    params.push(`*/${normalizedPattern}/*[!/]*`)
-    return ` AND (${pathColumn} IS NULL OR ${pathColumn} NOT GLOB ?)`
+    params.push(
+      `${normalizedPattern}/*[!/]*`, // relative: direct children
+      `*/${normalizedPattern}/*[!/]*`, // nested: direct children
+    )
+    return ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT GLOB ? AND ${pathColumn} NOT GLOB ?))`
   }
   // Match direct children: /folder/file.md but not /folder/sub/file.md
-  // GLOB pattern: */folder/* where the part after folder/ has no more slashes
-  params.push(`*/${normalizedPattern}/*`, `*/${normalizedPattern}/*/*`)
-  return ` AND ${pathColumn} GLOB ? AND ${pathColumn} NOT GLOB ?`
+  params.push(
+    `${normalizedPattern}/*`, // relative: children
+    `*/${normalizedPattern}/*`, // nested: children
+    `${normalizedPattern}/*/*`, // relative: grandchildren (to exclude)
+    `*/${normalizedPattern}/*/*`, // nested: grandchildren (to exclude)
+  )
+  return ` AND (${pathColumn} GLOB ? OR ${pathColumn} GLOB ?) AND ${pathColumn} NOT GLOB ? AND ${pathColumn} NOT GLOB ?`
 }

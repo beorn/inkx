@@ -155,8 +155,8 @@ function getFilteredNodesWithQuery(
     nodes = repo.query(`type:${options.type}`)
   } else {
     // No type filter - get all nodes via subtree from root
-    nodes = repo.getChildren(null)
-    // Flatten to get all descendants
+    // Include root node itself, then all descendants
+    const rootNode = repo.getRepoRootNode()
     const getAllDescendants = (parentId: string | null): KNode[] => {
       const children = repo.getChildren(parentId)
       return children.flatMap((child: KNode) => [
@@ -164,7 +164,9 @@ function getFilteredNodesWithQuery(
         ...getAllDescendants(child.id),
       ])
     }
-    nodes = getAllDescendants(null)
+    nodes = rootNode
+      ? [rootNode, ...getAllDescendants(null)]
+      : getAllDescendants(null)
   }
 
   // Apply query filter if provided

@@ -16,16 +16,10 @@ import { rowToNode } from "./utils.ts"
  * Get count of children for a node (cheap COUNT query for lazy loading)
  */
 export function getChildCount(db: Database, parentId: string | null): number {
-  if (parentId === null) {
-    const result = db
-      .query("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL")
-      .get() as { count: number } | null
-    return result?.count ?? 0
-  }
-
+  const pid = parentId ?? "."
   const result = db
     .query("SELECT COUNT(*) as count FROM nodes WHERE parent_id = ?")
-    .get(parentId) as { count: number } | null
+    .get(pid) as { count: number } | null
   return result?.count ?? 0
 }
 
@@ -67,28 +61,16 @@ export function getChildCountsBatch(
  * Get children of a node
  */
 export function getChildren(db: Database, parentId: string | null): KNode[] {
-  let rows: Record<string, unknown>[]
-  if (parentId === null) {
-    rows = db
-      .query(
-        `
-      SELECT * FROM nodes
-      WHERE parent_id IS NULL
-      ORDER BY parent_idx, created_at
-    `,
-      )
-      .all() as Record<string, unknown>[]
-  } else {
-    rows = db
-      .query(
-        `
+  const pid = parentId ?? "."
+  const rows = db
+    .query(
+      `
       SELECT * FROM nodes
       WHERE parent_id = ?
       ORDER BY parent_idx, created_at
     `,
-      )
-      .all(parentId) as Record<string, unknown>[]
-  }
+    )
+    .all(pid) as Record<string, unknown>[]
 
   return rows.map(rowToNode)
 }

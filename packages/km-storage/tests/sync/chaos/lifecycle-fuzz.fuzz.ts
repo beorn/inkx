@@ -485,25 +485,9 @@ function getFsAndDbPaths(
  * Check that no data is lost: every .md file on disk has a DB node.
  * This is the CRITICAL invariant — data loss is never acceptable.
  */
-function checkNoDataLoss(
-  db: Database,
-  mockFs: ReturnType<typeof createFakeFileSystem>,
-  repoDir: string,
-  label: string,
-) {
-  const { fsMdFiles, dbPaths } = getFsAndDbPaths(db, mockFs, repoDir)
-  const missing = [...fsMdFiles].filter((p) => !dbPaths.has(p))
-
-  expect(
-    missing.length,
-    `[${label}] Data loss — FS files without DB nodes: ${missing.join(", ")}`,
-  ).toBe(0)
-}
-
 /**
  * Check both directions: every FS file has a DB node AND every DB node
- * has a FS file. Only use for tests without folder renames, since
- * the reconciler leaves stale DB nodes after folder renames (known limitation).
+ * has a FS file (no stale ghost nodes remain after reconciliation).
  */
 function checkFsDbSync(
   db: Database,
@@ -558,7 +542,7 @@ describe("Lifecycle Fuzz Tests", () => {
       // Folder renames leave stale DB nodes — known reconciler limitation.
       // Check no data loss (FS→DB) but not stale nodes (DB→FS).
       checkInvariants(env.verifier, "lifecycle")
-      checkNoDataLoss(env.db, env.mockFs, env.repoDir, "lifecycle")
+      checkFsDbSync(env.db, env.mockFs, env.repoDir, "lifecycle")
     } finally {
       env.db.close()
     }
@@ -671,7 +655,7 @@ describe("Lifecycle Fuzz Tests", () => {
       }
 
       checkInvariants(env.verifier, "folder-ops")
-      checkNoDataLoss(env.db, env.mockFs, env.repoDir, "folder-ops")
+      checkFsDbSync(env.db, env.mockFs, env.repoDir, "folder-ops")
     } finally {
       env.db.close()
     }
@@ -790,7 +774,7 @@ describe("Lifecycle Fuzz Tests", () => {
         }
 
         checkInvariants(env.verifier, "folder-rename-cascade")
-        checkNoDataLoss(env.db, env.mockFs, env.repoDir, "folder-rename-cascade")
+        checkFsDbSync(env.db, env.mockFs, env.repoDir, "folder-rename-cascade")
       } finally {
         env.db.close()
       }
@@ -822,7 +806,7 @@ describe("Lifecycle Fuzz Tests", () => {
       }
 
       checkInvariants(env.verifier, "stress")
-      checkNoDataLoss(env.db, env.mockFs, env.repoDir, "stress")
+      checkFsDbSync(env.db, env.mockFs, env.repoDir, "stress")
     } finally {
       env.db.close()
     }
@@ -951,7 +935,7 @@ describe("Lifecycle Fuzz Tests", () => {
       }
 
       checkInvariants(env.verifier, "deep-nesting")
-      checkNoDataLoss(env.db, env.mockFs, env.repoDir, "deep-nesting")
+      checkFsDbSync(env.db, env.mockFs, env.repoDir, "deep-nesting")
     } finally {
       env.db.close()
     }
@@ -1043,7 +1027,7 @@ describe("Lifecycle Fuzz Tests", () => {
       }
 
       checkInvariants(env.verifier, "rename-chains")
-      checkNoDataLoss(env.db, env.mockFs, env.repoDir, "rename-chains")
+      checkFsDbSync(env.db, env.mockFs, env.repoDir, "rename-chains")
     } finally {
       env.db.close()
     }

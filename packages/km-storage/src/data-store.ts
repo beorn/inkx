@@ -158,9 +158,10 @@ export function createMapDataStore(): MapDataStore {
     },
 
     getChildren(parentId) {
+      const pid = parentId ?? "."
       const children: KNode[] = []
       for (const node of nodes.values()) {
-        if (node.parent_id === parentId) {
+        if (node.parent_id === pid) {
           children.push(node)
         }
       }
@@ -191,7 +192,7 @@ export function createMapDataStore(): MapDataStore {
       const node: KNode = {
         id,
         type: nodeData.type ?? "task",
-        parent_id: parentId,
+        parent_id: parentId ?? ".",
         parent_idx: nodeData.parent_idx ?? now,
         link_to: nodeData.link_to ?? null,
         link_alias: nodeData.link_alias,

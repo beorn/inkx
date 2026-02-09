@@ -440,10 +440,28 @@ export class SyncManager extends EventEmitter {
 
     const node = getNode(this.db, event.target)
     if (!node) return
+    const changes = event.data as Partial<KNode>
+
+    // Folder rename: content change on a folder → rename directory on disk
+    if (node.type === "folder" && node.fs_path && changes.content) {
+      this.handleFolderRename(node, changes.content, event.id)
+      return
+    }
 
     // Find the file this node belongs to
     const fileNode = findFileNode(this.db, node)
-    if (!fileNode?.fs_path) return
+    if (!fileNode?.fs_path) {
+      log.warn?.(
+        `handleNodeUpdated: no file node found for ${node.id} (type=${node.type})`,
+      )
+      return
+    }
+
+    // File rename: content change on the file node itself → rename .md file on disk
+    if (node.id === fileNode.id && changes.content && fileNode.fs_path.endsWith(".md")) {
+      this.handleFileRename(fileNode, changes.content, event.id)
+      // After rename, still regenerate content at the new path (fall through)
+    }
 
     const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
 
@@ -460,6 +478,91 @@ export class SyncManager extends EventEmitter {
       content,
       sourceEventId: event.id,
     })
+  }
+
+  /**
+   * Rename a folder directory on disk and update all descendant fs_path values.
+   */
+  private handleFolderRename(
+    node: KNode,
+    newName: string,
+    eventId: string,
+  ): void {
+    const oldFsPath = node.fs_path ?? ""
+    const oldAbsPath = toAbsoluteFsPath(this.config.repoPath, oldFsPath)
+    const parentDir = dirname(oldFsPath)
+    const newFsPath = parentDir === "." ? newName : join(parentDir, newName)
+    const newAbsPath = toAbsoluteFsPath(this.config.repoPath, newFsPath)
+
+    if (oldAbsPath === newAbsPath) return
+
+    // Collision check: don't overwrite an existing directory
+    if (existsSync(newAbsPath)) {
+      log.warn?.(`folder rename aborted: target already exists: ${newFsPath}`)
+      return
+    }
+
+    log.info?.(`folder rename: ${oldFsPath} → ${newFsPath}`)
+
+    // Queue the directory rename
+    this.writeQueue.queueRename(oldAbsPath, newAbsPath, eventId)
+
+    // Update fs_path for this node and all descendants in DB
+    // Use REPLACE to update paths that start with the old prefix
+    const oldPrefix = oldFsPath + "/"
+    const newPrefix = newFsPath + "/"
+    this.db.run(
+      "UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?",
+      [newFsPath, newName, Date.now(), node.id],
+    )
+    // Update all descendants whose fs_path starts with oldPrefix
+    this.db.run(
+      `UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?), updated_at = ? WHERE fs_path LIKE ?`,
+      [newPrefix, oldPrefix.length + 1, Date.now(), oldPrefix + "%"],
+    )
+  }
+
+  /**
+   * Rename a .md file on disk when its H1 title changes.
+   * Derives new filename from the title, renames the file, updates DB.
+   * Mutates fileNode.fs_path and fileNode.name in place so callers use the new path.
+   */
+  private handleFileRename(
+    fileNode: KNode,
+    newTitle: string,
+    eventId: string,
+  ): void {
+    const oldFsPath = fileNode.fs_path!
+    const newFileName = titleToFilename(newTitle)
+    const parentDir = dirname(oldFsPath)
+    const newFsPath = parentDir === "." ? newFileName : join(parentDir, newFileName)
+
+    if (oldFsPath === newFsPath) return
+
+    const oldAbsPath = toAbsoluteFsPath(this.config.repoPath, oldFsPath)
+    const newAbsPath = toAbsoluteFsPath(this.config.repoPath, newFsPath)
+
+    // Collision check: don't overwrite an existing file
+    if (existsSync(newAbsPath)) {
+      log.warn?.(`file rename aborted: target already exists: ${newFsPath}`)
+      return
+    }
+
+    log.info?.(`file rename: ${oldFsPath} → ${newFsPath}`)
+
+    // Queue the file rename
+    this.writeQueue.queueRename(oldAbsPath, newAbsPath, eventId)
+
+    // Update DB: fs_path and name
+    const newName = newFileName.replace(/\.md$/i, "")
+    this.db.run(
+      "UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?",
+      [newFsPath, newName, Date.now(), fileNode.id],
+    )
+
+    // Mutate the node so the caller writes content to the new path
+    fileNode.fs_path = newFsPath
+    fileNode.name = newName
   }
 
   /**
@@ -843,4 +946,19 @@ function findFileNode(db: Database, node: KNode): KNode | null {
   }
 
   return findFileNode(db, parent)
+}
+
+/**
+ * Convert a title to a safe filename.
+ * Preserves case, replaces unsafe chars with dashes, appends .md.
+ */
+function titleToFilename(title: string): string {
+  const name = title
+    .trim()
+    .replace(/[/\\:*?"<>|]/g, "-") // Replace filesystem-unsafe chars
+    .replace(/\s+/g, " ") // Normalize whitespace but keep spaces (readable filenames)
+    .replace(/^\.+/, "") // Remove leading dots (hidden files)
+    .replace(/-+/g, "-") // Collapse multiple dashes
+    .replace(/^-|-$/g, "") // Remove leading/trailing dashes
+  return (name || "untitled") + ".md"
 }

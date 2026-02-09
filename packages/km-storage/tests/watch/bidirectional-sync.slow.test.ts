@@ -11,7 +11,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { rmSync, writeFileSync, readFileSync } from "fs"
+import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { EventEmitter } from "events"
 
@@ -542,6 +542,239 @@ describe("Full Round-Trip", () => {
         const updated = getAllNodes(db).find((n) => n.type === "task")
         expect(updated).toBeDefined()
         expect(updated!.task_status).toBe("done")
+      }))
+  })
+})
+
+/**
+ * File & Folder Rename Tests
+ *
+ * Verifies that renaming files/folders through the TUI (content edit)
+ * correctly renames the corresponding filesystem entries.
+ */
+describe("File & Folder Renames", () => {
+  describe("File rename (H1 title → filename)", () => {
+    test("editing file node content renames .md file on disk", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        const testFile = join(repoDir, "old-name.md")
+        writeFileSync(testFile, "# Old Name\n\nSome content.\n")
+
+        await syncManager.syncFromFs()
+
+        // Find the file node
+        const fileNode = getAllNodes(db).find((n) => n.type === "file")
+        expect(fileNode).toBeDefined()
+        expect(fileNode!.content).toBe("Old Name")
+
+        // Simulate TUI edit: change the H1 title (which is the file node's content)
+        repo.updateNode(fileNode!.id, { content: "New Name" })
+
+        // Wait for write queue to flush
+        await Bun.sleep(200)
+
+        // Old file should be gone, new file should exist
+        expect(existsSync(join(repoDir, "old-name.md"))).toBe(false)
+        expect(existsSync(join(repoDir, "New Name.md"))).toBe(true)
+
+        // New file should have the updated content
+        const content = readFileSync(join(repoDir, "New Name.md"), "utf-8")
+        expect(content).toContain("# New Name")
+        expect(content).toContain("Some content.")
+
+        // DB should reflect the new path
+        const updated = getAllNodes(db).find((n) => n.id === fileNode!.id)
+        expect(updated!.fs_path).toBe("New Name.md")
+        expect(updated!.name).toBe("New Name")
+      }))
+
+    test("file rename in subdirectory preserves parent path", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        const subDir = join(repoDir, "notes")
+        mkdirSync(subDir)
+        writeFileSync(join(subDir, "draft.md"), "# Draft\n\nWork in progress.\n")
+
+        await syncManager.syncFromFs()
+
+        const fileNode = getAllNodes(db).find(
+          (n) => n.type === "file" && n.fs_path?.includes("draft"),
+        )
+        expect(fileNode).toBeDefined()
+
+        repo.updateNode(fileNode!.id, { content: "Published" })
+        await Bun.sleep(200)
+
+        // Should be at notes/Published.md
+        expect(existsSync(join(subDir, "draft.md"))).toBe(false)
+        expect(existsSync(join(subDir, "Published.md"))).toBe(true)
+
+        const updated = getAllNodes(db).find((n) => n.id === fileNode!.id)
+        expect(updated!.fs_path).toBe("notes/Published.md")
+      }))
+
+    test("file rename with unsafe chars sanitizes filename", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        writeFileSync(join(repoDir, "safe.md"), "# Safe\n")
+        await syncManager.syncFromFs()
+
+        const fileNode = getAllNodes(db).find((n) => n.type === "file")
+        expect(fileNode).toBeDefined()
+
+        // Title with filesystem-unsafe chars
+        repo.updateNode(fileNode!.id, { content: "What/When: A \"Plan\"" })
+        await Bun.sleep(200)
+
+        // Should sanitize slashes, colons and quotes
+        expect(existsSync(join(repoDir, "safe.md"))).toBe(false)
+        const newFile = join(repoDir, "What-When- A -Plan.md")
+        expect(existsSync(newFile)).toBe(true)
+      }))
+
+    test("no rename when content unchanged from filename", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        writeFileSync(join(repoDir, "My Note.md"), "# My Note\n\nBody text.\n")
+        await syncManager.syncFromFs()
+
+        const fileNode = getAllNodes(db).find((n) => n.type === "file")
+        expect(fileNode).toBeDefined()
+
+        // Update content to same value as existing filename
+        repo.updateNode(fileNode!.id, { content: "My Note" })
+        await Bun.sleep(200)
+
+        // File should still be at original path (no rename)
+        expect(existsSync(join(repoDir, "My Note.md"))).toBe(true)
+      }))
+  })
+
+  describe("Folder rename (content → directory name)", () => {
+    test("editing folder content renames directory on disk", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        const oldDir = join(repoDir, "projects")
+        mkdirSync(oldDir)
+        writeFileSync(join(oldDir, "readme.md"), "# Projects Readme\n")
+
+        await syncManager.syncFromFs()
+
+        const folderNode = getAllNodes(db).find((n) => n.type === "folder")
+        expect(folderNode).toBeDefined()
+        expect(folderNode!.content).toBe("projects")
+
+        // Rename the folder
+        repo.updateNode(folderNode!.id, { content: "archive" })
+        await Bun.sleep(200)
+
+        // Old dir gone, new dir exists
+        expect(existsSync(join(repoDir, "projects"))).toBe(false)
+        expect(existsSync(join(repoDir, "archive"))).toBe(true)
+
+        // Child file should be accessible at new path
+        expect(existsSync(join(repoDir, "archive", "readme.md"))).toBe(true)
+
+        // DB should reflect new paths
+        const updatedFolder = getAllNodes(db).find((n) => n.id === folderNode!.id)
+        expect(updatedFolder!.fs_path).toBe("archive")
+        expect(updatedFolder!.name).toBe("archive")
+
+        // Child nodes should have updated fs_path
+        const childFile = getAllNodes(db).find(
+          (n) => n.type === "file" && n.fs_path?.includes("readme"),
+        )
+        expect(childFile!.fs_path).toBe("archive/readme.md")
+      }))
+
+    test("folder rename preserves nested content", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        const dir = join(repoDir, "inbox")
+        mkdirSync(dir)
+        writeFileSync(join(dir, "note.md"), "# My Note\n\n- [ ] Task here\n")
+
+        await syncManager.syncFromFs()
+
+        const folderNode = getAllNodes(db).find((n) => n.type === "folder")
+        expect(folderNode).toBeDefined()
+
+        repo.updateNode(folderNode!.id, { content: "processed" })
+        await Bun.sleep(200)
+
+        // Verify the file content survived the rename
+        const content = readFileSync(
+          join(repoDir, "processed", "note.md"),
+          "utf-8",
+        )
+        expect(content).toContain("# My Note")
+        expect(content).toContain("Task here")
       }))
   })
 })

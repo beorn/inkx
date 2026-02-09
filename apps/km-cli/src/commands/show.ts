@@ -6,6 +6,7 @@
 
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
+import { join } from "path"
 
 const term = createTerm(process)
 import { resolvePathArg, type Repo, type Link } from "@km/storage"
@@ -54,7 +55,7 @@ export const showCommand = new Command("show")
       return
     }
 
-    displayFields(node)
+    displayFields(node, resolved.repoRoot)
     displayChildren(node, options, repo)
     displayLinks(node, options, repo)
   })
@@ -77,9 +78,13 @@ function outputJson(node: KNode, options: ShowOptions, repo: Repo): void {
 /**
  * Display node fields, refs, and other data
  */
-function displayFields(node: KNode): void {
+function displayFields(node: KNode, rootPath: string): void {
   for (const f of DISPLAY_FIELDS) {
-    const val = f.get?.(node) ?? (node as Record<string, unknown>)[f.key]
+    let val = f.get?.(node) ?? (node as Record<string, unknown>)[f.key]
+    // Convert relative fs_path to absolute for display
+    if (f.key === "fs_path" && typeof val === "string" && !val.startsWith("/")) {
+      val = join(rootPath, val)
+    }
     if (val !== undefined && val !== null) {
       console.log(term.bold(`${f.label}:`), val)
     }

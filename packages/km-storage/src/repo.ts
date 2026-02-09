@@ -150,7 +150,7 @@ function createQueryMethods(deps: RepoMethodDeps) {
     getRepoRootNode() {
       const row = db
         .prepare(
-          "SELECT * FROM nodes WHERE parent_id IS NULL AND type = 'folder'",
+          "SELECT * FROM nodes WHERE id = '.' AND type = 'folder'",
         )
         .get() as Record<string, unknown> | undefined
       if (!row) return null
@@ -747,7 +747,7 @@ function isDatabaseIncomplete(
   const rootStructural = (
     db
       .prepare(
-        "SELECT COUNT(*) as cnt FROM nodes WHERE (parent_id IS NULL OR parent_id = '.') AND id != '.' AND type IN ('file', 'folder')",
+        "SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type IN ('file', 'folder')",
       )
       .get() as { cnt: number }
   ).cnt

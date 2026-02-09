@@ -11,6 +11,7 @@
 
 import { describe, test, expect } from "vitest"
 import { join } from "path"
+import { writeFileSync } from "fs"
 import { ulid } from "ulid"
 
 import { resolveNode } from "../src/db.ts"
@@ -271,5 +272,26 @@ describe("resolveNode", () => {
       const node = resolveNode(db, "areas/work/projects")
       expect(node).not.toBeNull()
       expect(node?.fs_path).toBe(fsPath)
+    }))
+
+  test("resolves explicit path through symlinks (macOS /tmp → /private/tmp)", () =>
+    withTestEnvSync(({ repoDir, db, emitter }) => {
+      // Create file on disk so realpathSync can resolve symlinks
+      const filePath = join(repoDir, "test.md")
+      writeFileSync(filePath, "# Test")
+
+      // Store node with relative fs_path (as production code does)
+      emitter.emit({
+        type: "node_created",
+        actor: "test",
+        data: { id: ulid(), type: "file", fs_path: "test.md" },
+      })
+
+      // repoDir is under /tmp which is a symlink to /private/tmp on macOS.
+      // resolveExplicitPath uses realpathSync on the query but must also
+      // resolve repoRoot to produce correct relative paths for DB lookup.
+      const node = resolveNode(db, filePath, { repoRoot: repoDir })
+      expect(node).not.toBeNull()
+      expect(node?.fs_path).toBe("test.md")
     }))
 })

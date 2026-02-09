@@ -134,25 +134,28 @@ function createQueryContext(
 // Resolution Strategies
 // =============================================================================
 
+/** Try to resolve symlinks via realpathSync. Returns original path on failure. */
+function tryRealpath(p: string): string {
+  if (!existsSync(p)) return p
+  try {
+    return realpathSync(p)
+  } catch {
+    return p
+  }
+}
+
 /** Strategy 1: Explicit filesystem paths (/, ./, ../) */
 function resolveExplicitPath(ctx: QueryContext): KNode | null {
   const { q, filterClause, params, getOne, repoRoot } = ctx
 
-  // Resolve to absolute path, then normalize with realpath if file exists
-  // This handles symlinks like /tmp -> /private/tmp on macOS
-  let absolutePath = resolve(process.cwd(), q)
-  if (existsSync(absolutePath)) {
-    try {
-      absolutePath = realpathSync(absolutePath)
-    } catch {
-      // Keep original path if realpath fails
-    }
-  }
+  // Resolve to absolute path, normalizing symlinks (e.g., /tmp → /private/tmp on macOS)
+  const absolutePath = tryRealpath(resolve(process.cwd(), q))
   log.debug?.(`resolveNode: explicit path -> ${absolutePath}`)
 
   // Convert to relative path for DB lookup (DB stores relative paths)
-  const queryPath = repoRoot
-    ? toRelativeFsPath(repoRoot, absolutePath)
+  const resolvedRepoRoot = repoRoot ? tryRealpath(repoRoot) : undefined
+  const queryPath = resolvedRepoRoot
+    ? toRelativeFsPath(resolvedRepoRoot, absolutePath)
     : absolutePath
 
   // Exact path match
@@ -189,7 +192,15 @@ function resolveRelativePath(ctx: QueryContext): KNode | null {
   const { q, filterClause, params, getOne } = ctx
   log.debug?.("resolveNode: relative path")
 
-  // Try exact fs_path suffix match
+  // Try exact fs_path match (relative paths are stored without leading /)
+  const exactNode = getOne(
+    `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
+    q,
+    ...params,
+  )
+  if (exactNode) return exactNode
+
+  // Try fs_path suffix match (for nested paths)
   const node = getOne(
     `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
     `%/${q}`,
@@ -199,6 +210,13 @@ function resolveRelativePath(ctx: QueryContext): KNode | null {
 
   // Try with .md extension
   if (!q.endsWith(".md")) {
+    const exactMdNode = getOne(
+      `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
+      `${q}.md`,
+      ...params,
+    )
+    if (exactMdNode) return exactMdNode
+
     const mdNode = getOne(
       `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
       `%/${q}.md`,
@@ -253,7 +271,18 @@ function resolveBareName(ctx: QueryContext): KNode | null {
   )
   if (nameMdMatch) return nameMdMatch
 
-  // fs_path suffix (filename match)
+  // Exact fs_path match (relative paths stored without leading /)
+  const exactFsMatch = checkAmbiguity(
+    getAll(
+      `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
+      q,
+      ...params,
+    ),
+    "fs_path exact",
+  )
+  if (exactFsMatch) return exactFsMatch
+
+  // fs_path suffix (filename match for nested paths)
   const suffixMatch = checkAmbiguity(
     getAll(
       `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
@@ -264,8 +293,18 @@ function resolveBareName(ctx: QueryContext): KNode | null {
   )
   if (suffixMatch) return suffixMatch
 
-  // fs_path suffix with .md extension
+  // fs_path with .md extension
   if (!q.endsWith(".md")) {
+    const exactFsMdMatch = checkAmbiguity(
+      getAll(
+        `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
+        `${q}.md`,
+        ...params,
+      ),
+      "fs_path exact+.md",
+    )
+    if (exactFsMdMatch) return exactFsMdMatch
+
     const suffixMdMatch = checkAmbiguity(
       getAll(
         `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,

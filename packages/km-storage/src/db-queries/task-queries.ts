@@ -177,6 +177,7 @@ export function findProject(db: Database, name: string): KNode | null {
       LOWER(content) = ?
       OR LOWER(content) LIKE ?
       OR fs_path LIKE ?
+      OR fs_path LIKE ?
     )
     LIMIT 10
   `,
@@ -184,6 +185,7 @@ export function findProject(db: Database, name: string): KNode | null {
     .all(
       normalizedName,
       `%${normalizedName}%`,
+      `${normalizedName}%`,
       `%/${normalizedName}%`,
     ) as Record<string, unknown>[]
 
