@@ -411,7 +411,7 @@ export function testEnv(
       { value: store as StoreApi<unknown> },
       React.createElement(RepoProvider, { repo, children: boardElement }),
     ),
-    options?.incremental ? { incremental: true } : undefined,
+    { incremental: options?.incremental ?? false },
   )
 
   // Override press to route through handleKey (same path as driver/production)
@@ -618,7 +618,7 @@ export function testEnvWithRepo(
       { value: store as StoreApi<unknown> },
       React.createElement(RepoProvider, { repo, children: boardElement }),
     ),
-    options?.incremental ? { incremental: true } : undefined,
+    { incremental: options?.incremental ?? false },
   )
 
   // Override press to route through handleKey (same path as driver/production)
@@ -632,7 +632,11 @@ export function testEnvWithRepo(
         () => {},
       )
     })
-    void originalPress(key)
+    // Flush remaining React effects via originalPress (must be inside act()
+    // to avoid ConcurrentRoot scheduling issues that corrupt absolute-positioned dialogs)
+    act(() => {
+      void originalPress(key)
+    })
   }
 
   // Create fluent API with disposable pattern

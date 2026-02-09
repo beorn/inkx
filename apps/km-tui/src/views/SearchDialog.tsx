@@ -19,10 +19,6 @@ import {
 import { parseQuery, type QueryAST } from "@km/core"
 import { useLineEdit } from "../hooks/use-line-edit.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
-import {
-  createSuspenseLoader,
-  type SuspenseLoader,
-} from "../hooks/use-suspense-loader.ts"
 
 // Minimum query length before searching (prevents heavy queries on single chars)
 const MIN_QUERY_LENGTH = 2
@@ -159,11 +155,11 @@ function filterResults(
 }
 
 // =============================================================================
-// SearchResults component (suspends while loading)
+// SearchResults component
 // =============================================================================
 
 interface SearchResultsProps {
-  loader: SuspenseLoader<SearchResult[]>
+  results: SearchResult[]
   query: string
   selectedIndex: number
   scrollOffset: number
@@ -171,16 +167,15 @@ interface SearchResultsProps {
 }
 
 function SearchResults({
-  loader,
+  results,
   query,
   selectedIndex,
   scrollOffset,
   maxVisible,
 }: SearchResultsProps): React.ReactElement {
-  const allResults = loader.read() // Suspends if not ready
   const filteredResults = React.useMemo(
-    () => filterResults(allResults, query),
-    [allResults, query],
+    () => filterResults(results, query),
+    [results, query],
   )
 
   const visibleResults = filteredResults.slice(
@@ -261,13 +256,12 @@ export const SearchDialog = React.forwardRef<
     }
   }, []) // Only on mount
 
-  const deferredQuery = React.useDeferredValue(lineEdit.value)
-  const trimmedQuery = deferredQuery.trim()
+  const trimmedQuery = lineEdit.value.trim()
 
-  // Create loader only when query is long enough (lazy load)
-  const loaderRef = React.useRef<SuspenseLoader<SearchResult[]> | null>(null)
-  if (trimmedQuery.length >= MIN_QUERY_LENGTH && !loaderRef.current) {
-    loaderRef.current = createSuspenseLoader(() => loadSearchResults(repo))
+  // Load search results synchronously on first need (SQLite queries are fast)
+  const allResultsRef = React.useRef<SearchResult[] | null>(null)
+  if (trimmedQuery.length >= MIN_QUERY_LENGTH && !allResultsRef.current) {
+    allResultsRef.current = loadSearchResults(repo)
   }
 
   React.useImperativeHandle(ref, () => ({
@@ -304,9 +298,8 @@ export const SearchDialog = React.forwardRef<
         setSelectedIndex((i) => i + 1) // Clamped by rendering
       },
       confirm() {
-        if (loaderRef.current?.status === "resolved") {
-          const allResults = loaderRef.current.read()
-          const filtered = filterResults(allResults, trimmedQueryRef.current)
+        if (allResultsRef.current) {
+          const filtered = filterResults(allResultsRef.current, trimmedQueryRef.current)
           const selected = filtered[selectedIndexRef.current]
           if (selected) {
             onSelectRef.current(selected.node)
@@ -325,8 +318,8 @@ export const SearchDialog = React.forwardRef<
   // Calculate scroll offset and content-based height
   let scrollOffset = 0
   let filteredCount = 0
-  if (loaderRef.current?.status === "resolved") {
-    const filtered = filterResults(loaderRef.current.read(), trimmedQuery)
+  if (allResultsRef.current) {
+    const filtered = filterResults(allResultsRef.current, trimmedQuery)
     filteredCount = filtered.length
     scrollOffset = Math.max(
       0,
@@ -391,16 +384,14 @@ export const SearchDialog = React.forwardRef<
                 ? "Type to search..."
                 : `Type ${MIN_QUERY_LENGTH - trimmedQuery.length} more char${MIN_QUERY_LENGTH - trimmedQuery.length > 1 ? "s" : ""}...`}
             </Text>
-          ) : loaderRef.current ? (
-            <React.Suspense fallback={<Text dimColor> Loading...</Text>}>
-              <SearchResults
-                loader={loaderRef.current}
-                query={trimmedQuery}
-                selectedIndex={selectedIndex}
-                scrollOffset={scrollOffset}
-                maxVisible={maxVisible}
-              />
-            </React.Suspense>
+          ) : allResultsRef.current ? (
+            <SearchResults
+              results={allResultsRef.current}
+              query={trimmedQuery}
+              selectedIndex={selectedIndex}
+              scrollOffset={scrollOffset}
+              maxVisible={maxVisible}
+            />
           ) : null}
         </Box>
       </ErrorBoundary>
