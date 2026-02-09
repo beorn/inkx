@@ -13,6 +13,43 @@
 
 import type { CommandDef, CommandAction } from "../types.ts"
 
+/** Shift+number symbol for each digit 1-9 */
+const SHIFT_NUMBER_SYMBOLS = ["!", "@", "#", "$", "%", "^", "&", "*", "("]
+
+/** Generate favorite commands (1-9): jump to favorite board N via number key */
+const favoriteCommands = ((): CommandDef[] =>
+  Array.from({ length: 9 }, (_, i) => {
+    const n = i + 1
+    return {
+      id: `favorite_${n}`,
+      name: `Favorite ${n}`,
+      description: `Jump to favorite board ${n}`,
+      category: "Navigation",
+      shortcuts: [`${n}`],
+      execute: (): CommandAction => ({
+        type: "JUMP_TO_FAVORITE",
+        favoriteNumber: n,
+      }),
+    }
+  }))()
+
+/** Generate column jump commands (1-9): jump to column N via Shift+number */
+const columnJumpCommands = ((): CommandDef[] =>
+  Array.from({ length: 9 }, (_, i) => {
+    const n = i + 1
+    return {
+      id: `column_${n}`,
+      name: `Column ${n}`,
+      description: `Jump to column ${n}`,
+      category: "Navigation",
+      shortcuts: [SHIFT_NUMBER_SYMBOLS[i]!],
+      execute: (): CommandAction => ({
+        type: "JUMP_TO_COLUMN",
+        columnNumber: n,
+      }),
+    }
+  }))()
+
 export const tuiCommands: CommandDef[] = [
   // Quit
   {
@@ -55,179 +92,10 @@ export const tuiCommands: CommandDef[] = [
   },
 
   // Favorites (1-9)
-  {
-    id: "favorite_1",
-    name: "Favorite 1",
-    description: "Jump to favorite board 1",
-    category: "Navigation",
-    shortcuts: ["1"],
-    execute: (): CommandAction => ({
-      type: "JUMP_TO_FAVORITE",
-      favoriteNumber: 1,
-    }),
-  },
-  {
-    id: "favorite_2",
-    name: "Favorite 2",
-    description: "Jump to favorite board 2",
-    category: "Navigation",
-    shortcuts: ["2"],
-    execute: (): CommandAction => ({
-      type: "JUMP_TO_FAVORITE",
-      favoriteNumber: 2,
-    }),
-  },
-  {
-    id: "favorite_3",
-    name: "Favorite 3",
-    description: "Jump to favorite board 3",
-    category: "Navigation",
-    shortcuts: ["3"],
-    execute: (): CommandAction => ({
-      type: "JUMP_TO_FAVORITE",
-      favoriteNumber: 3,
-    }),
-  },
-  {
-    id: "favorite_4",
-    name: "Favorite 4",
-    description: "Jump to favorite board 4",
-    category: "Navigation",
-    shortcuts: ["4"],
-    execute: (): CommandAction => ({
-      type: "JUMP_TO_FAVORITE",
-      favoriteNumber: 4,
-    }),
-  },
-  {
-    id: "favorite_5",
-    name: "Favorite 5",
-    description: "Jump to favorite board 5",
-    category: "Navigation",
-    shortcuts: ["5"],
-    execute: (): CommandAction => ({
-      type: "JUMP_TO_FAVORITE",
-      favoriteNumber: 5,
-    }),
-  },
-  {
-    id: "favorite_6",
-    name: "Favorite 6",
-    description: "Jump to favorite board 6",
-    category: "Navigation",
-    shortcuts: ["6"],
-    execute: (): CommandAction => ({
-      type: "JUMP_TO_FAVORITE",
-      favoriteNumber: 6,
-    }),
-  },
-  {
-    id: "favorite_7",
-    name: "Favorite 7",
-    description: "Jump to favorite board 7",
-    category: "Navigation",
-    shortcuts: ["7"],
-    execute: (): CommandAction => ({
-      type: "JUMP_TO_FAVORITE",
-      favoriteNumber: 7,
-    }),
-  },
-  {
-    id: "favorite_8",
-    name: "Favorite 8",
-    description: "Jump to favorite board 8",
-    category: "Navigation",
-    shortcuts: ["8"],
-    execute: (): CommandAction => ({
-      type: "JUMP_TO_FAVORITE",
-      favoriteNumber: 8,
-    }),
-  },
-  {
-    id: "favorite_9",
-    name: "Favorite 9",
-    description: "Jump to favorite board 9",
-    category: "Navigation",
-    shortcuts: ["9"],
-    execute: (): CommandAction => ({
-      type: "JUMP_TO_FAVORITE",
-      favoriteNumber: 9,
-    }),
-  },
+  ...favoriteCommands,
 
   // Column jump (Shift+1-9)
-  {
-    id: "column_1",
-    name: "Column 1",
-    description: "Jump to column 1",
-    category: "Navigation",
-    shortcuts: ["!"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_COLUMN", columnNumber: 1 }),
-  },
-  {
-    id: "column_2",
-    name: "Column 2",
-    description: "Jump to column 2",
-    category: "Navigation",
-    shortcuts: ["@"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_COLUMN", columnNumber: 2 }),
-  },
-  {
-    id: "column_3",
-    name: "Column 3",
-    description: "Jump to column 3",
-    category: "Navigation",
-    shortcuts: ["#"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_COLUMN", columnNumber: 3 }),
-  },
-  {
-    id: "column_4",
-    name: "Column 4",
-    description: "Jump to column 4",
-    category: "Navigation",
-    shortcuts: ["$"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_COLUMN", columnNumber: 4 }),
-  },
-  {
-    id: "column_5",
-    name: "Column 5",
-    description: "Jump to column 5",
-    category: "Navigation",
-    shortcuts: ["%"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_COLUMN", columnNumber: 5 }),
-  },
-  {
-    id: "column_6",
-    name: "Column 6",
-    description: "Jump to column 6",
-    category: "Navigation",
-    shortcuts: ["^"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_COLUMN", columnNumber: 6 }),
-  },
-  {
-    id: "column_7",
-    name: "Column 7",
-    description: "Jump to column 7",
-    category: "Navigation",
-    shortcuts: ["&"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_COLUMN", columnNumber: 7 }),
-  },
-  {
-    id: "column_8",
-    name: "Column 8",
-    description: "Jump to column 8",
-    category: "Navigation",
-    shortcuts: ["*"],
-    execute: (): CommandAction => ({ type: "JUMP_TO_COLUMN", columnNumber: 8 }),
-  },
-  {
-    id: "column_9",
-    name: "Column 9",
-    description: "Jump to column 9",
-    category: "Navigation",
-    shortcuts: ["("],
-    execute: (): CommandAction => ({ type: "JUMP_TO_COLUMN", columnNumber: 9 }),
-  },
+  ...columnJumpCommands,
 
   // Close/Quit (contextual Escape)
   {
