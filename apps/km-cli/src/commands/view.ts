@@ -210,4 +210,9 @@ export const viewCommand = new Command("view")
     // Signal background task to stop (don't wait - causes Bun crash on cleanup)
     aborted = true
     // Background task will check `aborted` and exit cleanly on next yield
+
+    // Force exit to avoid Bun segfault during GC cleanup (bun#24357).
+    // Without this, Bun crashes with SIGSEGV at 0x23B923B823B723B6 during
+    // process shutdown — a known Bun bug with complex app teardown.
+    process.exit(0)
   })

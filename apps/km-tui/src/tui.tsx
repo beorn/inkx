@@ -105,7 +105,7 @@ export async function runBoard(
   }
 
   using toastQueue = createToastQueue()
-  const term = createTerm()
+  using term = createTerm()
   const interactive = options?.interactive !== false
   const isInteractive = interactive && term.hasInput()
 
@@ -193,10 +193,12 @@ export async function runBoard(
   const handleRejection = (reason: unknown) => {
     handleError(reason instanceof Error ? reason : new Error(String(reason)))
   }
+  const handleSigint = () => handleSignal("SIGINT")
+  const handleSigterm = () => handleSignal("SIGTERM")
   process.on("uncaughtException", handleError)
   process.on("unhandledRejection", handleRejection)
-  process.once("SIGINT", () => handleSignal("SIGINT"))
-  process.once("SIGTERM", () => handleSignal("SIGTERM"))
+  process.once("SIGINT", handleSigint)
+  process.once("SIGTERM", handleSigterm)
 
   // Use pre-created patchedConsole if provided (counts startup warnings),
   // otherwise create one now. capture: true = store entries for exit dump.
@@ -291,10 +293,12 @@ export async function runBoard(
       await handle.waitUntilExit()
     }
   } finally {
-    // Remove process handlers to prevent segfault on exit (dangling closures
+    // Remove ALL process handlers to prevent segfault on exit (dangling closures
     // over freed state cause Bun to crash during shutdown).
     process.off("uncaughtException", handleError)
     process.off("unhandledRejection", handleRejection)
+    process.off("SIGINT", handleSigint)
+    process.off("SIGTERM", handleSigterm)
 
     // toastQueue is cleaned up automatically via `using` (Symbol.dispose)
 
