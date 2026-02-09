@@ -115,6 +115,65 @@ export function useIsCursorInColumn(colIndex: number): {
 }
 
 /**
+ * Subscribe to whether a column is selected + its selection level.
+ * DOES NOT include cardIndex — stable on j/k within the same column.
+ * Use this when you need to know IF a column is selected but don't
+ * need to know WHICH card is selected (prevents Column re-renders on j/k).
+ */
+export function useIsColumnSelected(colIndex: number): {
+  isSelected: boolean
+  selectionLevel: "board" | "column" | "card"
+} {
+  const store = useContext(CursorStoreContext)
+  const cacheRef = useRef(falseColumnSelectedResult)
+
+  return useSyncExternalStore(
+    store?.subscribe ?? noopSubscribe,
+    () => {
+      if (!store) return falseColumnSelectedResult
+      const s = store.getState()
+      if (s.colIndex !== colIndex) {
+        if (!cacheRef.current.isSelected) return cacheRef.current
+        cacheRef.current = falseColumnSelectedResult
+        return falseColumnSelectedResult
+      }
+      const prev = cacheRef.current
+      if (prev.isSelected && prev.selectionLevel === s.selectionLevel) {
+        return prev
+      }
+      const next = {
+        isSelected: true as const,
+        selectionLevel: s.selectionLevel,
+      }
+      cacheRef.current = next
+      return next
+    },
+  )
+}
+
+/**
+ * Subscribe to the cursor's card index within a specific column.
+ * Returns -1 when the column is not selected.
+ * Changes on every j/k within the column — use for scroll tracking only.
+ */
+export function useCursorCardIndex(colIndex: number): number {
+  const store = useContext(CursorStoreContext)
+  const cacheRef = useRef(-1)
+
+  return useSyncExternalStore(
+    store?.subscribe ?? noopSubscribe,
+    () => {
+      if (!store) return -1
+      const s = store.getState()
+      const cardIndex = s.colIndex === colIndex ? s.cardIndex : -1
+      if (cardIndex === cacheRef.current) return cacheRef.current
+      cacheRef.current = cardIndex
+      return cardIndex
+    },
+  )
+}
+
+/**
  * Subscribe to full cursor position.
  * Re-renders on every cursor change (colIndex, cardIndex, selectionLevel).
  * Used by components that need the complete cursor state (BottomBar, top bar path).
@@ -181,6 +240,10 @@ const defaultCursorPosition = {
 const falseColumnResult = {
   isSelected: false as const,
   cardIndex: -1,
+  selectionLevel: "board" as const,
+}
+const falseColumnSelectedResult = {
+  isSelected: false as const,
   selectionLevel: "board" as const,
 }
 function noopSubscribe() {

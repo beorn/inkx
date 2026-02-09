@@ -307,19 +307,14 @@ export function BoardCore({
                                 <Column
                                   column={col}
                                   colIndex={actualColIndex}
-                                  isSelected={
-                                    actualColIndex === layout.colIndex
-                                  }
                                   isCollapsed={ui.collapsedColumns.has(
                                     actualColIndex,
                                   )}
-                                  selectedCardIndex={layout.cardIndex}
                                   selectedSubIndex={
                                     ui.inOutlineMode ? ui.subIndex : -1
                                   }
                                   width={adjustedColWidth}
                                   height={contentHeight}
-                                  selectionLevel={derivedSelectionLevel}
                                 />
                                 {/* Separator line between columns */}
                                 {!isLastCol && <ColumnSeparator />}

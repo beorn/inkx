@@ -28,8 +28,7 @@ import {
 } from "./VerticalScrollIndicator.tsx"
 import { calcColumnWidths, getColumnWidth } from "./board-layout.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { getScrollToIndex } from "./scroll-helpers.ts"
-import { useCursorPosition } from "../cursor-context.tsx"
+import { useIsColumnSelected, useCursorCardIndex, useCursorColIndex } from "../cursor-context.tsx"
 
 // =============================================================================
 // Handle Interfaces
@@ -63,26 +62,21 @@ const MAX_RENDERED_ITEMS = 100
 interface ColumnTreeProps {
   column: ColumnState
   colIndex: number
-  isSelected: boolean
-  selectedCardIndex: number
   selectedSubIndex: number
-  selectionLevel: "board" | "column" | "card"
   width: number
   height: number
 }
 
 /**
- * Memoized ColumnTree - skips re-render when column state unchanged.
+ * Memoized ColumnTree - re-renders on j/k for VirtualList scroll tracking.
+ * Cards use CursorStore self-subscription for selection state.
  */
 const ColumnTree = React.memo(
   forwardRef<ColumnTreeHandle, ColumnTreeProps>(function ColumnTree(
     {
       column,
       colIndex,
-      isSelected,
-      selectedCardIndex,
       selectedSubIndex,
-      selectionLevel,
       width,
       height,
     },
@@ -102,6 +96,16 @@ const ColumnTree = React.memo(
       treeConfig: { inOutlineMode },
     } = useTreeRenderContext()
 
+    // Subscribe to column selection + cardIndex for scroll tracking.
+    // ColumnTree re-renders on j/k, but Cards use CursorStore self-subscription.
+    const columnSelected = useIsColumnSelected(colIndex)
+    const isSelected = columnSelected.isSelected
+    const selectionLevel = columnSelected.selectionLevel
+    const cardIndex = useCursorCardIndex(colIndex)
+    const scrollToIndex = isSelected && cardIndex >= 0 && cardIndex < column.cards.length
+      ? cardIndex
+      : undefined
+
     // Render name with wiki links stripped: [[target|alias]] → "alias"
     const name = renderPlain(getNodeDisplayName(repo, column.node))
     const count = column.cards.length
@@ -119,21 +123,10 @@ const ColumnTree = React.memo(
     const icon = getNodeIcon(null, ownColor, false)
     const iconColor = isColumnHeaderSelected ? "black" : icon.color
 
-    // Render item callback for VirtualList
-    // Note: selectedCardIndex and selectedSubIndex are captured from closure
-    // but only used when isSelected is true, so non-selected columns won't
-    // re-render when cursor moves (they get a stable renderCard callback)
+    // Stable renderCard callback — doesn't depend on cardIndex.
+    // MemoizedTreeCard gets selection state from CursorStore self-subscription.
     const renderCard = useCallback(
       (card: CardState, actualIndex: number) => {
-        // Calculate selection inside the callback using actualIndex
-        // This way the callback identity only changes when the column's
-        // selection state changes, not when selectedCardIndex changes
-        const isCardSelected =
-          selectionLevel === "card" &&
-          isSelected &&
-          actualIndex === selectedCardIndex &&
-          (!inOutlineMode || selectedSubIndex === 0)
-
         debug(
           `rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`,
         )
@@ -143,23 +136,10 @@ const ColumnTree = React.memo(
             card={card}
             colIndex={colIndex}
             cardIndex={actualIndex}
-            isSelected={isCardSelected}
           />
         )
       },
-      // Dependency array uses conditional expressions intentionally:
-      // - `isSelected && selectedCardIndex` evaluates to `false` when column is not selected
-      // - This means non-selected columns don't re-render when cursor moves elsewhere
-      // - When column IS selected, the full value is included so selection changes trigger re-render
-      // This pattern provides stable callbacks for non-selected columns.
-      [
-        colIndex,
-        isSelected,
-        isSelected && selectedCardIndex,
-        isSelected && selectedSubIndex,
-        selectionLevel,
-        inOutlineMode,
-      ],
+      [colIndex],
     )
 
     return (
@@ -203,21 +183,17 @@ const ColumnTree = React.memo(
 
         {/* Cards with inkx VirtualList */}
         {column.cards.length > 0 ? (
-          <VirtualList
-            ref={listRef}
-            items={column.cards}
-            height={height - 2}
-            itemHeight={1}
-            scrollTo={getScrollToIndex(
-              isSelected,
-              selectedCardIndex,
-              column.cards.length,
-            )}
-            overscan={OVERSCAN}
-            maxRendered={MAX_RENDERED_ITEMS}
-            keyExtractor={(card) => card.node.id}
-            renderItem={renderCard}
-          />
+            <VirtualList
+              ref={listRef}
+              items={column.cards}
+              height={height - 2}
+              itemHeight={1}
+              scrollTo={scrollToIndex}
+              overscan={OVERSCAN}
+              maxRendered={MAX_RENDERED_ITEMS}
+              keyExtractor={(card) => card.node.id}
+              renderItem={renderCard}
+            />
         ) : (
           <Box flexDirection="column" flexGrow={1} minHeight={1}>
             <Text dimColor>(empty)</Text>
@@ -260,11 +236,8 @@ export function ColumnsView({
   effectiveVisibleColumns,
   selectionLevel: _selectionLevelProp,
 }: ColumnsViewProps): React.ReactElement {
-  // Use CursorStore for cursor position (self-subscription, bypasses Board re-render)
-  const cursorPos = useCursorPosition()
-  const colIndex = cursorPos.colIndex
-  const cardIndex = cursorPos.cardIndex
-  const selectionLevel = cursorPos.selectionLevel
+  // Subscribe to colIndex only — ColumnsView doesn't re-render on j/k within column
+  const colIndex = useCursorColIndex()
   // Calculate column widths using shared utility
   const widths = calcColumnWidths({
     boardWidth: width,
@@ -296,21 +269,15 @@ export function ColumnsView({
             widths.remainder,
             COLUMNS_VIEW_MAX_WIDTH,
           )
-          const isColumnSelected = actualColIndex === colIndex
           debug(
-            `ColumnsView map: i=${i} actualColIdx=${actualColIndex} colIndex=${colIndex} isSelected=${isColumnSelected}`,
+            `ColumnsView map: i=${i} actualColIdx=${actualColIndex} colIndex=${colIndex}`,
           )
           return (
             <React.Fragment key={col.node.id}>
               <ColumnTree
                 column={col}
                 colIndex={actualColIndex}
-                isSelected={isColumnSelected}
-                // Only pass selection indices to selected column - prevents all columns
-                // from re-rendering when cursor moves within the selected column
-                selectedCardIndex={isColumnSelected ? cardIndex : -1}
-                selectedSubIndex={isColumnSelected ? subIndex : 0}
-                selectionLevel={selectionLevel}
+                selectedSubIndex={subIndex}
                 width={colWidth}
                 height={height - 1}
               />

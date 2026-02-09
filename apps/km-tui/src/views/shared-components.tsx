@@ -17,6 +17,7 @@ import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts"
 import { getNodeIcon, renderPlain, renderRich } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
+import { useIsCursorAtCard } from "../cursor-context.tsx"
 
 // =============================================================================
 // Memoized Tree Card Component
@@ -26,7 +27,7 @@ interface MemoizedTreeCardProps {
   card: CardState
   colIndex: number
   cardIndex: number
-  isSelected: boolean
+  isSelected?: boolean
   /** Optional children to pass to TreeNode (pass [] to skip DB query) */
   children?: KNode[]
   /** Optional board pills callback for performance optimization */
@@ -38,6 +39,7 @@ interface MemoizedTreeCardProps {
  *
  * Key optimization: cursor movement only changes isSelected for 2 cards
  * (old selection and new selection). All other cards skip re-render.
+ * Selection state is self-subscribed via CursorStore — no prop threading needed.
  *
  * Registers card layout for cross-column navigation (h/l with sticky Y).
  */
@@ -46,10 +48,14 @@ export const MemoizedTreeCard = React.memo(
     card,
     colIndex,
     cardIndex,
-    isSelected,
+    isSelected: isSelectedProp,
     children,
     getBoardPills,
   }: MemoizedTreeCardProps): React.ReactElement {
+    // Self-subscribe to CursorStore for selection state
+    const cursorIsSelected = useIsCursorAtCard(colIndex, cardIndex)
+    const isSelected = isSelectedProp ?? cursorIsSelected
+
     // Count renders for profiling
     const g = globalThis as unknown as Record<string, number>
     g.__memoizedTreeCardRenderCount = (g.__memoizedTreeCardRenderCount ?? 0) + 1
@@ -78,6 +84,7 @@ export const MemoizedTreeCard = React.memo(
     )
   },
   (prev, next) => {
+    // Props-based memo check — CursorStore triggers re-renders independently
     return (
       prev.card.node.id === next.card.node.id &&
       prev.card.node.content === next.card.node.content &&

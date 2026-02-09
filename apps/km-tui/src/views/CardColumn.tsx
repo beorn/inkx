@@ -3,7 +3,7 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
-import React, { useCallback, useSyncExternalStore } from "react"
+import React, { useCallback, useRef } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback, VirtualList } from "inkx"
@@ -18,7 +18,7 @@ import { useUISelector, useSetUI } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import type { NodeLayout } from "../card-positions.ts"
 import { getScrollToIndex } from "./scroll-helpers.ts"
-import { useIsCursorInColumn, useIsCursorAtCard } from "../cursor-context.tsx"
+import { useIsColumnSelected, useIsCursorAtCard, useCursorCardIndex } from "../cursor-context.tsx"
 
 // =============================================================================
 // Virtualization Constants
@@ -49,7 +49,6 @@ const MAX_RENDERED_CARDS = 50
 
 interface CardProps {
   card: CardState
-  isSelected?: boolean
   selectedSubIndex: number
   width: number
   colIndex: number
@@ -115,7 +114,6 @@ function CardLayoutRegistrar({
 const Card = React.memo(
   function Card({
     card,
-    isSelected: isSelectedProp,
     selectedSubIndex,
     width,
     colIndex,
@@ -124,10 +122,9 @@ const Card = React.memo(
   }: CardProps): React.ReactElement {
     const nodeId = card.node.id
 
-    // Get selection state from CursorStore (self-subscription)
-    // Falls back to prop if CursorStore not available
-    const cursorIsSelected = useIsCursorAtCard(colIndex, cardIndex)
-    const isSelected = isSelectedProp ?? cursorIsSelected
+    // Get selection state exclusively from CursorStore (self-subscription).
+    // Only this card and the previously-selected card re-render on j/k.
+    const isSelected = useIsCursorAtCard(colIndex, cardIndex)
 
     // Check if this card is in inline edit mode (for border color)
     const isEditing = useUISelector(
@@ -197,16 +194,15 @@ const Card = React.memo(
     )
   },
   (prev, next) => {
-    // Fast equality check for Card props
-    // Note: isSelected is now primarily driven by CursorStore self-subscription,
-    // so we still compare it but CursorStore triggers re-renders independently.
+    // Fast equality check for Card props.
+    // isSelected is driven by CursorStore self-subscription (not props),
+    // so it's not compared here — CursorStore triggers re-renders independently.
     return (
       prev.card.node.id === next.card.node.id &&
       prev.card.node.content === next.card.node.content &&
       prev.card.node.task_status === next.card.node.task_status &&
       prev.card.childCount === next.card.childCount &&
       prev.card.children?.length === next.card.children?.length &&
-      prev.isSelected === next.isSelected &&
       prev.selectedSubIndex === next.selectedSubIndex &&
       prev.width === next.width &&
       prev.colIndex === next.colIndex &&
@@ -219,50 +215,47 @@ const Card = React.memo(
 // Column Component
 // =============================================================================
 
+// =============================================================================
+// Column Component
+// =============================================================================
+
 interface ColumnProps {
   column: ColumnState
   colIndex: number
-  isSelected: boolean
   isCollapsed: boolean
-  selectedCardIndex: number
   selectedSubIndex: number
   width: number
   height: number
-  selectionLevel: "board" | "column" | "card"
 }
 
 /**
- * Memoized Column - skips re-render when props are unchanged.
+ * Memoized Column - re-renders on j/k but Cards skip via CursorStore.
  *
- * When moving cursor within a column, only selectedCardIndex changes.
- * The Column still re-renders, but memoized Cards skip unless their
- * isSelected prop changed.
+ * Column subscribes to cardIndex (for VirtualList scrollTo) and column
+ * selection state. Cards get their selection state from CursorStore directly,
+ * so renderItem calls trigger only cheap memo checks (~0.04ms each).
  */
 // oxlint-disable-next-line complexity/max-cognitive -- React component — JSX ternaries inflate score
 export const Column = React.memo(function Column({
   column,
   colIndex,
-  isSelected: isSelectedProp,
   isCollapsed,
-  selectedCardIndex: selectedCardIndexProp,
   selectedSubIndex,
   width,
   height,
-  selectionLevel: selectionLevelProp,
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
   const setUI = useSetUI()
   const nodeId = column.node.id
 
-  // Get cursor state from CursorStore (self-subscription)
-  const cursorInCol = useIsCursorInColumn(colIndex)
-  const isSelected = cursorInCol.isSelected || isSelectedProp
-  const selectedCardIndex = cursorInCol.isSelected
-    ? cursorInCol.cardIndex
-    : selectedCardIndexProp
-  const selectionLevel = cursorInCol.isSelected
-    ? cursorInCol.selectionLevel
-    : selectionLevelProp
+  // Subscribe to column selection + cardIndex for scroll tracking.
+  // Column re-renders on j/k, but Cards use CursorStore self-subscription
+  // so renderItem calls trigger only cheap memo checks (no Card re-renders).
+  const columnSelected = useIsColumnSelected(colIndex)
+  const isSelected = columnSelected.isSelected
+  const selectionLevel = columnSelected.selectionLevel
+  const cardIndex = useCursorCardIndex(colIndex)
+  const scrollToIndex = getScrollToIndex(isSelected, cardIndex, column.cards.length)
 
   // Check if this column header is being inline-edited
   const isInlineEditing = useUISelector(
@@ -412,40 +405,31 @@ export const Column = React.memo(function Column({
           <Text dimColor>[collapsed - {count}]</Text>
         </Box>
       ) : column.cards.length > 0 ? (
-        <VirtualList
-          items={column.cards}
-          height={height - 2}
-          itemHeight={ESTIMATED_CARD_HEIGHT}
-          scrollTo={getScrollToIndex(
-            isSelected,
-            selectedCardIndex,
-            column.cards.length,
-          )}
-          overscan={OVERSCAN}
-          maxRendered={MAX_RENDERED_CARDS}
-          keyExtractor={(card) => card.node.id}
-          renderItem={(card: CardState, actualIndex: number) => {
-            const cardIsSelected =
-              isSelected &&
-              actualIndex === selectedCardIndex &&
-              selectionLevel === "card"
-            layoutLog.trace?.(
-              `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
-            )
-            return (
-              <Card
-                key={card.node.id}
-                card={card}
-                isSelected={cardIsSelected}
-                selectedSubIndex={cardIsSelected ? selectedSubIndex : -1}
-                width={width - 1}
-                colIndex={colIndex}
-                cardIndex={actualIndex}
-                isVirtualColumn={isVirtual}
-              />
-            )
-          }}
-        />
+          <VirtualList
+            items={column.cards}
+            height={height - 2}
+            itemHeight={ESTIMATED_CARD_HEIGHT}
+            scrollTo={scrollToIndex}
+            overscan={OVERSCAN}
+            maxRendered={MAX_RENDERED_CARDS}
+            keyExtractor={(card) => card.node.id}
+            renderItem={(card: CardState, actualIndex: number) => {
+              layoutLog.trace?.(
+                `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
+              )
+              return (
+                <Card
+                  key={card.node.id}
+                  card={card}
+                  selectedSubIndex={selectedSubIndex}
+                  width={width - 1}
+                  colIndex={colIndex}
+                  cardIndex={actualIndex}
+                  isVirtualColumn={isVirtual}
+                />
+              )
+            }}
+          />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
           <Box marginTop={1}>
