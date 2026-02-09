@@ -6,26 +6,40 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { makeSelectionKey } from "../../src/types.ts"
+import { makeSelectionKey, parseSelectionKey } from "../../src/types.ts"
 
 describe("makeSelectionKey", () => {
-  it("creates key from col, card, sub indices", () => {
-    expect(makeSelectionKey(0, 0, 0)).toBe("0:0:0")
-    expect(makeSelectionKey(1, 2, 3)).toBe("1:2:3")
+  it("creates key from nodeId and sub index", () => {
+    expect(makeSelectionKey("node-abc", 0)).toBe("node-abc:0")
+    expect(makeSelectionKey("node-xyz", 3)).toBe("node-xyz:3")
   })
 
-  it("handles large indices", () => {
-    expect(makeSelectionKey(10, 100, 1000)).toBe("10:100:1000")
+  it("handles node IDs with special characters", () => {
+    expect(makeSelectionKey("a:b:c", 1)).toBe("a:b:c:1")
   })
 
-  it("creates unique keys for different positions", () => {
+  it("creates unique keys for different nodes", () => {
     const keys = new Set([
-      makeSelectionKey(0, 0, 0),
-      makeSelectionKey(0, 0, 1),
-      makeSelectionKey(0, 1, 0),
-      makeSelectionKey(1, 0, 0),
+      makeSelectionKey("node-1", 0),
+      makeSelectionKey("node-1", 1),
+      makeSelectionKey("node-2", 0),
+      makeSelectionKey("node-3", 0),
     ])
     expect(keys.size).toBe(4)
+  })
+})
+
+describe("parseSelectionKey", () => {
+  it("parses nodeId and sub from key", () => {
+    const result = parseSelectionKey("node-abc:0")
+    expect(result.nodeId).toBe("node-abc")
+    expect(result.sub).toBe(0)
+  })
+
+  it("handles node IDs with colons", () => {
+    const result = parseSelectionKey("a:b:c:1")
+    expect(result.nodeId).toBe("a:b:c")
+    expect(result.sub).toBe(1)
   })
 })
 

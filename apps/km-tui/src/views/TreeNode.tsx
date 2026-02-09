@@ -154,7 +154,7 @@ function TreeNodeImpl({
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
-  const selectionKey = makeSelectionKey(colIndex, cardIndex, subIndex)
+  const selectionKey = makeSelectionKey(node.id, subIndex)
   const nodeState = useAppShallow<
     BoardAppStore,
     {

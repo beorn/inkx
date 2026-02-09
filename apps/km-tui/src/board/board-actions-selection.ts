@@ -28,7 +28,7 @@ export function handleExtendSelectVertical(
   // Initialize selection if starting fresh
   if (ui.multiSelected.size === 0) {
     const newSelected = new Set(ui.multiSelected)
-    newSelected.add(makeSelectionKey(layout.colIndex, layout.cardIndex, 0))
+    newSelected.add(makeSelectionKey(card.node.id, 0))
     ctx.setUI({
       selectionAnchor: { col: layout.colIndex, card: layout.cardIndex, sub: 0 },
       multiSelected: newSelected,

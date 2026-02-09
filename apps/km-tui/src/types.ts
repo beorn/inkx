@@ -124,19 +124,33 @@ export interface ColumnsLayout {
 export type ViewMode = "cards" | "list" | "columns" | "tabs"
 
 /**
- * Selection key format: "col:card:sub"
+ * Selection key format: "nodeId:subIndex"
+ *
+ * Node-based keys survive card movements (unlike positional "col:card:sub").
+ * The nodeId identifies the specific node, subIndex is its position within
+ * the card's outline tree (0 = card root).
  */
-export type SelectionKey = `${number}:${number}:${number}`
+export type SelectionKey = `${string}:${number}`
 
 /**
- * Create a selection key from column, card, and sub indices.
+ * Create a selection key from a node ID and sub-index.
  */
-export function makeSelectionKey(
-  col: number,
-  card: number,
-  sub: number,
-): SelectionKey {
-  return `${col}:${card}:${sub}`
+export function makeSelectionKey(nodeId: string, sub: number): SelectionKey {
+  return `${nodeId}:${sub}`
+}
+
+/**
+ * Parse a selection key into its components.
+ */
+export function parseSelectionKey(key: SelectionKey): {
+  nodeId: string
+  sub: number
+} {
+  const colonIdx = key.lastIndexOf(":")
+  return {
+    nodeId: key.substring(0, colonIdx),
+    sub: parseInt(key.substring(colonIdx + 1), 10),
+  }
 }
 
 export interface RenderOptions {

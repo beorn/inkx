@@ -5,7 +5,7 @@
  */
 
 import type { CardState, SelectionKey } from "../types.ts"
-import { makeSelectionKey } from "../types.ts"
+import { makeSelectionKey, parseSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
 // =============================================================================
@@ -60,8 +60,11 @@ export function updateSelectionRange(
   ) {
     const minSub = Math.min(ctx.ui.selectionAnchor.sub, toSub)
     const maxSub = Math.max(ctx.ui.selectionAnchor.sub, toSub)
-    for (let s = minSub; s <= maxSub; s++) {
-      newSelected.add(makeSelectionKey(toCol, toCard, s))
+    const cardNode = ctx.layout.columns[toCol]?.cards[toCard]
+    if (cardNode) {
+      for (let s = minSub; s <= maxSub; s++) {
+        newSelected.add(makeSelectionKey(cardNode.node.id, s))
+      }
     }
   } else if (ctx.ui.selectionAnchor.col === toCol) {
     const minCard = Math.min(ctx.ui.selectionAnchor.card, toCard)
@@ -78,7 +81,7 @@ export function updateSelectionRange(
             ctx.foldedNodes,
           )
         for (let s = 0; s < maxItems; s++) {
-          newSelected.add(makeSelectionKey(toCol, c, s))
+          newSelected.add(makeSelectionKey(card.node.id, s))
         }
       }
     }
@@ -108,13 +111,27 @@ export function clearSelection(ctx: ActionCtx): void {
 /** Get unique selected card indices from multi-selection */
 export function getSelectedCardIndices(ctx: ActionCtx): number[] {
   if (ctx.ui.multiSelected.size === 0) return []
+  const nodeIndex = ctx.layout.nodeIndex
+  if (!nodeIndex) return []
   const indices = new Set<number>()
   for (const key of ctx.ui.multiSelected) {
-    const [colStr, cardStr] = key.split(":")
-    const col = parseInt(colStr ?? "0", 10)
-    const card = parseInt(cardStr ?? "0", 10)
-    if (col === ctx.layout.colIndex) {
-      indices.add(card)
+    const { nodeId } = parseSelectionKey(key)
+    // Check nodeIndex for card roots
+    const pos = nodeIndex.get(nodeId)
+    if (pos && pos.colIndex === ctx.layout.colIndex) {
+      indices.add(pos.cardIndex)
+    }
+    // For sub-items not in nodeIndex, walk parent chain
+    if (!pos) {
+      let current = ctx.repo.getNode(nodeId)
+      while (current?.parent_id) {
+        const parentPos = nodeIndex.get(current.parent_id)
+        if (parentPos && parentPos.colIndex === ctx.layout.colIndex) {
+          indices.add(parentPos.cardIndex)
+          break
+        }
+        current = ctx.repo.getNode(current.parent_id)
+      }
     }
   }
   return Array.from(indices).sort((a, b) => a - b)
@@ -179,8 +196,6 @@ type SelectionScope = "card" | "column" | "board"
 function addCardItems(
   selected: Set<SelectionKey>,
   ctx: ActionCtx,
-  colIdx: number,
-  cardIdx: number,
   card: CardState,
 ): void {
   const maxItems =
@@ -192,7 +207,7 @@ function addCardItems(
       ctx.foldedNodes,
     )
   for (let s = 0; s < maxItems; s++) {
-    selected.add(makeSelectionKey(colIdx, cardIdx, s))
+    selected.add(makeSelectionKey(card.node.id, s))
   }
 }
 
@@ -207,20 +222,14 @@ function buildSelectAllSet(
     const card =
       ctx.layout.columns[ctx.layout.colIndex]?.cards[ctx.layout.cardIndex]
     if (card) {
-      addCardItems(
-        selected,
-        ctx,
-        ctx.layout.colIndex,
-        ctx.layout.cardIndex,
-        card,
-      )
+      addCardItems(selected, ctx, card)
     }
   } else if (scope === "column") {
     const col = ctx.layout.columns[ctx.layout.colIndex]
     if (col) {
       for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
         const c = col.cards[cardIdx]
-        if (c) addCardItems(selected, ctx, ctx.layout.colIndex, cardIdx, c)
+        if (c) addCardItems(selected, ctx, c)
       }
     }
   } else {
@@ -229,7 +238,7 @@ function buildSelectAllSet(
       if (column) {
         for (let cardIdx = 0; cardIdx < column.cards.length; cardIdx++) {
           const c = column.cards[cardIdx]
-          if (c) addCardItems(selected, ctx, colIdx, cardIdx, c)
+          if (c) addCardItems(selected, ctx, c)
         }
       }
     }
