@@ -353,7 +353,10 @@ export class FakeFileSystem implements FileSystemOps {
       for (const [childPath, childEntry] of this.files) {
         if (childPath.startsWith(oldPrefix)) {
           this.files.delete(childPath)
-          this.files.set(newPrefix + childPath.slice(oldPrefix.length), childEntry)
+          this.files.set(
+            newPrefix + childPath.slice(oldPrefix.length),
+            childEntry,
+          )
         }
       }
     }

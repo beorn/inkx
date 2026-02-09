@@ -47,11 +47,11 @@ console.error = function (...args: unknown[]) {
 // will override it to true when imported.
 globalThis.IS_REACT_ACT_ENVIRONMENT = false
 
-// INKX_STRICT: Opt-in incremental vs fresh render comparison.
-// Enable with: INKX_STRICT=1 bun vitest run
-// This catches rendering bugs where incremental rendering differs from fresh.
-// Not enabled by default until all known incremental bugs are fixed.
-// See: km-inkx.incremental-* beads for known issues.
+// INKX_STRICT: Compare incremental vs fresh render on every frame.
+// DO NOT DISABLE THIS. If tests fail with IncrementalRenderMismatchError,
+// the bug is in inkx's incremental rendering — fix the renderer, not this flag.
+// Disabling this hides real production bugs where incremental rendering diverges.
+process.env.INKX_STRICT = "1"
 
 // =============================================================================
 // Console Detection
