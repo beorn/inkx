@@ -43,13 +43,24 @@ Bash(command='bun llm --deep -y "topic"', run_in_background=true)
 
 # Step 3: Retrieve (blocks up to 10 min)
 TaskOutput(task_id=<id>, block=true, timeout=600000)
-# Parse JSON from stdout, read the output file
+
+# Step 4: Find the output file path
+# Look for "Output written to: /tmp/llm-*.txt" in the last lines of output.
+# If output was truncated (>30KB of streaming tokens), find the file:
+#   ls -lt /tmp/llm-${CLAUDE_SESSION_ID:0:8}-*.txt | head -1
+
+# Step 5: Read the OUTPUT FILE (NOT the task output — that's just streaming tokens)
+Read(file_path="/tmp/llm-<session>-<timestamp>-<rand>.txt")
 ```
+
+**WARNING**: Deep research streams thousands of tokens to stderr. Background task output
+captures stderr+stdout combined, which can exceed 30KB and get truncated by Claude Code.
+The actual response is in the OUTPUT FILE, not in the task output. Always read the file.
 
 ### Anti-patterns (NEVER do these)
 
 ```
-# BAD: --output - streams to stdout — unretrievable from background tasks
+# BAD: --output - was REMOVED — always outputs to file now
 bun llm --deep --output - "topic"
 
 # BAD: Sleep-polling wastes turns and gets killed
@@ -89,27 +100,27 @@ Deep research is powerful for specific code bugs when given **complete source co
 ### Workflow
 
 1. **Gather files** — Read ALL relevant files completely (not excerpts). For bugs, typically 2-5 files.
-2. **Build context** — Structure: problem description, architecture overview, **full source code** (labeled), specific questions.
-3. **Execute**:
+2. **Build context** — Write a context file with problem description + full source code.
+3. **Execute** with `--context-file`:
 
 ```bash
-bun llm --deep -y --context "$(cat << 'EOF'
-# Bug: Render mismatch after navigation
+# Write context to a temp file (preamble + source files)
+# Then pass it with --context-file (PREFERRED for code — avoids shell quoting issues)
+bun llm --deep -y --context-file /tmp/deep-context.md "Review this rendering bug"
+```
 
-## Problem
-[specific symptoms]
+**IMPORTANT**: Always use `--context-file` when context includes source code. The heredoc
+approach (`--context "$(cat << 'EOF' ... EOF)"`) breaks when code contains backticks,
+`$(...)`, or unmatched quotes — the outer `$(...)` command substitution parses the content
+looking for its closing `)` and shell metacharacters in the code confuse the parser.
 
+**Building the context file**: Use Bash `cat >` with a heredoc for the preamble, then
+append source files:
+
+```bash
+cat > /tmp/deep-context.md << 'ENDOFFILE'
+# Problem description here
 ## Source Code
-
-### VirtualList.tsx (full file)
-[paste entire file]
-
-### useVirtualization.ts (full file)
-[paste entire file]
-
-## Questions
-1. Root cause?
-2. Best fix approach?
-EOF
-)" "Review this rendering bug"
+ENDOFFILE
+cat src/module.ts >> /tmp/deep-context.md
 ```

@@ -31,9 +31,7 @@ Run `bun llm` for full help.
 
 ## Output & Presenting Results
 
-By default, the response is written to a file and the file path is printed to stdout (as JSON). Stale files are auto-cleaned after 7 days.
-
-**WARNING**: Do NOT use `--output -` — it streams to stdout which is unretrievable from background tasks and causes agents to lose the output. Always use the default file output.
+Response is ALWAYS written to a file. The file path is printed on stderr both as human-readable text (`Output written to: <path>`) and as JSON metadata. Stale files are auto-cleaned after 7 days. Nothing goes to stdout.
 
 **CRITICAL: After the LLM responds, you MUST read the output file and present a comprehensive report to the user.** Don't reduce a detailed response to a brief summary — the user wants to see what the other model said.
 
@@ -85,7 +83,7 @@ By default, the response is written to a file and the file path is printed to st
 |------|------|------|
 | `--deep`/`/deep` | OpenAI deep research (web search, citations, thorough) | ~$2-5 |
 | `--ask`/`/ask` | Explicit default mode (syntactic sugar) | ~$0.02 |
-| ~~`--output -`~~ | **DEPRECATED** — Do NOT use. Breaks background tasks. Use default file output. | — |
+| ~~`--output -`~~ | **REMOVED** — Was deprecated, now removed entirely. Output always goes to file. | — |
 
 ## Context Flags
 
@@ -105,7 +103,14 @@ Before calling `bun llm`, use `/recall` to search session history for relevant p
 
 ## Background Execution (for agents)
 
-Stdout contains JSON metadata (including file path) — parse it, then read the file with `Read` tool. Deep research and debate take 2-15 minutes. Use `Task(run_in_background=true)` + `TaskOutput(block=true, timeout=600000)`. See `vendor/beorn-tools/skills/llm/SKILL.md` "Agent Usage" section.
+Response is ALWAYS written to a file. Stderr has the human-readable file path (`Output written to: <path>`). Stdout has JSON metadata (single line with file path, char count, cost). Streaming tokens go to stderr ONLY if it's a TTY — in background tasks, stderr is silent except for the final file path line.
+
+To retrieve results from a background task:
+1. Parse JSON from stdout to get the file path (`{"file": "/tmp/llm-*.txt", ...}`)
+2. Or look for `Output written to: /tmp/llm-*.txt` in stderr
+3. Read the output file with the `Read` tool — that's the actual response content
+
+Deep research and debate take 2-15 minutes. Use `Task(run_in_background=true)` + `TaskOutput(block=true, timeout=600000)`. See `vendor/beorn-tools/skills/llm/SKILL.md` "Agent Usage" section.
 
 ## When to Use
 
