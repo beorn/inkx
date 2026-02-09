@@ -190,10 +190,11 @@ export async function runBoard(
     process.exit(signal === "SIGINT" ? 130 : 143)
   }
 
-  process.on("uncaughtException", handleError)
-  process.on("unhandledRejection", (reason) => {
+  const handleRejection = (reason: unknown) => {
     handleError(reason instanceof Error ? reason : new Error(String(reason)))
-  })
+  }
+  process.on("uncaughtException", handleError)
+  process.on("unhandledRejection", handleRejection)
   process.once("SIGINT", () => handleSignal("SIGINT"))
   process.once("SIGTERM", () => handleSignal("SIGTERM"))
 
@@ -290,6 +291,11 @@ export async function runBoard(
       await handle.waitUntilExit()
     }
   } finally {
+    // Remove process handlers to prevent segfault on exit (dangling closures
+    // over freed state cause Bun to crash during shutdown).
+    process.off("uncaughtException", handleError)
+    process.off("unhandledRejection", handleRejection)
+
     // toastQueue is cleaned up automatically via `using` (Symbol.dispose)
 
     // Dispose patched console (restores original console methods)

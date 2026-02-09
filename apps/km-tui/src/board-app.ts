@@ -117,10 +117,12 @@ export function handleKey(
     return
   }
 
-  // Console (normal screen) - dismiss with backtick or escape only
+  // Console (normal screen) - dismiss with backtick/escape, quit with q
   if (ui.showConsole) {
     if (key.escape || input === "`") {
       get().setUI({ showConsole: false })
+    } else if (input === "q") {
+      exitApp()
     }
     return
   }

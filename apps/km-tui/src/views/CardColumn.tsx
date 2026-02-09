@@ -3,7 +3,7 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
-import React, { useCallback, useRef } from "react"
+import React, { useCallback } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback, VirtualList } from "inkx"
@@ -302,6 +302,30 @@ export const Column = React.memo(function Column({
       }
     : getHeaderStyle(ownColor, isSelected, isColumnSelected)
 
+  // Stable renderItem callback — doesn't depend on cardIndex.
+  // Cards get selection state from CursorStore self-subscription.
+  const renderItem = useCallback(
+    (card: CardState, actualIndex: number) => {
+      layoutLog.trace?.(
+        `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
+      )
+      return (
+        <Card
+          key={card.node.id}
+          card={card}
+          selectedSubIndex={selectedSubIndex}
+          width={width - 1}
+          colIndex={colIndex}
+          cardIndex={actualIndex}
+          isVirtualColumn={isVirtual}
+        />
+      )
+    },
+    [colIndex, selectedSubIndex, width, isVirtual],
+  )
+
+  const keyExtractor = useCallback((card: CardState) => card.node.id, [])
+
   // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
   // - Non-tasks with color: filled circle (●) in that color
   // - Non-tasks without color: small bullet (·)
@@ -412,23 +436,8 @@ export const Column = React.memo(function Column({
             scrollTo={scrollToIndex}
             overscan={OVERSCAN}
             maxRendered={MAX_RENDERED_CARDS}
-            keyExtractor={(card) => card.node.id}
-            renderItem={(card: CardState, actualIndex: number) => {
-              layoutLog.trace?.(
-                `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
-              )
-              return (
-                <Card
-                  key={card.node.id}
-                  card={card}
-                  selectedSubIndex={selectedSubIndex}
-                  width={width - 1}
-                  colIndex={colIndex}
-                  cardIndex={actualIndex}
-                  isVirtualColumn={isVirtual}
-                />
-              )
-            }}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
           />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
