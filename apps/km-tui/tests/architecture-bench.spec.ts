@@ -49,12 +49,19 @@ function benchPress(
   board: ReturnType<typeof testEnv>["board"],
   key: string,
   count: number,
-): { times: number[]; avg: number; p50: number; p95: number; total: number } {
+): { times: number[]; avg: number; p50: number; p95: number; total: number; actAvg: number; renderAvg: number } {
   const times: number[] = []
+  const actTimes: number[] = []
+  const renderTimes: number[] = []
   for (let i = 0; i < count; i++) {
     const start = performance.now()
     board.press(key)
     times.push(performance.now() - start)
+    const timing = (globalThis as any).__inkx_last_timing
+    if (timing) {
+      actTimes.push(timing.actMs)
+      renderTimes.push(timing.renderMs)
+    }
   }
   const sorted = [...times].sort((a, b) => a - b)
   const total = times.reduce((s, t) => s + t, 0)
@@ -64,6 +71,8 @@ function benchPress(
     p50: sorted[Math.floor(count * 0.5)] ?? 0,
     p95: sorted[Math.floor(count * 0.95)] ?? 0,
     total,
+    actAvg: actTimes.length > 0 ? actTimes.reduce((s, t) => s + t, 0) / actTimes.length : 0,
+    renderAvg: renderTimes.length > 0 ? renderTimes.reduce((s, t) => s + t, 0) / renderTimes.length : 0,
   }
 }
 
@@ -107,7 +116,14 @@ describe("Architecture Benchmark", { timeout: 30000 }, () => {
     // Benchmark: press j 50 times
     const stats = benchPress(board, "j", 50)
     benchResults["cards_j"] =
-      `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)}`
+      `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)} [act=${formatMs(stats.actAvg)} render=${formatMs(stats.renderAvg)}]`
+
+    // Print pipeline phase breakdown for the last press
+    const pipeline = (globalThis as any).__inkx_last_pipeline
+    if (pipeline) {
+      benchResults["cards_j_pipeline"] =
+        `measure=${formatMs(pipeline.measure)} layout=${formatMs(pipeline.layout)} scroll=${formatMs(pipeline.scroll)} screenRect=${formatMs(pipeline.screenRect)} notify=${formatMs(pipeline.notify)} content=${formatMs(pipeline.content)} output=${formatMs(pipeline.output)}`
+    }
 
     expect(stats.avg).toBeLessThan(200)
   })
@@ -122,7 +138,7 @@ describe("Architecture Benchmark", { timeout: 30000 }, () => {
     for (let i = 0; i < 5; i++) board.press("j")
     const stats = benchPress(board, "j", 50)
     benchResults["list_j"] =
-      `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)}`
+      `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)} [act=${formatMs(stats.actAvg)} render=${formatMs(stats.renderAvg)}]`
 
     expect(stats.avg).toBeLessThan(200)
   })
@@ -137,7 +153,7 @@ describe("Architecture Benchmark", { timeout: 30000 }, () => {
     for (let i = 0; i < 5; i++) board.press("j")
     const stats = benchPress(board, "j", 50)
     benchResults["cols_j"] =
-      `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)}`
+      `avg=${formatMs(stats.avg)} p50=${formatMs(stats.p50)} p95=${formatMs(stats.p95)} [act=${formatMs(stats.actAvg)} render=${formatMs(stats.renderAvg)}]`
 
     expect(stats.avg).toBeLessThan(200)
   })
@@ -151,7 +167,7 @@ describe("Architecture Benchmark", { timeout: 30000 }, () => {
     for (let i = 0; i < 10; i++) board.press("j")
     const lStats = benchPress(board, "l", 7)
     const hStats = benchPress(board, "h", 7)
-    benchResults["h_l"] = `l=${formatMs(lStats.avg)} h=${formatMs(hStats.avg)}`
+    benchResults["h_l"] = `l=${formatMs(lStats.avg)} h=${formatMs(hStats.avg)} [l:act=${formatMs(lStats.actAvg)} render=${formatMs(lStats.renderAvg)}]`
 
     expect(lStats.avg).toBeLessThan(250)
     expect(hStats.avg).toBeLessThan(250)

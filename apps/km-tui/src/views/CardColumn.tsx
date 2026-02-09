@@ -6,7 +6,7 @@
 import React, { useCallback } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
-import { Box, Text, useScreenRectCallback, VirtualList } from "inkx"
+import { Box, Text, useScreenRectCallback } from "inkx"
 import { styledUnderline } from "chalkx"
 import type { CardState, ColumnState } from "../types.ts"
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts"
@@ -17,8 +17,8 @@ import { useLayoutRegistryOptional } from "../layout-context.tsx"
 import { useUISelector, useSetUI } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import type { NodeLayout } from "../card-positions.ts"
-import { getScrollToIndex } from "./scroll-helpers.ts"
-import { useIsColumnSelected, useIsCursorAtCard, useCursorCardIndex } from "../cursor-context.tsx"
+import { useIsColumnSelected, useIsCursorAtCard } from "../cursor-context.tsx"
+import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 
 // =============================================================================
 // Virtualization Constants
@@ -229,11 +229,12 @@ interface ColumnProps {
 }
 
 /**
- * Memoized Column - re-renders on j/k but Cards skip via CursorStore.
+ * Memoized Column - does NOT re-render on j/k within the same column.
  *
- * Column subscribes to cardIndex (for VirtualList scrollTo) and column
- * selection state. Cards get their selection state from CursorStore directly,
- * so renderItem calls trigger only cheap memo checks (~0.04ms each).
+ * Column subscribes only to column selection state (stable on j/k).
+ * ScrollTrackingVirtualList subscribes to cardIndex and passes scrollTo to VirtualList.
+ * Cards get selection state from CursorStore self-subscription.
+ * Result: j/k only re-renders ScrollTrackingVirtualList + VirtualList + 2 Cards.
  */
 // oxlint-disable-next-line complexity/max-cognitive -- React component — JSX ternaries inflate score
 export const Column = React.memo(function Column({
@@ -248,14 +249,11 @@ export const Column = React.memo(function Column({
   const setUI = useSetUI()
   const nodeId = column.node.id
 
-  // Subscribe to column selection + cardIndex for scroll tracking.
-  // Column re-renders on j/k, but Cards use CursorStore self-subscription
-  // so renderItem calls trigger only cheap memo checks (no Card re-renders).
+  // Subscribe to column selection only (stable on j/k within same column).
+  // ScrollTrackingVirtualList handles cardIndex subscription.
   const columnSelected = useIsColumnSelected(colIndex)
   const isSelected = columnSelected.isSelected
   const selectionLevel = columnSelected.selectionLevel
-  const cardIndex = useCursorCardIndex(colIndex)
-  const scrollToIndex = getScrollToIndex(isSelected, cardIndex, column.cards.length)
 
   // Check if this column header is being inline-edited
   const isInlineEditing = useUISelector(
@@ -429,11 +427,12 @@ export const Column = React.memo(function Column({
           <Text dimColor>[collapsed - {count}]</Text>
         </Box>
       ) : column.cards.length > 0 ? (
-          <VirtualList
+          <ScrollTrackingVirtualList
+            colIndex={colIndex}
+            isSelected={isSelected}
             items={column.cards}
             height={height - 2}
             itemHeight={ESTIMATED_CARD_HEIGHT}
-            scrollTo={scrollToIndex}
             overscan={OVERSCAN}
             maxRendered={MAX_RENDERED_CARDS}
             keyExtractor={keyExtractor}

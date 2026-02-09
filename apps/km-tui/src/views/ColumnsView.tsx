@@ -7,13 +7,10 @@
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
 import React, {
-  useRef,
-  forwardRef,
-  useImperativeHandle,
   useCallback,
 } from "react"
 import { useRepo } from "../repo-context.tsx"
-import { Box, Text, VirtualList, type VirtualListHandle } from "inkx"
+import { Box, Text } from "inkx"
 import createDebug from "debug"
 
 const debug = createDebug("km:tui:columns")
@@ -28,15 +25,8 @@ import {
 } from "./VerticalScrollIndicator.tsx"
 import { calcColumnWidths, getColumnWidth } from "./board-layout.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { useIsColumnSelected, useCursorCardIndex, useCursorColIndex } from "../cursor-context.tsx"
-
-// =============================================================================
-// Handle Interfaces
-// =============================================================================
-
-interface ColumnTreeHandle {
-  scrollToItem(index: number): void
-}
+import { useIsColumnSelected, useCursorColIndex } from "../cursor-context.tsx"
+import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 
 // =============================================================================
 // Virtualization Constants
@@ -68,43 +58,29 @@ interface ColumnTreeProps {
 }
 
 /**
- * Memoized ColumnTree - re-renders on j/k for VirtualList scroll tracking.
+ * Memoized ColumnTree - does NOT re-render on j/k within the same column.
+ *
+ * Column subscribes only to column selection state (stable on j/k).
+ * ScrollTrackingVirtualList handles cardIndex subscription.
  * Cards use CursorStore self-subscription for selection state.
  */
 const ColumnTree = React.memo(
-  forwardRef<ColumnTreeHandle, ColumnTreeProps>(function ColumnTree(
-    {
-      column,
-      colIndex,
-      selectedSubIndex,
-      width,
-      height,
-    },
-    ref,
-  ) {
-    const listRef = useRef<VirtualListHandle>(null)
-
-    // Forward scrollToItem to VirtualList
-    useImperativeHandle(ref, () => ({
-      scrollToItem(index: number) {
-        listRef.current?.scrollToItem(index)
-      },
-    }))
-
+  function ColumnTree({
+    column,
+    colIndex,
+    selectedSubIndex,
+    width,
+    height,
+  }: ColumnTreeProps) {
     const repo = useRepo()
     const {
       treeConfig: { inOutlineMode },
     } = useTreeRenderContext()
 
-    // Subscribe to column selection + cardIndex for scroll tracking.
-    // ColumnTree re-renders on j/k, but Cards use CursorStore self-subscription.
+    // Subscribe to column selection only (stable on j/k within same column)
     const columnSelected = useIsColumnSelected(colIndex)
     const isSelected = columnSelected.isSelected
     const selectionLevel = columnSelected.selectionLevel
-    const cardIndex = useCursorCardIndex(colIndex)
-    const scrollToIndex = isSelected && cardIndex >= 0 && cardIndex < column.cards.length
-      ? cardIndex
-      : undefined
 
     // Render name with wiki links stripped: [[target|alias]] → "alias"
     const name = renderPlain(getNodeDisplayName(repo, column.node))
@@ -181,14 +157,14 @@ const ColumnTree = React.memo(
           </Text>
         </Box>
 
-        {/* Cards with inkx VirtualList */}
+        {/* Cards with ScrollTrackingVirtualList */}
         {column.cards.length > 0 ? (
-            <VirtualList
-              ref={listRef}
+            <ScrollTrackingVirtualList
+              colIndex={colIndex}
+              isSelected={isSelected}
               items={column.cards}
               height={height - 2}
               itemHeight={1}
-              scrollTo={scrollToIndex}
               overscan={OVERSCAN}
               maxRendered={MAX_RENDERED_ITEMS}
               keyExtractor={(card) => card.node.id}
@@ -201,7 +177,7 @@ const ColumnTree = React.memo(
         )}
       </Box>
     )
-  }),
+  },
 )
 
 // =============================================================================
