@@ -58,3 +58,6 @@ tmp-test/
 docs/vs-decker.md
 issue/
 __fuzz_cases__/
+
+# PTY test snapshots (generated at runtime)
+__snapshots__/pty/
