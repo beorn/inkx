@@ -42,7 +42,7 @@ const columnJumpCommands = ((): CommandDef[] =>
       name: `Column ${n}`,
       description: `Jump to column ${n}`,
       category: "Navigation",
-      shortcuts: [SHIFT_NUMBER_SYMBOLS[i]!],
+      shortcuts: [SHIFT_NUMBER_SYMBOLS[i] ?? ""],
       execute: (): CommandAction => ({
         type: "JUMP_TO_COLUMN",
         columnNumber: n,

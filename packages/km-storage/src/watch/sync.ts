@@ -536,7 +536,10 @@ export class SyncManager extends EventEmitter {
     newTitle: string,
     eventId: string,
   ): void {
-    const oldFsPath = fileNode.fs_path!
+    const oldFsPath = fileNode.fs_path
+    if (!oldFsPath) {
+      throw new Error("[sync] handleFileRename: fileNode has no fs_path")
+    }
     const newFileName = titleToFilename(newTitle)
     const parentDir = dirname(oldFsPath)
     const newFsPath =

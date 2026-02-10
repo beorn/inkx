@@ -233,7 +233,7 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
 
   async advanceTime(ms: number): Promise<void> {
     if (!this.useVirtualTime) {
-      await new Promise((r) => setTimeout(r, ms))
+      await new Promise((resolve) => setTimeout(resolve, ms))
       return
     }
 

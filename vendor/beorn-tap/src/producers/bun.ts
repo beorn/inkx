@@ -47,19 +47,20 @@ export function runBunTap(options: BunTapOptions = {}): BunTapResult {
   })
 
   // When process exits, read and convert junit XML
-  proc.exited
+  void proc.exited
     .then(() => {
       try {
         const xml = readFileSync(junitFile, "utf-8")
         const tap = junitToTap(xml)
         output.write(tap)
-      } catch (err) {
+      } catch {
         // No junit file means no tests ran or error
         output.write("TAP version 14\n")
         output.write("1..0\n")
       }
+      return undefined
     })
-    .catch((err) => {
+    .catch((err: unknown) => {
       output.write(`not ok 1 - bun test error: ${err}\n`)
       output.write("1..1\n")
     })
