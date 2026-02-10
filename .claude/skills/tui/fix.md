@@ -156,6 +156,29 @@ check.all(board)          // All of the above (synthetic only)
 | Wrong node selected | `expect(board.nodeId).toBe("expected-id")` |
 | Column missing | `expect(board.columns().map(c => c.title)).toContain("name")` |
 
+## Layout Bugs (Wrong Dimensions, Text Overflow, Card Sizing)
+
+If the bug is about **wrong sizes or positions** (not wrong pixels), it may be a **Flexx layout caching bug** rather than an inkx rendering bug. Layout bugs manifest as incorrect `width`/`height` computations during re-layout of partially-dirty trees.
+
+**Quick check**: Does the bug only appear after navigation (re-layout), not on initial render? → Likely a layout caching bug.
+
+```bash
+# Run the Flexx re-layout fuzz suite (1100+ tests, differential oracle)
+bun vitest run vendor/beorn-flexx/tests/relayout-consistency.test.ts
+
+# If all pass, the caching logic is correct for known patterns.
+# Create a targeted test mirroring the real component structure.
+```
+
+**Bug taxonomy** (3 classes found so far):
+1. **Measurement side effects** — `measureNode` overwriting layout on clean nodes
+2. **Sentinel collisions** — NaN used as both "invalidated" and "unconstrained"
+3. **Fingerprint incompleteness** — parent override not captured in cache key
+
+See `vendor/beorn-flexx/docs/incremental-layout-bugs.md` for full details, industry context, and debugging methodology.
+
 ## See Also
 
 - [explore/random.md](../explore/random.md) — Fuzz testing
+- `docs/lessons/layout-caching.md` — Layout caching bugs lesson
+- `vendor/beorn-flexx/docs/testing.md` — Flexx test infrastructure
