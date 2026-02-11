@@ -41,7 +41,7 @@ export function getPathSegments(
   // Repo root segment - always present (folder icon)
   const repoRootSegment: PathSegment = {
     id: null,
-    name: "\uD83D\uDCC1", // folder 📁
+    name: "\uD83D\uDCC1 ", // folder 📁 (trailing space before repo name)
     sep: "",
     isWithinBoard: false,
     node: null,
@@ -110,20 +110,6 @@ export function getPathSegments(
         isWithinBoard,
         node,
       })
-    }
-  }
-
-  // Update first segment to have "/" separator (since it follows repo root)
-  if (segments.length > 0) {
-    const first = segments[0]
-    if (first?.sep === "") {
-      segments[0] = {
-        id: first.id,
-        name: first.name,
-        sep: "/",
-        isWithinBoard: first.isWithinBoard,
-        node: first.node,
-      }
     }
   }
 
