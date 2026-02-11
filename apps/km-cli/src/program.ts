@@ -187,7 +187,11 @@ Verbosity:
       // -v decreases index (more verbose), -q increases index (quieter)
       const offset = (quietOption ?? 0) - (verboseOption ?? 0)
       const baseIndex = 3 // warn
-      const targetIndex = Math.max(0, Math.min(5, baseIndex + offset))
+      let targetIndex = Math.max(0, Math.min(5, baseIndex + offset))
+      // DEBUG or DEBUG_LOG set a floor of "debug" (index 1)
+      if (process.env.DEBUG || process.env.DEBUG_LOG) {
+        targetIndex = Math.min(targetIndex, 1)
+      }
       logLevel = LOG_LEVELS[targetIndex] ?? "warn"
     }
     setLogLevel(logLevel)
