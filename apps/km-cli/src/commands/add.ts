@@ -30,7 +30,7 @@ export const addCommand = new Command("add")
   .argument("<source...>", "Task IDs or query (e.g., ./inbox/**, status:todo)")
   .option("--dry-run", "Preview without making changes")
   .option("--json", "Output as JSON")
-  // oxlint-disable-next-line complexity/max-cognitive -- CLI add with query matching and multiple input modes
+  // oxlint-disable-next-line complexity/complexity -- CLI add with query matching and multiple input modes
   .action(async (target: string, sources: string[], options: AddOptions) => {
     // Resolve target path argument - may detect repo root
     const resolvedTarget = resolvePathArg(target, getRootPath())

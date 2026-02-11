@@ -68,7 +68,7 @@ import {
  * Returns ActionResult: ok() on success, boundary/precondition/unimplemented on expected failure.
  * Callers should check result and provide feedback (e.g., ring bell for boundary).
  */
-// oxlint-disable-next-line complexity/max-cognitive, complexity/max-cyclomatic -- Exhaustive action switch — TS validates completeness
+// oxlint-disable-next-line complexity/complexity -- Exhaustive action switch — TS validates completeness
 export function handleCommandAction(
   ctx: ActionCtx,
   action: CommandAction,

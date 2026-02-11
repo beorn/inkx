@@ -83,20 +83,36 @@ async function runOxlint(paths: string[]): Promise<string> {
 function parseFindings(output: string): ComplexityFinding[] {
   const findings: ComplexityFinding[] = []
 
-  // oxlint-plugin-complexity output format:
-  //   ! complexity(max-cognitive): Function 'funcName' has Cognitive Complexity of 17. Maximum allowed is 15. [breakdown]
-  //   ...breakdown lines...
+  // oxlint-plugin-complexity output format (v1.0 unified rule):
+  //   ! complexity(complexity): Function 'funcName' has Cognitive Complexity of 17. Maximum allowed is 15. [breakdown]
+  //   | Breakdown:
+  //   |     Line 42: +1 for 'if'
+  //   | Tips:
+  //   |   ...
   //      ,-[file.ts:line:col]
   //
-  // We need to match the rule line and then find the file location
+  // v1.0 diagnostics are multi-line with detailed breakdowns. Split on diagnostic
+  // boundaries (each starts with "  ! complexity(") rather than blank lines.
 
-  // Split into blocks separated by blank lines or new diagnostic markers
-  const blocks = output.split(/\n\s*\n/)
+  // Split output into diagnostic blocks starting at each "  ! complexity(" marker
+  const blocks: string[] = []
+  const lines = output.split("\n")
+  let current: string[] = []
+  for (const line of lines) {
+    if (/^\s*!\s*complexity\(/.test(line) && current.length > 0) {
+      blocks.push(current.join("\n"))
+      current = []
+    }
+    current.push(line)
+  }
+  if (current.length > 0) {
+    blocks.push(current.join("\n"))
+  }
 
   for (const block of blocks) {
-    // Match the complexity warning/error line
+    // Match the complexity warning/error line (both v1.0 unified and v0.x legacy formats)
     const ruleMatch = block.match(
-      /!\s*complexity\((max-(cyclomatic|cognitive))\):\s*Function '([^']+)' has (?:Cyclomatic|Cognitive) Complexity of (\d+)\.\s*Maximum allowed is (\d+)/,
+      /!\s*complexity\((?:max-(cyclomatic|cognitive)|complexity)\):\s*Function '([^']+)' has (?:(cyclomatic|Cyclomatic|Cognitive)) [Cc]omplexity of (\d+)\.\s*Maximum allowed is (\d+)/,
     )
     if (!ruleMatch) continue
 
@@ -107,15 +123,17 @@ function parseFindings(output: string): ComplexityFinding[] {
     // Extract breakdown summary from the first line (in brackets)
     const breakdownMatch = block.match(/Maximum allowed is \d+\.\s*\[([^\]]+)\]/)
 
-    const ruleType = ruleMatch[2] as "cyclomatic" | "cognitive"
+    // Determine rule type from either capture group
+    const typeStr = (ruleMatch[1] ?? ruleMatch[3] ?? "cognitive").toLowerCase()
+    const ruleType = typeStr === "cyclomatic" ? "cyclomatic" : "cognitive" as "cyclomatic" | "cognitive"
     findings.push({
       file: locationMatch[1]!,
       line: parseInt(locationMatch[2]!, 10),
       column: parseInt(locationMatch[3]!, 10),
-      function: ruleMatch[3]!,
-      rule: ruleType,
+      function: ruleMatch[2]!,
       complexity: parseInt(ruleMatch[4]!, 10),
       threshold: parseInt(ruleMatch[5]!, 10),
+      rule: ruleType,
       breakdown: breakdownMatch?.[1] ?? "",
     })
   }

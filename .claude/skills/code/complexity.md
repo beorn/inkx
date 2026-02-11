@@ -180,8 +180,8 @@ Use `/max` to run N refactoring agents simultaneously (max 5 per batch). Each ag
 ### 4. Suppress the Rest
 
 For irreducible functions, add suppression comments:
-- **File-level**: `/* oxlint-disable complexity/max-cognitive -- reason */` (React components, test helpers)
-- **Inline**: `// oxlint-disable-next-line complexity/max-cognitive -- reason` (individual functions)
+- **File-level**: `/* oxlint-disable complexity/complexity -- reason */` (React components, test helpers)
+- **Inline**: `// oxlint-disable-next-line complexity/complexity -- reason` (individual functions)
 
 Always include a reason explaining why the complexity is inherent.
 

@@ -38,7 +38,7 @@ function makeStructuralKey(node: KNode): string {
  *
  * Returns changes and a map from new IDs to existing IDs (for link remapping).
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Field comparison refactored with arrays — residual complexity
+// oxlint-disable-next-line complexity/complexity -- Field comparison refactored with arrays — residual complexity
 export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const changes: NodeChange[] = []
 

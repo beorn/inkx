@@ -106,7 +106,7 @@ export function* initBoardStateGenerator(
 /**
  * Generator version of buildBoardState that yields progress
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Async generator with batched queries
+// oxlint-disable-next-line complexity/complexity -- Async generator with batched queries
 export function* buildBoardStateGenerator(
   repo: Repo,
   rootId: string,

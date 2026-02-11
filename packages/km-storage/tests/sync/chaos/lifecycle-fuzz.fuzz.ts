@@ -792,7 +792,7 @@ describe("Lifecycle Fuzz Tests", () => {
     }
   })
 
-  // oxlint-disable-next-line complexity/max-cognitive -- fuzz test with inline op generation
+  // oxlint-disable-next-line complexity/complexity -- fuzz test with inline op generation
   test.fuzz("deep nesting: 3+ level paths", async () => {
     const rng = createSeededRandom()
     const deepFiles = [

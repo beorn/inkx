@@ -52,7 +52,7 @@
  * console.log(b.screenshot());
  * ```
  */
-/* oxlint-disable complexity/max-cognitive -- Test helper — fixture builder complexity is acceptable */
+/* oxlint-disable complexity/complexity -- Test helper — fixture builder complexity is acceptable */
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"

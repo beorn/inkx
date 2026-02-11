@@ -174,6 +174,7 @@ const Card = React.memo(
         width={width}
         borderStyle="round"
         borderColor={borderColor}
+        paddingRight={1}
       >
         <CardLayoutRegistrar
           colIndex={colIndex}
@@ -236,7 +237,7 @@ interface ColumnProps {
  * Cards get selection state from CursorStore self-subscription.
  * Result: j/k only re-renders ScrollTrackingVirtualList + VirtualList + 2 Cards.
  */
-// oxlint-disable-next-line complexity/max-cognitive -- React component — JSX ternaries inflate score
+// oxlint-disable-next-line complexity/complexity -- React component — JSX ternaries inflate score
 export const Column = React.memo(function Column({
   column,
   colIndex,

@@ -87,7 +87,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
  * Handle term:key event — the single entry point for all keyboard input.
  * Dialog guards → command routing → action handling → bell/status feedback.
  */
-// oxlint-disable-next-line complexity/max-cognitive, complexity/max-cyclomatic -- Keyboard routing with dialog/modal state guards
+// oxlint-disable-next-line complexity/complexity -- Keyboard routing with dialog/modal state guards
 export function handleKey(
   data: { input: string; key: Key },
   ctx: EventHandlerContext<BoardAppStore>,
@@ -177,7 +177,7 @@ export function handleKey(
  * Route key through the command system and handle resulting actions.
  * When a dialog is open, only dialog.* and text.* commands are processed.
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Sequential key routing with dialog/boundary state guards
+// oxlint-disable-next-line complexity/complexity -- Sequential key routing with dialog/boundary state guards
 function routeThroughCommandSystem(
   input: string,
   key: Key,

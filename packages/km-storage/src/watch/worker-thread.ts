@@ -93,7 +93,7 @@ let statusInterval: ReturnType<typeof setInterval> | undefined
  * - *.ext: Match files with extension
  * - exact: Exact match or as directory prefix
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Glob matching with 5 distinct pattern types
+// oxlint-disable-next-line complexity/complexity -- Glob matching with 5 distinct pattern types
 function shouldIgnore(
   path: string,
   patterns: string[],

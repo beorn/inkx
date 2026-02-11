@@ -557,7 +557,7 @@ function insertNodeRow(
 // SHARED PIPELINE
 // ============================================================================
 
-// oxlint-disable-next-line complexity/max-cognitive -- 35/30: event type switch with validation guards, exhaustive by design
+// oxlint-disable-next-line complexity/complexity -- 35/30: event type switch with validation guards, exhaustive by design
 function* applyEvents(
   db: Database,
   events: Event[],
@@ -824,7 +824,7 @@ async function parseDeferredSequential(
  * @param fsPath - Filesystem path to the markdown file
  * @returns true if parsed successfully, false if stub not found or parse failed
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Stub-to-full parse with INSERT — shares insertNodeRow helper
+// oxlint-disable-next-line complexity/complexity -- Stub-to-full parse with INSERT — shares insertNodeRow helper
 export function parseStubFile(
   db: Database,
   nodeId: string,

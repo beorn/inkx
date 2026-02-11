@@ -237,7 +237,7 @@ function CursorAwareNewItemDialog({
  * Uses derivedSelectionLevel prop (stable on j/k).
  * TopBar, DetailPane, and NewItemDialog subscribe independently.
  */
-// oxlint-disable-next-line complexity/max-cognitive -- React component — JSX conditionals inflate score
+// oxlint-disable-next-line complexity/complexity -- React component — JSX conditionals inflate score
 export function BoardCore({
   state,
   layout,

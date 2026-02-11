@@ -65,7 +65,7 @@ const DAY_MAP: Record<string, number> = {
 /**
  * Calculate next occurrence date from an RRULE
  */
-// oxlint-disable-next-line complexity/max-cognitive -- RRULE state machine: DAILY/WEEKLY/MONTHLY/YEARLY with interval and count
+// oxlint-disable-next-line complexity/complexity -- RRULE state machine: DAILY/WEEKLY/MONTHLY/YEARLY with interval and count
 export function getNextOccurrence(
   rrule: string,
   fromDate: string,

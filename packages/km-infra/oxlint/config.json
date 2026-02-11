@@ -31,8 +31,7 @@
     "vendor/beorn-flexx/**"
   ],
   "rules": {
-    "complexity/max-cyclomatic": ["warn", { "max": 30 }],
-    "complexity/max-cognitive": ["warn", { "max": 30 }],
+    "complexity/complexity": ["warn", { "cyclomatic": 30, "cognitive": 30 }],
     "no-control-regex": "off",
     "getter-return": "error",
     "no-undef": "error",

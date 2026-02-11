@@ -38,7 +38,7 @@ interface SearchResult {
 /**
  * Check if node matches query filters
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Query matching with refs, text, and phrase combinations
+// oxlint-disable-next-line complexity/complexity -- Query matching with refs, text, and phrase combinations
 function matchesQuery(
   result: SearchResult,
   queryAST: QueryAST,

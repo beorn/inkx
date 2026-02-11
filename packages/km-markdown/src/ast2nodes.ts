@@ -158,7 +158,7 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
 /**
  * Convert AST children to km nodes
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Recursive AST conversion with many node types
+// oxlint-disable-next-line complexity/complexity -- Recursive AST conversion with many node types
 function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
   const nodes: KNode[] = []
   const sectionStack: Array<{ depth: number; node: KNode }> = []
@@ -636,7 +636,7 @@ function extractWikilinksFromNodes(allNodes: KNode[]): ExtractedLink[] {
  * This enables queries like @issue to find files where any content has that mention.
  * Mutates fileNode.data to add _allMentions, _allTags, _allProjects.
  */
-// oxlint-disable-next-line complexity/max-cognitive -- Nested iteration over nodes/refs is inherent to aggregation
+// oxlint-disable-next-line complexity/complexity -- Nested iteration over nodes/refs is inherent to aggregation
 function aggregateRefs(fileNode: KNode, childNodes: KNode[]): void {
   const aggregatedMentions = new Set<string>()
   const aggregatedTags = new Set<string>()

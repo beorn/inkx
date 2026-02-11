@@ -231,7 +231,7 @@ export function createBoardAppStoreState(
 
     // --- Board action dispatcher (inlined from boardReducer) ---
 
-    // oxlint-disable-next-line complexity/max-cognitive -- Exhaustive switch over BoardAction union
+    // oxlint-disable-next-line complexity/complexity -- Exhaustive switch over BoardAction union
     dispatchBoard(action: BoardAction) {
       // Track whether this action only changes cursor position (no column changes)
       let cursorOnly = false

@@ -55,7 +55,7 @@ export const shCommand = new Command("sh")
   )
   .option("-f, --file <path>", "Read commands from file instead of stdin")
   .option("-v, --verbose", "Output JSON action event for each command")
-  // oxlint-disable-next-line complexity/max-cognitive -- CLI REPL with 3 input modes
+  // oxlint-disable-next-line complexity/complexity -- CLI REPL with 3 input modes
   .action(async (root, options) => {
     // Resolve the root argument - handles directory paths, file paths, and node IDs
     const resolved = resolvePathArg(root, getRootPath())
