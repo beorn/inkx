@@ -285,23 +285,23 @@ export const Column = React.memo(function Column({
   // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
+      const oldName = repo.getNode(nodeId)?.name ?? ""
       const impact = repo.getRenameImpact(nodeId)
+      const s = impact.backlinks.length === 1 ? "" : "s"
 
-      if (impact.backlinks.length === 0) {
-        repo.renameNode(nodeId, newValue)
-      } else {
-        const oldName = repo.getNode(nodeId)?.name ?? ""
-        const s = impact.backlinks.length === 1 ? "" : "s"
-        jobRunner.submit({
-          description: `Renaming '${oldName}' → '${newValue}'`,
-          impact: `${impact.backlinks.length} backlink${s} will be updated`,
-          execute: (onProgress) => {
-            repo.renameNode(nodeId, newValue, (info) =>
-              onProgress(info.updated, info.total),
-            )
-          },
-        })
-      }
+      jobRunner.submit({
+        description: `Renaming '${oldName}' → '${newValue}'`,
+        impact:
+          impact.backlinks.length > 0
+            ? `${impact.backlinks.length} backlink${s} will be updated`
+            : "",
+        countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
+        execute: (onProgress) => {
+          repo.renameNode(nodeId, newValue, (info) =>
+            onProgress(info.updated, info.total),
+          )
+        },
+      })
 
       setUI({ inlineEditBlock: null })
     },

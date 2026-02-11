@@ -291,25 +291,23 @@ function TreeNodeImpl({
       const { mark } = extractTitleTaskMark(originalContent)
       const newContent = mark != null ? `[${mark}] ${newValue}` : newValue
 
+      const oldName = repo.getNode(displayNode.id)?.name ?? ""
       const impact = repo.getRenameImpact(displayNode.id)
+      const s = impact.backlinks.length === 1 ? "" : "s"
 
-      if (impact.backlinks.length === 0) {
-        // No backlinks — safe to rename immediately
-        repo.renameNode(displayNode.id, newContent)
-      } else {
-        // Has backlinks — use job runner with cancel window
-        const oldName = repo.getNode(displayNode.id)?.name ?? ""
-        const s = impact.backlinks.length === 1 ? "" : "s"
-        jobRunner.submit({
-          description: `Renaming '${oldName}' → '${newValue}'`,
-          impact: `${impact.backlinks.length} backlink${s} will be updated`,
-          execute: (onProgress) => {
-            repo.renameNode(displayNode.id, newContent, (info) =>
-              onProgress(info.updated, info.total),
-            )
-          },
-        })
-      }
+      jobRunner.submit({
+        description: `Renaming '${oldName}' → '${newValue}'`,
+        impact:
+          impact.backlinks.length > 0
+            ? `${impact.backlinks.length} backlink${s} will be updated`
+            : "",
+        countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
+        execute: (onProgress) => {
+          repo.renameNode(displayNode.id, newContent, (info) =>
+            onProgress(info.updated, info.total),
+          )
+        },
+      })
 
       setUI({ inlineEditBlock: null })
     },
