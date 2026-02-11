@@ -17,6 +17,13 @@ import { homedir } from "os"
 
 let stream: ReturnType<typeof createWriteStream> | null = null
 
+// Strip ANSI escape sequences for clean file output
+// eslint-disable-next-line no-control-regex
+const ANSI_RE = /\x1b\[[0-9;]*m/g
+function stripAnsi(s: string): string {
+  return s.replace(ANSI_RE, "")
+}
+
 // Optional repo root for formatting paths relative to repo
 let repoRoot: string | null = null
 
@@ -181,8 +188,10 @@ function customLog(...args: unknown[]): void {
   const line = parts.join(" ")
 
   if (stream) {
-    stream.write(line + "\n")
-  } else if (!process.stdout.isTTY) {
+    stream.write(stripAnsi(line) + "\n")
+  }
+
+  if (!process.stdout.isTTY) {
     // Not in TTY (tests, scripts) - output to stderr as normal
     console.error(line)
   } else if (consoleEnabled) {
@@ -203,7 +212,7 @@ const logPath = process.env.DEBUG_LOG
 
 if (logPath) {
   stream = createWriteStream(logPath, { flags: "a" })
-  addWriter((formatted) => stream!.write(formatted + "\n"))
+  addWriter((formatted) => stream!.write(stripAnsi(formatted) + "\n"))
 
   // Clean up on exit - only close stream, don't call process.exit()
   // Other signal handlers (like TUI terminal restoration) need to run first
