@@ -88,6 +88,105 @@ describe("Edit Operations", () => {
     expect(aBox!.y).toBeLessThan(bBox!.y)
   })
 
+  test("Meta+j then Meta+k round-trips card back to original position", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b"), item("1c")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Shift down then back up — should return to original position
+    board.press("Meta+j")
+    board.press("Meta+k")
+
+    board.expect("#1a[data-cursor]").toExist()
+    // 1a should be back at the top
+    const aBox = board.q("#1a").boundingBox()
+    const bBox = board.q("#1b").boundingBox()
+    const cBox = board.q("#1c").boundingBox()
+    expect(aBox!.y).toBeLessThan(bBox!.y)
+    expect(bBox!.y).toBeLessThan(cBox!.y)
+  })
+
+  test("Multiple Meta+j shifts card through all positions", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Shift 1a all the way down
+    board.press("Meta+j")
+    board.press("Meta+j")
+    board.press("Meta+j")
+
+    // 1a should be at the bottom
+    board.expect("#1a[data-cursor]").toExist()
+    const bBox = board.q("#1b").boundingBox()
+    const cBox = board.q("#1c").boundingBox()
+    const dBox = board.q("#1d").boundingBox()
+    const aBox = board.q("#1a").boundingBox()
+    expect(bBox!.y).toBeLessThan(cBox!.y)
+    expect(cBox!.y).toBeLessThan(dBox!.y)
+    expect(dBox!.y).toBeLessThan(aBox!.y)
+  })
+
+  test("Meta+k then Meta+j round-trips card back to original position", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b"), item("1c")),
+      ),
+    )
+    // Move to 1b
+    board.press("j")
+    board.expect("#1b[data-cursor]").toExist()
+
+    // Shift up then back down — should return to original position
+    board.press("Meta+k")
+    board.press("Meta+j")
+
+    board.expect("#1b[data-cursor]").toExist()
+    // Order should be original: 1a, 1b, 1c
+    const aBox = board.q("#1a").boundingBox()
+    const bBox = board.q("#1b").boundingBox()
+    const cBox = board.q("#1c").boundingBox()
+    expect(aBox!.y).toBeLessThan(bBox!.y)
+    expect(bBox!.y).toBeLessThan(cBox!.y)
+  })
+
+  test("Meta+j works when siblings have duplicate parent_idx (all zero)", () => {
+    // Simulate the condition where nodes have parent_idx=0 (DB default)
+    // This happens when nodes are created without explicit sort order
+    const nodes = item(
+      "board",
+      item("col1", item("1a"), item("1b"), item("1c")),
+    )
+    // Force all cards to have parent_idx=0 (DB default scenario)
+    for (const n of nodes) {
+      if (n.type === "task") {
+        n.parent_idx = 0
+      }
+    }
+    const { board } = testEnv(() => nodes)
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Shift 1a down — should move to position 1, not the bottom
+    board.press("Meta+j")
+
+    board.expect("#1a[data-cursor]").toExist()
+    const aBox = board.q("#1a").boundingBox()
+    const bBox = board.q("#1b").boundingBox()
+    const cBox = board.q("#1c").boundingBox()
+    // 1b should be above 1a, 1a above 1c
+    expect(bBox!.y).toBeLessThan(aBox!.y)
+    expect(aBox!.y).toBeLessThan(cBox!.y)
+  })
+
   test("Meta+l shifts card right to next column", () => {
     const { board } = testEnv(() =>
       item(

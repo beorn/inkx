@@ -17,43 +17,59 @@ import { indexOfChild } from "../sibling-index.ts"
 // Card Movement - Helpers
 // =============================================================================
 
-/** Effective sort order for a card at a given index within a column */
-function getEffectiveSortOrder(
-  col: { cards: CardState[] },
-  cardIndex: number,
-): number {
-  const c = col.cards[cardIndex]
-  return c
-    ? c.node.parent_idx === 0
-      ? cardIndex
-      : c.node.parent_idx
-    : cardIndex
+/**
+ * Ensure all cards in a column have distinct parent_idx values.
+ * When siblings share the same parent_idx (e.g., all default to 0),
+ * fractional insertion between equal values produces wrong sort order.
+ * Assigns sequential integers [0, 1, 2, ...] when duplicates exist.
+ */
+function normalizeSortOrders(
+  ctx: ActionCtx,
+  col: { cards: CardState[]; node: { id: string } },
+): void {
+  const seen = new Set<number>()
+  let hasDuplicates = false
+  for (const card of col.cards) {
+    if (seen.has(card.node.parent_idx)) {
+      hasDuplicates = true
+      break
+    }
+    seen.add(card.node.parent_idx)
+  }
+  if (!hasDuplicates) return
+
+  for (let i = 0; i < col.cards.length; i++) {
+    const card = col.cards[i]
+    if (card && card.node.parent_idx !== i) {
+      ctx.repo.moveNode(card.node.id, col.node.id, i)
+      card.node.parent_idx = i
+    }
+  }
 }
 
 /**
  * Calculate the sort order for inserting a card at the given target index.
  * Places the value between the two neighbors, or beyond the boundary card.
+ * Requires normalizeSortOrders to have been called first.
  */
 function calculateSortOrder(
   col: { cards: CardState[] },
   targetIndex: number,
   direction: "up" | "down",
 ): number {
+  const order = (i: number) => col.cards[i]?.node.parent_idx ?? i
+
   if (direction === "up") {
     if (targetIndex === 0) {
-      return getEffectiveSortOrder(col, 0) - 1
+      return order(0) - 1
     }
-    const prevOrder = getEffectiveSortOrder(col, targetIndex - 1)
-    const targetOrder = getEffectiveSortOrder(col, targetIndex)
-    return (prevOrder + targetOrder) / 2
+    return (order(targetIndex - 1) + order(targetIndex)) / 2
   }
   // direction === "down"
   if (targetIndex >= col.cards.length - 1) {
-    return getEffectiveSortOrder(col, col.cards.length - 1) + 1
+    return order(col.cards.length - 1) + 1
   }
-  const targetOrder = getEffectiveSortOrder(col, targetIndex)
-  const nextOrder = getEffectiveSortOrder(col, targetIndex + 1)
-  return (targetOrder + nextOrder) / 2
+  return (order(targetIndex) + order(targetIndex + 1)) / 2
 }
 
 /**
@@ -94,6 +110,9 @@ export function moveCardInColumn(
 ): void {
   const col = ctx.layout.columns[ctx.layout.colIndex]
   if (!col) return
+
+  // Fix duplicate parent_idx before calculating new sort order
+  normalizeSortOrders(ctx, col)
 
   const selectedIndices = getSelectedCardIndices(ctx)
   const cardsToMove =
