@@ -66,6 +66,7 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       paddingRight={1}
       minWidth={40}
       maxWidth={60}
+      overflow="hidden"
       id="toast"
       data-level={toast.level}
       data-toast-id={toast.id}
