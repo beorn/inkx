@@ -6,9 +6,9 @@
  * and outputs trace/state to stdout.
  *
  * Usage:
- *   km sh @inbox.md -c 'move_down; move_down; state'
- *   echo 'move_down\nstate' | km sh @inbox.md
- *   km sh --json @inbox.md < commands.txt
+ *   km sh @next.md -c 'move_down; move_down; state'
+ *   echo 'move_down\nstate' | km sh @next.md
+ *   km sh --json @next.md < commands.txt
  */
 
 import { Command } from "@commander-js/extra-typings"
@@ -111,7 +111,7 @@ export const shCommand = new Command("sh")
     }
 
     // Compute the root node's slug path for prompt display
-    // e.g., if viewing @inbox.md, this will be "@inbox"
+    // e.g., if viewing @next.md, this will be "@next"
     let rootSlugPath: string | undefined
     if (resolvedNodeId) {
       const rootNode = repo.resolveNode(resolvedNodeId)

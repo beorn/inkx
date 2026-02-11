@@ -533,24 +533,15 @@ describe("km init", () => {
       // Check folders and board files exist
       expect(existsSync(join(dir, "inbox"))).toBe(true)
       expect(existsSync(join(dir, "archive"))).toBe(true)
-      expect(existsSync(join(dir, "@inbox.md"))).toBe(true)
       expect(existsSync(join(dir, "@next.md"))).toBe(true)
       expect(existsSync(join(dir, "@someday.md"))).toBe(true)
     })
 
-    test("should create @inbox.md with correct content", async () => {
-      const { dir } = await initInDir("gtd-inbox")
-      const content = readFileSync(join(dir, "@inbox.md"), "utf-8")
-      expect(content).toContain("title: Inbox")
-      expect(content).toContain("# Inbox")
-      expect(content).toContain('## Unprocessed add="./inbox/**"')
-    })
-
-    test("should create @next.md with columns and sync rules", async () => {
+    test("should create @next.md with inbox column and sync rules", async () => {
       const { dir } = await initInDir("gtd-next")
       const content = readFileSync(join(dir, "@next.md"), "utf-8")
-      expect(content).not.toContain("---")
       expect(content).toContain("# Next Actions")
+      expect(content).toContain('## Inbox add="./inbox/**"')
       expect(content).toContain("## Processing default=true")
       expect(content).toContain("## Next")
       expect(content).toContain("## Doing")
@@ -575,14 +566,14 @@ describe("km init", () => {
       })
       expectSuccess(result, "Initializing")
       expect(existsSync(join(dir, ".km"))).toBe(true)
-      expect(existsSync(join(dir, "@inbox.md"))).toBe(true)
+      expect(existsSync(join(dir, "@next.md"))).toBe(true)
     })
 
     test("should skip GTD with --no-gtd", async () => {
       const { result, dir } = await initInDir("no-gtd", ["--force", "--no-gtd"])
       expectSuccess(result, "Initializing")
       expect(existsSync(join(dir, ".km"))).toBe(true)
-      expect(existsSync(join(dir, "@inbox.md"))).toBe(false)
+      expect(existsSync(join(dir, "@next.md"))).toBe(false)
       expect(existsSync(join(dir, "inbox"))).toBe(false)
     })
 
@@ -1101,15 +1092,18 @@ describe("km view - state initialization", () => {
   })
 
   test("km view should find board after km sync and km add in sequence", async () => {
-    createFile("@inbox.md", "# Inbox\n\n## Unprocessed\n")
+    createFile(
+      "@next.md",
+      '# Next Actions\n\n## Inbox add="./inbox/**"\n\n## Processing\n',
+    )
     createFile(
       "inbox/new.md",
       "# New Items\n\n- [ ] Review email\n- [ ] Check calendar\n",
     )
 
     await km(["sync"])
-    await km(["add", "@inbox", "./inbox/**"])
-    await viewAndExpect("@inbox.md", "Unprocessed")
+    await km(["add", "@next", "./inbox/**"])
+    await viewAndExpect("@next.md", "Inbox")
   })
 
   test("km view should work with filesystem path to board", async () => {

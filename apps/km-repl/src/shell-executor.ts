@@ -217,7 +217,7 @@ function getPathAsString(state: BoardState): string {
  * Get the current path for shell prompt using node slugs
  * e.g., "/inbox/task-1" or "/" at root
  * @param state - BoardState with cursor position
- * @param rootSlugPath - Optional slug path prefix for the view root (e.g., "@inbox" when viewing inside @inbox.md)
+ * @param rootSlugPath - Optional slug path prefix for the view root (e.g., "@next" when viewing inside @next.md)
  */
 export function getPromptPath(
   state: BoardState,

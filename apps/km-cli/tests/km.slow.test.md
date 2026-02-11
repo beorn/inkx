@@ -17,7 +17,6 @@ Initializing .km (repo ...)
 ✓ Created .km/
   Created: inbox/
   Created: archive/
-  Created: @inbox.md
   Created: @next.md
   Created: @someday.md
 ✓ Synced ... file(s) in ... directories
@@ -86,14 +85,14 @@ $ km status "$TASK_ID" done
 
 ### Resolve by filename
 
-Commands accept filenames like `@inbox`:
+Commands accept filenames like `@next`:
 
 ```console
-$ km show @inbox
+$ km show @next
 ID: ...
 Type: file
-Path: .../@inbox.md
-Title: Inbox
+Path: .../@next.md
+Title: Next Actions
 [...]
 ```
 
@@ -102,11 +101,11 @@ Title: Inbox
 Commands accept relative paths:
 
 ```console
-$ km show ./@inbox.md
+$ km show ./@next.md
 ID: ...
 Type: file
-Path: .../@inbox.md
-Title: Inbox
+Path: .../@next.md
+Title: Next Actions
 [...]
 ```
 
@@ -121,7 +120,6 @@ Initializing .km (repo ...)
 ✓ Created .km/
   Created: inbox/
   Created: archive/
-  Created: @inbox.md
   Created: @next.md
   Created: @someday.md
 ✓ Synced ... file(s) in ... directories

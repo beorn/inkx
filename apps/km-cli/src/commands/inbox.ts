@@ -16,7 +16,7 @@ import * as readline from "readline"
  * Get the inbox node (or default to ./inbox folder)
  */
 function getInboxNode(repo: Repo) {
-  // Try to find @inbox or inbox folder
+  // Try to find inbox folder
   const inbox = repo.resolveNode("inbox")
   return inbox
 }

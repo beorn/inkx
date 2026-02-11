@@ -198,7 +198,6 @@ function createGtdStructure(targetDir: string, force: boolean): void {
 
   // Create board files (skip if exists unless --force)
   const files: [string, string][] = [
-    ["@inbox.md", GTD_INBOX_MD],
     ["@next.md", GTD_NEXT_MD],
     ["@someday.md", GTD_SOMEDAY_MD],
   ]
@@ -230,14 +229,9 @@ function createGtdStructure(targetDir: string, force: boolean): void {
  * Boards are just .md files - the @ prefix is a naming convention.
  * Column rules (add=, sync=) are inline in the section heading.
  */
-const GTD_INBOX_MD = `# Inbox color=white
-
-## Unprocessed add="./inbox/**"
-
-## Processing
-`
-
 const GTD_NEXT_MD = `# Next Actions color=cyan
+
+## Inbox add="./inbox/**"
 
 ## Processing default=true
 

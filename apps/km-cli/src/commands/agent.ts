@@ -100,7 +100,7 @@ Related commands:
 Target Resolution (--target):
   --target accepts any task reference that km can resolve:
     ./path/to/file.md     File path (relative or absolute)
-    @inbox                @ref shortcut
+    @next                 @ref shortcut
     01ABC123              Node ID or prefix
     km-a1b2               Beads issue short ID
 
@@ -108,7 +108,7 @@ Examples:
   km agent spawn "Code Assistant" -m claude-sonnet-4
   km agent run agent-1 "Review the authentication code"
   km agent run agent-1 --target ./Projects/auth.md
-  km agent run agent-1 --target @inbox
+  km agent run agent-1 --target @next
   km agent run agent-1 --target km-a1b2
   km agent ls --status running`,
   )
