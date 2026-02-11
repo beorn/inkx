@@ -214,9 +214,15 @@ function navigateHorizontal(
     return targetCol.id
   }
 
-  // At card level: use stickyY (captured by action handler) for position matching
+  // At card level: stickyY is usually set (lazily captured by h/l handler).
+  // If card wasn't measured yet (rare: first render not complete), fall back
+  // to first card in target column.
   const stickyY = layoutRegistry.getStickyY()
-  if (stickyY !== null && layoutRegistry.hasCardsInColumn(targetColIdx)) {
+  if (stickyY === null) {
+    return cardAt(targetCards, 0)
+  }
+
+  if (layoutRegistry.hasCardsInColumn(targetColIdx)) {
     const targetCardIdx = layoutRegistry.findCardAtYVisual(
       targetColIdx,
       stickyY,
@@ -224,17 +230,8 @@ function navigateHorizontal(
     return cardAt(targetCards, Math.max(0, targetCardIdx))
   }
 
-  // No stickyY — fallback to index-based matching.
-  // This happens when the layout registry doesn't have the current card's
-  // headY (e.g., React hasn't re-rendered VirtualList after j/k scroll).
-  // Use the source card's index to find a card at a similar position.
-  const sourceCards = repo.getChildren(cursorColId)
-  const sourceCardIdx = indexOfChild(sourceCards, cursorNodeId)
-  if (sourceCardIdx >= 0) {
-    const targetCardIdx = Math.min(sourceCardIdx, targetCards.length - 1)
-    return cardAt(targetCards, targetCardIdx)
-  }
-
+  // Target column has cards but none are registered in layout (all off-screen).
+  // Use first card as we can't do position matching without rendered cards.
   return cardAt(targetCards, 0)
 }
 

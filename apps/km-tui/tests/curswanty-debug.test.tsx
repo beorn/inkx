@@ -69,14 +69,14 @@ describe("curswantY: scrolled column navigation", () => {
     )
 
     // Record initial position
-    const initial = registry.getCardOptional(0, 0)?.layout.y
+    const initial = registry.getNodeOptional("A01")?.y
     expect(initial).toBeDefined()
 
     // Scroll down
     for (let i = 0; i < 12; i++) board.press("j")
 
     // Card 0 should now have a different (lower) Y — it scrolled off screen
-    const afterScroll = registry.getCardOptional(0, 0)?.layout.y
+    const afterScroll = registry.getNodeOptional("A01")?.y
     // With screen positions: y decreases (scrolled up/off screen)
     // With content positions (the bug): y stays the same
     expect(afterScroll).not.toBe(initial)
@@ -200,15 +200,12 @@ describe("curswantY: scrolled column navigation", () => {
     expect(cursorCardNum(board)).toEqual({ prefix: "A", num: 5 })
 
     // Capture positions of ALL cards in col 0 at this point
-    const positionsBeforeL: Record<number, { y: number; headY?: number; cardHeight: number }> = {}
-    for (let i = 0; i < 10; i++) {
-      const entry = registry.getCardOptional(0, i)
-      if (entry) {
-        positionsBeforeL[i] = {
-          y: entry.layout.y,
-          headY: entry.layout.headY,
-          cardHeight: entry.layout.cardHeight,
-        }
+    const positionsBeforeL: Record<string, { y: number; headY?: number; cardHeight: number }> = {}
+    for (let i = 1; i <= 10; i++) {
+      const id = `A${String(i).padStart(2, "0")}`
+      const layout = registry.getNodeOptional(id)
+      if (layout) {
+        positionsBeforeL[id] = { y: layout.y, headY: layout.headY, cardHeight: layout.cardHeight }
       }
     }
 
@@ -219,15 +216,12 @@ describe("curswantY: scrolled column navigation", () => {
     expect(rightCard.prefix).toBe("B")
 
     // Capture positions of ALL cards in col 0 AFTER l (cursor in col 1 now)
-    const positionsAfterL: Record<number, { y: number; headY?: number; cardHeight: number }> = {}
-    for (let i = 0; i < 10; i++) {
-      const entry = registry.getCardOptional(0, i)
-      if (entry) {
-        positionsAfterL[i] = {
-          y: entry.layout.y,
-          headY: entry.layout.headY,
-          cardHeight: entry.layout.cardHeight,
-        }
+    const positionsAfterL: Record<string, { y: number; headY?: number; cardHeight: number }> = {}
+    for (let i = 1; i <= 10; i++) {
+      const id = `A${String(i).padStart(2, "0")}`
+      const layout = registry.getNodeOptional(id)
+      if (layout) {
+        positionsAfterL[id] = { y: layout.y, headY: layout.headY, cardHeight: layout.cardHeight }
       }
     }
 
@@ -290,7 +284,7 @@ describe("curswantY: scrolled column navigation", () => {
     expect(afterJ).toContain("A05")
 
     // Snapshot card positions before l
-    const a05Before = registry.getCardOptional(0, 4)
+    const a05Before = registry.getNodeOptional("A05")
 
     // l → go right
     board.press("l")
@@ -303,14 +297,14 @@ describe("curswantY: scrolled column navigation", () => {
 
     // Diagnostic: dump state on failure
     if (!landedBack.includes("A05")) {
-      const a05After = registry.getCardOptional(0, 4)
-      const a01After = registry.getCardOptional(0, 0)
+      const a05After = registry.getNodeOptional("A05")
+      const a01After = registry.getNodeOptional("A01")
       throw new Error(
         `Round-trip failed! Landed on "${landedBack}" instead of A05\n` +
           `  stickyY after l: ${stickyAfterL}\n` +
-          `  A01 pos (after h): y=${a01After?.layout.y} headY=${a01After?.layout.headY} cardH=${a01After?.layout.cardHeight}\n` +
-          `  A05 pos (before l): y=${a05Before?.layout.y} headY=${a05Before?.layout.headY}\n` +
-          `  A05 pos (after h): y=${a05After?.layout.y} headY=${a05After?.layout.headY}\n` +
+          `  A01 pos (after h): y=${a01After?.y} headY=${a01After?.headY} cardH=${a01After?.cardHeight}\n` +
+          `  A05 pos (before l): y=${a05Before?.y} headY=${a05Before?.headY}\n` +
+          `  A05 pos (after h): y=${a05After?.y} headY=${a05After?.headY}\n` +
           `  landed right: "${landedRight}"\n` +
           `  registry dump:\n${registry.dump()}`,
       )
@@ -404,11 +398,10 @@ describe("curswantY: scrolled column navigation", () => {
     expect(stickyAfterL).not.toBeNull()
 
     // The captured stickyY should match the source card's current screen position
-    // (card A06, index 5 in column 0)
-    const sourceEntry = registry.getCardOptional(0, 5)
-    if (sourceEntry && stickyAfterL !== null) {
-      const headY = sourceEntry.layout.headY
-      const headHeight = sourceEntry.layout.headHeight
+    const sourceLayout = registry.getNodeOptional("A06")
+    if (sourceLayout && stickyAfterL !== null) {
+      const headY = sourceLayout.headY
+      const headHeight = sourceLayout.headHeight
       if (headY !== undefined && headHeight !== undefined) {
         const expectedStickyY = headY + headHeight / 2
         expect(stickyAfterL).toBe(expectedStickyY)

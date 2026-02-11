@@ -334,7 +334,13 @@ export async function runBoard(
           const stream =
             entry.stream === "stderr" ? process.stderr : process.stdout
           const args = entry.args
-            .map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
+            .map((a) =>
+              typeof a === "string"
+                ? a
+                : a instanceof Error
+                  ? `${a.name}: ${a.message}`
+                  : JSON.stringify(a),
+            )
             .join(" ")
           stream.write(args + "\n")
         }

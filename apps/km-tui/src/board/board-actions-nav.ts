@@ -7,8 +7,6 @@
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { getCardMidY } from "../card-positions.ts"
-import type { CardState } from "../types.ts"
-
 import {
   clearSelection,
   pushNavHistoryEntry,
@@ -20,6 +18,7 @@ import {
 } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 import type { ActionCtx } from "../tui-context.ts"
+import type { CardState } from "../types.ts"
 import type { NavState } from "../view-navigation.ts"
 
 /**
@@ -44,21 +43,20 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
     if (result) return result
   }
 
-  // Horizontal (h/l) — stickyY is managed inside handleHorizontalNav
+  // Horizontal (h/l) — preserves stickyY across columns
   if (dir === "left" || dir === "right") return handleHorizontalNav(ctx, dir)
 
-  // All non-horizontal movement clears stickyY.
-  // stickyY is a visual concept for h/l navigation only. Any structural
-  // movement (j/k, prev/next, first/last, in/out) invalidates it because
-  // the cursor position changes and card positions may shift after render.
-  // handleHorizontalNav recaptures stickyY lazily when h/l is pressed.
-  ctx.layoutRegistry.clearStickyY()
-
-  // Hierarchical vertical (up/down)
-  if (dir === "up" || dir === "down") return handleVerticalNav(ctx, dir)
+  // Hierarchical vertical (up/down) — clears stickyY so h/l will lazy-capture
+  if (dir === "up" || dir === "down") {
+    const result = handleVerticalNav(ctx, dir)
+    ctx.layoutRegistry.clearStickyY()
+    return result
+  }
 
   // Tree navigation (first, last, prev, next, in, out)
-  return handleTreeNav(ctx, dir)
+  const result = handleTreeNav(ctx, dir)
+  ctx.layoutRegistry.clearStickyY()
+  return result
 }
 
 /** Outline mode prev/next sub-item navigation. */
@@ -140,21 +138,16 @@ function handleHorizontalNav(
     return ok()
   }
 
-  // Capture stickyY before navigating (so it persists across empty columns).
-  // Uses layout's measured card positions when available.
-  if (layout.cardIndex >= 0 && layoutRegistry.getStickyY() === null) {
-    if (layoutRegistry.hasCardsInColumn(layout.colIndex)) {
-      const entry = layoutRegistry.getCardOptional(
-        layout.colIndex,
-        layout.cardIndex,
-      )
-      if (
-        entry?.layout.headY !== undefined &&
-        entry.layout.headHeight !== undefined
-      ) {
-        layoutRegistry.setStickyY(getCardMidY(entry.layout))
-      }
+  // Lazy capture: if stickyY not yet set, capture from current card by nodeId.
+  // At h/l time, the focused card is always rendered (no dispatch has happened yet).
+  // j/k clears stickyY; subsequent h/l preserves it.
+  if (layoutRegistry.getStickyY() === null && layout.isAtCardLevel && ctx.cursorNodeId) {
+    const nodeLayout = layoutRegistry.getNodeOptional(ctx.cursorNodeId)
+    if (nodeLayout?.headY !== undefined && nodeLayout.headHeight !== undefined) {
+      layoutRegistry.setStickyY(getCardMidY(nodeLayout))
     }
+    // If card not yet measured, stickyY stays null — navigateHorizontal
+    // falls back to first card in target column.
   }
 
   // Use ViewNavigation for the core navigation logic

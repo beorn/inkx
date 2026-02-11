@@ -551,17 +551,18 @@ When navigating between board level and column level with j/k:
 
 Uses visual Y coordinates to maintain cursor position across columns.
 
-**On first h/l move:**
+**Cleared by:** j/k navigation, zoom, explicit navigation.
+
+**Lazily captured** from current card on first h/l press (looked up by `nodeId` in the layout registry). At h/l time, the focused card is always rendered (no dispatch has happened yet), so the lookup is reliable.
 
 - Calculate `curswantY` = vertical midpoint of current card's **title row** (`headY + headHeight/2`)
 - Title row is always 1 line high, so `curswantY` is near the top of the card
 
 **On subsequent h/l moves:**
 
+- `curswantY` is preserved (no recapture)
 - Find the card in target column whose **card midpoint** (`y + cardHeight/2`) is closest to `curswantY`
 - May land on column header if `curswantY` is above all cards
-
-**Cleared by:** j/k navigation, zoom, explicit navigation
 
 **Implementation:** See [`getCardMidY()`](../../apps/km-tui/src/card-positions.ts) and [`findCardAtYVisual()`](../../apps/km-tui/src/card-positions.ts).
 

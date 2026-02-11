@@ -110,13 +110,18 @@ describe("CardsViewNavigation", () => {
     const registry = createLayoutRegistry()
 
     it("l from card → first card in next column (no positions)", () => {
+      // stickyY must be set before horizontal nav (set by handleHorizontalNav in production)
+      registry.setStickyY(5)
       const target = nav.navigate("right", makeState("a0"), repo, registry)
       expect(target).toBe("b0")
+      registry.clearStickyY()
     })
 
     it("h from card → first card in prev column (no positions)", () => {
+      registry.setStickyY(5)
       const target = nav.navigate("left", makeState("b0"), repo, registry)
       expect(target).toBe("a0")
+      registry.clearStickyY()
     })
 
     it("h from first column card → null", () => {

@@ -43,16 +43,6 @@ function makeLayout(y: number, height = 3, x = 0): NodeLayout {
 // =============================================================================
 
 describe("LayoutRegistry: error handling", () => {
-  it("throws for unregistered cards (required getter)", () => {
-    const registry = createLayoutRegistry()
-    expect(() => registry.getCard(0, 0)).toThrow("Card layout not found")
-  })
-
-  it("returns undefined for unregistered cards (optional getter)", () => {
-    const registry = createLayoutRegistry()
-    expect(registry.getCardOptional(0, 0)).toBeUndefined()
-  })
-
   it("throws for unregistered nodes", () => {
     const registry = createLayoutRegistry()
     expect(() => registry.getNode("nonexistent")).toThrow(
@@ -139,7 +129,7 @@ describe("LayoutRegistry: sticky state", () => {
 
     expect(registry.getStickyY()).toBeNull()
     expect(registry.getStickyX()).toBeNull()
-    expect(registry.getCardOptional(0, 0)).toBeUndefined()
+    expect(registry.getNodeOptional("test")).toBeUndefined()
   })
 })
 

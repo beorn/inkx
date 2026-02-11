@@ -41,7 +41,7 @@ export interface NodeLayout {
 /**
  * Card entry in the registry (combines position info with node ID).
  */
-export interface CardEntry {
+interface CardEntry {
   nodeId: string
   layout: NodeLayout
 }
@@ -71,12 +71,6 @@ export interface LayoutRegistry {
     nodeId: string,
     layout: NodeLayout,
   ): void
-
-  /** Get a card's entry by column and card index (throws if not found) */
-  getCard(colIndex: number, cardIndex: number): CardEntry
-
-  /** Get a card's entry by column and card index (returns undefined if not found) */
-  getCardOptional(colIndex: number, cardIndex: number): CardEntry | undefined
 
   /** Update the head layout for a card (called after head row is measured) */
   updateCardHead(
@@ -244,23 +238,6 @@ export function createLayoutRegistry(): LayoutRegistry {
           )
         }
       }
-    },
-
-    getCard(colIndex: number, cardIndex: number): CardEntry {
-      const entry = cardLayouts.get(colIndex)?.get(cardIndex)
-      if (!entry) {
-        throw new Error(
-          `Card layout not found: col=${colIndex}, card=${cardIndex}`,
-        )
-      }
-      return entry
-    },
-
-    getCardOptional(
-      colIndex: number,
-      cardIndex: number,
-    ): CardEntry | undefined {
-      return cardLayouts.get(colIndex)?.get(cardIndex)
     },
 
     updateCardHead(

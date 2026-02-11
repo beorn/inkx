@@ -41,12 +41,12 @@ describe("Visual navigation integration: card position registration", () => {
     expect(registry.hasCardsInColumn(0)).toBe(true)
 
     // Get positions and verify they have increasing Y values
-    const card1 = registry.getCard(0, 0)
-    const card2 = registry.getCard(0, 1)
-    const card3 = registry.getCard(0, 2)
+    const l1 = registry.getNode("1a")
+    const l2 = registry.getNode("1b")
+    const l3 = registry.getNode("1c")
 
-    expect(card1.layout.y).toBeLessThan(card2.layout.y)
-    expect(card2.layout.y).toBeLessThan(card3.layout.y)
+    expect(l1.y).toBeLessThan(l2.y)
+    expect(l2.y).toBeLessThan(l3.y)
   })
 
   test("cards in same row across columns have same Y position", () => {
@@ -69,12 +69,12 @@ describe("Visual navigation integration: card position registration", () => {
     expect(registry.hasCardsInColumn(1)).toBe(true)
 
     // First cards in each column should have similar Y positions
-    const cardA1 = registry.getCard(0, 0)
-    const cardB1 = registry.getCard(1, 0)
+    const lA1 = registry.getNode("1a")
+    const lB1 = registry.getNode("2a")
 
     // Cards at same position in different columns should have same Y
     // (within a small tolerance for borders)
-    expect(Math.abs(cardA1.layout.y - cardB1.layout.y)).toBeLessThanOrEqual(1)
+    expect(Math.abs(lA1.y - lB1.y)).toBeLessThanOrEqual(1)
   })
 
   test("findCardAtYVisual returns correct card index", () => {
@@ -93,8 +93,8 @@ describe("Visual navigation integration: card position registration", () => {
     })
 
     // Get the Y position of 1b (card at index 1 in col1)
-    const cardA2 = registry.getCard(0, 1)
-    const targetY = cardA2.layout.y + cardA2.layout.cardHeight / 2
+    const lA2 = registry.getNode("1b")
+    const targetY = lA2.y + lA2.cardHeight / 2
 
     // Find the card at that Y in column 1
     const foundIdx = registry.findCardAtYVisual(1, targetY)

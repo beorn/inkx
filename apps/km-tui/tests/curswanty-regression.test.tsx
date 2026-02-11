@@ -40,13 +40,12 @@ describe("curswantY regression", () => {
       render: render80,
     })
 
-    const card = registry.getCard(0, 0)
-    expect(card).toBeDefined()
+    const layout = registry.getNode("card0")
 
     // Key assertion: headHeight should be 1 (title row), not cardHeight
-    expect(card.layout.headHeight).toBe(1)
-    expect(card.layout.cardHeight).toBeGreaterThan(1) // Card is tall due to children
-    expect(card.layout.headHeight).not.toBe(card.layout.cardHeight)
+    expect(layout.headHeight).toBe(1)
+    expect(layout.cardHeight).toBeGreaterThan(1) // Card is tall due to children
+    expect(layout.headHeight).not.toBe(layout.cardHeight)
   })
 
   test("h/l navigation uses title midpoint, lands on closest card midpoint", () => {
@@ -85,9 +84,8 @@ describe("curswantY regression", () => {
     })
 
     // Get curswantY from first card's title midpoint
-    const firstCard = registry.getCard(0, 0)
-    expect(firstCard).toBeDefined()
-    const curswantY = getCardMidY(firstCard.layout)
+    const firstLayout = registry.getNode("tall0")
+    const curswantY = getCardMidY(firstLayout)
 
     // curswantY should be near the top (title midpoint), not card center
     expect(curswantY).toBeLessThan(10) // Title midpoint ~4-5

@@ -25,15 +25,15 @@ describe("Layout measurement contracts", () => {
       ),
     )
 
-    const card = registry.getCard(0, 0)
-    expect(card).toBeDefined()
+    const layout = registry.getNodeOptional("parent")
+    expect(layout).toBeDefined()
 
     // headHeight must always be 1 (single title row)
-    expect(card.layout.headHeight).toBe(1)
+    expect(layout!.headHeight).toBe(1)
     // cardHeight includes children, so > 1
-    expect(card.layout.cardHeight).toBeGreaterThan(1)
+    expect(layout!.cardHeight).toBeGreaterThan(1)
     // They must NOT be equal (this was the bug)
-    expect(card.layout.headHeight).not.toBe(card.layout.cardHeight)
+    expect(layout!.headHeight).not.toBe(layout!.cardHeight)
   })
 
   test("leaf card (no children): headHeight = 1, cardHeight small", () => {
@@ -41,14 +41,14 @@ describe("Layout measurement contracts", () => {
       item("board", item("col", item("leaf-task"))),
     )
 
-    const card = registry.getCard(0, 0)
-    expect(card).toBeDefined()
+    const layout = registry.getNodeOptional("leaf-task")
+    expect(layout).toBeDefined()
 
     // headHeight is always 1 (title row)
-    expect(card.layout.headHeight).toBe(1)
+    expect(layout!.headHeight).toBe(1)
     // Leaf cards have minimal height (just title, possibly borders)
     // Should be much smaller than a card with children
-    expect(card.layout.cardHeight).toBeLessThanOrEqual(3)
+    expect(layout!.cardHeight).toBeLessThanOrEqual(3)
   })
 
   test("curswantY is title midpoint, not card midpoint", () => {
@@ -66,14 +66,14 @@ describe("Layout measurement contracts", () => {
       { rows: 40 },
     )
 
-    const card = registry.getCard(0, 0)
-    const curswantY = getCardMidY(card.layout)
+    const layout = registry.getNode("tall")
+    const curswantY = getCardMidY(layout)
 
     // Title midpoint should be near the top of the screen
     expect(curswantY).toBeLessThan(10)
 
     // Should NOT be at card center (which would be y + cardHeight/2)
-    const cardCenterY = card.layout.y + card.layout.cardHeight / 2
+    const cardCenterY = layout.y + layout.cardHeight / 2
     expect(curswantY).not.toBe(cardCenterY)
   })
 
@@ -87,14 +87,14 @@ describe("Layout measurement contracts", () => {
       ),
     )
 
-    const card1 = registry.getCard(0, 0)
-    const card2 = registry.getCard(1, 0)
+    const layout1 = registry.getNode("card1a")
+    const layout2 = registry.getNode("card2a")
 
     // All first cards should have similar headY (within 1 row)
-    expect(card1.layout.headY).toBeDefined()
-    expect(card2.layout.headY).toBeDefined()
+    expect(layout1.headY).toBeDefined()
+    expect(layout2.headY).toBeDefined()
 
-    expect(Math.abs(card1.layout.headY! - card2.layout.headY!)).toBeLessThan(2)
+    expect(Math.abs(layout1.headY! - layout2.headY!)).toBeLessThan(2)
   })
 
   test("nested children increase cardHeight but not headHeight", () => {
@@ -114,9 +114,9 @@ describe("Layout measurement contracts", () => {
       ),
     )
 
-    const h1 = reg1.getCard(0, 0).layout
-    const h2 = reg2.getCard(0, 0).layout
-    const h3 = reg3.getCard(0, 0).layout
+    const h1 = reg1.getNode("card")
+    const h2 = reg2.getNode("card")
+    const h3 = reg3.getNode("card")
 
     // headHeight stays constant at 1
     expect(h1.headHeight).toBe(1)
@@ -141,8 +141,8 @@ describe("Visual navigation with measured layouts", () => {
       ),
     )
 
-    const sourceCard = registry.getCard(0, 0)
-    const curswantY = getCardMidY(sourceCard.layout)
+    const sourceLayout = registry.getNode("card0a")
+    const curswantY = getCardMidY(sourceLayout)
 
     // Find target card in column 1 at this curswantY
     const targetIdx = registry.findCardAtYVisual(1, curswantY)
@@ -167,8 +167,8 @@ describe("Visual navigation with measured layouts", () => {
       { rows: 40 },
     )
 
-    const tallCard = registry.getCard(0, 0)
-    const curswantY = getCardMidY(tallCard.layout)
+    const tallLayout = registry.getNode("tall")
+    const curswantY = getCardMidY(tallLayout)
 
     // curswantY should be near top (title midpoint)
     expect(curswantY).toBeLessThan(10)
@@ -206,12 +206,12 @@ describe("Registry state after rendering", () => {
     expect(registry.getCardCount(1)).toBe(3)
     expect(registry.hasCardsInColumn(1)).toBe(true)
 
-    // All cards should be retrievable
-    expect(registry.getCardOptional(0, 0)).toBeDefined()
-    expect(registry.getCardOptional(0, 1)).toBeDefined()
-    expect(registry.getCardOptional(1, 0)).toBeDefined()
-    expect(registry.getCardOptional(1, 1)).toBeDefined()
-    expect(registry.getCardOptional(1, 2)).toBeDefined()
+    // All cards should be retrievable by nodeId
+    expect(registry.getNodeOptional("a")).toBeDefined()
+    expect(registry.getNodeOptional("b")).toBeDefined()
+    expect(registry.getNodeOptional("c")).toBeDefined()
+    expect(registry.getNodeOptional("d")).toBeDefined()
+    expect(registry.getNodeOptional("e")).toBeDefined()
   })
 
   test("headY and headHeight are populated for all cards", () => {
@@ -219,19 +219,19 @@ describe("Registry state after rendering", () => {
       item("board", item("col", item("parent", item("child")), item("leaf"))),
     )
 
-    const parent = registry.getCard(0, 0)
-    const leaf = registry.getCard(0, 1)
+    const parentLayout = registry.getNode("parent")
+    const leafLayout = registry.getNode("leaf")
 
     // Both should have head measurements
-    expect(parent.layout.headY).toBeDefined()
-    expect(parent.layout.headHeight).toBe(1)
+    expect(parentLayout.headY).toBeDefined()
+    expect(parentLayout.headHeight).toBe(1)
 
-    expect(leaf.layout.headY).toBeDefined()
-    expect(leaf.layout.headHeight).toBe(1)
+    expect(leafLayout.headY).toBeDefined()
+    expect(leafLayout.headHeight).toBe(1)
 
     // getCardMidY should work without throwing
-    expect(() => getCardMidY(parent.layout)).not.toThrow()
-    expect(() => getCardMidY(leaf.layout)).not.toThrow()
+    expect(() => getCardMidY(parentLayout)).not.toThrow()
+    expect(() => getCardMidY(leafLayout)).not.toThrow()
   })
 })
 
@@ -321,8 +321,8 @@ describe("Sticky Y behavior (curswantY)", () => {
     board.press("j").press("j")
 
     // Get curswantY from card[2]
-    const sourceCard = registry.getCard(0, 2)
-    const expectedY = getCardMidY(sourceCard.layout)
+    const sourceLayout = registry.getNode("c")
+    const expectedY = getCardMidY(sourceLayout)
 
     // Navigate right
     board.press("l")
