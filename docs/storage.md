@@ -842,7 +842,7 @@ km view ./docs/readme.md   # Explicit path (unambiguous)
 km view docs/readme        # Relative path (unambiguous)
 km view readme             # Bare name (may warn if multiple)
 km show 01H5X              # ID prefix match
-km view @inbox             # Filename (resolves @inbox.md)
+km view @next              # Filename (resolves @next.md)
 ```
 
 ---

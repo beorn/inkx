@@ -63,7 +63,7 @@ bun run km add @next status:open     # Add all open tasks to @next
 
 # Complete tasks (accepts ID, path, or filename)
 bun run km status ABCD1234 done  # Mark task done using short ID
-bun run km status @inbox done    # Mark done by filename
+bun run km status @next done     # Mark done by filename
 
 # Task status workflow
 bun run km status ABCD1234       # View status
@@ -132,7 +132,7 @@ km show --tree        # Your knowledge hierarchy
 km tasks              # Every TODO across all files
 km tasks -i           # Show with IDs for use with status command
 km board              # Kanban TUI (vim keys)
-km board @inbox       # Open @inbox board by filename
+km board @next        # Open @next board by filename
 km search "query"     # Full-text search
 km show <node>        # Node details (ID, path, or filename)
 km status <node> done # Mark done - accepts ID, path, or filename

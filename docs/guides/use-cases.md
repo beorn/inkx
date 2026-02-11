@@ -6,23 +6,23 @@ Test scenarios for task management workflows.
 
 ## Inbox Processing
 
-| Action        | Key | Result                     |
-| ------------- | --- | -------------------------- |
-| To @next      | `n` | on @next, off @inbox       |
-| To project    | `p` | on +project, off @inbox    |
-| To someday    | `s` | on @someday, off @inbox    |
-| Mark done     | `d` | status=done, off @inbox    |
-| Delete        | `D` | deleted                    |
-| Edit + triage | `e` | add refs, then triage      |
-| Batch triage  | sel | select multiple, then `n`  |
-| Skip          | `␣` | stays in @inbox, next item |
+| Action        | Key | Result                              |
+| ------------- | --- | ----------------------------------- |
+| To @next      | `n` | move to Next column within @next    |
+| To project    | `p` | on +project, out of Inbox           |
+| To someday    | `s` | on @someday, out of Inbox           |
+| Mark done     | `d` | status=done, out of Inbox           |
+| Delete        | `D` | deleted                             |
+| Edit + triage | `e` | add refs, then triage               |
+| Batch triage  | sel | select multiple, then `n`           |
+| Skip          | `␣` | stays in Inbox, next item           |
 
 ---
 
 ## Quick Capture
 
 ```bash
-km new "Buy groceries"              # → inbox/, on @inbox
+km new "Buy groceries"              # → inbox/, in @next/inbox
 km new "Fix bug" -n                 # → on @next/today
 km new "Review @bjorn due:fri"      # → assigned_to=bjorn, due=friday
 km new "Call vendor +website"       # → on +website board
@@ -43,7 +43,7 @@ km @next/waiting            # show waiting only
 | Rule                         | Trigger         | Result                 |
 | ---------------------------- | --------------- | ---------------------- |
 | `add="due:past status:todo"` | task overdue    | appears on @next/today |
-| `add="./inbox/**"`           | file in inbox/  | appears on @inbox      |
+| `add="./inbox/**"`           | file in inbox/  | appears in @next/inbox |
 | `sync=status:blocked`        | drag to waiting | status=blocked         |
 | `sync=status:blocked`        | status→blocked  | moves to waiting       |
 | `sync=status:done`           | press `x`       | moves to done column   |

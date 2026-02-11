@@ -196,11 +196,10 @@ Board items are **embeddings** (symlinks) to tasks. The `![[...]]` syntax create
 
 ## Standard GTD Boards
 
-| Board      | Purpose           | Populated By                             |
-| ---------- | ----------------- | ---------------------------------------- |
-| `@inbox`   | Unprocessed items | Column rule: `add="./inbox/**"`          |
-| `@next`    | Next actions      | Manual + column rules (overdue/starting) |
-| `@someday` | Maybe/later       | Manual curation only                     |
+| Board      | Purpose           | Populated By                                             |
+| ---------- | ----------------- | -------------------------------------------------------- |
+| `@next`    | Next actions      | Inbox column (`add="./inbox/**"`), overdue/starting rules |
+| `@someday` | Maybe/later       | Manual curation only                                     |
 
 ---
 
@@ -216,7 +215,7 @@ km new "Review budget @bjorn"      # → inbox/, with @bjorn reference
 ### 2. Clarify (Process Inbox)
 
 ```bash
-km @inbox process
+km inbox process
 ```
 
 For each item:
@@ -248,7 +247,7 @@ km @next/waiting          # What's blocked
 **Weekly Review:**
 
 ```bash
-km @inbox                 # Process anything left
+km inbox                  # Process anything left
 km @next                  # Is everything current?
 km @someday               # Anything ready to activate?
 km task status:todo       # Any orphaned tasks?
@@ -267,7 +266,7 @@ km @next          # Open next actions board
 
 | GTD Concept   | km Implementation                       |
 | ------------- | --------------------------------------- |
-| Inbox         | `inbox/` folder → `@inbox` board        |
+| Inbox         | `inbox/` folder → `@next/inbox` column  |
 | Next Actions  | `@next` board (curated)                 |
 | Waiting For   | `@next/waiting` column (status=blocked) |
 | Someday/Maybe | `@someday` board                        |
@@ -311,7 +310,7 @@ recur:FREQ=WEEKLY;INTERVAL=2
 
 ### Inbox Folder
 
-Items in `inbox/` are unprocessed. Automation adds them to `@inbox` board.
+Items in `inbox/` are unprocessed. The `add="./inbox/**"` column rule on `@next/inbox` adds them automatically.
 
 ### Archive Folder
 
@@ -386,21 +385,19 @@ km init gtd --dry-run      # Preview what would be created
 **Boards:**
 
 ```markdown
-# @inbox.md
-
-## unprocessed add="./inbox/\*\*"
-```
-
-```markdown
 # @next.md
 
-## today add="due:past status:todo" add="start:past status:todo"
+## inbox add="./inbox/\*\*"
 
-## this-week add="due:week status:todo -due:past"
+## processing default=true
 
-## waiting sync=status:blocked
+## next
 
-## done sync=status:done collapse=true
+## doing
+
+## waiting color=yellow
+
+## done collapse=true color=green
 ```
 
 ```markdown

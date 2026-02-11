@@ -114,7 +114,7 @@ These create backlinks with relationship type, enabling queries like:
 | Syntax   | Example             | Description      |
 | -------- | ------------------- | ---------------- |
 | `^id`    | `^abc123`           | Partial ID match |
-| `name`   | `@inbox`            | Unique name      |
+| `name`   | `@next`             | Unique name      |
 | `./path` | `./inbox/task.md`   | Relative path    |
 | `/path`  | `/projects/work.md` | Absolute path    |
 

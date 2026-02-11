@@ -631,7 +631,7 @@ Press `?` in the TUI to show the interactive help overlay.
 | `g`         | Go to first card in column            |
 | `G`         | Go to last card in column             |
 | `Shift+1-9` | Jump to column 1-9                    |
-| `1-9`       | Jump to favorite board (@inbox, etc.) |
+| `1-9`       | Jump to favorite board (@next, etc.)  |
 | `u`         | Zoom out (go to parent node)          |
 | `Enter`     | Zoom in / open detail pane            |
 | `o`         | Open item in context (grandparent)    |

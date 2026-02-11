@@ -12,7 +12,7 @@ Most commands accept an optional node identifier. The `resolveNode` function tri
 km <command> [node]         # Node can be:
                             #   - Node ID (full or prefix/suffix)
                             #   - Filesystem path (./folder/file.md)
-                            #   - Filename (@inbox.md or @inbox)
+                            #   - Filename (@next.md or @next)
                             #   - Content/title match
 ```
 
@@ -21,8 +21,8 @@ Examples:
 ```bash
 km show --tree 01H5X        # Tree from node ID prefix
 km show ./README.md         # Show specific file by path
-km view @inbox              # Board by filename (resolves @inbox.md)
-km view @inbox.md           # Same, with extension
+km view @next               # Board by filename (resolves @next.md)
+km view @next.md            # Same, with extension
 km show "Next Actions"      # Show by content/title match
 ```
 
@@ -48,7 +48,7 @@ km show --tree --collapsed  # With collapsing
 km show --id                # Show node IDs
 
 km view [node]              # Kanban board (TUI)
-km view @inbox              # Open @inbox.md board by filename
+km view @next               # Open @next.md board by filename
 km view --id                # Show node IDs
 ```
 
@@ -74,7 +74,7 @@ View and manage boards. Sigil (`@`, `+`, `#`) required:
 ```bash
 km @next                    # View @next board
 km @next/today              # View today column
-km @inbox                   # View @inbox board
+km @next/inbox              # View inbox column
 km @someday                 # View someday board
 km @bjorn                   # View person board
 km +website                 # View project board
@@ -189,7 +189,7 @@ See [ref/ui.md](ref/ui.md#keybindings) for full TUI keybinding reference.
 ## Inbox Processing
 
 ```bash
-km @inbox process           # Interactive processing
+km inbox process            # Interactive inbox processing
 ```
 
 For each item:
