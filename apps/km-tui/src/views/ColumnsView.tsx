@@ -9,9 +9,9 @@
 import React, { useCallback } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { Box, Text } from "inkx"
-import createDebug from "debug"
+import { createLogger } from "@beorn/logger"
 
-const debug = createDebug("km:tui:columns")
+const log = createLogger("km:tui:columns")
 import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
@@ -100,9 +100,7 @@ const ColumnTree = React.memo(function ColumnTree({
   // MemoizedTreeCard gets selection state from CursorStore self-subscription.
   const renderCard = useCallback(
     (card: CardState, actualIndex: number) => {
-      debug(
-        `rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`,
-      )
+      log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`)
       return (
         <MemoizedTreeCard
           key={card.node.id}
@@ -241,9 +239,7 @@ export function ColumnsView({
             widths.remainder,
             COLUMNS_VIEW_MAX_WIDTH,
           )
-          debug(
-            `ColumnsView map: i=${i} actualColIdx=${actualColIndex} colIndex=${colIndex}`,
-          )
+          log.debug?.(`ColumnsView map: i=${i} actualColIdx=${actualColIndex} colIndex=${colIndex}`)
           return (
             <React.Fragment key={col.node.id}>
               <ColumnTree
