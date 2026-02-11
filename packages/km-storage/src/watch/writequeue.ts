@@ -557,6 +557,11 @@ export class WriteQueue extends EventEmitter {
     for (const write of writes) {
       if (this.watcher) {
         this.watcher.markInFlight(write.path)
+        // For renames, also mark the destination so the watcher
+        // doesn't treat the new file as an external addition.
+        if (write.type === "rename" && write.newPath) {
+          this.watcher.markInFlight(write.newPath)
+        }
       }
     }
 
@@ -577,6 +582,9 @@ export class WriteQueue extends EventEmitter {
       for (const op of writes) {
         if (this.watcher) {
           this.watcher.clearInFlight(op.path, 0)
+          if (op.type === "rename" && op.newPath) {
+            this.watcher.clearInFlight(op.newPath, 0)
+          }
         }
       }
     }, 1000)

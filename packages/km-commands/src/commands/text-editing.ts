@@ -80,11 +80,11 @@ export const textEditingCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "TEXT_CONFIRM" }),
   },
   {
-    id: "text.cancel",
-    name: "Cancel",
-    description: "Cancel text input",
+    id: "text.exit_edit",
+    name: "Exit Edit",
+    description: "Save and exit text editing mode",
     category: "TextEdit",
-    execute: (): CommandAction => ({ type: "TEXT_CANCEL" }),
+    execute: (): CommandAction => ({ type: "TEXT_EXIT_EDIT" }),
   },
 ]
 

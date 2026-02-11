@@ -223,6 +223,7 @@ export {
   scanDirectory,
   scanDirectoryRecursive,
   SyncManager,
+  FsWriter,
   reconcileDirectory,
   applyReconcileOps,
   applyReconcileOpsAsync,

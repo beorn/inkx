@@ -643,12 +643,35 @@ export class SyncManager extends EventEmitter {
   private handleNodeDeleted(event: Event): void {
     if (!event.target) return
 
-    // Get node before deletion (using km-storage abstraction)
-    const node = getNode(this.db, event.target)
+    // Node is already deleted from DB — use data passed in event payload
+    const data = event.data as {
+      fs_path?: string
+      type?: string
+      parent_id?: string | null
+    } | undefined
+    const fsPath = data?.fs_path
+    const nodeType = data?.type
 
-    if (node?.fs_path && (node.type === "file" || node.type === "folder")) {
-      const absPath = toAbsoluteFsPath(this.config.repoPath, node.fs_path)
+    if (fsPath && (nodeType === "file" || nodeType === "folder")) {
+      // File/folder node: delete the file from disk
+      const absPath = toAbsoluteFsPath(this.config.repoPath, fsPath)
       this.writeQueue.queueDelete(absPath, event.id)
+    } else if (data?.parent_id) {
+      // Section node: regenerate the parent file to reflect the deletion
+      const parentNode = getNode(this.db, data.parent_id)
+      const fileNode = parentNode
+        ? findFileNode(this.db, parentNode)
+        : null
+      if (fileNode?.fs_path) {
+        const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
+        const allNodes = getSubtree(this.db, fileNode.id)
+        const content = nodesToMarkdown(allNodes)
+        this.writeQueue.queue({
+          path: absPath,
+          content,
+          sourceEventId: event.id,
+        })
+      }
     }
   }
 

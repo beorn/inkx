@@ -32,6 +32,8 @@ const log = createLogger("km:tui:board-actions")
 
 // Import handlers from specialized modules
 import {
+  executeDelete,
+  handleAddNodeAfter,
   handleConfirmMove,
   handleDeleteNode,
   handleShiftCard,
@@ -152,7 +154,7 @@ export function handleCommandAction(
       // (cards view has borders, columns view is single-row items, etc.)
       ctx.layoutRegistry.clearStickyY()
       ctx.setUI((prev) => {
-        const modes: ViewMode[] = ["cards", "columns", "list", "tabs"]
+        const modes: ViewMode[] = ["cards", "columns", /* "list", */ "tabs"]
         const idx = modes.indexOf(prev.viewMode)
         return { viewMode: modes[(idx + 1) % modes.length] ?? "cards" }
       })
@@ -350,9 +352,23 @@ export function handleCommandAction(
     case "TEXT_INSERT":
       blockEditTargetRef.current?.insertChar(action.char)
       return ok()
-    case "TEXT_DELETE_BACKWARD":
-      blockEditTargetRef.current?.deleteBackward()
+    case "TEXT_DELETE_BACKWARD": {
+      const target = blockEditTargetRef.current
+      // Smart delete: at position 0 of empty node, delete the node itself
+      if (
+        target &&
+        ctx.ui.inlineEditBlock &&
+        target.getCursorOffset() === 0 &&
+        target.getContent() === ""
+      ) {
+        const nodeId = ctx.ui.inlineEditBlock.nodeId
+        ctx.setUI({ inlineEditBlock: null })
+        executeDelete(ctx, nodeId)
+        return ok()
+      }
+      target?.deleteBackward()
       return ok()
+    }
     case "TEXT_DELETE_FORWARD":
       blockEditTargetRef.current?.deleteForward()
       return ok()
@@ -378,10 +394,15 @@ export function handleCommandAction(
       blockEditTargetRef.current?.deleteToEnd()
       return ok()
     case "TEXT_CONFIRM":
-      blockEditTargetRef.current?.confirm()
+      // Save current edit, create new sibling after current card, enter edit on it
+      blockEditTargetRef.current?.save()
+      ctx.setUI({ inlineEditBlock: null })
+      handleAddNodeAfter(ctx)
       return ok()
-    case "TEXT_CANCEL":
-      blockEditTargetRef.current?.cancel()
+    case "TEXT_EXIT_EDIT":
+      // Save current content and exit edit mode (Esc = save + switch to node mode)
+      blockEditTargetRef.current?.save()
+      ctx.setUI({ inlineEditBlock: null })
       return ok()
 
     // === Detail pane ===

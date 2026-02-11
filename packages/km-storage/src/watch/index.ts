@@ -17,6 +17,7 @@ export type { WatcherInterface, SyncData } from "./types.ts"
 
 // Sync
 export { SyncManager } from "./sync.ts"
+export { FsWriter } from "./fs-writer.ts"
 
 export type { SyncConfig, SyncFromFsResult } from "./sync.ts"
 

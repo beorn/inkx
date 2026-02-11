@@ -55,6 +55,7 @@ import {
 } from "./repo-loader.ts"
 import { SCHEMA } from "./schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
+import { FsWriter } from "./watch/fs-writer.ts"
 
 const log = createLogger("km:storage:repo")
 
@@ -232,8 +233,9 @@ function createMutationMethods(
         if (result?.cancel) throw new Error("Mutation cancelled by hook")
         if (result?.context) ctx = result.context
       }
+      const parentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
       dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
-      // updateNode: no cache bust — children unchanged
+      childrenCache.bust(parentId)
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
@@ -285,14 +287,25 @@ function createMutationMethods(
         if (result?.cancel) throw new Error("Mutation cancelled by hook")
         if (result?.context) ctx = result.context
       }
-      const deletedParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
+      // Capture node data BEFORE deletion — sync handler needs fs_path and type
+      const deletedNode = dataStore.getNode(ctx.nodeId)
+      const deletedParentId = deletedNode?.parent_id ?? null
       dataStore.deleteNode(ctx.nodeId)
       childrenCache.bust(deletedParentId)
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
       log.info?.(`mutation: delete ${id}`)
-      notifyFs({ type: "node_deleted", actor: "user", target: id, data: {} })
+      notifyFs({
+        type: "node_deleted",
+        actor: "user",
+        target: id,
+        data: {
+          fs_path: deletedNode?.fs_path,
+          type: deletedNode?.type,
+          parent_id: deletedParentId,
+        },
+      })
     },
     addNode(parentId: string | null, node: Partial<KNode>) {
       let ctx: MutationContext = { type: "add", nodeId: "", node }
@@ -1068,6 +1081,12 @@ export function* createRepo(
     options.loadFiles
       ? yield* initWithFileLoading(rootPath, kmDir, options)
       : yield* initEmptyDb(kmDir, options)
+
+  // Register lightweight FS writer for disk-mode repos (CLI write-back).
+  // The TUI replaces this with SyncManager via emitter.setFsSync().
+  if (mode === "disk") {
+    emitter.setFsSync(new FsWriter(db, rootPath, emitter))
+  }
 
   // Create FileTree for the repo root
   const fileTree = createDiskFileTree(rootPath)

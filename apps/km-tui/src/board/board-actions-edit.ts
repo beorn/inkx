@@ -1,10 +1,10 @@
 /**
  * Board Action Handlers - Edit Operations
  *
- * Handles node deletion, status changes, and card shifting.
+ * Handles node creation, deletion, status changes, and card shifting.
  */
 
-import type { TaskMark, TaskStatus } from "@km/core"
+import type { KNode, TaskMark, TaskStatus } from "@km/core"
 import {
   moveCardInColumn,
   moveCardToColumn,
@@ -13,18 +13,96 @@ import { refreshBoardState } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
 /**
- * Delete the selected node.
+ * Delete the selected node — with confirmation for non-empty nodes.
+ *
+ * If the node has children or backlinks, shows a confirmation dialog
+ * listing what will be deleted/broken. Otherwise deletes immediately.
  */
 export function handleDeleteNode(ctx: ActionCtx): void {
-  const { layout } = ctx
+  const { layout, repo } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
   if (!card) return
-  ctx.repo.deleteNode(card.node.id)
+
+  const nodeId = card.node.id
+  const children = repo.getChildren(nodeId)
+  const impact = repo.getRenameImpact(nodeId)
+  const childCount = children.length
+  const backlinkCount = impact.backlinks.length
+  const hasMetadata = card.node.data && Object.keys(card.node.data).length > 0
+
+  if (childCount > 0 || backlinkCount > 0 || hasMetadata) {
+    // Non-trivial node: show confirmation dialog
+    ctx.setUI({
+      deleteConfirm: {
+        nodeId,
+        title: card.node.name ?? card.node.content ?? nodeId,
+        childCount,
+        backlinkCount,
+        hasMetadata: !!hasMetadata,
+      },
+    })
+    return
+  }
+
+  // Empty node with no children/backlinks/metadata: delete immediately
+  executeDelete(ctx, nodeId)
+}
+
+/**
+ * Execute node deletion and adjust cursor position.
+ */
+export function executeDelete(ctx: ActionCtx, nodeId: string): void {
+  const { layout } = ctx
+  ctx.repo.deleteNode(nodeId)
   refreshBoardState(ctx, {
     cardIndex: (c) =>
       Math.min(layout.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
+  })
+}
+
+/**
+ * Create a new sibling node after the current card and enter inline edit on it.
+ *
+ * The new node inherits the type of the current node (task → task, section → section).
+ * Sort order is placed between current and next sibling (midpoint).
+ */
+export function handleAddNodeAfter(ctx: ActionCtx): void {
+  const { layout, repo } = ctx
+  const col = layout.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
+
+  if (!card || !col) return
+
+  // Determine sort order: midpoint between current and next card
+  const currentIdx = card.node.parent_idx ?? 0
+  const nextCard = col.cards[layout.cardIndex + 1]
+  const nextIdx = nextCard?.node.parent_idx ?? currentIdx + 1
+  const newSortOrder = (currentIdx + nextIdx) / 2
+
+  // Inherit type from current node
+  const nodeType = card.node.type === "task" ? "task" : "section"
+  const newNode: Partial<KNode> = {
+    type: nodeType,
+    content: "",
+    parent_idx: newSortOrder,
+  }
+  if (nodeType === "task") {
+    newNode.task_status = "todo"
+    newNode.task_mark = " "
+  }
+
+  const newId = repo.addNode(col.node.id, newNode)
+
+  // Refresh board to pick up the new node, cursor on new card
+  refreshBoardState(ctx, {
+    cardIndex: layout.cardIndex + 1,
+  })
+
+  // Enter inline edit on the new node
+  ctx.setUI({
+    inlineEditBlock: { nodeId: newId, blockIndex: 0 },
   })
 }
 

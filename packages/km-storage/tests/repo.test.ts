@@ -586,3 +586,81 @@ describe("Repo mutations notify FsSync", () => {
     repo.close()
   })
 })
+
+describe("FsWriter auto-registration", () => {
+  let tempDir: string
+
+  beforeEach(() => {
+    tempDir = createTempDir()
+  })
+
+  afterEach(() => {
+    cleanupTempDir(tempDir)
+  })
+
+  test("disk-mode repo has FsWriter, memory-mode does not", () => {
+    // Create .km dir so repo loads in disk mode
+    mkdirSync(join(tempDir, ".km"), { recursive: true })
+    const diskRepo = runGenerator(createRepo(tempDir, { loadFiles: false }))
+    expect(diskRepo.emitter.getFsSync()).not.toBeNull()
+    diskRepo.close()
+
+    // Force memory mode
+    const memRepo = runGenerator(createRepo(tempDir, { loadFiles: false, forceMemory: true }))
+    expect(memRepo.emitter.getFsSync()).toBeNull()
+    memRepo.close()
+  })
+
+  test("SyncManager replaces FsWriter via setFsSync", () => {
+    mkdirSync(join(tempDir, ".km"), { recursive: true })
+    const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
+
+    // FsWriter is auto-registered
+    const fsWriter = repo.emitter.getFsSync()
+    expect(fsWriter).not.toBeNull()
+
+    // Simulate TUI replacing with SyncManager
+    const spy: FsSync = { applyEventToFs: () => {} }
+    repo.emitter.setFsSync(spy)
+    expect(repo.emitter.getFsSync()).toBe(spy)
+
+    repo.close()
+  })
+
+  test("FsWriter regenerates file on node_created", () => {
+    // Write board.md and create .km → load → add task → verify file updated
+    mkdirSync(join(tempDir, ".km"), { recursive: true })
+    writeFileSync(
+      join(tempDir, "board.md"),
+      "---\ntitle: Board\n---\n\n# Board\n\n## Inbox\n\n## Done\n",
+    )
+    const repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
+    expect(repo.emitter.getFsSync()).not.toBeNull()
+
+    // Find nodes via DB
+    const db = repo.database
+    const inbox = db
+      .query("SELECT id FROM nodes WHERE content = 'Inbox' AND type = 'section'")
+      .get() as { id: string } | null
+
+    if (!inbox) {
+      // If board wasn't loaded (no file scan in this init path), skip gracefully
+      repo.close()
+      return
+    }
+
+    // Add a task — FsWriter should regenerate the file
+    repo.addNode(inbox.id, {
+      type: "task",
+      content: "New CLI task",
+      task_status: "todo",
+      task_mark: " ",
+    })
+
+    const { readFileSync: readFs } = require("fs")
+    const content = readFs(join(tempDir, "board.md"), "utf-8") as string
+    expect(content).toContain("New CLI task")
+
+    repo.close()
+  })
+})

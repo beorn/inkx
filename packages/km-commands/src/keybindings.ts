@@ -194,7 +194,7 @@ export const defaultKeybindings: Keybinding[] = [
     commandId: "text.confirm",
     when: textInputFocused,
   },
-  { key: "Escape", commandId: "text.cancel", when: textInputFocused },
+  { key: "Escape", commandId: "text.exit_edit", when: textInputFocused },
 
   // === Detail pane (when isInDetailPane) ===
   // Escape closes detail pane (before normal Escape handling)
@@ -259,7 +259,9 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "m", commandId: "enter_move_mode" },
   { key: "Enter", commandId: "confirm_move", modes: ["move"] },
   { key: "Escape", commandId: "cancel_move", modes: ["move"] },
-  { key: "D", commandId: "delete_node" }, // Delete with confirmation
+  { key: "D", commandId: "delete_node" },
+  { key: "Backspace", commandId: "delete_node" },
+  { key: "Delete", commandId: "delete_node" },
 
   // Shifting (Alt/Meta+direction) - move nodes in tree
   { key: "ArrowUp", meta: true, commandId: "shift_up" },

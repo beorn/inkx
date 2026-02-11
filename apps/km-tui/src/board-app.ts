@@ -17,6 +17,7 @@ import {
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext } from "./command-bridge.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
+import { executeDelete } from "./board/board-actions-edit.ts"
 import type { ActionCtx } from "./tui-context.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
 
@@ -106,6 +107,16 @@ export function handleKey(
     return
   }
 
+  // Delete confirmation dialog - Enter confirms, Escape/any other key cancels
+  if (ui.deleteConfirm) {
+    if (key.return) {
+      const ctx = buildActionCtx(get, exitApp)
+      executeDelete(ctx, ui.deleteConfirm.nodeId)
+    }
+    get().setUI({ deleteConfirm: null })
+    return
+  }
+
   // Console (normal screen) - dismiss with backtick/escape, quit with q
   if (ui.showConsole) {
     if (key.escape || input === "`") {
@@ -146,8 +157,9 @@ export function handleKey(
     return
   }
 
-  // Escape dismisses toast if present — invoke action callback if it's a function
-  if (key.escape && get().toastQueue.getLatest()) {
+  // Escape dismisses toast if present — invoke action callback if it's a function.
+  // But NOT during inline edit — Escape should cancel the edit (via command system).
+  if (key.escape && !ui.inlineEditBlock && get().toastQueue.getLatest()) {
     const latest = get().toastQueue.getLatest()
     if (latest?.action && typeof latest.action.trigger === "function") {
       // Job cancel — the callback handles its own toast dismissal

@@ -101,8 +101,8 @@ export interface TextConfirmAction {
   type: "TEXT_CONFIRM"
 }
 
-export interface TextCancelAction {
-  type: "TEXT_CANCEL"
+export interface TextExitEditAction {
+  type: "TEXT_EXIT_EDIT"
 }
 
 export type TextEditAction =
@@ -117,7 +117,7 @@ export type TextEditAction =
   | TextDeleteToStartAction
   | TextDeleteToEndAction
   | TextConfirmAction
-  | TextCancelAction
+  | TextExitEditAction
 
 // Detail pane action
 export interface DetailPaneCloseAction {

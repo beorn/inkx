@@ -23,7 +23,7 @@ export interface UseLineEditOptions {
   onChange?: (value: string) => void
   /** Called when Enter is pressed (text.confirm command) */
   onConfirm?: (value: string) => void
-  /** Called when Escape is pressed (text.cancel command) */
+  /** Called when exiting edit mode (text.exit_edit command — Escape) */
   onCancel?: () => void
   /** Called when save() is invoked (auto-save on block navigate) */
   onSave?: (value: string) => void
@@ -64,7 +64,7 @@ export interface UseLineEditResult {
  * - text.delete_forward (Delete): Delete char after cursor
  * - text.insert (printable chars): Insert character at cursor
  * - text.confirm (Enter): Confirm edit
- * - text.cancel (Escape): Cancel edit
+ * - text.exit_edit (Escape): Save and exit edit mode
  */
 export function useLineEdit({
   initialValue = "",

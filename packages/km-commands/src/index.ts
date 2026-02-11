@@ -52,7 +52,7 @@ export type {
   TextDeleteToStartAction,
   TextDeleteToEndAction,
   TextConfirmAction,
-  TextCancelAction,
+  TextExitEditAction,
   // Detail pane action
   DetailPaneCloseAction,
 } from "./types.ts"

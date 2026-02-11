@@ -515,6 +515,48 @@ export function BoardCore({
                 </Box>
               )
             })()}
+          {/* Delete confirmation dialog */}
+          {ui.deleteConfirm &&
+            (() => {
+              const dc = ui.deleteConfirm
+              const dialogWidth = Math.min(50, Math.floor(termWidth / 2))
+              return (
+                <Box
+                  position="absolute"
+                  marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
+                  marginTop={Math.floor(contentHeight / 3)}
+                  data-dialog="delete-confirm"
+                >
+                  <Box
+                    flexDirection="column"
+                    borderStyle="single"
+                    borderColor="red"
+                    width={dialogWidth}
+                    paddingX={1}
+                  >
+                    <Text bold color="red">
+                      Delete "{dc.title}"?
+                    </Text>
+                    {dc.childCount > 0 && (
+                      <Text color="yellow">
+                        {dc.childCount} child{dc.childCount !== 1 ? "ren" : ""}{" "}
+                        will be deleted
+                      </Text>
+                    )}
+                    {dc.backlinkCount > 0 && (
+                      <Text color="yellow">
+                        {dc.backlinkCount} backlink
+                        {dc.backlinkCount !== 1 ? "s" : ""} will break
+                      </Text>
+                    )}
+                    {dc.hasMetadata && (
+                      <Text color="yellow">Has metadata (frontmatter)</Text>
+                    )}
+                    <Text dimColor>Enter to confirm, any key to cancel</Text>
+                  </Box>
+                </Box>
+              )
+            })()}
           {/* Help overlay */}
           {ui.showHelp && (
             <HelpOverlay width={termWidth} height={contentHeight} />

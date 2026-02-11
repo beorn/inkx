@@ -80,6 +80,15 @@ export interface UIState {
   // blockIndex 0 = title, 1+ = body children (1-indexed into extractBody result)
   inlineEditBlock: { nodeId: string; blockIndex: number } | null
 
+  // Delete confirmation dialog - shows impact before destructive delete
+  deleteConfirm: {
+    nodeId: string
+    title: string
+    childCount: number
+    backlinkCount: number
+    hasMetadata?: boolean
+  } | null
+
   // Bell state - set when action hits boundary, cleared on next keypress
   bellState: string | null
 
@@ -145,6 +154,8 @@ export function createInitialUIState(
     watcherStatus: null,
 
     inlineEditBlock: null,
+
+    deleteConfirm: null,
 
     bellState: null,
     status: null,

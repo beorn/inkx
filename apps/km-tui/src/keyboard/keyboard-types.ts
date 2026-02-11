@@ -6,8 +6,8 @@
 
 /** Default favorites: common boards accessed via 1-9 keys */
 export const DEFAULT_FAVORITES: Record<string, string> = {
-  "1": "@inbox",
-  "2": "@next",
+  "1": "@next",
+  "2": "@someday",
   "3": "@waiting",
   "4": "@someday",
   "5": "@projects",

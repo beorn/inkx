@@ -263,6 +263,13 @@ function TreeNodeImpl({
           : displayNode.content || getNodeDisplayName(repo, displayNode)
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
 
+  // For inline editing, use the actual node content (not display name fallback).
+  // This ensures new nodes with empty content show an empty edit field,
+  // not the short ID that getNodeDisplayName returns as fallback.
+  const editContent = isTask
+    ? stripTaskMark(displayNode.content ?? "")
+    : (displayNode.content ?? "")
+
   // Compute body/structural split when editing (for per-block navigation)
   const { bodyChildren, structuralChildren } = useMemo(() => {
     if (!isInlineEditing) {
@@ -474,7 +481,7 @@ function TreeNodeImpl({
                   </Text>
                 )}
                 <InlineEditField
-                  initialValue={cleanContent}
+                  initialValue={editContent}
                   onConfirm={handleInlineEditConfirm}
                   onCancel={handleInlineEditCancel}
                   onSave={handleTitleSave}
