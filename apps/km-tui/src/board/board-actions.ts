@@ -10,7 +10,7 @@
  */
 
 import { spawn } from "node:child_process"
-import { dirname } from "node:path"
+import { dirname, join } from "node:path"
 import type { CommandAction } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createLogger } from "@beorn/logger"
@@ -572,55 +572,61 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
 // Open in System / Terminal
 // =============================================================================
 
-/** Walk up the tree to find the nearest node with fs_path. */
+/** Walk up the tree to find the nearest node with fs_path, returning absolute path. */
 function resolveNodeFsPath(
   repo: ActionCtx["repo"],
   nodeId: string,
-): { fsPath: string; isFolder: boolean } | null {
+): { fsPath: string; isFolder: boolean } {
   let current = repo.data.getNode(nodeId)
   while (current) {
     if (current.fs_path) {
+      // fs_path is repo-relative — join with repo root for absolute path
+      const absPath = join(repo.path, current.fs_path)
       return {
-        fsPath: current.fs_path,
+        fsPath: absPath,
         isFolder: current.type === "folder",
       }
     }
     if (!current.parent_id) break
     current = repo.data.getNode(current.parent_id)
   }
-  return null
+  // Fallback: open the repo root itself
+  return { fsPath: repo.path, isFolder: true }
+}
+
+/** Spawn `open` and report errors via toast + log instead of silently swallowing. */
+function spawnOpen(ctx: ActionCtx, args: string[], label: string): void {
+  const child = spawn("open", args, { detached: true, stdio: ["ignore", "ignore", "pipe"] })
+  let stderr = ""
+  child.stderr?.on("data", (chunk: Buffer) => {
+    stderr += chunk.toString()
+  })
+  child.on("error", (err) => {
+    log.error?.(`${label}: spawn failed: ${err.message}`)
+    ctx.toastQueue.error(`Failed to open: ${err.message}`)
+  })
+  child.on("close", (code) => {
+    if (code !== 0) {
+      const msg = stderr.trim() || `exit code ${code}`
+      log.error?.(`${label}: ${msg}`)
+      ctx.toastQueue.error(`Failed to open: ${msg}`)
+    }
+  })
+  child.unref()
 }
 
 function handleOpenInSystem(ctx: ActionCtx, nodeId: string): void {
   const result = resolveNodeFsPath(ctx.repo, nodeId)
-  if (!result) {
-    log.debug?.("open_in_system: no fs_path for node %s", nodeId)
-    return
-  }
   log.debug?.("open_in_system: opening %s", result.fsPath)
-  spawn("open", [result.fsPath], { detached: true, stdio: "ignore" }).unref()
+  spawnOpen(ctx, [result.fsPath], "open_in_system")
 }
 
 function handleOpenInTerminal(ctx: ActionCtx, nodeId: string): void {
   const result = resolveNodeFsPath(ctx.repo, nodeId)
-  if (!result) {
-    log.debug?.("open_in_terminal: no fs_path for node %s", nodeId)
-    return
-  }
   // For files, open terminal at the parent directory
   const dir = result.isFolder ? result.fsPath : dirname(result.fsPath)
   const termProgram = process.env.TERM_PROGRAM
-  if (termProgram) {
-    log.debug?.("open_in_terminal: opening %s at %s", termProgram, dir)
-    spawn("open", ["-a", termProgram, dir], {
-      detached: true,
-      stdio: "ignore",
-    }).unref()
-  } else {
-    log.debug?.("open_in_terminal: opening Terminal.app at %s", dir)
-    spawn("open", ["-a", "Terminal", dir], {
-      detached: true,
-      stdio: "ignore",
-    }).unref()
-  }
+  const app = termProgram || "Terminal"
+  log.debug?.("open_in_terminal: opening %s at %s", app, dir)
+  spawnOpen(ctx, ["-a", app, dir], "open_in_terminal")
 }

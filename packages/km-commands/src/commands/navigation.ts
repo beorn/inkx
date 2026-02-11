@@ -204,8 +204,8 @@ const openInSystem = {
   category: "Navigation",
   shortcuts: ["o"],
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null
-    return { type: "OPEN_IN_SYSTEM", nodeId: ctx.currentNodeId }
+    // nodeId can be empty — handler falls back to repo root
+    return { type: "OPEN_IN_SYSTEM", nodeId: ctx.currentNodeId ?? "" }
   },
 } satisfies CommandDef
 
@@ -217,8 +217,8 @@ const openInTerminal = {
   category: "Navigation",
   shortcuts: ["O"],
   execute: (ctx) => {
-    if (!ctx.currentNodeId) return null
-    return { type: "OPEN_IN_TERMINAL", nodeId: ctx.currentNodeId }
+    // nodeId can be empty — handler falls back to repo root
+    return { type: "OPEN_IN_TERMINAL", nodeId: ctx.currentNodeId ?? "" }
   },
 } satisfies CommandDef
 

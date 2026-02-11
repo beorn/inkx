@@ -14,6 +14,8 @@ import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { ulid } from "ulid"
+import { realpathSync } from "fs"
+import { resolve } from "path"
 import { resolvePathArg, emitNodeCreatedWithEmitter } from "@km/storage"
 import type { KNode } from "@km/core"
 import { getRootPath } from "../program.ts"
@@ -22,6 +24,35 @@ import { loadRepo } from "../load-repo.ts"
 interface AddOptions {
   dryRun?: boolean
   json?: boolean
+}
+
+/** Convert an absolute glob to repo-relative, or throw if outside the repo */
+function toRepoRelativeGlob(source: string, repoRoot: string): string {
+  if (!source.startsWith("/")) return source
+
+  // Split into base path + glob suffix (e.g., "/tmp/vt/projects/**" → base + "/**")
+  const globIdx = source.indexOf("**")
+  const basePath = source.slice(0, globIdx).replace(/\/$/, "")
+  const suffix = source.slice(globIdx > 0 ? globIdx - 1 : source.length)
+
+  let realBase: string
+  try {
+    realBase = realpathSync(basePath)
+  } catch {
+    realBase = resolve(basePath)
+  }
+  let realRoot: string
+  try {
+    realRoot = realpathSync(repoRoot)
+  } catch {
+    realRoot = resolve(repoRoot)
+  }
+
+  if (realBase === realRoot) return "." + suffix
+  if (realBase.startsWith(realRoot + "/"))
+    {return "./" + realBase.slice(realRoot.length + 1) + suffix}
+
+  throw new Error(`Path is outside the repo: ${source}`)
 }
 
 export const addCommand = new Command("add")
@@ -46,7 +77,7 @@ export const addCommand = new Command("add")
     if (!targetNode) {
       console.error(term.red(`Target not found: ${target}`))
       console.error(
-        term.dim("Use ID, path, or filename (e.g., @next, @inbox.md)"),
+        term.dim("Use ID, path, or filename (e.g., @next, @someday)"),
       )
       process.exit(1)
     }
@@ -55,6 +86,28 @@ export const addCommand = new Command("add")
     const tasksToAdd: KNode[] = []
 
     for (const source of sources) {
+      // Glob patterns (e.g., ./inbox/**, /tmp/vt/projects/**) — query directly
+      if (source.includes("**")) {
+        let querySource: string
+        try {
+          querySource = toRepoRelativeGlob(source, resolvedTarget.repoRoot)
+        } catch (e) {
+          console.error(term.red((e as Error).message))
+          process.exit(1)
+        }
+        const queryResults = repo.queryTasks(querySource)
+        if (queryResults.length > 0) {
+          for (const task of queryResults) {
+            if (!tasksToAdd.some((t) => t.id === task.id)) {
+              tasksToAdd.push(task)
+            }
+          }
+        } else {
+          console.warn(term.yellow(`No tasks found for: ${source}`))
+        }
+        continue
+      }
+
       // Resolve source path if it's a filesystem path
       const resolvedSource = resolvePathArg(source, resolvedTarget.repoRoot)
 
