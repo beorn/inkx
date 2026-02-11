@@ -4,11 +4,14 @@
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
 import React, { useCallback, useEffect } from "react"
+import { useApp as useAppStore } from "inkx/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback } from "inkx"
 import { styledUnderline } from "chalkx"
+import type { JobRunner } from "@km/core"
 import type { CardState, ColumnState } from "../types.ts"
+import type { BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { TreeNode } from "./TreeNode.tsx"
@@ -258,6 +261,7 @@ export const Column = React.memo(function Column({
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
   const setUI = useSetUI()
+  const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
   const nodeId = column.node.id
 
   // Subscribe to column selection only (stable on j/k within same column).
@@ -278,13 +282,30 @@ export const Column = React.memo(function Column({
   const wipLimit = column.wipLimit
   const isVirtual = column.isVirtual ?? false
 
-  // Inline edit callbacks
+  // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
-      repo.updateNode(nodeId, { content: newValue })
+      const impact = repo.getRenameImpact(nodeId)
+
+      if (impact.backlinks.length === 0) {
+        repo.renameNode(nodeId, newValue)
+      } else {
+        const oldName = repo.getNode(nodeId)?.name ?? ""
+        const s = impact.backlinks.length === 1 ? "" : "s"
+        jobRunner.submit({
+          description: `Renaming '${oldName}' → '${newValue}'`,
+          impact: `${impact.backlinks.length} backlink${s} will be updated`,
+          execute: (onProgress) => {
+            repo.renameNode(nodeId, newValue, (info) =>
+              onProgress(info.updated, info.total),
+            )
+          },
+        })
+      }
+
       setUI({ inlineEditBlock: null })
     },
-    [nodeId, repo, setUI],
+    [nodeId, repo, setUI, jobRunner],
   )
 
   const handleInlineEditCancel = useCallback(() => {
