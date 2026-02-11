@@ -1973,6 +1973,46 @@ describe("Boundary Feedback (Bell + Status)", () => {
   })
 })
 
+describe("Virtual body card", () => {
+  test("body-only columns render items borderless (virtual)", () => {
+    // Column with only paragraphs (no tasks) — items render borderless
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item.section(
+          "col1",
+          item.paragraph("intro text"),
+          item.paragraph("more text"),
+        ),
+      ),
+    )
+    // Cursor starts on first card (paragraph) in Cards view
+    const output = board.screenshot()
+    expect(output).toContain("intro text")
+
+    board.press("j") // second paragraph
+    const output2 = board.screenshot()
+    expect(output2).toContain("more text")
+
+    // After last body item, boundary
+    board.press("j")
+    expect(board.bell).toBe(true)
+  })
+
+  test("task-only columns render items with borders (non-virtual)", () => {
+    // Column with tasks should render as regular bordered cards
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("taska"), item("taskb"), item("taskc"))),
+    )
+    // Cursor starts on first card in Cards view
+    board.expect("#taska[data-cursor]").toExist()
+    board.press("j")
+    board.expect("#taskb[data-cursor]").toExist()
+    board.press("j")
+    board.expect("#taskc[data-cursor]").toExist()
+  })
+})
+
 describe("Help and Keyboard Shortcuts", () => {
   test("? shows keyboard shortcuts", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))

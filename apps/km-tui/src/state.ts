@@ -209,12 +209,15 @@ export function* buildBoardStateGenerator(
         })
       }
     } else {
-      // No structural children - all items are regular cards (no body)
+      // No structural children — mark non-task body content as virtual (borderless).
+      // Task-type nodes render as regular bordered cards.
+      const allBody = !cardNodes.some((n) => n.type === "task")
       for (const cardNode of cardNodes) {
         cards.push({
           node: cardNode,
           children: [],
           childCount: childCounts.get(cardNode.id) ?? 0,
+          ...(allBody ? { isVirtual: true } : {}),
         })
       }
     }
@@ -418,12 +421,42 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
     const cardNodes = columnCardNodes[colIdx] ?? []
     const rules = colNode.rules ?? parseColumnRules(colNode.content || "")
 
-    // Build cards with pre-fetched child counts
-    const cards: CardState[] = cardNodes.map((cardNode) => ({
-      node: cardNode,
-      children: [], // Don't load grandchildren eagerly - blocks event loop
-      childCount: childCounts.get(cardNode.id) ?? 0,
-    }))
+    // Extract body content within column (tasks/paragraphs before subsections)
+    const { body: colBodyNodes, items: structuralCards } =
+      extractBody(cardNodes)
+
+    const cards: CardState[] = []
+
+    if (structuralCards.length > 0) {
+      // Add body cards first (virtual, displayed differently)
+      for (const bodyNode of colBodyNodes) {
+        cards.push({
+          node: bodyNode,
+          children: [],
+          childCount: childCounts.get(bodyNode.id) ?? 0,
+          isVirtual: true,
+        })
+      }
+      // Then add structural cards
+      for (const cardNode of structuralCards) {
+        cards.push({
+          node: cardNode,
+          children: [],
+          childCount: childCounts.get(cardNode.id) ?? 0,
+        })
+      }
+    } else {
+      // No structural children — mark non-task body content as virtual (borderless).
+      const allBody = !cardNodes.some((n) => n.type === "task")
+      for (const cardNode of cardNodes) {
+        cards.push({
+          node: cardNode,
+          children: [],
+          childCount: childCounts.get(cardNode.id) ?? 0,
+          ...(allBody ? { isVirtual: true } : {}),
+        })
+      }
+    }
 
     // Look up WIP limit (from rules or frontmatter)
     const colName = getNodeDisplayName(repo, colNode)
