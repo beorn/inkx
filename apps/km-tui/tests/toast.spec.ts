@@ -197,6 +197,44 @@ describe("Toast rendering", () => {
     expect(toastBox.y + toastBox.height).toBeLessThanOrEqual(bottomBarBox.y)
   })
 
+  test("board content remains visible when toast appears (km-9zu9f)", () => {
+    // Regression: toast appearance triggered incremental render that blanked
+    // the board content. Only the toast was visible, rest of screen was blank.
+    process.env.INKX_STRICT = "1"
+    const { board, toastQueue } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("1a"), item("1b"), item("1c")),
+          item("col2", item("2a"), item("2b")),
+        ),
+      { incremental: true },
+    )
+
+    // Verify board renders correctly before toast
+    const textBefore = board.screenshot()
+    expect(textBefore).toContain("1a")
+    expect(textBefore).toContain("col1")
+
+    // Push toast — this is the first toast, so ToastStack transitions from null to rendering
+    toastQueue.info("3 log messages — press ` to see")
+
+    // Trigger re-render (simulating consoleStats update — NOT a cursor change)
+    board.press("l")
+    board.press("h")
+
+    // Toast should be visible
+    expect(board.q("#toast").count()).toBe(1)
+
+    // Board content MUST still be visible — this is the regression check
+    const textAfter = board.screenshot()
+    expect(textAfter).toContain("1a")
+    expect(textAfter).toContain("1b")
+    expect(textAfter).toContain("col1")
+    expect(textAfter).toContain("col2")
+    expect(textAfter).toContain("2a")
+  })
+
   test("toast with items does not overlap the bottom bar", () => {
     const rows = 24
     const { board, toastQueue } = testEnv(
