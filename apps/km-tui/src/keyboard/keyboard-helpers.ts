@@ -44,7 +44,14 @@ export function pushNavHistoryEntry(
 // Selection Helpers
 // =============================================================================
 
-/** Update multi-selection range from anchor to current position */
+/**
+ * Update multi-selection range from anchor to current focus position.
+ *
+ * Selection is always derived from (anchor, focus):
+ * - Same col, same card: sub-item range (outline mode)
+ * - Same col, different cards: card range within column
+ * - Different cols: all cards in all columns between anchor.col and focus.col
+ */
 export function updateSelectionRange(
   ctx: ActionCtx,
   toCol: number,
@@ -52,49 +59,80 @@ export function updateSelectionRange(
   toSub: number,
 ): void {
   if (!ctx.ui.selectionAnchor) return
+  const anchor = ctx.ui.selectionAnchor
   const newSelected = new Set<SelectionKey>()
 
-  if (
-    ctx.ui.selectionAnchor.col === toCol &&
-    ctx.ui.selectionAnchor.card === toCard
-  ) {
-    const minSub = Math.min(ctx.ui.selectionAnchor.sub, toSub)
-    const maxSub = Math.max(ctx.ui.selectionAnchor.sub, toSub)
+  if (anchor.col === toCol && anchor.card === toCard) {
+    // Sub-item range within the same card (outline mode)
+    const minSub = Math.min(anchor.sub, toSub)
+    const maxSub = Math.max(anchor.sub, toSub)
     const cardNode = ctx.layout.columns[toCol]?.cards[toCard]
     if (cardNode) {
       for (let s = minSub; s <= maxSub; s++) {
         newSelected.add(makeSelectionKey(cardNode.node.id, s))
       }
     }
-  } else if (ctx.ui.selectionAnchor.col === toCol) {
-    const minCard = Math.min(ctx.ui.selectionAnchor.card, toCard)
-    const maxCard = Math.max(ctx.ui.selectionAnchor.card, toCard)
+  } else if (anchor.col === toCol) {
+    // Card range within the same column
+    const minCard = Math.min(anchor.card, toCard)
+    const maxCard = Math.max(anchor.card, toCard)
     for (let c = minCard; c <= maxCard; c++) {
       const card = ctx.layout.columns[toCol]?.cards[c]
       if (card) {
-        const maxItems =
-          1 +
-          ctx.countVisibleDescendants(
-            card.node,
-            0,
-            ctx.ui.maxOutlineDepth,
-            ctx.foldedNodes,
-          )
-        for (let s = 0; s < maxItems; s++) {
-          newSelected.add(makeSelectionKey(card.node.id, s))
+        addAllCardItems(newSelected, ctx, card)
+      }
+    }
+  } else {
+    // Cross-column: select all cards in all columns between anchor and focus
+    const minCol = Math.min(anchor.col, toCol)
+    const maxCol = Math.max(anchor.col, toCol)
+    for (let colIdx = minCol; colIdx <= maxCol; colIdx++) {
+      const col = ctx.layout.columns[colIdx]
+      if (col) {
+        for (const card of col.cards) {
+          addAllCardItems(newSelected, ctx, card)
         }
       }
     }
   }
+
   // Show status feedback
   const count = newSelected.size
-  if (count > 1) {
+  if (anchor.col !== toCol) {
+    const colCount = Math.abs(toCol - anchor.col) + 1
+    ctx.setUI({
+      multiSelected: newSelected,
+      status: {
+        level: "info",
+        message: `${colCount} column${colCount > 1 ? "s" : ""} selected (${count} items)`,
+      },
+    })
+  } else if (count > 1) {
     ctx.setUI({
       multiSelected: newSelected,
       status: { level: "info", message: `${count} items selected` },
     })
   } else {
     ctx.setUI({ multiSelected: newSelected })
+  }
+}
+
+/** Add all visible sub-items for a card to the selection set. */
+function addAllCardItems(
+  selected: Set<SelectionKey>,
+  ctx: ActionCtx,
+  card: CardState,
+): void {
+  const maxItems =
+    1 +
+    ctx.countVisibleDescendants(
+      card.node,
+      0,
+      ctx.ui.maxOutlineDepth,
+      ctx.foldedNodes,
+    )
+  for (let s = 0; s < maxItems; s++) {
+    selected.add(makeSelectionKey(card.node.id, s))
   }
 }
 

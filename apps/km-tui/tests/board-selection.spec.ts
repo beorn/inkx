@@ -105,10 +105,10 @@ describe("Selection", () => {
 
   // ---------------------------------------------------------------------------
   // Extend selection across columns (H/L = Shift+H/L)
-  // Horizontal extend-select is not yet implemented; H/L clear selection.
+  // Column-level selection: selects all cards in columns between anchor and focus.
   // ---------------------------------------------------------------------------
 
-  test("H clears selection (horizontal extend not yet implemented)", () => {
+  test("L selects current column and next column", () => {
     const { board } = testEnv(() =>
       item(
         "board",
@@ -118,16 +118,68 @@ describe("Selection", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    // Create a vertical selection first
-    board.press("J")
-    expect(board.getStatus()?.message).toContain("selected")
-
-    // H clears the multi-selection
-    board.press("H")
-    expect(board.getStatus()).toBeNull()
+    board.press("L") // Shift+L = extend_select_right
+    const status = board.getStatus()
+    expect(status?.message).toContain("2 columns")
+    expect(status?.message).toContain("3 items")
   })
 
-  test("L clears selection (horizontal extend not yet implemented)", () => {
+  test("H selects current column and previous column", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a"), item("2b")),
+      ),
+    )
+    // Navigate to col2
+    board.press("l")
+    board.expect("#2a[data-cursor]").toExist()
+
+    board.press("H") // Shift+H = extend_select_left
+    const status = board.getStatus()
+    expect(status?.message).toContain("2 columns")
+    expect(status?.message).toContain("3 items")
+  })
+
+  test("L then L extends to third column", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+        item("col3", item("3a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    board.press("L")
+    expect(board.getStatus()?.message).toContain("2 columns")
+
+    board.press("L")
+    expect(board.getStatus()?.message).toContain("3 columns")
+  })
+
+  test("L then H shrinks column selection", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+        item("col3", item("3a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    board.press("L") // cols 0-1
+    board.press("L") // cols 0-2
+    expect(board.getStatus()?.message).toContain("3 columns")
+
+    board.press("H") // Back to cols 0-1
+    expect(board.getStatus()?.message).toContain("2 columns")
+  })
+
+  test("H at left boundary selects current column only", () => {
     const { board } = testEnv(() =>
       item(
         "board",
@@ -137,13 +189,28 @@ describe("Selection", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    // Create a vertical selection first
-    board.press("J")
-    expect(board.getStatus()?.message).toContain("selected")
+    board.press("H") // At boundary — selects current column
+    const status = board.getStatus()
+    expect(status?.message).toContain("1 column")
+    expect(status?.message).toContain("2 items")
+  })
 
-    // L clears the multi-selection
-    board.press("L")
-    expect(board.getStatus()).toBeNull()
+  test("L at right boundary selects current column only", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a"), item("2b")),
+      ),
+    )
+    // Navigate to last column
+    board.press("l")
+    board.expect("#2a[data-cursor]").toExist()
+
+    board.press("L") // At boundary — selects current column
+    const status = board.getStatus()
+    expect(status?.message).toContain("1 column")
+    expect(status?.message).toContain("2 items")
   })
 
   // ---------------------------------------------------------------------------
@@ -207,13 +274,10 @@ describe("Selection", () => {
   })
 
   // ---------------------------------------------------------------------------
-  // Escape behavior with selection
-  // Note: Escape routes to close_or_quit, which does not clear multi-selection.
-  // This tests the current behavior (boundary warning). When close_or_quit is
-  // updated to clear selection first, this test should be updated accordingly.
+  // Escape clears selection
   // ---------------------------------------------------------------------------
 
-  test("Escape with active selection triggers boundary (close_or_quit)", () => {
+  test("Escape clears active selection", () => {
     const { board } = testEnv(() =>
       item("board", item("col", item("1a"), item("1b"), item("1c"))),
     )
@@ -223,10 +287,192 @@ describe("Selection", () => {
     board.press("A")
     expect(board.getStatus()?.message).toContain("selected")
 
-    // Escape goes to close_or_quit, which currently doesn't check multiSelected
+    // Escape clears the selection
+    board.press("Escape")
+    expect(board.getStatus()).toBeNull()
+  })
+
+  test("Escape after column selection clears all", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Create column selection
+    board.press("L")
+    expect(board.getStatus()?.message).toContain("column")
+
+    // Escape clears it
+    board.press("Escape")
+    expect(board.getStatus()).toBeNull()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Escape edge cases
+  // ---------------------------------------------------------------------------
+
+  test("Escape with no selection and no overlays hits boundary", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"))),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
     board.press("Escape")
     const status = board.getStatus()
     expect(status?.level).toBe("warning")
+  })
+
+  test("Escape prefers closing overlays over clearing selection", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("1a"), item("1b"))),
+    )
+
+    // Create selection
+    board.press("J")
+    expect(board.getStatus()?.message).toContain("selected")
+
+    // Open help overlay
+    board.press("?")
+
+    // First Escape closes help, selection still active
+    board.press("Escape")
+    // Verify selection is still there by checking status on next key
+    // (status is cleared at keypress start, so we can't check it directly after Escape
+    // that closed the overlay — we'd need to trigger a re-render)
+
+    // Second Escape clears the selection
+    board.press("Escape")
+    expect(board.getStatus()).toBeNull()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Normal h/l clears selection
+  // ---------------------------------------------------------------------------
+
+  test("normal h clears active card selection", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a"), item("2b")),
+        item("col3", item("3a")),
+      ),
+    )
+    // Navigate to middle column so h doesn't hit boundary
+    board.press("l")
+    board.expect("#2a[data-cursor]").toExist()
+
+    board.press("J") // Create card selection in col2
+    expect(board.getStatus()?.message).toContain("selected")
+
+    board.press("h") // Normal h — clears selection and navigates left
+    // Status is cleared (status resets at keypress start, h doesn't set it)
+    expect(board.getStatus()).toBeNull()
+    board.expect("#1a[data-cursor]").toExist()
+  })
+
+  test("normal l clears active card selection", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.press("J") // Create card selection
+    expect(board.getStatus()?.message).toContain("selected")
+
+    board.press("l") // Normal l — clears selection and navigates right
+    expect(board.getStatus()).toBeNull()
+    board.expect("#2a[data-cursor]").toExist()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Column selection cursor position
+  // ---------------------------------------------------------------------------
+
+  test("L moves cursor to target column", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    board.press("L")
+    board.expect("#2a[data-cursor]").toExist()
+  })
+
+  test("H moves cursor to target column", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.press("l") // Navigate to col2
+    board.expect("#2a[data-cursor]").toExist()
+
+    board.press("H")
+    board.expect("#1a[data-cursor]").toExist()
+  })
+
+  // ---------------------------------------------------------------------------
+  // H/L boundary with existing selection
+  // ---------------------------------------------------------------------------
+
+  test("H at boundary with existing column selection is no-op", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Select current column at boundary
+    board.press("H")
+    expect(board.getStatus()?.message).toContain("1 column")
+    expect(board.getStatus()?.message).toContain("2 items")
+
+    // Second H at boundary — status cleared at keypress start, handler returns early
+    // Selection is still there but no new status feedback is set
+    board.press("H")
+    // No status (cleared at keypress start, no-op handler didn't set new status)
+    expect(board.getStatus()).toBeNull()
+    // But cursor hasn't moved — still in col1
+    board.expect("#1a[data-cursor]").toExist()
+  })
+
+  // ---------------------------------------------------------------------------
+  // Cross-mode transitions (J/K then H/L)
+  // ---------------------------------------------------------------------------
+
+  test("J then L transitions from card selection to column selection", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Card selection first
+    board.press("J")
+    expect(board.getStatus()?.message).toMatch(/items? selected/)
+
+    // Then column selection — anchor stays at col 0, focus moves to col 1
+    board.press("L")
+    expect(board.getStatus()?.message).toContain("column")
   })
 
   // ---------------------------------------------------------------------------

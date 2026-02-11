@@ -553,6 +553,12 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     return ok()
   }
 
+  // Clear multi-selection if active
+  if (ui.multiSelected.size > 0) {
+    clearSelection(ctx)
+    return ok()
+  }
+
   // Try to navigate back (zoom out) if we have history
   if (ui.navHistoryIndex > 0) {
     return handleNavBack(ctx)
