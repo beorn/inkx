@@ -1,0 +1,325 @@
+/**
+ * FsWriter — lightweight FsSync for CLI / non-TUI contexts
+ *
+ * Synchronously writes DB changes back to .md files.
+ * Unlike SyncManager, has no watcher, no WriteQueue, no debouncing.
+ * Designed for one-shot CLI commands that do a mutation and exit.
+ *
+ * The TUI replaces this with SyncManager via emitter.setFsSync().
+ */
+
+import { createLogger } from "@beorn/logger"
+import {
+  existsSync,
+  mkdirSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "fs"
+import { dirname, join } from "path"
+import type { Database } from "bun:sqlite"
+import type { Event, KNode } from "@km/core"
+import type { Emitter, FsSync } from "../emitter.ts"
+import { toAbsoluteFsPath } from "../path-utils.ts"
+import { getIgnorePatterns } from "../ignore.ts"
+import { getNode, getSubtree, nodesToMarkdown } from "../index.ts"
+import { shouldApplyToFs } from "./writequeue.ts"
+import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
+
+const log = createLogger("km:storage:watch:fs-writer")
+
+export class FsWriter implements FsSync {
+  private ignorePatterns: string[]
+
+  constructor(
+    private db: Database,
+    private repoPath: string,
+    private emitter: Emitter,
+  ) {
+    this.ignorePatterns = getIgnorePatterns(repoPath)
+  }
+
+  applyEventToFs(event: Event): void {
+    if (!shouldApplyToFs(event.actor)) return
+
+    log.debug?.(
+      `applying ${event.type} to fs: ${event.target ?? "no-target"}`,
+    )
+
+    switch (event.type) {
+      case "node_updated":
+        this.handleNodeUpdated(event)
+        break
+      case "node_created":
+        this.handleNodeCreated(event)
+        break
+      case "node_deleted":
+        this.handleNodeDeleted(event)
+        break
+      case "node_moved":
+        this.handleNodeMoved(event)
+        break
+    }
+  }
+
+  /**
+   * Handle node updated — regenerate the containing file.
+   * Reconciles external changes first to avoid data loss.
+   */
+  private handleNodeUpdated(event: Event): void {
+    if (!event.target) return
+
+    const node = getNode(this.db, event.target)
+    if (!node) return
+    const changes = event.data as Partial<KNode>
+
+    // Folder rename: content change on a folder → rename directory on disk
+    if (node.type === "folder" && node.fs_path && changes.content) {
+      this.handleFolderRename(node, changes.content, event.id)
+      return
+    }
+
+    const fileNode = findFileNode(this.db, node)
+    if (!fileNode?.fs_path) return
+
+    // File rename: content change on the file node itself → rename .md file
+    if (
+      node.id === fileNode.id &&
+      changes.content &&
+      fileNode.fs_path.endsWith(".md")
+    ) {
+      this.handleFileRename(fileNode, changes.content, event.id)
+    }
+
+    const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
+    this.reconcileIfChanged(fileNode)
+
+    const allNodes = getSubtree(this.db, fileNode.id)
+    const content = nodesToMarkdown(allNodes)
+    this.writeSync(absPath, content)
+  }
+
+  /**
+   * Handle node created — create directory, empty file, or regenerate parent file.
+   */
+  private handleNodeCreated(event: Event): void {
+    const data = event.data as Partial<KNode>
+
+    if (data.type === "folder" && data.fs_path) {
+      const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
+      mkdirSync(absPath, { recursive: true })
+    } else if (data.type === "file" && data.fs_path) {
+      const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
+      this.writeSync(absPath, "")
+    } else if (data.parent_id) {
+      // Non-file node (task, section, etc.) created under a file → regenerate
+      const parent = getNode(this.db, data.parent_id)
+      if (!parent) return
+      const fileNode = findFileNode(this.db, parent)
+      if (!fileNode?.fs_path) return
+      this.reconcileIfChanged(fileNode)
+      const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
+      const allNodes = getSubtree(this.db, fileNode.id)
+      const content = nodesToMarkdown(allNodes)
+      this.writeSync(absPath, content)
+    }
+  }
+
+  /**
+   * Handle node deleted — remove file or directory.
+   */
+  private handleNodeDeleted(event: Event): void {
+    if (!event.target) return
+
+    const node = getNode(this.db, event.target)
+    if (node?.fs_path && (node.type === "file" || node.type === "folder")) {
+      const absPath = toAbsoluteFsPath(this.repoPath, node.fs_path)
+      if (existsSync(absPath)) {
+        unlinkSync(absPath)
+      }
+    }
+  }
+
+  /**
+   * Handle node moved — regenerate the target file.
+   */
+  private handleNodeMoved(event: Event): void {
+    if (!event.target) return
+
+    const node = getNode(this.db, event.target)
+    if (!node) return
+
+    const fileNode = findFileNode(this.db, node)
+    if (!fileNode?.fs_path) return
+
+    this.reconcileIfChanged(fileNode)
+
+    const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
+    const allNodes = getSubtree(this.db, fileNode.id)
+    const content = nodesToMarkdown(allNodes)
+    this.writeSync(absPath, content)
+  }
+
+  /**
+   * Rename a folder directory on disk when its content (name) changes.
+   */
+  private handleFolderRename(
+    node: KNode,
+    newName: string,
+    _eventId: string,
+  ): void {
+    const oldFsPath = node.fs_path ?? ""
+    const oldAbsPath = toAbsoluteFsPath(this.repoPath, oldFsPath)
+    const parentDir = dirname(oldFsPath)
+    const newFsPath = parentDir === "." ? newName : join(parentDir, newName)
+    const newAbsPath = toAbsoluteFsPath(this.repoPath, newFsPath)
+
+    if (oldAbsPath === newAbsPath) return
+    if (existsSync(newAbsPath)) {
+      log.warn?.(`folder rename aborted: target already exists: ${newFsPath}`)
+      return
+    }
+
+    log.info?.(`folder rename: ${oldFsPath} → ${newFsPath}`)
+
+    if (existsSync(oldAbsPath)) {
+      renameSync(oldAbsPath, newAbsPath)
+    }
+
+    // Update DB paths
+    const oldPrefix = oldFsPath + "/"
+    const newPrefix = newFsPath + "/"
+    this.db.run(
+      "UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?",
+      [newFsPath, newName, Date.now(), node.id],
+    )
+    this.db.run(
+      `UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?), updated_at = ? WHERE fs_path LIKE ?`,
+      [newPrefix, oldPrefix.length + 1, Date.now(), oldPrefix + "%"],
+    )
+  }
+
+  /**
+   * Rename a .md file when its H1 title changes.
+   */
+  private handleFileRename(
+    fileNode: KNode,
+    newTitle: string,
+    _eventId: string,
+  ): void {
+    const oldFsPath = fileNode.fs_path
+    if (!oldFsPath) return
+
+    const newFileName = titleToFilename(newTitle)
+    const parentDir = dirname(oldFsPath)
+    const newFsPath =
+      parentDir === "." ? newFileName : join(parentDir, newFileName)
+
+    if (oldFsPath === newFsPath) return
+
+    const oldAbsPath = toAbsoluteFsPath(this.repoPath, oldFsPath)
+    const newAbsPath = toAbsoluteFsPath(this.repoPath, newFsPath)
+
+    if (existsSync(newAbsPath)) {
+      log.warn?.(`file rename aborted: target already exists: ${newFsPath}`)
+      return
+    }
+
+    log.info?.(`file rename: ${oldFsPath} → ${newFsPath}`)
+
+    if (existsSync(oldAbsPath)) {
+      const newDir = dirname(newAbsPath)
+      if (!existsSync(newDir)) {
+        mkdirSync(newDir, { recursive: true })
+      }
+      renameSync(oldAbsPath, newAbsPath)
+    }
+
+    // Update DB
+    const newName = newFileName.replace(/\.md$/i, "")
+    this.db.run(
+      "UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?",
+      [newFsPath, newName, Date.now(), fileNode.id],
+    )
+
+    // Mutate node so caller writes content at new path
+    fileNode.fs_path = newFsPath
+    fileNode.name = newName
+  }
+
+  /**
+   * Reconcile if file was modified externally (mtime differs from DB).
+   * Prevents data loss when DB changes race with FS changes.
+   */
+  private reconcileIfChanged(fileNode: KNode): void {
+    if (!fileNode.fs_path) return
+    const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
+    if (!existsSync(absPath)) return
+
+    try {
+      const stat = statSync(absPath)
+      const dbMtime = fileNode.fs_mtime
+
+      if (dbMtime !== undefined && stat.mtimeMs !== dbMtime) {
+        log.debug?.(
+          `reconcile-before-write: file changed externally, reconciling path=${absPath}`,
+        )
+
+        const dir = dirname(absPath)
+        const ops = reconcileDirectory(
+          this.db,
+          dir,
+          this.repoPath,
+          this.ignorePatterns,
+        )
+
+        if (ops.length > 0) {
+          log.debug?.(`reconcile-before-write: applying ${ops.length} ops`)
+          applyReconcileOps(this.db, ops, this.repoPath, this.emitter)
+        }
+      }
+    } catch (err) {
+      log.debug?.(`reconcile-before-write: error checking file ${String(err)}`)
+    }
+  }
+
+  /**
+   * Write content to a file, ensuring the parent directory exists.
+   */
+  private writeSync(absPath: string, content: string): void {
+    const dir = dirname(absPath)
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+    writeFileSync(absPath, content, "utf-8")
+  }
+}
+
+/**
+ * Find the file node that contains a given node (walk up parent chain).
+ */
+function findFileNode(db: Database, node: KNode): KNode | null {
+  if (node.type === "file") return node
+  if (!node.parent_id) return null
+
+  const parent = getNode(db, node.parent_id)
+  if (!parent) return null
+
+  return findFileNode(db, parent)
+}
+
+/**
+ * Convert a title to a safe filename.
+ * Preserves case, replaces unsafe chars with dashes, appends .md.
+ */
+function titleToFilename(title: string): string {
+  const name = title
+    .trim()
+    .replace(/[/\\:*?"<>|]/g, "-")
+    .replace(/\s+/g, " ")
+    .replace(/^\.+/, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+  return (name || "untitled") + ".md"
+}
