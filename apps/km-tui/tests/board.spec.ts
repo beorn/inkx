@@ -1948,26 +1948,27 @@ describe("Boundary Feedback (Bell + Status)", () => {
     board.expect("#1b[data-cursor]").toExist()
   })
 
-  test("bell fires for each boundary direction", () => {
+  test("bell fires for each horizontal boundary direction", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    // Single card, single column — h/l/j are boundaries, k goes to column header
+    // Single card, single column — h and l are horizontal boundaries
 
     board.press("h")
     expect(board.bell).toBe(true)
 
     board.press("l")
     expect(board.bell).toBe(true)
+  })
 
-    board.press("j")
+  test("bell fires for downward boundary", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"))),
+    )
+    board.press("j") // 1a → 1b
+    board.press("j") // boundary
     expect(board.bell).toBe(true)
 
-    // k navigates up to column header (not a boundary)
-    board.press("k")
-    expect(board.bell).toBe(false)
-    board.expect("#col1[data-cursor]").toExist()
-
-    // Now at column header, k is a boundary (can't go higher)
-    board.press("k")
+    // Second boundary press also fires bell (no streak suppression)
+    board.press("j")
     expect(board.bell).toBe(true)
   })
 })

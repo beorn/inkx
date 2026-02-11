@@ -193,7 +193,7 @@ describe("PTY integration: h/l false bell", () => {
     expect(hasBellIndicator(e)).toBe(false)
   }, 20000)
 
-  test("rapid h at left boundary: first press bells, subsequent suppressed", async () => {
+  test("rapid h at left boundary: bells on each press without crash", async () => {
     // Navigate back to leftmost column first
     for (let i = 0; i < 10; i++) e.press("h")
     await e.waitForStable(500, 10000)
@@ -201,11 +201,9 @@ describe("PTY integration: h/l false bell", () => {
     // We should be at col 0 — pressing h should hit left boundary
     await pressAndWait(e, "h")
 
-    // Now rapid h presses — should NOT keep belling
+    // Rapid boundary hits — each fires bell, should not crash
     await e.repeatKey("h", 5)
     await e.waitForStable(500, 10000)
-
-    // After rapid boundary hits, bell should have cleared or be suppressed
   }, 20000)
 })
 
