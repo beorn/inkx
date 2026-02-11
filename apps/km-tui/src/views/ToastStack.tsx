@@ -66,25 +66,18 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       paddingRight={1}
       minWidth={40}
       maxWidth={60}
-      overflow="hidden"
       id="toast"
       data-level={toast.level}
       data-toast-id={toast.id}
     >
       {/* Main message */}
-      <Text color={color} wrap="truncate-end">
-        {content}
-      </Text>
+      <Text color={color}>{content}</Text>
       {/* Description on second line if present */}
-      {toast.description && (
-        <Text dimColor wrap="truncate-end">
-          {toast.description}
-        </Text>
-      )}
+      {toast.description && <Text dimColor>{toast.description}</Text>}
       {/* Show individual items if below threshold */}
       {shouldShowItems &&
         toast.items?.map((item, i) => (
-          <Text key={i} dimColor wrap="truncate-end">
+          <Text key={i} dimColor>
             {"  • " + item}
           </Text>
         ))}
