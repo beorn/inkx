@@ -37,7 +37,7 @@ export function handleExtendSelectVertical(
     const newSelected = new Set(ui.multiSelected)
     newSelected.add(makeSelectionKey(card.node.id, 0))
     ctx.setUI({
-      selectionAnchor: { col: layout.colIndex, card: layout.cardIndex, sub: 0 },
+      selectionAnchor: { nodeId: card.node.id, sub: 0 },
       multiSelected: newSelected,
       status: { level: "info", message: "1 item selected" },
     })
@@ -74,7 +74,8 @@ export function handleExtendSelectHorizontal(
 
   if (columns.length === 0) return
 
-  const anchorCol = ui.selectionAnchor?.col ?? layout.colIndex
+  // Resolve anchor column from nodeId (or use current cursor column)
+  const anchorCol = resolveAnchorCol(ctx) ?? layout.colIndex
 
   // Calculate target column (focus moves one step in direction)
   const targetColIdx =
@@ -89,9 +90,10 @@ export function handleExtendSelectHorizontal(
   }
 
   // Set anchor if starting fresh
-  if (ui.selectionAnchor === null) {
+  const card = layout.columns[layout.colIndex]?.cards[layout.cardIndex]
+  if (ui.selectionAnchor === null && card) {
     ctx.setUI({
-      selectionAnchor: { col: layout.colIndex, card: layout.cardIndex, sub: 0 },
+      selectionAnchor: { nodeId: card.node.id, sub: 0 },
     })
   }
 
@@ -115,6 +117,14 @@ export function handleExtendSelectHorizontal(
       message: `${colCount} column${colCount > 1 ? "s" : ""} selected (${newSelected.size} items)`,
     },
   })
+}
+
+/** Resolve the anchor's column index from its nodeId via layout.nodeIndex. */
+function resolveAnchorCol(ctx: ActionCtx): number | null {
+  const anchor = ctx.ui.selectionAnchor
+  if (!anchor) return null
+  const pos = ctx.layout.nodeIndex?.get(anchor.nodeId)
+  return pos?.colIndex ?? null
 }
 
 /** Select all cards in all columns between fromCol and toCol (inclusive). */

@@ -35,7 +35,7 @@ export interface UIState {
   subIndex: number
   inOutlineMode: boolean
   multiSelected: Set<SelectionKey>
-  selectionAnchor: { col: number; card: number; sub: number } | null
+  selectionAnchor: { nodeId: string; sub: number } | null
   selectAllLevel: number
 
   // Column state

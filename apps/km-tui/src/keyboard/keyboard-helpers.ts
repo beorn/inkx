@@ -62,7 +62,13 @@ export function updateSelectionRange(
   const anchor = ctx.ui.selectionAnchor
   const newSelected = new Set<SelectionKey>()
 
-  if (anchor.col === toCol && anchor.card === toCard) {
+  // Resolve anchor position from nodeId
+  const anchorPos = ctx.layout.nodeIndex?.get(anchor.nodeId)
+  if (!anchorPos) return
+  const anchorCol = anchorPos.colIndex
+  const anchorCard = anchorPos.cardIndex
+
+  if (anchorCol === toCol && anchorCard === toCard) {
     // Sub-item range within the same card (outline mode)
     const minSub = Math.min(anchor.sub, toSub)
     const maxSub = Math.max(anchor.sub, toSub)
@@ -72,10 +78,10 @@ export function updateSelectionRange(
         newSelected.add(makeSelectionKey(cardNode.node.id, s))
       }
     }
-  } else if (anchor.col === toCol) {
+  } else if (anchorCol === toCol) {
     // Card range within the same column
-    const minCard = Math.min(anchor.card, toCard)
-    const maxCard = Math.max(anchor.card, toCard)
+    const minCard = Math.min(anchorCard, toCard)
+    const maxCard = Math.max(anchorCard, toCard)
     for (let c = minCard; c <= maxCard; c++) {
       const card = ctx.layout.columns[toCol]?.cards[c]
       if (card) {
@@ -84,8 +90,8 @@ export function updateSelectionRange(
     }
   } else {
     // Cross-column: select all cards in all columns between anchor and focus
-    const minCol = Math.min(anchor.col, toCol)
-    const maxCol = Math.max(anchor.col, toCol)
+    const minCol = Math.min(anchorCol, toCol)
+    const maxCol = Math.max(anchorCol, toCol)
     for (let colIdx = minCol; colIdx <= maxCol; colIdx++) {
       const col = ctx.layout.columns[colIdx]
       if (col) {
@@ -98,8 +104,8 @@ export function updateSelectionRange(
 
   // Show status feedback
   const count = newSelected.size
-  if (anchor.col !== toCol) {
-    const colCount = Math.abs(toCol - anchor.col) + 1
+  if (anchorCol !== toCol) {
+    const colCount = Math.abs(toCol - anchorCol) + 1
     ctx.setUI({
       multiSelected: newSelected,
       status: {
