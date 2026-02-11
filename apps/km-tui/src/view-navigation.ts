@@ -224,7 +224,17 @@ function navigateHorizontal(
     return cardAt(targetCards, Math.max(0, targetCardIdx))
   }
 
-  // No stickyY (no measured positions in registry) — first card
+  // No stickyY — fallback to index-based matching.
+  // This happens when the layout registry doesn't have the current card's
+  // headY (e.g., React hasn't re-rendered VirtualList after j/k scroll).
+  // Use the source card's index to find a card at a similar position.
+  const sourceCards = repo.getChildren(cursorColId)
+  const sourceCardIdx = indexOfChild(sourceCards, cursorNodeId)
+  if (sourceCardIdx >= 0) {
+    const targetCardIdx = Math.min(sourceCardIdx, targetCards.length - 1)
+    return cardAt(targetCards, targetCardIdx)
+  }
+
   return cardAt(targetCards, 0)
 }
 
