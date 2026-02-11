@@ -9,6 +9,7 @@
  * Must be imported before any debug() calls.
  */
 
+import { addWriter } from "@beorn/logger"
 import createDebug from "debug"
 import { createWriteStream } from "fs"
 import { relative } from "path"
@@ -202,6 +203,7 @@ const logPath = process.env.DEBUG_LOG
 
 if (logPath) {
   stream = createWriteStream(logPath, { flags: "a" })
+  addWriter((formatted) => stream!.write(formatted + "\n"))
 
   // Clean up on exit - only close stream, don't call process.exit()
   // Other signal handlers (like TUI terminal restoration) need to run first
