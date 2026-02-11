@@ -28,6 +28,7 @@ import { createDBDataStore } from "./data-store.ts"
 import {
   getBacklinks as dbGetBacklinks,
   getOutgoingLinks as dbGetOutgoingLinks,
+  updateTargetName as dbUpdateTargetName,
   type Link,
 } from "./db-links.ts"
 import { resolveNode as dbResolveNode } from "./db-queries/smart-resolver.ts"
@@ -138,6 +139,11 @@ function createQueryMethods(deps: RepoMethodDeps) {
     getBacklinks(nodeId: string): Link[] {
       return dbGetBacklinks(db, nodeId)
     },
+    getRenameImpact(nodeId: string) {
+      const backlinks = dbGetBacklinks(db, nodeId)
+      const children = dataStore.getChildren(nodeId)
+      return { backlinks, childCount: children.length }
+    },
     resolveNode(
       queryStr: string,
       typeOrOptions?: string | { type?: string; taskOnly?: boolean },
@@ -218,7 +224,7 @@ function createMutationMethods(
     fsSync.applyEventToFs(fullEvent)
   }
 
-  return {
+  const mutations = {
     updateNode(id: string, changes: Partial<KNode>) {
       let ctx: MutationContext = { type: "update", nodeId: id, changes }
       if (hooks?.beforeMutation) {
@@ -339,7 +345,60 @@ function createMutationMethods(
       childrenCache.bust(cloneParentId)
       return id
     },
+    renameNode(
+      id: string,
+      newContent: string,
+      onProgress?: (info: { updated: number; total: number }) => void,
+    ) {
+      const node = dataStore.getNode(id)
+      if (!node) return
+      const oldName = node.name ?? ""
+
+      // Derive new name from content (strip task mark prefix like "- [ ] ")
+      const newName = newContent.replace(/^- \[.\]\s*/, "")
+
+      if (!oldName || oldName === newName) {
+        // Still update content even if name didn't change
+        if (node.content !== newContent) {
+          mutations.updateNode(id, { content: newContent })
+        }
+        return
+      }
+
+      // 1. Rename the node itself (update both content and name)
+      mutations.updateNode(id, { content: newContent, name: newName })
+
+      // 3. Update backlinks in source nodes
+      const backlinks = dbGetBacklinks(deps.db, id)
+      const total = backlinks.length
+      const escapedOld = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      const pattern = new RegExp(
+        `(\\!?\\[\\[)${escapedOld}(\\|[^\\]]+)?(\\]\\])`,
+        "gi",
+      )
+
+      let updated = 0
+      for (const link of backlinks) {
+        const sourceNode = dataStore.getNode(link.source_id)
+        if (!sourceNode?.content) continue
+
+        const updatedContent = sourceNode.content.replace(
+          pattern,
+          `$1${newName}$2$3`,
+        )
+        if (updatedContent !== sourceNode.content) {
+          mutations.updateNode(link.source_id, { content: updatedContent })
+        }
+        updated++
+        onProgress?.({ updated, total })
+      }
+
+      // 4. Update target_name in links table
+      dbUpdateTargetName(deps.db, oldName, newName)
+    },
   }
+
+  return mutations
 }
 
 /** Check if a repo at rootPath needs rebuild (disk mode helper) */
@@ -543,6 +602,16 @@ export interface Repo extends Disposable {
 
   /** Get backlinks (link records pointing to this node) */
   getBacklinks(nodeId: string): Link[]
+
+  /** Get rename impact: backlinks and child count for a node */
+  getRenameImpact(nodeId: string): { backlinks: Link[]; childCount: number }
+
+  /** Rename a node and update all backlinks referencing it */
+  renameNode(
+    id: string,
+    newContent: string,
+    onProgress?: (info: { updated: number; total: number }) => void,
+  ): void
 
   /**
    * Smart node resolver - finds a node by various identifiers.

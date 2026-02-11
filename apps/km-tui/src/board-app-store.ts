@@ -9,7 +9,8 @@
  * Board nav fields are flat at store root. UI fields are grouped under `ui`.
  */
 
-import type { KNode, ToastQueue } from "@km/core"
+import type { KNode, ToastQueue, JobRunner } from "@km/core"
+import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction, BoardState, NavHistoryEntry } from "./board-types.ts"
 import type { TUIBoardState, ColumnsLayout } from "./types.ts"
@@ -63,6 +64,7 @@ export interface BoardAppState {
   // --- Injected services (set once at init) ---
   repo: Repo
   toastQueue: ToastQueue
+  jobRunner: JobRunner
   layoutRegistry: LayoutRegistry
 
   // --- Text input target ---
@@ -218,6 +220,7 @@ export function createBoardAppStoreState(
     // Injected
     repo: params.repo,
     toastQueue: params.toastQueue,
+    jobRunner: createJobRunner(params.toastQueue),
     layoutRegistry: params.layoutRegistry,
 
     // Text input

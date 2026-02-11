@@ -86,7 +86,7 @@ import {
   type BoardAppStore,
   type CreateBoardAppStoreParams,
 } from "../../src/board-app-store.ts"
-import { handleKey, resetBoundaryStreak } from "../../src/board-app.ts"
+import { handleKey } from "../../src/board-app.ts"
 import type { TUIBoardState } from "../../src/types.ts"
 import { createCursorStore } from "../../src/cursor-store.ts"
 
@@ -311,9 +311,6 @@ export function testEnv(
     incremental?: boolean
   },
 ) {
-  // Reset module-level boundary streak state from board-app.ts so tests are isolated
-  resetBoundaryStreak()
-
   const nodes = treeBuilder()
   const repo = createFakeRepo({ nodes })
   const rootNode = nodes[0]
@@ -525,9 +522,6 @@ export function testEnvWithRepo(
     incremental?: boolean
   },
 ) {
-  // Reset module-level boundary streak state from board-app.ts so tests are isolated
-  resetBoundaryStreak()
-
   // Build initial board state from repo
   const initialState = buildBoardState(repo, rootId)
 

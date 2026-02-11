@@ -1930,7 +1930,7 @@ describe("Boundary Feedback (Bell + Status)", () => {
     expect(board.q("[data-bell-flash]").count()).toBe(0)
   })
 
-  test("boundary streak: rapid boundary presses only bell once", () => {
+  test("boundary bell fires on every boundary press", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )
@@ -1938,68 +1938,37 @@ describe("Boundary Feedback (Bell + Status)", () => {
     board.press("j") // 1a → 1b
     board.expect("#1b[data-cursor]").toExist()
 
-    // First boundary hit — bell fires
-    board.press("j")
-    expect(board.bell).toBe(true)
-    expect(board.hasStatus).toBe(true)
-
-    // Subsequent boundary hits — all suppressed (no re-renders)
-    for (let i = 0; i < 10; i++) {
+    // Every boundary hit fires bell
+    for (let i = 0; i < 5; i++) {
       board.press("j")
-      // Bell was cleared by handleKey's if-branch, streak keeps it suppressed
-      expect(board.bell).toBe(false)
-      expect(board.hasStatus).toBe(false)
+      expect(board.bell).toBe(true)
+      expect(board.hasStatus).toBe(true)
     }
     // Cursor stayed at 1b through all boundary hits
     board.expect("#1b[data-cursor]").toExist()
   })
 
-  test("boundary streak resets after successful non-boundary action", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
-    // Hit bottom boundary
-    board.press("j") // 1a → 1b
-    board.press("j") // boundary — bell fires
-    expect(board.bell).toBe(true)
-
-    // More boundary hits — suppressed
-    board.press("j")
-    expect(board.bell).toBe(false)
-
-    // Move away (non-boundary action resets streak)
-    board.press("k") // 1b → 1a
-    expect(board.bell).toBe(false)
-
-    // Move back to bottom
-    board.press("j") // 1a → 1b
-
-    // Hit boundary again — bell should fire (streak was reset)
-    board.press("j")
-    expect(board.bell).toBe(true)
-    expect(board.hasStatus).toBe(true)
-  })
-
-  test("boundary streak: alternating boundary directions stay suppressed", () => {
+  test("bell fires for each boundary direction", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    // Single card, single column — all directions are boundaries
+    // Single card, single column — h/l/j are boundaries, k goes to column header
 
-    // First boundary hit — bell fires
     board.press("h")
     expect(board.bell).toBe(true)
 
-    // Different direction boundary — still suppressed (streak active)
     board.press("l")
-    expect(board.bell).toBe(false)
+    expect(board.bell).toBe(true)
 
     board.press("j")
-    expect(board.bell).toBe(false)
+    expect(board.bell).toBe(true)
 
-    board.press("h")
+    // k navigates up to column header (not a boundary)
+    board.press("k")
     expect(board.bell).toBe(false)
+    board.expect("#col1[data-cursor]").toExist()
 
-    board.press("l")
-    expect(board.bell).toBe(false)
+    // Now at column header, k is a boundary (can't go higher)
+    board.press("k")
+    expect(board.bell).toBe(true)
   })
 })
 

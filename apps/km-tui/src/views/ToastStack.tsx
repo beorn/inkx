@@ -38,9 +38,14 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
   // Build toast content: [icon] message [action]
   const parts: string[] = [`${icon} ${toast.message}`]
 
-  // Add action button if present (show keyboard shortcut)
-  if (toast.action && typeof toast.action.trigger === "string") {
-    parts.push(`[${toast.action.trigger}] ${toast.action.label}`)
+  // Add action button if present
+  if (toast.action) {
+    if (typeof toast.action.trigger === "string") {
+      parts.push(`[${toast.action.trigger}] ${toast.action.label}`)
+    } else {
+      // Function trigger (e.g., job cancel) — show Esc hint
+      parts.push(`[Esc] ${toast.action.label}`)
+    }
   }
 
   const content = parts.join("  ")

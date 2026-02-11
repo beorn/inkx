@@ -22,17 +22,6 @@ import { createCardsViewNavigation } from "./view-navigation.ts"
 
 const perfLog = createLogger("km:perf")
 
-// Bell rate limiting — suppress repeated boundary bells during auto-repeat.
-// Only the FIRST boundary hit fires bell + status. All subsequent boundary
-// hits are suppressed until a non-boundary action succeeds (resets the streak).
-// This handles auto-repeat (j j j j), alternating boundary keys (h l h l),
-// and rapid typing near bounds — no re-renders, no white flashes.
-let inBoundaryStreak = false
-
-/** Reset boundary streak state. Called when creating a new app instance (and in tests). */
-export function resetBoundaryStreak(): void {
-  inBoundaryStreak = false
-}
 
 // Singleton — stateless, so one instance suffices for all key events
 const cardsViewNavigation = createCardsViewNavigation()
@@ -134,9 +123,6 @@ export function handleKey(
   }
 
   // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders).
-  // Note: inBoundaryStreak is NOT reset here — it only resets when a non-boundary action
-  // succeeds (line ~220). This prevents the alternating-reset bug where every 3rd key
-  // at a boundary would re-fire the bell.
   if (ui.bellState !== null || ui.status !== null) {
     get().setUI({ bellState: null, status: null })
   }
@@ -160,9 +146,15 @@ export function handleKey(
     return
   }
 
-  // Escape dismisses toast if present
+  // Escape dismisses toast if present — invoke action callback if it's a function
   if (key.escape && get().toastQueue.getLatest()) {
-    get().toastQueue.dismissAll()
+    const latest = get().toastQueue.getLatest()
+    if (latest?.action && typeof latest.action.trigger === "function") {
+      // Job cancel — the callback handles its own toast dismissal
+      latest.action.trigger()
+    } else {
+      get().toastQueue.dismissAll()
+    }
     // Force re-render so ToastStack picks up the now-empty toast list.
     // toastQueue is external state (not in Zustand), so dismissAll() alone
     // doesn't trigger React updates. setUI({}) creates a new ui object ref.
@@ -227,24 +219,16 @@ function routeThroughCommandSystem(
 
       // Check for boundary errors - ring bell and show status message
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
-        if (!inBoundaryStreak) {
-          // First boundary hit — show feedback
-          inBoundaryStreak = true
-          ctx.setUI({
-            bellState: actionResult.error.direction,
-            status: {
-              level: "warning",
-              message:
-                actionResult.error.message ??
-                `Can't move ${actionResult.error.direction}`,
-            },
-          })
-          process.stdout.write("\x07")
-        }
-        // Subsequent boundary hits: suppressed entirely (no re-renders)
-      } else {
-        // Non-boundary action: reset streak
-        inBoundaryStreak = false
+        ctx.setUI({
+          bellState: actionResult.error.direction,
+          status: {
+            level: "warning",
+            message:
+              actionResult.error.message ??
+              `Can't move ${actionResult.error.direction}`,
+          },
+        })
+        process.stdout.write("\x07")
       }
     }
     const totalDuration = performance.now() - keyStart
@@ -265,7 +249,6 @@ function routeThroughCommandSystem(
  * @returns AppDefinition that can be .run() with a React element
  */
 export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
-  resetBoundaryStreak()
   let exitFn: (() => void) | null = null
 
   const app = createApp<Record<string, unknown>, BoardAppStore>(

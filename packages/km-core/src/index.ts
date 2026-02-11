@@ -101,3 +101,7 @@ export type { KmEvents, Subscription } from "./events.ts"
 // Toast notifications
 export { createToastQueue } from "./toast.ts"
 export type { Toast, ToastOptions, ToastAction, ToastQueue } from "./toast.ts"
+
+// Job runner
+export { createJobRunner } from "./job.ts"
+export type { JobSpec, JobHandle, JobRunner } from "./job.ts"

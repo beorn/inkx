@@ -284,6 +284,15 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       return links.filter((l) => l.target_id === nodeId)
     },
 
+    getRenameImpact(nodeId) {
+      ensureNotClosed()
+      const backlinks = links.filter((l) => l.target_id === nodeId)
+      const children = [...nodes.values()].filter(
+        (n) => n.parent_id === nodeId,
+      )
+      return { backlinks, childCount: children.length }
+    },
+
     getOutgoingLinks(sourceId) {
       ensureNotClosed()
       return links.filter((l) => l.source_id === sourceId)
@@ -401,6 +410,40 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
       nodes.set(id, cloned)
       return id
+    },
+
+    renameNode(id, newContent, onProgress) {
+      ensureNotClosed()
+      const node = nodes.get(id)
+      if (!node) return
+      const oldName = node.name ?? ""
+      const newName = newContent.replace(/^- \[.\]\s*/, "")
+
+      this.updateNode(id, { content: newContent, name: newName })
+
+      if (!oldName || oldName === newName) return
+
+      const backlinks = links.filter((l) => l.target_id === id)
+      const escapedOld = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      const pattern = new RegExp(
+        `(\\!?\\[\\[)${escapedOld}(\\|[^\\]]+)?(\\]\\])`,
+        "gi",
+      )
+
+      let updated = 0
+      for (const link of backlinks) {
+        const sourceNode = nodes.get(link.source_id)
+        if (!sourceNode?.content) continue
+        const updatedContent = sourceNode.content.replace(
+          pattern,
+          `$1${newName}$2$3`,
+        )
+        if (updatedContent !== sourceNode.content) {
+          this.updateNode(link.source_id, { content: updatedContent })
+        }
+        updated++
+        onProgress?.({ updated, total: backlinks.length })
+      }
     },
 
     appendTaskToFile(_filePath, _content, _options) {

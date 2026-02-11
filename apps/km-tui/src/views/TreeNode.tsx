@@ -8,8 +8,9 @@
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
-import { useAppShallow } from "inkx/runtime"
+import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
 import type { BoardAppStore } from "../board-app-store.ts"
+import type { JobRunner } from "@km/core"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
@@ -179,6 +180,9 @@ function TreeNodeImpl({
     : new Set<string>()
 
   const repo = useRepo()
+  const jobRunner = useAppStore<BoardAppStore, JobRunner>(
+    (s) => s.jobRunner,
+  )
   const excludedSigils = useMemo(
     () => deriveExcludedSigils(repo, rootBoardId),
     [repo, rootBoardId],
@@ -280,13 +284,36 @@ function TreeNodeImpl({
     [displayNode.id, displayNode.content, repo],
   )
 
-  // Inline edit callbacks
+  // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
-      handleTitleSave(newValue)
+      const originalContent = displayNode.content ?? ""
+      const { mark } = extractTitleTaskMark(originalContent)
+      const newContent = mark != null ? `[${mark}] ${newValue}` : newValue
+
+      const impact = repo.getRenameImpact(displayNode.id)
+
+      if (impact.backlinks.length === 0) {
+        // No backlinks — safe to rename immediately
+        repo.renameNode(displayNode.id, newContent)
+      } else {
+        // Has backlinks — use job runner with cancel window
+        const oldName = repo.getNode(displayNode.id)?.name ?? ""
+        const s = impact.backlinks.length === 1 ? "" : "s"
+        jobRunner.submit({
+          description: `Renaming '${oldName}' → '${newValue}'`,
+          impact: `${impact.backlinks.length} backlink${s} will be updated`,
+          execute: (onProgress) => {
+            repo.renameNode(displayNode.id, newContent, (info) =>
+              onProgress(info.updated, info.total),
+            )
+          },
+        })
+      }
+
       setUI({ inlineEditBlock: null })
     },
-    [handleTitleSave, setUI],
+    [displayNode.id, displayNode.content, repo, setUI, jobRunner],
   )
 
   const handleInlineEditCancel = useCallback(() => {

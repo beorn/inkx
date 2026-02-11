@@ -244,6 +244,19 @@ export function resolveLinksBatch(
   return resolved
 }
 
+/**
+ * Update target_name in links when a node is renamed.
+ * Returns the number of links updated.
+ */
+export function updateTargetName(db: Database, oldName: string, newName: string): number {
+  const normalizedOld = oldName.toLowerCase().replace(/\.md$/, "")
+  const result = db.run(
+    `UPDATE links SET target_name = ? WHERE LOWER(REPLACE(target_name, '.md', '')) = ?`,
+    [newName, normalizedOld],
+  )
+  return result.changes
+}
+
 // =============================================================================
 // Read Operations
 // =============================================================================
