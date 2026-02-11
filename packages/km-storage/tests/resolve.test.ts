@@ -78,28 +78,28 @@ describe("resolveNode", () => {
 
   test("resolves by filename with extension", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
-      const fsPath = join(repoDir, "@inbox.md")
+      const fsPath = join(repoDir, "@next.md")
       emitter.emit({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "file", fs_path: fsPath },
       })
 
-      const node = resolveNode(db, "@inbox.md")
+      const node = resolveNode(db, "@next.md")
       expect(node).not.toBeNull()
       expect(node?.fs_path).toBe(fsPath)
     }))
 
   test("resolves by filename without extension", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
-      const fsPath = join(repoDir, "@inbox.md")
+      const fsPath = join(repoDir, "@next.md")
       emitter.emit({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "file", fs_path: fsPath },
       })
 
-      const node = resolveNode(db, "@inbox")
+      const node = resolveNode(db, "@next")
       expect(node).not.toBeNull()
       expect(node?.fs_path).toBe(fsPath)
     }))

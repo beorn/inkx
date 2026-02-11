@@ -74,8 +74,8 @@ describe("isExplicitPath", () => {
 
   test("returns false for IDs and filenames", () => {
     expect(isExplicitPath("abc123")).toBe(false)
-    expect(isExplicitPath("@inbox.md")).toBe(false)
-    expect(isExplicitPath("@inbox")).toBe(false)
+    expect(isExplicitPath("@next.md")).toBe(false)
+    expect(isExplicitPath("@next")).toBe(false)
     expect(isExplicitPath("My Task")).toBe(false)
     expect(isExplicitPath("01ARZ3NDEKTSV4RRFFQ69G5FAV")).toBe(false)
   })
@@ -252,9 +252,9 @@ describe("resolvePathArg", () => {
   })
 
   test("non-path argument passes through as nodeRef", () => {
-    const result = resolvePathArg("@inbox", "/fallback")
+    const result = resolvePathArg("@next", "/fallback")
     expect(result.repoRoot).toBe("/fallback")
-    expect(result.nodeRef).toBe("@inbox")
+    expect(result.nodeRef).toBe("@next")
     expect(result.wasExplicitPath).toBe(false)
   })
 })

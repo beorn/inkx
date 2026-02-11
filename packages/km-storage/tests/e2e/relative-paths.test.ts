@@ -41,8 +41,8 @@ afterEach(() => {
 function setupFiles(dir: string): void {
   mkdirSync(join(dir, "Projects"), { recursive: true })
   writeFileSync(
-    join(dir, "@inbox.md"),
-    "# Inbox\n\n- [ ] Buy milk\n- [x] Done task\n",
+    join(dir, "@next.md"),
+    "# Next Actions\n\n- [ ] Buy milk\n- [x] Done task\n",
   )
   writeFileSync(join(dir, "Projects/work.md"), "# Work\n\n- [ ] Ship feature\n")
 }
@@ -92,7 +92,7 @@ describe("relative fs_path storage", () => {
       .sort()
 
     expect(fsPaths).toContain(".")
-    expect(fsPaths).toContain("@inbox.md")
+    expect(fsPaths).toContain("@next.md")
     expect(fsPaths).toContain("Projects")
     expect(fsPaths).toContain("Projects/work.md")
   })
@@ -114,7 +114,7 @@ describe("absolute path detection", () => {
     )
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
-       VALUES ('file1', 'file', '.', 0, '/old/absolute/repo/@inbox.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
+       VALUES ('file1', 'file', '.', 0, '/old/absolute/repo/@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
     // Write events.jsonl so the DB isn't considered "fresh"
     writeFileSync(join(dir, ".km/events.jsonl"), "")
@@ -141,7 +141,7 @@ describe("absolute path detection", () => {
     )
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
-       VALUES ('file1', 'file', '.', 0, '@inbox.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
+       VALUES ('file1', 'file', '.', 0, '@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
     writeFileSync(join(dir, ".km/events.jsonl"), "")
     db.close()
@@ -199,12 +199,12 @@ describe("disk mode root node", () => {
         type: "node_created",
         actor: "fs-watch",
         data: {
-          id: "inbox-file",
+          id: "next-file",
           type: "file",
-          fs_path: "@inbox.md",
+          fs_path: "@next.md",
           parent_id: null,
-          name: "@inbox",
-          content: "Inbox",
+          name: "@next",
+          content: "Next Actions",
           data: {},
         },
       },
@@ -232,9 +232,9 @@ describe("disk mode root node", () => {
     expect(ref).not.toBeNull()
     expect(ref!.parent_id).toBe(".")
 
-    const inbox = repo.data.getNode("inbox-file")
-    expect(inbox).not.toBeNull()
-    expect(inbox!.parent_id).toBe(".")
+    const next = repo.data.getNode("next-file")
+    expect(next).not.toBeNull()
+    expect(next!.parent_id).toBe(".")
   })
 })
 
@@ -328,15 +328,15 @@ describe("portable repo", () => {
     }
 
     // Edit a node — DB update works at new location
-    const inboxNode = repo.data
+    const nextNode = repo.data
       .getAllNodes()
-      .find((n) => n.fs_path === "@inbox.md")
-    expect(inboxNode).toBeDefined()
+      .find((n) => n.fs_path === "@next.md")
+    expect(nextNode).toBeDefined()
 
-    repo.updateNode(inboxNode!.id, {
-      content: "# Inbox\n\n- [ ] Updated task\n",
+    repo.updateNode(nextNode!.id, {
+      content: "# Next Actions\n\n- [ ] Updated task\n",
     })
-    const updated = repo.data.getNode(inboxNode!.id)
+    const updated = repo.data.getNode(nextNode!.id)
     expect(updated?.content).toContain("Updated task")
   })
 })
