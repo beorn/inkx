@@ -122,7 +122,7 @@ function navigateVertical(
     if (isAtColumnLevel) {
       // Column header → board (save column index for return via stickyX)
       const columns = repo.getChildren(rootId)
-      const colIdx = columns.findIndex((n) => n.id === cursorNodeId)
+      const colIdx = indexOfChild(columns, cursorNodeId)
       if (colIdx >= 0) layoutRegistry.setStickyX(colIdx)
       return rootId
     }
@@ -166,7 +166,7 @@ function navigateHorizontal(
     )
   }
 
-  const colIdx = columns.findIndex((c) => c.id === cursorColId)
+  const colIdx = indexOfChild(columns, cursorColId)
   if (colIdx < 0) {
     throw new Error(`[nav] column ${cursorColId} not found in root children`)
   }
@@ -194,7 +194,15 @@ function navigateHorizontal(
   }
 
   if (isAtColumnLevel) {
-    // From column header: use stickyY to drop into a card, or stay at column level
+    // At column header: if current column has cards, user intentionally moved to
+    // header level (via k) → stay at header level in target column.
+    // If current column is empty, user was forced to header → use stickyY to
+    // drop into a card in the target column.
+    const currentCards = repo.getChildren(cursorColId)
+    if (currentCards.length > 0) {
+      return targetCol.id
+    }
+    // Empty source column → use stickyY if available to find card in target
     const stickyY = layoutRegistry.getStickyY()
     if (stickyY !== null && layoutRegistry.hasCardsInColumn(targetColIdx)) {
       const targetCardIdx = layoutRegistry.findCardAtYVisual(
@@ -224,6 +232,17 @@ function navigateHorizontal(
 // Helpers
 // =============================================================================
 
+/**
+ * WeakMap-based index cache for children arrays from repo.getChildren().
+ * Since getChildren() returns cached array references (ChildrenCache in repo.ts),
+ * the WeakMap provides O(1) index lookup after the first scan per array.
+ * When the children cache is busted (mutation), a new array is created and
+ * the stale WeakMap entry is naturally GC'd.
+ *
+ * This eliminates O(N) findIndex() scans — critical for parents with 3000+ children.
+ */
+import { indexOfChild } from "./sibling-index.ts"
+
 /** Get card ID by index, throw if out of bounds (programming error). */
 function cardAt(cards: { id: string }[], idx: number): string {
   const card = cards[idx]
@@ -239,7 +258,7 @@ function getSibling(nodeId: string, repo: Repo, delta: 1 | -1): string | null {
   const node = repo.getNode(nodeId)
   if (!node) throw new Error(`[nav] node not in repo: ${nodeId}`)
   const siblings = repo.getChildren(node.parent_id)
-  const idx = siblings.findIndex((n) => n.id === nodeId)
+  const idx = indexOfChild(siblings, nodeId)
   if (idx < 0) {
     throw new Error(`[nav] node ${nodeId} not found in parent's children`)
   }

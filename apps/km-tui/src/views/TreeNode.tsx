@@ -11,7 +11,7 @@ import React, { useCallback, useMemo } from "react"
 import { useAppShallow } from "inkx/runtime"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Text } from "inkx"
+import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
 import { extractTitleTaskMark } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -557,13 +557,28 @@ interface HeadRowProps {
 }
 
 function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
-  // Use Box's onLayout prop instead of useContentRectCallback
-  // useContentRectCallback reads parent's NodeContext, not the Box's own node
+  // Use a child registrar with useScreenRectCallback to get screen-relative
+  // positions (accounting for scroll offsets). Box.onLayout provides contentRect
+  // which doesn't change on scroll — that would give wrong positions for
+  // cross-column navigation when columns have different scroll offsets.
   return (
-    <Box flexDirection="column" onLayout={onLayout}>
+    <Box flexDirection="column">
+      <HeadLayoutRegistrar onLayout={onLayout} />
       {children}
     </Box>
   )
+}
+
+/** Reports the HeadRow's screen-relative position via useScreenRectCallback. */
+function HeadLayoutRegistrar({
+  onLayout,
+}: {
+  onLayout: HeadRowProps["onLayout"]
+}): null {
+  const callbackRef = React.useRef(onLayout)
+  callbackRef.current = onLayout
+  useScreenRectCallback((rect) => callbackRef.current(rect))
+  return null
 }
 
 // =============================================================================

@@ -18,6 +18,7 @@ import {
   handleTreeNavigation,
   type TreeDirection,
 } from "../handlers/navigation-handlers.ts"
+import { indexOfChild } from "../sibling-index.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { NavState } from "../view-navigation.ts"
 
@@ -28,7 +29,7 @@ import type { NavState } from "../view-navigation.ts"
  * vertical (hierarchical), and tree-based navigation.
  */
 export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
-  const { layout, ui, layoutRegistry } = ctx
+  const { layout, ui } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
@@ -37,17 +38,21 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
     return handleOutlineNav(ctx, dir, card)
   }
 
-  // Vertical movement clears sticky Y
-  if (dir === "prev" || dir === "next") layoutRegistry.clearStickyY()
-
   // Selection range extension
   if (ui.multiSelected.size > 0 && ui.selectionAnchor !== null) {
     const result = handleSelectionNav(ctx, dir)
     if (result) return result
   }
 
-  // Horizontal (h/l)
+  // Horizontal (h/l) — stickyY is managed inside handleHorizontalNav
   if (dir === "left" || dir === "right") return handleHorizontalNav(ctx, dir)
+
+  // All non-horizontal movement clears stickyY.
+  // stickyY is a visual concept for h/l navigation only. Any structural
+  // movement (j/k, prev/next, first/last, in/out) invalidates it because
+  // the cursor position changes and card positions may shift after render.
+  // handleHorizontalNav recaptures stickyY lazily when h/l is pressed.
+  ctx.layoutRegistry.clearStickyY()
 
   // Hierarchical vertical (up/down)
   if (dir === "up" || dir === "down") return handleVerticalNav(ctx, dir)
@@ -143,7 +148,10 @@ function handleHorizontalNav(
         layout.colIndex,
         layout.cardIndex,
       )
-      if (entry) {
+      if (
+        entry?.layout.headY !== undefined &&
+        entry.layout.headHeight !== undefined
+      ) {
         layoutRegistry.setStickyY(getCardMidY(entry.layout))
       }
     }
@@ -170,25 +178,20 @@ function handleHorizontalNav(
 function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
   const { dispatchBoard, layoutRegistry, viewNavigation } = ctx
 
-  layoutRegistry.clearStickyY()
-
-  // Use ViewNavigation if cursor is set
-  if (ctx.cursorNodeId) {
-    const targetId = viewNavigation.navigate(
-      dir,
-      navStateFrom(ctx),
-      ctx.repo,
-      layoutRegistry,
-    )
-    if (targetId !== null) {
-      dispatchBoard({ type: "SELECT", nodeId: targetId })
-      return ok()
-    }
-    return boundary(dir)
+  if (!ctx.cursorNodeId) {
+    throw new Error("[nav] handleVerticalNav called without cursorNodeId")
   }
 
-  // No cursor is a programming error — key handler shouldn't dispatch navigation without one
-  throw new Error("[nav] handleVerticalNav called without cursorNodeId")
+  const targetId = viewNavigation.navigate(
+    dir,
+    navStateFrom(ctx),
+    ctx.repo,
+    layoutRegistry,
+  )
+  if (targetId === null) return boundary(dir)
+
+  dispatchBoard({ type: "SELECT", nodeId: targetId })
+  return ok()
 }
 
 /** Default tree navigation (first, last, prev, next, in, out). */
@@ -322,7 +325,7 @@ export function handleNavSiblingBoard(
   }
 
   const siblings = ctx.repo.getChildren(currentRoot.parent_id)
-  const currentIdx = siblings.findIndex((n) => n.id === currentRoot.id)
+  const currentIdx = indexOfChild(siblings, currentRoot.id)
 
   if (currentIdx < 0) return ok()
 

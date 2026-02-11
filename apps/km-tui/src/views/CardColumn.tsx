@@ -3,7 +3,7 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
-import React, { useCallback } from "react"
+import React, { useCallback, useEffect } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback } from "inkx"
@@ -107,6 +107,16 @@ function CardLayoutRegistrar({
   )
 
   useScreenRectCallback(handleLayout)
+
+  // Clean up registry entry when VirtualList unmounts this card.
+  // Without this, stale entries with old screen positions remain in the
+  // registry after scrolling, causing findCardAtYVisual to return the wrong
+  // card during h/l navigation (stickyY intersects stale bounding box).
+  useEffect(() => {
+    return () => {
+      registry?.unregisterCard(colIndex, cardIndex)
+    }
+  }, [registry, colIndex, cardIndex])
 
   return null
 }

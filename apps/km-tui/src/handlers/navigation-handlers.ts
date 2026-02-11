@@ -13,6 +13,7 @@
 
 import { createLogger } from "@beorn/logger"
 import type { Repo } from "@km/storage"
+import { indexOfChild } from "../sibling-index.ts"
 
 const log = createLogger("km:tui:nav")
 
@@ -76,7 +77,7 @@ export function handleTreeNavigation(
     case "next": {
       // Move to next sibling
       const siblings = repo.getChildren(currentNode.parent_id)
-      const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId)
+      const currentIndex = indexOfChild(siblings, cursorNodeId)
       if (currentIndex < 0 || currentIndex >= siblings.length - 1) {
         log.debug?.("tree nav: at last sibling, can't move next")
         return null // At last sibling
@@ -89,7 +90,7 @@ export function handleTreeNavigation(
     case "prev": {
       // Move to previous sibling
       const siblings = repo.getChildren(currentNode.parent_id)
-      const currentIndex = siblings.findIndex((n) => n.id === cursorNodeId)
+      const currentIndex = indexOfChild(siblings, cursorNodeId)
       if (currentIndex <= 0) {
         log.debug?.("tree nav: at first sibling, can't move prev")
         return null // At first sibling

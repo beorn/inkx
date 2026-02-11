@@ -86,6 +86,9 @@ export interface LayoutRegistry {
     headHeight: number,
   ): void
 
+  /** Remove a card's entry from the registry (called when VirtualList unmounts a card) */
+  unregisterCard(colIndex: number, cardIndex: number): void
+
   /** Find the card in a column closest to a target Y position (throws if no cards registered) */
   findCardAtY(colIndex: number, targetY: number): number
 
@@ -204,6 +207,21 @@ export function createLayoutRegistry(): LayoutRegistry {
         colMap = new Map()
         cardLayouts.set(colIndex, colMap)
       }
+
+      // Preserve existing headY/headHeight if re-registering with new positions
+      // (CardLayoutRegistrar fires on screen rect changes, creating fresh layout
+      // objects without head measurements that were set by updateCardHead)
+      const existing = colMap.get(cardIndex)
+      if (existing && existing.nodeId === nodeId) {
+        if (
+          layout.headY === undefined &&
+          existing.layout.headY !== undefined
+        ) {
+          layout.headY = existing.layout.headY
+          layout.headHeight = existing.layout.headHeight
+        }
+      }
+
       colMap.set(cardIndex, { nodeId, layout })
 
       // Also register by node ID for direct lookup
@@ -212,6 +230,20 @@ export function createLayoutRegistry(): LayoutRegistry {
       log.debug?.(
         `registerCard col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${layout.y}`,
       )
+    },
+
+    unregisterCard(colIndex: number, cardIndex: number): void {
+      const colMap = cardLayouts.get(colIndex)
+      if (colMap) {
+        const entry = colMap.get(cardIndex)
+        if (entry) {
+          nodeLayouts.delete(entry.nodeId)
+          colMap.delete(cardIndex)
+          log.debug?.(
+            `unregisterCard col=${colIndex} card=${cardIndex} id=${entry.nodeId.slice(-8)}`,
+          )
+        }
+      }
     },
 
     getCard(colIndex: number, cardIndex: number): CardEntry {
@@ -472,19 +504,9 @@ export function getCardMidY(layout: NodeLayout): number {
   if (layout.headY !== undefined && layout.headHeight !== undefined) {
     return layout.headY + layout.headHeight / 2
   }
-  // Fallback: use card box midpoint when head position not yet registered
-  // This happens when layout callbacks haven't fired yet (first render)
-  if (layout.y !== undefined && layout.cardHeight !== undefined) {
-    log.debug?.(
-      `getCardMidY: falling back to card midpoint (headY/headHeight missing), y=${layout.y} cardHeight=${layout.cardHeight}`,
-    )
-    return layout.y + layout.cardHeight / 2
-  }
-  // Last resort: return 0 (top of screen) rather than throwing
-  // This allows navigation to work even if layout is incomplete
-  // WARNING: This can cause h/l navigation to land on first card instead of correct Y position
-  log.warn?.(
-    `getCardMidY: layout missing both head and card dimensions, returning 0. Layout: ${JSON.stringify(layout)}`,
+  // Theoretically possible on first render before layout callbacks fire,
+  // but not yet observed in practice. Throw to surface if it ever happens.
+  throw new Error(
+    `getCardMidY: headY/headHeight not registered. Layout: y=${layout.y} cardHeight=${layout.cardHeight}`,
   )
-  return 0
 }

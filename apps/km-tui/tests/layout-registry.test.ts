@@ -68,24 +68,22 @@ describe("LayoutRegistry: error handling", () => {
   })
 })
 
-describe("getCardMidY: fallback behavior", () => {
-  it("uses card box midpoint when head not measured", () => {
+describe("getCardMidY: throws when head not measured", () => {
+  it("throws when head not measured at all", () => {
     const layout = makeLayout(10, 5)
-    // Falls back to y + cardHeight/2 = 10 + 5/2 = 12.5
-    expect(getCardMidY(layout)).toBe(12.5)
+    expect(() => getCardMidY(layout)).toThrow("headY/headHeight not registered")
   })
 
-  it("uses card box midpoint when headHeight missing (partial measurement)", () => {
+  it("throws when headHeight missing (partial measurement)", () => {
     const layout: NodeLayout = {
       x: 0,
       y: 20,
       cardWidth: 40,
       cardHeight: 6,
       headY: 21,
-      // headHeight missing - falls back to cardbox
+      // headHeight missing
     }
-    // Falls back to y + cardHeight/2 = 20 + 6/2 = 23
-    expect(getCardMidY(layout)).toBe(23)
+    expect(() => getCardMidY(layout)).toThrow("headY/headHeight not registered")
   })
 
   it("calculates midpoint when head is measured", () => {

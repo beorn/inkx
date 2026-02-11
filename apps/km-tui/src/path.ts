@@ -11,6 +11,7 @@
 
 import type { KNode } from "@km/core"
 import type { Repo } from "@km/storage"
+import { indexOfChild } from "./sibling-index.ts"
 
 // =============================================================================
 // Path type and pure arithmetic helpers
@@ -105,7 +106,7 @@ export const NodePath = {
 
       const parentId = node.parent_id
       const siblings = repo.getChildren(parentId)
-      const index = siblings.findIndex((n) => n.id === currentId)
+      const index = indexOfChild(siblings, currentId!)
       if (index === -1) return null
 
       indices.push(index)

@@ -11,6 +11,7 @@ import {
   getSelectedCardIndices,
   refreshBoardState,
 } from "./keyboard-helpers.ts"
+import { indexOfChild } from "../sibling-index.ts"
 
 // =============================================================================
 // Card Movement - Helpers
@@ -207,7 +208,7 @@ export function outdentNode(ctx: ActionCtx, card: CardState): void {
   }
 
   const grandparentChildren = ctx.repo.getChildren(grandparentId)
-  const parentIndex = grandparentChildren.findIndex((c) => c.id === parentId)
+  const parentIndex = indexOfChild(grandparentChildren, parentId)
 
   let newSortOrder: number
   if (parentIndex === grandparentChildren.length - 1) {

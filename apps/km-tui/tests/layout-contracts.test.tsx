@@ -236,7 +236,7 @@ describe("Registry state after rendering", () => {
 })
 
 describe("Sticky Y behavior (curswantY)", () => {
-  test("stickyY is set on first h/l navigation", () => {
+  test("stickyY is set on first h/l navigation (lazy capture)", () => {
     const { board, registry } = testEnv(() =>
       item(
         "board",
@@ -248,16 +248,12 @@ describe("Sticky Y behavior (curswantY)", () => {
     // Initially no stickyY
     expect(registry.getStickyY()).toBeNull()
 
-    // Move down to card[1]
+    // Move down to card[1] — j/k clears stickyY (lazy capture semantics)
     board.press("j")
-
-    // Still no stickyY (j/k doesn't set it)
     expect(registry.getStickyY()).toBeNull()
 
-    // Move right - should set stickyY
+    // Move right — h/l captures stickyY from current card, then uses it
     board.press("l")
-
-    // Now stickyY should be set
     expect(registry.getStickyY()).not.toBeNull()
   })
 
@@ -300,12 +296,12 @@ describe("Sticky Y behavior (curswantY)", () => {
       ),
     )
 
-    // Set up stickyY
+    // Set up stickyY via h/l
     board.press("j")
     board.press("l")
     expect(registry.getStickyY()).not.toBeNull()
 
-    // Move down - should clear stickyY
+    // Move down — stickyY should be cleared (lazy capture: j/k always clears)
     board.press("j")
     expect(registry.getStickyY()).toBeNull()
   })

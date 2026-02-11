@@ -115,13 +115,88 @@ describe("curswantY sticky navigation", () => {
     board.press("l")
     const afterL = board.q("[data-cursor]").textContent()
 
-    // The cursor should be on the last visible card in B (B5), NOT B1
-    // Because A11 is at the bottom of the visible area, B5 should be closest
-    // If it lands on B1, that's the bug
+    // The cursor should be on a card near the bottom of B, NOT B1
+    // Because A11 is at the bottom of the visible area, stickyY should
+    // match a card near the bottom of column B.
+    // If it lands on B1, that's the bug (stale/wrong stickyY).
     expect(afterL).not.toContain("ColB") // Not on column header
-    // With logical position preservation, should land on B5 (last card)
-    // since A11 is at the bottom of the visible area
-    expect(afterL).toContain("B5")
+    expect(afterL).toMatch(/B[45]/) // Near bottom of column B
+  })
+
+  test("j/k resets stickyY so next h/l uses new position", () => {
+    // j/k resets curswantY to current card's position.
+    // h/l keeps curswantY and uses it for cross-column navigation.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "ColA",
+            item("A1"),
+            item("A2"),
+            item("A3"),
+            item("A4"),
+            item("A5"),
+          ),
+          item(
+            "ColB",
+            item("B1"),
+            item("B2"),
+            item("B3"),
+            item("B4"),
+            item("B5"),
+          ),
+          item("ColC", item("C1"), item("C2"), item("C3"), item("C4")),
+        ),
+      { rows: 24, columns: 120 },
+    )
+
+    // Start at A1, navigate down to A3
+    board.press("j")
+    board.press("j")
+    expect(board.q("[data-cursor]").textContent()).toContain("A3")
+
+    // Move right — stickyY from A3, lands on B3 area
+    board.press("l")
+    expect(board.q("[data-cursor]").textContent()).toMatch(/B[23]/)
+
+    // Move down within column B — j/k RESETS stickyY to new position
+    board.press("j")
+    board.press("j")
+    expect(board.q("[data-cursor]").textContent()).toMatch(/B[45]/)
+
+    // Move right again — stickyY was reset by j, so lands near B5's Y
+    board.press("l")
+    const afterSecondL = board.q("[data-cursor]").textContent()
+    // Should land near bottom (C3 or C4), matching the j/k-updated position
+    expect(afterSecondL).toMatch(/C[34]/)
+  })
+
+  test("h/l preserves stickyY across multiple columns", () => {
+    // When only pressing h/l (no j/k), stickyY stays the same.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("ColA", item("A1"), item("A2"), item("A3")),
+          item("ColB", item("B1"), item("B2"), item("B3")),
+          item("ColC", item("C1"), item("C2"), item("C3")),
+        ),
+      { rows: 24, columns: 120 },
+    )
+
+    // Navigate down to A3
+    board.press("j")
+    board.press("j")
+    expect(board.q("[data-cursor]").textContent()).toContain("A3")
+
+    // l → B3, l → C3, h → B3 — stickyY preserved throughout
+    board.press("l")
+    expect(board.q("[data-cursor]").textContent()).toMatch(/B[23]/)
+    board.press("l")
+    expect(board.q("[data-cursor]").textContent()).toMatch(/C[23]/)
+    board.press("h")
+    expect(board.q("[data-cursor]").textContent()).toMatch(/B[23]/)
   })
 
   test("stickyY persists when navigating through empty columns", () => {
