@@ -92,7 +92,10 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
 }
 
 /**
- * Shift card in a direction (up/down within column, left/right between columns).
+ * Shift card or column in a direction.
+ *
+ * When cursor is on a card: up/down shifts within column, left/right moves between columns.
+ * When cursor is on a column header: left/right reorders columns.
  */
 export function handleShiftCard(
   ctx: ActionCtx,
@@ -102,11 +105,74 @@ export function handleShiftCard(
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
-  if (!card) return
+  if (!card) {
+    // At column header level — reorder columns left/right
+    if (col && (direction === "left" || direction === "right")) {
+      moveColumn(ctx, col, direction)
+    }
+    return
+  }
 
   if (direction === "up" || direction === "down") {
     moveCardInColumn(ctx, card, direction)
   } else {
     moveCardToColumn(ctx, card, direction)
+  }
+}
+
+/**
+ * Reorder a column by swapping its sort order with the adjacent column.
+ */
+function moveColumn(
+  ctx: ActionCtx,
+  col: { node: { id: string; parent_idx: number } },
+  direction: "left" | "right",
+): void {
+  const { layout, repo } = ctx
+  const targetIndex =
+    direction === "left" ? layout.colIndex - 1 : layout.colIndex + 1
+  if (targetIndex < 0 || targetIndex >= layout.columns.length) return
+
+  const targetCol = layout.columns[targetIndex]
+  if (!targetCol) return
+
+  // Normalize column sort orders when duplicates exist (e.g., all default to 0)
+  normalizeColumnSortOrders(ctx)
+
+  // Swap sort orders by moving each column to the other's position
+  const parentId = ctx.rootId
+  const curOrder = col.node.parent_idx
+  const targetOrder = targetCol.node.parent_idx
+  repo.moveNode(col.node.id, parentId, targetOrder)
+  repo.moveNode(targetCol.node.id, parentId, curOrder)
+
+  refreshBoardState(ctx, { colIndex: targetIndex })
+}
+
+/**
+ * Ensure all columns have distinct parent_idx values.
+ * Same problem as cards: when siblings share parent_idx (e.g., all 0),
+ * swapping equal values is a no-op.
+ */
+function normalizeColumnSortOrders(ctx: ActionCtx): void {
+  const { layout, repo } = ctx
+  const seen = new Set<number>()
+  let hasDuplicates = false
+  for (const c of layout.columns) {
+    if (seen.has(c.node.parent_idx)) {
+      hasDuplicates = true
+      break
+    }
+    seen.add(c.node.parent_idx)
+  }
+  if (!hasDuplicates) return
+
+  const parentId = ctx.rootId
+  for (let i = 0; i < layout.columns.length; i++) {
+    const c = layout.columns[i]
+    if (c && c.node.parent_idx !== i) {
+      repo.moveNode(c.node.id, parentId, i)
+      c.node.parent_idx = i
+    }
   }
 }

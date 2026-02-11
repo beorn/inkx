@@ -254,6 +254,119 @@ describe("Edit Operations", () => {
     board.expect("#1a[data-cursor]").toExist()
   })
 
+  test("Meta+l at column header shifts column right", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+        item("col3", item("3a")),
+      ),
+    )
+    // Navigate to column header level
+    board.press("k")
+    board.expect("#col1[data-cursor]").toExist()
+
+    board.press("Meta+l")
+
+    // Cursor should follow the moved column
+    board.expect("#col1[data-cursor]").toExist()
+    // col1 should now be to the right of col2
+    const col1Box = board.q("#col1").boundingBox()
+    const col2Box = board.q("#col2").boundingBox()
+    expect(col2Box!.x).toBeLessThan(col1Box!.x)
+  })
+
+  test("Meta+h at column header shifts column left", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+        item("col3", item("3a")),
+      ),
+    )
+    // Navigate to col2 header
+    board.press("l")
+    board.press("k")
+    board.expect("#col2[data-cursor]").toExist()
+
+    board.press("Meta+h")
+
+    // Cursor should follow the moved column
+    board.expect("#col2[data-cursor]").toExist()
+    // col2 should now be to the left of col1
+    const col1Box = board.q("#col1").boundingBox()
+    const col2Box = board.q("#col2").boundingBox()
+    expect(col2Box!.x).toBeLessThan(col1Box!.x)
+  })
+
+  test("Meta+l at rightmost column header does nothing", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.press("l")
+    board.press("k")
+    board.expect("#col2[data-cursor]").toExist()
+
+    board.press("Meta+l")
+
+    board.expect("#col2[data-cursor]").toExist()
+    // Order unchanged
+    const col1Box = board.q("#col1").boundingBox()
+    const col2Box = board.q("#col2").boundingBox()
+    expect(col1Box!.x).toBeLessThan(col2Box!.x)
+  })
+
+  test("Meta+l at column header works when columns have duplicate parent_idx", () => {
+    const nodes = item(
+      "board",
+      item("col1", item("1a")),
+      item("col2", item("2a")),
+      item("col3", item("3a")),
+    )
+    // Force all columns to have parent_idx=0 (default scenario)
+    for (const n of nodes) {
+      if (n.type === "heading") {
+        n.parent_idx = 0
+      }
+    }
+    const { board } = testEnv(() => nodes)
+    board.press("k")
+    board.expect("#col1[data-cursor]").toExist()
+
+    board.press("Meta+l")
+
+    board.expect("#col1[data-cursor]").toExist()
+    // col1 should now be to the right of col2
+    const col1Box = board.q("#col1").boundingBox()
+    const col2Box = board.q("#col2").boundingBox()
+    expect(col2Box!.x).toBeLessThan(col1Box!.x)
+  })
+
+  test("Meta+h at leftmost column header does nothing", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+      ),
+    )
+    board.press("k")
+    board.expect("#col1[data-cursor]").toExist()
+
+    board.press("Meta+h")
+
+    board.expect("#col1[data-cursor]").toExist()
+    const col1Box = board.q("#col1").boundingBox()
+    const col2Box = board.q("#col2").boundingBox()
+    expect(col1Box!.x).toBeLessThan(col2Box!.x)
+  })
+
   test("D deletes the selected node", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"), item("1c"))),
