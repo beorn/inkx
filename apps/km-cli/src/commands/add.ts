@@ -3,10 +3,13 @@
  *
  * Add tasks to boards/lists via transclusion (link).
  * Tasks are linked to the board without changing their original location.
+ * Sigil targets (@next, +project, #tag) also tag the source task content.
  *
- * km add @next TASKID          # Link task to @next board
+ * km add @next TASKID          # Link task to @next board + add @next sigil
  * km add @next ./inbox/**      # Link all inbox tasks to @next
- * km add +project TASKID       # Link task to project
+ * km add +project TASKID       # Link task to project + add +project sigil
+ * km add #urgent TASKID        # Link task to #urgent + add #urgent sigil
+ * km add myboard TASKID        # Link only (no sigil — not a sigil target)
  */
 
 import { Command } from "@commander-js/extra-typings"
@@ -24,6 +27,28 @@ interface AddOptions {
   dryRun?: boolean
   json?: boolean
   force?: boolean
+}
+
+// Sigil prefix → data key mapping
+const SIGIL_DATA_KEY: Record<string, string> = {
+  "@": "mentions",
+  "+": "projects",
+  "#": "tags",
+}
+
+/** Check if a task's content already contains the sigil (e.g., @next, +project, #tag) */
+function contentHasSigil(node: KNode, prefix: string, name: string): boolean {
+  const dataKey = SIGIL_DATA_KEY[prefix]
+  if (!dataKey) return false
+
+  // Fast path: check structured data
+  const existing = node.data?.[dataKey]
+  if (Array.isArray(existing) && existing.includes(name)) return true
+
+  // Fallback: check raw content for the sigil string
+  if (node.content?.includes(prefix + name)) return true
+
+  return false
 }
 
 /** Convert an absolute glob to repo-relative, or throw if outside the repo */
@@ -62,8 +87,14 @@ export const addCommand = new Command("add")
   .option("--dry-run", "Preview without making changes")
   .option("--json", "Output as JSON")
   .option("--force", "Re-add tasks even if already linked on the target board")
-  // oxlint-disable-next-line complexity/complexity -- CLI add with query matching and multiple input modes
+  // oxlint-disable-next-line complexity/complexity -- CLI add with query matching, sigil tagging, and four-way dedup
   .action(async (target: string, sources: string[], options: AddOptions) => {
+    // Detect sigil target (@next, +project, #tag)
+    const sigilMatch = target.match(/^([@+#])([a-zA-Z0-9_-]+)$/)
+    const sigilPrefix = sigilMatch?.[1] ?? null
+    const sigilName = sigilMatch?.[2] ?? null
+    const sigilStr = sigilMatch?.[0] ?? null
+
     // Resolve target path argument - may detect repo root
     const resolvedTarget = resolvePathArg(target, getRootPath())
     using repo = await loadRepo(resolvedTarget.repoRoot)
@@ -83,8 +114,8 @@ export const addCommand = new Command("add")
       process.exit(1)
     }
 
-    // Collect tasks to add (store full node for link creation)
-    const tasksToAdd: KNode[] = []
+    // Collect candidate tasks
+    const candidates: KNode[] = []
 
     for (const source of sources) {
       // Glob patterns (e.g., ./inbox/**, /tmp/vt/projects/**) — query directly
@@ -99,8 +130,8 @@ export const addCommand = new Command("add")
         const queryResults = repo.queryTasks(querySource)
         if (queryResults.length > 0) {
           for (const task of queryResults) {
-            if (!tasksToAdd.some((t) => t.id === task.id)) {
-              tasksToAdd.push(task)
+            if (!candidates.some((t) => t.id === task.id)) {
+              candidates.push(task)
             }
           }
         } else {
@@ -116,7 +147,7 @@ export const addCommand = new Command("add")
       const nodeRef = resolvedSource.nodeRef ?? source
       const node = repo.resolveNode(nodeRef, "task")
       if (node) {
-        tasksToAdd.push(node)
+        candidates.push(node)
         continue
       }
 
@@ -124,9 +155,8 @@ export const addCommand = new Command("add")
       const queryResults = repo.queryTasks(source)
       if (queryResults.length > 0) {
         for (const task of queryResults) {
-          // Don't add duplicates
-          if (!tasksToAdd.some((t) => t.id === task.id)) {
-            tasksToAdd.push(task)
+          if (!candidates.some((t) => t.id === task.id)) {
+            candidates.push(task)
           }
         }
         continue
@@ -136,7 +166,7 @@ export const addCommand = new Command("add")
       console.warn(term.yellow(`No tasks found for: ${source}`))
     }
 
-    if (tasksToAdd.length === 0) {
+    if (candidates.length === 0) {
       console.log(term.yellow("No tasks to add"))
       process.exit(0)
     }
@@ -149,7 +179,6 @@ export const addCommand = new Command("add")
       let firstSection: KNode | undefined
       for (const child of children) {
         if (child.type === "section") {
-          // Track first section as fallback
           if (!firstSection) {
             firstSection = child
           }
@@ -157,12 +186,10 @@ export const addCommand = new Command("add")
           if (rules?.default) {
             return child
           }
-          // Search deeper for explicit default
           const found = findDefaultSection(child.id)
           if (found) return found
         }
       }
-      // No explicit default found, return first section as fallback
       return firstSection
     }
     const defaultColumn = findDefaultSection(targetNode.id)
@@ -170,23 +197,51 @@ export const addCommand = new Command("add")
       actualTarget = defaultColumn
     }
 
-    // Filter out tasks already linked on the target board (unless --force)
-    let skipped: KNode[] = []
-    if (!options.force) {
-      const subtree = repo.getSubtree(targetNode.id)
-      const existingLinkTargets = new Set(
-        subtree.filter((n) => n.link_to).map((n) => n.link_to),
-      )
-      const kept: KNode[] = []
-      for (const t of tasksToAdd) {
-        if (existingLinkTargets.has(t.id)) skipped.push(t)
-        else kept.push(t)
+    // Four-way dedup: for each candidate, determine what actions are needed
+    // | Has link? | Has sigil? | Action                    |
+    // |-----------|------------|---------------------------|
+    // | No        | No         | Create link + add sigil   |
+    // | No        | Yes        | Create link only          |
+    // | Yes       | No         | Add sigil only (sync up)  |
+    // | Yes       | Yes        | Skip entirely             |
+    // With --force: always create link + always add sigil
+    const existingLinkTargets = options.force
+      ? new Set<string>()
+      : new Set(
+          repo
+            .getSubtree(targetNode.id)
+            .filter((n) => n.link_to)
+            .map((n) => n.link_to!),
+        )
+
+    const tasksToLink: KNode[] = []
+    const tasksToSigil: KNode[] = []
+    const skipped: KNode[] = []
+
+    for (const task of candidates) {
+      const hasLink = existingLinkTargets.has(task.id)
+      const hasSigil =
+        sigilStr && !options.force
+          ? contentHasSigil(task, sigilPrefix!, sigilName!)
+          : false
+
+      if (options.force) {
+        tasksToLink.push(task)
+        if (sigilStr) tasksToSigil.push(task)
+      } else if (!hasLink && !hasSigil) {
+        tasksToLink.push(task)
+        if (sigilStr) tasksToSigil.push(task)
+      } else if (!hasLink && hasSigil) {
+        tasksToLink.push(task)
+      } else if (hasLink && !hasSigil) {
+        if (sigilStr) tasksToSigil.push(task)
+      } else {
+        // Both link and sigil exist — fully skipped
+        skipped.push(task)
       }
-      tasksToAdd.length = 0
-      tasksToAdd.push(...kept)
     }
 
-    if (tasksToAdd.length === 0 && skipped.length > 0) {
+    if (tasksToLink.length === 0 && tasksToSigil.length === 0 && skipped.length > 0) {
       console.log(
         term.yellow(
           `All ${skipped.length} task(s) already linked (use --force to re-add)`,
@@ -199,14 +254,28 @@ export const addCommand = new Command("add")
     let nextIdx = Date.now()
 
     if (options.dryRun) {
-      console.log(term.cyan("Dry run - would link:"))
-      for (const task of tasksToAdd) {
-        console.log(
-          `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
-        )
+      if (tasksToLink.length > 0) {
+        console.log(term.cyan("Dry run - would link:"))
+        for (const task of tasksToLink) {
+          const needsSigil = sigilStr && tasksToSigil.some((t) => t.id === task.id)
+          const suffix = needsSigil ? term.cyan(` (+ ${sigilStr})`) : ""
+          console.log(
+            `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}${suffix}`,
+          )
+        }
+      }
+      // Tasks that only need sigil (already linked but missing sigil)
+      const sigilOnly = tasksToSigil.filter((t) => !tasksToLink.some((l) => l.id === t.id))
+      if (sigilOnly.length > 0) {
+        console.log(term.cyan(`\nWould add ${sigilStr} to (already linked):`))
+        for (const task of sigilOnly) {
+          console.log(
+            `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)} ${term.cyan(`(+ ${sigilStr})`)}`,
+          )
+        }
       }
       if (skipped.length > 0) {
-        console.log(term.yellow(`\nSkipped (already linked):`))
+        console.log(term.yellow(`\nSkipped (already linked + tagged):`))
         for (const task of skipped) {
           console.log(
             `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
@@ -219,48 +288,96 @@ export const addCommand = new Command("add")
       return
     }
 
-    // Create link nodes in the target (transclusion - tasks stay in original location).
-    // Defer FS writes to avoid O(n^2) regeneration — one write after all links are added.
+    // Track source files that need FS sync (for sigil updates)
+    const sourceFileSyncIds = new Set<string>()
+
+    // Create link nodes + append sigils inside deferred FS
     repo.withDeferredFs(() => {
-      for (const task of tasksToAdd) {
+      // Create link nodes
+      for (const task of tasksToLink) {
         repo.addNode(actualTarget.id, {
           type: "task",
           parent_idx: nextIdx++,
-          link_to: task.id, // Points to the original task
-          // Copy some properties for display purposes
+          link_to: task.id,
           content: task.content,
           task_status: task.task_status,
           task_mark: task.task_mark,
         })
       }
+
+      // Append sigil to source task content (dedup: skip if already present)
+      if (sigilStr && sigilPrefix && sigilName) {
+        const dataKey = SIGIL_DATA_KEY[sigilPrefix]
+        for (const task of tasksToSigil) {
+          // Skip link nodes — they mirror the source, don't tag them
+          if (task.link_to) continue
+
+          // Re-check dedup (content may have changed since we checked)
+          if (!options.force && contentHasSigil(task, sigilPrefix, sigilName)) continue
+
+          // Append sigil to content
+          const newContent = (task.content || "") + " " + sigilStr
+
+          // Update data with sigil added to the appropriate array
+          const existingArray = (task.data?.[dataKey] as string[] | undefined) ?? []
+          const newData = {
+            ...task.data,
+            [dataKey]: existingArray.includes(sigilName)
+              ? existingArray
+              : [...existingArray, sigilName],
+          }
+
+          repo.updateNode(task.id, { content: newContent, data: newData })
+          sourceFileSyncIds.add(task.id)
+        }
+      }
     })
+
+    // Sync target board file
     repo.syncToFs(actualTarget.id)
+
+    // Sync source task files that had sigils appended
+    for (const id of sourceFileSyncIds) {
+      repo.syncToFs(id)
+    }
+
+    const sigilCount = tasksToSigil.filter((t) => !t.link_to).length
 
     if (options.json) {
       console.log(
         JSON.stringify({
           target: targetNode.id,
-          linked: tasksToAdd.map((t) => t.id),
-          count: tasksToAdd.length,
+          linked: tasksToLink.map((t) => t.id),
+          count: tasksToLink.length,
+          sigiled: sigilStr ? tasksToSigil.map((t) => t.id) : [],
+          sigilCount,
           skipped: skipped.map((t) => t.id),
         }),
       )
       return
     }
 
-    console.log(
-      term.green("✓"),
-      `Linked ${tasksToAdd.length} task(s) to ${targetNode.content || target}`,
-    )
-    for (const task of tasksToAdd.slice(0, 5)) {
+    if (tasksToLink.length > 0) {
       console.log(
-        term.dim(
-          `  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`,
-        ),
+        term.green("✓"),
+        `Linked ${tasksToLink.length} task(s) to ${targetNode.content || target}`,
       )
+      for (const task of tasksToLink.slice(0, 5)) {
+        console.log(
+          term.dim(
+            `  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`,
+          ),
+        )
+      }
+      if (tasksToLink.length > 5) {
+        console.log(term.dim(`  ... and ${tasksToLink.length - 5} more`))
+      }
     }
-    if (tasksToAdd.length > 5) {
-      console.log(term.dim(`  ... and ${tasksToAdd.length - 5} more`))
+    if (sigilStr && sigilCount > 0) {
+      console.log(
+        term.green("✓"),
+        `Added ${sigilStr} to ${sigilCount} task(s)`,
+      )
     }
     if (skipped.length > 0) {
       console.log(

@@ -69,10 +69,10 @@ const RECURRENCE_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/
 const PRIORITY_INLINE_REGEX = /\bp:([1-9])\b/
 
 // km-fast-md.4: Single-pass heading rules regex
-// Matches: add="query", sync=value, collapse=true, limit=N, default=true, color=value
+// Matches: add="query", sync=value, collapse=true, limit=N, default=true, removed=true, color=value
 // Also handles backtick-wrapped versions: `add="query"`
 const HEADING_RULE_REGEX =
-  /`?(?:add=["']([^"']+)["']|sync=["']?([^\s"'`]+)["']?|collapse=(true)|limit=(\d+)|default=(true)|color=["']?([^\s"'`]+)["']?)`?/gi
+  /`?(?:add=["']([^"']+)["']|sync=["']?([^\s"'`]+)["']?|collapse=(true)|limit=(\d+)|default=(true)|removed=(true)|color=["']?([^\s"'`]+)["']?)`?/gi
 
 /**
  * Extended ListItem with task mark
@@ -317,6 +317,7 @@ export interface SectionRules {
   collapse?: boolean // Start collapsed
   limit?: number // WIP limit
   default?: boolean // Default column for new items
+  removed?: boolean // Items dismissed from the board (km add skips these)
   color?: string // Board/section color (cyan, yellow, magenta, etc.)
 }
 
@@ -373,9 +374,13 @@ export function parseHeadingRules(text: string): ParsedHeading {
     if (match[5]) {
       rules.default = true
     }
-    // color=value
+    // removed=true
     if (match[6]) {
-      rules.color = match[6]
+      rules.removed = true
+    }
+    // color=value
+    if (match[7]) {
+      rules.color = match[7]
     }
   }
 

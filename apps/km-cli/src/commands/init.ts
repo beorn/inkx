@@ -242,6 +242,8 @@ const GTD_NEXT_MD = `# Next Actions color=cyan
 ## Waiting color=yellow
 
 ## Done collapse=true color=green
+
+## Removed collapse=true removed=true
 `
 
 const GTD_SOMEDAY_MD = `# Someday/Maybe color=gray
@@ -249,4 +251,6 @@ const GTD_SOMEDAY_MD = `# Someday/Maybe color=gray
 ## Ideas
 
 ## Projects
+
+## Removed collapse=true removed=true
 `

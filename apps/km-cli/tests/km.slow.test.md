@@ -169,12 +169,13 @@ $ km tasks './projects**'
 ... task(s)
 ```
 
-Add (link) all tasks from projects to @next:
+Add (link) all tasks from projects to @next (also adds @next sigil to source tasks):
 
 ```console
 $ km add @next './projects**'
 ✓ Linked 3 task(s) to Next Actions...
 [...]
+✓ Added @next to 3 task(s)
 ```
 
 Verify tasks now appear under @next in the default (Processing) column:
@@ -183,18 +184,20 @@ Verify tasks now appear under @next in the default (Processing) column:
 $ km show --tree @next
 [...]
 Children:
+[...]
 [...]section[...]Processing...
 [...]
 ```
 
-Verify original file STILL shows tasks (they were linked, not moved):
+Verify original file STILL shows tasks (they were linked, not moved).
+Source tasks now include the @next sigil:
 
 ```console
 $ km tasks './projects**'
 [...]
-     [ ] First project task
-     [ ] Second project task
-     [ ] Third project task
+     [ ] First project task @next
+     [ ] Second project task @next
+     [ ] Third project task @next
 ... task(s)
 ```
 

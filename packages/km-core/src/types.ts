@@ -130,6 +130,7 @@ export interface NodeRules {
   collapse?: boolean // Start collapsed
   limit?: number // WIP limit
   default?: boolean // Default column for new items
+  removed?: boolean // Items dismissed from the board (km add skips these)
   color?: string // Board/section color (cyan, yellow, magenta, etc.)
 }
 
