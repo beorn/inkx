@@ -30,7 +30,20 @@ export function handleDeleteNode(ctx: ActionCtx): void {
   const impact = repo.getRenameImpact(nodeId)
   const childCount = children.length
   const backlinkCount = impact.backlinks.length
-  const hasMetadata = card.node.data && Object.keys(card.node.data).length > 0
+  // Filter out internal/computed metadata keys — only user-authored frontmatter counts
+  const TRIVIAL_DATA_KEYS = new Set([
+    "depth",
+    "rules",
+    "lang",
+    "meta",
+    "completion",
+  ])
+  const significantKeys = card.node.data
+    ? Object.keys(card.node.data).filter(
+        (k) => !k.startsWith("_") && !TRIVIAL_DATA_KEYS.has(k),
+      )
+    : []
+  const hasMetadata = significantKeys.length > 0
 
   if (childCount > 0 || backlinkCount > 0 || hasMetadata) {
     // Non-trivial node: show confirmation dialog

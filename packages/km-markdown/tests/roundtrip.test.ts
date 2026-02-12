@@ -1284,4 +1284,171 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       "![[missing-file]]",
     )
   })
+
+  test("should serialize task with link_to as embed, not raw task", () => {
+    const fileNode = makeTestNode({
+      id: "file-id-789",
+      type: "file",
+      fs_path: "/repo/board.md",
+    })
+    const sectionNode = makeTestNode({
+      id: "section-id-1",
+      type: "section",
+      parent_id: "file-id-789",
+      parent_idx: 1,
+      content: "Inbox",
+      data: { depth: 2 },
+    })
+    const targetTask = makeTestNode({
+      id: "original-task-1",
+      type: "task",
+      parent_id: "other-file",
+      content: "Buy groceries",
+      task_status: "todo",
+      task_mark: " ",
+    })
+    const linkTask = makeTestNode({
+      id: "link-task-1",
+      type: "task",
+      parent_id: "section-id-1",
+      parent_idx: 1,
+      link_to: "original-task-1",
+      content: "Buy groceries",
+      task_status: "todo",
+      task_mark: " ",
+    })
+
+    const md = nodesToMarkdown([fileNode, sectionNode, linkTask, targetTask])
+    // Should NOT contain a raw task checkbox
+    expect(md).not.toContain("- [ ] Buy groceries")
+    // Should contain an embed reference to the target
+    expect(md).toContain("![[")
+  })
+
+  test("should serialize ul with link_to as embed", () => {
+    const fileNode = makeTestNode({
+      id: "file-1",
+      type: "file",
+      fs_path: "/repo/test.md",
+    })
+    const targetNode = makeTestNode({
+      id: "target-ul-1",
+      type: "ul",
+      parent_id: "other-file",
+      content: "Some list item",
+    })
+    const linkUl = makeTestNode({
+      id: "link-ul-1",
+      type: "ul",
+      parent_id: "file-1",
+      parent_idx: 1,
+      link_to: "target-ul-1",
+      content: "Some list item",
+    })
+
+    const md = nodesToMarkdown([fileNode, linkUl, targetNode])
+    expect(md).not.toContain("- Some list item")
+    expect(md).toContain("![[")
+  })
+
+  test("should serialize ol with link_to as embed", () => {
+    const fileNode = makeTestNode({
+      id: "file-1",
+      type: "file",
+      fs_path: "/repo/test.md",
+    })
+    const targetNode = makeTestNode({
+      id: "target-ol-1",
+      type: "ol",
+      parent_id: "other-file",
+      content: "Numbered item",
+    })
+    const linkOl = makeTestNode({
+      id: "link-ol-1",
+      type: "ol",
+      parent_id: "file-1",
+      parent_idx: 1,
+      link_to: "target-ol-1",
+      content: "Numbered item",
+    })
+
+    const md = nodesToMarkdown([fileNode, linkOl, targetNode])
+    expect(md).not.toContain("1. Numbered item")
+    expect(md).toContain("![[")
+  })
+
+  test("should serialize section with link_to as embed", () => {
+    const fileNode = makeTestNode({
+      id: "file-1",
+      type: "file",
+      fs_path: "/repo/test.md",
+    })
+    const targetNode = makeTestNode({
+      id: "target-section-1",
+      type: "section",
+      parent_id: "other-file",
+      content: "Linked Section",
+      data: { depth: 2 },
+    })
+    const linkSection = makeTestNode({
+      id: "link-section-1",
+      type: "section",
+      parent_id: "file-1",
+      parent_idx: 1,
+      link_to: "target-section-1",
+      content: "Linked Section",
+      data: { depth: 2 },
+    })
+
+    const md = nodesToMarkdown([fileNode, linkSection, targetNode])
+    expect(md).not.toContain("## Linked Section")
+    expect(md).toContain("![[")
+  })
+
+  test("link_to with target in nodeMap uses target fs_path", () => {
+    const fileNode = makeTestNode({
+      id: "file-1",
+      type: "file",
+      fs_path: "/repo/board.md",
+    })
+    const targetFile = makeTestNode({
+      id: "target-file-1",
+      type: "file",
+      fs_path: "inbox/tasks.md",
+      content: "Tasks",
+    })
+    const linkTask = makeTestNode({
+      id: "link-1",
+      type: "task",
+      parent_id: "file-1",
+      parent_idx: 1,
+      link_to: "target-file-1",
+      content: "Do stuff",
+    })
+
+    const md = nodesToMarkdown([fileNode, linkTask, targetFile])
+    expect(md).toContain("![[tasks]]")
+    expect(md).not.toContain("- [ ]")
+  })
+
+  test("link_to with missing target falls back to content", () => {
+    const fileNode = makeTestNode({
+      id: "file-1",
+      type: "file",
+      fs_path: "/repo/board.md",
+    })
+    const linkTask = makeTestNode({
+      id: "link-1",
+      type: "task",
+      parent_id: "file-1",
+      parent_idx: 1,
+      link_to: "nonexistent-id",
+      content: "Buy groceries",
+    })
+
+    const md = nodesToMarkdown([fileNode, linkTask])
+    // Falls back to content (raw text), not a checkbox task
+    expect(md).toContain("Buy groceries")
+    expect(md).not.toContain("- [ ]")
+  })
 })

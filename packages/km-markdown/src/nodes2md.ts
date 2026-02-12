@@ -131,6 +131,11 @@ function serializeNode(
 ): string {
   const children = ctx.tree.get(node.id) ?? []
 
+  // Any node with link_to is a transclusion — serialize as ![[target]] embed
+  if (node.link_to) {
+    return serializeEmbedding(node, ctx)
+  }
+
   switch (node.type) {
     case "file":
       return serializeFile(node, ctx)
@@ -139,10 +144,6 @@ function serializeNode(
       return serializeSection(node, children, ctx)
 
     case "paragraph":
-      // If this node has link_to, it's an embedding - reconstruct ![[path|alias]]
-      if (node.link_to) {
-        return serializeEmbedding(node, ctx)
-      }
       return (node.content ?? "") + "\n\n"
 
     case "quote":
