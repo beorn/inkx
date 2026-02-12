@@ -507,6 +507,36 @@ Make edits directly to this file or create a process improvement bead.
 
 ## Quick Checks
 
+### Check for stray debug/repro test files
+
+Ad-hoc test files created during debugging accumulate and slow down test:fast. Flag files with `repro`, `debug`, `profile`, `analysis`, `scratch` in their names:
+
+```bash
+echo "=== Stray debug/repro test files ==="
+find apps/km-tui/tests packages/*/tests -name "*.test.ts" -o -name "*.spec.ts" | \
+  grep -iE 'repro|debug|profile|analysis|scratch|temp|wip' | sort
+```
+
+**Triage each file:**
+- **Bug is fixed** → delete the repro test (the regression test should exist separately)
+- **Has lasting value** → rename without debug/repro suffix, make it a proper regression test
+- **Needs real vault data** → rename to `.slow.test.ts` with `skipIf` guard
+- **Has `console.log`** → either remove the output or move to `.slow.test.ts`
+
+**Prevention**: When creating debug/repro tests during a session, add a comment `// TODO: delete after fixing <bead-id>` so future reviews catch them.
+
+### Check test:fast timing
+
+```bash
+time bun run test:fast 2>&1 | tail -5
+```
+
+**Target: <15s wall-clock.** If >15s, something is wrong:
+- Check for infinite loops (while + screenshot patterns)
+- Check for stale vitest processes: `ps aux | grep vitest`
+- Check for tests that should be `.slow.test.ts`
+- Create P0 bead if regression is confirmed
+
 ### Check for stale vendor test fixtures
 
 The Yoga layout tests in `vendor/beorn-flexx/tests/yoga/` are generated from Facebook's Yoga project.

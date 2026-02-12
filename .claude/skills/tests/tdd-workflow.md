@@ -59,7 +59,7 @@ bun run test:all     # MUST pass
 | Spec/acceptance  | `.spec.ts`, `.test.md` | UI behavior, CLI           |
 | Chaos            | `chaos/*.test.ts`      | Sync edge cases            |
 
-**Target**: `test:fast` ~11 seconds. Move slow tests to `.slow.test.ts`.
+**Target**: `test:fast` <15 seconds. If >15s, something is wrong — create P0 bead. Move slow tests to `.slow.test.ts`.
 
 ---
 

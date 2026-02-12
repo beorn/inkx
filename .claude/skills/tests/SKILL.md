@@ -25,6 +25,14 @@ bun fix                    # Lint + format (must pass)
 bun run test:all           # Full suite (must pass) ~2-3min
 ```
 
+### Timing Guard
+
+**test:fast MUST complete in <15s wall-clock.** If it takes longer:
+1. Something is wrong (hanging test, infinite loop, CPU contention)
+2. Check `ps aux | grep vitest` for stale processes from other sessions
+3. If a test hangs: find it with per-file runs, fix or mark `.slow.test.ts`
+4. Create a P0 bead if test:fast regresses above 15s — this blocks all iteration
+
 ### Performance Analysis
 
 ```bash
