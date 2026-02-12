@@ -19,6 +19,8 @@ argument-hint: [scenario | --gui | --peekaboo | --path <vault> | km view <path>]
 | `/explore --peekaboo ...` | Live Ghostty inspection | See [peekaboo.md](peekaboo.md) |
 | `/explore <scenario description>` | Targeted bug repro | Write a test first — see [targeted.md](targeted.md) |
 
+**Extended exploration** (finding+fixing multiple bugs): Use the team workflow — see [team.md](team.md). Explorer writes fast headless scripts, reproducer creates beads + failing tests, fixer implements fixes. All three work in parallel.
+
 **Do NOT**: read fuzz test source files, try deprecated scripts, or guess vitest CLI flags. The commands above work as-is.
 
 ## Examples
@@ -126,6 +128,7 @@ driver.cmd.describe() // Human/AI-readable command list
 
 | File | Purpose |
 |------|---------|
+| [team.md](team.md) | **Agent team**: explorer + reproducer + fixer pipeline |
 | [targeted.md](targeted.md) | User-described scenarios, vault verification |
 | [random.md](random.md) | Setup, AI-driven exploration, fuzz testing |
 | [reporting.md](reporting.md) | Reports, issue templates, action workflow |

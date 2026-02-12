@@ -217,7 +217,7 @@ function navigateHorizontal(
     if (stickyY !== null) {
       if (layoutRegistry.hasCardsInColumn(targetColIdx)) {
         const targetCardIdx = layoutRegistry.findCardAtYVisual(targetColIdx, stickyY)
-        return cardAt(targetCards, Math.max(0, targetCardIdx))
+        return cardAt(targetCards, Math.min(Math.max(0, targetCardIdx), targetCards.length - 1))
       }
       // Target column off-screen: start at first card, deferred corrects to Y-match
       layoutRegistry.setDeferredNavigation(targetColIdx, stickyY)
@@ -236,7 +236,7 @@ function navigateHorizontal(
 
   if (layoutRegistry.hasCardsInColumn(targetColIdx)) {
     const targetCardIdx = layoutRegistry.findCardAtYVisual(targetColIdx, stickyY)
-    return cardAt(targetCards, Math.max(0, targetCardIdx))
+    return cardAt(targetCards, Math.min(Math.max(0, targetCardIdx), targetCards.length - 1))
   }
 
   // Target column is off-screen (no registered cards). Start at first card;

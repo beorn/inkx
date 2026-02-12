@@ -710,6 +710,7 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
 
 /** Walk up the tree to find the nearest node with fs_path, returning absolute path. */
 function resolveNodeFsPath(repo: ActionCtx["repo"], nodeId: string): { fsPath: string; isFolder: boolean } {
+  if (!repo.data) return { fsPath: repo.path, isFolder: true }
   let current = repo.data.getNode(nodeId)
   while (current) {
     if (current.fs_path) {

@@ -5,33 +5,33 @@
  * Based on user report: "cursor does not stay with the indented nodes, cursor jumps around"
  * after creating and indenting in @next view.
  *
- * Runs 100 interactions mixing: navigate (j/k), create (n), exit edit (Escape), indent (Tab)
+ * Tests creation via:
+ * - `n` key (INSERT_BELOW) — creates sibling after cursor + enters inline edit
+ * - Enter twice (TEXT_CONFIRM) — in inline edit, Enter saves current + creates new sibling
+ *
+ * Tests indent via:
+ * - Tab — structural indent (reparent under previous sibling)
  */
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
-/**
- * Helper: get cursor node info from board
- */
+/** Helper: get cursor info from DOM */
 function getCursorInfo(board: ReturnType<typeof testEnv>["board"]) {
   const cursorEl = board.q("[data-cursor]")
   return {
     text: cursorEl?.textContent() ?? null,
-    exists: !!cursorEl,
+    exists: cursorEl ? cursorEl.count() > 0 : false,
   }
 }
 
-/**
- * Helper: get child IDs of a parent from repo
- */
+/** Helper: get child IDs */
 function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId: string): string[] {
   return repo.getChildren(parentId).map((n) => n.id)
 }
 
 describe("Create + Indent cursor stability", () => {
   test("cursor follows node after create-then-indent", () => {
-    // Setup: board with a column containing several tasks
     const { board, repo } = testEnv(() =>
       item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
     )
@@ -42,22 +42,19 @@ describe("Create + Indent cursor stability", () => {
 
     // Create new node after B (enters inline edit mode)
     board.press("n")
-
-    // Exit inline edit (Escape saves + returns to node mode)
+    // Exit inline edit
     board.press("Escape")
 
-    // The new node should now be selected — it's between B and C
+    // The new node should now be between B and C
     const col1Children = childIds(repo, "col1")
     expect(col1Children.length).toBe(6) // A, B, new, C, D, E
 
-    // The cursor should be on the new node (index 2, after B)
-    // Now indent it under B
+    // Indent the new node under B
     board.press("Tab")
 
-    // After indent, cursor should follow the indented node to its parent card (B)
+    // Cursor should follow the indented node to parent card (B)
     const cursor = getCursorInfo(board)
     expect(cursor.exists).toBe(true)
-    // B is now the parent — cursor should be on B's card
     expect(cursor.text).toContain("B")
   })
 
@@ -66,18 +63,17 @@ describe("Create + Indent cursor stability", () => {
       item("board", item("col1", item("A"), item("B"), item("C"))),
     )
 
-    // Cycle 1: navigate to A, create after, indent under A
-    // Cursor starts on A
-    board.press("n") // Create after A
-    board.press("Escape") // Exit edit
-    board.press("Tab") // Indent under A
+    // Cycle 1: create after A, indent under A
+    board.press("n")
+    board.press("Escape")
+    board.press("Tab")
     expect(getCursorInfo(board).exists).toBe(true)
 
-    // Cycle 2: navigate down, create after, indent
-    board.press("j") // Move to next card
-    board.press("n") // Create after current
-    board.press("Escape") // Exit edit
-    board.press("Tab") // Indent under previous sibling
+    // Cycle 2: navigate down, create, indent
+    board.press("j")
+    board.press("n")
+    board.press("Escape")
+    board.press("Tab")
     expect(getCursorInfo(board).exists).toBe(true)
 
     // Cycle 3
@@ -92,66 +88,53 @@ describe("Create + Indent cursor stability", () => {
     expect(col1Children.length).toBeGreaterThan(0)
   })
 
-  test("create-indent does not produce 'cursor node not in repo' state", () => {
-    // Larger fixture simulating @next-style board with multiple columns
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("processing", item("task1"), item("task2"), item("task3"), item("task4"), item("task5")),
-        item("next", item("task6"), item("task7"), item("task8")),
-        item("doing", item("task9"), item("task10")),
-      ),
+  test("Enter-Enter creates new siblings without cursor loss", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("A"), item("B"), item("C"))),
     )
 
-    const bugs: string[] = []
+    // Start inline edit on A
+    board.press("Enter")
 
-    // Run 100 mixed interactions, tracking edit mode programmatically
-    let inEdit = false
+    // Enter creates new sibling (TEXT_CONFIRM)
+    board.press("Enter")
+    // Another Enter creates another sibling
+    board.press("Enter")
+    // Exit edit
+    board.press("Escape")
 
-    for (let i = 0; i < 100; i++) {
-      // Choose action based on current state
-      let action: string
-      if (inEdit) {
-        // If in edit mode, always escape first
-        action = "Escape"
-        inEdit = false
-      } else {
-        // Pick a weighted random action: more j/k (navigation), some n (create), some Tab (indent)
-        const roll = i % 10
-        if (roll < 4) action = "j"
-        else if (roll < 6) action = "k"
-        else if (roll < 8) {
-          action = "n"
-          inEdit = true
-        } else if (roll === 8) action = "Tab"
-        else action = "l" // change column
-      }
+    // Should have created 2 new nodes, cursor should be valid
+    const cursor = getCursorInfo(board)
+    expect(cursor.exists).toBe(true)
 
-      board.press(action)
+    // col1 should have more children now
+    const kids = childIds(repo, "col1")
+    expect(kids.length).toBeGreaterThanOrEqual(5) // A + 2 new + B + C
+  })
 
-      // Check cursor element exists in rendered output (unless in edit mode)
-      if (!inEdit) {
-        const cursorInfo = getCursorInfo(board)
-        if (!cursorInfo.exists) {
-          bugs.push(`[i=${i}] action=${action}: no [data-cursor] element in DOM after action`)
-        }
-      }
-    }
+  test("Enter-Enter then indent maintains cursor", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("A"), item("B"), item("C"))),
+    )
 
-    if (bugs.length > 0) {
-      console.log("=== BUGS FOUND ===")
-      for (const bug of bugs) {
-        console.log(bug)
-      }
-    }
-    expect(bugs).toEqual([])
+    // Navigate to B, enter edit, press Enter twice to create nodes
+    board.press("j")     // B
+    board.press("Enter") // enter inline edit on B
+    board.press("Enter") // TEXT_CONFIRM: save B + create new1 + edit new1
+    board.press("Enter") // TEXT_CONFIRM: save new1 + create new2 + edit new2
+    board.press("Escape") // exit edit
+
+    // Cursor should be on the last created node
+    const cursor = getCursorInfo(board)
+    expect(cursor.exists).toBe(true)
+
+    // Now indent: should reparent under previous sibling
+    board.press("Tab")
+    const cursorAfterIndent = getCursorInfo(board)
+    expect(cursorAfterIndent.exists).toBe(true)
   })
 
   test("indent after create preserves fractional parent_idx without cursor loss", () => {
-    // This specifically tests the scenario where:
-    // 1. Create node (gets fractional parent_idx via midpoint)
-    // 2. Indent it (reparent under previous sibling)
-    // 3. Cursor should stay on the node (now nested)
     const { board, repo } = testEnv(() =>
       item("board", item("col1", item("first"), item("second"), item("third"))),
     )
@@ -160,16 +143,19 @@ describe("Create + Indent cursor stability", () => {
     board.press("j")
     expect(getCursorInfo(board).text).toContain("second")
 
-    // Create after "second" — this produces a fractional parent_idx
+    // Create after "second" — produces a fractional parent_idx
     board.press("n")
     board.press("Escape")
 
-    // Verify fractional parent_idx was created
+    // Verify new node exists between second and third
     const col1Kids = repo.getChildren("col1")
-    const newNode = col1Kids.find((n) => n.id !== "first" && n.id !== "second" && n.id !== "third")
+    expect(col1Kids.length).toBe(4)
+    const newNode = col1Kids.find(
+      (n) => n.id !== "first" && n.id !== "second" && n.id !== "third",
+    )
     expect(newNode).toBeDefined()
 
-    // The new node should have a fractional parent_idx (midpoint between second and third)
+    // Check fractional parent_idx
     const secondNode = repo.getNode("second")
     const thirdNode = repo.getNode("third")
     if (newNode && secondNode && thirdNode) {
@@ -180,16 +166,76 @@ describe("Create + Indent cursor stability", () => {
       expect(newIdx).toBeLessThan(thirdIdx)
     }
 
-    // Now indent the new node under "second"
+    // Indent the new node under "second"
     board.press("Tab")
 
-    // Cursor should still exist and be on "second" card (parent of the indented node)
+    // Cursor should be on "second" card (parent of indented node)
     const cursor = getCursorInfo(board)
     expect(cursor.exists).toBe(true)
     expect(cursor.text).toContain("second")
   })
 
-  test("100 create-indent cycles on multi-column board", () => {
+  test("100 mixed create/indent/navigate interactions", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("processing", item("t1"), item("t2"), item("t3"), item("t4"), item("t5")),
+        item("next", item("t6"), item("t7"), item("t8")),
+        item("doing", item("t9"), item("t10")),
+      ),
+    )
+
+    const bugs: string[] = []
+    let inEdit = false
+
+    for (let i = 0; i < 100; i++) {
+      let action: string
+      if (inEdit) {
+        // In edit mode: Enter (create another) or Escape (exit)
+        action = i % 3 === 0 ? "Enter" : "Escape"
+        if (action === "Escape") inEdit = false
+      } else {
+        const roll = i % 10
+        if (roll < 3) {
+          action = "j"
+        } else if (roll < 5) {
+          action = "k"
+        } else if (roll < 7) {
+          action = "n"
+          inEdit = true
+        } else if (roll === 7) {
+          action = "Tab"
+        } else if (roll === 8) {
+          action = "l"
+        } else {
+          action = "Enter"
+          inEdit = true
+        }
+      }
+
+      try {
+        board.press(action)
+      } catch (e) {
+        bugs.push(`[i=${i}] action=${action}: THREW ${e}`)
+        continue
+      }
+
+      if (!inEdit) {
+        const cursor = getCursorInfo(board)
+        if (!cursor.exists) {
+          bugs.push(`[i=${i}] action=${action}: no [data-cursor] in DOM`)
+        }
+      }
+    }
+
+    if (bugs.length > 0) {
+      console.log("=== BUGS FOUND ===")
+      for (const bug of bugs) console.log(bug)
+    }
+    expect(bugs).toEqual([])
+  })
+
+  test("25 structured create-indent cycles across columns", () => {
     const { board } = testEnv(() =>
       item(
         "board",
@@ -201,35 +247,36 @@ describe("Create + Indent cursor stability", () => {
 
     const bugs: string[] = []
 
-    // Structured 100 interactions: cycles of [navigate, create, escape, indent]
     for (let cycle = 0; cycle < 25; cycle++) {
-      // Step 1: Navigate somewhere (j or l)
-      if (cycle % 3 === 0) {
-        board.press("l") // Move to next column
-      }
-      board.press("j") // Move down
+      // Step 1: Navigate
+      if (cycle % 3 === 0) board.press("l")
+      board.press("j")
 
       // Step 2: Create new node
-      board.press("n")
+      if (cycle % 2 === 0) {
+        // Via `n` key
+        board.press("n")
+        board.press("Escape")
+      } else {
+        // Via Enter (enter edit) + Enter (create new) + Escape
+        board.press("Enter")
+        board.press("Enter")
+        board.press("Escape")
+      }
 
-      // Step 3: Exit edit
-      board.press("Escape")
-
-      // Step 4: Indent
+      // Step 3: Indent
       board.press("Tab")
 
-      // Validate cursor exists in DOM after full create+indent cycle
+      // Step 4: Validate cursor
       const cursor = getCursorInfo(board)
       if (!cursor.exists) {
-        bugs.push(`[cycle=${cycle}] no [data-cursor] in DOM after create+indent`)
+        bugs.push(`[cycle=${cycle}] no [data-cursor] after create+indent`)
       }
     }
 
     if (bugs.length > 0) {
-      console.log("=== BUGS FOUND (100 create-indent cycles) ===")
-      for (const bug of bugs) {
-        console.log(bug)
-      }
+      console.log("=== BUGS FOUND (25 create-indent cycles) ===")
+      for (const bug of bugs) console.log(bug)
     }
     expect(bugs).toEqual([])
   })

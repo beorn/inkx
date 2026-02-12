@@ -11,6 +11,30 @@ import { refreshBoardState } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ColumnState } from "../types.ts"
 
+/**
+ * Determine the correct heading depth for a new sibling node.
+ * Prefers the sibling's depth (same level), but if the sibling has no depth
+ * (e.g. embed/paragraph), computes parent depth + 1 to stay nested correctly.
+ * Without this, creating a section among embeds under ## Processing produces
+ * a ## heading (depth 2) that the markdown parser sees as a sibling of
+ * Processing rather than a child — breaking the tree on re-parse.
+ */
+function siblingOrParentDepth(
+  sibling: KNode,
+  parent: { id: string },
+  repo: { getNode(id: string): KNode | undefined },
+): number | undefined {
+  const sibDepth = sibling.data?.depth as number | undefined
+  if (sibDepth) return sibDepth
+
+  const parentNode = repo.getNode(parent.id)
+  const parentDepth = parentNode?.data?.depth as number | undefined
+  if (parentDepth) return parentDepth + 1
+
+  // Parent is file node (no depth) → children are H2 (depth 2)
+  return 2
+}
+
 // Render flush flag — set by handleAddNodeAfter when a new InlineEditField
 // needs to mount before the next event handler runs.
 let _needsFlush = false
@@ -182,8 +206,12 @@ export function handleAddNodeAfter(ctx: ActionCtx): void {
     newNode.task_status = "todo"
     newNode.task_mark = " "
   }
-  if (currentNode.data?.depth) {
-    newNode.data = { ...newNode.data, depth: currentNode.data.depth }
+  // Depth: inherit from sibling if available, otherwise compute from parent.
+  // Embeds/paragraphs have no depth — using the default (2) would create a
+  // same-level heading that breaks the markdown tree on re-parse.
+  const depth = siblingOrParentDepth(currentNode, col.node, repo)
+  if (depth) {
+    newNode.data = { ...newNode.data, depth }
   }
 
   const newId = repo.addNode(col.node.id, newNode)
@@ -241,8 +269,9 @@ export function handleAddNodeBefore(ctx: ActionCtx): void {
     newNode.task_status = "todo"
     newNode.task_mark = " "
   }
-  if (currentNode.data?.depth) {
-    newNode.data = { ...newNode.data, depth: currentNode.data.depth }
+  const depth = siblingOrParentDepth(currentNode, col.node, repo)
+  if (depth) {
+    newNode.data = { ...newNode.data, depth }
   }
 
   const newId = repo.addNode(col.node.id, newNode)
