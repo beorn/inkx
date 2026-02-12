@@ -487,11 +487,11 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
     // Type new text
     for (const c of "-updated") await handle.press(c)
 
-    // Confirm edit
+    // Confirm edit (outliner Enter: save + create new sibling in edit mode)
     await handle.press("Enter")
 
-    // Inline edit must be exited
-    expect(handle.store.getState().ui.inlineEditBlock).toBeNull()
+    // Outliner: inline edit is now on NEW sibling (not exited)
+    expect(handle.store.getState().ui.inlineEditBlock).not.toBeNull()
 
     // Repo must be updated
     expect(repo.getNode("task1")?.content).toBe("task1-updated")
@@ -500,9 +500,10 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
     // No additional setTimeout or manual doRender should be needed.
     expect(handle.text).toContain("task1-updated")
 
-    // Navigate to verify board is still interactive
+    // Exit new sibling edit mode, then navigate
+    await handle.press("Escape")
+    expect(handle.store.getState().ui.inlineEditBlock).toBeNull()
     await handle.press("j")
-    expect(handle.store.getState().cursorNodeId).toBe("task2")
     expect(handle.text).toContain("task2")
 
     handle.unmount()

@@ -34,6 +34,7 @@ const log = createLogger("km:tui:board-actions")
 import {
   executeDelete,
   handleConfirmMove,
+  handleAddNodeAfter,
   handleDeleteNode,
   handleShiftCard,
   handleTaskStatusCycle,
@@ -392,11 +393,21 @@ export function handleCommandAction(
     case "TEXT_DELETE_TO_END":
       blockEditTargetRef.current?.deleteToEnd()
       return ok()
-    case "TEXT_CONFIRM":
-      // Save current edit and exit edit mode (Enter = confirm)
-      blockEditTargetRef.current?.save()
-      ctx.setUI({ inlineEditBlock: null })
+    case "TEXT_CONFIRM": {
+      // Outliner-style Enter: if editor supports split, save current + create new sibling
+      const canSplit = blockEditTargetRef.current?.insertBreak?.()
+      if (canSplit) {
+        // Save current item, exit edit, create new sibling + enter edit on it
+        blockEditTargetRef.current?.save()
+        ctx.setUI({ inlineEditBlock: null })
+        handleAddNodeAfter(ctx)
+      } else {
+        // Simple text input (search dialog, etc.) — just save + exit
+        blockEditTargetRef.current?.save()
+        ctx.setUI({ inlineEditBlock: null })
+      }
       return ok()
+    }
     case "TEXT_EXIT_EDIT":
       // Save current content and exit edit mode (Esc = save + switch to node mode)
       blockEditTargetRef.current?.save()

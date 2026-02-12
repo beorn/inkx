@@ -13,12 +13,11 @@ import { useState, useCallback, useLayoutEffect, useMemo, useRef } from "react"
 import { Editor, Transforms } from "slate"
 import type { BlockEditTarget } from "../block-edit-target.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
-import { textToDescendants, descendantsToText } from "./schema.ts"
+import { textToDescendants } from "./schema.ts"
 import {
   createKmEditor,
   getEditorText,
   getCursorOffset,
-  setCursorOffset,
   type KmEditorOptions,
 } from "./create-km-editor.ts"
 import type { KmEditor } from "./schema.ts"
@@ -87,6 +86,8 @@ export function useSlateEdit({
   onCancelRef.current = onCancel
   const onSaveRef = useRef(onSave)
   onSaveRef.current = onSave
+  const onSplitRef = useRef(onSplitAtBoundary)
+  onSplitRef.current = onSplitAtBoundary
 
   // Create Slate editor (stable across renders)
   const editor = useMemo(() => {
@@ -99,7 +100,7 @@ export function useSlateEdit({
   }, []) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally stable
 
   // Track render state (Slate is the source of truth, React state triggers re-render)
-  const [version, setVersion] = useState(0)
+  const [_version, setVersion] = useState(0)
   const forceRender = useCallback(() => setVersion((v) => v + 1), [])
 
   // Derive display values from Slate editor
@@ -195,6 +196,11 @@ export function useSlateEdit({
       },
       getContent() {
         return getEditorText(editor)
+      },
+      insertBreak(): boolean {
+        // Signal that this editor supports outliner-style Enter (split/new sibling).
+        // The actual node creation is handled by TEXT_CONFIRM via handleAddNodeAfter.
+        return !!onSplitRef.current
       },
     }),
     [editor, forceRender],

@@ -1,88 +1,88 @@
 /**
- * Enter During Edit — Bug Reproduction
+ * Outliner Enter Behavior
  *
- * BUG: TEXT_CONFIRM (Enter during editing) creates a new sibling node
- * and enters edit mode on it, instead of just saving and exiting.
+ * Enter during editing: save current content + create new empty sibling + enter edit on it.
+ * This matches Decker/WorkFlowy-style outliner behavior.
  *
- * Symptoms:
- * - Every Enter during editing creates an empty node
- * - Content typed before Enter is NOT saved (save() doesn't persist)
- * - User gets trapped in edit mode on the new empty node
- * - Multiple Enters create multiple empty nodes
+ * Flow:
+ *   1. save() — persist current content
+ *   2. setUI({ inlineEditBlock: null }) — exit current edit
+ *   3. handleAddNodeAfter(ctx) — create new sibling + refreshBoardState + enter edit
  *
- * Root cause: TEXT_CONFIRM in board-actions.ts calls:
- *   1. blockEditTargetRef.current?.save()
- *   2. ctx.setUI({ inlineEditBlock: null })
- *   3. handleAddNodeAfter(ctx) — creates new sibling + enters edit
- *
- * The save() call isn't persisting (possibly stale ref or timing issue),
- * and the user never intended to create a new node — just confirm the edit.
+ * Escape during editing: discard changes + exit edit mode (no new node).
  */
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 
-describe("Enter during edit — bugs", () => {
-  test("BUG: Enter during edit does not save content", () => {
+describe("Outliner Enter — save + new sibling", () => {
+  test("Enter saves content and creates new sibling", () => {
     const { board, repo } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )
 
     board.press("Enter") // enter edit mode on 1a
     board.press("X") // type "X" → content should be "1aX"
-    board.press("Enter") // confirm edit
+    board.press("Enter") // save + create new sibling
 
-    // BUG: content is "1a" (not "1aX") — save() didn't persist
+    // Content saved
     expect(repo.getNode("1a")?.content).toBe("1aX")
+    // New sibling created (was 2, now 3)
+    expect(repo.getChildren("col1")).toHaveLength(3)
   })
 
-  test("BUG: Enter during edit creates unwanted new node", () => {
+  test("Enter with no changes still creates new sibling", () => {
     const { board, repo } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )
 
-    // Before: 2 children
     expect(repo.getChildren("col1")).toHaveLength(2)
 
     board.press("Enter") // enter edit mode
-    board.press("Enter") // confirm edit (no changes)
+    board.press("Enter") // save (no changes) + create sibling
 
-    // BUG: 3 children — a new empty node was created
-    // Expected: still 2 children (Enter should just save + exit)
-    expect(repo.getChildren("col1")).toHaveLength(2)
+    // Content unchanged
+    expect(repo.getNode("1a")?.content).toBe("1a")
+    // New sibling created
+    expect(repo.getChildren("col1")).toHaveLength(3)
   })
 
-  test("BUG: multiple Enters create multiple empty nodes", () => {
+  test("Multiple Enters create chain of siblings", () => {
     const { board, repo } = testEnv(() =>
       item("board", item("col1", item("1a"))),
     )
 
     expect(repo.getChildren("col1")).toHaveLength(1)
 
-    board.press("Enter") // enter edit
-    board.press("Enter") // confirm → creates node 1
-    board.press("Enter") // creates node 2
-    board.press("Enter") // creates node 3
+    board.press("Enter") // edit 1a
+    board.press("Enter") // save + create sibling1 + edit sibling1
+    board.press("Enter") // save sibling1 + create sibling2 + edit sibling2
+    board.press("Enter") // save sibling2 + create sibling3 + edit sibling3
 
-    // BUG: 4 children (1 original + 3 empty nodes)
-    // Expected: 1 child (just saved and exited)
-    expect(repo.getChildren("col1")).toHaveLength(1)
+    // 1 original + 3 new siblings
+    expect(repo.getChildren("col1")).toHaveLength(4)
   })
 
-  test("BUG: after Enter-confirm, cursor trapped in edit mode", () => {
+  test("After Enter, user is editing new sibling (can type into it)", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
+      item("board", item("col1", item("1a"), item("1b"))),
     )
 
     board.press("Enter") // edit 1a
-    board.press("Enter") // confirm
+    board.press("Enter") // save + create sibling in edit mode
 
-    // After confirming, should be in normal mode. j should navigate to 1b.
-    board.press("j")
-    board.expect("#1b[data-cursor]").toExist()
+    // User is now editing the new sibling — typing goes there
+    board.press("H")
+    board.press("i")
+    board.press("Escape") // cancel (discard typed content on new sibling)
+
+    // 3 children: 1a, new sibling, 1b
+    expect(repo.getChildren("col1")).toHaveLength(3)
+    // Original content preserved
+    expect(repo.getNode("1a")?.content).toBe("1a")
   })
 
-  test("Escape properly exits edit without side effects", () => {
+  test("Escape exits edit without creating sibling", () => {
     const { board, repo } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"))),
     )

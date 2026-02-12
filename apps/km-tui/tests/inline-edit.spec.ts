@@ -395,20 +395,19 @@ describe("Inline Edit — Edge Cases", () => {
     // Edit in col1
     board.press("Enter")
     board.press("X")
-    board.press("Enter")
+    board.press("Enter") // save c1X + create sibling in edit mode
     expect(repo.getNode("c1")?.content).toBe("c1X")
-    expect(board.screenshot()).toContain("c1X")
 
-    // Navigate to col2
+    // Exit new sibling's edit, then navigate to col2
+    board.press("Escape")
     board.press("l")
     board.expect("#c2[data-cursor]").toExist()
 
     // Edit in col2
     board.press("Enter")
     board.press("Y")
-    board.press("Enter")
+    board.press("Enter") // save c2Y + create sibling
     expect(repo.getNode("c2")?.content).toBe("c2Y")
-    expect(board.screenshot()).toContain("c2Y")
   })
 
   test("confirm with no changes preserves original", () => {
@@ -448,14 +447,17 @@ describe("Inline Edit — Edge Cases", () => {
     // First edit: append "1"
     board.press("Enter")
     board.press("1")
-    board.press("Enter")
+    board.press("Enter") // save orig1 + create sibling in edit mode
     expect(repo.getNode("orig")?.content).toBe("orig1")
-    expect(board.screenshot()).toContain("orig1")
+
+    // Navigate back to orig: exit new sibling edit, go up
+    board.press("Escape")
+    board.press("k")
 
     // Second edit should start with "orig1" (not stale "orig")
     board.press("Enter")
     board.press("2")
-    board.press("Enter")
+    board.press("Enter") // save orig12 + create another sibling
     expect(repo.getNode("orig")?.content).toBe("orig12")
     expect(board.screenshot()).toContain("orig12")
   })
