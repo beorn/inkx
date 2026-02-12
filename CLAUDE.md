@@ -83,6 +83,8 @@ Sub-agents skip this — only the top-level session runs verification.
 | [claude/](.claude/skills/claude/)                                   | Claude Code config                                                    |
 | [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
 | [max/](.claude/skills/max/)                                         | Parallel agents                                                       |
+| [inkx/](.claude/skills/inkx/)                                       | inkx rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
+| [flexx/](.claude/skills/flexx/)                                     | Flexx layout bugs (caching, fingerprinting, benchmarking)             |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [discuss/](.claude/skills/discuss/)                                 | Pause implementation to discuss architecture/alternatives             |
 | [fresh/](.claude/skills/fresh/)                                     | Fresh perspective via deep research when stuck on a problem           |
