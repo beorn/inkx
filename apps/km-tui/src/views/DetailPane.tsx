@@ -11,7 +11,7 @@ import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { renderRich, renderPlain } from "../text/index.ts"
+import { renderRich, renderPlain, getNodeIcon } from "../text/index.ts"
 import { wrapText } from "../layout/index.ts"
 import { NodeLine } from "./shared-components.tsx"
 
@@ -22,6 +22,109 @@ export interface DetailPaneProps {
 }
 
 export function DetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
+  const repo = useRepo()
+  // Resolve embedded links to show the target node's details
+  const resolvedNode = node.link_to ? (repo.getNode(node.link_to) ?? node) : node
+  if (resolvedNode.type === "folder") {
+    return <FolderDetailPane node={resolvedNode} width={width} height={height} />
+  }
+  return <TaskDetailPane node={resolvedNode} width={width} height={height} />
+}
+
+// =============================================================================
+// Folder Detail Pane — outline of folder contents
+// =============================================================================
+
+function FolderDetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
+  const repo = useRepo()
+  const innerWidth = Math.max(10, width - 6)
+  const title = getNodeDisplayName(repo, node)
+  const children = repo.getChildren(node.id)
+
+  // Build a flat list of outline entries with depth, up to the available height
+  const maxEntries = Math.max(1, height - 8) // Reserve for title, separator, counts, footer
+  const entries: { node: KNode; depth: number }[] = []
+
+  function collectChildren(parentId: string, depth: number) {
+    if (entries.length >= maxEntries) return
+    const kids = parentId === node.id ? children : repo.getChildren(parentId)
+    for (const child of kids) {
+      if (entries.length >= maxEntries) return
+      entries.push({ node: child, depth })
+      if (depth < 2) {
+        collectChildren(child.id, depth + 1)
+      }
+    }
+  }
+  collectChildren(node.id, 0)
+
+  const totalChildren = children.length
+  const hasMore = entries.length >= maxEntries
+
+  return (
+    <Box
+      flexDirection="column"
+      width={width}
+      height={height}
+      borderStyle="single"
+      borderColor="cyan"
+      backgroundColor="black"
+      paddingX={1}
+    >
+      <ErrorBoundary fallback={<Text color="red">Error loading details</Text>}>
+        {/* Title */}
+        <Box width={innerWidth}>
+          <Text bold wrap="wrap">
+            {renderRich(title)}
+          </Text>
+        </Box>
+
+        {/* Separator */}
+        <Box>
+          <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
+        </Box>
+
+        {/* Counts */}
+        <Box>
+          <Text>
+            <Text dimColor>Contents: </Text>
+            <Text>{totalChildren} item{totalChildren !== 1 ? "s" : ""}</Text>
+          </Text>
+        </Box>
+
+        {/* Outline */}
+        <Box flexDirection="column" marginTop={1} overflow="hidden" flexGrow={1}>
+          {entries.map((entry) => {
+            const indent = "  ".repeat(entry.depth)
+            const icon = getNodeIcon(entry.node.task_status, undefined, entry.node.type === "task")
+            const entryTitle = getNodeDisplayName(repo, entry.node)
+            return (
+              <Box key={entry.node.id} height={1}>
+                <Text wrap="truncate">
+                  {indent}
+                  <Text color={icon.color}>{icon.char}</Text> {renderRich(entryTitle)}
+                </Text>
+              </Box>
+            )
+          })}
+          {hasMore && <Text dimColor>  ...and more</Text>}
+        </Box>
+
+        {/* Footer hint */}
+        <Box flexGrow={1} />
+        <Box>
+          <Text dimColor>h/Esc:close Enter:open</Text>
+        </Box>
+      </ErrorBoundary>
+    </Box>
+  )
+}
+
+// =============================================================================
+// Task Detail Pane — task/note details
+// =============================================================================
+
+function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   const innerWidth = Math.max(10, width - 6) // Account for border + paddingX(1)
   const title = getNodeDisplayName(repo, node)

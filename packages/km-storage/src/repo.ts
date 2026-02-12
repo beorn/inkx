@@ -135,9 +135,41 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return dbGetBacklinks(db, nodeId)
     },
     getRenameImpact(nodeId: string) {
+      const node = dataStore.getNode(nodeId)
       const backlinks = dbGetBacklinks(db, nodeId)
       const children = dataStore.getChildren(nodeId)
-      return { backlinks, childCount: children.length }
+      const oldName = node?.name ?? ""
+
+      // Count rule references and blocked-by references
+      let ruleRefs = 0
+      let propRefs = 0
+
+      if (oldName) {
+        const allNodes = dataStore.getAllNodes()
+        for (const n of allNodes) {
+          // Check rules for path references
+          if (n.rules?.add) {
+            const queries = Array.isArray(n.rules.add) ? n.rules.add : [n.rules.add]
+            for (const q of queries) {
+              if (replacePathInQuery(q, oldName, "___test___") !== q) {
+                ruleRefs++
+                break
+              }
+            }
+          }
+          if (n.rules?.sync && replacePathInQuery(n.rules.sync, oldName, "___test___") !== n.rules.sync) {
+            ruleRefs++
+          }
+
+          // Check blocked-by properties
+          const props = n.data?.props as Record<string, { type: string; target?: string }> | undefined
+          if (props?.["blocked-by"]?.type === "link" && props["blocked-by"].target?.toLowerCase() === oldName.toLowerCase()) {
+            propRefs++
+          }
+        }
+      }
+
+      return { backlinks, childCount: children.length, ruleRefs, propRefs }
     },
     resolveNode(queryStr: string, typeOrOptions?: string | { type?: string; taskOnly?: boolean }) {
       const baseOpts = typeof typeOrOptions === "string" ? { type: typeOrOptions } : (typeOrOptions ?? {})
@@ -311,7 +343,7 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       // 1. Rename the node itself (update both content and name)
       mutations.updateNode(id, { content: newContent, name: newName })
 
-      // 3. Update backlinks in source nodes
+      // 2. Update backlinks in source nodes
       const backlinks = dbGetBacklinks(deps.db, id)
       const total = backlinks.length
       const escapedOld = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -330,12 +362,123 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         onProgress?.({ updated, total })
       }
 
-      // 4. Update target_name in links table
+      // 3. Update target_name in links table
       dbUpdateTargetName(deps.db, oldName, newName)
+
+      // 4. Update path references in section rules (add=, sync=)
+      updateRulePathReferences(dataStore, mutations, oldName, newName)
+
+      // 5. Update blocked-by property targets
+      updateBlockedByReferences(dataStore, mutations, oldName, newName)
     },
   }
 
   return mutations
+}
+
+// =============================================================================
+// Rename Reference Helpers
+// =============================================================================
+
+interface MutationMethods {
+  updateNode(id: string, changes: Partial<KNode>): void
+}
+
+/**
+ * Replace a path segment in a rule query string.
+ * E.g., "./inbox/** status:todo" → "./tasks/** status:todo" when renaming "inbox" → "tasks"
+ */
+function replacePathInQuery(query: string, oldName: string, newName: string): string {
+  // Match the old name as a path segment: preceded by ./ or / and followed by / or ** or $ or end
+  const escaped = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const pathPattern = new RegExp(`((?:^|\\s)(?:\\.?/)?)${escaped}(/|\\*\\*|$)`, "gi")
+  return query.replace(pathPattern, `$1${newName}$2`)
+}
+
+/**
+ * Update path references in section rules (add=, sync=) when a node is renamed.
+ */
+function updateRulePathReferences(
+  dataStore: DataStore,
+  mutations: MutationMethods,
+  oldName: string,
+  newName: string,
+): void {
+  const allNodes = dataStore.getAllNodes()
+
+  for (const node of allNodes) {
+    if (!node.rules) continue
+
+    let changed = false
+    const newRules = { ...node.rules }
+
+    // Update add= rules
+    if (newRules.add) {
+      if (Array.isArray(newRules.add)) {
+        const updatedAdd = newRules.add.map((q) => replacePathInQuery(q, oldName, newName))
+        if (updatedAdd.some((q, i) => q !== newRules.add![i])) {
+          newRules.add = updatedAdd
+          changed = true
+        }
+      } else {
+        const updatedAdd = replacePathInQuery(newRules.add, oldName, newName)
+        if (updatedAdd !== newRules.add) {
+          newRules.add = updatedAdd
+          changed = true
+        }
+      }
+    }
+
+    // Update sync= rules
+    if (newRules.sync) {
+      const updatedSync = replacePathInQuery(newRules.sync, oldName, newName)
+      if (updatedSync !== newRules.sync) {
+        newRules.sync = updatedSync
+        changed = true
+      }
+    }
+
+    if (changed) {
+      // Update the node's content and data (rules are stored in data.rules)
+      const newData = { ...node.data, rules: newRules }
+      const updatedContent = node.content
+        ? node.content.replace(
+            new RegExp(oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"),
+            newName,
+          )
+        : node.content
+      mutations.updateNode(node.id, { data: JSON.stringify(newData) as unknown as Record<string, unknown>, content: updatedContent })
+    }
+  }
+}
+
+/**
+ * Update blocked-by property targets when a node is renamed.
+ */
+function updateBlockedByReferences(
+  dataStore: DataStore,
+  mutations: MutationMethods,
+  oldName: string,
+  newName: string,
+): void {
+  const allNodes = dataStore.getAllNodes()
+
+  for (const node of allNodes) {
+    const props = node.data?.props as Record<string, { type: string; target?: string }> | undefined
+    if (!props) continue
+
+    const blockedBy = props["blocked-by"]
+    if (blockedBy?.type !== "link") continue
+    if (blockedBy.target?.toLowerCase() !== oldName.toLowerCase()) continue
+
+    // Update the blocked-by target
+    const newProps = {
+      ...props,
+      "blocked-by": { ...blockedBy, target: newName },
+    }
+    const newData = { ...node.data, props: newProps }
+    mutations.updateNode(node.id, { data: JSON.stringify(newData) as unknown as Record<string, unknown> })
+  }
 }
 
 /** Check if a repo at rootPath needs rebuild (disk mode helper) */
@@ -536,8 +679,8 @@ export interface Repo extends Disposable {
   /** Get backlinks (link records pointing to this node) */
   getBacklinks(nodeId: string): Link[]
 
-  /** Get rename impact: backlinks and child count for a node */
-  getRenameImpact(nodeId: string): { backlinks: Link[]; childCount: number }
+  /** Get rename impact: backlinks, child count, rule references, and property references */
+  getRenameImpact(nodeId: string): { backlinks: Link[]; childCount: number; ruleRefs: number; propRefs: number }
 
   /** Rename a node and update all backlinks referencing it */
   renameNode(id: string, newContent: string, onProgress?: (info: { updated: number; total: number }) => void): void

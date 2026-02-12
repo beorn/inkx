@@ -7,7 +7,7 @@
 
 import { createApp, type EventHandlerContext } from "inkx/runtime"
 import type { Key } from "inkx"
-import { createLogger } from "@beorn/logger"
+import { createLogger, type SpanLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { createBoardAppStoreState, type CreateBoardAppStoreParams } from "./board-app-store.ts"
@@ -19,6 +19,9 @@ import type { ActionCtx } from "./tui-context.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
 
 const perfLog = createLogger("km:perf")
+
+// Inter-event gap tracking
+let lastKeyTime = 0
 
 // Singleton — stateless, so one instance suffices for all key events
 const cardsViewNavigation = createCardsViewNavigation()
@@ -77,6 +80,10 @@ const CHORD_TIMEOUT_MS = 300
  * Handle term:key event — the single entry point for all keyboard input.
  * All modals (help, deleteConfirm, console, toast) are routed through the
  * command system via keybindings with when predicates and wildcard catch-alls.
+ *
+ * Span-instrumented: each keypress produces a km:perf:key span with sub-spans
+ * for dispatch (keybinding resolution) and action (state mutation). Enable with
+ * TRACE=km:perf or TRACE=1.
  */
 export function handleKey(
   data: { input: string; key: Key },
@@ -85,6 +92,13 @@ export function handleKey(
 ): void | "exit" | "flush" {
   const { input, key } = data
   const { get } = ctx
+
+  // Track inter-event gap
+  const now = performance.now()
+  const gap = lastKeyTime > 0 ? now - lastKeyTime : 0
+  lastKeyTime = now
+
+  using keySpan = perfLog.span("key", { input, gap: Math.round(gap) })
 
   ensureCommandSystemInitialized()
 
@@ -101,7 +115,7 @@ export function handleKey(
     chordTimer = null
   }
 
-  routeThroughCommandSystem(input, key, get, exitApp)
+  routeThroughCommandSystem(keySpan, input, key, get, exitApp)
   if (needsRenderFlush()) return "flush"
 }
 
@@ -110,17 +124,29 @@ export function handleKey(
  * When a dialog is open, only dialog.* and text.* commands are processed.
  */
 // oxlint-disable-next-line complexity/complexity -- Sequential key routing with dialog/boundary state guards
-function routeThroughCommandSystem(input: string, key: Key, get: () => BoardAppStore, exitApp: () => void): void {
+function routeThroughCommandSystem(
+  parentSpan: SpanLogger,
+  input: string,
+  key: Key,
+  get: () => BoardAppStore,
+  exitApp: () => void,
+): void {
   const ctx = buildActionCtx(get, exitApp)
 
-  const keyStart = performance.now()
-  const result = processKeyWithContext(input, key, ctx)
+  // Phase 1: Dispatch — resolve keybinding to command
+  let result: ReturnType<typeof processKeyWithContext>
+  {
+    using _dispatch = parentSpan.span("dispatch")
+    result = processKeyWithContext(input, key, ctx)
+    if (result.commandId) parentSpan.spanData.command = result.commandId
+  }
 
   // When a dialog is open, unhandled keys are expected (limited key set)
   const dialogOpen = ctx.ui.showSearchDialog || ctx.ui.showNewItemDialog || ctx.ui.showProjectPicker
 
   // Chord pending: show status indicator and start timeout
   if (result.pending) {
+    parentSpan.spanData.outcome = "chord"
     ctx.setUI({ status: { level: "info", message: `${result.pending}-` } })
     chordTimer = setTimeout(() => {
       chordTimer = null
@@ -149,6 +175,7 @@ function routeThroughCommandSystem(input: string, key: Key, get: () => BoardAppS
   }
 
   if (!result.handled) {
+    parentSpan.spanData.outcome = dialogOpen ? "dialog-pass" : "unhandled"
     // Visual bell for unhandled keys (only outside dialogs)
     if (!dialogOpen) {
       ctx.setUI({ bellState: "unhandled" })
@@ -163,19 +190,20 @@ function routeThroughCommandSystem(input: string, key: Key, get: () => BoardAppS
     // When a dialog is open, only process dialog and text commands
     if (dialogOpen && result.commandId) {
       const isDialogOrTextCommand = result.commandId.startsWith("dialog.") || result.commandId.startsWith("text.")
-      if (!isDialogOrTextCommand) return
+      if (!isDialogOrTextCommand) {
+        parentSpan.spanData.outcome = "dialog-filtered"
+        return
+      }
     }
 
+    // Phase 2: Actions — execute state mutations
     for (const action of actionList) {
-      const actionStart = performance.now()
+      using actionSpan = parentSpan.span("action", { type: action.type })
       const actionResult = handleCommandAction(ctx, action)
-      const actionDuration = performance.now() - actionStart
-      if (actionDuration > 5) {
-        perfLog.debug?.(`action ${action.type}: ${actionDuration.toFixed(2)}ms`)
-      }
 
       // Check for boundary errors - ring bell and show status message
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
+        actionSpan.spanData.boundary = actionResult.error.direction
         ctx.setUI({
           bellState: actionResult.error.direction,
           status: {
@@ -186,10 +214,8 @@ function routeThroughCommandSystem(input: string, key: Key, get: () => BoardAppS
         process.stdout.write("\x07")
       }
     }
-    const totalDuration = performance.now() - keyStart
-    if (totalDuration > 10) {
-      perfLog.debug?.(`total key handling: ${totalDuration.toFixed(2)}ms`)
-    }
+    parentSpan.spanData.outcome = "handled"
+    parentSpan.spanData.actions = actionList.length
   }
 }
 

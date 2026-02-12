@@ -7,7 +7,7 @@
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { getCardMidY } from "../card-positions.ts"
-import { clearSelection, pushNavHistoryEntry, updateSelectionRange } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -30,10 +30,10 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
     return handleOutlineNav(ctx, dir, card)
   }
 
-  // Selection range extension
-  if (ui.multiSelected.size > 0 && ui.selectionAnchor !== null) {
-    const result = handleSelectionNav(ctx, dir)
-    if (result) return result
+  // Non-shift cursor moves clear multi-selection (Shift+movement extends it
+  // via separate extend_select_* commands that don't go through handleCursorMove)
+  if (ui.multiSelected.size > 0) {
+    clearSelection(ctx)
   }
 
   // Horizontal (h/l) — preserves stickyY across columns
@@ -68,38 +68,6 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: CardState 
     }
   }
   return boundary(dir)
-}
-
-/** Handle navigation while shift-selection is active. Returns null to fall through. */
-function handleSelectionNav(ctx: ActionCtx, dir: string): ActionResult | null {
-  const { layout, ui, dispatchBoard } = ctx
-  const col = layout.columns[layout.colIndex]
-
-  if (dir === "prev" || dir === "next") {
-    // Vertical navigation with selection
-    const targetIdx =
-      dir === "prev" ? Math.max(0, layout.cardIndex - 1) : Math.min((col?.cards.length ?? 1) - 1, layout.cardIndex + 1)
-
-    if (targetIdx !== layout.cardIndex) {
-      const direction = dir === "prev" ? "prev" : "next"
-      const targetId = handleTreeNavigation(direction as TreeDirection, ctx, ctx.repo)
-      if (targetId) {
-        dispatchBoard({ type: "SELECT", nodeId: targetId })
-        if (ui.selectionAnchor !== null) {
-          updateSelectionRange(ctx, layout.colIndex, targetIdx, 0)
-        }
-        return ok()
-      }
-    }
-    return boundary(dir)
-  }
-
-  if (dir === "left" || dir === "right") {
-    // Horizontal: clear selection and fall through to horizontal handler
-    clearSelection(ctx)
-  }
-
-  return null
 }
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */

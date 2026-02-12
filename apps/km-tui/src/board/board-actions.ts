@@ -173,12 +173,17 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.setUI({ showHelp: false })
       return ok()
     case "OPEN_DETAIL_PANE": {
-      // If current node has children, zoom into it instead of opening detail pane
+      // If current node has children, zoom into it instead of opening detail pane.
+      // Exception: folders always get the detail pane (shows contents outline).
       const curCol = layout.columns[layout.colIndex]
       const curCard = curCol?.cards[layout.cardIndex]
       const curNodeId = curCard?.node.id ?? curCol?.node.id
-      log.debug?.(`OPEN_DETAIL_PANE: colIndex=${layout.colIndex} cardIndex=${layout.cardIndex} curNodeId=${curNodeId}`)
-      if (curNodeId) {
+      const curNode = curNodeId ? ctx.repo.getNode(curNodeId) : undefined
+      // Resolve embedded links to get the actual target node type
+      const resolvedNode = curNode?.link_to ? ctx.repo.getNode(curNode.link_to) : curNode
+      const isFolder = resolvedNode?.type === "folder"
+      log.debug?.(`OPEN_DETAIL_PANE: colIndex=${layout.colIndex} cardIndex=${layout.cardIndex} curNodeId=${curNodeId} isFolder=${isFolder}`)
+      if (curNodeId && !isFolder) {
         const children = ctx.repo.getChildren(curNodeId)
         log.debug?.(`OPEN_DETAIL_PANE: children=${children.length}`)
         if (children.length > 0) {
@@ -186,7 +191,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           return handleZoomInNode(ctx, curNodeId)
         }
       }
-      // No children - open detail pane for leaf nodes
+      // No children, or folder — open detail pane
       ctx.setUI({ showDetailPane: true })
       return ok()
     }

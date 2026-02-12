@@ -6,12 +6,13 @@
  *
  * Uses inkx VirtualList for React-level virtualization.
  */
-import React from "react"
+import React, { useMemo } from "react"
 import { Box, Text, VirtualList } from "inkx"
 import type { TUIBoardState, CardState } from "../types.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
-import { useTreeRenderContext } from "../ui-context.tsx"
+import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
+import { renderPlain } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { useCursorPosition } from "../cursor-context.tsx"
 
@@ -52,6 +53,11 @@ export function TabsView({
   // Get current column
   const currentColumn = state.columns[colIndex]
   const count = currentColumn?.cards.length ?? 0
+
+  // Derive column-level excluded sigils (e.g., hide @next inside @next column)
+  const colName = currentColumn ? renderPlain(getNodeDisplayName(repo, currentColumn.node)) : ""
+  const columnExcludedSigils = useMemo(() => deriveColumnExcludedSigils(colName), [colName])
+  const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
   // Column header is selected when at column level
   const isColumnHeaderSelected = selectionLevel === "column"
@@ -141,6 +147,7 @@ export function TabsView({
                     colIndex={colIndex}
                     cardIndex={actualCardIndex}
                     isSelected={isCardSelected}
+                    extraExcludedSigils={extraExcludedSigils}
                   />
                 )
               }}

@@ -22,64 +22,29 @@ Look for patterns in user input:
 ### Example: "going down after Justice node"
 
 ```typescript
-// apps/km-tui/tests/board.spec.ts
-import { createBoardDriver } from '../../src/driver.ts'
-import { createFakeRepo } from '@km/storage'
-import { item } from './helpers/board-test.ts'
+import { describe, test, expect } from "vitest"
+import { testEnv, item } from "./helpers/board-test.ts"
 
-test("cursor should move down after searching for Justice", async () => {
-  // SETUP: Create fixture with Justice node
-  const nodes = item("board", item("col",
-    item("Task A"), item("Justice"), item("Task C")))
-  const repo = createFakeRepo({ nodes })
-  const driver = createBoardDriver(repo, "board")
+test("cursor should move down after searching for Justice", () => {
+  const { board } = testEnv(() =>
+    item("board", item("col",
+      item("Task A"), item("Justice"), item("Task C")))
+  )
 
   // 1. Navigate to "Justice" node
-  await driver.press("/")                    // Open search
-  for (const c of "Justice") await driver.press(c)
-  await driver.press("Enter")                // Select result
+  board.press("/")
+  for (const c of "Justice") board.press(c)
+  board.press("Enter")
 
   // 2. Execute described action
-  const before = driver.getState()
-  await driver.press("j")                    // "going down"
-  const after = driver.getState()
+  const before = board.textContent()
+  board.press("j")
+  const after = board.textContent()
 
-  // 3. Verify
-  console.log({
-    cursorMoved: after.cursor.card !== before.cursor.card,
-    before: before.selectedNodeId,
-    after: after.selectedNodeId,
-  })
-
-  // 4. Assert expected behavior
-  expect(after.selectedNodeId).toBe("Task C")
-  expect(after.cursor.card).toBe(before.cursor.card + 1)
+  // 3. Verify — cursor should be on Task C
+  expect(before).not.toBe(after)
 })
 ```
-
-### Loading User's Real Vault
-
-When debugging a user-reported issue on their actual data:
-
-```typescript
-import { createBoardDriver } from '../../src/driver.ts'
-import { createRepo, runGenerator } from '@km/storage'
-
-test("repro user bug with real vault", async () => {
-  // Load user's vault (or a copy of it)
-  const repo = await runGenerator(createRepo('/path/to/user/vault', { loadFiles: true }))
-  const rootNode = repo.getRepoRootNode()
-  const driver = createBoardDriver(repo, rootNode.id)
-
-  // Now reproduce the user's steps
-  await driver.press('/')
-  for (const c of 'Justice') await driver.press(c)
-  await driver.press('Enter')
-  await driver.press('j')
-
-  const state = driver.getState()
-  console.log(state)
-})
 
 ### Testing Variations
 
@@ -87,40 +52,60 @@ Once the base test passes/fails, expand with variations:
 
 ```typescript
 describe("cursor after search", () => {
-  const setup = () => {
-    const nodes = item("board", item("col",
+  const setup = () => testEnv(() =>
+    item("board", item("col",
       item("Task A"), item("Justice"), item("Task C")))
-    return createBoardDriver(createFakeRepo({ nodes }), "board")
-  }
+  )
 
-  test("j moves down", async () => {
-    const driver = setup()
-    // ... search for Justice ...
-    const before = driver.getState()
-    await driver.press("j")
-    expect(driver.getState().cursor.card).toBe(before.cursor.card + 1)
+  test("j moves down", () => {
+    const { board } = setup()
+    board.press("/")
+    for (const c of "Justice") board.press(c)
+    board.press("Enter")
+    board.press("j")
+    // verify cursor moved down
   })
 
-  test("k moves up", async () => {
-    const driver = setup()
-    // ... search for Justice ...
-    const before = driver.getState()
-    await driver.press("k")
-    expect(driver.getState().cursor.card).toBe(before.cursor.card - 1)
-  })
-
-  test("works in list view", async () => {
-    const nodes = item("board", item("col", item("Task A"), item("Justice"), item("Task C")))
-    const driver = createBoardDriver(createFakeRepo({ nodes }), "board", { viewMode: "list" })
-    // ... same test ...
+  test("k moves up", () => {
+    const { board } = setup()
+    board.press("/")
+    for (const c of "Justice") board.press(c)
+    board.press("Enter")
+    board.press("k")
+    // verify cursor moved up
   })
 })
 ```
 
-### GUI Mode (only when pixel-level verification needed)
+### Loading User's Real Vault
+
+When debugging a user-reported issue on their actual data:
+
+```bash
+TEST_VAULT=/path/to/user/vault bun vitest run apps/km-tui/tests/real-vault.test.ts
+```
+
+Or write a custom test with `testEnvWithRepo`:
 
 ```typescript
-// Using existing vault with the problematic node
+import { testEnvWithRepo } from "./helpers/board-test.ts"
+
+test("repro user bug with real vault", async () => {
+  const { board } = await testEnvWithRepo("/path/to/user/vault")
+
+  // Reproduce the user's steps
+  board.press("/")
+  for (const c of "Justice") board.press(c)
+  board.press("Enter")
+  board.press("j")
+
+  console.log(board.textContent())
+})
+```
+
+## GUI Mode (only when pixel-level verification needed)
+
+```typescript
 const { sessionId } = await mcp__tty__start({
   command: ["bun", "km", "view", userVaultPath]
 })
@@ -142,40 +127,6 @@ await mcp__tty__wait({ sessionId, stable: 100 })
 // Capture after
 const afterText = await mcp__tty__text({ sessionId })
 const afterShot = await mcp__tty__screenshot({ sessionId })
-
-// Report findings with visual evidence
-```
-
-### Targeted Report Format
-
-```markdown
-# Targeted Exploration: [User Scenario]
-
-## Scenario
-"going down after Justice node"
-
-## Initial Test
-- **Setup**: Searched for "Justice", cursor on node
-- **Action**: Press `j` (move down)
-- **Result**: [describe what happened]
-- **Expected**: Cursor moves to next sibling or child
-
-## Test Added
-`apps/km-tui/tests/board.spec.ts` - "cursor should move down after searching"
-
-## Variations Tested
-
-| # | Variation | Result |
-|---|-----------|--------|
-| 1 | Press `k` (up) after Justice | [result] |
-| 2 | Press `j` 5x | [result] |
-| 3 | Same in list view | [result] |
-| 4 | Same in columns view | [result] |
-| 5 | Different node, same action | [result] |
-
-## Findings
-- [Bug/issue if found]
-- [Pattern observed]
 ```
 
 ---
@@ -195,52 +146,8 @@ When testing a real vault (`--path`), verify the TUI matches the filesystem:
 2. **Explore filesystem structure** before running TUI:
    ```bash
    ls -la /path/to/vault/
-   find /path/to/vault -maxdepth 2 -type d | head -20
    find /path/to/vault -name "*.md" | wc -l
    ```
-
-3. **Note expected content** for verification:
-   - Top-level folders (inbox, projects, areas, etc.)
-   - Key files that should appear
-   - Expected node count (from sqlite query)
-
-### TUI vs Filesystem Verification
-
-After loading the vault in TUI mode:
-
-```typescript
-// Load vault
-const repo = await runGenerator(createRepo(vaultPath, { loadFiles: true }))
-
-// Get root and children from repo
-const rootNode = repo.getRepoRootNode()
-const rootChildren = repo.getChildren(rootNode.id)
-
-console.log(`Filesystem children:`)
-for (const child of rootChildren) {
-  const name = child.data?.name || child.content || child.id
-  console.log(`  - ${name} (${child.type})`)
-}
-
-// Render and check text output
-const text = result.text
-
-// Verify expected folders appear
-const expected = ["inbox", "projects", "areas"]  // from filesystem exploration
-for (const folder of expected) {
-  const found = text.toLowerCase().includes(folder.toLowerCase())
-  console.log(`${found ? "✓" : "✗"} "${folder}" ${found ? "visible" : "NOT visible"}`)
-}
-```
-
-### Content Mismatch Detection
-
-| Check | How | Issue If |
-|-------|-----|----------|
-| Node count | `repo.getAllTasks().length` vs `sqlite3 ... nodes` | Mismatch > 10% |
-| Root children | `repo.getChildren(rootId)` vs `ls vault/` | Missing folders |
-| Visible text | `result.text` contains folder names | Expected content hidden |
-| Empty board | Text shows "Empty board" | Vault not synced |
 
 ### Common Issues
 

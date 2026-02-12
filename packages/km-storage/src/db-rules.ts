@@ -24,7 +24,7 @@ import { removeLinksFromSourceByRelationship } from "./db-links.ts"
 import { rowToNode, getChildren, getEmbedTargetsOnBoard, getNode } from "./db-queries/index.ts"
 // Note: We insert embed nodes directly into DB rather than using emitNodeCreated
 // because that would require the event system to be set up (which isn't always the case)
-import type { KNode, NodeRules } from "@km/core"
+import { parseQuery, type KNode, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
 
@@ -121,6 +121,19 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   if (!section) {
     log.debug?.("evaluateAddRule: section not found")
     return
+  }
+
+  // Warn about path patterns that escape the repo root
+  for (const query of queries) {
+    const ast = parseQuery(query)
+    for (const pathFilter of ast.paths) {
+      const p = pathFilter.pattern
+      if (p.startsWith("../") || p === ".." || p.includes("/../")) {
+        log.warn?.(
+          `add= rule path "${query}" resolves outside the repo root — it will match no nodes. Section: ${section.content ?? sectionId}`,
+        )
+      }
+    }
   }
 
   // Clear existing add-rule links from this section (for backward compat)

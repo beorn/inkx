@@ -32,6 +32,8 @@ interface MemoizedTreeCardProps {
   children?: KNode[]
   /** Optional board pills callback for performance optimization */
   getBoardPills?: (node: KNode, excludeBoardIds: Set<string>) => BoardPill[]
+  /** Additional sigils to exclude (e.g., column-level sigils like @next inside @next column) */
+  extraExcludedSigils?: string[]
 }
 
 /**
@@ -51,6 +53,7 @@ export const MemoizedTreeCard = React.memo(
     isSelected: isSelectedProp,
     children,
     getBoardPills,
+    extraExcludedSigils,
   }: MemoizedTreeCardProps): React.ReactElement {
     // Self-subscribe to CursorStore for selection state
     const cursorIsSelected = useIsCursorAtCard(colIndex, cardIndex)
@@ -72,6 +75,7 @@ export const MemoizedTreeCard = React.memo(
           children={children}
           childCount={card.childCount}
           getBoardPills={getBoardPills}
+          extraExcludedSigils={extraExcludedSigils}
         />
       </CardLayoutTracker>
     )
@@ -85,7 +89,8 @@ export const MemoizedTreeCard = React.memo(
       prev.colIndex === next.colIndex &&
       prev.cardIndex === next.cardIndex &&
       prev.isSelected === next.isSelected &&
-      prev.getBoardPills === next.getBoardPills
+      prev.getBoardPills === next.getBoardPills &&
+      prev.extraExcludedSigils === next.extraExcludedSigils
     )
   },
 )

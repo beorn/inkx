@@ -1,212 +1,131 @@
 # Exploration Reporting
 
-Cleanup, report generation, issue templates, and action workflow.
+The lead writes a summary report at the end of every exploration session (team or solo).
 
-## Cleanup
+## Team Mode Summary
 
-**TUI Mode:** No cleanup needed (in-memory)
-
-**GUI Mode:**
-```typescript
-await mcp__tty__stop({ sessionId })
-// Clean temp vault if generated
-```
-
-## Report Format
-
-```markdown
-# Exploration Report
-
-**Seed**: 12345 | **Iterations**: 100 | **Mode**: TUI
-
-## Summary
-
-| Metric | Count |
-|--------|-------|
-| Bugs found | 2 |
-| Performance issues | 3 |
-| Actions executed | 100 |
-| View modes tested | 4/4 |
-| Max zoom depth | 3 |
-
-## Bugs Found
-
-### 1. Unexpected bell on 'v' key
-**Iteration**: 47 | **Seed**: 12345
-**Action**: Press 'v' to cycle view mode
-**Context**: In columns view, cursor on task-5
-
-Bell triggered without being at boundary.
-
-**Reproduce**: `/explore --seed 12345` (stops at iteration 47)
-
-### 2. No effect on 'j' key
-**Iteration**: 73 | **Seed**: 12345
-**Action**: Press 'j' (move down)
-**Context**: In list view, cursor on task-12
-
-Neither content changed nor bell triggered.
-
-## Performance Issues
-
-| Iteration | Action | Time | Threshold | Context |
-|-----------|--------|------|-----------|---------|
-| 23 | v (view) | 312ms | 200ms | columns->list, 47 nodes |
-| 67 | v (view) | 287ms | 200ms | list->cards, 47 nodes |
-| 91 | o (zoom) | 178ms | 150ms | depth 2->3 |
-
-## Coverage
-
-- **View modes**: cards, columns, list, tabs
-- **Dialogs**: search, new item
-- **Zoom depth**: 0-3
-- **Actions**: j(23), k(18), v(12), ...
-```
-
----
-
-## Issue Templates
-
-### Bug Report
-
-```markdown
-## Bug: [Brief description]
-**Seed**: <seed> | **Iteration**: <n>
-**Action**: <key> - <description>
-
-### Context
-- View mode: <mode>
-- Cursor: on <element>
-- Zoom depth: <n>
-
-### Before/After
-\`\`\`
-[Terminal text diff or description]
-\`\`\`
-
-### Reproduce
-/explore --seed <seed>
-```
-
-### Performance Report
-
-```markdown
-## Slow: [Action description]
-**Seed**: <seed> | **Iteration**: <n>
-**Action**: <key>
-**Time**: <ms>ms (threshold: <threshold>ms)
-
-### Context
-- View mode: <mode>
-- Node count: <n>
-- Zoom depth: <n>
-
-### Likely cause
-[Analysis of what might be slow]
-```
-
----
-
-## Action-Oriented Workflow
-
-**IMPORTANT**: Don't ask for permission - fix issues as you find them.
-
-When issues are discovered:
-1. **Check for existing bead** — search before creating (see dedup below)
-2. **Create or claim bead** — create only if no match exists
-3. **Fix it** directly - investigate code, implement fix
-4. **Verify** the fix works
-5. **Close bead** with `bd close <id> --reason "..."`
-6. **Continue** exploring for more issues
-
-### Dedup: Check Before Creating
-
-Before creating a new bead, search for existing ones that match:
-
-```bash
-# Search open beads by keyword (title/description match)
-bd list --status=open | grep -i "keyword"
-
-# If a match exists, claim it instead of creating a new one
-bd update <existing-id> --claim
-```
-
-Match on the core symptom, not exact wording. E.g., "blank cards after scroll" and "empty cards on scroll" are the same bug. When in doubt, claim the existing bead and add notes.
-
-### Create + Fix Flow
-
-```bash
-# Bug - check existing, create if needed, claim, fix, close
-bd list --status=open | grep -i "symptom"       # Check first
-bd create --type=bug --priority=2 --title="TUI: [issue]"
-bd update <id> --claim
-# ... fix the issue ...
-bd close <id> --reason "Fixed by [description]"
-
-# Performance
-bd list --status=open | grep -i "slow\|perf"    # Check first
-bd create --type=bug --priority=3 --title="Perf: [issue]"
-bd update <id> --claim
-# ... fix the issue ...
-bd close <id> --reason "Optimized [description]"
-```
-
----
-
-## Exploration Summary Template
-
-At the end of exploration, provide a concise summary:
+After shutdown, before committing, the lead produces this:
 
 ```markdown
 # Exploration Summary
 
-**Vault**: /path/to/vault
-**Mode**: TUI/GUI/Peekaboo
-**Duration**: [time]
+**Date**: YYYY-MM-DD
+**Mode**: Team (health-check + explorer-interactive + explorer-targeted + reproducer + fixer)
 
-## Beads Created
+## Results
+
+| Metric | Count |
+|--------|-------|
+| Bugs found | N |
+| Bugs fixed | N |
+| Bugs open | N (beads) |
+| Visual issues spotted | N |
+| Targeted areas covered | N/6 |
+
+## Visual Exploration
+
+### Screenshots
+
+| # | Screenshot | Description |
+|---|-----------|-------------|
+| 1 | `/tmp/explore-screenshots/01-startup.png` | Initial board state at 120x40 |
+| 2 | `/tmp/explore-screenshots/02-fold-gap.png` | Gap after folding nested items |
+| ... | | |
+
+### Visual Findings
+
+- [Description of visual issue, with screenshot reference]
+- [Or "No visual issues found — TUI looks clean"]
+
+### Terminal Sizes Tested
+
+- 120x40: [summary of findings]
+- 80x24: [summary of findings]
+
+## Beads
+
 | ID | Title | Status |
 |----|-------|--------|
-| km-abc | TUI: Empty columns after scroll | Fixed |
-| km-xyz | Perf: Slow view switch | Open |
-
-## Issues Found
-- **Bugs**: 2 found, 1 fixed, 1 open
-- **Performance**: 1 issue identified
-- **Rendering**: All views verified
+| km-xxx | TUI: [description] | Fixed |
+| km-yyy | TUI: [description] | Open |
 
 ## Coverage
-- View modes: cards, columns, list, tabs
-- Actions tested: 47
-- Columns navigated: 7
-- Scroll positions tested: 12
+
+- **Interactive**: [areas explored, vault types tested, phases completed]
+- **Targeted areas**: [list of areas covered from explorer-targeted]
+- **Health check**: [pass/fail, seeds tested, total runs]
+- **Real vault**: [tested / not tested, path]
 
 ## Files Modified
-- `apps/km-tui/src/views/ColumnsView.tsx` - Fixed scroll offset bug
+- `path/to/file.ts` — [what changed]
 ```
 
-## Verification Checklist
+Print this summary to the user, then commit.
 
-Before reporting complete:
+## Solo Mode Summary
 
-- [ ] All iterations completed (or stopped at first bug if requested)
-- [ ] Bugs found → beads created → fixes attempted
-- [ ] Summary table generated with bead status
-- [ ] Files modified listed
-- [ ] Coverage stats show what was tested
+For non-team exploration (`/explore --fuzz`, `/explore --path`, `/explore <scenario>`):
+
+```markdown
+# Exploration: [mode/scenario]
+
+**Bugs found**: N | **Fixed**: N | **Open**: N
+**Actions tested**: ~N
+
+## Findings
+- [Bug/issue if found, with bead ID]
+- [Or "No bugs found — all tests passed"]
+
+## Files Modified
+- [list, or "None"]
+```
+
+## Dedup: Check Before Creating Beads
+
+Before creating a new bead, search for existing ones:
+
+```bash
+bd list --status=open | grep -i "keyword"
+```
+
+Match on core symptom, not exact wording. "Blank cards after scroll" and "empty cards on scroll" are the same bug.
+
+## Issue Templates
+
+### Bug Bead
+
+```bash
+bd create --type=bug --priority=2 --title="TUI: [brief description]"
+bd update <id> --parent km-tui
+bd update <id> --claim
+```
+
+### Visual Bug Bead
+
+```bash
+bd create --type=bug --priority=2 --title="TUI visual: [brief description]"
+bd update <id> --parent km-tui
+bd update <id> --claim
+bd update <id> --notes="Screenshot: /tmp/explore-screenshots/NN-name.png\nTerminal: 120x40\nSequence: [keys]"
+```
+
+### Performance Bead
+
+```bash
+bd create --type=bug --priority=3 --title="Perf: [brief description]"
+bd update <id> --parent km-tui
+bd update <id> --claim
+```
 
 ## Dependencies
 
-**TUI Mode:**
-- `testEnv()`, `item()` from `apps/km-tui/tests/helpers/board-test.ts`
-- `board.press()`, `board.screenshot()`, `board.expect()` API
-
-**GUI Mode:**
+**Interactive Mode:**
 - MCP TTY: `mcp__tty__start`, `mcp__tty__press`, `mcp__tty__text`, `mcp__tty__screenshot`, `mcp__tty__stop`, `mcp__tty__wait`
+- Screenshots saved to `/tmp/explore-screenshots/`
+
+**Headless Mode:**
+- `testEnv()`, `item()` from `apps/km-tui/tests/helpers/board-test.ts`
+- `board.press()`, `board.textContent()`, `board.screenshot()` API
 
 **Peekaboo Mode:**
-- Peekaboo MCP: `mcp__peekaboo__list`, `mcp__peekaboo__see`, `mcp__peekaboo__image`, `mcp__peekaboo__app`, `mcp__peekaboo__type`, `mcp__peekaboo__click`, `mcp__peekaboo__hotkey`
-
-**Shared:**
-- SeededRandom for reproducibility
-- Weighted action selection
+- Peekaboo MCP: `mcp__peekaboo__list`, `mcp__peekaboo__image`, `mcp__peekaboo__hotkey`, etc.

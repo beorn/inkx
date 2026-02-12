@@ -30,11 +30,14 @@ export function processKeyWithContext(input: string, key: InkKeyEvent, ctx: Acti
 
   const { ui, layout, selectedNode } = ctx
 
-  // Compute TNode derived fields from KNode for the command system
+  // Compute TNode derived fields from KNode for the command system.
+  // For embedded links, resolve through link_to to check if the target is a task,
+  // so that task commands (x, Space) work on links pointing to tasks.
   const nodeForCtx: TNode | null = selectedNode
     ? ({
         ...selectedNode,
-        isTask: selectedNode.task_status != null,
+        isTask: selectedNode.task_status != null
+          || (selectedNode.link_to != null && ctx.repo.getNode(selectedNode.link_to)?.task_status != null),
         children: [],
         depth: 0,
         childCount: 0,
@@ -88,7 +91,8 @@ export function processChordTimeout(ctx: ActionCtx): InkCommandResult | null {
   const nodeForCtx: TNode | null = selectedNode
     ? ({
         ...selectedNode,
-        isTask: selectedNode.task_status != null,
+        isTask: selectedNode.task_status != null
+          || (selectedNode.link_to != null && ctx.repo.getNode(selectedNode.link_to)?.task_status != null),
         children: [],
         depth: 0,
         childCount: 0,

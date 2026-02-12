@@ -9,7 +9,7 @@
  * Must be imported before any debug() calls.
  */
 
-import { addWriter } from "@beorn/logger"
+import { addWriter, setSuppressConsole } from "@beorn/logger"
 import createDebug from "debug"
 import { createWriteStream } from "fs"
 import { relative } from "path"
@@ -34,12 +34,24 @@ let consoleEnabled = false
 /**
  * Enable routing debug output to console.debug (for TUI's <Console> component).
  * Call this after patchConsole is set up. Flushes any buffered output.
+ *
+ * When DEBUG_LOG is set, suppresses console output from both the debug package
+ * (customLog) and @beorn/logger (writeLog) to prevent patchConsole → React
+ * re-render → layout cascade. File output continues via writers.
  */
 export function enableConsoleDebug(): void {
   consoleEnabled = true
-  // Flush buffer
-  for (const line of consoleBuffer) {
-    console.debug(line)
+
+  // When DEBUG_LOG is active, suppress @beorn/logger console output too
+  if (stream) {
+    setSuppressConsole(true)
+  }
+
+  // Flush buffer (only if not suppressed)
+  if (!stream) {
+    for (const line of consoleBuffer) {
+      console.debug(line)
+    }
   }
   consoleBuffer = []
 }
@@ -194,6 +206,9 @@ function customLog(...args: unknown[]): void {
   if (!process.stdout.isTTY) {
     // Not in TTY (tests, scripts) - output to stderr as normal
     console.error(line)
+  } else if (stream) {
+    // DEBUG_LOG is set — file output only, skip console to prevent
+    // patchConsole → React re-render → layout cascade in TUI
   } else if (consoleEnabled) {
     // TUI mode with patchConsole active - route to console.debug
     // This makes debug output appear in the <Console> component
@@ -214,6 +229,9 @@ if (logPath) {
   const logStream = createWriteStream(logPath, { flags: "a" })
   stream = logStream
   addWriter((formatted) => logStream.write(stripAnsi(formatted) + "\n"))
+  // Suppress @beorn/logger console output immediately (not just in enableConsoleDebug)
+  // so startup log messages also go to file only
+  setSuppressConsole(true)
 
   // Clean up on exit - only close stream, don't call process.exit()
   // Other signal handlers (like TUI terminal restoration) need to run first

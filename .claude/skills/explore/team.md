@@ -1,137 +1,259 @@
 # Team-Based Exploration
 
-Three-agent pipeline for finding and fixing bugs fast. Explorer discovers via headless scripts, reproducer writes failing tests, fixer implements fixes.
+**Default mode for `/explore`.** Interactive AI exploration as the main activity, with headless tests as a background health check. Pipeline: interactive explorer discovers visual/UX issues, targeted explorer writes edge-case tests, reproducer creates beads + failing tests, fixer implements fixes — all running concurrently.
 
-## When to Use
+## Philosophy
 
-- Extended exploration (user asks for thorough bug hunting)
-- `/explore` with a scenario that likely has multiple bugs
-- User says "explore and fix", "find and fix bugs"
+**Exploration means using AI intelligence to observe, hypothesize, and investigate.** The interactive explorer launches the real TUI, looks at it, navigates, takes screenshots, and notices what feels off. Tests are a safety net (health check), not the main event.
 
-## Speed Principle
+## Smart Routing
 
-**TTY is slow (~1 action/sec). Headless is fast (~1000 actions/sec).**
+The lead interprets `/explore` args to decide what to emphasize:
 
-The explorer writes and runs headless exploration scripts that exercise hundreds of interactions in seconds. TTY is only for visual spot-checks and verification after fixes.
+| Args | Interactive TTY? | Headless tests? | Example |
+|------|-----------------|-----------------|---------|
+| No args | Yes (main) | Background health check | `/explore` |
+| Broad description | Yes (focused) | Background health check | `/explore recent batch ops` |
+| Specific bug repro | Maybe (verify) | Yes (primary for repro) | `/explore cursor jumps after indent` |
+| `--fuzz` | No | Yes (sole activity) | `/explore --fuzz` |
+| `--gui` / `--gui <path>` | Yes (manual, no team) | No | `/explore --gui` |
+
+Rule: if args describe *what to explore*, include interactive. If they describe *a specific bug to reproduce*, lead headless but verify interactively.
+
+## Priming: What to Explore
+
+Before spawning, the lead should gather context for agent prompts:
+
+1. **Recent changes**: `git log --oneline -20` — recently changed code has the freshest bugs
+2. **Open bug beads**: `bd list --status=open --type=bug` — known issues to validate/expand
+3. **Recent recall**: `bun recall "bug"` — prior sessions may have flagged unresolved issues
+
+Feed this context to explorer prompts. For example, if recent commits touched fold/unfold logic, tell explorers to prioritize fold/unfold scenarios.
+
+**Default priority areas** (when no specific context):
+1. Navigation (j/k/h/l) — most used, most likely to have edge cases
+2. View mode transitions (v, < >) — state-heavy, interaction between systems
+3. Fold/unfold (z/Z) — tree mutations that affect cursor and layout
+4. Zoom (n/Shift+n) — changes the entire board context
+5. Selection + batch ops (v then action) — multi-item state management
+6. Dialogs (/, new item) — modal state that can conflict with navigation
+
+## Vault Strategy
+
+The interactive explorer uses **both** real vault AND synthetic fixtures:
+1. **Start with real vault** (`--path` arg or `/tmp/vt` default) — catches real layout issues
+2. **Then probe synthetic edge cases** — empty columns, deep nesting, single-item boards, wide content
+
+If the real vault doesn't exist, fall back to synthetic only (don't fail).
 
 ## Team Setup
 
 ```
-TeamCreate(team_name="explore-<vault-name>")
+TeamCreate(team_name="explore")
 ```
 
-Spawn two teammates (you are the explorer lead):
+You are the **lead**. Spawn five teammates in parallel:
 
 ```
-Task(team_name="...", name="reproducer", subagent_type="general-purpose", prompt="...")
-Task(team_name="...", name="fixer", subagent_type="general-purpose", prompt="...")
+Task(team_name="...", name="health-check",          subagent_type="general-purpose", prompt="...", run_in_background=true)
+Task(team_name="...", name="explorer-interactive",   subagent_type="general-purpose", prompt="...")
+Task(team_name="...", name="explorer-targeted",      subagent_type="general-purpose", prompt="...")
+Task(team_name="...", name="reproducer",             subagent_type="general-purpose", prompt="...")
+Task(team_name="...", name="fixer",                  subagent_type="general-purpose", prompt="...")
 ```
+
+Spawn all five in a single message (parallel Task calls). `health-check` runs in background.
 
 ## Roles
 
-### 1. Explorer (you, the lead)
+### 1. Lead (you)
 
-**Primary method**: Write and run headless test scripts against real vault data or synthetic fixtures.
+**Coordinate, don't bottleneck.** Explorers send bugs directly to reproducer — you are not a relay.
 
-**Workflow**:
-1. Write a quick exploration script as a vitest file
-2. Run it: `bun vitest run <file>` (~instant for hundreds of actions)
-3. Analyze output for bugs (assertions, cursor state, DOM anomalies)
-4. When bug found: send to reproducer with exact key sequence + state
-5. Continue writing more exploration scripts while they work
-6. Use TTY only for visual verification when fixer reports a fix done
+Your job:
+1. Prime agents with `git log --oneline -20` + open bugs + args context
+2. Spawn all teammates in parallel
+3. Review interactive explorer's findings (screenshots + descriptions) — this is the main output
+4. Handle shutdown, `bun fix`, `bun run test:all`, commit + push
+5. Present visual summary with screenshot paths to user at end
+6. Write the final exploration summary (see [reporting.md](reporting.md))
 
-**Exploration script template** (write in `apps/km-tui/tests/`):
+### 2. Health Check (`health-check`) — Background
 
-```typescript
-import { describe, test, expect } from "vitest"
-import { testEnv, item } from "./helpers/board-test.ts"
-
-// Or for real vault: testEnvWithRepo
-// import { testEnvWithRepo } from "./helpers/board-test.ts"
-
-describe("Exploration: [scenario]", () => {
-  test("[N] interactions — [description]", () => {
-    const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B"), item("C")),
-        item("col2", item("D"), item("E")),
-      ),
-    )
-
-    const bugs: string[] = []
-
-    for (let i = 0; i < 100; i++) {
-      const action = ["j", "k", "n", "Tab", "l", "h"][i % 6]!
-      try {
-        board.press(action)
-      } catch (e) {
-        bugs.push(`[i=${i}] ${action}: THREW ${e}`)
-        continue
-      }
-
-      // Check cursor exists
-      const cursor = board.q("[data-cursor]")
-      if (!cursor || cursor.count() === 0) {
-        bugs.push(`[i=${i}] ${action}: no [data-cursor]`)
-      }
-
-      // Check for rendering garbage
-      const text = board.textContent()
-      if (text.includes("[object Object]") || text.includes("TypeError")) {
-        bugs.push(`[i=${i}] ${action}: garbage in output`)
-      }
-    }
-
-    expect(bugs).toEqual([])
-  })
-})
-```
-
-**For real vault exploration** (uses actual vault data):
-```bash
-TEST_VAULT=/tmp/vt bun vitest run apps/km-tui/tests/real-vault.test.ts
-```
-
-**For targeted scenarios** (embeds, specific node types):
-```typescript
-// Build fixture that matches the real scenario
-const { board, repo } = testEnv(() => {
-  const nodes = item("board", item("processing",
-    item("embed1"), item("embed2"), item("thoughts"),
-  ))
-  // Set up embeds: add link_to, remove depth
-  for (const n of nodes) {
-    if (n.id.startsWith("embed")) {
-      n.link_to = "some-target"
-      n.type = "paragraph"
-    }
-    if (n.id === "processing") {
-      n.data = { depth: 2 }
-    }
-  }
-  return nodes
-})
-```
-
-**Bug report to reproducer** — include exact state:
-```
-SendMessage(recipient="reproducer", content="""
-BUG: [description]
-Key sequence: [j, j, n, Escape, Tab] from card index 0
-Fixture: item("board", item("col", item("A"), item("B")))
-Cursor before: card index 2
-Cursor after: MISSING (no [data-cursor])
-Error (if any): [message]
-""")
-```
-
-### 2. Reproducer
+Runs tests as a safety net, reports failures only. Not exploration — just verification.
 
 **Spawned with prompt**:
 ```
-You are a bug reproducer for km TUI. When the explorer sends a bug:
+You are a background health checker for km TUI. Run the test suite and report ONLY failures to the lead.
 
+Run these in sequence:
+1. cd /Users/beorn/Code/pim/km && bun test:fuzz | head -400
+2. TEST_VAULT=/tmp/vt bun vitest run apps/km-tui/tests/real-vault.test.ts 2>&1 | head -200
+   (skip if /tmp/vt doesn't exist)
+3. bun vitest run apps/km-tui/tests/ --reporter=verbose 2>&1 | head -300
+
+If ALL tests pass: message the lead "Health check passed — no regressions found" with a count of tests run.
+
+If ANY test fails: message the lead immediately with failure details:
+  "HEALTH CHECK FAILURE: [test name] — [error summary]"
+  Include the full error output.
+
+Also try varying fuzz seeds:
+  FUZZ_SEED=42 bun test:fuzz | head -200
+  FUZZ_SEED=999 bun test:fuzz | head -200
+
+DO NOT write new test files. DO NOT fix bugs. DO NOT run bun fix.
+```
+
+### 3. Explorer — Interactive (`explorer-interactive`) — PRIMARY
+
+**The main exploration agent.** Launches the TUI via TTY MCP, navigates intelligently, takes screenshots, reports visual/UX issues.
+
+**Spawned with prompt** (include primed context from git log + open bugs):
+```
+You are an interactive TUI explorer for km. Your job is to LAUNCH the real TUI, LOOK at it, NAVIGATE through it, and NOTICE what feels off. You are the AI's eyes — observe, hypothesize, investigate.
+
+## Phase 1: Real vault exploration
+
+1. Create screenshot directory:
+   Bash: mkdir -p /tmp/explore-screenshots
+
+2. Launch TUI with real vault:
+   mcp__tty__start(command=["bun", "km", "view", "<vault-path>"], cols=120, rows=40, cwd="/Users/beorn/Code/pim/km")
+   (Use /tmp/vt if no --path specified. If it doesn't exist, skip to Phase 2.)
+
+3. Screenshot on startup — save to /tmp/explore-screenshots/01-startup.png
+
+4. Navigate to areas related to recent changes:
+   [LEAD INSERTS: recent git changes and open bugs context here]
+
+5. For each area, do NORMAL usage first, then edge cases:
+   - Press keys naturally: j/k to navigate, l to enter, h to go back
+   - Take screenshots at INTERESTING states (not mechanically)
+   - Use mcp__tty__text to cross-check what's rendered
+   - THINK: Does this look right? Is the layout balanced? Any visual artifacts?
+   - Pay attention to: alignment, colors, blank areas, truncation, cursor position
+
+6. Try these interactions:
+   - Fold/unfold (z/Z) — does the layout reflow cleanly?
+   - View mode switch (v) — do cards ↔ list transitions look right?
+   - Outline depth (< >) — any blank cards or misalignment?
+   - Search (/) — does the overlay render correctly?
+   - Scroll through long lists — any flickering or blank areas?
+
+## Phase 2: Synthetic edge cases
+
+Stop real vault session (mcp__tty__stop).
+
+Create a synthetic vault with edge cases:
+  Bash: mkdir -p /tmp/explore-synthetic/col-empty /tmp/explore-synthetic/col-one && echo "# Single" > /tmp/explore-synthetic/col-one/task.md && mkdir -p /tmp/explore-synthetic/col-deep/a/b/c/d/e && echo "# Deep" > /tmp/explore-synthetic/col-deep/a/b/c/d/e/leaf.md && for i in $(seq 1 30); do echo "# Task $i" > "/tmp/explore-synthetic/col-one/task-$i.md"; done
+
+Launch TUI on synthetic vault:
+  mcp__tty__start(command=["bun", "km", "view", "/tmp/explore-synthetic"], cols=120, rows=40, cwd="/Users/beorn/Code/pim/km")
+
+Test: empty columns, single item, very deep nesting, long scrollable lists, many columns.
+Screenshot interesting states.
+
+## Phase 3: Narrow terminal
+
+Stop, restart at 80x24:
+  mcp__tty__start(command=["bun", "km", "view", "<vault-path>"], cols=80, rows=24, cwd="/Users/beorn/Code/pim/km")
+
+Quick pass through key areas — does layout degrade gracefully?
+Screenshot any layout breakage.
+
+## Budgets
+- ~100 actions total across all phases
+- 8-12 screenshots (quality over quantity)
+- 2+ terminal sizes
+
+## Reporting visual issues
+
+When you spot something off, send to reproducer:
+
+VISUAL BUG: [description]
+Terminal size: [cols]x[rows]
+Key sequence from startup: [every key pressed in order]
+Expected: [what should appear]
+Actual: [what appears]
+Text output: [mcp__tty__text result, relevant section]
+Screenshot: /tmp/explore-screenshots/NN-name.png
+
+When you're done with all phases, message the lead with:
+- Summary of areas explored
+- List of screenshots taken (with paths)
+- Visual issues found (with descriptions)
+- Overall impression of TUI quality
+
+DO NOT write test files. DO NOT fix bugs. DO NOT run bun fix or bun run test:all.
+```
+
+### 4. Explorer — Targeted (`explorer-targeted`)
+
+**Secondary explorer.** Writes headless tests for edge cases, follows up on issues the interactive explorer spots.
+
+**Spawned with prompt**:
+```
+You are a targeted explorer for km TUI. Your job is to find bugs by writing and running custom exploration scripts. Send bugs directly to reproducer.
+
+Write scripts in apps/km-tui/tests/ using testEnv() + item() from ./helpers/board-test.ts.
+Name files with "explore-" prefix: explore-navigation.test.ts, explore-dialogs.test.ts, etc.
+
+Explore these areas (write a separate script for each, run immediately):
+- Navigation edge cases: deep nesting, single-item columns, empty columns
+- View mode transitions: list ↔ cards, outline depth changes (< >), zoom in/out (n/Shift+n)
+- Dialog interactions: search (/), new item, move mode, then navigate
+- Selection: select multiple (v), then fold/unfold/move/delete
+- Fold/unfold (z/Z) combined with navigation
+- Cursor at boundaries: first item, last item, first column, last column
+
+Script template:
+  import { describe, test, expect } from "vitest"
+  import { testEnv, item } from "./helpers/board-test.ts"
+
+  describe("Exploration: [area]", () => {
+    test("[description]", () => {
+      const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
+      const bugs: string[] = []
+      // exercise actions, check for cursor existence, rendering garbage, throws
+      board.press("j")
+      const text = board.textContent()
+      if (text.includes("[object Object]") || text.includes("TypeError")) {
+        bugs.push("garbage in output after j")
+      }
+      expect(bugs).toEqual([])
+    })
+  })
+
+Run each script: bun vitest run <file>
+
+When you find a bug, send to reproducer immediately:
+  SendMessage(recipient="reproducer", content="BUG: [description]\nKey sequence: [...]\nFixture: item(...)\nError: [message]")
+
+Also handle requests from explorer-interactive — if the interactive explorer spots a visual issue, write a headless test to confirm it.
+
+STOPPING RULE:
+- Minimum: cover all 6 areas above with at least one script each
+- After minimums met: keep writing new variations until 100+ test interactions pass without finding a new bug
+- If you find a bug, the counter resets — write more variations in that area
+- When converged, message the lead with a summary: areas covered, scripts written, bugs found, total interactions
+
+DO NOT fix bugs. DO NOT run bun fix or bun run test:all.
+```
+
+### 5. Reproducer
+
+**Spawned with prompt**:
+```
+You are a bug reproducer for km TUI. You receive bugs from multiple explorers (interactive and targeted) — handle them as fast as they arrive.
+
+DEDUP FIRST: Before creating a bead, check for existing matches:
+  cd /Users/beorn/Code/pim/km && bd list --status=open | grep -i "keyword"
+Match on the core symptom, not exact wording. If a match exists, message the explorer that it's a known issue and skip it.
+
+When ANY teammate sends a bug (or batch of bugs):
+
+For EACH unique bug:
 1. Create a bead:
    cd /Users/beorn/Code/pim/km && bd create --type=bug --priority=2 --title="TUI: [description]"
    bd update <id> --parent km-tui
@@ -142,26 +264,36 @@ You are a bug reproducer for km TUI. When the explorer sends a bug:
    Use testEnv() + item() from ./helpers/board-test.ts
    The test MUST FAIL — it documents the bug
 
+   For VISUAL BUG reports from explorer-interactive:
+   - Reconstruct the key sequence in a headless test
+   - Use board.textContent() to verify the visual issue
+   - If the bug is purely visual (pixel-level) and can't be caught headless, note this in the bead
+
 3. Confirm it fails: bun vitest run <test-file>
 
-4. Send bead ID + test path to fixer
+4. Send bead ID + test path to fixer IMMEDIATELY — don't batch, send as each one is ready
 
 DO NOT fix bugs. DO NOT run bun fix or bun run test:all.
+When idle, message the lead asking for more work.
 ```
 
-### 3. Fixer
+### 6. Fixer
 
 **Spawned with prompt**:
 ```
-You are a bug fixer for km TUI. When the reproducer sends a failing test:
+You are a bug fixer for km TUI. You handle multiple fixes — work on the next bug as soon as you finish the current one.
+
+When the reproducer sends a failing test:
 
 1. Read the test to understand the bug
 2. Investigate root cause in source
 3. Implement minimal fix
 4. Confirm test passes: bun vitest run <test-file>
-5. Check regressions: bun vitest run apps/km-tui/tests/
+5. Check regressions — but ONLY run test files that existed before your session:
+   bun vitest run apps/km-tui/tests/ --reporter=verbose 2>&1 | head -300
+   If you see failures in files named "explore-*.test.ts", ignore them — those are being written concurrently by the targeted explorer and may be incomplete.
 6. Close bead: bd close <id> --reason "Fixed: [description]"
-7. Notify explorer for manual verification
+7. Notify lead that fix is done, then immediately pick up next bug
 
 DO NOT run bun fix or bun run test:all — lead handles that.
 
@@ -175,15 +307,44 @@ Architecture:
 ## Flow
 
 ```
-Explorer writes script ──(run, find bug)──> Reproducer ──(test)──> Fixer
-    │                                                                  │
-    │ (keeps writing more scripts)                                     │
-    └──────────────(fix done, TTY verify)──────────────────────────────┘
+health-check (background) ─── test suite, reports regressions only
+
+explorer-interactive ────(visual bugs)───┐
+                                          ├──> reproducer ──(tests)──> fixer
+explorer-targeted ───────(test bugs)─────┘     (dedup)                   │
+                                                                          │
+lead (reviews screenshots, coordinates)                                   │
+    └──────────────(fix done, collect screenshots)────────────────────────┘
 ```
+
+All agents run concurrently from the start. Explorers send bugs directly to reproducer. Reproducer deduplicates before creating beads. Health check runs in background — reports only failures.
+
+## Bounds
+
+Explorers stop when they've **exhausted their ability to find new bugs**, not after a fixed scope:
+
+- **Convergence rule**: An explorer is done when it has run **100+ test interactions** (or ~100 TTY actions for interactive) without discovering a new bug since the last one.
+- **Minimum coverage**: Before convergence, explorer-interactive must complete all 3 phases (real vault + synthetic + narrow terminal), and explorer-targeted must cover all 6 priority areas.
+- **Bug burst reset**: When a bug is found, the counter resets. If bugs cluster in one area, keep digging.
+- **Overall**: Lead initiates shutdown when both explorers report convergence and the reproducer/fixer pipeline is drained.
+
+## Stopping Criteria
+
+Exploration ends when:
+- Both explorers report convergence (minimums met + 100+ interactions without a new bug)
+- Reproducer and fixer have processed all queued bugs
+- OR lead decides to stop early (e.g., enough bugs found, time constraints)
+
+**If zero bugs are found**: That's a good result. Lead writes a summary of what was tested (areas, screenshots, interactions) and shuts down. No beads needed.
 
 ## Shutdown
 
-1. Send shutdown to reproducer and fixer
-2. Run `bun fix && bun run test:all` from lead
-3. Commit + push
-4. `TeamDelete()`
+1. Wait for explorers to report completion
+2. Wait for reproducer + fixer to drain their queues
+3. Send shutdown to all teammates
+4. Clean up explore-*.test.ts files written by targeted explorer (delete or keep as regression tests)
+5. Collect screenshots from `/tmp/explore-screenshots/` — present gallery to user
+6. Run `bun fix && bun run test:all` from lead
+7. Write exploration summary (see [reporting.md](reporting.md))
+8. Commit + push
+9. `TeamDelete()`

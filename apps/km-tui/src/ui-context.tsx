@@ -79,6 +79,16 @@ export function deriveExcludedSigils(
 }
 
 /**
+ * Derive excluded sigils from a column node's display name.
+ * If the column name starts with a sigil prefix (@, #, +), that sigil
+ * should be hidden from cards inside the column (redundant context).
+ */
+export function deriveColumnExcludedSigils(columnName: string): string[] {
+  if (/^[@#\+]/.test(columnName)) return [columnName]
+  return []
+}
+
+/**
  * Get the board's excluded sigils (for filtering from card content).
  *
  * For boards named with sigil patterns (e.g., @issue.md, @next.md),

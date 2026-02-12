@@ -8,7 +8,7 @@
  * then MemoryStore parses them, and test runs within runWithDb context.
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
@@ -405,5 +405,84 @@ describe("Database Rules", () => {
           expect(counts.get(openSection!.id)).toBe(3)
         },
       ))
+  })
+
+  describe("path escape warnings", () => {
+    test("should warn when add= rule path escapes repo root with ../", async () => {
+      const { addWriter } = await import("@beorn/logger")
+      const logOutput: string[] = []
+      const unsubscribe = addWriter((formatted) => {
+        logOutput.push(formatted)
+      })
+      // Override the setup's console.warn spy to prevent "console output" error
+      vi.mocked(console.warn).mockImplementation(() => {})
+
+      try {
+        withMemoryStore(
+          (repoDir) => {
+            writeFileSync(
+              join(repoDir, "board.md"),
+              `# Board
+
+## Outside add="../other-repo/**"
+`,
+            )
+          },
+          ({ store }) => {
+            const ctx = createRuleContext()
+            for (const _ of evaluateAllRules(store.getDatabase(), ctx)) {
+              /* exhaust generator */
+            }
+
+            const warnLines = logOutput.filter((line) => line.includes("outside the repo"))
+            expect(warnLines.length).toBeGreaterThan(0)
+            expect(warnLines[0]).toContain("../other-repo/**")
+          },
+        )
+      } finally {
+        unsubscribe()
+      }
+    })
+
+    test("should not warn for valid relative paths", async () => {
+      const { addWriter } = await import("@beorn/logger")
+      const logOutput: string[] = []
+      const unsubscribe = addWriter((formatted) => {
+        logOutput.push(formatted)
+      })
+
+      try {
+        withMemoryStore(
+          (repoDir) => {
+            mkdirSync(join(repoDir, "inbox"), { recursive: true })
+            writeFileSync(
+              join(repoDir, "inbox", "task.md"),
+              `# Task
+
+- [ ] Do something
+`,
+            )
+            writeFileSync(
+              join(repoDir, "board.md"),
+              `# Board
+
+## Inbox add="./inbox/**"
+`,
+            )
+          },
+          ({ store }) => {
+            const ctx = createRuleContext()
+            for (const _ of evaluateAllRules(store.getDatabase(), ctx)) {
+              /* exhaust generator */
+            }
+
+            const warnLines = logOutput.filter((line) => line.includes("outside the repo"))
+            expect(warnLines.length).toBe(0)
+          },
+        )
+      } finally {
+        unsubscribe()
+      }
+    })
   })
 })

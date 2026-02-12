@@ -15,8 +15,18 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LOG="/tmp/recall-session-start.log"
 
 if [ -f "$REPO_ROOT/vendor/beorn-tools/tools/recall.ts" ]; then
-  # Incremental recall index update (background, logged)
-  (cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts index --incremental 2>&1 | tail -5 >> "$LOG") &
+  DB="$HOME/.claude/session-index.db"
+  SKIP_INDEX=0
+
+  # Skip incremental index if DB was modified within the last hour (saves ~50s CPU)
+  if [ -f "$DB" ] && find "$DB" -mmin -60 -print -quit 2>/dev/null | grep -q .; then
+    SKIP_INDEX=1
+    echo "$(date '+%H:%M:%S') index skipped (<1h old)" >> "$LOG"
+  fi
+
+  if [ "$SKIP_INDEX" -eq 0 ]; then
+    (cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts index --incremental 2>&1 | tail -5 >> "$LOG") &
+  fi
 
   # Daily summarization (background, atomic via lock file)
   LOCK="/tmp/recall-summarize.lock"

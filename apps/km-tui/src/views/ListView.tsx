@@ -13,7 +13,9 @@ import React, { useMemo, useCallback } from "react"
 import { Box, Text, VirtualList } from "inkx"
 import type { TUIBoardState, CardState } from "../types.ts"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
-import { useTreeRenderContext } from "../ui-context.tsx"
+import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
+import { getNodeDisplayName } from "../state.ts"
+import { renderPlain } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
 import type { KNode } from "@km/core"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
@@ -87,6 +89,17 @@ export function ListView({
     return items
   }, [state.columns])
 
+  // Pre-cache column-level excluded sigils per column index
+  const columnExcludedSigilsByCol = useMemo(() => {
+    const map = new Map<number, string[] | undefined>()
+    state.columns.forEach((col, cIdx) => {
+      const name = renderPlain(getNodeDisplayName(repo, col.node))
+      const sigils = deriveColumnExcludedSigils(name)
+      map.set(cIdx, sigils.length > 0 ? sigils : undefined)
+    })
+    return map
+  }, [state.columns, repo])
+
   // Pre-cache board pills for ALL cards to avoid O(n) DB queries during render
   // This batches the lookups into a single pass through all cards
   const boardPillsCache = useMemo(() => {
@@ -156,10 +169,11 @@ export function ListView({
           isSelected={isCardSelected}
           children={EMPTY_CHILDREN}
           getBoardPills={getCachedBoardPills}
+          extraExcludedSigils={columnExcludedSigilsByCol.get(cIdx)}
         />
       )
     },
-    [colIndex, cardIndex, subIndex, selectionLevel, inOutlineMode, width, getCachedBoardPills],
+    [colIndex, cardIndex, subIndex, selectionLevel, inOutlineMode, width, getCachedBoardPills, columnExcludedSigilsByCol],
   )
 
   // Empty state

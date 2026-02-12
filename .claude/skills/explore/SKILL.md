@@ -1,9 +1,9 @@
 ---
-description: TUI exploration - targeted scenario testing + randomized bug hunting. Use when exercising km view to find bugs, test scenarios, or inspect the live terminal.
-argument-hint: [scenario | --gui | --peekaboo | --path <vault> | km view <path>]
+description: TUI exploration - interactive AI probing + targeted testing + randomized bug hunting. Use when exercising km view to find bugs, test scenarios, or inspect the live terminal.
+argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km view <path>]
 ---
 
-# TUI Exploration Testing
+# TUI Exploration
 
 **Keywords**: explore, fuzz, random, bug hunting, TUI test, visual test, repro, peekaboo, ghostty
 
@@ -13,41 +13,44 @@ argument-hint: [scenario | --gui | --peekaboo | --path <vault> | km view <path>]
 
 | User says | Action | Command |
 |-----------|--------|---------|
+| `/explore` (no args) | **Team exploration** — interactive TTY + background health check | See [team.md](team.md) |
+| `/explore <broad description>` | **Team exploration** — focused interactive + health check | See [team.md](team.md) |
+| `/explore <specific bug repro>` | Targeted bug repro — headless primary, interactive verify | See [targeted.md](targeted.md) + [team.md](team.md) |
+| `/explore --fuzz` | Run fuzz suite only (no team, no TTY) | `bun test:fuzz` |
+| `/explore --gui` or `/explore --gui <path>` | Visual TTY mode (manual, no team) | See [TTY section](#gui-mode) below |
 | `/explore km view <path>` or `/explore --path <path>` | Test real vault with diagnostics | `TEST_VAULT=<path> bun vitest run apps/km-tui/tests/real-vault.test.ts` |
-| `/explore` (no args) | Run fuzz suite | `bun test:fuzz` |
-| `/explore --gui` or `/explore --gui <path>` | Visual TTY mode | See [TTY section](#gui-mode) below |
 | `/explore --peekaboo ...` | Live Ghostty inspection | See [peekaboo.md](peekaboo.md) |
-| `/explore <scenario description>` | Targeted bug repro | Write a test first — see [targeted.md](targeted.md) |
 
-**Extended exploration** (finding+fixing multiple bugs): Use the team workflow — see [team.md](team.md). Explorer writes fast headless scripts, reproducer creates beads + failing tests, fixer implements fixes. All three work in parallel.
+**Smart routing rule**: If the args describe *what to explore*, include interactive TTY as the main activity. If they describe *a specific bug to reproduce*, lead with headless but verify interactively. If `--fuzz`, tests only.
 
 **Do NOT**: read fuzz test source files, try deprecated scripts, or guess vitest CLI flags. The commands above work as-is.
 
 ## Examples
 
 ```
-/explore km view /tmp/vt            # Real vault diagnostics (TEST_VAULT)
-/explore --path /tmp/tst-vault      # Same thing
-/explore                            # Fuzz suite (bun test:fuzz)
-/explore --gui                      # Visual mode with screenshots
+/explore                            # Team: interactive TTY + health check
+/explore recent batch ops           # Team: focused on batch operations area
+/explore cursor jumps after indent  # Targeted: headless repro + interactive verify
+/explore --fuzz                     # Fuzz suite only (bun test:fuzz)
+/explore --gui                      # Manual visual mode with screenshots
 /explore --peekaboo                 # Inspect your live Ghostty terminal
 
-# Targeted exploration (describe the scenario)
-/explore going down after "Justice" node causes cursor to jump
-/explore switching from cards to list view loses cursor position
-/explore zoom into Projects folder then press j
-
-# Live investigation with Peekaboo
-/explore --peekaboo check why the cursor is misaligned
+/explore km view /tmp/vt            # Real vault diagnostics (TEST_VAULT)
+/explore --path /tmp/tst-vault      # Same thing
 ```
 
 ## Commands
 
 ```bash
+# all bun commands should be preceded with `cd ${repoRoot} ;`
+
+# Default: team exploration (spawns interactive + health-check + targeted + reproducer + fixer)
+# Just run /explore — see team.md for details
+
 # Real vault diagnostics (incremental render checks, fold/unfold, random nav)
 TEST_VAULT=/tmp/vt bun vitest run apps/km-tui/tests/real-vault.test.ts
 
-# Fuzz suite (navigation, view modes, dialogs, selection, fold, etc.)
+# Fuzz suite only (no team, just run tests)
 bun test:fuzz                                    # All fuzz tests
 bun test:fuzz apps/km-tui/tests/navigation-fuzz  # Specific fuzz file
 FUZZ_SEED=12345 bun test:fuzz                    # Reproducible run
@@ -77,12 +80,13 @@ FUZZ_SEED=12345 bun test:fuzz                    # Reproducible run
 
 | Mode | Speed | Use Case |
 |------|-------|----------|
-| **Headless (default, PREFERRED)** | Fast (~1000/s) | `bun test:fuzz`, `TEST_VAULT=...`, DOM-level checks |
-| **GUI (`--gui`)** | Slower (~1/s) | Pixel verification, visual bugs |
+| **Interactive (team default)** | ~1/s per action | AI-driven TTY exploration — observe, hypothesize, investigate |
+| **Headless** | Fast (~1000/s) | `bun test:fuzz`, `TEST_VAULT=...`, DOM-level checks |
+| **GUI (`--gui`)** | ~1/s | Manual pixel verification, visual bugs |
 | **Peekaboo (`--peekaboo`)** | Interactive | Inspect live Ghostty terminal |
 | **Targeted** | Varies | User-described scenario first, then expand |
 
-**IMPORTANT: Always prefer headless mode** (`testEnv()`/`board.press()`/`board.screenshot()`) over GUI/TTY mode. Headless tests are faster, more reliable, and catch character-level issues. Only use `--gui` (TTY MCP) when pixel-level visual verification is explicitly needed. Headless `app.screenshot()` is now available for most screenshot needs without the TTY server.
+**Mode selection**: `/explore` (no args or broad description) uses interactive TTY as the main activity with headless tests as a background health check. For specific bug repros, headless tests are primary. For `--fuzz`, tests only. See [interactive.md](interactive.md) for the interactive philosophy.
 
 <a name="gui-mode"></a>
 
@@ -128,7 +132,8 @@ driver.cmd.describe() // Human/AI-readable command list
 
 | File | Purpose |
 |------|---------|
-| [team.md](team.md) | **Agent team**: explorer + reproducer + fixer pipeline |
+| [team.md](team.md) | **Agent team**: health-check + interactive + targeted + reproducer + fixer pipeline |
+| [interactive.md](interactive.md) | **Interactive exploration**: TTY philosophy, tools, visual bug reporting |
 | [targeted.md](targeted.md) | User-described scenarios, vault verification |
 | [random.md](random.md) | Setup, AI-driven exploration, fuzz testing |
 | [reporting.md](reporting.md) | Reports, issue templates, action workflow |

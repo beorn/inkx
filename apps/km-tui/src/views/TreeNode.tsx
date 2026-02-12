@@ -55,6 +55,8 @@ interface TreeNodeProps {
   getParentContext?: (node: KNode) => string | null
   /** Callback to get board pills for info suffix (optional - defaults to storage lookup) */
   getBoardPills?: GetBoardPillsFn
+  /** Additional sigils to exclude (e.g., column-level sigils like @next inside @next column) */
+  extraExcludedSigils?: string[]
 }
 
 /**
@@ -111,6 +113,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Pre-computed props
   if (prev.parentContext !== next.parentContext) return false
   if (prev.childCount !== next.childCount) return false
+  if (prev.extraExcludedSigils !== next.extraExcludedSigils) return false
 
   // Children array - compare by length and IDs for efficiency
   const prevChildren = prev.children
@@ -140,6 +143,7 @@ function TreeNodeImpl({
   getChildren: getChildrenProp,
   getParentContext: getParentContextProp,
   getBoardPills = () => [],
+  extraExcludedSigils,
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, setUI, rootBoardId } = useTreeRenderContext()
@@ -168,7 +172,11 @@ function TreeNodeImpl({
 
   const repo = useRepo()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
-  const excludedSigils = useMemo(() => deriveExcludedSigils(repo, rootBoardId), [repo, rootBoardId])
+  const excludedSigils = useMemo(() => {
+    const rootSigils = deriveExcludedSigils(repo, rootBoardId)
+    if (!extraExcludedSigils?.length) return rootSigils
+    return [...rootSigils, ...extraExcludedSigils]
+  }, [repo, rootBoardId, extraExcludedSigils])
   const isOneliner = variant === "oneliner"
   const isEmbedded = node.link_to != null
 
@@ -570,6 +578,7 @@ function TreeNodeImpl({
             getChildren={resolvedGetChildren}
             getParentContext={resolvedGetParentContext}
             getBoardPills={getBoardPills}
+            extraExcludedSigils={extraExcludedSigils}
           />
         </ErrorBoundary>
       )}
@@ -627,6 +636,8 @@ interface NodeChildrenProps {
   getParentContext?: (node: KNode) => string | null
   /** Callback to get board pills for info suffix */
   getBoardPills?: GetBoardPillsFn
+  /** Additional sigils to exclude (e.g., column-level sigils like @next inside @next column) */
+  extraExcludedSigils?: string[]
 }
 
 function NodeChildren({
@@ -642,6 +653,7 @@ function NodeChildren({
   getChildren,
   getParentContext,
   getBoardPills,
+  extraExcludedSigils,
 }: NodeChildrenProps): React.ReactElement {
   const indent = " ".repeat(depth)
 
@@ -681,6 +693,7 @@ function NodeChildren({
             getChildren={getChildren}
             getParentContext={getParentContext}
             getBoardPills={getBoardPills}
+            extraExcludedSigils={extraExcludedSigils}
           />
         )
       })}

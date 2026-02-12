@@ -3,7 +3,7 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
-import React, { useCallback, useEffect } from "react"
+import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
@@ -11,13 +11,14 @@ import { Box, Text, useScreenRectCallback } from "inkx"
 import { styledUnderline } from "chalkx"
 import type { JobRunner } from "@km/core"
 import type { CardState, ColumnState } from "../types.ts"
+import { makeSelectionKey } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
-import { useUISelector, useSetUI } from "../ui-context.tsx"
+import { useUISelector, useSetUI, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import type { NodeLayout } from "../card-positions.ts"
 import { useIsColumnSelected, useIsCursorAtCard } from "../cursor-context.tsx"
@@ -58,6 +59,8 @@ interface CardProps {
   cardIndex: number
   /** True if this card is in a virtual body column (renders borderless) */
   isVirtualColumn?: boolean
+  /** Additional sigils to exclude from card content (e.g., column-level sigils) */
+  extraExcludedSigils?: string[]
 }
 
 /**
@@ -128,6 +131,7 @@ const Card = React.memo(
     colIndex,
     cardIndex,
     isVirtualColumn,
+    extraExcludedSigils,
   }: CardProps): React.ReactElement {
     const nodeId = card.node.id
 
@@ -137,6 +141,9 @@ const Card = React.memo(
 
     // Check if this card is in inline edit mode (for border color)
     const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
+
+    // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
+    const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId, 0)))
 
     // Virtual body content renders borderless (inline body content)
     // This includes: cards in virtual columns OR individual virtual body cards
@@ -153,13 +160,14 @@ const Card = React.memo(
             subIndex={0}
             dimInactiveChildren={true}
             childCount={card.childCount}
+            extraExcludedSigils={extraExcludedSigils}
           />
         </Box>
       )
     }
 
-    // Border: cyan when editing (focus ring), yellow when selected, gray otherwise
-    const borderColor = isEditing ? "cyan" : isSelected ? "yellow" : "blackBright"
+    // Border: cyan when editing, yellow when selected or multi-selected, gray otherwise
+    const borderColor = isEditing ? "cyan" : isSelected || isMultiSelected ? "yellow" : "blackBright"
 
     return (
       <Box
@@ -178,8 +186,9 @@ const Card = React.memo(
           colIndex={colIndex}
           cardIndex={cardIndex}
           subIndex={0}
-          dimInactiveChildren={!isSelected}
+          dimInactiveChildren={!isSelected && !isMultiSelected}
           childCount={card.childCount}
+          extraExcludedSigils={extraExcludedSigils}
         />
       </Box>
     )
@@ -197,7 +206,8 @@ const Card = React.memo(
       prev.selectedSubIndex === next.selectedSubIndex &&
       prev.width === next.width &&
       prev.colIndex === next.colIndex &&
-      prev.cardIndex === next.cardIndex
+      prev.cardIndex === next.cardIndex &&
+      prev.extraExcludedSigils === next.extraExcludedSigils
     )
   },
 )
@@ -318,6 +328,10 @@ export const Column = React.memo(function Column({
       }
     : getHeaderStyle(ownColor, isSelected, isColumnSelected)
 
+  // Derive column-level excluded sigils (e.g., hide @next inside @next column)
+  const columnExcludedSigils = useMemo(() => deriveColumnExcludedSigils(name), [name])
+  const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
+
   // Stable renderItem callback — doesn't depend on cardIndex.
   // Cards get selection state from CursorStore self-subscription.
   const renderItem = useCallback(
@@ -334,10 +348,11 @@ export const Column = React.memo(function Column({
           colIndex={colIndex}
           cardIndex={actualIndex}
           isVirtualColumn={isVirtual}
+          extraExcludedSigils={extraExcludedSigils}
         />
       )
     },
-    [colIndex, selectedSubIndex, width, isVirtual],
+    [colIndex, selectedSubIndex, width, isVirtual, extraExcludedSigils],
   )
 
   const keyExtractor = useCallback((card: CardState) => card.node.id, [])

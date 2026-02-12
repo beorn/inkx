@@ -6,7 +6,7 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  */
-import React, { useCallback } from "react"
+import React, { useCallback, useMemo } from "react"
 import { useRepo } from "../repo-context.tsx"
 import { Box, Text } from "inkx"
 import { createLogger } from "@beorn/logger"
@@ -15,7 +15,7 @@ const log = createLogger("km:tui:columns")
 import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
-import { useTreeRenderContext } from "../ui-context.tsx"
+import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { calcColumnWidths, getColumnWidth } from "./board-layout.ts"
@@ -90,14 +90,26 @@ const ColumnTree = React.memo(function ColumnTree({
   const icon = getNodeIcon(null, ownColor, false)
   const iconColor = isColumnHeaderSelected ? "black" : icon.color
 
+  // Derive column-level excluded sigils (e.g., hide @next inside @next column)
+  const columnExcludedSigils = useMemo(() => deriveColumnExcludedSigils(name), [name])
+  const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
+
   // Stable renderCard callback — doesn't depend on cardIndex.
   // MemoizedTreeCard gets selection state from CursorStore self-subscription.
   const renderCard = useCallback(
     (card: CardState, actualIndex: number) => {
       log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`)
-      return <MemoizedTreeCard key={card.node.id} card={card} colIndex={colIndex} cardIndex={actualIndex} />
+      return (
+        <MemoizedTreeCard
+          key={card.node.id}
+          card={card}
+          colIndex={colIndex}
+          cardIndex={actualIndex}
+          extraExcludedSigils={extraExcludedSigils}
+        />
+      )
     },
-    [colIndex],
+    [colIndex, extraExcludedSigils],
   )
 
   return (

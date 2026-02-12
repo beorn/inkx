@@ -257,6 +257,8 @@ describe("getRenameImpact", () => {
     const impact = repo.getRenameImpact(targetId)
     expect(impact.backlinks).toHaveLength(2)
     expect(impact.childCount).toBe(1)
+    expect(impact.ruleRefs).toBe(0)
+    expect(impact.propRefs).toBe(0)
   })
 
   test("returns empty for node with no backlinks or children", () => {
@@ -271,6 +273,209 @@ describe("getRenameImpact", () => {
     const impact = repo.getRenameImpact(nodeId)
     expect(impact.backlinks).toHaveLength(0)
     expect(impact.childCount).toBe(0)
+    expect(impact.ruleRefs).toBe(0)
+    expect(impact.propRefs).toBe(0)
+  })
+
+  test("counts rule references and blocked-by references", () => {
+    const repo = createTestRepo()
+
+    // Create a folder node
+    const folderId = repo.addNode(null, {
+      type: "file",
+      content: "inbox",
+      name: "inbox",
+      fs_path: "inbox",
+    })
+
+    // Create a section with a rule referencing the folder
+    repo.addNode(null, {
+      type: "section",
+      content: 'Open add="./inbox/**"',
+      name: "Open",
+      rules: { add: "./inbox/**" },
+      data: { rules: { add: "./inbox/**" } },
+    })
+
+    // Create a task blocked by "inbox"
+    repo.addNode(null, {
+      type: "task",
+      content: "Blocked task",
+      data: {
+        props: {
+          "blocked-by": { type: "link", target: "inbox" },
+        },
+      },
+    })
+
+    const impact = repo.getRenameImpact(folderId)
+    expect(impact.ruleRefs).toBe(1)
+    expect(impact.propRefs).toBe(1)
+  })
+})
+
+describe("renameNode - rule path references", () => {
+  test("updates add= rule path when folder is renamed", () => {
+    const repo = createTestRepo()
+
+    // Create a folder node that we'll rename
+    const folderId = repo.addNode(null, {
+      type: "file",
+      content: "inbox",
+      name: "inbox",
+      fs_path: "inbox",
+    })
+
+    // Create a section with an add= rule referencing the folder
+    const sectionId = repo.addNode(null, {
+      type: "section",
+      content: 'Open add="./inbox/**"',
+      name: "Open",
+      rules: { add: "./inbox/**" },
+      data: { rules: { add: "./inbox/**" } },
+    })
+
+    // Rename the folder
+    repo.renameNode(folderId, "tasks")
+
+    // Verify the section's rules were updated
+    const section = repo.getNode(sectionId)
+    expect(section?.rules?.add).toBe("./tasks/**")
+    expect(section?.content).toContain("./tasks/**")
+  })
+
+  test("updates multiple add= rule queries when path matches", () => {
+    const repo = createTestRepo()
+
+    const folderId = repo.addNode(null, {
+      type: "file",
+      content: "projects",
+      name: "projects",
+      fs_path: "projects",
+    })
+
+    const sectionId = repo.addNode(null, {
+      type: "section",
+      content: 'Work add="./projects/** status:todo"',
+      name: "Work",
+      rules: { add: "./projects/** status:todo" },
+      data: { rules: { add: "./projects/** status:todo" } },
+    })
+
+    repo.renameNode(folderId, "workstreams")
+
+    const section = repo.getNode(sectionId)
+    expect(section?.rules?.add).toBe("./workstreams/** status:todo")
+  })
+
+  test("updates array add= rules when path matches", () => {
+    const repo = createTestRepo()
+
+    const folderId = repo.addNode(null, {
+      type: "file",
+      content: "inbox",
+      name: "inbox",
+      fs_path: "inbox",
+    })
+
+    const sectionId = repo.addNode(null, {
+      type: "section",
+      content: 'Mixed add="./inbox/**" add="status:open"',
+      name: "Mixed",
+      rules: { add: ["./inbox/**", "status:open"] },
+      data: { rules: { add: ["./inbox/**", "status:open"] } },
+    })
+
+    repo.renameNode(folderId, "tasks")
+
+    const section = repo.getNode(sectionId)
+    expect(section?.rules?.add).toEqual(["./tasks/**", "status:open"])
+  })
+
+  test("does not update rules that do not reference the renamed path", () => {
+    const repo = createTestRepo()
+
+    const folderId = repo.addNode(null, {
+      type: "file",
+      content: "inbox",
+      name: "inbox",
+      fs_path: "inbox",
+    })
+
+    const sectionId = repo.addNode(null, {
+      type: "section",
+      content: 'Tags add="#important"',
+      name: "Tags",
+      rules: { add: "#important" },
+      data: { rules: { add: "#important" } },
+    })
+
+    repo.renameNode(folderId, "tasks")
+
+    const section = repo.getNode(sectionId)
+    expect(section?.rules?.add).toBe("#important")
+  })
+})
+
+describe("renameNode - blocked-by property references", () => {
+  test("updates blocked-by target when referenced node is renamed", () => {
+    const repo = createTestRepo()
+
+    // Create the blocker node
+    const blockerId = repo.addNode(null, {
+      type: "task",
+      content: "Blocker Task",
+      name: "Blocker Task",
+      task_status: "todo",
+    })
+
+    // Create a task blocked by the blocker
+    const blockedId = repo.addNode(null, {
+      type: "task",
+      content: "Blocked Task",
+      name: "Blocked Task",
+      task_status: "todo",
+      data: {
+        props: {
+          "blocked-by": { type: "link", target: "Blocker Task" },
+        },
+      },
+    })
+
+    // Rename the blocker
+    repo.renameNode(blockerId, "Renamed Blocker")
+
+    // Verify the blocked-by reference was updated
+    const blocked = repo.getNode(blockedId)
+    const props = blocked?.data?.props as Record<string, { type: string; target?: string }> | undefined
+    expect(props?.["blocked-by"]?.target).toBe("Renamed Blocker")
+  })
+
+  test("does not update blocked-by that references a different node", () => {
+    const repo = createTestRepo()
+
+    const nodeId = repo.addNode(null, {
+      type: "task",
+      content: "Some Node",
+      name: "Some Node",
+    })
+
+    const blockedId = repo.addNode(null, {
+      type: "task",
+      content: "Blocked Task",
+      name: "Blocked Task",
+      data: {
+        props: {
+          "blocked-by": { type: "link", target: "Other Node" },
+        },
+      },
+    })
+
+    repo.renameNode(nodeId, "Renamed Node")
+
+    const blocked = repo.getNode(blockedId)
+    const props = blocked?.data?.props as Record<string, { type: string; target?: string }> | undefined
+    expect(props?.["blocked-by"]?.target).toBe("Other Node")
   })
 })
 

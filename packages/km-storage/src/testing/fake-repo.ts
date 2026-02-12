@@ -282,7 +282,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       ensureNotClosed()
       const backlinks = links.filter((l) => l.target_id === nodeId)
       const children = [...nodes.values()].filter((n) => n.parent_id === nodeId)
-      return { backlinks, childCount: children.length }
+      return { backlinks, childCount: children.length, ruleRefs: 0, propRefs: 0 }
     },
 
     getOutgoingLinks(sourceId) {
