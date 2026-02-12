@@ -9,7 +9,7 @@ import { watch, type FSWatcher } from "chokidar"
 
 const log = createLogger("km:storage:watch:watcher")
 import { dirname, join } from "path"
-import { statSync, existsSync, readdirSync, readlinkSync, writeFileSync, unlinkSync } from "fs"
+import { statSync, existsSync, readdirSync, readlinkSync, realpathSync, writeFileSync, unlinkSync } from "fs"
 import { EventEmitter } from "events"
 import {
   DEFAULT_IGNORE_PATTERNS,
@@ -268,13 +268,20 @@ export function scanDirectory(
       continue
     }
 
-    // Skip symlinks to avoid potential infinite loops and inconsistent behavior
-    // Symlinks pointing to directories above the repo root could cause:
-    // - Infinite recursion during scans
-    // - Duplicate nodes if symlink target is also in repo
-    // - Confusing behavior if symlink target is modified
+    // Follow symlinks — resolve target and include in results
     if (entry.isSymbolicLink()) {
-      log.debug?.(`skipping symlink: ${fullPath}`)
+      try {
+        const stat = statSync(fullPath) // follows symlink
+        results.push({
+          path: fullPath,
+          ino: stat.ino,
+          mtime: stat.mtimeMs,
+          isDirectory: stat.isDirectory(),
+          isSymlink: true,
+        })
+      } catch {
+        log.debug?.(`broken symlink, skipping: ${fullPath}`)
+      }
       continue
     }
 
@@ -313,16 +320,25 @@ export function* scanDirectoryRecursiveGen(
   filter?: (path: string) => boolean,
   ignorePatterns?: string[] | PatternMatcher,
 ): Generator<ScanEntry, void, unknown> {
+  // Track visited directories by realpath to prevent symlink cycles
+  const visited = new Set<string>()
+
   function* scan(dir: string): Generator<ScanEntry, void, unknown> {
+    try {
+      const real = realpathSync(dir)
+      if (visited.has(real)) return
+      visited.add(real)
+    } catch {
+      return
+    }
+
     const entries = scanDirectory(dir, ignorePatterns)
 
     for (const entry of entries) {
-      // Always recurse into directories
       if (entry.isDirectory) {
         yield* scan(entry.path)
       }
 
-      // Apply filter to determine if entry should be yielded
       if (filter && !filter(entry.path)) {
         continue
       }

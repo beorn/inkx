@@ -43,7 +43,7 @@ describe("scanDirectory", () => {
       expect(entries[0]?.path).toBe(join(repoDir, "visible.md"))
     }))
 
-  test("skips symlinks to avoid circular references", () =>
+  test("follows symlinks and marks them", () =>
     withTestEnvSync(({ repoDir }) => {
       writeFileSync(join(repoDir, "real-file.md"), "# Real file")
       mkdirSync(join(repoDir, "real-dir"))
@@ -54,19 +54,23 @@ describe("scanDirectory", () => {
       // Create symlink to directory
       symlinkSync(join(repoDir, "real-dir"), join(repoDir, "link-to-dir"))
 
-      // Create circular symlink (points to parent)
+      // Create circular symlink (points to parent) — still included in flat scan
       symlinkSync(repoDir, join(repoDir, "circular-link"))
 
       const entries = scanDirectory(repoDir)
 
-      // Should only contain real file and real directory, not symlinks
-      expect(entries).toHaveLength(2)
+      // All entries included: 2 real + 3 symlinks
+      expect(entries).toHaveLength(5)
       const paths = entries.map((e) => e.path)
       expect(paths).toContain(join(repoDir, "real-file.md"))
       expect(paths).toContain(join(repoDir, "real-dir"))
-      expect(paths).not.toContain(join(repoDir, "link-to-file.md"))
-      expect(paths).not.toContain(join(repoDir, "link-to-dir"))
-      expect(paths).not.toContain(join(repoDir, "circular-link"))
+      expect(paths).toContain(join(repoDir, "link-to-file.md"))
+      expect(paths).toContain(join(repoDir, "link-to-dir"))
+      expect(paths).toContain(join(repoDir, "circular-link"))
+
+      // Symlink entries are flagged
+      const symlinkEntries = entries.filter((e) => e.isSymlink)
+      expect(symlinkEntries).toHaveLength(3)
     }))
 
   test("returns empty array for nonexistent directory", () =>

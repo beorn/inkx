@@ -112,23 +112,41 @@ Neither content changed nor bell triggered.
 **IMPORTANT**: Don't ask for permission - fix issues as you find them.
 
 When issues are discovered:
-1. **Create bead** immediately with `bd create`
-2. **Claim it** with `bd update <id> --claim`
+1. **Check for existing bead** — search before creating (see dedup below)
+2. **Create or claim bead** — create only if no match exists
 3. **Fix it** directly - investigate code, implement fix
 4. **Verify** the fix works
 5. **Close bead** with `bd close <id> --reason "..."`
 6. **Continue** exploring for more issues
 
+### Dedup: Check Before Creating
+
+Before creating a new bead, search for existing ones that match:
+
 ```bash
-# Bug - create, claim, fix, close
+# Search open beads by keyword (title/description match)
+bd list --status=open | grep -i "keyword"
+
+# If a match exists, claim it instead of creating a new one
+bd update <existing-id> --claim
+```
+
+Match on the core symptom, not exact wording. E.g., "blank cards after scroll" and "empty cards on scroll" are the same bug. When in doubt, claim the existing bead and add notes.
+
+### Create + Fix Flow
+
+```bash
+# Bug - check existing, create if needed, claim, fix, close
+bd list --status=open | grep -i "symptom"       # Check first
 bd create --type=bug --priority=2 --title="TUI: [issue]"
 bd update <id> --claim
 # ... fix the issue ...
 bd close <id> --reason "Fixed by [description]"
 
 # Performance
+bd list --status=open | grep -i "slow\|perf"    # Check first
 bd create --type=bug --priority=3 --title="Perf: [issue]"
-bd update <id> --claim --add-label "performance"
+bd update <id> --claim
 # ... fix the issue ...
 bd close <id> --reason "Optimized [description]"
 ```

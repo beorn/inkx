@@ -19,14 +19,17 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { existsSync, readdirSync, readFileSync } from "fs"
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "fs"
 import { join } from "path"
 import type { Event } from "@km/core"
+import { createLogger } from "@beorn/logger"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo-loader.ts"
 import { generatePathBasedId } from "./id-utils.ts"
 import { toRelativeFsPath } from "./path-utils.ts"
+
+const log = createLogger("km:storage:discovery")
 
 // ============================================================================
 // TYPES
@@ -107,12 +110,56 @@ export function* discoverFiles(
 
   let current = 0
 
+  // Resolve repo root realpath once — used for repo-internal symlink detection
+  let repoRealpath: string
+  try {
+    repoRealpath = realpathSync(repoRoot)
+  } catch {
+    throw new Error(`Cannot resolve repo root: ${repoRoot}`)
+  }
+
+  // Track visited directories by realpath to prevent symlink loops and deduplication.
+  // Same approach as chokidar: realpathSync() every directory before entering.
+  const visitedDirs = new Set<string>([repoRealpath])
+
   // Scan filesystem
   yield* scanDirectory(repoRoot, repoRootId)
 
   yield { current, total }
 
   return parseMode === "stub" ? { events, pendingLinks: [], deferredFiles } : { events, pendingLinks }
+
+  /**
+   * Check if a directory can be entered (not already visited).
+   * For symlinks, also skips targets inside the repo root (already being indexed).
+   */
+  function tryEnterDirectory(dirPath: string, isSymlink = false): boolean {
+    let real: string
+    try {
+      real = realpathSync(dirPath)
+    } catch {
+      errors.push({ phase: "discover", path: dirPath, message: `Broken symlink: ${dirPath}` })
+      return false
+    }
+
+    if (isSymlink && (real.startsWith(repoRealpath + "/") || real === repoRealpath)) {
+      log.debug?.(`symlink to repo-internal path, skipping: ${dirPath} → ${real}`)
+      return false
+    }
+
+    if (visitedDirs.has(real)) {
+      const msg = isSymlink
+        ? `Symlink loop: ${dirPath} → ${real}`
+        : `Already visited: ${dirPath} → ${real}`
+      log.debug?.(msg)
+      errors.push({ phase: "discover", path: dirPath, message: msg })
+      return false
+    }
+
+    visitedDirs.add(real)
+    if (isSymlink) log.debug?.(`following symlink: ${dirPath} → ${real}`)
+    return true
+  }
 
   // --- Nested generator for directory scanning ---
   function* scanDirectory(dirPath: string, parentId: string | null): Generator<StepYield, void, unknown> {
@@ -132,7 +179,32 @@ export function* discoverFiles(
       // Skip ignored entries BEFORE creating nodes
       if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
 
+      // Handle symlinks — follow to directories and files, detect loops
+      if (entry.isSymbolicLink()) {
+        let targetStat
+        try {
+          targetStat = statSync(fullPath) // follows symlink
+        } catch {
+          errors.push({ phase: "discover", path: fullPath, message: `Broken symlink: ${fullPath}` })
+          continue
+        }
+
+        if (targetStat.isDirectory()) {
+          if (!tryEnterDirectory(fullPath, true)) continue
+          const folderId = generateId(repoRoot, fullPath)
+          events.push(
+            createFolderEvent(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
+          )
+          yield* scanDirectory(fullPath, folderId)
+        } else if (targetStat.isFile()) {
+          yield* handleFile(fullPath, parentId, order++, entry.name)
+        }
+        // Symlink to something else (socket, etc.) — skip
+        continue
+      }
+
       if (entry.isDirectory()) {
+        if (!tryEnterDirectory(fullPath)) continue
         const folderId = generateId(repoRoot, fullPath)
         events.push(
           createFolderEvent(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
@@ -141,22 +213,28 @@ export function* discoverFiles(
         continue
       }
 
-      if (!entry.isFile()) continue
-
-      if (!entry.name.endsWith(".md")) {
-        const fileId = generateId(repoRoot, fullPath)
-        events.push(
-          createNonMdFileEvent(fileId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
-        )
-        continue
+      if (entry.isFile()) {
+        yield* handleFile(fullPath, parentId, order++, entry.name)
       }
+    }
+  }
 
-      // Markdown file handling
-      if (parseMode === "stub") {
-        yield* handleStubFile(fullPath, parentId, order++, entry.name)
-      } else {
-        yield* handleFullParseFile(fullPath, parentId, order++, entry.name)
-      }
+  // --- Handle any file (markdown or non-markdown) ---
+  function* handleFile(
+    fullPath: string,
+    parentId: string | null,
+    order: number,
+    entryName: string,
+  ): Generator<StepYield, void, unknown> {
+    if (!entryName.endsWith(".md")) {
+      const fileId = generateId(repoRoot, fullPath)
+      events.push(createNonMdFileEvent(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), entryName, now))
+      return
+    }
+    if (parseMode === "stub") {
+      yield* handleStubFile(fullPath, parentId, order, entryName)
+    } else {
+      yield* handleFullParseFile(fullPath, parentId, order, entryName)
     }
   }
 
@@ -233,33 +311,45 @@ export function* discoverFiles(
 
 /**
  * Fast markdown file count using stack-based iteration (no recursion).
- * Used for progress display only - minimal overhead.
+ * Follows symlinks with cycle detection. Used for progress display only.
  */
 function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): number {
   if (!existsSync(rootPath)) return 0
 
   let count = 0
   const stack = [rootPath]
+  // Track realpath of symlink targets to prevent cycles
+  const visitedSymlinks = new Set<string>()
 
   while (stack.length > 0) {
     const dirPath = stack.pop()
     if (!dirPath) continue
 
-    // Skip ignored directories (except root)
-    if (dirPath !== rootPath && shouldIgnore(dirPath, ignorePatterns, rootPath)) {
-      continue
-    }
+    if (dirPath !== rootPath && shouldIgnore(dirPath, ignorePatterns, rootPath)) continue
 
     try {
       const entries = readdirSync(dirPath, { withFileTypes: true })
 
       for (const entry of entries) {
         const fullPath = join(dirPath, entry.name)
-
-        // Skip ignored entries
         if (shouldIgnore(fullPath, ignorePatterns, rootPath)) continue
 
-        if (entry.isDirectory()) {
+        if (entry.isSymbolicLink()) {
+          try {
+            const stat = statSync(fullPath)
+            if (stat.isDirectory()) {
+              const real = realpathSync(fullPath)
+              if (!visitedSymlinks.has(real)) {
+                visitedSymlinks.add(real)
+                stack.push(fullPath)
+              }
+            } else if (stat.isFile() && entry.name.endsWith(".md")) {
+              count++
+            }
+          } catch {
+            // Broken symlink — skip
+          }
+        } else if (entry.isDirectory()) {
           stack.push(fullPath)
         } else if (entry.isFile() && entry.name.endsWith(".md")) {
           count++
