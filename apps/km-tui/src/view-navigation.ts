@@ -87,7 +87,9 @@ function navigateVertical(
   if (!cursorNode) {
     // Cursor node was deleted (e.g., by file watcher re-parse during sync).
     // Fall back to first column instead of crashing the event loop.
-    log.error?.(`cursor node not in repo: ${cursorNodeId}, falling back to root`)
+    log.error?.(
+      `cursor node not in repo: ${cursorNodeId}, falling back to root`,
+    )
     return rootId
   }
 
@@ -155,7 +157,9 @@ function navigateHorizontal(
 
   const cursorNode = repo.getNode(cursorNodeId)
   if (!cursorNode) {
-    log.error?.(`cursor node not in repo: ${cursorNodeId}, falling back to root`)
+    log.error?.(
+      `cursor node not in repo: ${cursorNodeId}, falling back to root`,
+    )
     return rootId
   }
 

@@ -90,10 +90,7 @@ describe("Edit Operations", () => {
 
   test("Meta+j then Meta+k round-trips card back to original position", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
     )
     board.expect("#1a[data-cursor]").toExist()
 
@@ -137,10 +134,7 @@ describe("Edit Operations", () => {
 
   test("Meta+k then Meta+j round-trips card back to original position", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
     )
     // Move to 1b
     board.press("j")
@@ -303,11 +297,7 @@ describe("Edit Operations", () => {
 
   test("Meta+l at rightmost column header does nothing", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a"))),
     )
     board.press("l")
     board.press("k")
@@ -350,11 +340,7 @@ describe("Edit Operations", () => {
 
   test("Meta+h at leftmost column header does nothing", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a"))),
     )
     board.press("k")
     board.expect("#col1[data-cursor]").toExist()

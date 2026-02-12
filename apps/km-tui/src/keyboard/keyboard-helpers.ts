@@ -231,7 +231,12 @@ export function refreshBoardState(
   // Dispatch SELECT. When usePositionHints is set, pass colIndex/cardIndex
   // directly to bypass stale nodeIndex (e.g., after addNode before render).
   const targetCard = cards[cardIndex]
-  const selectAction: { type: "SELECT"; nodeId: string | null; colIndex?: number; cardIndex?: number } = {
+  const selectAction: {
+    type: "SELECT"
+    nodeId: string | null
+    colIndex?: number
+    cardIndex?: number
+  } = {
     type: "SELECT",
     nodeId: targetCard?.id ?? ctx.cursorNodeId,
   }
