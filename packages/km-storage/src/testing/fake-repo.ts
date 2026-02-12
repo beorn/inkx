@@ -234,18 +234,14 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
     getTasksByStatus(status) {
       ensureNotClosed()
-      return [...nodes.values()].filter(
-        (n) => n.type === "task" && n.task_status === status,
-      )
+      return [...nodes.values()].filter((n) => n.type === "task" && n.task_status === status)
     },
 
     search(query) {
       ensureNotClosed()
       const q = query.toLowerCase()
       return [...nodes.values()].filter(
-        (n) =>
-          n.content?.toLowerCase().includes(q) ||
-          n.title?.toLowerCase().includes(q),
+        (n) => n.content?.toLowerCase().includes(q) || n.title?.toLowerCase().includes(q),
       )
     },
 
@@ -273,9 +269,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
     getLinksTo(targetId) {
       ensureNotClosed()
-      const linkingIds = links
-        .filter((l) => l.target_id === targetId)
-        .map((l) => l.source_id)
+      const linkingIds = links.filter((l) => l.target_id === targetId).map((l) => l.source_id)
       return [...nodes.values()].filter((n) => linkingIds.includes(n.id))
     },
 
@@ -287,9 +281,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     getRenameImpact(nodeId) {
       ensureNotClosed()
       const backlinks = links.filter((l) => l.target_id === nodeId)
-      const children = [...nodes.values()].filter(
-        (n) => n.parent_id === nodeId,
-      )
+      const children = [...nodes.values()].filter((n) => n.parent_id === nodeId)
       return { backlinks, childCount: children.length }
     },
 
@@ -375,8 +367,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         created_at: now,
         updated_at: now,
         version: "fake-0",
-        task_status:
-          nodeData.type === "task" ? ("todo" as TaskStatus) : undefined,
+        task_status: nodeData.type === "task" ? ("todo" as TaskStatus) : undefined,
       } as KNode
 
       nodes.set(id, node)
@@ -425,19 +416,13 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
       const backlinks = links.filter((l) => l.target_id === id)
       const escapedOld = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-      const pattern = new RegExp(
-        `(\\!?\\[\\[)${escapedOld}(\\|[^\\]]+)?(\\]\\])`,
-        "gi",
-      )
+      const pattern = new RegExp(`(\\!?\\[\\[)${escapedOld}(\\|[^\\]]+)?(\\]\\])`, "gi")
 
       let updated = 0
       for (const link of backlinks) {
         const sourceNode = nodes.get(link.source_id)
         if (!sourceNode?.content) continue
-        const updatedContent = sourceNode.content.replace(
-          pattern,
-          `$1${newName}$2$3`,
-        )
+        const updatedContent = sourceNode.content.replace(pattern, `$1${newName}$2$3`)
         if (updatedContent !== sourceNode.content) {
           this.updateNode(link.source_id, { content: updatedContent })
         }
@@ -457,10 +442,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       return false
     },
 
-    rawQuery<T = Record<string, unknown>>(
-      sql: string,
-      _params?: unknown[],
-    ): T[] {
+    rawQuery<T = Record<string, unknown>>(sql: string, _params?: unknown[]): T[] {
       ensureNotClosed()
 
       // Pattern: SELECT * FROM nodes (used by ProjectPicker)
@@ -470,9 +452,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
       // Unknown query - throw helpful error
       // Note: Use getChildCounts() instead of rawQuery for child count batching
-      throw new Error(
-        `FakeRepo.rawQuery: unsupported query pattern: ${sql.slice(0, 100)}`,
-      )
+      throw new Error(`FakeRepo.rawQuery: unsupported query pattern: ${sql.slice(0, 100)}`)
     },
 
     // --- Lifecycle ---

@@ -19,11 +19,7 @@ import { outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody } from "@km/tree"
-import {
-  clearSelection,
-  progressiveSelectAll,
-  pushNavHistoryEntry,
-} from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, progressiveSelectAll, pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ViewMode } from "../types.ts"
@@ -46,16 +42,8 @@ import {
   handleNavSiblingBoard,
   handlePageJump,
 } from "./board-actions-nav.ts"
-import {
-  handleExtendSelectHorizontal,
-  handleExtendSelectVertical,
-} from "./board-actions-selection.ts"
-import {
-  handleZoomIn,
-  handleZoomInNode,
-  handleZoomInwards,
-  handleZoomOutwards,
-} from "./board-actions-zoom.ts"
+import { handleExtendSelectHorizontal, handleExtendSelectVertical } from "./board-actions-selection.ts"
+import { handleZoomIn, handleZoomInNode, handleZoomInwards, handleZoomOutwards } from "./board-actions-zoom.ts"
 
 // =============================================================================
 // Main Action Dispatcher
@@ -71,10 +59,7 @@ import {
  * Callers should check result and provide feedback (e.g., ring bell for boundary).
  */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive action switch — TS validates completeness
-export function handleCommandAction(
-  ctx: ActionCtx,
-  action: CommandAction,
-): ActionResult {
+export function handleCommandAction(ctx: ActionCtx, action: CommandAction): ActionResult {
   const { layout, exit } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
@@ -170,9 +155,7 @@ export function handleCommandAction(
       const curCol = layout.columns[layout.colIndex]
       const curCard = curCol?.cards[layout.cardIndex]
       const curNodeId = curCard?.node.id ?? curCol?.node.id
-      log.debug?.(
-        `OPEN_DETAIL_PANE: colIndex=${layout.colIndex} cardIndex=${layout.cardIndex} curNodeId=${curNodeId}`,
-      )
+      log.debug?.(`OPEN_DETAIL_PANE: colIndex=${layout.colIndex} cardIndex=${layout.cardIndex} curNodeId=${curNodeId}`)
       if (curNodeId) {
         const children = ctx.repo.getChildren(curNodeId)
         log.debug?.(`OPEN_DETAIL_PANE: children=${children.length}`)
@@ -355,12 +338,7 @@ export function handleCommandAction(
     case "TEXT_DELETE_BACKWARD": {
       const target = blockEditTargetRef.current
       // Smart delete: at position 0 of empty node, delete the node itself
-      if (
-        target &&
-        ctx.ui.inlineEditBlock &&
-        target.getCursorOffset() === 0 &&
-        target.getContent() === ""
-      ) {
+      if (target && ctx.ui.inlineEditBlock && target.getCursorOffset() === 0 && target.getContent() === "") {
         const nodeId = ctx.ui.inlineEditBlock.nodeId
         ctx.setUI({ inlineEditBlock: null })
         executeDelete(ctx, nodeId)
@@ -487,8 +465,7 @@ export function handleCommandAction(
             action: { label: "Undo", trigger: "z" },
           }),
       ]
-      const randomToast =
-        examples[Math.floor(Math.random() * examples.length)]
+      const randomToast = examples[Math.floor(Math.random() * examples.length)]
       randomToast?.()
       return ok()
     }
@@ -508,10 +485,7 @@ function getBlockCount(ctx: ActionCtx, nodeId: string): number {
   return 1 + body.length // 1 for title + N body children
 }
 
-function handleEditBlockNavigate(
-  ctx: ActionCtx,
-  direction: "up" | "down",
-): ActionResult {
+function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
   const { ui } = ctx
   const edit = ui.inlineEditBlock
   if (!edit) return ok()
@@ -551,8 +525,7 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
 function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
   const { ui, dispatchBoard, layout } = ctx
 
-  const favoriteKey =
-    `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES
+  const favoriteKey = `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES
   const favoriteId = DEFAULT_FAVORITES[favoriteKey]
 
   if (!favoriteId) return
@@ -582,10 +555,7 @@ function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
   clearSelection(ctx)
 }
 
-function handleJumpToColumn(
-  ctx: ActionCtx,
-  columnNumber: number,
-): ActionResult {
+function handleJumpToColumn(ctx: ActionCtx, columnNumber: number): ActionResult {
   const columns = ctx.layout.columns
   const { dispatchBoard } = ctx
 
@@ -663,10 +633,7 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
 // =============================================================================
 
 /** Walk up the tree to find the nearest node with fs_path, returning absolute path. */
-function resolveNodeFsPath(
-  repo: ActionCtx["repo"],
-  nodeId: string,
-): { fsPath: string; isFolder: boolean } {
+function resolveNodeFsPath(repo: ActionCtx["repo"], nodeId: string): { fsPath: string; isFolder: boolean } {
   let current = repo.data.getNode(nodeId)
   while (current) {
     if (current.fs_path) {
@@ -686,7 +653,10 @@ function resolveNodeFsPath(
 
 /** Spawn `open` and report errors via toast + log instead of silently swallowing. */
 function spawnOpen(ctx: ActionCtx, args: string[], label: string): void {
-  const child = spawn("open", args, { detached: true, stdio: ["ignore", "ignore", "pipe"] })
+  const child = spawn("open", args, {
+    detached: true,
+    stdio: ["ignore", "ignore", "pipe"],
+  })
   let stderr = ""
   child.stderr?.on("data", (chunk: Buffer) => {
     stderr += chunk.toString()

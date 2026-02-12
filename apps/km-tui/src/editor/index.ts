@@ -11,19 +11,8 @@
  */
 
 // Schema types
-export type {
-  ParagraphElement,
-  FormattedText,
-  KmElement,
-  KmText,
-  KmEditor,
-} from "./schema.ts"
-export {
-  createParagraph,
-  createEmptyDocument,
-  descendantsToText,
-  textToDescendants,
-} from "./schema.ts"
+export type { ParagraphElement, FormattedText, KmElement, KmText, KmEditor } from "./schema.ts"
+export { createParagraph, createEmptyDocument, descendantsToText, textToDescendants } from "./schema.ts"
 
 // Hydration layer
 export { hydrateNode, dehydrateNode } from "./hydrate.ts"

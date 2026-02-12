@@ -47,9 +47,7 @@ describe.skipIf(!existsSync(VAULT_PATH))("cursor profiling", () => {
   })
 
   test("profile cursor move phases at 300x120", () => {
-    const repo: Repo = runGenerator(
-      createRepo(VAULT_PATH, { loadFiles: true }),
-    )
+    const repo: Repo = runGenerator(createRepo(VAULT_PATH, { loadFiles: true }))
 
     const { board } = testEnvWithRepo(repo, ".", {
       columns: 300,
@@ -84,22 +82,33 @@ describe.skipIf(!existsSync(VAULT_PATH))("cursor profiling", () => {
       const pipeline = getLastPipeline()
       const contentCalls = getContentAll().map((c) => ({ ...c }))
       if (pipeline) {
-        samples.push({ wallMs, cursor, pipeline: { ...pipeline }, contentCalls })
+        samples.push({
+          wallMs,
+          cursor,
+          pipeline: { ...pipeline },
+          contentCalls,
+        })
       }
     }
 
     // Verify cursor actually moved
     const textAfter = board.q("[data-cursor]").textContent()
-    const moved = samples.filter(
-      (s, i) => i === 0 ? s.cursor !== textBefore : s.cursor !== samples[i - 1]!.cursor,
+    const moved = samples.filter((s, i) =>
+      i === 0 ? s.cursor !== textBefore : s.cursor !== samples[i - 1]!.cursor,
     ).length
-    console.log(`\nCursor moved ${moved}/10 times (before="${textBefore?.slice(0, 30)}" after="${textAfter?.slice(0, 30)}")`)
+    console.log(
+      `\nCursor moved ${moved}/10 times (before="${textBefore?.slice(0, 30)}" after="${textAfter?.slice(0, 30)}")`,
+    )
     expect(moved).toBeGreaterThan(0)
 
     // Print per-press breakdown
     console.log("\n=== Per-Press Timing (300x120, real vault) ===")
-    console.log("  press | wall   | pipeline | measure | layout | scroll | notify | content | output | renders | cursor")
-    console.log("  ------|--------|----------|---------|--------|--------|--------|---------|--------|---------|-------")
+    console.log(
+      "  press | wall   | pipeline | measure | layout | scroll | notify | content | output | renders | cursor",
+    )
+    console.log(
+      "  ------|--------|----------|---------|--------|--------|--------|---------|--------|---------|-------",
+    )
     for (const [i, s] of samples.entries()) {
       const p = s.pipeline
       const nCalls = s.contentCalls.length
@@ -109,16 +118,13 @@ describe.skipIf(!existsSync(VAULT_PATH))("cursor profiling", () => {
     }
 
     // Averages
-    const avg = (fn: (s: Sample) => number) =>
-      (samples.reduce((sum, s) => sum + fn(s), 0) / samples.length).toFixed(1)
+    const avg = (fn: (s: Sample) => number) => (samples.reduce((sum, s) => sum + fn(s), 0) / samples.length).toFixed(1)
     console.log(
       `\n  AVG:  wall=${avg((s) => s.wallMs)}ms  pipeline=${avg((s) => s.pipeline.total)}ms  measure=${avg((s) => s.pipeline.measure)}ms  layout=${avg((s) => s.pipeline.layout)}ms  content=${avg((s) => s.pipeline.content)}ms  output=${avg((s) => s.pipeline.output)}ms`,
     )
 
     // Content phase detail for first moving press
-    const firstMove = samples.find(
-      (s, i) => i === 0 ? s.cursor !== textBefore : s.cursor !== samples[i - 1]!.cursor,
-    )
+    const firstMove = samples.find((s, i) => (i === 0 ? s.cursor !== textBefore : s.cursor !== samples[i - 1]!.cursor))
     if (firstMove && firstMove.contentCalls.length > 0) {
       console.log("\n  Content calls for first cursor move:")
       for (const [j, c] of firstMove.contentCalls.entries()) {
@@ -130,9 +136,7 @@ describe.skipIf(!existsSync(VAULT_PATH))("cursor profiling", () => {
   })
 
   test("profile cursor move phases at 80x24", () => {
-    const repo: Repo = runGenerator(
-      createRepo(VAULT_PATH, { loadFiles: true }),
-    )
+    const repo: Repo = runGenerator(createRepo(VAULT_PATH, { loadFiles: true }))
 
     const { board } = testEnvWithRepo(repo, ".", {
       columns: 80,
@@ -176,8 +180,7 @@ describe.skipIf(!existsSync(VAULT_PATH))("cursor profiling", () => {
       )
     }
 
-    const avg = (fn: (s: Sample) => number) =>
-      (samples.reduce((sum, s) => sum + fn(s), 0) / samples.length).toFixed(1)
+    const avg = (fn: (s: Sample) => number) => (samples.reduce((sum, s) => sum + fn(s), 0) / samples.length).toFixed(1)
     console.log(
       `\n  AVG:  wall=${avg((s) => s.wallMs)}ms  pipeline=${avg((s) => s.pipeline.total)}ms  layout=${avg((s) => s.pipeline.layout)}ms  content=${avg((s) => s.pipeline.content)}ms`,
     )

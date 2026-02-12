@@ -10,10 +10,7 @@ import type { Key } from "inkx"
 import { createLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
-import {
-  createBoardAppStoreState,
-  type CreateBoardAppStoreParams,
-} from "./board-app-store.ts"
+import { createBoardAppStoreState, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext } from "./command-bridge.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
@@ -22,7 +19,6 @@ import type { ActionCtx } from "./tui-context.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
 
 const perfLog = createLogger("km:perf")
-
 
 // Singleton — stateless, so one instance suffices for all key events
 const cardsViewNavigation = createCardsViewNavigation()
@@ -104,22 +100,14 @@ export function handleKey(
  * When a dialog is open, only dialog.* and text.* commands are processed.
  */
 // oxlint-disable-next-line complexity/complexity -- Sequential key routing with dialog/boundary state guards
-function routeThroughCommandSystem(
-  input: string,
-  key: Key,
-  get: () => BoardAppStore,
-  exitApp: () => void,
-): void {
+function routeThroughCommandSystem(input: string, key: Key, get: () => BoardAppStore, exitApp: () => void): void {
   const ctx = buildActionCtx(get, exitApp)
 
   const keyStart = performance.now()
   const result = processKeyWithContext(input, key, ctx)
 
   // When a dialog is open, unhandled keys are expected (limited key set)
-  const dialogOpen =
-    ctx.ui.showSearchDialog ||
-    ctx.ui.showNewItemDialog ||
-    ctx.ui.showProjectPicker
+  const dialogOpen = ctx.ui.showSearchDialog || ctx.ui.showNewItemDialog || ctx.ui.showProjectPicker
 
   if (!result.handled) {
     // Visual bell for unhandled keys (only outside dialogs)
@@ -131,15 +119,11 @@ function routeThroughCommandSystem(
   }
 
   if (result.actions) {
-    const actionList = Array.isArray(result.actions)
-      ? result.actions
-      : [result.actions]
+    const actionList = Array.isArray(result.actions) ? result.actions : [result.actions]
 
     // When a dialog is open, only process dialog and text commands
     if (dialogOpen && result.commandId) {
-      const isDialogOrTextCommand =
-        result.commandId.startsWith("dialog.") ||
-        result.commandId.startsWith("text.")
+      const isDialogOrTextCommand = result.commandId.startsWith("dialog.") || result.commandId.startsWith("text.")
       if (!isDialogOrTextCommand) return
     }
 
@@ -157,9 +141,7 @@ function routeThroughCommandSystem(
           bellState: actionResult.error.direction,
           status: {
             level: "warning",
-            message:
-              actionResult.error.message ??
-              `Can't move ${actionResult.error.direction}`,
+            message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
           },
         })
         process.stdout.write("\x07")
@@ -185,19 +167,14 @@ function routeThroughCommandSystem(
 export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
   let exitFn: (() => void) | null = null
 
-  const app = createApp<Record<string, unknown>, BoardAppStore>(
-    () => createBoardAppStoreState(storeParams),
-    {
-      "term:key": (data, ctx) => {
-        const result = handleKey(
-          data as { input: string; key: Key },
-          ctx as EventHandlerContext<BoardAppStore>,
-          () => exitFn?.(),
-        )
-        return result
-      },
+  const app = createApp<Record<string, unknown>, BoardAppStore>(() => createBoardAppStoreState(storeParams), {
+    "term:key": (data, ctx) => {
+      const result = handleKey(data as { input: string; key: Key }, ctx as EventHandlerContext<BoardAppStore>, () =>
+        exitFn?.(),
+      )
+      return result
     },
-  )
+  })
 
   // Wrap run to capture the exit function
   const originalRun = app.run.bind(app)
@@ -206,17 +183,13 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
       const runner = originalRun(...args)
       // Wrap the promise to capture the handle
       return {
-        then(
-          onfulfilled?: ((value: unknown) => unknown) | null,
-          onrejected?: ((reason: unknown) => unknown) | null,
-        ) {
+        then(onfulfilled?: ((value: unknown) => unknown) | null, onrejected?: ((reason: unknown) => unknown) | null) {
           return runner.then((handle) => {
             exitFn = () => handle.unmount()
             return onfulfilled ? onfulfilled(handle) : handle
           }, onrejected)
         },
-        [Symbol.asyncIterator]: () =>
-          (runner as AsyncIterable<unknown>)[Symbol.asyncIterator](),
+        [Symbol.asyncIterator]: () => (runner as AsyncIterable<unknown>)[Symbol.asyncIterator](),
       } as typeof runner
     },
   }
@@ -239,13 +212,7 @@ function countVisibleDescendants(
   const children = repo.getChildren(node.id).slice(0, 10)
   let count = children.length
   for (const child of children) {
-    count += countVisibleDescendants(
-      repo,
-      child,
-      depth + 1,
-      maxDepth,
-      foldedNodes,
-    )
+    count += countVisibleDescendants(repo, child, depth + 1, maxDepth, foldedNodes)
   }
   return count
 }

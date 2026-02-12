@@ -72,14 +72,10 @@ export function createLinkResolver(db: Database): LinkResolver {
   const sectionCache = new Map<string, string | null>()
 
   // Prepare statement for node ID fallback (used for ![[ULID]] embeds)
-  const nodeIdStmt = db.prepare(
-    "SELECT id FROM nodes WHERE id = ? LIMIT 1",
-  )
+  const nodeIdStmt = db.prepare("SELECT id FROM nodes WHERE id = ? LIMIT 1")
 
   // Prepare statement for block_id lookups (stable across content edits)
-  const blockIdStmt = db.prepare(
-    "SELECT id FROM nodes WHERE block_id = ? LIMIT 1",
-  )
+  const blockIdStmt = db.prepare("SELECT id FROM nodes WHERE block_id = ? LIMIT 1")
 
   return {
     resolveTarget(targetName: string): string | null {

@@ -82,26 +82,15 @@ export function removeLinksFromSource(db: Database, sourceId: string): void {
  * Remove links from a source node with a specific relationship type.
  * Used to clear computed links before re-evaluation.
  */
-export function removeLinksFromSourceByRelationship(
-  db: Database,
-  sourceId: string,
-  relationship: string,
-): void {
-  db.run("DELETE FROM links WHERE source_id = ? AND relationship = ?", [
-    sourceId,
-    relationship,
-  ])
+export function removeLinksFromSourceByRelationship(db: Database, sourceId: string, relationship: string): void {
+  db.run("DELETE FROM links WHERE source_id = ? AND relationship = ?", [sourceId, relationship])
 }
 
 /**
  * Resolve unresolved links to a target node
  * Call this when a new node is created that might match pending links
  */
-export function resolveLinks(
-  db: Database,
-  targetId: string,
-  targetName: string,
-): number {
+export function resolveLinks(db: Database, targetId: string, targetName: string): number {
   const normalizedName = targetName.toLowerCase().replace(/\.md$/, "")
 
   // Find all unresolved links that match this target name
@@ -155,9 +144,7 @@ export function resolveLinks(
     }
   }
 
-  log.debug?.(
-    `resolveLinks targetName=${targetName} targetId=${targetId} resolved=${resolvedCount}`,
-  )
+  log.debug?.(`resolveLinks targetName=${targetName} targetId=${targetId} resolved=${resolvedCount}`)
   return resolvedCount
 }
 
@@ -170,10 +157,7 @@ export function resolveLinks(
  * @param targets - Array of {id, name} for newly created file nodes
  * @returns Number of links resolved
  */
-export function resolveLinksBatch(
-  db: Database,
-  targets: Array<{ id: string; name: string }>,
-): number {
+export function resolveLinksBatch(db: Database, targets: Array<{ id: string; name: string }>): number {
   if (targets.length === 0) return 0
 
   // Build lookup map: normalized name -> target id
@@ -238,9 +222,7 @@ export function resolveLinksBatch(
     }
   }
 
-  log.debug?.(
-    `resolveLinksBatch targets=${targets.length} resolved=${resolved}`,
-  )
+  log.debug?.(`resolveLinksBatch targets=${targets.length} resolved=${resolved}`)
   return resolved
 }
 
@@ -250,10 +232,10 @@ export function resolveLinksBatch(
  */
 export function updateTargetName(db: Database, oldName: string, newName: string): number {
   const normalizedOld = oldName.toLowerCase().replace(/\.md$/, "")
-  const result = db.run(
-    `UPDATE links SET target_name = ? WHERE LOWER(REPLACE(target_name, '.md', '')) = ?`,
-    [newName, normalizedOld],
-  )
+  const result = db.run(`UPDATE links SET target_name = ? WHERE LOWER(REPLACE(target_name, '.md', '')) = ?`, [
+    newName,
+    normalizedOld,
+  ])
   return result.changes
 }
 
@@ -265,9 +247,7 @@ export function updateTargetName(db: Database, oldName: string, newName: string)
  * Get outgoing links from a node (forward links)
  */
 export function getOutgoingLinks(db: Database, sourceId: string): Link[] {
-  const rows = db
-    .query("SELECT * FROM links WHERE source_id = ?")
-    .all(sourceId) as Array<Record<string, unknown>>
+  const rows = db.query("SELECT * FROM links WHERE source_id = ?").all(sourceId) as Array<Record<string, unknown>>
 
   return rows.map(rowToLink)
 }
@@ -276,9 +256,7 @@ export function getOutgoingLinks(db: Database, sourceId: string): Link[] {
  * Get incoming links to a node (backlinks)
  */
 export function getBacklinks(db: Database, targetId: string): Link[] {
-  const rows = db
-    .query("SELECT * FROM links WHERE target_id = ?")
-    .all(targetId) as Array<Record<string, unknown>>
+  const rows = db.query("SELECT * FROM links WHERE target_id = ?").all(targetId) as Array<Record<string, unknown>>
 
   return rows.map(rowToLink)
 }

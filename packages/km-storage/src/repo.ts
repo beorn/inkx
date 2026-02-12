@@ -46,12 +46,7 @@ import type { FileTree } from "./file-tree.ts"
 import { createDiskFileTree } from "./file-tree.ts"
 import { executeQuery, parseQuery } from "./query.ts"
 import { type MutationContext, type RepoHooks } from "./repo-hooks.ts"
-import {
-  loadRepo,
-  type DeferredFile,
-  type LoadError,
-  type StepYield,
-} from "./repo-loader.ts"
+import { loadRepo, type DeferredFile, type LoadError, type StepYield } from "./repo-loader.ts"
 import { SCHEMA } from "./schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 import { FsWriter } from "./watch/fs-writer.ts"
@@ -144,20 +139,14 @@ function createQueryMethods(deps: RepoMethodDeps) {
       const children = dataStore.getChildren(nodeId)
       return { backlinks, childCount: children.length }
     },
-    resolveNode(
-      queryStr: string,
-      typeOrOptions?: string | { type?: string; taskOnly?: boolean },
-    ) {
-      const baseOpts =
-        typeof typeOrOptions === "string"
-          ? { type: typeOrOptions }
-          : (typeOrOptions ?? {})
+    resolveNode(queryStr: string, typeOrOptions?: string | { type?: string; taskOnly?: boolean }) {
+      const baseOpts = typeof typeOrOptions === "string" ? { type: typeOrOptions } : (typeOrOptions ?? {})
       return dbResolveNode(db, queryStr, { ...baseOpts, repoRoot: rootPath })
     },
     getRepoRootNode() {
-      const row = db
-        .prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'folder'")
-        .get() as Record<string, unknown> | undefined
+      const row = db.prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'folder'").get() as
+        | Record<string, unknown>
+        | undefined
       if (!row) return null
       // Import rowToNode inline to avoid circular dependency
       return {
@@ -177,16 +166,9 @@ function createQueryMethods(deps: RepoMethodDeps) {
     getChildCounts(parentIds: string[]) {
       return dbGetChildCountsBatch(db, parentIds)
     },
-    rawQuery<T = Record<string, unknown>>(
-      sql: string,
-      params?: unknown[],
-    ): T[] {
+    rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
       const stmt = db.prepare(sql)
-      return (
-        params
-          ? stmt.all(...(params as Parameters<typeof stmt.all>))
-          : stmt.all()
-      ) as T[]
+      return (params ? stmt.all(...(params as Parameters<typeof stmt.all>)) : stmt.all()) as T[]
     },
   }
 }
@@ -207,10 +189,7 @@ function summarizeChanges(changes: Partial<KNode>): Record<string, unknown> {
 }
 
 /** Create mutation methods shared by createRepo and createBareRepo */
-function createMutationMethods(
-  deps: RepoMethodDeps,
-  state: { version: number; notify(): void },
-) {
+function createMutationMethods(deps: RepoMethodDeps, state: { version: number; notify(): void }) {
   const { dataStore, hooks, childrenCache } = deps
 
   const mutations = {
@@ -244,11 +223,7 @@ function createMutationMethods(
         if (result?.context) ctx = result.context
       }
       const oldParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
-      dataStore.moveNode(
-        ctx.nodeId,
-        ctx.newParentId ?? newParentId,
-        ctx.position ?? position,
-      )
+      dataStore.moveNode(ctx.nodeId, ctx.newParentId ?? newParentId, ctx.position ?? position)
       childrenCache.bust(oldParentId)
       childrenCache.bust(ctx.newParentId ?? newParentId)
       state.version++
@@ -263,8 +238,7 @@ function createMutationMethods(
         if (result?.cancel) throw new Error("Mutation cancelled by hook")
         if (result?.context) ctx = result.context
       }
-      const deletedParentId =
-        dataStore.getNode(ctx.nodeId)?.parent_id ?? null
+      const deletedParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
       dataStore.deleteNode(ctx.nodeId)
       childrenCache.bust(deletedParentId)
       state.version++
@@ -318,11 +292,7 @@ function createMutationMethods(
       childrenCache.bust(cloneParentId)
       return id
     },
-    renameNode(
-      id: string,
-      newContent: string,
-      onProgress?: (info: { updated: number; total: number }) => void,
-    ) {
+    renameNode(id: string, newContent: string, onProgress?: (info: { updated: number; total: number }) => void) {
       const node = dataStore.getNode(id)
       if (!node) return
       const oldName = node.name ?? ""
@@ -345,20 +315,14 @@ function createMutationMethods(
       const backlinks = dbGetBacklinks(deps.db, id)
       const total = backlinks.length
       const escapedOld = oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-      const pattern = new RegExp(
-        `(\\!?\\[\\[)${escapedOld}(\\|[^\\]]+)?(\\]\\])`,
-        "gi",
-      )
+      const pattern = new RegExp(`(\\!?\\[\\[)${escapedOld}(\\|[^\\]]+)?(\\]\\])`, "gi")
 
       let updated = 0
       for (const link of backlinks) {
         const sourceNode = dataStore.getNode(link.source_id)
         if (!sourceNode?.content) continue
 
-        const updatedContent = sourceNode.content.replace(
-          pattern,
-          `$1${newName}$2$3`,
-        )
+        const updatedContent = sourceNode.content.replace(pattern, `$1${newName}$2$3`)
         if (updatedContent !== sourceNode.content) {
           mutations.updateNode(link.source_id, { content: updatedContent })
         }
@@ -391,19 +355,15 @@ function checkNeedsRebuild(rootPath: string, db: Database): boolean {
   }
 
   // Check if there are unapplied events
-  const lastApplied = db
-    .prepare("SELECT value FROM meta WHERE key = ?")
-    .get("last_event") as { value: string } | undefined
+  const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
+    | { value: string }
+    | undefined
 
   const lastAppliedId = lastApplied?.value
   if (!lastAppliedId) {
-    const content = existsSync(eventsPath)
-      ? readFileSync(eventsPath, "utf-8")
-      : ""
+    const content = existsSync(eventsPath) ? readFileSync(eventsPath, "utf-8") : ""
     const hasEvents = content.trim().length > 0
-    log.debug?.(
-      `needsRebuild result=${hasEvents ? "yes" : "no"} reason=no last_event`,
-    )
+    log.debug?.(`needsRebuild result=${hasEvents ? "yes" : "no"} reason=no last_event`)
     return hasEvents
   }
 
@@ -580,21 +540,14 @@ export interface Repo extends Disposable {
   getRenameImpact(nodeId: string): { backlinks: Link[]; childCount: number }
 
   /** Rename a node and update all backlinks referencing it */
-  renameNode(
-    id: string,
-    newContent: string,
-    onProgress?: (info: { updated: number; total: number }) => void,
-  ): void
+  renameNode(id: string, newContent: string, onProgress?: (info: { updated: number; total: number }) => void): void
 
   /**
    * Smart node resolver - finds a node by various identifiers.
    * @param query - ID, path, or filename to search for
    * @param typeOrOptions - Optional type filter
    */
-  resolveNode(
-    query: string,
-    typeOrOptions?: string | { type?: string; taskOnly?: boolean },
-  ): KNode | null
+  resolveNode(query: string, typeOrOptions?: string | { type?: string; taskOnly?: boolean }): KNode | null
 
   /** Batch get child counts for multiple parent IDs */
   getChildCounts(parentIds: string[]): Map<string, number>
@@ -633,11 +586,7 @@ export interface Repo extends Disposable {
    * @param options.ensure - Create file/directory if not exists
    * @throws Error if repo has no files (bare repo)
    */
-  appendTaskToFile(
-    filePath: string,
-    content: string,
-    options?: { ensure?: boolean },
-  ): void
+  appendTaskToFile(filePath: string, content: string, options?: { ensure?: boolean }): void
 
   /**
    * Check if a path exists relative to repo root.
@@ -753,9 +702,7 @@ export class IncompleteDatabase extends Error {
  * Returns a descriptive string if absolute paths found, or null if OK.
  */
 function detectAbsolutePaths(db: Database): string | null {
-  const row = db
-    .prepare("SELECT COUNT(*) as cnt FROM nodes WHERE fs_path LIKE '/%'")
-    .get() as { cnt: number }
+  const row = db.prepare("SELECT COUNT(*) as cnt FROM nodes WHERE fs_path LIKE '/%'").get() as { cnt: number }
   if (row.cnt === 0) return null
   return (
     `database contains ${row.cnt} node(s) with absolute fs_path values. ` +
@@ -772,11 +719,7 @@ function detectAbsolutePaths(db: Database): string | null {
  * 2. Root node has no structural children (file/folder) despite filesystem having entries
  * 3. Database has very few nodes overall (<=1, original check)
  */
-function isDatabaseIncomplete(
-  db: Database,
-  rootPath: string,
-  kmDir: string,
-): string | null {
+function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): string | null {
   // Fresh init: missing or empty events.jsonl means sync hasn't run yet — not corrupt
   const eventsPath = join(kmDir, "events.jsonl")
   if (!existsSync(eventsPath)) return null
@@ -786,16 +729,12 @@ function isDatabaseIncomplete(
   // Count filesystem entries that should be indexed
   if (!existsSync(rootPath)) return null
   const fsEntries = readdirSync(rootPath).filter(
-    (f) =>
-      f.endsWith(".md") ||
-      (statSync(join(rootPath, f)).isDirectory() && !f.startsWith(".")),
+    (f) => f.endsWith(".md") || (statSync(join(rootPath, f)).isDirectory() && !f.startsWith(".")),
   )
   if (fsEntries.length === 0) return null // Empty vault, nothing to check
 
   // Count total nodes
-  const totalNodes = (
-    db.prepare("SELECT COUNT(*) as cnt FROM nodes").get() as { cnt: number }
-  ).cnt
+  const totalNodes = (db.prepare("SELECT COUNT(*) as cnt FROM nodes").get() as { cnt: number }).cnt
   if (totalNodes <= 1) {
     return `database has ${totalNodes} node(s) but filesystem has ${fsEntries.length} entries`
   }
@@ -803,9 +742,7 @@ function isDatabaseIncomplete(
   // Check root's structural children (files and folders that should map to fs entries)
   const rootStructural = (
     db
-      .prepare(
-        "SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type IN ('file', 'folder')",
-      )
+      .prepare("SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type IN ('file', 'folder')")
       .get() as { cnt: number }
   ).cnt
 
@@ -880,10 +817,7 @@ function* initWithFileLoading(
   })
 
   // Create DataStore - pass emitter for disk mode only
-  const dataStore = createDBDataStore(
-    db,
-    mode === "disk" ? { emitter } : undefined,
-  )
+  const dataStore = createDBDataStore(db, mode === "disk" ? { emitter } : undefined)
 
   // Capture loading results
   const loadErrors = loadResult.errors
@@ -911,9 +845,7 @@ function* initWithFileLoading(
     }
   }
 
-  log.debug?.(
-    `loaded files: ${stats.nodeCount} nodes, ${stats.linkCount} links, ${loadErrors.length} errors`,
-  )
+  log.debug?.(`loaded files: ${stats.nodeCount} nodes, ${stats.linkCount} links, ${loadErrors.length} errors`)
 
   return { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles }
 }
@@ -927,10 +859,7 @@ function* initWithFileLoading(
  * @yields Progress step declarations and step names
  * @returns Initialization result with db, dataStore, and empty stats
  */
-function* initEmptyDb(
-  kmDir: string,
-  options: CreateRepoOptions,
-): Generator<StepYield, RepoInitResult, unknown> {
+function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<StepYield, RepoInitResult, unknown> {
   // Declare all sub-steps upfront so they appear as pending
   yield {
     declare: ["Detecting mode", "Initializing database", "Scanning files"],
@@ -1055,10 +984,9 @@ export function* createRepo(
   const kmDir = join(rootPath, ".km")
 
   // Delegate to the appropriate initialization helper
-  const { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles } =
-    options.loadFiles
-      ? yield* initWithFileLoading(rootPath, kmDir, options)
-      : yield* initEmptyDb(kmDir, options)
+  const { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles } = options.loadFiles
+    ? yield* initWithFileLoading(rootPath, kmDir, options)
+    : yield* initEmptyDb(kmDir, options)
 
   // Register lightweight FS writer for disk-mode repos (CLI write-back).
   // The TUI replaces this with SyncManager via emitter.setFsSync().
@@ -1175,9 +1103,7 @@ export function* createRepo(
 
     // Full-repo specific methods
     appendTaskToFile(filePath, content, opts) {
-      const relativePath = filePath.startsWith("/")
-        ? filePath.slice(rootPath.length + 1)
-        : filePath
+      const relativePath = filePath.startsWith("/") ? filePath.slice(rootPath.length + 1) : filePath
 
       if (opts?.ensure) {
         const dir = dirname(relativePath)
@@ -1283,19 +1209,14 @@ export interface CreateBareRepoOptions {
  * @param options - Creation options
  * @returns Bare Repo domain object
  */
-export function createBareRepo(
-  dataStore: DataStore & HasDatabase,
-  options: CreateBareRepoOptions = {},
-): Repo {
+export function createBareRepo(dataStore: DataStore & HasDatabase, options: CreateBareRepoOptions = {}): Repo {
   log.debug?.("createBareRepo")
 
   const config = options.config ?? loadConfigObject(options.configPath)
   const db = dataStore.database
   const repoPath = options.configPath ?? process.cwd()
   const kmDir = join(repoPath, ".km")
-  const emitter =
-    options.emitter ??
-    createEmitter({ kmDir, db, skipPersist: options.skipPersist })
+  const emitter = options.emitter ?? createEmitter({ kmDir, db, skipPersist: options.skipPersist })
   const hooks = options.hooks
 
   let closed = false
@@ -1424,8 +1345,4 @@ export {
 // Re-export hook types from repo-hooks.ts
 // =============================================================================
 
-export {
-  type BeforeMutationResult,
-  type MutationContext,
-  type RepoHooks,
-} from "./repo-hooks.ts"
+export { type BeforeMutationResult, type MutationContext, type RepoHooks } from "./repo-hooks.ts"

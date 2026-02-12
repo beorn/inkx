@@ -17,10 +17,7 @@ import { getNodeDisplayName } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { useTreeRenderContext } from "../ui-context.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
-import {
-  VerticalScrollIndicator,
-  ColumnSeparator,
-} from "./VerticalScrollIndicator.tsx"
+import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { calcColumnWidths, getColumnWidth } from "./board-layout.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { useIsColumnSelected, useCursorColIndex } from "../cursor-context.tsx"
@@ -86,11 +83,7 @@ const ColumnTree = React.memo(function ColumnTree({
 
   // Column header is selected when at column level
   const isColumnHeaderSelected = isSelected && selectionLevel === "column"
-  const headerStyle = getHeaderStyle(
-    ownColor,
-    isSelected,
-    isColumnHeaderSelected,
-  )
+  const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnHeaderSelected)
 
   // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
   const icon = getNodeIcon(null, ownColor, false)
@@ -101,14 +94,7 @@ const ColumnTree = React.memo(function ColumnTree({
   const renderCard = useCallback(
     (card: CardState, actualIndex: number) => {
       log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`)
-      return (
-        <MemoizedTreeCard
-          key={card.node.id}
-          card={card}
-          colIndex={colIndex}
-          cardIndex={actualIndex}
-        />
-      )
+      return <MemoizedTreeCard key={card.node.id} card={card} colIndex={colIndex} cardIndex={actualIndex} />
     },
     [colIndex],
   )
@@ -133,12 +119,7 @@ const ColumnTree = React.memo(function ColumnTree({
       <Box flexDirection="column" height={2} flexShrink={0}>
         {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
         <Box>
-          <Text
-            bold
-            color={headerStyle.color}
-            backgroundColor={headerStyle.backgroundColor}
-            wrap="truncate"
-          >
+          <Text bold color={headerStyle.color} backgroundColor={headerStyle.backgroundColor} wrap="truncate">
             {" "}
             <Text color={iconColor}>{icon.char}</Text> {name}
             <Text
@@ -225,20 +206,13 @@ export function ColumnsView({
       {/* Columns row */}
       <Box flexDirection="row" flexGrow={1}>
         {/* Left scroll indicator */}
-        {widths.hasLeftIndicator && (
-          <VerticalScrollIndicator direction="left" />
-        )}
+        {widths.hasLeftIndicator && <VerticalScrollIndicator direction="left" />}
 
         {/* Columns with tree view inside */}
         {effectiveVisibleColumns.map((col, i) => {
           const actualColIndex = effectiveScrollOffset + i
           const isLastCol = i === effectiveVisibleColumns.length - 1
-          const colWidth = getColumnWidth(
-            i,
-            widths.baseColWidth,
-            widths.remainder,
-            COLUMNS_VIEW_MAX_WIDTH,
-          )
+          const colWidth = getColumnWidth(i, widths.baseColWidth, widths.remainder, COLUMNS_VIEW_MAX_WIDTH)
           log.debug?.(`ColumnsView map: i=${i} actualColIdx=${actualColIndex} colIndex=${colIndex}`)
           return (
             <React.Fragment key={col.node.id}>
@@ -256,9 +230,7 @@ export function ColumnsView({
         })}
 
         {/* Right scroll indicator */}
-        {widths.hasRightIndicator && (
-          <VerticalScrollIndicator direction="right" />
-        )}
+        {widths.hasRightIndicator && <VerticalScrollIndicator direction="right" />}
 
         {state.columns.length === 0 && <Text dimColor>Empty board</Text>}
       </Box>

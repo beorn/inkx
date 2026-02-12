@@ -67,11 +67,7 @@ export interface MergeResult {
  * @param offset - Character offset in the node's display text (name or content)
  * @returns SplitResult with IDs of the two resulting nodes
  */
-export function splitNode(
-  tree: TreeMutator,
-  nodeId: string,
-  offset: number,
-): SplitResult {
+export function splitNode(tree: TreeMutator, nodeId: string, offset: number): SplitResult {
   const node = tree.getNode(nodeId)
   if (!node) throw new Error(`splitNode: node not found: ${nodeId}`)
 
@@ -136,10 +132,7 @@ export function splitNode(
  * @param nodeId - ID of the node to merge backward
  * @returns MergeResult with survivor ID and cursor offset, or null if no merge possible
  */
-export function mergeWithPrevious(
-  tree: TreeMutator,
-  nodeId: string,
-): MergeResult | null {
+export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResult | null {
   const node = tree.getNode(nodeId)
   if (!node) return null
 
@@ -155,6 +148,7 @@ export function mergeWithPrevious(
 
   if (currentIndex > 0) {
     // Has previous sibling
+    // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- currentIndex > 0 guarantees prev exists
     const prev = siblings[currentIndex - 1]!
     const prevText = getNodeText(prev)
     const prevChildren = tree.getChildren(prev.id)
@@ -180,7 +174,8 @@ export function mergeWithPrevious(
     // Prev has children: move this node as last child of prev
     const lastChildIdx =
       prevChildren.length > 0
-        ? (prevChildren[prevChildren.length - 1]!.parent_idx ?? 0) + 1
+        ? // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- prevChildren.length > 0 guarantees last element exists
+          (prevChildren[prevChildren.length - 1]!.parent_idx ?? 0) + 1
         : 0
     tree.moveNode(nodeId, prev.id, lastChildIdx)
     return { survivorId: nodeId, cursorOffset: 0 }
@@ -239,10 +234,7 @@ export function setNodeText(node: KNode, text: string): string {
  * Get the previous visible sibling of a node.
  * Returns null if the node is the first child.
  */
-export function getPreviousSibling(
-  tree: TreeMutator,
-  nodeId: string,
-): KNode | null {
+export function getPreviousSibling(tree: TreeMutator, nodeId: string): KNode | null {
   const node = tree.getNode(nodeId)
   if (!node?.parent_id) return null
 
@@ -255,10 +247,7 @@ export function getPreviousSibling(
  * Get the next visible sibling of a node.
  * Returns null if the node is the last child.
  */
-export function getNextSibling(
-  tree: TreeMutator,
-  nodeId: string,
-): KNode | null {
+export function getNextSibling(tree: TreeMutator, nodeId: string): KNode | null {
   const node = tree.getNode(nodeId)
   if (!node?.parent_id) return null
 

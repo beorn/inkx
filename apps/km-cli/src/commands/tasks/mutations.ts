@@ -7,11 +7,7 @@
 import { createTerm } from "inkx"
 
 const term = createTerm(process)
-import {
-  resolvePathArg,
-  parseTaskMetadata,
-  extractTags,
-} from "@km/storage"
+import { resolvePathArg, parseTaskMetadata, extractTags } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
 import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
@@ -65,10 +61,7 @@ export async function createTask(
 /**
  * Mark a task as done
  */
-export async function markDone(
-  pathOrId: string | undefined,
-  options: { json?: boolean },
-): Promise<void> {
+export async function markDone(pathOrId: string | undefined, options: { json?: boolean }): Promise<void> {
   if (!pathOrId) {
     console.error(term.red("Task ID or path required"))
     process.exit(1)
@@ -99,10 +92,7 @@ export async function markDone(
 /**
  * Claim a task (assign to yourself)
  */
-export async function claimTask(
-  pathOrId: string | undefined,
-  options: { json?: boolean },
-): Promise<void> {
+export async function claimTask(pathOrId: string | undefined, options: { json?: boolean }): Promise<void> {
   if (!pathOrId) {
     console.error(term.red("Task ID or path required"))
     process.exit(1)
@@ -141,10 +131,7 @@ export async function claimTask(
 /**
  * Release a claimed task
  */
-export async function releaseTask(
-  pathOrId: string | undefined,
-  options: { json?: boolean },
-): Promise<void> {
+export async function releaseTask(pathOrId: string | undefined, options: { json?: boolean }): Promise<void> {
   if (!pathOrId) {
     console.error(term.red("Task ID or path required"))
     process.exit(1)
@@ -166,9 +153,7 @@ export async function releaseTask(
   })
 
   if (options.json) {
-    console.log(
-      JSON.stringify({ id: task.id, status: "todo", assigned_to: null }),
-    )
+    console.log(JSON.stringify({ id: task.id, status: "todo", assigned_to: null }))
     return
   }
 

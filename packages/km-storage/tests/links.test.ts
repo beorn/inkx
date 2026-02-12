@@ -39,10 +39,7 @@ describe("Links and Backlinks", () => {
   describe("Wikilink Parsing in Content", () => {
     test("should parse simple wikilinks from task content", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        "# Tasks\n\n- [ ] Review [[project notes]]",
-      )
+      writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Review [[project notes]]")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
@@ -53,10 +50,7 @@ describe("Links and Backlinks", () => {
 
     test("should preserve wikilinks with aliases", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "doc.md"),
-        "# Document\n\n- [ ] See [[Real Target|Display Name]] for details",
-      )
+      writeFileSync(join(testDir, "doc.md"), "# Document\n\n- [ ] See [[Real Target|Display Name]] for details")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
@@ -67,10 +61,7 @@ describe("Links and Backlinks", () => {
 
     test("should preserve section links", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "page.md"),
-        "# Page\n\n- [ ] Link to [[other#section]]",
-      )
+      writeFileSync(join(testDir, "page.md"), "# Page\n\n- [ ] Link to [[other#section]]")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
@@ -81,10 +72,7 @@ describe("Links and Backlinks", () => {
 
     test("should handle multiple wikilinks in same task", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "multi.md"),
-        "# Multi\n\n- [ ] Links to [[one]] and [[two]] and [[three]]",
-      )
+      writeFileSync(join(testDir, "multi.md"), "# Multi\n\n- [ ] Links to [[one]] and [[two]] and [[three]]")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
@@ -127,24 +115,17 @@ describe("Links and Backlinks", () => {
       )
 
       // Create board that embeds a specific task
-      writeFileSync(
-        join(testDir, "board.md"),
-        "# My Board\n\n## Work\n- ![[tasks#Review PR]]",
-      )
+      writeFileSync(join(testDir, "board.md"), "# My Board\n\n## Work\n- ![[tasks#Review PR]]")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
 
       // Find the embedding node (the list item with ![[...]])
-      const embedNode = nodes.find((n) =>
-        n.content?.includes("![[tasks#Review PR]]"),
-      )
+      const embedNode = nodes.find((n) => n.content?.includes("![[tasks#Review PR]]"))
       expect(embedNode).toBeDefined()
 
       // Find the target task (Review PR)
-      const targetTask = nodes.find(
-        (n) => n.type === "task" && n.content?.includes("Review PR @work"),
-      )
+      const targetTask = nodes.find((n) => n.type === "task" && n.content?.includes("Review PR @work"))
       expect(targetTask).toBeDefined()
 
       // The embedding should have link_to pointing to the specific task, not the file
@@ -153,29 +134,19 @@ describe("Links and Backlinks", () => {
 
     test("should resolve embedding to file when no section match", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "source.md"),
-        "# Source\n\nSome content here.",
-      )
+      writeFileSync(join(testDir, "source.md"), "# Source\n\nSome content here.")
 
-      writeFileSync(
-        join(testDir, "embed.md"),
-        "# Embed\n\n- ![[source#nonexistent section]]",
-      )
+      writeFileSync(join(testDir, "embed.md"), "# Embed\n\n- ![[source#nonexistent section]]")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
 
       // Find the embedding node
-      const embedNode = nodes.find((n) =>
-        n.content?.includes("![[source#nonexistent section]]"),
-      )
+      const embedNode = nodes.find((n) => n.content?.includes("![[source#nonexistent section]]"))
       expect(embedNode).toBeDefined()
 
       // Find the source file
-      const sourceFile = nodes.find(
-        (n) => n.type === "file" && n.fs_path?.endsWith("source.md"),
-      )
+      const sourceFile = nodes.find((n) => n.type === "file" && n.fs_path?.endsWith("source.md"))
       expect(sourceFile).toBeDefined()
 
       // The embedding should fall back to the file since section doesn't exist
@@ -189,24 +160,17 @@ describe("Links and Backlinks", () => {
         "# Document\n\n## Introduction\n\nIntro content.\n\n## Conclusion\n\nConclusion content.",
       )
 
-      writeFileSync(
-        join(testDir, "ref.md"),
-        "# Reference\n\n- ![[doc#Conclusion]]",
-      )
+      writeFileSync(join(testDir, "ref.md"), "# Reference\n\n- ![[doc#Conclusion]]")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
 
       // Find the embedding node
-      const embedNode = nodes.find((n) =>
-        n.content?.includes("![[doc#Conclusion]]"),
-      )
+      const embedNode = nodes.find((n) => n.content?.includes("![[doc#Conclusion]]"))
       expect(embedNode).toBeDefined()
 
       // Find the Conclusion section
-      const conclusionSection = nodes.find(
-        (n) => n.type === "section" && n.title === "Conclusion",
-      )
+      const conclusionSection = nodes.find((n) => n.type === "section" && n.title === "Conclusion")
       expect(conclusionSection).toBeDefined()
 
       // The embedding should point to the specific section
@@ -219,10 +183,7 @@ describe("Links and Backlinks", () => {
       const testDir = createTestDir()
       // Create a folder with files
       mkdirSync(join(testDir, "inbox"), { recursive: true })
-      writeFileSync(
-        join(testDir, "inbox", "task1.md"),
-        "# Task 1\n\n- [ ] Do something",
-      )
+      writeFileSync(join(testDir, "inbox", "task1.md"), "# Task 1\n\n- [ ] Do something")
 
       // Create a file that embeds the folder
       writeFileSync(join(testDir, "board.md"), "# Board\n\n![[inbox]]")
@@ -235,9 +196,7 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the inbox folder
-      const inboxFolder = nodes.find(
-        (n) => n.type === "folder" && n.name === "inbox",
-      )
+      const inboxFolder = nodes.find((n) => n.type === "folder" && n.name === "inbox")
       expect(inboxFolder).toBeDefined()
 
       // The embedding should point to the folder
@@ -247,10 +206,7 @@ describe("Links and Backlinks", () => {
     test("should resolve embedded folder link_to", () => {
       const testDir = createTestDir()
       mkdirSync(join(testDir, "projects"), { recursive: true })
-      writeFileSync(
-        join(testDir, "projects", "proj1.md"),
-        "# Project 1\n\nContent",
-      )
+      writeFileSync(join(testDir, "projects", "proj1.md"), "# Project 1\n\nContent")
 
       // Use embedding syntax to test link_to resolution
       writeFileSync(join(testDir, "index.md"), "# Index\n\n![[projects]]")
@@ -263,9 +219,7 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the projects folder
-      const projectsFolder = nodes.find(
-        (n) => n.type === "folder" && n.name === "projects",
-      )
+      const projectsFolder = nodes.find((n) => n.type === "folder" && n.name === "projects")
       expect(projectsFolder).toBeDefined()
 
       // The embedding's link_to should point to the folder
@@ -278,9 +232,7 @@ describe("Links and Backlinks", () => {
       writeFileSync(join(testDir, "my-folder", "file.md"), "# File\n\nContent")
 
       using store = new MemoryStore(testDir)
-      const folder = store
-        .getAllNodes()
-        .find((n) => n.type === "folder" && n.fs_path?.endsWith("my-folder"))
+      const folder = store.getAllNodes().find((n) => n.type === "folder" && n.fs_path?.endsWith("my-folder"))
 
       expect(folder).toBeDefined()
       expect(folder?.name).toBe("my-folder")
@@ -290,10 +242,7 @@ describe("Links and Backlinks", () => {
   describe("Node Hierarchy", () => {
     test("should track parent-child relationships", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "parent.md"),
-        "# Parent\n\n- [ ] Child task 1\n- [ ] Child task 2",
-      )
+      writeFileSync(join(testDir, "parent.md"), "# Parent\n\n- [ ] Child task 1\n- [ ] Child task 2")
 
       using store = new MemoryStore(testDir)
       // File has sections as children, sections have tasks
@@ -310,16 +259,11 @@ describe("Links and Backlinks", () => {
     test("should build ancestor chain correctly", () => {
       const testDir = createTestDir()
       mkdirSync(join(testDir, "folder"), { recursive: true })
-      writeFileSync(
-        join(testDir, "folder", "nested.md"),
-        "# Nested\n\n- [ ] Deep task",
-      )
+      writeFileSync(join(testDir, "folder", "nested.md"), "# Nested\n\n- [ ] Deep task")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
-      const task = nodes.find(
-        (n) => n.type === "task" && n.content?.includes("Deep task"),
-      )
+      const task = nodes.find((n) => n.type === "task" && n.content?.includes("Deep task"))
       expect(task).toBeDefined()
 
       const ancestors = store.getAncestors(task!.id)
@@ -330,15 +274,10 @@ describe("Links and Backlinks", () => {
   describe("ULID Embed Resolution", () => {
     test("resolver resolves node ID directly", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        "# Tasks\n\n- [ ] Buy groceries",
-      )
+      writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Buy groceries")
 
       using store = new MemoryStore(testDir)
-      const task = store
-        .getAllNodes()
-        .find((n) => n.type === "task" && n.content?.includes("Buy groceries"))
+      const task = store.getAllNodes().find((n) => n.type === "task" && n.content?.includes("Buy groceries"))
       expect(task).toBeDefined()
 
       // Access the underlying DB to test the link resolver directly
@@ -366,28 +305,20 @@ describe("Links and Backlinks", () => {
     test("![[ULID]] embed resolves link_to within same DB", () => {
       const testDir = createTestDir()
       // Create the task file
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        "# Tasks\n\n- [ ] Buy groceries",
-      )
+      writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Buy groceries")
 
       // Load once to learn the task ULID
       let taskId: string
       {
         using store = new MemoryStore(testDir)
-        const task = store
-          .getAllNodes()
-          .find((n) => n.type === "task" && n.content?.includes("Buy groceries"))
+        const task = store.getAllNodes().find((n) => n.type === "task" && n.content?.includes("Buy groceries"))
         expect(task).toBeDefined()
         taskId = task!.id
       }
 
       // Now write a board that embeds the task by ULID
       // AND keep the same tasks.md so the task gets the same content
-      writeFileSync(
-        join(testDir, "board.md"),
-        `# Board\n\n## Column\n\n![[${taskId}]]`,
-      )
+      writeFileSync(join(testDir, "board.md"), `# Board\n\n## Column\n\n![[${taskId}]]`)
 
       // Load again — tasks.md gets a NEW ULID, but board.md references the OLD one
       // The resolver should find the node by ID (from the OLD ULID) — but it won't
@@ -400,10 +331,7 @@ describe("Links and Backlinks", () => {
   describe("Block ID Resolution (via LinkResolver)", () => {
     test("should resolve task block_id to node ID", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        "# Tasks\n\n- [ ] Buy groceries ^k7m2",
-      )
+      writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Buy groceries ^k7m2")
 
       using store = new MemoryStore(testDir)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -413,9 +341,7 @@ describe("Links and Backlinks", () => {
       expect(resolved).not.toBeNull()
 
       // Verify it points to the correct task
-      const task = store
-        .getAllNodes()
-        .find((n) => n.type === "task" && n.content?.includes("Buy groceries"))
+      const task = store.getAllNodes().find((n) => n.type === "task" && n.content?.includes("Buy groceries"))
       expect(task).toBeDefined()
       expect(resolved).toBe(task!.id)
     })
@@ -434,10 +360,7 @@ describe("Links and Backlinks", () => {
 
     test("should resolve heading block_id to section node ID", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "doc.md"),
-        "# Document\n\n## Section ^abc1\n\nContent here.",
-      )
+      writeFileSync(join(testDir, "doc.md"), "# Document\n\n## Section ^abc1\n\nContent here.")
 
       using store = new MemoryStore(testDir)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -447,9 +370,7 @@ describe("Links and Backlinks", () => {
       expect(resolved).not.toBeNull()
 
       // Verify it points to the correct section
-      const section = store
-        .getAllNodes()
-        .find((n) => n.type === "section" && n.title === "Section")
+      const section = store.getAllNodes().find((n) => n.type === "section" && n.title === "Section")
       expect(section).toBeDefined()
       expect(resolved).toBe(section!.id)
     })
@@ -458,28 +379,18 @@ describe("Links and Backlinks", () => {
   describe("Block ID in Embed Resolution (via MemoryStore)", () => {
     test("should resolve embed with block_id to target task", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        "# Tasks\n\n- [ ] Buy groceries ^k7m2\n- [ ] Call mom ^j3n8",
-      )
-      writeFileSync(
-        join(testDir, "board.md"),
-        "# Board\n\n## Column\n\n- ![[tasks^k7m2]]",
-      )
+      writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Buy groceries ^k7m2\n- [ ] Call mom ^j3n8")
+      writeFileSync(join(testDir, "board.md"), "# Board\n\n## Column\n\n- ![[tasks^k7m2]]")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
 
       // Find the embed node (list item with ![[tasks^k7m2]])
-      const embedNode = nodes.find((n) =>
-        n.content?.includes("![[tasks^k7m2]]"),
-      )
+      const embedNode = nodes.find((n) => n.content?.includes("![[tasks^k7m2]]"))
       expect(embedNode).toBeDefined()
 
       // Find the target task (Buy groceries)
-      const targetTask = nodes.find(
-        (n) => n.type === "task" && n.content?.includes("Buy groceries"),
-      )
+      const targetTask = nodes.find((n) => n.type === "task" && n.content?.includes("Buy groceries"))
       expect(targetTask).toBeDefined()
 
       // The embed should have link_to pointing to the Buy groceries task
@@ -488,10 +399,7 @@ describe("Links and Backlinks", () => {
 
     test("should resolve embed with block_id to target section", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "doc.md"),
-        "# Document\n\n## Introduction ^abc1\n\nContent here.",
-      )
+      writeFileSync(join(testDir, "doc.md"), "# Document\n\n## Introduction ^abc1\n\nContent here.")
       writeFileSync(join(testDir, "ref.md"), "# Ref\n\n![[doc^abc1]]")
 
       using store = new MemoryStore(testDir)
@@ -502,9 +410,7 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the Introduction section
-      const introSection = nodes.find(
-        (n) => n.type === "section" && n.title === "Introduction",
-      )
+      const introSection = nodes.find((n) => n.type === "section" && n.title === "Introduction")
       expect(introSection).toBeDefined()
 
       // The embed's link_to should point to the Introduction section
@@ -515,15 +421,10 @@ describe("Links and Backlinks", () => {
   describe("Block ID Persistence", () => {
     test("block_id should survive store load cycle", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        "# Tasks\n\n- [ ] Task ^k7m2",
-      )
+      writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Task ^k7m2")
 
       using store = new MemoryStore(testDir)
-      const task = store
-        .getAllNodes()
-        .find((n) => n.type === "task" && n.content?.includes("Task"))
+      const task = store.getAllNodes().find((n) => n.type === "task" && n.content?.includes("Task"))
       expect(task).toBeDefined()
 
       // block_id should be stored on the node
@@ -532,15 +433,10 @@ describe("Links and Backlinks", () => {
 
     test("content should not include block_id suffix", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        "# Tasks\n\n- [ ] Task ^k7m2",
-      )
+      writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Task ^k7m2")
 
       using store = new MemoryStore(testDir)
-      const task = store
-        .getAllNodes()
-        .find((n) => n.type === "task" && n.block_id === "k7m2")
+      const task = store.getAllNodes().find((n) => n.type === "task" && n.block_id === "k7m2")
       expect(task).toBeDefined()
 
       // Content should have the ^k7m2 stripped
@@ -552,28 +448,18 @@ describe("Links and Backlinks", () => {
   describe("Block ID Priority over Content Matching", () => {
     test("embed should resolve by block_id rather than content match", () => {
       const testDir = createTestDir()
-      writeFileSync(
-        join(testDir, "tasks.md"),
-        "# Tasks\n\n- [ ] Buy groceries ^k7m2",
-      )
-      writeFileSync(
-        join(testDir, "board.md"),
-        "# Board\n\n- ![[tasks^k7m2]]",
-      )
+      writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Buy groceries ^k7m2")
+      writeFileSync(join(testDir, "board.md"), "# Board\n\n- ![[tasks^k7m2]]")
 
       using store = new MemoryStore(testDir)
       const nodes = store.getAllNodes()
 
       // Find the embed node
-      const embedNode = nodes.find((n) =>
-        n.content?.includes("![[tasks^k7m2]]"),
-      )
+      const embedNode = nodes.find((n) => n.content?.includes("![[tasks^k7m2]]"))
       expect(embedNode).toBeDefined()
 
       // Find the target task
-      const targetTask = nodes.find(
-        (n) => n.type === "task" && n.content?.includes("Buy groceries"),
-      )
+      const targetTask = nodes.find((n) => n.type === "task" && n.content?.includes("Buy groceries"))
       expect(targetTask).toBeDefined()
 
       // Verify the embed resolves to the correct task by block_id

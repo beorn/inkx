@@ -3,12 +3,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import {
-  createParagraph,
-  createEmptyDocument,
-  descendantsToText,
-  textToDescendants,
-} from "../../src/editor/schema.ts"
+import { createParagraph, createEmptyDocument, descendantsToText, textToDescendants } from "../../src/editor/schema.ts"
 
 describe("createParagraph", () => {
   test("creates paragraph with text", () => {
@@ -56,10 +51,7 @@ describe("descendantsToText", () => {
   test("paragraph with multiple text nodes", () => {
     const para = {
       type: "paragraph" as const,
-      children: [
-        { text: "Hello " },
-        { text: "world", bold: true as const },
-      ],
+      children: [{ text: "Hello " }, { text: "world", bold: true as const }],
     }
     const text = descendantsToText([para])
     expect(text).toBe("Hello world")

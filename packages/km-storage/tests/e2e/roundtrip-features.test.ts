@@ -12,13 +12,7 @@ import { describe, test, expect } from "vitest"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { SyncManager } from "../../src/watch/sync.ts"
-import {
-  getAllNodes,
-  getSubtree,
-  nodesToMarkdown,
-  applyEventWithDb,
-  withTestEnv,
-} from "@km/storage"
+import { getAllNodes, getSubtree, nodesToMarkdown, applyEventWithDb, withTestEnv } from "@km/storage"
 import type { KNode } from "@km/core"
 
 /** Create a SyncManager with test defaults */
@@ -87,12 +81,7 @@ describe("E2E Round-Trip Features", () => {
 
     test("due date survives round-trip", () =>
       withTestEnv(async ({ repoDir, data }) => {
-        const { nodes } = await roundTrip(
-          data.database,
-          repoDir,
-          "due.md",
-          "# Due\n\n- [ ] Pay bills 📅 2025-03-15\n",
-        )
+        const { nodes } = await roundTrip(data.database, repoDir, "due.md", "# Due\n\n- [ ] Pay bills 📅 2025-03-15\n")
 
         const task = nodes.find((n) => n.type === "task")
         expect(task?.due_date).toBe("2025-03-15")
@@ -249,9 +238,7 @@ describe("E2E Round-Trip Features", () => {
           "# Order\n\n- [ ] First\n- [ ] Second\n- [ ] Third\n",
         )
 
-        const tasks = nodes
-          .filter((n) => n.type === "task")
-          .sort((a, b) => a.parent_idx - b.parent_idx)
+        const tasks = nodes.filter((n) => n.type === "task").sort((a, b) => a.parent_idx - b.parent_idx)
 
         expect(tasks[0]?.content).toContain("First")
         expect(tasks[1]?.content).toContain("Second")
@@ -265,34 +252,23 @@ describe("E2E Round-Trip Features", () => {
         const manager = createSyncManager(data.database, repoDir)
 
         // Step 1: Create source file with tasks
-        writeFileSync(
-          join(repoDir, "source.md"),
-          "# Source\n\n- [ ] Task Alpha\n- [ ] Task Beta\n",
-        )
+        writeFileSync(join(repoDir, "source.md"), "# Source\n\n- [ ] Task Alpha\n- [ ] Task Beta\n")
         await manager.syncFromFs()
 
         // Find source tasks
         const allNodes = getAllNodes(data.database)
-        const sourceFile = allNodes.find(
-          (n) => n.type === "file" && n.fs_path?.includes("source"),
-        )!
-        const sourceTasks = allNodes.filter(
-          (n) => n.type === "task" && n.parent_id === sourceFile.id,
-        )
+        const sourceFile = allNodes.find((n) => n.type === "file" && n.fs_path?.includes("source"))!
+        const sourceTasks = allNodes.filter((n) => n.type === "task" && n.parent_id === sourceFile.id)
         expect(sourceTasks).toHaveLength(2)
 
         // Step 2: Create target file, sync it
         writeFileSync(join(repoDir, "target.md"), "# Target\n")
         await manager.syncFromFs()
 
-        const targetFile = getAllNodes(data.database).find(
-          (n) => n.type === "file" && n.fs_path?.includes("target"),
-        )!
+        const targetFile = getAllNodes(data.database).find((n) => n.type === "file" && n.fs_path?.includes("target"))!
 
         // Step 3: Create embedding nodes programmatically (simulating `km add`)
-        const taskAlpha = sourceTasks.find((t) =>
-          t.content?.includes("Alpha"),
-        )!
+        const taskAlpha = sourceTasks.find((t) => t.content?.includes("Alpha"))!
         applyEventWithDb(data.database, {
           type: "node_created",
           source: "test",
@@ -311,28 +287,21 @@ describe("E2E Round-Trip Features", () => {
         })
 
         // Verify embedding exists in DB
-        const embedBefore = getAllNodes(data.database).find(
-          (n) => n.id === "embed-alpha",
-        )
+        const embedBefore = getAllNodes(data.database).find((n) => n.id === "embed-alpha")
         expect(embedBefore?.link_to).toBe(taskAlpha.id)
 
         // Step 4: Serialize to filesystem (writes ![[source]] in target.md)
         await manager.syncToFs()
 
         // Verify file has embedding syntax
-        const targetContent = readFileSync(
-          join(repoDir, "target.md"),
-          "utf-8",
-        )
+        const targetContent = readFileSync(join(repoDir, "target.md"), "utf-8")
         expect(targetContent).toContain("![[")
 
         // Step 5: Re-sync from filesystem (simulates reconcile after external edit)
         await manager.syncFromFs()
 
         // Step 6: ASSERT: link_to is preserved
-        const embedAfter = getAllNodes(data.database).find(
-          (n) => n.id === "embed-alpha",
-        )
+        const embedAfter = getAllNodes(data.database).find((n) => n.id === "embed-alpha")
         expect(embedAfter).toBeDefined()
         expect(embedAfter?.link_to).toBe(taskAlpha.id)
       }))
@@ -342,27 +311,18 @@ describe("E2E Round-Trip Features", () => {
         const manager = createSyncManager(data.database, repoDir)
 
         // Create source
-        writeFileSync(
-          join(repoDir, "src.md"),
-          "# Source\n\n- [ ] Original task\n",
-        )
+        writeFileSync(join(repoDir, "src.md"), "# Source\n\n- [ ] Original task\n")
         await manager.syncFromFs()
 
         const nodes = getAllNodes(data.database)
-        const srcFile = nodes.find(
-          (n) => n.type === "file" && n.fs_path?.includes("src"),
-        )!
-        const srcTask = nodes.find(
-          (n) => n.type === "task" && n.parent_id === srcFile.id,
-        )!
+        const srcFile = nodes.find((n) => n.type === "file" && n.fs_path?.includes("src"))!
+        const srcTask = nodes.find((n) => n.type === "task" && n.parent_id === srcFile.id)!
 
         // Create target with embedding
         writeFileSync(join(repoDir, "tgt.md"), "# Target\n")
         await manager.syncFromFs()
 
-        const tgtFile = getAllNodes(data.database).find(
-          (n) => n.type === "file" && n.fs_path?.includes("tgt"),
-        )!
+        const tgtFile = getAllNodes(data.database).find((n) => n.type === "file" && n.fs_path?.includes("tgt"))!
 
         // Create embedding with alias
         applyEventWithDb(data.database, {
@@ -393,9 +353,7 @@ describe("E2E Round-Trip Features", () => {
         await manager.syncFromFs()
 
         // Both link_to and link_alias must survive
-        const embed = getAllNodes(data.database).find(
-          (n) => n.id === "embed-alias",
-        )
+        const embed = getAllNodes(data.database).find((n) => n.id === "embed-alias")
         expect(embed?.link_to).toBe(srcTask.id)
         expect(embed?.link_alias).toBe("My Custom Name")
       }))

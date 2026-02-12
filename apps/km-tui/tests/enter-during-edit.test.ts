@@ -23,9 +23,7 @@ const colItems = (col: string) => `#${col} [data-view='item']`
 
 describe("Outliner Enter — save + new sibling", () => {
   test("Enter saves content and creates new sibling", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter") // enter edit mode on 1a
     board.press("X") // type "X" → content should be "1aX"
@@ -38,9 +36,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("Enter with no changes still creates new sibling", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect(colItems("col1")).toHaveCount(2)
 
@@ -54,9 +50,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("Multiple Enters create chain of siblings", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
 
     board.expect(colItems("col1")).toHaveCount(1)
 
@@ -70,9 +64,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("After Enter, user is editing new sibling (can type into it)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter") // edit 1a
     board.press("Enter") // save + create sibling in edit mode
@@ -89,9 +81,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("Escape exits edit without creating sibling", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect(colItems("col1")).toHaveCount(2)
 
@@ -140,9 +130,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("new sibling is inserted AFTER current card, not before", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
 
     // Cursor on 1a, Enter → edit, Enter → save + new sibling
     board.press("Enter")
@@ -159,9 +147,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("new sibling after LAST card is appended at end", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to last card (1b)
     board.press("j")
@@ -178,9 +164,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("new sibling after MIDDLE card goes between neighbors", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
 
     // Navigate to middle card (1b)
     board.press("j")

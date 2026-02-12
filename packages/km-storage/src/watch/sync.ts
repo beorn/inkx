@@ -12,11 +12,7 @@ const log = createLogger("km:storage:watch:sync")
 import { dirname, join } from "path"
 import { toAbsoluteFsPath } from "../path-utils.ts"
 import { EventEmitter } from "events"
-import {
-  FileSystemWatcher,
-  scanDirectoryRecursiveGen,
-  type ScanEntry,
-} from "./watcher.ts"
+import { FileSystemWatcher, scanDirectoryRecursiveGen, type ScanEntry } from "./watcher.ts"
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
@@ -88,14 +84,7 @@ const DEFAULT_CONFIG: Partial<SyncConfig> = {
   useWorker: true,
 }
 
-export type SyncState =
-  | "idle"
-  | "fs_debouncing"
-  | "db_debouncing"
-  | "reconciling"
-  | "applying"
-  | "emitting"
-  | "writing"
+export type SyncState = "idle" | "fs_debouncing" | "db_debouncing" | "reconciling" | "applying" | "emitting" | "writing"
 
 export class SyncManager extends EventEmitter {
   private db: Database
@@ -242,9 +231,7 @@ export class SyncManager extends EventEmitter {
 
     // Only run if we've been idle long enough
     if (idleTime < this.heartbeatConfig.idleThresholdMs) {
-      log.debug?.(
-        `heartbeat: skipping, idle=${idleTime}ms < threshold=${this.heartbeatConfig.idleThresholdMs}ms`,
-      )
+      log.debug?.(`heartbeat: skipping, idle=${idleTime}ms < threshold=${this.heartbeatConfig.idleThresholdMs}ms`)
       return
     }
 
@@ -256,9 +243,7 @@ export class SyncManager extends EventEmitter {
 
     // Don't run if there are pending writes
     if (this.writeQueue.getPendingCount() > 0) {
-      log.debug?.(
-        `heartbeat: skipping, pending writes=${this.writeQueue.getPendingCount()}`,
-      )
+      log.debug?.(`heartbeat: skipping, pending writes=${this.writeQueue.getPendingCount()}`)
       return
     }
 
@@ -269,12 +254,7 @@ export class SyncManager extends EventEmitter {
       this.setState("reconciling")
 
       // Scan entire repo for changes
-      const ops = reconcileDirectory(
-        this.db,
-        this.config.repoPath,
-        this.config.repoPath,
-        this.ignorePatterns,
-      )
+      const ops = reconcileDirectory(this.db, this.config.repoPath, this.config.repoPath, this.ignorePatterns)
 
       if (ops.length > 0) {
         log.debug?.(`heartbeat: found ${ops.length} changes (drift detected)`)
@@ -290,9 +270,7 @@ export class SyncManager extends EventEmitter {
         })
       }
 
-      log.debug?.(
-        `heartbeat: completed in ${Date.now() - start}ms, ops=${ops.length}`,
-      )
+      log.debug?.(`heartbeat: completed in ${Date.now() - start}ms, ops=${ops.length}`)
       this.emit("heartbeat:complete", {
         duration: Date.now() - start,
         opsCount: ops.length,
@@ -313,12 +291,7 @@ export class SyncManager extends EventEmitter {
     this.setState("reconciling")
 
     try {
-      const ops = reconcileDirectory(
-        this.db,
-        this.config.repoPath,
-        this.config.repoPath,
-        this.ignorePatterns,
-      )
+      const ops = reconcileDirectory(this.db, this.config.repoPath, this.config.repoPath, this.ignorePatterns)
 
       if (ops.length > 0) {
         this.setState("emitting")
@@ -360,20 +333,13 @@ export class SyncManager extends EventEmitter {
    * Handle filesystem sync event
    */
   private handleFsSync(data: { paths: string[]; directories: string[] }): void {
-    log.debug?.(
-      `fs sync triggered: ${data.paths.length} paths, ${data.directories.length} directories`,
-    )
+    log.debug?.(`fs sync triggered: ${data.paths.length} paths, ${data.directories.length} directories`)
     this.lastActivityTime = Date.now()
     this.setState("reconciling")
 
     try {
       for (const dir of data.directories) {
-        const ops = reconcileDirectory(
-          this.db,
-          dir,
-          this.config.repoPath,
-          this.ignorePatterns,
-        )
+        const ops = reconcileDirectory(this.db, dir, this.config.repoPath, this.ignorePatterns)
         log.debug?.(`reconciled ${dir}: ${ops.length} ops`)
 
         if (ops.length > 0) {
@@ -403,9 +369,7 @@ export class SyncManager extends EventEmitter {
    */
   applyEventToFs(event: Event): void {
     if (!shouldApplyToFs(event.actor)) {
-      log.debug?.(
-        `skipping fs apply for actor=${event.actor} event=${event.type}`,
-      )
+      log.debug?.(`skipping fs apply for actor=${event.actor} event=${event.type}`)
       return
     }
 
@@ -460,7 +424,11 @@ export class SyncManager extends EventEmitter {
           const absPath = toAbsoluteFsPath(this.config.repoPath, file.fs_path)
           const subtreeNodes = getSubtree(this.db, fileId)
           const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
-          this.writeQueue.queue({ path: absPath, content, sourceEventId: eventId })
+          this.writeQueue.queue({
+            path: absPath,
+            content,
+            sourceEventId: eventId,
+          })
         }
       },
     }
@@ -498,18 +466,12 @@ export class SyncManager extends EventEmitter {
     // Find the file this node belongs to
     const fileNode = findFileNode(this.db, node)
     if (!fileNode?.fs_path) {
-      log.warn?.(
-        `handleNodeUpdated: no file node found for ${node.id} (type=${node.type})`,
-      )
+      log.warn?.(`handleNodeUpdated: no file node found for ${node.id} (type=${node.type})`)
       return
     }
 
     // File rename: content change on the file node itself → rename .md file on disk
-    if (
-      node.id === fileNode.id &&
-      changes.content &&
-      fileNode.fs_path.endsWith(".md")
-    ) {
+    if (node.id === fileNode.id && changes.content && fileNode.fs_path.endsWith(".md")) {
       this.handleFileRename(fileNode, changes.content, event.id)
       // After rename, still regenerate content at the new path (fall through)
     }
@@ -536,11 +498,7 @@ export class SyncManager extends EventEmitter {
   /**
    * Rename a folder directory on disk and update all descendant fs_path values.
    */
-  private handleFolderRename(
-    node: KNode,
-    newName: string,
-    eventId: string,
-  ): void {
+  private handleFolderRename(node: KNode, newName: string, eventId: string): void {
     const oldFsPath = node.fs_path ?? ""
     const oldAbsPath = toAbsoluteFsPath(this.config.repoPath, oldFsPath)
     const parentDir = dirname(oldFsPath)
@@ -564,15 +522,19 @@ export class SyncManager extends EventEmitter {
     // Use REPLACE to update paths that start with the old prefix
     const oldPrefix = oldFsPath + "/"
     const newPrefix = newFsPath + "/"
-    this.db.run(
-      "UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?",
-      [newFsPath, newName, Date.now(), node.id],
-    )
+    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
+      newFsPath,
+      newName,
+      Date.now(),
+      node.id,
+    ])
     // Update all descendants whose fs_path starts with oldPrefix
-    this.db.run(
-      `UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?), updated_at = ? WHERE fs_path LIKE ?`,
-      [newPrefix, oldPrefix.length + 1, Date.now(), oldPrefix + "%"],
-    )
+    this.db.run(`UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?), updated_at = ? WHERE fs_path LIKE ?`, [
+      newPrefix,
+      oldPrefix.length + 1,
+      Date.now(),
+      oldPrefix + "%",
+    ])
   }
 
   /**
@@ -580,19 +542,14 @@ export class SyncManager extends EventEmitter {
    * Derives new filename from the title, renames the file, updates DB.
    * Mutates fileNode.fs_path and fileNode.name in place so callers use the new path.
    */
-  private handleFileRename(
-    fileNode: KNode,
-    newTitle: string,
-    eventId: string,
-  ): void {
+  private handleFileRename(fileNode: KNode, newTitle: string, eventId: string): void {
     const oldFsPath = fileNode.fs_path
     if (!oldFsPath) {
       throw new Error("[sync] handleFileRename: fileNode has no fs_path")
     }
     const newFileName = titleToFilename(newTitle)
     const parentDir = dirname(oldFsPath)
-    const newFsPath =
-      parentDir === "." ? newFileName : join(parentDir, newFileName)
+    const newFsPath = parentDir === "." ? newFileName : join(parentDir, newFileName)
 
     if (oldFsPath === newFsPath) return
 
@@ -612,10 +569,12 @@ export class SyncManager extends EventEmitter {
 
     // Update DB: fs_path and name
     const newName = newFileName.replace(/\.md$/i, "")
-    this.db.run(
-      "UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?",
-      [newFsPath, newName, Date.now(), fileNode.id],
-    )
+    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
+      newFsPath,
+      newName,
+      Date.now(),
+      fileNode.id,
+    ])
 
     // Mutate the node so the caller writes content to the new path
     fileNode.fs_path = newFsPath
@@ -642,12 +601,7 @@ export class SyncManager extends EventEmitter {
 
         // Reconcile this directory to bring FS changes into DB
         const dir = dirname(absPath)
-        const ops = reconcileDirectory(
-          this.db,
-          dir,
-          this.config.repoPath,
-          this.ignorePatterns,
-        )
+        const ops = reconcileDirectory(this.db, dir, this.config.repoPath, this.ignorePatterns)
 
         if (ops.length > 0) {
           log.debug?.(`reconcile-before-write: applying ${ops.length} ops`)
@@ -686,9 +640,7 @@ export class SyncManager extends EventEmitter {
     } else if (data.parent_id && data.parent_id !== ".") {
       // Section/task/paragraph node: regenerate parent file to include it
       const parentNode = getNode(this.db, data.parent_id)
-      const fileNode = parentNode
-        ? findFileNode(this.db, parentNode)
-        : null
+      const fileNode = parentNode ? findFileNode(this.db, parentNode) : null
       if (fileNode?.fs_path) {
         const blockIds = this.createBlockIdAssigner(event.id)
         const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
@@ -711,11 +663,13 @@ export class SyncManager extends EventEmitter {
     if (!event.target) return
 
     // Node is already deleted from DB — use data passed in event payload
-    const data = event.data as {
-      fs_path?: string
-      type?: string
-      parent_id?: string | null
-    } | undefined
+    const data = event.data as
+      | {
+          fs_path?: string
+          type?: string
+          parent_id?: string | null
+        }
+      | undefined
     const fsPath = data?.fs_path
     const nodeType = data?.type
 
@@ -727,9 +681,7 @@ export class SyncManager extends EventEmitter {
       // Section node: regenerate the parent file to reflect the deletion
       const blockIds = this.createBlockIdAssigner(event.id)
       const parentNode = getNode(this.db, data.parent_id)
-      const fileNode = parentNode
-        ? findFileNode(this.db, parentNode)
-        : null
+      const fileNode = parentNode ? findFileNode(this.db, parentNode) : null
       if (fileNode?.fs_path) {
         const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
         const subtreeNodes = getSubtree(this.db, fileNode.id)
@@ -782,9 +734,7 @@ export class SyncManager extends EventEmitter {
    *
    * @param onProgress - Optional callback for progress reporting
    */
-  async syncFromFs(
-    onProgress?: SyncProgressCallback,
-  ): Promise<SyncFromFsResult> {
+  async syncFromFs(onProgress?: SyncProgressCallback): Promise<SyncFromFsResult> {
     // Delegate to generator version, forwarding progress via callback
     const gen = this.syncFromFsWithProgress()
     let result = await gen.next()
@@ -867,12 +817,7 @@ export class SyncManager extends EventEmitter {
     // Step 2a: Collect all reconcile ops (fast - just comparing metadata)
     const allOps: ReturnType<typeof reconcileDirectory> = []
     for (const dir of dirToFiles.keys()) {
-      const ops = reconcileDirectory(
-        this.db,
-        dir,
-        this.config.repoPath,
-        ignoreMatcher,
-      )
+      const ops = reconcileDirectory(this.db, dir, this.config.repoPath, ignoreMatcher)
       allOps.push(...ops)
     }
 
@@ -913,23 +858,17 @@ export class SyncManager extends EventEmitter {
     // SAFETY: Only write .md files to prevent corruption of source code/config files
     const pendingFiles = Array.from(ruleCtx.pendingWriteBack)
     if (pendingFiles.length > 0) {
-      log.debug?.(
-        `syncFromFs: writing back ${pendingFiles.length} files after rule evaluation`,
-      )
+      log.debug?.(`syncFromFs: writing back ${pendingFiles.length} files after rule evaluation`)
       for (const filePath of pendingFiles) {
         // CRITICAL: Skip non-.md files to prevent corruption
         if (!filePath.endsWith(".md")) {
-          log.debug?.(
-            `syncFromFs: SKIPPING non-.md file in write-back filePath=${filePath}`,
-          )
+          log.debug?.(`syncFromFs: SKIPPING non-.md file in write-back filePath=${filePath}`)
           continue
         }
 
         // Find the file node and regenerate its content
         // pendingWriteBack stores relative paths (as in DB)
-        const fileNode = getAllNodes(this.db).find(
-          (n) => n.fs_path === filePath,
-        )
+        const fileNode = getAllNodes(this.db).find((n) => n.fs_path === filePath)
         if (fileNode) {
           const blockIds = this.createBlockIdAssigner("rule-evaluation")
           const absPath = toAbsoluteFsPath(this.config.repoPath, filePath)
@@ -948,9 +887,7 @@ export class SyncManager extends EventEmitter {
 
     const duration = Date.now() - start
     const dirCount = dirToFiles.size
-    log.debug?.(
-      `syncFromFs: processed ${opsProcessed} ops in ${dirCount} dirs in ${duration}ms`,
-    )
+    log.debug?.(`syncFromFs: processed ${opsProcessed} ops in ${dirCount} dirs in ${duration}ms`)
     return { processed: opsProcessed, directories: dirCount, duration }
   }
 
@@ -966,9 +903,7 @@ export class SyncManager extends EventEmitter {
 
     const nodes = getAllNodes(this.db)
     // CRITICAL: Only sync .md files to prevent corruption of source code/config files
-    const fileNodes = nodes.filter(
-      (n) => n.type === "file" && n.fs_path?.endsWith(".md"),
-    )
+    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path?.endsWith(".md"))
 
     log.debug?.(`syncToFs: writing ${fileNodes.length} files`)
 
@@ -989,9 +924,7 @@ export class SyncManager extends EventEmitter {
 
     await this.writeQueue.forceFlush()
 
-    log.debug?.(
-      `syncToFs: wrote ${fileNodes.length} files in ${Date.now() - start}ms`,
-    )
+    log.debug?.(`syncToFs: wrote ${fileNodes.length} files in ${Date.now() - start}ms`)
     return { written: fileNodes.length }
   }
 

@@ -14,9 +14,7 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("Vertical Navigation", () => {
   test("j moves cursor down to next card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("j")
@@ -24,9 +22,7 @@ describe("Vertical Navigation", () => {
   })
 
   test("k moves cursor up to previous card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.press("j") // Move to 1b
     board.expect("#1b[data-cursor]").toExist()
 
@@ -35,9 +31,7 @@ describe("Vertical Navigation", () => {
   })
 
   test("j traverses all cards in column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"), item("1d"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"), item("1d"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("j")
@@ -51,9 +45,7 @@ describe("Vertical Navigation", () => {
   })
 
   test("k traverses all cards in column upward", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     // Navigate to bottom
     board.press("j").press("j")
     board.expect("#1c[data-cursor]").toExist()
@@ -66,9 +58,7 @@ describe("Vertical Navigation", () => {
   })
 
   test("j then k returns to same card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("j")
@@ -79,9 +69,7 @@ describe("Vertical Navigation", () => {
   })
 
   test("j at bottom of column does not move cursor", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.press("j") // Move to 1b (last card)
     board.expect("#1b[data-cursor]").toExist()
 
@@ -90,9 +78,7 @@ describe("Vertical Navigation", () => {
   })
 
   test("k at first card navigates to column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // k at first card moves up to column header (3-level: board→column→card)
@@ -105,9 +91,7 @@ describe("Vertical Navigation", () => {
   })
 
   test("ArrowDown behaves like j", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("ArrowDown")
@@ -115,9 +99,7 @@ describe("Vertical Navigation", () => {
   })
 
   test("ArrowUp behaves like k", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
 
@@ -132,13 +114,7 @@ describe("Vertical Navigation", () => {
 
 describe("Horizontal Navigation", () => {
   test("l moves cursor to next column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("l")
@@ -146,13 +122,7 @@ describe("Horizontal Navigation", () => {
   })
 
   test("h moves cursor to previous column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.press("l") // Move to col2
     board.expect("#2a[data-cursor]").toExist()
 
@@ -162,12 +132,7 @@ describe("Horizontal Navigation", () => {
 
   test("l traverses all columns", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     board.expect("#1a[data-cursor]").toExist()
 
@@ -180,12 +145,7 @@ describe("Horizontal Navigation", () => {
 
   test("h traverses all columns backward", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     board.press("l").press("l") // Move to col3
     board.expect("#3a[data-cursor]").toExist()
@@ -198,13 +158,7 @@ describe("Horizontal Navigation", () => {
   })
 
   test("l then h returns to same column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("l")
@@ -215,13 +169,7 @@ describe("Horizontal Navigation", () => {
   })
 
   test("l at rightmost column does not move cursor", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.press("l") // Move to col2 (last column)
     board.expect("#2a[data-cursor]").toExist()
 
@@ -230,13 +178,7 @@ describe("Horizontal Navigation", () => {
   })
 
   test("h at leftmost column does not move cursor", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("h") // Try to go past left
@@ -244,13 +186,7 @@ describe("Horizontal Navigation", () => {
   })
 
   test("ArrowRight behaves like l", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("ArrowRight")
@@ -258,13 +194,7 @@ describe("Horizontal Navigation", () => {
   })
 
   test("ArrowLeft behaves like h", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
 
@@ -279,9 +209,7 @@ describe("Horizontal Navigation", () => {
 
 describe("First/Last Jump", () => {
   test("G jumps to last card in column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("G")
@@ -289,9 +217,7 @@ describe("First/Last Jump", () => {
   })
 
   test("g jumps to first card in column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.press("j").press("j") // Navigate to 1c
     board.expect("#1c[data-cursor]").toExist()
 
@@ -300,9 +226,7 @@ describe("First/Last Jump", () => {
   })
 
   test("g at first card is a no-op", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("g")
@@ -310,9 +234,7 @@ describe("First/Last Jump", () => {
   })
 
   test("G at last card is a no-op", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
 
@@ -321,9 +243,7 @@ describe("First/Last Jump", () => {
   })
 
   test("G then g round-trips", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("G")
@@ -341,11 +261,7 @@ describe("First/Last Jump", () => {
 describe("StickyY", () => {
   test("h/l preserves card index when columns have same length", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a"), item("2b"), item("2c")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b"), item("2c"))),
     )
     // Navigate to second card in col1
     board.press("j")
@@ -362,11 +278,7 @@ describe("StickyY", () => {
 
   test("l clamps to last card when target column is shorter", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
     )
     // Navigate to last card in col1
     board.press("j").press("j")
@@ -385,11 +297,7 @@ describe("StickyY", () => {
 describe("Combined Navigation", () => {
   test("navigate through a 2x3 grid", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a"), item("2b"), item("2c")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b"), item("2c"))),
     )
     board.expect("#1a[data-cursor]").toExist()
 
@@ -409,9 +317,7 @@ describe("Combined Navigation", () => {
   })
 
   test("single card: j boundary, k goes to column header, j returns", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("only"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("only"))))
     board.expect("#only[data-cursor]").toExist()
 
     // j at only card: boundary (no next sibling)
@@ -436,11 +342,7 @@ describe("Combined Navigation", () => {
 
   test("G then l then g navigates to top of second column", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a"), item("2b")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b"))),
     )
     board.press("G") // Jump to 1c
     board.expect("#1c[data-cursor]").toExist()

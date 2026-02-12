@@ -18,16 +18,12 @@ import { describe, test, expect } from "vitest"
 
 /** Generate N leaf items with prefix (e.g., items("A", 5) → A01..A05) */
 function items(prefix: string, count: number): ReturnType<typeof item>[] {
-  return Array.from({ length: count }, (_, i) =>
-    item(`${prefix}${String(i + 1).padStart(2, "0")}`),
-  )
+  return Array.from({ length: count }, (_, i) => item(`${prefix}${String(i + 1).padStart(2, "0")}`))
 }
 
 /** Generate a card with N children (simulates tall cards like in real vaults) */
 function tallCard(name: string, childCount: number): ReturnType<typeof item> {
-  const children = Array.from({ length: childCount }, (_, i) =>
-    item(`${name}-sub${i + 1}`),
-  )
+  const children = Array.from({ length: childCount }, (_, i) => item(`${name}-sub${i + 1}`))
   return item(name, ...children)
 }
 
@@ -109,12 +105,7 @@ const fixtures: Fixture[] = [
     // Symmetric baseline — equal columns
     name: "symmetric",
     build: () =>
-      item(
-        "board",
-        item("ColA", ...items("A", 10)),
-        item("ColB", ...items("B", 10)),
-        item("ColC", ...items("C", 10)),
-      ),
+      item("board", item("ColA", ...items("A", 10)), item("ColB", ...items("B", 10)), item("ColC", ...items("C", 10))),
     colCount: 3,
     maxCards: 10,
     hasEmpty: false,
@@ -124,12 +115,7 @@ const fixtures: Fixture[] = [
     // Extreme asymmetry — one huge column, one tiny
     name: "asymmetric",
     build: () =>
-      item(
-        "board",
-        item("ColA", ...items("A", 3)),
-        item("ColB", ...items("B", 15)),
-        item("ColC", ...items("C", 2)),
-      ),
+      item("board", item("ColA", ...items("A", 3)), item("ColB", ...items("B", 15)), item("ColC", ...items("C", 2))),
     colCount: 3,
     maxCards: 15,
     hasEmpty: false,
@@ -162,21 +148,8 @@ const fixtures: Fixture[] = [
           item("A02"),
           item("A03"),
         ),
-        item(
-          "ColB",
-          item("B01"),
-          tallCard("B02", 4),
-          item("B03"),
-          tallCard("B04", 6),
-          item("B05"),
-          item("B06"),
-        ),
-        item(
-          "ColC",
-          item("C01"),
-          item("C02"),
-          item("C03"),
-        ),
+        item("ColB", item("B01"), tallCard("B02", 4), item("B03"), tallCard("B04", 6), item("B05"), item("B06")),
+        item("ColC", item("C01"), item("C02"), item("C03")),
       ),
     colCount: 3,
     maxCards: 6,
@@ -210,9 +183,7 @@ const fixtures: Fixture[] = [
         item(
           "ColA",
           tallCard("A01", 12), // very tall first card
-          ...Array.from({ length: 39 }, (_, i) =>
-            item(`A${String(i + 2).padStart(2, "0")}`),
-          ),
+          ...Array.from({ length: 39 }, (_, i) => item(`A${String(i + 2).padStart(2, "0")}`)),
         ),
         item("ColB", ...items("B", 20)),
       ),
@@ -234,9 +205,9 @@ interface Env {
 }
 
 const envs: Env[] = [
-  { name: "small", cols: 80, rows: 12 },   // vertical + horizontal culling
-  { name: "wide", cols: 210, rows: 12 },   // vertical culling only
-  { name: "tall", cols: 80, rows: 200 },   // horizontal culling only
+  { name: "small", cols: 80, rows: 12 }, // vertical + horizontal culling
+  { name: "wide", cols: 210, rows: 12 }, // vertical culling only
+  { name: "tall", cols: 80, rows: 200 }, // horizontal culling only
   { name: "large", cols: 210, rows: 200 }, // no culling
 ]
 
@@ -316,11 +287,7 @@ const sequences: Sequence[] = [
   },
   {
     name: "deep-scroll j25→l→h",
-    keys: [
-      ...Array.from({ length: 25 }, () => "j"),
-      "l",
-      "h",
-    ],
+    keys: [...Array.from({ length: 25 }, () => "j"), "l", "h"],
     assert: (board) => {
       // Should return to a deeply scrolled card, not card 1
       const cursor = cursorCardNum(board)
@@ -347,11 +314,7 @@ const sequences: Sequence[] = [
   },
   {
     name: "horizontal-scroll j3→l×4→h×4",
-    keys: [
-      "j", "j", "j",
-      "l", "l", "l", "l",
-      "h", "h", "h", "h",
-    ],
+    keys: ["j", "j", "j", "l", "l", "l", "l", "h", "h", "h", "h"],
     assert: (board) => {
       // Should return to first column near original position
       const cursor = cursorCardNum(board)
@@ -419,15 +382,10 @@ describe("curswantY combinatorial", () => {
 
 describe("curswantY boundaries", () => {
   test("h at leftmost column: no crash, cursor stays", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("ColA", ...items("A", 5)),
-          item("ColB", ...items("B", 5)),
-        ),
-      { rows: 24, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))), {
+      rows: 24,
+      columns: 80,
+    })
 
     board.press("j").press("j") // go to A03
     board.press("h") // already at leftmost
@@ -437,15 +395,10 @@ describe("curswantY boundaries", () => {
   })
 
   test("l at rightmost column: no crash, cursor stays", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("ColA", ...items("A", 5)),
-          item("ColB", ...items("B", 5)),
-        ),
-      { rows: 24, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))), {
+      rows: 24,
+      columns: 80,
+    })
 
     board.press("j").press("j") // go to A03
     board.press("l") // go to ColB
@@ -455,15 +408,10 @@ describe("curswantY boundaries", () => {
   })
 
   test("h/l at board level: no movement", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("ColA", ...items("A", 3)),
-          item("ColB", ...items("B", 3)),
-        ),
-      { rows: 24, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("ColA", ...items("A", 3)), item("ColB", ...items("B", 3))), {
+      rows: 24,
+      columns: 80,
+    })
 
     // Go up to board level
     board.press("k").press("k")
@@ -481,13 +429,7 @@ describe("curswantY boundaries", () => {
 
   test("l into empty column lands on header, l again continues", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("ColA", ...items("A", 5)),
-          item("Empty"),
-          item("ColC", ...items("C", 5)),
-        ),
+      () => item("board", item("ColA", ...items("A", 5)), item("Empty"), item("ColC", ...items("C", 5))),
       { rows: 24, columns: 120 },
     )
 
@@ -503,15 +445,10 @@ describe("curswantY boundaries", () => {
   })
 
   test("target column shorter than source: clamp to last card", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("ColA", ...items("A", 10)),
-          item("ColB", ...items("B", 3)),
-        ),
-      { rows: 24, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("ColA", ...items("A", 10)), item("ColB", ...items("B", 3))), {
+      rows: 24,
+      columns: 80,
+    })
 
     // Navigate to A08 (near bottom of long column)
     for (let i = 0; i < 7; i++) board.press("j")
@@ -532,12 +469,7 @@ describe("curswantY boundaries", () => {
 describe("curswantY with mutations", () => {
   test("insert card in target column after navigation: no crash", () => {
     const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("ColA", ...items("A", 5)),
-          item("ColB", ...items("B", 5)),
-        ),
+      () => item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))),
       { rows: 24, columns: 80 },
     )
 
@@ -556,12 +488,7 @@ describe("curswantY with mutations", () => {
 
   test("delete card in source column then navigate: no crash", () => {
     const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("ColA", ...items("A", 5)),
-          item("ColB", ...items("B", 5)),
-        ),
+      () => item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))),
       { rows: 24, columns: 80 },
     )
 

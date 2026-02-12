@@ -7,11 +7,7 @@
 import { describe, test, expect } from "vitest"
 import { Database } from "bun:sqlite"
 
-import {
-  createTestRepo,
-  addLink,
-  type Repo,
-} from "../src/index.ts"
+import { createTestRepo, addLink, type Repo } from "../src/index.ts"
 import { updateTargetName } from "../src/db-links.ts"
 import { SCHEMA } from "../src/schema.ts"
 
@@ -302,9 +298,10 @@ describe("updateTargetName", () => {
     expect(updated).toBe(2)
 
     // Verify the target_name values
-    const rows = db
-      .query("SELECT source_id, target_name FROM links ORDER BY source_id")
-      .all() as Array<{ source_id: string; target_name: string }>
+    const rows = db.query("SELECT source_id, target_name FROM links ORDER BY source_id").all() as Array<{
+      source_id: string
+      target_name: string
+    }>
 
     expect(rows).toEqual([
       { source_id: "s1", target_name: "Renamed File" },
@@ -328,9 +325,7 @@ describe("updateTargetName", () => {
 
     expect(updated).toBe(1)
 
-    const row = db
-      .query("SELECT target_name FROM links WHERE source_id = 's1'")
-      .get() as { target_name: string }
+    const row = db.query("SELECT target_name FROM links WHERE source_id = 's1'").get() as { target_name: string }
 
     expect(row.target_name).toBe("renamed-notes")
 

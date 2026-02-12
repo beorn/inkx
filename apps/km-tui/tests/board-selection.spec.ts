@@ -18,9 +18,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("J extends selection down from first card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("J") // Shift+J = extend_select_down
@@ -31,9 +29,7 @@ describe("Selection", () => {
   })
 
   test("J twice extends selection through multiple cards", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("J")
@@ -45,9 +41,7 @@ describe("Selection", () => {
   })
 
   test("J at bottom boundary does not extend past last card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.press("j") // Move to 1b normally
     board.expect("#1b[data-cursor]").toExist()
 
@@ -64,9 +58,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("K extends selection up from last card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.press("j").press("j") // Navigate to 1c
     board.expect("#1c[data-cursor]").toExist()
 
@@ -76,9 +68,7 @@ describe("Selection", () => {
   })
 
   test("K twice extends selection up through multiple cards", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.press("j").press("j") // Navigate to 1c
     board.expect("#1c[data-cursor]").toExist()
 
@@ -91,9 +81,7 @@ describe("Selection", () => {
   })
 
   test("K at top boundary does not extend past first card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("K") // Init selection anchor at 1a
@@ -109,13 +97,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("L selects current column and next column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("L") // Shift+L = extend_select_right
@@ -125,13 +107,7 @@ describe("Selection", () => {
   })
 
   test("H selects current column and previous column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a"), item("2b")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Navigate to col2
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
@@ -144,12 +120,7 @@ describe("Selection", () => {
 
   test("L then L extends to third column", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     board.expect("#1a[data-cursor]").toExist()
 
@@ -162,12 +133,7 @@ describe("Selection", () => {
 
   test("L then H shrinks column selection", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     board.expect("#1a[data-cursor]").toExist()
 
@@ -180,13 +146,7 @@ describe("Selection", () => {
   })
 
   test("H at left boundary selects current column only", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("H") // At boundary — selects current column
@@ -196,13 +156,7 @@ describe("Selection", () => {
   })
 
   test("L at right boundary selects current column only", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a"), item("2b")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Navigate to last column
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
@@ -220,13 +174,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("A selects progressively: column then board", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // First A - selects entire column (card scope requires outline mode)
@@ -243,13 +191,7 @@ describe("Selection", () => {
   })
 
   test("A wraps around after board level", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // First A -> column, Second A -> board
@@ -263,9 +205,7 @@ describe("Selection", () => {
   })
 
   test("A on single-item column still works", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("only-card"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("only-card"))))
     board.expect("#only-card[data-cursor]").toExist()
 
     board.press("A")
@@ -278,9 +218,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("Escape clears active selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // Create selection
@@ -293,13 +231,7 @@ describe("Selection", () => {
   })
 
   test("Escape after column selection clears all", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // Create column selection
@@ -316,9 +248,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("Escape with no selection and no overlays hits boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("Escape")
@@ -327,9 +257,7 @@ describe("Selection", () => {
   })
 
   test("Escape prefers closing overlays over clearing selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
 
     // Create selection
     board.press("J")
@@ -355,12 +283,7 @@ describe("Selection", () => {
 
   test("normal h clears active card selection", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a"), item("2b")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b")), item("col3", item("3a"))),
     )
     // Navigate to middle column so h doesn't hit boundary
     board.press("l")
@@ -376,13 +299,7 @@ describe("Selection", () => {
   })
 
   test("normal l clears active card selection", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.press("J") // Create card selection
     expect(board.getStatus()?.message).toContain("selected")
 
@@ -396,13 +313,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("L moves cursor to target column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("L")
@@ -410,13 +321,7 @@ describe("Selection", () => {
   })
 
   test("H moves cursor to target column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.press("l") // Navigate to col2
     board.expect("#2a[data-cursor]").toExist()
 
@@ -429,13 +334,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("H at boundary with existing column selection is no-op", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // Select current column at boundary
@@ -457,13 +356,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("J then L transitions from card selection to column selection", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // Card selection first
@@ -480,9 +373,7 @@ describe("Selection", () => {
   // ---------------------------------------------------------------------------
 
   test("J then K shrinks selection back toward anchor", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // Extend down twice
@@ -501,13 +392,7 @@ describe("Selection", () => {
   })
 
   test("column-level data-selected attribute is set for cursor column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // data-selected on column indicates which column contains the cursor
     board.expect("[data-selected]").toExist()
     const selected = board.q("[data-selected]")

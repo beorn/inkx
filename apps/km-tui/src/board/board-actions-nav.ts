@@ -7,15 +7,8 @@
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { getCardMidY } from "../card-positions.ts"
-import {
-  clearSelection,
-  pushNavHistoryEntry,
-  updateSelectionRange,
-} from "../keyboard/keyboard-helpers.ts"
-import {
-  handleTreeNavigation,
-  type TreeDirection,
-} from "../handlers/navigation-handlers.ts"
+import { clearSelection, pushNavHistoryEntry, updateSelectionRange } from "../keyboard/keyboard-helpers.ts"
+import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { CardState } from "../types.ts"
@@ -60,11 +53,7 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
 }
 
 /** Outline mode prev/next sub-item navigation. */
-function handleOutlineNav(
-  ctx: ActionCtx,
-  dir: "prev" | "next",
-  card: CardState | undefined,
-): ActionResult {
+function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: CardState | undefined): ActionResult {
   const { ui } = ctx
 
   if (dir === "prev" && ui.subIndex > 0) {
@@ -72,12 +61,7 @@ function handleOutlineNav(
     return ok()
   }
   if (dir === "next" && card) {
-    const maxIdx = ctx.countVisibleDescendants(
-      card.node,
-      0,
-      ui.maxOutlineDepth,
-      ctx.foldedNodes,
-    )
+    const maxIdx = ctx.countVisibleDescendants(card.node, 0, ui.maxOutlineDepth, ctx.foldedNodes)
     if (ui.subIndex < maxIdx) {
       ctx.setUI({ subIndex: ui.subIndex + 1 })
       return ok()
@@ -94,17 +78,11 @@ function handleSelectionNav(ctx: ActionCtx, dir: string): ActionResult | null {
   if (dir === "prev" || dir === "next") {
     // Vertical navigation with selection
     const targetIdx =
-      dir === "prev"
-        ? Math.max(0, layout.cardIndex - 1)
-        : Math.min((col?.cards.length ?? 1) - 1, layout.cardIndex + 1)
+      dir === "prev" ? Math.max(0, layout.cardIndex - 1) : Math.min((col?.cards.length ?? 1) - 1, layout.cardIndex + 1)
 
     if (targetIdx !== layout.cardIndex) {
       const direction = dir === "prev" ? "prev" : "next"
-      const targetId = handleTreeNavigation(
-        direction as TreeDirection,
-        ctx,
-        ctx.repo,
-      )
+      const targetId = handleTreeNavigation(direction as TreeDirection, ctx, ctx.repo)
       if (targetId) {
         dispatchBoard({ type: "SELECT", nodeId: targetId })
         if (ui.selectionAnchor !== null) {
@@ -125,10 +103,7 @@ function handleSelectionNav(ctx: ActionCtx, dir: string): ActionResult | null {
 }
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */
-function handleHorizontalNav(
-  ctx: ActionCtx,
-  dir: "left" | "right",
-): ActionResult {
+function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResult {
   const { layout, ui, dispatchBoard, layoutRegistry, viewNavigation } = ctx
 
   // In non-list views, h closes the detail pane if it's open (before navigation).
@@ -152,12 +127,7 @@ function handleHorizontalNav(
 
   // Use ViewNavigation for the core navigation logic
   if (ctx.cursorNodeId) {
-    const targetId = viewNavigation.navigate(
-      dir,
-      navStateFrom(ctx),
-      ctx.repo,
-      layoutRegistry,
-    )
+    const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
     if (targetId !== null) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
       return ok()
@@ -175,12 +145,7 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
     throw new Error("[nav] handleVerticalNav called without cursorNodeId")
   }
 
-  const targetId = viewNavigation.navigate(
-    dir,
-    navStateFrom(ctx),
-    ctx.repo,
-    layoutRegistry,
-  )
+  const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
   if (targetId === null) return boundary(dir)
 
   dispatchBoard({ type: "SELECT", nodeId: targetId })
@@ -231,9 +196,7 @@ export function handleNavBack(ctx: ActionCtx): ActionResult {
   if (entry.multiSelected && entry.multiSelected.size > 0) {
     ctx.setUI({
       multiSelected: entry.multiSelected,
-      ...(entry.inOutlineMode
-        ? { inOutlineMode: true, subIndex: entry.subIndex }
-        : {}),
+      ...(entry.inOutlineMode ? { inOutlineMode: true, subIndex: entry.subIndex } : {}),
     })
   } else {
     clearSelection(ctx)
@@ -280,9 +243,7 @@ export function handleNavForward(ctx: ActionCtx): ActionResult {
   if (entry.multiSelected && entry.multiSelected.size > 0) {
     ctx.setUI({
       multiSelected: entry.multiSelected,
-      ...(entry.inOutlineMode
-        ? { inOutlineMode: true, subIndex: entry.subIndex }
-        : {}),
+      ...(entry.inOutlineMode ? { inOutlineMode: true, subIndex: entry.subIndex } : {}),
     })
   } else {
     clearSelection(ctx)
@@ -302,10 +263,7 @@ export function handleNavForward(ctx: ActionCtx): ActionResult {
 /**
  * Navigate to sibling board.
  */
-export function handleNavSiblingBoard(
-  ctx: ActionCtx,
-  direction: "next" | "prev",
-): ActionResult {
+export function handleNavSiblingBoard(ctx: ActionCtx, direction: "next" | "prev"): ActionResult {
   const { ui, dispatchBoard, layout } = ctx
 
   if (!ctx.rootId) {
@@ -323,9 +281,7 @@ export function handleNavSiblingBoard(
   if (currentIdx < 0) return ok()
 
   const targetIdx =
-    direction === "next"
-      ? (currentIdx + 1) % siblings.length
-      : (currentIdx - 1 + siblings.length) % siblings.length
+    direction === "next" ? (currentIdx + 1) % siblings.length : (currentIdx - 1 + siblings.length) % siblings.length
 
   const targetSibling = siblings[targetIdx]
   if (!targetSibling || targetSibling.id === currentRoot.id) return ok()

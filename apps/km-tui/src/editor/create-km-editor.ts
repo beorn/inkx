@@ -110,9 +110,7 @@ export function getEditorText(editor: KmEditor): string {
   return editor.children
     .map((node) => {
       if ("children" in node) {
-        return (node.children as Array<{ text: string }>)
-          .map((t) => t.text)
-          .join("")
+        return (node.children as Array<{ text: string }>).map((t) => t.text).join("")
       }
       return ""
     })
@@ -131,18 +129,16 @@ export function getCursorOffset(editor: KmEditor): number {
   let offset = 0
 
   // Sum up text lengths of all paragraphs before the current one
-  for (let i = 0; i < anchor.path[0]!; i++) {
+  const paragraphIndex = anchor.path[0] ?? 0
+  for (let i = 0; i < paragraphIndex; i++) {
     const node = editor.children[i]
     if (node && "children" in node) {
-      offset +=
-        (node.children as Array<{ text: string }>)
-          .map((t) => t.text)
-          .join("").length + 1 // +1 for newline between paragraphs
+      offset += (node.children as Array<{ text: string }>).map((t) => t.text).join("").length + 1 // +1 for newline between paragraphs
     }
   }
 
   // Add offset within current paragraph
-  const currentParagraph = editor.children[anchor.path[0]!]
+  const currentParagraph = editor.children[paragraphIndex]
   if (currentParagraph && "children" in currentParagraph) {
     const texts = currentParagraph.children as Array<{ text: string }>
     // Sum text nodes before current text node
@@ -166,6 +162,7 @@ export function setCursorOffset(editor: KmEditor, offset: number): void {
 
     const texts = para.children as Array<{ text: string }>
     for (let tIdx = 0; tIdx < texts.length; tIdx++) {
+      // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- tIdx within bounds of texts array
       const textLen = texts[tIdx]!.text.length
       if (remaining <= textLen) {
         Transforms.select(editor, {

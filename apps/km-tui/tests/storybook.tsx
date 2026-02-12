@@ -31,16 +31,7 @@
  */
 
 import React, { useState } from "react"
-import {
-  render as inkxRender,
-  useInput,
-  useApp,
-  useStdout,
-  Box,
-  Text,
-  createTerm,
-  useTerm,
-} from "inkx"
+import { render as inkxRender, useInput, useApp, useStdout, Box, Text, createTerm, useTerm } from "inkx"
 
 import {
   renderRich,
@@ -150,20 +141,12 @@ const defaultCursorStore = createCursorStore({
 })
 
 // Wrap children with all providers TreeNode needs
-function StorybookProviders({
-  children,
-}: {
-  children: React.ReactNode
-}): React.ReactElement {
+function StorybookProviders({ children }: { children: React.ReactNode }): React.ReactElement {
   const treeConfig = deriveTreeConfig(mockUIState)
   return (
     <StoreContext.Provider value={mockZustandStore}>
       <CursorStoreProvider store={defaultCursorStore}>
-        <TreeRenderProvider
-          treeConfig={treeConfig}
-          setUI={() => {}}
-          rootBoardId={null}
-        >
+        <TreeRenderProvider treeConfig={treeConfig} setUI={() => {}} rootBoardId={null}>
           {children}
         </TreeRenderProvider>
       </CursorStoreProvider>
@@ -333,18 +316,14 @@ function Layer1TagPills(): React.ReactElement {
         return (
           <Text key={name}>
             {" "}
-            {name.padEnd(10)} {color.padEnd(6)} {colorize(`@${name}`, color)}{" "}
-            <Text dimColor>← {desc}</Text>
+            {name.padEnd(10)} {color.padEnd(6)} {colorize(`@${name}`, color)} <Text dimColor>← {desc}</Text>
           </Text>
         )
       })}
       <Text> </Text>
 
       <SubsectionHeader title="Custom Tag Colors (via color= attribute)" />
-      <Text dimColor>
-        {" "}
-        Custom colors override presets using color=value in headings
-      </Text>
+      <Text dimColor> Custom colors override presets using color=value in headings</Text>
       <Text dimColor> Example: ## Sprint `color=magenta`</Text>
       <Text> </Text>
       {customTags.map(({ name, color }) => (
@@ -369,8 +348,8 @@ function Layer1TagPills(): React.ReactElement {
       <Text dimColor> In wide view, pills show the full tag name:</Text>
       <Text>
         {" "}
-        ○ Task with multiple tags {colorize("@next", "cyan")}{" "}
-        {colorize("@waiting", "yellow")} {colorize("@Sprint", "magenta")}
+        ○ Task with multiple tags {colorize("@next", "cyan")} {colorize("@waiting", "yellow")}{" "}
+        {colorize("@Sprint", "magenta")}
       </Text>
     </>
   )
@@ -394,9 +373,7 @@ function Layer1TaskStyling(): React.ReactElement {
   ]
 
   // Helper to get marker color based on status (uses Ink color names)
-  const getMarkerColor = (
-    status?: string,
-  ): "green" | "yellow" | "red" | undefined => {
+  const getMarkerColor = (status?: string): "green" | "yellow" | "red" | undefined => {
     switch (status) {
       case "done":
         return "green"
@@ -501,18 +478,15 @@ function Layer1FoldMarkers(): React.ReactElement {
       <SubsectionHeader title="Marker Constants" />
       <Text>
         {" "}
-        <Text color={FOLDED_MARKER.color}>{FOLDED_MARKER.char}</Text>{" "}
-        FOLDED_MARKER (● U+25CF) - big filled circle
+        <Text color={FOLDED_MARKER.color}>{FOLDED_MARKER.char}</Text> FOLDED_MARKER (● U+25CF) - big filled circle
       </Text>
       <Text>
         {" "}
-        <Text color={UNFOLDED_MARKER.color}>{UNFOLDED_MARKER.char}</Text>{" "}
-        UNFOLDED_MARKER (• U+2022) - medium bullet
+        <Text color={UNFOLDED_MARKER.color}>{UNFOLDED_MARKER.char}</Text> UNFOLDED_MARKER (• U+2022) - medium bullet
       </Text>
       <Text>
         {" "}
-        <Text color={EMPTY_MARKER.color}>{EMPTY_MARKER.char}</Text> EMPTY_MARKER
-        (· U+00B7) - tiny dot
+        <Text color={EMPTY_MARKER.color}>{EMPTY_MARKER.char}</Text> EMPTY_MARKER (· U+00B7) - tiny dot
       </Text>
       <Text> </Text>
 
@@ -526,8 +500,7 @@ function Layer1FoldMarkers(): React.ReactElement {
         return (
           <Text key={color}>
             {" "}
-            <Text color={folded.color}>{folded.char}</Text>{" "}
-            <Text color={unfolded.color}>{unfolded.char}</Text>{" "}
+            <Text color={folded.color}>{folded.char}</Text> <Text color={unfolded.color}>{unfolded.char}</Text>{" "}
             <Text color={empty.color}>{empty.char}</Text>
             {"  "}
             <Text dimColor>color={color}</Text>
@@ -537,25 +510,19 @@ function Layer1FoldMarkers(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="Combined: Fold Marker + Task Status" />
-      <Text dimColor>
-        {" "}
-        New cards style: marker indicates fold, status in title
-      </Text>
+      <Text dimColor> New cards style: marker indicates fold, status in title</Text>
       <Text> </Text>
       <Text>
         {" "}
-        <Text>{FOLDED_MARKER.char}</Text> <Text color="gray">▢</Text> Folded
-        todo task (5)
+        <Text>{FOLDED_MARKER.char}</Text> <Text color="gray">▢</Text> Folded todo task (5)
       </Text>
       <Text>
         {" "}
-        <Text>{UNFOLDED_MARKER.char}</Text> <Text color="yellow">◧</Text>{" "}
-        Unfolded WIP task
+        <Text>{UNFOLDED_MARKER.char}</Text> <Text color="yellow">◧</Text> Unfolded WIP task
       </Text>
       <Text>
         {" "}
-        <Text color="gray">{EMPTY_MARKER.char}</Text>{" "}
-        <Text color="green">▣</Text> Leaf done task
+        <Text color="gray">{EMPTY_MARKER.char}</Text> <Text color="green">▣</Text> Leaf done task
       </Text>
       <Text>
         {" "}
@@ -570,8 +537,7 @@ function Layer1FoldMarkers(): React.ReactElement {
 // ============================================================================
 
 function Layer2Layout(): React.ReactElement {
-  const longText =
-    "This is a longer text that needs to be wrapped at a certain width to fit in a column"
+  const longText = "This is a longer text that needs to be wrapped at a certain width to fit in a column"
   const truncText = "This is text that might be truncated"
 
   return (
@@ -606,13 +572,11 @@ function Layer2Layout(): React.ReactElement {
 
       <SubsectionHeader title="constrainText() - Wrap + Truncate + Limit Lines" />
       <Text dimColor>Width=25, maxLines=2:</Text>
-      {constrainText(
-        "This is a longer piece of text that needs both wrapping and line limiting",
-        25,
-        2,
-      ).lines.map((line, i) => (
-        <Text key={i}> |{line}|</Text>
-      ))}
+      {constrainText("This is a longer piece of text that needs both wrapping and line limiting", 25, 2).lines.map(
+        (line, i) => (
+          <Text key={i}> |{line}|</Text>
+        ),
+      )}
       <Text> truncated: true</Text>
       <Text> </Text>
 
@@ -623,15 +587,9 @@ function Layer2Layout(): React.ReactElement {
       <SubsectionHeader title="renderParentPath() - Separate Line Context" />
       <Text dimColor>Input: "Projects/Work/Tasks/Subtask" (len=27)</Text>
       <Text> </Text>
-      <Text dimColor>
-        Width=30: |{renderParentPath("Projects/Work/Tasks/Subtask", 30)}|
-      </Text>
-      <Text dimColor>
-        Width=25: |{renderParentPath("Projects/Work/Tasks/Subtask", 25)}|
-      </Text>
-      <Text dimColor>
-        Width=20: |{renderParentPath("Projects/Work/Tasks/Subtask", 20)}|
-      </Text>
+      <Text dimColor>Width=30: |{renderParentPath("Projects/Work/Tasks/Subtask", 30)}|</Text>
+      <Text dimColor>Width=25: |{renderParentPath("Projects/Work/Tasks/Subtask", 25)}|</Text>
+      <Text dimColor>Width=20: |{renderParentPath("Projects/Work/Tasks/Subtask", 20)}|</Text>
     </>
   )
 }
@@ -777,10 +735,7 @@ function Layer3Views(): React.ReactElement {
 
 // Helper to create mock CardState with children
 // Children are created with proper parent_id for getChildren() to work
-function mockCard(
-  node: KNode,
-  childDefs: Array<{ content: string; status?: string }> = [],
-): CardState {
+function mockCard(node: KNode, childDefs: Array<{ content: string; status?: string }> = []): CardState {
   const children = childDefs.map((def, i) =>
     mockNode(`${node.id}-child-${i}`, def.content, def.status, "task", {
       parentId: node.id,
@@ -931,9 +886,7 @@ function createMockTUIBoardState(): TUIBoardState {
     mockCard(mockNode("fmt3", "Task with `inline code`", "todo")),
     mockCard(mockNode("fmt4", "Task with [[wiki link]]", "todo")),
     mockCard(mockNode("fmt5", "~~Strikethrough~~ in markdown", "todo")),
-    mockCard(
-      mockNode("fmt6", "**Bold** and *italic* and `code` together", "wip"),
-    ),
+    mockCard(mockNode("fmt6", "**Bold** and *italic* and `code` together", "wip")),
   ]
 
   // Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
@@ -982,11 +935,7 @@ function ViewBox({
       <Text bold color="magenta">
         {title}
       </Text>
-      <Box
-        marginTop={1}
-        flexDirection="column"
-        flexGrow={height ? 1 : undefined}
-      >
+      <Box marginTop={1} flexDirection="column" flexGrow={height ? 1 : undefined}>
         {children}
       </Box>
     </Box>
@@ -1050,78 +999,49 @@ function Layer3AllViews(): React.ReactElement {
   return (
     <RepoProvider repo={populatedRepo}>
       <StorybookProviders>
-      <>
-        <SectionHeader title="Layer 3: All View Modes (via BoardCore)" />
-        <Text dimColor>
-          Each view renders the same TUIBoardState via BoardCore:
-        </Text>
-        <Text dimColor>
-          • Fold markers: ● folded, • unfolded, · empty (size variation)
-        </Text>
-        <Text dimColor>
-          • Task status: ▢ todo, ◧ wip, ■ blocked, ▣ done (square style)
-        </Text>
-        <Text dimColor>
-          • Rich text: **bold**, *italic*, `code`, ~~strike~~, [[links]]
-        </Text>
-        <Text dimColor>• Inactive children: dimmed when card not selected</Text>
-        <Text dimColor>• Embedded tasks: show parent context prefix</Text>
-        <Text dimColor>
-          • Selection levels: column → card → outline (sub-items)
-        </Text>
+        <>
+          <SectionHeader title="Layer 3: All View Modes (via BoardCore)" />
+          <Text dimColor>Each view renders the same TUIBoardState via BoardCore:</Text>
+          <Text dimColor>• Fold markers: ● folded, • unfolded, · empty (size variation)</Text>
+          <Text dimColor>• Task status: ▢ todo, ◧ wip, ■ blocked, ▣ done (square style)</Text>
+          <Text dimColor>• Rich text: **bold**, *italic*, `code`, ~~strike~~, [[links]]</Text>
+          <Text dimColor>• Inactive children: dimmed when card not selected</Text>
+          <Text dimColor>• Embedded tasks: show parent context prefix</Text>
+          <Text dimColor>• Selection levels: column → card → outline (sub-items)</Text>
 
-        <ViewBox
-          title="View 1: Cards (card level - first card selected)"
-          height={viewRows}
-        >
-          <BoardCore
-            {...makeBoardCoreProps(mockState, "cards", 0, 0, {
-              columns: viewCols,
-              rows: viewRows,
-            })}
-          />
-        </ViewBox>
+          <ViewBox title="View 1: Cards (card level - first card selected)" height={viewRows}>
+            <BoardCore
+              {...makeBoardCoreProps(mockState, "cards", 0, 0, {
+                columns: viewCols,
+                rows: viewRows,
+              })}
+            />
+          </ViewBox>
 
-        <ViewBox
-          title="View 2: Columns (column level - 'Embedded' column selected)"
-          height={viewRows}
-        >
-          <BoardCore
-            {...makeBoardCoreProps(
-              mockState,
-              "columns",
-              1,
-              0,
-              { columns: viewCols, rows: viewRows },
-              "column",
-            )}
-          />
-        </ViewBox>
+          <ViewBox title="View 2: Columns (column level - 'Embedded' column selected)" height={viewRows}>
+            <BoardCore
+              {...makeBoardCoreProps(mockState, "columns", 1, 0, { columns: viewCols, rows: viewRows }, "column")}
+            />
+          </ViewBox>
 
-        <ViewBox
-          title="View 3: Tabs (card level - shows Active column)"
-          height={viewRows}
-        >
-          <BoardCore
-            {...makeBoardCoreProps(mockState, "tabs", 0, 0, {
-              columns: viewCols,
-              rows: viewRows,
-            })}
-          />
-        </ViewBox>
+          <ViewBox title="View 3: Tabs (card level - shows Active column)" height={viewRows}>
+            <BoardCore
+              {...makeBoardCoreProps(mockState, "tabs", 0, 0, {
+                columns: viewCols,
+                rows: viewRows,
+              })}
+            />
+          </ViewBox>
 
-        <ViewBox
-          title="View 4: List (card level - 'Completed' column, 2nd card)"
-          height={viewRows}
-        >
-          <BoardCore
-            {...makeBoardCoreProps(mockState, "list", 2, 1, {
-              columns: viewCols,
-              rows: viewRows,
-            })}
-          />
-        </ViewBox>
-      </>
+          <ViewBox title="View 4: List (card level - 'Completed' column, 2nd card)" height={viewRows}>
+            <BoardCore
+              {...makeBoardCoreProps(mockState, "list", 2, 1, {
+                columns: viewCols,
+                rows: viewRows,
+              })}
+            />
+          </ViewBox>
+        </>
       </StorybookProviders>
     </RepoProvider>
   )
@@ -1145,10 +1065,7 @@ function VisualLanguageSection(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="Selection States (RESERVED COLOR)" />
-      <Text dimColor>
-        {" "}
-        Yellow bg = selection (cursor, focused, multi-select)
-      </Text>
+      <Text dimColor> Yellow bg = selection (cursor, focused, multi-select)</Text>
       <Text> </Text>
 
       <Box flexDirection="row" gap={2}>
@@ -1170,31 +1087,16 @@ function VisualLanguageSection(): React.ReactElement {
       <Text> </Text>
 
       <Box flexDirection="row" gap={1}>
-        <Box
-          flexDirection="column"
-          width={28}
-          borderStyle="round"
-          borderColor="blackBright"
-        >
+        <Box flexDirection="column" width={28} borderStyle="round" borderColor="blackBright">
           <Text> · Normal card</Text>
         </Box>
-        <Box
-          flexDirection="column"
-          width={28}
-          borderStyle="round"
-          borderColor="yellow"
-        >
+        <Box flexDirection="column" width={28} borderStyle="round" borderColor="yellow">
           <Text backgroundColor="yellow" color="black">
             {" "}
             · Selected card
           </Text>
         </Box>
-        <Box
-          flexDirection="column"
-          width={28}
-          borderStyle="round"
-          borderColor="cyan"
-        >
+        <Box flexDirection="column" width={28} borderStyle="round" borderColor="cyan">
           <Text>
             {" "}
             · Editing ca<Text inverse>r</Text>d
@@ -1216,26 +1118,14 @@ function VisualLanguageSection(): React.ReactElement {
 
       <SubsectionHeader title="Panel Focus States" />
       <Box flexDirection="row" gap={2}>
-        <Box
-          flexDirection="column"
-          width={30}
-          borderStyle="round"
-          borderColor="cyanBright"
-          paddingX={1}
-        >
+        <Box flexDirection="column" width={30} borderStyle="round" borderColor="cyanBright" paddingX={1}>
           <Text bold color="yellow">
             Active Panel
           </Text>
           <Text dimColor>borderColor: cyanBright</Text>
           <Text dimColor>header: yellow + bold</Text>
         </Box>
-        <Box
-          flexDirection="column"
-          width={30}
-          borderStyle="round"
-          borderColor="blackBright"
-          paddingX={1}
-        >
+        <Box flexDirection="column" width={30} borderStyle="round" borderColor="blackBright" paddingX={1}>
           <Text bold color="yellowBright" dimColor>
             Inactive Panel
           </Text>
@@ -1279,11 +1169,7 @@ function VisualLanguageSection(): React.ReactElement {
         <Box flexDirection="column" width={38}>
           <Text bold>Terminal states (dim only):</Text>
           <TreeNode {...commonProps} node={doneTask} isSelected={false} />
-          <TreeNode
-            {...commonProps}
-            node={mockNode("vl-4", "Dropped task item", "dropped")}
-            isSelected={false}
-          />
+          <TreeNode {...commonProps} node={mockNode("vl-4", "Dropped task item", "dropped")} isSelected={false} />
         </Box>
       </Box>
       <Text> </Text>
@@ -1313,10 +1199,7 @@ function VisualLanguageSection(): React.ReactElement {
       <Text> </Text>
 
       <SubsectionHeader title="Due Date Urgency (underlines)" />
-      <Text dimColor>
-        {" "}
-        Uses 24-bit RGB colors - may not render in all terminals
-      </Text>
+      <Text dimColor> Uses 24-bit RGB colors - may not render in all terminals</Text>
       <Text> </Text>
       <Text>
         {" "}
@@ -1324,13 +1207,11 @@ function VisualLanguageSection(): React.ReactElement {
       </Text>
       <Text>
         {" "}
-        <Text color="#FFA500">Today/Tomorrow</Text>: orange curly underline
-        [255,165,0]
+        <Text color="#FFA500">Today/Tomorrow</Text>: orange curly underline [255,165,0]
       </Text>
       <Text>
         {" "}
-        <Text color="yellow">This week</Text>: yellow single underline
-        [255,255,0]
+        <Text color="yellow">This week</Text>: yellow single underline [255,255,0]
       </Text>
       <Text> Beyond 7 days: no underline</Text>
     </>
@@ -1410,9 +1291,7 @@ function ToastAndStatusSection(): React.ReactElement {
       <SectionHeader title="Toast Stack & Status Bar" />
 
       <SubsectionHeader title="Single Toast - All Levels" />
-      <Text dimColor>
-        Toasts appear in bottom-right corner with border and black background
-      </Text>
+      <Text dimColor>Toasts appear in bottom-right corner with border and black background</Text>
       <Text> </Text>
 
       {[
@@ -1424,11 +1303,7 @@ function ToastAndStatusSection(): React.ReactElement {
       ].map(({ title, idx }) => (
         <ViewBox key={idx} title={title}>
           <Box width={demoTermWidth} height={10} position="relative">
-            <ToastStack
-              toasts={[getToast(idx)]}
-              termWidth={demoTermWidth}
-              termHeight={10}
-            />
+            <ToastStack toasts={[getToast(idx)]} termWidth={demoTermWidth} termHeight={10} />
           </Box>
         </ViewBox>
       ))}
@@ -1440,28 +1315,18 @@ function ToastAndStatusSection(): React.ReactElement {
 
       <ViewBox title="3 Stacked Toasts">
         <Box width={demoTermWidth} height={20} position="relative">
-          <ToastStack
-            toasts={mockToasts.slice(0, 3)}
-            termWidth={demoTermWidth}
-            termHeight={20}
-          />
+          <ToastStack toasts={mockToasts.slice(0, 3)} termWidth={demoTermWidth} termHeight={20} />
         </Box>
       </ViewBox>
 
       <ViewBox title="All 5 Toasts Stacked">
         <Box width={demoTermWidth} height={demoTermHeight} position="relative">
-          <ToastStack
-            toasts={mockToasts}
-            termWidth={demoTermWidth}
-            termHeight={demoTermHeight}
-          />
+          <ToastStack toasts={mockToasts} termWidth={demoTermWidth} termHeight={demoTermHeight} />
         </Box>
       </ViewBox>
 
       <SubsectionHeader title="Status Bar with Messages" />
-      <Text dimColor>
-        Bottom bar shows watcher status and optional messages
-      </Text>
+      <Text dimColor>Bottom bar shows watcher status and optional messages</Text>
       <Text> </Text>
 
       <Text bold>Normal state (no status message):</Text>
@@ -1493,23 +1358,14 @@ function ToastAndStatusSection(): React.ReactElement {
       <Text> </Text>
 
       <ViewBox title="Full Layout with Toasts">
-        <Box
-          width={demoTermWidth}
-          height={demoTermHeight}
-          flexDirection="column"
-          position="relative"
-        >
+        <Box width={demoTermWidth} height={demoTermHeight} flexDirection="column" position="relative">
           {/* Content area */}
           <Box flexGrow={1} flexShrink={1}>
             <Text dimColor>Board content area...</Text>
           </Box>
 
           {/* Toast stack in bottom-right */}
-          <ToastStack
-            toasts={mockToasts.slice(0, 3)}
-            termWidth={demoTermWidth}
-            termHeight={demoTermHeight}
-          />
+          <ToastStack toasts={mockToasts.slice(0, 3)} termWidth={demoTermWidth} termHeight={demoTermHeight} />
 
           {/* Bottom bar at bottom */}
           <BottomBar
@@ -1572,11 +1428,7 @@ const sections: Section[] = [
 type StorybookMode = "inline" | "fullscreen" | "fullscreen-nonalt"
 
 // Interactive Storybook with keyboard navigation
-function InteractiveStorybook({
-  mode,
-}: {
-  mode: StorybookMode
-}): React.ReactElement {
+function InteractiveStorybook({ mode }: { mode: StorybookMode }): React.ReactElement {
   const { exit } = useApp()
   const { stdout } = useStdout()
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -1611,11 +1463,7 @@ function InteractiveStorybook({
   return (
     <RepoProvider repo={mockRepo}>
       <StorybookProviders>
-        <Box
-          flexDirection="column"
-          width={termWidth}
-          height={isInline ? undefined : termHeight}
-        >
+        <Box flexDirection="column" width={termWidth} height={isInline ? undefined : termHeight}>
           {/* Header */}
           {isInline ? (
             <Box paddingX={1} gap={2}>
@@ -1640,31 +1488,24 @@ function InteractiveStorybook({
           {/* Main content area */}
           <Box flexDirection="row" flexGrow={isInline ? undefined : 1}>
             {/* Sidebar */}
-            <Box
-                flexDirection="column"
-                width={sidebarWidth}
-                borderStyle="single"
-                borderColor="gray"
-                paddingX={1}
-              >
-                <Text bold color="yellow">
-                  Sections
-                </Text>
-                <Text dimColor>────────────────────────</Text>
-                {sections.map((section, idx) => {
-                  const isSelected = idx === selectedIndex
-                  return (
-                    <Text
-                      key={section.id}
-                      backgroundColor={isSelected ? "cyan" : undefined}
-                      color={isSelected ? "black" : "white"}
-                    >
-                      {isSelected ? "▸" : " "}{" "}
-                      {section.title.slice(0, sidebarWidth - 5)}
-                    </Text>
-                  )
-                })}
-              </Box>
+            <Box flexDirection="column" width={sidebarWidth} borderStyle="single" borderColor="gray" paddingX={1}>
+              <Text bold color="yellow">
+                Sections
+              </Text>
+              <Text dimColor>────────────────────────</Text>
+              {sections.map((section, idx) => {
+                const isSelected = idx === selectedIndex
+                return (
+                  <Text
+                    key={section.id}
+                    backgroundColor={isSelected ? "cyan" : undefined}
+                    color={isSelected ? "black" : "white"}
+                  >
+                    {isSelected ? "▸" : " "} {section.title.slice(0, sidebarWidth - 5)}
+                  </Text>
+                )
+              })}
+            </Box>
 
             {/* Content area — scrollable in fullscreen */}
             <Box

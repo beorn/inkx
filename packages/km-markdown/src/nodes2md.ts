@@ -59,7 +59,12 @@ export function nodesToMarkdown(
     if (n.block_id) existingBlockIds.add(n.block_id)
   }
 
-  const ctx: SerializeContext = { tree, nodeMap, assignBlockId, existingBlockIds }
+  const ctx: SerializeContext = {
+    tree,
+    nodeMap,
+    assignBlockId,
+    existingBlockIds,
+  }
 
   // Find root node (file node)
   const fileNode = nodes.find((n) => n.type === "file")
@@ -151,12 +156,7 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
  * Serialize a single node
  * @param addTrailingNewline - Whether to add trailing newline for list items (default true for backwards compat)
  */
-function serializeNode(
-  node: KNode,
-  ctx: SerializeContext,
-  indent: number,
-  addTrailingNewline: boolean = true,
-): string {
+function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTrailingNewline: boolean = true): string {
   const children = ctx.tree.get(node.id) ?? []
 
   // Any node with link_to is a transclusion — serialize as ![[target]] embed
@@ -184,24 +184,10 @@ function serializeNode(
       return serializeCode(node)
 
     case "ul":
-      return serializeListItem(
-        node,
-        children,
-        ctx,
-        indent,
-        false,
-        addTrailingNewline,
-      )
+      return serializeListItem(node, children, ctx, indent, false, addTrailingNewline)
 
     case "ol":
-      return serializeListItem(
-        node,
-        children,
-        ctx,
-        indent,
-        true,
-        addTrailingNewline,
-      )
+      return serializeListItem(node, children, ctx, indent, true, addTrailingNewline)
 
     case "task":
       return serializeTask(node, children, ctx, indent, addTrailingNewline)
@@ -223,11 +209,7 @@ function serializeNode(
 /**
  * Serialize a section (heading + children)
  */
-function serializeSection(
-  node: KNode,
-  children: KNode[],
-  ctx: SerializeContext,
-): string {
+function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext): string {
   const depth = (node.data?.depth as number) ?? 2
   const prefix = "#".repeat(depth)
   let headingLine = `${prefix} ${node.content ?? ""}`
@@ -315,7 +297,7 @@ function getEmbedPath(target: KNode, ctx: SerializeContext): string {
     const blockId = generateBlockId(ctx.existingBlockIds)
     ctx.existingBlockIds.add(blockId)
     ctx.assignBlockId(target.id, blockId)
-    target.block_id = blockId  // Local mutation for this serialization pass
+    target.block_id = blockId // Local mutation for this serialization pass
     if (filePath) return `${filePath}#^${blockId}`
     return `^${blockId}`
   }
@@ -406,10 +388,7 @@ function serializeListItem(
  * Derive the checkbox mark from task_status.
  * This ensures edits to task_status are reflected in the serialized output.
  */
-function statusToMark(
-  status: string | undefined,
-  existingMark?: string,
-): string {
+function statusToMark(status: string | undefined, existingMark?: string): string {
   switch (status) {
     case "done":
       return "x"

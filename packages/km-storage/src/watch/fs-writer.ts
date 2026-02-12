@@ -9,14 +9,7 @@
  */
 
 import { createLogger } from "@beorn/logger"
-import {
-  existsSync,
-  mkdirSync,
-  renameSync,
-  statSync,
-  unlinkSync,
-  writeFileSync,
-} from "fs"
+import { existsSync, mkdirSync, renameSync, statSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join } from "path"
 import type { Database } from "bun:sqlite"
 import type { Event, KNode } from "@km/core"
@@ -83,9 +76,7 @@ export class FsWriter implements FsSync {
   applyEventToFs(event: Event): void {
     if (!shouldApplyToFs(event.actor)) return
 
-    log.debug?.(
-      `applying ${event.type} to fs: ${event.target ?? "no-target"}`,
-    )
+    log.debug?.(`applying ${event.type} to fs: ${event.target ?? "no-target"}`)
 
     switch (event.type) {
       case "node_updated":
@@ -124,11 +115,7 @@ export class FsWriter implements FsSync {
     if (!fileNode?.fs_path) return
 
     // File rename: content change on the file node itself → rename .md file
-    if (
-      node.id === fileNode.id &&
-      changes.content &&
-      fileNode.fs_path.endsWith(".md")
-    ) {
+    if (node.id === fileNode.id && changes.content && fileNode.fs_path.endsWith(".md")) {
       this.handleFileRename(fileNode, changes.content, event.id)
     }
 
@@ -210,11 +197,7 @@ export class FsWriter implements FsSync {
   /**
    * Rename a folder directory on disk when its content (name) changes.
    */
-  private handleFolderRename(
-    node: KNode,
-    newName: string,
-    _eventId: string,
-  ): void {
+  private handleFolderRename(node: KNode, newName: string, _eventId: string): void {
     const oldFsPath = node.fs_path ?? ""
     const oldAbsPath = toAbsoluteFsPath(this.repoPath, oldFsPath)
     const parentDir = dirname(oldFsPath)
@@ -236,31 +219,30 @@ export class FsWriter implements FsSync {
     // Update DB paths
     const oldPrefix = oldFsPath + "/"
     const newPrefix = newFsPath + "/"
-    this.db.run(
-      "UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?",
-      [newFsPath, newName, Date.now(), node.id],
-    )
-    this.db.run(
-      `UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?), updated_at = ? WHERE fs_path LIKE ?`,
-      [newPrefix, oldPrefix.length + 1, Date.now(), oldPrefix + "%"],
-    )
+    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
+      newFsPath,
+      newName,
+      Date.now(),
+      node.id,
+    ])
+    this.db.run(`UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?), updated_at = ? WHERE fs_path LIKE ?`, [
+      newPrefix,
+      oldPrefix.length + 1,
+      Date.now(),
+      oldPrefix + "%",
+    ])
   }
 
   /**
    * Rename a .md file when its H1 title changes.
    */
-  private handleFileRename(
-    fileNode: KNode,
-    newTitle: string,
-    _eventId: string,
-  ): void {
+  private handleFileRename(fileNode: KNode, newTitle: string, _eventId: string): void {
     const oldFsPath = fileNode.fs_path
     if (!oldFsPath) return
 
     const newFileName = titleToFilename(newTitle)
     const parentDir = dirname(oldFsPath)
-    const newFsPath =
-      parentDir === "." ? newFileName : join(parentDir, newFileName)
+    const newFsPath = parentDir === "." ? newFileName : join(parentDir, newFileName)
 
     if (oldFsPath === newFsPath) return
 
@@ -284,10 +266,12 @@ export class FsWriter implements FsSync {
 
     // Update DB
     const newName = newFileName.replace(/\.md$/i, "")
-    this.db.run(
-      "UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?",
-      [newFsPath, newName, Date.now(), fileNode.id],
-    )
+    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
+      newFsPath,
+      newName,
+      Date.now(),
+      fileNode.id,
+    ])
 
     // Mutate node so caller writes content at new path
     fileNode.fs_path = newFsPath
@@ -308,17 +292,10 @@ export class FsWriter implements FsSync {
       const dbMtime = fileNode.fs_mtime
 
       if (dbMtime !== undefined && stat.mtimeMs !== dbMtime) {
-        log.debug?.(
-          `reconcile-before-write: file changed externally, reconciling path=${absPath}`,
-        )
+        log.debug?.(`reconcile-before-write: file changed externally, reconciling path=${absPath}`)
 
         const dir = dirname(absPath)
-        const ops = reconcileDirectory(
-          this.db,
-          dir,
-          this.repoPath,
-          this.ignorePatterns,
-        )
+        const ops = reconcileDirectory(this.db, dir, this.repoPath, this.ignorePatterns)
 
         if (ops.length > 0) {
           log.debug?.(`reconcile-before-write: applying ${ops.length} ops`)

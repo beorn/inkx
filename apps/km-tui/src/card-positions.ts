@@ -65,20 +65,10 @@ export interface LayoutRegistry {
   // === Card-level registration (for column/card index navigation) ===
 
   /** Register a card's layout by column and card index */
-  registerCard(
-    colIndex: number,
-    cardIndex: number,
-    nodeId: string,
-    layout: NodeLayout,
-  ): void
+  registerCard(colIndex: number, cardIndex: number, nodeId: string, layout: NodeLayout): void
 
   /** Update the head layout for a card (called after head row is measured) */
-  updateCardHead(
-    colIndex: number,
-    cardIndex: number,
-    headY: number,
-    headHeight: number,
-  ): void
+  updateCardHead(colIndex: number, cardIndex: number, headY: number, headHeight: number): void
 
   /** Remove a card's entry from the registry (called when VirtualList unmounts a card) */
   unregisterCard(colIndex: number, cardIndex: number): void
@@ -171,9 +161,7 @@ export function createLayoutRegistry(): LayoutRegistry {
 
     registerNode(nodeId: string, layout: NodeLayout): void {
       nodeLayouts.set(nodeId, layout)
-      log.debug?.(
-        `registerNode id=${nodeId.slice(-8)} y=${layout.y} size=${layout.cardWidth}x${layout.cardHeight}`,
-      )
+      log.debug?.(`registerNode id=${nodeId.slice(-8)} y=${layout.y} size=${layout.cardWidth}x${layout.cardHeight}`)
     },
 
     getNode(nodeId: string): NodeLayout {
@@ -190,12 +178,7 @@ export function createLayoutRegistry(): LayoutRegistry {
 
     // === Card-level ===
 
-    registerCard(
-      colIndex: number,
-      cardIndex: number,
-      nodeId: string,
-      layout: NodeLayout,
-    ): void {
+    registerCard(colIndex: number, cardIndex: number, nodeId: string, layout: NodeLayout): void {
       let colMap = cardLayouts.get(colIndex)
       if (!colMap) {
         colMap = new Map()
@@ -207,10 +190,7 @@ export function createLayoutRegistry(): LayoutRegistry {
       // objects without head measurements that were set by updateCardHead)
       const existing = colMap.get(cardIndex)
       if (existing && existing.nodeId === nodeId) {
-        if (
-          layout.headY === undefined &&
-          existing.layout.headY !== undefined
-        ) {
+        if (layout.headY === undefined && existing.layout.headY !== undefined) {
           layout.headY = existing.layout.headY
           layout.headHeight = existing.layout.headHeight
         }
@@ -221,9 +201,7 @@ export function createLayoutRegistry(): LayoutRegistry {
       // Also register by node ID for direct lookup
       nodeLayouts.set(nodeId, layout)
 
-      log.debug?.(
-        `registerCard col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${layout.y}`,
-      )
+      log.debug?.(`registerCard col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${layout.y}`)
     },
 
     unregisterCard(colIndex: number, cardIndex: number): void {
@@ -233,26 +211,17 @@ export function createLayoutRegistry(): LayoutRegistry {
         if (entry) {
           nodeLayouts.delete(entry.nodeId)
           colMap.delete(cardIndex)
-          log.debug?.(
-            `unregisterCard col=${colIndex} card=${cardIndex} id=${entry.nodeId.slice(-8)}`,
-          )
+          log.debug?.(`unregisterCard col=${colIndex} card=${cardIndex} id=${entry.nodeId.slice(-8)}`)
         }
       }
     },
 
-    updateCardHead(
-      colIndex: number,
-      cardIndex: number,
-      headY: number,
-      headHeight: number,
-    ): void {
+    updateCardHead(colIndex: number, cardIndex: number, headY: number, headHeight: number): void {
       const entry = cardLayouts.get(colIndex)?.get(cardIndex)
       if (entry) {
         entry.layout.headY = headY
         entry.layout.headHeight = headHeight
-        log.debug?.(
-          `updateCardHead: col=${colIndex} card=${cardIndex} headY=${headY} headHeight=${headHeight}`,
-        )
+        log.debug?.(`updateCardHead: col=${colIndex} card=${cardIndex} headY=${headY} headHeight=${headHeight}`)
       }
     },
 
@@ -325,23 +294,17 @@ export function createLayoutRegistry(): LayoutRegistry {
 
       if (!colMap || colMap.size === 0) {
         // No cards - return -1 to indicate column header
-        log.debug?.(
-          `findCardAtYVisual: col=${colIndex} targetY=${targetY} -> -1 (no cards registered)`,
-        )
+        log.debug?.(`findCardAtYVisual: col=${colIndex} targetY=${targetY} -> -1 (no cards registered)`)
         return -1
       }
 
-      log.debug?.(
-        `findCardAtYVisual: col=${colIndex} targetY=${targetY} searching ${colMap.size} cards`,
-      )
+      log.debug?.(`findCardAtYVisual: col=${colIndex} targetY=${targetY} searching ${colMap.size} cards`)
 
       // First pass: find card whose card box contains targetY (intersection)
       for (const [cardIdx, entry] of colMap) {
         const cardTop = entry.layout.y
         const cardBottom = cardTop + entry.layout.cardHeight
-        log.debug?.(
-          `  card[${cardIdx}]: y=${cardTop}-${cardBottom} (height=${entry.layout.cardHeight})`,
-        )
+        log.debug?.(`  card[${cardIdx}]: y=${cardTop}-${cardBottom} (height=${entry.layout.cardHeight})`)
         if (targetY >= cardTop && targetY < cardBottom) {
           log.debug?.(
             `findCardAtYVisual: col=${colIndex} targetY=${targetY} -> card=${cardIdx} (intersects y=${cardTop}-${cardBottom})`,
@@ -368,15 +331,11 @@ export function createLayoutRegistry(): LayoutRegistry {
       // If targetY is above all cards, return -1 for column header
       const firstCard = colMap.get(0)
       if (firstCard && targetY < firstCard.layout.y) {
-        log.debug?.(
-          `findCardAtYVisual: col=${colIndex} targetY=${targetY} -> header (above all cards)`,
-        )
+        log.debug?.(`findCardAtYVisual: col=${colIndex} targetY=${targetY} -> header (above all cards)`)
         return -1
       }
 
-      log.debug?.(
-        `findCardAtYVisual: col=${colIndex} targetY=${targetY} -> card=${closestIdx} (closest)`,
-      )
+      log.debug?.(`findCardAtYVisual: col=${colIndex} targetY=${targetY} -> card=${closestIdx} (closest)`)
       return closestIdx
     },
 
@@ -402,18 +361,14 @@ export function createLayoutRegistry(): LayoutRegistry {
         const [, entry] = cardEntry
         const cardTop = entry.layout.y
         if (targetY < cardTop) {
-          log.debug?.(
-            `findInsertionSlot: col=${colIndex} targetY=${targetY} -> slot=${i}`,
-          )
+          log.debug?.(`findInsertionSlot: col=${colIndex} targetY=${targetY} -> slot=${i}`)
           return i
         }
       }
 
       // targetY is at or below last card - insert after it
       const lastSlot = cards.length
-      log.debug?.(
-        `findInsertionSlot: col=${colIndex} targetY=${targetY} -> slot=${lastSlot} (after last)`,
-      )
+      log.debug?.(`findInsertionSlot: col=${colIndex} targetY=${targetY} -> slot=${lastSlot} (after last)`)
       return lastSlot
     },
 
@@ -445,10 +400,7 @@ export function createLayoutRegistry(): LayoutRegistry {
         for (const [colIdx, colMap] of cardLayouts) {
           const entries = Array.from(colMap.entries())
             .sort((a, b) => a[0] - b[0])
-            .map(
-              ([cardIdx, entry]) =>
-                `${cardIdx}:y${entry.layout.y}:h${entry.layout.cardHeight}`,
-            )
+            .map(([cardIdx, entry]) => `${cardIdx}:y${entry.layout.y}:h${entry.layout.cardHeight}`)
             .join(", ")
           lines.push(`col[${colIdx}]: ${entries}`)
         }
@@ -483,7 +435,5 @@ export function getCardMidY(layout: NodeLayout): number {
   }
   // Theoretically possible on first render before layout callbacks fire,
   // but not yet observed in practice. Throw to surface if it ever happens.
-  throw new Error(
-    `getCardMidY: headY/headHeight not registered. Layout: y=${layout.y} cardHeight=${layout.cardHeight}`,
-  )
+  throw new Error(`getCardMidY: headY/headHeight not registered. Layout: y=${layout.y} cardHeight=${layout.cardHeight}`)
 }

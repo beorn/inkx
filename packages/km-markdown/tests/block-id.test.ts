@@ -13,12 +13,7 @@ import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
 import { parseMarkdownToNodes } from "../src/ast2nodes.ts"
 import { nodesToMarkdown } from "../src/nodes2md.ts"
-import {
-  roundtrip,
-  parse,
-  makeTestNode,
-  normalizeMarkdown,
-} from "./helpers/test-utils.ts"
+import { roundtrip, parse, makeTestNode, normalizeMarkdown } from "./helpers/test-utils.ts"
 
 // ---------------------------------------------------------------------------
 // 1. Parser: ^block-id suffix extraction
@@ -312,11 +307,7 @@ describe("On-demand block ID generation", () => {
       calls.push({ nodeId, blockId })
     }
 
-    const md = nodesToMarkdown(
-      [fileNode, embedNode, targetFileNode, targetTask],
-      undefined,
-      assignBlockId,
-    )
+    const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetTask], undefined, assignBlockId)
 
     // Callback should have been called for the target task
     expect(calls).toHaveLength(1)
@@ -366,11 +357,7 @@ describe("On-demand block ID generation", () => {
       calls.push({ nodeId, blockId })
     }
 
-    const md = nodesToMarkdown(
-      [fileNode, embedNode, targetFileNode, targetTask],
-      undefined,
-      assignBlockId,
-    )
+    const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetTask], undefined, assignBlockId)
 
     // Should NOT call the callback since target already has block_id
     expect(calls).toHaveLength(0)
@@ -412,12 +399,7 @@ describe("On-demand block ID generation", () => {
     })
 
     // No assignBlockId callback
-    const md = nodesToMarkdown([
-      fileNode,
-      embedNode,
-      targetFileNode,
-      targetTask,
-    ])
+    const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetTask])
 
     // Should fall back to content-based reference
     expect(md).toContain("![[inbox#Buy groceries]]")
@@ -483,11 +465,7 @@ describe("On-demand block ID generation", () => {
       calls.push({ nodeId, blockId })
     }
 
-    nodesToMarkdown(
-      [fileNode, embed1, embed2, targetFileNode, task1, task2],
-      undefined,
-      assignBlockId,
-    )
+    nodesToMarkdown([fileNode, embed1, embed2, targetFileNode, task1, task2], undefined, assignBlockId)
 
     // Only task-2 should get a generated ID (task-1 already has one)
     expect(calls).toHaveLength(1)
@@ -659,12 +637,7 @@ describe("Embed references with block_id", () => {
       task_mark: " ",
     })
 
-    const md = nodesToMarkdown([
-      fileNode,
-      embedNode,
-      targetFileNode,
-      targetTask,
-    ])
+    const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetTask])
     expect(md).toContain("![[inbox#^k7m2]]")
     // Should NOT contain the task content as a raw checkbox
     expect(md).not.toContain("- [ ] Buy groceries")
@@ -703,12 +676,7 @@ describe("Embed references with block_id", () => {
       content: "![[notes#My Section]]",
     })
 
-    const md = nodesToMarkdown([
-      fileNode,
-      embedNode,
-      targetFileNode,
-      targetSection,
-    ])
+    const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetSection])
     expect(md).toContain("![[notes#^s1a2]]")
   })
 
@@ -742,12 +710,7 @@ describe("Embed references with block_id", () => {
       content: "Important item",
     })
 
-    const md = nodesToMarkdown([
-      fileNode,
-      embedNode,
-      targetFileNode,
-      targetUl,
-    ])
+    const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetUl])
     expect(md).toContain("![[notes#^ul01]]")
   })
 
@@ -785,12 +748,7 @@ describe("Embed references with block_id", () => {
       task_mark: " ",
     })
 
-    const md = nodesToMarkdown([
-      fileNode,
-      embedNode,
-      targetFileNode,
-      targetTask,
-    ])
+    const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetTask])
 
     // Should use block_id reference, not content-based
     expect(md).toContain("![[inbox#^k7m2]]")
@@ -832,12 +790,7 @@ describe("Embed references with block_id", () => {
     })
 
     // No assignBlockId callback
-    const md = nodesToMarkdown([
-      fileNode,
-      embedNode,
-      targetFileNode,
-      targetTask,
-    ])
+    const md = nodesToMarkdown([fileNode, embedNode, targetFileNode, targetTask])
 
     expect(md).toContain("![[inbox#Buy groceries]]")
   })
@@ -894,14 +847,7 @@ describe("Embed references with block_id", () => {
       task_mark: " ",
     })
 
-    const md = nodesToMarkdown([
-      fileNode,
-      embed1,
-      embed2,
-      targetFileNode,
-      taskWithId,
-      taskWithoutId,
-    ])
+    const md = nodesToMarkdown([fileNode, embed1, embed2, targetFileNode, taskWithId, taskWithoutId])
 
     // First embed uses block_id
     expect(md).toContain("![[inbox#^has1]]")

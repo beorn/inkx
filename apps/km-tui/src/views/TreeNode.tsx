@@ -16,10 +16,7 @@ import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
 import { extractTitleTaskMark } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
-import {
-  getNodeDisplayName,
-  getParentContext as getParentContextFromState,
-} from "../state.ts"
+import { getNodeDisplayName, getParentContext as getParentContextFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
 import { renderRich } from "../text/index.ts"
 import { truncateText } from "../layout/index.ts"
@@ -146,12 +143,7 @@ function TreeNodeImpl({
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, setUI, rootBoardId } = useTreeRenderContext()
-  const {
-    maxOutlineDepth: maxDepth,
-    inOutlineMode,
-    currentSubIndex,
-    variant,
-  } = treeConfig
+  const { maxOutlineDepth: maxDepth, inOutlineMode, currentSubIndex, variant } = treeConfig
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
@@ -166,41 +158,29 @@ function TreeNodeImpl({
   >((s) => ({
     isMultiSelected: s.ui.multiSelected.has(selectionKey),
     isFolded: s.foldedNodes.has(node.id),
-    editBlockIndex:
-      s.ui.inlineEditBlock?.nodeId === node.id
-        ? s.ui.inlineEditBlock.blockIndex
-        : null,
+    editBlockIndex: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.blockIndex : null,
   }))
   const { isMultiSelected, isFolded } = nodeState
   const editBlockIndex = nodeState.editBlockIndex
   const isInlineEditing = editBlockIndex !== null
   const editingTitle = editBlockIndex === 0
-  const excludeBoardIds = rootBoardId
-    ? new Set([rootBoardId])
-    : new Set<string>()
+  const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
   const repo = useRepo()
-  const jobRunner = useAppStore<BoardAppStore, JobRunner>(
-    (s) => s.jobRunner,
-  )
-  const excludedSigils = useMemo(
-    () => deriveExcludedSigils(repo, rootBoardId),
-    [repo, rootBoardId],
-  )
+  const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
+  const excludedSigils = useMemo(() => deriveExcludedSigils(repo, rootBoardId), [repo, rootBoardId])
   const isOneliner = variant === "oneliner"
   const isEmbedded = node.link_to != null
 
   // For embedded nodes, resolve the target for display purposes
   // The embed node's content is just "![[target]]" - we want to show the linked node's data
-  const resolvedNode =
-    isEmbedded && node.link_to ? repo.getNode(node.link_to) : null
+  const resolvedNode = isEmbedded && node.link_to ? repo.getNode(node.link_to) : null
   const displayNode = resolvedNode ?? node
 
   // Use provided children or fetch from repo
   // For embeds, get children from the TARGET node (transclusion shows target's children)
   const resolvedGetChildren = getChildrenProp ?? repo.getChildren.bind(repo)
-  const childrenSourceId =
-    isEmbedded && resolvedNode ? resolvedNode.id : node.id
+  const childrenSourceId = isEmbedded && resolvedNode ? resolvedNode.id : node.id
   const children = childrenProp ?? resolvedGetChildren(childrenSourceId)
   // Use childCountProp if provided (for folded nodes where children array is empty)
   const childCount = childCountProp ?? children.length
@@ -218,24 +198,8 @@ function TreeNodeImpl({
   // Memoize style calculation - only recalc when selection or node status changes
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
   const style = useMemo(
-    () =>
-      getNodeStyle(
-        displayNode,
-        isSelected,
-        isMultiSelected,
-        dimInactiveChildren,
-        depth,
-        isInlineEditing,
-      ),
-    [
-      displayNode.id,
-      displayNode.task_status,
-      isSelected,
-      isMultiSelected,
-      dimInactiveChildren,
-      depth,
-      isInlineEditing,
-    ],
+    () => getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing),
+    [displayNode.id, displayNode.task_status, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing],
   )
 
   // Memoize prefix - only recalc when fold state or children count changes
@@ -256,8 +220,7 @@ function TreeNodeImpl({
           : resolvedNode.content || getNodeDisplayName(repo, resolvedNode)
       : isEmbedded && !resolvedNode
         ? // Unresolved embed — extract target name from ![[target]] syntax
-          (node.content?.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1") ??
-          getNodeDisplayName(repo, node))
+          (node.content?.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1") ?? getNodeDisplayName(repo, node))
         : displayNode.type === "section"
           ? getNodeDisplayName(repo, displayNode)
           : displayNode.content || getNodeDisplayName(repo, displayNode)
@@ -266,9 +229,7 @@ function TreeNodeImpl({
   // For inline editing, use the actual node content (not display name fallback).
   // This ensures new nodes with empty content show an empty edit field,
   // not the short ID that getNodeDisplayName returns as fallback.
-  const editContent = isTask
-    ? stripTaskMark(displayNode.content ?? "")
-    : (displayNode.content ?? "")
+  const editContent = isTask ? stripTaskMark(displayNode.content ?? "") : (displayNode.content ?? "")
 
   // Compute body/structural split when editing (for per-block navigation)
   const { bodyChildren, structuralChildren } = useMemo(() => {
@@ -310,7 +271,7 @@ function TreeNodeImpl({
       // e.g., no name set → always rename (name gets derived from content).
       const node = repo.getNode(displayNode.id)
       const oldName = node?.name ?? ""
-      const oldContentName = (originalContent).replace(/^- \[.\]\s*/, "")
+      const oldContentName = originalContent.replace(/^- \[.\]\s*/, "")
       const nameMatchedContent = !oldName || oldName === oldContentName
 
       if (nameMatchedContent) {
@@ -319,15 +280,10 @@ function TreeNodeImpl({
 
         jobRunner.submit({
           description: `Renaming '${oldName}' → '${newValue}'`,
-          impact:
-            impact.backlinks.length > 0
-              ? `${impact.backlinks.length} backlink${s} will be updated`
-              : "",
+          impact: impact.backlinks.length > 0 ? `${impact.backlinks.length} backlink${s} will be updated` : "",
           countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
           execute: (onProgress) => {
-            repo.renameNode(displayNode.id, newContent, (info) =>
-              onProgress(info.updated, info.total),
-            )
+            repo.renameNode(displayNode.id, newContent, (info) => onProgress(info.updated, info.total))
           },
         })
       } else {
@@ -400,13 +356,7 @@ function TreeNodeImpl({
   // Memoize info suffix - only recalc when node metadata changes
   // Use displayNode for metadata (due_date, assigned_to, etc.)
   const infoSuffix = useMemo(
-    () =>
-      formatInfoSuffix(
-        displayNode,
-        !isOneliner,
-        excludeBoardIds,
-        getBoardPills,
-      ),
+    () => formatInfoSuffix(displayNode, !isOneliner, excludeBoardIds, getBoardPills),
     [
       displayNode.id,
       displayNode.due_date,
@@ -421,10 +371,7 @@ function TreeNodeImpl({
 
   // Parent context for embedded tasks - use prop or default implementation
   const resolvedGetParentContext = useCallback(
-    (n: KNode) =>
-      getParentContextProp
-        ? getParentContextProp(n)
-        : getParentContextFromState(repo, n),
+    (n: KNode) => (getParentContextProp ? getParentContextProp(n) : getParentContextFromState(repo, n)),
     [getParentContextProp, repo],
   )
   const parentContext =
@@ -457,11 +404,7 @@ function TreeNodeImpl({
   const hiddenCount = children.length - visibleChildren.length
 
   return (
-    <Box
-      flexDirection="column"
-      height={isOneliner ? 1 : undefined}
-      overflow={isOneliner ? "hidden" : undefined}
-    >
+    <Box flexDirection="column" height={isOneliner ? 1 : undefined} overflow={isOneliner ? "hidden" : undefined}>
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
       {!isOneliner && isEmbedded && parentContext && (
@@ -499,13 +442,7 @@ function TreeNodeImpl({
               strikethrough={style.shouldStrikethrough}
               wrap="truncate"
             >
-              <Text
-                color={
-                  isSelected || isMultiSelected
-                    ? style.textColor
-                    : prefix.markerColor
-                }
-              >
+              <Text color={isSelected || isMultiSelected ? style.textColor : prefix.markerColor}>
                 {prefix.markerChar}
               </Text>
               {prefix.afterMarker}
@@ -514,21 +451,10 @@ function TreeNodeImpl({
           </Box>
           {/* Flexible content box */}
           {/* overflow="hidden" only for oneliner to enable truncation; removed for multiline to allow wrap */}
-          <Box
-            flexGrow={1}
-            flexShrink={1}
-            overflow={isOneliner ? "hidden" : undefined}
-          >
+          <Box flexGrow={1} flexShrink={1} overflow={isOneliner ? "hidden" : undefined}>
             {editingTitle ? (
-              <Text
-                color={style.textColor}
-                wrap={isOneliner ? "truncate" : "wrap"}
-              >
-                {style.taskStatusIcon && (
-                  <Text color={style.taskStatusIcon.color}>
-                    {style.taskStatusIcon.char}{" "}
-                  </Text>
-                )}
+              <Text color={style.textColor} wrap={isOneliner ? "truncate" : "wrap"}>
+                {style.taskStatusIcon && <Text color={style.taskStatusIcon.color}>{style.taskStatusIcon.char} </Text>}
                 <InlineEditField
                   initialValue={editContent}
                   onConfirm={handleInlineEditConfirm}
@@ -547,13 +473,7 @@ function TreeNodeImpl({
               >
                 {/* Task status icon prepended to content (new cards style) */}
                 {style.taskStatusIcon && (
-                  <Text
-                    color={
-                      isSelected || isMultiSelected
-                        ? style.textColor
-                        : style.taskStatusIcon.color
-                    }
-                  >
+                  <Text color={isSelected || isMultiSelected ? style.textColor : style.taskStatusIcon.color}>
                     {style.taskStatusIcon.char}{" "}
                   </Text>
                 )}
@@ -591,7 +511,12 @@ function TreeNodeImpl({
                   onSplitAtBoundary={(offset) => {
                     try {
                       const result = splitNode(repo, child.id, offset)
-                      setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+                      setUI({
+                        inlineEditBlock: {
+                          nodeId: result.afterId,
+                          blockIndex: 0,
+                        },
+                      })
                     } catch {
                       setUI({ bellState: "split-failed" })
                     }
@@ -600,7 +525,12 @@ function TreeNodeImpl({
                     try {
                       const result = mergeWithPrevious(repo, child.id)
                       if (result) {
-                        setUI({ inlineEditBlock: { nodeId: result.survivorId, blockIndex: 0 } })
+                        setUI({
+                          inlineEditBlock: {
+                            nodeId: result.survivorId,
+                            blockIndex: 0,
+                          },
+                        })
                       }
                     } catch {
                       setUI({ bellState: "merge-failed" })
@@ -648,12 +578,7 @@ function TreeNodeImpl({
 // =============================================================================
 
 interface HeadRowProps {
-  onLayout: (computed: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }) => void
+  onLayout: (computed: { x: number; y: number; width: number; height: number }) => void
   children: React.ReactNode
 }
 
@@ -671,11 +596,7 @@ function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
 }
 
 /** Reports the HeadRow's screen-relative position via useScreenRectCallback. */
-function HeadLayoutRegistrar({
-  onLayout,
-}: {
-  onLayout: HeadRowProps["onLayout"]
-}): null {
+function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] }): null {
   const callbackRef = React.useRef(onLayout)
   callbackRef.current = onLayout
   useScreenRectCallback((rect) => callbackRef.current(rect))
@@ -721,8 +642,7 @@ function NodeChildren({
   const indent = " ".repeat(depth)
 
   // Apply recursive body extraction: separate body content from structural items
-  const { body: bodyChildren, items: structuralChildren } =
-    extractBody(children)
+  const { body: bodyChildren, items: structuralChildren } = extractBody(children)
 
   // Determine rendering order:
   // - If structural items exist, body items are dimmed (non-selectable)
@@ -742,8 +662,7 @@ function NodeChildren({
       {orderedChildren.map((item, i) => {
         const childSubIndex = startSubIndex + i
         // Body items are never selected in outline mode
-        const childSelected =
-          inOutlineMode && currentSubIndex === childSubIndex && !item.isBody
+        const childSelected = inOutlineMode && currentSubIndex === childSubIndex && !item.isBody
 
         return (
           <TreeNode
