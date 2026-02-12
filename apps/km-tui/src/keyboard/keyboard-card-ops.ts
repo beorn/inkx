@@ -303,18 +303,11 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sele
     if (!canIndent(ctx, card)) return false
   }
 
-  // Execute bottom-up (highest index first) to avoid index invalidation
-  const sortedCards = [...cards].sort((a, b) => {
-    const parentA = a.node.parent_id
-    const parentB = b.node.parent_id
-    if (!parentA || !parentB) return 0
-    const siblingsA = ctx.repo.getChildren(parentA)
-    const siblingsB = ctx.repo.getChildren(parentB)
-    return indexOfChild(siblingsB, b.node.id) - indexOfChild(siblingsA, a.node.id)
-  })
-
-  for (const card of sortedCards) {
-    executeIndent(ctx, card)
+  // Process bottom-up (highest column index first) to avoid invalidating sibling indices
+  const bottomUp = [...selectedIndices].sort((a, b) => b - a)
+  for (const idx of bottomUp) {
+    const card = col.cards[idx]
+    if (card) executeIndent(ctx, card)
   }
 
   // Cursor follows first indented card (resolves to parent card via nodeIndex)
@@ -337,18 +330,11 @@ function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sel
     if (!canOutdent(ctx, card)) return false
   }
 
-  // Execute top-down (lowest index first) to maintain relative order
-  const sortedCards = [...cards].sort((a, b) => {
-    const parentA = a.node.parent_id
-    const parentB = b.node.parent_id
-    if (!parentA || !parentB) return 0
-    const siblingsA = ctx.repo.getChildren(parentA)
-    const siblingsB = ctx.repo.getChildren(parentB)
-    return indexOfChild(siblingsA, a.node.id) - indexOfChild(siblingsB, b.node.id)
-  })
-
-  for (const card of sortedCards) {
-    executeOutdent(ctx, card)
+  // Process top-down (lowest column index first) to maintain relative order
+  const topDown = [...selectedIndices].sort((a, b) => a - b)
+  for (const idx of topDown) {
+    const card = col.cards[idx]
+    if (card) executeOutdent(ctx, card)
   }
 
   // Cursor follows first card in batch

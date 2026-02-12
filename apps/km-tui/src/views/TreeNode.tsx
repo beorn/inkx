@@ -204,6 +204,7 @@ function TreeNodeImpl({
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)
+  const dimUntitled = untitled && !isSelected && !isMultiSelected
 
   // Memoize prefix - only recalc when fold state or children count changes
   const prefix = useMemo(
@@ -469,8 +470,8 @@ function TreeNodeImpl({
               </Text>
             ) : (
               <Text
-                color={untitled && !isSelected && !isMultiSelected ? "gray" : style.textColor}
-                dimColor={style.shouldDim || (untitled && !isSelected && !isMultiSelected)}
+                color={dimUntitled ? "gray" : style.textColor}
+                dimColor={style.shouldDim || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner ? "truncate" : "wrap"}
               >
