@@ -76,6 +76,7 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     fs_ino: row.fs_ino as number | undefined,
     fs_mtime: row.fs_mtime as number | undefined,
     name: row.name as string | undefined,
+    block_id: row.block_id as string | undefined,
     md_pos: row.md_pos as number | undefined,
     md_slug: row.md_slug as string | undefined,
     md_line: row.md_line as number | undefined,

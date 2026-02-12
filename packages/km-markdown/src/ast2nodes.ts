@@ -182,7 +182,17 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
       }
 
       const text = nodeToText(heading)
-      const { title: titleWithRules, rules } = parseHeadingRules(text)
+
+      // Strip ^block-id suffix from heading
+      let headingText = text
+      let sectionBlockId: string | undefined
+      const headingBlockIdMatch = headingText.match(/ \^([a-zA-Z0-9_-]+)$/)
+      if (headingBlockIdMatch) {
+        sectionBlockId = headingBlockIdMatch[1]
+        headingText = headingText.slice(0, -headingBlockIdMatch[0].length)
+      }
+
+      const { title: titleWithRules, rules } = parseHeadingRules(headingText)
       const { mark: taskMark, cleanText: title } =
         extractTitleTaskMark(titleWithRules)
       const hasRules = Object.keys(rules).length > 0
@@ -221,6 +231,7 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
         name: sectionName, // Slug/identifier derived from heading
         md_pos: heading.position?.start.offset,
         md_slug: sectionName, // Keep for backwards compatibility
+        block_id: sectionBlockId,
         content: text, // Keep original content for serialization
         content_hash: undefined,
         title, // Clean title without rules and task mark
@@ -305,6 +316,12 @@ function convertListItem(
     text = text.replace(/^\[.\]\s*/, "")
   }
 
+  // Strip ^block-id suffix if present (must be at end of line, preceded by space)
+  const blockIdMatch = text.match(/ \^([a-zA-Z0-9_-]+)$/)
+  if (blockIdMatch) {
+    text = text.slice(0, -blockIdMatch[0].length)
+  }
+
   // Determine task status from mark
   let taskStatus: TaskStatus | undefined
   if (isTask) {
@@ -346,6 +363,7 @@ function convertListItem(
     md_line: item.position?.start.line
       ? item.position.start.line - 1
       : undefined, // Convert 1-indexed to 0-indexed
+    block_id: blockIdMatch?.[1],
     content: text,
     content_hash: undefined,
     task_status: taskStatus,
@@ -419,12 +437,19 @@ function convertBlock(
 
   let type: NodeType
   let content: string | null = null
+  let blockId: string | undefined
   const data: Record<string, unknown> = {}
 
   switch (block.type) {
     case "paragraph": {
       type = "paragraph"
       content = nodeToText(block)
+      // Strip ^block-id suffix if present (must be at end of line, preceded by space)
+      const blockIdMatch = content.match(/ \^([a-zA-Z0-9_-]+)$/)
+      if (blockIdMatch) {
+        blockId = blockIdMatch[1]
+        content = content.slice(0, -blockIdMatch[0].length)
+      }
       // Detect embedding syntax ![[...]] and store target for reconciliation
       const embeddingText = getEmbeddingText(content)
       if (embeddingText) {
@@ -483,6 +508,7 @@ function convertBlock(
     parent_idx: sortOrder,
     link_to: null,
     md_pos: block.position?.start.offset,
+    block_id: blockId,
     content: content ?? undefined,
     content_hash: undefined,
     data,

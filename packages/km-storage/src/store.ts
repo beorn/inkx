@@ -606,18 +606,34 @@ export class MemoryStore extends BaseStore {
     let current = 0
 
     for (const { nodeId, link, relationship } of this.pendingWikilinks) {
-      // Try to find target file by name
-      let targetNode = findFileByName(this.db, link.target)
-      // If there's a section reference, try to find the specific child node
-      if (targetNode && link.section) {
-        const childNode = findChildByContent(this.db, targetNode.id, link.section)
-        if (childNode) {
-          targetNode = childNode
-        }
+      let targetNode: { id: string } | null = null
+
+      // Prefer block_id resolution (stable across content edits)
+      if (link.blockId) {
+        const row = this.db
+          .prepare("SELECT id FROM nodes WHERE block_id = ? LIMIT 1")
+          .get(link.blockId) as { id: string } | null
+        if (row) targetNode = row
       }
-      // Fallback: target might be a node ID (e.g., ![[ULID]] from serialized embeds)
+
       if (!targetNode) {
-        targetNode = getNode(this.db, link.target)
+        // Try to find target file by name
+        targetNode = findFileByName(this.db, link.target)
+        // If there's a section reference, try to find the specific child node
+        if (targetNode && link.section) {
+          const childNode = findChildByContent(
+            this.db,
+            targetNode.id,
+            link.section,
+          )
+          if (childNode) {
+            targetNode = childNode
+          }
+        }
+        // Fallback: target might be a node ID (e.g., ![[ULID]] from serialized embeds)
+        if (!targetNode) {
+          targetNode = getNode(this.db, link.target)
+        }
       }
       addLink(this.db, {
         source_id: nodeId,
@@ -667,9 +683,9 @@ export class MemoryStore extends BaseStore {
     const now = Date.now()
     this.db.run(
       `INSERT INTO nodes (
-        id, type, parent_id, parent_idx, fs_path, md_line, name,
+        id, type, parent_id, parent_idx, fs_path, md_line, name, block_id,
         content, title, task_status, task_mark, data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id ?? null,
         node.type ?? null,
@@ -678,6 +694,7 @@ export class MemoryStore extends BaseStore {
         node.fs_path ?? null,
         node.md_line ?? null,
         node.name ?? null,
+        node.block_id ?? null,
         node.content ?? null,
         node.title ?? null,
         node.task_status ?? null,

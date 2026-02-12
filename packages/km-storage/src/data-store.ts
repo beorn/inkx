@@ -199,6 +199,7 @@ export function createMapDataStore(): MapDataStore {
         fs_path: nodeData.fs_path,
         fs_ino: nodeData.fs_ino,
         name: nodeData.name,
+        block_id: nodeData.block_id,
         title: nodeData.title,
         md_pos: nodeData.md_pos,
         md_line: nodeData.md_line,

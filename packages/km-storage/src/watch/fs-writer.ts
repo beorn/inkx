@@ -31,6 +31,7 @@ const log = createLogger("km:storage:watch:fs-writer")
 
 export class FsWriter implements FsSync {
   private ignorePatterns: string[]
+  private assignBlockId: (nodeId: string, blockId: string) => void
 
   constructor(
     private db: Database,
@@ -38,6 +39,9 @@ export class FsWriter implements FsSync {
     private emitter: Emitter,
   ) {
     this.ignorePatterns = getIgnorePatterns(repoPath)
+    this.assignBlockId = (nodeId: string, blockId: string) => {
+      db.run("UPDATE nodes SET block_id = ? WHERE id = ?", [blockId, nodeId])
+    }
   }
 
   applyEventToFs(event: Event): void {
@@ -96,7 +100,7 @@ export class FsWriter implements FsSync {
     this.reconcileIfChanged(fileNode)
 
     const subtreeNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
     this.writeSync(absPath, content)
   }
 
@@ -121,7 +125,7 @@ export class FsWriter implements FsSync {
       this.reconcileIfChanged(fileNode)
       const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
       const subtreeNodes = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
+      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
       this.writeSync(absPath, content)
     }
   }
@@ -157,7 +161,7 @@ export class FsWriter implements FsSync {
 
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
     const subtreeNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
     this.writeSync(absPath, content)
   }
 

@@ -23,6 +23,9 @@ export interface LinkResolver {
   /** Resolve a section reference within a file */
   resolveSection(fileId: string, sectionName: string): string | null
 
+  /** Resolve a block_id reference to a node ID */
+  resolveBlockId(blockId: string): string | null
+
   /** Add a newly created file to the lookup map */
   addFile(id: string, name: string): void
 
@@ -73,6 +76,11 @@ export function createLinkResolver(db: Database): LinkResolver {
     "SELECT id FROM nodes WHERE id = ? LIMIT 1",
   )
 
+  // Prepare statement for block_id lookups (stable across content edits)
+  const blockIdStmt = db.prepare(
+    "SELECT id FROM nodes WHERE block_id = ? LIMIT 1",
+  )
+
   return {
     resolveTarget(targetName: string): string | null {
       const normalized = targetName.toLowerCase().replace(/\.md$/i, "")
@@ -96,6 +104,11 @@ export function createLinkResolver(db: Database): LinkResolver {
       const childId = child?.id ?? null
       sectionCache.set(cacheKey, childId)
       return childId
+    },
+
+    resolveBlockId(blockId: string): string | null {
+      const row = blockIdStmt.get(blockId) as { id: string } | null
+      return row?.id ?? null
     },
 
     addFile(id: string, name: string): void {

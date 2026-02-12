@@ -142,11 +142,20 @@ export function* resolveLinksGen(
     let resolved = 0
 
     for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
-      let targetId = resolver.resolveTarget(link.target)
-      if (targetId && link.section) {
-        const sectionId = resolver.resolveSection(targetId, link.section)
-        if (sectionId) {
-          targetId = sectionId
+      let targetId: string | null = null
+
+      // Prefer block_id resolution (stable across content edits)
+      if (link.blockId) {
+        targetId = resolver.resolveBlockId(link.blockId)
+      }
+
+      if (!targetId) {
+        targetId = resolver.resolveTarget(link.target)
+        if (targetId && link.section) {
+          const sectionId = resolver.resolveSection(targetId, link.section)
+          if (sectionId) {
+            targetId = sectionId
+          }
         }
       }
 
@@ -228,11 +237,20 @@ export async function resolveLinksAsync(
 
   // Phase 1: Build link data, yielding periodically
   for (const [i, { nodeId, link, relationship }] of pendingLinks.entries()) {
-    let targetId = resolver.resolveTarget(link.target)
-    if (targetId && link.section) {
-      const sectionId = resolver.resolveSection(targetId, link.section)
-      if (sectionId) {
-        targetId = sectionId
+    let targetId: string | null = null
+
+    // Prefer block_id resolution (stable across content edits)
+    if (link.blockId) {
+      targetId = resolver.resolveBlockId(link.blockId)
+    }
+
+    if (!targetId) {
+      targetId = resolver.resolveTarget(link.target)
+      if (targetId && link.section) {
+        const sectionId = resolver.resolveSection(targetId, link.section)
+        if (sectionId) {
+          targetId = sectionId
+        }
       }
     }
 

@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS nodes (
 
   -- Identity
   name TEXT,
+  block_id TEXT,  -- On-demand stable block ID (^block-id)
   title TEXT,
 
   -- Markdown
@@ -57,6 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
 CREATE INDEX IF NOT EXISTS idx_nodes_assigned ON nodes(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_nodes_due ON nodes(due_date);
 CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
+CREATE INDEX IF NOT EXISTS idx_nodes_block_id ON nodes(block_id);
 
 -- Full-text search
 CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(

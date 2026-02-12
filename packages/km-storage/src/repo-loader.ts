@@ -500,21 +500,21 @@ function* discoverFromEvents(
 // SHARED INSERT HELPERS
 // ============================================================================
 
-/** SQL for the 26-column INSERT used by applyEvents, parseDeferredSequential, and parseStubFile.
+/** SQL for the 27-column INSERT used by applyEvents, parseDeferredSequential, and parseStubFile.
  * Uses INSERT OR IGNORE to match applyEventWithDb behavior — in disk mode,
  * events.jsonl may contain events for nodes that already exist in state.db. */
 const INSERT_NODE_SQL = `
   INSERT OR IGNORE INTO nodes (
     id, type, parent_id, link_to, link_alias, parent_idx,
-    fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
+    fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line, md_slug,
     task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
     content, content_hash, data,
     created_at, updated_at, version
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 /**
- * Run the 26-column INSERT for a KNode.
+ * Run the 27-column INSERT for a KNode.
  * Shared by parseDeferredSequential and parseStubFile where the source is a KNode.
  */
 function insertNodeRow(
@@ -534,6 +534,7 @@ function insertNodeRow(
     node.fs_ino ?? null,
     node.fs_mtime ?? null,
     node.name ?? null,
+    node.block_id ?? null,
     node.title ?? null,
     node.md_pos ?? null,
     node.md_line ?? null,
@@ -599,6 +600,7 @@ function* applyEvents(
             (data.fs_ino as number) ?? null,
             (data.fs_mtime as number) ?? null,
             (data.name as string) ?? null,
+            (data.block_id as string) ?? null,
             (data.title as string) ?? null,
             (data.md_pos as number) ?? null,
             (data.md_line as number) ?? null,

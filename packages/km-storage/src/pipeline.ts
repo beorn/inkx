@@ -174,11 +174,11 @@ export async function* applyNodes(
   const insertStmt = db.prepare(`
     INSERT INTO nodes (
       id, type, parent_id, link_to, link_alias, parent_idx,
-      fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
+      fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line, md_slug,
       task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
       content, content_hash, data,
       created_at, updated_at, version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const now = Date.now()
@@ -264,11 +264,20 @@ function resolveWikilink(
 ): ResolvedLink {
   const { nodeId, link, relationship } = ref
 
-  let targetId = resolver.resolveTarget(link.target)
-  if (targetId && link.section) {
-    const sectionId = resolver.resolveSection(targetId, link.section)
-    if (sectionId) {
-      targetId = sectionId
+  let targetId: string | null = null
+
+  // Prefer block_id resolution (stable across content edits)
+  if (link.blockId) {
+    targetId = resolver.resolveBlockId(link.blockId)
+  }
+
+  if (!targetId) {
+    targetId = resolver.resolveTarget(link.target)
+    if (targetId && link.section) {
+      const sectionId = resolver.resolveSection(targetId, link.section)
+      if (sectionId) {
+        targetId = sectionId
+      }
     }
   }
 
@@ -454,6 +463,7 @@ function insertFileNodes(
       node.fs_ino ?? null,
       node.fs_mtime ?? null,
       node.name ?? null,
+      node.block_id ?? null,
       node.title ?? null,
       node.md_pos ?? null,
       node.md_line ?? null,

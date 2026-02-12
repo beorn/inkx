@@ -173,6 +173,7 @@ export interface KNode {
 
   // Identity
   name?: string // Slug/identifier (filename without .md, or md_slug for sections)
+  block_id?: string // On-demand block identifier (^block-id) for stable embed references
 
   // Markdown mapping (for sections/blocks)
   md_pos?: number // Byte offset in file
@@ -275,6 +276,7 @@ export interface NodeCreatedData {
   fs_ino?: number
   fs_mtime?: number
   name?: string
+  block_id?: string
   md_pos?: number
   md_line?: number
   md_slug?: string

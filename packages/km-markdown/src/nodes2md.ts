@@ -17,6 +17,21 @@ const log = createLogger("km:markdown:nodes2md")
 interface SerializeContext {
   tree: Map<string, KNode[]>
   nodeMap: Map<string, KNode>
+  assignBlockId?: (nodeId: string, blockId: string) => void
+  existingBlockIds: Set<string>
+}
+
+/**
+ * Generate a short, unique block ID (4-char base36).
+ * 36^4 = 1.7M combinations — plenty for per-repo scope.
+ */
+function generateBlockId(existingIds: Set<string>): string {
+  for (let i = 0; i < 100; i++) {
+    const id = Math.random().toString(36).slice(2, 6)
+    if (id.length === 4 && !existingIds.has(id)) return id
+  }
+  // Fallback to 6-char if 4-char space is exhausted
+  return Math.random().toString(36).slice(2, 8)
 }
 
 /**
@@ -25,6 +40,7 @@ interface SerializeContext {
 export function nodesToMarkdown(
   nodes: KNode[],
   lookupNodes?: KNode[],
+  assignBlockId?: (nodeId: string, blockId: string) => void,
 ): string {
   log.debug?.(`nodesToMarkdown: ${nodes.length} nodes`)
   if (nodes.length === 0) {
@@ -36,7 +52,14 @@ export function nodesToMarkdown(
   const tree = buildNodeTree(nodes)
   const mapSource = lookupNodes ?? nodes
   const nodeMap = new Map(mapSource.map((n) => [n.id, n]))
-  const ctx: SerializeContext = { tree, nodeMap }
+
+  // Collect existing block IDs to avoid collisions
+  const existingBlockIds = new Set<string>()
+  for (const n of mapSource) {
+    if (n.block_id) existingBlockIds.add(n.block_id)
+  }
+
+  const ctx: SerializeContext = { tree, nodeMap, assignBlockId, existingBlockIds }
 
   // Find root node (file node)
   const fileNode = nodes.find((n) => n.type === "file")
@@ -148,8 +171,11 @@ function serializeNode(
     case "section":
       return serializeSection(node, children, ctx)
 
-    case "paragraph":
-      return (node.content ?? "") + "\n\n"
+    case "paragraph": {
+      let paraContent = node.content ?? ""
+      if (node.block_id) paraContent += ` ^${node.block_id}`
+      return paraContent + "\n\n"
+    }
 
     case "quote":
       return serializeQuote(node)
@@ -204,7 +230,9 @@ function serializeSection(
 ): string {
   const depth = (node.data?.depth as number) ?? 2
   const prefix = "#".repeat(depth)
-  let md = `${prefix} ${node.content ?? ""}\n\n`
+  let headingLine = `${prefix} ${node.content ?? ""}`
+  if (node.block_id) headingLine += ` ^${node.block_id}`
+  let md = headingLine + "\n\n"
 
   // Use serializeChildren for proper list grouping
   md += serializeChildren(children, ctx)
@@ -262,23 +290,46 @@ function getEmbedPath(target: KNode, ctx: SerializeContext): string {
   // Section with title — find ancestor file for qualified reference
   if (target.title) {
     const filePath = findAncestorFilePath(target, ctx)
+    // If section has a block_id, prefer it for stability
+    if (target.block_id) {
+      if (filePath) return `${filePath}#^${target.block_id}`
+      return `^${target.block_id}`
+    }
     if (filePath) {
       return `${filePath}#${target.title}`
     }
     return target.title
   }
 
-  // Task or other node — use ancestor file + content fragment
+  // Task or other inline node — prefer block_id for stable references
+  const filePath = findAncestorFilePath(target, ctx)
+
+  // Use existing block_id
+  if (target.block_id) {
+    if (filePath) return `${filePath}#^${target.block_id}`
+    return `^${target.block_id}`
+  }
+
+  // Generate block_id on-demand if callback is available
+  if (ctx.assignBlockId) {
+    const blockId = generateBlockId(ctx.existingBlockIds)
+    ctx.existingBlockIds.add(blockId)
+    ctx.assignBlockId(target.id, blockId)
+    target.block_id = blockId  // Local mutation for this serialization pass
+    if (filePath) return `${filePath}#^${blockId}`
+    return `^${blockId}`
+  }
+
+  // Fallback: content-based reference
   const content = target.content?.replace(/^- \[.\]\s*/, "") ?? ""
   if (content) {
-    const filePath = findAncestorFilePath(target, ctx)
     if (filePath) {
       return `${filePath}#${content}`
     }
     return content
   }
 
-  // Last resort — ID (should not happen for well-formed data)
+  // Last resort — ID
   return target.id
 }
 
@@ -330,7 +381,11 @@ function serializeListItem(
 ): string {
   const indentStr = "  ".repeat(indent)
   const marker = ordered ? "1." : "-"
-  let md = `${indentStr}${marker} ${node.content ?? ""}\n`
+  let line = `${indentStr}${marker} ${node.content ?? ""}`
+  if (node.block_id) {
+    line += ` ^${node.block_id}`
+  }
+  let md = line + "\n"
 
   // Nested items
   for (const child of children) {
@@ -409,7 +464,11 @@ function serializeTask(
     content += " " + metadata.join(" ")
   }
 
-  let md = `${indentStr}- [${mark}] ${content}\n`
+  let line = `${indentStr}- [${mark}] ${content}`
+  if (node.block_id) {
+    line += ` ^${node.block_id}`
+  }
+  let md = line + "\n"
 
   // Nested items
   for (const child of children) {
