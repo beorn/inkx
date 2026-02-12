@@ -113,8 +113,6 @@ export class SyncManager extends EventEmitter {
   private heartbeatTimer: ReturnType<typeof setInterval> | undefined
   private lastActivityTime: number = Date.now()
   private heartbeatDrift: number = 0 // Changes found during heartbeat
-  private assignBlockId: (nodeId: string, blockId: string) => void
-
   constructor(config: SyncConfig) {
     super()
     this.db = config.db
@@ -151,11 +149,6 @@ export class SyncManager extends EventEmitter {
     })
 
     this.writeQueue.setWatcher(this.watcher)
-
-    // Block ID assignment callback for on-demand generation during serialization
-    this.assignBlockId = (nodeId: string, blockId: string) => {
-      this.db.run("UPDATE nodes SET block_id = ? WHERE id = ?", [blockId, nodeId])
-    }
 
     // Wire up events
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Watcher event data is untyped
@@ -435,6 +428,54 @@ export class SyncManager extends EventEmitter {
   }
 
   /**
+   * Create an assignBlockId callback that collects newly assigned IDs.
+   * After serialization, call rewriteSourceFiles to queue ^block-id
+   * suffix writes into the files that contain the referenced nodes.
+   */
+  private createBlockIdAssigner(eventId: string): {
+    assign: (nodeId: string, blockId: string) => void
+    rewriteSourceFiles: (excludeFileId?: string) => void
+  } {
+    const assigned = new Map<string, string>() // nodeId → blockId
+    return {
+      assign: (nodeId: string, blockId: string) => {
+        this.db.run("UPDATE nodes SET block_id = ? WHERE id = ?", [blockId, nodeId])
+        assigned.set(nodeId, blockId)
+      },
+      rewriteSourceFiles: (excludeFileId?: string) => {
+        if (assigned.size === 0) return
+        // Group by containing file
+        const fileIds = new Set<string>()
+        for (const [nodeId, blockId] of assigned) {
+          const node = getNode(this.db, nodeId)
+          if (!node) continue
+          node.block_id = blockId // Update in-memory for serialization
+          const file = this.findFileNode(node)
+          if (file && file.id !== excludeFileId) fileIds.add(file.id)
+        }
+        // Queue rewrites for affected source files (no assignBlockId to prevent cascading)
+        for (const fileId of fileIds) {
+          const file = getNode(this.db, fileId)
+          if (!file?.fs_path) continue
+          const absPath = toAbsoluteFsPath(this.config.repoPath, file.fs_path)
+          const subtreeNodes = getSubtree(this.db, fileId)
+          const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
+          this.writeQueue.queue({ path: absPath, content, sourceEventId: eventId })
+        }
+      },
+    }
+  }
+
+  /** Walk up parent chain to find the containing file node */
+  private findFileNode(node: KNode): KNode | null {
+    if (node.type === "file") return node
+    if (!node.parent_id) return null
+    const parent = getNode(this.db, node.parent_id)
+    if (!parent) return null
+    return this.findFileNode(parent)
+  }
+
+  /**
    * Handle node updated event - regenerate file
    *
    * CRITICAL: Before regenerating, we must reconcile any pending FS changes
@@ -480,14 +521,16 @@ export class SyncManager extends EventEmitter {
     this.reconcileIfChanged(fileNode)
 
     // Regenerate the file from (now-updated) DB state
+    const blockIds = this.createBlockIdAssigner(event.id)
     const subtreeNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
 
     this.writeQueue.queue({
       path: absPath,
       content,
       sourceEventId: event.id,
     })
+    blockIds.rewriteSourceFiles(fileNode.id)
   }
 
   /**
@@ -647,14 +690,16 @@ export class SyncManager extends EventEmitter {
         ? findFileNode(this.db, parentNode)
         : null
       if (fileNode?.fs_path) {
+        const blockIds = this.createBlockIdAssigner(event.id)
         const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
         const subtreeNodes = getSubtree(this.db, fileNode.id)
-        const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
+        const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
         this.writeQueue.queue({
           path: absPath,
           content,
           sourceEventId: event.id,
         })
+        blockIds.rewriteSourceFiles(fileNode.id)
       }
     }
   }
@@ -680,6 +725,7 @@ export class SyncManager extends EventEmitter {
       this.writeQueue.queueDelete(absPath, event.id)
     } else if (data?.parent_id) {
       // Section node: regenerate the parent file to reflect the deletion
+      const blockIds = this.createBlockIdAssigner(event.id)
       const parentNode = getNode(this.db, data.parent_id)
       const fileNode = parentNode
         ? findFileNode(this.db, parentNode)
@@ -687,12 +733,13 @@ export class SyncManager extends EventEmitter {
       if (fileNode?.fs_path) {
         const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
         const subtreeNodes = getSubtree(this.db, fileNode.id)
-        const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
+        const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
         this.writeQueue.queue({
           path: absPath,
           content,
           sourceEventId: event.id,
         })
+        blockIds.rewriteSourceFiles(fileNode.id)
       }
     }
   }
@@ -716,15 +763,17 @@ export class SyncManager extends EventEmitter {
       // Check if file has been modified externally and reconcile if needed
       this.reconcileIfChanged(fileNode)
 
+      const blockIds = this.createBlockIdAssigner(event.id)
       const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
       const subtreeNodes = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
+      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
 
       this.writeQueue.queue({
         path: absPath,
         content,
         sourceEventId: event.id,
       })
+      blockIds.rewriteSourceFiles(fileNode.id)
     }
   }
 
@@ -882,14 +931,16 @@ export class SyncManager extends EventEmitter {
           (n) => n.fs_path === filePath,
         )
         if (fileNode) {
+          const blockIds = this.createBlockIdAssigner("rule-evaluation")
           const absPath = toAbsoluteFsPath(this.config.repoPath, filePath)
           const subtree = getSubtree(this.db, fileNode.id)
-          const content = nodesToMarkdown(subtree, getAllNodes(this.db), this.assignBlockId)
+          const content = nodesToMarkdown(subtree, getAllNodes(this.db), blockIds.assign)
           this.writeQueue.queue({
             path: absPath,
             content,
             sourceEventId: "rule-evaluation",
           })
+          blockIds.rewriteSourceFiles(fileNode.id)
         }
       }
       await this.writeQueue.forceFlush()
@@ -923,15 +974,17 @@ export class SyncManager extends EventEmitter {
 
     for (const fileNode of fileNodes) {
       if (!fileNode.fs_path) continue
+      const blockIds = this.createBlockIdAssigner("sync-to-fs")
       const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
       const subtree = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(subtree, nodes, this.assignBlockId)
+      const content = nodesToMarkdown(subtree, nodes, blockIds.assign)
 
       this.writeQueue.queue({
         path: absPath,
         content,
         sourceEventId: "sync-to-fs",
       })
+      blockIds.rewriteSourceFiles(fileNode.id)
     }
 
     await this.writeQueue.forceFlush()

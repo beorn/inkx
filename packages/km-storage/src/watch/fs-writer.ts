@@ -31,7 +31,6 @@ const log = createLogger("km:storage:watch:fs-writer")
 
 export class FsWriter implements FsSync {
   private ignorePatterns: string[]
-  private assignBlockId: (nodeId: string, blockId: string) => void
 
   constructor(
     private db: Database,
@@ -39,8 +38,45 @@ export class FsWriter implements FsSync {
     private emitter: Emitter,
   ) {
     this.ignorePatterns = getIgnorePatterns(repoPath)
-    this.assignBlockId = (nodeId: string, blockId: string) => {
-      db.run("UPDATE nodes SET block_id = ? WHERE id = ?", [blockId, nodeId])
+  }
+
+  /**
+   * Create an assignBlockId callback that collects newly assigned IDs.
+   * After serialization, call rewriteSourceFiles to write ^block-id
+   * suffixes into the files that contain the referenced nodes.
+   */
+  private createBlockIdAssigner(): {
+    assign: (nodeId: string, blockId: string) => void
+    rewriteSourceFiles: (excludeFileId?: string) => void
+  } {
+    const assigned = new Map<string, string>() // nodeId → blockId
+    return {
+      assign: (nodeId: string, blockId: string) => {
+        this.db.run("UPDATE nodes SET block_id = ? WHERE id = ?", [blockId, nodeId])
+        assigned.set(nodeId, blockId)
+      },
+      rewriteSourceFiles: (excludeFileId?: string) => {
+        if (assigned.size === 0) return
+        // Group by containing file
+        const fileIds = new Set<string>()
+        for (const [nodeId, blockId] of assigned) {
+          const node = getNode(this.db, nodeId)
+          if (!node) continue
+          // Update in-memory node for serialization
+          node.block_id = blockId
+          const file = findFileNode(this.db, node)
+          if (file && file.id !== excludeFileId) fileIds.add(file.id)
+        }
+        // Rewrite each affected source file (without assignBlockId to prevent cascading)
+        for (const fileId of fileIds) {
+          const file = getNode(this.db, fileId)
+          if (!file?.fs_path) continue
+          const absPath = toAbsoluteFsPath(this.repoPath, file.fs_path)
+          const subtreeNodes = getSubtree(this.db, fileId)
+          const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
+          this.writeSync(absPath, content)
+        }
+      },
     }
   }
 
@@ -99,9 +135,11 @@ export class FsWriter implements FsSync {
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
     this.reconcileIfChanged(fileNode)
 
+    const blockIds = this.createBlockIdAssigner()
     const subtreeNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
     this.writeSync(absPath, content)
+    blockIds.rewriteSourceFiles(fileNode.id)
   }
 
   /**
@@ -123,10 +161,12 @@ export class FsWriter implements FsSync {
       const fileNode = findFileNode(this.db, parent)
       if (!fileNode?.fs_path) return
       this.reconcileIfChanged(fileNode)
+      const blockIds = this.createBlockIdAssigner()
       const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
       const subtreeNodes = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
+      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
       this.writeSync(absPath, content)
+      blockIds.rewriteSourceFiles(fileNode.id)
     }
   }
 
@@ -159,10 +199,12 @@ export class FsWriter implements FsSync {
 
     this.reconcileIfChanged(fileNode)
 
+    const blockIds = this.createBlockIdAssigner()
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
     const subtreeNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), this.assignBlockId)
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
     this.writeSync(absPath, content)
+    blockIds.rewriteSourceFiles(fileNode.id)
   }
 
   /**

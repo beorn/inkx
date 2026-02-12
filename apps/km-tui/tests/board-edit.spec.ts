@@ -367,6 +367,35 @@ describe("Edit Operations", () => {
     expect(col1Box!.x).toBeLessThan(col2Box!.x)
   })
 
+  test("Shift column left multiple times then zoom in doesn't crash", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+        item("col3", item("3a"), item("3b"), item("3c")),
+        item("col4", item("4a")),
+      ),
+    )
+    // Navigate to col3 header (right to col2, then right to col3, then up to header)
+    board.press("l")
+    board.press("l")
+    board.press("k")
+    board.expect("#col3[data-cursor]").toExist()
+
+    // Shift col3 left twice (col3 → position 1 → position 0)
+    board.press("Meta+h")
+    board.expect("#col3[data-cursor]").toExist()
+    board.press("Meta+h")
+    board.expect("#col3[data-cursor]").toExist()
+
+    // Zoom in ('i' = zoom_inwards) — should not throw "cursor node not in repo"
+    board.press("i")
+
+    // After zoom, root should be col3 and cursor on first child
+    board.expect("#3a[data-cursor]").toExist()
+  })
+
   test("D deletes the selected node", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"), item("1c"))),

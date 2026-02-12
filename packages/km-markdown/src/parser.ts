@@ -48,9 +48,9 @@ const TASK_MARK_REGEX = new RegExp(
 
 // TITLE_TASK_MARK_REGEX moved to @km/core (extractTitleTaskMark)
 
-/** Wikilinks: [[target]], [[target|alias]], ![[embed]] */
+/** Wikilinks: [[target]], [[target|alias]], ![[embed]], ![[target#^blockid]] */
 const WIKILINK_REGEX =
-  /(!?)\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g
+  /(!?)\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g
 
 /** Combined refs: #tag, @mention, +project in single pass */
 const COMBINED_REFS_REGEX =

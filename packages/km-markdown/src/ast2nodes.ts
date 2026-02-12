@@ -232,7 +232,7 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
         md_pos: heading.position?.start.offset,
         md_slug: sectionName, // Keep for backwards compatibility
         block_id: sectionBlockId,
-        content: text, // Keep original content for serialization
+        content: headingText, // Clean content without ^block-id suffix
         content_hash: undefined,
         title, // Clean title without rules and task mark
         rules: hasRules ? rules : undefined, // Only set if rules exist
@@ -420,7 +420,7 @@ function getEmbeddingText(text: string): string | null {
   const trimmed = text.trim()
   // Match ![[...]] with optional section/blockId/alias
   const match = trimmed.match(
-    /^!\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:\^([^\]|]+))?(?:\|([^\]]+))?\]\]$/,
+    /^!\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]$/,
   )
   return match ? trimmed : null
 }
@@ -454,7 +454,7 @@ function convertBlock(
       const embeddingText = getEmbeddingText(content)
       if (embeddingText) {
         const embMatch = embeddingText.match(
-          /^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:\^[^\]|]+)?(?:\|([^\]]+))?\]\]$/,
+          /^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:#?\^[^\]|]+)?(?:\|([^\]]+))?\]\]$/,
         )
         if (embMatch?.[1]) {
           data.embeddingTarget = embMatch[1].trim()

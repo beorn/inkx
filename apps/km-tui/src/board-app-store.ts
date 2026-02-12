@@ -247,12 +247,21 @@ export function createBoardAppStoreState(
         s.curswantX = null
         s.curswantY = null
 
-        // O(1) position lookup via nodeIndex
-        const pos = s.layout.nodeIndex?.get(action.nodeId)
-        const colIndex = pos?.colIndex ?? -1
-        const cardIndex = pos?.cardIndex ?? -1
+        // Use position hints if provided (from refreshBoardState's fresh repo query),
+        // otherwise fall back to O(1) nodeIndex lookup
+        let colIndex: number, cardIndex: number, hasPosition: boolean
+        if (action.colIndex !== undefined && action.cardIndex !== undefined) {
+          colIndex = action.colIndex
+          cardIndex = action.cardIndex
+          hasPosition = true
+        } else {
+          const pos = s.layout.nodeIndex?.get(action.nodeId)
+          colIndex = pos?.colIndex ?? -1
+          cardIndex = pos?.cardIndex ?? -1
+          hasPosition = !!pos
+        }
         const isColumnHeader = cardIndex === -1
-        const selectionLevel = !pos
+        const selectionLevel = !hasPosition
           ? ("board" as const)
           : isColumnHeader
             ? ("column" as const)
@@ -263,7 +272,7 @@ export function createBoardAppStoreState(
           ...s.layout,
           colIndex,
           cardIndex,
-          isAtCardLevel: !isColumnHeader && !!pos,
+          isAtCardLevel: !isColumnHeader && hasPosition,
         }
         const selectedCol = s.layout.columns[colIndex]
         const selectedCard = selectedCol?.cards[cardIndex]

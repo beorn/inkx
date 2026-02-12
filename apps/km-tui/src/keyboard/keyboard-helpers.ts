@@ -185,12 +185,18 @@ export function getSelectedCardIndices(ctx: ActionCtx): number[] {
 // State Refresh
 // =============================================================================
 
-/** Rebuild board state after a mutation, preserving navigation context */
+/** Rebuild board state after a mutation, preserving navigation context.
+ *
+ * @param options.usePositionHints - When true, pass computed colIndex/cardIndex
+ *   directly to SELECT (bypasses stale nodeIndex). Use after addNode where the
+ *   new node isn't in the nodeIndex yet.
+ */
 export function refreshBoardState(
   ctx: ActionCtx,
   options?: {
     colIndex?: number
     cardIndex?: number | ((col: { cards: CardState[] } | undefined) => number)
+    usePositionHints?: boolean
   },
 ): void {
   // Columns are derived from repo via useColumns hook, which subscribes to
@@ -222,12 +228,18 @@ export function refreshBoardState(
   const maxCardIndex = Math.max(0, cards.length - 1)
   cardIndex = Math.min(cardIndex, maxCardIndex)
 
-  // Dispatch SELECT to update cursor position after mutations.
+  // Dispatch SELECT. When usePositionHints is set, pass colIndex/cardIndex
+  // directly to bypass stale nodeIndex (e.g., after addNode before render).
   const targetCard = cards[cardIndex]
-  ctx.dispatchBoard({
+  const selectAction: { type: "SELECT"; nodeId: string | null; colIndex?: number; cardIndex?: number } = {
     type: "SELECT",
     nodeId: targetCard?.id ?? ctx.cursorNodeId,
-  })
+  }
+  if (options?.usePositionHints) {
+    selectAction.colIndex = colIndex
+    selectAction.cardIndex = cardIndex
+  }
+  ctx.dispatchBoard(selectAction)
 }
 
 // =============================================================================

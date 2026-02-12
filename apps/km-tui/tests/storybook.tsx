@@ -6,11 +6,11 @@
  *
  * ## Usage
  *
- *   bun storybook                   # inline (default) — terminal scrolling works
- *   bun storybook --fullscreen      # alternate screen
+ *   bun storybook                   # fullscreen (default) — alternate screen
+ *   bun storybook --inline          # inline mode — terminal scrolling works
  *   bun storybook --fullscreen-nonalt  # fullscreen positioning, no alt screen
  *
- *   Keyboard: j/k to navigate sections, q to quit
+ *   Keyboard: j/k to navigate sections, ↑↓ to scroll content, q to quit
  *
  * ## Storybook Rules
  *
@@ -230,7 +230,7 @@ function Layer1RichText(): React.ReactElement {
   }
 
   return (
-    <Box flexDirection="column">
+    <>
       <SectionHeader title="Layer 1: Rich Text Rendering" />
 
       <SubsectionHeader title="renderRich() - Inline Field Stripping" />
@@ -280,7 +280,7 @@ function Layer1RichText(): React.ReactElement {
 
       <SubsectionHeader title="displayLength() vs string.length" />
       <DisplayLengthDemo />
-    </Box>
+    </>
   )
 }
 
@@ -322,7 +322,7 @@ function Layer1TagPills(): React.ReactElement {
   ]
 
   return (
-    <Box flexDirection="column">
+    <>
       <SectionHeader title="Layer 1: Tag Pills" />
 
       <SubsectionHeader title="Preset Tag Colors" />
@@ -372,7 +372,7 @@ function Layer1TagPills(): React.ReactElement {
         ○ Task with multiple tags {colorize("@next", "cyan")}{" "}
         {colorize("@waiting", "yellow")} {colorize("@Sprint", "magenta")}
       </Text>
-    </Box>
+    </>
   )
 }
 
@@ -410,7 +410,7 @@ function Layer1TaskStyling(): React.ReactElement {
   }
 
   return (
-    <Box flexDirection="column">
+    <>
       <SectionHeader title="Layer 1: Task Styling (Square Icons)" />
 
       <SubsectionHeader title="Standard Status States" />
@@ -463,7 +463,7 @@ function Layer1TaskStyling(): React.ReactElement {
         {"    "}
         Missing status (null/undefined)
       </Text>
-    </Box>
+    </>
   )
 }
 
@@ -479,7 +479,7 @@ function Layer1FoldMarkers(): React.ReactElement {
   const colors = ["white", "cyan", "red", "green", "yellow", "magenta", "blue"]
 
   return (
-    <Box flexDirection="column">
+    <>
       <SectionHeader title="Layer 1: Fold Markers (Cards Style)" />
 
       <SubsectionHeader title="Fold State Indicators" />
@@ -561,7 +561,7 @@ function Layer1FoldMarkers(): React.ReactElement {
         {" "}
         <Text color="gray">{EMPTY_MARKER.char}</Text> Regular note (no status)
       </Text>
-    </Box>
+    </>
   )
 }
 
@@ -575,7 +575,7 @@ function Layer2Layout(): React.ReactElement {
   const truncText = "This is text that might be truncated"
 
   return (
-    <Box flexDirection="column">
+    <>
       <SectionHeader title="Layer 2: Layout Functions" />
 
       <SubsectionHeader title="wrapText() - Word Wrapping" />
@@ -632,7 +632,7 @@ function Layer2Layout(): React.ReactElement {
       <Text dimColor>
         Width=20: |{renderParentPath("Projects/Work/Tasks/Subtask", 20)}|
       </Text>
-    </Box>
+    </>
   )
 }
 
@@ -734,7 +734,7 @@ function Layer3Views(): React.ReactElement {
   const commonProps = treeProps(40)
 
   return (
-    <Box flexDirection="column">
+    <>
       <SectionHeader title="Layer 3: TreeNode Component" />
 
       <SubsectionHeader title="TreeNode - Different Task States" />
@@ -767,7 +767,7 @@ function Layer3Views(): React.ReactElement {
 
       <Text bold>Multi-selected (also cyan background):</Text>
       <TreeNode {...commonProps} node={todoTask} isSelected={false} />
-    </Box>
+    </>
   )
 }
 
@@ -1050,7 +1050,7 @@ function Layer3AllViews(): React.ReactElement {
   return (
     <RepoProvider repo={populatedRepo}>
       <StorybookProviders>
-      <Box flexDirection="column">
+      <>
         <SectionHeader title="Layer 3: All View Modes (via BoardCore)" />
         <Text dimColor>
           Each view renders the same TUIBoardState via BoardCore:
@@ -1121,7 +1121,7 @@ function Layer3AllViews(): React.ReactElement {
             })}
           />
         </ViewBox>
-      </Box>
+      </>
       </StorybookProviders>
     </RepoProvider>
   )
@@ -1139,7 +1139,7 @@ function VisualLanguageSection(): React.ReactElement {
   const commonProps = treeProps(35)
 
   return (
-    <Box flexDirection="column">
+    <>
       <SectionHeader title="Visual Language - Design System" />
       <Text dimColor>Reference: specs/km-design-system.md</Text>
       <Text> </Text>
@@ -1333,7 +1333,7 @@ function VisualLanguageSection(): React.ReactElement {
         [255,255,0]
       </Text>
       <Text> Beyond 7 days: no underline</Text>
-    </Box>
+    </>
   )
 }
 
@@ -1406,7 +1406,7 @@ function ToastAndStatusSection(): React.ReactElement {
   const mockState = getMockBoardState()
 
   return (
-    <Box flexDirection="column">
+    <>
       <SectionHeader title="Toast Stack & Status Bar" />
 
       <SubsectionHeader title="Single Toast - All Levels" />
@@ -1523,7 +1523,7 @@ function ToastAndStatusSection(): React.ReactElement {
           />
         </Box>
       </ViewBox>
-    </Box>
+    </>
   )
 }
 
@@ -1580,17 +1580,27 @@ function InteractiveStorybook({
   const { exit } = useApp()
   const { stdout } = useStdout()
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [scrollOffset, setScrollOffset] = useState(0)
 
   const termWidth = stdout?.columns ?? 120
   const termHeight = stdout?.rows ?? 40
   const sidebarWidth = 28
   const isInline = mode === "inline"
+  const scrollStep = 3
+  // Header: 1 content row + 2 border rows = 3. Content area = remaining.
+  const contentHeight = termHeight - 3
 
   useInput((input, key) => {
     if (input === "j") {
       setSelectedIndex((prev) => Math.min(prev + 1, sections.length - 1))
+      setScrollOffset(0)
     } else if (input === "k") {
       setSelectedIndex((prev) => Math.max(prev - 1, 0))
+      setScrollOffset(0)
+    } else if (key.downArrow) {
+      setScrollOffset((prev) => prev + scrollStep)
+    } else if (key.upArrow) {
+      setScrollOffset((prev) => Math.max(0, prev - scrollStep))
     } else if (input === "q" || key.escape) {
       exit()
     }
@@ -1615,7 +1625,7 @@ function InteractiveStorybook({
               <Text bold>
                 {currentSection?.title} ({selectedIndex + 1}/{sections.length})
               </Text>
-              <Text dimColor>j/k:nav q:quit</Text>
+              <Text dimColor>j/k:nav ↑↓:scroll q:quit</Text>
             </Box>
           ) : (
             <Box borderStyle="double" borderColor="cyan" paddingX={1}>
@@ -1623,7 +1633,7 @@ function InteractiveStorybook({
                 TUI Storybook
               </Text>
               <Text>{"  "}</Text>
-              <Text dimColor>j/k:nav q:quit</Text>
+              <Text dimColor>j/k:nav ↑↓:scroll q:quit</Text>
             </Box>
           )}
 
@@ -1656,12 +1666,14 @@ function InteractiveStorybook({
                 })}
               </Box>
 
-            {/* Content area */}
+            {/* Content area — scrollable in fullscreen */}
             <Box
               flexDirection="column"
               flexGrow={isInline ? undefined : 1}
+              height={isInline ? undefined : contentHeight}
               paddingX={1}
-              overflow={isInline ? undefined : "hidden"}
+              overflow={isInline ? undefined : "scroll"}
+              scrollOffset={isInline ? undefined : scrollOffset}
             >
               {currentSection && <currentSection.component />}
             </Box>
@@ -1677,11 +1689,11 @@ function InteractiveStorybook({
 // ============================================================================
 
 // Render mode: --inline (default), --fullscreen, --fullscreen-nonalt
-const mode: StorybookMode = process.argv.includes("--fullscreen-nonalt")
-  ? "fullscreen-nonalt"
-  : process.argv.includes("--fullscreen")
-    ? "fullscreen"
-    : "inline"
+const mode: StorybookMode = process.argv.includes("--inline")
+  ? "inline"
+  : process.argv.includes("--fullscreen-nonalt")
+    ? "fullscreen-nonalt"
+    : "fullscreen"
 
 const renderMode = mode === "inline" ? "inline" : "fullscreen"
 const alternateScreen = mode === "fullscreen" ? true : false

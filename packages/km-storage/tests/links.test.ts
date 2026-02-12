@@ -396,4 +396,188 @@ describe("Links and Backlinks", () => {
       // The unit test above ("resolver resolves node ID directly") covers the fix.
     })
   })
+
+  describe("Block ID Resolution (via LinkResolver)", () => {
+    test("should resolve task block_id to node ID", () => {
+      const testDir = createTestDir()
+      writeFileSync(
+        join(testDir, "tasks.md"),
+        "# Tasks\n\n- [ ] Buy groceries ^k7m2",
+      )
+
+      using store = new MemoryStore(testDir)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resolver = createLinkResolver((store as any).db)
+
+      const resolved = resolver.resolveBlockId("k7m2")
+      expect(resolved).not.toBeNull()
+
+      // Verify it points to the correct task
+      const task = store
+        .getAllNodes()
+        .find((n) => n.type === "task" && n.content?.includes("Buy groceries"))
+      expect(task).toBeDefined()
+      expect(resolved).toBe(task!.id)
+    })
+
+    test("should return null for nonexistent block_id", () => {
+      const testDir = createTestDir()
+      writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] A task")
+
+      using store = new MemoryStore(testDir)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resolver = createLinkResolver((store as any).db)
+
+      const resolved = resolver.resolveBlockId("nonexistent")
+      expect(resolved).toBeNull()
+    })
+
+    test("should resolve heading block_id to section node ID", () => {
+      const testDir = createTestDir()
+      writeFileSync(
+        join(testDir, "doc.md"),
+        "# Document\n\n## Section ^abc1\n\nContent here.",
+      )
+
+      using store = new MemoryStore(testDir)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resolver = createLinkResolver((store as any).db)
+
+      const resolved = resolver.resolveBlockId("abc1")
+      expect(resolved).not.toBeNull()
+
+      // Verify it points to the correct section
+      const section = store
+        .getAllNodes()
+        .find((n) => n.type === "section" && n.title === "Section")
+      expect(section).toBeDefined()
+      expect(resolved).toBe(section!.id)
+    })
+  })
+
+  describe("Block ID in Embed Resolution (via MemoryStore)", () => {
+    test("should resolve embed with block_id to target task", () => {
+      const testDir = createTestDir()
+      writeFileSync(
+        join(testDir, "tasks.md"),
+        "# Tasks\n\n- [ ] Buy groceries ^k7m2\n- [ ] Call mom ^j3n8",
+      )
+      writeFileSync(
+        join(testDir, "board.md"),
+        "# Board\n\n## Column\n\n- ![[tasks^k7m2]]",
+      )
+
+      using store = new MemoryStore(testDir)
+      const nodes = store.getAllNodes()
+
+      // Find the embed node (list item with ![[tasks^k7m2]])
+      const embedNode = nodes.find((n) =>
+        n.content?.includes("![[tasks^k7m2]]"),
+      )
+      expect(embedNode).toBeDefined()
+
+      // Find the target task (Buy groceries)
+      const targetTask = nodes.find(
+        (n) => n.type === "task" && n.content?.includes("Buy groceries"),
+      )
+      expect(targetTask).toBeDefined()
+
+      // The embed should have link_to pointing to the Buy groceries task
+      expect(embedNode?.link_to).toBe(targetTask?.id)
+    })
+
+    test("should resolve embed with block_id to target section", () => {
+      const testDir = createTestDir()
+      writeFileSync(
+        join(testDir, "doc.md"),
+        "# Document\n\n## Introduction ^abc1\n\nContent here.",
+      )
+      writeFileSync(join(testDir, "ref.md"), "# Ref\n\n![[doc^abc1]]")
+
+      using store = new MemoryStore(testDir)
+      const nodes = store.getAllNodes()
+
+      // Find the embed node
+      const embedNode = nodes.find((n) => n.content?.includes("![[doc^abc1]]"))
+      expect(embedNode).toBeDefined()
+
+      // Find the Introduction section
+      const introSection = nodes.find(
+        (n) => n.type === "section" && n.title === "Introduction",
+      )
+      expect(introSection).toBeDefined()
+
+      // The embed's link_to should point to the Introduction section
+      expect(embedNode?.link_to).toBe(introSection?.id)
+    })
+  })
+
+  describe("Block ID Persistence", () => {
+    test("block_id should survive store load cycle", () => {
+      const testDir = createTestDir()
+      writeFileSync(
+        join(testDir, "tasks.md"),
+        "# Tasks\n\n- [ ] Task ^k7m2",
+      )
+
+      using store = new MemoryStore(testDir)
+      const task = store
+        .getAllNodes()
+        .find((n) => n.type === "task" && n.content?.includes("Task"))
+      expect(task).toBeDefined()
+
+      // block_id should be stored on the node
+      expect(task!.block_id).toBe("k7m2")
+    })
+
+    test("content should not include block_id suffix", () => {
+      const testDir = createTestDir()
+      writeFileSync(
+        join(testDir, "tasks.md"),
+        "# Tasks\n\n- [ ] Task ^k7m2",
+      )
+
+      using store = new MemoryStore(testDir)
+      const task = store
+        .getAllNodes()
+        .find((n) => n.type === "task" && n.block_id === "k7m2")
+      expect(task).toBeDefined()
+
+      // Content should have the ^k7m2 stripped
+      expect(task!.content).not.toContain("^k7m2")
+      expect(task!.content).toBe("Task")
+    })
+  })
+
+  describe("Block ID Priority over Content Matching", () => {
+    test("embed should resolve by block_id rather than content match", () => {
+      const testDir = createTestDir()
+      writeFileSync(
+        join(testDir, "tasks.md"),
+        "# Tasks\n\n- [ ] Buy groceries ^k7m2",
+      )
+      writeFileSync(
+        join(testDir, "board.md"),
+        "# Board\n\n- ![[tasks^k7m2]]",
+      )
+
+      using store = new MemoryStore(testDir)
+      const nodes = store.getAllNodes()
+
+      // Find the embed node
+      const embedNode = nodes.find((n) =>
+        n.content?.includes("![[tasks^k7m2]]"),
+      )
+      expect(embedNode).toBeDefined()
+
+      // Find the target task
+      const targetTask = nodes.find(
+        (n) => n.type === "task" && n.content?.includes("Buy groceries"),
+      )
+      expect(targetTask).toBeDefined()
+
+      // Verify the embed resolves to the correct task by block_id
+      expect(embedNode?.link_to).toBe(targetTask?.id)
+    })
+  })
 })

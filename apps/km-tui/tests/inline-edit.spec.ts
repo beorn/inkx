@@ -107,7 +107,7 @@ describe("Inline Editing", () => {
     // Append text to existing content
     for (const c of "-edited") board.press(c)
 
-    // Confirm with Enter
+    // Confirm with Enter — saves content + creates new sibling + enters edit
     board.press("Enter")
 
     // Verify repo was updated (data layer)
@@ -116,7 +116,10 @@ describe("Inline Editing", () => {
     // Verify screenshot reflects the save (rendering layer)
     expect(board.screenshot()).toContain("1a-edited")
 
-    // Board should be back in normal mode
+    // Exit edit on the new sibling (outliner Enter creates new sibling in edit mode)
+    board.press("Escape")
+
+    // Navigate past the new sibling to reach 1b
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
   })

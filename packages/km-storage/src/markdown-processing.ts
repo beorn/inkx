@@ -158,11 +158,20 @@ export function toResolvedLinks(
   resolver: LinkResolver,
 ): ResolvedLink[] {
   return processed.wikilinks.map(({ nodeId, link, relationship }) => {
-    let targetId = resolver.resolveTarget(link.target)
-    if (targetId && link.section) {
-      const sectionId = resolver.resolveSection(targetId, link.section)
-      if (sectionId) {
-        targetId = sectionId
+    let targetId: string | null = null
+
+    // Prefer block_id resolution (stable across content edits)
+    if (link.blockId) {
+      targetId = resolver.resolveBlockId(link.blockId)
+    }
+
+    if (!targetId) {
+      targetId = resolver.resolveTarget(link.target)
+      if (targetId && link.section) {
+        const sectionId = resolver.resolveSection(targetId, link.section)
+        if (sectionId) {
+          targetId = sectionId
+        }
       }
     }
 

@@ -9,7 +9,10 @@
  */
 
 import type { Repo } from "@km/storage"
+import { createLogger } from "@beorn/logger"
 import type { LayoutRegistry } from "./card-positions.ts"
+
+const log = createLogger("km:nav")
 
 // =============================================================================
 // ViewNavigation interface
@@ -82,7 +85,10 @@ function navigateVertical(
 
   const cursorNode = repo.getNode(cursorNodeId)
   if (!cursorNode) {
-    throw new Error(`[nav] cursor node not in repo: ${cursorNodeId}`)
+    // Cursor node was deleted (e.g., by file watcher re-parse during sync).
+    // Fall back to first column instead of crashing the event loop.
+    log.error?.(`cursor node not in repo: ${cursorNodeId}, falling back to root`)
+    return rootId
   }
 
   const isAtBoardLevel = cursorNodeId === rootId
@@ -132,9 +138,7 @@ function navigateVertical(
     }
   }
 
-  throw new Error(
-    `[nav] unreachable: cursor ${cursorNodeId} is not at board/column/card level`,
-  )
+  return null
 }
 
 // =============================================================================
@@ -151,7 +155,8 @@ function navigateHorizontal(
 
   const cursorNode = repo.getNode(cursorNodeId)
   if (!cursorNode) {
-    throw new Error(`[nav] cursor node not in repo: ${cursorNodeId}`)
+    log.error?.(`cursor node not in repo: ${cursorNodeId}, falling back to root`)
+    return rootId
   }
 
   // At board level, h/l can't move

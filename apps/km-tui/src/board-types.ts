@@ -79,7 +79,7 @@ export interface BoardState {
  */
 export type BoardAction =
   // Cursor selection (navigation handler calls this with computed nodeId)
-  | { type: "SELECT"; nodeId: string | null }
+  | { type: "SELECT"; nodeId: string | null; colIndex?: number; cardIndex?: number }
 
   // Fold/unfold (just toggles Sets)
   | { type: "TOGGLE_FOLD"; nodeId: string }
