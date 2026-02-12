@@ -194,6 +194,16 @@ const zoomInwards = {
   execute: () => ({ type: "ZOOM_INWARDS" }),
 } satisfies CommandDef
 
+// Follow embedded link target
+const followLink = {
+  id: "follow_link",
+  name: "Follow Link",
+  description: "Go to embedded link target in context",
+  category: "Navigation",
+  shortcuts: ["P"],
+  execute: () => ({ type: "FOLLOW_LINK" }),
+} satisfies CommandDef
+
 // All navigation commands
 // Open file/folder in macOS default app (Finder for folders, default editor for files)
 const openInSystem = {
@@ -242,6 +252,7 @@ export const navigationCommands: CommandDef[] = [
   siblingBoardNext,
   siblingBoardPrev,
   zoomInwards,
+  followLink,
   openInSystem,
   openInTerminal,
 ]

@@ -43,7 +43,13 @@ import {
   handlePageJump,
 } from "./board-actions-nav.ts"
 import { handleExtendSelectHorizontal, handleExtendSelectVertical } from "./board-actions-selection.ts"
-import { handleZoomIn, handleZoomInNode, handleZoomInwards, handleZoomOutwards } from "./board-actions-zoom.ts"
+import {
+  handleFollowLink,
+  handleZoomIn,
+  handleZoomInNode,
+  handleZoomInwards,
+  handleZoomOutwards,
+} from "./board-actions-zoom.ts"
 
 // =============================================================================
 // Main Action Dispatcher
@@ -123,6 +129,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return handleNavSiblingBoard(ctx, action.direction)
     case "ZOOM_INWARDS":
       return handleZoomInwards(ctx)
+    case "FOLLOW_LINK":
+      return handleFollowLink(ctx)
     case "PAGE_JUMP":
       handlePageJump(ctx, action.direction)
       return ok()

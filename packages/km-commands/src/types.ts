@@ -272,6 +272,10 @@ interface ZoomInwardsAction {
   type: "ZOOM_INWARDS" // Zoom in one level closer to selected node
 }
 
+interface FollowLinkAction {
+  type: "FOLLOW_LINK" // Navigate to embedded link target in context
+}
+
 interface PageJumpAction {
   type: "PAGE_JUMP"
   direction: "up" | "down"
@@ -322,6 +326,7 @@ export type TUIAction =
   | OutdentNodeAction
   | NavSiblingBoardAction
   | ZoomInwardsAction
+  | FollowLinkAction
   | PageJumpAction
   | ShiftUpAction
   | ShiftDownAction

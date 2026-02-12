@@ -151,6 +151,58 @@ export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
 }
 
 /**
+ * Follow an embedded link: zoom to the link target in context.
+ *
+ * Walks up from the target to find the best board root for maximum context:
+ * - Great-grandparent (3 up): grandparent is a column, parent is a card, target is a sub-item
+ * - Grandparent (2 up): parent is a column, target is a card
+ * - Parent (1 up): target is a column header (minimal context)
+ *
+ * Stops walking at repo root (parent_id === null).
+ */
+export function handleFollowLink(ctx: ActionCtx): ActionResult {
+  const { layout, dispatchBoard, ui } = ctx
+  const col = layout.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
+  const linkTo = card?.node.link_to
+  if (!linkTo) return boundary("follow_link", "not an embed")
+
+  const target = ctx.repo.getNode(linkTo)
+  if (!target) return boundary("follow_link", "target not found")
+
+  // Walk up to 3 levels from target to find the best board root
+  let rootId = target.parent_id
+  if (!rootId) return boundary("follow_link", "target has no parent")
+
+  for (let i = 0; i < 2; i++) {
+    const node = ctx.repo.getNode(rootId)
+    if (!node?.parent_id) break // at repo root, stop
+    rootId = node.parent_id
+  }
+
+  pushNavHistoryEntry(
+    ctx.setUI,
+    ctx.rootId,
+    layout.colIndex,
+    layout.cardIndex,
+    ui.subIndex,
+    ui.multiSelected,
+    ui.inOutlineMode,
+    ctx.cursorNodeId,
+    ctx.foldedNodes,
+  )
+
+  dispatchBoard({
+    type: "ZOOM_IN",
+    nodeId: rootId,
+    cursorNodeId: target.id,
+  })
+
+  clearSelection(ctx)
+  return ok()
+}
+
+/**
  * Zoom inwards - handles outline mode sub-selection or standard zoom.
  */
 export function handleZoomInwards(ctx: ActionCtx): ActionResult {

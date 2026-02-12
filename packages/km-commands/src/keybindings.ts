@@ -391,6 +391,7 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "O", commandId: "open_in_terminal" }, // Open terminal at closest folder
   { key: "i", commandId: "zoom_inwards" }, // Zoom in one level closer to selected node
   { key: "u", commandId: "zoom_outwards" }, // Zoom out one level (parent of root)
+  { key: "P", commandId: "follow_link" }, // Follow embedded link to target in context
 
   // === Selection ===
   // NOTE: 'v' is NOT select_toggle in TUI - it cycles view mode
