@@ -634,6 +634,22 @@ export class SyncManager extends EventEmitter {
         content: "",
         sourceEventId: event.id,
       })
+    } else if (data.parent_id && data.parent_id !== ".") {
+      // Section/task/paragraph node: regenerate parent file to include it
+      const parentNode = getNode(this.db, data.parent_id)
+      const fileNode = parentNode
+        ? findFileNode(this.db, parentNode)
+        : null
+      if (fileNode?.fs_path) {
+        const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
+        const subtreeNodes = getSubtree(this.db, fileNode.id)
+        const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
+        this.writeQueue.queue({
+          path: absPath,
+          content,
+          sourceEventId: event.id,
+        })
+      }
     }
   }
 

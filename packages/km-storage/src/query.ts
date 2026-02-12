@@ -402,28 +402,41 @@ function buildPathCondition(
 
   if (effectiveRecursive) {
     // Recursive pattern (e.g., ./inbox/** or ./inbox)
-    // Matches:
-    //   - /root/inbox/file.md (file directly in folder)
-    //   - /root/inbox/sub/file.md (file in subfolder)
-    //   - /root/inbox.md (the folder itself as a file)
+    // Always matches contents: /root/inbox/file.md, /root/inbox/sub/file.md
+    // Only matches the folder itself when NOT using explicit ** (bare ./inbox)
+    const includesSelf = !recursive // bare ./inbox includes self, ./inbox/** does not
     if (negated) {
       params.push(
         `${normalizedPattern}/%`, // relative: files inside folder
         `%/${normalizedPattern}/%`, // nested: files inside folder
-        `${normalizedPattern}.md`, // relative: the folder file itself
-        `%/${normalizedPattern}.md`, // nested: the folder file itself
-        normalizedPattern, // exact match (folder name)
       )
-      return ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} != ?))`
+      let sql = ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ?`
+      if (includesSelf) {
+        params.push(
+          `${normalizedPattern}.md`, // relative: the folder file itself
+          `%/${normalizedPattern}.md`, // nested: the folder file itself
+          normalizedPattern, // exact match (folder name)
+        )
+        sql += ` AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} != ?`
+      }
+      sql += "))"
+      return sql
     }
     params.push(
       `${normalizedPattern}/%`, // relative: files inside folder
       `%/${normalizedPattern}/%`, // nested: files inside folder
-      `${normalizedPattern}.md`, // relative: the folder file itself
-      `%/${normalizedPattern}.md`, // nested: the folder file itself
-      normalizedPattern, // exact match (folder name)
     )
-    return ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} = ?)`
+    let sql = ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ?`
+    if (includesSelf) {
+      params.push(
+        `${normalizedPattern}.md`, // relative: the folder file itself
+        `%/${normalizedPattern}.md`, // nested: the folder file itself
+        normalizedPattern, // exact match (folder name)
+      )
+      sql += ` OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} = ?`
+    }
+    sql += ")"
+    return sql
   }
 
   // Non-recursive pattern (e.g., ./inbox$) - direct children only

@@ -48,7 +48,7 @@ $ km new "Test task from mdtest"
 $ km sync
 Syncing .km/state.db with files (repo ...)
 [...]
-✓ Synced 2 change(s) in ... directories (...ms)
+✓ Synced ... change(s) in ... directories (...ms)
 ```
 
 ### km tasks - List tasks
