@@ -1,10 +1,5 @@
 import { describe, expect, test } from "vitest"
-import {
-  extractBody,
-  hasBody,
-  isStructuralType,
-  isBodyType,
-} from "../src/body.ts"
+import { extractBody, hasBody, isStructuralType, isBodyType } from "../src/body.ts"
 
 // Minimal node-like objects for testing
 const paragraph = { type: "paragraph", id: "p1" }

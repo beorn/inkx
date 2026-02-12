@@ -76,10 +76,7 @@ export function board(title: string, columns: NodeBuilder[]): BoardFixture {
 /**
  * Create a column (section).
  */
-export function column(
-  title: string,
-  children: NodeBuilder[] = [],
-): NodeBuilder {
+export function column(title: string, children: NodeBuilder[] = []): NodeBuilder {
   return {
     _type: "section",
     _title: title,
@@ -101,10 +98,7 @@ export function task(content: string, opts?: { done?: boolean }): NodeBuilder {
 /**
  * Create a section (for nested structure).
  */
-export function section(
-  title: string,
-  children: NodeBuilder[] = [],
-): NodeBuilder {
+export function section(title: string, children: NodeBuilder[] = []): NodeBuilder {
   return {
     _type: "section",
     _title: title,
@@ -126,13 +120,7 @@ export function paragraph(content: string): NodeBuilder {
 // Internal Helpers
 // =============================================================================
 
-function buildNode(
-  builder: NodeBuilder,
-  parentId: string,
-  idx: number,
-  nodes: KNode[],
-  now: number,
-): string {
+function buildNode(builder: NodeBuilder, parentId: string, idx: number, nodes: KNode[], now: number): string {
   const id = ulid()
 
   const node = makeNode({
@@ -142,10 +130,8 @@ function buildNode(
     parent_idx: idx,
     title: builder._title,
     content: builder._content,
-    task_status:
-      builder._type === "task" ? (builder._done ? "done" : "todo") : undefined,
-    task_mark:
-      builder._type === "task" ? (builder._done ? "x" : " ") : undefined,
+    task_status: builder._type === "task" ? (builder._done ? "done" : "todo") : undefined,
+    task_mark: builder._type === "task" ? (builder._done ? "x" : " ") : undefined,
     created_at: now,
     updated_at: now,
   })
@@ -163,9 +149,7 @@ function buildNode(
   return id
 }
 
-function makeNode(
-  partial: Partial<KNode> & { id: string; type: NodeType },
-): KNode {
+function makeNode(partial: Partial<KNode> & { id: string; type: NodeType }): KNode {
   return {
     id: partial.id,
     type: partial.type,
@@ -211,9 +195,6 @@ export const NESTED_BOARD = board("Nested Board", [
  * Board with body content.
  */
 export const BODY_CONTENT_BOARD = board("Body Content", [
-  column("Column A", [
-    paragraph("This is body content before tasks."),
-    task("Task after body"),
-  ]),
+  column("Column A", [paragraph("This is body content before tasks."), task("Task after body")]),
   column("Column B", [task("Regular task")]),
 ])

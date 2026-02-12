@@ -21,11 +21,7 @@ export interface OverflowIndicatorProps {
  * Shows centered "▲ N more" or "▼ N more" text with inverse styling.
  * Returns null when count is 0.
  */
-export function OverflowIndicator({
-  direction,
-  count,
-  width,
-}: OverflowIndicatorProps): React.ReactElement | null {
+export function OverflowIndicator({ direction, count, width }: OverflowIndicatorProps): React.ReactElement | null {
   if (count <= 0) return null
 
   const arrow = direction === "up" ? "▲" : "▼"

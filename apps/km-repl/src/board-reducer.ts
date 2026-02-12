@@ -8,13 +8,7 @@
  * its own BoardState with the full tree for REPL navigation.
  */
 
-import type {
-  BoardState,
-  BoardAction,
-  TNode,
-  TPath,
-  NodeDirection,
-} from "./board-types.ts"
+import type { BoardState, BoardAction, TNode, TPath, NodeDirection } from "./board-types.ts"
 
 /**
  * Get node at a given path in the tree
@@ -44,11 +38,7 @@ export function getNodeAtPath(nodes: TNode[], path: TPath): TNode | null {
 /**
  * Create initial board state from nodes
  */
-export function createBoardState(
-  nodes: TNode[],
-  rootId: string | null,
-  rootPath: string | null,
-): BoardState {
+export function createBoardState(nodes: TNode[], rootId: string | null, rootPath: string | null): BoardState {
   return {
     rootId,
     rootPath,
@@ -170,10 +160,7 @@ function handleCursorMove(state: BoardState, dir: NodeDirection): BoardState {
 /**
  * Handle cross-column navigation (left/right at column level)
  */
-function handleCrossColumn(
-  state: BoardState,
-  direction: "left" | "right",
-): BoardState {
+function handleCrossColumn(state: BoardState, direction: "left" | "right"): BoardState {
   const { nodes, cursor } = state
 
   if (cursor.length === 0) return state
@@ -313,10 +300,7 @@ function handleUnfoldLevel(state: BoardState, depth: number): BoardState {
  * Board state reducer - handles navigation and UI state
  */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive switch reducer pattern
-export function boardReducer(
-  state: BoardState,
-  action: BoardAction,
-): BoardState {
+export function boardReducer(state: BoardState, action: BoardAction): BoardState {
   switch (action.type) {
     case "CURSOR_MOVE":
       return handleCursorMove(state, action.dir)

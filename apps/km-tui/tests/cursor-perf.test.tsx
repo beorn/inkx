@@ -19,22 +19,8 @@ describe("Cursor Movement Performance", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item(
-          "col1",
-          item("1a"),
-          item("1b"),
-          item("1c"),
-          item("1d"),
-          item("1e"),
-        ),
-        item(
-          "col2",
-          item("2a"),
-          item("2b"),
-          item("2c"),
-          item("2d"),
-          item("2e"),
-        ),
+        item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
+        item("col2", item("2a"), item("2b"), item("2c"), item("2d"), item("2e")),
         item("col3", item("3a"), item("3b"), item("3c")),
       ),
     )
@@ -82,18 +68,10 @@ describe("Cursor Movement Performance", () => {
     const max = (arr: number[]) => Math.max(...arr)
 
     log.debug?.("=== Cursor Movement Performance ===")
-    log.debug?.(
-      `Down (j): avg=${avg(downTimes).toFixed(2)}ms max=${max(downTimes).toFixed(2)}ms`,
-    )
-    log.debug?.(
-      `Up (k):   avg=${avg(upTimes).toFixed(2)}ms max=${max(upTimes).toFixed(2)}ms`,
-    )
-    log.debug?.(
-      `Right (l): avg=${avg(rightTimes).toFixed(2)}ms max=${max(rightTimes).toFixed(2)}ms`,
-    )
-    log.debug?.(
-      `Left (h):  avg=${avg(leftTimes).toFixed(2)}ms max=${max(leftTimes).toFixed(2)}ms`,
-    )
+    log.debug?.(`Down (j): avg=${avg(downTimes).toFixed(2)}ms max=${max(downTimes).toFixed(2)}ms`)
+    log.debug?.(`Up (k):   avg=${avg(upTimes).toFixed(2)}ms max=${max(upTimes).toFixed(2)}ms`)
+    log.debug?.(`Right (l): avg=${avg(rightTimes).toFixed(2)}ms max=${max(rightTimes).toFixed(2)}ms`)
+    log.debug?.(`Left (h):  avg=${avg(leftTimes).toFixed(2)}ms max=${max(leftTimes).toFixed(2)}ms`)
 
     // Assert reasonable performance (< 16ms for 60fps)
     // Note: test renderer may have different timing than real TUI

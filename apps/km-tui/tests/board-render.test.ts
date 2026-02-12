@@ -8,12 +8,7 @@
 import { describe, test, expect } from "vitest"
 
 import { createEmptyState } from "../src/state.ts"
-import {
-  renderCard,
-  renderStatusBar,
-  renderHelp,
-  renderStatusIcon,
-} from "../src/render.ts"
+import { renderCard, renderStatusBar, renderHelp, renderStatusIcon } from "../src/render.ts"
 import { createCardState } from "./fixtures/board-fixtures.ts"
 import type { CardState } from "../src/types.ts"
 import type { Repo } from "@km/storage"

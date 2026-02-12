@@ -7,12 +7,7 @@
 
 import { dirname } from "path"
 import type { SeededRandom } from "vitestx"
-import {
-  chaos as baseChaos,
-  builtinChaosRegistry,
-  type ChaosConfig,
-  type ChaosRegistry,
-} from "vitestx/chaos"
+import { chaos as baseChaos, builtinChaosRegistry, type ChaosConfig, type ChaosRegistry } from "vitestx/chaos"
 import type { FsEvent, ChaosScenarioType } from "./types.ts"
 
 // Re-export generic transformers (operate on any AsyncIterable<T>)
@@ -73,11 +68,7 @@ async function* coalesce(
 }
 
 /** For change/add events, yield additional change events (simulates partial writes) */
-async function* partialWrite(
-  source: AsyncIterable<FsEvent>,
-  rate: number,
-  rng: SeededRandom,
-): AsyncGenerator<FsEvent> {
+async function* partialWrite(source: AsyncIterable<FsEvent>, rate: number, rng: SeededRandom): AsyncGenerator<FsEvent> {
   for await (const event of source) {
     if ((event.type === "change" || event.type === "add") && rng.bool(rate)) {
       yield event
@@ -92,11 +83,7 @@ async function* partialWrite(
 }
 
 /** For add events, expand into a chain of renames */
-async function* renameChain(
-  source: AsyncIterable<FsEvent>,
-  depth: number,
-  rng: SeededRandom,
-): AsyncGenerator<FsEvent> {
+async function* renameChain(source: AsyncIterable<FsEvent>, depth: number, rng: SeededRandom): AsyncGenerator<FsEvent> {
   for await (const event of source) {
     if (event.type === "add" && rng.bool(0.5)) {
       const ext = event.path.match(/\.[^.]+$/)?.[0] ?? ""
@@ -124,39 +111,20 @@ const FS_CHAOS_REGISTRY: ChaosRegistry<FsEvent> = {
   ...(builtinChaosRegistry as ChaosRegistry<FsEvent>),
   // Map km scenario names → generic transformer names
   queue_overflow: (s, p, rng) =>
-    (builtinChaosRegistry as ChaosRegistry<FsEvent>).drop!(
-      s,
-      { rate: p.dropRate ?? 0.2 },
-      rng,
-    ),
-  reorder_chaos: (s, p, rng) =>
-    (builtinChaosRegistry as ChaosRegistry<FsEvent>).reorder!(s, p, rng),
-  event_storm: (s, p) =>
-    (builtinChaosRegistry as ChaosRegistry<FsEvent>).burst!(
-      s,
-      p,
-      {} as SeededRandom,
-    ),
-  slow_disk: (s, p, rng) =>
-    (builtinChaosRegistry as ChaosRegistry<FsEvent>).delay!(s, p, rng),
+    (builtinChaosRegistry as ChaosRegistry<FsEvent>).drop!(s, { rate: p.dropRate ?? 0.2 }, rng),
+  reorder_chaos: (s, p, rng) => (builtinChaosRegistry as ChaosRegistry<FsEvent>).reorder!(s, p, rng),
+  event_storm: (s, p) => (builtinChaosRegistry as ChaosRegistry<FsEvent>).burst!(s, p, {} as SeededRandom),
+  slow_disk: (s, p, rng) => (builtinChaosRegistry as ChaosRegistry<FsEvent>).delay!(s, p, rng),
   // Domain-specific
   editor_atomic: (s, p, rng) => atomicSave(s, (p.rate as number) ?? 0.5, rng),
-  duplicate_events: (s, p, rng) =>
-    (builtinChaosRegistry as ChaosRegistry<FsEvent>).duplicate!(s, p, rng),
-  fsevents_coalesce: (s, p, rng) =>
-    coalesce(s, (p.threshold as number) ?? 10, rng),
-  partial_writes: (s, p, rng) =>
-    partialWrite(s, (p.rate as number) ?? 0.3, rng),
+  duplicate_events: (s, p, rng) => (builtinChaosRegistry as ChaosRegistry<FsEvent>).duplicate!(s, p, rng),
+  fsevents_coalesce: (s, p, rng) => coalesce(s, (p.threshold as number) ?? 10, rng),
+  partial_writes: (s, p, rng) => partialWrite(s, (p.rate as number) ?? 0.3, rng),
   rename_storm: (s, p, rng) => renameChain(s, (p.depth as number) ?? 3, rng),
   rapid_succession: async function* (s) {
     for await (const e of s) yield e
   },
-  init_gap: (s, p) =>
-    (builtinChaosRegistry as ChaosRegistry<FsEvent>).init_gap!(
-      s,
-      p,
-      {} as SeededRandom,
-    ),
+  init_gap: (s, p) => (builtinChaosRegistry as ChaosRegistry<FsEvent>).init_gap!(s, p, {} as SeededRandom),
 }
 
 /**

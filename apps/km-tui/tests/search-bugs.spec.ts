@@ -10,9 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Search dialog bugs", () => {
   describe("km-tui.2: [2 after backspace", () => {
     test("backspacing to empty shows placeholder, not [2", () => {
-      const { board } = testEnv(() =>
-        item("board", item("col", item("alpha"), item("beta"))),
-      )
+      const { board } = testEnv(() => item("board", item("col", item("alpha"), item("beta"))))
 
       // Open search and type
       board.press("/")

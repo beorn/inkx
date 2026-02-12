@@ -25,10 +25,7 @@ export function createSetCommand() {
   return new Command("set")
     .description("Set task field values")
     .argument("<id>", "Task ID or prefix")
-    .argument(
-      "<fields...>",
-      "Field:value pairs (due:2025-01-20, p:1, status:todo)",
-    )
+    .argument("<fields...>", "Field:value pairs (due:2025-01-20, p:1, status:todo)")
     .option("--json", "Output as JSON")
     .action(async (id, fields, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
@@ -45,9 +42,7 @@ export function createSetCommand() {
       for (const field of fields) {
         const colonIndex = field.indexOf(":")
         if (colonIndex === -1) {
-          console.error(
-            term.red(`Invalid field format: ${field} (expected field:value)`),
-          )
+          console.error(term.red(`Invalid field format: ${field} (expected field:value)`))
           process.exit(1)
         }
 
@@ -95,11 +90,7 @@ export function createSetCommand() {
         return
       }
 
-      console.log(
-        term.green("✓"),
-        `Updated ${Object.keys(updates).join(", ")}:`,
-        task.id.slice(0, 8),
-      )
+      console.log(term.green("✓"), `Updated ${Object.keys(updates).join(", ")}:`, task.id.slice(0, 8))
     })
 }
 
@@ -113,10 +104,7 @@ export function createClearCommand() {
   return new Command("clear")
     .description("Clear task field values")
     .argument("<id>", "Task ID or prefix")
-    .argument(
-      "<fields...>",
-      "Fields to clear (due, priority, scheduled, assigned)",
-    )
+    .argument("<fields...>", "Fields to clear (due, priority, scheduled, assigned)")
     .option("--json", "Output as JSON")
     .action(async (id, fields, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
@@ -169,10 +157,6 @@ export function createClearCommand() {
         return
       }
 
-      console.log(
-        term.dim("○"),
-        `Cleared ${fields.join(", ")}:`,
-        task.id.slice(0, 8),
-      )
+      console.log(term.dim("○"), `Cleared ${fields.join(", ")}:`, task.id.slice(0, 8))
     })
 }

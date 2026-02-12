@@ -83,9 +83,7 @@ const shortcuts = [
 ]
 
 // Calculate max key width across all shortcuts
-const maxKeyWidth = Math.max(
-  ...shortcuts.flatMap((cat) => cat.keys.map((k) => k.key.length)),
-)
+const maxKeyWidth = Math.max(...shortcuts.flatMap((cat) => cat.keys.map((k) => k.key.length)))
 
 // Minimum dimensions to render the overlay
 const MIN_WIDTH = 30
@@ -126,18 +124,8 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
   const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2))
 
   return (
-    <Box
-      position="absolute"
-      marginLeft={marginLeft}
-      marginTop={marginTop}
-      data-dialog="help"
-    >
-      <ModalDialog
-        borderColor="cyan"
-        width={boxWidth}
-        title="Keyboard Shortcuts"
-        footer="Press ? or Esc to close"
-      >
+    <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop} data-dialog="help">
+      <ModalDialog borderColor="cyan" width={boxWidth} title="Keyboard Shortcuts" footer="Press ? or Esc to close">
         {shortcuts.map((category) => (
           <Box key={category.category} flexDirection="column">
             <Text bold color="white">

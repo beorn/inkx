@@ -120,9 +120,7 @@ export async function createBoardTest(
   if (typeof repoOrPath === "string") {
     // Load repo from disk (original behavior)
     // searchAncestors: false prevents finding .km in parent directories (e.g., project root)
-    repo = runGenerator(
-      storageModule.createRepo(repoOrPath, { loadFiles: true }),
-    )
+    repo = runGenerator(storageModule.createRepo(repoOrPath, { loadFiles: true }))
     repoPath = repoOrPath
   } else {
     // Use provided repo instance (new behavior for fake repos)
@@ -154,9 +152,7 @@ export async function createBoardTest(
   const tuiModule = await import("./index.ts")
 
   // Initialize board state
-  const state = runGenerator(
-    tuiModule.initBoardStateGenerator(repo, rootNodeId),
-  )
+  const state = runGenerator(tuiModule.initBoardStateGenerator(repo, rootNodeId))
 
   if (!state) {
     throw new Error(`Failed to initialize board state for ${repoPath}`)

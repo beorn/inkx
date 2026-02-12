@@ -96,11 +96,7 @@ function getBoardForLink(repo: Repo, linkNode: KNode): KNode | null {
  * @param excludeBoardIds - Board IDs to exclude (e.g., current view's board)
  * @returns Array of board pills with name and color
  */
-export function getBoardPills(
-  repo: Repo,
-  taskNode: KNode,
-  excludeBoardIds: Set<string> = new Set(),
-): BoardPill[] {
+export function getBoardPills(repo: Repo, taskNode: KNode, excludeBoardIds: Set<string> = new Set()): BoardPill[] {
   // Only nodes with task_status can be on boards (regardless of structural type)
   if (taskNode.task_status == null) return []
 
@@ -144,10 +140,7 @@ export function getBoardPills(
  * @param pills - Board pills to format
  * @param compact - If true, show just colored dots instead of full names
  */
-export function formatBoardPills(
-  pills: BoardPill[],
-  compact: boolean = false,
-): string {
+export function formatBoardPills(pills: BoardPill[], compact: boolean = false): string {
   if (pills.length === 0) return ""
 
   if (compact) {

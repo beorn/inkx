@@ -56,10 +56,7 @@ export function createOrchestrator(options: OrchestratorOptions) {
 }
 
 // Resolve mode based on TTY detection
-function resolveMode(
-  mode: "unified" | "parallel" | "auto" | undefined,
-  output: Writable,
-): "unified" | "parallel" {
+function resolveMode(mode: "unified" | "parallel" | "auto" | undefined, output: Writable): "unified" | "parallel" {
   if (mode === "auto" || mode === undefined) {
     // Auto-detect: use parallel (inkx) for TTY, unified (interleaved) for non-TTY
     return isTTY(output) ? "parallel" : "unified"
@@ -111,10 +108,7 @@ async function runUnified(suites: Suite[], output: Writable): Promise<number> {
 }
 
 // Parallel mode - delegate to injected renderer
-async function runParallel(
-  suites: Suite[],
-  renderParallel?: (suites: Suite[]) => Promise<number>,
-): Promise<number> {
+async function runParallel(suites: Suite[], renderParallel?: (suites: Suite[]) => Promise<number>): Promise<number> {
   if (!renderParallel) {
     throw new Error("Parallel mode requires renderParallel function")
   }

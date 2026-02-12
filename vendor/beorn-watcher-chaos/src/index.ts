@@ -61,10 +61,4 @@ export type {
   Service,
 } from "./types.ts"
 
-export type {
-  StatResult,
-  FsEntry,
-  FileSystemOps,
-  DirectoryScanner,
-  ErrorInjection,
-} from "./fake-fs.ts"
+export type { StatResult, FsEntry, FileSystemOps, DirectoryScanner, ErrorInjection } from "./fake-fs.ts"

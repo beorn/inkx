@@ -11,13 +11,7 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import type { Database } from "bun:sqlite"
 import { parseQuery, executeQuery, queryTasks } from "../src/query.ts"
 import { search, searchWithSnippet } from "../src/db.ts"
-import {
-  createTestDatabase,
-  seedTestData,
-  formatDate,
-  today,
-  offsetDate,
-} from "./query-test-helpers.ts"
+import { createTestDatabase, seedTestData, formatDate, today, offsetDate } from "./query-test-helpers.ts"
 
 describe("Query Executor", () => {
   let db: Database
@@ -58,25 +52,13 @@ describe("Query Executor", () => {
 
   // Basic filter tests using test.each
   test.each([
-    [
-      "status:todo",
-      2,
-      (r: { task_status: string }) => r.task_status === "todo",
-    ],
-    [
-      "status:done",
-      1,
-      (r: { task_status: string }) => r.task_status === "done",
-    ],
+    ["status:todo", 2, (r: { task_status: string }) => r.task_status === "todo"],
+    ["status:done", 1, (r: { task_status: string }) => r.task_status === "done"],
     ["p:1", 1, (r: { id: string }) => r.id === "task1"],
     ["@bjorn", 1, (r: { id: string }) => r.id === "task1"],
     ["#urgent", 1, (r: { id: string }) => r.id === "task1"],
     ["+project-alpha", 1, (r: { id: string }) => r.id === "task3"],
-    [
-      "-status:done",
-      2,
-      (r: { task_status: string }) => r.task_status !== "done",
-    ],
+    ["-status:done", 2, (r: { task_status: string }) => r.task_status !== "done"],
   ] as const)("filters with %s", (query, expectedCount, predicate) => {
     const ast = parseQuery(query)
     const results = executeQuery(db, ast, "task")
@@ -156,29 +138,16 @@ describe("Path Pattern Query Execution", () => {
   })
 
   test.each([
-    [
-      "./inbox/**",
-      2,
-      (r: { fs_path?: string | null }) =>
-        r.fs_path?.includes("/inbox") ?? false,
-    ],
+    ["./inbox/**", 2, (r: { fs_path?: string | null }) => r.fs_path?.includes("/inbox") ?? false],
     ["/projects/", 1, (r: { id: string }) => r.id === "project-task1"],
     ["./archive/**", 1, (r: { id: string }) => r.id === "archive-task1"],
-    [
-      "-./inbox/**",
-      3,
-      (r: { fs_path?: string | null }) =>
-        !(r.fs_path?.includes("/inbox/") ?? false),
-    ],
-  ] as const)(
-    "filters by path pattern %s",
-    (query, expectedCount, predicate) => {
-      const ast = parseQuery(query)
-      const results = executeQuery(db, ast, "task")
-      expect(results.length).toBe(expectedCount)
-      expect(results.every(predicate)).toBe(true)
-    },
-  )
+    ["-./inbox/**", 3, (r: { fs_path?: string | null }) => !(r.fs_path?.includes("/inbox/") ?? false)],
+  ] as const)("filters by path pattern %s", (query, expectedCount, predicate) => {
+    const ast = parseQuery(query)
+    const results = executeQuery(db, ast, "task")
+    expect(results.length).toBe(expectedCount)
+    expect(results.every(predicate)).toBe(true)
+  })
 
   test("combines path pattern with status filter", () => {
     const ast = parseQuery("./inbox/** status:todo")
@@ -289,16 +258,13 @@ describe("Full-text Search with Phrases", () => {
     ['"budget review"', 1, ["doc1"]],
     ["budget review", 2, ["doc1", "doc2"]],
     ['"review budget"', 0, []],
-  ] as const)(
-    "phrase search %s finds %d results",
-    (query, count, expectedIds) => {
-      const results = search(db, query, 10)
-      expect(results.length).toBe(count)
-      for (const id of expectedIds) {
-        expect(results.some((r) => r.id === id)).toBe(true)
-      }
-    },
-  )
+  ] as const)("phrase search %s finds %d results", (query, count, expectedIds) => {
+    const results = search(db, query, 10)
+    expect(results.length).toBe(count)
+    for (const id of expectedIds) {
+      expect(results.some((r) => r.id === id)).toBe(true)
+    }
+  })
 
   test("searchWithSnippet returns highlighted snippets", () => {
     const results = searchWithSnippet(db, "budget", 10, {
@@ -306,12 +272,7 @@ describe("Full-text Search with Phrases", () => {
       endMark: ">>",
     })
     expect(results.length).toBeGreaterThan(0)
-    expect(
-      results.some(
-        (r: { snippet: string }) =>
-          r.snippet.includes("<<") && r.snippet.includes(">>"),
-      ),
-    ).toBe(true)
+    expect(results.some((r: { snippet: string }) => r.snippet.includes("<<") && r.snippet.includes(">>"))).toBe(true)
   })
 
   test("searchWithSnippet with phrase search", () => {
@@ -382,16 +343,13 @@ describe("Status on Any Node Type", () => {
     ["status:wip", 1, "section1", "section"],
     ["status:done", 1, "file1", "file"],
     ["status:blocked", 1, "para1", "paragraph"],
-  ] as const)(
-    "%s matches correct node type",
-    (query, count, expectedId, expectedType) => {
-      const ast = parseQuery(query)
-      const results = executeQuery(db, ast)
-      expect(results.length).toBe(count)
-      expect(results[0]!.id).toBe(expectedId)
-      expect(results[0]!.type).toBe(expectedType)
-    },
-  )
+  ] as const)("%s matches correct node type", (query, count, expectedId, expectedType) => {
+    const ast = parseQuery(query)
+    const results = executeQuery(db, ast)
+    expect(results.length).toBe(count)
+    expect(results[0]!.id).toBe(expectedId)
+    expect(results[0]!.type).toBe(expectedType)
+  })
 
   test("type:task only matches checkbox-originated nodes", () => {
     const ast = parseQuery("type:task")
@@ -526,8 +484,7 @@ describe("Property Query Execution", () => {
         type: "task",
         name: "multi-blocked-task",
         task_status: "todo",
-        content:
-          "Multi blocked blocked-by:: [[blocker-task]], [[done-blocker]]",
+        content: "Multi blocked blocked-by:: [[blocker-task]], [[done-blocker]]",
         data: JSON.stringify({
           props: {
             "blocked-by": {
@@ -624,10 +581,6 @@ describe("Property Query Execution", () => {
     const ast = parseQuery("status:todo blocked:false")
     const results = executeQuery(db, ast, "task")
     expect(results.every((r) => r.task_status === "todo")).toBe(true)
-    expect(
-      results.every(
-        (r) => r.id !== "task-blocked" && r.id !== "task-multi-blocked",
-      ),
-    ).toBe(true)
+    expect(results.every((r) => r.id !== "task-blocked" && r.id !== "task-multi-blocked")).toBe(true)
   })
 })

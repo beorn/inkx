@@ -34,10 +34,7 @@ interface FsEntry {
   isSymlink?: boolean
 }
 
-export type DirectoryScanner = (
-  dirPath: string,
-  ignorePatterns?: string[] | PatternMatcher,
-) => FsEntry[]
+export type DirectoryScanner = (dirPath: string, ignorePatterns?: string[] | PatternMatcher) => FsEntry[]
 
 /**
  * Reconcile a directory - compare filesystem to database
@@ -54,9 +51,7 @@ export function reconcileDirectory(
   const ops: ReconcileOp[] = []
 
   // Get filesystem state (pass ignore patterns to filter out ignored files)
-  const fsEntries = scanner
-    ? scanner(dirPath, ignorePatterns)
-    : scanDirectory(dirPath, ignorePatterns)
+  const fsEntries = scanner ? scanner(dirPath, ignorePatterns) : scanDirectory(dirPath, ignorePatterns)
 
   // Convert dirPath to relative for DB queries (DB stores relative paths)
   const relDirPath = toRelativeFsPath(repoRoot, dirPath)
@@ -64,9 +59,7 @@ export function reconcileDirectory(
   // Get database state for this directory (using km-storage abstraction)
   const dbNodes = getNodesUnderPath(db, relDirPath)
 
-  log.debug?.(
-    `reconciling dirPath=${dirPath} fsEntries=${fsEntries.length} dbNodes=${dbNodes.length}`,
-  )
+  log.debug?.(`reconciling dirPath=${dirPath} fsEntries=${fsEntries.length} dbNodes=${dbNodes.length}`)
 
   // Index by inode and relative path for efficient lookup
   const dbByIno = new Map<number, KNode>()
@@ -135,8 +128,7 @@ export function reconcileDirectory(
         const newPrefix = relPath + "/"
         for (const [descRelPath, descNode] of dbByRelPath) {
           if (descRelPath.startsWith(oldPrefix)) {
-            const newDescRelPath =
-              newPrefix + descRelPath.slice(oldPrefix.length)
+            const newDescRelPath = newPrefix + descRelPath.slice(oldPrefix.length)
             ops.push({
               type: "rename",
               nodeId: descNode.id,
@@ -152,9 +144,7 @@ export function reconcileDirectory(
       // Atomic write: same path but different inode
       // This happens when editors save via temp file + rename (Vim, VSCode, etc.)
       // Treat as an update but also update the inode
-      log.debug?.(
-        `atomic write detected path=${entry.path} oldIno=${existingByPath.fs_ino} newIno=${entry.ino}`,
-      )
+      log.debug?.(`atomic write detected path=${entry.path} oldIno=${existingByPath.fs_ino} newIno=${entry.ino}`)
       ops.push({
         type: "update",
         nodeId: existingByPath.id,
@@ -200,9 +190,7 @@ export function reconcileDirectory(
   }
 
   if (ops.length > 0) {
-    log.debug?.(
-      `generated ${ops.length} ops: ${JSON.stringify(ops.map((o) => ({ type: o.type, path: o.path })))}`,
-    )
+    log.debug?.(`generated ${ops.length} ops: ${JSON.stringify(ops.map((o) => ({ type: o.type, path: o.path })))}`)
   }
 
   return ops
@@ -224,9 +212,7 @@ export function reconcileDirectoryRecursive(
   const ops: ReconcileOp[] = []
 
   // Reconcile this directory
-  ops.push(
-    ...reconcileDirectory(db, dirPath, repoRoot, ignorePatterns, scanner),
-  )
+  ops.push(...reconcileDirectory(db, dirPath, repoRoot, ignorePatterns, scanner))
 
   // Track paths already handled by parent-level ops (rename cascade + displaced deletes).
   // When a folder is renamed, reconcileDirectory generates rename ops for all
@@ -240,24 +226,14 @@ export function reconcileDirectoryRecursive(
   }
 
   // Get subdirectories and recursively reconcile them
-  const fsEntries = scanner
-    ? scanner(dirPath, ignorePatterns)
-    : scanDirectory(dirPath, ignorePatterns)
+  const fsEntries = scanner ? scanner(dirPath, ignorePatterns) : scanDirectory(dirPath, ignorePatterns)
   for (const entry of fsEntries) {
     if (entry.isDirectory) {
-      const childOps = reconcileDirectoryRecursive(
-        db,
-        entry.path,
-        repoRoot,
-        ignorePatterns,
-        scanner,
-      )
+      const childOps = reconcileDirectoryRecursive(db, entry.path, repoRoot, ignorePatterns, scanner)
       for (const op of childOps) {
         // Skip ops for paths already handled by parent cascade/displacement
         if (handledPaths.has(op.path)) {
-          log.debug?.(
-            `skipping duplicate op for already-handled path: ${op.path}`,
-          )
+          log.debug?.(`skipping duplicate op for already-handled path: ${op.path}`)
           continue
         }
         ops.push(op)

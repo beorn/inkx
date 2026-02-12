@@ -7,11 +7,7 @@
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
 import type { Issue, CreateIssueOptions } from "./types.ts"
-import {
-  generateShortId,
-  generateCustomId,
-  generateSubId,
-} from "./short-ids.ts"
+import { generateShortId, generateCustomId, generateSubId } from "./short-ids.ts"
 
 /**
  * Create a new issue
@@ -19,10 +15,7 @@ import {
  * Note: This creates an in-memory node structure.
  * Actual persistence requires integration with km-storage.
  */
-export function createIssueNode(
-  title: string,
-  options: CreateIssueOptions = {},
-): { node: KNode; shortId: string } {
+export function createIssueNode(title: string, options: CreateIssueOptions = {}): { node: KNode; shortId: string } {
   const now = Date.now()
   const id = ulid()
 
@@ -78,9 +71,7 @@ export function createIssueNode(
     priority,
     data: {
       short_id: shortId,
-      tags: [options.type, `P${priority}`, ...(options.labels || [])].filter(
-        Boolean,
-      ),
+      tags: [options.type, `P${priority}`, ...(options.labels || [])].filter(Boolean),
       mentions: options.assignee ? [options.assignee] : [],
     },
     created_at: now,

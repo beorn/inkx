@@ -19,11 +19,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import {
-  createLayoutRegistry,
-  getCardMidY,
-  type NodeLayout,
-} from "../src/card-positions.ts"
+import { createLayoutRegistry, getCardMidY, type NodeLayout } from "../src/card-positions.ts"
 
 // =============================================================================
 // Test Helpers
@@ -45,16 +41,12 @@ function makeLayout(y: number, height = 3, x = 0): NodeLayout {
 describe("LayoutRegistry: error handling", () => {
   it("throws for unregistered nodes", () => {
     const registry = createLayoutRegistry()
-    expect(() => registry.getNode("nonexistent")).toThrow(
-      "Node layout not found",
-    )
+    expect(() => registry.getNode("nonexistent")).toThrow("Node layout not found")
   })
 
   it("findCardAtY throws for empty column", () => {
     const registry = createLayoutRegistry()
-    expect(() => registry.findCardAtY(0, 10)).toThrow(
-      "No cards registered for column 0",
-    )
+    expect(() => registry.findCardAtY(0, 10)).toThrow("No cards registered for column 0")
   })
 })
 

@@ -73,17 +73,7 @@ export interface BoardState {
 /**
  * Navigation direction for cursor movement
  */
-export type NodeDirection =
-  | "next"
-  | "prev"
-  | "in"
-  | "out"
-  | "first"
-  | "last"
-  | "up"
-  | "down"
-  | "left"
-  | "right"
+export type NodeDirection = "next" | "prev" | "in" | "out" | "first" | "last" | "up" | "down" | "left" | "right"
 
 /**
  * Board Actions for km-repl

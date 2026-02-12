@@ -10,9 +10,7 @@ import { createTerm } from "inkx"
 const term = createTerm(process)
 import { resolvePathArg, loadConfigObject } from "@km/storage"
 
-export const configCommand = new Command("config").description(
-  "View and modify beads configuration",
-)
+export const configCommand = new Command("config").description("View and modify beads configuration")
 
 configCommand
   .command("list")
@@ -31,9 +29,7 @@ configCommand
       console.log(term.dim(`Source: ${configObj.path}`))
     } else {
       console.log()
-      console.log(
-        term.dim("No config file found. Create .km/config.yaml to customize."),
-      )
+      console.log(term.dim("No config file found. Create .km/config.yaml to customize."))
     }
   })
 
@@ -98,8 +94,6 @@ configCommand.action(() => {
     console.log(term.dim(`Source: ${configObj.path}`))
   } else {
     console.log()
-    console.log(
-      term.dim("No config file found. Create .km/config.yaml to customize."),
-    )
+    console.log(term.dim("No config file found. Create .km/config.yaml to customize."))
   }
 })

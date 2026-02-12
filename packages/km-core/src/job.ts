@@ -52,14 +52,10 @@ export function createJobRunner(toastQueue: ToastQueue): JobRunner {
         spec.cancel?.()
       }
 
-      let currentToastId = toastQueue.push(
-        "info",
-        `${spec.description} — ${spec.impact} (${remaining}s)`,
-        {
-          duration: 0,
-          action: { label: "Cancel", trigger: cancel },
-        },
-      )
+      let currentToastId = toastQueue.push("info", `${spec.description} — ${spec.impact} (${remaining}s)`, {
+        duration: 0,
+        action: { label: "Cancel", trigger: cancel },
+      })
 
       const interval = setInterval(() => {
         remaining--
@@ -73,14 +69,10 @@ export function createJobRunner(toastQueue: ToastQueue): JobRunner {
         }
         // Update countdown message by replacing toast
         toastQueue.dismiss(currentToastId)
-        currentToastId = toastQueue.push(
-          "info",
-          `${spec.description} — ${spec.impact} (${remaining}s)`,
-          {
-            duration: 0,
-            action: { label: "Cancel", trigger: cancel },
-          },
-        )
+        currentToastId = toastQueue.push("info", `${spec.description} — ${spec.impact} (${remaining}s)`, {
+          duration: 0,
+          action: { label: "Cancel", trigger: cancel },
+        })
       }, 1000)
 
       return { cancel }
@@ -95,11 +87,7 @@ function executeJob(toastQueue: ToastQueue, spec: JobSpec): void {
 
   spec.execute((current, total) => {
     toastQueue.dismiss(currentToastId)
-    currentToastId = toastQueue.push(
-      "info",
-      `${spec.description}... (${current}/${total})`,
-      { duration: 0 },
-    )
+    currentToastId = toastQueue.push("info", `${spec.description}... (${current}/${total})`, { duration: 0 })
   })
 
   toastQueue.dismiss(currentToastId)

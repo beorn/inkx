@@ -105,9 +105,7 @@ describe("Ignore Patterns", () => {
       const patterns = ["*.log"]
 
       // When repo path is provided, paths are made relative
-      expect(
-        shouldIgnore("/home/user/repo/debug.log", patterns, repoPath),
-      ).toBe(true)
+      expect(shouldIgnore("/home/user/repo/debug.log", patterns, repoPath)).toBe(true)
     })
   })
 

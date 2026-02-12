@@ -6,11 +6,7 @@ import { createTestBoard } from "@km/tui/test"
 
 describe("spatial helpers", () => {
   test("at() returns element info with bounding box", () => {
-    const board = createTestBoard([
-      "Col1 > Task A",
-      "Col1 > Task B",
-      "Col2 > Task C",
-    ])
+    const board = createTestBoard(["Col1 > Task A", "Col1 > Task B", "Col2 > Task C"])
 
     const colInfo = board.at("#Col1")
     expect(colInfo.exists).toBe(true)
@@ -23,12 +19,7 @@ describe("spatial helpers", () => {
   })
 
   test("columns() returns column info array", () => {
-    const board = createTestBoard([
-      "Col1 > A",
-      "Col1 > B",
-      "Col2 > C",
-      "Col3 > D",
-    ])
+    const board = createTestBoard(["Col1 > A", "Col1 > B", "Col2 > C", "Col3 > D"])
 
     const cols = board.columns()
     expect(cols.length).toBeGreaterThanOrEqual(2) // At least 2 visible in 80 cols
@@ -37,11 +28,7 @@ describe("spatial helpers", () => {
   })
 
   test("cards() returns card info array", () => {
-    const board = createTestBoard([
-      "Col > Task A",
-      "Col > Task B",
-      "Col > Task C",
-    ])
+    const board = createTestBoard(["Col > Task A", "Col > Task B", "Col > Task C"])
 
     const cards = board.cards()
     expect(cards.length).toBe(3)

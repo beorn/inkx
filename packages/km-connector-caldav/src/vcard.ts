@@ -5,17 +5,8 @@
  * Implements RFC 6350 (vCard 4.0) with RFC 2426 (vCard 3.0) compatibility.
  */
 
-import type {
-  Contact,
-  ContactEmail,
-  ContactPhone,
-  ContactAddress,
-} from "./types.ts"
-import {
-  parseEmailType,
-  parsePhoneType,
-  parseAddressType,
-} from "./constants.ts"
+import type { Contact, ContactEmail, ContactPhone, ContactAddress } from "./types.ts"
+import { parseEmailType, parsePhoneType, parseAddressType } from "./constants.ts"
 
 // --- Parsing Helpers ---
 
@@ -172,13 +163,7 @@ function formatTypeParams(type?: string, primary?: boolean): string {
 /** Format structured name */
 function formatName(name: Contact["name"]): string {
   if (!name) return ""
-  return [
-    name.family || "",
-    name.given || "",
-    name.middle || "",
-    name.prefix || "",
-    name.suffix || "",
-  ].join(";")
+  return [name.family || "", name.given || "", name.middle || "", name.prefix || "", name.suffix || ""].join(";")
 }
 
 /** Format email to vCard line */
@@ -216,12 +201,7 @@ function formatPhoto(photo: string): string {
  * Format Contact to vCard
  */
 export function formatVCard(contact: Contact): string {
-  const lines: string[] = [
-    "BEGIN:VCARD",
-    "VERSION:4.0",
-    `UID:${contact.uid}`,
-    `FN:${escapeValue(contact.fullName)}`,
-  ]
+  const lines: string[] = ["BEGIN:VCARD", "VERSION:4.0", `UID:${contact.uid}`, `FN:${escapeValue(contact.fullName)}`]
 
   if (contact.name) lines.push(`N:${formatName(contact.name)}`)
 
@@ -243,9 +223,5 @@ export function formatVCard(contact: Contact): string {
  * Escape special characters in vCard values
  */
 function escapeValue(value: string): string {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\n/g, "\\n")
+  return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n")
 }

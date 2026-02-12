@@ -138,26 +138,13 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
     }
 
     // Add summary line
-    const totalPassed = Array.from(states.values()).reduce(
-      (sum, s) => sum + s.passed,
-      0,
-    )
-    const totalFailed = Array.from(states.values()).reduce(
-      (sum, s) => sum + s.failed,
-      0,
-    )
-    const totalSkipped = Array.from(states.values()).reduce(
-      (sum, s) => sum + s.skipped,
-      0,
-    )
+    const totalPassed = Array.from(states.values()).reduce((sum, s) => sum + s.passed, 0)
+    const totalFailed = Array.from(states.values()).reduce((sum, s) => sum + s.failed, 0)
+    const totalSkipped = Array.from(states.values()).reduce((sum, s) => sum + s.skipped, 0)
 
     // Check if we know the total count yet
-    const allKnown = Array.from(states.values()).every(
-      (s) => s.total !== undefined,
-    )
-    const totalTests = allKnown
-      ? totalPassed + totalFailed + totalSkipped
-      : null
+    const allKnown = Array.from(states.values()).every((s) => s.total !== undefined)
+    const totalTests = allKnown ? totalPassed + totalFailed + totalSkipped : null
 
     const summaryColor = totalFailed > 0 ? "\x1b[31m" : "\x1b[32m"
     const bold = "\x1b[1m"
@@ -167,8 +154,7 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
 
     lines.push("") // Empty line before summary
     const prefix = isTTY ? ANSI.CLEAR_LINE : ""
-    const testCount =
-      totalTests !== null ? String(totalTests) : `${gray}?${reset}`
+    const testCount = totalTests !== null ? String(totalTests) : `${gray}?${reset}`
     lines.push(
       `${prefix}${bold}${summaryColor}${icon} ${testCount} tests: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped${reset}`,
     )
@@ -182,10 +168,7 @@ export async function renderParallel(suites: Suite[]): Promise<number> {
   }
 }
 
-async function runSuite(
-  suite: Suite,
-  onUpdate: (update: Partial<SuiteState>) => void,
-) {
+async function runSuite(suite: Suite, onUpdate: (update: Partial<SuiteState>) => void) {
   const parser = new Parser()
   let dots = ""
   let passed = 0

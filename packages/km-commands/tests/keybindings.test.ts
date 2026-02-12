@@ -52,9 +52,7 @@ function createNode(id: string, opts?: Partial<TNode>): TNode {
 }
 
 /** Create keybinding context with defaults */
-function createContext(
-  overrides?: Partial<KeybindingContext>,
-): KeybindingContext {
+function createContext(overrides?: Partial<KeybindingContext>): KeybindingContext {
   return {
     mode: "normal",
     hasSelection: false,
@@ -217,9 +215,7 @@ describe("resolveKeybinding", () => {
       })
 
       const ctx = createContext()
-      expect(resolveKeybinding("z", { ctrl: true, shift: true }, ctx)).toBe(
-        "redo",
-      )
+      expect(resolveKeybinding("z", { ctrl: true, shift: true }, ctx)).toBe("redo")
       expect(resolveKeybinding("z", { ctrl: true }, ctx)).toBeNull()
       expect(resolveKeybinding("z", { shift: true }, ctx)).toBeNull()
     })
@@ -229,9 +225,7 @@ describe("resolveKeybinding", () => {
 
       const ctx = createContext()
       // Extra shift modifier should not match
-      expect(
-        resolveKeybinding("z", { ctrl: true, shift: true }, ctx),
-      ).toBeNull()
+      expect(resolveKeybinding("z", { ctrl: true, shift: true }, ctx)).toBeNull()
     })
 
     it("treats undefined and false modifiers the same", () => {
@@ -239,9 +233,7 @@ describe("resolveKeybinding", () => {
 
       const ctx = createContext()
       expect(resolveKeybinding("a", {}, ctx)).toBe("cmd_a")
-      expect(resolveKeybinding("a", { ctrl: false, shift: false }, ctx)).toBe(
-        "cmd_a",
-      )
+      expect(resolveKeybinding("a", { ctrl: false, shift: false }, ctx)).toBe("cmd_a")
     })
   })
 
@@ -275,12 +267,8 @@ describe("resolveKeybinding", () => {
         modes: [],
       })
 
-      expect(
-        resolveKeybinding("j", {}, createContext({ mode: "normal" })),
-      ).toBe("cursor_next")
-      expect(resolveKeybinding("j", {}, createContext({ mode: "move" }))).toBe(
-        "cursor_next",
-      )
+      expect(resolveKeybinding("j", {}, createContext({ mode: "normal" }))).toBe("cursor_next")
+      expect(resolveKeybinding("j", {}, createContext({ mode: "move" }))).toBe("cursor_next")
     })
 
     it("matches any mode when modes is undefined", () => {
@@ -289,15 +277,9 @@ describe("resolveKeybinding", () => {
         commandId: "cursor_next",
       })
 
-      expect(
-        resolveKeybinding("j", {}, createContext({ mode: "normal" })),
-      ).toBe("cursor_next")
-      expect(resolveKeybinding("j", {}, createContext({ mode: "move" }))).toBe(
-        "cursor_next",
-      )
-      expect(
-        resolveKeybinding("j", {}, createContext({ mode: "search" })),
-      ).toBe("cursor_next")
+      expect(resolveKeybinding("j", {}, createContext({ mode: "normal" }))).toBe("cursor_next")
+      expect(resolveKeybinding("j", {}, createContext({ mode: "move" }))).toBe("cursor_next")
+      expect(resolveKeybinding("j", {}, createContext({ mode: "search" }))).toBe("cursor_next")
     })
 
     it("supports multiple allowed modes", () => {
@@ -381,31 +363,13 @@ describe("resolveKeybinding", () => {
       const node = createNode("test")
 
       // Mode match + condition match
-      expect(
-        resolveKeybinding(
-          "Enter",
-          {},
-          createContext({ mode: "normal", currentNode: node }),
-        ),
-      ).toBe("zoom_in")
+      expect(resolveKeybinding("Enter", {}, createContext({ mode: "normal", currentNode: node }))).toBe("zoom_in")
 
       // Mode match + condition fail
-      expect(
-        resolveKeybinding(
-          "Enter",
-          {},
-          createContext({ mode: "normal", currentNode: null }),
-        ),
-      ).toBeNull()
+      expect(resolveKeybinding("Enter", {}, createContext({ mode: "normal", currentNode: null }))).toBeNull()
 
       // Mode fail + condition match
-      expect(
-        resolveKeybinding(
-          "Enter",
-          {},
-          createContext({ mode: "move", currentNode: node }),
-        ),
-      ).toBeNull()
+      expect(resolveKeybinding("Enter", {}, createContext({ mode: "move", currentNode: node }))).toBeNull()
     })
   })
 
@@ -495,13 +459,10 @@ describe("initDefaultKeybindings", () => {
     ["Escape", {}, "normal", "close_or_quit"],
     // In move mode, Escape cancels move (mode-specific binding takes precedence)
     ["Escape", {}, "move", "cancel_move"],
-  ] as const)(
-    "mode-specific: %s in %s mode resolves to %s",
-    (key, mods, mode, commandId) => {
-      initDefaultKeybindings()
-      expectKey(key, commandId, mods, createContext({ mode }))
-    },
-  )
+  ] as const)("mode-specific: %s in %s mode resolves to %s", (key, mods, mode, commandId) => {
+    initDefaultKeybindings()
+    expectKey(key, commandId, mods, createContext({ mode }))
+  })
 
   it.each([
     ["ArrowUp", "shift_up"],

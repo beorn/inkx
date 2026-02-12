@@ -91,16 +91,11 @@ export function ListView({
   // This batches the lookups into a single pass through all cards
   const boardPillsCache = useMemo(() => {
     const cache = new Map<string, BoardPill[]>()
-    const excludeBoardIds = rootBoardId
-      ? new Set([rootBoardId])
-      : new Set<string>()
+    const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
     for (const item of flatItems) {
       if (item.type === "card" && item.card.node.task_status != null) {
-        cache.set(
-          item.card.node.id,
-          getBoardPills(repo, item.card.node, excludeBoardIds),
-        )
+        cache.set(item.card.node.id, getBoardPills(repo, item.card.node, excludeBoardIds))
       }
     }
     return cache
@@ -133,11 +128,7 @@ export function ListView({
         const isSelected = colIndex === cIdx
 
         return (
-          <Box
-            key={`header-${item.column.node.id}`}
-            position="sticky"
-            stickyTop={0}
-          >
+          <Box key={`header-${item.column.node.id}`} position="sticky" stickyTop={0}>
             <MemoizedColumnHeader
               column={item.column}
               colIdx={cIdx}
@@ -154,10 +145,7 @@ export function ListView({
       const cIdx = item.colIdx
       const cardIdx = item.cardIdx
       const isCardSelected =
-        selectionLevel === "card" &&
-        colIndex === cIdx &&
-        cardIndex === cardIdx &&
-        (!inOutlineMode || subIndex === 0)
+        selectionLevel === "card" && colIndex === cIdx && cardIndex === cardIdx && (!inOutlineMode || subIndex === 0)
 
       return (
         <MemoizedTreeCard
@@ -171,15 +159,7 @@ export function ListView({
         />
       )
     },
-    [
-      colIndex,
-      cardIndex,
-      subIndex,
-      selectionLevel,
-      inOutlineMode,
-      width,
-      getCachedBoardPills,
-    ],
+    [colIndex, cardIndex, subIndex, selectionLevel, inOutlineMode, width, getCachedBoardPills],
   )
 
   // Empty state
@@ -193,12 +173,7 @@ export function ListView({
   }
 
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      maxHeight={height}
-      overflow="hidden"
-    >
+    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
       {/* Blank line at top */}
       <Box height={1} flexShrink={0}>
         <Text> </Text>
@@ -212,11 +187,7 @@ export function ListView({
         scrollTo={selectedFlatIndex}
         overscan={OVERSCAN}
         maxRendered={MAX_RENDERED_ITEMS}
-        keyExtractor={(item) =>
-          item.type === "header"
-            ? `header-${item.column.node.id}`
-            : item.card.node.id
-        }
+        keyExtractor={(item) => (item.type === "header" ? `header-${item.column.node.id}` : item.card.node.id)}
         renderItem={renderItem}
         width={width}
       />

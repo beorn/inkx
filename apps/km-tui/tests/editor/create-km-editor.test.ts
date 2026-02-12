@@ -6,12 +6,7 @@
 
 import { describe, test, expect, vi } from "vitest"
 import { Editor, Transforms } from "slate"
-import {
-  createKmEditor,
-  getEditorText,
-  getCursorOffset,
-  setCursorOffset,
-} from "../../src/editor/create-km-editor.ts"
+import { createKmEditor, getEditorText, getCursorOffset, setCursorOffset } from "../../src/editor/create-km-editor.ts"
 import { textToDescendants } from "../../src/editor/schema.ts"
 
 describe("createKmEditor", () => {

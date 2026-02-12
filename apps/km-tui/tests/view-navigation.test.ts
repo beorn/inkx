@@ -8,16 +8,10 @@
 import { describe, it, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
-import {
-  createCardsViewNavigation,
-  type NavState,
-} from "../src/view-navigation.ts"
+import { createCardsViewNavigation, type NavState } from "../src/view-navigation.ts"
 import { createLayoutRegistry } from "../src/card-positions.ts"
 
-function makeState(
-  cursorNodeId: string,
-  rootId: string | null = "board",
-): NavState {
+function makeState(cursorNodeId: string, rootId: string | null = "board"): NavState {
   return {
     cursorNodeId,
     rootId,
@@ -30,11 +24,7 @@ describe("CardsViewNavigation", () => {
   const nav = createCardsViewNavigation()
 
   describe("vertical navigation (j/k)", () => {
-    const nodes = item(
-      "board",
-      item("col0", item("c0"), item("c1"), item("c2")),
-      item("col1", item("c3")),
-    )
+    const nodes = item("board", item("col0", item("c0"), item("c1"), item("c2")), item("col1", item("c3")))
     const repo = createFakeRepo({ nodes })
     const registry = createLayoutRegistry()
 
@@ -81,12 +71,7 @@ describe("CardsViewNavigation", () => {
     it("j from empty column → null", () => {
       const emptyNodes = item("board", item("col0"))
       const emptyRepo = createFakeRepo({ nodes: emptyNodes })
-      const target = nav.navigate(
-        "down",
-        makeState("col0"),
-        emptyRepo,
-        registry,
-      )
+      const target = nav.navigate("down", makeState("col0"), emptyRepo, registry)
       expect(target).toBeNull()
     })
 
@@ -135,12 +120,8 @@ describe("CardsViewNavigation", () => {
     })
 
     it("h/l from board → null", () => {
-      expect(
-        nav.navigate("left", makeState("board"), repo, registry),
-      ).toBeNull()
-      expect(
-        nav.navigate("right", makeState("board"), repo, registry),
-      ).toBeNull()
+      expect(nav.navigate("left", makeState("board"), repo, registry)).toBeNull()
+      expect(nav.navigate("right", makeState("board"), repo, registry)).toBeNull()
     })
 
     it("l from column header → column header (no cards info)", () => {

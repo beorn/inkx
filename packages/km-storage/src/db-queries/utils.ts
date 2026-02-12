@@ -16,9 +16,7 @@ import type { KNode, TaskStatus, NodeType, NodeRules } from "@km/core"
  * Get the last event ID processed
  */
 export function getLastEventId(db: Database): string | null {
-  const row = db
-    .query("SELECT value FROM meta WHERE key = ?")
-    .get("last_event") as { value: string } | null
+  const row = db.query("SELECT value FROM meta WHERE key = ?").get("last_event") as { value: string } | null
 
   return row?.value ?? null
 }
@@ -27,10 +25,7 @@ export function getLastEventId(db: Database): string | null {
  * Get all nodes (for debugging/export)
  */
 export function getAllNodes(db: Database): KNode[] {
-  const rows = db.query("SELECT * FROM nodes").all() as Record<
-    string,
-    unknown
-  >[]
+  const rows = db.query("SELECT * FROM nodes").all() as Record<string, unknown>[]
   return rows.map(rowToNode)
 }
 

@@ -8,12 +8,7 @@ import type { KNode } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
-import type {
-  TUIBoardState,
-  ColumnState,
-  CardState,
-  ColumnRules,
-} from "./types.ts"
+import type { TUIBoardState, ColumnState, CardState, ColumnRules } from "./types.ts"
 import type { Repo } from "./repo-context.tsx"
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
@@ -26,14 +21,10 @@ import {
 
 // Bound versions that inject repo dependencies
 // These are the primary exports for TUI components
-export const getNodeDisplayName = (
-  repo: Repo,
-  node: Parameters<typeof getNodeDisplayNameBase>[0],
-) => getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
-export const getCollapsedTypeSuffix = (
-  repo: Repo,
-  node: Parameters<typeof getCollapsedTypeSuffixBase>[0],
-) => getCollapsedTypeSuffixBase(node, (id) => repo.getChildren(id))
+export const getNodeDisplayName = (repo: Repo, node: Parameters<typeof getNodeDisplayNameBase>[0]) =>
+  getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
+export const getCollapsedTypeSuffix = (repo: Repo, node: Parameters<typeof getCollapsedTypeSuffixBase>[0]) =>
+  getCollapsedTypeSuffixBase(node, (id) => repo.getChildren(id))
 export const getParentContext = (
   repo: Repo,
   node: Parameters<typeof getParentContextBase>[0],
@@ -62,10 +53,7 @@ export function createEmptyState(): TUIBoardState {
  * Initialize board state from a root node ID, path, or filename
  * Returns null if no suitable board found
  */
-export function initBoardState(
-  repo: Repo,
-  rootId?: string,
-): TUIBoardState | null {
+export function initBoardState(repo: Repo, rootId?: string): TUIBoardState | null {
   // rootId is required - no longer support root-level view
   // Callers should resolve repo root folder node if needed
   if (!rootId) {
@@ -107,10 +95,7 @@ export function* initBoardStateGenerator(
  * Generator version of buildBoardState that yields progress
  */
 // oxlint-disable-next-line complexity/complexity -- Async generator with batched queries
-export function* buildBoardStateGenerator(
-  repo: Repo,
-  rootId: string,
-): Generator<StepYield, TUIBoardState, unknown> {
+export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator<StepYield, TUIBoardState, unknown> {
   const rootNode = repo.getNode(rootId)
   const wipLimits = extractWipLimits(rootNode)
   const collapsedColumns = new Set<number>()
@@ -160,9 +145,7 @@ export function* buildBoardStateGenerator(
 
   // Add virtual body column if there's meaningful leading content
   // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
-  const meaningfulBody = bodyNodes.filter(
-    (n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
-  )
+  const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
   if (meaningfulBody.length > 0) {
     const bodyCards: CardState[] = meaningfulBody.map((node) => ({
       node,
@@ -184,8 +167,7 @@ export function* buildBoardStateGenerator(
     const rules = colNode.rules ?? parseColumnRules(colNode.content || "")
 
     // Extract body content within column (tasks/paragraphs before subsections)
-    const { body: colBodyNodes, items: structuralCards } =
-      extractBody(cardNodes)
+    const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes)
 
     const cards: CardState[] = []
 
@@ -278,10 +260,7 @@ function extractWipLimits(rootNode: KNode | null): Map<string, number> {
   const limits = new Map<string, number>()
   if (!rootNode?.data?.columns) return limits
 
-  const columnsConfig = rootNode.data.columns as Record<
-    string,
-    { limit?: number }
-  >
+  const columnsConfig = rootNode.data.columns as Record<string, { limit?: number }>
   for (const [colName, config] of Object.entries(columnsConfig)) {
     if (typeof config?.limit === "number" && config.limit > 0) {
       // Normalize column name: lowercase, replace spaces with underscores
@@ -398,9 +377,7 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
 
   // Add virtual body column if there's meaningful leading content
   // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
-  const meaningfulBody = bodyNodes.filter(
-    (n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
-  )
+  const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
   if (meaningfulBody.length > 0) {
     const bodyCards: CardState[] = meaningfulBody.map((node) => ({
       node,
@@ -422,8 +399,7 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
     const rules = colNode.rules ?? parseColumnRules(colNode.content || "")
 
     // Extract body content within column (tasks/paragraphs before subsections)
-    const { body: colBodyNodes, items: structuralCards } =
-      extractBody(cardNodes)
+    const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes)
 
     const cards: CardState[] = []
 

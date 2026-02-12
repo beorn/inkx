@@ -32,9 +32,7 @@ describe("cas.ts", () => {
     test("returns SHA-256 hash of content", () => {
       const hash = hashContent("hello world")
       // Known SHA-256 hash of "hello world"
-      expect(hash).toBe(
-        "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",
-      )
+      expect(hash).toBe("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9")
     })
 
     test("different content produces different hashes", () => {
@@ -82,10 +80,7 @@ describe("cas.ts", () => {
 
     test("loadContent returns null for non-existent hash", () =>
       withTestEnvSync(({ kmDir }) => {
-        const result = loadContent(
-          kmDir,
-          "0000000000000000000000000000000000000000000000000000000000000000",
-        )
+        const result = loadContent(kmDir, "0000000000000000000000000000000000000000000000000000000000000000")
         expect(result).toBeNull()
       }))
   })
@@ -101,12 +96,7 @@ describe("cas.ts", () => {
 
     test("returns false when content doesn't exist", () =>
       withTestEnvSync(({ kmDir }) => {
-        expect(
-          hasContent(
-            kmDir,
-            "0000000000000000000000000000000000000000000000000000000000000000",
-          ),
-        ).toBe(false)
+        expect(hasContent(kmDir, "0000000000000000000000000000000000000000000000000000000000000000")).toBe(false)
       }))
   })
 

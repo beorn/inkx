@@ -20,11 +20,7 @@ import {
   parseHeadingRules,
 } from "../src/parser.ts"
 
-import {
-  parseMarkdownToNodes,
-  buildNodeTree,
-  parseMarkdownWithLinks,
-} from "../src/ast2nodes.ts"
+import { parseMarkdownToNodes, buildNodeTree, parseMarkdownWithLinks } from "../src/ast2nodes.ts"
 
 import { nodesToMarkdown } from "../src/nodes2md.ts"
 import { makeTestNode } from "./helpers/test-utils.ts"
@@ -34,8 +30,7 @@ import { makeTestNode } from "./helpers/test-utils.ts"
 // -----------------------------------------------------------------------------
 
 /** Create a paragraph node for serialization tests */
-const makeParagraph = (content: string) =>
-  makeTestNode({ type: "paragraph", content })
+const makeParagraph = (content: string) => makeTestNode({ type: "paragraph", content })
 
 /** Create a task node for serialization tests */
 const makeTask = (
@@ -66,8 +61,7 @@ const makeSection = (content: string, depth: number) =>
   })
 
 /** Create a code node for serialization tests */
-const makeCode = (content: string, lang?: string) =>
-  makeTestNode({ type: "code", content, data: { lang } })
+const makeCode = (content: string, lang?: string) => makeTestNode({ type: "code", content, data: { lang } })
 
 /** Create a quote node for serialization tests */
 const makeQuote = (content: string) => makeTestNode({ type: "quote", content })
@@ -190,12 +184,9 @@ tags: [a, b, c]
         field: "scheduledDate",
         expected: "2026-01-15",
       },
-    ] as const)(
-      "should parse $field from '$text'",
-      ({ text, field, expected }) => {
-        expect(parseTaskMetadata(text)[field]).toBe(expected)
-      },
-    )
+    ] as const)("should parse $field from '$text'", ({ text, field, expected }) => {
+      expect(parseTaskMetadata(text)[field]).toBe(expected)
+    })
 
     test.each([
       // Emoji format priorities
@@ -508,9 +499,7 @@ More content
 describe("Nodes to Markdown", () => {
   describe("nodesToMarkdown", () => {
     test("should serialize paragraph node", () => {
-      expect(nodesToMarkdown([makeParagraph("Hello world!")])).toContain(
-        "Hello world!",
-      )
+      expect(nodesToMarkdown([makeParagraph("Hello world!")])).toContain("Hello world!")
     })
 
     test("should serialize task node", () => {
@@ -520,39 +509,29 @@ describe("Nodes to Markdown", () => {
     })
 
     test("should serialize completed task", () => {
-      expect(
-        nodesToMarkdown([makeTask("Done task", { status: "done", mark: "x" })]),
-      ).toContain("- [x]")
+      expect(nodesToMarkdown([makeTask("Done task", { status: "done", mark: "x" })])).toContain("- [x]")
     })
 
     test("should serialize task with metadata using emoji format", () => {
-      const md = nodesToMarkdown([
-        makeTask("Important task", { dueDate: "2025-03-15", priority: 1 }),
-      ])
+      const md = nodesToMarkdown([makeTask("Important task", { dueDate: "2025-03-15", priority: 1 })])
       // Implementation uses Obsidian Tasks emoji format
       expect(md).toContain("📅 2025-03-15")
       expect(md).toContain("⏫") // priority 1 = high
     })
 
     test("should serialize section node as heading", () => {
-      expect(nodesToMarkdown([makeSection("My Section", 2)])).toContain(
-        "## My Section",
-      )
+      expect(nodesToMarkdown([makeSection("My Section", 2)])).toContain("## My Section")
     })
 
     test("should serialize code block", () => {
-      const md = nodesToMarkdown([
-        makeCode('console.log("hello");', "javascript"),
-      ])
+      const md = nodesToMarkdown([makeCode('console.log("hello");', "javascript")])
       expect(md).toContain("```javascript")
       expect(md).toContain('console.log("hello");')
       expect(md).toContain("```")
     })
 
     test("should serialize quote block", () => {
-      expect(nodesToMarkdown([makeQuote("Famous quote here")])).toContain(
-        "> Famous quote here",
-      )
+      expect(nodesToMarkdown([makeQuote("Famous quote here")])).toContain("> Famous quote here")
     })
 
     test("should serialize horizontal rule", () => {
@@ -685,9 +664,7 @@ describe("parseHeadingRules", () => {
   })
 
   test("should extract multiple rules", () => {
-    const result = parseHeadingRules(
-      'Today add="due:past" sync=status:open limit=10 collapse=true',
-    )
+    const result = parseHeadingRules('Today add="due:past" sync=status:open limit=10 collapse=true')
     expect(result.title).toBe("Today")
     expect(result.rules.add).toBe("due:past")
     expect(result.rules.sync).toBe("status:open")

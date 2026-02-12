@@ -8,12 +8,7 @@ import React from "react"
 import { createFakeRepo } from "@km/storage"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
-import {
-  createEmptyState,
-  initBoardState,
-  buildBoardState,
-  getNodeDisplayName,
-} from "../src/state.ts"
+import { createEmptyState, initBoardState, buildBoardState, getNodeDisplayName } from "../src/state.ts"
 import { renderCard } from "../src/render.ts"
 import { renderStatic } from "inkx"
 import { StoreContext } from "inkx/runtime"
@@ -27,11 +22,7 @@ import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
 import type { TUIBoardState } from "../src/types.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
-function renderBoardCore(
-  state: TUIBoardState,
-  repo: Repo,
-  options: { width?: number; height?: number } = {},
-) {
+function renderBoardCore(state: TUIBoardState, repo: Repo, options: { width?: number; height?: number } = {}) {
   const { width = 80, height = 24 } = options
   const boardCoreElement = React.createElement(BoardCore, {
     state,
@@ -88,11 +79,7 @@ function renderBoardCore(
 
 describe("State", () => {
   test("buildBoardState creates columns from children", () => {
-    const nodes = item(
-      "board",
-      item("col1", item("1a"), item("1b")),
-      item("col2", item("2a")),
-    )
+    const nodes = item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a")))
     const repo = createFakeRepo({ nodes })
     const state = buildBoardState(repo, "board")
     expect(state.rootId).toBe("board")
@@ -102,11 +89,7 @@ describe("State", () => {
   })
 
   test("initBoardState builds state from repo root", () => {
-    const nodes = item.root(
-      "repo-root",
-      item.folder("Projects"),
-      item.folder("Archive"),
-    )
+    const nodes = item.root("repo-root", item.folder("Projects"), item.folder("Archive"))
     const repo = createFakeRepo({ nodes })
     const state = initBoardState(repo, "repo-root")
     expect(state).not.toBeNull()
@@ -117,21 +100,14 @@ describe("State", () => {
   test("initBoardState handles nested folders", () => {
     const nodes = item.root(
       "repo-root",
-      item.folder(
-        "ref",
-        item.folder("Projects"),
-        item.folder("Archive"),
-        item.folder("Work"),
-      ),
+      item.folder("ref", item.folder("Projects"), item.folder("Archive"), item.folder("Work")),
     )
     const repo = createFakeRepo({ nodes })
     const state = initBoardState(repo, "ref")
     expect(state).not.toBeNull()
     expect(state!.rootId).toBe("ref")
     expect(state!.columns).toHaveLength(3)
-    const cardNames = state!.columns.map(
-      (c) => c.node.content || c.node.data?.name,
-    )
+    const cardNames = state!.columns.map((c) => c.node.content || c.node.data?.name)
     expect(cardNames).toEqual(["Projects", "Archive", "Work"])
   })
 

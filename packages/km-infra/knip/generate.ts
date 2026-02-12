@@ -48,10 +48,7 @@ function findMonorepoRoot(startDir: string): string {
 }
 
 // Get all workspace package directories
-async function getWorkspacePackages(
-  root: string,
-  patterns: string[],
-): Promise<string[]> {
+async function getWorkspacePackages(root: string, patterns: string[]): Promise<string[]> {
   const packages: string[] = []
 
   for (const pattern of patterns) {
@@ -78,10 +75,7 @@ function hasFiles(root: string, pkgDir: string, pattern: string): boolean {
 }
 
 // Generate Knip config for a package
-function generateKnipConfig(
-  pkgDir: string,
-  root: string,
-): KnipWorkspaceConfig | null {
+function generateKnipConfig(pkgDir: string, root: string): KnipWorkspaceConfig | null {
   const srcDir = join(root, pkgDir, "src")
   const testsDir = join(root, pkgDir, "tests")
 
@@ -134,9 +128,7 @@ async function main() {
   const shouldWrite = args.includes("--write")
 
   const root = findMonorepoRoot(process.cwd())
-  const rootPkgJson = JSON.parse(
-    readFileSync(join(root, "package.json"), "utf-8"),
-  ) as PackageJson
+  const rootPkgJson = JSON.parse(readFileSync(join(root, "package.json"), "utf-8")) as PackageJson
 
   if (!rootPkgJson.workspaces) {
     console.error("No workspaces found in package.json")
@@ -170,9 +162,7 @@ async function main() {
     const knipPath = join(root, "knip.json")
     writeFileSync(knipPath, output)
     console.log(`Updated ${relative(process.cwd(), knipPath)}`)
-    console.log(
-      `Generated config for ${Object.keys(config.workspaces).length} workspaces`,
-    )
+    console.log(`Generated config for ${Object.keys(config.workspaces).length} workspaces`)
   } else {
     console.log(output)
   }

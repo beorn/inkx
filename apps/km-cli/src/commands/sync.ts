@@ -14,13 +14,7 @@ import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync")
-import {
-  SyncManager,
-  findKmRootFromPath,
-  readEvents,
-  SCHEMA,
-  ensureRepoRootNode,
-} from "@km/storage"
+import { SyncManager, findKmRootFromPath, readEvents, SCHEMA, ensureRepoRootNode } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 
 // ============================================
@@ -34,11 +28,7 @@ export const syncCommand = new Command("sync")
   .option("--to-fs", "Sync from database to filesystem")
   .option("--dry-run", "Show what would be synced without making changes")
   .option("-w, --watch", "Watch for filesystem changes continuously")
-  .option(
-    "--debounce <ms>",
-    "Debounce interval in ms (only with --watch)",
-    "5000",
-  )
+  .option("--debounce <ms>", "Debounce interval in ms (only with --watch)", "5000")
   .action(async (path, options) => {
     // Resolve repo path from argument or current directory
     const searchPath = path ? resolve(path) : process.cwd()
@@ -152,10 +142,7 @@ async function runSync(
     toFs: options.toFs,
     dryRun: options.dryRun,
   })
-  console.log(
-    term.bold(`Syncing .km/state.db with files`),
-    term.dim(`(repo ${formatPath(repoPath)})`),
-  )
+  console.log(term.bold(`Syncing .km/state.db with files`), term.dim(`(repo ${formatPath(repoPath)})`))
 
   if (options.dryRun) {
     console.log(term.yellow("Dry run mode - no changes will be made"))
@@ -166,12 +153,10 @@ async function runSync(
   try {
     // Step 1: Apply any pending events from events.jsonl to state.db
     const events = readEvents(kmRoot)
-    const lastApplied = db
-      .prepare("SELECT value FROM meta WHERE key = ?")
-      .get("last_event") as { value: string } | undefined
-    const newEvents = events.filter(
-      (e) => !lastApplied?.value || e.id > lastApplied.value,
-    )
+    const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
+      | { value: string }
+      | undefined
+    const newEvents = events.filter((e) => !lastApplied?.value || e.id > lastApplied.value)
 
     if (newEvents.length > 0) {
       const { applyEventWithDb } = await import("@km/storage")
@@ -185,10 +170,7 @@ async function runSync(
         db.run("ROLLBACK")
         throw error
       }
-      console.log(
-        term.green("✓"),
-        `Applied ${newEvents.length} event(s) from events.jsonl`,
-      )
+      console.log(term.green("✓"), `Applied ${newEvents.length} event(s) from events.jsonl`)
     }
 
     // Step 2: Sync with filesystem

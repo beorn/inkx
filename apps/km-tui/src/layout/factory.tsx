@@ -15,13 +15,7 @@ import React, {
   type ReactNode,
   type ReactElement,
 } from "react"
-import {
-  constrainText,
-  displayWidth,
-  wrapText,
-  truncateText,
-  padText,
-} from "inkx"
+import { constrainText, displayWidth, wrapText, truncateText, padText } from "inkx"
 
 // =============================================================================
 // Text Utilities (re-export from inkx with aliases)
@@ -36,18 +30,8 @@ export { constrainText, wrapText, truncateText, padText }
  * Simple scroll offset calculator for centering selected item in view.
  * Use calculateScrollState for full virtualized list handling.
  */
-export function calcScrollOffset(
-  selectedIndex: number,
-  maxVisible: number,
-  totalCount: number,
-): number {
-  return Math.max(
-    0,
-    Math.min(
-      selectedIndex - Math.floor(maxVisible / 2),
-      Math.max(0, totalCount - maxVisible),
-    ),
-  )
+export function calcScrollOffset(selectedIndex: number, maxVisible: number, totalCount: number): number {
+  return Math.max(0, Math.min(selectedIndex - Math.floor(maxVisible / 2), Math.max(0, totalCount - maxVisible)))
 }
 
 // =============================================================================
@@ -73,9 +57,7 @@ export interface ConstraintContextValue {
 }
 
 /** The context - starts undefined, must be wrapped in ConstraintRoot */
-export const ConstraintContext = createContext<
-  ConstraintContextValue | undefined
->(undefined)
+export const ConstraintContext = createContext<ConstraintContextValue | undefined>(undefined)
 
 /**
  * Hook to access the constraint context.
@@ -145,11 +127,7 @@ export function FlexItem({ children }: FlexItemProps): ReactElement {
  * Distribute available space among items using integer math.
  * Avoids floating-point errors that cause 1-char gaps.
  */
-export function distributeSpace(
-  total: number,
-  configs: FlexItemConfig[],
-  gap: number,
-): number[] {
+export function distributeSpace(total: number, configs: FlexItemConfig[], gap: number): number[] {
   if (configs.length === 0) {
     return []
   }
@@ -278,10 +256,7 @@ export function calculateScrollState<T>(
     }
   }
 
-  let maxVisible = Math.max(
-    1,
-    Math.floor((availableHeight - indicatorHeight * 2) / effectiveItemHeight),
-  )
+  let maxVisible = Math.max(1, Math.floor((availableHeight - indicatorHeight * 2) / effectiveItemHeight))
 
   const halfVisible = Math.floor(maxVisible / 2)
   let scrollOffset = Math.max(0, selectedIndex - halfVisible)
@@ -289,27 +264,19 @@ export function calculateScrollState<T>(
 
   const willShowTop = scrollOffset > 0
   const willShowBottom = scrollOffset + maxVisible < items.length
-  const actualIndicatorSpace =
-    (willShowTop ? indicatorHeight : 0) + (willShowBottom ? indicatorHeight : 0)
+  const actualIndicatorSpace = (willShowTop ? indicatorHeight : 0) + (willShowBottom ? indicatorHeight : 0)
 
   if (hasOverflowIndicator) {
-    maxVisible = Math.max(
-      1,
-      Math.floor(
-        (availableHeight - actualIndicatorSpace) / effectiveItemHeight,
-      ),
-    )
+    maxVisible = Math.max(1, Math.floor((availableHeight - actualIndicatorSpace) / effectiveItemHeight))
 
     scrollOffset = Math.max(0, selectedIndex - Math.floor(maxVisible / 2))
     scrollOffset = Math.min(scrollOffset, items.length - maxVisible)
   }
 
-  const visible = items
-    .slice(scrollOffset, scrollOffset + maxVisible)
-    .map((item, i) => ({
-      item,
-      index: scrollOffset + i,
-    }))
+  const visible = items.slice(scrollOffset, scrollOffset + maxVisible).map((item, i) => ({
+    item,
+    index: scrollOffset + i,
+  }))
 
   return {
     visible,
@@ -365,25 +332,13 @@ function calculateVariableHeightScrollState<T>(
   const willShowTop = scrollOffset > 0
   let effectiveHeight = availableHeight - (willShowTop ? indicatorHeight : 0)
 
-  let { endIndex } = fillViewport(
-    heights,
-    scrollOffset,
-    items.length,
-    effectiveHeight,
-    indicatorHeight,
-  )
+  let { endIndex } = fillViewport(heights, scrollOffset, items.length, effectiveHeight, indicatorHeight)
 
   // Selected above viewport
   if (safeSelectedIndex < scrollOffset) {
     scrollOffset = safeSelectedIndex
     effectiveHeight = availableHeight - (scrollOffset > 0 ? indicatorHeight : 0)
-    ;({ endIndex } = fillViewport(
-      heights,
-      scrollOffset,
-      items.length,
-      effectiveHeight,
-      indicatorHeight,
-    ))
+    ;({ endIndex } = fillViewport(heights, scrollOffset, items.length, effectiveHeight, indicatorHeight))
   }
   // Selected below viewport
   else if (safeSelectedIndex >= endIndex) {
@@ -391,8 +346,7 @@ function calculateVariableHeightScrollState<T>(
     let usedHeight = heights[safeSelectedIndex] ?? 1
     scrollOffset = safeSelectedIndex
     const hasBottom = safeSelectedIndex + 1 < items.length
-    effectiveHeight =
-      availableHeight - indicatorHeight - (hasBottom ? indicatorHeight : 0)
+    effectiveHeight = availableHeight - indicatorHeight - (hasBottom ? indicatorHeight : 0)
     for (let i = safeSelectedIndex - 1; i >= 0; i--) {
       const h = heights[i] ?? 0
       if (usedHeight + h <= effectiveHeight) {
@@ -403,13 +357,7 @@ function calculateVariableHeightScrollState<T>(
       }
     }
     effectiveHeight = availableHeight - (scrollOffset > 0 ? indicatorHeight : 0)
-    ;({ endIndex } = fillViewport(
-      heights,
-      scrollOffset,
-      items.length,
-      effectiveHeight,
-      indicatorHeight,
-    ))
+    ;({ endIndex } = fillViewport(heights, scrollOffset, items.length, effectiveHeight, indicatorHeight))
   }
 
   const visible = items.slice(scrollOffset, endIndex).map((item, i) => ({
@@ -486,10 +434,7 @@ export function createLayoutComponents(fw: Framework) {
   /**
    * Root component that provides terminal dimensions via context
    */
-  function ConstraintRoot({
-    children,
-    padding = 0,
-  }: ConstraintRootProps): ReactElement {
+  function ConstraintRoot({ children, padding = 0 }: ConstraintRootProps): ReactElement {
     const { stdout } = useStdout()
     const [terminal, setTerminal] = useState<TerminalSize>({
       columns: stdout?.columns ?? 80,
@@ -520,11 +465,7 @@ export function createLayoutComponents(fw: Framework) {
       height: Math.max(1, terminal.rows - py * 2),
     }
 
-    return (
-      <ConstraintContext.Provider value={{ terminal, parent }}>
-        {children}
-      </ConstraintContext.Provider>
-    )
+    return <ConstraintContext.Provider value={{ terminal, parent }}>{children}</ConstraintContext.Provider>
   }
 
   /**
@@ -549,10 +490,7 @@ export function createLayoutComponents(fw: Framework) {
       return { flex: 1 }
     })
 
-    const widths = useMemo(
-      () => distributeSpace(parent.width, configs, gap),
-      [parent.width, configs, gap],
-    )
+    const widths = useMemo(() => distributeSpace(parent.width, configs, gap), [parent.width, configs, gap])
 
     return (
       <Box flexDirection="row" gap={gap}>
@@ -561,15 +499,10 @@ export function createLayoutComponents(fw: Framework) {
           const childSize: ComputedSize = { width, height: parent.height }
 
           const content =
-            React.isValidElement(child) && child.type === FlexItem
-              ? (child.props as FlexItemProps).children
-              : child
+            React.isValidElement(child) && child.type === FlexItem ? (child.props as FlexItemProps).children : child
 
           return (
-            <ConstraintContext.Provider
-              key={i}
-              value={{ terminal, parent: childSize }}
-            >
+            <ConstraintContext.Provider key={i} value={{ terminal, parent: childSize }}>
               <Box width={width}>{content}</Box>
             </ConstraintContext.Provider>
           )
@@ -623,12 +556,7 @@ export function createLayoutComponents(fw: Framework) {
       ellipsis?: string
     } = {},
   ): { lines: string[]; truncated: boolean } {
-    const {
-      maxLines = 1,
-      width: widthOverride,
-      pad = false,
-      ellipsis,
-    } = options
+    const { maxLines = 1, width: widthOverride, pad = false, ellipsis } = options
 
     let contextSize: ComputedSize | null = null
     try {
@@ -639,22 +567,13 @@ export function createLayoutComponents(fw: Framework) {
 
     const width = widthOverride ?? contextSize?.width ?? 80
 
-    return useMemo(
-      () => constrainText(text, width, maxLines, pad, ellipsis),
-      [text, width, maxLines, pad, ellipsis],
-    )
+    return useMemo(() => constrainText(text, width, maxLines, pad, ellipsis), [text, width, maxLines, pad, ellipsis])
   }
 
   /**
    * Default overflow indicator
    */
-  function DefaultOverflow({
-    direction,
-    count,
-  }: {
-    direction: "top" | "bottom"
-    count: number
-  }): ReactElement {
+  function DefaultOverflow({ direction, count }: { direction: "top" | "bottom"; count: number }): ReactElement {
     const arrow = direction === "top" ? "▲" : "▼"
     const text = `${arrow} ${count} more`
     return (
@@ -693,21 +612,10 @@ export function createLayoutComponents(fw: Framework) {
           hasOverflowIndicator,
           getItemHeight,
         ),
-      [
-        items,
-        selectedIndex,
-        availableHeight,
-        itemHeight,
-        gap,
-        hasOverflowIndicator,
-        getItemHeight,
-      ],
+      [items, selectedIndex, availableHeight, itemHeight, gap, hasOverflowIndicator, getItemHeight],
     )
 
-    const renderOverflowIndicator = (
-      direction: "top" | "bottom",
-      count: number,
-    ): ReactNode => {
+    const renderOverflowIndicator = (direction: "top" | "bottom", count: number): ReactNode => {
       if (renderOverflow) {
         return renderOverflow(direction, count)
       }
@@ -718,12 +626,9 @@ export function createLayoutComponents(fw: Framework) {
       <Box flexDirection="column" gap={gap}>
         {overflowTop > 0 && renderOverflowIndicator("top", overflowTop)}
         {visible.map(({ item, index }) => (
-          <React.Fragment key={index}>
-            {renderItem(item, index, index === selectedIndex)}
-          </React.Fragment>
+          <React.Fragment key={index}>{renderItem(item, index, index === selectedIndex)}</React.Fragment>
         ))}
-        {overflowBottom > 0 &&
-          renderOverflowIndicator("bottom", overflowBottom)}
+        {overflowBottom > 0 && renderOverflowIndicator("bottom", overflowBottom)}
       </Box>
     )
   }
@@ -743,13 +648,7 @@ export function createLayoutComponents(fw: Framework) {
     } = {},
   ): ScrollState<T> {
     const { parent } = useConstraintContext()
-    const {
-      itemHeight = 1,
-      gap = 0,
-      height: heightOverride,
-      hasOverflowIndicator = true,
-      getItemHeight,
-    } = options
+    const { itemHeight = 1, gap = 0, height: heightOverride, hasOverflowIndicator = true, getItemHeight } = options
 
     const availableHeight = heightOverride ?? parent.height
 
@@ -764,15 +663,7 @@ export function createLayoutComponents(fw: Framework) {
           hasOverflowIndicator,
           getItemHeight,
         ),
-      [
-        items,
-        selectedIndex,
-        availableHeight,
-        itemHeight,
-        gap,
-        hasOverflowIndicator,
-        getItemHeight,
-      ],
+      [items, selectedIndex, availableHeight, itemHeight, gap, hasOverflowIndicator, getItemHeight],
     )
   }
 

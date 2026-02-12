@@ -21,11 +21,7 @@ import { relative } from "path"
  * @param lineNum - Optional line number for markdown elements
  * @returns Deterministic ID based on path
  */
-export function generatePathBasedId(
-  repoRoot: string,
-  fsPath: string,
-  lineNum?: number,
-): string {
+export function generatePathBasedId(repoRoot: string, fsPath: string, lineNum?: number): string {
   const relPath = relative(repoRoot, fsPath)
   return lineNum !== undefined ? `${relPath}:${lineNum}` : relPath
 }

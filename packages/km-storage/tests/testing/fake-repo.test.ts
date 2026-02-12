@@ -155,9 +155,7 @@ describe("FakeRepo", () => {
 
     it("updateNode throws for unknown id", () => {
       const repo = createFakeRepo()
-      expect(() => repo.updateNode("unknown", {})).toThrow(
-        "Node unknown not found",
-      )
+      expect(() => repo.updateNode("unknown", {})).toThrow("Node unknown not found")
     })
 
     it("moveNode changes parent and position", () => {

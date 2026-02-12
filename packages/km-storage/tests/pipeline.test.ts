@@ -31,10 +31,7 @@ function createTestDb(): Database {
 }
 
 /** Create a node object with sensible defaults */
-function createNode(
-  id: string,
-  overrides: Partial<ParsedFile["nodes"][0]> = {},
-): ParsedFile["nodes"][0] {
+function createNode(id: string, overrides: Partial<ParsedFile["nodes"][0]> = {}): ParsedFile["nodes"][0] {
   return {
     id,
     type: "file",
@@ -50,11 +47,7 @@ function createNode(
 }
 
 /** Create a parsed file with sensible defaults */
-function createParsedFile(
-  path: string,
-  nodeId: string,
-  overrides: Partial<ParsedFile> = {},
-): ParsedFile {
+function createParsedFile(path: string, nodeId: string, overrides: Partial<ParsedFile> = {}): ParsedFile {
   return {
     path,
     nodeId,
@@ -98,9 +91,7 @@ function createResolvedLink(
 }
 
 /** Mock ParsePoolService that returns pre-defined results */
-function createMockPool(
-  results: Map<string, Partial<ParsedFile>>,
-): Parameters<typeof parseFiles>[1] {
+function createMockPool(results: Map<string, Partial<ParsedFile>>): Parameters<typeof parseFiles>[1] {
   // Only `stream` is needed for pipeline tests
   return {
     async *stream(files: Array<{ nodeId: string; fsPath: string }>) {
@@ -189,10 +180,7 @@ describe("parseFiles()", () => {
     const results = await collect(parseFiles(sources, mockPool as never))
 
     expect(results).toHaveLength(2)
-    expect(results.map((r) => r.path).sort()).toEqual([
-      "/test/file1.md",
-      "/test/file2.md",
-    ])
+    expect(results.map((r) => r.path).sort()).toEqual(["/test/file1.md", "/test/file2.md"])
   })
 
   test("yields empty for no sources", async () => {
@@ -202,13 +190,9 @@ describe("parseFiles()", () => {
   })
 
   test("includes error in result when parse fails", async () => {
-    const mockPool = createMockPool(
-      new Map([["/test/bad.md", { error: "Parse failed" }]]),
-    )
+    const mockPool = createMockPool(new Map([["/test/bad.md", { error: "Parse failed" }]]))
 
-    const sources: ParseSource[] = [
-      { path: "/test/bad.md", nodeId: "bad1", isCreate: true },
-    ]
+    const sources: ParseSource[] = [{ path: "/test/bad.md", nodeId: "bad1", isCreate: true }]
 
     const results = await collect(parseFiles(sources, mockPool as never))
 
@@ -221,17 +205,11 @@ describe("parseFiles()", () => {
     const controller = new AbortController()
     controller.abort() // Abort immediately
 
-    const mockPool = createMockPool(
-      new Map([["/test/file.md", { nodes: [createNode("n1")] }]]),
-    )
+    const mockPool = createMockPool(new Map([["/test/file.md", { nodes: [createNode("n1")] }]]))
 
-    const sources: ParseSource[] = [
-      { path: "/test/file.md", nodeId: "n1", isCreate: true },
-    ]
+    const sources: ParseSource[] = [{ path: "/test/file.md", nodeId: "n1", isCreate: true }]
 
-    const results = await collect(
-      parseFiles(sources, mockPool as never, controller.signal),
-    )
+    const results = await collect(parseFiles(sources, mockPool as never, controller.signal))
 
     // Should return empty since aborted
     expect(results).toEqual([])
@@ -285,9 +263,7 @@ describe("applyNodes()", () => {
     expect(results).toHaveLength(1)
 
     // Verify metadata was updated
-    const node = db
-      .query("SELECT fs_ino, fs_mtime, content_hash FROM nodes WHERE id = ?")
-      .get("file1") as {
+    const node = db.query("SELECT fs_ino, fs_mtime, content_hash FROM nodes WHERE id = ?").get("file1") as {
       fs_ino: number
       fs_mtime: number
       content_hash: string
@@ -358,14 +334,10 @@ describe("pipelineResolveLinks()", () => {
     )
 
     const appliedFiles = [
-      createAppliedFile("source1", "source", "/test/source.md", [
-        { nodeId: "source1", link: { target: "target" } },
-      ]),
+      createAppliedFile("source1", "source", "/test/source.md", [{ nodeId: "source1", link: { target: "target" } }]),
     ]
 
-    const results = await collect(
-      pipelineResolveLinks(fromArray(appliedFiles), db),
-    )
+    const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
 
     expect(results).toHaveLength(1)
     expect(results[0]!.source_id).toBe("source1")
@@ -378,15 +350,11 @@ describe("pipelineResolveLinks()", () => {
 
     // No pre-existing files - both are in the batch
     const appliedFiles = [
-      createAppliedFile("file1", "first", "/test/first.md", [
-        { nodeId: "file1", link: { target: "second" } },
-      ]),
+      createAppliedFile("file1", "first", "/test/first.md", [{ nodeId: "file1", link: { target: "second" } }]),
       createAppliedFile("file2", "second", "/test/second.md"),
     ]
 
-    const results = await collect(
-      pipelineResolveLinks(fromArray(appliedFiles), db),
-    )
+    const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
 
     expect(results).toHaveLength(1)
     expect(results[0]!.target_id).toBe("file2") // Forward reference resolved!
@@ -396,14 +364,10 @@ describe("pipelineResolveLinks()", () => {
     const db = createTestDb()
 
     const appliedFiles = [
-      createAppliedFile("file1", "source", "/test/source.md", [
-        { nodeId: "file1", link: { target: "nonexistent" } },
-      ]),
+      createAppliedFile("file1", "source", "/test/source.md", [{ nodeId: "file1", link: { target: "nonexistent" } }]),
     ]
 
-    const results = await collect(
-      pipelineResolveLinks(fromArray(appliedFiles), db),
-    )
+    const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
 
     expect(results).toHaveLength(1)
     expect(results[0]!.target_id).toBeNull()
@@ -425,9 +389,7 @@ describe("pipelineResolveLinks()", () => {
       ]),
     ]
 
-    const results = await collect(
-      pipelineResolveLinks(fromArray(appliedFiles), db),
-    )
+    const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
 
     expect(results).toHaveLength(1)
     expect(results[0]!.source_id).toBe("file1")
@@ -450,9 +412,7 @@ describe("pipelineResolveLinks()", () => {
       ]),
     ]
 
-    const results = await collect(
-      pipelineResolveLinks(fromArray(appliedFiles), db),
-    )
+    const results = await collect(pipelineResolveLinks(fromArray(appliedFiles), db))
 
     expect(results).toHaveLength(1)
     expect(results[0]!.target_id).toBe("section1") // Section resolved by name!
@@ -494,9 +454,10 @@ describe("applyLinks()", () => {
     await runPipeline(applyLinks(fromArray(links), db))
 
     // Verify link_to was updated on node
-    const node = db
-      .query("SELECT link_to, link_alias FROM nodes WHERE id = ?")
-      .get("src1") as { link_to: string; link_alias: string }
+    const node = db.query("SELECT link_to, link_alias FROM nodes WHERE id = ?").get("src1") as {
+      link_to: string
+      link_alias: string
+    }
     expect(node.link_to).toBe("tgt1")
     expect(node.link_alias).toBe("My Alias")
   })
@@ -557,9 +518,7 @@ describe("pipeline composition", () => {
     expect(nodes.map((n) => n.id)).toEqual(["a", "b"])
 
     // Verify links created with resolved targets
-    const links = db
-      .query("SELECT * FROM links ORDER BY source_id")
-      .all() as Array<{
+    const links = db.query("SELECT * FROM links ORDER BY source_id").all() as Array<{
       source_id: string
       target_id: string
     }>

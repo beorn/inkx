@@ -56,23 +56,13 @@
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
-import {
-  createRenderer,
-  keyToAnsi,
-  type App,
-  type AutoLocator,
-} from "inkx/testing"
+import { createRenderer, keyToAnsi, type App, type AutoLocator } from "inkx/testing"
 import { StoreContext } from "inkx/runtime"
 import { parseKey } from "inkx/runtime"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardState } from "../../src/board-types.ts"
-import {
-  createToastQueue,
-  type KNode,
-  type NodeRules,
-  type NodeType,
-} from "@km/core"
+import { createToastQueue, type KNode, type NodeRules, type NodeType } from "@km/core"
 
 import { BoardCore, Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
@@ -142,14 +132,7 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
     const addMatch = content.match(/\badd=([^\s]+)\b/)
     const colorMatch = content.match(/\bcolor=([^\s]+)\b/)
 
-    if (
-      limitMatch ||
-      collapseMatch ||
-      defaultMatch ||
-      syncMatch ||
-      addMatch ||
-      colorMatch
-    ) {
+    if (limitMatch || collapseMatch || defaultMatch || syncMatch || addMatch || colorMatch) {
       rules = {}
       if (limitMatch) rules.limit = Number.parseInt(limitMatch[1] ?? "0", 10)
       if (collapseMatch) rules.collapse = collapseMatch[1] === "true"
@@ -248,16 +231,14 @@ item.folder = (content: string, ...childArrays: KNode[][]): KNode[] =>
 item.section = (content: string, ...childArrays: KNode[][]): KNode[] =>
   makeNodeWithType(content, "section", {}, ...childArrays)
 
-item.paragraph = (content: string): KNode[] =>
-  makeNodeWithType(content, "paragraph", {})
+item.paragraph = (content: string): KNode[] => makeNodeWithType(content, "paragraph", {})
 
 item.file = (content: string, ...childArrays: KNode[][]): KNode[] =>
   makeNodeWithType(content, "file", {}, ...childArrays)
 
 item.code = (content: string): KNode[] => makeNodeWithType(content, "code", {})
 
-item.quote = (content: string): KNode[] =>
-  makeNodeWithType(content, "quote", {})
+item.quote = (content: string): KNode[] => makeNodeWithType(content, "quote", {})
 
 item.task = (content: string, status?: string): KNode[] => {
   const nodes = makeNodeWithType(content, "task", {})
@@ -272,12 +253,7 @@ item.task = (content: string, status?: string): KNode[] => {
  * Standard board fixture for common tests
  */
 function standardBoard() {
-  const nodes = item(
-    "board",
-    item("col1", item("1a"), item("1b")),
-    item("col2", item("2a")),
-    item("col3"),
-  )
+  const nodes = item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a")), item("col3"))
 
   return {
     repo: createFakeRepo({ nodes }),
@@ -370,11 +346,7 @@ export function testEnv(
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(
-      initialState.rootId,
-      initialState.rootPath,
-      initialCursorNodeId,
-    ),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
@@ -388,9 +360,7 @@ export function testEnv(
     dimensions: { columns, rows },
   }
 
-  const store = createStore<BoardAppStore>(
-    createBoardAppStoreState(storeParams),
-  )
+  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Render Board with StoreContext.Provider for L3 mode
   const render = createRenderer({ cols: columns, rows })
@@ -417,11 +387,7 @@ export function testEnv(
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
-      handleKey(
-        { input, key: parsedKey },
-        { get: store.getState, set: store.setState },
-        () => {},
-      )
+      handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
       // Trigger a no-op Zustand store update to ensure any pending
       // useSyncExternalStore updates (from repo mutations done outside
       // of press) get flushed during this act() cycle. Without this,
@@ -574,11 +540,7 @@ export function testEnvWithRepo(
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(
-      initialState.rootId,
-      initialState.rootPath,
-      initialCursorNodeId,
-    ),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
@@ -592,9 +554,7 @@ export function testEnvWithRepo(
     dimensions: { columns, rows },
   }
 
-  const store = createStore<BoardAppStore>(
-    createBoardAppStoreState(storeParams),
-  )
+  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Render Board with StoreContext.Provider for L3 mode
   const render = createRenderer({ cols: columns, rows })
@@ -620,11 +580,7 @@ export function testEnvWithRepo(
   const pressKey = (key: string) => {
     const [input, parsedKey] = parseKey(key)
     act(() => {
-      handleKey(
-        { input, key: parsedKey },
-        { get: store.getState, set: store.setState },
-        () => {},
-      )
+      handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
     })
     // Flush remaining React effects via originalPress (must be inside act()
     // to avoid ConcurrentRoot scheduling issues that corrupt absolute-positioned dialogs)
@@ -708,8 +664,7 @@ expect.extend({
     const pass = locator.count() > 0
     return {
       pass,
-      message: () =>
-        pass ? `Expected element not to exist` : `Expected element to exist`,
+      message: () => (pass ? `Expected element not to exist` : `Expected element to exist`),
     }
   },
   toHaveCount(received: unknown, expected: number) {
@@ -1253,10 +1208,7 @@ class BoardTestImpl implements BoardTest {
 /**
  * Render a board with the given state and return a test helper
  */
-export function renderBoard(
-  state: TUIBoardState,
-  options: BoardTestOptions = {},
-): BoardTest {
+export function renderBoard(state: TUIBoardState, options: BoardTestOptions = {}): BoardTest {
   const { columns = 80, rows = 24 } = options
 
   // Create a fake repo for static rendering tests
@@ -1379,11 +1331,7 @@ export function renderBoardWithStore(
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(
-      initialState.rootId,
-      initialState.rootPath,
-      initialCursorNodeId,
-    ),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
@@ -1397,9 +1345,7 @@ export function renderBoardWithStore(
     dimensions: { columns, rows },
   }
 
-  const store = createStore<BoardAppStore>(
-    createBoardAppStoreState(storeParams),
-  )
+  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   const renderFn = options.render ?? createRenderer({ cols: columns, rows })
   const boardElement = React.createElement(Board, {
@@ -1427,10 +1373,7 @@ export function renderBoardWithStore(
 /**
  * Create a column for the board DSL
  */
-export function column(
-  title: string,
-  cards: (string | { title: string; children?: string[] })[],
-) {
+export function column(title: string, cards: (string | { title: string; children?: string[] })[]) {
   const cardStates = cards.map((card, idx) => {
     if (typeof card === "string") {
       return createCardState({ content: card, parent_idx: idx })
@@ -1466,9 +1409,7 @@ export function column(
  * });
  * ```
  */
-export function board(config: {
-  columns: ReturnType<typeof column>[]
-}): TUIBoardState {
+export function board(config: { columns: ReturnType<typeof column>[] }): TUIBoardState {
   // Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
   return createBoardStateFixture(config.columns)
 }

@@ -9,11 +9,7 @@
 import { createLogger } from "@beorn/logger"
 import { cpus } from "os"
 import type { ServiceStatus } from "./watcher.ts"
-import type {
-  ParseRequest,
-  WorkerMessage,
-  WorkerResponse,
-} from "./parse-worker.ts"
+import type { ParseRequest, WorkerMessage, WorkerResponse } from "./parse-worker.ts"
 
 const log = createLogger("km:storage:parse-pool")
 
@@ -47,19 +43,14 @@ interface ParsePoolInternal {
     onProgress?: (current: number, total: number) => void,
     shouldAbort?: () => boolean,
   ): Promise<ParseResult[]>
-  stream(
-    files: Array<{ nodeId: string; fsPath: string }>,
-    signal?: AbortSignal,
-  ): AsyncGenerator<ParseResult>
+  stream(files: Array<{ nodeId: string; fsPath: string }>, signal?: AbortSignal): AsyncGenerator<ParseResult>
   shutdown(): Promise<void>
 }
 
 /**
  * Create a pool of worker threads for parallel markdown parsing.
  */
-function createParsePoolInternal(
-  options?: ParsePoolOptions,
-): ParsePoolInternal {
+function createParsePoolInternal(options?: ParsePoolOptions): ParsePoolInternal {
   const poolSize = options?.poolSize ?? Math.max(1, cpus().length - 1)
   log.debug?.(`creating pool with ${poolSize} workers`)
 
@@ -275,10 +266,7 @@ export interface ParsePoolService extends AsyncDisposable {
     shouldAbort?: () => boolean,
   ): Promise<ParseResult[]>
   /** Stream parse results as workers complete. Yields results as they arrive. */
-  stream(
-    files: Array<{ nodeId: string; fsPath: string }>,
-    signal?: AbortSignal,
-  ): AsyncGenerator<ParseResult>
+  stream(files: Array<{ nodeId: string; fsPath: string }>, signal?: AbortSignal): AsyncGenerator<ParseResult>
 }
 
 /**
@@ -358,10 +346,7 @@ export function createParsePool(options?: ParsePoolOptions): ParsePoolService {
       return pool.parseMany(files, onProgress, shouldAbort)
     },
 
-    stream(
-      files: Array<{ nodeId: string; fsPath: string }>,
-      signal?: AbortSignal,
-    ) {
+    stream(files: Array<{ nodeId: string; fsPath: string }>, signal?: AbortSignal) {
       return pool.stream(files, signal)
     },
 

@@ -146,9 +146,7 @@ END:VCALENDAR`
     expect(event).not.toBeNull()
     // Folding removes newline and leading whitespace, joining directly
     // "been\n folded" becomes "beenfolded"
-    expect(event!.summary).toBe(
-      "This is a very long summary that has beenfolded across multiple lines",
-    )
+    expect(event!.summary).toBe("This is a very long summary that has beenfolded across multiple lines")
   })
 
   test("returns null for invalid iCalendar without VEVENT", () => {
@@ -238,16 +236,12 @@ describe("formatICalendar", () => {
       summary: "Planning",
       dtstart: "2024-01-15T10:00:00Z",
       organizer: { email: "alice@example.com", name: "Alice" },
-      attendees: [
-        { email: "bob@example.com", name: "Bob", status: "ACCEPTED" as const },
-      ],
+      attendees: [{ email: "bob@example.com", name: "Bob", status: "ACCEPTED" as const }],
     }
 
     const ical = formatICalendar(event)
     expect(ical).toContain("ORGANIZER;CN=Alice;mailto:alice@example.com")
-    expect(ical).toContain(
-      "ATTENDEE;CN=Bob;PARTSTAT=ACCEPTED;mailto:bob@example.com",
-    )
+    expect(ical).toContain("ATTENDEE;CN=Bob;PARTSTAT=ACCEPTED;mailto:bob@example.com")
   })
 
   test("escapes special characters", () => {

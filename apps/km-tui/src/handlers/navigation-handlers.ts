@@ -28,13 +28,7 @@ const log = createLogger("km:tui:nav")
  * - child: enter first child
  * - parent: go to parent
  */
-export type TreeDirection =
-  | "next"
-  | "prev"
-  | "first"
-  | "last"
-  | "child"
-  | "parent"
+export type TreeDirection = "next" | "prev" | "first" | "last" | "child" | "parent"
 
 /**
  * Navigation state fields needed for tree navigation.
@@ -55,11 +49,7 @@ export interface TreeNavState {
  * @param repo - Repo for tree queries
  * @returns New cursorNodeId, or null if can't move
  */
-export function handleTreeNavigation(
-  direction: TreeDirection,
-  state: TreeNavState,
-  repo: Repo,
-): string | null {
+export function handleTreeNavigation(direction: TreeDirection, state: TreeNavState, repo: Repo): string | null {
   const { cursorNodeId, rootId, foldedNodes } = state
 
   // If no cursor, can't navigate
@@ -164,9 +154,7 @@ export function handleTreeNavigation(
     default: {
       // Exhaustiveness check - TypeScript will error if new TreeDirection values are added
       const _exhaustive: never = direction
-      throw new Error(
-        `Unhandled tree direction: ${_exhaustive as string}. This is a programming error.`,
-      )
+      throw new Error(`Unhandled tree direction: ${_exhaustive as string}. This is a programming error.`)
     }
   }
 }

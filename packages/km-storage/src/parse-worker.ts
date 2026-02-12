@@ -37,10 +37,7 @@ export interface ParseResponse {
 }
 
 export type WorkerMessage = ParseRequest | { type: "shutdown" }
-export type WorkerResponse =
-  | ParseResponse
-  | { type: "ready" }
-  | { type: "shutdown" }
+export type WorkerResponse = ParseResponse | { type: "ready" } | { type: "shutdown" }
 
 // Worker entry point
 declare const self: Worker
@@ -59,16 +56,9 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
       const stat = statSync(message.fsPath)
       const content = readFileSync(message.fsPath, "utf-8")
       const hash = createHash("sha256").update(content, "utf-8").digest("hex")
-      const { nodes, wikilinks } = parseMarkdownWithLinks(
-        content,
-        message.fsPath,
-        stat.ino,
-        stat.mtimeMs,
-      )
+      const { nodes, wikilinks } = parseMarkdownWithLinks(content, message.fsPath, stat.ino, stat.mtimeMs)
 
-      log.debug?.(
-        `parsed ${message.fsPath}: ${nodes.length} nodes, ${wikilinks.length} links`,
-      )
+      log.debug?.(`parsed ${message.fsPath}: ${nodes.length} nodes, ${wikilinks.length} links`)
       self.postMessage({
         type: "parsed",
         id: message.id,
@@ -81,9 +71,7 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         mtime: stat.mtimeMs,
       } satisfies ParseResponse)
     } catch (err) {
-      log.debug?.(
-        `parse error ${message.fsPath}: ${err instanceof Error ? err.message : String(err)}`,
-      )
+      log.debug?.(`parse error ${message.fsPath}: ${err instanceof Error ? err.message : String(err)}`)
       self.postMessage({
         type: "parsed",
         id: message.id,

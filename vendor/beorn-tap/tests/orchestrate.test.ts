@@ -41,9 +41,7 @@ describe("createOrchestrator", () => {
       mode: "parallel",
     })
 
-    await expect(orchestrator.run()).rejects.toThrow(
-      "Parallel mode requires renderParallel function",
-    )
+    await expect(orchestrator.run()).rejects.toThrow("Parallel mode requires renderParallel function")
   })
 
   test("parallel mode delegates to injected renderer", async () => {

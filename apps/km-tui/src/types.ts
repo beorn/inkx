@@ -52,13 +52,7 @@ export interface CardState {
 }
 
 // Status cycle order
-export const STATUS_CYCLE: TaskStatus[] = [
-  "todo",
-  "wip",
-  "blocked",
-  "done",
-  "dropped",
-]
+export const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
 // Task marks by status
 export const STATUS_MARKS: Record<TaskStatus, TaskMark> = {

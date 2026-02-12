@@ -73,9 +73,7 @@ export function getMarkForStatus(status: TaskStatus): TaskMark {
 }
 
 /** Task mark from title (e.g., "[x] Title") */
-const TITLE_TASK_MARK_REGEX = new RegExp(
-  `^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`,
-)
+const TITLE_TASK_MARK_REGEX = new RegExp(`^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`)
 
 /**
  * Extract task mark from title text.

@@ -25,11 +25,7 @@ import { expect } from "vitest"
 import type { Repo, KNode } from "@km/storage"
 import { createFakeRepo, createRepo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import {
-  createBoardDriver,
-  type BoardDriver,
-  type TUIDriverState,
-} from "../../src/driver.ts"
+import { createBoardDriver, type BoardDriver, type TUIDriverState } from "../../src/driver.ts"
 import { item } from "./board-test.ts"
 
 // =============================================================================
@@ -97,22 +93,14 @@ export interface CardInfo {
 /** Screen has content and no error strings */
 export const rendering: Invariant = (app) => {
   expect(app.text.length, "Screen is empty").toBeGreaterThan(0)
-  expect(app.text, "Screen contains [object Object]").not.toContain(
-    "[object Object]",
-  )
+  expect(app.text, "Screen contains [object Object]").not.toContain("[object Object]")
   expect(app.text, "Screen contains TypeError").not.toContain("TypeError:")
-  expect(app.text, "Screen contains ReferenceError").not.toContain(
-    "ReferenceError:",
-  )
+  expect(app.text, "Screen contains ReferenceError").not.toContain("ReferenceError:")
 }
 
 /** Cursor exists and is valid (unless in dialog) */
 export const cursor: Invariant = (app) => {
-  const inDialog =
-    app.dialogs.search ||
-    app.dialogs.help ||
-    app.dialogs.newItem ||
-    app.dialogs.projectPicker
+  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem || app.dialogs.projectPicker
   if (inDialog) return
 
   expect(app.cursor, "Cursor missing").toBeDefined()
@@ -132,10 +120,7 @@ export const selection: Invariant = (app) => {
 export const parentLinks: Invariant = (app) => {
   for (const node of app.repo.getAllNodes()) {
     if (node.parent_id) {
-      expect(
-        app.repo.getNode(node.parent_id),
-        `Parent "${node.parent_id}" missing for "${node.id}"`,
-      ).toBeDefined()
+      expect(app.repo.getNode(node.parent_id), `Parent "${node.parent_id}" missing for "${node.id}"`).toBeDefined()
     }
   }
 }
@@ -144,10 +129,7 @@ export const parentLinks: Invariant = (app) => {
 export const nodeLinks: Invariant = (app) => {
   for (const node of app.repo.getAllNodes()) {
     if (node.link_to) {
-      expect(
-        app.repo.getNode(node.link_to),
-        `Link "${node.link_to}" missing for "${node.id}"`,
-      ).toBeDefined()
+      expect(app.repo.getNode(node.link_to), `Link "${node.link_to}" missing for "${node.id}"`).toBeDefined()
     }
   }
 }
@@ -162,23 +144,14 @@ export const layout: Invariant = (app) => {
   if (state.cursor?.level === "board") return
 
   expect(l.colIndex, "Column index negative").toBeGreaterThanOrEqual(0)
-  expect(l.colIndex, "Column index out of bounds").toBeLessThan(
-    l.columns.length,
-  )
+  expect(l.colIndex, "Column index out of bounds").toBeLessThan(l.columns.length)
 }
 
 /** Default invariants - call manually with board.check() */
 export const defaultInvariants: Invariant[] = [rendering, cursor, selection]
 
 /** All invariants - the mother of all checks */
-export const allInvariants: Invariant[] = [
-  rendering,
-  cursor,
-  selection,
-  parentLinks,
-  nodeLinks,
-  layout,
-]
+export const allInvariants: Invariant[] = [rendering, cursor, selection, parentLinks, nodeLinks, layout]
 
 // =============================================================================
 // The App Interface
@@ -208,12 +181,7 @@ export interface BoardApp {
   check(...invariants: Invariant[]): BoardApp
 
   // Fluent assertions
-  shouldHave(e: {
-    cursor?: string
-    cursorOn?: string
-    viewMode?: string
-    text?: string | string[]
-  }): BoardApp
+  shouldHave(e: { cursor?: string; cursorOn?: string; viewMode?: string; text?: string | string[] }): BoardApp
   shouldNotHave(e: { text?: string | string[] }): BoardApp
 
   // Underlying
@@ -225,11 +193,7 @@ export interface BoardApp {
 // Implementation
 // =============================================================================
 
-function createBoardApp(
-  driver: BoardDriver,
-  repo: Repo,
-  invariants: Invariant[],
-): BoardApp {
+function createBoardApp(driver: BoardDriver, repo: Repo, invariants: Invariant[]): BoardApp {
   const runInvariants = () => {
     for (const inv of invariants) {
       inv(app)
@@ -299,8 +263,7 @@ function createBoardApp(
       return l.columns.map((col, index) => {
         const loc = driver.app.locator(`#${col.node.id}`)
         // Use name or data.name for folders
-        const title =
-          col.node.name ?? (col.node as any).data?.name ?? col.node.id
+        const title = col.node.name ?? (col.node as any).data?.name ?? col.node.id
         return {
           index,
           id: col.node.id,
@@ -321,20 +284,14 @@ function createBoardApp(
         col.cards.forEach((card, cardIndex) => {
           const loc = driver.app.locator(`#${card.node.id}`)
           // Use content for leaf nodes, name or data.name for folders
-          const text =
-            card.node.content ??
-            card.node.name ??
-            (card.node as any).data?.name ??
-            card.node.id
+          const text = card.node.content ?? card.node.name ?? (card.node as any).data?.name ?? card.node.id
           result.push({
             index: cardIndex,
             id: card.node.id,
             text,
             column: colIndex,
             box: loc.count() > 0 ? loc.boundingBox() : null,
-            hasCursor:
-              state.cursor?.col === colIndex &&
-              state.cursor?.card === cardIndex,
+            hasCursor: state.cursor?.col === colIndex && state.cursor?.card === cardIndex,
           })
         })
       })
@@ -349,9 +306,7 @@ function createBoardApp(
 
     shouldHave(e) {
       if (e.cursor) {
-        expect(
-          driver.app.locator(`${e.cursor}[data-cursor]`).count(),
-        ).toBeGreaterThan(0)
+        expect(driver.app.locator(`${e.cursor}[data-cursor]`).count()).toBeGreaterThan(0)
       }
       if (e.cursorOn) expect(app.nodeId).toBe(e.cursorOn)
       if (e.viewMode) expect(app.viewMode).toBe(e.viewMode)
@@ -402,10 +357,7 @@ function parseStringDSL(lines: string[]): KNode[] {
     visited.add(name)
     const children = tree.get(name)
     if (!children || children.size === 0) return item(name)
-    return item(
-      name,
-      ...Array.from(children).map((c) => build(c, new Set(visited))),
-    )
+    return item(name, ...Array.from(children).map((c) => build(c, new Set(visited))))
   }
 
   return build("board")
@@ -415,14 +367,9 @@ function parseStringDSL(lines: string[]): KNode[] {
 // Factory
 // =============================================================================
 
-function createAppSync(
-  input: string[] | KNode[],
-  options: BoardAppOptions = {},
-): BoardApp {
+function createAppSync(input: string[] | KNode[], options: BoardAppOptions = {}): BoardApp {
   const nodes =
-    Array.isArray(input) && typeof input[0] === "string"
-      ? parseStringDSL(input as string[])
-      : (input as KNode[])
+    Array.isArray(input) && typeof input[0] === "string" ? parseStringDSL(input as string[]) : (input as KNode[])
 
   const repo = createFakeRepo({ nodes })
   const rootId = nodes[0]?.id ?? "board"
@@ -432,16 +379,11 @@ function createAppSync(
     rows: options.rows ?? 24,
   })
 
-  const invariants = options.noCheck
-    ? []
-    : (options.invariants ?? defaultInvariants)
+  const invariants = options.noCheck ? [] : (options.invariants ?? defaultInvariants)
   return createBoardApp(driver, repo, invariants)
 }
 
-async function createAppAsync(
-  path: string,
-  options: BoardAppOptions = {},
-): Promise<BoardApp> {
+async function createAppAsync(path: string, options: BoardAppOptions = {}): Promise<BoardApp> {
   const repo = await runGenerator(createRepo(path, { loadFiles: true }))
   const rootId = repo.getRepoRootNode().id
   const driver = createBoardDriver(repo, rootId, {
@@ -450,9 +392,7 @@ async function createAppAsync(
     rows: options.rows ?? 24,
   })
 
-  const invariants = options.noCheck
-    ? []
-    : (options.invariants ?? defaultInvariants)
+  const invariants = options.noCheck ? [] : (options.invariants ?? defaultInvariants)
   return createBoardApp(driver, repo, invariants)
 }
 
@@ -461,35 +401,13 @@ async function createAppAsync(
 // =============================================================================
 
 const fixtures = {
-  kanban: () =>
-    createAppSync([
-      "Todo > Task 1",
-      "Todo > Task 2",
-      "In Progress > Task 3",
-      "Done > Task 4",
-    ]),
+  kanban: () => createAppSync(["Todo > Task 1", "Todo > Task 2", "In Progress > Task 3", "Done > Task 4"]),
   nested: () =>
-    createAppSync([
-      "Projects > Alpha > Phase 1 > A",
-      "Projects > Alpha > Phase 2 > B",
-      "Projects > Beta > C",
-    ]),
+    createAppSync(["Projects > Alpha > Phase 1 > A", "Projects > Alpha > Phase 2 > B", "Projects > Beta > C"]),
   empty: () => createAppSync(item.root("board")),
-  single: () =>
-    createAppSync(["Tasks > Task 1", "Tasks > Task 2", "Tasks > Task 3"]),
-  wide: () =>
-    createAppSync([
-      "C1 > T",
-      "C2 > T",
-      "C3 > T",
-      "C4 > T",
-      "C5 > T",
-      "C6 > T",
-      "C7 > T",
-      "C8 > T",
-    ]),
-  tall: () =>
-    createAppSync(Array.from({ length: 20 }, (_, i) => `Col > Task ${i + 1}`)),
+  single: () => createAppSync(["Tasks > Task 1", "Tasks > Task 2", "Tasks > Task 3"]),
+  wide: () => createAppSync(["C1 > T", "C2 > T", "C3 > T", "C4 > T", "C5 > T", "C6 > T", "C7 > T", "C8 > T"]),
+  tall: () => createAppSync(Array.from({ length: 20 }, (_, i) => `Col > Task ${i + 1}`)),
 }
 
 // =============================================================================

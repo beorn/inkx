@@ -18,9 +18,7 @@ export interface VerticalScrollIndicatorProps {
  * Vertical scroll indicator that fills available height with gray background.
  * Arrow is centered vertically using flexbox justifyContent.
  */
-export function VerticalScrollIndicator({
-  direction,
-}: VerticalScrollIndicatorProps): React.ReactElement {
+export function VerticalScrollIndicator({ direction }: VerticalScrollIndicatorProps): React.ReactElement {
   const arrow = direction === "left" ? "‹" : "›"
 
   return (

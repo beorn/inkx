@@ -21,13 +21,7 @@ export interface HarnessOptions {
 export const DEFAULT_HARNESS: Harness = {
   name: "general",
   description: "General-purpose agent harness",
-  tools: [
-    "read_file",
-    "write_file",
-    "search_codebase",
-    "run_tests",
-    "execute_command",
-  ],
+  tools: ["read_file", "write_file", "search_codebase", "run_tests", "execute_command"],
   constraints: {
     max_tokens_per_session: 100000,
   },
@@ -39,10 +33,7 @@ export const DEFAULT_HARNESS: Harness = {
  * @param name - Harness name to load
  * @param options - Optional options (kmDir for DI)
  */
-export function loadHarness(
-  name: string,
-  options?: HarnessOptions,
-): Harness | null {
+export function loadHarness(name: string, options?: HarnessOptions): Harness | null {
   // Try loading from .km/harnesses/
   const kmDir = options?.kmDir
   if (kmDir) {
@@ -80,9 +71,7 @@ export function loadHarnessFromPath(path: string): Harness {
 /**
  * Validate that an object is a valid Harness definition.
  */
-export function validateHarness(
-  obj: unknown,
-): obj is { harness: Harness } | Harness {
+export function validateHarness(obj: unknown): obj is { harness: Harness } | Harness {
   if (typeof obj !== "object" || obj === null) {
     return false
   }

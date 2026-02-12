@@ -11,11 +11,4 @@ export * from "./factory.tsx"
 // Create and export inkx-bound components
 const components = createLayoutComponents({ Box, Text, useStdout })
 
-export const {
-  ConstraintRoot,
-  FlexRow,
-  TruncatedText,
-  ScrollableList,
-  useTruncatedText,
-  useScrollState,
-} = components
+export const { ConstraintRoot, FlexRow, TruncatedText, ScrollableList, useTruncatedText, useScrollState } = components

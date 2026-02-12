@@ -113,12 +113,7 @@ export function searchWithSnippet(
 ): SearchResult[] {
   const ftsQuery = toFts5Query(query)
 
-  const {
-    startMark = "<<",
-    endMark = ">>",
-    ellipsis = "...",
-    maxTokens = 32,
-  } = snippetOptions
+  const { startMark = "<<", endMark = ">>", ellipsis = "...", maxTokens = 32 } = snippetOptions
 
   // Use snippet() function for highlighting
   // snippet(fts_table, column_idx, start_mark, end_mark, ellipsis, max_tokens)

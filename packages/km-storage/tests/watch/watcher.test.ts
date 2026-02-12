@@ -49,10 +49,7 @@ describe("scanDirectory", () => {
       mkdirSync(join(repoDir, "real-dir"))
 
       // Create symlink to file
-      symlinkSync(
-        join(repoDir, "real-file.md"),
-        join(repoDir, "link-to-file.md"),
-      )
+      symlinkSync(join(repoDir, "real-file.md"), join(repoDir, "link-to-file.md"))
 
       // Create symlink to directory
       symlinkSync(join(repoDir, "real-dir"), join(repoDir, "link-to-dir"))
@@ -83,10 +80,7 @@ describe("scanSymlinks", () => {
   test("detects symlinks and their targets", () =>
     withTestEnvSync(({ repoDir }) => {
       writeFileSync(join(repoDir, "real-file.md"), "# Real file")
-      symlinkSync(
-        join(repoDir, "real-file.md"),
-        join(repoDir, "link-to-file.md"),
-      )
+      symlinkSync(join(repoDir, "real-file.md"), join(repoDir, "link-to-file.md"))
 
       const symlinks = scanSymlinks(repoDir)
 
@@ -122,10 +116,7 @@ describe("scanSymlinks", () => {
     withTestEnvSync(({ repoDir }) => {
       mkdirSync(join(repoDir, "subdir"))
       writeFileSync(join(repoDir, "subdir", "file.md"), "# File")
-      symlinkSync(
-        join(repoDir, "subdir", "file.md"),
-        join(repoDir, "subdir", "link.md"),
-      )
+      symlinkSync(join(repoDir, "subdir", "file.md"), join(repoDir, "subdir", "link.md"))
 
       // Non-recursive: should not find symlink in subdir
       const nonRecursive = scanSymlinks(repoDir, undefined, false)

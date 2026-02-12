@@ -291,15 +291,7 @@ describe("NodePath", () => {
   })
 
   describe("roundtrip: pathOf -> nodeAt", () => {
-    for (const id of [
-      "col0",
-      "col1",
-      "card0",
-      "card1",
-      "card2",
-      "block0",
-      "block1",
-    ]) {
+    for (const id of ["col0", "col1", "card0", "card1", "card2", "block0", "block1"]) {
       it(`roundtrips for ${id}`, () => {
         const path = NodePath.pathOf(repo, "root", id)
         expect(path).not.toBeNull()

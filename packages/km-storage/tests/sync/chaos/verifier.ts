@@ -8,12 +8,7 @@
 import { readdirSync, statSync, existsSync, readFileSync } from "fs"
 import { join } from "path"
 import type { IVerifier, ExpectedState, VerificationResult } from "./types.ts"
-import {
-  getAllNodes,
-  getNodeByPath,
-  getChildren,
-  getNode,
-} from "../../../src/index.ts"
+import { getAllNodes, getNodeByPath, getChildren, getNode } from "../../../src/index.ts"
 import type { FakeFileSystem } from "./fake-fs.ts"
 type MockFileSystem = FakeFileSystem
 import type { Database } from "bun:sqlite"
@@ -104,9 +99,7 @@ export class Verifier implements IVerifier {
     // Check node count (sanity check)
     if (expected.nodeCount !== undefined) {
       if (nodes.length !== expected.nodeCount) {
-        warnings.push(
-          `Node count mismatch: expected ${expected.nodeCount}, got ${nodes.length}`,
-        )
+        warnings.push(`Node count mismatch: expected ${expected.nodeCount}, got ${nodes.length}`)
       }
     }
 
@@ -119,32 +112,21 @@ export class Verifier implements IVerifier {
       }
 
       if (node.type !== spec.type) {
-        errors.push(
-          `Type mismatch for ${spec.path}: expected ${spec.type}, got ${node.type}`,
-        )
+        errors.push(`Type mismatch for ${spec.path}: expected ${spec.type}, got ${node.type}`)
       }
 
       if (spec.content !== undefined && node.content !== spec.content) {
-        errors.push(
-          `Content mismatch for ${spec.path}: expected "${spec.content}", got "${node.content}"`,
-        )
+        errors.push(`Content mismatch for ${spec.path}: expected "${spec.content}", got "${node.content}"`)
       }
 
-      if (
-        spec.task_status !== undefined &&
-        node.task_status !== spec.task_status
-      ) {
-        errors.push(
-          `Task status mismatch for ${spec.path}: expected ${spec.task_status}, got ${node.task_status}`,
-        )
+      if (spec.task_status !== undefined && node.task_status !== spec.task_status) {
+        errors.push(`Task status mismatch for ${spec.path}: expected ${spec.task_status}, got ${node.task_status}`)
       }
 
       if (spec.children !== undefined) {
         const children = getChildren(db, node.id)
         if (children.length !== spec.children) {
-          errors.push(
-            `Children count mismatch for ${spec.path}: expected ${spec.children}, got ${children.length}`,
-          )
+          errors.push(`Children count mismatch for ${spec.path}: expected ${spec.children}, got ${children.length}`)
         }
       }
     }
@@ -244,9 +226,7 @@ export class Verifier implements IVerifier {
     const nodes = getAllNodes(db)
     const errors: string[] = []
 
-    const fsNodes = nodes.filter(
-      (n) => n.type === "file" || n.type === "folder",
-    )
+    const fsNodes = nodes.filter((n) => n.type === "file" || n.type === "folder")
 
     for (const node of fsNodes) {
       if (!node.fs_path) {
@@ -269,11 +249,7 @@ export class Verifier implements IVerifier {
   }
 
   verifyTreeConsistency(): VerificationResult {
-    const results = [
-      this.verifyNoDuplicates(),
-      this.verifyParentIntegrity(),
-      this.verifyFilePaths(),
-    ]
+    const results = [this.verifyNoDuplicates(), this.verifyParentIntegrity(), this.verifyFilePaths()]
 
     return {
       passed: results.every((r) => r.passed),
@@ -300,11 +276,7 @@ export class Verifier implements IVerifier {
 
     // Get database file nodes
     const nodes = getAllNodes(db)
-    const dbFiles = new Set(
-      nodes
-        .filter((n) => n.type === "file" && n.fs_path)
-        .map((n) => n.fs_path!),
-    )
+    const dbFiles = new Set(nodes.filter((n) => n.type === "file" && n.fs_path).map((n) => n.fs_path!))
 
     // Check for files in filesystem but not in database
     for (const path of fsFiles) {
@@ -372,9 +344,7 @@ export class Verifier implements IVerifier {
           // Check if node has children - if so, file should have content
           const children = getChildren(db, node.id)
           if (children.length > 0) {
-            errors.push(
-              `Content mismatch: ${fsPath} - File is empty but has ${children.length} child nodes in DB`,
-            )
+            errors.push(`Content mismatch: ${fsPath} - File is empty but has ${children.length} child nodes in DB`)
           }
         }
 
@@ -385,9 +355,7 @@ export class Verifier implements IVerifier {
           // For chaos tests, we mainly care about structural integrity
         }
       } catch (e) {
-        errors.push(
-          `Cannot read file: ${fsPath} - ${e instanceof Error ? e.message : String(e)}`,
-        )
+        errors.push(`Cannot read file: ${fsPath} - ${e instanceof Error ? e.message : String(e)}`)
       }
     }
 
@@ -443,15 +411,11 @@ export class Verifier implements IVerifier {
           if (stat.ino !== node.fs_ino) {
             // This is actually expected for atomic writes (temp file rename)
             // Just a warning, not an error
-            warnings.push(
-              `Inode changed: ${fsPath} - FS: ${stat.ino}, DB: ${node.fs_ino}`,
-            )
+            warnings.push(`Inode changed: ${fsPath} - FS: ${stat.ino}, DB: ${node.fs_ino}`)
           }
         }
       } catch (e) {
-        errors.push(
-          `Cannot stat file: ${fsPath} - ${e instanceof Error ? e.message : String(e)}`,
-        )
+        errors.push(`Cannot stat file: ${fsPath} - ${e instanceof Error ? e.message : String(e)}`)
       }
     }
 

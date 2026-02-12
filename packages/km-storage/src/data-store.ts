@@ -16,11 +16,7 @@ import { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { ulid } from "ulid"
 import { SCHEMA } from "./schema.ts"
-import {
-  getNode as dbGetNode,
-  getChildren as dbGetChildren,
-  getAllNodes as dbGetAllNodes,
-} from "./db-queries/index.ts"
+import { getNode as dbGetNode, getChildren as dbGetChildren, getAllNodes as dbGetAllNodes } from "./db-queries/index.ts"
 import { createDbOps } from "./db-ops.ts"
 import type { Emitter } from "./emitter.ts"
 import { search as dbSearch } from "./db-queries/full-text-search.ts"
@@ -204,11 +200,8 @@ export function createMapDataStore(): MapDataStore {
         md_pos: nodeData.md_pos,
         md_line: nodeData.md_line,
         md_slug: nodeData.md_slug,
-        task_status:
-          nodeData.task_status ??
-          (nodeData.type === "task" ? "todo" : undefined),
-        task_mark:
-          nodeData.task_mark ?? (nodeData.type === "task" ? " " : undefined),
+        task_status: nodeData.task_status ?? (nodeData.type === "task" ? "todo" : undefined),
+        task_mark: nodeData.task_mark ?? (nodeData.type === "task" ? " " : undefined),
         assigned_to: nodeData.assigned_to,
         due_date: nodeData.due_date,
         scheduled_date: nodeData.scheduled_date,
@@ -362,10 +355,7 @@ export interface DBDataStoreOptions {
  * @param options - Optional emitter for disk mode
  * @returns DataStore + HasDatabase (no event sourcing - caller manages)
  */
-export function createDBDataStore(
-  db: Database,
-  options?: DBDataStoreOptions,
-): DataStore & HasDatabase {
+export function createDBDataStore(db: Database, options?: DBDataStoreOptions): DataStore & HasDatabase {
   // Create ops with optional emitter - if emitter provided, events are emitted
   const ops = createDbOps(db, options?.emitter)
   let closed = false

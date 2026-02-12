@@ -6,7 +6,4 @@
  * Navigation handlers compute target nodeIds using Repo.
  */
 
-export {
-  simplifiedBoardReducer as boardReducer,
-  createBoardState,
-} from "./board-reducer-new.ts"
+export { simplifiedBoardReducer as boardReducer, createBoardState } from "./board-reducer-new.ts"

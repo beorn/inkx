@@ -29,11 +29,7 @@ export type FuzzState = TUIDriverState
 /**
  * Invariant check function signature
  */
-export type InvariantCheck = (
-  state: FuzzState,
-  action: string,
-  before?: FuzzState,
-) => void
+export type InvariantCheck = (state: FuzzState, action: string, before?: FuzzState) => void
 
 /**
  * Error patterns that indicate rendering bugs
@@ -51,12 +47,7 @@ const ERROR_PATTERNS = [
 /**
  * Strings that indicate serialization/undefined bugs
  */
-const SERIALIZATION_BUGS = [
-  "undefined",
-  "null",
-  "[Function",
-  "[Circular",
-] as const
+const SERIALIZATION_BUGS = ["undefined", "null", "[Function", "[Circular"] as const
 
 /**
  * Valid view modes
@@ -77,9 +68,7 @@ export const invariants = {
    * Screen should have content - empty screen is always a bug
    */
   nonEmptyScreen(state: FuzzState, action: string): void {
-    expect(state.screen.length, `Empty screen after ${action}`).toBeGreaterThan(
-      0,
-    )
+    expect(state.screen.length, `Empty screen after ${action}`).toBeGreaterThan(0)
   },
 
   /**
@@ -87,10 +76,7 @@ export const invariants = {
    */
   noRenderErrors(state: FuzzState, action: string): void {
     for (const pattern of ERROR_PATTERNS) {
-      expect(
-        state.screen,
-        `"${pattern}" found in screen after ${action}`,
-      ).not.toContain(pattern)
+      expect(state.screen, `"${pattern}" found in screen after ${action}`).not.toContain(pattern)
     }
   },
 
@@ -99,10 +85,7 @@ export const invariants = {
    */
   noSerializationBugs(state: FuzzState, action: string): void {
     for (const pattern of SERIALIZATION_BUGS) {
-      expect(
-        state.screen,
-        `"${pattern}" found in screen after ${action}`,
-      ).not.toContain(pattern)
+      expect(state.screen, `"${pattern}" found in screen after ${action}`).not.toContain(pattern)
     }
   },
 
@@ -110,46 +93,34 @@ export const invariants = {
    * View mode should be valid
    */
   validViewMode(state: FuzzState, action: string): void {
-    expect(
-      VALID_VIEW_MODES,
-      `Invalid view mode "${state.viewMode}" after ${action}`,
-    ).toContain(state.viewMode)
+    expect(VALID_VIEW_MODES, `Invalid view mode "${state.viewMode}" after ${action}`).toContain(state.viewMode)
   },
 
   /**
    * Cursor should exist and be valid when not in a dialog
    */
   validCursor(state: FuzzState, action: string): void {
-    const inDialog =
-      state.dialogs.search ||
-      state.dialogs.help ||
-      state.dialogs.newItem ||
-      state.dialogs.projectPicker
+    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem || state.dialogs.projectPicker
 
     if (!inDialog) {
       expect(state.cursor, `Cursor missing after ${action}`).toBeDefined()
 
       // Cursor level should be valid
-      expect(
-        VALID_CURSOR_LEVELS,
-        `Invalid cursor level "${state.cursor.level}" after ${action}`,
-      ).toContain(state.cursor.level)
+      expect(VALID_CURSOR_LEVELS, `Invalid cursor level "${state.cursor.level}" after ${action}`).toContain(
+        state.cursor.level,
+      )
 
       // At board level, cursor.col can be -1 (no column selected)
       // At other levels, col should be >= 0
       if (state.cursor.level !== "board") {
-        expect(
-          state.cursor.col,
-          `Invalid cursor.col (${state.cursor.col}) after ${action}`,
-        ).toBeGreaterThanOrEqual(0)
+        expect(state.cursor.col, `Invalid cursor.col (${state.cursor.col}) after ${action}`).toBeGreaterThanOrEqual(0)
       }
 
       // Card index should be >= 0 at card level
       if (state.cursor.level === "card") {
-        expect(
-          state.cursor.card,
-          `Invalid cursor.card (${state.cursor.card}) after ${action}`,
-        ).toBeGreaterThanOrEqual(0)
+        expect(state.cursor.card, `Invalid cursor.card (${state.cursor.card}) after ${action}`).toBeGreaterThanOrEqual(
+          0,
+        )
       }
     }
   },
@@ -159,10 +130,7 @@ export const invariants = {
    */
   validMoveMode(state: FuzzState, action: string): void {
     // moveMode is a boolean
-    expect(
-      typeof state.moveMode,
-      `moveMode should be boolean after ${action}`,
-    ).toBe("boolean")
+    expect(typeof state.moveMode, `moveMode should be boolean after ${action}`).toBe("boolean")
   },
 
   /**
@@ -170,26 +138,20 @@ export const invariants = {
    * Note: help can overlay other dialogs, so we exclude it
    */
   mutuallyExclusiveDialogs(state: FuzzState, action: string): void {
-    const mainDialogs = [
-      state.dialogs.search,
-      state.dialogs.newItem,
-      state.dialogs.projectPicker,
-    ].filter(Boolean).length
+    const mainDialogs = [state.dialogs.search, state.dialogs.newItem, state.dialogs.projectPicker].filter(
+      Boolean,
+    ).length
 
-    expect(
-      mainDialogs,
-      `Multiple main dialogs open after ${action}`,
-    ).toBeLessThanOrEqual(1)
+    expect(mainDialogs, `Multiple main dialogs open after ${action}`).toBeLessThanOrEqual(1)
   },
 
   /**
    * Scroll offset should be non-negative
    */
   validScrollOffset(state: FuzzState, action: string): void {
-    expect(
-      state.scrollOffset,
-      `Negative scroll offset (${state.scrollOffset}) after ${action}`,
-    ).toBeGreaterThanOrEqual(0)
+    expect(state.scrollOffset, `Negative scroll offset (${state.scrollOffset}) after ${action}`).toBeGreaterThanOrEqual(
+      0,
+    )
   },
 
   /**
@@ -198,9 +160,7 @@ export const invariants = {
   stateConsistency(state: FuzzState, action: string): void {
     if (state.ui) {
       // View mode should match
-      expect(state.viewMode, `viewMode mismatch after ${action}`).toBe(
-        state.ui.viewMode,
-      )
+      expect(state.viewMode, `viewMode mismatch after ${action}`).toBe(state.ui.viewMode)
     }
   },
 
@@ -232,17 +192,9 @@ export const invariants = {
     const cursorLevelChanged = state.cursor.level !== before.cursor.level
 
     // Skip for certain keys that are expected to cause large changes
-    const expectedLargeChange = ["Enter", "Escape", "o", "u", "i"].includes(
-      action,
-    )
+    const expectedLargeChange = ["Enter", "Escape", "o", "u", "i"].includes(action)
 
-    if (
-      dialogChanged ||
-      viewModeChanged ||
-      detailPaneChanged ||
-      cursorLevelChanged ||
-      expectedLargeChange
-    ) {
+    if (dialogChanged || viewModeChanged || detailPaneChanged || cursorLevelChanged || expectedLargeChange) {
       return
     }
 
@@ -279,11 +231,7 @@ export const invariants = {
 /**
  * Check all basic invariants (fast, always run)
  */
-export function checkBasicInvariants(
-  state: FuzzState,
-  action: string,
-  before?: FuzzState,
-): void {
+export function checkBasicInvariants(state: FuzzState, action: string, before?: FuzzState): void {
   invariants.nonEmptyScreen(state, action)
   invariants.noRenderErrors(state, action)
   invariants.validViewMode(state, action)
@@ -294,11 +242,7 @@ export function checkBasicInvariants(
 /**
  * Check all invariants including more expensive checks
  */
-export function checkAllInvariants(
-  state: FuzzState,
-  action: string,
-  before?: FuzzState,
-): void {
+export function checkAllInvariants(state: FuzzState, action: string, before?: FuzzState): void {
   // Basic checks
   checkBasicInvariants(state, action, before)
 
@@ -331,11 +275,7 @@ export function checkInvariants(
 /**
  * Invariants for navigation-focused testing
  */
-export function checkNavigationInvariants(
-  state: FuzzState,
-  action: string,
-  before?: FuzzState,
-): void {
+export function checkNavigationInvariants(state: FuzzState, action: string, before?: FuzzState): void {
   invariants.nonEmptyScreen(state, action)
   invariants.noRenderErrors(state, action)
   invariants.validCursor(state, action)
@@ -345,11 +285,7 @@ export function checkNavigationInvariants(
 /**
  * Invariants for dialog-focused testing
  */
-export function checkDialogInvariants(
-  state: FuzzState,
-  action: string,
-  before?: FuzzState,
-): void {
+export function checkDialogInvariants(state: FuzzState, action: string, before?: FuzzState): void {
   invariants.nonEmptyScreen(state, action)
   invariants.noRenderErrors(state, action)
   invariants.mutuallyExclusiveDialogs(state, action)
@@ -359,11 +295,7 @@ export function checkDialogInvariants(
 /**
  * Invariants for view mode switching
  */
-export function checkViewModeInvariants(
-  state: FuzzState,
-  action: string,
-  before?: FuzzState,
-): void {
+export function checkViewModeInvariants(state: FuzzState, action: string, before?: FuzzState): void {
   invariants.nonEmptyScreen(state, action)
   invariants.noRenderErrors(state, action)
   invariants.validViewMode(state, action)
@@ -403,12 +335,7 @@ export function createSequenceRecorder() {
     /**
      * Record an action and its state transition
      */
-    record(
-      iteration: number,
-      action: string,
-      before: FuzzState,
-      after: FuzzState,
-    ): void {
+    record(iteration: number, action: string, before: FuzzState, after: FuzzState): void {
       log.push({
         iteration,
         action,

@@ -20,11 +20,7 @@ export function ensureCommandSystemInitialized(): void {
   initCommandSystem()
 }
 
-export function processKeyWithContext(
-  input: string,
-  key: InkKeyEvent,
-  ctx: ActionCtx,
-): InkCommandResult {
+export function processKeyWithContext(input: string, key: InkKeyEvent, ctx: ActionCtx): InkCommandResult {
   ensureCommandSystemInitialized()
 
   const { ui, layout, selectedNode } = ctx
@@ -44,17 +40,12 @@ export function processKeyWithContext(
   const kbCtx = buildKeybindingContext({
     inMoveMode: ctx.moveMode,
     inSearchMode: ui.showSearchDialog,
-    inInputMode:
-      ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog,
+    inInputMode: ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog,
     hasSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
     currentNode: nodeForCtx,
-    textInputFocused:
-      !!ui.inlineEditBlock ||
-      ui.showSearchDialog ||
-      ui.showNewItemDialog ||
-      ui.showProjectPicker,
+    textInputFocused: !!ui.inlineEditBlock || ui.showSearchDialog || ui.showNewItemDialog || ui.showProjectPicker,
     isInlineEditing: !!ui.inlineEditBlock,
     searchDialogOpen: ui.showSearchDialog,
     projectPickerOpen: ui.showProjectPicker,

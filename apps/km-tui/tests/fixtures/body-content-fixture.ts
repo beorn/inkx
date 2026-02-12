@@ -11,16 +11,12 @@ import { board, column, paragraph, section, task } from "@km/storage"
 
 export const BODY_CONTENT_BOARD = board("Body Content Test Board", [
   // Board-level body content (virtual body column)
-  paragraph(
-    "This is the board description paragraph - should appear in a virtual body column.",
-  ),
+  paragraph("This is the board description paragraph - should appear in a virtual body column."),
   paragraph("Here's some code that's also body content:"),
   // Note: Skipping code block - tests don't assert on code formatting
 
   column("Column A", [
-    paragraph(
-      "This column has intro text before tasks - should be body cards.",
-    ),
+    paragraph("This column has intro text before tasks - should be body cards."),
     paragraph("A second paragraph of intro."),
     section("Card A1", [task("Task in Card A1")]),
     section("Card A2", [task("Task in Card A2")]),

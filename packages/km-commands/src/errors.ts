@@ -42,14 +42,12 @@ export const boundary = (direction: string, message?: string): ActionResult =>
 /**
  * Create a precondition error (expected condition not met).
  */
-export const precondition = (missing: string): ActionResult =>
-  Err({ type: "precondition", missing })
+export const precondition = (missing: string): ActionResult => Err({ type: "precondition", missing })
 
 /**
  * Create an unimplemented error (feature not yet built).
  */
-export const unimplemented = (feature: string): ActionResult =>
-  Err({ type: "unimplemented", feature })
+export const unimplemented = (feature: string): ActionResult => Err({ type: "unimplemented", feature })
 
 /**
  * Create a success result.

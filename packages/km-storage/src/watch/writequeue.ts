@@ -152,10 +152,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
 /**
  * Calculate delay for a given attempt using exponential backoff with jitter
  */
-export function calculateBackoffDelay(
-  attempt: number,
-  config: RetryConfig,
-): number {
+export function calculateBackoffDelay(attempt: number, config: RetryConfig): number {
   // Exponential: baseDelay * 2^attempt
   const exponentialDelay = config.baseDelayMs * Math.pow(2, attempt)
   const clampedDelay = Math.min(exponentialDelay, config.maxDelayMs)
@@ -446,8 +443,7 @@ export class WriteQueue extends EventEmitter {
 
     // Check if file changed since we queued the write
     if (currentMtime !== op.baseMtime) {
-      const resolution =
-        this.conflictStrategy === "fs_wins" ? "discarded" : "written"
+      const resolution = this.conflictStrategy === "fs_wins" ? "discarded" : "written"
 
       log.debug?.(
         `conflict detected path=${op.path} baseMtime=${op.baseMtime} currentMtime=${currentMtime} strategy=${this.conflictStrategy} resolution=${resolution}`,
@@ -591,8 +587,7 @@ export class WriteQueue extends EventEmitter {
 
     // Collect failures for error reporting (filter guarantees error exists)
     const failures = results.filter(
-      (r): r is OperationResult & { error: Error & { code?: string } } =>
-        !r.success && r.error !== undefined,
+      (r): r is OperationResult & { error: Error & { code?: string } } => !r.success && r.error !== undefined,
     )
     const errors = failures.map((f) => ({
       path: f.op.path,
@@ -602,9 +597,7 @@ export class WriteQueue extends EventEmitter {
     }))
 
     // Collect conflicts
-    const conflicts = results
-      .map((r) => r.conflict)
-      .filter((c): c is ConflictInfo => c !== undefined)
+    const conflicts = results.map((r) => r.conflict).filter((c): c is ConflictInfo => c !== undefined)
 
     // Collect permission errors specifically (user can act on these)
     const permissionErrors: PermissionError[] = failures

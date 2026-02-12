@@ -65,10 +65,7 @@ export interface PatternMatcher {
 }
 
 /** Directory scanner function type */
-export type DirectoryScanner = (
-  dirPath: string,
-  ignorePatterns?: string[] | PatternMatcher,
-) => FsEntry[]
+export type DirectoryScanner = (dirPath: string, ignorePatterns?: string[] | PatternMatcher) => FsEntry[]
 
 /** Error injection configuration */
 export interface ErrorInjection {
@@ -153,9 +150,7 @@ export class FakeFileSystem implements FileSystemOps {
 
     // Check permission denied
     if (this.errorInjection.permissionDenied?.includes(normalized)) {
-      const error = new Error(
-        `EACCES: permission denied, ${operation} '${path}'`,
-      )
+      const error = new Error(`EACCES: permission denied, ${operation} '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "EACCES"
       throw error
     }
@@ -172,9 +167,7 @@ export class FakeFileSystem implements FileSystemOps {
       this.errorInjection.readOnly?.includes(normalized) &&
       ["write", "unlink", "mkdir", "rename"].includes(operation)
     ) {
-      const error = new Error(
-        `EROFS: read-only file system, ${operation} '${path}'`,
-      )
+      const error = new Error(`EROFS: read-only file system, ${operation} '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "EROFS"
       throw error
     }
@@ -193,19 +186,13 @@ export class FakeFileSystem implements FileSystemOps {
   // FileSystemOps Implementation
   // ─────────────────────────────────────────────────────────────────────────
 
-  writeFileSync(
-    path: string,
-    content: string,
-    _encoding?: BufferEncoding,
-  ): void {
+  writeFileSync(path: string, content: string, _encoding?: BufferEncoding): void {
     this.checkErrors(path, "write")
     const normalized = this.normalizePath(path)
     const existing = this.files.get(normalized)
 
     if (existing?.type === "dir") {
-      const error = new Error(
-        `EISDIR: illegal operation on a directory, write '${path}'`,
-      )
+      const error = new Error(`EISDIR: illegal operation on a directory, write '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "EISDIR"
       throw error
     }
@@ -213,9 +200,7 @@ export class FakeFileSystem implements FileSystemOps {
     // Ensure parent directory exists
     const parentDir = dirname(normalized)
     if (parentDir !== normalized && !this.files.has(parentDir)) {
-      const error = new Error(
-        `ENOENT: no such file or directory, open '${path}'`,
-      )
+      const error = new Error(`ENOENT: no such file or directory, open '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "ENOENT"
       throw error
     }
@@ -236,17 +221,13 @@ export class FakeFileSystem implements FileSystemOps {
     const entry = this.files.get(normalized)
 
     if (!entry) {
-      const error = new Error(
-        `ENOENT: no such file or directory, open '${path}'`,
-      )
+      const error = new Error(`ENOENT: no such file or directory, open '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "ENOENT"
       throw error
     }
 
     if (entry.type === "dir") {
-      const error = new Error(
-        `EISDIR: illegal operation on a directory, read '${path}'`,
-      )
+      const error = new Error(`EISDIR: illegal operation on a directory, read '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "EISDIR"
       throw error
     }
@@ -260,17 +241,13 @@ export class FakeFileSystem implements FileSystemOps {
     const entry = this.files.get(normalized)
 
     if (!entry) {
-      const error = new Error(
-        `ENOENT: no such file or directory, unlink '${path}'`,
-      )
+      const error = new Error(`ENOENT: no such file or directory, unlink '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "ENOENT"
       throw error
     }
 
     if (entry.type === "dir") {
-      const error = new Error(
-        `EISDIR: illegal operation on a directory, unlink '${path}'`,
-      )
+      const error = new Error(`EISDIR: illegal operation on a directory, unlink '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "EISDIR"
       throw error
     }
@@ -298,9 +275,7 @@ export class FakeFileSystem implements FileSystemOps {
       if (options?.recursive) {
         this.mkdirSync(parentDir, options)
       } else {
-        const error = new Error(
-          `ENOENT: no such file or directory, mkdir '${path}'`,
-        )
+        const error = new Error(`ENOENT: no such file or directory, mkdir '${path}'`)
         ;(error as NodeJS.ErrnoException).code = "ENOENT"
         throw error
       }
@@ -326,9 +301,7 @@ export class FakeFileSystem implements FileSystemOps {
 
     const entry = this.files.get(normalizedOld)
     if (!entry) {
-      const error = new Error(
-        `ENOENT: no such file or directory, rename '${oldPath}'`,
-      )
+      const error = new Error(`ENOENT: no such file or directory, rename '${oldPath}'`)
       ;(error as NodeJS.ErrnoException).code = "ENOENT"
       throw error
     }
@@ -336,9 +309,7 @@ export class FakeFileSystem implements FileSystemOps {
     // Ensure parent of new path exists
     const newParent = dirname(normalizedNew)
     if (newParent !== normalizedNew && !this.files.has(newParent)) {
-      const error = new Error(
-        `ENOENT: no such file or directory, rename '${newPath}'`,
-      )
+      const error = new Error(`ENOENT: no such file or directory, rename '${newPath}'`)
       ;(error as NodeJS.ErrnoException).code = "ENOENT"
       throw error
     }
@@ -353,10 +324,7 @@ export class FakeFileSystem implements FileSystemOps {
       for (const [childPath, childEntry] of this.files) {
         if (childPath.startsWith(oldPrefix)) {
           this.files.delete(childPath)
-          this.files.set(
-            newPrefix + childPath.slice(oldPrefix.length),
-            childEntry,
-          )
+          this.files.set(newPrefix + childPath.slice(oldPrefix.length), childEntry)
         }
       }
     }
@@ -368,9 +336,7 @@ export class FakeFileSystem implements FileSystemOps {
     const entry = this.files.get(normalized)
 
     if (!entry) {
-      const error = new Error(
-        `ENOENT: no such file or directory, stat '${path}'`,
-      )
+      const error = new Error(`ENOENT: no such file or directory, stat '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "ENOENT"
       throw error
     }
@@ -393,10 +359,7 @@ export class FakeFileSystem implements FileSystemOps {
    * Create a DirectoryScanner function bound to this MockFileSystem
    */
   createScanner(): DirectoryScanner {
-    return (
-      dirPath: string,
-      ignorePatterns?: string[] | PatternMatcher,
-    ): FsEntry[] => {
+    return (dirPath: string, ignorePatterns?: string[] | PatternMatcher): FsEntry[] => {
       return this.scanDirectory(dirPath, ignorePatterns)
     }
   }
@@ -404,10 +367,7 @@ export class FakeFileSystem implements FileSystemOps {
   /**
    * Scan a directory and return entries
    */
-  scanDirectory(
-    dirPath: string,
-    ignorePatterns?: string[] | PatternMatcher,
-  ): FsEntry[] {
+  scanDirectory(dirPath: string, ignorePatterns?: string[] | PatternMatcher): FsEntry[] {
     this.checkErrors(dirPath, "scandir")
     const normalized = this.normalizePath(dirPath)
     const entries: FsEntry[] = []
@@ -483,10 +443,7 @@ export class FakeFileSystem implements FileSystemOps {
    * Dump filesystem state (for debugging)
    */
   dump(): Record<string, { type: string; size?: number; mtime: number }> {
-    const result: Record<
-      string,
-      { type: string; size?: number; mtime: number }
-    > = {}
+    const result: Record<string, { type: string; size?: number; mtime: number }> = {}
     for (const [path, node] of this.files) {
       result[path] = {
         type: node.type,
@@ -509,11 +466,7 @@ export class FakeFileSystem implements FileSystemOps {
     return normalized
   }
 
-  private shouldIgnore(
-    name: string,
-    fullPath: string,
-    patterns?: string[] | PatternMatcher,
-  ): boolean {
+  private shouldIgnore(name: string, fullPath: string, patterns?: string[] | PatternMatcher): boolean {
     if (!patterns) return false
 
     // Handle PatternMatcher interface

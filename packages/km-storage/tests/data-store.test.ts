@@ -7,13 +7,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { Database } from "bun:sqlite"
-import {
-  createMapDataStore,
-  createMemDataStore,
-  createDBDataStore,
-  SCHEMA,
-  type DataStore,
-} from "../src/index.ts"
+import { createMapDataStore, createMemDataStore, createDBDataStore, SCHEMA, type DataStore } from "../src/index.ts"
 
 // =============================================================================
 // Shared Test Suite (runs against all implementations)

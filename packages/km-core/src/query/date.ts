@@ -25,14 +25,7 @@ function formatDate(d: Date): string {
 /**
  * Date shortcut names
  */
-const DATE_SHORTCUTS = [
-  "today",
-  "tomorrow",
-  "yesterday",
-  "week",
-  "past",
-  "overdue",
-]
+const DATE_SHORTCUTS = ["today", "tomorrow", "yesterday", "week", "past", "overdue"]
 
 /**
  * Date fields in the schema
@@ -108,9 +101,7 @@ export function resolveDateQuery(value: string): DateRange | null {
 
     default: {
       // Check if it's a date range pattern (YYYY-MM-DD-YYYY-MM-DD)
-      const rangeMatch = value.match(
-        /^(\d{4}-\d{2}-\d{2})-(\d{4}-\d{2}-\d{2})$/,
-      )
+      const rangeMatch = value.match(/^(\d{4}-\d{2}-\d{2})-(\d{4}-\d{2}-\d{2})$/)
       if (rangeMatch?.[1] && rangeMatch[2]) {
         return { start: rangeMatch[1], end: rangeMatch[2] }
       }

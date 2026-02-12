@@ -94,9 +94,7 @@ describe.sequential("Worker Thread Integration", () => {
     // Wait for worker to detect and sync (with timeout)
     await Promise.race([
       stateChanged,
-      new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout waiting for sync")), 5000),
-      ),
+      new Promise<void>((_, reject) => setTimeout(() => reject(new Error("Timeout waiting for sync")), 5000)),
     ])
 
     // Verify the change was synced

@@ -21,10 +21,7 @@ export function generateCustomId(custom: string): string {
   return `${PREFIX}${SEPARATOR}${custom}`
 }
 
-export function generateSubId(
-  parentShortId: string,
-  childNumber: number,
-): string {
+export function generateSubId(parentShortId: string, childNumber: number): string {
   return `${parentShortId}.${childNumber}`
 }
 
@@ -34,10 +31,7 @@ export function generateSubId(
  * @param shortId - The short ID to resolve
  * @param options - Optional options (repo for DI)
  */
-export function resolveShortId(
-  shortId: string,
-  options: ShortIdOptions,
-): string | null {
+export function resolveShortId(shortId: string, options: ShortIdOptions): string | null {
   if (!options.repo) {
     throw new Error("resolveShortId requires a repo instance")
   }

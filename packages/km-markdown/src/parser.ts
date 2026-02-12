@@ -24,14 +24,7 @@
 import { fromMarkdown } from "mdast-util-from-markdown"
 import { gfmFromMarkdown } from "mdast-util-gfm"
 import { gfm } from "micromark-extension-gfm"
-import type {
-  Root,
-  RootContent,
-  ListItem,
-  Heading,
-  Paragraph,
-  List,
-} from "mdast"
+import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdast"
 import { TASK_MARK_REGEX_CLASS, extractTitleTaskMark } from "@km/core"
 
 // Re-export types
@@ -42,19 +35,15 @@ export type { Root, RootContent, ListItem, Heading, Paragraph, List }
 // =============================================================================
 
 /** Task mark from list item (e.g., "- [x]") */
-const TASK_MARK_REGEX = new RegExp(
-  `^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\\]`,
-)
+const TASK_MARK_REGEX = new RegExp(`^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\\]`)
 
 // TITLE_TASK_MARK_REGEX moved to @km/core (extractTitleTaskMark)
 
 /** Wikilinks: [[target]], [[target|alias]], ![[embed]], ![[target#^blockid]] */
-const WIKILINK_REGEX =
-  /(!?)\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g
+const WIKILINK_REGEX = /(!?)\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g
 
 /** Combined refs: #tag, @mention, +project in single pass */
-const COMBINED_REFS_REGEX =
-  /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-]+)/g
+const COMBINED_REFS_REGEX = /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-]+)/g
 
 /** Fast wikilink presence check (avoid full regex if no wikilinks) */
 const HAS_WIKILINK = /\[\[/
@@ -133,10 +122,7 @@ export function extractFrontmatter(content: string): {
  * Extract the task mark from a list item's source text
  * km-fast-md.1: Uses module-level compiled regex
  */
-export function extractTaskMark(
-  content: string,
-  position?: { start: { offset: number } },
-): string | undefined {
+export function extractTaskMark(content: string, position?: { start: { offset: number } }): string | undefined {
   if (!position) return undefined
 
   const slice = content.slice(position.start.offset, position.start.offset + 20)
@@ -184,9 +170,7 @@ export function parseWikiLinks(text: string): WikiLink[] {
  * Returns the first capture group from all matches
  */
 function extractMatches(text: string, regex: RegExp): string[] {
-  return [...text.matchAll(regex)]
-    .map((m) => m[1])
-    .filter((m): m is string => !!m)
+  return [...text.matchAll(regex)].map((m) => m[1]).filter((m): m is string => !!m)
 }
 
 /**
@@ -407,9 +391,7 @@ export function nodeToText(node: RootContent | Root): string {
   }
 
   if ("children" in node && Array.isArray(node.children)) {
-    return node.children
-      .map((child) => nodeToText(child as RootContent))
-      .join("")
+    return node.children.map((child) => nodeToText(child as RootContent)).join("")
   }
 
   return ""
@@ -502,8 +484,7 @@ export function parseInlineProperties(text: string): ParsedProperties {
   // Match property:: value patterns
   // Property name: lowercase letter followed by alphanumeric, underscore, or hyphen
   // Value: everything until next property or end of string
-  const propPattern =
-    /([a-z][a-z0-9_-]*)::[ ]*(.+?)(?=\s+[a-z][a-z0-9_-]*::|$)/gi
+  const propPattern = /([a-z][a-z0-9_-]*)::[ ]*(.+?)(?=\s+[a-z][a-z0-9_-]*::|$)/gi
 
   let cleanText = text
   let match

@@ -66,10 +66,7 @@ const DAY_MAP: Record<string, number> = {
  * Calculate next occurrence date from an RRULE
  */
 // oxlint-disable-next-line complexity/complexity -- RRULE state machine: DAILY/WEEKLY/MONTHLY/YEARLY with interval and count
-export function getNextOccurrence(
-  rrule: string,
-  fromDate: string,
-): string | null {
+export function getNextOccurrence(rrule: string, fromDate: string): string | null {
   const parsed = parseRRule(rrule)
   const from = new Date(fromDate + "T12:00:00Z") // Use noon to avoid timezone issues
 

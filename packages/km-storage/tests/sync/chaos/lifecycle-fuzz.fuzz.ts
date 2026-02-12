@@ -20,10 +20,7 @@ import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier } from "./verifier.ts"
 import { createEmitter } from "../../../src/emitter.ts"
 import { SCHEMA } from "../../../src/schema.ts"
-import {
-  reconcileDirectoryRecursive,
-  applyReconcileOps,
-} from "../../../src/watch/reconcile.ts"
+import { reconcileDirectoryRecursive, applyReconcileOps } from "../../../src/watch/reconcile.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Operation types
@@ -126,11 +123,7 @@ function generateDirPath(rng: SeededRandom, existing: Set<string>): string {
 }
 
 /** Generate a unique file path within existing or new directories */
-function generateFilePath(
-  rng: SeededRandom,
-  existingFiles: Set<string>,
-  existingDirs: Set<string>,
-): string {
+function generateFilePath(rng: SeededRandom, existingFiles: Set<string>, existingDirs: Set<string>): string {
   for (let attempt = 0; attempt < 100; attempt++) {
     // Sometimes place in existing dir, sometimes create new path
     let dirPrefix = ""
@@ -292,9 +285,7 @@ interface LifecycleTestEnv {
   reconcile: () => void
 }
 
-function setupEnv(
-  files: Array<{ path: string; content: string }>,
-): LifecycleTestEnv {
+function setupEnv(files: Array<{ path: string; content: string }>): LifecycleTestEnv {
   const mockFs = createFakeFileSystem()
   const repoDir = "/repo"
   const kmDir = "/repo/.km"
@@ -318,24 +309,12 @@ function setupEnv(
 
   // Initial reconciliation
   const scanner = mockFs.createScanner()
-  const ops = reconcileDirectoryRecursive(
-    db,
-    repoDir,
-    repoDir,
-    undefined,
-    scanner,
-  )
+  const ops = reconcileDirectoryRecursive(db, repoDir, repoDir, undefined, scanner)
   applyReconcileOps(db, ops, repoDir, emitter, mockFs)
 
   // Reconcile function (reusable)
   const reconcile = () => {
-    const reconOps = reconcileDirectoryRecursive(
-      db,
-      repoDir,
-      repoDir,
-      undefined,
-      scanner,
-    )
+    const reconOps = reconcileDirectoryRecursive(db, repoDir, repoDir, undefined, scanner)
     applyReconcileOps(db, reconOps, repoDir, emitter, mockFs)
   }
 
@@ -344,11 +323,7 @@ function setupEnv(
 }
 
 /** Apply an FsOp directly to the mock filesystem */
-function applyOp(
-  mockFs: ReturnType<typeof createFakeFileSystem>,
-  repoDir: string,
-  op: FsOp,
-) {
+function applyOp(mockFs: ReturnType<typeof createFakeFileSystem>, repoDir: string, op: FsOp) {
   const abs = (p: string) => join(repoDir, p)
 
   switch (op.type) {
@@ -427,41 +402,24 @@ function applyOp(
 function checkInvariants(verifier: Verifier, label: string) {
   // No duplicate nodes for same fs_path
   const dupes = verifier.verifyNoDuplicates()
-  expect(
-    dupes.stats.duplicateNodes,
-    `[${label}] Duplicate nodes: ${dupes.errors.join(", ")}`,
-  ).toBe(0)
+  expect(dupes.stats.duplicateNodes, `[${label}] Duplicate nodes: ${dupes.errors.join(", ")}`).toBe(0)
 
   // All file/folder nodes have valid fs_path
   const paths = verifier.verifyFilePaths()
-  expect(
-    paths.passed,
-    `[${label}] File paths: ${paths.errors.join(", ")}`,
-  ).toBe(true)
+  expect(paths.passed, `[${label}] File paths: ${paths.errors.join(", ")}`).toBe(true)
 }
 
 /** Get FS .md files (relative) and DB file node paths */
-function getFsAndDbPaths(
-  db: Database,
-  mockFs: ReturnType<typeof createFakeFileSystem>,
-  repoDir: string,
-) {
+function getFsAndDbPaths(db: Database, mockFs: ReturnType<typeof createFakeFileSystem>, repoDir: string) {
   const allPaths = mockFs.getAllPaths()
   const fsMdFiles = new Set(
     allPaths
-      .filter(
-        (p) =>
-          p.endsWith(".md") &&
-          p.startsWith(repoDir + "/") &&
-          !p.includes("/.km/"),
-      )
+      .filter((p) => p.endsWith(".md") && p.startsWith(repoDir + "/") && !p.includes("/.km/"))
       .map((p) => p.slice(repoDir.length + 1)), // Convert to relative
   )
 
   const dbFileNodes = db
-    .prepare(
-      "SELECT fs_path FROM nodes WHERE type = 'file' AND fs_path IS NOT NULL",
-    )
+    .prepare("SELECT fs_path FROM nodes WHERE type = 'file' AND fs_path IS NOT NULL")
     .all() as Array<{ fs_path: string }>
   const dbPaths = new Set(dbFileNodes.map((n) => n.fs_path))
 
@@ -476,12 +434,7 @@ function getFsAndDbPaths(
  * Check both directions: every FS file has a DB node AND every DB node
  * has a FS file (no stale ghost nodes remain after reconciliation).
  */
-function checkFsDbSync(
-  db: Database,
-  mockFs: ReturnType<typeof createFakeFileSystem>,
-  repoDir: string,
-  label: string,
-) {
+function checkFsDbSync(db: Database, mockFs: ReturnType<typeof createFakeFileSystem>, repoDir: string, label: string) {
   const { fsMdFiles, dbPaths } = getFsAndDbPaths(db, mockFs, repoDir)
 
   const inFsNotDb = [...fsMdFiles].filter((p) => !dbPaths.has(p))
@@ -491,10 +444,7 @@ function checkFsDbSync(
   for (const p of inFsNotDb) errors.push(`Data loss — In FS but not DB: ${p}`)
   for (const p of inDbNotFs) errors.push(`Stale node — In DB but not FS: ${p}`)
 
-  expect(
-    errors.length,
-    `[${label}] FS↔DB sync errors: ${errors.join(", ")}`,
-  ).toBe(0)
+  expect(errors.length, `[${label}] FS↔DB sync errors: ${errors.join(", ")}`).toBe(0)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -502,13 +452,7 @@ function checkFsDbSync(
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("Lifecycle Fuzz Tests", () => {
-  const initialFiles = [
-    "notes/note1.md",
-    "notes/note2.md",
-    "tasks/task1.md",
-    "projects/project1.md",
-    "readme.md",
-  ]
+  const initialFiles = ["notes/note1.md", "notes/note2.md", "tasks/task1.md", "projects/project1.md", "readme.md"]
 
   test.fuzz("file add/edit/delete/rename lifecycle", async () => {
     const rng = createSeededRandom()
@@ -589,9 +533,7 @@ describe("Lifecycle Fuzz Tests", () => {
         } else if (roll < 0.8) {
           // File rename
           const allPaths = env.mockFs.getAllPaths()
-          const mdFiles = allPaths.filter(
-            (p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"),
-          )
+          const mdFiles = allPaths.filter((p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"))
           if (mdFiles.length === 0) {
             return {
               type: "file_add",
@@ -608,9 +550,7 @@ describe("Lifecycle Fuzz Tests", () => {
         } else {
           // File edit — pick from FS
           const allPaths = env.mockFs.getAllPaths()
-          const mdFiles = allPaths.filter(
-            (p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"),
-          )
+          const mdFiles = allPaths.filter((p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"))
           if (mdFiles.length === 0) {
             return {
               type: "file_add",
@@ -654,9 +594,7 @@ describe("Lifecycle Fuzz Tests", () => {
       // Focus on renames — each operation is a rename
       for (let i = 0; i < 30; i++) {
         const allPaths = env.mockFs.getAllPaths()
-        const mdFiles = allPaths.filter(
-          (p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"),
-        )
+        const mdFiles = allPaths.filter((p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"))
         if (mdFiles.length === 0) break
 
         const oldAbs = rng.pick(mdFiles)
@@ -681,94 +619,88 @@ describe("Lifecycle Fuzz Tests", () => {
     }
   })
 
-  test.fuzz(
-    "folder rename with children updates all descendant paths",
-    async () => {
-      const rng = createSeededRandom()
-      // Start with deeper nesting
-      const deepFiles = [
-        "projects/alpha/readme.md",
-        "projects/alpha/tasks/task1.md",
-        "projects/alpha/tasks/task2.md",
-        "projects/beta/readme.md",
-        "projects/beta/notes/note1.md",
-        "notes/standalone.md",
+  test.fuzz("folder rename with children updates all descendant paths", async () => {
+    const rng = createSeededRandom()
+    // Start with deeper nesting
+    const deepFiles = [
+      "projects/alpha/readme.md",
+      "projects/alpha/tasks/task1.md",
+      "projects/alpha/tasks/task2.md",
+      "projects/beta/readme.md",
+      "projects/beta/notes/note1.md",
+      "notes/standalone.md",
+    ]
+    const setup = deepFiles.map((path) => ({
+      path,
+      content: generateFileContent(rng),
+    }))
+    const env = setupEnv(setup)
+
+    try {
+      // Rename folders and interleave with edits
+      const operations: FsOp[] = [
+        // Rename projects/alpha → projects/gamma
+        {
+          type: "folder_rename",
+          oldPath: "projects/alpha",
+          newPath: "projects/gamma",
+        },
+        // Edit a file in the renamed folder
+        {
+          type: "file_edit",
+          path: "projects/gamma/readme.md",
+          content: generateFileContent(rng),
+        },
+        // Add a file in the renamed folder
+        {
+          type: "file_add",
+          path: "projects/gamma/new-file.md",
+          content: generateFileContent(rng),
+        },
+        // Rename the parent folder
+        {
+          type: "folder_rename",
+          oldPath: "projects",
+          newPath: "workspaces",
+        },
+        // Edit a file in the double-renamed path
+        {
+          type: "file_edit",
+          path: "workspaces/gamma/readme.md",
+          content: generateFileContent(rng),
+        },
+        // Delete a file in the renamed hierarchy
+        { type: "file_delete", path: "workspaces/beta/notes/note1.md" },
+        // Rename beta to delta
+        {
+          type: "folder_rename",
+          oldPath: "workspaces/beta",
+          newPath: "workspaces/delta",
+        },
+        // Add file in the renamed path
+        {
+          type: "file_add",
+          path: "workspaces/delta/extra.md",
+          content: generateFileContent(rng),
+        },
       ]
-      const setup = deepFiles.map((path) => ({
-        path,
-        content: generateFileContent(rng),
-      }))
-      const env = setupEnv(setup)
 
-      try {
-        // Rename folders and interleave with edits
-        const operations: FsOp[] = [
-          // Rename projects/alpha → projects/gamma
-          {
-            type: "folder_rename",
-            oldPath: "projects/alpha",
-            newPath: "projects/gamma",
-          },
-          // Edit a file in the renamed folder
-          {
-            type: "file_edit",
-            path: "projects/gamma/readme.md",
-            content: generateFileContent(rng),
-          },
-          // Add a file in the renamed folder
-          {
-            type: "file_add",
-            path: "projects/gamma/new-file.md",
-            content: generateFileContent(rng),
-          },
-          // Rename the parent folder
-          {
-            type: "folder_rename",
-            oldPath: "projects",
-            newPath: "workspaces",
-          },
-          // Edit a file in the double-renamed path
-          {
-            type: "file_edit",
-            path: "workspaces/gamma/readme.md",
-            content: generateFileContent(rng),
-          },
-          // Delete a file in the renamed hierarchy
-          { type: "file_delete", path: "workspaces/beta/notes/note1.md" },
-          // Rename beta to delta
-          {
-            type: "folder_rename",
-            oldPath: "workspaces/beta",
-            newPath: "workspaces/delta",
-          },
-          // Add file in the renamed path
-          {
-            type: "file_add",
-            path: "workspaces/delta/extra.md",
-            content: generateFileContent(rng),
-          },
-        ]
-
-        for (const op of operations) {
-          applyOp(env.mockFs, env.repoDir, op)
-          env.reconcile()
-        }
-
-        checkInvariants(env.verifier, "folder-rename-cascade")
-        checkFsDbSync(env.db, env.mockFs, env.repoDir, "folder-rename-cascade")
-      } finally {
-        env.db.close()
+      for (const op of operations) {
+        applyOp(env.mockFs, env.repoDir, op)
+        env.reconcile()
       }
-    },
-  )
+
+      checkInvariants(env.verifier, "folder-rename-cascade")
+      checkFsDbSync(env.db, env.mockFs, env.repoDir, "folder-rename-cascade")
+    } finally {
+      env.db.close()
+    }
+  })
 
   test.fuzz("stress: many files, all operations mixed", async () => {
     const rng = createSeededRandom()
     // Start with more files
-    const manyFiles = Array.from(
-      { length: 15 },
-      (_, i) => `${rng.pick(DIR_NAMES)}/file${i}.md`,
-    )
+    const manyFiles = Array.from({ length: 15 }, (_, i) => `${rng.pick(DIR_NAMES)}/file${i}.md`)
     // Deduplicate
     const uniqueFiles = [...new Set(manyFiles)]
     const setup = uniqueFiles.map((path) => ({
@@ -795,13 +727,7 @@ describe("Lifecycle Fuzz Tests", () => {
   // oxlint-disable-next-line complexity/complexity -- fuzz test with inline op generation
   test.fuzz("deep nesting: 3+ level paths", async () => {
     const rng = createSeededRandom()
-    const deepFiles = [
-      "a/b/c/deep1.md",
-      "a/b/c/deep2.md",
-      "a/b/mid.md",
-      "a/top.md",
-      "root.md",
-    ]
+    const deepFiles = ["a/b/c/deep1.md", "a/b/c/deep2.md", "a/b/mid.md", "a/top.md", "root.md"]
     const setup = deepFiles.map((path) => ({
       path,
       content: generateFileContent(rng),
@@ -831,9 +757,7 @@ describe("Lifecycle Fuzz Tests", () => {
         } else if (roll < 0.5) {
           // Edit random existing file from FS
           const allPaths = env.mockFs.getAllPaths()
-          const mdFiles = allPaths.filter(
-            (p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"),
-          )
+          const mdFiles = allPaths.filter((p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"))
           if (mdFiles.length > 0) {
             const absPath = rng.pick(mdFiles)
             op = {
@@ -845,9 +769,7 @@ describe("Lifecycle Fuzz Tests", () => {
         } else if (roll < 0.65) {
           // Rename file
           const allPaths = env.mockFs.getAllPaths()
-          const mdFiles = allPaths.filter(
-            (p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"),
-          )
+          const mdFiles = allPaths.filter((p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"))
           if (mdFiles.length > 1) {
             const oldAbs = rng.pick(mdFiles)
             const oldRel = oldAbs.slice(env.repoDir.length + 1)
@@ -863,9 +785,7 @@ describe("Lifecycle Fuzz Tests", () => {
         } else if (roll < 0.75) {
           // Delete file
           const allPaths = env.mockFs.getAllPaths()
-          const mdFiles = allPaths.filter(
-            (p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"),
-          )
+          const mdFiles = allPaths.filter((p) => p.endsWith(".md") && p.startsWith(env.repoDir + "/"))
           if (mdFiles.length > 2) {
             const absPath = rng.pick(mdFiles)
             op = {

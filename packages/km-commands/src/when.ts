@@ -18,10 +18,7 @@ export interface WhenPredicate {
 }
 
 /** Create a named predicate */
-export function when(
-  label: string,
-  fn: (ctx: KeybindingContext) => boolean,
-): WhenPredicate {
+export function when(label: string, fn: (ctx: KeybindingContext) => boolean): WhenPredicate {
   return Object.assign(fn, { label })
 }
 
@@ -32,72 +29,39 @@ export function not(pred: WhenPredicate): WhenPredicate {
 
 /** Combine predicates with AND */
 export function and(...preds: WhenPredicate[]): WhenPredicate {
-  return when(preds.map((p) => p.label).join(" && "), (ctx) =>
-    preds.every((p) => p(ctx)),
-  )
+  return when(preds.map((p) => p.label).join(" && "), (ctx) => preds.every((p) => p(ctx)))
 }
 
 // === Pre-built predicates ===
 
-export const textInputFocused = when(
-  "textInputFocused",
-  (ctx) => ctx.textInputFocused,
-)
+export const textInputFocused = when("textInputFocused", (ctx) => ctx.textInputFocused)
 
 export const inMoveMode = when("inMoveMode", (ctx) => ctx.mode === "move")
 
-export const isInDetailPane = when(
-  "isInDetailPane",
-  (ctx) => ctx.isInDetailPane,
-)
+export const isInDetailPane = when("isInDetailPane", (ctx) => ctx.isInDetailPane)
 
-export const isInOutlineMode = when(
-  "isInOutlineMode",
-  (ctx) => ctx.isInOutlineMode,
-)
+export const isInOutlineMode = when("isInOutlineMode", (ctx) => ctx.isInOutlineMode)
 
 export const hasSelection = when("hasSelection", (ctx) => ctx.hasSelection)
 
-export const isInlineEditing = when(
-  "isInlineEditing",
-  (ctx) => ctx.isInlineEditing,
-)
+export const isInlineEditing = when("isInlineEditing", (ctx) => ctx.isInlineEditing)
 
-export const searchDialogOpen = when(
-  "searchDialogOpen",
-  (ctx) => ctx.searchDialogOpen,
-)
+export const searchDialogOpen = when("searchDialogOpen", (ctx) => ctx.searchDialogOpen)
 
-export const projectPickerOpen = when(
-  "projectPickerOpen",
-  (ctx) => ctx.projectPickerOpen,
-)
+export const projectPickerOpen = when("projectPickerOpen", (ctx) => ctx.projectPickerOpen)
 
-export const newItemDialogOpen = when(
-  "newItemDialogOpen",
-  (ctx) => ctx.newItemDialogOpen,
-)
+export const newItemDialogOpen = when("newItemDialogOpen", (ctx) => ctx.newItemDialogOpen)
 
 /** Any dialog is open (search, project picker, or new item) */
 export const anyDialogOpen = when(
   "anyDialogOpen",
-  (ctx) =>
-    ctx.searchDialogOpen || ctx.projectPickerOpen || ctx.newItemDialogOpen,
+  (ctx) => ctx.searchDialogOpen || ctx.projectPickerOpen || ctx.newItemDialogOpen,
 )
 
-export const helpOverlayOpen = when(
-  "helpOverlayOpen",
-  (ctx) => ctx.helpOverlayOpen,
-)
+export const helpOverlayOpen = when("helpOverlayOpen", (ctx) => ctx.helpOverlayOpen)
 
-export const deleteConfirmOpen = when(
-  "deleteConfirmOpen",
-  (ctx) => ctx.deleteConfirmOpen,
-)
+export const deleteConfirmOpen = when("deleteConfirmOpen", (ctx) => ctx.deleteConfirmOpen)
 
 export const consoleOpen = when("consoleOpen", (ctx) => ctx.consoleOpen)
 
-export const hasActiveToast = when(
-  "hasActiveToast",
-  (ctx) => ctx.hasActiveToast,
-)
+export const hasActiveToast = when("hasActiveToast", (ctx) => ctx.hasActiveToast)

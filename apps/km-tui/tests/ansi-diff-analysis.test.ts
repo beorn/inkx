@@ -65,9 +65,7 @@ function parseAnsiSequences(ansi: string): Array<{
 /**
  * Extract cursor movement sequences (H = absolute position).
  */
-function extractCursorMoves(
-  sequences: ReturnType<typeof parseAnsiSequences>,
-): Array<{
+function extractCursorMoves(sequences: ReturnType<typeof parseAnsiSequences>): Array<{
   row: number
   col: number
   index: number
@@ -120,12 +118,7 @@ function summarizeAnsi(ansi: string): string {
 describe("ANSI diff analysis", () => {
   describe("replay equivalence invariant", () => {
     test("synthetic: ANSI replay matches target buffer", () => {
-      const board = createTestBoard([
-        "Inbox > Task 1",
-        "Inbox > Task 2",
-        "Projects > Alpha",
-        "Projects > Beta",
-      ])
+      const board = createTestBoard(["Inbox > Task 1", "Inbox > Task 2", "Projects > Alpha", "Projects > Beta"])
 
       const buffer0 = board.driver.app.lastBuffer()!
       const vterm = new VirtualTerminal(buffer0.width, buffer0.height)
@@ -150,10 +143,7 @@ describe("ANSI diff analysis", () => {
         const diff = outputPhase(prevBuffer, nextBuffer)
 
         // Load prev buffer into virtual terminal (simulates terminal state before diff)
-        const stepVterm = new VirtualTerminal(
-          nextBuffer.width,
-          nextBuffer.height,
-        )
+        const stepVterm = new VirtualTerminal(nextBuffer.width, nextBuffer.height)
         stepVterm.loadFromBuffer(prevBuffer)
 
         // Apply diff
@@ -164,14 +154,9 @@ describe("ANSI diff analysis", () => {
         if (mismatches.length > 0) {
           const first5 = mismatches.slice(0, 5)
           const details = first5
-            .map(
-              (m) =>
-                `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`,
-            )
+            .map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
             .join("\n")
-          expect.fail(
-            `Replay mismatch after '${key}':\n${details}\n  ... and ${mismatches.length - 5} more`,
-          )
+          expect.fail(`Replay mismatch after '${key}':\n${details}\n  ... and ${mismatches.length - 5} more`)
         }
 
         prevBuffer = nextBuffer
@@ -179,11 +164,7 @@ describe("ANSI diff analysis", () => {
     })
 
     test("synthetic: cursor bounds invariant", () => {
-      const board = createTestBoard([
-        "Inbox > Task 1",
-        "Inbox > Task 2",
-        "Projects > Alpha",
-      ])
+      const board = createTestBoard(["Inbox > Task 1", "Inbox > Task 2", "Projects > Alpha"])
 
       const buffer0 = board.driver.app.lastBuffer()!
       board.press("k")
@@ -195,33 +176,16 @@ describe("ANSI diff analysis", () => {
 
       // All cursor positions should be within bounds (1-indexed)
       for (const move of cursorMoves) {
-        expect(
-          move.row,
-          `Row ${move.row} should be >= 1`,
-        ).toBeGreaterThanOrEqual(1)
-        expect(
-          move.row,
-          `Row ${move.row} should be <= ${buffer1.height}`,
-        ).toBeLessThanOrEqual(buffer1.height)
-        expect(
-          move.col,
-          `Col ${move.col} should be >= 1`,
-        ).toBeGreaterThanOrEqual(1)
-        expect(
-          move.col,
-          `Col ${move.col} should be <= ${buffer1.width}`,
-        ).toBeLessThanOrEqual(buffer1.width)
+        expect(move.row, `Row ${move.row} should be >= 1`).toBeGreaterThanOrEqual(1)
+        expect(move.row, `Row ${move.row} should be <= ${buffer1.height}`).toBeLessThanOrEqual(buffer1.height)
+        expect(move.col, `Col ${move.col} should be >= 1`).toBeGreaterThanOrEqual(1)
+        expect(move.col, `Col ${move.col} should be <= ${buffer1.width}`).toBeLessThanOrEqual(buffer1.width)
       }
     })
   })
 
   test("synthetic: analyze k k j j ANSI diffs", () => {
-    const board = createTestBoard([
-      "Inbox > Task 1",
-      "Inbox > Task 2",
-      "Projects > Alpha",
-      "Projects > Beta",
-    ])
+    const board = createTestBoard(["Inbox > Task 1", "Inbox > Task 2", "Projects > Alpha", "Projects > Beta"])
 
     // Get initial buffer
     const buffer0 = board.driver.app.lastBuffer()!
@@ -279,12 +243,7 @@ describe("ANSI diff analysis", () => {
         item.root(
           "vault",
           // Column 1: Health/Fitness zone-style naming
-          item(
-            "Zone 1: 50-60%",
-            item("Morning run"),
-            item("Evening walk"),
-            item("Recovery jog"),
-          ),
+          item("Zone 1: 50-60%", item("Morning run"), item("Evening walk"), item("Recovery jog")),
           // Column 2: Similar naming pattern
           item(
             "Health & Fitness",
@@ -295,17 +254,8 @@ describe("ANSI diff analysis", () => {
           // Column 3: Projects with deeper nesting
           item(
             "Projects",
-            item.folder(
-              "Work",
-              item("Quarterly report"),
-              item("Team meeting notes"),
-              item("Performance review"),
-            ),
-            item.folder(
-              "Personal",
-              item("Home renovation"),
-              item("Vacation planning"),
-            ),
+            item.folder("Work", item("Quarterly report"), item("Team meeting notes"), item("Performance review")),
+            item.folder("Personal", item("Home renovation"), item("Vacation planning")),
           ),
           // Column 4: Quick tasks
           item(
@@ -349,10 +299,7 @@ describe("ANSI diff analysis", () => {
         if (mismatches.length > 0) {
           const first10 = mismatches.slice(0, 10)
           const details = first10
-            .map(
-              (m) =>
-                `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`,
-            )
+            .map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
             .join("\n")
 
           // Also show the ANSI summary for debugging
@@ -361,9 +308,7 @@ describe("ANSI diff analysis", () => {
           expect.fail(
             `Replay mismatch after '${key}' (${mismatches.length} cells wrong):\n` +
               `${details}\n` +
-              (mismatches.length > 10
-                ? `  ... and ${mismatches.length - 10} more\n`
-                : "") +
+              (mismatches.length > 10 ? `  ... and ${mismatches.length - 10} more\n` : "") +
               `\nANSI summary:\n${summary}`,
           )
         }
@@ -489,9 +434,7 @@ describe("ANSI diff analysis", () => {
 
       // These should produce the same visual result
       // Let's compare the cursor move sequences
-      const cumulativeMoves = extractCursorMoves(
-        parseAnsiSequences(cumulativeDiff),
-      )
+      const cumulativeMoves = extractCursorMoves(parseAnsiSequences(cumulativeDiff))
       const freshMoves = extractCursorMoves(parseAnsiSequences(freshDiff))
 
       // Log for debugging
@@ -512,16 +455,8 @@ describe("ANSI diff analysis", () => {
       }
 
       // The buffers should be identical even if the diffs are different
-      for (
-        let y = 0;
-        y < Math.min(bufferFinal.height, freshBuffer.height);
-        y++
-      ) {
-        for (
-          let x = 0;
-          x < Math.min(bufferFinal.width, freshBuffer.width);
-          x++
-        ) {
+      for (let y = 0; y < Math.min(bufferFinal.height, freshBuffer.height); y++) {
+        for (let x = 0; x < Math.min(bufferFinal.width, freshBuffer.width); x++) {
           const a = bufferFinal.getCell(x, y)
           const b = freshBuffer.getCell(x, y)
           if (a.char !== b.char) {
@@ -553,9 +488,7 @@ describe("ANSI diff analysis", () => {
           const a = incremental1.getCell(x, y)
           const b = fresh1.getCell(x, y)
           if (a.char !== b.char) {
-            expect.fail(
-              `Buffer mismatch after fold at (${x},${y}): incremental="${a.char}", fresh="${b.char}"`,
-            )
+            expect.fail(`Buffer mismatch after fold at (${x},${y}): incremental="${a.char}", fresh="${b.char}"`)
           }
         }
       }
@@ -571,9 +504,7 @@ describe("ANSI diff analysis", () => {
           const a = incremental2.getCell(x, y)
           const b = fresh2.getCell(x, y)
           if (a.char !== b.char) {
-            expect.fail(
-              `Buffer mismatch after unfold at (${x},${y}): incremental="${a.char}", fresh="${b.char}"`,
-            )
+            expect.fail(`Buffer mismatch after unfold at (${x},${y}): incremental="${a.char}", fresh="${b.char}"`)
           }
         }
       }
@@ -599,9 +530,7 @@ describe("ANSI diff analysis", () => {
 
         const mismatches = vterm.compareToBuffer(nextBuffer)
         if (mismatches.length > 0) {
-          expect.fail(
-            `Replay mismatch after '${key}': ${mismatches.length} cells wrong`,
-          )
+          expect.fail(`Replay mismatch after '${key}': ${mismatches.length} cells wrong`)
         }
 
         prevBuffer = nextBuffer
@@ -628,9 +557,7 @@ describe("ANSI diff analysis", () => {
 
         const mismatches = vterm.compareToBuffer(nextBuffer)
         if (mismatches.length > 0) {
-          expect.fail(
-            `Replay mismatch after '${key}': ${mismatches.length} cells wrong`,
-          )
+          expect.fail(`Replay mismatch after '${key}': ${mismatches.length} cells wrong`)
         }
 
         prevBuffer = nextBuffer

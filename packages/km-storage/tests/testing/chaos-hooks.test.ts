@@ -11,11 +11,7 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { runGenerator } from "@km/core"
-import {
-  createRepo,
-  createChaosHooks,
-  createSeededRandom,
-} from "../../src/index.ts"
+import { createRepo, createChaosHooks, createSeededRandom } from "../../src/index.ts"
 import type { ChaosEvent, ChaosHooks } from "../../src/index.ts"
 
 const TEST_DIR = "/tmp/kmtest-chaos-hooks"
@@ -86,9 +82,7 @@ describe.sequential("createChaosHooks", () => {
     expect(tasks.length).toBe(3)
 
     // Update should be dropped
-    expect(() =>
-      repo.updateNode(tasks[0]!.id, { task_status: "done" }),
-    ).toThrow(/Mutation cancelled by hook/)
+    expect(() => repo.updateNode(tasks[0]!.id, { task_status: "done" })).toThrow(/Mutation cancelled by hook/)
 
     // Verify mutation was dropped
     const unchanged = repo.getNode(tasks[0]!.id)
@@ -158,9 +152,7 @@ describe.sequential("createChaosHooks", () => {
     const tasks = repo.getAllTasks()
 
     // Update should be dropped
-    expect(() =>
-      repo.updateNode(tasks[0]!.id, { task_status: "done" }),
-    ).toThrow(/Mutation cancelled by hook/)
+    expect(() => repo.updateNode(tasks[0]!.id, { task_status: "done" })).toThrow(/Mutation cancelled by hook/)
 
     // Add should succeed
     const rootChildren = repo.getChildren(null)
@@ -193,9 +185,7 @@ describe.sequential("createChaosHooks", () => {
 
     // With chaos enabled, update should fail
     expect(hooks.isEnabled()).toBe(true)
-    expect(() =>
-      repo.updateNode(tasks[0]!.id, { task_status: "done" }),
-    ).toThrow(/Mutation cancelled by hook/)
+    expect(() => repo.updateNode(tasks[0]!.id, { task_status: "done" })).toThrow(/Mutation cancelled by hook/)
 
     // Disable chaos
     hooks.disable()
@@ -211,9 +201,7 @@ describe.sequential("createChaosHooks", () => {
     expect(hooks.isEnabled()).toBe(true)
 
     // Now update should fail again
-    expect(() =>
-      repo.updateNode(tasks[2]!.id, { task_status: "done" }),
-    ).toThrow(/Mutation cancelled by hook/)
+    expect(() => repo.updateNode(tasks[2]!.id, { task_status: "done" })).toThrow(/Mutation cancelled by hook/)
   })
 
   test("tracks statistics", () => {
@@ -305,9 +293,7 @@ describe.sequential("createChaosHooks", () => {
         random,
       })
 
-      using repo = runGenerator(
-        createRepo(REPO_DIR, { hooks, loadFiles: true }),
-      )
+      using repo = runGenerator(createRepo(REPO_DIR, { hooks, loadFiles: true }))
 
       const tasks = repo.getAllTasks()
       for (const task of tasks) {

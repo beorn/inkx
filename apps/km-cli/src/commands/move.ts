@@ -109,9 +109,7 @@ export const moveCommand = new Command("move")
     }
 
     const nodeName = getNodeDisplayName(node)
-    const targetName = targetParent
-      ? getNodeDisplayName(targetParent)
-      : "(root)"
+    const targetName = targetParent ? getNodeDisplayName(targetParent) : "(root)"
 
     console.log(term.green("→"), `Moved ${nodeName} to ${targetName}`)
   })

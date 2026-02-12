@@ -93,9 +93,7 @@ function loadOriginalBeadsConfigWithPath(
 /**
  * Get the original beads config (for migration info)
  */
-export function getOriginalBeadsConfig(
-  searchFrom?: string,
-): OriginalBeadsConfig | null {
+export function getOriginalBeadsConfig(searchFrom?: string): OriginalBeadsConfig | null {
   return loadOriginalBeadsConfigWithPath(searchFrom)?.config ?? null
 }
 
@@ -114,9 +112,7 @@ export function loadConfig(searchFrom?: string): KmConfig {
 /**
  * Load km configuration and return both config and filepath.
  */
-export function loadConfigWithPath(
-  searchFrom?: string,
-): { config: KmConfig; filepath: string } | null {
+export function loadConfigWithPath(searchFrom?: string): { config: KmConfig; filepath: string } | null {
   const result = explorer.search(searchFrom)
   if (result && !result.isEmpty) {
     return { config: result.config as KmConfig, filepath: result.filepath }

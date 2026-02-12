@@ -199,8 +199,7 @@ const zoomInwards = {
 const openInSystem = {
   id: "open_in_system",
   name: "Open in System",
-  description:
-    "Open file/folder in macOS (Finder for folders, default app for files)",
+  description: "Open file/folder in macOS (Finder for folders, default app for files)",
   category: "Navigation",
   shortcuts: ["o"],
   execute: (ctx) => {

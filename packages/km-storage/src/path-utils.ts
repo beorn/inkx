@@ -27,9 +27,7 @@ export interface PathResolution {
  * Note: ~ is handled by the shell before reaching the program
  */
 export function isExplicitPath(query: string): boolean {
-  return (
-    query.startsWith("/") || query.startsWith("./") || query.startsWith("../")
-  )
+  return query.startsWith("/") || query.startsWith("./") || query.startsWith("../")
 }
 
 /**
@@ -154,10 +152,7 @@ export interface ResolvedPathArg {
  * @param fallbackRoot - Fallback repo root if not determined from path
  * @returns Resolved repo root and node reference
  */
-export function resolvePathArg(
-  arg: string | undefined,
-  fallbackRoot?: string,
-): ResolvedPathArg {
+export function resolvePathArg(arg: string | undefined, fallbackRoot?: string): ResolvedPathArg {
   // No argument - use fallback root, show all nodes
   if (!arg) {
     return {
@@ -199,9 +194,7 @@ export function resolvePathArg(
       }
     } else if (resolution.exists && resolution.isFile) {
       // File path - find repo root, use file path as node ref
-      const repoRoot = resolution.kmRoot
-        ? dirname(resolution.kmRoot)
-        : dirname(resolution.absolutePath)
+      const repoRoot = resolution.kmRoot ? dirname(resolution.kmRoot) : dirname(resolution.absolutePath)
       return {
         repoRoot,
         nodeRef: resolution.absolutePath,
@@ -210,9 +203,7 @@ export function resolvePathArg(
     } else {
       // Path doesn't exist - still treat as explicit path
       // Use detected repo root if available (e.g., /tmp/repo/@next.md -> /tmp/repo)
-      const repoRoot = resolution.kmRoot
-        ? dirname(resolution.kmRoot)
-        : fallbackRoot || process.cwd()
+      const repoRoot = resolution.kmRoot ? dirname(resolution.kmRoot) : fallbackRoot || process.cwd()
 
       // If we found a repo root, extract the filename as a node reference
       // This handles cases like `/tmp/repo/@next.md` -> nodeRef becomes `@next`
@@ -254,10 +245,7 @@ export function resolvePathArg(
  * toRelativeFsPath("/repo", "/repo/sub/file.md") // => "sub/file.md"
  * toRelativeFsPath("/repo", "/repo") // => "."
  */
-export function toRelativeFsPath(
-  repoRoot: string,
-  absolutePath: string,
-): string {
+export function toRelativeFsPath(repoRoot: string, absolutePath: string): string {
   if (absolutePath === repoRoot) return "."
   const rel = relative(repoRoot, absolutePath)
   // Sanity: if relative() returns something starting with "..", the path
@@ -275,10 +263,7 @@ export function toRelativeFsPath(
  * toAbsoluteFsPath("/repo", ".") // => "/repo"
  * toAbsoluteFsPath("/repo", "/already/absolute") // => "/already/absolute"
  */
-export function toAbsoluteFsPath(
-  repoRoot: string,
-  relativePath: string,
-): string {
+export function toAbsoluteFsPath(repoRoot: string, relativePath: string): string {
   if (relativePath === ".") return repoRoot
   if (isAbsolute(relativePath)) return relativePath
   return join(repoRoot, relativePath)

@@ -1,10 +1,6 @@
 export { createConsumer, type ConsumerOptions, type Failure } from "./consumer"
 export { mergeStreams, type NamedStream } from "./merge"
-export {
-  createOrchestrator,
-  type Suite,
-  type OrchestratorOptions,
-} from "./orchestrate"
+export { createOrchestrator, type Suite, type OrchestratorOptions } from "./orchestrate"
 export { runBunTap } from "./producers/bun"
 export { runVitestTap } from "./producers/vitest"
 export { default as PlaywrightReporter } from "./producers/playwright"

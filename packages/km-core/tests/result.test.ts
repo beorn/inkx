@@ -1,16 +1,5 @@
 import { describe, expect, it } from "vitest"
-import {
-  Ok,
-  Err,
-  OkVoid,
-  isOk,
-  isErr,
-  map,
-  andThen,
-  all,
-  tryCatch,
-  type Result,
-} from "../src/result.ts"
+import { Ok, Err, OkVoid, isOk, isErr, map, andThen, all, tryCatch, type Result } from "../src/result.ts"
 
 describe("Result type", () => {
   describe("Ok/Err constructors", () => {
@@ -76,9 +65,7 @@ describe("Result type", () => {
     })
 
     it("short-circuits on error", () => {
-      const result = andThen(Err("first") as Result<number, string>, () =>
-        Ok(99),
-      )
+      const result = andThen(Err("first") as Result<number, string>, () => Ok(99))
       expect(result).toEqual(Err("first"))
     })
   })

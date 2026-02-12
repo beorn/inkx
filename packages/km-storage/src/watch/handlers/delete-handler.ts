@@ -4,22 +4,14 @@
  * Simple handlers for file/folder deletion and renaming.
  */
 
-import {
-  emitNodeUpdated,
-  emitNodeDeleted,
-  type Emitter,
-} from "../../emitter.ts"
+import { emitNodeUpdated, emitNodeDeleted, type Emitter } from "../../emitter.ts"
 import { toRelativeFsPath } from "../../path-utils.ts"
 import type { ReconcileOp } from "../reconcile.ts"
 
 /**
  * Handle file/folder rename
  */
-export function handleRename(
-  emitter: Emitter,
-  op: ReconcileOp,
-  repoRoot: string,
-): void {
+export function handleRename(emitter: Emitter, op: ReconcileOp, repoRoot: string): void {
   if (!op.nodeId) return
 
   emitNodeUpdated(emitter, "fs-watch", op.nodeId, {

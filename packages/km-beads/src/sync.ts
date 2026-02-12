@@ -94,10 +94,7 @@ export interface SyncResult {
 /**
  * Export km issues to .beads/issues.jsonl
  */
-export function exportToBeads(
-  issues: Issue[],
-  options: SyncOptions,
-): SyncResult {
+export function exportToBeads(issues: Issue[], options: SyncOptions): SyncResult {
   const result: SyncResult = {
     exported: 0,
     errors: [],
@@ -139,18 +136,13 @@ export function exportToBeads(
       beadsIssues.push(beadsIssue)
       result.exported++
     } catch (error) {
-      result.errors.push(
-        `${issue.shortId}: ${error instanceof Error ? error.message : String(error)}`,
-      )
+      result.errors.push(`${issue.shortId}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
   if (!options.dryRun) {
     // Combine existing and new issues
-    const allIssues =
-      options.mode === "append"
-        ? [...existingIssues, ...beadsIssues]
-        : beadsIssues
+    const allIssues = options.mode === "append" ? [...existingIssues, ...beadsIssues] : beadsIssues
 
     // Write JSONL
     const content = allIssues.map((i) => JSON.stringify(i)).join("\n") + "\n"

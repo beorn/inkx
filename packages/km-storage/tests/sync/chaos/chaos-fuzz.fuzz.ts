@@ -10,22 +10,12 @@ import { Database } from "bun:sqlite"
 import { join, dirname } from "path"
 import type { Picker, PickerContext, SeededRandom } from "vitestx"
 import { generateFileContent } from "./event-picker.ts"
-import {
-  chaos,
-  drop,
-  reorder,
-  atomicSave,
-  duplicate,
-  type ChaosTransformerConfig,
-} from "./transformers.ts"
+import { chaos, drop, reorder, atomicSave, duplicate, type ChaosTransformerConfig } from "./transformers.ts"
 import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier } from "./verifier.ts"
 import { createEmitter } from "../../../src/emitter.ts"
 import { SCHEMA } from "../../../src/schema.ts"
-import {
-  reconcileDirectoryRecursive,
-  applyReconcileOps,
-} from "../../../src/watch/reconcile.ts"
+import { reconcileDirectoryRecursive, applyReconcileOps } from "../../../src/watch/reconcile.ts"
 import type { FsEvent } from "./types.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,9 +43,7 @@ function createFixedSetPicker(paths: string[]): Picker<FsEvent> {
 }
 
 /** Set up a chaos test environment with mock FS, DB, and reconciler */
-function setupChaosEnv(
-  files: Array<{ path: string; content: string }>,
-): ChaosTestEnv {
+function setupChaosEnv(files: Array<{ path: string; content: string }>): ChaosTestEnv {
   const mockFs = createFakeFileSystem()
   const repoDir = "/repo"
   const kmDir = "/repo/.km"
@@ -79,24 +67,12 @@ function setupChaosEnv(
 
   // Initial reconciliation
   const scanner = mockFs.createScanner()
-  const ops = reconcileDirectoryRecursive(
-    db,
-    repoDir,
-    repoDir,
-    undefined,
-    scanner,
-  )
+  const ops = reconcileDirectoryRecursive(db, repoDir, repoDir, undefined, scanner)
   applyReconcileOps(db, ops, repoDir, emitter, mockFs)
 
   // Event handler: reconcile from repo root
   const handleEvent = (_event: FsEvent) => {
-    const reconOps = reconcileDirectoryRecursive(
-      db,
-      repoDir,
-      repoDir,
-      undefined,
-      scanner,
-    )
+    const reconOps = reconcileDirectoryRecursive(db, repoDir, repoDir, undefined, scanner)
     applyReconcileOps(db, reconOps, repoDir, emitter, mockFs)
   }
 
@@ -112,9 +88,7 @@ function applyEventToFs(
   event: FsEvent,
   rng: SeededRandom,
 ) {
-  const absPath = event.path.startsWith(repoDir)
-    ? event.path
-    : join(repoDir, event.path)
+  const absPath = event.path.startsWith(repoDir) ? event.path : join(repoDir, event.path)
 
   switch (event.type) {
     case "add": {
@@ -146,10 +120,7 @@ function applyEventToFs(
  * with expected state rather than structural parent checks. */
 function checkInvariants(verifier: Verifier) {
   const dupes = verifier.verifyNoDuplicates()
-  expect(
-    dupes.stats.duplicateNodes,
-    `Duplicate nodes: ${dupes.errors.join(", ")}`,
-  ).toBe(0)
+  expect(dupes.stats.duplicateNodes, `Duplicate nodes: ${dupes.errors.join(", ")}`).toBe(0)
 
   const paths = verifier.verifyFilePaths()
   expect(paths.passed, `File paths: ${paths.errors.join(", ")}`).toBe(true)
@@ -160,13 +131,7 @@ function checkInvariants(verifier: Verifier) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("Chaos Fuzz Tests (vitestx)", () => {
-  const initialFiles = [
-    "notes/note1.md",
-    "notes/note2.md",
-    "tasks/task1.md",
-    "readme.md",
-    "inbox.md",
-  ]
+  const initialFiles = ["notes/note1.md", "notes/note2.md", "tasks/task1.md", "readme.md", "inbox.md"]
 
   test.fuzz("sync survives random change events (no chaos)", async () => {
     const rng = createSeededRandom()
@@ -327,11 +292,7 @@ describe("Chaos Fuzz Tests (vitestx)", () => {
     const env = setupChaosEnv(setup)
     try {
       const base = gen(createFixedSetPicker(initialFiles))
-      const chaotic = chaos(
-        base,
-        [{ type: "event_storm", params: { burstSize: 8 } }],
-        rng,
-      )
+      const chaotic = chaos(base, [{ type: "event_storm", params: { burstSize: 8 } }], rng)
 
       for await (const event of take(chaotic, 100)) {
         applyEventToFs(env.mockFs, env.repoDir, event, rng)
@@ -354,11 +315,7 @@ describe("Chaos Fuzz Tests (vitestx)", () => {
     const env = setupChaosEnv(setup)
     try {
       const base = gen(createFixedSetPicker(initialFiles))
-      const chaotic = chaos(
-        base,
-        [{ type: "partial_writes", params: { rate: 0.4 } }],
-        rng,
-      )
+      const chaotic = chaos(base, [{ type: "partial_writes", params: { rate: 0.4 } }], rng)
 
       for await (const event of take(chaotic, 100)) {
         applyEventToFs(env.mockFs, env.repoDir, event, rng)
@@ -381,11 +338,7 @@ describe("Chaos Fuzz Tests (vitestx)", () => {
     const env = setupChaosEnv(setup)
     try {
       const base = gen(createFixedSetPicker(initialFiles))
-      const chaotic = chaos(
-        base,
-        [{ type: "init_gap", params: { count: 10 } }],
-        rng,
-      )
+      const chaotic = chaos(base, [{ type: "init_gap", params: { count: 10 } }], rng)
 
       for await (const event of take(chaotic, 100)) {
         applyEventToFs(env.mockFs, env.repoDir, event, rng)

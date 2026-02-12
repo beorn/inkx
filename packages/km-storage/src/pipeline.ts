@@ -258,10 +258,7 @@ export async function* pipelineResolveLinks(
 /**
  * Resolve a single wikilink using the resolver.
  */
-function resolveWikilink(
-  ref: WikilinkRef,
-  resolver: LinkResolver,
-): ResolvedLink {
+function resolveWikilink(ref: WikilinkRef, resolver: LinkResolver): ResolvedLink {
   const { nodeId, link, relationship } = ref
 
   let targetId: string | null = null
@@ -384,10 +381,7 @@ export async function* applyLinks(
  * Run a pipeline to completion.
  * Returns the count of items processed.
  */
-export async function runPipeline<T>(
-  pipeline: AsyncGenerator<T>,
-  onProgress?: (item: T) => void,
-): Promise<number> {
+export async function runPipeline<T>(pipeline: AsyncGenerator<T>, onProgress?: (item: T) => void): Promise<number> {
   let count = 0
   for await (const item of pipeline) {
     onProgress?.(item)
@@ -428,9 +422,7 @@ function insertFileNodes(
   file: ParsedFile,
   insertStmt: ReturnType<Database["prepare"]>,
   deleteStmt: ReturnType<Database["prepare"]>,
-  stubInfo:
-    | Map<string, { parent_id: string | null; parent_idx: number }>
-    | undefined,
+  stubInfo: Map<string, { parent_id: string | null; parent_idx: number }> | undefined,
   emitter: Emitter | undefined,
   now: number,
 ): void {
@@ -484,22 +476,13 @@ function insertFileNodes(
 
     // Emit event if emitter provided (syncing path)
     if (emitter) {
-      emitNodeCreated(
-        emitter,
-        "fs-watch",
-        node as unknown as Record<string, unknown>,
-      )
+      emitNodeCreated(emitter, "fs-watch", node as unknown as Record<string, unknown>)
     }
   }
 }
 
 /** Update file-level metadata for an existing file. */
-function updateFileMetadata(
-  file: ParsedFile,
-  db: Database,
-  emitter: Emitter | undefined,
-  now: number,
-): void {
+function updateFileMetadata(file: ParsedFile, db: Database, emitter: Emitter | undefined, now: number): void {
   if (!file.nodes[0]) return
 
   const updates: Record<string, unknown> = {
@@ -508,10 +491,13 @@ function updateFileMetadata(
     content_hash: file.hash,
   }
 
-  db.run(
-    `UPDATE nodes SET fs_mtime = ?, fs_ino = ?, content_hash = ?, updated_at = ? WHERE id = ?`,
-    [file.mtime, file.ino, file.hash, now, file.nodeId],
-  )
+  db.run(`UPDATE nodes SET fs_mtime = ?, fs_ino = ?, content_hash = ?, updated_at = ? WHERE id = ?`, [
+    file.mtime,
+    file.ino,
+    file.hash,
+    now,
+    file.nodeId,
+  ])
 
   // Emit update event if emitter provided
   if (emitter) {
@@ -542,14 +528,12 @@ export async function runDeferredPipeline(
   const { signal } = options
 
   // Build stub info from existing nodes
-  const stubInfo = new Map<
-    string,
-    { parent_id: string | null; parent_idx: number }
-  >()
+  const stubInfo = new Map<string, { parent_id: string | null; parent_idx: number }>()
   for (const { nodeId } of deferredFiles) {
-    const row = db
-      .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
-      .get(nodeId) as { parent_id: string | null; parent_idx: number } | null
+    const row = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
+      parent_id: string | null
+      parent_idx: number
+    } | null
     if (row) {
       stubInfo.set(nodeId, row)
     }
@@ -575,9 +559,7 @@ export async function runDeferredPipeline(
   await runPipeline(linkGen)
 
   const parsedCount = stubInfo.size
-  log.debug?.(
-    `runDeferredPipeline: ${parsedCount} parsed, ${pendingLinks.length} links`,
-  )
+  log.debug?.(`runDeferredPipeline: ${parsedCount} parsed, ${pendingLinks.length} links`)
 
   return { parsed: parsedCount, pendingLinks }
 }

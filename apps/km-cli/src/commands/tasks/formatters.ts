@@ -7,10 +7,7 @@
 import { createTerm } from "inkx"
 
 const term = createTerm(process)
-import {
-  getNodeDisplayName as getNodeDisplayNameRaw,
-  type CollapsedAncestor,
-} from "@km/tree"
+import { getNodeDisplayName as getNodeDisplayNameRaw, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 
@@ -24,10 +21,7 @@ export function getNodeDisplayName(repo: Repo, node: KNode): string {
 /**
  * Format a collapsed ancestor for display with its type suffix
  */
-export function formatCollapsedAncestor(
-  repo: Repo,
-  ca: CollapsedAncestor,
-): string {
+export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor): string {
   const name = getNodeDisplayName(repo, ca.node)
   if (ca.typeSuffix) {
     return name + term.gray(` ${ca.typeSuffix}`)
@@ -58,9 +52,7 @@ export function formatTaskWithPath(
 
   if (options.flat) {
     // Single line: path → task
-    const pathParts = collapsedAncestors.map((ca) =>
-      term.dim(formatCollapsedAncestor(repo, ca)),
-    )
+    const pathParts = collapsedAncestors.map((ca) => term.dim(formatCollapsedAncestor(repo, ca)))
     const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : ""
     lines.push(pathStr + formatTaskLine(task, options))
   } else {
@@ -91,10 +83,7 @@ export function formatTaskWithPath(
 /**
  * Format the task line itself (checkbox, id, content)
  */
-export function formatTaskLine(
-  task: KNode,
-  options: { detail?: boolean; showId?: boolean } = {},
-): string {
+export function formatTaskLine(task: KNode, options: { detail?: boolean; showId?: boolean } = {}): string {
   const mark = task.task_mark ?? " "
   const status = task.task_status ?? "todo"
 

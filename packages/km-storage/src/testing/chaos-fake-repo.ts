@@ -6,11 +6,7 @@
  */
 
 import type { KNode } from "@km/core"
-import {
-  createFakeRepo,
-  type FakeRepo,
-  type FakeRepoOptions,
-} from "./fake-repo.ts"
+import { createFakeRepo, type FakeRepo, type FakeRepoOptions } from "./fake-repo.ts"
 
 /**
  * Transaction log entry for tracking repo operations
@@ -144,9 +140,7 @@ export interface ConsistencyIssue {
  * @param options - Configuration with initial data
  * @returns ChaosFakeRepo instance
  */
-export function createChaosFakeRepo(
-  options: ChaosFakeRepoOptions = {},
-): ChaosFakeRepo {
+export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFakeRepo {
   const baseRepo = createFakeRepo(options)
   const logTransactions = options.logTransactions ?? true
 
@@ -326,9 +320,7 @@ export function createChaosFakeRepo(
       const nodes = baseRepo.getAllNodes()
       const nodeIds = new Set(nodes.map((n) => n.id))
 
-      return nodes.filter(
-        (n) => n.parent_id !== null && !nodeIds.has(n.parent_id),
-      )
+      return nodes.filter((n) => n.parent_id !== null && !nodeIds.has(n.parent_id))
     },
 
     getDuplicateIds() {
@@ -547,9 +539,7 @@ export function createChaosFakeRepo(
 /**
  * Create a minimal valid KNode from partial data
  */
-function createMinimalNode(
-  partial: Partial<KNode> & { id: string; parent_id: string | null },
-): KNode {
+function createMinimalNode(partial: Partial<KNode> & { id: string; parent_id: string | null }): KNode {
   const now = Date.now()
   return {
     type: "section",

@@ -68,9 +68,7 @@ test("loadRepo creates root and reparents all top-level nodes", () => {
 
   // Only root should have parent_id = NULL
   const orphanCount = (
-    db
-      .prepare("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL")
-      .get() as { count: number }
+    db.prepare("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL").get() as { count: number }
   ).count
   expect(orphanCount).toBe(1) // just the root "."
 })
@@ -96,9 +94,11 @@ test("vault with folders shows them as board columns", () => {
   }
 
   // All root-level items should be children of "."
-  const rootChildren = db
-    .prepare("SELECT id, type, name FROM nodes WHERE parent_id = '.'")
-    .all() as { id: string; type: string; name: string }[]
+  const rootChildren = db.prepare("SELECT id, type, name FROM nodes WHERE parent_id = '.'").all() as {
+    id: string
+    type: string
+    name: string
+  }[]
 
   const childNames = rootChildren.map((c) => c.name).sort()
   expect(childNames).toContain("inbox")
@@ -106,9 +106,9 @@ test("vault with folders shows them as board columns", () => {
   expect(childNames).toContain("board")
 
   // No orphan folders (except repo root)
-  const orphanFolders = db
-    .prepare("SELECT id FROM nodes WHERE parent_id IS NULL AND id != '.'")
-    .all() as { id: string }[]
+  const orphanFolders = db.prepare("SELECT id FROM nodes WHERE parent_id IS NULL AND id != '.'").all() as {
+    id: string
+  }[]
 
   expect(orphanFolders).toHaveLength(0)
 })

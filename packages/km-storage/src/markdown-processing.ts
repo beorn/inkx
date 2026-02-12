@@ -75,18 +75,11 @@ export interface WikilinkRef {
  * Parse a markdown file into a ProcessedMarkdown structure.
  * This is the shared parsing step - all consumers start here.
  */
-export function processMarkdownFile(
-  content: string,
-  path: string,
-  ino?: number,
-  mtime?: number,
-): ProcessedMarkdown {
+export function processMarkdownFile(content: string, path: string, ino?: number, mtime?: number): ProcessedMarkdown {
   const hash = hashContent(content)
   const result = parseMarkdownWithLinks(content, path, ino, mtime)
 
-  log.debug?.(
-    `processed ${path}: ${result.nodes.length} nodes, ${result.wikilinks.length} links`,
-  )
+  log.debug?.(`processed ${path}: ${result.nodes.length} nodes, ${result.wikilinks.length} links`)
 
   return {
     path,
@@ -101,11 +94,7 @@ export function processMarkdownFile(
  * Convert processed markdown to node_created events.
  * Used by the loading path for batch event application.
  */
-export function toNodeEvents(
-  processed: ProcessedMarkdown,
-  actor: string,
-  timestamp?: number,
-): Event[] {
+export function toNodeEvents(processed: ProcessedMarkdown, actor: string, timestamp?: number): Event[] {
   const ts = timestamp ?? Date.now()
 
   return processed.nodes.map((node) => ({
@@ -153,10 +142,7 @@ export interface ResolvedLink {
  * Resolve wikilinks using a LinkResolver.
  * Used by the syncing path for immediate resolution.
  */
-export function toResolvedLinks(
-  processed: ProcessedMarkdown,
-  resolver: LinkResolver,
-): ResolvedLink[] {
+export function toResolvedLinks(processed: ProcessedMarkdown, resolver: LinkResolver): ResolvedLink[] {
   return processed.wikilinks.map(({ nodeId, link, relationship }) => {
     let targetId: string | null = null
 

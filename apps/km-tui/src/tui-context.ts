@@ -62,9 +62,7 @@ export interface ActionCtx {
   /** Dispatch to board state (for SELECT, ZOOM_IN, MOVE, etc.) */
   dispatchBoard: (action: BoardAction) => void
   /** Set UI fields directly (partial update, shallow merge) */
-  setUI: (
-    partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>),
-  ) => void
+  setUI: (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
   /** Set foldedNodes (single source of truth at store root) */
   setFoldedNodes: (nodes: Set<string>) => void
 
@@ -74,10 +72,5 @@ export interface ActionCtx {
 
   // === Utilities ===
   /** Count visible descendants for outline mode */
-  countVisibleDescendants: (
-    node: KNode,
-    depth: number,
-    maxDepth: number,
-    foldedNodes: Set<string>,
-  ) => number
+  countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldedNodes: Set<string>) => number
 }

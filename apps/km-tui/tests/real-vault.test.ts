@@ -193,8 +193,7 @@ describe.skipIf(!process.env.TEST_VAULT)("Real vault diagnostics", () => {
     // Use deterministic seed for reproducibility
     const rng = {
       seed: 42,
-      next: () =>
-        (rng.seed = (rng.seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff,
+      next: () => (rng.seed = (rng.seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff,
     }
 
     for (let i = 0; i < 30; i++) {

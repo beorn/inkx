@@ -224,23 +224,12 @@ export function emitNodeDeleted(
   reason?: string,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit(
-    { type: "node_deleted", actor, target, data: { reason } },
-    options,
-  )
+  return emitter.emit({ type: "node_deleted", actor, target, data: { reason } }, options)
 }
 
 /** Emit task_claimed event */
-export function emitTaskClaimed(
-  emitter: Emitter,
-  target: string,
-  actor: string,
-  options?: EmitOptions,
-): Event {
-  return emitter.emit(
-    { type: "task_claimed", actor, target, data: {} },
-    options,
-  )
+export function emitTaskClaimed(emitter: Emitter, target: string, actor: string, options?: EmitOptions): Event {
+  return emitter.emit({ type: "task_claimed", actor, target, data: {} }, options)
 }
 
 /** Emit task_released event */
@@ -251,10 +240,7 @@ export function emitTaskReleased(
   reason?: string,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit(
-    { type: "task_released", actor, target, data: { reason } },
-    options,
-  )
+  return emitter.emit({ type: "task_released", actor, target, data: { reason } }, options)
 }
 
 /** Emit task_completed event */
@@ -265,10 +251,7 @@ export function emitTaskCompleted(
   summary?: string,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit(
-    { type: "task_completed", actor, target, data: { summary } },
-    options,
-  )
+  return emitter.emit({ type: "task_completed", actor, target, data: { summary } }, options)
 }
 
 /** Emit session_started event */

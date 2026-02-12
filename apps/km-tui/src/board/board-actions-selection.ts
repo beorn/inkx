@@ -11,10 +11,7 @@
  */
 
 import { updateSelectionRange } from "../keyboard/keyboard-helpers.ts"
-import {
-  handleTreeNavigation,
-  type TreeDirection,
-} from "../handlers/navigation-handlers.ts"
+import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type SelectionKey } from "../types.ts"
 
@@ -22,10 +19,7 @@ import { makeSelectionKey, type SelectionKey } from "../types.ts"
  * Extend selection vertically (up or down).
  * Moves focus up/down within the same column; selection derived from anchor to focus.
  */
-export function handleExtendSelectVertical(
-  ctx: ActionCtx,
-  direction: "up" | "down",
-): void {
+export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "down"): void {
   const { layout, ui, dispatchBoard } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
@@ -45,9 +39,7 @@ export function handleExtendSelectVertical(
 
   // Calculate target
   const targetIdx =
-    direction === "up"
-      ? Math.max(0, layout.cardIndex - 1)
-      : Math.min(col.cards.length - 1, layout.cardIndex + 1)
+    direction === "up" ? Math.max(0, layout.cardIndex - 1) : Math.min(col.cards.length - 1, layout.cardIndex + 1)
 
   if (targetIdx === layout.cardIndex) return
 
@@ -65,10 +57,7 @@ export function handleExtendSelectVertical(
  * Extend selection horizontally (left or right).
  * Selects entire columns between anchor and focus.
  */
-export function handleExtendSelectHorizontal(
-  ctx: ActionCtx,
-  direction: "left" | "right",
-): void {
+export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" | "right"): void {
   const { layout, ui, dispatchBoard } = ctx
   const columns = layout.columns
 
@@ -79,9 +68,7 @@ export function handleExtendSelectHorizontal(
 
   // Calculate target column (focus moves one step in direction)
   const targetColIdx =
-    direction === "right"
-      ? Math.min(columns.length - 1, layout.colIndex + 1)
-      : Math.max(0, layout.colIndex - 1)
+    direction === "right" ? Math.min(columns.length - 1, layout.colIndex + 1) : Math.max(0, layout.colIndex - 1)
 
   // At boundary with no selection: select current column
   // At boundary with existing selection: do nothing
@@ -128,11 +115,7 @@ function resolveAnchorCol(ctx: ActionCtx): number | null {
 }
 
 /** Select all cards in all columns between fromCol and toCol (inclusive). */
-function selectColumnRange(
-  ctx: ActionCtx,
-  fromCol: number,
-  toCol: number,
-): Set<SelectionKey> {
+function selectColumnRange(ctx: ActionCtx, fromCol: number, toCol: number): Set<SelectionKey> {
   const selected = new Set<SelectionKey>()
   const minCol = Math.min(fromCol, toCol)
   const maxCol = Math.max(fromCol, toCol)

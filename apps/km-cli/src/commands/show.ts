@@ -37,9 +37,7 @@ export const showCommand = new Command("show")
 
     // Directory paths don't resolve to a specific node
     if (!resolved.nodeRef) {
-      console.error(
-        term.red(`Cannot show a directory. Use 'km ls' to list contents.`),
-      )
+      console.error(term.red(`Cannot show a directory. Use 'km ls' to list contents.`))
       process.exit(1)
     }
 
@@ -67,9 +65,7 @@ function outputJson(node: KNode, options: ShowOptions, repo: Repo): void {
   if (options.tree) {
     console.log(JSON.stringify(repo.getSubtree(node.id), null, 2))
   } else if (options.children) {
-    console.log(
-      JSON.stringify({ node, children: repo.getChildren(node.id) }, null, 2),
-    )
+    console.log(JSON.stringify({ node, children: repo.getChildren(node.id) }, null, 2))
   } else {
     console.log(JSON.stringify(node, null, 2))
   }
@@ -82,11 +78,7 @@ function displayFields(node: KNode, rootPath: string): void {
   for (const f of DISPLAY_FIELDS) {
     let val = f.get?.(node) ?? (node as Record<string, unknown>)[f.key]
     // Convert relative fs_path to absolute for display
-    if (
-      f.key === "fs_path" &&
-      typeof val === "string" &&
-      !val.startsWith("/")
-    ) {
+    if (f.key === "fs_path" && typeof val === "string" && !val.startsWith("/")) {
       val = join(rootPath, val)
     }
     if (val !== undefined && val !== null) {
@@ -191,9 +183,7 @@ function formatLink(link: Link, repo: Repo): string {
   if (link.target_id) {
     const targetNode = repo.getNode(link.target_id)
     if (targetNode) {
-      parts.push(
-        term.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`),
-      )
+      parts.push(term.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`))
     }
   } else {
     parts.push(term.yellow("(unresolved)"))
@@ -283,30 +273,13 @@ const DISPLAY_FIELDS: DisplayField[] = [
  */
 function displayRefs(node: KNode): void {
   const data = node.data as Record<string, unknown>
-  if (
-    data.mentions &&
-    Array.isArray(data.mentions) &&
-    data.mentions.length > 0
-  ) {
-    console.log(
-      term.bold("Refs:"),
-      (data.mentions as string[]).map((m) => term.magenta(`@${m}`)).join(" "),
-    )
+  if (data.mentions && Array.isArray(data.mentions) && data.mentions.length > 0) {
+    console.log(term.bold("Refs:"), (data.mentions as string[]).map((m) => term.magenta(`@${m}`)).join(" "))
   }
   if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
-    console.log(
-      term.bold("Tags:"),
-      (data.tags as string[]).map((t) => term.cyan(`#${t}`)).join(" "),
-    )
+    console.log(term.bold("Tags:"), (data.tags as string[]).map((t) => term.cyan(`#${t}`)).join(" "))
   }
-  if (
-    data.projects &&
-    Array.isArray(data.projects) &&
-    data.projects.length > 0
-  ) {
-    console.log(
-      term.bold("Projects:"),
-      (data.projects as string[]).map((p) => term.yellow(`+${p}`)).join(" "),
-    )
+  if (data.projects && Array.isArray(data.projects) && data.projects.length > 0) {
+    console.log(term.bold("Projects:"), (data.projects as string[]).map((p) => term.yellow(`+${p}`)).join(" "))
   }
 }

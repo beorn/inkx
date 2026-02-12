@@ -24,12 +24,7 @@ import type { SessionStatus } from "../src/types.ts"
 describe("Session types", () => {
   test("SessionStatus values are correct", () => {
     // Type check - these are the valid session statuses
-    const statuses: SessionStatus[] = [
-      "active",
-      "completed",
-      "error",
-      "cancelled",
-    ]
+    const statuses: SessionStatus[] = ["active", "completed", "error", "cancelled"]
 
     expect(statuses).toContain("active")
     expect(statuses).toContain("completed")

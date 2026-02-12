@@ -54,32 +54,14 @@ function createPRNG(seed: number) {
 // Navigation Keys (safe — no dialogs, no mutations)
 // =============================================================================
 
-const NAV_KEYS = [
-  "j",
-  "k",
-  "h",
-  "l",
-  "g",
-  "G",
-  "ArrowUp",
-  "ArrowDown",
-  "ArrowLeft",
-  "ArrowRight",
-  "<",
-  ">",
-]
+const NAV_KEYS = ["j", "k", "h", "l", "g", "G", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "<", ">"]
 
 // =============================================================================
 // Fixtures
 // =============================================================================
 
 function smallFixture() {
-  return () =>
-    item(
-      "board",
-      item("col1", item("1a"), item("1b"), item("1c")),
-      item("col2", item("2a"), item("2b")),
-    )
+  return () => item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b")))
 }
 
 function mediumFixture() {
@@ -97,24 +79,9 @@ function scrollingFixture() {
   return () =>
     item(
       "board",
-      item(
-        "col1",
-        ...Array.from({ length: 12 }, (_, i) =>
-          item(`1-${String.fromCharCode(97 + i)}`),
-        ),
-      ),
-      item(
-        "col2",
-        ...Array.from({ length: 10 }, (_, i) =>
-          item(`2-${String.fromCharCode(97 + i)}`),
-        ),
-      ),
-      item(
-        "col3",
-        ...Array.from({ length: 8 }, (_, i) =>
-          item(`3-${String.fromCharCode(97 + i)}`),
-        ),
-      ),
+      item("col1", ...Array.from({ length: 12 }, (_, i) => item(`1-${String.fromCharCode(97 + i)}`))),
+      item("col2", ...Array.from({ length: 10 }, (_, i) => item(`2-${String.fromCharCode(97 + i)}`))),
+      item("col3", ...Array.from({ length: 8 }, (_, i) => item(`3-${String.fromCharCode(97 + i)}`))),
     )
 }
 

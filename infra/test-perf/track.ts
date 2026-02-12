@@ -174,9 +174,7 @@ function extractPerformanceData(metadata: unknown): PerformanceData {
   const sortedFiles = [...files].sort((a, b) => b.duration - a.duration)
 
   // Find candidates for .slow.test.ts (files taking >1s that aren't already .slow)
-  const candidatesForSlow = sortedFiles.filter(
-    (f) => f.duration > SLOW_FILE_THRESHOLD_MS && !f.name.includes(".slow."),
-  )
+  const candidatesForSlow = sortedFiles.filter((f) => f.duration > SLOW_FILE_THRESHOLD_MS && !f.name.includes(".slow."))
 
   return {
     timestamp: new Date().toISOString(),
@@ -247,18 +245,13 @@ function loadHistory(): PerformanceData[] {
 // Summary Display
 // ============================================================================
 
-function showSummary(
-  current: PerformanceData,
-  history: PerformanceData[],
-): void {
+function showSummary(current: PerformanceData, history: PerformanceData[]): void {
   console.log("\n" + "=".repeat(60))
   console.log("📊 Test Performance Summary")
   console.log("=".repeat(60))
 
   // Overall stats
-  console.log(
-    `\n⏱️  Total: ${formatTime(current.totalTime)} (${current.testCount} tests, ${current.fileCount} files)`,
-  )
+  console.log(`\n⏱️  Total: ${formatTime(current.totalTime)} (${current.testCount} tests, ${current.fileCount} files)`)
   console.log(`   Avg per test: ${formatTime(current.avgTimePerTest)}`)
   console.log(`   Avg per file: ${formatTime(current.avgTimePerFile)}`)
 
@@ -279,18 +272,14 @@ function showSummary(
       )
 
       if (percentDiff > REGRESSION_THRESHOLD * 100 - 100) {
-        console.log(
-          `   \x1b[31m⚠️  WARNING: Test suite is ${percentDiff.toFixed(1)}% slower!\x1b[0m`,
-        )
+        console.log(`   \x1b[31m⚠️  WARNING: Test suite is ${percentDiff.toFixed(1)}% slower!\x1b[0m`)
       }
     }
   }
 
   // Slowest files
   if (current.slowestFiles.length > 0) {
-    console.log(
-      `\n🐌 Slowest Files (top ${Math.min(5, current.slowestFiles.length)}):`,
-    )
+    console.log(`\n🐌 Slowest Files (top ${Math.min(5, current.slowestFiles.length)}):`)
     current.slowestFiles.slice(0, 5).forEach((f, i) => {
       console.log(`   ${i + 1}. ${f.path}`)
       console.log(`      ${formatTime(f.time)} (${f.tests} tests)`)
@@ -310,17 +299,13 @@ function showSummary(
 
   // Historical trend (last 5 runs)
   if (history.length > 1) {
-    console.log(
-      `\n📈 Historical Trend (last ${Math.min(5, history.length)} runs):`,
-    )
+    console.log(`\n📈 Historical Trend (last ${Math.min(5, history.length)} runs):`)
     const recent = history.slice(-5)
     recent.forEach((h, i) => {
       const date = new Date(h.timestamp).toLocaleString()
       const isCurrent = i === recent.length - 1
       const marker = isCurrent ? "→" : " "
-      console.log(
-        `   ${marker} ${date}: ${formatTime(h.totalTime)} (${h.testCount} tests)`,
-      )
+      console.log(`   ${marker} ${date}: ${formatTime(h.totalTime)} (${h.testCount} tests)`)
     })
   }
 

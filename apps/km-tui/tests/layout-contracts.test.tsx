@@ -18,12 +18,7 @@ import { testEnv, item, getCardMidY } from "./helpers/board-test.ts"
 describe("Layout measurement contracts", () => {
   test("card with children: headHeight = 1 (title row), cardHeight > 1 (total)", () => {
     // This is THE critical contract that caught the curswantY bug
-    const { registry } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("parent", item("child1"), item("child2"))),
-      ),
-    )
+    const { registry } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
 
     const layout = registry.getNodeOptional("parent")
     expect(layout).toBeDefined()
@@ -37,9 +32,7 @@ describe("Layout measurement contracts", () => {
   })
 
   test("leaf card (no children): headHeight = 1, cardHeight small", () => {
-    const { registry } = testEnv(() =>
-      item("board", item("col", item("leaf-task"))),
-    )
+    const { registry } = testEnv(() => item("board", item("col", item("leaf-task"))))
 
     const layout = registry.getNodeOptional("leaf-task")
     expect(layout).toBeDefined()
@@ -55,14 +48,7 @@ describe("Layout measurement contracts", () => {
     // curswantY should be near the top (title midpoint ~3-5)
     // NOT the card center (which would be much lower for tall cards)
     const { registry } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col0",
-            item("tall", item("c1"), item("c2"), item("c3"), item("c4")),
-          ),
-        ),
+      () => item("board", item("col0", item("tall", item("c1"), item("c2"), item("c3"), item("c4")))),
       { rows: 40 },
     )
 
@@ -80,11 +66,7 @@ describe("Layout measurement contracts", () => {
   test("cards in same row have similar headY", () => {
     // Multiple columns with first card in each should start at similar Y
     const { registry } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("card1a"), item("card1b")),
-        item("col2", item("card2a"), item("card2b")),
-      ),
+      item("board", item("col1", item("card1a"), item("card1b")), item("col2", item("card2a"), item("card2b"))),
     )
 
     const layout1 = registry.getNode("card1a")
@@ -99,19 +81,12 @@ describe("Layout measurement contracts", () => {
 
   test("nested children increase cardHeight but not headHeight", () => {
     // Each additional child should increase cardHeight, not headHeight
-    const { registry: reg1 } = testEnv(() =>
-      item("board", item("col", item("card", item("c1")))),
-    )
+    const { registry: reg1 } = testEnv(() => item("board", item("col", item("card", item("c1")))))
 
-    const { registry: reg2 } = testEnv(() =>
-      item("board", item("col", item("card", item("c1"), item("c2")))),
-    )
+    const { registry: reg2 } = testEnv(() => item("board", item("col", item("card", item("c1"), item("c2")))))
 
     const { registry: reg3 } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("card", item("c1"), item("c2"), item("c3"))),
-      ),
+      item("board", item("col", item("card", item("c1"), item("c2"), item("c3")))),
     )
 
     const h1 = reg1.getNode("card")
@@ -158,10 +133,7 @@ describe("Visual navigation with measured layouts", () => {
       () =>
         item(
           "board",
-          item(
-            "col0",
-            item("tall", item("c1"), item("c2"), item("c3"), item("c4")),
-          ),
+          item("col0", item("tall", item("c1"), item("c2"), item("c3"), item("c4"))),
           item("col1", item("short1"), item("short2"), item("short3")),
         ),
       { rows: 40 },
@@ -191,11 +163,7 @@ describe("Visual navigation with measured layouts", () => {
 describe("Registry state after rendering", () => {
   test("all visible cards are registered", () => {
     const { registry } = testEnv(() =>
-      item(
-        "board",
-        item("col0", item("a"), item("b")),
-        item("col1", item("c"), item("d"), item("e")),
-      ),
+      item("board", item("col0", item("a"), item("b")), item("col1", item("c"), item("d"), item("e"))),
     )
 
     // Column 0 should have 2 cards
@@ -215,9 +183,7 @@ describe("Registry state after rendering", () => {
   })
 
   test("headY and headHeight are populated for all cards", () => {
-    const { registry } = testEnv(() =>
-      item("board", item("col", item("parent", item("child")), item("leaf"))),
-    )
+    const { registry } = testEnv(() => item("board", item("col", item("parent", item("child")), item("leaf"))))
 
     const parentLayout = registry.getNode("parent")
     const leafLayout = registry.getNode("leaf")
@@ -238,11 +204,7 @@ describe("Registry state after rendering", () => {
 describe("Sticky Y behavior (curswantY)", () => {
   test("stickyY is set on first h/l navigation (lazy capture)", () => {
     const { board, registry } = testEnv(() =>
-      item(
-        "board",
-        item("col0", item("a"), item("b"), item("c")),
-        item("col1", item("x"), item("y")),
-      ),
+      item("board", item("col0", item("a"), item("b"), item("c")), item("col1", item("x"), item("y"))),
     )
 
     // Initially no stickyY
@@ -289,11 +251,7 @@ describe("Sticky Y behavior (curswantY)", () => {
 
   test("stickyY is cleared on j/k navigation", () => {
     const { board, registry } = testEnv(() =>
-      item(
-        "board",
-        item("col0", item("a"), item("b"), item("c")),
-        item("col1", item("x"), item("y")),
-      ),
+      item("board", item("col0", item("a"), item("b"), item("c")), item("col1", item("x"), item("y"))),
     )
 
     // Set up stickyY via h/l

@@ -1,11 +1,5 @@
 import { describe, test, expect } from "vitest"
-import {
-  addDependency,
-  removeDependency,
-  getDependencies,
-  dependsOn,
-  mergeDepProps,
-} from "../src/deps.ts"
+import { addDependency, removeDependency, getDependencies, dependsOn, mergeDepProps } from "../src/deps.ts"
 import type { Issue } from "../src/types.ts"
 
 describe("addDependency", () => {

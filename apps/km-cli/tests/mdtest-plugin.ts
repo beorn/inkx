@@ -2,12 +2,7 @@
 // Executes km commands using bunShell for speed without subprocess overhead
 
 import { $ } from "bun"
-import type {
-  Plugin,
-  FileOpts,
-  BlockOpts,
-  ReplResult,
-} from "@beorn/mdtest/types"
+import type { Plugin, FileOpts, BlockOpts, ReplResult } from "@beorn/mdtest/types"
 import { bash } from "@beorn/mdtest/plugins/bash"
 
 /**
@@ -30,9 +25,7 @@ export default function kmPlugin(opts: FileOpts): Plugin {
 
       // Parse commands to check if this block has km commands
       const lines = blockOpts.content.split("\n")
-      const commands = lines
-        .filter((l) => l.startsWith("$"))
-        .map((l) => l.slice(1).trim())
+      const commands = lines.filter((l) => l.startsWith("$")).map((l) => l.slice(1).trim())
 
       // Check if all commands start with 'km '
       const hasKmCommands = commands.some((c) => c.startsWith("km "))

@@ -15,11 +15,7 @@ import { item, testEnv } from "./helpers/board-test.ts"
 describe("Edit Operations", () => {
   test("Meta+j shifts card down within column", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
     )
     board.expect("#1a[data-cursor]").toExist()
 
@@ -37,11 +33,7 @@ describe("Edit Operations", () => {
 
   test("Meta+k shifts card up within column", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
     )
     // Move to 1b
     board.press("j")
@@ -60,9 +52,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+j at bottom boundary does nothing", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
 
@@ -75,9 +65,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+k at top boundary does nothing", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("Meta+k")
@@ -89,9 +77,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+j then Meta+k round-trips card back to original position", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // Shift down then back up — should return to original position
@@ -108,12 +94,7 @@ describe("Edit Operations", () => {
   })
 
   test("Multiple Meta+j shifts card through all positions", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"), item("1d"))))
     board.expect("#1a[data-cursor]").toExist()
 
     // Shift 1a all the way down
@@ -133,9 +114,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+k then Meta+j round-trips card back to original position", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
     // Move to 1b
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
@@ -156,10 +135,7 @@ describe("Edit Operations", () => {
   test("Meta+j works when siblings have duplicate parent_idx (all zero)", () => {
     // Simulate the condition where nodes have parent_idx=0 (DB default)
     // This happens when nodes are created without explicit sort order
-    const nodes = item(
-      "board",
-      item("col1", item("1a"), item("1b"), item("1c")),
-    )
+    const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
     // Force all cards to have parent_idx=0 (DB default scenario)
     for (const n of nodes) {
       if (n.type === "task") {
@@ -182,13 +158,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+l shifts card right to next column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("Meta+l")
@@ -203,13 +173,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+h shifts card left to previous column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a"), item("2b")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Navigate to col2
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
@@ -226,9 +190,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+l at rightmost column does nothing", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
 
@@ -238,9 +200,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+h at leftmost column does nothing", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("Meta+h")
@@ -250,12 +210,7 @@ describe("Edit Operations", () => {
 
   test("Meta+l at column header shifts column right", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     // Navigate to column header level
     board.press("k")
@@ -273,12 +228,7 @@ describe("Edit Operations", () => {
 
   test("Meta+h at column header shifts column left", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     // Navigate to col2 header
     board.press("l")
@@ -296,9 +246,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+l at rightmost column header does nothing", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.press("l")
     board.press("k")
     board.expect("#col2[data-cursor]").toExist()
@@ -313,12 +261,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+l at column header works when columns have duplicate parent_idx", () => {
-    const nodes = item(
-      "board",
-      item("col1", item("1a")),
-      item("col2", item("2a")),
-      item("col3", item("3a")),
-    )
+    const nodes = item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a")))
     // Force all columns to have parent_idx=0 (default scenario)
     for (const n of nodes) {
       if (n.type === "heading") {
@@ -339,9 +282,7 @@ describe("Edit Operations", () => {
   })
 
   test("Meta+h at leftmost column header does nothing", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.press("k")
     board.expect("#col1[data-cursor]").toExist()
 
@@ -383,9 +324,7 @@ describe("Edit Operations", () => {
   })
 
   test("D deletes the selected node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("D")
@@ -398,9 +337,7 @@ describe("Edit Operations", () => {
   })
 
   test("D on last card in column moves cursor to previous card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
 
@@ -411,9 +348,7 @@ describe("Edit Operations", () => {
   })
 
   test("Enter in normal mode enters inline edit", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("Enter")
@@ -429,9 +364,7 @@ describe("Edit Operations", () => {
   })
 
   test("Control+z undo is unimplemented (no crash)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("Control+z")
@@ -443,9 +376,7 @@ describe("Edit Operations", () => {
   })
 
   test("Control+y redo is unimplemented (no crash)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("Control+y")
@@ -464,11 +395,7 @@ describe("Edit Operations", () => {
 describe("Move Mode", () => {
   test("m enters move mode, shows [MOVE] indicator", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
     )
     board.expect("#1a[data-cursor]").toExist()
 
@@ -479,13 +406,7 @@ describe("Move Mode", () => {
   })
 
   test("Escape in move mode cancels and restores cursor", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("m")
@@ -503,13 +424,7 @@ describe("Move Mode", () => {
   })
 
   test("Enter in move mode confirms move to target column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("m")
@@ -531,11 +446,7 @@ describe("Move Mode", () => {
 
   test("move mode allows navigation to pick target", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
     )
     board.expect("#1a[data-cursor]").toExist()
 

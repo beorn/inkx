@@ -65,11 +65,7 @@ import { RepoProvider } from "./repo-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createLayoutRegistry, type LayoutRegistry } from "./card-positions.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
-import {
-  createBoardAppStoreState,
-  type BoardAppStore,
-  type CreateBoardAppStoreParams,
-} from "./board-app-store.ts"
+import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { handleKey } from "./board-app.ts"
 import { createCursorStore } from "./cursor-store.ts"
@@ -167,17 +163,8 @@ export interface CreateBoardDriverOptions {
  * @param rootId - The ID of the root node to display as the board
  * @param options - Driver configuration options
  */
-export function createBoardDriver(
-  repo: Repo,
-  rootId: string,
-  options: CreateBoardDriverOptions = {},
-): BoardDriver {
-  const {
-    columns = 80,
-    rows = 24,
-    viewMode = "cards",
-    incremental = false,
-  } = options
+export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoardDriverOptions = {}): BoardDriver {
+  const { columns = 80, rows = 24, viewMode = "cards", incremental = false } = options
 
   // Initialize command system
   ensureCommandSystemInitialized()
@@ -229,11 +216,7 @@ export function createBoardDriver(
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(
-      initialTUIState.rootId,
-      initialTUIState.rootPath,
-      initialCursorNodeId,
-    ),
+    initialBoardState: createBoardState(initialTUIState.rootId, initialTUIState.rootPath, initialCursorNodeId),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialTUIState.collapsedColumns ?? [])],
@@ -247,9 +230,7 @@ export function createBoardDriver(
     dimensions: { columns, rows },
   }
 
-  const store = createStore<BoardAppStore>(
-    createBoardAppStoreState(storeParams),
-  )
+  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Create command registry
   const registry = createCommandRegistry()
@@ -320,11 +301,7 @@ export function createBoardDriver(
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
-      handleKey(
-        { input, key: parsedKey },
-        { get: store.getState, set: store.setState },
-        () => {},
-      )
+      handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
     })
 
     // Trigger a second act() to flush any remaining effects (e.g. updateLayout

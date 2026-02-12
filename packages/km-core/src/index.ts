@@ -33,27 +33,14 @@ export type {
 export { CUSTOM_TASK_MARKS, TASK_MARK_REGEX_CLASS } from "./types.ts"
 
 // Build info (auto-generated)
-export {
-  VERSION,
-  BUILD_INFO,
-  BUILD_TIME,
-  GIT_COMMIT,
-  GIT_BRANCH,
-  GIT_DIRTY,
-} from "./build-info.gen.ts"
+export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } from "./build-info.gen.ts"
 export type { BuildInfo } from "./build-info.gen.ts"
 
 // Task utilities
 export { getMarkForStatus, extractTitleTaskMark } from "./types.ts"
 
 // Query language parser (pure parsing, no DB)
-export {
-  parseQuery,
-  mapFieldName,
-  resolveDateQuery,
-  isDateShortcut,
-  isDateField,
-} from "./query/index.ts"
+export { parseQuery, mapFieldName, resolveDateQuery, isDateShortcut, isDateField } from "./query/index.ts"
 export type {
   QueryAST,
   QueryCondition,
@@ -73,26 +60,10 @@ export { runGenerator, runWithProgress } from "./service.ts"
 
 // Result type for explicit error handling
 export type { Result } from "./result.ts"
-export {
-  Ok,
-  Err,
-  OkVoid,
-  isOk,
-  isErr,
-  map,
-  andThen,
-  all,
-  tryCatch,
-} from "./result.ts"
+export { Ok, Err, OkVoid, isOk, isErr, map, andThen, all, tryCatch } from "./result.ts"
 
 // Logger (re-export from @beorn/logger)
-export {
-  createLogger,
-  setLogLevel,
-  getLogLevel,
-  type Logger,
-  type LogLevel,
-} from "@beorn/logger"
+export { createLogger, setLogLevel, getLogLevel, type Logger, type LogLevel } from "@beorn/logger"
 
 // Event system
 export { kmEvents, DisposableStore } from "./events.ts"

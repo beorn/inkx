@@ -18,9 +18,7 @@ const log = createLogger("km:tui:dialogs")
 // Types
 // =============================================================================
 
-type SetUI = (
-  partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>),
-) => void
+type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
 
 interface UseBoardDialogsParams {
   repo: Repo
@@ -87,10 +85,7 @@ export function useBoardDialogs({
 
       // Track as recent project and close picker
       setUI((prev) => ({
-        recentProjectIds: [
-          targetNode.id,
-          ...prev.recentProjectIds.filter((id) => id !== targetNode.id),
-        ].slice(0, 10),
+        recentProjectIds: [targetNode.id, ...prev.recentProjectIds.filter((id) => id !== targetNode.id)].slice(0, 10),
         showProjectPicker: false,
       }))
     },
@@ -154,9 +149,7 @@ export function useBoardDialogs({
         if (grandparentId === rootId) {
           // current is a card (its grandparent is root, so parent is column)
           // Select current (the card), not the deeply nested target
-          log.debug?.(
-            `search: SELECT card at depth ${depth}: ${current.id.slice(-8)}`,
-          )
+          log.debug?.(`search: SELECT card at depth ${depth}: ${current.id.slice(-8)}`)
           dispatchBoard({ type: "SELECT", nodeId: current.id })
           setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
           return
@@ -164,9 +157,7 @@ export function useBoardDialogs({
         if (parentId === rootId) {
           // current is a column (direct child of root)
           // Can't select columns, need to go into it - fall through to zoom logic
-          log.debug?.(
-            `search: found column at depth ${depth}, will zoom instead`,
-          )
+          log.debug?.(`search: found column at depth ${depth}, will zoom instead`)
           break
         }
 
@@ -190,9 +181,7 @@ export function useBoardDialogs({
         }
         ancestor = parent
       }
-      log.debug?.(
-        `search: ancestor chain has ${ancestors.length} nodes: ${ancestors.map((n) => n.type).join(" > ")}`,
-      )
+      log.debug?.(`search: ancestor chain has ${ancestors.length} nodes: ${ancestors.map((n) => n.type).join(" > ")}`)
 
       // Find best zoom target:
       // - If target is at depth >= 3, zoom to great-grandparent (target's parent shows as card)
@@ -217,15 +206,11 @@ export function useBoardDialogs({
       } else if (ancestors.length >= 3 && grandparent) {
         // 3 levels: zoom to grandparent, cursor on target (which will be a card)
         zoomTarget = grandparent
-        log.debug?.(
-          `search: ZOOM_IN to grandparent=${zoomTarget.id.slice(-8)}, cursor on target`,
-        )
+        log.debug?.(`search: ZOOM_IN to grandparent=${zoomTarget.id.slice(-8)}, cursor on target`)
       } else if (ancestors.length >= 2 && parent) {
         // 2 levels: zoom to parent, cursor on target (which will be a column)
         zoomTarget = parent
-        log.debug?.(
-          `search: ZOOM_IN to parent=${zoomTarget.id.slice(-8)}, cursor on target`,
-        )
+        log.debug?.(`search: ZOOM_IN to parent=${zoomTarget.id.slice(-8)}, cursor on target`)
       } else {
         // Only target itself, zoom into it
         log.debug?.(`search: ZOOM_IN to target itself`)

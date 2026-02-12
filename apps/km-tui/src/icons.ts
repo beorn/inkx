@@ -40,11 +40,7 @@ export const EMPTY_MARKER: StatusIcon = {
  * @param isFolded - Whether the node's children are hidden
  * @param color - Optional color override (from node's rules.color)
  */
-export function getFoldMarker(
-  hasChildren: boolean,
-  isFolded: boolean,
-  color?: string,
-): StatusIcon {
+export function getFoldMarker(hasChildren: boolean, isFolded: boolean, color?: string): StatusIcon {
   if (!hasChildren) {
     return color ? { ...EMPTY_MARKER, color } : EMPTY_MARKER
   }
@@ -152,11 +148,7 @@ export const SMALL_BULLET: StatusIcon = {
  * @param isTask - Whether this node is a task (helps distinguish null status)
  * @returns StatusIcon with appropriate char and color
  */
-export function getNodeIcon(
-  status: string | null | undefined,
-  inheritedColor?: string,
-  isTask = true,
-): StatusIcon {
+export function getNodeIcon(status: string | null | undefined, inheritedColor?: string, isTask = true): StatusIcon {
   // For tasks, get the base status icon
   if (status !== null && status !== undefined) {
     const baseIcon = getStatusIcon(status)

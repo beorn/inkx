@@ -3,15 +3,8 @@
   "semi": false,
   "singleQuote": false,
   "trailingComma": "all",
-  "printWidth": 80,
+  "printWidth": 120,
   "tabWidth": 2,
   "useTabs": false,
-  "ignorePatterns": [
-    ".direnv/",
-    "dist/",
-    "build/",
-    "out/",
-    "node_modules/",
-    "scripts/test-patterns.ts"
-  ]
+  "ignorePatterns": [".direnv/", "dist/", "build/", "out/", "node_modules/", "scripts/test-patterns.ts"]
 }

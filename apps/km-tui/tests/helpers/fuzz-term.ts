@@ -104,9 +104,7 @@ function keyFromString(input: string): FuzzKey {
   }
 }
 
-export function createFuzzTerm<S = Record<string, unknown>>(
-  options: FuzzTermOptions<S>,
-): FuzzTermProvider {
+export function createFuzzTerm<S = Record<string, unknown>>(options: FuzzTermOptions<S>): FuzzTermProvider {
   const { keys, count, seed = Date.now(), pick, cols = 80, rows = 24 } = options
 
   const random = createSeededRandom(seed)
@@ -194,10 +192,7 @@ export interface ReplayTermOptions {
   rows?: number
 }
 
-export function createReplayTerm(
-  sequence: string[],
-  options: ReplayTermOptions = {},
-): ReplayTermProvider {
+export function createReplayTerm(sequence: string[], options: ReplayTermOptions = {}): ReplayTermProvider {
   const { cols = 80, rows = 24 } = options
   const state: FuzzState = { cols, rows }
   const listeners = new Set<(state: FuzzState) => void>()

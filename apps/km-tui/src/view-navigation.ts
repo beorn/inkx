@@ -87,9 +87,7 @@ function navigateVertical(
   if (!cursorNode) {
     // Cursor node was deleted (e.g., by file watcher re-parse during sync).
     // Fall back to first column instead of crashing the event loop.
-    log.error?.(
-      `cursor node not in repo: ${cursorNodeId}, falling back to root`,
-    )
+    log.error?.(`cursor node not in repo: ${cursorNodeId}, falling back to root`)
     return rootId
   }
 
@@ -102,8 +100,7 @@ function navigateVertical(
       // Board → column header (use stickyX to remember which column)
       const stickyX = layoutRegistry.getStickyX()
       const columns = repo.getChildren(rootId)
-      const targetIdx =
-        stickyX !== null && stickyX < columns.length ? stickyX : 0
+      const targetIdx = stickyX !== null && stickyX < columns.length ? stickyX : 0
       return columns[targetIdx]?.id ?? null
     }
 
@@ -157,9 +154,7 @@ function navigateHorizontal(
 
   const cursorNode = repo.getNode(cursorNodeId)
   if (!cursorNode) {
-    log.error?.(
-      `cursor node not in repo: ${cursorNodeId}, falling back to root`,
-    )
+    log.error?.(`cursor node not in repo: ${cursorNodeId}, falling back to root`)
     return rootId
   }
 
@@ -170,9 +165,7 @@ function navigateHorizontal(
   const columns = repo.getChildren(rootId)
   const cursorColId = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
   if (!cursorColId) {
-    throw new Error(
-      `[nav] cursor ${cursorNodeId} has no column ancestor under root ${rootId}`,
-    )
+    throw new Error(`[nav] cursor ${cursorNodeId} has no column ancestor under root ${rootId}`)
   }
 
   const colIdx = indexOfChild(columns, cursorColId)
@@ -189,9 +182,7 @@ function navigateHorizontal(
 
   const targetCol = columns[targetColIdx]
   if (!targetCol) {
-    throw new Error(
-      `[nav] column at index ${targetColIdx} missing after bounds check`,
-    )
+    throw new Error(`[nav] column at index ${targetColIdx} missing after bounds check`)
   }
 
   // Get cards in target column
@@ -214,10 +205,7 @@ function navigateHorizontal(
     // Empty source column → use stickyY if available to find card in target
     const stickyY = layoutRegistry.getStickyY()
     if (stickyY !== null && layoutRegistry.hasCardsInColumn(targetColIdx)) {
-      const targetCardIdx = layoutRegistry.findCardAtYVisual(
-        targetColIdx,
-        stickyY,
-      )
+      const targetCardIdx = layoutRegistry.findCardAtYVisual(targetColIdx, stickyY)
       return cardAt(targetCards, Math.max(0, targetCardIdx))
     }
     return targetCol.id
@@ -232,10 +220,7 @@ function navigateHorizontal(
   }
 
   if (layoutRegistry.hasCardsInColumn(targetColIdx)) {
-    const targetCardIdx = layoutRegistry.findCardAtYVisual(
-      targetColIdx,
-      stickyY,
-    )
+    const targetCardIdx = layoutRegistry.findCardAtYVisual(targetColIdx, stickyY)
     return cardAt(targetCards, Math.max(0, targetCardIdx))
   }
 
@@ -263,9 +248,7 @@ import { indexOfChild } from "./sibling-index.ts"
 function cardAt(cards: { id: string }[], idx: number): string {
   const card = cards[idx]
   if (!card) {
-    throw new Error(
-      `[nav] card index ${idx} out of bounds (${cards.length} cards)`,
-    )
+    throw new Error(`[nav] card index ${idx} out of bounds (${cards.length} cards)`)
   }
   return card.id
 }
@@ -287,12 +270,7 @@ function getSibling(nodeId: string, repo: Repo, delta: 1 | -1): string | null {
  * Find the ancestor of nodeId at a given depth from rootId.
  * depth=1 means direct child of rootId (column level).
  */
-function findAncestorAtDepth(
-  nodeId: string,
-  rootId: string | null,
-  depth: number,
-  repo: Repo,
-): string | null {
+function findAncestorAtDepth(nodeId: string, rootId: string | null, depth: number, repo: Repo): string | null {
   // Walk up from nodeId, collecting ancestor chain
   const chain: string[] = []
   let currentId: string | null = nodeId
@@ -312,9 +290,7 @@ function findAncestorAtDepth(
   if (targetIndex < 0 || targetIndex >= chain.length) return null
   const result = chain[targetIndex]
   if (!result) {
-    throw new Error(
-      `[nav] chain index ${targetIndex} missing after bounds check`,
-    )
+    throw new Error(`[nav] chain index ${targetIndex} missing after bounds check`)
   }
   return result
 }

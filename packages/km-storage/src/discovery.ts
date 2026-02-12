@@ -24,12 +24,7 @@ import { join } from "path"
 import type { Event } from "@km/core"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
-import type {
-  StepYield,
-  PendingLink,
-  DeferredFile,
-  LoadError,
-} from "./repo-loader.ts"
+import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo-loader.ts"
 import { generatePathBasedId } from "./id-utils.ts"
 import { toRelativeFsPath } from "./path-utils.ts"
 
@@ -91,9 +86,7 @@ export function* discoverFiles(
   // Query for existing repo root node (created by migration)
   // Use is_repo_root flag to distinguish from other folders with NULL parent_id
   const repoRootRow = db
-    .prepare(
-      "SELECT id FROM nodes WHERE type = 'folder' AND json_extract(data, '$.is_repo_root') = 1",
-    )
+    .prepare("SELECT id FROM nodes WHERE type = 'folder' AND json_extract(data, '$.is_repo_root') = 1")
     .get() as { id: string } | undefined
 
   if (!repoRootRow) {
@@ -119,15 +112,10 @@ export function* discoverFiles(
 
   yield { current, total }
 
-  return parseMode === "stub"
-    ? { events, pendingLinks: [], deferredFiles }
-    : { events, pendingLinks }
+  return parseMode === "stub" ? { events, pendingLinks: [], deferredFiles } : { events, pendingLinks }
 
   // --- Nested generator for directory scanning ---
-  function* scanDirectory(
-    dirPath: string,
-    parentId: string | null,
-  ): Generator<StepYield, void, unknown> {
+  function* scanDirectory(dirPath: string, parentId: string | null): Generator<StepYield, void, unknown> {
     if (!existsSync(dirPath)) return
 
     // Skip ignored directories (except root)
@@ -147,14 +135,7 @@ export function* discoverFiles(
       if (entry.isDirectory()) {
         const folderId = generateId(repoRoot, fullPath)
         events.push(
-          createFolderEvent(
-            folderId,
-            parentId,
-            order++,
-            toRelativeFsPath(repoRoot, fullPath),
-            entry.name,
-            now,
-          ),
+          createFolderEvent(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
         )
         yield* scanDirectory(fullPath, folderId)
         continue
@@ -165,14 +146,7 @@ export function* discoverFiles(
       if (!entry.name.endsWith(".md")) {
         const fileId = generateId(repoRoot, fullPath)
         events.push(
-          createNonMdFileEvent(
-            fileId,
-            parentId,
-            order++,
-            toRelativeFsPath(repoRoot, fullPath),
-            entry.name,
-            now,
-          ),
+          createNonMdFileEvent(fileId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
         )
         continue
       }
@@ -196,16 +170,7 @@ export function* discoverFiles(
     const fileId = generateId(repoRoot, fullPath)
     const name = entryName.replace(/\.md$/i, "")
 
-    events.push(
-      createStubFileEvent(
-        fileId,
-        parentId,
-        order,
-        toRelativeFsPath(repoRoot, fullPath),
-        name,
-        now,
-      ),
-    )
+    events.push(createStubFileEvent(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), name, now))
     deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
 
     current++
@@ -270,10 +235,7 @@ export function* discoverFiles(
  * Fast markdown file count using stack-based iteration (no recursion).
  * Used for progress display only - minimal overhead.
  */
-function countMarkdownFilesFast(
-  rootPath: string,
-  ignorePatterns: string[],
-): number {
+function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): number {
   if (!existsSync(rootPath)) return 0
 
   let count = 0
@@ -284,10 +246,7 @@ function countMarkdownFilesFast(
     if (!dirPath) continue
 
     // Skip ignored directories (except root)
-    if (
-      dirPath !== rootPath &&
-      shouldIgnore(dirPath, ignorePatterns, rootPath)
-    ) {
+    if (dirPath !== rootPath && shouldIgnore(dirPath, ignorePatterns, rootPath)) {
       continue
     }
 
@@ -315,11 +274,7 @@ function countMarkdownFilesFast(
 }
 
 /** Generate node ID from path - delegate to shared utility */
-function generateId(
-  repoRoot: string,
-  filePath: string,
-  lineNum?: number,
-): string {
+function generateId(repoRoot: string, filePath: string, lineNum?: number): string {
   return generatePathBasedId(repoRoot, filePath, lineNum)
 }
 

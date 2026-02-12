@@ -13,8 +13,7 @@ import type { BoardAction, BoardState } from "../src/board-types.ts"
 // ===== Test Helpers =====
 
 /** Dispatch helper that wraps reducer call pattern */
-const dispatch = (state: BoardState, action: BoardAction): BoardState =>
-  boardReducer(state, action)
+const dispatch = (state: BoardState, action: BoardAction): BoardState => boardReducer(state, action)
 
 /** Chain multiple actions through the reducer */
 const dispatchAll = (state: BoardState, actions: BoardAction[]): BoardState =>
@@ -210,11 +209,7 @@ describe("ZOOM_IN action", () => {
 // ===== Root Change =====
 
 describe("SET_ROOT action", () => {
-  const setRootAction = (
-    rootId: string,
-    rootPath: string,
-    cursorNodeId: string,
-  ): BoardAction => ({
+  const setRootAction = (rootId: string, rootPath: string, cursorNodeId: string): BoardAction => ({
     type: "SET_ROOT",
     rootId,
     rootPath,
@@ -223,10 +218,7 @@ describe("SET_ROOT action", () => {
 
   it("changes root to new file", () => {
     const state = createBoardState("root-1", "/file1.md", "cursor-1")
-    const newState = dispatch(
-      state,
-      setRootAction("root-2", "/file2.md", "cursor-2"),
-    )
+    const newState = dispatch(state, setRootAction("root-2", "/file2.md", "cursor-2"))
     expect(newState.rootId).toBe("root-2")
     expect(newState.rootPath).toBe("/file2.md")
     expect(newState.cursorNodeId).toBe("cursor-2")
@@ -234,10 +226,7 @@ describe("SET_ROOT action", () => {
 
   it("adds current state to navigation history", () => {
     const state = createBoardState("root-1", "/file1.md", "cursor-1")
-    const newState = dispatch(
-      state,
-      setRootAction("root-2", "/file2.md", "cursor-2"),
-    )
+    const newState = dispatch(state, setRootAction("root-2", "/file2.md", "cursor-2"))
     expect(newState.navHistory).toHaveLength(1)
     expect(newState.navHistory[0]).toEqual({
       rootId: "root-1",
@@ -248,10 +237,7 @@ describe("SET_ROOT action", () => {
 
   it("increments history index", () => {
     const state = createBoardState("root-1", "/file1.md", "cursor-1")
-    const newState = dispatch(
-      state,
-      setRootAction("root-2", "/file2.md", "cursor-2"),
-    )
+    const newState = dispatch(state, setRootAction("root-2", "/file2.md", "cursor-2"))
     expect(newState.navHistoryIndex).toBe(1)
   })
 
@@ -266,10 +252,7 @@ describe("SET_ROOT action", () => {
     const stateBack = { ...state3, navHistoryIndex: 0 }
 
     // Navigate to new location - should truncate future history
-    const stateBranch = dispatch(
-      stateBack,
-      setRootAction("root-branch", "/file-branch.md", "cursor-branch"),
-    )
+    const stateBranch = dispatch(stateBack, setRootAction("root-branch", "/file-branch.md", "cursor-branch"))
 
     expect(stateBranch.navHistory).toHaveLength(2)
     expect(stateBranch.navHistory[1]?.rootId).toBe("root-3")
@@ -438,11 +421,7 @@ describe("ENTER_MOVE_MODE action", () => {
 })
 
 describe("CONFIRM_MOVE action", () => {
-  const enterMoveMode = (
-    state: BoardState,
-    nodeIds: string[],
-    cursorNodeId: string,
-  ) =>
+  const enterMoveMode = (state: BoardState, nodeIds: string[], cursorNodeId: string) =>
     dispatch(state, {
       type: "ENTER_MOVE_MODE",
       nodeIds,
@@ -544,41 +523,38 @@ describe.each([
     max: 10,
     min: 0,
   },
-])(
-  "$field view configuration",
-  ({ increaseType, decreaseType, field, defaultValue, max, min }) => {
-    it(`increases ${field} by 1`, () => {
-      const state = createBoardState()
-      // Start from a value below max to test increase
-      const initialState = {
-        ...state,
-        [field]: Math.min(defaultValue, max - 1),
-      }
-      const newState = dispatch(initialState, { type: increaseType })
-      expect(newState[field]).toBe(initialState[field] + 1)
-    })
+])("$field view configuration", ({ increaseType, decreaseType, field, defaultValue, max, min }) => {
+  it(`increases ${field} by 1`, () => {
+    const state = createBoardState()
+    // Start from a value below max to test increase
+    const initialState = {
+      ...state,
+      [field]: Math.min(defaultValue, max - 1),
+    }
+    const newState = dispatch(initialState, { type: increaseType })
+    expect(newState[field]).toBe(initialState[field] + 1)
+  })
 
-    it(`does not exceed maximum of ${max}`, () => {
-      const state = createBoardState()
-      const maxState = { ...state, [field]: max }
-      const newState = dispatch(maxState, { type: increaseType })
-      expect(newState[field]).toBe(max)
-    })
+  it(`does not exceed maximum of ${max}`, () => {
+    const state = createBoardState()
+    const maxState = { ...state, [field]: max }
+    const newState = dispatch(maxState, { type: increaseType })
+    expect(newState[field]).toBe(max)
+  })
 
-    it(`decreases ${field} by 1`, () => {
-      const state = createBoardState()
-      const newState = dispatch(state, { type: decreaseType })
-      expect(newState[field]).toBe(defaultValue - 1)
-    })
+  it(`decreases ${field} by 1`, () => {
+    const state = createBoardState()
+    const newState = dispatch(state, { type: decreaseType })
+    expect(newState[field]).toBe(defaultValue - 1)
+  })
 
-    it(`does not go below ${min}`, () => {
-      const state = createBoardState()
-      const minState = { ...state, [field]: min }
-      const newState = dispatch(minState, { type: decreaseType })
-      expect(newState[field]).toBe(min)
-    })
-  },
-)
+  it(`does not go below ${min}`, () => {
+    const state = createBoardState()
+    const minState = { ...state, [field]: min }
+    const newState = dispatch(minState, { type: decreaseType })
+    expect(newState[field]).toBe(min)
+  })
+})
 
 // ===== Sticky Cursor (curswant) =====
 
@@ -641,9 +617,7 @@ describe("Error handling", () => {
   it("throws on unhandled action type", () => {
     const state = createBoardState()
     const invalidAction = { type: "INVALID_ACTION" } as unknown as BoardAction
-    expect(() => dispatch(state, invalidAction)).toThrow(
-      /Unhandled action: INVALID_ACTION/,
-    )
+    expect(() => dispatch(state, invalidAction)).toThrow(/Unhandled action: INVALID_ACTION/)
   })
 })
 
@@ -729,44 +703,38 @@ describe("Integration scenarios", () => {
   })
 
   it("multi-select and move workflow", () => {
-    const state = dispatchAll(
-      createBoardState("root", "/file.md", "cursor-1"),
-      [
-        { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-        { type: "SELECT_NODE_ADD", nodeId: "node-2" },
-        { type: "SELECT_NODE_ADD", nodeId: "node-3" },
-        {
-          type: "ENTER_MOVE_MODE",
-          nodeIds: ["node-1", "node-2", "node-3"],
-          cursorNodeId: "cursor-1",
-        },
-        { type: "SELECT", nodeId: "destination" },
-        { type: "CONFIRM_MOVE" },
-      ],
-    )
+    const state = dispatchAll(createBoardState("root", "/file.md", "cursor-1"), [
+      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
+      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
+      { type: "SELECT_NODE_ADD", nodeId: "node-3" },
+      {
+        type: "ENTER_MOVE_MODE",
+        nodeIds: ["node-1", "node-2", "node-3"],
+        cursorNodeId: "cursor-1",
+      },
+      { type: "SELECT", nodeId: "destination" },
+      { type: "CONFIRM_MOVE" },
+    ])
 
     expect(state.moveMode).toBe(false)
     expect(state.selectedNodes.size).toBe(0)
   })
 
   it("navigation history flow", () => {
-    const state = dispatchAll(
-      createBoardState("root-1", "/file1.md", "cursor-1"),
-      [
-        {
-          type: "SET_ROOT",
-          rootId: "root-2",
-          rootPath: "/file2.md",
-          cursorNodeId: "cursor-2",
-        },
-        {
-          type: "SET_ROOT",
-          rootId: "root-3",
-          rootPath: "/file3.md",
-          cursorNodeId: "cursor-3",
-        },
-      ],
-    )
+    const state = dispatchAll(createBoardState("root-1", "/file1.md", "cursor-1"), [
+      {
+        type: "SET_ROOT",
+        rootId: "root-2",
+        rootPath: "/file2.md",
+        cursorNodeId: "cursor-2",
+      },
+      {
+        type: "SET_ROOT",
+        rootId: "root-3",
+        rootPath: "/file3.md",
+        cursorNodeId: "cursor-3",
+      },
+    ])
 
     expect(state.navHistory).toHaveLength(2)
     expect(state.navHistoryIndex).toBe(2)
@@ -792,13 +760,10 @@ describe("Integration scenarios", () => {
   })
 
   it("sticky cursor across navigation", () => {
-    const state = dispatchAll(
-      createBoardState("root", "/file.md", "cursor-1"),
-      [
-        { type: "SET_CURSWANT", x: 2, y: 5 },
-        { type: "SET_CURSWANT", y: 6 },
-      ],
-    )
+    const state = dispatchAll(createBoardState("root", "/file.md", "cursor-1"), [
+      { type: "SET_CURSWANT", x: 2, y: 5 },
+      { type: "SET_CURSWANT", y: 6 },
+    ])
 
     expect(state.curswantX).toBe(2)
     expect(state.curswantY).toBe(6)

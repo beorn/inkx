@@ -95,23 +95,14 @@ function extractLinksFromProperty(propValue: PropertyValue): string[] {
 /**
  * Parse a markdown file into km nodes
  */
-export function parseMarkdownToNodes(
-  content: string,
-  fsPath: string,
-  fsIno?: number,
-): KNode[] {
+export function parseMarkdownToNodes(content: string, fsPath: string, fsIno?: number): KNode[] {
   return parseMarkdownWithLinks(content, fsPath, fsIno).nodes
 }
 
 /**
  * Parse a markdown file into km nodes with wikilink extraction
  */
-export function parseMarkdownWithLinks(
-  content: string,
-  fsPath: string,
-  fsIno?: number,
-  fsMtime?: number,
-): ParseResult {
+export function parseMarkdownWithLinks(content: string, fsPath: string, fsIno?: number, fsMtime?: number): ParseResult {
   const start = Date.now()
 
   const { frontmatter, body } = extractFrontmatter(content)
@@ -121,10 +112,7 @@ export function parseMarkdownWithLinks(
   const fileNode = createFileNode(fsPath, fsIno, fsMtime, frontmatter, now)
   let childNodes = astToNodes(ast, fileNode, body)
 
-  const { childNodes: filteredChildren, hadH1 } = mergeH1IntoFileNode(
-    fileNode,
-    childNodes,
-  )
+  const { childNodes: filteredChildren, hadH1 } = mergeH1IntoFileNode(fileNode, childNodes)
   childNodes = filteredChildren
 
   const allNodes = [fileNode, ...childNodes]
@@ -193,8 +181,7 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
       }
 
       const { title: titleWithRules, rules } = parseHeadingRules(headingText)
-      const { mark: taskMark, cleanText: title } =
-        extractTitleTaskMark(titleWithRules)
+      const { mark: taskMark, cleanText: title } = extractTitleTaskMark(titleWithRules)
       const hasRules = Object.keys(rules).length > 0
       const sectionName = slugify(title)
 
@@ -259,13 +246,7 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
 
       for (const item of list.children) {
         const listItem = item as ListItem
-        const itemNodes = convertListItem(
-          listItem,
-          currentParent,
-          list.ordered ?? false,
-          sortOrder++,
-          sourceText,
-        )
+        const itemNodes = convertListItem(listItem, currentParent, list.ordered ?? false, sortOrder++, sourceText)
         nodes.push(...itemNodes)
       }
       continue
@@ -297,17 +278,14 @@ function convertListItem(
   let text = listItemToText(item)
   // Convert position to the expected format for extractTaskMark
   const position =
-    item.position?.start.offset !== undefined
-      ? { start: { offset: item.position.start.offset } }
-      : undefined
+    item.position?.start.offset !== undefined ? { start: { offset: item.position.start.offset } } : undefined
   const taskMark = extractTaskMark(sourceText, position)
 
   // A task is either:
   // 1. A GFM task list item (item.checked is boolean) - [ ] or [x]
   // 2. A list item with a custom task mark - [/], [-], [!]
   const isGfmTask = item.checked !== null && item.checked !== undefined
-  const isCustomTask =
-    taskMark && (CUSTOM_TASK_MARKS as readonly string[]).includes(taskMark)
+  const isCustomTask = taskMark && (CUSTOM_TASK_MARKS as readonly string[]).includes(taskMark)
   const isTask = isGfmTask || isCustomTask
 
   // For custom task marks, mdast includes the mark in the text (e.g., "[/] task content")
@@ -360,9 +338,7 @@ function convertListItem(
     parent_idx: sortOrder,
     link_to: null,
     md_pos: item.position?.start.offset,
-    md_line: item.position?.start.line
-      ? item.position.start.line - 1
-      : undefined, // Convert 1-indexed to 0-indexed
+    md_line: item.position?.start.line ? item.position.start.line - 1 : undefined, // Convert 1-indexed to 0-indexed
     block_id: blockIdMatch?.[1],
     content: text,
     content_hash: undefined,
@@ -376,12 +352,8 @@ function convertListItem(
       ...(mentions.length > 0 ? { mentions } : {}),
       ...(projects.length > 0 ? { projects } : {}),
       ...(metadata.recurrence ? { recurrence: metadata.recurrence } : {}),
-      ...(Object.keys(parsedProps.props).length > 0
-        ? { props: parsedProps.props }
-        : {}),
-      ...(Object.keys(parsedProps.propsRaw).length > 0
-        ? { propsRaw: parsedProps.propsRaw }
-        : {}),
+      ...(Object.keys(parsedProps.props).length > 0 ? { props: parsedProps.props } : {}),
+      ...(Object.keys(parsedProps.propsRaw).length > 0 ? { propsRaw: parsedProps.propsRaw } : {}),
     },
     created_at: now,
     updated_at: now,
@@ -397,13 +369,7 @@ function convertListItem(
       let nestedSort = 0
 
       for (const nestedItem of list.children) {
-        const nestedNodes = convertListItem(
-          nestedItem,
-          node,
-          list.ordered ?? false,
-          nestedSort++,
-          sourceText,
-        )
+        const nestedNodes = convertListItem(nestedItem, node, list.ordered ?? false, nestedSort++, sourceText)
         nodes.push(...nestedNodes)
       }
     }
@@ -419,20 +385,14 @@ function convertListItem(
 function getEmbeddingText(text: string): string | null {
   const trimmed = text.trim()
   // Match ![[...]] with optional section/blockId/alias
-  const match = trimmed.match(
-    /^!\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]$/,
-  )
+  const match = trimmed.match(/^!\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]$/)
   return match ? trimmed : null
 }
 
 /**
  * Convert a block element to a node
  */
-function convertBlock(
-  block: RootContent,
-  parent: KNode,
-  sortOrder: number,
-): KNode | null {
+function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNode | null {
   const now = Date.now()
 
   let type: NodeType
@@ -453,9 +413,7 @@ function convertBlock(
       // Detect embedding syntax ![[...]] and store target for reconciliation
       const embeddingText = getEmbeddingText(content)
       if (embeddingText) {
-        const embMatch = embeddingText.match(
-          /^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:#?\^[^\]|]+)?(?:\|([^\]]+))?\]\]$/,
-        )
+        const embMatch = embeddingText.match(/^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:#?\^[^\]|]+)?(?:\|([^\]]+))?\]\]$/)
         if (embMatch?.[1]) {
           data.embeddingTarget = embMatch[1].trim()
           if (embMatch[2]) {
@@ -581,13 +539,8 @@ function createFileNode(
  * The H1 title becomes the file's title, and H1's children become file's children.
  * Returns filtered childNodes (H1 removed) and whether an H1 was found.
  */
-function mergeH1IntoFileNode(
-  fileNode: KNode,
-  childNodes: KNode[],
-): { childNodes: KNode[]; hadH1: boolean } {
-  const h1Section = childNodes.find(
-    (n) => n.type === "section" && n.data?.depth === 1,
-  )
+function mergeH1IntoFileNode(fileNode: KNode, childNodes: KNode[]): { childNodes: KNode[]; hadH1: boolean } {
+  const h1Section = childNodes.find((n) => n.type === "section" && n.data?.depth === 1)
 
   if (!h1Section) {
     return { childNodes, hadH1: false }
@@ -655,9 +608,7 @@ function extractWikilinksFromNodes(allNodes: KNode[]): ExtractedLink[] {
     }
 
     // Extract links from properties (e.g., blocked-by:: [[target]])
-    const nodeData = node.data as
-      | { props?: Record<string, PropertyValue> }
-      | undefined
+    const nodeData = node.data as { props?: Record<string, PropertyValue> } | undefined
     if (nodeData?.props) {
       for (const [propName, propValue] of Object.entries(nodeData.props)) {
         const propLinks = extractLinksFromProperty(propValue)
@@ -746,15 +697,9 @@ function aggregateRefs(fileNode: KNode, childNodes: KNode[]): void {
  * Validate that the file has exactly one H1 heading.
  * Returns warnings for missing or multiple H1s.
  */
-function validateH1Count(
-  childNodes: KNode[],
-  fsPath: string,
-  hadH1: boolean,
-): ParseWarning[] {
+function validateH1Count(childNodes: KNode[], fsPath: string, hadH1: boolean): ParseWarning[] {
   const warnings: ParseWarning[] = []
-  const h1Count = childNodes.filter(
-    (n) => n.type === "section" && n.data?.depth === 1,
-  ).length
+  const h1Count = childNodes.filter((n) => n.type === "section" && n.data?.depth === 1).length
   // Add 1 for the merged H1 if it existed
   const totalH1s = hadH1 ? h1Count + 1 : h1Count
 
@@ -765,9 +710,7 @@ function validateH1Count(
     })
   } else if (totalH1s > 1) {
     // Find the second H1 for line number
-    const secondH1 = childNodes.find(
-      (n) => n.type === "section" && n.data?.depth === 1,
-    )
+    const secondH1 = childNodes.find((n) => n.type === "section" && n.data?.depth === 1)
     warnings.push({
       type: "multiple_h1",
       message: `${fsPath}: Multiple H1 headings found (${totalH1s}). Each markdown file should have exactly one # heading.`,

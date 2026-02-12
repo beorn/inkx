@@ -6,21 +6,12 @@
 
 import { describe, test, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
-import {
-  queryAgents,
-  getAgent,
-  getActiveAgents,
-  nodeToAgent,
-} from "../src/queries.ts"
+import { queryAgents, getAgent, getActiveAgents, nodeToAgent } from "../src/queries.ts"
 import type { KNode } from "@km/core"
 import { ulid } from "ulid"
 
 /** Create a test agent node */
-function createAgent(
-  name: string,
-  data: Record<string, unknown>,
-  parentIdx = 0,
-): KNode {
+function createAgent(name: string, data: Record<string, unknown>, parentIdx = 0): KNode {
   const now = Date.now()
   return {
     id: ulid(),
@@ -314,10 +305,7 @@ describe("getAgent", () => {
 describe("getActiveAgents", () => {
   test("returns only running agents", () => {
     const repo = createFakeRepo({
-      nodes: [
-        createAgent("Idle Agent", { status: "idle" }),
-        createAgent("Running Agent", { status: "running" }, 1),
-      ],
+      nodes: [createAgent("Idle Agent", { status: "idle" }), createAgent("Running Agent", { status: "running" }, 1)],
     })
 
     const active = getActiveAgents(repo)

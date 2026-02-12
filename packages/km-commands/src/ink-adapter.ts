@@ -178,11 +178,7 @@ export function buildKeybindingContext(options: {
  * Check if a key event would be handled by the command system.
  * Useful for deciding whether to fall back to legacy handlers.
  */
-export function wouldHandleKey(
-  input: string,
-  key: InkKeyEvent,
-  kbCtx: KeybindingContext,
-): boolean {
+export function wouldHandleKey(input: string, key: InkKeyEvent, kbCtx: KeybindingContext): boolean {
   const keyStr = inkKeyToString(input, key)
   const modifiers = inkKeyToModifiers(key)
   return resolveKeybinding(keyStr, modifiers, kbCtx) !== null

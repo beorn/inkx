@@ -12,12 +12,7 @@ import { createLogger } from "@beorn/logger"
 import { createWorkerLogHandler } from "@beorn/logger/worker"
 import { EventEmitter } from "events"
 import { getIgnorePatterns } from "../ignore.ts"
-import type {
-  WorkerCommand,
-  WorkerMessage,
-  WatcherStatus,
-  WatcherState,
-} from "./worker-thread.ts"
+import type { WorkerCommand, WorkerMessage, WatcherStatus, WatcherState } from "./worker-thread.ts"
 
 const log = createLogger("km:storage:watch:worker-bridge")
 // Handler for worker logger messages
@@ -201,9 +196,7 @@ export class WorkerWatcher extends EventEmitter {
         break
 
       case "sync":
-        log.debug?.(
-          `worker sync: ${message.paths.length} paths, ${message.directories.length} directories`,
-        )
+        log.debug?.(`worker sync: ${message.paths.length} paths, ${message.directories.length} directories`)
         this.emit("sync", {
           paths: message.paths,
           directories: message.directories,
@@ -221,9 +214,7 @@ export class WorkerWatcher extends EventEmitter {
         break
 
       case "status":
-        log.debug?.(
-          `worker status state=${message.status.state} pending=${message.status.pendingPaths}`,
-        )
+        log.debug?.(`worker status state=${message.status.state} pending=${message.status.pendingPaths}`)
         this.currentStatus = message.status
         this.emit("status", message.status)
         break

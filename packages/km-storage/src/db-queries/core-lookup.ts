@@ -16,10 +16,7 @@ import { rowToNode } from "./utils.ts"
  * Get a node by ID
  */
 export function getNode(db: Database, id: string): KNode | null {
-  const row = db.query("SELECT * FROM nodes WHERE id = ?").get(id) as Record<
-    string,
-    unknown
-  > | null
+  const row = db.query("SELECT * FROM nodes WHERE id = ?").get(id) as Record<string, unknown> | null
 
   if (!row) return null
   return rowToNode(row)
@@ -41,11 +38,7 @@ interface LookupOptions {
  * @param idPrefix - The ID or partial ID to search for
  * @param options - Optional filters (type or taskOnly)
  */
-function getNodeByIdPrefixWithOptions(
-  db: Database,
-  idPrefix: string,
-  options?: LookupOptions,
-): KNode | null {
+function getNodeByIdPrefixWithOptions(db: Database, idPrefix: string, options?: LookupOptions): KNode | null {
   const { type, taskOnly } = options ?? {}
 
   // Build filter clause
@@ -63,23 +56,26 @@ function getNodeByIdPrefixWithOptions(
   const filterClause = filters.length > 0 ? " AND " + filters.join(" AND ") : ""
 
   // Try exact match first
-  let row = db
-    .query(`SELECT * FROM nodes WHERE id = ?${filterClause}`)
-    .get(idPrefix, ...filterParams) as Record<string, unknown> | null
+  let row = db.query(`SELECT * FROM nodes WHERE id = ?${filterClause}`).get(idPrefix, ...filterParams) as Record<
+    string,
+    unknown
+  > | null
 
   if (row) return rowToNode(row)
 
   // Try prefix match (ID starts with input)
-  row = db
-    .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`)
-    .get(`${idPrefix}%`, ...filterParams) as Record<string, unknown> | null
+  row = db.query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`).get(`${idPrefix}%`, ...filterParams) as Record<
+    string,
+    unknown
+  > | null
 
   if (row) return rowToNode(row)
 
   // Try suffix match (ID ends with input) - for short IDs displayed as last 8 chars
-  row = db
-    .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`)
-    .get(`%${idPrefix}`, ...filterParams) as Record<string, unknown> | null
+  row = db.query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`).get(`%${idPrefix}`, ...filterParams) as Record<
+    string,
+    unknown
+  > | null
 
   if (!row) return null
   return rowToNode(row)
@@ -88,10 +84,7 @@ function getNodeByIdPrefixWithOptions(
 /**
  * Get a node by ID prefix or suffix (for CLI convenience)
  */
-export function getNodeByIdPrefix(
-  db: Database,
-  idPrefix: string,
-): KNode | null {
+export function getNodeByIdPrefix(db: Database, idPrefix: string): KNode | null {
   return getNodeByIdPrefixWithOptions(db, idPrefix)
 }
 
@@ -99,10 +92,7 @@ export function getNodeByIdPrefix(
  * Get a task by ID prefix or suffix (for CLI convenience)
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getTaskByIdPrefix(
-  db: Database,
-  idPrefix: string,
-): KNode | null {
+export function getTaskByIdPrefix(db: Database, idPrefix: string): KNode | null {
   return getNodeByIdPrefixWithOptions(db, idPrefix, { taskOnly: true })
 }
 
@@ -110,9 +100,7 @@ export function getTaskByIdPrefix(
  * Get a node by filesystem path
  */
 export function getNodeByPath(db: Database, fsPath: string): KNode | null {
-  const row = db
-    .query("SELECT * FROM nodes WHERE fs_path = ?")
-    .get(fsPath) as Record<string, unknown> | null
+  const row = db.query("SELECT * FROM nodes WHERE fs_path = ?").get(fsPath) as Record<string, unknown> | null
 
   if (!row) return null
   return rowToNode(row)
@@ -164,13 +152,10 @@ export function getFileWithChildren(db: Database, fsPath: string): KNode[] {
 /**
  * Get content hash for a node (for change detection)
  */
-export function getNodeContentHash(
-  db: Database,
-  nodeId: string,
-): string | null {
-  const row = db
-    .query("SELECT content_hash FROM nodes WHERE id = ?")
-    .get(nodeId) as { content_hash: string | null } | undefined
+export function getNodeContentHash(db: Database, nodeId: string): string | null {
+  const row = db.query("SELECT content_hash FROM nodes WHERE id = ?").get(nodeId) as
+    | { content_hash: string | null }
+    | undefined
 
   return row?.content_hash ?? null
 }

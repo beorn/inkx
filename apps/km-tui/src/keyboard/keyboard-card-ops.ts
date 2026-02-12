@@ -7,10 +7,7 @@
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import {
-  getSelectedCardIndices,
-  refreshBoardState,
-} from "./keyboard-helpers.ts"
+import { getSelectedCardIndices, refreshBoardState } from "./keyboard-helpers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 
 // =============================================================================
@@ -23,10 +20,7 @@ import { indexOfChild } from "../sibling-index.ts"
  * fractional insertion between equal values produces wrong sort order.
  * Assigns sequential integers [0, 1, 2, ...] when duplicates exist.
  */
-function normalizeSortOrders(
-  ctx: ActionCtx,
-  col: { cards: CardState[]; node: { id: string } },
-): void {
+function normalizeSortOrders(ctx: ActionCtx, col: { cards: CardState[]; node: { id: string } }): void {
   const seen = new Set<number>()
   let hasDuplicates = false
   for (const card of col.cards) {
@@ -52,11 +46,7 @@ function normalizeSortOrders(
  * Places the value between the two neighbors, or beyond the boundary card.
  * Requires normalizeSortOrders to have been called first.
  */
-function calculateSortOrder(
-  col: { cards: CardState[] },
-  targetIndex: number,
-  direction: "up" | "down",
-): number {
+function calculateSortOrder(col: { cards: CardState[] }, targetIndex: number, direction: "up" | "down"): number {
   const order = (i: number) => col.cards[i]?.node.parent_idx ?? i
 
   if (direction === "up") {
@@ -76,11 +66,7 @@ function calculateSortOrder(
  * Rebuild multi-selection set by matching moved card IDs against
  * the current column's children after a board state refresh.
  */
-function rebuildSelectionForMovedCards(
-  ctx: ActionCtx,
-  colIndex: number,
-  movedCardIds: string[],
-): void {
+function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCardIds: string[]): void {
   const newSelected = new Set<SelectionKey>()
   const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
   const allChildren = ctx.repo.getChildren(ctx.rootId)
@@ -103,11 +89,7 @@ function rebuildSelectionForMovedCards(
 // =============================================================================
 
 /** Move card within column (up/down) */
-export function moveCardInColumn(
-  ctx: ActionCtx,
-  card: CardState,
-  direction: "up" | "down",
-): void {
+export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up" | "down"): void {
   const col = ctx.layout.columns[ctx.layout.colIndex]
   if (!col) return
 
@@ -120,29 +102,21 @@ export function moveCardInColumn(
       ? selectedIndices.map((i: number) => ({ index: i, card: col.cards[i] }))
       : [{ index: ctx.layout.cardIndex, card }]
 
-  const validCards = cardsToMove.filter(
-    (c): c is { index: number; card: CardState } => c.card !== undefined,
-  )
+  const validCards = cardsToMove.filter((c): c is { index: number; card: CardState } => c.card !== undefined)
   if (validCards.length === 0) return
 
   const sortedCards =
     direction === "up"
-      ? validCards.sort(
-          (a: { index: number }, b: { index: number }) => a.index - b.index,
-        )
-      : validCards.sort(
-          (a: { index: number }, b: { index: number }) => b.index - a.index,
-        )
+      ? validCards.sort((a: { index: number }, b: { index: number }) => a.index - b.index)
+      : validCards.sort((a: { index: number }, b: { index: number }) => b.index - a.index)
 
   const firstToMove = sortedCards[0]
   if (!firstToMove) return
-  const targetIndex =
-    direction === "up" ? firstToMove.index - 1 : firstToMove.index + 1
+  const targetIndex = direction === "up" ? firstToMove.index - 1 : firstToMove.index + 1
   if (targetIndex < 0 || targetIndex >= col.cards.length) return
 
   for (const { index: currentIndex, card: cardToMove } of sortedCards) {
-    const cardTargetIndex =
-      direction === "up" ? currentIndex - 1 : currentIndex + 1
+    const cardTargetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
     if (cardTargetIndex < 0 || cardTargetIndex >= col.cards.length) continue
 
     const newSortOrder = calculateSortOrder(col, cardTargetIndex, direction)
@@ -150,8 +124,7 @@ export function moveCardInColumn(
   }
 
   const movedCardIds = validCards.map((c) => c.card.node.id)
-  const newCardIndex =
-    direction === "up" ? ctx.layout.cardIndex - 1 : ctx.layout.cardIndex + 1
+  const newCardIndex = direction === "up" ? ctx.layout.cardIndex - 1 : ctx.layout.cardIndex + 1
 
   refreshBoardState(ctx, { cardIndex: newCardIndex })
 
@@ -161,16 +134,11 @@ export function moveCardInColumn(
 }
 
 /** Move card to different column (left/right) */
-export function moveCardToColumn(
-  ctx: ActionCtx,
-  card: CardState,
-  direction: "left" | "right",
-): void {
+export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "left" | "right"): void {
   const col = ctx.layout.columns[ctx.layout.colIndex]
   if (!col) return
 
-  const targetColIndex =
-    direction === "left" ? ctx.layout.colIndex - 1 : ctx.layout.colIndex + 1
+  const targetColIndex = direction === "left" ? ctx.layout.colIndex - 1 : ctx.layout.colIndex + 1
   if (targetColIndex < 0 || targetColIndex >= ctx.layout.columns.length) return
 
   const targetCol = ctx.layout.columns[targetColIndex]
@@ -179,17 +147,13 @@ export function moveCardToColumn(
   const selectedIndices = getSelectedCardIndices(ctx)
   const cardsToMove: CardState[] =
     selectedIndices.length > 0
-      ? selectedIndices
-          .map((i: number) => col.cards[i])
-          .filter((c): c is CardState => c !== undefined)
+      ? selectedIndices.map((i: number) => col.cards[i]).filter((c): c is CardState => c !== undefined)
       : [card]
 
   if (cardsToMove.length === 0) return
 
   let newSortOrder =
-    targetCol.cards.length > 0
-      ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1
-      : 0
+    targetCol.cards.length > 0 ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1 : 0
 
   for (const cardToMove of cardsToMove) {
     ctx.repo.moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder)
@@ -234,9 +198,7 @@ export function outdentNode(ctx: ActionCtx, card: CardState): void {
     newSortOrder = parent.parent_idx + 1
   } else {
     const nextSibling = grandparentChildren[parentIndex + 1]
-    newSortOrder =
-      (parent.parent_idx + (nextSibling?.parent_idx ?? parent.parent_idx + 2)) /
-      2
+    newSortOrder = (parent.parent_idx + (nextSibling?.parent_idx ?? parent.parent_idx + 2)) / 2
   }
 
   ctx.repo.moveNode(card.node.id, grandparentId, newSortOrder)

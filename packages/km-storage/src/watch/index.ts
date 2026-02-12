@@ -1,9 +1,5 @@
 // Watcher
-export {
-  FileSystemWatcher,
-  scanDirectory,
-  scanDirectoryRecursive,
-} from "./watcher.ts"
+export { FileSystemWatcher, scanDirectory, scanDirectoryRecursive } from "./watcher.ts"
 
 export type { WatcherConfig, FileChange } from "./watcher.ts"
 
@@ -22,12 +18,7 @@ export { FsWriter } from "./fs-writer.ts"
 export type { SyncConfig, SyncFromFsResult } from "./sync.ts"
 
 // Reconcile
-export {
-  reconcileDirectory,
-  applyReconcileOps,
-  applyReconcileOpsAsync,
-  getParentNodeId,
-} from "./reconcile.ts"
+export { reconcileDirectory, applyReconcileOps, applyReconcileOpsAsync, getParentNodeId } from "./reconcile.ts"
 
 export type { ReconcileOp } from "./reconcile.ts"
 

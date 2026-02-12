@@ -13,10 +13,7 @@ import type { Agent, AgentStatus, CreateAgentOptions } from "./types.ts"
  * Create a new agent node (in-memory).
  * Returns the node and its short ID.
  */
-export function createAgentNode(
-  name: string,
-  options: CreateAgentOptions = {},
-): { node: KNode; shortId: string } {
+export function createAgentNode(name: string, options: CreateAgentOptions = {}): { node: KNode; shortId: string } {
   const id = ulid()
   const shortId = options.customId ?? id.slice(-4).toLowerCase()
   const now = Date.now()
@@ -50,9 +47,7 @@ export function createAgentNode(
  */
 export function updateAgentFields(
   agent: Agent,
-  changes: Partial<
-    Pick<Agent, "name" | "model" | "harness" | "status" | "currentTaskId">
-  >,
+  changes: Partial<Pick<Agent, "name" | "model" | "harness" | "status" | "currentTaskId">>,
 ): Partial<KNode> {
   const updates: Partial<KNode> = {
     updated_at: Date.now(),

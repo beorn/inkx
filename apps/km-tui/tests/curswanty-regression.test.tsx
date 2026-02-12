@@ -26,13 +26,7 @@ describe("curswantY regression", () => {
     const registry = createLayoutRegistry()
 
     // Create board with cards that have children (making them tall)
-    const nodes = item(
-      "board",
-      item(
-        "col0",
-        item("card0", item("child1"), item("child2"), item("child3")),
-      ),
-    )
+    const nodes = item("board", item("col0", item("card0", item("child1"), item("child2"), item("child3"))))
     const repo = createFakeRepo({ nodes })
 
     renderBoardWithStore(repo, "board", {
@@ -59,20 +53,9 @@ describe("curswantY regression", () => {
     // - Column 2: short card first, then tall card
     const nodes = item(
       "board",
-      item(
-        "col0",
-        item("tall0", item("c1"), item("c2"), item("c3"), item("c4")),
-      ),
-      item(
-        "col1",
-        item("tall1", item("cA"), item("cB"), item("cC")),
-        item("short1"),
-      ),
-      item(
-        "col2",
-        item("short2"),
-        item("tall2", item("cX"), item("cY"), item("cZ")),
-      ),
+      item("col0", item("tall0", item("c1"), item("c2"), item("c3"), item("c4"))),
+      item("col1", item("tall1", item("cA"), item("cB"), item("cC")), item("short1")),
+      item("col2", item("short2"), item("tall2", item("cX"), item("cY"), item("cZ"))),
     )
     const repo = createFakeRepo({ nodes })
 

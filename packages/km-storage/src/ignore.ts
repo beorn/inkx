@@ -262,18 +262,9 @@ function patternToRegex(pattern: string): RegExp | null {
     // Escape special regex chars
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
     // Replace placeholders with regex equivalents
-    .replace(
-      new RegExp(DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"),
-      "(?:.*\\/)?",
-    )
-    .replace(
-      new RegExp(SLASH_DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"),
-      "(?:\\/.*)?/",
-    )
-    .replace(
-      new RegExp(SLASH_DOUBLE_STAR.replace(/\x00/g, "\\x00"), "g"),
-      "(?:\\/.*)?",
-    )
+    .replace(new RegExp(DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"), "(?:.*\\/)?")
+    .replace(new RegExp(SLASH_DOUBLE_STAR_SLASH.replace(/\x00/g, "\\x00"), "g"), "(?:\\/.*)?/")
+    .replace(new RegExp(SLASH_DOUBLE_STAR.replace(/\x00/g, "\\x00"), "g"), "(?:\\/.*)?")
     .replace(new RegExp(DOUBLE_STAR.replace(/\x00/g, "\\x00"), "g"), ".*")
     .replace(new RegExp(SINGLE_STAR.replace(/\x00/g, "\\x00"), "g"), "[^/]*")
     .replace(new RegExp(QUESTION.replace(/\x00/g, "\\x00"), "g"), ".")
@@ -373,11 +364,7 @@ export function matchesPattern(path: string, pattern: string): boolean {
  * Accepts either a string[] of patterns (legacy, recompiles each call)
  * or a PatternMatcher (preferred, pre-compiled).
  */
-export function shouldIgnore(
-  path: string,
-  patternsOrMatcher: string[] | PatternMatcher,
-  repoPath?: string,
-): boolean {
+export function shouldIgnore(path: string, patternsOrMatcher: string[] | PatternMatcher, repoPath?: string): boolean {
   // Use PatternMatcher if provided (fast path) - check for matches method
   if (!Array.isArray(patternsOrMatcher)) {
     return patternsOrMatcher.matches(path, repoPath)

@@ -49,9 +49,7 @@ export function getRegisteredCommandIds(): string[] {
 /**
  * Get command info by ID for help display.
  */
-export function getCommandInfo(
-  id: string,
-): { name: string; description: string; category: string } | null {
+export function getCommandInfo(id: string): { name: string; description: string; category: string } | null {
   initShellCommands()
   const cmd = getCommand(id)
   if (!cmd) return null
@@ -82,10 +80,7 @@ interface ShellContextOptions {
  * Build CommandContext from shell state.
  * Shell doesn't have all UI context, so we provide sensible defaults.
  */
-export function buildShellContext(
-  viewMode: ViewMode = "list",
-  options: ShellContextOptions = {},
-): CommandContext {
+export function buildShellContext(viewMode: ViewMode = "list", options: ShellContextOptions = {}): CommandContext {
   return buildContext(viewMode, {
     currentNode: options.currentNode ?? null,
     currentNodeId: options.currentNodeId ?? null,
@@ -134,16 +129,10 @@ export function isRegisteredCommand(commandId: string): boolean {
 /**
  * Get all commands grouped by category for help display.
  */
-export function getCommandsByCategory(): Map<
-  string,
-  Array<{ id: string; name: string; description: string }>
-> {
+export function getCommandsByCategory(): Map<string, Array<{ id: string; name: string; description: string }>> {
   initShellCommands()
   const commands = getAllCommands()
-  const byCategory = new Map<
-    string,
-    Array<{ id: string; name: string; description: string }>
-  >()
+  const byCategory = new Map<string, Array<{ id: string; name: string; description: string }>>()
 
   for (const cmd of commands) {
     const existing = byCategory.get(cmd.category) ?? []

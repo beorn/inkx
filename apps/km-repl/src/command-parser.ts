@@ -152,12 +152,7 @@ const SINGLE_CHAR_MAP: Record<string, BoardAction | "KEY"> = {
  */
 function parseQuotedString(input: string): string[] | null {
   // Must start and end with quotes
-  if (
-    !(
-      (input.startsWith('"') && input.endsWith('"')) ||
-      (input.startsWith("'") && input.endsWith("'"))
-    )
-  ) {
+  if (!((input.startsWith('"') && input.endsWith('"')) || (input.startsWith("'") && input.endsWith("'")))) {
     return null
   }
 
@@ -209,10 +204,7 @@ export function parseCommand(input: string): ParseResult {
   }
 
   // Quoted key sequence: "jjk" or 'jjk'
-  if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
     const keys = parseQuotedString(trimmed)
     if (keys && keys.length > 0) {
       // Return special marker for key sequence
@@ -304,8 +296,7 @@ export function getCommandHelp(topic?: string): string {
       key: "key <keyspec> - Send raw key (e.g., key j, key <Enter>)",
       state: "Dump current BoardState as JSON",
       view: "Render current view as ASCII",
-      render:
-        "render [--width N] [--height N] [--ansi] - Render TUI-style view using inkx",
+      render: "render [--width N] [--height N] [--ansi] - Render TUI-style view using inkx",
       help: "help [command] - Show help",
       quit: "Exit the shell",
       // Filesystem-like commands
@@ -315,8 +306,7 @@ export function getCommandHelp(topic?: string): string {
       tree: "tree [path] [depth] - Hierarchical listing with box-drawing",
       cat: "cat [path] - Show node content/details",
       // Mutation commands
-      set_status:
-        "set_status <status> - Set task status (todo, wip, blocked, done, dropped)",
+      set_status: "set_status <status> - Set task status (todo, wip, blocked, done, dropped)",
       delete: "delete - Delete current node",
       shift_up: "shift_up - Move node up within siblings",
       shift_down: "shift_down - Move node down within siblings",
@@ -385,11 +375,7 @@ JSON mode:
  * Get all available command names (for completion)
  */
 export function getCommandNames(): string[] {
-  return [
-    ...Object.keys(SIMPLE_ACTIONS),
-    ...Object.keys(SHELL_COMMANDS),
-    ...Object.keys(PARAM_COMMANDS),
-  ]
+  return [...Object.keys(SIMPLE_ACTIONS), ...Object.keys(SHELL_COMMANDS), ...Object.keys(PARAM_COMMANDS)]
 }
 
 // --- Factory functions for parameterized command patterns ---
@@ -471,10 +457,7 @@ function parseKeyCommand(args: string[]): ParseResult {
   const keySpec = args.join(" ")
 
   // Check if it's a quoted string: key "jjk"
-  if (
-    (keySpec.startsWith('"') && keySpec.endsWith('"')) ||
-    (keySpec.startsWith("'") && keySpec.endsWith("'"))
-  ) {
+  if ((keySpec.startsWith('"') && keySpec.endsWith('"')) || (keySpec.startsWith("'") && keySpec.endsWith("'"))) {
     const keys = parseQuotedString(keySpec)
     if (keys && keys.length > 0) {
       return { ok: false, error: `KEYS:${keys.join(",")}` }
@@ -538,13 +521,7 @@ function parseCatCommand(args: string[]): ParseResult {
 
 function parseSetStatusCommand(args: string[]): ParseResult {
   const statusArg = args[0]?.toLowerCase()
-  const validStatuses: TaskStatus[] = [
-    "todo",
-    "wip",
-    "blocked",
-    "done",
-    "dropped",
-  ]
+  const validStatuses: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
   if (!statusArg || !validStatuses.includes(statusArg as TaskStatus)) {
     return {
       ok: false,

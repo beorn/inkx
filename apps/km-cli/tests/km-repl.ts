@@ -83,10 +83,7 @@ function setupFixture(fixture?: string): string {
     // Empty repo - no files
   } else {
     // Default fixture: single task list
-    writeFileSync(
-      join(tempDir, "test.md"),
-      `# Test\n## Tasks\n- [ ] Task A\n- [ ] Task B\n`,
-    )
+    writeFileSync(join(tempDir, "test.md"), `# Test\n## Tasks\n- [ ] Task A\n- [ ] Task B\n`)
   }
 
   return tempDir
@@ -113,14 +110,12 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
       // If block specifies fixture=X, switch to X
       // Otherwise, inherit the current fixture (don't reset)
       const blockFixture = blockOpts.fixture as string | undefined
-      const fixtureChanged =
-        blockFixture !== undefined && blockFixture !== currentFixture
+      const fixtureChanged = blockFixture !== undefined && blockFixture !== currentFixture
       const explicitReset = !!blockOpts.reset
       const shouldReset = !repoPath || explicitReset || fixtureChanged
 
       // When reset is requested, use block's fixture or file's fixture
-      const targetFixture =
-        blockFixture ?? (explicitReset ? fileOpts.fixture : currentFixture)
+      const targetFixture = blockFixture ?? (explicitReset ? fileOpts.fixture : currentFixture)
 
       if (shouldReset) {
         // Clean up old repo
@@ -145,10 +140,7 @@ export default async function kmRepl(fileOpts: Opts): Promise<Plugin> {
       }
 
       // Skip non-console blocks
-      if (
-        !blockOpts.type ||
-        !["console", "sh", "bash"].includes(blockOpts.type as string)
-      ) {
+      if (!blockOpts.type || !["console", "sh", "bash"].includes(blockOpts.type as string)) {
         return null
       }
 

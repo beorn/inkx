@@ -7,12 +7,7 @@
 
 import { EventEmitter } from "events"
 import { writeSync } from "fs"
-import {
-  createTerm,
-  patchConsole,
-  IncrementalRenderMismatchError,
-  InputLayerProvider,
-} from "inkx"
+import { createTerm, patchConsole, IncrementalRenderMismatchError, InputLayerProvider } from "inkx"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
 import { createBoardState } from "./board-types.ts"
@@ -92,10 +87,7 @@ function computeInitialCursor(state: TUIBoardState): string | null {
  * - hasInput() = false → static mode, render once and exit
  */
 // oxlint-disable-next-line complexity/complexity -- 31/30: async setup with nested callbacks, not worth extracting
-export async function runBoard(
-  state: TUIBoardState | null,
-  options?: TuiOptions,
-): Promise<void> {
+export async function runBoard(state: TUIBoardState | null, options?: TuiOptions): Promise<void> {
   using run = spanLog.span("run-board")
   log.debug?.("runBoard start")
 
@@ -109,9 +101,7 @@ export async function runBoard(
   const interactive = options?.interactive !== false
   const isInteractive = interactive && term.hasInput()
 
-  log.debug?.(
-    `TTY detection interactive=${interactive} hasInput=${term.hasInput()} isInteractive=${isInteractive}`,
-  )
+  log.debug?.(`TTY detection interactive=${interactive} hasInput=${term.hasInput()} isInteractive=${isInteractive}`)
 
   // Initialize filesystem sync if we have a repo path (only for interactive)
   // Watch can be disabled via: --no-watch CLI flag or config tui.watch=false
@@ -122,9 +112,7 @@ export async function runBoard(
   if (isInteractive && state.rootPath && options?.watch !== false) {
     using _ = run.span("sync-manager-init")
     const useWorker = options?.watchWorker !== false
-    log.debug?.(
-      `Creating SyncManager rootPath=${state.rootPath} watch=true worker=${useWorker}`,
-    )
+    log.debug?.(`Creating SyncManager rootPath=${state.rootPath} watch=true worker=${useWorker}`)
     syncManager = new SyncManager({
       db: options.repo.database,
       repoPath: state.rootPath,
@@ -150,17 +138,14 @@ export async function runBoard(
     })
 
     // Surface write errors as toasts via cross-layer event system
-    syncManager.on(
-      "write-errors",
-      (errors: { path: string; error: Error }[]) => {
-        for (const e of errors) {
-          kmEvents.emit("sync-error", {
-            path: e.path,
-            message: e.error.message,
-          })
-        }
-      },
-    )
+    syncManager.on("write-errors", (errors: { path: string; error: Error }[]) => {
+      for (const e of errors) {
+        kmEvents.emit("sync-error", {
+          path: e.path,
+          message: e.error.message,
+        })
+      }
+    })
     syncManager.on("error", (error: Error) => {
       kmEvents.emit("sync-error", { path: "", message: error.message })
     })
@@ -178,12 +163,8 @@ export async function runBoard(
       // INKX_CHECK_INCREMENTAL detected a bug - show message and exit
       process.stderr.write("\n\n[inkx] Incremental render mismatch detected!\n")
       process.stderr.write(error.message + "\n")
-      process.stderr.write(
-        "\nThis indicates a bug in incremental rendering. File an issue or run\n",
-      )
-      process.stderr.write(
-        "without INKX_STRICT to continue using the TUI (with visual glitches).\n",
-      )
+      process.stderr.write("\nThis indicates a bug in incremental rendering. File an issue or run\n")
+      process.stderr.write("without INKX_STRICT to continue using the TUI (with visual glitches).\n")
       process.exit(1)
     }
     process.stderr.write(`\n\nTUI crashed with error: ${error.message}\n`)
@@ -209,8 +190,7 @@ export async function runBoard(
   // Use pre-created patchedConsole if provided (counts startup warnings),
   // otherwise create one now. capture: true = store entries for exit dump.
   const patched = isInteractive
-    ? (options?.patchedConsole ??
-      patchConsole(console, { capture: true, suppress: true }))
+    ? (options?.patchedConsole ?? patchConsole(console, { capture: true, suppress: true }))
     : null
 
   try {
@@ -229,9 +209,7 @@ export async function runBoard(
       colIndex: 0,
       cardIndex: 0,
       isAtCardLevel:
-        initialCursorNodeId !== null &&
-        state.columns.length > 0 &&
-        (state.columns[0]?.cards.length ?? 0) > 0,
+        initialCursorNodeId !== null && state.columns.length > 0 && (state.columns[0]?.cards.length ?? 0) > 0,
     }
 
     const selectedCol = state.columns[0]
@@ -252,11 +230,7 @@ export async function runBoard(
         cardIndex: 0,
         selectionLevel: initialSelectionLevel,
       }),
-      initialBoardState: createBoardState(
-        state.rootId,
-        state.rootPath,
-        initialCursorNodeId,
-      ),
+      initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId),
       initialUIState: createInitialUIState(
         viewMode,
         [...(state.collapsedColumns ?? [])],
@@ -286,9 +260,7 @@ export async function runBoard(
             />
           </InputLayerProvider>
         </RepoProvider>,
-        isInteractive
-          ? { alternateScreen: true }
-          : { cols, rows, stdout: process.stdout },
+        isInteractive ? { alternateScreen: true } : { cols, rows, stdout: process.stdout },
       )
 
       // Now that alternate screen is active, notify caller (CLI uses this
@@ -331,15 +303,10 @@ export async function runBoard(
       const entries = patched.getSnapshot()
       if (entries.length > 0) {
         for (const entry of entries) {
-          const stream =
-            entry.stream === "stderr" ? process.stderr : process.stdout
+          const stream = entry.stream === "stderr" ? process.stderr : process.stdout
           const args = entry.args
             .map((a) =>
-              typeof a === "string"
-                ? a
-                : a instanceof Error
-                  ? `${a.name}: ${a.message}`
-                  : JSON.stringify(a),
+              typeof a === "string" ? a : a instanceof Error ? `${a.name}: ${a.message}` : JSON.stringify(a),
             )
             .join(" ")
           stream.write(args + "\n")

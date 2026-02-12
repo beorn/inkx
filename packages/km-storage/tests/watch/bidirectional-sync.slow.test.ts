@@ -15,12 +15,7 @@ import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { EventEmitter } from "events"
 
-import {
-  getNodeByPath,
-  getAllNodes,
-  withTestEnv,
-  createTestEnvRepo,
-} from "@km/storage"
+import { getNodeByPath, getAllNodes, withTestEnv, createTestEnvRepo } from "@km/storage"
 import {
   createTestSyncManager,
   setupSyncManager,
@@ -490,10 +485,7 @@ describe("Full Round-Trip", () => {
         const stateChanged = waitForStateChange(events)
 
         // External file edit (simulates user editing in vim/vscode)
-        writeFileSync(
-          testFile,
-          "# Reverse\n\n- [ ] Modified by external editor\n",
-        )
+        writeFileSync(testFile, "# Reverse\n\n- [ ] Modified by external editor\n")
 
         await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
 
@@ -615,16 +607,11 @@ describe("File & Folder Renames", () => {
 
         const subDir = join(repoDir, "notes")
         mkdirSync(subDir)
-        writeFileSync(
-          join(subDir, "draft.md"),
-          "# Draft\n\nWork in progress.\n",
-        )
+        writeFileSync(join(subDir, "draft.md"), "# Draft\n\nWork in progress.\n")
 
         await syncManager.syncFromFs()
 
-        const fileNode = getAllNodes(db).find(
-          (n) => n.type === "file" && n.fs_path?.includes("draft"),
-        )
+        const fileNode = getAllNodes(db).find((n) => n.type === "file" && n.fs_path?.includes("draft"))
         expect(fileNode).toBeDefined()
 
         repo.updateNode(fileNode!.id, { content: "Published" })
@@ -734,16 +721,12 @@ describe("File & Folder Renames", () => {
         expect(existsSync(join(repoDir, "archive", "readme.md"))).toBe(true)
 
         // DB should reflect new paths
-        const updatedFolder = getAllNodes(db).find(
-          (n) => n.id === folderNode!.id,
-        )
+        const updatedFolder = getAllNodes(db).find((n) => n.id === folderNode!.id)
         expect(updatedFolder!.fs_path).toBe("archive")
         expect(updatedFolder!.name).toBe("archive")
 
         // Child nodes should have updated fs_path
-        const childFile = getAllNodes(db).find(
-          (n) => n.type === "file" && n.fs_path?.includes("readme"),
-        )
+        const childFile = getAllNodes(db).find((n) => n.type === "file" && n.fs_path?.includes("readme"))
         expect(childFile!.fs_path).toBe("archive/readme.md")
       }))
 
@@ -774,10 +757,7 @@ describe("File & Folder Renames", () => {
         await Bun.sleep(200)
 
         // Verify the file content survived the rename
-        const content = readFileSync(
-          join(repoDir, "processed", "note.md"),
-          "utf-8",
-        )
+        const content = readFileSync(join(repoDir, "processed", "note.md"), "utf-8")
         expect(content).toContain("# My Note")
         expect(content).toContain("Task here")
       }))

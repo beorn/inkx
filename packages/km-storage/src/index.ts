@@ -6,11 +6,7 @@ export { createLinkResolver, type LinkResolver } from "./link-resolver.ts"
 
 // DataStore interface and factories (preferred API for tree operations)
 // See: docs/00-principles.md
-export {
-  createMapDataStore,
-  createMemDataStore,
-  createDBDataStore,
-} from "./data-store.ts"
+export { createMapDataStore, createMemDataStore, createDBDataStore } from "./data-store.ts"
 
 export type {
   DataStore,
@@ -87,30 +83,13 @@ export { MemoryStore } from "./store.ts"
 export type { NodeStore } from "./store.ts"
 
 // Unified repo loading
-export {
-  readEvents,
-  resolveLinksAsync,
-  parseDeferredAsync,
-  parseStubFile,
-  ensureRepoRootNode,
-} from "./repo-loader.ts"
+export { readEvents, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo-loader.ts"
 
-export type {
-  LoadResult,
-  LoadOptions,
-  PendingLink,
-  DeferredFile,
-  StepYield,
-} from "./repo-loader.ts"
+export type { LoadResult, LoadOptions, PendingLink, DeferredFile, StepYield } from "./repo-loader.ts"
 export type { LoadError as RepoLoaderError } from "./repo-loader.ts"
 
 // Event compaction & store health diagnostics
-export {
-  identifyStaleEvents,
-  compactEvents,
-  vacuumDb,
-  getStoreHealth,
-} from "./event-compaction.ts"
+export { identifyStaleEvents, compactEvents, vacuumDb, getStoreHealth } from "./event-compaction.ts"
 
 export type { CompactionResult, StoreHealth } from "./event-compaction.ts"
 
@@ -118,11 +97,7 @@ export type { CompactionResult, StoreHealth } from "./event-compaction.ts"
 // km-disposable.3: Service factory pattern
 export { createParsePool } from "./parse-pool.ts"
 
-export type {
-  ParsePoolService,
-  ParseResult as PoolParseResult,
-  ParsePoolOptions,
-} from "./parse-pool.ts"
+export type { ParsePoolService, ParseResult as PoolParseResult, ParsePoolOptions } from "./parse-pool.ts"
 
 // Watcher domain object (Service for file sync)
 export { createWatcher } from "./watcher.ts"
@@ -130,13 +105,7 @@ export { createWatcher } from "./watcher.ts"
 export type { Watcher, WatcherOptions } from "./watcher.ts"
 
 // Database rules (add= materialization)
-export {
-  evaluateAllRules,
-  evaluateNodeRules,
-  onNodeChanged,
-  onNodeDeleted,
-  createRuleContext,
-} from "./db-rules.ts"
+export { evaluateAllRules, evaluateNodeRules, onNodeChanged, onNodeDeleted, createRuleContext } from "./db-rules.ts"
 
 export type { RulesProgress, RuleContext } from "./db-rules.ts"
 
@@ -194,12 +163,7 @@ export {
   runDeferredPipeline,
 } from "./pipeline.ts"
 
-export type {
-  ParseSource,
-  ParsedFile,
-  AppliedFile,
-  PipelineOptions,
-} from "./pipeline.ts"
+export type { ParseSource, ParsedFile, AppliedFile, PipelineOptions } from "./pipeline.ts"
 
 // Path utilities for filesystem-based node resolution
 export {
@@ -262,18 +226,9 @@ export type {
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
 
 // Configuration
-export {
-  loadConfig,
-  clearConfigCache,
-  getOriginalBeadsConfig,
-} from "./config.ts"
+export { loadConfig, clearConfigCache, getOriginalBeadsConfig } from "./config.ts"
 
-export type {
-  KmConfig,
-  BeadsConfig,
-  TuiConfig,
-  OriginalBeadsConfig,
-} from "./config.ts"
+export type { KmConfig, BeadsConfig, TuiConfig, OriginalBeadsConfig } from "./config.ts"
 
 // Config domain object (preferred API)
 export { loadConfigObject } from "./config-object.ts"
@@ -295,24 +250,12 @@ export {
   emitSessionEnded as emitSessionEndedWithEmitter,
 } from "./emitter.ts"
 
-export type {
-  Emitter,
-  EmitterOptions,
-  EmitOptions,
-  EventHub,
-  FsSync,
-} from "./emitter.ts"
+export type { Emitter, EmitterOptions, EmitOptions, EventHub, FsSync } from "./emitter.ts"
 
 // Repo domain object - PREFERRED API for new code
 // Composed: DataStore + FileTree + Config
 // See: docs/00-principles.md
-export {
-  createRepo,
-  createBareRepo,
-  createTestRepo,
-  createTestEnvRepo,
-  IncompleteDatabase,
-} from "./repo.ts"
+export { createRepo, createBareRepo, createTestRepo, createTestEnvRepo, IncompleteDatabase } from "./repo.ts"
 
 export type {
   Repo,

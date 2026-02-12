@@ -7,10 +7,7 @@
 
 import { createTerm, type StyleChain } from "inkx"
 import type { KNode } from "@km/core"
-import {
-  getNodeDisplayName as getNodeDisplayNameBase,
-  type CollapsedAncestor,
-} from "@km/tree"
+import { getNodeDisplayName as getNodeDisplayNameBase, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "../repo-context.tsx"
 
 /**
@@ -25,11 +22,7 @@ function createTermStyle(): StyleChain {
  * Format a collapsed ancestor for display with its type suffix.
  * Used in tree/context displays.
  */
-export function formatCollapsedAncestor(
-  repo: Repo,
-  ca: CollapsedAncestor,
-  showId: boolean,
-): string {
+export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showId: boolean): string {
   const style = createTermStyle()
   let prefix = ""
   if (showId) {
@@ -92,9 +85,7 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
     case "paragraph":
       return prefix + style.dim("¶ ") + (node.content?.slice(0, 50) ?? "")
     default:
-      return (
-        prefix + style.dim("• ") + (node.content?.slice(0, 50) ?? node.type)
-      )
+      return prefix + style.dim("• ") + (node.content?.slice(0, 50) ?? node.type)
   }
 }
 

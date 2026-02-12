@@ -70,9 +70,7 @@ export function createCardDAVClient(config: CardDAVConfig) {
         )
 
         const homeText = await homeResponse.text()
-        const homeMatch = homeText.match(
-          /<C:addressbook-home-set>.*?<D:href>([^<]+)<\/D:href>/s,
-        )
+        const homeMatch = homeText.match(/<C:addressbook-home-set>.*?<D:href>([^<]+)<\/D:href>/s)
         if (homeMatch) {
           addressBookUrl = `${config.url}${homeMatch[1]}`
           return addressBookUrl
@@ -114,10 +112,7 @@ export function createCardDAVClient(config: CardDAVConfig) {
       let match
       while ((match = responseRegex.exec(text)) !== null) {
         const etag = match[2]
-        const vcardData = match[3]
-          ?.replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&amp;/g, "&")
+        const vcardData = match[3]?.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
 
         if (vcardData) {
           const contact = parseVCard(vcardData)

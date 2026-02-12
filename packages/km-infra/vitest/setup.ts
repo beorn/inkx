@@ -34,10 +34,7 @@ process.env.LOG_LEVEL = "warn"
 // to catch warnings that fire between beforeEach/afterEach lifecycle boundaries.
 const _originalConsoleError = console.error
 console.error = function (...args: unknown[]) {
-  if (
-    typeof args[0] === "string" &&
-    args[0].includes("was not wrapped in act(")
-  ) {
+  if (typeof args[0] === "string" && args[0].includes("was not wrapped in act(")) {
     return
   }
   _originalConsoleError.apply(console, args)
@@ -59,10 +56,7 @@ process.env.INKX_STRICT = "1"
 // (km-inkx.bg-bleed) is tracked — we want it visible but not blocking CI.
 let _mismatchCount = 0
 process.on("unhandledRejection", (reason: unknown) => {
-  if (
-    reason instanceof Error &&
-    reason.name === "IncrementalRenderMismatchError"
-  ) {
+  if (reason instanceof Error && reason.name === "IncrementalRenderMismatchError") {
     _mismatchCount++
     return // suppress — tracked as km-inkx.bg-bleed
   }
@@ -113,11 +107,7 @@ beforeEach(() => {
   for (const method of CONSOLE_METHODS) {
     vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
       // Preserve act() warning filter (module-level patch gets overridden by spy)
-      if (
-        method === "error" &&
-        typeof args[0] === "string" &&
-        args[0].includes("was not wrapped in act(")
-      ) {
+      if (method === "error" && typeof args[0] === "string" && args[0].includes("was not wrapped in act(")) {
         return
       }
       consoleCalls.push({ method, args })
@@ -131,8 +121,7 @@ beforeEach(() => {
     callback?: (err?: Error) => void,
   ): boolean => {
     stdoutCalls.push(String(chunk))
-    const cb =
-      typeof encodingOrCallback === "function" ? encodingOrCallback : callback
+    const cb = typeof encodingOrCallback === "function" ? encodingOrCallback : callback
     if (cb) cb()
     return true
   }) as typeof process.stdout.write
@@ -144,8 +133,7 @@ beforeEach(() => {
     callback?: (err?: Error) => void,
   ): boolean => {
     stderrCalls.push(String(chunk))
-    const cb =
-      typeof encodingOrCallback === "function" ? encodingOrCallback : callback
+    const cb = typeof encodingOrCallback === "function" ? encodingOrCallback : callback
     if (cb) cb()
     return true
   }) as typeof process.stderr.write
@@ -162,10 +150,7 @@ afterEach(() => {
   // Check console calls
   if (consoleCalls.length > 0) {
     const summary = consoleCalls
-      .map(
-        (c) =>
-          `  console.${c.method}(${c.args.map((a) => JSON.stringify(a)).join(", ")})`,
-      )
+      .map((c) => `  console.${c.method}(${c.args.map((a) => JSON.stringify(a)).join(", ")})`)
       .join("\n")
     throw new Error(`Test produced console output:\n${summary}`)
   }
@@ -182,9 +167,7 @@ afterEach(() => {
     return stripped.length === 0
   }
 
-  const allOutput = [...stdoutCalls, ...stderrCalls].filter(
-    (s) => s.trim().length > 0 && !isPureControlSequence(s),
-  )
+  const allOutput = [...stdoutCalls, ...stderrCalls].filter((s) => s.trim().length > 0 && !isPureControlSequence(s))
 
   if (allOutput.length > 0) {
     const summary = allOutput.map((s) => `  ${JSON.stringify(s)}`).join("\n")

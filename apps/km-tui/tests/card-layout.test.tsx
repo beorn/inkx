@@ -76,9 +76,7 @@ describe("card border overflow", () => {
           item(
             "column1",
             item("Short task"),
-            item(
-              "Vehicle registration and DMV-related tasks with long description",
-            ),
+            item("Vehicle registration and DMV-related tasks with long description"),
             item("runnersworld.com/beginner/a2081-heart-rate-training-zones"),
           ),
         ),
@@ -112,12 +110,8 @@ describe("card border overflow", () => {
           "board",
           item(
             "only-column",
-            item(
-              "This is a task with quite a long title that might wrap around or overflow the card border",
-            ),
-            item(
-              "Another task with a URL like example.com/very/long/path/to/resource",
-            ),
+            item("This is a task with quite a long title that might wrap around or overflow the card border"),
+            item("Another task with a URL like example.com/very/long/path/to/resource"),
           ),
         ),
       { columns: 60, rows: 20 },
@@ -130,11 +124,7 @@ describe("card border overflow", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item("A moderate length task title here"),
-            item("Status: Not started depends on other"),
-          ),
+          item("col1", item("A moderate length task title here"), item("Status: Not started depends on other")),
           item("col2", item("filler")),
         ),
       { columns: 50, rows: 15 },
@@ -175,9 +165,7 @@ describe("card layout across terminal widths", () => {
             "board",
             item(
               "col1",
-              item(
-                "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL",
-              ),
+              item("AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL"),
               item("example.com/path/to/some/resource/that/is/quite/long"),
             ),
             item("col2", item("short")),
@@ -213,15 +201,7 @@ describe("card text truncation", () => {
   test("long URL without spaces wraps within card borders", () => {
     const { board } = testEnv(
       () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item(
-              "https://very-long-domain.example.com/path/to/resource/with/many/segments",
-            ),
-          ),
-        ),
+        item("board", item("col1", item("https://very-long-domain.example.com/path/to/resource/with/many/segments"))),
       { columns: 80, rows: 15 },
     )
     assertCardBordersClean(board.screenshot(), "long URL")
@@ -238,21 +218,11 @@ describe("card text truncation", () => {
             "board",
             item(
               "col1",
-              item(
-                "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL",
-              ),
+              item("AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL"),
               item("example.com/path/to/some/resource/that/is/quite/long"),
             ),
-            item(
-              "col2",
-              item("Short task in col2"),
-              item("Another task in col2 with some more text"),
-            ),
-            item(
-              "col3",
-              item("Col3 task alpha"),
-              item("Col3 task beta with longer content here"),
-            ),
+            item("col2", item("Short task in col2"), item("Another task in col2 with some more text")),
+            item("col3", item("Col3 task alpha"), item("Col3 task beta with longer content here")),
           ),
         { columns: cols, rows: 20 },
       )
@@ -262,31 +232,19 @@ describe("card text truncation", () => {
 
       // Move right to col2
       board.press("l")
-      assertCardBordersClean(
-        board.screenshot(),
-        `${cols}-col after right to col2`,
-      )
+      assertCardBordersClean(board.screenshot(), `${cols}-col after right to col2`)
 
       // Move right to col3
       board.press("l")
-      assertCardBordersClean(
-        board.screenshot(),
-        `${cols}-col after right to col3`,
-      )
+      assertCardBordersClean(board.screenshot(), `${cols}-col after right to col3`)
 
       // Move back left to col2
       board.press("h")
-      assertCardBordersClean(
-        board.screenshot(),
-        `${cols}-col after left to col2`,
-      )
+      assertCardBordersClean(board.screenshot(), `${cols}-col after left to col2`)
 
       // Move back left to col1
       board.press("h")
-      assertCardBordersClean(
-        board.screenshot(),
-        `${cols}-col after left back to col1`,
-      )
+      assertCardBordersClean(board.screenshot(), `${cols}-col after left back to col1`)
     }
   })
 

@@ -25,11 +25,7 @@ function getBoardContent(text: string): string {
  * Check that board content is stable after cursor movement.
  * The breadcrumb and status bar can change, but columns/cards should not.
  */
-function expectBoardContentStable(
-  before: string,
-  after: string,
-  action: string,
-) {
+function expectBoardContentStable(before: string, after: string, action: string) {
   const contentBefore = getBoardContent(before)
   const contentAfter = getBoardContent(after)
 
@@ -40,20 +36,13 @@ function expectBoardContentStable(
     contentAfter.includes("+") !== contentBefore.includes("+") // "+N more" indicator
 
   if (!scrolled) {
-    expect(
-      contentAfter,
-      `Board content changed after ${action} (no scroll)`,
-    ).toBe(contentBefore)
+    expect(contentAfter, `Board content changed after ${action} (no scroll)`).toBe(contentBefore)
   }
 }
 
 describe("Cursor movement preserves text content", () => {
   test("synthetic: j/k movement preserves text", () => {
-    const board = createTestBoard([
-      "Col > Task A",
-      "Col > Task B",
-      "Col > Task C",
-    ])
+    const board = createTestBoard(["Col > Task A", "Col > Task B", "Col > Task C"])
 
     const initial = board.text
 

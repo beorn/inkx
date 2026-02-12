@@ -13,10 +13,7 @@ import { VirtualList, type VirtualListProps } from "inkx"
 import { useCursorCardIndex } from "../cursor-context.tsx"
 import { getScrollToIndex } from "./scroll-helpers.ts"
 
-interface ScrollTrackingVirtualListProps<T> extends Omit<
-  VirtualListProps<T>,
-  "scrollTo"
-> {
+interface ScrollTrackingVirtualListProps<T> extends Omit<VirtualListProps<T>, "scrollTo"> {
   colIndex: number
   isSelected: boolean
 }
@@ -25,19 +22,13 @@ interface ScrollTrackingVirtualListProps<T> extends Omit<
  * VirtualList wrapper that subscribes to CursorStore for scroll position.
  * Isolates j/k re-renders from Column — only this wrapper + VirtualList re-render.
  */
-export const ScrollTrackingVirtualList = React.memo(
-  function ScrollTrackingVirtualList<T>({
-    colIndex,
-    isSelected,
-    ...virtualListProps
-  }: ScrollTrackingVirtualListProps<T>): React.ReactElement {
-    const cardIndex = useCursorCardIndex(colIndex)
-    const scrollTo = getScrollToIndex(
-      isSelected,
-      cardIndex,
-      virtualListProps.items.length,
-    )
+export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtualList<T>({
+  colIndex,
+  isSelected,
+  ...virtualListProps
+}: ScrollTrackingVirtualListProps<T>): React.ReactElement {
+  const cardIndex = useCursorCardIndex(colIndex)
+  const scrollTo = getScrollToIndex(isSelected, cardIndex, virtualListProps.items.length)
 
-    return <VirtualList scrollTo={scrollTo} {...virtualListProps} />
-  },
-) as <T>(props: ScrollTrackingVirtualListProps<T>) => React.ReactElement
+  return <VirtualList scrollTo={scrollTo} {...virtualListProps} />
+}) as <T>(props: ScrollTrackingVirtualListProps<T>) => React.ReactElement

@@ -6,13 +6,7 @@
 
 import { Command } from "@commander-js/extra-typings"
 import { listTasks } from "./list.ts"
-import {
-  createTask,
-  markDone,
-  claimTask,
-  releaseTask,
-  assignTask,
-} from "./mutations.ts"
+import { createTask, markDone, claimTask, releaseTask, assignTask } from "./mutations.ts"
 import { createStatusCommand } from "./status.ts"
 import { createSetCommand, createClearCommand } from "./set-clear.ts"
 
@@ -21,29 +15,17 @@ import { createSetCommand, createClearCommand } from "./set-clear.ts"
  */
 export const taskCommand = new Command("tasks")
   .description("Task management - list, create, complete, and assign tasks")
-  .argument(
-    "[query...]",
-    "Query terms: @person, #tag, +project, status:todo, -status:done",
-  )
+  .argument("[query...]", "Query terms: @person, #tag, +project, status:todo, -status:done")
   .allowUnknownOption()
   .option("-a, --all", "Show all tasks including done")
-  .option(
-    "-S, --status <status>",
-    "Filter by status (todo, wip, done, blocked)",
-  )
-  .option(
-    "-q, --query <query>",
-    "Filter with query syntax (status:todo @person #tag)",
-  )
+  .option("-S, --status <status>", "Filter by status (todo, wip, done, blocked)")
+  .option("-q, --query <query>", "Filter with query syntax (status:todo @person #tag)")
   .option("-V, --detail", "Show more details")
   .option("-f, --flat", "Show path on single line")
   .option("-i, --id", "Show task IDs")
   .option("--json", "Output as JSON")
   .option("--new <content>", "Create a new task")
-  .option(
-    "--done [id]",
-    "Mark task as done (use with path-or-id or provide task id)",
-  )
+  .option("--done [id]", "Mark task as done (use with path-or-id or provide task id)")
   .option("--assign <user>", "Assign task to user (use with path-or-id)")
   .option("--claim", "Claim task for yourself (use with path-or-id)")
   .option("--release", "Release claimed task (use with path-or-id)")

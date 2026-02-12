@@ -10,16 +10,8 @@ import { createLogger } from "@beorn/logger"
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { toRelativeFsPath } from "../../path-utils.ts"
-import {
-  emitNodeCreated,
-  emitNodeUpdated,
-  emitNodeDeleted,
-  type Emitter,
-} from "../../emitter.ts"
-import {
-  getFileWithChildren,
-  getNodeContentHash,
-} from "../../db-queries/core-lookup.ts"
+import { emitNodeCreated, emitNodeUpdated, emitNodeDeleted, type Emitter } from "../../emitter.ts"
+import { getFileWithChildren, getNodeContentHash } from "../../db-queries/core-lookup.ts"
 import { addLink, removeLinksFromSource } from "../../db-links.ts"
 import {
   processMarkdownFile,
@@ -89,12 +81,7 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
     // Parse from filesystem
     const content = fs.readFileSync(op.path, "utf-8")
     const stat = fs.statSync(op.path)
-    const processed = processMarkdownFile(
-      content,
-      op.path,
-      stat.ino,
-      op.mtime ?? stat.mtimeMs,
-    )
+    const processed = processMarkdownFile(content, op.path, stat.ino, op.mtime ?? stat.mtimeMs)
     newNodes = processed.nodes
     wikilinks = processed.wikilinks
     hash = processed.hash
@@ -109,14 +96,9 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   }
 
   // Get existing nodes for this file (DB stores relative paths)
-  const existingNodes = getFileWithChildren(
-    db,
-    toRelativeFsPath(repoRoot, op.path),
-  )
+  const existingNodes = getFileWithChildren(db, toRelativeFsPath(repoRoot, op.path))
 
-  log.debug?.(
-    `handleUpdate: existing nodes count=${existingNodes.length}, new nodes count=${newNodes.length}`,
-  )
+  log.debug?.(`handleUpdate: existing nodes count=${existingNodes.length}, new nodes count=${newNodes.length}`)
 
   // Diff and emit changes
   const { changes, idMap } = diffNodes(existingNodes, newNodes)
@@ -125,11 +107,7 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
     switch (change.type) {
       case "created":
         if (change.node) {
-          emitNodeCreated(
-            emitter,
-            "fs-watch",
-            change.node as unknown as Record<string, unknown>,
-          )
+          emitNodeCreated(emitter, "fs-watch", change.node as unknown as Record<string, unknown>)
         }
         break
       case "updated":

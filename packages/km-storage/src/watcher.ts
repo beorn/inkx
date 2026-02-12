@@ -71,13 +71,8 @@ export interface WatcherOptions {
  * @param options - Watcher configuration
  * @returns Watcher service
  */
-export function createWatcher(
-  repoPath: string,
-  options: WatcherOptions,
-): Watcher {
-  log.debug?.(
-    `createWatcher repoPath=${repoPath} options=${JSON.stringify(options)}`,
-  )
+export function createWatcher(repoPath: string, options: WatcherOptions): Watcher {
+  log.debug?.(`createWatcher repoPath=${repoPath} options=${JSON.stringify(options)}`)
 
   let status: ServiceStatus = "stopped"
 

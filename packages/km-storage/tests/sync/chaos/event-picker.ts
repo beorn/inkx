@@ -145,9 +145,7 @@ export function generateFileContent(random: SeededRandom): string {
   const numTasks = random.int(0, 10)
   for (let i = 0; i < numTasks; i++) {
     const status = random.pick(["[ ]", "[x]", "[/]", "[-]"])
-    const priority = random.bool(0.3)
-      ? `[#${random.pick(["A", "B", "C"])}] `
-      : ""
+    const priority = random.bool(0.3) ? `[#${random.pick(["A", "B", "C"])}] ` : ""
     lines.push(`- ${status} ${priority}Task ${i + 1}`)
   }
 

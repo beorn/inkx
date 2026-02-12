@@ -1,10 +1,5 @@
 import { describe, expect, test } from "vitest"
-import {
-  DEFAULT_HARNESS,
-  getDefaultHarness,
-  validateHarness,
-  listHarnesses,
-} from "../src/harness.ts"
+import { DEFAULT_HARNESS, getDefaultHarness, validateHarness, listHarnesses } from "../src/harness.ts"
 
 describe("DEFAULT_HARNESS", () => {
   test("has required fields", () => {
@@ -20,9 +15,7 @@ describe("DEFAULT_HARNESS", () => {
 
   test("has constraints", () => {
     expect(DEFAULT_HARNESS.constraints).toBeDefined()
-    expect(DEFAULT_HARNESS.constraints?.max_tokens_per_session).toBeGreaterThan(
-      0,
-    )
+    expect(DEFAULT_HARNESS.constraints?.max_tokens_per_session).toBeGreaterThan(0)
   })
 })
 

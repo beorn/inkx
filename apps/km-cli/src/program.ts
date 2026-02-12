@@ -77,27 +77,11 @@ export function configureProgram(): Command {
     .name("km")
     .description("Knowledge Machine - The agentic work desk")
     .version("0.1.0")
-    .option(
-      "-r, --repo <path>",
-      "Repository directory to operate on (overrides KM_ROOT env var)",
-    )
+    .option("-r, --repo <path>", "Repository directory to operate on (overrides KM_ROOT env var)")
     .option("-s, --silent", "Suppress output except errors")
-    .option(
-      "-v, --verbose",
-      "Increase verbosity (-v=info, -vv=debug, -vvv=trace)",
-      (_, prev) => (prev ?? 0) + 1,
-      0,
-    )
-    .option(
-      "-q, --quiet",
-      "Decrease verbosity (-q=error, -qq=silent)",
-      (_, prev) => (prev ?? 0) + 1,
-      0,
-    )
-    .option(
-      "--log-level <level>",
-      "Log level (trace|debug|info|warn|error|silent)",
-    )
+    .option("-v, --verbose", "Increase verbosity (-v=info, -vv=debug, -vvv=trace)", (_, prev) => (prev ?? 0) + 1, 0)
+    .option("-q, --quiet", "Decrease verbosity (-q=error, -qq=silent)", (_, prev) => (prev ?? 0) + 1, 0)
+    .option("--log-level <level>", "Log level (trace|debug|info|warn|error|silent)")
     .allowUnknownOption(false)
     .allowExcessArguments(false)
     .showSuggestionAfterError(true)
@@ -158,8 +142,7 @@ Verbosity:
       const opts = cmd.opts() as GlobalOptions
       rootOption ??= opts.repo
       silentOption ??= opts.silent
-      verboseOption ??=
-        typeof opts.verbose === "number" ? opts.verbose : undefined
+      verboseOption ??= typeof opts.verbose === "number" ? opts.verbose : undefined
       quietOption ??= typeof opts.quiet === "number" ? opts.quiet : undefined
       logLevelOption ??= opts.logLevel
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- Commander.js Command.parent is any
@@ -169,14 +152,7 @@ Verbosity:
     // Determine log level
     // Precedence: --log-level > --silent > -v/-q offset
     // Log level index: trace=0, debug=1, info=2, warn=3, error=4, silent=5
-    const LOG_LEVELS: LogLevel[] = [
-      "trace",
-      "debug",
-      "info",
-      "warn",
-      "error",
-      "silent",
-    ]
+    const LOG_LEVELS: LogLevel[] = ["trace", "debug", "info", "warn", "error", "silent"]
     let logLevel: LogLevel = "warn" // default (index 3)
     if (logLevelOption) {
       logLevel = logLevelOption as LogLevel
@@ -212,9 +188,7 @@ Verbosity:
       if (
         typeof firstArg === "string" &&
         !firstArg.includes("*") &&
-        (firstArg.startsWith(".") ||
-          firstArg.startsWith("/") ||
-          firstArg.startsWith("~"))
+        (firstArg.startsWith(".") || firstArg.startsWith("/") || firstArg.startsWith("~"))
       ) {
         pathArg = firstArg
       }
@@ -254,11 +228,7 @@ Verbosity:
     const isMemoryMode = !existsSync(kmDir)
     if (!rootExplicitlySet && isMemoryMode && !pathArg) {
       console.error(term.yellow(`Using current directory: ${rootPath}`))
-      console.error(
-        term.yellow(
-          `Hint: Use --repo <path> or set KM_ROOT, or run 'km init' for disk mode\n`,
-        ),
-      )
+      console.error(term.yellow(`Hint: Use --repo <path> or set KM_ROOT, or run 'km init' for disk mode\n`))
     }
   })
 
@@ -301,8 +271,7 @@ Verbosity:
       // Try to suggest similar commands
       const availableCommands = program.commands.map((cmd) => cmd.name())
       const suggestion = availableCommands.find(
-        (cmd) =>
-          cmd.startsWith(unknown[0] ?? "") || unknown.startsWith(cmd[0] ?? ""),
+        (cmd) => cmd.startsWith(unknown[0] ?? "") || unknown.startsWith(cmd[0] ?? ""),
       )
       if (suggestion) {
         console.error(term.yellow(`\nDid you mean: km ${suggestion}?`))

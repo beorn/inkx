@@ -42,9 +42,7 @@ function createNode(id: string, opts?: Partial<TNode>): TNode {
 }
 
 // Helper to create minimal CommandContext
-function createCommandContext(
-  overrides?: Partial<CommandContext>,
-): CommandContext {
+function createCommandContext(overrides?: Partial<CommandContext>): CommandContext {
   return {
     currentNode: null,
     currentNodeId: null,
@@ -197,32 +195,20 @@ describe("buildKeybindingContext", () => {
   })
 
   it("passes through hasSelection", () => {
-    expect(buildKeybindingContext({ hasSelection: true }).hasSelection).toBe(
-      true,
-    )
-    expect(buildKeybindingContext({ hasSelection: false }).hasSelection).toBe(
-      false,
-    )
+    expect(buildKeybindingContext({ hasSelection: true }).hasSelection).toBe(true)
+    expect(buildKeybindingContext({ hasSelection: false }).hasSelection).toBe(false)
     expect(buildKeybindingContext({}).hasSelection).toBe(false)
   })
 
   it("passes through isInDetailPane", () => {
-    expect(
-      buildKeybindingContext({ isInDetailPane: true }).isInDetailPane,
-    ).toBe(true)
-    expect(
-      buildKeybindingContext({ isInDetailPane: false }).isInDetailPane,
-    ).toBe(false)
+    expect(buildKeybindingContext({ isInDetailPane: true }).isInDetailPane).toBe(true)
+    expect(buildKeybindingContext({ isInDetailPane: false }).isInDetailPane).toBe(false)
     expect(buildKeybindingContext({}).isInDetailPane).toBe(false)
   })
 
   it("passes through isInOutlineMode", () => {
-    expect(
-      buildKeybindingContext({ isInOutlineMode: true }).isInOutlineMode,
-    ).toBe(true)
-    expect(
-      buildKeybindingContext({ isInOutlineMode: false }).isInOutlineMode,
-    ).toBe(false)
+    expect(buildKeybindingContext({ isInOutlineMode: true }).isInOutlineMode).toBe(true)
+    expect(buildKeybindingContext({ isInOutlineMode: false }).isInOutlineMode).toBe(false)
     expect(buildKeybindingContext({}).isInOutlineMode).toBe(false)
   })
 
@@ -378,9 +364,7 @@ describe("wouldHandleKey", () => {
     // Plain z is fold_all, so it IS registered
     expect(wouldHandleKey("z", {}, kbCtx)).toBe(true)
     // But Ctrl+Shift+Alt+z is not registered
-    expect(
-      wouldHandleKey("z", { ctrl: true, shift: true, meta: true }, kbCtx),
-    ).toBe(false)
+    expect(wouldHandleKey("z", { ctrl: true, shift: true, meta: true }, kbCtx)).toBe(false)
   })
 
   it("respects mode context", () => {

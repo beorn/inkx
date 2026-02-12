@@ -6,24 +6,11 @@
 
 import { describe, it, expect, beforeEach } from "vitest"
 import { executeCommand, buildContext } from "../src/executor.ts"
-import {
-  registerCommand,
-  registerCommands,
-  clearRegistry,
-} from "../src/registry.ts"
-import type {
-  CommandDef,
-  CommandContext,
-  TNode,
-  ViewMode,
-} from "../src/types.ts"
+import { registerCommand, registerCommands, clearRegistry } from "../src/registry.ts"
+import type { CommandDef, CommandContext, TNode, ViewMode } from "../src/types.ts"
 
 // Helper to create minimal TNode
-function createNode(
-  id: string,
-  children: TNode[] = [],
-  opts?: Partial<TNode>,
-): TNode {
+function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): TNode {
   return {
     id,
     type: "section",
@@ -46,9 +33,7 @@ function createNode(
 }
 
 // Helper to create minimal CommandContext
-function createContext(
-  overrides: Partial<CommandContext> = {},
-): CommandContext {
+function createContext(overrides: Partial<CommandContext> = {}): CommandContext {
   return {
     currentNode: null,
     currentNodeId: null,

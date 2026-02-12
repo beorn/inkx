@@ -5,11 +5,7 @@
  */
 
 import type { Repo } from "@km/storage"
-import {
-  normalizeName,
-  collapseAncestorsWithTypes,
-  type CollapsedAncestor,
-} from "@km/tree"
+import { normalizeName, collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameWithRepo } from "./formatters.ts"
 
@@ -78,9 +74,7 @@ export function buildTaskTree(repo: Repo, tasks: KNode[]): TaskWithAncestors[] {
 /**
  * Sort tasks so those with shared paths are adjacent
  */
-export function sortByPath(
-  tasksWithAncestors: TaskWithAncestors[],
-): TaskWithAncestors[] {
+export function sortByPath(tasksWithAncestors: TaskWithAncestors[]): TaskWithAncestors[] {
   return tasksWithAncestors.sort((a, b) => {
     // Compare ancestor paths by keys (fs_path/slug/content), not IDs
     const minLen = Math.min(a.ancestorKeys.length, b.ancestorKeys.length)
@@ -100,11 +94,7 @@ export function sortByPath(
  * Default: segment starts with filter (case-insensitive)
  * With *filter*: contains filter anywhere
  */
-function segmentMatches(
-  segment: string,
-  filter: string,
-  mode: "prefix" | "contains",
-): boolean {
+function segmentMatches(segment: string, filter: string, mode: "prefix" | "contains"): boolean {
   const segmentLower = segment.toLowerCase()
   const filterLower = filter.toLowerCase()
 
@@ -142,11 +132,7 @@ function getNodeSegmentName(node: KNode): string | null {
  * - "projects"    -> matches path segments that START with "projects" (default)
  * - "*projects*"  -> matches path segments that CONTAIN "projects" (explicit contains)
  */
-export function taskPathMatches(
-  repo: Repo,
-  task: KNode,
-  filter: string,
-): boolean {
+export function taskPathMatches(repo: Repo, task: KNode, filter: string): boolean {
   // Determine matching mode based on filter syntax
   let mode: "prefix" | "contains" = "prefix"
   let cleanFilter = filter

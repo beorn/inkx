@@ -21,9 +21,7 @@ export function formatPath(absPath: string): string {
   const relDisplay = relPath.startsWith("..") ? relPath : `./${relPath}`
 
   // Try home-relative
-  const homeDisplay = absPath.startsWith(home)
-    ? "~" + absPath.slice(home.length)
-    : absPath
+  const homeDisplay = absPath.startsWith(home) ? "~" + absPath.slice(home.length) : absPath
 
   // Return shorter one
   return relDisplay.length <= homeDisplay.length ? relDisplay : homeDisplay

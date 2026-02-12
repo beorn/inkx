@@ -57,18 +57,11 @@ export interface ColumnWidthResult {
  * @returns Calculated width values for rendering columns
  */
 export function calcColumnWidths(params: ColumnWidthParams): ColumnWidthResult {
-  const {
-    boardWidth,
-    visibleColumnCount,
-    maxCols,
-    scrollOffset,
-    totalColumns,
-  } = params
+  const { boardWidth, visibleColumnCount, maxCols, scrollOffset, totalColumns } = params
 
   const hasLeftIndicator = scrollOffset > 0
   const hasRightIndicator = scrollOffset + maxCols < totalColumns
-  const indicatorWidth =
-    (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0)
+  const indicatorWidth = (hasLeftIndicator ? 1 : 0) + (hasRightIndicator ? 1 : 0)
   const separatorCount = visibleColumnCount - 1
   const availableWidth = boardWidth - indicatorWidth - separatorCount
   const baseColWidth = Math.floor(availableWidth / maxCols)
@@ -97,12 +90,7 @@ export function calcColumnWidths(params: ColumnWidthParams): ColumnWidthResult {
  * @param maxColWidth - Optional maximum column width cap
  * @returns Final width for this column
  */
-export function getColumnWidth(
-  index: number,
-  baseColWidth: number,
-  remainder: number,
-  maxColWidth?: number,
-): number {
+export function getColumnWidth(index: number, baseColWidth: number, remainder: number, maxColWidth?: number): number {
   const rawWidth = baseColWidth + (index < remainder ? 1 : 0)
   return maxColWidth !== undefined ? Math.min(rawWidth, maxColWidth) : rawWidth
 }
@@ -133,11 +121,5 @@ export function calcEdgeBasedColumnScrollOffset(
   maxVisible: number,
   totalCount: number,
 ): number {
-  return calcEdgeBasedScrollOffset(
-    selectedIndex,
-    currentOffset,
-    maxVisible,
-    totalCount,
-    COLUMN_SCROLL_PADDING,
-  )
+  return calcEdgeBasedScrollOffset(selectedIndex, currentOffset, maxVisible, totalCount, COLUMN_SCROLL_PADDING)
 }

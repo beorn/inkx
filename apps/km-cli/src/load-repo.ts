@@ -28,13 +28,9 @@ export interface LoadRepoOptions extends CreateRepoOptions {
  *   discoverOnly: true,
  * })
  */
-export async function loadRepo(
-  rootPath: string,
-  options: LoadRepoOptions = {},
-): Promise<Repo> {
+export async function loadRepo(rootPath: string, options: LoadRepoOptions = {}): Promise<Repo> {
   // Auto-detect TTY: show progress in interactive mode, silent in scripts/pipes
-  const { showProgress = process.stdout.isTTY === true, ...createOptions } =
-    options
+  const { showProgress = process.stdout.isTTY === true, ...createOptions } = options
 
   // Ensure loadFiles is set (default behavior)
   if (createOptions.loadFiles === undefined) {

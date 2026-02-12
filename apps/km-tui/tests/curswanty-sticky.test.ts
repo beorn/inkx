@@ -13,22 +13,8 @@ describe("curswantY sticky navigation", () => {
       () =>
         item(
           "board",
-          item(
-            "ColA",
-            item("A1"),
-            item("A2"),
-            item("A3"),
-            item("A4"),
-            item("A5"),
-          ),
-          item(
-            "ColB",
-            item("B1"),
-            item("B2"),
-            item("B3"),
-            item("B4"),
-            item("B5"),
-          ),
+          item("ColA", item("A1"), item("A2"), item("A3"), item("A4"), item("A5")),
+          item("ColB", item("B1"), item("B2"), item("B3"), item("B4"), item("B5")),
           item("ColC", item("C1"), item("C2"), item("C3")),
         ),
       { rows: 24, columns: 80 },
@@ -130,22 +116,8 @@ describe("curswantY sticky navigation", () => {
       () =>
         item(
           "board",
-          item(
-            "ColA",
-            item("A1"),
-            item("A2"),
-            item("A3"),
-            item("A4"),
-            item("A5"),
-          ),
-          item(
-            "ColB",
-            item("B1"),
-            item("B2"),
-            item("B3"),
-            item("B4"),
-            item("B5"),
-          ),
+          item("ColA", item("A1"), item("A2"), item("A3"), item("A4"), item("A5")),
+          item("ColB", item("B1"), item("B2"), item("B3"), item("B4"), item("B5")),
           item("ColC", item("C1"), item("C2"), item("C3"), item("C4")),
         ),
       { rows: 24, columns: 120 },

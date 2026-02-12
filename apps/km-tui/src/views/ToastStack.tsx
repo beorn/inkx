@@ -52,8 +52,7 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
 
   // Determine if we should show items individually
   const threshold = toast.itemThreshold ?? 3
-  const shouldShowItems =
-    toast.items && toast.items.length > 0 && toast.items.length < threshold
+  const shouldShowItems = toast.items && toast.items.length > 0 && toast.items.length < threshold
 
   return (
     <Box
@@ -91,11 +90,7 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
  * Uses column-reverse layout to anchor toasts above the bottom bar.
  * No height estimation needed — flex handles positioning automatically.
  */
-export function ToastStack({
-  toasts,
-  termWidth,
-  termHeight,
-}: ToastStackProps): React.ReactElement | null {
+export function ToastStack({ toasts, termWidth, termHeight }: ToastStackProps): React.ReactElement | null {
   if (toasts.length === 0) return null
 
   // Show latest 5 toasts (newest at bottom)

@@ -279,9 +279,7 @@ describe("toAbsoluteFsPath", () => {
   })
 
   test("passes through already-absolute paths", () => {
-    expect(toAbsoluteFsPath("/repo", "/already/absolute")).toBe(
-      "/already/absolute",
-    )
+    expect(toAbsoluteFsPath("/repo", "/already/absolute")).toBe("/already/absolute")
   })
 })
 

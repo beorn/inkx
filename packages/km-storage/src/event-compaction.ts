@@ -35,10 +35,7 @@ export interface StoreHealth {
  * Stale events are those whose node_created events would hit UNIQUE constraint
  * failures — they reference nodes that already exist from file parsing.
  */
-export function identifyStaleEvents(
-  kmDir: string,
-  db: Database,
-): CompactionResult {
+export function identifyStaleEvents(kmDir: string, db: Database): CompactionResult {
   const events = readEvents(kmDir)
   if (events.length === 0) {
     return { totalEvents: 0, staleCount: 0, keptEvents: [] }
@@ -105,11 +102,7 @@ export function vacuumDb(kmDir: string): number {
 /**
  * Get health status of all three stores.
  */
-export function getStoreHealth(
-  repoPath: string,
-  kmDir: string,
-  db: Database | null,
-): StoreHealth {
+export function getStoreHealth(repoPath: string, kmDir: string, db: Database | null): StoreHealth {
   const issues: string[] = []
 
   // Worktree stats
@@ -131,10 +124,7 @@ export function getStoreHealth(
     events = { count: allEvents.length, staleCount, size }
 
     if (staleCount > 0) {
-      issues.push(
-        `${staleCount} stale events in events.jsonl\n` +
-          `      Run 'km doctor gc' to compact`,
-      )
+      issues.push(`${staleCount} stale events in events.jsonl\n` + `      Run 'km doctor gc' to compact`)
     }
   }
 
@@ -149,40 +139,24 @@ export function getStoreHealth(
 
     // Check for orphan nodes (parent_id IS NULL but not the root)
     const orphanCount = (
-      db
-        .prepare(
-          "SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND id != '.'",
-        )
-        .get() as { count: number }
+      db.prepare("SELECT COUNT(*) as count FROM nodes WHERE parent_id IS NULL AND id != '.'").get() as { count: number }
     ).count
     if (orphanCount > 0) {
-      issues.push(
-        `${orphanCount} orphan node(s) without parent\n` +
-          `      Run 'km doctor rebuild' to fix`,
-      )
+      issues.push(`${orphanCount} orphan node(s) without parent\n` + `      Run 'km doctor rebuild' to fix`)
     }
 
     // Check for absolute fs_path values
     const absoluteCount = (
-      db
-        .prepare("SELECT COUNT(*) as count FROM nodes WHERE fs_path LIKE '/%'")
-        .get() as { count: number }
+      db.prepare("SELECT COUNT(*) as count FROM nodes WHERE fs_path LIKE '/%'").get() as { count: number }
     ).count
     if (absoluteCount > 0) {
-      issues.push(
-        `${absoluteCount} node(s) with absolute fs_path\n` +
-          `      Run 'km doctor rebuild' to fix`,
-      )
+      issues.push(`${absoluteCount} node(s) with absolute fs_path\n` + `      Run 'km doctor rebuild' to fix`)
     }
 
     // Check for missing root node
-    const rootExists = db
-      .prepare("SELECT id FROM nodes WHERE id = '.'")
-      .get() as { id: string } | undefined
+    const rootExists = db.prepare("SELECT id FROM nodes WHERE id = '.'").get() as { id: string } | undefined
     if (!rootExists && nodeCount > 0) {
-      issues.push(
-        `Missing root node (.)\n` + `      Run 'km doctor rebuild' to fix`,
-      )
+      issues.push(`Missing root node (.)\n` + `      Run 'km doctor rebuild' to fix`)
     }
   }
 
@@ -190,10 +164,7 @@ export function getStoreHealth(
 }
 
 /** Count files and directories in the worktree (respecting ignore patterns) */
-function countWorktree(
-  repoPath: string,
-  _kmDir: string,
-): { fileCount: number; dirCount: number } {
+function countWorktree(repoPath: string, _kmDir: string): { fileCount: number; dirCount: number } {
   let fileCount = 0
   let dirCount = 0
 

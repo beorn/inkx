@@ -152,12 +152,9 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   // Style markdown links [text](url) → underlined text
   // NOTE: OSC 8 hyperlinks disabled due to wrap-ansi incompatibility
   // Links are still visually indicated with underline
-  result = result.replace(
-    MD_LINK_REGEX,
-    (_match, linkText: string, _url: string) => {
-      return style.underline(linkText)
-    },
-  )
+  result = result.replace(MD_LINK_REGEX, (_match, linkText: string, _url: string) => {
+    return style.underline(linkText)
+  })
 
   // Style wiki links: underlined text
   // NOTE: OSC 8 hyperlinks disabled due to wrap-ansi incompatibility
@@ -169,45 +166,42 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
 
   // Style sigils (@mention, #tag, +project) - use node color if available, else dim
   // Filter out excluded sigils (e.g., @issue when viewing the @issue board)
-  result = result.replace(
-    SIGIL_REGEX,
-    (_match, prefix: string, name: string) => {
-      const sigil = `${prefix}${name}`
-      // If this sigil should be excluded, remove it entirely (including surrounding space)
-      if (excludeSigils.has(sigil)) {
-        return ""
+  result = result.replace(SIGIL_REGEX, (_match, prefix: string, name: string) => {
+    const sigil = `${prefix}${name}`
+    // If this sigil should be excluded, remove it entirely (including surrounding space)
+    if (excludeSigils.has(sigil)) {
+      return ""
+    }
+    // Use sigil's color if provided, otherwise dim white
+    // Always dim the sigil to keep it subtle - color + dim for toned-down appearance
+    const color = sigilColors.get(sigil)
+    if (color) {
+      // Use the sigil node's color, but dimmed for subtlety
+      switch (color) {
+        case "red":
+          return style.dim.red(sigil)
+        case "green":
+          return style.dim.green(sigil)
+        case "yellow":
+          return style.dim.yellow(sigil)
+        case "blue":
+          return style.dim.blue(sigil)
+        case "magenta":
+          return style.dim.magenta(sigil)
+        case "cyan":
+          return style.dim.cyan(sigil)
+        case "white":
+          return style.dim.white(sigil)
+        case "gray":
+        case "grey":
+          return style.gray(sigil)
+        default:
+          return style.dim(sigil)
       }
-      // Use sigil's color if provided, otherwise dim white
-      // Always dim the sigil to keep it subtle - color + dim for toned-down appearance
-      const color = sigilColors.get(sigil)
-      if (color) {
-        // Use the sigil node's color, but dimmed for subtlety
-        switch (color) {
-          case "red":
-            return style.dim.red(sigil)
-          case "green":
-            return style.dim.green(sigil)
-          case "yellow":
-            return style.dim.yellow(sigil)
-          case "blue":
-            return style.dim.blue(sigil)
-          case "magenta":
-            return style.dim.magenta(sigil)
-          case "cyan":
-            return style.dim.cyan(sigil)
-          case "white":
-            return style.dim.white(sigil)
-          case "gray":
-          case "grey":
-            return style.gray(sigil)
-          default:
-            return style.dim(sigil)
-        }
-      }
-      // Default: subtle dim text
-      return style.dim(sigil)
-    },
-  )
+    }
+    // Default: subtle dim text
+    return style.dim(sigil)
+  })
 
   // Style bold text (must be before italic to avoid conflicts)
   result = result.replace(BOLD_REGEX, (_match, content: string) => {
@@ -218,12 +212,9 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   result = result.replace(ITALIC_ASTERISK_REGEX, (_match, content: string) => {
     return style.italic(content)
   })
-  result = result.replace(
-    ITALIC_UNDERSCORE_REGEX,
-    (_match, content: string) => {
-      return style.italic(content)
-    },
-  )
+  result = result.replace(ITALIC_UNDERSCORE_REGEX, (_match, content: string) => {
+    return style.italic(content)
+  })
 
   // Style inline code
   result = result.replace(CODE_REGEX, (_match, content: string) => {
@@ -290,12 +281,9 @@ export function renderPlain(text: string): string {
   result = result.replace(ITALIC_ASTERISK_REGEX, (_match, content: string) => {
     return content
   })
-  result = result.replace(
-    ITALIC_UNDERSCORE_REGEX,
-    (_match, content: string) => {
-      return content
-    },
-  )
+  result = result.replace(ITALIC_UNDERSCORE_REGEX, (_match, content: string) => {
+    return content
+  })
   result = result.replace(CODE_REGEX, (_match, content: string) => {
     return content
   })

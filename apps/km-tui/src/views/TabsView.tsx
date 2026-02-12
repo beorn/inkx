@@ -57,12 +57,7 @@ export function TabsView({
   const isColumnHeaderSelected = selectionLevel === "column"
 
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      maxHeight={height}
-      overflow="hidden"
-    >
+    <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
       {/* Spacer line between top bar and tabs */}
       <Box height={1} flexShrink={0} />
 
@@ -81,20 +76,14 @@ export function TabsView({
           // Truncate if name exceeds reasonable width (20 chars)
           const maxNameWidth = 20
           const truncatedName =
-            displayName.length > maxNameWidth
-              ? displayName.slice(0, maxNameWidth - 1) + "\u2026"
-              : displayName
+            displayName.length > maxNameWidth ? displayName.slice(0, maxNameWidth - 1) + "\u2026" : displayName
 
           // Style like cards view column headers
           const isTabSelected = isActive && isColumnHeaderSelected
           const isBoardLevel = selectionLevel === "board"
           const showActiveHighlight = isActive && !isBoardLevel
 
-          const textColor = isTabSelected
-            ? "black"
-            : showActiveHighlight
-              ? "yellow"
-              : "white"
+          const textColor = isTabSelected ? "black" : showActiveHighlight ? "yellow" : "white"
 
           return (
             <React.Fragment key={column.node.id}>
@@ -108,11 +97,7 @@ export function TabsView({
                   "data-card-index": -1,
                 })}
               >
-                <Text
-                  bold
-                  color={textColor}
-                  dimColor={!showActiveHighlight && selectionLevel === "board"}
-                >
+                <Text bold color={textColor} dimColor={!showActiveHighlight && selectionLevel === "board"}>
                   {" "}
                   {truncatedName}
                   <Text dimColor={!isTabSelected}>{countStr}</Text>{" "}
@@ -146,9 +131,7 @@ export function TabsView({
               keyExtractor={(card) => card.node.id}
               renderItem={(card: CardState, actualCardIndex: number) => {
                 const isCardSelected =
-                  selectionLevel === "card" &&
-                  actualCardIndex === cardIndex &&
-                  (!inOutlineMode || subIndex === 0)
+                  selectionLevel === "card" && actualCardIndex === cardIndex && (!inOutlineMode || subIndex === 0)
 
                 return (
                   <MemoizedTreeCard

@@ -13,11 +13,7 @@
 import type { Descendant } from "slate"
 import { getNodeText, setNodeText } from "@km/tree"
 import type { KNode } from "@km/core"
-import {
-  createParagraph,
-  createEmptyDocument,
-  descendantsToText,
-} from "./schema.ts"
+import { createParagraph, createEmptyDocument, descendantsToText } from "./schema.ts"
 
 // =============================================================================
 // Markdown -> Slate (Hydrate)

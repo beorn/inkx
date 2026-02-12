@@ -103,8 +103,7 @@ export interface BoardAppActions {
   ): void
 }
 
-export type BoardAppStore = BoardAppState &
-  BoardAppActions & { [key: string]: unknown }
+export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: unknown }
 
 // =============================================================================
 // Helpers
@@ -181,11 +180,7 @@ export interface CreateBoardAppStoreParams {
 export function createBoardAppStoreState(
   params: CreateBoardAppStoreParams,
 ): (
-  set: (
-    partial:
-      | Partial<BoardAppStore>
-      | ((state: BoardAppStore) => Partial<BoardAppStore>),
-  ) => void,
+  set: (partial: Partial<BoardAppStore> | ((state: BoardAppStore) => Partial<BoardAppStore>)) => void,
   get: () => BoardAppStore,
 ) => BoardAppStore {
   const bs = params.initialBoardState
@@ -431,9 +426,7 @@ export function createBoardAppStoreState(
 
           default: {
             const unhandled = action as { type: string }
-            throw new Error(
-              `[km:board] Unhandled board action: ${unhandled.type}`,
-            )
+            throw new Error(`[km:board] Unhandled board action: ${unhandled.type}`)
           }
         }
 
@@ -448,8 +441,7 @@ export function createBoardAppStoreState(
 
     setUI(partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) {
       set((state) => {
-        const updates =
-          typeof partial === "function" ? partial(state.ui) : partial
+        const updates = typeof partial === "function" ? partial(state.ui) : partial
         return { ui: { ...state.ui, ...updates } }
       })
     },

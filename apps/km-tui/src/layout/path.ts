@@ -22,10 +22,7 @@ export interface PathSegment {
  * Accounts for separator padding (shown as " sep ").
  */
 export function calcPathLength(segments: PathSegment[]): number {
-  return segments.reduce(
-    (acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0),
-    0,
-  )
+  return segments.reduce((acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0), 0)
 }
 
 /**
@@ -36,20 +33,14 @@ export function calcPathLength(segments: PathSegment[]): number {
  * @param width - Maximum width in characters
  * @returns Truncated path segments
  */
-export function renderPath(
-  segments: PathSegment[],
-  width?: number,
-): PathSegment[] {
+export function renderPath(segments: PathSegment[], width?: number): PathSegment[] {
   if (!width || calcPathLength(segments) <= width) return segments
 
   const rootSegs = segments.filter((s) => !s.isWithinBoard)
   const boardSegs = segments.filter((s) => s.isWithinBoard)
 
   // Truncate within-board segments from start
-  while (
-    boardSegs.length > 1 &&
-    calcPathLength([...rootSegs, ...boardSegs]) > width
-  ) {
+  while (boardSegs.length > 1 && calcPathLength([...rootSegs, ...boardSegs]) > width) {
     boardSegs.shift()
     const first = boardSegs[0]
     if (first) {

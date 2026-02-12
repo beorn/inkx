@@ -131,9 +131,7 @@ describe("CardDAVClient", () => {
 
       const result = await client.discover()
 
-      expect(result).toBe(
-        "https://carddav.example.com/addressbooks/user/contacts/",
-      )
+      expect(result).toBe("https://carddav.example.com/addressbooks/user/contacts/")
       expect(mockFetch).not.toHaveBeenCalled()
     })
 
@@ -144,9 +142,7 @@ describe("CardDAVClient", () => {
         if (callCount === 1) {
           return Promise.resolve(mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207))
         } else {
-          return Promise.resolve(
-            mockResponse(PROPFIND_ADDRESSBOOK_HOME_RESPONSE, 207),
-          )
+          return Promise.resolve(mockResponse(PROPFIND_ADDRESSBOOK_HOME_RESPONSE, 207))
         }
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -159,16 +155,12 @@ describe("CardDAVClient", () => {
 
       const result = await client.discover()
 
-      expect(result).toBe(
-        "https://carddav.example.com/addressbooks/testuser/default/",
-      )
+      expect(result).toBe("https://carddav.example.com/addressbooks/testuser/default/")
       expect(mockFetch).toHaveBeenCalledTimes(2)
     })
 
     test("falls back to config URL when discovery fails", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse("<D:multistatus></D:multistatus>", 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse("<D:multistatus></D:multistatus>", 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCardDAVClient({
@@ -190,13 +182,9 @@ describe("CardDAVClient", () => {
         callCount++
         if (callCount <= 2) {
           if (callCount === 1) {
-            return Promise.resolve(
-              mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207),
-            )
+            return Promise.resolve(mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207))
           }
-          return Promise.resolve(
-            mockResponse(PROPFIND_ADDRESSBOOK_HOME_RESPONSE, 207),
-          )
+          return Promise.resolve(mockResponse(PROPFIND_ADDRESSBOOK_HOME_RESPONSE, 207))
         }
         return Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207))
       })
@@ -224,9 +212,7 @@ describe("CardDAVClient", () => {
     })
 
     test("skips discovery if already discovered", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCardDAVClient({
@@ -281,9 +267,7 @@ describe("CardDAVClient", () => {
 
       const putRequest = capturedRequests.find((r) => r.method === "PUT")
       expect(putRequest).toBeDefined()
-      expect(putRequest?.url).toBe(
-        "https://carddav.example.com/addressbooks/user/new-contact-123.vcf",
-      )
+      expect(putRequest?.url).toBe("https://carddav.example.com/addressbooks/user/new-contact-123.vcf")
       expect(putRequest?.body).toContain("BEGIN:VCARD")
       expect(putRequest?.body).toContain("UID:new-contact-123")
       expect(putRequest?.body).toContain("FN:New Contact")
@@ -356,18 +340,14 @@ describe("CardDAVClient", () => {
 
       const deleteRequest = capturedRequests.find((r) => r.method === "DELETE")
       expect(deleteRequest).toBeDefined()
-      expect(deleteRequest?.url).toBe(
-        "https://carddav.example.com/addressbooks/user/contact-to-delete.vcf",
-      )
+      expect(deleteRequest?.url).toBe("https://carddav.example.com/addressbooks/user/contact-to-delete.vcf")
       expect(deleteRequest?.headers?.["If-Match"]).toBe('"etag-123"')
     })
   })
 
   describe("sync", () => {
     test("full sync without prior state", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCardDAVClient({
@@ -389,9 +369,7 @@ describe("CardDAVClient", () => {
     })
 
     test("detects modified contacts", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCardDAVClient({
@@ -414,9 +392,7 @@ describe("CardDAVClient", () => {
     })
 
     test("detects deleted contacts", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse(ADDRESSBOOK_QUERY_RESPONSE, 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCardDAVClient({

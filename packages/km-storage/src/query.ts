@@ -46,20 +46,13 @@ export interface QueryOptions {
 /**
  * Execute a query against the database
  */
-export function executeQuery(
-  db: Database,
-  ast: QueryAST,
-  baseType?: string,
-  options?: QueryOptions,
-): KNode[] {
+export function executeQuery(db: Database, ast: QueryAST, baseType?: string, options?: QueryOptions): KNode[] {
   const requireTaskStatus = options?.requireTaskStatus ?? false
   const needsPathFilter = ast.paths.length > 0
   const params: (string | number)[] = []
 
   // Build base SQL (with or without CTE for path ancestor lookup)
-  let sql = needsPathFilter
-    ? buildPathCteSelect()
-    : "SELECT * FROM nodes WHERE 1=1"
+  let sql = needsPathFilter ? buildPathCteSelect() : "SELECT * FROM nodes WHERE 1=1"
 
   // Apply type and task_status filters
   if (baseType) {
@@ -109,11 +102,7 @@ export function queryTasks(db: Database, query: string): KNode[] {
 /**
  * Query all nodes with a string query
  */
-export function queryNodes(
-  db: Database,
-  query: string,
-  type?: string,
-): KNode[] {
+export function queryNodes(db: Database, query: string, type?: string): KNode[] {
   const ast = parse(query)
   return executeQuery(db, ast, type)
 }
@@ -164,10 +153,7 @@ function buildPathCteSelect(): string {
 }
 
 /** Handle date shortcut resolution and general field conditions */
-function buildFieldCondition(
-  cond: QueryCondition,
-  params: (string | number)[],
-): string {
+function buildFieldCondition(cond: QueryCondition, params: (string | number)[]): string {
   const { field, op, value } = cond
 
   // Handle date shortcuts for date fields
@@ -209,12 +195,7 @@ function buildFieldCondition(
 }
 
 /** Build SQL for date field with resolved date range */
-function buildDateCondition(
-  field: string,
-  op: string,
-  dateRange: DateRange,
-  params: (string | number)[],
-): string {
+function buildDateCondition(field: string, op: string, dateRange: DateRange, params: (string | number)[]): string {
   if (op !== "=" && op !== "!=") return ""
 
   if (dateRange.start === dateRange.end) {
@@ -238,12 +219,7 @@ function buildDateCondition(
 
 /** Build SQL for reference filters (person/tag/project stored in JSON data) */
 function buildRefCondition(ref: QueryRef, params: (string | number)[]): string {
-  const jsonPath =
-    ref.type === "person"
-      ? "mentions"
-      : ref.type === "tag"
-        ? "tags"
-        : "projects"
+  const jsonPath = ref.type === "person" ? "mentions" : ref.type === "tag" ? "tags" : "projects"
 
   if (ref.negated) {
     params.push(`%"${ref.value}"%`)
@@ -262,10 +238,7 @@ function buildRefCondition(ref: QueryRef, params: (string | number)[]): string {
  * - { type: "date", value: "YYYY-MM-DD" }
  * - { type: "list", values: [...] }
  */
-function buildPropCondition(
-  propCond: QueryPropCondition,
-  params: (string | number)[],
-): string {
+function buildPropCondition(propCond: QueryPropCondition, params: (string | number)[]): string {
   const { prop, op, value, negated } = propCond
   const jsonPath = `$.props.${prop}`
   const valuePath = `$.props.${prop}.value` // For number/text/date
@@ -288,22 +261,11 @@ function buildPropCondition(
       return ` AND (json_extract(data, ?) = ? OR json_extract(data, ?) = ? OR json_extract(data, ?) LIKE ?)`
     }
     // Not equal - must not match in any form
-    params.push(
-      jsonPath,
-      valuePath,
-      value,
-      targetPath,
-      value,
-      jsonPath,
-      `%"${value}"%`,
-    )
+    params.push(jsonPath, valuePath, value, targetPath, value, jsonPath, `%"${value}"%`)
     return ` AND (json_extract(data, ?) IS NULL OR (json_extract(data, ?) != ? AND json_extract(data, ?) != ? AND json_extract(data, ?) NOT LIKE ?))`
   }
 
-  if (
-    (op === ">" || op === "<" || op === ">=" || op === "<=") &&
-    value !== undefined
-  ) {
+  if ((op === ">" || op === "<" || op === ">=" || op === "<=") && value !== undefined) {
     // Numeric comparison - extract from $.props.X.value
     params.push(valuePath, value)
     return ` AND CAST(json_extract(data, ?) AS REAL) ${op} ?`
@@ -317,10 +279,7 @@ function buildPropCondition(
  * blocked:true = has blocked-by property pointing to at least one non-done task
  * blocked:false = no blocked-by property OR all blockers are done
  */
-function buildBlockedCondition(
-  special: QuerySpecial,
-  outerTable: string,
-): string {
+function buildBlockedCondition(special: QuerySpecial, outerTable: string): string {
   if (special.type !== "blocked") return ""
 
   if (special.value) {
@@ -370,11 +329,7 @@ function buildTextCondition(term: string, params: (string | number)[]): string {
  * Build SQL for path pattern matching.
  * Path patterns match against effective_path (includes ancestor lookup for child nodes).
  */
-function buildPathCondition(
-  pathFilter: QueryPath,
-  pathColumn: string,
-  params: (string | number)[],
-): string {
+function buildPathCondition(pathFilter: QueryPath, pathColumn: string, params: (string | number)[]): string {
   const { pattern, recursive, negated } = pathFilter
 
   // Normalize pattern:

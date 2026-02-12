@@ -6,9 +6,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Toast rendering", () => {
   test("info toast appears with icon and message", () => {
-    const { board, toastQueue } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))))
 
     // Push info toast
     toastQueue.info("Test info message")
@@ -29,9 +27,7 @@ describe("Toast rendering", () => {
   })
 
   test("success toast shows checkmark icon", () => {
-    const { board, toastQueue } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))))
 
     toastQueue.success("Operation completed")
     board.press("l")
@@ -46,9 +42,7 @@ describe("Toast rendering", () => {
   })
 
   test("warning toast shows warning icon", () => {
-    const { board, toastQueue } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))))
 
     toastQueue.warning("Something might be wrong")
     board.press("l")
@@ -63,9 +57,7 @@ describe("Toast rendering", () => {
   })
 
   test("error toast shows error icon", () => {
-    const { board, toastQueue } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))))
 
     toastQueue.error("Something went wrong")
     board.press("l")
@@ -80,9 +72,7 @@ describe("Toast rendering", () => {
   })
 
   test("Escape dismisses toast", () => {
-    const { board, toastQueue } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))))
 
     toastQueue.info("Test message")
     board.press("l")
@@ -99,9 +89,7 @@ describe("Toast rendering", () => {
   })
 
   test("toast with description shows description on second line", () => {
-    const { board, toastQueue } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))))
 
     toastQueue.error("Failed to save", {
       description: "Network connection lost",
@@ -118,9 +106,7 @@ describe("Toast rendering", () => {
   })
 
   test("toast with action shows action label and trigger", () => {
-    const { board, toastQueue } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))))
 
     toastQueue.info("File deleted", {
       action: { label: "Undo", trigger: "z" },
@@ -137,9 +123,7 @@ describe("Toast rendering", () => {
   })
 
   test("batched toasts show combined count", () => {
-    const { board, toastQueue } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))))
 
     // Push multiple toasts with same batch key
     toastQueue.info("item archived", { batchKey: "archive" })
@@ -157,9 +141,7 @@ describe("Toast rendering", () => {
   })
 
   test("multiple toasts are stacked (shadcn/ui style)", () => {
-    const { board, toastQueue } = testEnv(() =>
-      item("board", item("col1", item("1a"))),
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))))
 
     toastQueue.info("First message")
     toastQueue.info("Second message")
@@ -176,10 +158,7 @@ describe("Toast rendering", () => {
 
   test("toast does not overlap the bottom bar", () => {
     const rows = 24
-    const { board, toastQueue } = testEnv(
-      () => item("board", item("col1", item("1a"))),
-      { rows },
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { rows })
 
     toastQueue.info("Hello world")
     board.press("l")
@@ -202,12 +181,7 @@ describe("Toast rendering", () => {
     // the board content. Only the toast was visible, rest of screen was blank.
     process.env.INKX_STRICT = "1"
     const { board, toastQueue } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b"), item("1c")),
-          item("col2", item("2a"), item("2b")),
-        ),
+      () => item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b"))),
       { incremental: true },
     )
 
@@ -237,10 +211,7 @@ describe("Toast rendering", () => {
 
   test("toast with items does not overlap the bottom bar", () => {
     const rows = 24
-    const { board, toastQueue } = testEnv(
-      () => item("board", item("col1", item("1a"))),
-      { rows },
-    )
+    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { rows })
 
     // Toast with items - items add extra rows
     toastQueue.info("Files synced", {

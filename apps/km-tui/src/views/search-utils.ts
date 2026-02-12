@@ -14,11 +14,7 @@ export function fuzzyMatch(query: string, target: string): boolean {
   const lowerTarget = target.toLowerCase()
 
   let queryIndex = 0
-  for (
-    let i = 0;
-    i < lowerTarget.length && queryIndex < lowerQuery.length;
-    i++
-  ) {
+  for (let i = 0; i < lowerTarget.length && queryIndex < lowerQuery.length; i++) {
     if (lowerTarget[i] === lowerQuery[queryIndex]) {
       queryIndex++
     }
@@ -39,11 +35,7 @@ export function fuzzyScore(query: string, target: string): number {
   let queryIndex = 0
   let consecutive = 0
 
-  for (
-    let i = 0;
-    i < lowerTarget.length && queryIndex < lowerQuery.length;
-    i++
-  ) {
+  for (let i = 0; i < lowerTarget.length && queryIndex < lowerQuery.length; i++) {
     if (lowerTarget[i] === lowerQuery[queryIndex]) {
       // Bonus for consecutive matches
       consecutive++

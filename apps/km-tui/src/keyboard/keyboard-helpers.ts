@@ -52,12 +52,7 @@ export function pushNavHistoryEntry(
  * - Same col, different cards: card range within column
  * - Different cols: all cards in all columns between anchor.col and focus.col
  */
-export function updateSelectionRange(
-  ctx: ActionCtx,
-  toCol: number,
-  toCard: number,
-  toSub: number,
-): void {
+export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: number, toSub: number): void {
   if (!ctx.ui.selectionAnchor) return
   const anchor = ctx.ui.selectionAnchor
   const newSelected = new Set<SelectionKey>()
@@ -124,19 +119,8 @@ export function updateSelectionRange(
 }
 
 /** Add all visible sub-items for a card to the selection set. */
-function addAllCardItems(
-  selected: Set<SelectionKey>,
-  ctx: ActionCtx,
-  card: CardState,
-): void {
-  const maxItems =
-    1 +
-    ctx.countVisibleDescendants(
-      card.node,
-      0,
-      ctx.ui.maxOutlineDepth,
-      ctx.foldedNodes,
-    )
+function addAllCardItems(selected: Set<SelectionKey>, ctx: ActionCtx, card: CardState): void {
+  const maxItems = 1 + ctx.countVisibleDescendants(card.node, 0, ctx.ui.maxOutlineDepth, ctx.foldedNodes)
   for (let s = 0; s < maxItems; s++) {
     selected.add(makeSelectionKey(card.node.id, s))
   }
@@ -216,9 +200,7 @@ export function refreshBoardState(
 
   if (typeof options?.cardIndex === "function") {
     // cardIndex callback receives column shape with cards array
-    const colShape = colNode
-      ? { cards: cards.map((c) => ({ node: c, children: [] })) }
-      : undefined
+    const colShape = colNode ? { cards: cards.map((c) => ({ node: c, children: [] })) } : undefined
     cardIndex = options.cardIndex(colShape)
   } else {
     cardIndex = options?.cardIndex ?? ctx.layout.cardIndex
@@ -254,34 +236,19 @@ export function refreshBoardState(
 type SelectionScope = "card" | "column" | "board"
 
 /** Add all visible items for a single card to the selection set */
-function addCardItems(
-  selected: Set<SelectionKey>,
-  ctx: ActionCtx,
-  card: CardState,
-): void {
-  const maxItems =
-    1 +
-    ctx.countVisibleDescendants(
-      card.node,
-      0,
-      ctx.ui.maxOutlineDepth,
-      ctx.foldedNodes,
-    )
+function addCardItems(selected: Set<SelectionKey>, ctx: ActionCtx, card: CardState): void {
+  const maxItems = 1 + ctx.countVisibleDescendants(card.node, 0, ctx.ui.maxOutlineDepth, ctx.foldedNodes)
   for (let s = 0; s < maxItems; s++) {
     selected.add(makeSelectionKey(card.node.id, s))
   }
 }
 
 /** Build a selection set for the given scope (card, column, or board) */
-function buildSelectAllSet(
-  ctx: ActionCtx,
-  scope: SelectionScope,
-): Set<SelectionKey> {
+function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): Set<SelectionKey> {
   const selected = new Set<SelectionKey>()
 
   if (scope === "card") {
-    const card =
-      ctx.layout.columns[ctx.layout.colIndex]?.cards[ctx.layout.cardIndex]
+    const card = ctx.layout.columns[ctx.layout.colIndex]?.cards[ctx.layout.cardIndex]
     if (card) {
       addCardItems(selected, ctx, card)
     }

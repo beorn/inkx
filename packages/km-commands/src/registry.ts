@@ -63,10 +63,7 @@ export function createCommandRegistry(): CommandRegistry {
     filter(query: string): CommandDef[] {
       if (!query) return this.getAll()
       return this.getAll().filter(
-        (cmd) =>
-          fuzzyMatch(query, cmd.name) ||
-          fuzzyMatch(query, cmd.description) ||
-          fuzzyMatch(query, cmd.id),
+        (cmd) => fuzzyMatch(query, cmd.name) || fuzzyMatch(query, cmd.description) || fuzzyMatch(query, cmd.id),
       )
     },
 

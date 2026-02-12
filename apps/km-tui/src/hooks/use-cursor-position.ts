@@ -50,9 +50,7 @@ export function useCursorPosition(
     const result = deriveCursorPosition(columns, cursorNodeId, nodeIndex)
     const duration = performance.now() - start
     if (duration > 1) {
-      log.debug?.(
-        `useCursorPosition: ${duration.toFixed(2)}ms for ${columns.length} columns`,
-      )
+      log.debug?.(`useCursorPosition: ${duration.toFixed(2)}ms for ${columns.length} columns`)
     }
     return result
   }, [columns, cursorNodeId, nodeIndex])
@@ -92,9 +90,7 @@ export function deriveCursorPosition(
       }
     }
     // Fall through to not-found case
-    log.debug?.(
-      `cursor node ${cursorNodeId?.slice(-8)} not found in nodeIndex (${nodeIndex.size} entries)`,
-    )
+    log.debug?.(`cursor node ${cursorNodeId?.slice(-8)} not found in nodeIndex (${nodeIndex.size} entries)`)
     return {
       colIndex: -1,
       cardIndex: COLUMN_HEADER_INDEX,
@@ -159,23 +155,14 @@ export function deriveCursorPosition(
 /**
  * Check if nodeId is a descendant of any node in the children array.
  */
-function isDescendantOf(
-  nodeId: string,
-  children: { id: string; children?: unknown[] }[],
-): boolean {
+function isDescendantOf(nodeId: string, children: { id: string; children?: unknown[] }[]): boolean {
   for (const child of children) {
     if (child.id === nodeId) {
       return true
     }
     // Type assertion for recursive check
     const nestedChildren = (child as { children?: { id: string }[] }).children
-    if (
-      nestedChildren &&
-      isDescendantOf(
-        nodeId,
-        nestedChildren as { id: string; children?: unknown[] }[],
-      )
-    ) {
+    if (nestedChildren && isDescendantOf(nodeId, nestedChildren as { id: string; children?: unknown[] }[])) {
       return true
     }
   }

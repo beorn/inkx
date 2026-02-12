@@ -74,10 +74,7 @@ const enterInlineEdit = {
   description: "Edit node title inline",
   category: "Edit",
   shortcuts: ["Enter"],
-  execute: (ctx) =>
-    ctx.currentNodeId
-      ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId }
-      : null,
+  execute: (ctx) => (ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId } : null),
 } satisfies CommandDef
 
 const deleteNode = {

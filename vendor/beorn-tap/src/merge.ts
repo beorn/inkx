@@ -32,10 +32,7 @@ export function mergeStreams(streams: NamedStream[]): Readable {
 
   for (const { name, stream: rawStream } of streams) {
     // Convert Web Streams to Node Streams if needed
-    const stream: Readable =
-      rawStream instanceof ReadableStream
-        ? webStreamToNodeStream(rawStream)
-        : rawStream
+    const stream: Readable = rawStream instanceof ReadableStream ? webStreamToNodeStream(rawStream) : rawStream
 
     runnerCounts.set(name, { passed: 0, failed: 0 })
     runnerTiming.set(name, { start: performance.now() })
@@ -54,13 +51,7 @@ export function mergeStreams(streams: NamedStream[]): Readable {
     stream.on("end", () => {
       // Process any remaining content
       if (lineBuffer) {
-        processLine(
-          name,
-          lineBuffer,
-          output,
-          runnerCounts,
-          () => totalAssertions++,
-        )
+        processLine(name, lineBuffer, output, runnerCounts, () => totalAssertions++)
       }
 
       // Record timing
@@ -80,9 +71,7 @@ export function mergeStreams(streams: NamedStream[]): Readable {
     })
 
     stream.on("error", (err: Error) => {
-      output.write(
-        `not ok ${++totalAssertions} - ${name} stream error: ${err.message}\n`,
-      )
+      output.write(`not ok ${++totalAssertions} - ${name} stream error: ${err.message}\n`)
     })
   }
 
@@ -126,12 +115,7 @@ function processLine(
   }
 
   // Pass through YAML blocks, comments, and other content
-  if (
-    line.startsWith("  ") ||
-    line.startsWith("#") ||
-    line === "---" ||
-    line === "..."
-  ) {
+  if (line.startsWith("  ") || line.startsWith("#") || line === "---" || line === "...") {
     output.write(line + "\n")
   }
 }

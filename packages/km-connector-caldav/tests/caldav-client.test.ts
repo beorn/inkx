@@ -167,9 +167,7 @@ describe("CalDAVClient", () => {
           return Promise.resolve(mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207))
         } else {
           // Second call: get calendar home
-          return Promise.resolve(
-            mockResponse(PROPFIND_CALENDAR_HOME_RESPONSE, 207),
-          )
+          return Promise.resolve(mockResponse(PROPFIND_CALENDAR_HOME_RESPONSE, 207))
         }
       })
       globalThis.fetch = mockFetch as unknown as typeof fetch
@@ -182,16 +180,12 @@ describe("CalDAVClient", () => {
 
       const result = await client.discover()
 
-      expect(result).toBe(
-        "https://caldav.example.com/calendars/testuser/default/",
-      )
+      expect(result).toBe("https://caldav.example.com/calendars/testuser/default/")
       expect(mockFetch).toHaveBeenCalledTimes(2)
     })
 
     test("falls back to config URL when discovery fails", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse("<D:multistatus></D:multistatus>", 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse("<D:multistatus></D:multistatus>", 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCalDAVClient({
@@ -214,13 +208,9 @@ describe("CalDAVClient", () => {
         if (callCount <= 2) {
           // Discovery calls
           if (callCount === 1) {
-            return Promise.resolve(
-              mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207),
-            )
+            return Promise.resolve(mockResponse(PROPFIND_PRINCIPAL_RESPONSE, 207))
           }
-          return Promise.resolve(
-            mockResponse(PROPFIND_CALENDAR_HOME_RESPONSE, 207),
-          )
+          return Promise.resolve(mockResponse(PROPFIND_CALENDAR_HOME_RESPONSE, 207))
         }
         // REPORT call
         return Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207))
@@ -245,9 +235,7 @@ describe("CalDAVClient", () => {
     })
 
     test("skips discovery if already discovered", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCalDAVClient({
@@ -304,9 +292,7 @@ describe("CalDAVClient", () => {
 
       const putRequest = capturedRequests.find((r) => r.method === "PUT")
       expect(putRequest).toBeDefined()
-      expect(putRequest?.url).toBe(
-        "https://caldav.example.com/calendars/user/new-event-123.ics",
-      )
+      expect(putRequest?.url).toBe("https://caldav.example.com/calendars/user/new-event-123.ics")
       expect(putRequest?.body).toContain("BEGIN:VCALENDAR")
       expect(putRequest?.body).toContain("UID:new-event-123")
       expect(putRequest?.headers?.["If-None-Match"]).toBe("*")
@@ -379,18 +365,14 @@ describe("CalDAVClient", () => {
 
       const deleteRequest = capturedRequests.find((r) => r.method === "DELETE")
       expect(deleteRequest).toBeDefined()
-      expect(deleteRequest?.url).toBe(
-        "https://caldav.example.com/calendars/user/event-to-delete.ics",
-      )
+      expect(deleteRequest?.url).toBe("https://caldav.example.com/calendars/user/event-to-delete.ics")
       expect(deleteRequest?.headers?.["If-Match"]).toBe('"etag-123"')
     })
   })
 
   describe("sync", () => {
     test("full sync without prior state", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCalDAVClient({
@@ -411,9 +393,7 @@ describe("CalDAVClient", () => {
     })
 
     test("detects modified events", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCalDAVClient({
@@ -436,9 +416,7 @@ describe("CalDAVClient", () => {
     })
 
     test("detects deleted events", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse(CALENDAR_QUERY_RESPONSE, 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCalDAVClient({
@@ -460,9 +438,7 @@ describe("CalDAVClient", () => {
     })
 
     test("incremental sync using sync-collection updates sync token", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse(SYNC_COLLECTION_RESPONSE, 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse(SYNC_COLLECTION_RESPONSE, 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const client = createCalDAVClient({

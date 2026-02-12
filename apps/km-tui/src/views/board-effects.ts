@@ -3,26 +3,18 @@
  */
 import type { WriteStream } from "tty"
 import type { UIState } from "../ui-reducer.ts"
-import {
-  createPasteHandler,
-  supportsFileDrop,
-} from "../handlers/paste-handler.ts"
+import { createPasteHandler, supportsFileDrop } from "../handlers/paste-handler.ts"
 import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"
 import { kmEvents, type ToastQueue } from "@km/core"
 
-type SetUI = (
-  partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>),
-) => void
+type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
 
 /**
  * Creates the terminal dimension sync effect
  * Polls for valid dimensions and handles resize events
  */
-export function createSyncTerminalDimensions(
-  stdout: WriteStream | undefined,
-  setUI: SetUI,
-): () => void | undefined {
+export function createSyncTerminalDimensions(stdout: WriteStream | undefined, setUI: SetUI): () => void | undefined {
   if (!stdout) return () => {}
 
   const handleResize = () => {
@@ -103,10 +95,7 @@ export function createRefreshHandler(): () => void {
  * Creates the watcher status handler effect
  * Subscribes to watcher status updates for bottom bar display
  */
-export function createWatcherStatusHandler(
-  setUI: SetUI,
-  toastQueue?: ToastQueue,
-): () => void {
+export function createWatcherStatusHandler(setUI: SetUI, toastQueue?: ToastQueue): () => void {
   let lastSyncCount = 0
 
   const handleWatcherStatus = (status: WatcherStatus) => {
@@ -116,13 +105,10 @@ export function createWatcherStatusHandler(
     if (status.state === "idle" || status.state === "ready") {
       const syncedCount = status.pendingPaths
       if (syncedCount > 0 && syncedCount !== lastSyncCount) {
-        toastQueue?.success(
-          `Synced ${syncedCount} file${syncedCount === 1 ? "" : "s"}`,
-          {
-            batchKey: "sync",
-            duration: 2000,
-          },
-        )
+        toastQueue?.success(`Synced ${syncedCount} file${syncedCount === 1 ? "" : "s"}`, {
+          batchKey: "sync",
+          duration: 2000,
+        })
         lastSyncCount = syncedCount
       }
     }

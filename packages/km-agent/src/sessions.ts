@@ -18,10 +18,7 @@ import type { Session, SessionFilter, SessionStatus } from "./types.ts"
  * @param kmDir - Path to .km directory containing events.jsonl
  * @param filter - Optional filter criteria
  */
-export function querySessions(
-  kmDir: string,
-  filter?: SessionFilter,
-): Session[] {
+export function querySessions(kmDir: string, filter?: SessionFilter): Session[] {
   const events = readEvents(kmDir)
 
   // Build sessions from events
@@ -61,9 +58,7 @@ export function querySessions(
     sessions = sessions.filter((s) => s.taskId === filter.taskId)
   }
   if (filter?.status) {
-    const statuses = Array.isArray(filter.status)
-      ? filter.status
-      : [filter.status]
+    const statuses = Array.isArray(filter.status) ? filter.status : [filter.status]
     sessions = sessions.filter((s) => statuses.includes(s.status))
   }
 
@@ -73,9 +68,7 @@ export function querySessions(
 /**
  * Map event status to session status.
  */
-function mapSessionStatus(
-  eventStatus: "success" | "error" | "cancelled",
-): SessionStatus {
+function mapSessionStatus(eventStatus: "success" | "error" | "cancelled"): SessionStatus {
   switch (eventStatus) {
     case "success":
       return "completed"
@@ -97,11 +90,7 @@ export function getSession(kmDir: string, sessionId: string): Session | null {
 /**
  * Get all sessions for an agent.
  */
-export function getAgentSessions(
-  kmDir: string,
-  agentId: string,
-  limit?: number,
-): Session[] {
+export function getAgentSessions(kmDir: string, agentId: string, limit?: number): Session[] {
   let sessions = querySessions(kmDir, { agentId })
 
   // Sort by startedAt descending (most recent first)
@@ -124,10 +113,7 @@ export function getTaskSessions(kmDir: string, taskId: string): Session[] {
 /**
  * Get the currently active session for an agent, if any.
  */
-export function getActiveSession(
-  kmDir: string,
-  agentId: string,
-): Session | null {
+export function getActiveSession(kmDir: string, agentId: string): Session | null {
   const sessions = querySessions(kmDir, { agentId, status: "active" })
   return sessions[0] ?? null
 }

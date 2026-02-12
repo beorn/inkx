@@ -48,10 +48,7 @@ function createNode(id: string, children: TNode[] = []): TNode {
 // - Column B (col-b)
 //   - Card 3 (card-3)
 const testNodes: TNode[] = [
-  createNode("col-a", [
-    createNode("card-1", [createNode("item-1-1"), createNode("item-1-2")]),
-    createNode("card-2"),
-  ]),
+  createNode("col-a", [createNode("card-1", [createNode("item-1-1"), createNode("item-1-2")]), createNode("card-2")]),
   createNode("col-b", [createNode("card-3")]),
 ]
 

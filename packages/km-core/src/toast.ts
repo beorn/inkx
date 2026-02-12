@@ -61,11 +61,7 @@ export interface ToastQueueOptions {
  */
 export interface ToastQueue extends Disposable {
   /** Add a toast to the queue. Returns toast ID. */
-  push(
-    level: NotificationLevel,
-    message: string,
-    options?: ToastOptions,
-  ): string
+  push(level: NotificationLevel, message: string, options?: ToastOptions): string
   /** Remove a toast by ID */
   dismiss(id: string): void
   /** Remove all toasts */

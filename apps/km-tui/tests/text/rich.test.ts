@@ -4,12 +4,7 @@
 
 import { describe, it, expect } from "vitest"
 import { createTerm } from "inkx"
-import {
-  displayLength,
-  stripAnsi,
-  renderRich,
-  renderPlain,
-} from "../../src/text/rich.ts"
+import { displayLength, stripAnsi, renderRich, renderPlain } from "../../src/text/rich.ts"
 
 // Create a term with forced color for testing
 const term = createTerm({ color: "truecolor" })
@@ -155,9 +150,7 @@ describe("renderRich", () => {
 
     it("handles links with title attribute", () => {
       // [text](url "title") - common markdown extension
-      const result = renderRich(
-        'Check [Example](https://example.com "Example Site")',
-      )
+      const result = renderRich('Check [Example](https://example.com "Example Site")')
       // The title is part of the URL portion, so it gets stripped
       expect(stripAnsi(result)).toBe("Check Example")
     })
@@ -271,9 +264,7 @@ describe("renderPlain", () => {
   })
 
   it("strips markdown links [text](url) → text", () => {
-    expect(renderPlain("Click [Google](https://google.com)")).toBe(
-      "Click Google",
-    )
+    expect(renderPlain("Click [Google](https://google.com)")).toBe("Click Google")
   })
 
   it("handles multiple markdown links", () => {

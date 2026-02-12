@@ -69,10 +69,7 @@ export function map<T, U, E>(r: Result<T, E>, fn: (v: T) => U): Result<U, E> {
 /**
  * Chain results (flatMap). If success, apply fn which returns a new Result.
  */
-export function andThen<T, U, E>(
-  r: Result<T, E>,
-  fn: (v: T) => Result<U, E>,
-): Result<U, E> {
+export function andThen<T, U, E>(r: Result<T, E>, fn: (v: T) => Result<U, E>): Result<U, E> {
   if (r.ok) return fn(r.value)
   return r
 }

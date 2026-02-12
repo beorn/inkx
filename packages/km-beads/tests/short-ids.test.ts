@@ -1,9 +1,5 @@
 import { describe, test, expect } from "vitest"
-import {
-  generateShortId,
-  generateCustomId,
-  generateSubId,
-} from "../src/short-ids.ts"
+import { generateShortId, generateCustomId, generateSubId } from "../src/short-ids.ts"
 
 describe("Short ID utilities", () => {
   test("generateShortId produces km-xxxx format", () => {
@@ -22,11 +18,7 @@ describe("Short ID utilities", () => {
   })
 
   test("generates unique IDs", () => {
-    const ids = new Set([
-      generateShortId(),
-      generateShortId(),
-      generateShortId(),
-    ])
+    const ids = new Set([generateShortId(), generateShortId(), generateShortId()])
     expect(ids.size).toBe(3)
   })
 })

@@ -6,12 +6,7 @@
  */
 
 // Utils (rowToNode, getLastEventId, getAllNodes, getNodeCount)
-export {
-  rowToNode,
-  getLastEventId,
-  getAllNodes,
-  getNodeCount,
-} from "./utils.ts"
+export { rowToNode, getLastEventId, getAllNodes, getNodeCount } from "./utils.ts"
 
 // Core Lookup (getNode*, getNodeByPath, getNodesUnderPath)
 export {
@@ -52,9 +47,4 @@ export { findFileByName, findChildByContent } from "./wikilink-resolver.ts"
 export { resolveNode, resolveTask } from "./smart-resolver.ts"
 
 // Full-Text Search (search, searchWithSnippet)
-export {
-  toFts5Query,
-  search,
-  searchWithSnippet,
-  type SearchResult,
-} from "./full-text-search.ts"
+export { toFts5Query, search, searchWithSnippet, type SearchResult } from "./full-text-search.ts"

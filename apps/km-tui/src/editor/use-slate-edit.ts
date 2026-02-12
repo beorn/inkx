@@ -14,12 +14,7 @@ import { Editor, Transforms } from "slate"
 import type { BlockEditTarget } from "../block-edit-target.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
 import { textToDescendants } from "./schema.ts"
-import {
-  createKmEditor,
-  getEditorText,
-  getCursorOffset,
-  type KmEditorOptions,
-} from "./create-km-editor.ts"
+import { createKmEditor, getEditorText, getCursorOffset, type KmEditorOptions } from "./create-km-editor.ts"
 import type { KmEditor } from "./schema.ts"
 
 export interface UseSlateEditOptions {

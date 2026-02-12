@@ -59,16 +59,7 @@ import {
 /**
  * Basic navigation keys (hjkl + arrows)
  */
-const NAVIGATION_KEYS = [
-  "j",
-  "k",
-  "h",
-  "l",
-  "ArrowDown",
-  "ArrowUp",
-  "ArrowLeft",
-  "ArrowRight",
-]
+const NAVIGATION_KEYS = ["j", "k", "h", "l", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"]
 
 /**
  * Extended navigation keys (first/last, zoom, history)
@@ -164,13 +155,7 @@ const WEIGHTED_KEYS: [number, string][] = [
 function createStandardBoard() {
   return item.root(
     "board",
-    item(
-      "Inbox",
-      item("Task 1"),
-      item("Task 2"),
-      item("Task 3"),
-      item("Task 4"),
-    ),
+    item("Inbox", item("Task 1"), item("Task 2"), item("Task 3"), item("Task 4")),
     item(
       "Projects",
       item.folder("Alpha", item("Alpha 1"), item("Alpha 2"), item("Alpha 3")),
@@ -200,11 +185,7 @@ function createDeepTree() {
           "level3",
           item.file(
             "doc",
-            item.section(
-              "section1",
-              item.paragraph("para1"),
-              item.paragraph("para2"),
-            ),
+            item.section("section1", item.paragraph("para1"), item.paragraph("para2")),
             item.section("section2", item.paragraph("para3")),
           ),
         ),
@@ -292,16 +273,7 @@ describe("TUI Fuzz Tests", () => {
     const driver = createBoardDriver(createFakeRepo({ nodes }), "vault")
 
     // Include Enter for zoom, o/u/i for zoom in/out
-    const keys = [
-      ...NAVIGATION_KEYS,
-      "Enter",
-      "Escape",
-      "o",
-      "u",
-      "i",
-      "[",
-      "]",
-    ]
+    const keys = [...NAVIGATION_KEYS, "Enter", "Escape", "o", "u", "i", "[", "]"]
 
     for await (const key of take(gen(keys), 150)) {
       const before = driver.getState()
@@ -348,9 +320,7 @@ describe("TUI Fuzz Tests", () => {
         !before.dialogs.newItem &&
         !before.dialogs.projectPicker
       ) {
-        expect(after.viewMode, "View mode should change after v").not.toBe(
-          before.viewMode,
-        )
+        expect(after.viewMode, "View mode should change after v").not.toBe(before.viewMode)
       }
     }
   })
@@ -372,13 +342,7 @@ describe("TUI Fuzz Tests", () => {
       gen(({ random }) => {
         if (inSearch) {
           // In search: type, navigate results, or exit
-          return random.pick([
-            ...typeKeys,
-            ...navigationKeys,
-            "Escape",
-            "Enter",
-            "Backspace",
-          ])
+          return random.pick([...typeKeys, ...navigationKeys, "Escape", "Enter", "Backspace"])
         } else {
           // Not in search: open search or navigate
           return random.pick(["j", "k", "h", "l", "/"])
@@ -409,16 +373,7 @@ describe("TUI Fuzz Tests", () => {
       gen(({ random }) => {
         if (inHelp) {
           // In help: scroll, search, or close
-          return random.pick([
-            "j",
-            "k",
-            "ArrowUp",
-            "ArrowDown",
-            "/",
-            "Escape",
-            "?",
-            "q",
-          ])
+          return random.pick(["j", "k", "ArrowUp", "ArrowDown", "/", "Escape", "?", "q"])
         } else {
           // Not in help: navigate or open help
           return random.pick(["j", "k", "h", "l", "?"])
@@ -627,11 +582,7 @@ export function createDiagnosticDriver(vaultPath?: string) {
 /**
  * Run a diagnostic session and collect issues
  */
-export async function runDiagnostic(
-  driver: ReturnType<typeof createBoardDriver>,
-  iterations: number,
-  seed?: number,
-) {
+export async function runDiagnostic(driver: ReturnType<typeof createBoardDriver>, iterations: number, seed?: number) {
   const rng = createSeededRandom(seed ?? Date.now())
   const recorder = createSequenceRecorder()
   const issues: { iteration: number; key: string; issue: string }[] = []
@@ -664,10 +615,7 @@ export async function runDiagnostic(
 /**
  * Replay a specific key sequence for debugging
  */
-export function replaySequence(
-  driver: ReturnType<typeof createBoardDriver>,
-  sequence: string[],
-) {
+export function replaySequence(driver: ReturnType<typeof createBoardDriver>, sequence: string[]) {
   const recorder = createSequenceRecorder()
   const issues: { iteration: number; key: string; issue: string }[] = []
 

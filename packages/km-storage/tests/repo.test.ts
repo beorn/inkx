@@ -26,10 +26,7 @@ import { createEmitter, type FsSync } from "../src/emitter.ts"
 // =============================================================================
 
 function createTempDir(): string {
-  const dir = join(
-    "/tmp",
-    `kmtest-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  )
+  const dir = join("/tmp", `kmtest-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   mkdirSync(dir, { recursive: true })
   return dir
 }
@@ -201,10 +198,7 @@ describe("createRepo", () => {
 
   test("loadFiles option parses markdown files", () => {
     // Create a markdown file with tasks
-    writeFileSync(
-      join(tempDir, "test.md"),
-      "# Test\n- [ ] Task 1\n- [x] Task 2",
-    )
+    writeFileSync(join(tempDir, "test.md"), "# Test\n- [ ] Task 1\n- [x] Task 2")
 
     using repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
 
@@ -347,10 +341,7 @@ describe("Repo.config", () => {
 
   test("loads config from repo root", () => {
     // Write a km config file
-    writeFileSync(
-      join(tempDir, ".kmrc.json"),
-      JSON.stringify({ specialFiles: { inbox: "custom-inbox.md" } }),
-    )
+    writeFileSync(join(tempDir, ".kmrc.json"), JSON.stringify({ specialFiles: { inbox: "custom-inbox.md" } }))
 
     using repo = runGenerator(createRepo(tempDir))
 
@@ -608,9 +599,7 @@ describe("FsWriter auto-registration", () => {
     diskRepo.close()
 
     // Force memory mode
-    const memRepo = runGenerator(
-      createRepo(tempDir, { loadFiles: false, forceMemory: true }),
-    )
+    const memRepo = runGenerator(createRepo(tempDir, { loadFiles: false, forceMemory: true }))
     expect(memRepo.emitter.getFsSync()).toBeNull()
     memRepo.close()
   })
@@ -634,20 +623,15 @@ describe("FsWriter auto-registration", () => {
   test("FsWriter regenerates file on node_created", () => {
     // Write board.md and create .km → load → add task → verify file updated
     mkdirSync(join(tempDir, ".km"), { recursive: true })
-    writeFileSync(
-      join(tempDir, "board.md"),
-      "---\ntitle: Board\n---\n\n# Board\n\n## Inbox\n\n## Done\n",
-    )
+    writeFileSync(join(tempDir, "board.md"), "---\ntitle: Board\n---\n\n# Board\n\n## Inbox\n\n## Done\n")
     const repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
     expect(repo.emitter.getFsSync()).not.toBeNull()
 
     // Find nodes via DB
     const db = repo.database
-    const inbox = db
-      .query(
-        "SELECT id FROM nodes WHERE content = 'Inbox' AND type = 'section'",
-      )
-      .get() as { id: string } | null
+    const inbox = db.query("SELECT id FROM nodes WHERE content = 'Inbox' AND type = 'section'").get() as {
+      id: string
+    } | null
 
     if (!inbox) {
       // If board wasn't loaded (no file scan in this init path), skip gracefully

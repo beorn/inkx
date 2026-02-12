@@ -6,9 +6,7 @@ import { Readable } from "node:stream"
  * @param webStream - Bun's ReadableStream<Uint8Array>
  * @returns Node.js Readable stream compatible with tap-parser and mergeStreams
  */
-export function webStreamToNodeStream(
-  webStream: ReadableStream<Uint8Array>,
-): Readable {
+export function webStreamToNodeStream(webStream: ReadableStream<Uint8Array>): Readable {
   const reader = webStream.getReader()
   const decoder = new TextDecoder()
 

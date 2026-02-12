@@ -9,12 +9,7 @@ import { buildScript, buildHookScript } from "@beorn/mdtest/shell"
 import { splitNorm } from "@beorn/mdtest/core"
 import { bunShell } from "@beorn/mdtest/bun"
 import { DEFAULTS } from "@beorn/mdtest/constants"
-import type {
-  Plugin,
-  FileOpts,
-  BlockOpts,
-  ReplResult,
-} from "@beorn/mdtest/types"
+import type { Plugin, FileOpts, BlockOpts, ReplResult } from "@beorn/mdtest/types"
 
 /**
  * km sh mdtest plugin
@@ -62,14 +57,9 @@ export default async function kmShPlugin(opts: FileOpts): Promise<Plugin> {
       // Check if this is a cmd= block (persistent subprocess REPL mode)
       if (blockOpts.cmd && typeof blockOpts.cmd === "string") {
         // Extract timing options
-        const minWait =
-          typeof blockOpts.minWait === "number" ? blockOpts.minWait : 100
-        const maxWait =
-          typeof blockOpts.maxWait === "number" ? blockOpts.maxWait : 2000
-        const startupDelay =
-          typeof blockOpts.startupDelay === "number"
-            ? blockOpts.startupDelay
-            : 100
+        const minWait = typeof blockOpts.minWait === "number" ? blockOpts.minWait : 100
+        const maxWait = typeof blockOpts.maxWait === "number" ? blockOpts.maxWait : 2000
+        const startupDelay = typeof blockOpts.startupDelay === "number" ? blockOpts.startupDelay : 100
 
         // Special handling for km sh blocks - wrap with km function
         const isKmShBlock = blockOpts.cmd.startsWith("km sh")
@@ -125,8 +115,7 @@ export default async function kmShPlugin(opts: FileOpts): Promise<Plugin> {
 
       // Regular bash block - use bash execution with state persistence
       return async (cmd: string): Promise<ReplResult> => {
-        const timeout =
-          (blockOpts.timeout as number | undefined) ?? DEFAULTS.TIMEOUT
+        const timeout = (blockOpts.timeout as number | undefined) ?? DEFAULTS.TIMEOUT
         const cwd = (blockOpts.cwd as string | undefined) ?? process.cwd()
 
         // Convert BlockOpts to options for buildScript
@@ -139,13 +128,7 @@ export default async function kmShPlugin(opts: FileOpts): Promise<Plugin> {
         }
 
         // Build script with state persistence
-        const script = buildScript(
-          [cmd],
-          scriptOpts,
-          envFile,
-          cwdFile,
-          funcFile,
-        )
+        const script = buildScript([cmd], scriptOpts, envFile, cwdFile, funcFile)
 
         // Execute command
         const res = await bunShell(["bash", "-lc", script], {

@@ -6,11 +6,7 @@
  *   export default createVitestConfig({ ... })
  */
 
-import type {
-  ViteUserConfig as UserConfig,
-  Plugin,
-  ViteUserConfigFnObject,
-} from "vitest/config"
+import type { ViteUserConfig as UserConfig, Plugin, ViteUserConfigFnObject } from "vitest/config"
 import { defineConfig, mergeConfig } from "vitest/config"
 import { availableParallelism } from "node:os"
 import { fileURLToPath } from "node:url"
@@ -65,18 +61,11 @@ export interface VitestConfigOptions {
  * - Parallel execution with smart worker count
  * - Standard exclude patterns
  */
-export function createVitestConfig(
-  options: VitestConfigOptions = {},
-): ViteUserConfigFnObject {
+export function createVitestConfig(options: VitestConfigOptions = {}): ViteUserConfigFnObject {
   const {
     plugins = [],
     include = ["**/*.{test,spec}.{ts,tsx,md}"],
-    exclude = [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/vendor/**",
-      "**/.direnv/**",
-    ],
+    exclude = ["**/node_modules/**", "**/dist/**", "**/vendor/**", "**/.direnv/**"],
     benchmarkInclude = ["**/*.bench.{ts,tsx}"],
     test = {},
     skipSetup = false,

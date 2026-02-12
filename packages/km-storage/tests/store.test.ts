@@ -103,9 +103,7 @@ describe("MemoryStore", () => {
     using store = new MemoryStore(rootDir)
 
     const allNodes = store.getAllNodes()
-    const fileNames = allNodes
-      .filter((n) => n.type === "file")
-      .map((n) => n.content)
+    const fileNames = allNodes.filter((n) => n.type === "file").map((n) => n.content)
 
     // Non-markdown files should be included with full filename
     expect(fileNames).toContain("document.pdf")

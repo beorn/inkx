@@ -121,36 +121,25 @@ export function useLineEdit({
     () => ({
       insertChar(char: string) {
         const { value, cursor } = stateRef.current
-        updateValueRef.current(
-          value.slice(0, cursor) + char + value.slice(cursor),
-          cursor + 1,
-        )
+        updateValueRef.current(value.slice(0, cursor) + char + value.slice(cursor), cursor + 1)
       },
       deleteBackward() {
         const { value, cursor } = stateRef.current
         if (cursor > 0) {
-          updateValueRef.current(
-            value.slice(0, cursor - 1) + value.slice(cursor),
-            cursor - 1,
-          )
+          updateValueRef.current(value.slice(0, cursor - 1) + value.slice(cursor), cursor - 1)
         }
       },
       deleteForward() {
         const { value, cursor } = stateRef.current
         if (cursor < value.length) {
-          updateValueRef.current(
-            value.slice(0, cursor) + value.slice(cursor + 1),
-            cursor,
-          )
+          updateValueRef.current(value.slice(0, cursor) + value.slice(cursor + 1), cursor)
         }
       },
       cursorLeft() {
         setState((s) => (s.cursor > 0 ? { ...s, cursor: s.cursor - 1 } : s))
       },
       cursorRight() {
-        setState((s) =>
-          s.cursor < s.value.length ? { ...s, cursor: s.cursor + 1 } : s,
-        )
+        setState((s) => (s.cursor < s.value.length ? { ...s, cursor: s.cursor + 1 } : s))
       },
       cursorStart() {
         setState((s) => ({ ...s, cursor: 0 }))
@@ -164,10 +153,7 @@ export function useLineEdit({
         let newCursor = cursor
         while (newCursor > 0 && value[newCursor - 1] === " ") newCursor--
         while (newCursor > 0 && value[newCursor - 1] !== " ") newCursor--
-        updateValueRef.current(
-          value.slice(0, newCursor) + value.slice(cursor),
-          newCursor,
-        )
+        updateValueRef.current(value.slice(0, newCursor) + value.slice(cursor), newCursor)
       },
       deleteToStart() {
         const { value, cursor } = stateRef.current

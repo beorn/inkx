@@ -14,13 +14,7 @@ import { item } from "./helpers/board-test.ts"
 import { useChildren } from "../src/hooks/use-children.ts"
 
 /** Simple wrapper component that renders children IDs for assertion */
-function ChildrenDisplay({
-  repo,
-  parentId,
-}: {
-  repo: Parameters<typeof useChildren>[0]
-  parentId: string | null
-}) {
+function ChildrenDisplay({ repo, parentId }: { repo: Parameters<typeof useChildren>[0]; parentId: string | null }) {
   const children = useChildren(repo, parentId)
   return React.createElement(Text, null, children.map((c) => c.id).join(","))
 }
@@ -29,16 +23,10 @@ const render = createRenderer()
 
 describe("useChildren", () => {
   it("returns children of a parent node", () => {
-    const nodes = item(
-      "board",
-      item("col1", item("1a"), item("1b")),
-      item("col2", item("2a")),
-    )
+    const nodes = item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a")))
     const repo = createFakeRepo({ nodes })
 
-    const app = render(
-      React.createElement(ChildrenDisplay, { repo, parentId: "col1" }),
-    )
+    const app = render(React.createElement(ChildrenDisplay, { repo, parentId: "col1" }))
 
     expect(app.text).toContain("1a,1b")
   })
@@ -47,9 +35,7 @@ describe("useChildren", () => {
     const nodes = item("board", item("col1", item("task1")))
     const repo = createFakeRepo({ nodes })
 
-    const app = render(
-      React.createElement(ChildrenDisplay, { repo, parentId: "task1" }),
-    )
+    const app = render(React.createElement(ChildrenDisplay, { repo, parentId: "task1" }))
 
     // Leaf node has no children — empty string from join
     expect(app.text).toBe("")
@@ -60,9 +46,7 @@ describe("useChildren", () => {
     const repo = createFakeRepo({ nodes })
 
     // "board" has parent_id: null, so getChildren(null) returns [board]
-    const app = render(
-      React.createElement(ChildrenDisplay, { repo, parentId: null }),
-    )
+    const app = render(React.createElement(ChildrenDisplay, { repo, parentId: null }))
 
     expect(app.text).toContain("board")
   })

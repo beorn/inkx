@@ -9,10 +9,4 @@ export { createCalDAVClient, type CalDAVClient } from "./caldav-client.ts"
 export { createCardDAVClient, type CardDAVClient } from "./carddav-client.ts"
 export { parseICalendar, formatICalendar } from "./icalendar.ts"
 export { parseVCard, formatVCard } from "./vcard.ts"
-export type {
-  CalDAVConfig,
-  CardDAVConfig,
-  CalendarEvent,
-  Contact,
-  SyncState,
-} from "./types.ts"
+export type { CalDAVConfig, CardDAVConfig, CalendarEvent, Contact, SyncState } from "./types.ts"

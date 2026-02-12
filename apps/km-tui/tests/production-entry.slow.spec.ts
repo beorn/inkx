@@ -98,11 +98,7 @@ function buildStoreParams(
 
 describe("production entry point (createBoardApp)", () => {
   test("createBoardApp().run() renders BoardApp without crashing", async () => {
-    const nodes = item(
-      "board",
-      item("col1", item("task1"), item("task2")),
-      item("col2", item("task3")),
-    )
+    const nodes = item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3")))
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
@@ -517,10 +513,8 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
     // → SyncManager.handleNodeUpdated() → writeQueue → file on disk.
     const { writeFileSync, readFileSync } = await import("fs")
     const { join } = await import("path")
-    const { withTestEnv, getAllNodes, createTestEnvRepo } =
-      await import("@km/storage")
-    const { SyncManager } =
-      await import("../../../../packages/km-storage/src/watch/sync.ts")
+    const { withTestEnv, getAllNodes, createTestEnvRepo } = await import("@km/storage")
+    const { SyncManager } = await import("../../../../packages/km-storage/src/watch/sync.ts")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       // Create a markdown file with a task
@@ -582,8 +576,7 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
   test("emitter.getFsSync() returns non-null when wired in tui.tsx pattern", async () => {
     // Diagnostic: verifies the production wiring step
     const { withTestEnv } = await import("@km/storage")
-    const { SyncManager } =
-      await import("../../../../packages/km-storage/src/watch/sync.ts")
+    const { SyncManager } = await import("../../../../packages/km-storage/src/watch/sync.ts")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       const syncManager = new SyncManager({
@@ -611,8 +604,7 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
   })
 
   test("shouldApplyToFs returns true for actor=user", async () => {
-    const { shouldApplyToFs } =
-      await import("../../../../packages/km-storage/src/watch/writequeue.ts")
+    const { shouldApplyToFs } = await import("../../../../packages/km-storage/src/watch/writequeue.ts")
     expect(shouldApplyToFs("user")).toBe(true)
     expect(shouldApplyToFs("fs-watch")).toBe(false)
   })
@@ -658,12 +650,7 @@ describe("production smoke: store dimensions", () => {
   })
 
   test("createInitialUIState: valid dimensions → isReady true", () => {
-    const ui = createInitialUIState(
-      "cards",
-      [],
-      { columns: 80, rows: 24 },
-      "root",
-    )
+    const ui = createInitialUIState("cards", [], { columns: 80, rows: 24 }, "root")
     expect(ui.isReady).toBe(true)
     expect(ui.dimensions).toEqual({ columns: 80, rows: 24 })
   })
@@ -672,11 +659,7 @@ describe("production smoke: store dimensions", () => {
     // Smoke test: the production pipeline (createBoardApp → Board) produces
     // visible text when dimensions are valid. Catches wiring issues where
     // the store gets the right data but components don't read it.
-    const nodes = item(
-      "board",
-      item("col1", item("task1"), item("task2")),
-      item("col2", item("task3")),
-    )
+    const nodes = item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3")))
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 

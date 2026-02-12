@@ -5,11 +5,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest"
-import {
-  createBasicAuthHeader,
-  webdavRequest,
-  discoverPrincipal,
-} from "../src/webdav-base.ts"
+import { createBasicAuthHeader, webdavRequest, discoverPrincipal } from "../src/webdav-base.ts"
 
 // Mock fetch globally
 const originalFetch = globalThis.fetch
@@ -98,12 +94,7 @@ describe("webdav-base", () => {
 
       const authHeader = createBasicAuthHeader("user", "pass")
       const body = '<?xml version="1.0"?><D:propfind/>'
-      await webdavRequest(
-        "PROPFIND",
-        "https://example.com/dav",
-        authHeader,
-        body,
-      )
+      await webdavRequest("PROPFIND", "https://example.com/dav", authHeader, body)
 
       expect(capturedOptions[0]!.body).toBe(body)
     })
@@ -117,13 +108,10 @@ describe("webdav-base", () => {
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const authHeader = createBasicAuthHeader("user", "pass")
-      await webdavRequest(
-        "PROPFIND",
-        "https://example.com/dav",
-        authHeader,
-        undefined,
-        { Depth: "1", "X-Custom": "value" },
-      )
+      await webdavRequest("PROPFIND", "https://example.com/dav", authHeader, undefined, {
+        Depth: "1",
+        "X-Custom": "value",
+      })
 
       const headers = capturedOptions[0]!.headers as Record<string, string>
       expect(headers.Depth).toBe("1")
@@ -131,45 +119,35 @@ describe("webdav-base", () => {
     })
 
     test("accepts 207 Multi-Status response", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(mockResponse("<D:multistatus/>", 207)),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(mockResponse("<D:multistatus/>", 207)))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const authHeader = createBasicAuthHeader("user", "pass")
-      const response = await webdavRequest(
-        "PROPFIND",
-        "https://example.com/dav",
-        authHeader,
-      )
+      const response = await webdavRequest("PROPFIND", "https://example.com/dav", authHeader)
 
       expect(response.status).toBe(207)
     })
 
     test("throws on error status", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(new Response("Unauthorized", { status: 401 })),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(new Response("Unauthorized", { status: 401 })))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const authHeader = createBasicAuthHeader("user", "wrong")
 
-      await expect(
-        webdavRequest("PROPFIND", "https://example.com/dav", authHeader),
-      ).rejects.toThrow("WebDAV request failed: 401")
+      await expect(webdavRequest("PROPFIND", "https://example.com/dav", authHeader)).rejects.toThrow(
+        "WebDAV request failed: 401",
+      )
     })
 
     test("throws on 404 Not Found", async () => {
-      mockFetch = vi.fn(() =>
-        Promise.resolve(new Response("Not Found", { status: 404 })),
-      )
+      mockFetch = vi.fn(() => Promise.resolve(new Response("Not Found", { status: 404 })))
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const authHeader = createBasicAuthHeader("user", "pass")
 
-      await expect(
-        webdavRequest("GET", "https://example.com/missing", authHeader),
-      ).rejects.toThrow("WebDAV request failed: 404")
+      await expect(webdavRequest("GET", "https://example.com/missing", authHeader)).rejects.toThrow(
+        "WebDAV request failed: 404",
+      )
     })
   })
 
@@ -208,10 +186,7 @@ describe("webdav-base", () => {
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const authHeader = createBasicAuthHeader("user", "pass")
-      const result = await discoverPrincipal(
-        "https://example.com/dav",
-        authHeader,
-      )
+      const result = await discoverPrincipal("https://example.com/dav", authHeader)
 
       expect(result).toBe("/principals/users/john/")
     })
@@ -237,10 +212,7 @@ describe("webdav-base", () => {
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const authHeader = createBasicAuthHeader("user", "pass")
-      const result = await discoverPrincipal(
-        "https://example.com/dav",
-        authHeader,
-      )
+      const result = await discoverPrincipal("https://example.com/dav", authHeader)
 
       expect(result).toBe("/some/path/")
     })
@@ -259,10 +231,7 @@ describe("webdav-base", () => {
       globalThis.fetch = mockFetch as unknown as typeof fetch
 
       const authHeader = createBasicAuthHeader("user", "pass")
-      const result = await discoverPrincipal(
-        "https://example.com/dav",
-        authHeader,
-      )
+      const result = await discoverPrincipal("https://example.com/dav", authHeader)
 
       expect(result).toBeNull()
     })

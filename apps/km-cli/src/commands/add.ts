@@ -111,9 +111,7 @@ export const addCommand = new Command("add")
     const targetNode = repo.resolveNode(resolvedTarget.nodeRef)
     if (!targetNode) {
       console.error(term.red(`Target not found: ${target}`))
-      console.error(
-        term.dim("Use ID, path, or filename (e.g., @next, @someday)"),
-      )
+      console.error(term.dim("Use ID, path, or filename (e.g., @next, @someday)"))
       process.exit(1)
     }
 
@@ -213,9 +211,7 @@ export const addCommand = new Command("add")
       : new Set(
           repo
             .getSubtree(targetNode.id)
-            .filter(
-              (n): n is typeof n & { link_to: string } => n.link_to != null,
-            )
+            .filter((n): n is typeof n & { link_to: string } => n.link_to != null)
             .map((n) => n.link_to),
         )
 
@@ -226,9 +222,7 @@ export const addCommand = new Command("add")
     for (const task of candidates) {
       const hasLink = existingLinkTargets.has(task.id)
       const hasSigil =
-        sigilStr && !options.force && sigilPrefix && sigilName
-          ? contentHasSigil(task, sigilPrefix, sigilName)
-          : false
+        sigilStr && !options.force && sigilPrefix && sigilName ? contentHasSigil(task, sigilPrefix, sigilName) : false
 
       if (options.force) {
         tasksToLink.push(task)
@@ -246,16 +240,8 @@ export const addCommand = new Command("add")
       }
     }
 
-    if (
-      tasksToLink.length === 0 &&
-      tasksToSigil.length === 0 &&
-      skipped.length > 0
-    ) {
-      console.log(
-        term.yellow(
-          `All ${skipped.length} task(s) already linked (use --force to re-add)`,
-        ),
-      )
+    if (tasksToLink.length === 0 && tasksToSigil.length === 0 && skipped.length > 0) {
+      console.log(term.yellow(`All ${skipped.length} task(s) already linked (use --force to re-add)`))
       process.exit(0)
     }
 
@@ -266,18 +252,13 @@ export const addCommand = new Command("add")
       if (tasksToLink.length > 0) {
         console.log(term.cyan("Dry run - would link:"))
         for (const task of tasksToLink) {
-          const needsSigil =
-            sigilStr && tasksToSigil.some((t) => t.id === task.id)
+          const needsSigil = sigilStr && tasksToSigil.some((t) => t.id === task.id)
           const suffix = needsSigil ? term.cyan(` (+ ${sigilStr})`) : ""
-          console.log(
-            `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}${suffix}`,
-          )
+          console.log(`  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}${suffix}`)
         }
       }
       // Tasks that only need sigil (already linked but missing sigil)
-      const sigilOnly = tasksToSigil.filter(
-        (t) => !tasksToLink.some((l) => l.id === t.id),
-      )
+      const sigilOnly = tasksToSigil.filter((t) => !tasksToLink.some((l) => l.id === t.id))
       if (sigilOnly.length > 0) {
         console.log(term.cyan(`\nWould add ${sigilStr} to (already linked):`))
         for (const task of sigilOnly) {
@@ -289,14 +270,10 @@ export const addCommand = new Command("add")
       if (skipped.length > 0) {
         console.log(term.yellow(`\nSkipped (already linked + tagged):`))
         for (const task of skipped) {
-          console.log(
-            `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
-          )
+          console.log(`  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`)
         }
       }
-      console.log(
-        term.dim(`\nTo: ${targetNode.content || targetNode.fs_path || target}`),
-      )
+      console.log(term.dim(`\nTo: ${targetNode.content || targetNode.fs_path || target}`))
       return
     }
 
@@ -333,13 +310,10 @@ export const addCommand = new Command("add")
           const newContent = (task.content || "") + " " + sigilStr
 
           // Update data with sigil added to the appropriate array
-          const existingArray =
-            (task.data?.[dataKey] as string[] | undefined) ?? []
+          const existingArray = (task.data?.[dataKey] as string[] | undefined) ?? []
           const newData = {
             ...task.data,
-            [dataKey]: existingArray.includes(sigilName)
-              ? existingArray
-              : [...existingArray, sigilName],
+            [dataKey]: existingArray.includes(sigilName) ? existingArray : [...existingArray, sigilName],
           }
 
           repo.updateNode(task.id, { content: newContent, data: newData })
@@ -373,16 +347,9 @@ export const addCommand = new Command("add")
     }
 
     if (tasksToLink.length > 0) {
-      console.log(
-        term.green("✓"),
-        `Linked ${tasksToLink.length} task(s) to ${targetNode.content || target}`,
-      )
+      console.log(term.green("✓"), `Linked ${tasksToLink.length} task(s) to ${targetNode.content || target}`)
       for (const task of tasksToLink.slice(0, 5)) {
-        console.log(
-          term.dim(
-            `  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`,
-          ),
-        )
+        console.log(term.dim(`  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`))
       }
       if (tasksToLink.length > 5) {
         console.log(term.dim(`  ... and ${tasksToLink.length - 5} more`))
@@ -392,10 +359,6 @@ export const addCommand = new Command("add")
       console.log(term.green("✓"), `Added ${sigilStr} to ${sigilCount} task(s)`)
     }
     if (skipped.length > 0) {
-      console.log(
-        term.dim(
-          `  Skipped ${skipped.length} already linked (use --force to re-add)`,
-        ),
-      )
+      console.log(term.dim(`  Skipped ${skipped.length} already linked (use --force to re-add)`))
     }
   })

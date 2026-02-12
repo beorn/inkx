@@ -12,12 +12,7 @@ import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
 import type { KNode } from "@km/core"
 import { getRootPath } from "../../program.ts"
-import {
-  getNodeDisplayName,
-  formatCollapsedAncestor,
-  formatTaskWithPath,
-  formatTaskLine,
-} from "./formatters.ts"
+import { getNodeDisplayName, formatCollapsedAncestor, formatTaskWithPath, formatTaskLine } from "./formatters.ts"
 import {
   findNodeByPathOrId,
   getTasksUnderNode,
@@ -61,9 +56,7 @@ function filterTasksByStatus(
   }
   if (!options.all) {
     if (defaultMode === "active") {
-      return tasks.filter(
-        (t) => t.task_status === "todo" || t.task_status === "wip",
-      )
+      return tasks.filter((t) => t.task_status === "todo" || t.task_status === "wip")
     }
     return tasks.filter((t) => t.task_status !== "done")
   }
@@ -74,11 +67,7 @@ function filterTasksByStatus(
  * Resolve tasks from a query argument (--query flag or query-like positional).
  * Builds the query string with default status filters and runs it against the repo.
  */
-function resolveFromQuery(
-  repo: Repo,
-  queryArg: string,
-  options: Pick<ListTasksOptions, "status" | "all">,
-): KNode[] {
+function resolveFromQuery(repo: Repo, queryArg: string, options: Pick<ListTasksOptions, "status" | "all">): KNode[] {
   let queryStr = queryArg
   if (!options.all && !queryStr.includes("status:")) {
     queryStr = `-status:done ${queryStr}`
@@ -122,15 +111,10 @@ function resolveFromPathOrId(
  * Resolve input arguments into a filtered task list and context.
  * Returns null when the input points to a single task (details shown as side-effect).
  */
-function resolveInput(
-  repo: Repo,
-  pathOrId: string | undefined,
-  options: ListTasksOptions,
-): ResolvedInput | null {
+function resolveInput(repo: Repo, pathOrId: string | undefined, options: ListTasksOptions): ResolvedInput | null {
   // Handle query option first (takes precedence).
   // Also treat positional arg as query if it looks like one.
-  const queryArg =
-    options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
+  const queryArg = options.query || (pathOrId && looksLikeQuery(pathOrId) ? pathOrId : null)
 
   if (queryArg) {
     return {
@@ -159,11 +143,7 @@ function resolveInput(
 /**
  * Render tasks in flat mode (one line per task with breadcrumb path).
  */
-function renderFlat(
-  repo: Repo,
-  tasks: KNode[],
-  options: ListTasksOptions,
-): void {
+function renderFlat(repo: Repo, tasks: KNode[], options: ListTasksOptions): void {
   for (const task of tasks) {
     const rawAncestors = repo.getAncestors(task.id)
     const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
@@ -182,11 +162,7 @@ function renderFlat(
  * Render tasks in tree mode, grouping by shared ancestor paths.
  * Uses incremental path divergence to avoid repeating shared prefixes.
  */
-function renderTree(
-  repo: Repo,
-  tasks: KNode[],
-  options: ListTasksOptions,
-): void {
+function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void {
   const tasksWithAncestors = buildTaskTree(repo, tasks)
   const sorted = sortByPath(tasksWithAncestors)
 
@@ -237,10 +213,7 @@ function renderTree(
     // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
     const taskIndent = hasSection ? fsDepth + 3 : fsDepth
     const taskPrefix = " ".repeat(taskIndent)
-    console.log(
-      taskPrefix +
-        formatTaskLine(task, { verbose: options.detail, showId: options.id }),
-    )
+    console.log(taskPrefix + formatTaskLine(task, { verbose: options.detail, showId: options.id }))
 
     previousAncestorKeys = ancestorKeys
   }
@@ -249,11 +222,7 @@ function renderTree(
 /**
  * Render the resolved task list (handles JSON, flat, and tree modes).
  */
-function renderTaskList(
-  repo: Repo,
-  input: ResolvedInput,
-  options: ListTasksOptions,
-): void {
+function renderTaskList(repo: Repo, input: ResolvedInput, options: ListTasksOptions): void {
   const { tasks, rootNode, pathFilter } = input
 
   if (options.json) {
@@ -288,10 +257,7 @@ function renderTaskList(
 /**
  * List tasks (optionally scoped to a root node or filtered by path/query)
  */
-export async function listTasks(
-  pathOrId: string | undefined,
-  options: ListTasksOptions,
-): Promise<void> {
+export async function listTasks(pathOrId: string | undefined, options: ListTasksOptions): Promise<void> {
   const resolved = resolvePathArg(undefined, getRootPath() || process.cwd())
   using repo = await loadRepo(resolved.repoRoot)
 
@@ -304,11 +270,7 @@ export async function listTasks(
 /**
  * Show task details
  */
-function showTaskDetails(
-  repo: Repo,
-  task: KNode,
-  options: { json?: boolean },
-): void {
+function showTaskDetails(repo: Repo, task: KNode, options: { json?: boolean }): void {
   if (options.json) {
     console.log(JSON.stringify(task, null, 2))
     return
@@ -328,10 +290,7 @@ function showTaskDetails(
   if (task.parent_id) {
     console.log(term.dim("Parent:"), task.parent_id.slice(0, 8))
   }
-  console.log(
-    term.dim("Created:"),
-    new Date(task.created_at ?? Date.now()).toISOString(),
-  )
+  console.log(term.dim("Created:"), new Date(task.created_at ?? Date.now()).toISOString())
 
   // Show child tasks if any
   const children = getTasksUnderNode(repo, task.id)

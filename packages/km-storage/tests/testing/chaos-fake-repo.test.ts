@@ -41,10 +41,7 @@ describe("ChaosFakeRepo", () => {
 
     it("logs moveNode operations", () => {
       const repo = createChaosFakeRepo({
-        nodes: [
-          createNode({ id: "parent", parent_id: null }),
-          createNode({ id: "child", parent_id: "parent" }),
-        ],
+        nodes: [createNode({ id: "parent", parent_id: null }), createNode({ id: "child", parent_id: "parent" })],
       })
 
       repo.moveNode("child", null as unknown as string, 0)
@@ -75,10 +72,7 @@ describe("ChaosFakeRepo", () => {
   describe("orphan detection", () => {
     it("detects nodes with non-existent parents", () => {
       const repo = createChaosFakeRepo({
-        nodes: [
-          createNode({ id: "1", parent_id: null }),
-          createNode({ id: "2", parent_id: "nonexistent" }),
-        ],
+        nodes: [createNode({ id: "1", parent_id: null }), createNode({ id: "2", parent_id: "nonexistent" })],
       })
 
       const orphans = repo.getOrphanedNodes()
@@ -129,9 +123,7 @@ describe("ChaosFakeRepo", () => {
         nodes: [createNode({ id: "1", content: "Original" })],
       })
 
-      const original = repo.injectDuplicate(
-        createNode({ id: "1", content: "Duplicate" }),
-      )
+      const original = repo.injectDuplicate(createNode({ id: "1", content: "Duplicate" }))
 
       expect(original).not.toBeNull()
       expect(original!.content).toBe("Original")
@@ -288,9 +280,7 @@ describe("ChaosFakeRepo", () => {
 })
 
 // Helper to create minimal valid KNode
-function createNode(
-  overrides: Partial<KNode> & { id: string; parent_id?: string | null },
-): KNode {
+function createNode(overrides: Partial<KNode> & { id: string; parent_id?: string | null }): KNode {
   const now = Date.now()
   return {
     type: "section",

@@ -17,9 +17,9 @@ import { rowToNode } from "./utils.ts"
  */
 export function getChildCount(db: Database, parentId: string | null): number {
   const pid = parentId ?? "."
-  const result = db
-    .query("SELECT COUNT(*) as count FROM nodes WHERE parent_id = ?")
-    .get(pid) as { count: number } | null
+  const result = db.query("SELECT COUNT(*) as count FROM nodes WHERE parent_id = ?").get(pid) as {
+    count: number
+  } | null
   return result?.count ?? 0
 }
 
@@ -28,19 +28,14 @@ export function getChildCount(db: Database, parentId: string | null): number {
  * Returns a Map of parentId → count.
  * This is much more efficient than calling getChildCount() N times.
  */
-export function getChildCountsBatch(
-  db: Database,
-  parentIds: string[],
-): Map<string, number> {
+export function getChildCountsBatch(db: Database, parentIds: string[]): Map<string, number> {
   const counts = new Map<string, number>()
   if (parentIds.length === 0) return counts
 
   // SQLite doesn't have native array parameters, so we build a query with placeholders
   const placeholders = parentIds.map(() => "?").join(",")
   const rows = db
-    .query(
-      `SELECT parent_id, COUNT(*) as count FROM nodes WHERE parent_id IN (${placeholders}) GROUP BY parent_id`,
-    )
+    .query(`SELECT parent_id, COUNT(*) as count FROM nodes WHERE parent_id IN (${placeholders}) GROUP BY parent_id`)
     .all(...parentIds) as Array<{ parent_id: string; count: number }>
 
   for (const row of rows) {
@@ -101,10 +96,7 @@ export function getSubtree(db: Database, rootId: string): KNode[] {
  * Get all embed targets that exist anywhere on a board (for deduplication).
  * Returns a Set of node IDs that are already embedded somewhere on the board.
  */
-export function getEmbedTargetsOnBoard(
-  db: Database,
-  boardRootId: string | null,
-): Set<string> {
+export function getEmbedTargetsOnBoard(db: Database, boardRootId: string | null): Set<string> {
   if (!boardRootId) return new Set()
 
   const result = db

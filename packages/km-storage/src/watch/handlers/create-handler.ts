@@ -60,14 +60,7 @@ export function handleCreate(options: CreateHandlerOptions): void {
   const { db, op, repoRoot, emitter, fs, parsed, ctx } = options
 
   // Ensure all parent folders exist as nodes (and add them to resolver for linking)
-  const parentId = ensureFolderHierarchy(
-    db,
-    op.path,
-    repoRoot,
-    emitter,
-    fs,
-    ctx.resolver,
-  )
+  const parentId = ensureFolderHierarchy(db, op.path, repoRoot, emitter, fs, ctx.resolver)
 
   // Get stats - either from parsed result or filesystem
   const stat = parsed ? null : fs.statSync(op.path)
@@ -139,12 +132,7 @@ function handleMarkdownCreate(
     // Parse from filesystem
     const content = fs.readFileSync(op.path, "utf-8")
     const fileStat = stat ?? fs.statSync(op.path)
-    const processed = processMarkdownFile(
-      content,
-      op.path,
-      op.ino,
-      op.mtime ?? fileStat.mtimeMs,
-    )
+    const processed = processMarkdownFile(content, op.path, op.ino, op.mtime ?? fileStat.mtimeMs)
     nodes = processed.nodes
     wikilinks = processed.wikilinks
     hash = processed.hash
@@ -165,11 +153,7 @@ function handleMarkdownCreate(
 
   // Emit creation events for all nodes
   for (const node of nodes) {
-    emitNodeCreated(
-      emitter,
-      "fs-watch",
-      node as unknown as Record<string, unknown>,
-    )
+    emitNodeCreated(emitter, "fs-watch", node as unknown as Record<string, unknown>)
   }
 
   // Store wikilinks - use resolver for efficient lookup
@@ -202,17 +186,10 @@ function handleMarkdownCreate(
  * and a new folder was created at the same path. The path-based ID would collide
  * with the old (renamed) node, so we fall back to ULID.
  */
-function getFolderNodeId(
-  db: Database,
-  repoRoot: string,
-  absPath: string,
-  relPath: string,
-): string {
+function getFolderNodeId(db: Database, repoRoot: string, absPath: string, relPath: string): string {
   const pathId = generatePathBasedId(repoRoot, absPath)
   // Check if the path-based ID is already used by a DIFFERENT node (renamed away)
-  const existing = db
-    .prepare("SELECT fs_path FROM nodes WHERE id = ?")
-    .get(pathId) as { fs_path: string } | null
+  const existing = db.prepare("SELECT fs_path FROM nodes WHERE id = ?").get(pathId) as { fs_path: string } | null
   if (existing && existing.fs_path !== relPath) {
     // ID collision: old folder was renamed away, use ULID for new folder
     return ulid()
@@ -252,14 +229,7 @@ function ensureFolderHierarchy(
   }
 
   // Recursively ensure grandparent exists first
-  const grandparentId = ensureFolderHierarchy(
-    db,
-    parentPath,
-    repoRoot,
-    emitter,
-    fs,
-    resolver,
-  )
+  const grandparentId = ensureFolderHierarchy(db, parentPath, repoRoot, emitter, fs, resolver)
 
   // Create the parent folder node - use path-based ID for consistency with discovery.ts
   try {

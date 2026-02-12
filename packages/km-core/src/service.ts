@@ -67,10 +67,7 @@ export function runGenerator<T>(gen: Generator<unknown, T, unknown>): T {
  *   spinner.update(`${p.phase}: ${p.current}/${p.total}`);
  * });
  */
-export function runWithProgress<P, T>(
-  gen: Generator<P, T, unknown>,
-  onProgress: (info: P) => void,
-): T {
+export function runWithProgress<P, T>(gen: Generator<P, T, unknown>, onProgress: (info: P) => void): T {
   let result = gen.next()
   while (!result.done) {
     onProgress(result.value as P)

@@ -62,12 +62,8 @@ export function issueToBdJson(issue: Issue): Record<string, unknown> {
 export function printIssue(issue: Issue): void {
   const status = bdStatus(issue.status)
   const type = issue.type || "task"
-  const location = issue.parentContext
-    ? term.dim(` (${issue.parentContext})`)
-    : ""
-  console.log(
-    `${term.cyan(issue.shortId)} [P${issue.priority}] [${type}] ${status} - ${issue.title}${location}`,
-  )
+  const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
+  console.log(`${term.cyan(issue.shortId)} [P${issue.priority}] [${type}] ${status} - ${issue.title}${location}`)
 }
 
 /**
@@ -75,12 +71,8 @@ export function printIssue(issue: Issue): void {
  */
 export function printReadyIssue(issue: Issue, index: number): void {
   const type = issue.type || "task"
-  const location = issue.parentContext
-    ? term.dim(` (${issue.parentContext})`)
-    : ""
-  console.log(
-    `${index}. [P${issue.priority}] [${type}] ${term.cyan(issue.shortId)}: ${issue.title}${location}`,
-  )
+  const location = issue.parentContext ? term.dim(` (${issue.parentContext})`) : ""
+  console.log(`${index}. [P${issue.priority}] [${type}] ${term.cyan(issue.shortId)}: ${issue.title}${location}`)
 }
 
 /**

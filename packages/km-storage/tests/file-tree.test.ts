@@ -11,21 +11,13 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { mkdtempSync, rmSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
-import {
-  createDiskFileTree,
-  createMemFileTree,
-  type FileTree,
-} from "../src/file-tree.ts"
+import { createDiskFileTree, createMemFileTree, type FileTree } from "../src/file-tree.ts"
 
 // =============================================================================
 // Shared Test Suite (runs against all implementations)
 // =============================================================================
 
-function testFileTree(
-  name: string,
-  createFileTree: () => FileTree,
-  cleanup?: () => void,
-) {
+function testFileTree(name: string, createFileTree: () => FileTree, cleanup?: () => void) {
   describe(name, () => {
     let tree: FileTree
 
@@ -59,8 +51,7 @@ function testFileTree(
       })
 
       test("handles unicode content", () => {
-        const content =
-          "# Unicode Test\n- Task with emoji: \u2705\n- Japanese: \u3053\u3093\u306b\u3061\u306f"
+        const content = "# Unicode Test\n- Task with emoji: \u2705\n- Japanese: \u3053\u3093\u306b\u3061\u306f"
         tree.write("unicode.md", content)
         expect(tree.read("unicode.md")).toBe(content)
       })

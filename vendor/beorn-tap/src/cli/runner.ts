@@ -121,10 +121,7 @@ const program = new Command()
   .name("tap")
   .description("TAP stream orchestration - run tests with parallel support")
   .version(await getVersion())
-  .argument("[patterns...]", "Test file glob patterns", [
-    "**/*.test.ts",
-    "**/*.spec.ts",
-  ])
+  .argument("[patterns...]", "Test file glob patterns", ["**/*.test.ts", "**/*.spec.ts"])
   .option("-R, --reporter <type>", "Output format (tap|spec|dots|json)", "spec")
   .option("-j, --jobs <n>", "Number of parallel workers", Number, 1)
   .option("--dots", "Show colored dots (alias for -R dots)")

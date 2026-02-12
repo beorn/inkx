@@ -16,10 +16,7 @@ import { rowToNode } from "./utils.ts"
  * Get tasks by status
  * A "task" is any node with task_status set, regardless of structural type.
  */
-export function getTasksByStatus(
-  db: Database,
-  status: TaskStatus | TaskStatus[],
-): KNode[] {
+export function getTasksByStatus(db: Database, status: TaskStatus | TaskStatus[]): KNode[] {
   const statuses = Array.isArray(status) ? status : [status]
   const placeholders = statuses.map(() => "?").join(", ")
 
@@ -93,8 +90,7 @@ export function getTasksFiltered(
     sql += " AND task_status IN ('todo', 'wip')"
   }
 
-  sql +=
-    " ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC"
+  sql += " ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC"
 
   const rows = db.prepare(sql).all(...params) as Record<string, unknown>[]
   return rows.map(rowToNode)
@@ -182,12 +178,10 @@ export function findProject(db: Database, name: string): KNode | null {
     LIMIT 10
   `,
     )
-    .all(
-      normalizedName,
-      `%${normalizedName}%`,
-      `${normalizedName}%`,
-      `%/${normalizedName}%`,
-    ) as Record<string, unknown>[]
+    .all(normalizedName, `%${normalizedName}%`, `${normalizedName}%`, `%/${normalizedName}%`) as Record<
+    string,
+    unknown
+  >[]
 
   const nodes = rows.map(rowToNode)
 

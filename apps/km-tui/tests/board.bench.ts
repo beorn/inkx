@@ -14,27 +14,17 @@
  */
 
 import { bench, describe, beforeAll } from "vitest"
-import {
-  createFlexxEngine,
-  initYogaEngine,
-  setLayoutEngine,
-  type LayoutEngine,
-} from "inkx"
+import { createFlexxEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "inkx"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 
 // Check for engine filter via env var
-const ENGINE_FILTER = process.env.INKX_ENGINE?.toLowerCase() as
-  | "flexx"
-  | "yoga"
-  | undefined
+const ENGINE_FILTER = process.env.INKX_ENGINE?.toLowerCase() as "flexx" | "yoga" | undefined
 const RUN_FLEXX = !ENGINE_FILTER || ENGINE_FILTER === "flexx"
 const RUN_YOGA = !ENGINE_FILTER || ENGINE_FILTER === "yoga"
 
 if (ENGINE_FILTER) {
-  console.warn(
-    `[bench] INKX_ENGINE=${ENGINE_FILTER} - running only ${ENGINE_FILTER} benchmarks`,
-  )
+  console.warn(`[bench] INKX_ENGINE=${ENGINE_FILTER} - running only ${ENGINE_FILTER} benchmarks`)
 }
 
 // Very low iteration for fast feedback (user can increase via vitest config)

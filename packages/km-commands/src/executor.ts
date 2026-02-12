@@ -4,10 +4,7 @@ import { getCommand } from "./registry.ts"
 
 const log = createLogger("km:commands:executor")
 
-export function executeCommand(
-  id: string,
-  ctx: CommandContext,
-): CommandAction | CommandAction[] | null {
+export function executeCommand(id: string, ctx: CommandContext): CommandAction | CommandAction[] | null {
   const cmd = getCommand(id)
   if (!cmd) {
     log.debug?.(`command not found: ${id}`)
@@ -28,10 +25,7 @@ export function executeCommand(
  * All fields are passed directly - no tree traversal needed.
  * The caller (TUI) computes currentNode, position info from its own state.
  */
-export function buildContext(
-  viewMode: ViewMode,
-  fields: Omit<CommandContext, "viewMode">,
-): CommandContext {
+export function buildContext(viewMode: ViewMode, fields: Omit<CommandContext, "viewMode">): CommandContext {
   return {
     viewMode,
     ...fields,

@@ -49,10 +49,7 @@ export const shCommand = new Command("sh")
   .description("Non-interactive shell for scripting and debugging TUI")
   .argument("[root]", "Root node ID, filesystem path, or directory to view")
   .option("--json", "JSON mode: input and output as NDJSON")
-  .option(
-    "-c, --command <commands...>",
-    "Execute commands (repeatable, semicolon/newline separated)",
-  )
+  .option("-c, --command <commands...>", "Execute commands (repeatable, semicolon/newline separated)")
   .option("-f, --file <path>", "Read commands from file instead of stdin")
   .option("-v, --verbose", "Output JSON action event for each command")
   // oxlint-disable-next-line complexity/complexity -- CLI REPL with 3 input modes
@@ -64,8 +61,7 @@ export const shCommand = new Command("sh")
     using repo = await loadRepo(resolved.repoRoot)
 
     // Initialize bound helper functions
-    getNodeDisplayName = (node) =>
-      getNodeDisplayNameBase(node, (parentId) => repo.getChildren(parentId))
+    getNodeDisplayName = (node) => getNodeDisplayNameBase(node, (parentId) => repo.getChildren(parentId))
 
     // Resolve the node reference if provided
     let resolvedNodeId: string | null = null
@@ -197,9 +193,7 @@ export const shCommand = new Command("sh")
       let history: string[] = []
       try {
         const historyContent = readFileSync(historyPath, "utf-8")
-        history = historyContent
-          .split("\n")
-          .filter((line) => line.trim().length > 0)
+        history = historyContent.split("\n").filter((line) => line.trim().length > 0)
       } catch {
         // No history file yet, that's fine
       }
@@ -210,9 +204,7 @@ export const shCommand = new Command("sh")
       // Tab completion function
       const completer = (line: string): [string[], string] => {
         // Complete command names
-        const hits = commandNames.filter((cmd) =>
-          cmd.startsWith(line.toLowerCase()),
-        )
+        const hits = commandNames.filter((cmd) => cmd.startsWith(line.toLowerCase()))
         // Show all completions if none found
         return [hits.length ? hits : commandNames, line]
       }
@@ -417,10 +409,7 @@ function buildNodes(repo: Repo, rootId: string | null): TNode[] {
 async function readInputLines(inputFile?: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const lines: string[] = []
-    const input =
-      inputFile && existsSync(inputFile)
-        ? createReadStream(inputFile)
-        : process.stdin
+    const input = inputFile && existsSync(inputFile) ? createReadStream(inputFile) : process.stdin
 
     const rl = createInterface({
       input,
@@ -470,11 +459,7 @@ function getNodeAtCursor(state: BoardState): TNode | null {
  * Create mutation handler that integrates with storage layer
  * Uses the repo's methods which handle filesystem writes synchronously
  */
-function createMutationHandler(
-  repo: Repo,
-  rootId: string | null,
-  rootPath: string,
-): MutationHandler {
+function createMutationHandler(repo: Repo, rootId: string | null, rootPath: string): MutationHandler {
   return (command: ShellCommand, state: BoardState) => {
     const currentNode = getNodeAtCursor(state)
     if (!currentNode) {

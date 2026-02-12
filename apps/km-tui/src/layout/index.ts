@@ -21,22 +21,10 @@
  */
 
 // Text utilities from factory (which imports from inkx)
-export {
-  wrapText,
-  truncateText,
-  padText,
-  constrainText,
-  displayLength,
-  calcScrollOffset,
-} from "./factory.tsx"
+export { wrapText, truncateText, padText, constrainText, displayLength, calcScrollOffset } from "./factory.tsx"
 
 // Path rendering (km-ink specific)
-export {
-  renderPath,
-  renderParentPath,
-  calcPathLength,
-  type PathSegment,
-} from "./path.ts"
+export { renderPath, renderParentPath, calcPathLength, type PathSegment } from "./path.ts"
 
 // Constraint components and hooks (inkx-bound by default)
 export {

@@ -62,11 +62,7 @@ describe("registry", () => {
 
   describe("registerCommands", () => {
     it("registers multiple commands at once", () => {
-      const cmds = [
-        createCommand("cmd_a"),
-        createCommand("cmd_b"),
-        createCommand("cmd_c"),
-      ]
+      const cmds = [createCommand("cmd_a"), createCommand("cmd_b"), createCommand("cmd_c")]
       registerCommands(cmds)
 
       expect(getCommand("cmd_a")).toBeDefined()
@@ -98,11 +94,7 @@ describe("registry", () => {
     })
 
     it("returns all registered commands", () => {
-      registerCommands([
-        createCommand("cmd_1"),
-        createCommand("cmd_2"),
-        createCommand("cmd_3"),
-      ])
+      registerCommands([createCommand("cmd_1"), createCommand("cmd_2"), createCommand("cmd_3")])
 
       const all = getAllCommands()
       expect(all).toHaveLength(3)
@@ -141,14 +133,7 @@ describe("registry", () => {
     })
 
     it("includes all categories present", () => {
-      const categories: CommandCategory[] = [
-        "Navigation",
-        "Selection",
-        "Edit",
-        "Task",
-        "Fold",
-        "View",
-      ]
+      const categories: CommandCategory[] = ["Navigation", "Selection", "Edit", "Task", "Fold", "View"]
 
       for (const cat of categories) {
         registerCommand(createCommand(`${cat.toLowerCase()}_cmd`, cat))
@@ -165,11 +150,7 @@ describe("registry", () => {
 
   describe("clearRegistry", () => {
     it("removes all registered commands", () => {
-      registerCommands([
-        createCommand("cmd_1"),
-        createCommand("cmd_2"),
-        createCommand("cmd_3"),
-      ])
+      registerCommands([createCommand("cmd_1"), createCommand("cmd_2"), createCommand("cmd_3")])
       expect(getAllCommands()).toHaveLength(3)
 
       clearRegistry()
@@ -236,31 +217,11 @@ describe("filterCommands", () => {
   beforeEach(() => {
     clearRegistry()
     registerCommands([
-      createCommand(
-        "cursor_next",
-        "Navigation",
-        "Move to Next",
-        "Move cursor to next sibling",
-      ),
-      createCommand(
-        "cursor_prev",
-        "Navigation",
-        "Move to Previous",
-        "Move cursor to previous sibling",
-      ),
-      createCommand(
-        "select_toggle",
-        "Selection",
-        "Toggle Selection",
-        "Toggle selection on current node",
-      ),
+      createCommand("cursor_next", "Navigation", "Move to Next", "Move cursor to next sibling"),
+      createCommand("cursor_prev", "Navigation", "Move to Previous", "Move cursor to previous sibling"),
+      createCommand("select_toggle", "Selection", "Toggle Selection", "Toggle selection on current node"),
       createCommand("task_done", "Task", "Mark Done", "Mark task as done"),
-      createCommand(
-        "zoom_in",
-        "Navigation",
-        "Zoom In",
-        "Focus on current node",
-      ),
+      createCommand("zoom_in", "Navigation", "Zoom In", "Focus on current node"),
     ])
   })
 
@@ -341,10 +302,7 @@ describe("createCommandRegistry", () => {
 
     // register/registerAll
     registry.register(createCommand("nav_1", "Navigation"))
-    registry.registerAll([
-      createCommand("nav_2", "Navigation"),
-      createCommand("sel_1", "Selection"),
-    ])
+    registry.registerAll([createCommand("nav_2", "Navigation"), createCommand("sel_1", "Selection")])
 
     // get
     expect(registry.get("nav_1")).toBeDefined()

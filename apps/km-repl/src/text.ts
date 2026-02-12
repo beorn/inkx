@@ -84,23 +84,14 @@ export function renderPlain(text: string): string {
   result = result.replace(BOLD_REGEX, (_match, content: string) => content)
 
   // Strip italic markers
-  result = result.replace(
-    ITALIC_ASTERISK_REGEX,
-    (_match, content: string) => content,
-  )
-  result = result.replace(
-    ITALIC_UNDERSCORE_REGEX,
-    (_match, content: string) => content,
-  )
+  result = result.replace(ITALIC_ASTERISK_REGEX, (_match, content: string) => content)
+  result = result.replace(ITALIC_UNDERSCORE_REGEX, (_match, content: string) => content)
 
   // Strip code markers
   result = result.replace(CODE_REGEX, (_match, content: string) => content)
 
   // Strip strikethrough markers
-  result = result.replace(
-    STRIKETHROUGH_REGEX,
-    (_match, content: string) => content,
-  )
+  result = result.replace(STRIKETHROUGH_REGEX, (_match, content: string) => content)
 
   // Clean up whitespace
   return result.replace(/  +/g, " ").trim()

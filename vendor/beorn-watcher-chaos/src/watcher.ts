@@ -429,9 +429,7 @@ export class ChaosWatcher extends EventEmitter implements IChaosWatcher {
 /**
  * Create a ChaosWatcher with common test defaults
  */
-export function createChaosWatcher(
-  options: Partial<ChaosWatcherConfig> = {},
-): ChaosWatcher {
+export function createChaosWatcher(options: Partial<ChaosWatcherConfig> = {}): ChaosWatcher {
   return new ChaosWatcher({
     debounceMs: 50,
     seed: 12345,

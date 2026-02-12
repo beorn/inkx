@@ -88,9 +88,7 @@ export interface TestEnvRepoResult {
  * repo.close()
  * ```
  */
-export function createTestEnvRepo(
-  options: CreateTestEnvRepoOptions,
-): TestEnvRepoResult {
+export function createTestEnvRepo(options: CreateTestEnvRepoOptions): TestEnvRepoResult {
   log.debug?.(`createTestEnvRepo repoPath=${options.repoPath}`)
 
   const skipPersist = options.skipPersist ?? true

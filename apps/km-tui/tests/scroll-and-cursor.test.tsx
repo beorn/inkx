@@ -27,10 +27,7 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
 
       // The current card should be visible in the text output
       const screenshot = board.screenshot()
-      expect(
-        screenshot,
-        `card${i} should be visible after navigating down`,
-      ).toContain(`card${i}`)
+      expect(screenshot, `card${i} should be visible after navigating down`).toContain(`card${i}`)
     }
   })
 
@@ -77,11 +74,7 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
 describe("km-tui-cursor-jump: Cursor movement boundaries", () => {
   test("j at last card in column rings bell, doesn't jump", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("a"), item("b"), item("c")),
-        item("col2", item("x"), item("y")),
-      ),
+      item("board", item("col1", item("a"), item("b"), item("c")), item("col2", item("x"), item("y"))),
     )
 
     // Navigate to last card in col1
@@ -102,13 +95,7 @@ describe("km-tui-cursor-jump: Cursor movement boundaries", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item(
-          "areas",
-          item("Family"),
-          item("Health"),
-          item("Kinship"),
-          item("MamaMuse"),
-        ),
+        item("areas", item("Family"), item("Health"), item("Kinship"), item("MamaMuse")),
         item("projects", item("proj1"), item("proj2")),
       ),
     )
@@ -137,11 +124,7 @@ describe("km-tui-cursor-jump: Cursor movement boundaries", () => {
 
   test("horizontal navigation preserves vertical position (curswant)", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
-        item("col2", item("2a"), item("2b")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c"), item("1d")), item("col2", item("2a"), item("2b"))),
     )
 
     // Navigate down to 1c (index 2)
@@ -160,10 +143,7 @@ describe("km-tui-cursor-jump: Cursor movement boundaries", () => {
 describe("km-tui-empty-cards: Card content rendering", () => {
   test("cards with content show their text", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("Task Alpha"), item("Task Beta"), item("Task Gamma")),
-      ),
+      item("board", item("col1", item("Task Alpha"), item("Task Beta"), item("Task Gamma"))),
     )
 
     const screenshot = board.screenshot()
@@ -200,13 +180,7 @@ describe("km-tui-empty-cards: Card content rendering", () => {
 
   test("folder with children shows children inline when expanded", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item(
-          "col1",
-          item("Folder", item("Item1"), item("Item2"), item("Item3")),
-        ),
-      ),
+      item("board", item("col1", item("Folder", item("Item1"), item("Item2"), item("Item3")))),
     )
 
     const screenshot = board.screenshot()

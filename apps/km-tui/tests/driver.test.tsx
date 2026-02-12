@@ -50,10 +50,7 @@ describe("withCommands", () => {
     foldedNodes: new Set(),
   }
 
-  const createOptions = (): WithCommandsOptions<
-    CommandContext,
-    CommandAction
-  > => ({
+  const createOptions = (): WithCommandsOptions<CommandContext, CommandAction> => ({
     registry,
     getContext: () => mockContext,
     handleAction: (action) => {
@@ -492,10 +489,7 @@ describe("createBoardDriver", () => {
   })
 
   test("press('j') navigates cursor down", async () => {
-    const nodes = item(
-      "board",
-      item("col1", item("1a"), item("1b"), item("1c")),
-    )
+    const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -530,11 +524,7 @@ describe("createBoardDriver", () => {
   })
 
   test("press('l') navigates to next column", async () => {
-    const nodes = item(
-      "board",
-      item("col1", item("1a")),
-      item("col2", item("2a")),
-    )
+    const nodes = item("board", item("col1", item("1a")), item("col2", item("2a")))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -633,10 +623,7 @@ describe("createBoardDriver", () => {
   })
 
   test("store state updates after navigation", async () => {
-    const nodes = item(
-      "board",
-      item("col1", item("1a"), item("1b"), item("1c")),
-    )
+    const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -653,11 +640,7 @@ describe("createBoardDriver", () => {
   })
 
   test("store provides cursor position", () => {
-    const nodes = item(
-      "board",
-      item("col1", item("1a")),
-      item("col2", item("2a")),
-    )
+    const nodes = item("board", item("col1", item("1a")), item("col2", item("2a")))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 

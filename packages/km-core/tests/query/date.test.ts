@@ -2,11 +2,7 @@
  * Tests for date query resolution
  */
 import { describe, test, expect } from "vitest"
-import {
-  resolveDateQuery,
-  isDateShortcut,
-  isDateField,
-} from "../../src/query/date.ts"
+import { resolveDateQuery, isDateShortcut, isDateField } from "../../src/query/date.ts"
 
 describe("isDateShortcut", () => {
   test("recognizes 'today'", () => {

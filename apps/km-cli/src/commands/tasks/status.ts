@@ -57,9 +57,7 @@ export function createStatusCommand() {
                 ? term.red("✗")
                 : term.dim("○")
 
-        console.log(
-          `${statusIcon} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`,
-        )
+        console.log(`${statusIcon} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`)
         return
       }
 

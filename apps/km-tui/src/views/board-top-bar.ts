@@ -33,11 +33,7 @@ export interface PathSegment {
  * @param nodeId - Target node ID
  * @param boardRootId - Board root ID for determining "within board" segments
  */
-export function getPathSegments(
-  repo: Repo,
-  nodeId: string | null,
-  boardRootId: string | null,
-): PathSegment[] {
+export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: string | null): PathSegment[] {
   // Repo root segment - always present (folder icon)
   const repoRootSegment: PathSegment = {
     id: null,
@@ -133,11 +129,7 @@ export function renderTopBarContent(
   // - If no isWithinBoard segments, the last segment is the board root
   const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard)
   const boardRootIdx =
-    firstWithinBoardIdx > 0
-      ? firstWithinBoardIdx - 1
-      : firstWithinBoardIdx === -1
-        ? segments.length - 1
-        : 0
+    firstWithinBoardIdx > 0 ? firstWithinBoardIdx - 1 : firstWithinBoardIdx === -1 ? segments.length - 1 : 0
 
   // Build content: " ● " prefix + segments
   // Use style only for bold (board root) and dim (other segments)

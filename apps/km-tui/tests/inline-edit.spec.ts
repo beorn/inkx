@@ -17,9 +17,7 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("Inline Editing", () => {
   test("Enter on card enters inline edit, shows editable text", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
 
@@ -32,9 +30,7 @@ describe("Inline Editing", () => {
   })
 
   test("Enter on column header enters inline edit", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("k") // card → column
     board.expect("#col1[data-cursor]").toExist()
@@ -45,13 +41,7 @@ describe("Inline Editing", () => {
   })
 
   test("typing during inline edit does NOT trigger board commands", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
 
     board.expect("#1a[data-cursor]").toExist()
     board.press("Enter")
@@ -69,9 +59,7 @@ describe("Inline Editing", () => {
   })
 
   test("Escape during inline edit cancels without saving", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
     board.press("Enter")
@@ -97,9 +85,7 @@ describe("Inline Editing", () => {
   })
 
   test("Enter confirms inline edit and saves to repo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
     board.press("Enter")
@@ -125,9 +111,7 @@ describe("Inline Editing", () => {
   })
 
   test("inline edit then navigate works (Enter → Escape → j/k)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
 
     // Edit first card then cancel
     board.press("Enter")
@@ -146,9 +130,7 @@ describe("Inline Editing", () => {
   })
 
   test("close_or_quit (Escape) cancels inline edit before other actions", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter")
 
@@ -170,9 +152,7 @@ describe("Inline Edit — Readline Integration", () => {
   // Exhaustive readline testing belongs at the useLineEdit hook level.
 
   test("Backspace and arrow keys work in edit mode", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("ab"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
     // ab| → ArrowLeft → a|b → insert X → aXb
@@ -185,9 +165,7 @@ describe("Inline Edit — Readline Integration", () => {
   })
 
   test("Delete key works in edit mode (forward delete)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("ab"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
     // ab| → Ctrl+A → |ab → Delete → |b
@@ -200,9 +178,7 @@ describe("Inline Edit — Readline Integration", () => {
   })
 
   test("Ctrl shortcuts (Control+A, Control+W) work through input layers", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("xyz"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("xyz"))))
 
     board.press("Enter")
     // xyz| → Ctrl+A → |xyz → type "0" → 0xyz
@@ -262,9 +238,7 @@ describe("Inline Edit — Task Marks", () => {
 
 describe("Inline Edit — Navigate Away Saves", () => {
   test("ArrowDown during edit saves and navigates to next card", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
     board.press("Enter")
@@ -284,9 +258,7 @@ describe("Inline Edit — Navigate Away Saves", () => {
   })
 
   test("ArrowUp during edit saves and navigates to previous card", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to second card
     board.press("j")
@@ -305,9 +277,7 @@ describe("Inline Edit — Navigate Away Saves", () => {
   })
 
   test("navigate away without changes does not save (no-op)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("orig"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("orig"), item("1b"))))
 
     board.press("Enter")
     // Don't type anything, just navigate away
@@ -320,9 +290,7 @@ describe("Inline Edit — Navigate Away Saves", () => {
   })
 
   test("Escape during edit cancels without saving (no auto-save)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter")
     for (const c of "-nope") board.press(c)
@@ -341,9 +309,7 @@ describe("Inline Edit — useSyncExternalStore (repo→render)", () => {
   // useSyncExternalStore must drive re-renders independently of UI dispatch.
 
   test("direct repo.updateNode causes board to show updated content", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("original"), item("1b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("original"), item("1b"))))
 
     expect(board.screenshot()).toContain("original")
 
@@ -360,9 +326,7 @@ describe("Inline Edit — useSyncExternalStore (repo→render)", () => {
   })
 
   test("multiple direct repo mutations accumulate correctly", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("aaa"), item("bbb"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("aaa"), item("bbb"))))
 
     repo.updateNode("aaa", { content: "AAA" })
     repo.updateNode("bbb", { content: "BBB" })
@@ -375,9 +339,7 @@ describe("Inline Edit — useSyncExternalStore (repo→render)", () => {
   })
 
   test("repo.deleteNode causes board to remove the node", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("keep"), item("remove"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("keep"), item("remove"))))
 
     expect(board.screenshot()).toContain("remove")
 
@@ -391,9 +353,7 @@ describe("Inline Edit — useSyncExternalStore (repo→render)", () => {
 
 describe("Inline Edit — Edge Cases", () => {
   test("edit across different columns", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("c1")), item("col2", item("c2"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("c1")), item("col2", item("c2"))))
 
     // Edit in col1
     board.press("Enter")
@@ -414,9 +374,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("confirm with no changes preserves original", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("keep"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("keep"))))
 
     board.press("Enter")
     // Immediately confirm without typing
@@ -427,9 +385,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("backspace all then confirm saves empty content", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("ab"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("ab"))))
 
     board.press("Enter")
     board.press("Backspace")
@@ -443,9 +399,7 @@ describe("Inline Edit — Edge Cases", () => {
   })
 
   test("edit then confirm then edit same node again", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("orig"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("orig"))))
 
     // First edit: append "1"
     board.press("Enter")

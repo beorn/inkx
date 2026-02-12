@@ -60,10 +60,7 @@ export function parseICalendar(ical: string): CalendarEvent | null {
 
   // Check if all-day event (DATE vs DATE-TIME)
   const dtstartLine = vevent.match(/^DTSTART[;:](.*)$/im)?.[1]
-  if (
-    dtstartLine?.includes("VALUE=DATE") &&
-    !dtstartLine.includes("DATE-TIME")
-  ) {
+  if (dtstartLine?.includes("VALUE=DATE") && !dtstartLine.includes("DATE-TIME")) {
     event.allDay = true
   }
 
@@ -124,9 +121,7 @@ export function formatICalendar(event: CalendarEvent): string {
 
   if (event.dtstart) {
     if (event.allDay) {
-      lines.push(
-        `DTSTART;VALUE=DATE:${event.dtstart.replace(/-/g, "").slice(0, 8)}`,
-      )
+      lines.push(`DTSTART;VALUE=DATE:${event.dtstart.replace(/-/g, "").slice(0, 8)}`)
     } else {
       lines.push(`DTSTART:${formatDateTimeForIcal(event.dtstart)}`)
     }
@@ -134,9 +129,7 @@ export function formatICalendar(event: CalendarEvent): string {
 
   if (event.dtend) {
     if (event.allDay) {
-      lines.push(
-        `DTEND;VALUE=DATE:${event.dtend.replace(/-/g, "").slice(0, 8)}`,
-      )
+      lines.push(`DTEND;VALUE=DATE:${event.dtend.replace(/-/g, "").slice(0, 8)}`)
     } else {
       lines.push(`DTEND:${formatDateTimeForIcal(event.dtend)}`)
     }
@@ -210,9 +203,5 @@ function formatDateTimeForIcal(iso: string): string {
  * Escape special characters in iCalendar values
  */
 function escapeValue(value: string): string {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\n/g, "\\n")
+  return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n")
 }

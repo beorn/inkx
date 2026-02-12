@@ -17,11 +17,7 @@ import type { TaskStatus } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { TUIBoardState, CardState, RenderOptions } from "./types.ts"
 import { getNodeDisplayName } from "./state.ts"
-import {
-  getStatusIcon as getStatusIconBase,
-  renderRich,
-  colorize,
-} from "./text/index.ts"
+import { getStatusIcon as getStatusIconBase, renderRich, colorize } from "./text/index.ts"
 
 /**
  * Create a term instance with truecolor support.
@@ -108,14 +104,7 @@ export function renderBoard(
       const isSelected = state.selectedNodes.has(card.node.id)
       const isFolded = state.foldedNodes.has(card.node.id)
 
-      return renderCard(
-        repo,
-        card,
-        colWidth - 1,
-        isCurrentCard,
-        isSelected,
-        isFolded,
-      )
+      return renderCard(repo, card, colWidth - 1, isCurrentCard, isSelected, isFolded)
     })
 
     // Cards can be multi-line
@@ -123,9 +112,7 @@ export function renderBoard(
     const maxLines = Math.max(...lineArrays.map((a) => a.length))
 
     for (let li = 0; li < maxLines; li++) {
-      const line = lineArrays
-        .map((cardLineArray) => (cardLineArray[li] || "").padEnd(colWidth - 1))
-        .join(" ")
+      const line = lineArrays.map((cardLineArray) => (cardLineArray[li] || "").padEnd(colWidth - 1)).join(" ")
       lines.push(line)
     }
   }
@@ -133,9 +120,7 @@ export function renderBoard(
   // Show "..." if more cards
   const moreIndicators = state.columns.map((col) => {
     if (col.cards.length > maxCardsVisible) {
-      return style
-        .dim(`  ... +${col.cards.length - maxCardsVisible} more`)
-        .padEnd(colWidth - 1)
+      return style.dim(`  ... +${col.cards.length - maxCardsVisible} more`).padEnd(colWidth - 1)
     }
     return " ".repeat(colWidth - 1)
   })
@@ -170,18 +155,12 @@ export function renderCard(
 
   // Status icon and content - compact format: "○ Content"
   const statusIcon = renderStatusIcon(node.task_status)
-  const rawContent = (node.content || getNodeDisplayName(repo, node)).slice(
-    0,
-    width - 3,
-  )
+  const rawContent = (node.content || getNodeDisplayName(repo, node)).slice(0, width - 3)
 
   // Apply markdown styling via renderRich, then dim+strikethrough for done/dropped
-  const isDoneOrDropped =
-    node.task_status === "done" || node.task_status === "dropped"
+  const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
   const styledContent = renderRich(rawContent)
-  const content = isDoneOrDropped
-    ? style.dim.strikethrough(styledContent)
-    : styledContent
+  const content = isDoneOrDropped ? style.dim.strikethrough(styledContent) : styledContent
   let firstLine = `${statusIcon} ${content}`
 
   // Apply styling
@@ -202,9 +181,7 @@ export function renderCard(
       const childIcon = renderStatusIcon(child.task_status)
       const childRaw = (child.content || "").slice(0, width - 3)
       const childContent = renderRich(childRaw)
-      lines.push(
-        style.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width),
-      )
+      lines.push(style.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width))
     }
     if (children.length > maxChildren) {
       lines.push(
@@ -215,9 +192,7 @@ export function renderCard(
       )
     }
   } else if (children.length > 0) {
-    lines.push(
-      style.dim(`  ▶ ${children.length}`).padEnd(width).slice(0, width),
-    )
+    lines.push(style.dim(`  ▶ ${children.length}`).padEnd(width).slice(0, width))
   }
 
   // Card border bottom

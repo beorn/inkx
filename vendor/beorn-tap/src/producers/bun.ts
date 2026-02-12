@@ -33,12 +33,7 @@ export function runBunTap(options: BunTapOptions = {}): BunTapResult {
   const tempDir = mkdtempSync(join(tmpdir(), "bun-tap-"))
   const junitFile = join(tempDir, "results.xml")
 
-  const args = [
-    "test",
-    "--reporter=junit",
-    `--reporter-outfile=${junitFile}`,
-    ...(options.args ?? []),
-  ]
+  const args = ["test", "--reporter=junit", `--reporter-outfile=${junitFile}`, ...(options.args ?? [])]
 
   const proc = spawn(["bun", ...args], {
     cwd: options.cwd,

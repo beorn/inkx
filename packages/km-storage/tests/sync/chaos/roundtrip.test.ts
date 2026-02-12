@@ -295,9 +295,7 @@ const x = 1;
         const result = verifyRoundtrip(content, `/test-${i}.md`)
 
         if (!result.passed) {
-          failures.push(
-            `File ${i}:\nOriginal:\n${result.original}\nRegenerated:\n${result.regenerated}`,
-          )
+          failures.push(`File ${i}:\nOriginal:\n${result.original}\nRegenerated:\n${result.regenerated}`)
         }
       }
 
@@ -318,9 +316,7 @@ const x = 1;
         const result = verifyRoundtrip(content, `/complex-${i}.md`)
 
         if (!result.passed) {
-          failures.push(
-            `File ${i}:\nOriginal:\n${result.original}\nRegenerated:\n${result.regenerated}`,
-          )
+          failures.push(`File ${i}:\nOriginal:\n${result.original}\nRegenerated:\n${result.regenerated}`)
         }
       }
 

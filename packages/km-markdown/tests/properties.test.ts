@@ -123,9 +123,7 @@ describe("parseInlineProperties", () => {
     })
 
     test("should parse three properties on same line", () => {
-      const result = parseInlineProperties(
-        "status:: done priority:: 2 assigned:: [[Bob]]",
-      )
+      const result = parseInlineProperties("status:: done priority:: 2 assigned:: [[Bob]]")
       expect(result.props.status).toEqual({ type: "text", value: "done" })
       expect(result.props.priority).toEqual({ type: "number", value: 2 })
       expect(result.props.assigned).toEqual({ type: "link", target: "Bob" })
@@ -147,9 +145,7 @@ describe("parseInlineProperties", () => {
     })
 
     test("should parse two links as a list", () => {
-      const result = parseInlineProperties(
-        "depends-on:: [[task-1]], [[task-2]]",
-      )
+      const result = parseInlineProperties("depends-on:: [[task-1]], [[task-2]]")
       expect(result.props["depends-on"]).toEqual({
         type: "list",
         values: [
@@ -180,9 +176,7 @@ describe("parseInlineProperties", () => {
     })
 
     test("should preserve preceding text and remove property", () => {
-      const result = parseInlineProperties(
-        "Complete the report priority:: 1 status:: pending",
-      )
+      const result = parseInlineProperties("Complete the report priority:: 1 status:: pending")
       expect(result.props.priority).toEqual({ type: "number", value: 1 })
       expect(result.props.status).toEqual({ type: "text", value: "pending" })
       expect(result.cleanText).toBe("Complete the report")

@@ -21,10 +21,7 @@ const log = createLogger("km:board:reducer")
  *
  * IMPORTANT: No tree traversal here - navigation handlers use Repo.
  */
-export function simplifiedBoardReducer(
-  state: BoardState,
-  action: BoardAction,
-): BoardState {
+export function simplifiedBoardReducer(state: BoardState, action: BoardAction): BoardState {
   log.debug?.(`action: ${action.type}`)
 
   switch (action.type) {

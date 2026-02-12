@@ -10,15 +10,9 @@
  * where j/k navigation was doing 3700 string comparisons per keypress.
  */
 
-const childIndexCache = new WeakMap<
-  readonly { id: string }[],
-  Map<string, number>
->()
+const childIndexCache = new WeakMap<readonly { id: string }[], Map<string, number>>()
 
-export function indexOfChild(
-  children: { id: string }[],
-  childId: string,
-): number {
+export function indexOfChild(children: { id: string }[], childId: string): number {
   let map = childIndexCache.get(children)
   if (!map) {
     map = new Map()

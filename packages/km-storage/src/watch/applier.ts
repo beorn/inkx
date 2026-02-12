@@ -18,13 +18,7 @@ import type { ParseResult } from "../parse-pool.ts"
 import type { ParseSource } from "../pipeline.ts"
 import { parseFiles, collect } from "../pipeline.ts"
 import type { ParsePoolService } from "../parse-pool.ts"
-import {
-  handleCreate,
-  handleUpdate,
-  handleDelete,
-  handleRename,
-  type ReconcileContext,
-} from "./handlers/index.ts"
+import { handleCreate, handleUpdate, handleDelete, handleRename, type ReconcileContext } from "./handlers/index.ts"
 
 const log = createLogger("km:storage:watch:reconcile")
 
@@ -68,9 +62,7 @@ export function applyReconcileOps(
     options = dbOrOptions
   } else {
     if (!ops || !repoRoot || !emitter) {
-      throw new Error(
-        "applyReconcileOps: missing required arguments (ops, repoRoot, emitter)",
-      )
+      throw new Error("applyReconcileOps: missing required arguments (ops, repoRoot, emitter)")
     }
     options = {
       db: dbOrOptions as Database,
@@ -81,13 +73,7 @@ export function applyReconcileOps(
     }
   }
 
-  const {
-    db,
-    ops: reconcileOps,
-    repoRoot: root,
-    emitter: emit,
-    fs: fileOps = realFs,
-  } = options
+  const { db, ops: reconcileOps, repoRoot: root, emitter: emit, fs: fileOps = realFs } = options
 
   log.debug?.(`applying ${reconcileOps.length} reconcile ops`)
   const start = Date.now()
@@ -136,9 +122,7 @@ export async function applyReconcileOpsAsync(
     options = dbOrOptions
   } else {
     if (!ops || !repoRoot || !emitter || !parsePool) {
-      throw new Error(
-        "applyReconcileOpsAsync: missing required arguments (ops, repoRoot, emitter, parsePool)",
-      )
+      throw new Error("applyReconcileOpsAsync: missing required arguments (ops, repoRoot, emitter, parsePool)")
     }
     options = {
       db: dbOrOptions as Database,
@@ -150,14 +134,7 @@ export async function applyReconcileOpsAsync(
     }
   }
 
-  const {
-    db,
-    ops: reconcileOps,
-    repoRoot: root,
-    emitter: emit,
-    parsePool: pool,
-    fs: fileOps = realFs,
-  } = options
+  const { db, ops: reconcileOps, repoRoot: root, emitter: emit, parsePool: pool, fs: fileOps = realFs } = options
 
   log.debug?.(`applying ${reconcileOps.length} reconcile ops (async)`)
   const start = Date.now()
@@ -182,9 +159,7 @@ export async function applyReconcileOpsAsync(
   // Batch resolve links for all new files at once
   finalizeBatchLinks(db, ctx)
 
-  log.debug?.(
-    `applied ${reconcileOps.length} ops (async) in ${Date.now() - start}ms`,
-  )
+  log.debug?.(`applied ${reconcileOps.length} ops (async) in ${Date.now() - start}ms`)
 }
 
 /**
@@ -218,10 +193,7 @@ function applyOp(
 /**
  * Parse markdown files in parallel using the pipeline
  */
-async function parseMarkdownFiles(
-  ops: ReconcileOp[],
-  parsePool: ParsePoolService,
-): Promise<Map<string, ParseResult>> {
+async function parseMarkdownFiles(ops: ReconcileOp[], parsePool: ParsePoolService): Promise<Map<string, ParseResult>> {
   // Collect markdown files that need parsing
   const parseJobs: Array<{
     op: ReconcileOp
@@ -244,9 +216,7 @@ async function parseMarkdownFiles(
     return new Map()
   }
 
-  log.debug?.(
-    `parallel parsing ${parseJobs.length} markdown files via pipeline`,
-  )
+  log.debug?.(`parallel parsing ${parseJobs.length} markdown files via pipeline`)
 
   // Build sources for pipeline
   const sources: ParseSource[] = parseJobs.map((job) => ({
@@ -283,8 +253,6 @@ async function parseMarkdownFiles(
 function finalizeBatchLinks(db: Database, ctx: ReconcileContext): void {
   if (ctx.newFiles.length > 0) {
     const resolved = resolveLinksBatch(db, ctx.newFiles)
-    log.debug?.(
-      `batch resolved ${resolved} links for ${ctx.newFiles.length} new files`,
-    )
+    log.debug?.(`batch resolved ${resolved} links for ${ctx.newFiles.length} new files`)
   }
 }

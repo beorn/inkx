@@ -2,13 +2,7 @@
  * CalDAV/CardDAV Types
  */
 
-import type {
-  EventStatus,
-  AttendeeStatus,
-  EmailType,
-  PhoneType,
-  AddressType,
-} from "./constants.ts"
+import type { EventStatus, AttendeeStatus, EmailType, PhoneType, AddressType } from "./constants.ts"
 
 /**
  * CalDAV server configuration

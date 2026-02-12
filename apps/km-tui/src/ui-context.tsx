@@ -88,13 +88,9 @@ export function deriveExcludedSigils(
  */
 export function useExcludedSigils(rootBoardIdParam?: string | null): string[] {
   const rootBoardId = useRootBoardId()
-  const effectiveId =
-    rootBoardIdParam !== undefined ? rootBoardIdParam : rootBoardId
+  const effectiveId = rootBoardIdParam !== undefined ? rootBoardIdParam : rootBoardId
   const repo = useRepo()
-  return useMemo(
-    () => deriveExcludedSigils(repo, effectiveId),
-    [effectiveId, repo],
-  )
+  return useMemo(() => deriveExcludedSigils(repo, effectiveId), [effectiveId, repo])
 }
 
 /**
@@ -161,9 +157,7 @@ const TreeRenderContext = createContext<TreeRenderCtx | null>(null)
 export function useTreeRenderContext(): TreeRenderCtx {
   const ctx = useContext(TreeRenderContext)
   if (!ctx) {
-    throw new Error(
-      "useTreeRenderContext must be used inside TreeRenderProvider",
-    )
+    throw new Error("useTreeRenderContext must be used inside TreeRenderProvider")
   }
   return ctx
 }
@@ -174,10 +168,7 @@ export function useTreeRenderContext(): TreeRenderCtx {
 export function deriveTreeConfig(ui: UIState): TreeConfig {
   const viewMode = ui.viewMode
   return {
-    maxOutlineDepth:
-      viewMode === "cards"
-        ? ui.maxOutlineDepth
-        : Math.min(1, ui.maxOutlineDepth),
+    maxOutlineDepth: viewMode === "cards" ? ui.maxOutlineDepth : Math.min(1, ui.maxOutlineDepth),
     maxContentLines: viewMode === "cards" ? ui.maxContentLines : 1,
     inOutlineMode: ui.inOutlineMode,
     currentSubIndex: ui.subIndex,
@@ -210,9 +201,5 @@ export function TreeRenderProvider({
     }),
     [treeConfig, setUI, rootBoardId],
   )
-  return (
-    <TreeRenderContext.Provider value={ctx}>
-      {children}
-    </TreeRenderContext.Provider>
-  )
+  return <TreeRenderContext.Provider value={ctx}>{children}</TreeRenderContext.Provider>
 }

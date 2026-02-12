@@ -9,11 +9,7 @@ import { describe, test, expect } from "vitest"
 import { mkdirSync, rmSync, writeFileSync, statSync, utimesSync } from "fs"
 import { join, relative } from "path"
 import type { Database } from "bun:sqlite"
-import {
-  reconcileDirectory,
-  applyReconcileOps,
-  getParentNodeId,
-} from "../../src/watch/reconcile.ts"
+import { reconcileDirectory, applyReconcileOps, getParentNodeId } from "../../src/watch/reconcile.ts"
 import { getNodeByPath } from "../../src/db-queries/core-lookup.ts"
 import { getChildren } from "../../src/db-queries/tree-traversal.ts"
 import { withTestEnv } from "@km/storage"
@@ -44,12 +40,7 @@ function touchFile(path: string, offsetMs = 1000): void {
 }
 
 /** Sync a directory to database */
-async function syncDir(
-  db: Database,
-  dir: string,
-  repoDir: string,
-  emitter: Emitter,
-): Promise<void> {
+async function syncDir(db: Database, dir: string, repoDir: string, emitter: Emitter): Promise<void> {
   const ops = reconcileDirectory(db, dir, repoDir)
   await applyReconcileOps(db, ops, repoDir, emitter)
 }
@@ -62,9 +53,7 @@ async function syncDir(
 let _repoDir = ""
 
 /** Wrap withTestEnv to set _repoDir for path helpers */
-function withTestEnvRel<T>(
-  fn: (env: { db: Database; repoDir: string; emitter: Emitter }) => T,
-): Promise<T> {
+function withTestEnvRel<T>(fn: (env: { db: Database; repoDir: string; emitter: Emitter }) => T): Promise<T> {
   return withTestEnv((env) => {
     _repoDir = env.repoDir
     return fn(env)
@@ -96,19 +85,12 @@ function assertNodeNotExists(db: Database, path: string): void {
 }
 
 /** Get children of a specific type */
-function getChildrenOfType(
-  db: Database,
-  parentId: string,
-  type: string,
-): ReturnType<typeof getChildren> {
+function getChildrenOfType(db: Database, parentId: string, type: string): ReturnType<typeof getChildren> {
   return getChildren(db, parentId).filter((n) => n.type === type)
 }
 
 /** Count total tasks across sections */
-function countTasksInSections(
-  db: Database,
-  sections: { id: string }[],
-): number {
+function countTasksInSections(db: Database, sections: { id: string }[]): number {
   let total = 0
   for (const section of sections) {
     total += getChildrenOfType(db, section.id, "task").length
@@ -253,12 +235,7 @@ describe("reconcile.ts", () => {
     test.each([
       {
         name: "file node from markdown",
-        setup: (dir: string) =>
-          createMdFile(
-            dir,
-            "new-file.md",
-            "# New File\n\n- [ ] Task 1\n- [x] Task 2",
-          ),
+        setup: (dir: string) => createMdFile(dir, "new-file.md", "# New File\n\n- [ ] Task 1\n- [x] Task 2"),
         expectedType: "file",
         checkChildren: true,
       },
@@ -396,37 +373,22 @@ describe("reconcile.ts", () => {
         const sectionsAfter = getChildrenOfType(db, fileNodeAfter.id, "section")
         expect(sectionsAfter.length).toBe(2)
 
-        const openSectionAfter = sectionsAfter.find((s) =>
-          s.content?.includes("Open"),
-        )!
-        expect(getChildrenOfType(db, openSectionAfter.id, "task").length).toBe(
-          2,
-        )
+        const openSectionAfter = sectionsAfter.find((s) => s.content?.includes("Open"))!
+        expect(getChildrenOfType(db, openSectionAfter.id, "task").length).toBe(2)
       }))
 
     test("file update with content change correctly diffs nodes", () =>
       withTestEnvRel(async ({ db, repoDir, emitter }) => {
-        const filePath = createMdFile(
-          repoDir,
-          "diff-test.md",
-          "# Test\n\n- [ ] Task A\n- [ ] Task B\n",
-        )
+        const filePath = createMdFile(repoDir, "diff-test.md", "# Test\n\n- [ ] Task A\n- [ ] Task B\n")
         await syncDir(db, repoDir, repoDir, emitter)
 
         const fileNode = assertNodeExists(db, filePath)
         const originalTasks = getChildrenOfType(db, fileNode.id, "task")
         expect(originalTasks.length).toBe(2)
-        const taskAId = originalTasks.find((t) =>
-          t.content?.includes("Task A"),
-        )!.id
-        const taskBId = originalTasks.find((t) =>
-          t.content?.includes("Task B"),
-        )!.id
+        const taskAId = originalTasks.find((t) => t.content?.includes("Task A"))!.id
+        const taskBId = originalTasks.find((t) => t.content?.includes("Task B"))!.id
 
-        writeFileSync(
-          filePath,
-          "# Test\n\n- [ ] Task A Modified\n- [ ] Task B\n",
-        )
+        writeFileSync(filePath, "# Test\n\n- [ ] Task A Modified\n- [ ] Task B\n")
         touchFile(filePath)
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -434,9 +396,7 @@ describe("reconcile.ts", () => {
         const tasksAfter = getChildrenOfType(db, fileNodeAfter.id, "task")
         expect(tasksAfter.length).toBe(2)
 
-        const taskAAfter = tasksAfter.find((t) =>
-          t.content?.includes("Task A Modified"),
-        )
+        const taskAAfter = tasksAfter.find((t) => t.content?.includes("Task A Modified"))
         const taskBAfter = tasksAfter.find((t) => t.content?.includes("Task B"))
 
         expect(taskAAfter).toBeDefined()
@@ -450,16 +410,8 @@ describe("reconcile.ts", () => {
     test("folder children remain visible after file touch in subfolder", () =>
       withTestEnvRel(async ({ db, repoDir, emitter }) => {
         const issueFolder = createFolder(repoDir, "issue")
-        const task1Path = createMdFile(
-          issueFolder,
-          "task1.md",
-          "# Task 1\n\n- [ ] Do something",
-        )
-        createMdFile(
-          issueFolder,
-          "task2.md",
-          "# Task 2\n\n- [ ] Do something else",
-        )
+        const task1Path = createMdFile(issueFolder, "task1.md", "# Task 1\n\n- [ ] Do something")
+        createMdFile(issueFolder, "task2.md", "# Task 2\n\n- [ ] Do something else")
 
         await syncDir(db, repoDir, repoDir, emitter)
         await syncDir(db, issueFolder, repoDir, emitter)
@@ -510,11 +462,7 @@ describe("reconcile.ts", () => {
         expect(fileNodesAfter.length).toBe(1)
         expect(fileNodesAfter[0]!.id).toBe(fileNodes[0]!.id)
 
-        const sectionsAfter = getChildrenOfType(
-          db,
-          fileNodesAfter[0]!.id,
-          "section",
-        )
+        const sectionsAfter = getChildrenOfType(db, fileNodesAfter[0]!.id, "section")
         expect(sectionsAfter.length).toBe(2)
         expect(countTasksInSections(db, sectionsAfter)).toBe(3)
       }))
@@ -548,8 +496,7 @@ describe("reconcile.ts", () => {
         const folderPath = createFolder(repoDir, "no-dup-folder")
         await syncDir(db, repoDir, repoDir, emitter)
 
-        const countQuery =
-          "SELECT COUNT(*) as cnt FROM nodes WHERE type = 'folder' AND name = 'no-dup-folder'"
+        const countQuery = "SELECT COUNT(*) as cnt FROM nodes WHERE type = 'folder' AND name = 'no-dup-folder'"
         expect((db.query(countQuery).get() as { cnt: number }).cnt).toBe(1)
 
         // Simulate watch handler and discovery both running

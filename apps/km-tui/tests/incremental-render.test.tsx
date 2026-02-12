@@ -15,12 +15,7 @@ import { item, testEnv } from "./helpers/board-test"
 describe("incremental rendering", () => {
   test("cursor movement clears old highlight background", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b"), item("1c")),
-          item("col2", item("2a")),
-        ),
+      () => item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
       { incremental: true },
     )
     const app = board._result
@@ -55,11 +50,9 @@ describe("incremental rendering", () => {
   })
 
   test("multiple cursor movements don't accumulate stale pixels", () => {
-    const { board } = testEnv(
-      () =>
-        item("board", item("col1", item("a"), item("b"), item("c"), item("d"))),
-      { incremental: true },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("a"), item("b"), item("c"), item("d"))), {
+      incremental: true,
+    })
     const app = board._result
 
     // Collect positions as we move through items
@@ -89,12 +82,7 @@ describe("incremental rendering", () => {
 
   test("cross-column cursor movement clears highlight", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a"), item("2b")),
-        ),
+      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
       { incremental: true },
     )
     const app = board._result
@@ -118,17 +106,7 @@ describe("incremental rendering", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item("a"),
-            item("b"),
-            item("c"),
-            item("d"),
-            item("e"),
-            item("f"),
-            item("g"),
-            item("h"),
-          ),
+          item("col1", item("a"), item("b"), item("c"), item("d"), item("e"), item("f"), item("g"), item("h")),
         ),
       { incremental: true, rows: 16 },
     )
@@ -155,10 +133,7 @@ describe("incremental rendering", () => {
           if (cell.bg === 3) {
             // This cell has yellow bg - it should be within the current cursor's bounds
             const inCursor =
-              y >= afterBox.y &&
-              y < afterBox.y + afterBox.height &&
-              x >= afterBox.x &&
-              x < afterBox.x + afterBox.width
+              y >= afterBox.y && y < afterBox.y + afterBox.height && x >= afterBox.x && x < afterBox.x + afterBox.width
             if (!inCursor) {
               // Log diagnostic info
               console.error(
@@ -180,11 +155,7 @@ describe("incremental rendering", () => {
     // Force scrolling: many items in a tiny viewport
     // Cards are ~4 rows each, rows=12 fits ~2 cards
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("a"), item("b"), item("c"), item("d"), item("e")),
-        ),
+      () => item("board", item("col1", item("a"), item("b"), item("c"), item("d"), item("e"))),
       { incremental: true, rows: 12 },
     )
     const app = board._result
@@ -200,10 +171,7 @@ describe("incremental rendering", () => {
           const cell = app.term.cell(x, y)
           if (cell.bg === 3) {
             const inCursor =
-              y >= afterBox.y &&
-              y < afterBox.y + afterBox.height &&
-              x >= afterBox.x &&
-              x < afterBox.x + afterBox.width
+              y >= afterBox.y && y < afterBox.y + afterBox.height && x >= afterBox.x && x < afterBox.x + afterBox.width
             if (!inCursor) {
               expect.fail(
                 `Stale yellow bg at (${x},${y}) step=${i}, cursor at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
@@ -216,12 +184,9 @@ describe("incremental rendering", () => {
   })
 
   test("cursor up also clears highlight", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b"))),
-      {
-        incremental: true,
-      },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))), {
+      incremental: true,
+    })
     const app = board._result
 
     // Record initial position
@@ -261,9 +226,7 @@ describe("incremental rendering: Text node backgroundColor", () => {
         <Box flexDirection="row" width={40}>
           {["Todo", "Doing", "Done"].map((name, i) => (
             <Box key={i} width={13}>
-              <Text backgroundColor={i === selected ? "yellow" : undefined}>
-                {name}
-              </Text>
+              <Text backgroundColor={i === selected ? "yellow" : undefined}>{name}</Text>
             </Box>
           ))}
         </Box>

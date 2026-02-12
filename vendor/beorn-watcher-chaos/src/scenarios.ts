@@ -169,10 +169,7 @@ export const CHAOS_SCENARIOS = {
 /**
  * Create a custom scenario by merging with defaults
  */
-export function createScenario(
-  type: ChaosScenario["type"],
-  overrides: Record<string, unknown> = {},
-): ChaosScenario {
+export function createScenario(type: ChaosScenario["type"], overrides: Record<string, unknown> = {}): ChaosScenario {
   const base = CHAOS_SCENARIOS[type]
   return {
     type,
@@ -211,10 +208,7 @@ export function fseventsCoalesce(coalesceThreshold = 10): ChaosScenario {
 }
 
 /** Create rapid succession scenario */
-export function rapidSuccession(
-  editsPerFile = 10,
-  intervalMs = 10,
-): ChaosScenario {
+export function rapidSuccession(editsPerFile = 10, intervalMs = 10): ChaosScenario {
   return createScenario("rapid_succession", { editsPerFile, intervalMs })
 }
 
@@ -308,10 +302,7 @@ function applyQueueOverflow(
   }))
 }
 
-function applyEditorAtomic(
-  events: ScheduledEvent[],
-  params: Record<string, unknown>,
-): ScheduledEvent[] {
+function applyEditorAtomic(events: ScheduledEvent[], params: Record<string, unknown>): ScheduledEvent[] {
   const tempSuffix = (params.tempSuffix as string) ?? ".tmp"
   const renameDelay = (params.renameDelayMs as number) ?? 50
 
@@ -363,10 +354,7 @@ function applyEditorAtomic(
   return result
 }
 
-function applyEventStorm(
-  events: ScheduledEvent[],
-  params: Record<string, unknown>,
-): ScheduledEvent[] {
+function applyEventStorm(events: ScheduledEvent[], params: Record<string, unknown>): ScheduledEvent[] {
   const burstInterval = (params.burstIntervalMs as number) ?? 10
 
   return events.map((e, i) => ({
@@ -393,10 +381,7 @@ function applyReorderChaos(
   return random.shuffleWithinWindow(events, maxWindow)
 }
 
-function applyPartialWrites(
-  events: ScheduledEvent[],
-  params: Record<string, unknown>,
-): ScheduledEvent[] {
+function applyPartialWrites(events: ScheduledEvent[], params: Record<string, unknown>): ScheduledEvent[] {
   const intermediateEvents = (params.intermediateEvents as number) ?? 3
   const finalWriteDelay = (params.finalWriteDelayMs as number) ?? 500
 
@@ -418,9 +403,7 @@ function applyPartialWrites(
           ...event,
           type: "change",
           timing: {
-            delay:
-              baseDelay +
-              (finalWriteDelay / (intermediateEvents + 1)) * (i + 1),
+            delay: baseDelay + (finalWriteDelay / (intermediateEvents + 1)) * (i + 1),
           },
           originalIndex: event.originalIndex,
         })
@@ -441,10 +424,7 @@ function applyPartialWrites(
   return result
 }
 
-function applyRenameStorm(
-  events: ScheduledEvent[],
-  params: Record<string, unknown>,
-): ScheduledEvent[] {
+function applyRenameStorm(events: ScheduledEvent[], params: Record<string, unknown>): ScheduledEvent[] {
   const chainLength = (params.chainLength as number) ?? 5
   const renameInterval = (params.renameIntervalMs as number) ?? 100
 
@@ -462,8 +442,7 @@ function applyRenameStorm(
 
       // Create rename chain: file.md -> file1.md -> file2.md -> ...
       for (let i = 0; i < chainLength; i++) {
-        const fromPath =
-          i === 0 ? event.path : join(dir, `${baseName}${i}${ext}`)
+        const fromPath = i === 0 ? event.path : join(dir, `${baseName}${i}${ext}`)
         const toPath = join(dir, `${baseName}${i + 1}${ext}`)
 
         // Unlink old path
@@ -492,10 +471,7 @@ function applyRenameStorm(
   return result
 }
 
-function applyFsEventsCoalesce(
-  events: ScheduledEvent[],
-  params: Record<string, unknown>,
-): ScheduledEvent[] {
+function applyFsEventsCoalesce(events: ScheduledEvent[], params: Record<string, unknown>): ScheduledEvent[] {
   const threshold = (params.coalesceThreshold as number) ?? 10
   const useParentDir = (params.useParentDirEvent as boolean) ?? true
 
@@ -528,10 +504,7 @@ function applyFsEventsCoalesce(
   return result
 }
 
-function applyInitGap(
-  events: ScheduledEvent[],
-  params: Record<string, unknown>,
-): ScheduledEvent[] {
+function applyInitGap(events: ScheduledEvent[], params: Record<string, unknown>): ScheduledEvent[] {
   const initDuration = (params.initDurationMs as number) ?? 2000
 
   return events.map((e, i) => ({
@@ -543,10 +516,7 @@ function applyInitGap(
   }))
 }
 
-function applyRapidSuccession(
-  events: ScheduledEvent[],
-  params: Record<string, unknown>,
-): ScheduledEvent[] {
+function applyRapidSuccession(events: ScheduledEvent[], params: Record<string, unknown>): ScheduledEvent[] {
   const editsPerFile = (params.editsPerFile as number) ?? 10
   const intervalMs = (params.intervalMs as number) ?? 10
 

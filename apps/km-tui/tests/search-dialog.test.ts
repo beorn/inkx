@@ -2,11 +2,7 @@
  * Tests for SearchDialog component
  */
 import { describe, test, expect } from "vitest"
-import {
-  fuzzyMatch,
-  fuzzyScore,
-  extractTags,
-} from "../src/views/SearchDialog.tsx"
+import { fuzzyMatch, fuzzyScore, extractTags } from "../src/views/SearchDialog.tsx"
 
 describe("fuzzyMatch", () => {
   test("matches exact string", () => {
@@ -81,10 +77,7 @@ describe("extractTags", () => {
   })
 
   test("extracts multiple tags", () => {
-    expect(extractTags("This is #urgent and #blocked")).toEqual([
-      "urgent",
-      "blocked",
-    ])
+    expect(extractTags("This is #urgent and #blocked")).toEqual(["urgent", "blocked"])
   })
 
   test("handles no tags", () => {
@@ -104,11 +97,7 @@ describe("extractTags", () => {
   })
 
   test("handles multiple consecutive tags", () => {
-    expect(extractTags("#urgent #blocked #p1")).toEqual([
-      "urgent",
-      "blocked",
-      "p1",
-    ])
+    expect(extractTags("#urgent #blocked #p1")).toEqual(["urgent", "blocked", "p1"])
   })
 
   test("does not extract # without word", () => {

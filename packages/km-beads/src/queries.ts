@@ -149,8 +149,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   const dependencyCount = blockedBy?.length || 0
 
   // Calculate the short ID for this issue (needed for dependent count lookup)
-  const shortId =
-    (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
+  const shortId = (data?.short_id as string) || `km-${node.id.slice(-4).toLowerCase()}`
 
   // Count dependents (issues that are blocked by this one)
   const dependentCount = countDependents(shortId, repo)
@@ -287,9 +286,7 @@ export function queryIssues(
   }
 
   if (filter?.status) {
-    const statuses = Array.isArray(filter.status)
-      ? filter.status
-      : [filter.status]
+    const statuses = Array.isArray(filter.status) ? filter.status : [filter.status]
     query += ` status:${statuses.join(",")}`
   }
   if (filter?.type) {
@@ -331,10 +328,7 @@ export function queryIssues(
  * @param shortId - The short ID to look up
  * @param options - Optional query options (repo for DI)
  */
-export function getIssue(
-  shortId: string,
-  options?: BeadsQueryOptions,
-): Issue | null {
+export function getIssue(shortId: string, options?: BeadsQueryOptions): Issue | null {
   const repo = options?.repo
   // Try to find by short_id in data
   // Don't filter by type='task' - issues can be file nodes with task_status

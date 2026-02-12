@@ -48,18 +48,13 @@ function createRunningTerminal(width: number, height: number) {
       if (mismatches.length > 0) {
         const details = mismatches
           .slice(0, 15)
-          .map(
-            (m) =>
-              `  (${m.x},${m.y}): buffer="${m.expected}" terminal="${m.actual}"`,
-          )
+          .map((m) => `  (${m.x},${m.y}): buffer="${m.expected}" terminal="${m.actual}"`)
           .join("\n")
         expect.fail(
           `GHOST CHARS after step ${stepCount} (${label}):\n` +
             `  ${mismatches.length} cells differ between buffer and terminal:\n` +
             details +
-            (mismatches.length > 15
-              ? `\n  ... and ${mismatches.length - 15} more`
-              : ""),
+            (mismatches.length > 15 ? `\n  ... and ${mismatches.length - 15} more` : ""),
         )
       }
     },
@@ -123,22 +118,12 @@ function StorybookApp() {
   const section = sections[idx]!
   return (
     <Box flexDirection="row" width={70} height={20}>
-      <Box
-        flexDirection="column"
-        width={20}
-        borderStyle="single"
-        borderColor="gray"
-        paddingX={1}
-      >
+      <Box flexDirection="column" width={20} borderStyle="single" borderColor="gray" paddingX={1}>
         <Text bold color="yellow">
           Sections
         </Text>
         {sections.map((s, i) => (
-          <Text
-            key={s.title}
-            backgroundColor={i === idx ? "cyan" : undefined}
-            color={i === idx ? "black" : "white"}
-          >
+          <Text key={s.title} backgroundColor={i === idx ? "cyan" : undefined} color={i === idx ? "black" : "white"}>
             {i === idx ? "▸" : " "} {s.title}
           </Text>
         ))}
@@ -222,17 +207,8 @@ describe("Ghost characters — cumulative terminal replay", () => {
         item("A much longer task name that fills more horizontal space"),
         item("Medium task"),
       ),
-      item(
-        "In Progress",
-        item("Working on feature X with a long description text"),
-        item("Bug fix"),
-      ),
-      item(
-        "Done",
-        item("Completed task alpha"),
-        item("Beta release"),
-        item("Gamma"),
-      ),
+      item("In Progress", item("Working on feature X with a long description text"), item("Bug fix")),
+      item("Done", item("Completed task alpha"), item("Beta release"), item("Gamma")),
     )
 
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board", {
@@ -245,20 +221,7 @@ describe("Ghost characters — cumulative terminal replay", () => {
     term.update(driver.lastBuffer()!, "initial")
 
     // Navigate: j j l j j h k v j v k k
-    const sequence = [
-      "j",
-      "j",
-      "l",
-      "j",
-      "j",
-      "h",
-      "k",
-      "v",
-      "j",
-      "v",
-      "k",
-      "k",
-    ]
+    const sequence = ["j", "j", "l", "j", "j", "h", "k", "v", "j", "v", "k", "k"]
     for (const key of sequence) {
       driver.press(key)
       term.update(driver.lastBuffer()!, `press("${key}")`)

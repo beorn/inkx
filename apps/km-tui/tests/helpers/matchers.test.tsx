@@ -20,13 +20,7 @@ const render = createRenderer({ cols: 80, rows: 24 })
 // =============================================================================
 
 /** Simple component with text content */
-function TextBox({
-  testID,
-  children,
-}: {
-  testID: string
-  children: React.ReactNode
-}) {
+function TextBox({ testID, children }: { testID: string; children: React.ReactNode }) {
   return (
     <Box testID={testID}>
       <Text>{children}</Text>
@@ -54,13 +48,7 @@ function SizedBox({
 }
 
 /** Horizontal layout with two children */
-function HorizontalLayout({
-  leftID,
-  rightID,
-}: {
-  leftID: string
-  rightID: string
-}) {
+function HorizontalLayout({ leftID, rightID }: { leftID: string; rightID: string }) {
   return (
     <Box flexDirection="row">
       <Box testID={leftID} width={10}>
@@ -74,13 +62,7 @@ function HorizontalLayout({
 }
 
 /** Vertical layout with two children */
-function VerticalLayout({
-  topID,
-  bottomID,
-}: {
-  topID: string
-  bottomID: string
-}) {
+function VerticalLayout({ topID, bottomID }: { topID: string; bottomID: string }) {
   return (
     <Box flexDirection="column">
       <Box testID={topID} height={2}>
@@ -94,13 +76,7 @@ function VerticalLayout({
 }
 
 /** Container with nested child for containment testing */
-function ContainerWithChild({
-  containerID,
-  childID,
-}: {
-  containerID: string
-  childID: string
-}) {
+function ContainerWithChild({ containerID, childID }: { containerID: string; childID: string }) {
   return (
     <Box testID={containerID} width={30} height={5} padding={1}>
       <Box testID={childID} width={10} height={2}>
@@ -356,9 +332,7 @@ describe("toBeBelow", () => {
 
 describe("toBeContainedIn", () => {
   test("passes when element is fully contained in container", () => {
-    const app = render(
-      <ContainerWithChild containerID="container" childID="child" />,
-    )
+    const app = render(<ContainerWithChild containerID="container" childID="child" />)
     const container = app.getByTestId("container")
     const child = app.getByTestId("child")
 

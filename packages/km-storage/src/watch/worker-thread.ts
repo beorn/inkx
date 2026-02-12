@@ -42,13 +42,7 @@ export type WorkerCommand =
   | { type: "getStatus" }
 
 /** Watcher state for status reporting */
-export type WatcherState =
-  | "starting"
-  | "ready"
-  | "syncing"
-  | "idle"
-  | "stopped"
-  | "error"
+export type WatcherState = "starting" | "ready" | "syncing" | "idle" | "stopped" | "error"
 
 /** Status information from the watcher */
 export interface WatcherStatus {
@@ -94,11 +88,7 @@ let statusInterval: ReturnType<typeof setInterval> | undefined
  * - exact: Exact match or as directory prefix
  */
 // oxlint-disable-next-line complexity/complexity -- Glob matching with 5 distinct pattern types
-function shouldIgnore(
-  path: string,
-  patterns: string[],
-  repoPath: string,
-): boolean {
+function shouldIgnore(path: string, patterns: string[], repoPath: string): boolean {
   const relativePath = path.replace(repoPath, "").replace(/^\//, "")
 
   // Debug: check .git and vendor paths specifically
@@ -186,11 +176,7 @@ function setState(newState: WatcherState): void {
 /**
  * Start watching a directory
  */
-function startWatcher(
-  repoPath: string,
-  ignorePatterns: string[],
-  debounceMs: number,
-): void {
+function startWatcher(repoPath: string, ignorePatterns: string[], debounceMs: number): void {
   debug("worker: starting watcher for %s", repoPath)
   currentDebounceMs = debounceMs
   setState("starting")
@@ -322,11 +308,7 @@ function scheduleSync(): void {
   }
 
   setState("syncing")
-  debug(
-    "worker: scheduling sync in %dms (%d pending)",
-    currentDebounceMs,
-    pendingPaths.size,
-  )
+  debug("worker: scheduling sync in %dms (%d pending)", currentDebounceMs, pendingPaths.size)
   debounceTimer = setTimeout(() => {
     emitSync()
   }, currentDebounceMs)
@@ -352,11 +334,7 @@ function emitSync(): void {
     dirs.add(dirname(path))
   }
 
-  debug(
-    "worker: sync: emitting %d paths, %d directories",
-    paths.length,
-    dirs.size,
-  )
+  debug("worker: sync: emitting %d paths, %d directories", paths.length, dirs.size)
   lastSyncTime = Date.now()
 
   postMessage({

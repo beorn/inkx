@@ -45,11 +45,7 @@ function multiColumnFixture(cols: number, cardsPerCol: number): KNode[] {
 
 describe("getSibling overhead (getChildren + findIndex)", () => {
   // Simulate what getSibling does: getChildren(parent) + findIndex(nodeId)
-  function getSiblingViaFindIndex(
-    repo: Repo,
-    nodeId: string,
-    delta: 1 | -1,
-  ): string | null {
+  function getSiblingViaFindIndex(repo: Repo, nodeId: string, delta: 1 | -1): string | null {
     const node = repo.getNode(nodeId)
     if (!node) return null
     const siblings = repo.getChildren(node.parent_id)

@@ -10,9 +10,7 @@ import { diffNodes } from "../../src/watch/handlers/node-differ.ts"
 import type { KNode } from "@km/core"
 
 // Helper to create minimal test nodes
-function makeNode(
-  overrides: Partial<KNode> & { id: string; type: string },
-): KNode {
+function makeNode(overrides: Partial<KNode> & { id: string; type: string }): KNode {
   return {
     parent_id: null,
     parent_idx: 0,

@@ -64,9 +64,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
     if (node.type === "file") continue
 
     // Remap parent_id for key lookup
-    const remappedParentId = node.parent_id
-      ? (idMap.get(node.parent_id) ?? node.parent_id)
-      : null
+    const remappedParentId = node.parent_id ? (idMap.get(node.parent_id) ?? node.parent_id) : null
     const key = `${remappedParentId ?? "root"}:${node.parent_idx ?? 0}:${node.type}`
 
     const existingNode = existingByKey.get(key)
@@ -161,11 +159,7 @@ const FILE_DIFF_FIELDS = ["content", "title"] as const
  * Compare specific fields between two nodes and return a changes record.
  * Always compares `data` via JSON to handle nested objects.
  */
-function diffNodeFields(
-  existing: KNode,
-  newNode: KNode,
-  fields: readonly string[],
-): Record<string, unknown> {
+function diffNodeFields(existing: KNode, newNode: KNode, fields: readonly string[]): Record<string, unknown> {
   const changes: Record<string, unknown> = {}
   for (const field of fields) {
     const existingVal = (existing as Record<string, unknown>)[field]

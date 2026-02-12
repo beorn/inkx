@@ -17,11 +17,7 @@ const TEST_DEFAULTS: Partial<SyncConfig> = {
 }
 
 /** Create SyncManager with test defaults */
-export function createTestSyncManager(
-  db: Database,
-  repoPath: string,
-  overrides?: Partial<SyncConfig>,
-): SyncManager {
+export function createTestSyncManager(db: Database, repoPath: string, overrides?: Partial<SyncConfig>): SyncManager {
   return new SyncManager({
     db,
     repoPath,
@@ -31,11 +27,7 @@ export function createTestSyncManager(
 }
 
 /** Set up sync manager with automatic cleanup via AsyncDisposableStack */
-export function setupSyncManager(
-  stack: AsyncDisposableStack,
-  syncManager: SyncManager,
-  emitter: Emitter,
-): void {
+export function setupSyncManager(stack: AsyncDisposableStack, syncManager: SyncManager, emitter: Emitter): void {
   emitter.setFsSync(syncManager)
   stack.defer(() => emitter.setFsSync(null))
   stack.defer(async () => await syncManager.stop())
@@ -66,15 +58,6 @@ export function waitForStateChange(events: EventEmitter): Promise<void> {
 }
 
 /** Race promise against timeout */
-export function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  message = "Timeout",
-): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(message)), ms),
-    ),
-  ])
+export function withTimeout<T>(promise: Promise<T>, ms: number, message = "Timeout"): Promise<T> {
+  return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(message)), ms))])
 }

@@ -3,12 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import {
-  calcPathLength,
-  renderPath,
-  renderParentPath,
-  type PathSegment,
-} from "../../src/layout/path.ts"
+import { calcPathLength, renderPath, renderParentPath, type PathSegment } from "../../src/layout/path.ts"
 
 describe("calcPathLength", () => {
   it("returns 0 for empty array", () => {
@@ -25,9 +20,7 @@ describe("calcPathLength", () => {
   })
 
   it("handles segment without separator", () => {
-    const segments: PathSegment[] = [
-      { id: "1", name: "only", sep: "", isWithinBoard: false, node: null },
-    ]
+    const segments: PathSegment[] = [{ id: "1", name: "only", sep: "", isWithinBoard: false, node: null }]
     expect(calcPathLength(segments)).toBe(4)
   })
 })

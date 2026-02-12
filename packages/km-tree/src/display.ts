@@ -24,15 +24,9 @@ function stripInlineRules(text: string): string {
   return (
     text
       // Plain syntax: collapse=true, default=true, etc.
-      .replace(
-        /\s+(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|\S+)/gi,
-        "",
-      )
+      .replace(/\s+(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|\S+)/gi, "")
       // Backtick-wrapped: `collapse=true`, `default=true`, etc.
-      .replace(
-        /\s*`(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|[^`]+)`/gi,
-        "",
-      )
+      .replace(/\s*`(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|[^`]+)`/gi, "")
       .trim()
   )
 }
@@ -51,10 +45,7 @@ function stripInlineRules(text: string): string {
  * @param node The node to get display name for
  * @param getChildren Optional function to get children (needed for file nodes to find H1)
  */
-export function getNodeDisplayName(
-  node: KNode,
-  getChildren?: GetChildrenFn,
-): string {
+export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): string {
   // 1. Frontmatter title takes priority
   if (node.data?.name) {
     return node.data.name as string
@@ -169,10 +160,7 @@ export function namesAreSimilar(a: string, b: string): boolean {
  * @param node The node to get collapsed type suffix for
  * @param getChildren Function to get children of a node (required for traversal)
  */
-export function getCollapsedTypeSuffix(
-  node: KNode,
-  getChildren?: GetChildrenFn,
-): string {
+export function getCollapsedTypeSuffix(node: KNode, getChildren?: GetChildrenFn): string {
   const indicators: string[] = []
 
   // Add this node's type indicator
@@ -194,8 +182,7 @@ export function getCollapsedTypeSuffix(
     const children: KNode[] = getChildren(current.id)
     // Find a child with the same normalized name
     const matchingChild: KNode | undefined = children.find(
-      (c: KNode) =>
-        normalizeName(getNodeDisplayName(c, getChildren)) === nodeName,
+      (c: KNode) => normalizeName(getNodeDisplayName(c, getChildren)) === nodeName,
     )
     if (!matchingChild) break
 
@@ -234,9 +221,7 @@ export function collapseRedundantAncestors(ancestors: KNode[]): KNode[] {
 /**
  * Collapse ancestors and return type suffix information
  */
-export function collapseAncestorsWithTypes(
-  ancestors: KNode[],
-): CollapsedAncestor[] {
+export function collapseAncestorsWithTypes(ancestors: KNode[]): CollapsedAncestor[] {
   if (ancestors.length === 0) return []
 
   const result: CollapsedAncestor[] = []
@@ -292,11 +277,7 @@ export function collapseAncestorsWithTypes(
  * @param getNode Function to get a node by ID (required for traversal)
  * @returns The parent context string, or null if at root or no meaningful context
  */
-export function getParentContext(
-  node: KNode,
-  skipParentId?: string | null,
-  getNode?: GetNodeFn,
-): string | null {
+export function getParentContext(node: KNode, skipParentId?: string | null, getNode?: GetNodeFn): string | null {
   // Without getNode, we can't traverse
   if (!getNode) return null
 

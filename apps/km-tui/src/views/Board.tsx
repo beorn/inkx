@@ -9,21 +9,8 @@
  * State lives in the BoardAppStore (Zustand). Keys flow through term:key handler
  * in board-app.ts. Board is a pure view that reads state and pushes derived layout.
  */
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react"
-import {
-  Box,
-  Text,
-  useApp,
-  useStdout,
-  ErrorBoundary,
-  type PatchedConsole,
-} from "inkx"
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { Box, Text, useApp, useStdout, ErrorBoundary, type PatchedConsole } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
 import { createLogger } from "@beorn/logger"
 
@@ -38,10 +25,7 @@ import { HelpOverlay } from "./HelpOverlay.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
 import { Column } from "./CardColumn.tsx"
-import {
-  VerticalScrollIndicator,
-  ColumnSeparator,
-} from "./VerticalScrollIndicator.tsx"
+import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { ColumnsView } from "./ColumnsView.tsx"
 import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
@@ -71,11 +55,7 @@ import {
   calcColumnWidths,
   getColumnWidth,
 } from "./board-layout.ts"
-import {
-  TreeRenderProvider,
-  deriveTreeConfig,
-  type TreeConfig,
-} from "../ui-context.tsx"
+import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
 import { ToastStack } from "./ToastStack.tsx"
@@ -135,13 +115,7 @@ export interface BoardCoreProps {
  * TopBar - subscribes to cursor position for path display.
  * Extracted from BoardCore so BoardCore doesn't re-render on j/k.
  */
-function BoardTopBar({
-  state,
-  termWidth,
-}: {
-  state: TUIBoardState
-  termWidth: number
-}): React.ReactElement {
+function BoardTopBar({ state, termWidth }: { state: TUIBoardState; termWidth: number }): React.ReactElement {
   const repo = useRepo()
   const cursorPos = useCursorPosition()
   const isBoardSelected = cursorPos.selectionLevel === "board"
@@ -155,26 +129,15 @@ function BoardTopBar({
       : cursorPos.selectionLevel === "column" || !selectedCard
         ? selectedCol.node.id
         : selectedCard.node.id
-  const selectedPathSegments = renderPath(
-    getPathSegments(repo, pathNodeId, state.rootId),
-    termWidth - 4,
-  )
+  const selectedPathSegments = renderPath(getPathSegments(repo, pathNodeId, state.rootId), termWidth - 4)
 
   const rootNode = state.rootId ? repo.getNode(state.rootId) : null
   const boardColor = rootNode
-    ? (getOwnColor(rootNode) ??
-      getBoardColorByName(
-        normalizeBoardName(getNodeDisplayName(repo, rootNode)),
-      ))
+    ? (getOwnColor(rootNode) ?? getBoardColorByName(normalizeBoardName(getNodeDisplayName(repo, rootNode))))
     : undefined
 
   return (
-    <Box
-      id="top-bar"
-      flexShrink={0}
-      width={termWidth}
-      backgroundColor={isBoardSelected ? "yellow" : "white"}
-    >
+    <Box id="top-bar" flexShrink={0} width={termWidth} backgroundColor={isBoardSelected ? "yellow" : "white"}>
       <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
         {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
       </Text>
@@ -256,10 +219,7 @@ export function BoardCore({
   const termWidth = dimensions.columns
   const termHeight = dimensions.rows
 
-  const maxCols = Math.min(
-    state.columns.length,
-    Math.max(2, Math.floor(termWidth / 35)),
-  )
+  const maxCols = Math.min(state.columns.length, Math.max(2, Math.floor(termWidth / 35)))
 
   const isBoardSelected = derivedSelectionLevel === "board"
 
@@ -275,17 +235,9 @@ export function BoardCore({
     ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
     : maxCols
   const effectiveScrollOffset = ui.showDetailPane
-    ? calcEdgeBasedColumnScrollOffset(
-        layout.colIndex,
-        colScrollOffset,
-        effectiveMaxCols,
-        state.columns.length,
-      )
+    ? calcEdgeBasedColumnScrollOffset(layout.colIndex, colScrollOffset, effectiveMaxCols, state.columns.length)
     : colScrollOffset
-  const effectiveVisibleColumns = state.columns.slice(
-    effectiveScrollOffset,
-    effectiveScrollOffset + effectiveMaxCols,
-  )
+  const effectiveVisibleColumns = state.columns.slice(effectiveScrollOffset, effectiveScrollOffset + effectiveMaxCols)
 
   // Render loading skeleton until terminal is ready
   if (!ui.isReady) {
@@ -316,23 +268,11 @@ export function BoardCore({
       >
         {/* Top bar — subscribes to cursor position independently */}
         <BoardTopBar state={state} termWidth={termWidth} />
-        <Box
-          flexGrow={1}
-          flexDirection="row"
-          minHeight={1}
-          maxHeight={contentHeight}
-          overflow="hidden"
-        >
+        <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Cards, Columns, or List view */}
           {ui.viewMode === "cards" ? (
-            <ErrorBoundary
-              fallback={<Text color="red">Error loading cards view</Text>}
-            >
-              <Box
-                flexDirection="row"
-                width={boardWidth}
-                height={contentHeight}
-              >
+            <ErrorBoundary fallback={<Text color="red">Error loading cards view</Text>}>
+              <Box flexDirection="row" width={boardWidth} height={contentHeight}>
                 {state.columns.length === 0 ? (
                   <Box flexDirection="column" padding={1}>
                     <Text dimColor>Empty board</Text>
@@ -351,29 +291,18 @@ export function BoardCore({
                       return (
                         <>
                           {/* Left scroll indicator - full height filled bar */}
-                          {widths.hasLeftIndicator && (
-                            <VerticalScrollIndicator direction="left" />
-                          )}
+                          {widths.hasLeftIndicator && <VerticalScrollIndicator direction="left" />}
                           {effectiveVisibleColumns.map((col, i) => {
                             const actualColIndex = effectiveScrollOffset + i
-                            const isLastCol =
-                              i === effectiveVisibleColumns.length - 1
-                            const adjustedColWidth = getColumnWidth(
-                              i,
-                              widths.baseColWidth,
-                              widths.remainder,
-                            )
+                            const isLastCol = i === effectiveVisibleColumns.length - 1
+                            const adjustedColWidth = getColumnWidth(i, widths.baseColWidth, widths.remainder)
                             return (
                               <React.Fragment key={col.node.id}>
                                 <Column
                                   column={col}
                                   colIndex={actualColIndex}
-                                  isCollapsed={ui.collapsedColumns.has(
-                                    actualColIndex,
-                                  )}
-                                  selectedSubIndex={
-                                    ui.inOutlineMode ? ui.subIndex : -1
-                                  }
+                                  isCollapsed={ui.collapsedColumns.has(actualColIndex)}
+                                  selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
                                   width={adjustedColWidth}
                                   height={contentHeight}
                                 />
@@ -383,9 +312,7 @@ export function BoardCore({
                             )
                           })}
                           {/* Right scroll indicator - full height filled bar */}
-                          {widths.hasRightIndicator && (
-                            <VerticalScrollIndicator direction="right" />
-                          )}
+                          {widths.hasRightIndicator && <VerticalScrollIndicator direction="right" />}
                         </>
                       )
                     })()}
@@ -394,9 +321,7 @@ export function BoardCore({
               </Box>
             </ErrorBoundary>
           ) : ui.viewMode === "columns" ? (
-            <ErrorBoundary
-              fallback={<Text color="red">Error loading columns view</Text>}
-            >
+            <ErrorBoundary fallback={<Text color="red">Error loading columns view</Text>}>
               <ColumnsView
                 state={state}
                 width={boardWidth}
@@ -411,9 +336,7 @@ export function BoardCore({
               />
             </ErrorBoundary>
           ) : ui.viewMode === "list" ? (
-            <ErrorBoundary
-              fallback={<Text color="red">Error loading list view</Text>}
-            >
+            <ErrorBoundary fallback={<Text color="red">Error loading list view</Text>}>
               <ListView
                 state={state}
                 width={boardWidth}
@@ -425,9 +348,7 @@ export function BoardCore({
               />
             </ErrorBoundary>
           ) : (
-            <ErrorBoundary
-              fallback={<Text color="red">Error loading tabs view</Text>}
-            >
+            <ErrorBoundary fallback={<Text color="red">Error loading tabs view</Text>}>
               <TabsView
                 state={state}
                 width={boardWidth}
@@ -440,13 +361,7 @@ export function BoardCore({
             </ErrorBoundary>
           )}
           {/* Detail pane — subscribes to cursor position independently */}
-          {ui.showDetailPane && (
-            <CursorAwareDetailPane
-              state={state}
-              width={detailPaneWidth}
-              height={contentHeight}
-            />
-          )}
+          {ui.showDetailPane && <CursorAwareDetailPane state={state} width={detailPaneWidth} height={contentHeight} />}
           {/* Project picker modal */}
           {ui.showProjectPicker &&
             (() => {
@@ -508,9 +423,7 @@ export function BoardCore({
                     width={dialogWidth}
                     maxHeight={dialogMaxHeight}
                     initialInput={ui.searchDialogInitialInput}
-                    onConsumeInitialInput={() =>
-                      setUI({ searchDialogInitialInput: "" })
-                    }
+                    onConsumeInitialInput={() => setUI({ searchDialogInitialInput: "" })}
                   />
                 </Box>
               )
@@ -527,20 +440,13 @@ export function BoardCore({
                   marginTop={Math.floor(contentHeight / 3)}
                   data-dialog="delete-confirm"
                 >
-                  <Box
-                    flexDirection="column"
-                    borderStyle="single"
-                    borderColor="red"
-                    width={dialogWidth}
-                    paddingX={1}
-                  >
+                  <Box flexDirection="column" borderStyle="single" borderColor="red" width={dialogWidth} paddingX={1}>
                     <Text bold color="red">
                       Delete "{dc.title}"?
                     </Text>
                     {dc.childCount > 0 && (
                       <Text color="yellow">
-                        {dc.childCount} child{dc.childCount !== 1 ? "ren" : ""}{" "}
-                        will be deleted
+                        {dc.childCount} child{dc.childCount !== 1 ? "ren" : ""} will be deleted
                       </Text>
                     )}
                     {dc.backlinkCount > 0 && (
@@ -549,26 +455,18 @@ export function BoardCore({
                         {dc.backlinkCount !== 1 ? "s" : ""} will break
                       </Text>
                     )}
-                    {dc.hasMetadata && (
-                      <Text color="yellow">Has metadata (frontmatter)</Text>
-                    )}
+                    {dc.hasMetadata && <Text color="yellow">Has metadata (frontmatter)</Text>}
                     <Text dimColor>Enter to confirm, any key to cancel</Text>
                   </Box>
                 </Box>
               )
             })()}
           {/* Help overlay */}
-          {ui.showHelp && (
-            <HelpOverlay width={termWidth} height={contentHeight} />
-          )}
+          {ui.showHelp && <HelpOverlay width={termWidth} height={contentHeight} />}
           {/* Console now uses screen switching (pause/resume) instead of overlay */}
         </Box>
         {/* Toast stack - bottom-right corner */}
-        <ToastStack
-          toasts={toastQueue?.getAll() ?? []}
-          termWidth={termWidth}
-          termHeight={termHeight}
-        />
+        <ToastStack toasts={toastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
         {/* Bottom bar (includes status messages) */}
         <BottomBar
           ui={ui}
@@ -582,9 +480,7 @@ export function BoardCore({
           toastQueue={toastQueue}
         />
         {/* Bell indicator - hidden element for test detection */}
-        {ui.bellState && (
-          <Text data-bell={ui.bellState}>{/* Bell triggered */}</Text>
-        )}
+        {ui.bellState && <Text data-bell={ui.bellState}>{/* Bell triggered */}</Text>}
       </Box>
     </ConstraintRoot>
   )
@@ -632,33 +528,17 @@ export function Board({ patchedConsole }: BoardProps) {
   const rootId = useAppStore<BoardAppStore, string | null>((s) => s.rootId)
   const rootPath = useAppStore<BoardAppStore, string | null>((s) => s.rootPath)
   // CursorStore provides cursor state without triggering Board re-render on SELECT
-  const cursorStore = useAppStore<BoardAppStore, CursorStore>(
-    (s) => s.cursorStore,
-  )
-  const foldedNodes = useAppStore<BoardAppStore, Set<string>>(
-    (s) => s.foldedNodes,
-  )
+  const cursorStore = useAppStore<BoardAppStore, CursorStore>((s) => s.cursorStore)
+  const foldedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.foldedNodes)
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.moveMode)
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
-  const layoutRegistry = useAppStore<BoardAppStore, LayoutRegistry>(
-    (s) => s.layoutRegistry,
-  )
-  const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>(
-    (s) => s.setUI,
-  )
-  const dispatchBoard = useAppStore<
-    BoardAppStore,
-    BoardAppStore["dispatchBoard"]
-  >((s) => s.dispatchBoard)
-  const updateLayout = useAppStore<
-    BoardAppStore,
-    BoardAppStore["updateLayout"]
-  >((s) => s.updateLayout)
+  const layoutRegistry = useAppStore<BoardAppStore, LayoutRegistry>((s) => s.layoutRegistry)
+  const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
+  const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
+  const updateLayout = useAppStore<BoardAppStore, BoardAppStore["updateLayout"]>((s) => s.updateLayout)
 
   // Console stats via direct subscription
-  const [consoleStats, setConsoleStats] = useState<
-    { total: number; errors: number; warnings: number } | undefined
-  >()
+  const [consoleStats, setConsoleStats] = useState<{ total: number; errors: number; warnings: number } | undefined>()
   useEffect(() => {
     if (!patchedConsole) return
     const initial = patchedConsole.getStats()
@@ -689,11 +569,8 @@ export function Board({ patchedConsole }: BoardProps) {
     if (patchedConsole) {
       const entries = patchedConsole.getSnapshot()
       for (const entry of entries) {
-        const stream =
-          entry.stream === "stderr" ? process.stderr : process.stdout
-        const args = entry.args
-          .map((a: unknown) => (typeof a === "string" ? a : JSON.stringify(a)))
-          .join(" ")
+        const stream = entry.stream === "stderr" ? process.stderr : process.stdout
+        const args = entry.args.map((a: unknown) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
         stream.write(args + "\n")
       }
     }
@@ -721,17 +598,14 @@ export function Board({ patchedConsole }: BoardProps) {
     return colIndex
   })
   const cursorSelectionLevelRef = useRef<"board" | "column" | "card">("board")
-  const cursorSelectionLevel = useSyncExternalStore(
-    cursorStore.subscribe,
-    () => {
-      const level = cursorStore.getState().selectionLevel
-      if (level === cursorSelectionLevelRef.current) {
-        return cursorSelectionLevelRef.current
-      }
-      cursorSelectionLevelRef.current = level
-      return level
-    },
-  )
+  const cursorSelectionLevel = useSyncExternalStore(cursorStore.subscribe, () => {
+    const level = cursorStore.getState().selectionLevel
+    if (level === cursorSelectionLevelRef.current) {
+      return cursorSelectionLevelRef.current
+    }
+    cursorSelectionLevelRef.current = level
+    return level
+  })
 
   // Compute cursor position only when columns change, column index changes,
   // or selection level changes (NOT on j/k within the same column).
@@ -770,14 +644,7 @@ export function Board({ patchedConsole }: BoardProps) {
       searchMode: false,
       helpMode: false,
     }),
-    [
-      rootId,
-      rootPath,
-      columnsLayout.columns,
-      foldedNodes,
-      emptyStringSet,
-      emptyNumberSet,
-    ],
+    [rootId, rootPath, columnsLayout.columns, foldedNodes, emptyStringSet, emptyNumberSet],
   )
 
   // Get selected node
@@ -809,12 +676,7 @@ export function Board({ patchedConsole }: BoardProps) {
       selectedNode,
       selectionLevel: derivedSelectionLevel,
     }
-    updateLayout(
-      columnsLayout,
-      selectedNode,
-      derivedSelectionLevel,
-      tuiBoardState,
-    )
+    updateLayout(columnsLayout, selectedNode, derivedSelectionLevel, tuiBoardState)
     // Sync cursor position to CursorStore so Card/Column self-subscriptions
     // pick up the correct position after column changes (e.g., card shift)
     const cs = cursorStore.getState()
@@ -830,19 +692,10 @@ export function Board({ patchedConsole }: BoardProps) {
         selectionLevel: derivedSelectionLevel,
       })
     }
-  }, [
-    columnsLayout,
-    selectedNode,
-    derivedSelectionLevel,
-    tuiBoardState,
-    updateLayout,
-    cursorStore,
-  ])
+  }, [columnsLayout, selectedNode, derivedSelectionLevel, tuiBoardState, updateLayout, cursorStore])
 
   // Dialog handlers — read cursorNodeId from Zustand (silently mutated by SELECT)
-  const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>(
-    (s) => s.cursorNodeId,
-  )
+  const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.cursorNodeId)
   const dialogHandlers = useBoardDialogs({
     repo,
     state: tuiBoardState,
@@ -854,10 +707,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Scroll offset
   const termWidth = ui.dimensions.columns
-  const maxCols = Math.min(
-    tuiBoardState.columns.length,
-    Math.max(2, Math.floor(termWidth / 35)),
-  )
+  const maxCols = Math.min(tuiBoardState.columns.length, Math.max(2, Math.floor(termWidth / 35)))
   const colScrollOffset = calcEdgeBasedColumnScrollOffset(
     columnsLayout.colIndex,
     colScrollOffsetRef.current,
@@ -885,10 +735,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Subscribe to external events
   useEffect(() => createFileDropHandler(setUI), [setUI])
-  useEffect(
-    () => createWatcherStatusHandler(setUI, toastQueue),
-    [setUI, toastQueue],
-  )
+  useEffect(() => createWatcherStatusHandler(setUI, toastQueue), [setUI, toastQueue])
   useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
   useEffect(() => createRefreshHandler(), [])
 
@@ -897,22 +744,12 @@ export function Board({ patchedConsole }: BoardProps) {
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
     () => deriveTreeConfig(ui),
-    [
-      ui.viewMode,
-      ui.maxOutlineDepth,
-      ui.maxContentLines,
-      ui.inOutlineMode,
-      ui.subIndex,
-    ],
+    [ui.viewMode, ui.maxOutlineDepth, ui.maxContentLines, ui.inOutlineMode, ui.subIndex],
   )
 
   return (
     <CursorStoreProvider store={cursorStore}>
-      <TreeRenderProvider
-        treeConfig={treeConfig}
-        setUI={setUI}
-        rootBoardId={ui.rootBoardId}
-      >
+      <TreeRenderProvider treeConfig={treeConfig} setUI={setUI} rootBoardId={ui.rootBoardId}>
         <BoardCore
           state={tuiBoardState}
           layout={columnsLayout}
@@ -1014,13 +851,7 @@ function countVisibleDescendants(
   const children = repo.getChildren(node.id).slice(0, 10)
   let count = children.length
   for (const child of children) {
-    count += countVisibleDescendants(
-      repo,
-      child,
-      depth + 1,
-      maxDepth,
-      foldedNodes,
-    )
+    count += countVisibleDescendants(repo, child, depth + 1, maxDepth, foldedNodes)
   }
   return count
 }

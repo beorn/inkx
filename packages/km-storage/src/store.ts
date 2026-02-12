@@ -10,15 +10,7 @@
  */
 
 import { Database, type SQLQueryBindings } from "bun:sqlite"
-import {
-  existsSync,
-  readdirSync,
-  statSync,
-  readFileSync,
-  mkdirSync,
-  writeFileSync,
-  appendFileSync,
-} from "fs"
+import { existsSync, readdirSync, statSync, readFileSync, mkdirSync, writeFileSync, appendFileSync } from "fs"
 import { join, dirname, basename, relative, isAbsolute } from "path"
 import { toRelativeFsPath } from "./path-utils.ts"
 import { getMarkForStatus } from "@km/core"
@@ -29,10 +21,7 @@ import { SCHEMA } from "./schema.ts"
 import { addLink } from "./db.ts"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import { ensureRepoRootNode } from "./repo-loader.ts"
-import {
-  findChildByContent,
-  findFileByName,
-} from "./db-queries/wikilink-resolver.ts"
+import { findChildByContent, findFileByName } from "./db-queries/wikilink-resolver.ts"
 import { rowToNode, getNode } from "./db-queries/index.ts"
 import { createLogger } from "@beorn/logger"
 
@@ -62,18 +51,12 @@ export interface NodeStore extends Disposable {
   // Write operations
   updateNode(id: string, changes: Partial<KNode>): void
   moveNode(id: string, newParentId: string | null, parentIdx?: number): void
-  appendTaskToFile(
-    filePath: string,
-    content: string,
-    options?: { ensure?: boolean },
-  ): void
+  appendTaskToFile(filePath: string, content: string, options?: { ensure?: boolean }): void
   cloneTask(sourceId: string, changes: Partial<KNode>): string | null
 
   // Filesystem helpers (avoids CLI importing fs directly)
   pathExists(relativePath: string): boolean
-  getFileInfo(
-    relativePath: string,
-  ): { isDirectory: boolean; size: number } | null
+  getFileInfo(relativePath: string): { isDirectory: boolean; size: number } | null
 
   // Lifecycle
   refresh(): void
@@ -93,29 +76,21 @@ abstract class BaseStore implements NodeStore {
   }
 
   getNode(id: string): KNode | null {
-    const row = this.db
-      .query("SELECT * FROM nodes WHERE id = ?")
-      .get(id) as Record<string, unknown> | null
+    const row = this.db.query("SELECT * FROM nodes WHERE id = ?").get(id) as Record<string, unknown> | null
     return row ? rowToNode(row) : null
   }
 
   getNodeByPath(fsPath: string): KNode | null {
     // Convert absolute paths to relative (DB stores relative paths)
-    const queryPath = isAbsolute(fsPath)
-      ? toRelativeFsPath(this.rootPath, fsPath)
-      : fsPath
-    const row = this.db
-      .query("SELECT * FROM nodes WHERE fs_path = ?")
-      .get(queryPath) as Record<string, unknown> | null
+    const queryPath = isAbsolute(fsPath) ? toRelativeFsPath(this.rootPath, fsPath) : fsPath
+    const row = this.db.query("SELECT * FROM nodes WHERE fs_path = ?").get(queryPath) as Record<string, unknown> | null
     return row ? rowToNode(row) : null
   }
 
   getChildren(parentId: string | null): KNode[] {
     const pid = parentId ?? "."
     const rows = this.db
-      .query(
-        "SELECT * FROM nodes WHERE parent_id = ? ORDER BY parent_idx, created_at",
-      )
+      .query("SELECT * FROM nodes WHERE parent_id = ? ORDER BY parent_idx, created_at")
       .all(pid) as Record<string, unknown>[]
     return rows.map(rowToNode)
   }
@@ -155,10 +130,7 @@ abstract class BaseStore implements NodeStore {
   }
 
   getAllNodes(): KNode[] {
-    const rows = this.db.query("SELECT * FROM nodes").all() as Record<
-      string,
-      unknown
-    >[]
+    const rows = this.db.query("SELECT * FROM nodes").all() as Record<string, unknown>[]
     return rows.map(rowToNode)
   }
 
@@ -197,24 +169,17 @@ abstract class BaseStore implements NodeStore {
       return rows.map(rowToNode)
     } catch {
       // FTS might fail, fallback to simple search
-      const rows = this.db
-        .query(`SELECT * FROM nodes WHERE content LIKE ? LIMIT ?`)
-        .all(`%${query}%`, limit) as Record<string, unknown>[]
+      const rows = this.db.query(`SELECT * FROM nodes WHERE content LIKE ? LIMIT ?`).all(`%${query}%`, limit) as Record<
+        string,
+        unknown
+      >[]
       return rows.map(rowToNode)
     }
   }
 
   abstract updateNode(id: string, changes: Partial<KNode>): void
-  abstract moveNode(
-    id: string,
-    newParentId: string | null,
-    parentIdx?: number,
-  ): void
-  abstract appendTaskToFile(
-    filePath: string,
-    content: string,
-    options?: { ensure?: boolean },
-  ): void
+  abstract moveNode(id: string, newParentId: string | null, parentIdx?: number): void
+  abstract appendTaskToFile(filePath: string, content: string, options?: { ensure?: boolean }): void
   abstract cloneTask(sourceId: string, changes: Partial<KNode>): string | null
   abstract refresh(): void
   abstract close(): void
@@ -234,9 +199,7 @@ abstract class BaseStore implements NodeStore {
   /**
    * Get file info for a path relative to rootPath
    */
-  getFileInfo(
-    relativePath: string,
-  ): { isDirectory: boolean; size: number } | null {
+  getFileInfo(relativePath: string): { isDirectory: boolean; size: number } | null {
     const fullPath = join(this.rootPath, relativePath)
     try {
       const stats = statSync(fullPath)
@@ -267,11 +230,7 @@ abstract class BaseStore implements NodeStore {
   /**
    * Write task status change back to markdown file (synchronously for CLI)
    */
-  protected writeTaskStatusToFile(
-    filePath: string,
-    mdLine: number,
-    newStatus: TaskStatus,
-  ): void {
+  protected writeTaskStatusToFile(filePath: string, mdLine: number, newStatus: TaskStatus): void {
     try {
       const content = readFileSync(filePath, "utf-8")
       const lines = content.split("\n")
@@ -319,10 +278,7 @@ export class MemoryStore extends BaseStore {
   private fileCount = 0
   private parseErrors: Array<{ path: string; error: string }> = []
 
-  constructor(
-    rootPath: string,
-    options?: { lazy?: boolean; inject?: { database?: Database } },
-  ) {
+  constructor(rootPath: string, options?: { lazy?: boolean; inject?: { database?: Database } }) {
     super()
     this.rootPath = rootPath
     if (options?.inject?.database) {
@@ -377,13 +333,7 @@ export class MemoryStore extends BaseStore {
     ensureRepoRootNode(this.db, this.rootPath)
     this.db.run("BEGIN IMMEDIATE")
     try {
-      yield* this.scanDirectoryAsync(
-        this.rootPath,
-        ".",
-        0,
-        total,
-        ignorePatterns,
-      )
+      yield* this.scanDirectoryAsync(this.rootPath, ".", 0, total, ignorePatterns)
       this.db.run("COMMIT")
     } catch (error) {
       this.db.run("ROLLBACK")
@@ -396,11 +346,8 @@ export class MemoryStore extends BaseStore {
     // Log parse errors summary if any occurred
     if (this.parseErrors.length > 0) {
       log.warn(`${this.parseErrors.length} file(s) could not be parsed`, {
-        errors: this.parseErrors
-          .slice(0, 5)
-          .map(({ path, error }) => ({ path, error })),
-        truncated:
-          this.parseErrors.length > 5 ? this.parseErrors.length - 5 : 0,
+        errors: this.parseErrors.slice(0, 5).map(({ path, error }) => ({ path, error })),
+        truncated: this.parseErrors.length > 5 ? this.parseErrors.length - 5 : 0,
       })
     }
   }
@@ -422,10 +369,7 @@ export class MemoryStore extends BaseStore {
   /**
    * Count markdown files for progress reporting
    */
-  private countMarkdownFiles(
-    dirPath: string,
-    ignorePatterns: string[],
-  ): number {
+  private countMarkdownFiles(dirPath: string, ignorePatterns: string[]): number {
     if (!existsSync(dirPath)) return 0
 
     let count = 0
@@ -453,13 +397,7 @@ export class MemoryStore extends BaseStore {
     ensureRepoRootNode(this.db, this.rootPath)
     this.db.run("BEGIN IMMEDIATE")
     try {
-      for (const _ of this.scanDirectoryAsync(
-        this.rootPath,
-        ".",
-        0,
-        0,
-        ignorePatterns,
-      )) {
+      for (const _ of this.scanDirectoryAsync(this.rootPath, ".", 0, 0, ignorePatterns)) {
         // Consume generator without progress reporting
       }
       this.db.run("COMMIT")
@@ -484,10 +422,7 @@ export class MemoryStore extends BaseStore {
     if (!existsSync(dirPath)) return
 
     // Skip ignored directories (but not the root directory)
-    if (
-      parentId !== "." &&
-      shouldIgnore(dirPath, ignorePatterns, this.rootPath)
-    ) {
+    if (parentId !== "." && shouldIgnore(dirPath, ignorePatterns, this.rootPath)) {
       return
     }
 
@@ -514,13 +449,7 @@ export class MemoryStore extends BaseStore {
         })
 
         // Recurse
-        yield* this.scanDirectoryAsync(
-          fullPath,
-          folderId,
-          0,
-          total,
-          ignorePatterns,
-        )
+        yield* this.scanDirectoryAsync(fullPath, folderId, 0, total, ignorePatterns)
       } else if (entry.isFile()) {
         const isMarkdown = entry.name.endsWith(".md")
 
@@ -558,11 +487,7 @@ export class MemoryStore extends BaseStore {
    * - Wiki links and inline fields
    * - Task metadata extraction
    */
-  private parseMarkdownFile(
-    filePath: string,
-    folderParentId: string | null,
-    sortOrder: number,
-  ): void {
+  private parseMarkdownFile(filePath: string, folderParentId: string | null, sortOrder: number): void {
     try {
       const content = readFileSync(filePath, "utf-8")
       const { nodes, wikilinks } = parseMarkdownWithLinks(content, filePath)
@@ -610,9 +535,9 @@ export class MemoryStore extends BaseStore {
 
       // Prefer block_id resolution (stable across content edits)
       if (link.blockId) {
-        const row = this.db
-          .prepare("SELECT id FROM nodes WHERE block_id = ? LIMIT 1")
-          .get(link.blockId) as { id: string } | null
+        const row = this.db.prepare("SELECT id FROM nodes WHERE block_id = ? LIMIT 1").get(link.blockId) as {
+          id: string
+        } | null
         if (row) targetNode = row
       }
 
@@ -621,11 +546,7 @@ export class MemoryStore extends BaseStore {
         targetNode = findFileByName(this.db, link.target)
         // If there's a section reference, try to find the specific child node
         if (targetNode && link.section) {
-          const childNode = findChildByContent(
-            this.db,
-            targetNode.id,
-            link.section,
-          )
+          const childNode = findChildByContent(this.db, targetNode.id, link.section)
           if (childNode) {
             targetNode = childNode
           }
@@ -728,10 +649,7 @@ export class MemoryStore extends BaseStore {
     sets.push("updated_at = ?")
     values.push(Date.now(), id)
 
-    this.db.run(
-      `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`,
-      values as SQLQueryBindings[],
-    )
+    this.db.run(`UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`, values as SQLQueryBindings[])
 
     // Write through to markdown file for task status changes
     if (changes.task_status !== undefined && node.md_line !== undefined) {
@@ -749,23 +667,19 @@ export class MemoryStore extends BaseStore {
     if (!node) return
 
     const idx = parentIdx ?? Date.now()
-    this.db.run(
-      `UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?`,
-      [newParentId, idx, Date.now(), id],
-    )
+    this.db.run(`UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?`, [
+      newParentId,
+      idx,
+      Date.now(),
+      id,
+    ])
 
     // Note: In memory mode, we don't emit events since there's no persistence
     // The in-memory DB is the source of truth
   }
 
-  appendTaskToFile(
-    filePath: string,
-    content: string,
-    options?: { ensure?: boolean },
-  ): void {
-    const fullPath = filePath.startsWith("/")
-      ? filePath
-      : join(this.rootPath, filePath)
+  appendTaskToFile(filePath: string, content: string, options?: { ensure?: boolean }): void {
+    const fullPath = filePath.startsWith("/") ? filePath : join(this.rootPath, filePath)
 
     // Ensure directory exists if requested
     if (options?.ensure) {
@@ -774,28 +688,19 @@ export class MemoryStore extends BaseStore {
         mkdirSync(dir, { recursive: true })
       }
       if (!existsSync(fullPath)) {
-        writeFileSync(
-          fullPath,
-          `---\ntitle: ${basename(fullPath).replace(/\.md$/, "")}\n---\n\n`,
-        )
+        writeFileSync(fullPath, `---\ntitle: ${basename(fullPath).replace(/\.md$/, "")}\n---\n\n`)
       }
     }
 
     appendFileSync(fullPath, content)
 
     // Re-parse the file to update in-memory state
-    const existingFileNode = this.getNodeByPath(
-      toRelativeFsPath(this.rootPath, fullPath),
-    )
+    const existingFileNode = this.getNodeByPath(toRelativeFsPath(this.rootPath, fullPath))
     if (existingFileNode) {
       // Remove the file node and all its children, then re-parse
       this.db.run(`DELETE FROM nodes WHERE fs_path = ?`, [fullPath])
       // Re-parse with the same parent and sort order
-      this.parseMarkdownFile(
-        fullPath,
-        existingFileNode.parent_id,
-        existingFileNode.parent_idx,
-      )
+      this.parseMarkdownFile(fullPath, existingFileNode.parent_id, existingFileNode.parent_idx)
     }
   }
 
@@ -816,8 +721,7 @@ export class MemoryStore extends BaseStore {
     const task_mark = changes.task_mark ?? " "
     const assigned_to = changes.assigned_to ?? source.assigned_to ?? null
     const due_date = changes.due_date ?? source.due_date ?? null
-    const scheduled_date =
-      changes.scheduled_date ?? source.scheduled_date ?? null
+    const scheduled_date = changes.scheduled_date ?? source.scheduled_date ?? null
     const priority = changes.priority ?? source.priority ?? null
     const content = changes.content ?? source.content ?? ""
     const data = JSON.stringify({

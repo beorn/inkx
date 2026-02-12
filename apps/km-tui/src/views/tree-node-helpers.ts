@@ -5,17 +5,8 @@
  */
 
 import { extractTitleTaskMark, type KNode } from "@km/core"
-import {
-  getFoldMarker,
-  getStatusIcon,
-  styledUnderline,
-  type StatusIcon,
-} from "../text/index.ts"
-import {
-  formatBoardPills,
-  getOwnColor,
-  type BoardPill,
-} from "../board-pills.ts"
+import { getFoldMarker, getStatusIcon, styledUnderline, type StatusIcon } from "../text/index.ts"
+import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
 // =============================================================================
 // Content Helpers
@@ -109,8 +100,7 @@ export function getNodeStyle(
   // No colored background for nodes with ownColor - color only applies to fold marker
 
   // Dim state for done/dropped tasks (no strikethrough per design)
-  const isDoneOrDropped =
-    isTask && (node.task_status === "done" || node.task_status === "dropped")
+  const isDoneOrDropped = isTask && (node.task_status === "done" || node.task_status === "dropped")
   const isInactiveChild = dimInactiveChildren && depth > 0
   const shouldDim = isDoneOrDropped || isInactiveChild
   const shouldStrikethrough = false // Disabled per design decision
@@ -196,9 +186,7 @@ export function buildPrefix(
 function formatDueDate(dueDate: Date): string {
   const dueStr = dueDate.toISOString().slice(5, 10)
   const now = new Date()
-  const daysUntilDue = Math.floor(
-    (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-  )
+  const daysUntilDue = Math.floor((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
   let dueDisplay = `⏰${dueStr}`
   if (daysUntilDue < 0) {
@@ -217,10 +205,7 @@ function formatDueDate(dueDate: Date): string {
 }
 
 /** Type for getBoardPills callback (repo is captured in closure by caller) */
-export type GetBoardPillsFn = (
-  node: KNode,
-  excludeBoardIds: Set<string>,
-) => BoardPill[]
+export type GetBoardPillsFn = (node: KNode, excludeBoardIds: Set<string>) => BoardPill[]
 
 /**
  * Build the info suffix for a node (assignee, due date, board pills).
@@ -269,10 +254,7 @@ export function formatInfoSuffix(
 /**
  * Truncate parent context string for inline display.
  */
-export function truncateContext(
-  context: string | null,
-  maxLen: number,
-): string | null {
+export function truncateContext(context: string | null, maxLen: number): string | null {
   if (!context) return null
   return context.length > maxLen ? context.slice(0, maxLen - 1) + "…" : context
 }

@@ -105,9 +105,7 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string): string {
     lines.push(`close_reason: "${issue.close_reason.replace(/"/g, '\\"')}"`)
   }
   if (issue.blocked_by && issue.blocked_by.length > 0) {
-    lines.push(
-      `blocked_by: [${issue.blocked_by.map((b) => `"${b}"`).join(", ")}]`,
-    )
+    lines.push(`blocked_by: [${issue.blocked_by.map((b) => `"${b}"`).join(", ")}]`)
   }
   if (issue.parent_id) {
     lines.push(`parent_id: ${issue.parent_id}`)
@@ -179,10 +177,7 @@ export interface MigrateResult {
 /**
  * Migrate issues from .beads/issues.jsonl to markdown files
  */
-export function migrateBeadsToMarkdown(
-  beadsDir: string,
-  options: MigrateOptions,
-): MigrateResult {
+export function migrateBeadsToMarkdown(beadsDir: string, options: MigrateOptions): MigrateResult {
   const { fs } = options
   const issues = readBeadsIssues(fs, beadsDir)
   const result: MigrateResult = {
@@ -224,9 +219,7 @@ export function migrateBeadsToMarkdown(
       result.migrated++
       result.files.push(filepath)
     } catch (error) {
-      result.errors.push(
-        `${issue.id}: ${error instanceof Error ? error.message : String(error)}`,
-      )
+      result.errors.push(`${issue.id}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 

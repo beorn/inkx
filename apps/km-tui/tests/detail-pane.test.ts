@@ -41,25 +41,14 @@ function createTestNode(
 }
 
 /** Create multiple test nodes from minimal specs */
-function createTestNodes(
-  specs: Array<
-    Partial<KNode> & { id: string; type: KNode["type"]; content: string }
-  >,
-): KNode[] {
+function createTestNodes(specs: Array<Partial<KNode> & { id: string; type: KNode["type"]; content: string }>): KNode[] {
   return specs.map((spec) => createTestNode(spec))
 }
 
 /** Render DetailPane with a repo containing the given nodes */
-function renderDetailPane(
-  repo: ReturnType<typeof createFakeRepo>,
-  node: KNode,
-  width: number,
-  height: number,
-) {
+function renderDetailPane(repo: ReturnType<typeof createFakeRepo>, node: KNode, width: number, height: number) {
   const detailPane = React.createElement(DetailPane, { node, width, height })
-  return render(
-    React.createElement(RepoProvider, { repo, children: detailPane }),
-  )
+  return render(React.createElement(RepoProvider, { repo, children: detailPane }))
 }
 
 /** Helper to format date in local timezone (matches implementation) */
@@ -83,24 +72,9 @@ function dateRelativeToToday(daysOffset: number): string {
 
 describe("extractReferences", () => {
   test.each([
-    [
-      "@mentions",
-      "Contact @john and @jane about this",
-      "mentions",
-      ["john", "jane"],
-    ],
-    [
-      "#tags",
-      "This is #important and #urgent",
-      "tags",
-      ["important", "urgent"],
-    ],
-    [
-      "+projects",
-      "Part of +work and +finance projects",
-      "projects",
-      ["work", "finance"],
-    ],
+    ["@mentions", "Contact @john and @jane about this", "mentions", ["john", "jane"]],
+    ["#tags", "This is #important and #urgent", "tags", ["important", "urgent"]],
+    ["+projects", "Part of +work and +finance projects", "projects", ["work", "finance"]],
     [
       "[[wikilinks]]",
       "See [[Meeting Notes]] and [[Q4 Actuals]] for details",
@@ -178,22 +152,17 @@ describe("getStatusDisplay", () => {
     ["wip", "wip", "yellow"],
     ["blocked", "blocked", "red"],
     ["dropped", "dropped", "gray"],
-  ] as const)(
-    "status %s returns text=%s color=%s",
-    (status, expectedText, expectedColor) => {
-      const result = getStatusDisplay(status)
-      expect(result.text).toBe(expectedText)
-      expect(result.color).toBe(expectedColor)
-    },
-  )
+  ] as const)("status %s returns text=%s color=%s", (status, expectedText, expectedColor) => {
+    const result = getStatusDisplay(status)
+    expect(result.text).toBe(expectedText)
+    expect(result.color).toBe(expectedColor)
+  })
 })
 
 describe("getProjectPath", () => {
   test("returns empty array for node with no parent", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([
-        { id: "task1", type: "task", content: "Standalone task" },
-      ]),
+      nodes: createTestNodes([{ id: "task1", type: "task", content: "Standalone task" }]),
     })
     const node = repo.getNode("task1")!
     expect(getProjectPath(repo, node)).toEqual([])
@@ -298,8 +267,7 @@ describe("DetailPane", () => {
         {
           id: "task1",
           type: "task",
-          content:
-            "Talk to @john about #budget for +work project [[Meeting Notes]]",
+          content: "Talk to @john about #budget for +work project [[Meeting Notes]]",
         },
       ]),
     })
@@ -338,9 +306,7 @@ describe("DetailPane", () => {
 
   test("shows keybindings hint", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([
-        { id: "task1", type: "task", content: "Simple task" },
-      ]),
+      nodes: createTestNodes([{ id: "task1", type: "task", content: "Simple task" }]),
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 50, 24)

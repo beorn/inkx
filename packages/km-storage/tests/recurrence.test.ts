@@ -5,11 +5,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import {
-  parseRRule,
-  getNextOccurrence,
-  naturalToRRule,
-} from "../src/recurrence.ts"
+import { parseRRule, getNextOccurrence, naturalToRRule } from "../src/recurrence.ts"
 
 describe("recurrence.ts", () => {
   describe("parseRRule", () => {
@@ -89,10 +85,7 @@ describe("recurrence.ts", () => {
 
     test("handles BYMONTHDAY for monthly", () => {
       // On the 15th with BYMONTHDAY=1,20, should go to 20th
-      const next = getNextOccurrence(
-        "FREQ=MONTHLY;BYMONTHDAY=1,20",
-        "2024-01-15",
-      )
+      const next = getNextOccurrence("FREQ=MONTHLY;BYMONTHDAY=1,20", "2024-01-15")
       expect(next).toBe("2024-01-20")
     })
 
@@ -128,12 +121,8 @@ describe("recurrence.ts", () => {
     })
 
     test("converts 'weekdays' to RRULE", () => {
-      expect(naturalToRRule("weekdays")).toBe(
-        "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
-      )
-      expect(naturalToRRule("every weekday")).toBe(
-        "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
-      )
+      expect(naturalToRRule("weekdays")).toBe("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR")
+      expect(naturalToRRule("every weekday")).toBe("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR")
     })
 
     test("converts day names to RRULE", () => {
@@ -159,9 +148,7 @@ describe("recurrence.ts", () => {
     })
 
     test("passes through existing RRULE", () => {
-      expect(naturalToRRule("FREQ=DAILY;INTERVAL=5")).toBe(
-        "FREQ=DAILY;INTERVAL=5",
-      )
+      expect(naturalToRRule("FREQ=DAILY;INTERVAL=5")).toBe("FREQ=DAILY;INTERVAL=5")
     })
 
     test("returns null for unrecognized patterns", () => {

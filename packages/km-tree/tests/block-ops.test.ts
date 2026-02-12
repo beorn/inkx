@@ -184,9 +184,7 @@ describe("splitNode", () => {
     const children = repo.getChildren(parentId)
     expect(children).toHaveLength(4) // was 3, now 4
     const ids = children.map((c) => c.id)
-    expect(ids.indexOf(result.beforeId)).toBeLessThan(
-      ids.indexOf(result.afterId),
-    )
+    expect(ids.indexOf(result.beforeId)).toBeLessThan(ids.indexOf(result.afterId))
   })
 
   test("split at start creates empty node before", () => {
@@ -336,9 +334,7 @@ describe("mergeWithPrevious", () => {
     })
 
     const childrenBefore = repo.getChildren(parentId)
-    const prevId = childrenBefore.find(
-      (c) => c.parent_idx < 1.5 && c.id !== emptyId,
-    )?.id
+    const prevId = childrenBefore.find((c) => c.parent_idx < 1.5 && c.id !== emptyId)?.id
 
     const result = mergeWithPrevious(repo, emptyId)
 

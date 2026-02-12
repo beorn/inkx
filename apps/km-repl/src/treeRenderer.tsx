@@ -105,22 +105,18 @@ function buildTreeLines(
     const childPrefix = prefix + (isLast ? "    " : "│   ")
 
     // Check if this node is at the cursor position
-    const isCursor =
-      cursor.length === path.length && cursor.every((v, j) => v === path[j])
+    const isCursor = cursor.length === path.length && cursor.every((v, j) => v === path[j])
     const isSelected = selectedNodes.has(node.id)
     const isFolded = foldedNodes.has(node.id)
 
     // Status icon
-    const statusIcon = node.task_status
-      ? (STATUS_ICONS[node.task_status] ?? " ")
-      : " "
+    const statusIcon = node.task_status ? (STATUS_ICONS[node.task_status] ?? " ") : " "
 
     // Fold indicator
     const foldChar = node.childCount > 0 ? (isFolded ? "▸" : "▾") : " "
 
     // Title with count if folded
-    const titleSuffix =
-      isFolded && node.childCount > 0 ? ` (+${node.childCount})` : ""
+    const titleSuffix = isFolded && node.childCount > 0 ? ` (+${node.childCount})` : ""
 
     lines.push(
       <TreeLine
@@ -138,16 +134,7 @@ function buildTreeLines(
 
     // Render children if not folded
     if (!isFolded && node.children.length > 0) {
-      lines.push(
-        ...buildTreeLines(
-          node.children,
-          cursor,
-          foldedNodes,
-          selectedNodes,
-          path,
-          childPrefix,
-        ),
-      )
+      lines.push(...buildTreeLines(node.children, cursor, foldedNodes, selectedNodes, path, childPrefix))
     }
   }
 
@@ -164,14 +151,7 @@ interface TreeViewProps {
  * Main tree view component for rendering BoardState
  */
 function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
-  const lines = buildTreeLines(
-    state.nodes,
-    state.cursor,
-    state.foldedNodes,
-    state.selectedNodes,
-    [],
-    "",
-  )
+  const lines = buildTreeLines(state.nodes, state.cursor, state.foldedNodes, state.selectedNodes, [], "")
 
   return (
     <Box flexDirection="column" width={width} height={height}>
@@ -182,9 +162,7 @@ function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
       {/* Footer with cursor position */}
       <Box marginTop={1}>
         <Text dimColor>
-          cursor: [{state.cursor.join(",")}]
-          {state.selectedNodes.size > 0 &&
-            ` selected: ${state.selectedNodes.size}`}
+          cursor: [{state.cursor.join(",")}]{state.selectedNodes.size > 0 && ` selected: ${state.selectedNodes.size}`}
         </Text>
       </Box>
     </Box>

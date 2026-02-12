@@ -10,12 +10,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import {
-  createWorktree,
-  removeWorktree,
-  listWorktrees,
-  showDefaultInfo,
-} from "@beorn/tools/tools/worktree"
+import { createWorktree, removeWorktree, listWorktrees, showDefaultInfo } from "@beorn/tools/tools/worktree"
 
 // ============================================
 // Subcommands
@@ -28,10 +23,7 @@ const createCommand = new Command("create")
   .option("--no-install", "Skip bun install")
   .option("--no-direnv", "Skip direnv allow")
   .option("--no-hooks", "Skip hook installation")
-  .option(
-    "--allow-dirty",
-    "Create even with uncommitted changes (not recommended)",
-  )
+  .option("--allow-dirty", "Create even with uncommitted changes (not recommended)")
   .action(async (name, branch, options) => {
     await createWorktree(name, branch, {
       install: options.install,

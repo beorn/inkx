@@ -21,11 +21,7 @@ export const viewCommand = new Command("view")
   .description("Interactive TUI view (press 'v' to cycle modes)")
   .argument("[root]", "Root node ID, filesystem path, or directory to view")
   .option("--no-interactive", "Non-interactive mode, just print")
-  .option(
-    "--as <mode>",
-    `Initial view mode: ${VIEW_MODES.join(", ")} (default: cards)`,
-    "cards",
-  )
+  .option("--as <mode>", `Initial view mode: ${VIEW_MODES.join(", ")} (default: cards)`, "cards")
   .option("--no-watch", "Disable file watching (faster startup on large repos)")
   .action(async (root, options) => {
     using startup = log.span("startup", { path: root })
@@ -36,8 +32,7 @@ export const viewCommand = new Command("view")
     })
 
     // Clear the "Loading..." line from bootstrap.ts
-    const { CURSOR_TO_START, CLEAR_LINE_END } =
-      await import("@beorn/inkx-ui/cli")
+    const { CURSOR_TO_START, CLEAR_LINE_END } = await import("@beorn/inkx-ui/cli")
     process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
 
     // Import modules
@@ -47,14 +42,12 @@ export const viewCommand = new Command("view")
     let loadRepo: (typeof import("../load-repo.ts"))["loadRepo"]
     {
       using _ = startup.span("import-modules")
-      ;[storageModule, tuiModule, coreModule, { loadRepo }] = await Promise.all(
-        [
-          import("@km/storage"),
-          import("@km/tui"),
-          import("@km/core"),
-          import("../load-repo.ts"),
-        ],
-      )
+      ;[storageModule, tuiModule, coreModule, { loadRepo }] = await Promise.all([
+        import("@km/storage"),
+        import("@km/tui"),
+        import("@km/core"),
+        import("../load-repo.ts"),
+      ])
     }
 
     // Resolve path and set debug root
@@ -68,9 +61,7 @@ export const viewCommand = new Command("view")
     // in the TUI console panel instead of being lost to stderr before alt screen.
     const { patchConsole } = await import("inkx")
     const patchedConsole =
-      interactive && process.stdin.isTTY
-        ? patchConsole(console, { capture: true, suppress: true })
-        : null
+      interactive && process.stdin.isTTY ? patchConsole(console, { capture: true, suppress: true }) : null
 
     // Load repo with progress display
     let createdRepo: Awaited<ReturnType<typeof loadRepo>>
@@ -94,11 +85,7 @@ export const viewCommand = new Command("view")
         const data = node.data as { _stub?: boolean } | undefined
         if (data?._stub && node.fs_path) {
           debug.debug?.(`parsing stub file eagerly: ${node.fs_path}`)
-          storageModule.parseStubFile(
-            createdRepo.database,
-            node.id,
-            node.fs_path,
-          )
+          storageModule.parseStubFile(createdRepo.database, node.id, node.fs_path)
         }
       }
     } else {
@@ -116,9 +103,7 @@ export const viewCommand = new Command("view")
     // Build view state
     const state = (() => {
       using _ = startup.span("build-state")
-      const result = coreModule.runGenerator(
-        tuiModule.initBoardStateGenerator(createdRepo, rootNodeId),
-      )
+      const result = coreModule.runGenerator(tuiModule.initBoardStateGenerator(createdRepo, rootNodeId))
       if (result) {
         result.rootPath = resolved.repoRoot
       }
@@ -150,9 +135,7 @@ export const viewCommand = new Command("view")
     let aborted = false
 
     if (deferredFiles.length > 0) {
-      debug.debug?.(
-        `scheduling background parsing for ${deferredFiles.length} files`,
-      )
+      debug.debug?.(`scheduling background parsing for ${deferredFiles.length} files`)
       void (async () => {
         // Small delay to let the board render first
         await new Promise<void>((resolve) => {
@@ -176,19 +159,12 @@ export const viewCommand = new Command("view")
           if (pendingLinks.length > 0) {
             const resolved =
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              await storageModule!.resolveLinksAsync(
-                createdRepo.database,
-                pendingLinks,
-              )
-            debug.debug?.(
-              `background link resolution complete: ${resolved} resolved`,
-            )
+              await storageModule!.resolveLinksAsync(createdRepo.database, pendingLinks)
+            debug.debug?.(`background link resolution complete: ${resolved} resolved`)
           }
         } catch (err) {
           if (!aborted) {
-            debug.debug?.(
-              `background parsing/resolution failed: ${String(err)}`,
-            )
+            debug.debug?.(`background parsing/resolution failed: ${String(err)}`)
           }
         }
       })()

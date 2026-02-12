@@ -6,11 +6,7 @@ import { board } from "./helpers/board-app.ts"
 
 describe("board.app() API", () => {
   test("string DSL creates proper hierarchy", () => {
-    const app = board.app([
-      "Inbox > Task 1",
-      "Inbox > Task 2",
-      "Projects > Alpha",
-    ])
+    const app = board.app(["Inbox > Task 1", "Inbox > Task 2", "Projects > Alpha"])
 
     expect(app.text).toContain("Inbox")
     expect(app.viewMode).toBe("cards")

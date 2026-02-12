@@ -6,12 +6,7 @@
  */
 
 import { createLogger } from "@beorn/logger"
-import type {
-  CalDAVConfig,
-  CalendarEvent,
-  SyncResult,
-  SyncState,
-} from "./types.ts"
+import type { CalDAVConfig, CalendarEvent, SyncResult, SyncState } from "./types.ts"
 import { parseICalendar, formatICalendar } from "./icalendar.ts"
 import { createBasicAuthHeader, webdavRequest } from "./webdav-base.ts"
 
@@ -80,9 +75,7 @@ export function createCalDAVClient(config: CalDAVConfig) {
         )
 
         const homeText = await homeResponse.text()
-        const homeMatch = homeText.match(
-          /<C:calendar-home-set>.*?<D:href>([^<]+)<\/D:href>/s,
-        )
+        const homeMatch = homeText.match(/<C:calendar-home-set>.*?<D:href>([^<]+)<\/D:href>/s)
         if (homeMatch) {
           calendarUrl = `${config.url}${homeMatch[1]}`
           return calendarUrl
@@ -130,10 +123,7 @@ export function createCalDAVClient(config: CalDAVConfig) {
       let match
       while ((match = responseRegex.exec(text)) !== null) {
         const etag = match[2]
-        const icalData = match[3]
-          ?.replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&amp;/g, "&")
+        const icalData = match[3]?.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
 
         if (icalData) {
           const event = parseICalendar(icalData)
@@ -238,12 +228,7 @@ export function createCalDAVClient(config: CalDAVConfig) {
 }
 
 /** Type for the internal WebDAV request function */
-type RequestFn = (
-  method: string,
-  url: string,
-  body?: string,
-  headers?: Record<string, string>,
-) => Promise<Response>
+type RequestFn = (method: string, url: string, body?: string, headers?: Record<string, string>) => Promise<Response>
 
 /**
  * Process incremental sync using WebDAV sync-collection (RFC 6578).

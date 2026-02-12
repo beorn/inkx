@@ -15,14 +15,7 @@
  * - SKIP directive for skipped tests
  */
 
-import type {
-  FullConfig,
-  FullResult,
-  Reporter,
-  Suite,
-  TestCase,
-  TestResult,
-} from "@playwright/test/reporter"
+import type { FullConfig, FullResult, Reporter, Suite, TestCase, TestResult } from "@playwright/test/reporter"
 
 export default class TapReporter implements Reporter {
   private count = 0
@@ -48,9 +41,7 @@ export default class TapReporter implements Reporter {
 
     if (result.status === "failed" && result.error) {
       console.log("  ---")
-      console.log(
-        `  message: ${result.error.message?.split("\n")[0] ?? "Test failed"}`,
-      )
+      console.log(`  message: ${result.error.message?.split("\n")[0] ?? "Test failed"}`)
       if (test.location) {
         console.log("  at:")
         console.log(`    file: ${test.location.file}`)

@@ -30,9 +30,7 @@ import { loadRepo } from "../load-repo.ts"
 // ============================================
 
 export const initCommand = new Command("init")
-  .description(
-    "Initialize km in a directory (enables disk mode, adds GTD by default)",
-  )
+  .description("Initialize km in a directory (enables disk mode, adds GTD by default)")
   .argument("[path]", "Target directory")
   .option("-f, --force", "Overwrite existing files")
   .option("--no-gtd", "Skip GTD folder structure")
@@ -45,9 +43,7 @@ export const initCommand = new Command("init")
 
     if (pathArg) {
       // Path argument provided
-      const expanded = pathArg.startsWith("~")
-        ? pathArg.replace("~", process.env.HOME || "")
-        : pathArg
+      const expanded = pathArg.startsWith("~") ? pathArg.replace("~", process.env.HOME || "") : pathArg
       targetDir = resolve(expanded)
 
       // Create target directory if it doesn't exist
@@ -57,9 +53,7 @@ export const initCommand = new Command("init")
       }
     } else if (globalRoot) {
       // Expand ~ and resolve to absolute path
-      const expanded = globalRoot.startsWith("~")
-        ? globalRoot.replace("~", process.env.HOME || "")
-        : globalRoot
+      const expanded = globalRoot.startsWith("~") ? globalRoot.replace("~", process.env.HOME || "") : globalRoot
       targetDir = resolve(expanded)
 
       // Create target directory if it doesn't exist
@@ -84,11 +78,7 @@ export const initCommand = new Command("init")
     const ancestorKm = findAncestorKmDir(targetDir)
     if (ancestorKm && !options.force) {
       console.log(term.yellow(`Found existing km repo at ${ancestorKm}`))
-      console.log(
-        term.yellow(
-          `Creating a nested repo may cause conflicts. Consider using the parent repo instead.`,
-        ),
-      )
+      console.log(term.yellow(`Creating a nested repo may cause conflicts. Consider using the parent repo instead.`))
       console.log(term.dim("Use --force to create a nested repo"))
       return
     }
@@ -106,10 +96,7 @@ export const initCommand = new Command("init")
     const eventsPath = join(kmDir, "events.jsonl")
     writeFileSync(eventsPath, "")
 
-    console.log(
-      term.bold("Initializing .km"),
-      term.dim(`(repo ${formatPath(targetDir)})`),
-    )
+    console.log(term.bold("Initializing .km"), term.dim(`(repo ${formatPath(targetDir)})`))
     console.log(term.green("✓"), "Created .km/")
 
     // Add GTD structure by default (unless --no-gtd)
@@ -139,10 +126,7 @@ export const initCommand = new Command("init")
           processed: number
           directories: number
         }
-        console.log(
-          term.green("✓"),
-          `Synced ${result.processed} file(s) in ${result.directories} directories`,
-        )
+        console.log(term.green("✓"), `Synced ${result.processed} file(s) in ${result.directories} directories`)
       } catch (error) {
         console.error("Sync failed:", error)
       }

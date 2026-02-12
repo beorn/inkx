@@ -19,16 +19,8 @@ const VIEW_MODES: ViewMode[] = ["cards", "columns", "list", "tabs"]
 export const screenshotCommand = new Command("screenshot")
   .description("Capture TUI view as text (for debugging and testing)")
   .argument("[root]", "Root node ID, filesystem path, or directory to view")
-  .option(
-    "--as <mode>",
-    `View mode: ${VIEW_MODES.join(", ")} (default: cards)`,
-    "cards",
-  )
-  .option(
-    "--format <format>",
-    "Output format: text (plain), ansi (styled), debug (with metadata)",
-    "text",
-  )
+  .option("--as <mode>", `View mode: ${VIEW_MODES.join(", ")} (default: cards)`, "cards")
+  .option("--format <format>", "Output format: text (plain), ansi (styled), debug (with metadata)", "text")
   .option("--width <n>", "Terminal width", "80")
   .option("--height <n>", "Terminal height", "24")
   .option("-o, --output <file>", "Output file (default: stdout)")
@@ -37,29 +29,24 @@ export const screenshotCommand = new Command("screenshot")
 
     const width = parseInt(options.width, 10)
     const height = parseInt(options.height, 10)
-    const viewMode: ViewMode = VIEW_MODES.includes(options.as)
-      ? (options.as as ViewMode)
-      : "cards"
+    const viewMode: ViewMode = VIEW_MODES.includes(options.as) ? (options.as as ViewMode) : "cards"
     const format: OutputFormat = options.format as OutputFormat
 
     // Import modules
-    const [storageModule, coreModule, cliModule, tuiModule, inkxModule] =
-      await Promise.all([
-        import("@km/storage"),
-        import("@km/core"),
-        import("../program.ts"),
-        import("@km/tui"),
-        import("inkx"),
-      ])
+    const [storageModule, coreModule, cliModule, tuiModule, inkxModule] = await Promise.all([
+      import("@km/storage"),
+      import("@km/core"),
+      import("../program.ts"),
+      import("@km/tui"),
+      import("inkx"),
+    ])
 
     // Resolve path and load repo
     const resolved = storageModule.resolvePathArg(root, cliModule.getRootPath())
     setDebugRepoRoot(resolved.repoRoot)
 
     // Load repo (full parse for accurate screenshot)
-    const repo = coreModule.runGenerator(
-      storageModule.createRepo(resolved.repoRoot, { loadFiles: true }),
-    )
+    const repo = coreModule.runGenerator(storageModule.createRepo(resolved.repoRoot, { loadFiles: true }))
 
     // Resolve nodeRef to actual node ID (matches view.ts logic)
     let rootNodeId: string | undefined
@@ -73,9 +60,7 @@ export const screenshotCommand = new Command("screenshot")
     }
 
     // Initialize board state
-    const state = coreModule.runGenerator(
-      tuiModule.initBoardStateGenerator(repo, rootNodeId),
-    )
+    const state = coreModule.runGenerator(tuiModule.initBoardStateGenerator(repo, rootNodeId))
 
     if (!state) {
       console.error("Failed to initialize board state")
@@ -86,12 +71,7 @@ export const screenshotCommand = new Command("screenshot")
 
     // Import React and Board components
     const React = await import("react")
-    const {
-      BoardCore,
-      RepoProvider,
-      createInitialUIState,
-      createLayoutRegistry,
-    } = await import("@km/tui")
+    const { BoardCore, RepoProvider, createInitialUIState, createLayoutRegistry } = await import("@km/tui")
 
     // Create the BoardCore element with all required props
     const boardCoreElement = React.createElement(BoardCore, {

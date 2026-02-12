@@ -13,11 +13,7 @@ import { describe, test, expect } from "vitest"
 import { join } from "path"
 import { mkdirSync, writeFileSync } from "fs"
 
-import {
-  loadConfig,
-  clearConfigCache,
-  getOriginalBeadsConfig,
-} from "../src/config.ts"
+import { loadConfig, clearConfigCache, getOriginalBeadsConfig } from "../src/config.ts"
 import { withTestEnvSync } from "@km/storage"
 
 describe("loadConfig", () => {

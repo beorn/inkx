@@ -13,9 +13,7 @@ import { createEmptyState } from "../../src/state.ts"
 /**
  * Create a test KNode with defaults
  */
-function createTestKNode(
-  overrides: Partial<KNode> & { id?: string } = {},
-): KNode {
+function createTestKNode(overrides: Partial<KNode> & { id?: string } = {}): KNode {
   const id = overrides.id ?? ulid()
   return {
     id,
@@ -34,10 +32,7 @@ function createTestKNode(
 /**
  * Create a CardState with children
  */
-export function createCardState(
-  nodeOverrides: Partial<KNode> = {},
-  children: KNode[] = [],
-): CardState {
+export function createCardState(nodeOverrides: Partial<KNode> = {}, children: KNode[] = []): CardState {
   const node = createTestKNode(nodeOverrides)
   return { node, children }
 }
@@ -45,10 +40,7 @@ export function createCardState(
 /**
  * Create a ColumnState with cards
  */
-export function createColumnState(
-  nodeOverrides: Partial<KNode> = {},
-  cards: CardState[] = [],
-): ColumnState {
+export function createColumnState(nodeOverrides: Partial<KNode> = {}, cards: CardState[] = []): ColumnState {
   const node = createTestKNode({
     type: "folder",
     ...nodeOverrides,
@@ -59,10 +51,7 @@ export function createColumnState(
 /**
  * Create a TUIBoardState with columns
  */
-export function createBoardState(
-  columns: ColumnState[] = [],
-  overrides: Partial<TUIBoardState> = {},
-): TUIBoardState {
+export function createBoardState(columns: ColumnState[] = [], overrides: Partial<TUIBoardState> = {}): TUIBoardState {
   const base = createEmptyState()
   return {
     ...base,
@@ -116,15 +105,9 @@ function createSimpleTestBoard(): {
     type: "task",
   })
 
-  const col1 = createColumnState(
-    { id: col1Id, parent_id: rootId, content: "Todo" },
-    [card1, card2],
-  )
+  const col1 = createColumnState({ id: col1Id, parent_id: rootId, content: "Todo" }, [card1, card2])
 
-  const col2 = createColumnState(
-    { id: col2Id, parent_id: rootId, parent_idx: 1, content: "Done" },
-    [card3],
-  )
+  const col2 = createColumnState({ id: col2Id, parent_id: rootId, parent_idx: 1, content: "Done" }, [card3])
 
   return {
     state: createBoardState([col1, col2], { rootId }),
@@ -199,10 +182,7 @@ function createNestedTestBoard(): {
     ],
   )
 
-  const col = createColumnState(
-    { id: colId, parent_id: rootId, content: "Column" },
-    [card],
-  )
+  const col = createColumnState({ id: colId, parent_id: rootId, content: "Column" }, [card])
 
   return {
     state: createBoardState([col], { rootId }),

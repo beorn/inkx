@@ -35,20 +35,16 @@ describe("Round-trip: Multiple Link Values", () => {
   })
 
   test("preserves links with mixed aliases", () => {
-    const original =
-      "# Test\n\n- [ ] Task deps:: [[task-1|First]], [[task-2]], [[task-3|Third]]\n"
+    const original = "# Test\n\n- [ ] Task deps:: [[task-1|First]], [[task-2]], [[task-3|Third]]\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
     const output = nodesToMarkdown(nodes)
-    expect(output).toContain(
-      "deps:: [[task-1|First]], [[task-2]], [[task-3|Third]]",
-    )
+    expect(output).toContain("deps:: [[task-1|First]], [[task-2]], [[task-3|Third]]")
   })
 })
 
 describe("Round-trip: Property Order Preservation", () => {
   test("preserves multiple properties in order", () => {
-    const original =
-      "# Test\n\n- [ ] Task blocks:: [[x]] priority:: 1 author:: [[bob]]\n"
+    const original = "# Test\n\n- [ ] Task blocks:: [[x]] priority:: 1 author:: [[bob]]\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
     const output = nodesToMarkdown(nodes)
 
@@ -67,8 +63,7 @@ describe("Round-trip: Property Order Preservation", () => {
   })
 
   test("preserves task content before properties", () => {
-    const original =
-      "# Test\n\n- [ ] Do the thing status:: active due:: 2026-01-21\n"
+    const original = "# Test\n\n- [ ] Do the thing status:: active due:: 2026-01-21\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
     const output = nodesToMarkdown(nodes)
 
@@ -139,8 +134,7 @@ describe("Round-trip: Date Properties", () => {
   })
 
   test("preserves multiple date properties", () => {
-    const original =
-      "# Test\n\n- [ ] Task created:: 2026-01-01 updated:: 2026-01-21\n"
+    const original = "# Test\n\n- [ ] Task created:: 2026-01-01 updated:: 2026-01-21\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("created:: 2026-01-01")
@@ -159,8 +153,7 @@ describe("Round-trip: Double Round-trip Stability", () => {
   })
 
   test("stable after double round-trip - multiple properties", () => {
-    const original =
-      "# Test\n\n- [ ] Task status:: active priority:: 1 owner:: [[alice]]\n"
+    const original = "# Test\n\n- [ ] Task status:: active priority:: 1 owner:: [[alice]]\n"
     const nodes1 = parseMarkdownToNodes(original, "test.md")
     const md1 = nodesToMarkdown(nodes1)
     const nodes2 = parseMarkdownToNodes(md1, "test.md")
@@ -178,8 +171,7 @@ describe("Round-trip: Double Round-trip Stability", () => {
   })
 
   test("stable after triple round-trip", () => {
-    const original =
-      "# Test\n\n- [ ] Task blocks:: [[km-a1b2]] rating:: 5 note:: Important\n"
+    const original = "# Test\n\n- [ ] Task blocks:: [[km-a1b2]] rating:: 5 note:: Important\n"
 
     const nodes1 = parseMarkdownToNodes(original, "test.md")
     const md1 = nodesToMarkdown(nodes1)
@@ -246,8 +238,7 @@ describe("Round-trip: Mixed Content with Properties", () => {
   })
 
   test("preserves properties alongside tags and mentions", () => {
-    const original =
-      "# Test\n\n- [ ] Task #important @alice owner:: [[bob]] +project-x\n"
+    const original = "# Test\n\n- [ ] Task #important @alice owner:: [[bob]] +project-x\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
     const output = nodesToMarkdown(nodes)
 
@@ -268,10 +259,7 @@ describe("Properties: Parsed Values in data.props", () => {
     expect(task!.data).toBeDefined()
     expect(task!.data!.props).toBeDefined()
 
-    const props = task!.data!.props as Record<
-      string,
-      { type: string; target?: string }
-    >
+    const props = task!.data!.props as Record<string, { type: string; target?: string }>
     expect(props.blocks).toEqual({
       type: "link",
       target: "km-a1b2",
@@ -286,10 +274,7 @@ describe("Properties: Parsed Values in data.props", () => {
     expect(task).toBeDefined()
     expect(task!.data!.props).toBeDefined()
 
-    const props = task!.data!.props as Record<
-      string,
-      { type: string; value?: number }
-    >
+    const props = task!.data!.props as Record<string, { type: string; value?: number }>
     expect(props.rating).toEqual({
       type: "number",
       value: 5,
@@ -304,10 +289,7 @@ describe("Properties: Parsed Values in data.props", () => {
     expect(task).toBeDefined()
     expect(task!.data!.props).toBeDefined()
 
-    const props = task!.data!.props as Record<
-      string,
-      { type: string; value?: string }
-    >
+    const props = task!.data!.props as Record<string, { type: string; value?: string }>
     expect(props.reviewed).toEqual({
       type: "date",
       value: "2026-01-21",
@@ -322,10 +304,7 @@ describe("Properties: Parsed Values in data.props", () => {
     expect(task).toBeDefined()
     expect(task!.data!.props).toBeDefined()
 
-    const props = task!.data!.props as Record<
-      string,
-      { type: string; value?: string }
-    >
+    const props = task!.data!.props as Record<string, { type: string; value?: string }>
     expect(props.note).toEqual({
       type: "text",
       value: "This is a note",
@@ -366,8 +345,7 @@ describe("Properties: Parsed Values in data.props", () => {
   })
 
   test("multiple properties all stored correctly", () => {
-    const original =
-      "# Test\n\n- [ ] Task status:: active priority:: 1 owner:: [[alice]]\n"
+    const original = "# Test\n\n- [ ] Task status:: active priority:: 1 owner:: [[alice]]\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
     const task = nodes.find((n) => n.type === "task")
 

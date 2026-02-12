@@ -14,8 +14,7 @@ import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
 
 // Direct import — no tsconfig alias exists for beorn-tools
-const { createTtyEngine } =
-  await import("/Users/beorn/Code/pim/km/vendor/beorn-tools/tools/lib/tty-engine/engine.ts")
+const { createTtyEngine } = await import("/Users/beorn/Code/pim/km/vendor/beorn-tools/tools/lib/tty-engine/engine.ts")
 type TtyEngine = Awaited<ReturnType<typeof createTtyEngine>>
 
 const KM_CWD = "/Users/beorn/Code/pim/km"

@@ -21,11 +21,7 @@ export interface DetailPaneProps {
   height: number
 }
 
-export function DetailPane({
-  node,
-  width,
-  height,
-}: DetailPaneProps): React.ReactElement {
+export function DetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   const innerWidth = Math.max(10, width - 6) // Account for border + paddingX(1)
   const title = getNodeDisplayName(repo, node)
@@ -42,9 +38,7 @@ export function DetailPane({
   const refs = extractReferences(node.content)
 
   // Also check data for stored references
-  const dataRefs = node.data as
-    | { mentions?: string[]; tags?: string[]; projects?: string[] }
-    | undefined
+  const dataRefs = node.data as { mentions?: string[]; tags?: string[]; projects?: string[] } | undefined
   if (dataRefs?.mentions) {
     for (const m of dataRefs.mentions) {
       if (!refs.mentions.includes(m)) refs.mentions.push(m)
@@ -101,10 +95,7 @@ export function DetailPane({
 
   // Check if we have any references to show
   const hasRefs =
-    refs.mentions.length > 0 ||
-    refs.tags.length > 0 ||
-    refs.projects.length > 0 ||
-    refs.wikilinks.length > 0
+    refs.mentions.length > 0 || refs.tags.length > 0 || refs.projects.length > 0 || refs.wikilinks.length > 0
 
   return (
     <Box
@@ -139,18 +130,8 @@ export function DetailPane({
             <Text>
               <Text dimColor>Due: </Text>
               <Text
-                color={
-                  dueDate.urgency === "overdue"
-                    ? "red"
-                    : dueDate.urgency === "urgent"
-                      ? "yellow"
-                      : undefined
-                }
-                underline={
-                  dueDate.urgency === "overdue" ||
-                  dueDate.urgency === "urgent" ||
-                  dueDate.urgency === "soon"
-                }
+                color={dueDate.urgency === "overdue" ? "red" : dueDate.urgency === "urgent" ? "yellow" : undefined}
+                underline={dueDate.urgency === "overdue" || dueDate.urgency === "urgent" || dueDate.urgency === "soon"}
               >
                 {dueDate.text}
               </Text>
@@ -205,12 +186,7 @@ export function DetailPane({
 
         {/* Content section */}
         {displayContent.length > 0 && (
-          <Box
-            flexDirection="column"
-            paddingX={1}
-            marginTop={1}
-            width={innerWidth}
-          >
+          <Box flexDirection="column" paddingX={1} marginTop={1} width={innerWidth}>
             <Text bold dimColor>
               Content
             </Text>
@@ -225,49 +201,27 @@ export function DetailPane({
 
         {/* Subtasks */}
         {subtasks.length > 0 && (
-          <Box
-            flexDirection="column"
-            paddingX={1}
-            marginTop={1}
-            width={innerWidth}
-          >
+          <Box flexDirection="column" paddingX={1} marginTop={1} width={innerWidth}>
             <Text bold dimColor>
               Subtasks ({subtasks.length})
             </Text>
             {subtasks.slice(0, maxSubtasks).map((task) => (
-              <NodeLine
-                key={task.id}
-                node={task}
-                title={task.content || getNodeDisplayName(repo, task)}
-              />
+              <NodeLine key={task.id} node={task} title={task.content || getNodeDisplayName(repo, task)} />
             ))}
-            {subtasks.length > maxSubtasks && (
-              <Text dimColor> +{subtasks.length - maxSubtasks} more</Text>
-            )}
+            {subtasks.length > maxSubtasks && <Text dimColor> +{subtasks.length - maxSubtasks} more</Text>}
           </Box>
         )}
 
         {/* Backlinks */}
         {backlinkNodes.length > 0 && (
-          <Box
-            flexDirection="column"
-            paddingX={1}
-            marginTop={1}
-            width={innerWidth}
-          >
+          <Box flexDirection="column" paddingX={1} marginTop={1} width={innerWidth}>
             <Text bold dimColor>
               Backlinks ({backlinkNodes.length})
             </Text>
             {backlinkNodes.slice(0, maxBacklinks).map((bl) => (
-              <NodeLine
-                key={bl.id}
-                node={bl}
-                title={getNodeDisplayName(repo, bl)}
-              />
+              <NodeLine key={bl.id} node={bl} title={getNodeDisplayName(repo, bl)} />
             ))}
-            {backlinkNodes.length > maxBacklinks && (
-              <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>
-            )}
+            {backlinkNodes.length > maxBacklinks && <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>}
           </Box>
         )}
 
@@ -298,9 +252,7 @@ function formatDate(dateStr: string | undefined): {
     // Parse date string as local date to avoid timezone issues
     // YYYY-MM-DD should be treated as local midnight, not UTC midnight
     const parts = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-    const date = parts
-      ? new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]))
-      : new Date(dateStr)
+    const date = parts ? new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])) : new Date(dateStr)
 
     const now = new Date()
     now.setHours(0, 0, 0, 0)
@@ -309,9 +261,7 @@ function formatDate(dateStr: string | undefined): {
     dateLocal.setHours(0, 0, 0, 0)
 
     // Calculate days until due
-    const daysUntilDue = Math.floor(
-      (dateLocal.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-    )
+    const daysUntilDue = Math.floor((dateLocal.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
     // Determine urgency
     let urgency: DueUrgency = "normal"

@@ -69,11 +69,7 @@ describe("Level navigation invariants", () => {
   test("synthetic: deep navigation k k k k j j j j", async () => {
     const nodes = item.root(
       "vault",
-      item(
-        "Projects",
-        item.folder("Work", item("Task A"), item("Task B")),
-        item.folder("Personal", item("Task C")),
-      ),
+      item("Projects", item.folder("Work", item("Task A"), item("Task B")), item.folder("Personal", item("Task C"))),
       item("Inbox", item("Quick task")),
     )
     const baseDriver = createBoardDriver(createFakeRepo({ nodes }), "vault")
@@ -126,11 +122,7 @@ describe("Level navigation invariants", () => {
   })
 
   test("view mode change + level navigation", async () => {
-    const nodes = item.root(
-      "board",
-      item("Col1", item("Task 1"), item("Task 2")),
-      item("Col2", item("Task 3")),
-    )
+    const nodes = item.root("board", item("Col1", item("Task 1"), item("Task 2")), item("Col2", item("Task 3")))
     const baseDriver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
     const driver = withDiagnostics(baseDriver, {
@@ -152,18 +144,8 @@ describe("Level navigation invariants", () => {
   test("fuzz: random level navigation", async () => {
     const nodes = item.root(
       "board",
-      item(
-        "Inbox",
-        item("Task 1"),
-        item("Task 2"),
-        item("Task 3"),
-        item("Task 4"),
-      ),
-      item(
-        "Projects",
-        item.folder("Alpha", item("A1"), item("A2")),
-        item.folder("Beta", item("B1")),
-      ),
+      item("Inbox", item("Task 1"), item("Task 2"), item("Task 3"), item("Task 4")),
+      item("Projects", item.folder("Alpha", item("A1"), item("A2")), item.folder("Beta", item("B1"))),
       item("Areas", item.folder("Health", item("Exercise"), item("Diet"))),
     )
     const baseDriver = createBoardDriver(createFakeRepo({ nodes }), "board")
@@ -175,16 +157,10 @@ describe("Level navigation invariants", () => {
     })
 
     // Random walk of navigation commands
-    const commands = [
-      driver.cmd.up,
-      driver.cmd.down,
-      driver.cmd.left,
-      driver.cmd.right,
-    ]
+    const commands = [driver.cmd.up, driver.cmd.down, driver.cmd.left, driver.cmd.right]
     const rng = {
       seed: 12345,
-      next: () =>
-        (rng.seed = (rng.seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff,
+      next: () => (rng.seed = (rng.seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff,
     }
 
     for (let i = 0; i < 20; i++) {
@@ -223,15 +199,9 @@ describe("Level navigation invariants", () => {
 
   test("columns with overflow content", async () => {
     // Create columns with more cards than can fit on screen
-    const manyCards = Array.from({ length: 20 }, (_, i) =>
-      item(`Task ${i + 1}`),
-    )
+    const manyCards = Array.from({ length: 20 }, (_, i) => item(`Task ${i + 1}`))
 
-    const nodes = item.root(
-      "board",
-      item("Overflow Column", ...manyCards),
-      item("Normal Column", item("A"), item("B")),
-    )
+    const nodes = item.root("board", item("Overflow Column", ...manyCards), item("Normal Column", item("A"), item("B")))
     const baseDriver = createBoardDriver(createFakeRepo({ nodes }), "board", {
       rows: 15,
     })
@@ -258,26 +228,15 @@ describe("Level navigation invariants", () => {
     // Create a tall board with many tall cards - mimics real vault conditions
     // that might trigger the level-nav-shift bug
     const tallCol1 = Array.from({ length: 15 }, (_, i) =>
-      item.folder(
-        `Project ${i + 1}`,
-        item("Subtask A"),
-        item("Subtask B"),
-        item("Subtask C"),
-      ),
+      item.folder(`Project ${i + 1}`, item("Subtask A"), item("Subtask B"), item("Subtask C")),
     )
-    const tallCol2 = Array.from({ length: 10 }, (_, i) =>
-      item(`Task ${String.fromCharCode(65 + i)}`),
-    )
+    const tallCol2 = Array.from({ length: 10 }, (_, i) => item(`Task ${String.fromCharCode(65 + i)}`))
 
     const nodes = item.root(
       "board",
       item("Heavy Projects", ...tallCol1),
       item("Quick Tasks", ...tallCol2),
-      item(
-        "Areas",
-        item.folder("Health", item("Exercise"), item("Diet")),
-        item.folder("Finance", item("Budget")),
-      ),
+      item("Areas", item.folder("Health", item("Exercise"), item("Diet")), item.folder("Finance", item("Budget"))),
     )
 
     // Use a tall terminal to maximize the board size
@@ -356,9 +315,7 @@ describe("Level navigation invariants", () => {
     // - Fresh: resets to top (e.g., "Health & Fitness" at top)
 
     // Create a column with many items that requires scrolling
-    const tallItems = Array.from({ length: 30 }, (_, i) =>
-      item(`Item ${String(i + 1).padStart(2, "0")}`),
-    )
+    const tallItems = Array.from({ length: 30 }, (_, i) => item(`Item ${String(i + 1).padStart(2, "0")}`))
 
     const nodes = item.root(
       "board",
@@ -395,11 +352,7 @@ describe("Level navigation invariants", () => {
 describe("Structural invariants", () => {
   test("exactly one cursor element exists", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("Col1", item("A"), item("B"), item("C")),
-        item("Col2", item("X"), item("Y")),
-      ),
+      item("board", item("Col1", item("A"), item("B"), item("C")), item("Col2", item("X"), item("Y"))),
     )
 
     // Check cursor uniqueness after various navigation
@@ -421,14 +374,7 @@ describe("Structural invariants", () => {
 
   test("cursor is within viewport bounds", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "Col1",
-            ...Array.from({ length: 20 }, (_, i) => item(`Item ${i}`)),
-          ),
-        ),
+      () => item("board", item("Col1", ...Array.from({ length: 20 }, (_, i) => item(`Item ${i}`)))),
       { rows: 15 },
     )
 
@@ -447,11 +393,7 @@ describe("Structural invariants", () => {
 
   test("no [object Object] in rendered output", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("Col1", item("Task with special chars: <>\"'&")),
-        item("Col2", item("Normal task")),
-      ),
+      item("board", item("Col1", item("Task with special chars: <>\"'&")), item("Col2", item("Normal task"))),
     )
 
     // Check after various operations

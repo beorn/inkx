@@ -25,22 +25,14 @@ const COLUMNS_OPTS = { viewMode: "columns" as const }
  * Create a columns view board with standard structure.
  * Reduces boilerplate for common column layouts.
  */
-function columnsBoard(
-  treeBuilder: () => ReturnType<typeof item>,
-  opts?: { columns?: number; rows?: number },
-) {
+function columnsBoard(treeBuilder: () => ReturnType<typeof item>, opts?: { columns?: number; rows?: number }) {
   return testEnv(treeBuilder, { viewMode: "columns", ...opts })
 }
 
 /**
  * Assert boundary behavior - pressing key multiple times stays at same position.
  */
-function assertBoundary(
-  board: ReturnType<typeof testEnv>["board"],
-  key: string,
-  expectedCursor: string,
-  times = 2,
-) {
+function assertBoundary(board: ReturnType<typeof testEnv>["board"], key: string, expectedCursor: string, times = 2) {
   for (let i = 0; i < times; i++) {
     board.press(key)
     board.expect(`#${expectedCursor}[data-cursor]`).toExist()
@@ -54,17 +46,13 @@ function assertBoundary(
 describe("Columns View", () => {
   describe("Basic Rendering", () => {
     test("displays board in columns view mode", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1", item("1a"), item("1b"))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"))))
       board.expect("#1a").toExist()
       board.expect("#1b").toExist()
     })
 
     test("shows column headers with count", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
       const output = board.screenshot()
       expect(output).toContain("col1")
       expect(output).toContain("(3)")
@@ -72,13 +60,7 @@ describe("Columns View", () => {
 
     test("displays multiple columns side by side", () => {
       const { board } = columnsBoard(
-        () =>
-          item(
-            "board",
-            item("col1", item("1a")),
-            item("col2", item("2a")),
-            item("col3", item("3a")),
-          ),
+        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
         { columns: 120 },
       )
       board.expect("#col1").toExist()
@@ -87,9 +69,7 @@ describe("Columns View", () => {
     })
 
     test("empty column shows placeholder", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1", item("task")), item("col2")),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("task")), item("col2")))
       const output = board.screenshot()
       expect(output).toContain("col2")
       expect(output).toContain("(0)")
@@ -103,9 +83,7 @@ describe("Columns View", () => {
 
   describe("Navigation", () => {
     test("vertical (j/k): navigate through cards in column", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
       board.expect("#1a[data-cursor]").toExist()
 
       // j down through cards
@@ -123,13 +101,7 @@ describe("Columns View", () => {
 
     test("horizontal (h/l): navigate between columns", () => {
       const { board } = columnsBoard(
-        () =>
-          item(
-            "board",
-            item("col1", item("1a")),
-            item("col2", item("2a")),
-            item("col3", item("3a")),
-          ),
+        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
         { columns: 120 },
       )
       board.expect("#1a[data-cursor]").toExist()
@@ -148,9 +120,7 @@ describe("Columns View", () => {
     })
 
     test("g/G: jump to first/last card in column", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
       board.press("j")
       board.expect("#1b[data-cursor]").toExist()
 
@@ -162,9 +132,7 @@ describe("Columns View", () => {
     })
 
     test("navigate to column headers with k", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1", item("1a"), item("1b"))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"))))
       board.expect("#1a[data-cursor]").toExist()
 
       board.press("k")
@@ -190,27 +158,23 @@ describe("Columns View", () => {
         expected: "board",
       },
     ])("$name boundary", ({ setup, key, expected }) => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1", item("1a"), item("1b"))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"))))
       for (const k of setup) board.press(k)
       assertBoundary(board, key, expected)
     })
 
     test("h stops at left boundary", () => {
-      const { board } = columnsBoard(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
-        { columns: 120 },
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+        columns: 120,
+      })
       board.expect("#1a[data-cursor]").toExist()
       assertBoundary(board, "h", "1a")
     })
 
     test("l stops at right boundary", () => {
-      const { board } = columnsBoard(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
-        { columns: 120 },
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+        columns: 120,
+      })
       board.press("l")
       board.expect("#2a[data-cursor]").toExist()
       assertBoundary(board, "l", "2a")
@@ -219,24 +183,14 @@ describe("Columns View", () => {
 
   describe("Hierarchical Display", () => {
     test("displays nested cards in tree format", () => {
-      const { board } = columnsBoard(() =>
-        item(
-          "board",
-          item("col1", item("parent", item("child1"), item("child2"))),
-        ),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("parent", item("child1"), item("child2")))))
       board.expect("#parent").toExist()
       board.expect("#child1").toExist()
       board.expect("#child2").toExist()
     })
 
     test("folding works in columns view", () => {
-      const { board } = columnsBoard(() =>
-        item(
-          "board",
-          item("col1", item("parent", item("child1"), item("child2"))),
-        ),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("parent", item("child1"), item("child2")))))
       board.expect("#child1").toExist()
       board.expect("#child2").toExist()
 
@@ -271,13 +225,7 @@ describe("Columns View", () => {
 
     test.skip("preserves X position when moving up/down", () => {
       const { board } = columnsBoard(
-        () =>
-          item(
-            "board",
-            item("col1", item("1a")),
-            item("col2", item("2a")),
-            item("col3", item("3a")),
-          ),
+        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
         { columns: 120 },
       )
       board.press("l")
@@ -296,12 +244,7 @@ describe("Columns View", () => {
   describe("View Mode Switching", () => {
     // TODO: View mode switching requires command system integration
     test.skip("cursor position preserved when switching from cards view", () => {
-      const { board } = testEnv(() =>
-        item(
-          "board",
-          item("col1", item("task1"), item("task2"), item("task3")),
-        ),
-      )
+      const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
       board.press("j")
       board.expect("#task2[data-cursor]").toExist()
       board.press("v")
@@ -309,12 +252,7 @@ describe("Columns View", () => {
     })
 
     test.skip("cursor position preserved when switching to cards view", () => {
-      const { board } = columnsBoard(() =>
-        item(
-          "board",
-          item("col1", item("task1"), item("task2"), item("task3")),
-        ),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
       board.press("j")
       board.expect("#task2[data-cursor]").toExist()
       board.press("v")
@@ -322,9 +260,7 @@ describe("Columns View", () => {
     })
 
     test("view mode indicator shows COLUMNS VIEW", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1", item("task"))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("task"))))
       expect(board.screenshot()).toContain("COLUMNS")
     })
   })
@@ -333,10 +269,7 @@ describe("Columns View", () => {
     // TODO: Virtualization tests need investigation - cursor behavior with large lists
     test.skip("handles large number of cards efficiently", () => {
       const cards = Array.from({ length: 100 }, (_, i) => item(`card${i}`))
-      const { board } = columnsBoard(
-        () => item("board", item("col1", ...cards)),
-        { rows: 24 },
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", ...cards)), { rows: 24 })
 
       board.expect("#card0[data-cursor]").toExist()
       board.press("G")
@@ -347,10 +280,7 @@ describe("Columns View", () => {
 
     test.skip("scrolling works smoothly with many cards", () => {
       const cards = Array.from({ length: 50 }, (_, i) => item(`card${i}`))
-      const { board } = columnsBoard(
-        () => item("board", item("col1", ...cards)),
-        { rows: 24 },
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", ...cards)), { rows: 24 })
 
       for (let i = 0; i < 3; i++) board.press("j")
       board.expect("#card3[data-cursor]").toExist()
@@ -362,10 +292,9 @@ describe("Columns View", () => {
 
   describe("Layout", () => {
     test("columns are positioned side by side", () => {
-      const { board } = columnsBoard(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
-        { columns: 120 },
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+        columns: 120,
+      })
       const col1Box = board.q("#col1").boundingBox()
       const col2Box = board.q("#col2").boundingBox()
 
@@ -374,9 +303,7 @@ describe("Columns View", () => {
     })
 
     test("cards stack vertically within columns", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1", item("1a"), item("1b"))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"))))
       const aBox = board.q("#1a").boundingBox()
       const bBox = board.q("#1b").boundingBox()
 
@@ -407,9 +334,7 @@ describe("Columns View", () => {
 
   describe("Zooming", () => {
     test("e zooms into card with children", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col", item("card", item("subcard")))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col", item("card", item("subcard")))))
       board.expect("#card[data-cursor]").toExist()
       board.press("e")
       board.expect("#subcard").toExist()
@@ -418,12 +343,7 @@ describe("Columns View", () => {
     // TODO: Zoom behavior in columns view may differ from cards view
     test.skip("zoom into column shows column as board", () => {
       const { board } = columnsBoard(
-        () =>
-          item(
-            "board",
-            item("col1", item("task1"), item("task2")),
-            item("col2", item("taskA"), item("taskB")),
-          ),
+        () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("taskA"), item("taskB"))),
         { columns: 120 },
       )
       board.press("k")
@@ -436,9 +356,7 @@ describe("Columns View", () => {
     })
 
     test("Escape after zoom returns to parent", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col", item("card", item("subcard")))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col", item("card", item("subcard")))))
       board.press("e")
       board.expect("#subcard").toExist()
       board.press("\x1B")

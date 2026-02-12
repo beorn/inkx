@@ -9,12 +9,7 @@ import { z } from "zod"
 /**
  * Status values for beads issues
  */
-export const beadsStatusSchema = z.enum([
-  "open",
-  "in_progress",
-  "closed",
-  "blocked",
-])
+export const beadsStatusSchema = z.enum(["open", "in_progress", "closed", "blocked"])
 
 /**
  * Beads issue schema for validating JSON from issues.jsonl

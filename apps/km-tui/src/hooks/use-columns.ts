@@ -38,11 +38,7 @@ const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
  * @param foldedNodes - Set of folded node IDs
  * @returns ColumnState[] for rendering
  */
-export function useColumns(
-  repo: Repo,
-  rootId: string | null,
-  foldedNodes: Set<string>,
-): ColumnState[] {
+export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnState[] {
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
@@ -51,9 +47,7 @@ export function useColumns(
     const result = deriveColumnsFromRepo(repo, rootId, foldedNodes)
     const duration = performance.now() - start
     if (duration > 5) {
-      log.debug?.(
-        `useColumns: ${duration.toFixed(2)}ms for ${result.length} columns`,
-      )
+      log.debug?.(`useColumns: ${duration.toFixed(2)}ms for ${result.length} columns`)
     }
     return result
   }, [repoVersion, rootId, foldedNodes])
@@ -64,9 +58,7 @@ export function useColumns(
  * Includes column header nodes (cardIndex = COLUMN_HEADER_INDEX) and card nodes.
  * Also checks card children for descendant mapping.
  */
-export function buildNodeIndex(
-  columns: ColumnState[],
-): Map<string, { colIndex: number; cardIndex: number }> {
+export function buildNodeIndex(columns: ColumnState[]): Map<string, { colIndex: number; cardIndex: number }> {
   const index = new Map<string, { colIndex: number; cardIndex: number }>()
   for (let colIdx = 0; colIdx < columns.length; colIdx++) {
     const col = columns[colIdx]
@@ -94,9 +86,7 @@ function mapDescendants(
   index: Map<string, { colIndex: number; cardIndex: number }>,
 ): void {
   index.set(node.id, { colIndex, cardIndex })
-  const children = (
-    node as { children?: { id: string; children?: unknown[] }[] }
-  ).children
+  const children = (node as { children?: { id: string; children?: unknown[] }[] }).children
   if (children) {
     for (const child of children) {
       mapDescendants(child, colIndex, cardIndex, index)
@@ -108,11 +98,7 @@ function mapDescendants(
  * Pure function to derive columns from Repo.
  * Can be used outside of React for testing and in the store for synchronous layout.
  */
-export function deriveColumnsFromRepo(
-  repo: Repo,
-  rootId: string | null,
-  foldedNodes: Set<string>,
-): ColumnState[] {
+export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnState[] {
   // Get children of root, filtered to exclude non-column types
   const allChildren = repo.getChildren(rootId)
   const columnNodes = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
@@ -121,9 +107,7 @@ export function deriveColumnsFromRepo(
   const wipLimits = extractWipLimits(columnNodes)
 
   // Convert to column state
-  return columnNodes.map((node) =>
-    kNodeToColumnState(repo, node, wipLimits, foldedNodes),
-  )
+  return columnNodes.map((node) => kNodeToColumnState(repo, node, wipLimits, foldedNodes))
 }
 
 // =============================================================================
@@ -137,9 +121,7 @@ function extractWipLimits(nodes: KNode[]): Map<string, number> {
   const limits = new Map<string, number>()
 
   for (const node of nodes) {
-    const columnsConfig = (
-      node.data as { columns?: Record<string, { limit?: number }> }
-    )?.columns
+    const columnsConfig = (node.data as { columns?: Record<string, { limit?: number }> })?.columns
     if (!columnsConfig) continue
 
     for (const [colName, config] of Object.entries(columnsConfig)) {
@@ -166,9 +148,7 @@ function kNodeToColumnState(
   const rules: ColumnRules = node.rules ?? parseColumnRules(node.title || "")
 
   // Look up WIP limit
-  const normalizedName = (node.name || node.title || "")
-    .toLowerCase()
-    .replace(/\s+/g, "_")
+  const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")
   const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
 
   // Get cards (children of column)

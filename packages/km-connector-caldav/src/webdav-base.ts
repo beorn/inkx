@@ -11,10 +11,7 @@ const log = createLogger("km:webdav:base")
 /**
  * Create Basic Auth header from credentials
  */
-export function createBasicAuthHeader(
-  username: string,
-  password: string,
-): string {
+export function createBasicAuthHeader(username: string, password: string): string {
   const credentials = `${username}:${password}`
   return `Basic ${Buffer.from(credentials).toString("base64")}`
 }
@@ -47,9 +44,7 @@ export async function webdavRequest(
       status: response.status,
       statusText: response.statusText,
     })
-    throw new Error(
-      `WebDAV request failed: ${response.status} ${response.statusText}`,
-    )
+    throw new Error(`WebDAV request failed: ${response.status} ${response.statusText}`)
   }
 
   log.debug?.(`${method} ${url} → ${response.status}`)
@@ -59,10 +54,7 @@ export async function webdavRequest(
 /**
  * Discover principal URL using PROPFIND
  */
-export async function discoverPrincipal(
-  baseUrl: string,
-  authHeader: string,
-): Promise<string | null> {
+export async function discoverPrincipal(baseUrl: string, authHeader: string): Promise<string | null> {
   const propfind = `<?xml version="1.0" encoding="utf-8"?>
 <D:propfind xmlns:D="DAV:">
   <D:prop>
@@ -70,15 +62,9 @@ export async function discoverPrincipal(
   </D:prop>
 </D:propfind>`
 
-  const response = await webdavRequest(
-    "PROPFIND",
-    baseUrl,
-    authHeader,
-    propfind,
-    {
-      Depth: "0",
-    },
-  )
+  const response = await webdavRequest("PROPFIND", baseUrl, authHeader, propfind, {
+    Depth: "0",
+  })
 
   const text = await response.text()
   const principalMatch = text.match(/<D:href>([^<]+)<\/D:href>/)

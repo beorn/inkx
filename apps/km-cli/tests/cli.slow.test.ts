@@ -57,10 +57,7 @@ const CLI_PATH = join(__dirname, "..", "src", "index.ts")
 // ============================================================================
 
 /** Run km CLI command and return result */
-async function km(
-  args: string[],
-  options: { cwd?: string; env?: Record<string, string> } = {},
-): Promise<CmdResult> {
+async function km(args: string[], options: { cwd?: string; env?: Record<string, string> } = {}): Promise<CmdResult> {
   const cwd = options.cwd ?? REPO_DIR
   const env = { ...process.env, KM_DIR, ...options.env }
 
@@ -107,10 +104,7 @@ function findTask(tasks: TaskJson[], content: string): TaskJson | undefined {
 }
 
 /** Get task by content, throw if not found */
-async function getTaskByContent(
-  content: string,
-  includeAll = false,
-): Promise<TaskJson> {
+async function getTaskByContent(content: string, includeAll = false): Promise<TaskJson> {
   const tasks = includeAll ? await getAllTasks() : await getTasks()
   const task = findTask(tasks, content)
   if (!task) throw new Error(`Task not found: ${content}`)
@@ -449,12 +443,7 @@ describe("km task status", () => {
 
   test("should set task status to blocked", async () => {
     const task = await getTaskByContent("Task to toggle")
-    const statusResult = await km([
-      "tasks",
-      "status",
-      task.id.slice(0, 8),
-      "blocked",
-    ])
+    const statusResult = await km(["tasks", "status", task.id.slice(0, 8), "blocked"])
     expectSuccess(statusResult, "blocked")
 
     const afterTasks = await getAllTasks()
@@ -464,12 +453,7 @@ describe("km task status", () => {
 
   test("should set task status to done", async () => {
     const task = await getTaskByContent("Task to toggle")
-    const statusResult = await km([
-      "tasks",
-      "status",
-      task.id.slice(0, 8),
-      "done",
-    ])
+    const statusResult = await km(["tasks", "status", task.id.slice(0, 8), "done"])
     expectSuccess(statusResult, "done")
   })
 
@@ -483,10 +467,7 @@ describe("km init", () => {
   const INIT_TEST_DIR = join("/tmp", `kmtest-init-${process.pid}`)
 
   /** Helper to run km init in a subdirectory */
-  async function initInDir(
-    subdir: string,
-    args: string[] = ["--force"],
-  ): Promise<{ result: CmdResult; dir: string }> {
+  async function initInDir(subdir: string, args: string[] = ["--force"]): Promise<{ result: CmdResult; dir: string }> {
     const dir = join(INIT_TEST_DIR, subdir)
     mkdirSync(dir, { recursive: true })
     const result = await km(["init", ...args], {
@@ -621,14 +602,8 @@ describe("Global --repo option", () => {
     }
     mkdirSync(REPO_A, { recursive: true })
     mkdirSync(REPO_B, { recursive: true })
-    writeFileSync(
-      join(REPO_A, "tasks-a.md"),
-      "# Repo A\n\n- [ ] Task from repo A\n",
-    )
-    writeFileSync(
-      join(REPO_B, "tasks-b.md"),
-      "# Repo B\n\n- [ ] Task from repo B\n",
-    )
+    writeFileSync(join(REPO_A, "tasks-a.md"), "# Repo A\n\n- [ ] Task from repo A\n")
+    writeFileSync(join(REPO_B, "tasks-b.md"), "# Repo B\n\n- [ ] Task from repo B\n")
   })
 
   afterEach(() => {
@@ -667,10 +642,7 @@ describe("Global --repo option", () => {
   test("should support tilde expansion in --repo", async () => {
     const homeSubdir = join(process.env.HOME || "", ".km-test-home")
     mkdirSync(homeSubdir, { recursive: true })
-    writeFileSync(
-      join(homeSubdir, "home-tasks.md"),
-      "# Home\n\n- [ ] Task from home\n",
-    )
+    writeFileSync(join(homeSubdir, "home-tasks.md"), "# Home\n\n- [ ] Task from home\n")
 
     try {
       const result = await km(["--repo", "~/.km-test-home", "tasks"], {
@@ -913,9 +885,7 @@ describe("Task mark types - parsing and status mapping", () => {
   test("km task (default) should only show todo tasks", async () => {
     const tasks = await getTasks()
 
-    const hasTodo = tasks.some(
-      (t) => t.content.includes("Open task") && !t.content.includes("Done"),
-    )
+    const hasTodo = tasks.some((t) => t.content.includes("Open task") && !t.content.includes("Done"))
     expect(hasTodo).toBe(true)
     expect(tasks.some((t) => t.content.includes("Done task"))).toBe(false)
   })
@@ -992,11 +962,7 @@ describe("Query language integration - km task with queries", () => {
 
   test("should combine multiple conditions (AND)", async () => {
     const tasks = await getTasks(["@bjorn", "status:todo"])
-    expect(
-      tasks.every(
-        (t) => t.content.includes("@bjorn") && t.task_status === "todo",
-      ),
-    ).toBe(true)
+    expect(tasks.every((t) => t.content.includes("@bjorn") && t.task_status === "todo")).toBe(true)
   })
 
   test("should filter by priority p:1", async () => {
@@ -1010,10 +976,7 @@ describe("km move - re-parent nodes", () => {
   beforeEach(async () => {
     setupTestDirs()
     createFile("inbox.md", "# Inbox\n\n- [ ] Task in inbox\n")
-    createFile(
-      "projects/work.md",
-      "# Work Project\n\n- [ ] Existing work task\n",
-    )
+    createFile("projects/work.md", "# Work Project\n\n- [ ] Existing work task\n")
     await km(["sync"])
   })
 
@@ -1032,9 +995,7 @@ describe("km move - re-parent nodes", () => {
     const moveResult = await km(["move", inboxTask.id, workFile.id, "--json"])
     expect(moveResult.exitCode).toBe(0)
 
-    const output = parseJson<{ id: string; parent_id: string | null }>(
-      moveResult,
-    )
+    const output = parseJson<{ id: string; parent_id: string | null }>(moveResult)
     expect(output.id).toBe(inboxTask.id)
     expect(output.parent_id).toBe(workFile.id)
   })
@@ -1069,11 +1030,7 @@ describe("km view - state initialization", () => {
   afterEach(() => cleanupTestDirs())
 
   /** Helper to view a path and check for expected content */
-  async function viewAndExpect(
-    path: string,
-    expected: string,
-    cwd = REPO_DIR,
-  ): Promise<void> {
+  async function viewAndExpect(path: string, expected: string, cwd = REPO_DIR): Promise<void> {
     const result = await km(["view", path, "--no-interactive"], { cwd })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain(expected)
@@ -1092,14 +1049,8 @@ describe("km view - state initialization", () => {
   })
 
   test("km view should find board after km sync and km add in sequence", async () => {
-    createFile(
-      "@next.md",
-      '# Next Actions\n\n## Inbox add="./inbox/**"\n\n## Processing\n',
-    )
-    createFile(
-      "inbox/new.md",
-      "# New Items\n\n- [ ] Review email\n- [ ] Check calendar\n",
-    )
+    createFile("@next.md", '# Next Actions\n\n## Inbox add="./inbox/**"\n\n## Processing\n')
+    createFile("inbox/new.md", "# New Items\n\n- [ ] Review email\n- [ ] Check calendar\n")
 
     await km(["sync"])
     await km(["add", "@next", "./inbox/**"])
@@ -1128,12 +1079,7 @@ describe("km view - state initialization", () => {
     ["directory trailing slash", "ref/notes.md", "ref/", "Notes"],
     ["bare filename", "tasks.md", "tasks", "Todo"],
     ["filename with extension", "myfile.md", "myfile.md", "Section"],
-    [
-      "nested path without ./",
-      "docs/guides/start.md",
-      "docs/guides/start.md",
-      "Steps",
-    ],
+    ["nested path without ./", "docs/guides/start.md", "docs/guides/start.md", "Steps"],
   ])("km view with %s", async (_name, filePath, viewPath, expected) => {
     createFile(filePath, `# Test\n\n## ${expected}\n- [ ] Item\n`)
     await km(["sync"])
@@ -1142,10 +1088,7 @@ describe("km view - state initialization", () => {
 
   test("km view with nonexistent file shows error", async () => {
     await km(["sync"])
-    const result = await km(
-      ["view", "nonexistent-file.md", "--no-interactive"],
-      { cwd: REPO_DIR },
-    )
+    const result = await km(["view", "nonexistent-file.md", "--no-interactive"], { cwd: REPO_DIR })
     expect(result.exitCode).toBe(1)
     expect(result.stdout + result.stderr).toContain("No board found")
   })

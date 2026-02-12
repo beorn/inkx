@@ -33,10 +33,7 @@ export function findFileByName(db: Database, name: string): KNode | null {
     LIMIT 1
   `,
     )
-    .get(normalizedName, normalizedName, normalizedName) as Record<
-    string,
-    unknown
-  > | null
+    .get(normalizedName, normalizedName, normalizedName) as Record<string, unknown> | null
 
   if (!row) return null
   return rowToNode(row)
@@ -56,11 +53,7 @@ export function findFileByName(db: Database, name: string): KNode | null {
  * @param sectionName - The section/content name to match
  * @returns The matching child node, or null if not found
  */
-export function findChildByContent(
-  db: Database,
-  fileId: string,
-  sectionName: string,
-): KNode | null {
+export function findChildByContent(db: Database, fileId: string, sectionName: string): KNode | null {
   const normalizedSection = sectionName.toLowerCase().trim()
 
   // Get all descendants of this file

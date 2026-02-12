@@ -28,12 +28,7 @@ export {
 } from "../icons.ts"
 
 // Node formatting
-export {
-  formatNode,
-  formatStatus,
-  formatNodeBrief,
-  formatCollapsedAncestor,
-} from "./format.ts"
+export { formatNode, formatStatus, formatNodeBrief, formatCollapsedAncestor } from "./format.ts"
 
 // Term primitives (re-exported from inkx)
 export { createTerm, term, type Term, type StyleChain } from "inkx"

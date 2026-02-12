@@ -63,17 +63,6 @@ export {
 } from "./command-adapter.ts"
 
 // Board state types (local to km-repl - decoupled from @km/board)
-export type {
-  BoardState,
-  BoardAction,
-  TNode,
-  TPath,
-  NodeDirection,
-} from "./board-types.ts"
-export {
-  boardReducer,
-  createBoardState,
-  findPathToNode,
-  getNodeAtPath,
-} from "./board-reducer.ts"
+export type { BoardState, BoardAction, TNode, TPath, NodeDirection } from "./board-types.ts"
+export { boardReducer, createBoardState, findPathToNode, getNodeAtPath } from "./board-reducer.ts"
 export type { TaskStatus } from "@km/core"

@@ -18,11 +18,7 @@ import {
 } from "@km/beads"
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
-import {
-  resolvePathArg,
-  loadConfigObject,
-  getOriginalBeadsConfig,
-} from "@km/storage"
+import { resolvePathArg, loadConfigObject, getOriginalBeadsConfig } from "@km/storage"
 
 /** Real filesystem implementation for BeadsFs DI */
 const nodeFs: BeadsFs = { existsSync, readFileSync, writeFileSync, mkdirSync }
@@ -33,10 +29,7 @@ const nodeFs: BeadsFs = { existsSync, readFileSync, writeFileSync, mkdirSync }
 export const migrateCommand = new Command("migrate")
   .description("Migrate issues from .beads/issues.jsonl to markdown files")
   .option("--dry-run", "Show what would be migrated without writing files")
-  .option(
-    "--status <statuses>",
-    "Only migrate issues with these statuses (comma-separated)",
-  )
+  .option("--status <statuses>", "Only migrate issues with these statuses (comma-separated)")
   .option("--target <dir>", "Target directory for markdown files")
   .action((opts) => {
     const resolved = resolvePathArg(undefined)
@@ -46,20 +39,14 @@ export const migrateCommand = new Command("migrate")
     const beadsDir = findBeadsDir(nodeFs, resolved.repoRoot)
     if (!beadsDir) {
       console.error(term.red("No .beads directory found."))
-      console.log(
-        term.dim(
-          "Run 'bd init' to initialize beads, or check your working directory.",
-        ),
-      )
+      console.log(term.dim("Run 'bd init' to initialize beads, or check your working directory."))
       process.exitCode = 1
       return
     }
 
     // Read original beads config for issue prefix
     const originalConfig = getOriginalBeadsConfig(resolved.repoRoot)
-    const originalConfigPath = originalConfig
-      ? join(beadsDir, "config.yaml")
-      : undefined
+    const originalConfigPath = originalConfig ? join(beadsDir, "config.yaml") : undefined
 
     // Show stats first
     const stats = getMigrationStats(nodeFs, beadsDir)
@@ -92,10 +79,7 @@ export const migrateCommand = new Command("migrate")
     // Determine target directory
     const beadsConfig = configObj.beads
     const targetDir =
-      opts.target ||
-      (beadsConfig.parent
-        ? `${resolved.repoRoot}/${beadsConfig.parent}`
-        : `${resolved.repoRoot}/issue`)
+      opts.target || (beadsConfig.parent ? `${resolved.repoRoot}/${beadsConfig.parent}` : `${resolved.repoRoot}/issue`)
 
     // Parse status filter
     const statusFilter = opts.status ? opts.status.split(",") : undefined
@@ -134,9 +118,7 @@ export const migrateCommand = new Command("migrate")
 
     if (result.migrated > 0 && !opts.dryRun) {
       console.log()
-      console.log(
-        term.green(`✓ Migrated ${result.migrated} issues to ${targetDir}`),
-      )
+      console.log(term.green(`✓ Migrated ${result.migrated} issues to ${targetDir}`))
       console.log(term.dim("Run 'km doctor rebuild' to index the new files."))
     }
   })
@@ -170,10 +152,7 @@ export const exportCommand = new Command("export")
     }
 
     // Determine target directory
-    const beadsDir =
-      opts.target ||
-      findBeadsDir(nodeFs, resolved.repoRoot) ||
-      `${resolved.repoRoot}/.beads`
+    const beadsDir = opts.target || findBeadsDir(nodeFs, resolved.repoRoot) || `${resolved.repoRoot}/.beads`
 
     console.log(term.bold("Export Target"))
     console.log(`  .beads dir: ${beadsDir}`)
@@ -204,10 +183,6 @@ export const exportCommand = new Command("export")
 
     if (result.exported > 0 && !opts.dryRun) {
       console.log()
-      console.log(
-        term.green(
-          `✓ Exported ${result.exported} issues to ${result.outputPath}`,
-        ),
-      )
+      console.log(term.green(`✓ Exported ${result.exported} issues to ${result.outputPath}`))
     }
   })

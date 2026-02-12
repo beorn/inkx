@@ -13,13 +13,7 @@ export {
   formatChaosReportJson,
   formatChaosReportMarkdown,
 } from "./chaos-report.ts"
-export {
-  withTestEnv,
-  withTestEnvSync,
-  getTestMode,
-  isRealMode,
-  isMockMode,
-} from "./env.ts"
+export { withTestEnv, withTestEnvSync, getTestMode, isRealMode, isMockMode } from "./env.ts"
 
 export type { FakeRepo, FakeRepoOptions } from "./fake-repo.ts"
 export type { TestEnv, TestMode } from "./env.ts"
@@ -30,12 +24,7 @@ export type {
   CorruptionType,
   ConsistencyIssue,
 } from "./chaos-fake-repo.ts"
-export type {
-  ChaosHooksConfig,
-  ChaosEvent,
-  ChaosHooks,
-  ChaosStats,
-} from "./chaos-hooks.ts"
+export type { ChaosHooksConfig, ChaosEvent, ChaosHooks, ChaosStats } from "./chaos-hooks.ts"
 export type {
   ChaosScenario,
   ChaosStateSnapshot,

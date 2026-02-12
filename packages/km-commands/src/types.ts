@@ -1,19 +1,6 @@
-import type {
-  BoardAction,
-  TNode,
-  ViewMode,
-  TaskStatus,
-  NodeDirection,
-} from "@km/board"
+import type { BoardAction, TNode, ViewMode, TaskStatus, NodeDirection } from "@km/board"
 
-export type CommandCategory =
-  | "Navigation"
-  | "Selection"
-  | "Edit"
-  | "Task"
-  | "Fold"
-  | "View"
-  | "TextEdit"
+export type CommandCategory = "Navigation" | "Selection" | "Edit" | "Task" | "Fold" | "View" | "TextEdit"
 
 export type CommandMode = "normal" | "move" | "search" | "input"
 

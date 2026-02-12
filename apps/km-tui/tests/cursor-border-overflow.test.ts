@@ -39,9 +39,7 @@ function findCardBorderProblems(text: string): string[] {
     for (const match of borderMatches) {
       const content = match[1]!
       if (/[a-zA-Z0-9]/.test(content)) {
-        problems.push(
-          `line ${i}: text in border line: ${match[0].substring(0, 60)}`,
-        )
+        problems.push(`line ${i}: text in border line: ${match[0].substring(0, 60)}`)
       }
     }
   }
@@ -51,9 +49,7 @@ function findCardBorderProblems(text: string): string[] {
 function assertCardBordersClean(text: string, label: string) {
   const problems = findCardBorderProblems(text)
   if (problems.length > 0) {
-    throw new Error(
-      `[${label}] Card border overflow:\n${problems.join("\n")}\n\nFull output:\n${text}`,
-    )
+    throw new Error(`[${label}] Card border overflow:\n${problems.join("\n")}\n\nFull output:\n${text}`)
   }
 }
 
@@ -80,23 +76,13 @@ describe("card borders after cursor navigation (synthetic)", () => {
             "board",
             item(
               "col1",
-              item(
-                "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL",
-              ),
+              item("AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ KKKK LLLL"),
               item("example.com/path/to/some/resource/that/is/quite/long"),
               item("Short task 1"),
               item("Another medium-length task description here"),
             ),
-            item(
-              "col2",
-              item("Task in col2"),
-              item("Second task in col2 with more detail"),
-            ),
-            item(
-              "col3",
-              item("Col3 task with enough text to potentially cause issues"),
-              item("Another col3 item"),
-            ),
+            item("col2", item("Task in col2"), item("Second task in col2 with more detail")),
+            item("col3", item("Col3 task with enough text to potentially cause issues"), item("Another col3 item")),
           ),
         { columns: cols, rows: 24 },
       )
@@ -139,12 +125,8 @@ describe("card borders after cursor navigation (synthetic)", () => {
             item(
               "Health & Fitness",
               item("Runners World Heart Rate Training"),
-              item(
-                "runnersworld.com/beginner/a208-12270/should-i-do-heart-rate-training",
-              ),
-              item(
-                "The key is that you should be training in all of these zones at different intensities",
-              ),
+              item("runnersworld.com/beginner/a208-12270/should-i-do-heart-rate-training"),
+              item("The key is that you should be training in all of these zones at different intensities"),
               item("Zone 1"),
               item("Zone 2"),
               item("Zone 3"),
@@ -185,58 +167,55 @@ describe("card borders after cursor navigation (synthetic)", () => {
 
 // ─── Real vault test with withDiagnostics ───────────────────────────────────
 
-describe.skipIf(!process.env.TEST_VAULT)(
-  "card borders after cursor right (real vault)",
-  () => {
-    for (const cols of [40, 60, 80, 100, 120]) {
-      test(`${cols}-col: borders clean after cursor right/left`, async () => {
-        const vaultPath = process.env.TEST_VAULT!
-        const repo = runGenerator(createRepo(vaultPath, { loadFiles: true }))
-        const rootId = findBoardRoot(repo)
+describe.skipIf(!process.env.TEST_VAULT)("card borders after cursor right (real vault)", () => {
+  for (const cols of [40, 60, 80, 100, 120]) {
+    test(`${cols}-col: borders clean after cursor right/left`, async () => {
+      const vaultPath = process.env.TEST_VAULT!
+      const repo = runGenerator(createRepo(vaultPath, { loadFiles: true }))
+      const rootId = findBoardRoot(repo)
 
-        const baseDriver = createBoardDriver(repo, rootId, {
-          columns: cols,
-          rows: 30,
-        })
-
-        // Wrap with diagnostics to also catch incremental rendering mismatches
-        const driver = withDiagnostics(baseDriver, {
-          checkIncremental: true,
-          checkStability: false, // cursor moves change content
-          skipLines: [0, -1],
-        })
-
-        // Initial
-        assertCardBordersClean(driver.text, `${cols} initial`)
-
-        // Go up to card level with bordered cards
-        await driver.cmd.up!()
-        await driver.cmd.up!()
-        assertCardBordersClean(driver.text, `${cols} at board level`)
-
-        // Move right — the bug manifests here
-        await driver.cmd.right!()
-        assertCardBordersClean(driver.text, `${cols} right(1)`)
-
-        await driver.cmd.right!()
-        assertCardBordersClean(driver.text, `${cols} right(2)`)
-
-        await driver.cmd.right!()
-        assertCardBordersClean(driver.text, `${cols} right(3)`)
-
-        // Move back left
-        await driver.cmd.left!()
-        assertCardBordersClean(driver.text, `${cols} left(1)`)
-
-        await driver.cmd.left!()
-        assertCardBordersClean(driver.text, `${cols} left(2)`)
-
-        // Navigate down then right
-        await driver.cmd.down!()
-        await driver.cmd.down!()
-        await driver.cmd.right!()
-        assertCardBordersClean(driver.text, `${cols} down+right`)
+      const baseDriver = createBoardDriver(repo, rootId, {
+        columns: cols,
+        rows: 30,
       })
-    }
-  },
-)
+
+      // Wrap with diagnostics to also catch incremental rendering mismatches
+      const driver = withDiagnostics(baseDriver, {
+        checkIncremental: true,
+        checkStability: false, // cursor moves change content
+        skipLines: [0, -1],
+      })
+
+      // Initial
+      assertCardBordersClean(driver.text, `${cols} initial`)
+
+      // Go up to card level with bordered cards
+      await driver.cmd.up!()
+      await driver.cmd.up!()
+      assertCardBordersClean(driver.text, `${cols} at board level`)
+
+      // Move right — the bug manifests here
+      await driver.cmd.right!()
+      assertCardBordersClean(driver.text, `${cols} right(1)`)
+
+      await driver.cmd.right!()
+      assertCardBordersClean(driver.text, `${cols} right(2)`)
+
+      await driver.cmd.right!()
+      assertCardBordersClean(driver.text, `${cols} right(3)`)
+
+      // Move back left
+      await driver.cmd.left!()
+      assertCardBordersClean(driver.text, `${cols} left(1)`)
+
+      await driver.cmd.left!()
+      assertCardBordersClean(driver.text, `${cols} left(2)`)
+
+      // Navigate down then right
+      await driver.cmd.down!()
+      await driver.cmd.down!()
+      await driver.cmd.right!()
+      assertCardBordersClean(driver.text, `${cols} down+right`)
+    })
+  }
+})

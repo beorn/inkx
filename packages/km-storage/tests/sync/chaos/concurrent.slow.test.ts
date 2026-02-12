@@ -132,17 +132,9 @@ function getAllTasks(ctx: ConcurrentTestCtx) {
 }
 
 /** Run a concurrent edit test with fake timers and test environment */
-async function withConcurrentTestEnv(
-  fn: (ctx: ConcurrentTestCtx) => Promise<void>,
-): Promise<void> {
+async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<void>): Promise<void> {
   const clock: InstalledClock = FakeTimers.install({
-    toFake: [
-      "setTimeout",
-      "setInterval",
-      "clearTimeout",
-      "clearInterval",
-      "Date",
-    ],
+    toFake: ["setTimeout", "setInterval", "clearTimeout", "clearInterval", "Date"],
     shouldAdvanceTime: false,
   })
 
@@ -192,11 +184,7 @@ describe("Concurrent Edit Tests", () => {
       { name: "FS then DB", firstSource: "fs" as const },
     ])("$name edit preserves both changes", ({ firstSource }) =>
       withConcurrentTestEnv(async (ctx) => {
-        const { filePath, tasks } = await initTestFile(
-          ctx,
-          "tasks.md",
-          "# Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n",
-        )
+        const { filePath, tasks } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n")
         const task1 = tasks.find((t) => t.content === "Task 1")
         expect(task1).toBeDefined()
 
@@ -206,10 +194,7 @@ describe("Concurrent Edit Tests", () => {
           const content = readFileSync(filePath, "utf-8")
           ctx.writeAndTrigger(filePath, content + "- [ ] Task 3\n")
         } else {
-          ctx.writeAndTrigger(
-            filePath,
-            "# Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] New task\n",
-          )
+          ctx.writeAndTrigger(filePath, "# Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] New task\n")
           await ctx.advanceTime(300)
           ctx.data.updateNode(task1!.id, { task_status: "done" })
         }
@@ -227,11 +212,7 @@ describe("Concurrent Edit Tests", () => {
   describe("Rapid Concurrent Edits", () => {
     test("many rapid FS edits are coalesced", () =>
       withConcurrentTestEnv(async (ctx) => {
-        const { filePath } = await initTestFile(
-          ctx,
-          "tasks.md",
-          "# Tasks\n\n- [ ] Task\n",
-        )
+        const { filePath } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Task\n")
 
         let syncCount = 0
         ctx.syncManager.on("sync-complete", () => syncCount++)
@@ -250,12 +231,7 @@ describe("Concurrent Edit Tests", () => {
 
     test("many rapid DB edits are coalesced", () =>
       withConcurrentTestEnv(async (ctx) => {
-        const { filePath, tasks } = await initTestFile(
-          ctx,
-          "tasks.md",
-          "# Tasks\n\n- [ ] Task\n",
-          { start: false },
-        )
+        const { filePath, tasks } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Task\n", { start: false })
         const task = tasks[0]
         expect(task).toBeDefined()
 
@@ -275,11 +251,7 @@ describe("Concurrent Edit Tests", () => {
   describe("Conflict Scenarios", () => {
     test("same task edited in DB and FS resolves without crash", () =>
       withConcurrentTestEnv(async (ctx) => {
-        const { filePath, tasks } = await initTestFile(
-          ctx,
-          "tasks.md",
-          "# Tasks\n\n- [ ] Contested task\n",
-        )
+        const { filePath, tasks } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Contested task\n")
         const task = tasks[0]
         expect(task).toBeDefined()
 
@@ -297,11 +269,7 @@ describe("Concurrent Edit Tests", () => {
 
     test("task deleted in FS while edited in DB handles gracefully", () =>
       withConcurrentTestEnv(async (ctx) => {
-        const { filePath, tasks } = await initTestFile(
-          ctx,
-          "tasks.md",
-          "# Tasks\n\n- [ ] Task to delete\n",
-        )
+        const { filePath, tasks } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Task to delete\n")
         const taskId = tasks[0]!.id
 
         ctx.data.updateNode(taskId, { content: "Edited task" })

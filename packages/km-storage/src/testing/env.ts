@@ -31,11 +31,7 @@ import type { KNode } from "@km/core"
 import { SCHEMA } from "../schema.ts"
 import type { Emitter } from "../emitter.ts"
 import { getNode, getNodeByPath } from "../db-queries/core-lookup.ts"
-import {
-  getChildren,
-  getChildCountsBatch,
-  getAncestors,
-} from "../db-queries/tree-traversal.ts"
+import { getChildren, getChildCountsBatch, getAncestors } from "../db-queries/tree-traversal.ts"
 import { getAllNodes } from "../db-queries/utils.ts"
 import { getLinksTo } from "../db-queries/task-queries.ts"
 import { getBacklinks, type Link } from "../db-links.ts"
@@ -99,14 +95,8 @@ interface TestRepo {
   moveNode: (id: string, newParentId: string, position: number) => void
   updateNode: (id: string, changes: Partial<KNode>) => void
   deleteNode: (id: string) => void
-  addNode: (
-    parentId: string | null,
-    nodeData: Partial<KNode> & { type: string; content: string },
-  ) => string
-  rawQuery: <T = Record<string, unknown>>(
-    sql: string,
-    params?: unknown[],
-  ) => T[]
+  addNode: (parentId: string | null, nodeData: Partial<KNode> & { type: string; content: string }) => string
+  rawQuery: <T = Record<string, unknown>>(sql: string, params?: unknown[]) => T[]
 }
 
 /**
@@ -162,10 +152,7 @@ export interface TestEnv {
  * // Skip tests that need real infrastructure:
  * test.skipIf(isMockMode())("watcher test", async () => { ... });
  */
-export async function withTestEnv<T>(
-  fn: (env: TestEnv) => T | Promise<T>,
-  options?: { mode?: TestMode },
-): Promise<T> {
+export async function withTestEnv<T>(fn: (env: TestEnv) => T | Promise<T>, options?: { mode?: TestMode }): Promise<T> {
   const env = setupTestEnv(options)
 
   try {
@@ -179,10 +166,7 @@ export async function withTestEnv<T>(
  * Synchronous version of withTestEnv for non-async tests.
  * Same TEST_MODE behavior as withTestEnv.
  */
-export function withTestEnvSync<T>(
-  fn: (env: TestEnv) => T,
-  options?: { mode?: TestMode },
-): T {
+export function withTestEnvSync<T>(fn: (env: TestEnv) => T, options?: { mode?: TestMode }): T {
   const env = setupTestEnv(options)
 
   try {
@@ -239,15 +223,11 @@ function setupTestEnv(options?: { mode?: TestMode }): TestEnv {
     getBacklinks: (nodeId) => getBacklinks(db, nodeId),
     getAncestors: (nodeId) => getAncestors(db, nodeId),
     getLinksTo: (targetId) => getLinksTo(db, targetId),
-    moveNode: (id, newParentId, position) =>
-      data.moveNode(id, newParentId, position),
+    moveNode: (id, newParentId, position) => data.moveNode(id, newParentId, position),
     updateNode: (id, changes) => data.updateNode(id, changes),
     deleteNode: (id) => data.deleteNode(id),
     addNode: (parentId, nodeData) => data.addNode(parentId, nodeData),
-    rawQuery: <T = Record<string, unknown>>(
-      sql: string,
-      params?: unknown[],
-    ): T[] => {
+    rawQuery: <T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] => {
       return db.query(sql).all(...((params ?? []) as never)) as T[]
     },
   }

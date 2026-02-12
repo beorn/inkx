@@ -150,9 +150,7 @@ END:VCARD`
     const contact = parseVCard(vcard)
     expect(contact).not.toBeNull()
     // Folding removes newline and leading whitespace, joining directly
-    expect(contact!.fullName).toBe(
-      "A Very Long Name That Would BeFolded Across Multiple Lines",
-    )
+    expect(contact!.fullName).toBe("A Very Long Name That Would BeFolded Across Multiple Lines")
   })
 
   test("returns null for vCard without required fields", () => {
@@ -215,9 +213,7 @@ describe("formatVCard", () => {
     const contact = {
       uid: "with-phones",
       fullName: "Bob Smith",
-      phones: [
-        { value: "+1-555-123-4567", type: "cell" as const, primary: true },
-      ],
+      phones: [{ value: "+1-555-123-4567", type: "cell" as const, primary: true }],
     }
 
     const vcard = formatVCard(contact)

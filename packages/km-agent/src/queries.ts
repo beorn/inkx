@@ -16,9 +16,7 @@ export function queryAgents(repo: Repo, filter?: AgentFilter): Agent[] {
   let agents = nodes.map(nodeToAgent)
 
   if (filter?.status) {
-    const statuses = Array.isArray(filter.status)
-      ? filter.status
-      : [filter.status]
+    const statuses = Array.isArray(filter.status) ? filter.status : [filter.status]
     agents = agents.filter((a) => statuses.includes(a.status))
   }
   if (filter?.harness) {
@@ -47,9 +45,7 @@ export function getAgent(repo: Repo, idOrShortId: string): Agent | null {
 
   // Try partial short ID match (agent-xxx)
   const normalized = idOrShortId.replace(/^agent-/, "")
-  const byPartial = agents.find(
-    (a) => a.shortId === `agent-${normalized}` || a.id.endsWith(normalized),
-  )
+  const byPartial = agents.find((a) => a.shortId === `agent-${normalized}` || a.id.endsWith(normalized))
   return byPartial ?? null
 }
 
@@ -66,10 +62,7 @@ export function getActiveAgents(repo: Repo): Agent[] {
 export function nodeToAgent(node: KNode): Agent {
   const data = node.data ?? {}
 
-  const shortIdPart =
-    typeof data.short_id === "string"
-      ? data.short_id
-      : node.id.slice(-4).toLowerCase()
+  const shortIdPart = typeof data.short_id === "string" ? data.short_id : node.id.slice(-4).toLowerCase()
 
   return {
     id: node.id,
@@ -77,16 +70,10 @@ export function nodeToAgent(node: KNode): Agent {
     name: node.name || node.content || "Unnamed Agent",
     model: typeof data.model === "string" ? data.model : "claude-sonnet-4",
     harness: typeof data.harness === "string" ? data.harness : "general",
-    status:
-      typeof data.status === "string"
-        ? (data.status as Agent["status"])
-        : "idle",
+    status: typeof data.status === "string" ? (data.status as Agent["status"]) : "idle",
     workdir: typeof data.workdir === "string" ? data.workdir : undefined,
     pid: typeof data.pid === "number" ? data.pid : undefined,
-    currentTaskId:
-      typeof data.current_task_id === "string"
-        ? data.current_task_id
-        : undefined,
+    currentTaskId: typeof data.current_task_id === "string" ? data.current_task_id : undefined,
     createdAt: node.created_at,
     updatedAt: node.updated_at,
   }
@@ -112,10 +99,7 @@ export function getAgentQueue(repo: Repo, agentId: string): AgentQueueItem[] {
 
   return nodes.map((node) => {
     const data = node.data ?? {}
-    const shortId =
-      typeof data.short_id === "string"
-        ? data.short_id
-        : `km-${node.id.slice(-4).toLowerCase()}`
+    const shortId = typeof data.short_id === "string" ? data.short_id : `km-${node.id.slice(-4).toLowerCase()}`
 
     return {
       issueId: node.id,

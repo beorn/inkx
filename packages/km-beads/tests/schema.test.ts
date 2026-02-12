@@ -1,9 +1,5 @@
 import { describe, test, expect } from "vitest"
-import {
-  beadsIssueSchema,
-  parseBeadsIssueLine,
-  parseBeadsIssuesJsonl,
-} from "../src/schema.ts"
+import { beadsIssueSchema, parseBeadsIssueLine, parseBeadsIssuesJsonl } from "../src/schema.ts"
 
 describe("beadsIssueSchema", () => {
   test("validates a minimal valid issue", () => {

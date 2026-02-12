@@ -14,18 +14,11 @@ import type { KNode } from "@km/core"
 import { parseMarkdownToNodes } from "../src/ast2nodes.ts"
 import { nodesToMarkdown } from "../src/nodes2md.ts"
 import { extractFrontmatter } from "../src/parser.ts"
-import {
-  normalizeMarkdown,
-  roundtrip,
-  parse,
-  makeTestNode,
-} from "./helpers/test-utils.ts"
+import { normalizeMarkdown, roundtrip, parse, makeTestNode } from "./helpers/test-utils.ts"
 
 describe("Round-trip: Basic Elements", () => {
   test("should preserve simple paragraph", () => {
-    expect(roundtrip("This is a simple paragraph.")).toContain(
-      "This is a simple paragraph",
-    )
+    expect(roundtrip("This is a simple paragraph.")).toContain("This is a simple paragraph")
   })
 
   test("should preserve multiple paragraphs", () => {
@@ -42,9 +35,7 @@ Third paragraph.`)
 
   test("should preserve text content (inline formatting becomes plain text)", () => {
     // Note: Current parser strips inline formatting but preserves text content
-    expect(roundtrip(`This has **bold** and *italic* and \`code\`.`)).toContain(
-      "This has bold and italic and code",
-    )
+    expect(roundtrip(`This has **bold** and *italic* and \`code\`.`)).toContain("This has bold and italic and code")
   })
 
   test("should preserve headings", () => {
@@ -105,15 +96,11 @@ describe("Round-trip: Tasks", () => {
   })
 
   test("should preserve task with scheduled date", () => {
-    expect(roundtrip(`- [ ] Task scheduled ⏳ 2025-03-10`)).toContain(
-      "⏳ 2025-03-10",
-    )
+    expect(roundtrip(`- [ ] Task scheduled ⏳ 2025-03-10`)).toContain("⏳ 2025-03-10")
   })
 
   test("should preserve task with full metadata", () => {
-    const output = roundtrip(
-      `- [ ] Full metadata 📅 2025-04-01 ⏳ 2025-03-25 ⏫`,
-    )
+    const output = roundtrip(`- [ ] Full metadata 📅 2025-04-01 ⏳ 2025-03-25 ⏫`)
     expect(output).toContain("📅 2025-04-01")
     expect(output).toContain("⏳ 2025-03-25")
     expect(output).toContain("⏫")
@@ -306,15 +293,11 @@ describe("Round-trip: Edge Cases", () => {
   })
 
   test("should preserve wikilinks in content", () => {
-    expect(roundtrip(`Check [[Other Page]] for more.`)).toContain(
-      "[[Other Page]]",
-    )
+    expect(roundtrip(`Check [[Other Page]] for more.`)).toContain("[[Other Page]]")
   })
 
   test("should preserve aliased wikilinks", () => {
-    expect(roundtrip(`See [[Target|display text]] here.`)).toContain(
-      "[[Target|display text]]",
-    )
+    expect(roundtrip(`See [[Target|display text]] here.`)).toContain("[[Target|display text]]")
   })
 })
 
@@ -402,13 +385,7 @@ describe("Round-trip: Fixture Files", () => {
     },
     {
       name: "comprehensive.md",
-      expected: [
-        "Main Section",
-        "Tasks with Standard Marks",
-        "Blockquotes",
-        "Code Blocks",
-        "Tables",
-      ],
+      expected: ["Main Section", "Tasks with Standard Marks", "Blockquotes", "Code Blocks", "Tables"],
     },
   ])("should round-trip $name", ({ name, expected }) => {
     const original = readFileSync(join(fixturesDir, name), "utf-8")
@@ -420,10 +397,7 @@ describe("Round-trip: Fixture Files", () => {
   })
 
   test("comprehensive.md key content is preserved after round-trip", () => {
-    const original = readFileSync(
-      join(fixturesDir, "comprehensive.md"),
-      "utf-8",
-    )
+    const original = readFileSync(join(fixturesDir, "comprehensive.md"), "utf-8")
     const { body } = extractFrontmatter(original)
 
     // First and second round-trips
@@ -438,12 +412,8 @@ describe("Round-trip: Fixture Files", () => {
     expect(md2).toContain("Code Blocks")
 
     // Node counts should be consistent between round-trips
-    expect(nodes1.filter((n) => n.type === "task").length).toBe(
-      nodes2.filter((n) => n.type === "task").length,
-    )
-    expect(nodes1.filter((n) => n.type === "section").length).toBe(
-      nodes2.filter((n) => n.type === "section").length,
-    )
+    expect(nodes1.filter((n) => n.type === "task").length).toBe(nodes2.filter((n) => n.type === "task").length)
+    expect(nodes1.filter((n) => n.type === "section").length).toBe(nodes2.filter((n) => n.type === "section").length)
   })
 })
 
@@ -639,9 +609,7 @@ describe("Round-trip: Wiki Link Embeddings", () => {
   })
 
   test("should preserve mixed-content paragraph with embedding", () => {
-    const para = parse(`Some text before ![[Target]] and after.`).find(
-      (n) => n.type === "paragraph",
-    )
+    const para = parse(`Some text before ![[Target]] and after.`).find((n) => n.type === "paragraph")
     expect(para).toBeDefined()
     expect(para!.content).toBe("Some text before ![[Target]] and after.")
   })
@@ -721,20 +689,14 @@ describe("Round-trip: All Task Status Marks", () => {
 
     const nodes2 = parse(roundtrip(original))
 
-    expect(nodes2.find((n) => n.content?.includes("WIP"))?.task_status).toBe(
-      "wip",
-    )
-    expect(
-      nodes2.find((n) => n.content?.includes("Blocked"))?.task_status,
-    ).toBe("blocked")
+    expect(nodes2.find((n) => n.content?.includes("WIP"))?.task_status).toBe("wip")
+    expect(nodes2.find((n) => n.content?.includes("Blocked"))?.task_status).toBe("blocked")
   })
 })
 
 describe("Round-trip: Task Metadata Formats", () => {
   test("should preserve Obsidian Tasks emoji format", () => {
-    const nodes = parse(
-      `- [ ] Task with all metadata 📅 2025-12-25 ⏳ 2025-12-20 ⏫`,
-    )
+    const nodes = parse(`- [ ] Task with all metadata 📅 2025-12-25 ⏳ 2025-12-20 ⏫`)
     const task = nodes.find((n) => n.type === "task")
 
     expect(task).toBeDefined()
@@ -749,17 +711,15 @@ describe("Round-trip: Task Metadata Formats", () => {
   })
 
   test("should preserve recurrence metadata", () => {
-    const task = parse(`- [ ] Recurring task 🔁 every week`).find(
-      (n) => n.type === "task",
-    )
+    const task = parse(`- [ ] Recurring task 🔁 every week`).find((n) => n.type === "task")
     expect(task).toBeDefined()
     expect(task!.data?.recurrence).toBe("every week")
   })
 
   test("should preserve inline field format (due:, start:, p:)", () => {
-    const task = parse(
-      `- [ ] Task with inline fields due:2025-11-15 start:2025-11-10 p:2`,
-    ).find((n) => n.type === "task")
+    const task = parse(`- [ ] Task with inline fields due:2025-11-15 start:2025-11-10 p:2`).find(
+      (n) => n.type === "task",
+    )
 
     expect(task).toBeDefined()
     expect(task!.due_date).toBe("2025-11-15")
@@ -786,9 +746,7 @@ describe("Round-trip: Task Metadata Formats", () => {
 
 describe("Round-trip: Wiki Links and Markdown Links", () => {
   test("should preserve wiki links with all variations", () => {
-    const output = roundtrip(
-      `Check [[simple link]] and [[path/to/note]] and [[target|alias]].`,
-    )
+    const output = roundtrip(`Check [[simple link]] and [[path/to/note]] and [[target|alias]].`)
 
     expect(output).toContain("[[simple link]]")
     expect(output).toContain("[[path/to/note]]")
@@ -796,9 +754,7 @@ describe("Round-trip: Wiki Links and Markdown Links", () => {
   })
 
   test("should preserve wiki links with section anchors", () => {
-    const output = roundtrip(
-      `See [[note#heading]] and [[doc#section|link text]].`,
-    )
+    const output = roundtrip(`See [[note#heading]] and [[doc#section|link text]].`)
 
     expect(output).toContain("[[note#heading]]")
     expect(output).toContain("[[doc#section|link text]]")
@@ -813,9 +769,7 @@ describe("Round-trip: Wiki Links and Markdown Links", () => {
 
   test("should preserve markdown links text content", () => {
     // Note: Current implementation strips markdown link syntax, keeping only text
-    const output = roundtrip(
-      `Visit [Example](https://example.com) and [Docs](./docs/README.md).`,
-    )
+    const output = roundtrip(`Visit [Example](https://example.com) and [Docs](./docs/README.md).`)
 
     expect(output).toContain("Example")
     expect(output).toContain("Docs")
@@ -824,9 +778,7 @@ describe("Round-trip: Wiki Links and Markdown Links", () => {
 
 describe("Round-trip: Markdown Formatting", () => {
   test("should preserve inline formatting in content", () => {
-    const output = roundtrip(
-      `Text with **bold**, *italic*, \`code\`, and ~~strikethrough~~.`,
-    )
+    const output = roundtrip(`Text with **bold**, *italic*, \`code\`, and ~~strikethrough~~.`)
 
     // Current parser may or may not preserve formatting depending on implementation
     // At minimum, the text content should be preserved
@@ -862,9 +814,7 @@ describe("Round-trip: Section Rules (Board Syntax)", () => {
     const sections = nodes.filter((n) => n.type === "section")
 
     // Verify rules are parsed
-    expect(sections.find((s) => s.title === "Ready")?.rules?.add).toBe(
-      "status:todo",
-    )
+    expect(sections.find((s) => s.title === "Ready")?.rules?.add).toBe("status:todo")
 
     const inProgress = sections.find((s) => s.title === "In Progress")
     expect(inProgress?.rules?.sync).toBe("status:wip")
@@ -900,9 +850,7 @@ describe("Round-trip: Nested Tasks (Indentation)", () => {
   - [x] Child task 2
     - [ ] Grandchild task`)
 
-    expect(
-      nodes.filter((n) => n.type === "task").length,
-    ).toBeGreaterThanOrEqual(4)
+    expect(nodes.filter((n) => n.type === "task").length).toBeGreaterThanOrEqual(4)
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("Parent task")
@@ -1204,9 +1152,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       content: "![[projects/api]]",
     })
 
-    expect(nodesToMarkdown([fileNode, embeddingNode, targetNode])).toContain(
-      "![[api]]",
-    )
+    expect(nodesToMarkdown([fileNode, embeddingNode, targetNode])).toContain("![[api]]")
   })
 
   test("should serialize embedding with alias from link_alias", () => {
@@ -1231,9 +1177,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       content: "![[authentication|Auth Docs]]",
     })
 
-    expect(nodesToMarkdown([fileNode, embeddingNode, targetNode])).toContain(
-      "![[authentication|Auth Docs]]",
-    )
+    expect(nodesToMarkdown([fileNode, embeddingNode, targetNode])).toContain("![[authentication|Auth Docs]]")
   })
 
   test("should serialize embedding to section using title", () => {
@@ -1260,9 +1204,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       content: "![[#API Reference]]",
     })
 
-    expect(nodesToMarkdown([fileNode, embeddingNode, targetSection])).toContain(
-      "![[API Reference]]",
-    )
+    expect(nodesToMarkdown([fileNode, embeddingNode, targetSection])).toContain("![[API Reference]]")
   })
 
   test("should fallback to content when link_to target not found", () => {
@@ -1280,9 +1222,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       content: "![[missing-file]]",
     })
 
-    expect(nodesToMarkdown([fileNode, embeddingNode])).toContain(
-      "![[missing-file]]",
-    )
+    expect(nodesToMarkdown([fileNode, embeddingNode])).toContain("![[missing-file]]")
   })
 
   test("should serialize task with link_to as embed, not raw task", () => {

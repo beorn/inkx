@@ -34,10 +34,7 @@ import { MemoryStore, type NodeStore } from "./store.ts"
 
 // Import extracted modules
 import { discoverFiles } from "./discovery.ts"
-import {
-  resolveLinksGen,
-  resolveLinksAsync as resolveLinksAsyncImpl,
-} from "./link-resolution.ts"
+import { resolveLinksGen, resolveLinksAsync as resolveLinksAsyncImpl } from "./link-resolution.ts"
 
 const log = createLogger("km:storage:repo-loader")
 
@@ -51,10 +48,7 @@ const log = createLogger("km:storage:repo-loader")
  * - Object { current, total }: updates progress on current sub-step
  * - Object { declare: [...] }: declare all sub-steps upfront (show as pending)
  */
-export type StepYield =
-  | string
-  | { current?: number; total?: number }
-  | { declare: string[] }
+export type StepYield = string | { current?: number; total?: number } | { declare: string[] }
 
 /** Result from loadRepo */
 export interface LoadResult {
@@ -144,10 +138,7 @@ export interface PendingLink {
  * @yields Progress info for each phase
  * @returns Load result with stats and errors
  */
-export function* loadRepo(
-  rootPath?: string,
-  options?: LoadOptions,
-): Generator<StepYield, LoadResult, unknown> {
+export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<StepYield, LoadResult, unknown> {
   const start = Date.now()
   const errors: LoadError[] = []
 
@@ -168,22 +159,11 @@ export function* loadRepo(
       yield { declare: ["Discovering files", "Applying changes"] }
     } else if (skipLinks) {
       yield {
-        declare: [
-          "Discovering files",
-          "Parsing markdown",
-          "Applying changes",
-          "Evaluating rules",
-        ],
+        declare: ["Discovering files", "Parsing markdown", "Applying changes", "Evaluating rules"],
       }
     } else {
       yield {
-        declare: [
-          "Discovering files",
-          "Parsing markdown",
-          "Applying changes",
-          "Resolving links",
-          "Evaluating rules",
-        ],
+        declare: ["Discovering files", "Parsing markdown", "Applying changes", "Resolving links", "Evaluating rules"],
       }
     }
   } else {
@@ -206,12 +186,7 @@ export function* loadRepo(
   const source: EventSource =
     mode === "memory"
       ? yield* discoverMemoryMode(repoRoot, errors, db, discoverOnly)
-      : yield* discoverFromEvents(
-          db,
-          kmDir ?? "",
-          options?.force ?? false,
-          errors,
-        )
+      : yield* discoverFromEvents(db, kmDir ?? "", options?.force ?? false, errors)
 
   // 4. Shared pipeline (normalizes parent_id: null → ".")
   yield* applyEvents(db, source.events, errors, repoRoot)
@@ -223,16 +198,12 @@ export function* loadRepo(
 
   if (discoverOnly) {
     returnDeferredFiles = source.deferredFiles
-    log.debug?.(
-      `discover-only mode, ${returnDeferredFiles?.length ?? 0} files deferred`,
-    )
+    log.debug?.(`discover-only mode, ${returnDeferredFiles?.length ?? 0} files deferred`)
   } else {
     if (source.pendingLinks.length > 0) {
       if (skipLinks) {
         returnPendingLinks = source.pendingLinks
-        log.debug?.(
-          `skipping link resolution, ${source.pendingLinks.length} links deferred`,
-        )
+        log.debug?.(`skipping link resolution, ${source.pendingLinks.length} links deferred`)
       } else {
         linkCount = yield* resolveLinksGen(db, source.pendingLinks, errors)
       }
@@ -242,14 +213,10 @@ export function* loadRepo(
   }
 
   // 6. Finalize
-  const nodeCount = (
-    db.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }
-  ).count
+  const nodeCount = (db.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }).count
 
   const duration = Date.now() - start
-  log.debug?.(
-    `loadRepo complete mode=${mode} nodeCount=${nodeCount} linkCount=${linkCount} duration=${duration}`,
-  )
+  log.debug?.(`loadRepo complete mode=${mode} nodeCount=${nodeCount} linkCount=${linkCount} duration=${duration}`)
 
   const store: NodeStore = new MemoryStore(repoRoot, {
     inject: { database: db },
@@ -347,9 +314,7 @@ function setupDatabase(options?: LoadOptions): Database {
  * Creates it if missing; no-op if already present.
  */
 export function ensureRepoRootNode(db: Database, repoRoot: string): void {
-  const existing = db.prepare("SELECT id FROM nodes WHERE id = '.'").get() as
-    | { id: string }
-    | undefined
+  const existing = db.prepare("SELECT id FROM nodes WHERE id = '.'").get() as { id: string } | undefined
 
   if (existing) return
 
@@ -478,16 +443,14 @@ function* discoverFromEvents(
 
   // Filter to only new events (unless force rebuild)
   let events: Event[]
-  const lastApplied = db
-    .prepare("SELECT value FROM meta WHERE key = ?")
-    .get("last_event") as { value: string } | undefined
+  const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
+    | { value: string }
+    | undefined
 
   if (force) {
     events = allEvents
   } else {
-    events = lastApplied?.value
-      ? allEvents.filter((e) => e.id > lastApplied.value)
-      : allEvents
+    events = lastApplied?.value ? allEvents.filter((e) => e.id > lastApplied.value) : allEvents
   }
 
   yield { current: events.length, total: events.length }
@@ -517,11 +480,7 @@ const INSERT_NODE_SQL = `
  * Run the 27-column INSERT for a KNode.
  * Shared by parseDeferredSequential and parseStubFile where the source is a KNode.
  */
-function insertNodeRow(
-  stmt: ReturnType<Database["prepare"]>,
-  node: KNode,
-  now: number,
-): void {
+function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode, now: number): void {
   const data = node.data ?? {}
   stmt.run(
     node.id,
@@ -580,10 +539,7 @@ function* applyEvents(
           const data = event.data as Record<string, unknown>
           // Normalize fs_path: old events may have absolute paths
           const rawFsPath = (data.fs_path as string) ?? null
-          const fsPath =
-            rawFsPath && isAbsolute(rawFsPath)
-              ? toRelativeFsPath(repoRoot, rawFsPath)
-              : rawFsPath
+          const fsPath = rawFsPath && isAbsolute(rawFsPath) ? toRelativeFsPath(repoRoot, rawFsPath) : rawFsPath
           // Normalize parent_id: null → "." (repo root)
           const parentId = (data.parent_id as string) ?? "."
           // INSERT OR IGNORE: in disk mode, state.db may already have nodes
@@ -706,9 +662,7 @@ async function parseDeferredWithPool(
     relationship: link.relationship ?? undefined,
   }))
 
-  log.debug?.(
-    `parseDeferredWithPool: completed, ${result.parsed} parsed, ${pendingLinks.length} links`,
-  )
+  log.debug?.(`parseDeferredWithPool: completed, ${result.parsed} parsed, ${pendingLinks.length} links`)
 
   return { parsed: result.parsed, pendingLinks }
 }
@@ -727,9 +681,7 @@ function parseOneFile(
   const content = readFileSync(fsPath, "utf-8")
   const { nodes, wikilinks } = parseMarkdownWithLinks(content, fsPath)
 
-  const stubRow = db
-    .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
-    .get(nodeId) as {
+  const stubRow = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
     parent_id: string | null
     parent_idx: number
   } | null
@@ -786,9 +738,7 @@ async function parseDeferredSequential(
         }
         parsed++
       } catch (err) {
-        log.debug?.(
-          `parseDeferredSequential: error parsing ${deferredFile.fsPath}: ${String(err)}`,
-        )
+        log.debug?.(`parseDeferredSequential: error parsing ${deferredFile.fsPath}: ${String(err)}`)
       }
 
       if (i % BATCH_SIZE === 0) {
@@ -808,9 +758,7 @@ async function parseDeferredSequential(
     throw error
   }
 
-  log.debug?.(
-    `parseDeferredSequential: completed, ${parsed} parsed, ${pendingLinks.length} links`,
-  )
+  log.debug?.(`parseDeferredSequential: completed, ${parsed} parsed, ${pendingLinks.length} links`)
 
   return { parsed, pendingLinks }
 }
@@ -827,20 +775,14 @@ async function parseDeferredSequential(
  * @returns true if parsed successfully, false if stub not found or parse failed
  */
 // oxlint-disable-next-line complexity/complexity -- Stub-to-full parse with INSERT — shares insertNodeRow helper
-export function parseStubFile(
-  db: Database,
-  nodeId: string,
-  fsPath: string,
-): boolean {
+export function parseStubFile(db: Database, nodeId: string, fsPath: string): boolean {
   log.debug?.(`parseStubFile: parsing ${fsPath}`)
 
   try {
     const content = readFileSync(fsPath, "utf-8")
     const { nodes } = parseMarkdownWithLinks(content, fsPath)
 
-    const stubRow = db
-      .prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?")
-      .get(nodeId) as {
+    const stubRow = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
       parent_id: string | null
       parent_idx: number
     } | null

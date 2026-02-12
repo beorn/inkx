@@ -36,12 +36,6 @@ export function useRepo(): Repo {
 /**
  * Provides the repo to child components.
  */
-export function RepoProvider({
-  repo,
-  children,
-}: {
-  repo: Repo
-  children: ReactNode
-}) {
+export function RepoProvider({ repo, children }: { repo: Repo; children: ReactNode }) {
   return <RepoContext.Provider value={repo}>{children}</RepoContext.Provider>
 }

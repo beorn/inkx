@@ -28,12 +28,7 @@ import { join } from "path"
 import { existsSync } from "fs"
 
 // Import from extracted modules
-import {
-  issueToBdJson,
-  printIssue,
-  printReadyIssue,
-  printIssueDetails,
-} from "./bd-format.ts"
+import { issueToBdJson, printIssue, printReadyIssue, printIssueDetails } from "./bd-format.ts"
 import { resolveIssueArg } from "./bd-query-helpers.ts"
 import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
@@ -92,8 +87,7 @@ bdCommand
     if (opts.priority !== undefined) filter.priority = opts.priority
 
     // Use board filter from config unless --all or explicit scope given
-    const boardTag =
-      (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
+    const boardTag = (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
     const issues = queryReady(filter, scopePath, boardTag, { repo })
 
     if (opts.json) {
@@ -102,25 +96,13 @@ bdCommand
     }
 
     if (issues.length === 0) {
-      const scopeMsg = scopePath
-        ? ` in ${scopePath}`
-        : boardTag
-          ? ` on @${boardTag}`
-          : ""
+      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
       console.log(term.yellow(`No ready issues found${scopeMsg}.`))
       return
     }
 
-    const scopeMsg = scopePath
-      ? ` in ${scopePath}`
-      : boardTag
-        ? ` on @${boardTag}`
-        : ""
-    console.log(
-      term.bold(
-        `📋 Ready work (${issues.length} issues with no blockers${scopeMsg}):\n`,
-      ),
-    )
+    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
+    console.log(term.bold(`📋 Ready work (${issues.length} issues with no blockers${scopeMsg}):\n`))
     issues.forEach((issue, i) => {
       printReadyIssue(issue, i + 1)
     })
@@ -130,10 +112,7 @@ bdCommand
 bdCommand
   .command("list [scope]")
   .description("List issues with optional filters")
-  .option(
-    "-s, --status <status>",
-    "Filter by status (todo,wip,blocked,done,dropped)",
-  )
+  .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
   .option("-t, --type <type>", "Filter by issue type")
   .option("-a, --assignee <name>", "Filter by assignee")
   .option("-p, --priority <n>", "Filter by priority", parseInt)
@@ -157,8 +136,7 @@ bdCommand
     if (opts.unblocked) filter.blocked = false
 
     // Use board filter from config unless --all or explicit scope given
-    const boardTag =
-      (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
+    const boardTag = (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
     const issues = queryIssues(filter, scopePath, boardTag, { repo })
 
     if (opts.json) {
@@ -167,20 +145,12 @@ bdCommand
     }
 
     if (issues.length === 0) {
-      const scopeMsg = scopePath
-        ? ` in ${scopePath}`
-        : boardTag
-          ? ` on @${boardTag}`
-          : ""
+      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
       console.log(term.yellow(`No issues found${scopeMsg}.`))
       return
     }
 
-    const scopeMsg = scopePath
-      ? ` in ${scopePath}`
-      : boardTag
-        ? ` on @${boardTag}`
-        : ""
+    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
     console.log(term.bold(`Issues (${issues.length}${scopeMsg}):\n`))
     for (const issue of issues) {
       printIssue(issue)
@@ -248,19 +218,14 @@ bdCommand
     console.log(term.dim(`Priority: P${opts.priority ?? 2}`))
 
     // Note: Actual persistence requires km-storage integration
-    console.log(
-      term.yellow("\nNote: Issue created in memory. Persistence pending."),
-    )
+    console.log(term.yellow("\nNote: Issue created in memory. Persistence pending."))
   })
 
 // bd update [id] - Update issue fields
 const updateCmd = bdCommand
   .command("update [id]")
   .description("Update issue status, priority, or assignee")
-  .option(
-    "-s, --status <status>",
-    "Set status (todo, wip, blocked, done, dropped)",
-  )
+  .option("-s, --status <status>", "Set status (todo, wip, blocked, done, dropped)")
   .option("-p, --priority <n>", "Set priority (0-4)", parseInt)
   .option("-a, --assignee <name>", "Set assignee")
   .option("-t, --title <title>", "Set title")
@@ -298,9 +263,7 @@ const updateCmd = bdCommand
       console.log(term.dim(`  Title: ${updates.content}`))
     }
 
-    console.log(
-      term.yellow("\nNote: Update created in memory. Persistence pending."),
-    )
+    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 // bd close [id] - Close an issue
@@ -328,9 +291,7 @@ const closeCmd = bdCommand
 
     console.log(term.green(`Closed ${issue.shortId}`))
     if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
-    console.log(
-      term.yellow("\nNote: Update created in memory. Persistence pending."),
-    )
+    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 // bd drop [id] - Drop an issue
@@ -358,9 +319,7 @@ const dropCmd = bdCommand
 
     console.log(term.yellow(`Dropped ${issue.shortId}`))
     if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
-    console.log(
-      term.yellow("\nNote: Update created in memory. Persistence pending."),
-    )
+    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 // bd dep - Manage dependencies
@@ -387,12 +346,8 @@ const depAddCmd = depCommand
     const props = addDependency(issue, dependsOn)
     void props
 
-    console.log(
-      term.green(`Added dependency: ${issue.shortId} blocked-by ${dependsOn}`),
-    )
-    console.log(
-      term.yellow("\nNote: Update created in memory. Persistence pending."),
-    )
+    console.log(term.green(`Added dependency: ${issue.shortId} blocked-by ${dependsOn}`))
+    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 const depRemoveCmd = depCommand
@@ -415,20 +370,12 @@ const depRemoveCmd = depCommand
 
     const result = removeDependency(issue, dependsOn)
     if (!result) {
-      console.error(
-        term.yellow(`${issue.shortId} does not depend on ${dependsOn}`),
-      )
+      console.error(term.yellow(`${issue.shortId} does not depend on ${dependsOn}`))
       return
     }
 
-    console.log(
-      term.green(
-        `Removed dependency: ${issue.shortId} no longer blocked-by ${dependsOn}`,
-      ),
-    )
-    console.log(
-      term.yellow("\nNote: Update created in memory. Persistence pending."),
-    )
+    console.log(term.green(`Removed dependency: ${issue.shortId} no longer blocked-by ${dependsOn}`))
+    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 const depListCmd = depCommand
@@ -490,12 +437,8 @@ bdCommand
 
     console.log(term.bold("Beads Configuration"))
     console.log("===================")
-    console.log(
-      `Board:  ${config.board || term.dim("(none - showing all tasks)")}`,
-    )
-    console.log(
-      `Parent: ${config.parent || term.dim("(none - create manually)")}`,
-    )
+    console.log(`Board:  ${config.board || term.dim("(none - showing all tasks)")}`)
+    console.log(`Parent: ${config.parent || term.dim("(none - create manually)")}`)
     console.log(`Prefix: ${config.prefix}`)
     if (configObj.path) {
       console.log(term.dim(`Config: ${configObj.path}`))
@@ -504,17 +447,11 @@ bdCommand
     console.log()
     console.log(term.bold("How tasks are tracked:"))
     if (config.board) {
-      console.log(
-        `  Tasks tagged @${config.board} are shown by 'km bd' commands.`,
-      )
+      console.log(`  Tasks tagged @${config.board} are shown by 'km bd' commands.`)
       console.log(`  View the board with 'km view @${config.board}'.`)
     } else {
-      console.log(
-        `  All tasks in the repo are shown (no board filter configured).`,
-      )
-      console.log(
-        `  Set beads.board in .km/config.yaml to filter to a specific board.`,
-      )
+      console.log(`  All tasks in the repo are shown (no board filter configured).`)
+      console.log(`  Set beads.board in .km/config.yaml to filter to a specific board.`)
     }
     if (config.parent) {
       console.log(`  New issues will be created in ${config.parent}.`)
@@ -533,11 +470,7 @@ bdCommand
     }
 
     console.log()
-    const scopeMsg = scopePath
-      ? ` in ${scopePath}`
-      : boardTag
-        ? ` on @${boardTag}`
-        : ""
+    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
     console.log(term.bold(`Statistics${scopeMsg}`))
     console.log(`  Total: ${issues.length} issues`)
 
@@ -550,9 +483,7 @@ bdCommand
       dropped: issues.filter((i) => i.status === "dropped").length,
     }
     if (issues.length > 0) {
-      console.log(
-        `  Open: ${byStatus.open}, In Progress: ${byStatus.in_progress}, Blocked: ${byStatus.blocked}`,
-      )
+      console.log(`  Open: ${byStatus.open}, In Progress: ${byStatus.in_progress}, Blocked: ${byStatus.blocked}`)
       console.log(`  Closed: ${byStatus.closed}, Dropped: ${byStatus.dropped}`)
 
       // Show files with tasks
@@ -571,9 +502,7 @@ bdCommand
           console.log(term.dim(`  ${path} (${count})`))
         }
         if (pathsWithTasks.size > 5) {
-          console.log(
-            term.dim(`  ... and ${pathsWithTasks.size - 5} more files`),
-          )
+          console.log(term.dim(`  ... and ${pathsWithTasks.size - 5} more files`))
         }
       }
     }

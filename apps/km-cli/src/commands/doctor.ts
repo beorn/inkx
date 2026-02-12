@@ -14,13 +14,7 @@ import { steps } from "@beorn/inkx-ui/progress"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:doctor")
-import {
-  findKmRootFromPath,
-  createRepo,
-  getStoreHealth,
-  compactEvents,
-  vacuumDb,
-} from "@km/storage"
+import { findKmRootFromPath, createRepo, getStoreHealth, compactEvents, vacuumDb } from "@km/storage"
 import { Database } from "bun:sqlite"
 import { existsSync, unlinkSync } from "fs"
 import { formatPath } from "../utils/format-path.ts"
@@ -37,21 +31,14 @@ const doctorGcCommand = new Command("gc")
     const { kmDir, repoPath } = resolveKmDir(path)
     const dbPath = join(kmDir, "state.db")
 
-    console.log(
-      term.bold("km doctor gc"),
-      term.dim(`(repo ${formatPath(repoPath)})`),
-    )
+    console.log(term.bold("km doctor gc"), term.dim(`(repo ${formatPath(repoPath)})`))
 
     if (!existsSync(dbPath)) {
-      console.error(
-        term.red("No state.db found. Run 'km doctor rebuild' first."),
-      )
+      console.error(term.red("No state.db found. Run 'km doctor rebuild' first."))
       process.exit(1)
     }
 
-    const db = options.dryRun
-      ? new Database(dbPath, { readonly: true })
-      : new Database(dbPath)
+    const db = options.dryRun ? new Database(dbPath, { readonly: true }) : new Database(dbPath)
 
     try {
       // Compact events
@@ -67,10 +54,7 @@ const doctorGcCommand = new Command("gc")
                 term.dim(`(would remove ${result.staleCount} stale)`),
             )
           } else {
-            console.log(
-              `  events.jsonl  ${result.totalEvents} events`,
-              term.dim("(no stale events)"),
-            )
+            console.log(`  events.jsonl  ${result.totalEvents} events`, term.dim("(no stale events)"))
           }
           console.log(term.dim("  state.db      VACUUM (dry run, skipped)"))
           return
@@ -84,10 +68,7 @@ const doctorGcCommand = new Command("gc")
               term.dim(`(removed ${result.staleCount} stale)`),
           )
         } else {
-          console.log(
-            `  events.jsonl  ${result.totalEvents} events`,
-            term.dim("(no stale events)"),
-          )
+          console.log(`  events.jsonl  ${result.totalEvents} events`, term.dim("(no stale events)"))
         }
 
         // Vacuum
@@ -95,10 +76,7 @@ const doctorGcCommand = new Command("gc")
         if (saved > 0) {
           console.log(`  state.db      VACUUM saved ${formatSize(saved)}`)
         } else {
-          console.log(
-            `  state.db      VACUUM`,
-            term.dim("(no space reclaimed)"),
-          )
+          console.log(`  state.db      VACUUM`, term.dim("(no space reclaimed)"))
         }
 
         const elapsed = Math.round(performance.now() - start)
@@ -118,10 +96,7 @@ const doctorRebuildCommand = new Command("rebuild")
   .action(async (path, options) => {
     const { kmDir, repoPath } = resolveKmDir(path)
 
-    console.log(
-      term.bold("km doctor rebuild"),
-      term.dim(`(repo ${formatPath(repoPath)})`),
-    )
+    console.log(term.bold("km doctor rebuild"), term.dim(`(repo ${formatPath(repoPath)})`))
 
     if (options.dryRun) {
       const dbPath = join(kmDir, "state.db")
@@ -171,15 +146,10 @@ const doctorResetCommand = new Command("reset")
   .action(async (path, options) => {
     const { kmDir, repoPath } = resolveKmDir(path)
 
-    console.log(
-      term.bold("km doctor reset"),
-      term.dim(`(repo ${formatPath(repoPath)})`),
-    )
+    console.log(term.bold("km doctor reset"), term.dim(`(repo ${formatPath(repoPath)})`))
 
     const targets = ["events.jsonl", "state.db", "state.db-wal", "state.db-shm"]
-    const toDelete = targets
-      .map((f) => join(kmDir, f))
-      .filter((p) => existsSync(p))
+    const toDelete = targets.map((f) => join(kmDir, f)).filter((p) => existsSync(p))
 
     if (options.dryRun) {
       if (toDelete.length > 0) {
@@ -242,43 +212,29 @@ export const doctorCommand = new Command("doctor")
   .action((path) => {
     const { kmDir, repoPath } = resolveKmDir(path)
 
-    console.log(
-      term.bold("km doctor"),
-      term.dim(`(repo ${formatPath(repoPath)})`),
-    )
+    console.log(term.bold("km doctor"), term.dim(`(repo ${formatPath(repoPath)})`))
     console.log()
 
     const dbPath = join(kmDir, "state.db")
-    const db = existsSync(dbPath)
-      ? new Database(dbPath, { readonly: true })
-      : null
+    const db = existsSync(dbPath) ? new Database(dbPath, { readonly: true }) : null
 
     try {
       const health = getStoreHealth(repoPath, kmDir, db)
 
       // Worktree
-      console.log(
-        `  Worktree       ${health.worktree.fileCount} files, ${health.worktree.dirCount} directories`,
-      )
+      console.log(`  Worktree       ${health.worktree.fileCount} files, ${health.worktree.dirCount} directories`)
 
       // Events
       if (health.events) {
-        const staleInfo =
-          health.events.staleCount > 0
-            ? ` (${health.events.staleCount} stale)`
-            : ""
-        console.log(
-          `  events.jsonl   ${health.events.count} events${staleInfo}, ${formatSize(health.events.size)}`,
-        )
+        const staleInfo = health.events.staleCount > 0 ? ` (${health.events.staleCount} stale)` : ""
+        console.log(`  events.jsonl   ${health.events.count} events${staleInfo}, ${formatSize(health.events.size)}`)
       } else {
         console.log(`  events.jsonl   ${term.dim("(not found)")}`)
       }
 
       // Database
       if (health.db) {
-        console.log(
-          `  state.db       ${health.db.nodeCount.toLocaleString()} nodes, ${formatSize(health.db.size)}`,
-        )
+        console.log(`  state.db       ${health.db.nodeCount.toLocaleString()} nodes, ${formatSize(health.db.size)}`)
       } else {
         console.log(`  state.db       ${term.dim("(not found)")}`)
       }
@@ -308,9 +264,7 @@ function resolveKmDir(path?: string): { kmDir: string; repoPath: string } {
   const kmDir = findKmRootFromPath(searchPath)
 
   if (!kmDir) {
-    console.error(
-      term.red(`No .km directory found in ${searchPath} or ancestors.`),
-    )
+    console.error(term.red(`No .km directory found in ${searchPath} or ancestors.`))
     console.error("Run 'km init' to initialize a repo.")
     process.exit(1)
   }

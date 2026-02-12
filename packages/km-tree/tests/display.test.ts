@@ -36,9 +36,7 @@ function createNode(id: string, overrides: Partial<KNode> = {}): KNode {
 // Helper to create a chain of folder/file/section nodes with specified titles
 type NodeChainSpec = { type: "folder" | "file" | "section"; title: string }
 function createNodeChain(specs: NodeChainSpec[]): KNode[] {
-  return specs.map((spec, i) =>
-    createNode(`${spec.type}${i + 1}`, { type: spec.type, title: spec.title }),
-  )
+  return specs.map((spec, i) => createNode(`${spec.type}${i + 1}`, { type: spec.type, title: spec.title }))
 }
 
 // =============================================================================
@@ -103,8 +101,7 @@ describe("getNodeDisplayName", () => {
         title: "Project Overview",
       })
 
-      const getChildren = (id: string) =>
-        id === "file123" ? [sectionNode] : []
+      const getChildren = (id: string) => (id === "file123" ? [sectionNode] : [])
 
       expect(getNodeDisplayName(fileNode, getChildren)).toBe("Project Overview")
     })
@@ -116,8 +113,7 @@ describe("getNodeDisplayName", () => {
         content: "# Heading\nParagraph content",
       })
 
-      const getChildren = (id: string) =>
-        id === "file123" ? [sectionNode] : []
+      const getChildren = (id: string) => (id === "file123" ? [sectionNode] : [])
 
       expect(getNodeDisplayName(fileNode, getChildren)).toBe("# Heading")
     })
@@ -129,8 +125,7 @@ describe("getNodeDisplayName", () => {
         content: "Work default=true\nMore content",
       })
 
-      const getChildren = (id: string) =>
-        id === "file123" ? [sectionNode] : []
+      const getChildren = (id: string) => (id === "file123" ? [sectionNode] : [])
 
       expect(getNodeDisplayName(fileNode, getChildren)).toBe("Work")
     })
@@ -439,9 +434,7 @@ describe("collapseAncestorsWithTypes", () => {
   ])("$desc", ({ chain, expected }) => {
     const nodes = createNodeChain(chain)
     const result = collapseAncestorsWithTypes(nodes)
-    expect(
-      result.map((r) => ({ id: r.node.id, typeSuffix: r.typeSuffix })),
-    ).toEqual(expected)
+    expect(result.map((r) => ({ id: r.node.id, typeSuffix: r.typeSuffix }))).toEqual(expected)
   })
 
   it("handles multiple collapsed groups", () => {
@@ -452,9 +445,7 @@ describe("collapseAncestorsWithTypes", () => {
       createNode("file2", { type: "file", title: "Beta" }),
     ]
     const result = collapseAncestorsWithTypes(nodes)
-    expect(
-      result.map((r) => ({ id: r.node.id, typeSuffix: r.typeSuffix })),
-    ).toEqual([
+    expect(result.map((r) => ({ id: r.node.id, typeSuffix: r.typeSuffix }))).toEqual([
       { id: "file1", typeSuffix: "/ .md" },
       { id: "file2", typeSuffix: "/ .md" },
     ])

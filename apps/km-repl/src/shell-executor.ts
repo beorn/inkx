@@ -61,10 +61,7 @@ export interface MutationResult {
 /**
  * Mutation handler callback - provided by CLI layer for storage operations
  */
-export type MutationHandler = (
-  command: ShellCommand,
-  state: BoardState,
-) => MutationResult
+export type MutationHandler = (command: ShellCommand, state: BoardState) => MutationResult
 
 /**
  * Shell execution context
@@ -139,18 +136,12 @@ export function renderAsciiView(state: BoardState): string {
   }
 
   // Render nodes recursively with indentation
-  function renderNodes(
-    nodes: BoardState["nodes"],
-    path: TPath,
-    indent: string,
-  ) {
+  function renderNodes(nodes: BoardState["nodes"], path: TPath, indent: string) {
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i]
       if (!node) continue
       const nodePath = [...path, i]
-      const isSelected =
-        state.cursor.length === nodePath.length &&
-        state.cursor.every((v, idx) => v === nodePath[idx])
+      const isSelected = state.cursor.length === nodePath.length && state.cursor.every((v, idx) => v === nodePath[idx])
       const marker = isSelected ? "→" : " "
       const foldMarker = state.foldedNodes.has(node.id) ? "▸" : " "
       const STATUS_ICONS: Record<TaskStatus, string> = {
@@ -219,10 +210,7 @@ function getPathAsString(state: BoardState): string {
  * @param state - BoardState with cursor position
  * @param rootSlugPath - Optional slug path prefix for the view root (e.g., "@next" when viewing inside @next.md)
  */
-export function getPromptPath(
-  state: BoardState,
-  rootSlugPath?: string,
-): string {
+export function getPromptPath(state: BoardState, rootSlugPath?: string): string {
   const parts: string[] = []
 
   // Add root path prefix if viewing a subset of the tree
@@ -246,10 +234,7 @@ export function getPromptPath(
 /**
  * Find a child node by title or slug (case-insensitive)
  */
-function findChildByName(
-  nodes: TNode[],
-  name: string,
-): { node: TNode; index: number } | null {
+function findChildByName(nodes: TNode[], name: string): { node: TNode; index: number } | null {
   const lowerName = name.toLowerCase()
   const slugName = slugify(name)
 
@@ -281,10 +266,7 @@ function findChildByName(
  * Supports: /, .., relative paths, absolute paths from root
  */
 // oxlint-disable-next-line complexity/complexity -- Path resolution with multiple strategies
-function resolvePath(
-  state: BoardState,
-  pathStr: string,
-): { cursor: TPath; error?: string } {
+function resolvePath(state: BoardState, pathStr: string): { cursor: TPath; error?: string } {
   const parts = pathStr.split("/").filter((p) => p.length > 0)
 
   // Start from root or current position
@@ -344,10 +326,7 @@ function resolvePath(
 /**
  * Navigate to a path and return the new cursor or error
  */
-function navigateToPath(
-  state: BoardState,
-  pathStr: string,
-): { newCursor?: TPath; error?: string } {
+function navigateToPath(state: BoardState, pathStr: string): { newCursor?: TPath; error?: string } {
   const result = resolvePath(state, pathStr)
 
   if (result.error) {
@@ -431,11 +410,7 @@ function listNodes(state: BoardState, pathStr?: string): string {
 /**
  * Render tree output with box-drawing characters
  */
-function renderTreeCommand(
-  state: BoardState,
-  pathStr?: string,
-  maxDepth?: number,
-): string {
+function renderTreeCommand(state: BoardState, pathStr?: string, maxDepth?: number): string {
   let startNodes: TNode[]
   let rootTitle: string
 
@@ -491,14 +466,9 @@ function renderTreeCommand(
       const connector = isLast ? "└── " : "├── "
       const childPrefix = isLast ? "    " : "│   "
 
-      const taskMark = node.task_status
-        ? statusIcons[node.task_status] + " "
-        : ""
+      const taskMark = node.task_status ? statusIcons[node.task_status] + " " : ""
 
-      const suffix =
-        node.children.length > 0 && currentDepth >= depth
-          ? ` (+${node.childCount})`
-          : ""
+      const suffix = node.children.length > 0 && currentDepth >= depth ? ` (+${node.childCount})` : ""
 
       lines.push(`${prefix}${connector}${taskMark}${node.title}${suffix}`)
 
@@ -581,11 +551,7 @@ function emitState(ctx: ShellContext, ts: number): void {
   ctx.output({ event: "state", state: serializeState(ctx.state), ts })
 }
 
-function handleLog(
-  command: Extract<ShellCommand, { type: "LOG" }>,
-  ctx: ShellContext,
-  ts: number,
-): void {
+function handleLog(command: Extract<ShellCommand, { type: "LOG" }>, ctx: ShellContext, ts: number): void {
   const log = ctx.actionLog ?? []
   if (log.length === 0) {
     emitText(ctx, "(no actions)", ts)
@@ -593,17 +559,11 @@ function handleLog(
   }
   const count = command.count ?? log.length
   const entries = log.slice(-count)
-  const text = entries
-    .map((entry) => `${entry.action.type} → cursor=[${entry.cursor.join(",")}]`)
-    .join("\n")
+  const text = entries.map((entry) => `${entry.action.type} → cursor=[${entry.cursor.join(",")}]`).join("\n")
   emitText(ctx, text, ts)
 }
 
-function handleCd(
-  command: Extract<ShellCommand, { type: "CD" }>,
-  ctx: ShellContext,
-  ts: number,
-): void {
+function handleCd(command: Extract<ShellCommand, { type: "CD" }>, ctx: ShellContext, ts: number): void {
   const result = navigateToPath(ctx.state, command.path)
   if (result.error) {
     if (ctx.jsonMode) {
@@ -624,11 +584,7 @@ function handleCd(
   }
 }
 
-function handleMutation(
-  command: ShellCommand,
-  ctx: ShellContext,
-  ts: number,
-): void {
+function handleMutation(command: ShellCommand, ctx: ShellContext, ts: number): void {
   if (!ctx.onMutation) {
     emitError(ctx, "Mutation commands require storage integration", ts)
     return
@@ -644,9 +600,7 @@ function handleMutation(
       emitState(ctx, ts)
     } else if (ctx.verbose) {
       const node = getNodeAtPath(ctx.state.nodes, ctx.state.cursor)
-      ctx.output(
-        `mutation: ${command.type} → ${node?.title ?? "(cursor moved)"}`,
-      )
+      ctx.output(`mutation: ${command.type} → ${node?.title ?? "(cursor moved)"}`)
     }
   }
 }
@@ -654,10 +608,7 @@ function handleMutation(
 /**
  * Execute a shell command (not a BoardAction)
  */
-export async function executeShellCommand(
-  command: ShellCommand,
-  ctx: ShellContext,
-): Promise<{ quit: boolean }> {
+export async function executeShellCommand(command: ShellCommand, ctx: ShellContext): Promise<{ quit: boolean }> {
   const ts = Date.now()
 
   switch (command.type) {
@@ -709,11 +660,7 @@ export async function executeShellCommand(
       return { quit: false }
 
     case "TREE":
-      emitText(
-        ctx,
-        renderTreeCommand(ctx.state, command.path, command.depth),
-        ts,
-      )
+      emitText(ctx, renderTreeCommand(ctx.state, command.path, command.depth), ts)
       return { quit: false }
 
     case "CAT":
@@ -731,10 +678,7 @@ export async function executeShellCommand(
 /**
  * Execute a BoardAction
  */
-export function executeBoardAction(
-  action: BoardAction,
-  ctx: ShellContext,
-): BoardState {
+export function executeBoardAction(action: BoardAction, ctx: ShellContext): BoardState {
   const ts = Date.now()
 
   // Log the action (JSON mode to stdout, verbose mode to stderr via stdlog)
@@ -759,9 +703,7 @@ export function executeBoardAction(
   // Log state change if something changed
   const changed =
     newState.cursor.length !== ctx.state.cursor.length ||
-    !newState.cursor.every(
-      (v: number, i: number) => v === ctx.state.cursor[i],
-    ) ||
+    !newState.cursor.every((v: number, i: number) => v === ctx.state.cursor[i]) ||
     newState.foldedNodes.size !== ctx.state.foldedNodes.size ||
     newState.collapsedNodes.size !== ctx.state.collapsedNodes.size ||
     newState.selectedNodes.size !== ctx.state.selectedNodes.size
@@ -772,9 +714,7 @@ export function executeBoardAction(
     } else if (ctx.verbose) {
       // Only output intermediate state changes in verbose mode
       const node = getNodeAtPath(newState.nodes, newState.cursor)
-      ctx.output(
-        `state: cursor=[${newState.cursor.join(",")}]${node ? ` "${node.title}"` : ""}`,
-      )
+      ctx.output(`state: cursor=[${newState.cursor.join(",")}]${node ? ` "${node.title}"` : ""}`)
     }
   }
 
@@ -786,10 +726,7 @@ export function executeBoardAction(
  * Returns new state and whether to quit
  */
 // oxlint-disable-next-line complexity/complexity -- Shell command dispatch with exhaustive switch
-export async function executeCommand(
-  line: string,
-  ctx: ShellContext,
-): Promise<{ state: BoardState; quit: boolean }> {
+export async function executeCommand(line: string, ctx: ShellContext): Promise<{ state: BoardState; quit: boolean }> {
   const ts = Date.now()
   const result = parseCommand(line)
 
@@ -912,9 +849,7 @@ export async function runShell(
 ): Promise<BoardState> {
   const jsonMode = options.jsonMode ?? false
   const verbose = options.verbose ?? false
-  const output =
-    options.output ??
-    ((e) => console.log(typeof e === "string" ? e : JSON.stringify(e)))
+  const output = options.output ?? ((e) => console.log(typeof e === "string" ? e : JSON.stringify(e)))
   const stdlog = options.stdlog ?? ((line) => console.error(line))
 
   // Initial state output

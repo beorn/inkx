@@ -45,23 +45,14 @@ interface ResolveOptions {
  * @param typeOrOptions - Optional type filter string or options object
  * @returns The matching node, or null if not found
  */
-export function resolveNode(
-  db: Database,
-  query: string,
-  typeOrOptions?: string | ResolveOptions,
-): KNode | null {
-  const options: ResolveOptions =
-    typeof typeOrOptions === "string"
-      ? { type: typeOrOptions }
-      : (typeOrOptions ?? {})
+export function resolveNode(db: Database, query: string, typeOrOptions?: string | ResolveOptions): KNode | null {
+  const options: ResolveOptions = typeof typeOrOptions === "string" ? { type: typeOrOptions } : (typeOrOptions ?? {})
 
   // Normalize trailing slashes - "docs/" clearly means the docs directory
   const q = query.endsWith("/") ? query.slice(0, -1) : query
   const ctx = createQueryContext(db, q, options)
 
-  log.debug?.(
-    `resolveNode: ${q} (type=${options.type ?? "any"}, taskOnly=${options.taskOnly ?? false})`,
-  )
+  log.debug?.(`resolveNode: ${q} (type=${options.type ?? "any"}, taskOnly=${options.taskOnly ?? false})`)
 
   // Try each resolution strategy in order
   if (isExplicitPath(q)) return resolveExplicitPath(ctx)
@@ -91,11 +82,7 @@ interface QueryContext {
   checkAmbiguity(matches: KNode[], matchType: string): KNode | null
 }
 
-function createQueryContext(
-  db: Database,
-  q: string,
-  options: ResolveOptions,
-): QueryContext {
+function createQueryContext(db: Database, q: string, options: ResolveOptions): QueryContext {
   const filters: string[] = []
   const params: (string | number)[] = []
 
@@ -125,8 +112,7 @@ function createQueryContext(
       return rows.map(rowToNode)
     },
 
-    checkAmbiguity: (matches, matchType) =>
-      checkAmbiguity(matches, matchType, q),
+    checkAmbiguity: (matches, matchType) => checkAmbiguity(matches, matchType, q),
   }
 }
 
@@ -154,31 +140,17 @@ function resolveExplicitPath(ctx: QueryContext): KNode | null {
 
   // Convert to relative path for DB lookup (DB stores relative paths)
   const resolvedRepoRoot = repoRoot ? tryRealpath(repoRoot) : undefined
-  const queryPath = resolvedRepoRoot
-    ? toRelativeFsPath(resolvedRepoRoot, absolutePath)
-    : absolutePath
+  const queryPath = resolvedRepoRoot ? toRelativeFsPath(resolvedRepoRoot, absolutePath) : absolutePath
 
   // Exact path match
-  const node = getOne(
-    `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-    queryPath,
-    ...params,
-  )
+  const node = getOne(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`, queryPath, ...params)
   if (node) return node
 
   // Try .md extension and index.md variants
   if (!queryPath.endsWith(".md")) {
     return (
-      getOne(
-        `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-        `${queryPath}.md`,
-        ...params,
-      ) ??
-      getOne(
-        `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-        `${queryPath}/index.md`,
-        ...params,
-      )
+      getOne(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`, `${queryPath}.md`, ...params) ??
+      getOne(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`, `${queryPath}/index.md`, ...params)
     )
   }
 
@@ -193,44 +165,24 @@ function resolveRelativePath(ctx: QueryContext): KNode | null {
   log.debug?.("resolveNode: relative path")
 
   // Try exact fs_path match (relative paths are stored without leading /)
-  const exactNode = getOne(
-    `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-    q,
-    ...params,
-  )
+  const exactNode = getOne(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`, q, ...params)
   if (exactNode) return exactNode
 
   // Try fs_path suffix match (for nested paths)
-  const node = getOne(
-    `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
-    `%/${q}`,
-    ...params,
-  )
+  const node = getOne(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`, `%/${q}`, ...params)
   if (node) return node
 
   // Try with .md extension
   if (!q.endsWith(".md")) {
-    const exactMdNode = getOne(
-      `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-      `${q}.md`,
-      ...params,
-    )
+    const exactMdNode = getOne(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`, `${q}.md`, ...params)
     if (exactMdNode) return exactMdNode
 
-    const mdNode = getOne(
-      `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
-      `%/${q}.md`,
-      ...params,
-    )
+    const mdNode = getOne(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`, `%/${q}.md`, ...params)
     if (mdNode) return mdNode
   }
 
   // Try exact ID match (IDs can contain / like "docs/readme.md")
-  const idNode = getOne(
-    `SELECT * FROM nodes WHERE id = ?${filterClause}`,
-    q,
-    ...params,
-  )
+  const idNode = getOne(`SELECT * FROM nodes WHERE id = ?${filterClause}`, q, ...params)
   if (idNode) return idNode
 
   log.debug?.("resolveNode: relative path not found")
@@ -243,52 +195,33 @@ function resolveBareName(ctx: QueryContext): KNode | null {
   log.debug?.("resolveNode: bare name search")
 
   // Exact ID match first (unambiguous)
-  const idNode = getOne(
-    `SELECT * FROM nodes WHERE id = ?${filterClause}`,
-    q,
-    ...params,
-  )
+  const idNode = getOne(`SELECT * FROM nodes WHERE id = ?${filterClause}`, q, ...params)
   if (idNode) {
     log.debug?.("resolveNode: exact ID match")
     return idNode
   }
 
   // By name field (file/folder names)
-  const nameMatch = checkAmbiguity(
-    getAll(`SELECT * FROM nodes WHERE name = ?${filterClause}`, q, ...params),
-    "name",
-  )
+  const nameMatch = checkAmbiguity(getAll(`SELECT * FROM nodes WHERE name = ?${filterClause}`, q, ...params), "name")
   if (nameMatch) return nameMatch
 
   // By name with .md extension
   const nameMdMatch = checkAmbiguity(
-    getAll(
-      `SELECT * FROM nodes WHERE name = ?${filterClause}`,
-      `${q}.md`,
-      ...params,
-    ),
+    getAll(`SELECT * FROM nodes WHERE name = ?${filterClause}`, `${q}.md`, ...params),
     "name+.md",
   )
   if (nameMdMatch) return nameMdMatch
 
   // Exact fs_path match (relative paths stored without leading /)
   const exactFsMatch = checkAmbiguity(
-    getAll(
-      `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-      q,
-      ...params,
-    ),
+    getAll(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`, q, ...params),
     "fs_path exact",
   )
   if (exactFsMatch) return exactFsMatch
 
   // fs_path suffix (filename match for nested paths)
   const suffixMatch = checkAmbiguity(
-    getAll(
-      `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
-      `%/${q}`,
-      ...params,
-    ),
+    getAll(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`, `%/${q}`, ...params),
     "fs_path suffix",
   )
   if (suffixMatch) return suffixMatch
@@ -296,21 +229,13 @@ function resolveBareName(ctx: QueryContext): KNode | null {
   // fs_path with .md extension
   if (!q.endsWith(".md")) {
     const exactFsMdMatch = checkAmbiguity(
-      getAll(
-        `SELECT * FROM nodes WHERE fs_path = ?${filterClause}`,
-        `${q}.md`,
-        ...params,
-      ),
+      getAll(`SELECT * FROM nodes WHERE fs_path = ?${filterClause}`, `${q}.md`, ...params),
       "fs_path exact+.md",
     )
     if (exactFsMdMatch) return exactFsMdMatch
 
     const suffixMdMatch = checkAmbiguity(
-      getAll(
-        `SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`,
-        `%/${q}.md`,
-        ...params,
-      ),
+      getAll(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`, `%/${q}.md`, ...params),
       "fs_path suffix+.md",
     )
     if (suffixMdMatch) return suffixMdMatch
@@ -325,38 +250,20 @@ function resolveIdFuzzy(ctx: QueryContext): KNode | null {
 
   // ID prefix match
   const prefixMatch = checkAmbiguity(
-    getAll(
-      `SELECT * FROM nodes WHERE id LIKE ?${filterClause}`,
-      `${q}%`,
-      ...params,
-    ),
+    getAll(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`, `${q}%`, ...params),
     "ID prefix",
   )
   if (prefixMatch) return prefixMatch
 
   // ID suffix match
-  return checkAmbiguity(
-    getAll(
-      `SELECT * FROM nodes WHERE id LIKE ?${filterClause}`,
-      `%${q}`,
-      ...params,
-    ),
-    "ID suffix",
-  )
+  return checkAmbiguity(getAll(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`, `%${q}`, ...params), "ID suffix")
 }
 
 /** Strategy 5: Content/title exact match */
 function resolveContent(ctx: QueryContext): KNode | null {
   const { q, filterClause, params, getAll, checkAmbiguity } = ctx
 
-  const node = checkAmbiguity(
-    getAll(
-      `SELECT * FROM nodes WHERE content = ?${filterClause}`,
-      q,
-      ...params,
-    ),
-    "content",
-  )
+  const node = checkAmbiguity(getAll(`SELECT * FROM nodes WHERE content = ?${filterClause}`, q, ...params), "content")
   if (node) return node
 
   log.debug?.("resolveNode: no match found")
@@ -374,11 +281,7 @@ function resolveContent(ctx: QueryContext): KNode | null {
  * 1. Folders over files (directory named X beats file X.md inside it)
  * 2. Parent paths over children (inbox/ beats inbox/inbox.md)
  */
-function checkAmbiguity(
-  matches: KNode[],
-  matchType: string,
-  q: string,
-): KNode | null {
+function checkAmbiguity(matches: KNode[], matchType: string, q: string): KNode | null {
   if (matches.length === 0) return null
   if (matches.length === 1) return matches[0] ?? null
 
@@ -415,14 +318,11 @@ function checkAmbiguity(
   }
 
   // Truly ambiguous - warn the user
-  log.warn?.(
-    `Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`,
-    {
-      query: q,
-      matchType,
-      matches: matches.map((n) => n.id),
-    },
-  )
+  log.warn?.(`Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`, {
+    query: q,
+    matchType,
+    matches: matches.map((n) => n.id),
+  })
   return best
 }
 

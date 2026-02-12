@@ -17,10 +17,7 @@ import { createRepo, IncompleteDatabase, SCHEMA } from "../../src/index.ts"
 const createdDirs: string[] = []
 
 function createTempDir(suffix: string): string {
-  const dir = join(
-    "/tmp",
-    `kmtest-relpath-${suffix}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  )
+  const dir = join("/tmp", `kmtest-relpath-${suffix}-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   mkdirSync(dir, { recursive: true })
   createdDirs.push(dir)
   return dir
@@ -40,10 +37,7 @@ afterEach(() => {
 /** Set up a minimal repo with markdown files (no .km — memory mode scans files) */
 function setupFiles(dir: string): void {
   mkdirSync(join(dir, "Projects"), { recursive: true })
-  writeFileSync(
-    join(dir, "@next.md"),
-    "# Next Actions\n\n- [ ] Buy milk\n- [x] Done task\n",
-  )
+  writeFileSync(join(dir, "@next.md"), "# Next Actions\n\n- [ ] Buy milk\n- [x] Done task\n")
   writeFileSync(join(dir, "Projects/work.md"), "# Work\n\n- [ ] Ship feature\n")
 }
 
@@ -210,10 +204,7 @@ describe("disk mode root node", () => {
       },
     ]
 
-    writeFileSync(
-      join(dir, ".km/events.jsonl"),
-      events.map((e) => JSON.stringify(e)).join("\n") + "\n",
-    )
+    writeFileSync(join(dir, ".km/events.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
 
     using repo = runGenerator(createRepo(dir, { loadFiles: true }))
 
@@ -262,27 +253,22 @@ describe("km init: SyncManager creates nodes under root '.'", () => {
     }
 
     // Root "." must exist (check raw DB in case DataStore has issues)
-    const rootRow = repo.database
-      .prepare("SELECT id, parent_id, fs_path FROM nodes WHERE id = '.'")
-      .get() as { id: string } | undefined
+    const rootRow = repo.database.prepare("SELECT id, parent_id, fs_path FROM nodes WHERE id = '.'").get() as
+      | { id: string }
+      | undefined
     expect(rootRow, "Root node '.' missing from DB").toBeDefined()
 
     // All top-level nodes must be children of ".", not orphans
     const orphans = repo.database
-      .prepare(
-        "SELECT id, type, fs_path FROM nodes WHERE parent_id IS NULL AND id != '.'",
-      )
+      .prepare("SELECT id, type, fs_path FROM nodes WHERE parent_id IS NULL AND id != '.'")
       .all() as { id: string; type: string; fs_path: string }[]
 
-    expect(
-      orphans,
-      `Expected 0 orphans but found ${orphans.length}: ${JSON.stringify(orphans)}`,
-    ).toHaveLength(0)
+    expect(orphans, `Expected 0 orphans but found ${orphans.length}: ${JSON.stringify(orphans)}`).toHaveLength(0)
 
     // Verify specific nodes are under root
-    const projects = repo.database
-      .prepare("SELECT parent_id FROM nodes WHERE fs_path = 'Projects'")
-      .get() as { parent_id: string } | undefined
+    const projects = repo.database.prepare("SELECT parent_id FROM nodes WHERE fs_path = 'Projects'").get() as
+      | { parent_id: string }
+      | undefined
     if (projects) {
       expect(projects.parent_id).toBe(".")
     }
@@ -320,17 +306,12 @@ describe("portable repo", () => {
     // All paths still relative
     for (const node of repo.data.getAllNodes()) {
       if (node.fs_path) {
-        expect(
-          isAbsolute(node.fs_path),
-          `fs_path "${node.fs_path}" should be relative at new location`,
-        ).toBe(false)
+        expect(isAbsolute(node.fs_path), `fs_path "${node.fs_path}" should be relative at new location`).toBe(false)
       }
     }
 
     // Edit a node — DB update works at new location
-    const nextNode = repo.data
-      .getAllNodes()
-      .find((n) => n.fs_path === "@next.md")
+    const nextNode = repo.data.getAllNodes().find((n) => n.fs_path === "@next.md")
     expect(nextNode).toBeDefined()
 
     repo.updateNode(nextNode!.id, {

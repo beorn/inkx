@@ -18,11 +18,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Keyboard Navigation: j/k (vertical)", () => {
   test("j moves cursor down to next card", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
     )
 
     // Initial cursor should be on first card
@@ -38,9 +34,7 @@ describe("Keyboard Navigation: j/k (vertical)", () => {
   })
 
   test("k moves cursor up to previous card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
 
     // Navigate down first
     board.press("j").press("j")
@@ -56,9 +50,7 @@ describe("Keyboard Navigation: j/k (vertical)", () => {
   })
 
   test("k at first card moves to column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Start at first card
     board.expect("#1a[data-cursor]").toExist()
@@ -81,9 +73,7 @@ describe("Keyboard Navigation: j/k (vertical)", () => {
   })
 
   test("j at column header moves to first card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to column header
     board.press("k")
@@ -95,9 +85,7 @@ describe("Keyboard Navigation: j/k (vertical)", () => {
   })
 
   test("j at board title moves to column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     // Navigate to board title
     board.press("k").press("k")
@@ -134,12 +122,7 @@ describe("Keyboard Navigation: h/l (horizontal)", () => {
 
   test("h moves cursor to previous column", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
 
     // Navigate to third column
@@ -156,9 +139,7 @@ describe("Keyboard Navigation: h/l (horizontal)", () => {
   })
 
   test("h at column header moves to previous column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     // Navigate to column 2 header
     board.press("l") // col2 card
@@ -171,9 +152,7 @@ describe("Keyboard Navigation: h/l (horizontal)", () => {
   })
 
   test("l at column header moves to next column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     // Navigate to column 1 header
     board.press("k")
@@ -187,9 +166,7 @@ describe("Keyboard Navigation: h/l (horizontal)", () => {
 
 describe("Keyboard Navigation: boundary behavior", () => {
   test("j at last card rings bell and stays", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to last card
     board.press("j")
@@ -215,9 +192,7 @@ describe("Keyboard Navigation: boundary behavior", () => {
   })
 
   test("h at first column rings bell and stays", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     // Start at first column
     board.expect("#1a[data-cursor]").toExist()
@@ -229,9 +204,7 @@ describe("Keyboard Navigation: boundary behavior", () => {
   })
 
   test("l at last column rings bell and stays", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     // Navigate to last column
     board.press("l")
@@ -244,9 +217,7 @@ describe("Keyboard Navigation: boundary behavior", () => {
   })
 
   test("bell and status clear on next non-boundary keypress", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to last card
     board.press("j")
@@ -271,13 +242,7 @@ describe("Keyboard Navigation: boundary behavior", () => {
   })
 
   test("h boundary status clears after pressing j", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
 
     // At first column, press h - boundary
     board.press("h")
@@ -295,13 +260,7 @@ describe("Keyboard Navigation: boundary behavior", () => {
   })
 
   test("status clears after l, h, j, k sequence", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
 
     // Move to col2
     board.press("l")
@@ -335,12 +294,7 @@ describe("Keyboard Navigation: boundary behavior", () => {
 
   test("navigation across multiple columns works correctly", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
 
     // Start at col1
@@ -417,9 +371,7 @@ describe("Keyboard Navigation: scrolling behavior", () => {
 
 describe("Keyboard Navigation: arrow keys (same as hjkl)", () => {
   test("ArrowDown behaves like j", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
 
@@ -429,9 +381,7 @@ describe("Keyboard Navigation: arrow keys (same as hjkl)", () => {
   })
 
   test("ArrowUp behaves like k", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate down first
     board.press("j")
@@ -443,9 +393,7 @@ describe("Keyboard Navigation: arrow keys (same as hjkl)", () => {
   })
 
   test("ArrowRight behaves like l", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     board.expect("#1a[data-cursor]").toExist()
 
@@ -455,9 +403,7 @@ describe("Keyboard Navigation: arrow keys (same as hjkl)", () => {
   })
 
   test("ArrowLeft behaves like h", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     // Navigate right first
     board.press("l")
@@ -471,12 +417,7 @@ describe("Keyboard Navigation: arrow keys (same as hjkl)", () => {
 
 describe("Keyboard Navigation: g/G (first/last)", () => {
   test("G moves to last card in column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"), item("1d"))))
 
     board.expect("#1a[data-cursor]").toExist()
 
@@ -486,12 +427,7 @@ describe("Keyboard Navigation: g/G (first/last)", () => {
   })
 
   test("g moves to first card in column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c"), item("1d")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"), item("1d"))))
 
     // Navigate to last card
     board.press("G")
@@ -530,11 +466,7 @@ describe("Keyboard Navigation: combined navigation", () => {
 
   test("can navigate to any card using hjkl", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a"), item("2b")),
-      ),
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
     )
 
     // Navigate to 2b using only hjkl

@@ -111,20 +111,14 @@ function formatDuration(ms: number): string {
   return `${(ms / 1000).toFixed(2)}s`
 }
 
-export const perfCommand = new Command("perf").description(
-  "Performance analysis tools",
-)
+export const perfCommand = new Command("perf").description("Performance analysis tools")
 
 perfCommand
   .command("analyze")
   .description("Analyze span traces from TRACE=1 output")
   .argument("<file>", "Path to trace file (JSONL format)")
   .option("--json", "Output as JSON")
-  .option(
-    "--sort <field>",
-    "Sort by field (avg, total, count, max, p95)",
-    "total",
-  )
+  .option("--sort <field>", "Sort by field (avg, total, count, max, p95)", "total")
   .option("--limit <n>", "Limit output to top N spans", parseInt)
   .action((file: string, options: AnalyzeOptions) => {
     // Parse trace file
@@ -177,10 +171,7 @@ perfCommand
     console.log(term.dim(`${spans.length} span entries from ${file}\n`))
 
     // Find longest span name for alignment
-    const maxNameLen = Math.min(
-      40,
-      Math.max(...stats.map((s) => s.name.length)),
-    )
+    const maxNameLen = Math.min(40, Math.max(...stats.map((s) => s.name.length)))
 
     // Header
     console.log(
@@ -191,10 +182,7 @@ perfCommand
     console.log(term.dim("-".repeat(maxNameLen + 50)))
 
     for (const s of stats) {
-      const name =
-        s.name.length > maxNameLen
-          ? `${s.name.slice(0, maxNameLen - 2)}..`
-          : s.name.padEnd(maxNameLen)
+      const name = s.name.length > maxNameLen ? `${s.name.slice(0, maxNameLen - 2)}..` : s.name.padEnd(maxNameLen)
 
       console.log(
         `${name}  ${String(s.count).padStart(6)}  ${formatDuration(s.total).padStart(8)}  ${formatDuration(s.avg).padStart(8)}  ${formatDuration(s.p95).padStart(8)}  ${formatDuration(s.max).padStart(8)}`,

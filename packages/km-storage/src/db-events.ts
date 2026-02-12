@@ -57,10 +57,7 @@ export function applyEventWithDb(db: Database, event: Event): void {
   }
 
   // Update last event cursor
-  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", [
-    "last_event",
-    event.id,
-  ])
+  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event", event.id])
 }
 
 // =============================================================================
@@ -146,9 +143,7 @@ function applyNodeUpdated(db: Database, event: Event): void {
   // Bidirectional sync: write task status changes back to markdown file
   if (data.task_status !== undefined) {
     // Get the task's md_line and fs_path (may be on task or parent file)
-    const task = db
-      .query("SELECT parent_id, md_line, fs_path FROM nodes WHERE id = ?")
-      .get(event.target) as {
+    const task = db.query("SELECT parent_id, md_line, fs_path FROM nodes WHERE id = ?").get(event.target) as {
       parent_id: string | null
       md_line: number | null
       fs_path: string | null
@@ -177,11 +172,7 @@ function applyNodeUpdated(db: Database, event: Event): void {
       }
 
       if (fsPath) {
-        writeTaskStatusToFile(
-          fsPath,
-          task.md_line,
-          data.task_status as TaskStatus,
-        )
+        writeTaskStatusToFile(fsPath, task.md_line, data.task_status as TaskStatus)
       }
     }
   }
@@ -190,11 +181,7 @@ function applyNodeUpdated(db: Database, event: Event): void {
 /**
  * Write task status change back to markdown file (bidirectional sync)
  */
-function writeTaskStatusToFile(
-  fsPath: string,
-  mdLine: number,
-  newStatus: TaskStatus,
-): void {
+function writeTaskStatusToFile(fsPath: string, mdLine: number, newStatus: TaskStatus): void {
   try {
     const content = readFileSync(fsPath, "utf-8")
     const lines = content.split("\n")

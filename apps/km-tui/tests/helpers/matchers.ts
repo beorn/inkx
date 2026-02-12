@@ -33,10 +33,7 @@ function isAutoLocator(value: unknown): value is AutoLocator {
   )
 }
 
-function assertAutoLocator(
-  value: unknown,
-  matcherName: string,
-): asserts value is AutoLocator {
+function assertAutoLocator(value: unknown, matcherName: string): asserts value is AutoLocator {
   if (!isAutoLocator(value)) {
     throw new Error(
       `${matcherName} expects an AutoLocator, got ${typeof value}. ` +
@@ -101,9 +98,7 @@ expect.extend({
     return {
       pass,
       message: () =>
-        pass
-          ? `Expected text not to be "${expected}"`
-          : `Expected text to be "${expected}", got "${actual}"`,
+        pass ? `Expected text not to be "${expected}"` : `Expected text to be "${expected}", got "${actual}"`,
     }
   },
 
@@ -121,9 +116,7 @@ expect.extend({
     return {
       pass,
       message: () =>
-        pass
-          ? `Expected text not to contain "${expected}"`
-          : `Expected text to contain "${expected}", got "${actual}"`,
+        pass ? `Expected text not to contain "${expected}"` : `Expected text to contain "${expected}", got "${actual}"`,
     }
   },
 })
@@ -193,8 +186,7 @@ expect.extend({
     if (!rectA || !rectB) {
       return {
         pass: false,
-        message: () =>
-          `Cannot compare positions: ${!rectA ? "received" : "other"} has no bounding box`,
+        message: () => `Cannot compare positions: ${!rectA ? "received" : "other"} has no bounding box`,
       }
     }
 
@@ -223,8 +215,7 @@ expect.extend({
     if (!rectA || !rectB) {
       return {
         pass: false,
-        message: () =>
-          `Cannot compare positions: ${!rectA ? "received" : "other"} has no bounding box`,
+        message: () => `Cannot compare positions: ${!rectA ? "received" : "other"} has no bounding box`,
       }
     }
 
@@ -253,8 +244,7 @@ expect.extend({
     if (!rectA || !rectB) {
       return {
         pass: false,
-        message: () =>
-          `Cannot compare positions: ${!rectA ? "received" : "other"} has no bounding box`,
+        message: () => `Cannot compare positions: ${!rectA ? "received" : "other"} has no bounding box`,
       }
     }
 
@@ -283,8 +273,7 @@ expect.extend({
     if (!rectA || !rectB) {
       return {
         pass: false,
-        message: () =>
-          `Cannot compare positions: ${!rectA ? "received" : "other"} has no bounding box`,
+        message: () => `Cannot compare positions: ${!rectA ? "received" : "other"} has no bounding box`,
       }
     }
 
@@ -313,8 +302,7 @@ expect.extend({
     if (!rectA || !rectB) {
       return {
         pass: false,
-        message: () =>
-          `Cannot compare positions: ${!rectA ? "received" : "container"} has no bounding box`,
+        message: () => `Cannot compare positions: ${!rectA ? "received" : "container"} has no bounding box`,
       }
     }
 
@@ -355,9 +343,7 @@ expect.extend({
     return {
       pass,
       message: () =>
-        pass
-          ? `Expected width not to be ${expected}`
-          : `Expected width to be ${expected}, got ${rect.width}`,
+        pass ? `Expected width not to be ${expected}` : `Expected width to be ${expected}, got ${rect.width}`,
     }
   },
 
@@ -383,9 +369,7 @@ expect.extend({
     return {
       pass,
       message: () =>
-        pass
-          ? `Expected height not to be ${expected}`
-          : `Expected height to be ${expected}, got ${rect.height}`,
+        pass ? `Expected height not to be ${expected}` : `Expected height to be ${expected}, got ${rect.height}`,
     }
   },
 })

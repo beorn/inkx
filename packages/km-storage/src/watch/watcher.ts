@@ -9,14 +9,7 @@ import { watch, type FSWatcher } from "chokidar"
 
 const log = createLogger("km:storage:watch:watcher")
 import { dirname, join } from "path"
-import {
-  statSync,
-  existsSync,
-  readdirSync,
-  readlinkSync,
-  writeFileSync,
-  unlinkSync,
-} from "fs"
+import { statSync, existsSync, readdirSync, readlinkSync, writeFileSync, unlinkSync } from "fs"
 import { EventEmitter } from "events"
 import {
   DEFAULT_IGNORE_PATTERNS,
@@ -162,9 +155,7 @@ export class FileSystemWatcher extends EventEmitter {
       clearTimeout(this.debounceTimer)
     }
 
-    log.debug?.(
-      `scheduling sync in ${this.config.debounceMs}ms (${this.pendingPaths.size} pending)`,
-    )
+    log.debug?.(`scheduling sync in ${this.config.debounceMs}ms (${this.pendingPaths.size} pending)`)
     this.debounceTimer = setTimeout(() => {
       this.sync()
     }, this.config.debounceMs)
@@ -188,9 +179,7 @@ export class FileSystemWatcher extends EventEmitter {
       dirs.add(dirname(path))
     }
 
-    log.debug?.(
-      `sync: emitting ${paths.length} paths, ${dirs.size} directories`,
-    )
+    log.debug?.(`sync: emitting ${paths.length} paths, ${dirs.size} directories`)
 
     // Emit sync event with affected directories
     this.emit("sync", {
@@ -213,9 +202,7 @@ export class FileSystemWatcher extends EventEmitter {
   /**
    * Get file identity (for rename detection)
    */
-  static getFileIdentity(
-    path: string,
-  ): { ino: number; path: string; mtime: number; size: number } | null {
+  static getFileIdentity(path: string): { ino: number; path: string; mtime: number; size: number } | null {
     try {
       const stat = statSync(path)
       return {
@@ -365,11 +352,7 @@ export function scanDirectoryRecursive(
  * Scan a directory for symlinks (for user notification purposes).
  * Returns information about symlinks found, including their targets.
  */
-export function scanSymlinks(
-  dirPath: string,
-  ignorePatterns?: string[],
-  recursive: boolean = false,
-): SymlinkInfo[] {
+export function scanSymlinks(dirPath: string, ignorePatterns?: string[], recursive: boolean = false): SymlinkInfo[] {
   const symlinks: SymlinkInfo[] = []
 
   function scan(dir: string) {
@@ -450,9 +433,7 @@ export function detectCaseSensitivity(dirPath: string): boolean {
     return !isCaseInsensitive
   } catch {
     // If we can't test, assume case-sensitive (safer default)
-    log.debug?.(
-      `could not detect case sensitivity, assuming case-sensitive dirPath=${dirPath}`,
-    )
+    log.debug?.(`could not detect case sensitivity, assuming case-sensitive dirPath=${dirPath}`)
     return true
   }
 }
@@ -476,10 +457,7 @@ export function normalizePath(path: string, caseSensitive: boolean): string {
  * @param recursive Whether to scan subdirectories
  * @returns Array of collision groups
  */
-export function detectCaseCollisions(
-  dirPath: string,
-  recursive: boolean = false,
-): CaseCollision[] {
+export function detectCaseCollisions(dirPath: string, recursive: boolean = false): CaseCollision[] {
   const pathsByNormalized = new Map<string, string[]>()
 
   function scan(dir: string) {

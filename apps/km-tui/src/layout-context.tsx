@@ -16,9 +16,7 @@ import type { LayoutRegistry } from "./card-positions.ts"
  */
 export function useLayoutRegistryOptional(): LayoutRegistry | null {
   try {
-    return useAppStore<BoardAppStore, LayoutRegistry | null>(
-      (s) => s.layoutRegistry ?? null,
-    )
+    return useAppStore<BoardAppStore, LayoutRegistry | null>((s) => s.layoutRegistry ?? null)
   } catch {
     // No StoreContext available (e.g., static rendering tests)
     return null

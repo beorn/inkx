@@ -59,16 +59,9 @@ export const MemoizedTreeCard = React.memo(
     // Count renders for profiling
     const g = globalThis as unknown as Record<string, number>
     g.__memoizedTreeCardRenderCount = (g.__memoizedTreeCardRenderCount ?? 0) + 1
-    log.debug?.(
-      `MemoizedTreeCard render: col=${colIndex} card=${cardIndex} id=${card.node.id.slice(-8)}`,
-    )
+    log.debug?.(`MemoizedTreeCard render: col=${colIndex} card=${cardIndex} id=${card.node.id.slice(-8)}`)
     return (
-      <CardLayoutTracker
-        nodeId={card.node.id}
-        colIndex={colIndex}
-        cardIndex={cardIndex}
-        isSelected={isSelected}
-      >
+      <CardLayoutTracker nodeId={card.node.id} colIndex={colIndex} cardIndex={cardIndex} isSelected={isSelected}>
         <TreeNode
           node={card.node}
           depth={0}
@@ -228,10 +221,7 @@ export const MemoizedColumnHeader = React.memo(
           >
             {" "}
             <Text color={iconColor}>{icon.char}</Text> {headerText}
-            <Text
-              color={isColSelected ? "gray" : undefined}
-              dimColor={!isColSelected}
-            >
+            <Text color={isColSelected ? "gray" : undefined} dimColor={!isColSelected}>
               {countText}
             </Text>
             {headerPadding}
@@ -331,13 +321,7 @@ export function ModalDialog({
       {footer && (
         <>
           <Text> </Text>
-          <Box justifyContent={footerAlign}>
-            {typeof footer === "string" ? (
-              <Text dimColor>{footer}</Text>
-            ) : (
-              footer
-            )}
-          </Box>
+          <Box justifyContent={footerAlign}>{typeof footer === "string" ? <Text dimColor>{footer}</Text> : footer}</Box>
         </>
       )}
     </Box>
@@ -437,11 +421,7 @@ export function NodeLine({
   const icon = getNodeIcon(node.task_status, undefined, node.type === "task")
 
   return (
-    <Box
-      width="100%"
-      height={1}
-      backgroundColor={isSelected ? "cyan" : "black"}
-    >
+    <Box width="100%" height={1} backgroundColor={isSelected ? "cyan" : "black"}>
       <Text color={isSelected ? "black" : undefined} wrap="truncate">
         {prefix}
         <Text color={isSelected ? "black" : icon.color}>{icon.char} </Text>

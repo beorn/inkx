@@ -113,17 +113,14 @@ export function BottomBar({
   const homeDir = process.env.HOME || ""
 
   // Determine if we need spinner animation
-  const isSyncing =
-    ui.watcherStatus?.state === "syncing" ||
-    ui.watcherStatus?.state === "starting"
+  const isSyncing = ui.watcherStatus?.state === "syncing" || ui.watcherStatus?.state === "starting"
   const isLoading = ui.isLoading || isSyncing
   // Only run spinner animation when actually displaying it
   const spinnerFrame = useSpinnerFrame(isLoading)
 
   // Flash white for 3s when any counter changes
   const logTotal = consoleStats?.total ?? 0
-  const hasWarnings =
-    (consoleStats?.errors ?? 0) > 0 || (consoleStats?.warnings ?? 0) > 0
+  const hasWarnings = (consoleStats?.errors ?? 0) > 0 || (consoleStats?.warnings ?? 0) > 0
   const logFlash = useFlashOnChange(logTotal)
   const nodeFlash = useFlashOnChange(nodeCount)
   const fileFlash = useFlashOnChange(ui.watcherStatus?.watchedPaths ?? 0)
@@ -257,9 +254,7 @@ function renderWatcherStatus(status: WatcherStatus): string {
     case "starting":
       return `${fileCount} starting`
     case "syncing":
-      return pendingPaths > 0
-        ? `${fileCount} sync:${pendingPaths}`
-        : `${fileCount} syncing`
+      return pendingPaths > 0 ? `${fileCount} sync:${pendingPaths}` : `${fileCount} syncing`
     case "ready":
     case "idle":
       return fileCount

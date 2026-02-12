@@ -50,11 +50,7 @@ interface PasteResult {
 function looksLikePath(str: string): boolean {
   const trimmed = str.trim()
   // Starts with / (absolute) or ~ (home) or ./ (relative)
-  return (
-    trimmed.startsWith("/") ||
-    trimmed.startsWith("~") ||
-    trimmed.startsWith("./")
-  )
+  return trimmed.startsWith("/") || trimmed.startsWith("~") || trimmed.startsWith("./")
 }
 
 /**
@@ -129,15 +125,7 @@ function getTerminalType(): string {
 export function supportsFileDrop(): boolean {
   const term = getTerminalType().toLowerCase()
   // Known terminals that support file drop via paste
-  const supported = [
-    "ghostty",
-    "iterm",
-    "iterm.app",
-    "kitty",
-    "wezterm",
-    "alacritty",
-    "hyper",
-  ]
+  const supported = ["ghostty", "iterm", "iterm.app", "kitty", "wezterm", "alacritty", "hyper"]
   return supported.some((t) => term.includes(t))
 }
 

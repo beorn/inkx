@@ -93,9 +93,7 @@ This is a paragraph.
         const fileNodes = allNodes.filter((n) => n.type === "file")
         expect(fileNodes.length).toBeGreaterThan(0)
 
-        const fileNode = fileNodes.find(
-          (n) => n.fs_path === toRel(repoDir, testFile),
-        )
+        const fileNode = fileNodes.find((n) => n.fs_path === toRel(repoDir, testFile))
         expect(fileNode).toBeDefined()
       }))
 
@@ -169,9 +167,7 @@ Some content here.
         const highPriorityTask = tasks.find((t) => t.priority === 1)
         expect(highPriorityTask).toBeDefined()
 
-        const scheduledTask = tasks.find(
-          (t) => t.scheduled_date === "2025-03-10",
-        )
+        const scheduledTask = tasks.find((t) => t.scheduled_date === "2025-03-10")
         expect(scheduledTask).toBeDefined()
       }))
 
@@ -489,14 +485,10 @@ code
         const allNodes = getAllNodes(db)
 
         const relSubFolder = toRel(repoDir, subFolder)
-        const folderNodes = allNodes.filter(
-          (n) => n.type === "folder" && n.fs_path === relSubFolder,
-        )
+        const folderNodes = allNodes.filter((n) => n.type === "folder" && n.fs_path === relSubFolder)
         expect(folderNodes.length).toBe(1)
 
-        const fileNodes = allNodes.filter(
-          (n) => n.type === "file" && n.fs_path?.startsWith(relSubFolder),
-        )
+        const fileNodes = allNodes.filter((n) => n.type === "file" && n.fs_path?.startsWith(relSubFolder))
         expect(fileNodes.length).toBe(3)
 
         const folderId = folderNodes[0]!.id
@@ -541,9 +533,7 @@ code
 
         // Find Column A section
         const allNodes = getAllNodes(db)
-        const colA = allNodes.find(
-          (n) => n.type === "section" && n.content === "Column A",
-        )
+        const colA = allNodes.find((n) => n.type === "section" && n.content === "Column A")
         expect(colA).toBeDefined()
 
         // Simulate TUI creating a new section (like handleAddNodeAfter)

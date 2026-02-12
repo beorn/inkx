@@ -329,9 +329,7 @@ describe("FTS5 Query Conversion", () => {
   })
 
   test("handles multiple quoted phrases", () => {
-    expect(toFts5Query('"first phrase" "second phrase"')).toBe(
-      '"first phrase" "second phrase"',
-    )
+    expect(toFts5Query('"first phrase" "second phrase"')).toBe('"first phrase" "second phrase"')
   })
 
   test("handles empty query", () => {

@@ -118,10 +118,7 @@ Examples:
 agentCommand
   .command("ls")
   .description("List all agents")
-  .option(
-    "-s, --status <status>",
-    "Filter by status (idle, running, stopped, error)",
-  )
+  .option("-s, --status <status>", "Filter by status (idle, running, stopped, error)")
   .option("--harness <name>", "Filter by harness")
   .option("--json", "Output as JSON")
   .action(async (opts: LsOptions) => {
@@ -165,9 +162,7 @@ agentCommand
       const harness = loadHarness(opts.harness)
       if (!harness) {
         console.error(term.red(`Harness not found: ${opts.harness}`))
-        console.error(
-          term.dim(`Available harnesses: ${listHarnesses().join(", ")}`),
-        )
+        console.error(term.dim(`Available harnesses: ${listHarnesses().join(", ")}`))
         process.exitCode = 1
         return
       }
@@ -191,9 +186,7 @@ agentCommand
     console.log(term.dim(`  Harness: ${opts.harness ?? "general"}`))
 
     // Note: Actual persistence requires km-storage integration
-    console.log(
-      term.yellow("\nNote: Agent created in memory. Persistence pending."),
-    )
+    console.log(term.yellow("\nNote: Agent created in memory. Persistence pending."))
   })
 
 // km agent stop <id> - Stop an agent
@@ -214,9 +207,7 @@ agentCommand
     void updates // Use for persistence later
 
     console.log(term.green(`Stopped agent: ${agent.shortId}`))
-    console.log(
-      term.yellow("\nNote: Update created in memory. Persistence pending."),
-    )
+    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 // km agent kill <id> - Force kill an agent
@@ -242,9 +233,7 @@ agentCommand
     void updates
 
     console.log(term.yellow(`Killed agent: ${agent.shortId}`))
-    console.log(
-      term.yellow("\nNote: Update created in memory. Persistence pending."),
-    )
+    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 // km agent show <id> - Show agent details
@@ -365,10 +354,7 @@ agentCommand
 agentCommand
   .command("run <id> [prompt]")
   .description("Run an agent (one-shot with prompt, or continuous)")
-  .option(
-    "--target <path|id|@ref>",
-    "Work on a specific task (path, ID, or @ref)",
-  )
+  .option("--target <path|id|@ref>", "Work on a specific task (path, ID, or @ref)")
   .option("--continuous", "Process work queue continuously")
   .option("--max-tasks <n>", "Max tasks in continuous mode", parseInt)
   .option("--dry-run", "Show plan without executing")
@@ -445,12 +431,8 @@ function printAgentDetails(agent: Agent): void {
   if (agent.currentTaskId) console.log(`  Task:     ${agent.currentTaskId}`)
 
   console.log()
-  console.log(
-    term.dim(`  Created:  ${new Date(agent.createdAt).toISOString()}`),
-  )
-  console.log(
-    term.dim(`  Updated:  ${new Date(agent.updatedAt).toISOString()}`),
-  )
+  console.log(term.dim(`  Created:  ${new Date(agent.createdAt).toISOString()}`))
+  console.log(term.dim(`  Updated:  ${new Date(agent.updatedAt).toISOString()}`))
 }
 
 function formatStatus(status: AgentStatus): string {

@@ -101,9 +101,7 @@ bdAgentCommand
     console.log(term.bold(`Work queue for ${agent.shortId}:\n`))
 
     if (agent.currentTaskId) {
-      console.log(
-        `  ${term.green("▶")} Current: ${term.cyan(agent.currentTaskId)}`,
-      )
+      console.log(`  ${term.green("▶")} Current: ${term.cyan(agent.currentTaskId)}`)
     }
 
     if (queue.length === 0 && !agent.currentTaskId) {
@@ -114,9 +112,7 @@ bdAgentCommand
         const isCurrent = item.issueShortId === agent.currentTaskId
         const prefix = isCurrent ? term.green("▶") : term.dim("○")
         const priority = term.dim(`P${item.priority}`)
-        console.log(
-          `  ${prefix} ${term.cyan(item.issueShortId)} ${priority} ${item.title}`,
-        )
+        console.log(`  ${prefix} ${term.cyan(item.issueShortId)} ${priority} ${item.title}`)
       }
     }
   })
@@ -177,9 +173,7 @@ bdAgentCommand
     void assignment // Will be used for persistence
 
     console.log(term.green(`Unassigned ${issue.shortId} from ${agent.shortId}`))
-    console.log(
-      term.yellow("\nNote: Unassignment not yet persisted to storage."),
-    )
+    console.log(term.yellow("\nNote: Unassignment not yet persisted to storage."))
   })
 
 // bd agent claim <agent-id> - Agent claims next ready issue
@@ -212,17 +206,12 @@ bdAgentCommand
     }
 
     // Get the field updates for both agent and issue
-    const { agentUpdate, issueAssignment } = claimIssueFields(
-      agent.shortId,
-      issue.shortId,
-    )
+    const { agentUpdate, issueAssignment } = claimIssueFields(agent.shortId, issue.shortId)
     void agentUpdate // Will be used for persistence
     void issueAssignment // Will be used for persistence
 
     if (opts.json) {
-      console.log(
-        JSON.stringify({ agent: agent.shortId, claimed: issue }, null, 2),
-      )
+      console.log(JSON.stringify({ agent: agent.shortId, claimed: issue }, null, 2))
       return
     }
 

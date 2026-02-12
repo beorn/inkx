@@ -287,9 +287,6 @@ export function fuzzyMatch(query: string, target: string): boolean {
 export function filterCommands(query: string): CommandDef[] {
   if (!query) return commands
   return commands.filter(
-    (cmd) =>
-      fuzzyMatch(query, cmd.name) ||
-      fuzzyMatch(query, cmd.description) ||
-      fuzzyMatch(query, cmd.id),
+    (cmd) => fuzzyMatch(query, cmd.name) || fuzzyMatch(query, cmd.description) || fuzzyMatch(query, cmd.id),
   )
 }

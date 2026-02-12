@@ -131,9 +131,7 @@ function createWriteQueue(options: {
 /**
  * Run queue operation and capture flushed event
  */
-async function flushAndCapture(
-  queue: WriteQueue,
-): Promise<{ flushed: FlushedEvent; errors: unknown[] | null }> {
+async function flushAndCapture(queue: WriteQueue): Promise<{ flushed: FlushedEvent; errors: unknown[] | null }> {
   let flushed: FlushedEvent | null = null
   let errors: unknown[] | null = null
   queue.on("flushed", (e) => (flushed = e as FlushedEvent))
@@ -161,15 +159,7 @@ describe("Error Classification", () => {
     "EHOSTUNREACH",
   ]
 
-  const permanentCodes = [
-    "ENOENT",
-    "EACCES",
-    "EPERM",
-    "EEXIST",
-    "EISDIR",
-    "ENOTDIR",
-    "EROFS",
-  ]
+  const permanentCodes = ["ENOENT", "EACCES", "EPERM", "EEXIST", "EISDIR", "ENOTDIR", "EROFS"]
 
   test.each(transientCodes)("classifies %s as transient", (code) => {
     expect(classifyError(codeError(code))).toBe("transient")
@@ -213,9 +203,7 @@ describe("Backoff Calculation", () => {
 
   test("applies jitter within bounds", () => {
     const jitterConfig = { ...config, jitterFactor: 0.5 }
-    const results = Array.from({ length: 100 }, () =>
-      calculateBackoffDelay(0, jitterConfig),
-    )
+    const results = Array.from({ length: 100 }, () => calculateBackoffDelay(0, jitterConfig))
 
     // All results should be within ±50% of base (100 ± 50)
     for (const result of results) {
@@ -536,41 +524,32 @@ describe("Permission Error Handling", () => {
       ["EACCES", "/protected/test.md", "chmod"],
       ["EPERM", "/root/test.md", "not permitted"],
       ["EROFS", "/readonly/test.md", "read-only"],
-    ] as const)(
-      "emits permission-denied event on %s error",
-      async (code, path, suggestion) => {
-        const mockFs = createMockFs({
-          failError: codeError(code, `Error: ${code}`),
-          failCount: 1,
-        })
+    ] as const)("emits permission-denied event on %s error", async (code, path, suggestion) => {
+      const mockFs = createMockFs({
+        failError: codeError(code, `Error: ${code}`),
+        failCount: 1,
+      })
 
-        const queue = createWriteQueue({
-          fs: mockFs,
-          retry: { maxRetries: 0 },
-        })
+      const queue = createWriteQueue({
+        fs: mockFs,
+        retry: { maxRetries: 0 },
+      })
 
-        let permissionEvent: PermissionError[] = []
-        let flushedEvent: { permissionErrors?: number } = {}
-        queue.on(
-          "permission-denied",
-          (e) => (permissionEvent = e as PermissionError[]),
-        )
-        queue.on(
-          "flushed",
-          (e) => (flushedEvent = e as { permissionErrors?: number }),
-        )
+      let permissionEvent: PermissionError[] = []
+      let flushedEvent: { permissionErrors?: number } = {}
+      queue.on("permission-denied", (e) => (permissionEvent = e as PermissionError[]))
+      queue.on("flushed", (e) => (flushedEvent = e as { permissionErrors?: number }))
 
-        queue.queue({ path, content: "test", sourceEventId: "1" })
-        await queue.forceFlush()
+      queue.queue({ path, content: "test", sourceEventId: "1" })
+      await queue.forceFlush()
 
-        expect(permissionEvent).toHaveLength(1)
-        expect(permissionEvent[0]?.path).toBe(path)
-        expect(permissionEvent[0]?.code).toBe(code)
-        expect(permissionEvent[0]?.operation).toBe("write")
-        expect(permissionEvent[0]?.suggestion).toContain(suggestion)
-        expect(flushedEvent.permissionErrors).toBe(1)
-      },
-    )
+      expect(permissionEvent).toHaveLength(1)
+      expect(permissionEvent[0]?.path).toBe(path)
+      expect(permissionEvent[0]?.code).toBe(code)
+      expect(permissionEvent[0]?.operation).toBe("write")
+      expect(permissionEvent[0]?.suggestion).toContain(suggestion)
+      expect(flushedEvent.permissionErrors).toBe(1)
+    })
   })
 
   test("does not emit permission-denied for non-permission errors", async () => {
@@ -586,10 +565,7 @@ describe("Permission Error Handling", () => {
 
     let permissionEvent: PermissionError[] | null = null
     let errorsEvent: unknown[] | null = null
-    queue.on(
-      "permission-denied",
-      (e) => (permissionEvent = e as PermissionError[]),
-    )
+    queue.on("permission-denied", (e) => (permissionEvent = e as PermissionError[]))
     queue.on("errors", (e) => (errorsEvent = e as unknown[]))
 
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })

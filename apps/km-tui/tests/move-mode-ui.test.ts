@@ -10,11 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Move Mode UI", () => {
   it("shows [MOVE] indicator when entering move mode", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("task1"), item("task2")),
-        item("col2", item("task3")),
-      ),
+      item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
     )
 
     // Initially no move mode indicator
@@ -34,11 +30,7 @@ describe("Move Mode UI", () => {
 
   it("hides [MOVE] indicator when canceling move mode", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("task1"), item("task2")),
-        item("col2", item("task3")),
-      ),
+      item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
     )
 
     // Select and enter move mode
@@ -56,11 +48,7 @@ describe("Move Mode UI", () => {
 
   it("hides [MOVE] indicator after confirming move", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("task1"), item("task2")),
-        item("col2", item("task3")),
-      ),
+      item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
     )
 
     // Select and enter move mode
@@ -104,11 +92,7 @@ describe("Move Mode UI", () => {
 
   it("does not show [MOVE] indicator in normal mode", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("task1"), item("task2")),
-        item("col2", item("task3")),
-      ),
+      item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
     )
 
     // Navigate normally - no [MOVE] indicator

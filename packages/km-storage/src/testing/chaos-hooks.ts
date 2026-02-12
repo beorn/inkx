@@ -16,11 +16,7 @@
  * ```
  */
 
-import type {
-  RepoHooks,
-  MutationContext,
-  BeforeMutationResult,
-} from "../repo.ts"
+import type { RepoHooks, MutationContext, BeforeMutationResult } from "../repo.ts"
 
 /**
  * Configuration for chaos hook behavior
@@ -208,9 +204,7 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
               ...ctx,
               changes: {
                 ...ctx.changes,
-                [keyToCorrupt]: corruptValue(
-                  (ctx.changes as Record<string, unknown>)[keyToCorrupt],
-                ),
+                [keyToCorrupt]: corruptValue((ctx.changes as Record<string, unknown>)[keyToCorrupt]),
               },
             }
           }
@@ -293,11 +287,7 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
     },
 
     afterQuery(operation: string, result: unknown): void {
-      log(
-        "query completed:",
-        operation,
-        Array.isArray(result) ? `${result.length} results` : "single result",
-      )
+      log("query completed:", operation, Array.isArray(result) ? `${result.length} results` : "single result")
     },
 
     // ChaosHooks-specific methods

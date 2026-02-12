@@ -5,10 +5,7 @@
  */
 
 import type { KNode, TaskMark, TaskStatus } from "@km/core"
-import {
-  moveCardInColumn,
-  moveCardToColumn,
-} from "../keyboard/keyboard-card-ops.ts"
+import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { refreshBoardState } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
@@ -42,17 +39,9 @@ export function handleDeleteNode(ctx: ActionCtx): void {
   const childCount = children.length
   const backlinkCount = impact.backlinks.length
   // Filter out internal/computed metadata keys — only user-authored frontmatter counts
-  const TRIVIAL_DATA_KEYS = new Set([
-    "depth",
-    "rules",
-    "lang",
-    "meta",
-    "completion",
-  ])
+  const TRIVIAL_DATA_KEYS = new Set(["depth", "rules", "lang", "meta", "completion"])
   const significantKeys = card.node.data
-    ? Object.keys(card.node.data).filter(
-        (k) => !k.startsWith("_") && !TRIVIAL_DATA_KEYS.has(k),
-      )
+    ? Object.keys(card.node.data).filter((k) => !k.startsWith("_") && !TRIVIAL_DATA_KEYS.has(k))
     : []
   const hasMetadata = significantKeys.length > 0
 
@@ -81,8 +70,7 @@ export function executeDelete(ctx: ActionCtx, nodeId: string): void {
   const { layout } = ctx
   ctx.repo.deleteNode(nodeId)
   refreshBoardState(ctx, {
-    cardIndex: (c) =>
-      Math.min(layout.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
+    cardIndex: (c) => Math.min(layout.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
   })
 }
 
@@ -155,9 +143,7 @@ export function handleConfirmMove(ctx: ActionCtx): void {
   const targetCol = layout.columns[layout.colIndex]
   if (!targetCol) return
   let newSortOrder =
-    targetCol.cards.length > 0
-      ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1
-      : 0
+    targetCol.cards.length > 0 ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1 : 0
   for (const nodeId of sourceNodeIds) {
     repo.moveNode(nodeId, targetCol.node.id, newSortOrder)
     newSortOrder++
@@ -179,21 +165,11 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
 
   if (!card) return
   const targetId = card.node.link_to || card.node.id
-  const targetNode = card.node.link_to
-    ? ctx.repo.getNode(card.node.link_to)
-    : card.node
+  const targetNode = card.node.link_to ? ctx.repo.getNode(card.node.link_to) : card.node
   const currentStatus = targetNode?.task_status || "todo"
-  const statusCycle: TaskStatus[] = [
-    "todo",
-    "wip",
-    "blocked",
-    "done",
-    "dropped",
-  ]
+  const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
   const currentIndex = statusCycle.indexOf(currentStatus)
-  const nextStatus = statusCycle[
-    (currentIndex + 1) % statusCycle.length
-  ] as TaskStatus
+  const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus
   const markMap: Record<TaskStatus, TaskMark> = {
     todo: " ",
     wip: "/",
@@ -214,10 +190,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
  * When cursor is on a card: up/down shifts within column, left/right moves between columns.
  * When cursor is on a column header: left/right reorders columns.
  */
-export function handleShiftCard(
-  ctx: ActionCtx,
-  direction: "up" | "down" | "left" | "right",
-): void {
+export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left" | "right"): void {
   const { layout } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
@@ -246,8 +219,7 @@ function moveColumn(
   direction: "left" | "right",
 ): void {
   const { layout, repo } = ctx
-  const targetIndex =
-    direction === "left" ? layout.colIndex - 1 : layout.colIndex + 1
+  const targetIndex = direction === "left" ? layout.colIndex - 1 : layout.colIndex + 1
   if (targetIndex < 0 || targetIndex >= layout.columns.length) return
 
   const targetCol = layout.columns[targetIndex]

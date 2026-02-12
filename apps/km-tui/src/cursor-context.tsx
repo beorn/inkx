@@ -6,12 +6,7 @@
  * whose selection status changed will re-render on j/k.
  */
 
-import React, {
-  createContext,
-  useContext,
-  useRef,
-  useSyncExternalStore,
-} from "react"
+import React, { createContext, useContext, useRef, useSyncExternalStore } from "react"
 import type { CursorStore } from "./cursor-store.ts"
 
 // =============================================================================
@@ -27,11 +22,7 @@ export function CursorStoreProvider({
   store: CursorStore
   children: React.ReactNode
 }): React.ReactElement {
-  return (
-    <CursorStoreContext.Provider value={store}>
-      {children}
-    </CursorStoreContext.Provider>
-  )
+  return <CursorStoreContext.Provider value={store}>{children}</CursorStoreContext.Provider>
 }
 
 /**
@@ -53,20 +44,14 @@ export function useCursorStore(): CursorStore | null {
  * Subscribe to whether a specific card is the cursor target.
  * Only re-renders when this card's selection status changes.
  */
-export function useIsCursorAtCard(
-  colIndex: number,
-  cardIndex: number,
-): boolean {
+export function useIsCursorAtCard(colIndex: number, cardIndex: number): boolean {
   const store = useContext(CursorStoreContext)
   const cacheRef = useRef(false)
 
   return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
     if (!store) return false
     const s = store.getState()
-    const isSelected =
-      s.colIndex === colIndex &&
-      s.cardIndex === cardIndex &&
-      s.selectionLevel === "card"
+    const isSelected = s.colIndex === colIndex && s.cardIndex === cardIndex && s.selectionLevel === "card"
     // Return cached value to avoid infinite loop — only update when value changes
     if (isSelected === cacheRef.current) return cacheRef.current
     cacheRef.current = isSelected
@@ -96,11 +81,7 @@ export function useIsCursorInColumn(colIndex: number): {
     }
     // Column is selected — check if result changed
     const prev = cacheRef.current
-    if (
-      prev.isSelected &&
-      prev.cardIndex === s.cardIndex &&
-      prev.selectionLevel === s.selectionLevel
-    ) {
+    if (prev.isSelected && prev.cardIndex === s.cardIndex && prev.selectionLevel === s.selectionLevel) {
       return prev
     }
     const next = {
@@ -183,11 +164,7 @@ export function useCursorPosition(): {
     if (!store) return defaultCursorPosition
     const s = store.getState()
     const prev = cacheRef.current
-    if (
-      prev.colIndex === s.colIndex &&
-      prev.cardIndex === s.cardIndex &&
-      prev.selectionLevel === s.selectionLevel
-    ) {
+    if (prev.colIndex === s.colIndex && prev.cardIndex === s.cardIndex && prev.selectionLevel === s.selectionLevel) {
       return prev
     }
     const next = {

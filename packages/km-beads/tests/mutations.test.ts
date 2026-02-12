@@ -1,10 +1,5 @@
 import { describe, test, expect } from "vitest"
-import {
-  createIssueNode,
-  updateIssueFields,
-  closeIssueFields,
-  dropIssueFields,
-} from "../src/mutations.ts"
+import { createIssueNode, updateIssueFields, closeIssueFields, dropIssueFields } from "../src/mutations.ts"
 import type { Issue } from "../src/types.ts"
 
 describe("createIssueNode", () => {

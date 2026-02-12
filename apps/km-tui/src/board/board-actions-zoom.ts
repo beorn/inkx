@@ -8,10 +8,7 @@ import type { ActionResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
 import type { KNode } from "@km/core"
 import { handleCursorMove } from "./board-actions-nav.ts"
-import {
-  clearSelection,
-  pushNavHistoryEntry,
-} from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
 /**
@@ -172,11 +169,7 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
     const flatChildren: { node: KNode; depth: number }[] = []
 
     // Build flat list of visible descendants
-    function collectVisible(
-      nodeId: string,
-      depth: number,
-      maxDepth: number,
-    ): void {
+    function collectVisible(nodeId: string, depth: number, maxDepth: number): void {
       if (depth > maxDepth) return
       const nodeChildren = ctx.repo.getChildren(nodeId)
       for (const child of nodeChildren) {

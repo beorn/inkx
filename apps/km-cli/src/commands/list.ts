@@ -30,10 +30,7 @@ export const listCommand = new Command("list")
   .description("List nodes")
   .argument("[query]", "Filter by path, ID prefix, -status:done negation")
   .allowUnknownOption()
-  .option(
-    "-t, --type <type>",
-    "Filter by node type (task, section, file, folder)",
-  )
+  .option("-t, --type <type>", "Filter by node type (task, section, file, folder)")
   .option("--status <status>", "Filter tasks by status (todo, wip, done)")
   .option("-a, --all", "Show all (including done tasks)")
   .option("-c, --context", "Show ancestor paths (like tasks command)")
@@ -45,12 +42,7 @@ export const listCommand = new Command("list")
     let repoRoot: string
     let query: string | undefined
 
-    if (
-      queryOrPath &&
-      (queryOrPath.startsWith("/") ||
-        queryOrPath.startsWith(".") ||
-        queryOrPath.startsWith("~"))
-    ) {
+    if (queryOrPath && (queryOrPath.startsWith("/") || queryOrPath.startsWith(".") || queryOrPath.startsWith("~"))) {
       // It's a path - use as repo root
       const resolved = resolvePathArg(queryOrPath, getRootPath())
       repoRoot = resolved.repoRoot
@@ -141,9 +133,7 @@ function getFilteredNodesWithQuery(
 
   if (options.type === "task") {
     if (options.status) {
-      nodes = repo.getTasksByStatus(
-        options.status as NonNullable<KNode["task_status"]>,
-      )
+      nodes = repo.getTasksByStatus(options.status as NonNullable<KNode["task_status"]>)
     } else if (options.all) {
       nodes = repo.getAllTasks()
     } else {
@@ -159,14 +149,9 @@ function getFilteredNodesWithQuery(
     const rootNode = repo.getRepoRootNode()
     const getAllDescendants = (parentId: string | null): KNode[] => {
       const children = repo.getChildren(parentId)
-      return children.flatMap((child: KNode) => [
-        child,
-        ...getAllDescendants(child.id),
-      ])
+      return children.flatMap((child: KNode) => [child, ...getAllDescendants(child.id)])
     }
-    nodes = rootNode
-      ? [rootNode, ...getAllDescendants(null)]
-      : getAllDescendants(null)
+    nodes = rootNode ? [rootNode, ...getAllDescendants(null)] : getAllDescendants(null)
   }
 
   // Apply query filter if provided
@@ -184,11 +169,7 @@ function getFilteredNodesWithQuery(
 /**
  * Display nodes with context (ancestor paths)
  */
-function displayWithContext(
-  repo: Repo,
-  nodes: KNode[],
-  options: { showId: boolean; flat: boolean },
-): void {
+function displayWithContext(repo: Repo, nodes: KNode[], options: { showId: boolean; flat: boolean }): void {
   // Group nodes by their collapsed ancestor paths
   interface NodeWithContext {
     node: KNode
@@ -209,9 +190,7 @@ function displayWithContext(
   if (options.flat) {
     // Flat mode: each node on one line with path prefix
     for (const { node, collapsed } of nodesWithContext) {
-      const pathParts = collapsed.map((ca) =>
-        term.dim(formatCollapsedAncestor(repo, ca, false)),
-      )
+      const pathParts = collapsed.map((ca) => term.dim(formatCollapsedAncestor(repo, ca, false)))
       const pathStr = pathParts.length > 0 ? pathParts.join(" › ") + " › " : ""
       console.log(pathStr + formatNode(repo, node, options.showId))
     }
@@ -227,10 +206,7 @@ function displayWithContext(
         let depth = 0
         for (const ca of collapsed) {
           const prefix = " ".repeat(depth)
-          console.log(
-            prefix +
-              term.dim(formatCollapsedAncestor(repo, ca, options.showId)),
-          )
+          console.log(prefix + term.dim(formatCollapsedAncestor(repo, ca, options.showId)))
           if (ca.node.type !== "section") {
             depth++
           }
@@ -248,11 +224,7 @@ function displayWithContext(
 /**
  * Display nodes without context (simple list)
  */
-function displaySimple(
-  repo: Repo,
-  nodes: KNode[],
-  options: { showId: boolean },
-): void {
+function displaySimple(repo: Repo, nodes: KNode[], options: { showId: boolean }): void {
   for (const node of nodes) {
     console.log(formatNode(repo, node, options.showId))
   }

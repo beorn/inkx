@@ -117,9 +117,7 @@ describe("Cursoring", () => {
   // Default view mode tests (cards view)
   describe("Cards View", () => {
     test("vertical (j/k): cards → column → board → boundary", () => {
-      const { board } = testEnv(() =>
-        item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      )
+      const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
       // j down through cards
       board.expect("#1a[data-cursor]").toExist()
       board.press("j")
@@ -158,12 +156,7 @@ describe("Cursoring", () => {
 
     test("horizontal (h/l): columns at card level and header level → boundary", () => {
       const { board } = testEnv(() =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
+        item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       )
 
       // --- Card level ---
@@ -223,9 +216,7 @@ describe("Cursoring", () => {
     })
 
     test("g/G: jump to first/last in column", () => {
-      const { board } = testEnv(() =>
-        item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      )
+      const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
       // Start at middle
       board.press("j")
       board.expect("#1b[data-cursor]").toExist()
@@ -300,13 +291,7 @@ describe("Cursoring", () => {
 
       test("remembers X position in columns view", () => {
         const { board } = testEnv(
-          () =>
-            item(
-              "board",
-              item("col1", item("task")),
-              item("col2", item("task")),
-              item("col3", item("task")),
-            ),
+          () => item("board", item("col1", item("task")), item("col2", item("task")), item("col3", item("task"))),
           { columns: 120 }, // Wide terminal for side-by-side columns
         )
         // Move to col3 header
@@ -412,10 +397,9 @@ describe("Cursoring", () => {
   // View mode variations
   describe("List View", () => {
     test("vertical (j/k) navigation and g/G jump to first/last", () => {
-      const { board } = testEnv(
-        () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-        { viewMode: "list" },
-      )
+      const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+        viewMode: "list",
+      })
 
       // --- j/k navigation ---
       // j down through cards
@@ -469,13 +453,7 @@ describe("Cursoring", () => {
 
     test("horizontal (h/l): moves between columns", () => {
       const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("1a")),
-            item("col2", item("2a")),
-            item("col3", item("3a")),
-          ),
+        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
         { viewMode: "list" },
       )
 
@@ -508,12 +486,7 @@ describe("Cursoring", () => {
   describe("Tabs View", () => {
     test("vertical (j/k): cards within active tab → boundary", () => {
       const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("1a"), item("1b"), item("1c")),
-            item("col2", item("2a"), item("2b")),
-          ),
+        () => item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b"))),
         { viewMode: "tabs" },
       )
       // Start at first card in first tab (col1)
@@ -546,13 +519,7 @@ describe("Cursoring", () => {
 
     test("horizontal (h/l): switch between tabs", () => {
       const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("1a")),
-            item("col2", item("2a")),
-            item("col3", item("3a")),
-          ),
+        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
         { viewMode: "tabs" },
       )
       // Start in col1 tab
@@ -615,10 +582,9 @@ describe("Cursoring", () => {
     })
 
     test("tab header selection with k", () => {
-      const { board } = testEnv(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
-        { viewMode: "tabs" },
-      )
+      const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+        viewMode: "tabs",
+      })
       // Start at card level
       board.expect("#1a[data-cursor]").toExist()
 
@@ -698,9 +664,7 @@ describe("Boundaries and Edge Cases", () => {
   })
 
   test("k stops at top boundary, j stops at bottom boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
 
     // --- k boundary: move up through column header to board title ---
     board.expect("#1a[data-cursor]").toExist()
@@ -735,12 +699,7 @@ describe("Boundaries and Edge Cases", () => {
 
   test("h stops at left boundary, l stops at right boundary", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
 
     // --- h boundary: navigate right then back to left edge ---
@@ -787,9 +746,7 @@ describe("Boundaries and Edge Cases", () => {
       desc: "G does nothing at last card",
     },
   ])("$desc", ({ key, setup, finalId }) => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     // Setup: navigate to the boundary position
     for (const k of setup) board.press(k)
     board.expect(`${finalId}[data-cursor]`).toExist()
@@ -843,9 +800,7 @@ describe("Boundaries and Edge Cases", () => {
 
 describe("Layout", () => {
   test("columns are horizontal", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     const col1Box = board.q("#col1").boundingBox()
     const col2Box = board.q("#col2").boundingBox()
     expect(col2Box!.x).toBeGreaterThan(col1Box!.x)
@@ -853,9 +808,7 @@ describe("Layout", () => {
   })
 
   test("cards stack vertically", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     const aBox = board.q("#1a").boundingBox()
     const bBox = board.q("#1b").boundingBox()
     expect(bBox!.y).toBeGreaterThan(aBox!.y)
@@ -865,9 +818,7 @@ describe("Layout", () => {
 
 describe("Zooming", () => {
   test("e zooms into card with children, Escape returns to previous level", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("card", item("subcard")))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("card", item("subcard")))))
 
     // e zooms in
     board.expect("#card").toExist()
@@ -893,11 +844,7 @@ describe("Zooming", () => {
 
   test("zoom into column shows column as board", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("task1"), item("task2")),
-        item("col2", item("taskA"), item("taskB")),
-      ),
+      item("board", item("col1", item("task1"), item("task2")), item("col2", item("taskA"), item("taskB"))),
     )
     // Move to column header and press e to zoom
     board.press("k")
@@ -912,17 +859,7 @@ describe("Zooming", () => {
 
   test("zoom into card shows card's children as columns", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item(
-          "col",
-          item(
-            "project",
-            item("todo", item("t1"), item("t2")),
-            item("done", item("d1")),
-          ),
-        ),
-      ),
+      item("board", item("col", item("project", item("todo", item("t1"), item("t2")), item("done", item("d1"))))),
     )
     board.expect("#project[data-cursor]").toExist()
     board.press("e")
@@ -936,13 +873,7 @@ describe("Zooming", () => {
 
   test("nested zoom - zoom into multiple levels", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item(
-          "col",
-          item("level1", item("level2", item("level3", item("deepest")))),
-        ),
-      ),
+      item("board", item("col", item("level1", item("level2", item("level3", item("deepest")))))),
     )
     // Zoom into level1
     board.press("e")
@@ -958,12 +889,7 @@ describe("Zooming", () => {
   })
 
   test("Escape after multiple zooms - returns to previous level", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("level1", item("level2", item("level3")))),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("level1", item("level2", item("level3"))))))
     board.press("e") // Zoom to level1
     board.expect("#level2").toExist()
     board.press("e") // Zoom to level2
@@ -986,10 +912,7 @@ describe("Zooming", () => {
 
   test("cursor preserved on zoom in/out, u zooms out, zoom out returns cursor to parent", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("card1"), item("card2", item("sub1"), item("sub2"))),
-      ),
+      item("board", item("col", item("card1"), item("card2", item("sub1"), item("sub2")))),
     )
 
     // --- cursor position preserved when zooming in and out ---
@@ -1030,9 +953,7 @@ describe("Zooming", () => {
   })
 
   test("zoom shows path in header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("parent", item("child")))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("parent", item("child")))))
     board.press("e")
     const output = board.screenshot()
     // Should show breadcrumb: board > col > parent
@@ -1044,14 +965,7 @@ describe("Zooming", () => {
     // With cursor on level1 (which has children), pressing 'i' should zoom
     // into col (one level deeper from root toward cursor), not jump to level1
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item(
-          "col",
-          item("level1", item("level2", item("level3"))),
-          item("other"),
-        ),
-      ),
+      item("board", item("col", item("level1", item("level2", item("level3"))), item("other"))),
     )
     // Cursor starts at level1 (first card in col)
     board.expect("#level1[data-cursor]").toExist()
@@ -1069,9 +983,7 @@ describe("Zooming", () => {
 
   test("i at cursor's parent level acts like o (zoom to cursor)", () => {
     // When cursor is already a direct child of root, i = one level = zoom to cursor
-    const { board } = testEnv(() =>
-      item("board", item("col", item("card", item("sub")))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("card", item("sub")))))
     board.expect("#card[data-cursor]").toExist()
 
     // col is direct child of board, and card is child of col.
@@ -1083,12 +995,7 @@ describe("Zooming", () => {
 
   describe("cursor position after zooming", () => {
     test("zoom in preserves cursor on first child", () => {
-      const { board } = testEnv(() =>
-        item(
-          "board",
-          item("col", item("parent", item("child1"), item("child2"))),
-        ),
-      )
+      const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
       board.expect("#parent[data-cursor]").toExist()
 
       // Zoom in - cursor should go to first child
@@ -1100,17 +1007,7 @@ describe("Zooming", () => {
       // Fixture: child1 and child2 are folders (have children)
       // so they become columns with cards when zoomed to parent
       const { board } = testEnv(() =>
-        item(
-          "board",
-          item(
-            "col",
-            item(
-              "parent",
-              item("child1", item("c1")),
-              item("child2", item("c2")),
-            ),
-          ),
-        ),
+        item("board", item("col", item("parent", item("child1", item("c1")), item("child2", item("c2"))))),
       )
       board.press("e") // Zoom in to parent
       // At zoom parent: columns = [child1, child2], cursor on child1 column header
@@ -1139,12 +1036,7 @@ describe("Display", () => {
   })
 
   test("card content does not overflow into borders", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("Stretching exercises for morning routine")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("Stretching exercises for morning routine"))))
     const output = board.screenshot()
     const lines = output.split("\n")
     for (const line of lines) {
@@ -1155,28 +1047,20 @@ describe("Display", () => {
 
   test("columns show side by side", () => {
     // Use wider terminal (120 columns) so 3 columns fit side by side
-    const { board } = testEnv(
-      () => item("board", item("Todo"), item("InProgress"), item("Done")),
-      {
-        columns: 120,
-      },
-    )
+    const { board } = testEnv(() => item("board", item("Todo"), item("InProgress"), item("Done")), {
+      columns: 120,
+    })
     const output = board.screenshot()
     expect(output).toContain("Todo")
     expect(output).toContain("InProgress")
     expect(output).toContain("Done")
     const lines = output.split("\n")
-    const headerLine = lines.find(
-      (l) =>
-        l.includes("Todo") && l.includes("InProgress") && l.includes("Done"),
-    )
+    const headerLine = lines.find((l) => l.includes("Todo") && l.includes("InProgress") && l.includes("Done"))
     expect(headerLine).toBeDefined()
   })
 
   test("column headers show card count", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1"), item("task2"), item("task3"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
     const output = board.screenshot()
     expect(output).toContain("(3)")
   })
@@ -1185,10 +1069,7 @@ describe("Display", () => {
 describe("History", () => {
   test("back navigation with [ after zooming", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("card1"), item("card2", item("sub1"), item("sub2"))),
-      ),
+      item("board", item("col", item("card1"), item("card2", item("sub1"), item("sub2")))),
     )
     board.press("j")
     board.expect("#card2[data-cursor]").toExist()
@@ -1200,9 +1081,7 @@ describe("History", () => {
   })
 
   test("forward navigation with ] restores zoom view", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("card", item("childA"), item("childB")))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("card", item("childA"), item("childB")))))
     board.press("e")
     board.expect("#childA").toExist()
     board.press("[")
@@ -1216,12 +1095,7 @@ describe("History", () => {
   // Tests for [ and ] must use zoom (i) to create history entries.
   describe("cursor position after history navigation", () => {
     test("[ restores cursor after zoom, ] restores zoom state", () => {
-      const { board } = testEnv(() =>
-        item(
-          "board",
-          item("col", item("parent", item("child1"), item("child2"))),
-        ),
-      )
+      const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
       // Move to parent card
       board.expect("#parent[data-cursor]").toExist()
 
@@ -1241,13 +1115,7 @@ describe("History", () => {
 
     test("history preserves zoom cursor position", () => {
       const { board } = testEnv(() =>
-        item(
-          "board",
-          item(
-            "col",
-            item("parent", item("c1", item("gc1")), item("c2", item("gc2"))),
-          ),
-        ),
+        item("board", item("col", item("parent", item("c1", item("gc1")), item("c2", item("gc2"))))),
       )
       // Zoom to parent (c1 and c2 become columns)
       board.press("e")
@@ -1279,9 +1147,7 @@ describe("History", () => {
     })
 
     test("] at end of history does nothing", () => {
-      const { board } = testEnv(() =>
-        item("board", item("col", item("card1"), item("card2"))),
-      )
+      const { board } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
       // Create some history
       board.press("j")
       board.press("[") // Go back
@@ -1301,9 +1167,7 @@ describe("History", () => {
 
 describe("Content", () => {
   test("wiki links render without brackets", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("Check out [[my note]] for details"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("Check out [[my note]] for details"))))
     const output = board.screenshot()
     expect(output).toContain("my note")
     expect(output).not.toContain("[[")
@@ -1312,10 +1176,7 @@ describe("Content", () => {
 
   test("aliased wiki links show only the alias", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("See [[MDTasks/tasks-system|task-system]] for info")),
-      ),
+      item("board", item("col", item("See [[MDTasks/tasks-system|task-system]] for info"))),
     )
     const output = board.screenshot()
     expect(output).toContain("task-system")
@@ -1347,12 +1208,7 @@ describe("Folding", () => {
   // Note: "Enter on card with children shows detail pane" covered in Zooming tests
 
   test("z toggles fold state on card with children", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("parent", item("child1"), item("child2"))),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
     board.expect("#child1").toExist()
     board.press("z")
     board.expect("#child1").not.toExist()
@@ -1361,12 +1217,7 @@ describe("Folding", () => {
   })
 
   test("folded card shows count indicator", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("task", item("sub1"), item("sub2"), item("sub3"))),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
     board.press("z")
     const output = board.screenshot()
     expect(output).toContain("▶\uFE0F 3")
@@ -1384,9 +1235,7 @@ describe("Text Rendering", () => {
         "board",
         item(
           "col",
-          item(
-            "This is a very long task description that should wrap within the card boundaries and not overflow",
-          ),
+          item("This is a very long task description that should wrap within the card boundaries and not overflow"),
         ),
       ),
     )
@@ -1406,18 +1255,14 @@ describe("Text Rendering", () => {
   })
 
   test("special characters render correctly", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("Task with émojis 🎉 and àccents"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("Task with émojis 🎉 and àccents"))))
     const output = board.screenshot()
     expect(output).toContain("🎉")
     expect(output).toContain("à")
   })
 
   test("markdown formatting is stripped in card view", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("**bold** and *italic* text"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("**bold** and *italic* text"))))
     const output = board.screenshot()
     expect(output).not.toContain("**")
     expect(output).not.toContain("*")
@@ -1428,11 +1273,9 @@ describe("Text Rendering", () => {
 
 describe("Terminal Sizes", () => {
   test("narrow terminal (40 cols) shows single column", () => {
-    const { board } = testEnv(
-      () =>
-        item("board", item("col1", item("task")), item("col2", item("task"))),
-      { columns: 40 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task")), item("col2", item("task"))), {
+      columns: 40,
+    })
     // Should only show one column at a time in narrow terminal
   })
 
@@ -1472,11 +1315,7 @@ describe("Terminal Sizes", () => {
     // We verify this by checking that cursor elements have stable node IDs.
 
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a"), item("2b")),
-      ),
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
     )
 
     // Navigate to a card
@@ -1499,9 +1338,7 @@ describe("Terminal Sizes", () => {
 
 describe("Search and Filter", () => {
   test("/ opens search dialog with title and footer", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1"), item("task2"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
     board.press("/")
     const output = board.screenshot()
     expect(output).toContain("Search")
@@ -1515,12 +1352,7 @@ describe("Search and Filter", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item(
-          "col",
-          item("Task Alpha with long title"),
-          item("Task Beta with long title"),
-          item("Task Gamma short"),
-        ),
+        item("col", item("Task Alpha with long title"), item("Task Beta with long title"), item("Task Gamma short")),
       ),
     )
     board.press("/")
@@ -1545,9 +1377,7 @@ describe("Search and Filter", () => {
   test("typing immediately after / captures all characters", () => {
     // Bug repro: keypresses are eaten while search dialog opens
     // The lazy loading via useEffect + startTransition should not block input
-    const { board } = testEnv(() =>
-      item("board", item("col", item("alpha"), item("beta"), item("gamma"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("alpha"), item("beta"), item("gamma"))))
 
     // Type "/" followed immediately by a query - all characters should be captured
     board.press("/")
@@ -1651,14 +1481,7 @@ describe("Search and Filter", () => {
     // When viewing board, only Projects is visible as column header
     // Task Deep is 3 levels down (card of Active, which is card of Projects)
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item(
-          "Projects",
-          item("Active", item("Task Deep")),
-          item("Archive", item("Old Task")),
-        ),
-      ),
+      item("board", item("Projects", item("Active", item("Task Deep")), item("Archive", item("Old Task")))),
     )
 
     // Board shows columns at top level - zoom out first to test
@@ -1681,14 +1504,7 @@ describe("Search and Filter", () => {
     // Simulate file > section structure
     // Vault > Notes > Doc1 > Section A
     const { board } = testEnv(() =>
-      item(
-        "Vault",
-        item(
-          "Notes",
-          item("Doc1", item("Section A"), item("Section B")),
-          item("Doc2", item("Section X")),
-        ),
-      ),
+      item("Vault", item("Notes", item("Doc1", item("Section A"), item("Section B")), item("Doc2", item("Section X")))),
     )
 
     // Zoom out to vault level first (Escape goes back in history)
@@ -1709,12 +1525,7 @@ describe("Search and Filter", () => {
   test("Enter on search result puts cursor on the selected item", () => {
     // Bug repro: search Enter on non-file items doesn't set cursor
     // Vault > Notes > Doc1 > Section A
-    const { board } = testEnv(() =>
-      item(
-        "Vault",
-        item("Notes", item("Doc1", item("Section A"), item("Section B"))),
-      ),
-    )
+    const { board } = testEnv(() => item("Vault", item("Notes", item("Doc1", item("Section A"), item("Section B")))))
 
     // Zoom out to vault level
     board.press("Escape")
@@ -1749,11 +1560,7 @@ describe("Search and Filter", () => {
           "Notes",
           item.file(
             "MyDoc",
-            item.section(
-              "Intro",
-              item.paragraph("China domicile information"),
-              item.paragraph("Another paragraph"),
-            ),
+            item.section("Intro", item.paragraph("China domicile information"), item.paragraph("Another paragraph")),
           ),
         ),
       ),
@@ -1776,9 +1583,7 @@ describe("Search and Filter", () => {
 
     // Cursor should be on or near the paragraph we searched for
     // The cursor should be on China paragraph, Intro section, or MyDoc file
-    const chinaCursor = board
-      .q("#China-domicile-information[data-cursor]")
-      .count()
+    const chinaCursor = board.q("#China-domicile-information[data-cursor]").count()
     const introCursor = board.q("#Intro[data-cursor]").count()
     const myDocCursor = board.q("#MyDoc[data-cursor]").count()
 
@@ -1816,9 +1621,7 @@ describe("View Modes", () => {
   // Note: Individual view mode cursor tests covered by "switching between cards/list/columns/tabs views" below
 
   test("switching between cards/list/columns/tabs views", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1"), item("task2"), item("task3"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
     // Start in cards view at task2
     board.press("j")
     board.expect("#task2[data-cursor]").toExist()
@@ -1840,9 +1643,7 @@ describe("View Modes", () => {
 
 describe("Boundary Feedback (Bell + Status)", () => {
   test("k at top boundary triggers bell/status, clears on next keypress", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to board (cursor starts at 1a)
     board.press("k") // 1a → col1 header
@@ -1876,13 +1677,7 @@ describe("Boundary Feedback (Bell + Status)", () => {
     { key: "l", setup: ["l"], finalId: "#2a", desc: "l at right boundary" },
     { key: "j", setup: ["j"], finalId: "#1b", desc: "j at bottom boundary" },
   ])("$desc shows feedback", ({ key, setup, finalId }) => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // Navigate to boundary position
     for (const k of setup) board.press(k)
     board.expect(`${finalId}[data-cursor]`).toExist()
@@ -1894,9 +1689,7 @@ describe("Boundary Feedback (Bell + Status)", () => {
   })
 
   test("boundary bell sets data-bell-flash attribute", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     // No flash initially
     expect(board.q("[data-bell-flash]").count()).toBe(0)
 
@@ -1919,9 +1712,7 @@ describe("Boundary Feedback (Bell + Status)", () => {
   })
 
   test("unhandled key bell clears on next valid key", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.press(";") // unhandled
     expect(board.bell).toBe(true)
 
@@ -1931,9 +1722,7 @@ describe("Boundary Feedback (Bell + Status)", () => {
   })
 
   test("boundary bell fires on every boundary press", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     // Navigate to bottom card
     board.press("j") // 1a → 1b
     board.expect("#1b[data-cursor]").toExist()
@@ -1960,9 +1749,7 @@ describe("Boundary Feedback (Bell + Status)", () => {
   })
 
   test("bell fires for downward boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.press("j") // 1a → 1b
     board.press("j") // boundary
     expect(board.bell).toBe(true)
@@ -1977,14 +1764,7 @@ describe("Virtual body card", () => {
   test("body-only columns render items borderless (virtual)", () => {
     // Column with only paragraphs (no tasks) — items render borderless
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item.section(
-          "col1",
-          item.paragraph("intro text"),
-          item.paragraph("more text"),
-        ),
-      ),
+      item("board", item.section("col1", item.paragraph("intro text"), item.paragraph("more text"))),
     )
     // Cursor starts on first card (paragraph) in Cards view
     const output = board.screenshot()
@@ -2001,9 +1781,7 @@ describe("Virtual body card", () => {
 
   test("task-only columns render items with borders (non-virtual)", () => {
     // Column with tasks should render as regular bordered cards
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("taska"), item("taskb"), item("taskc"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("taska"), item("taskb"), item("taskc"))))
     // Cursor starts on first card in Cards view
     board.expect("#taska[data-cursor]").toExist()
     board.press("j")

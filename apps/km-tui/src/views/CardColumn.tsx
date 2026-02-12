@@ -88,9 +88,7 @@ function CardLayoutRegistrar({
   const handleLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
       if (!registry) {
-        layoutLog.trace?.(
-          `CardLayoutRegistrar: no registry for col=${colIndex} card=${cardIndex}`,
-        )
+        layoutLog.trace?.(`CardLayoutRegistrar: no registry for col=${colIndex} card=${cardIndex}`)
         return
       }
 
@@ -101,9 +99,7 @@ function CardLayoutRegistrar({
         cardHeight: computed.height,
       }
 
-      layoutLog.trace?.(
-        `CardLayoutRegistrar: col=${colIndex} card=${cardIndex} y=${computed.y} h=${computed.height}`,
-      )
+      layoutLog.trace?.(`CardLayoutRegistrar: col=${colIndex} card=${cardIndex} y=${computed.y} h=${computed.height}`)
       registry.registerCard(colIndex, cardIndex, nodeId, layout)
     },
     [registry, colIndex, cardIndex, nodeId],
@@ -140,25 +136,14 @@ const Card = React.memo(
     const isSelected = useIsCursorAtCard(colIndex, cardIndex)
 
     // Check if this card is in inline edit mode (for border color)
-    const isEditing = useUISelector(
-      (state) => state.inlineEditBlock?.nodeId === nodeId,
-    )
+    const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
 
     // Virtual body content renders borderless (inline body content)
     // This includes: cards in virtual columns OR individual virtual body cards
     if (isVirtualColumn || card.isVirtual) {
       return (
-        <Box
-          flexDirection="column"
-          flexShrink={0}
-          width={width}
-          paddingLeft={1}
-        >
-          <CardLayoutRegistrar
-            colIndex={colIndex}
-            cardIndex={cardIndex}
-            nodeId={nodeId}
-          />
+        <Box flexDirection="column" flexShrink={0} width={width} paddingLeft={1}>
+          <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
             node={card.node}
             depth={0}
@@ -174,11 +159,7 @@ const Card = React.memo(
     }
 
     // Border: cyan when editing (focus ring), yellow when selected, gray otherwise
-    const borderColor = isEditing
-      ? "cyan"
-      : isSelected
-        ? "yellow"
-        : "blackBright"
+    const borderColor = isEditing ? "cyan" : isSelected ? "yellow" : "blackBright"
 
     return (
       <Box
@@ -189,11 +170,7 @@ const Card = React.memo(
         borderColor={borderColor}
         paddingRight={1}
       >
-        <CardLayoutRegistrar
-          colIndex={colIndex}
-          cardIndex={cardIndex}
-          nodeId={nodeId}
-        />
+        <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
         <TreeNode
           node={card.node}
           depth={0}
@@ -271,9 +248,7 @@ export const Column = React.memo(function Column({
   const selectionLevel = columnSelected.selectionLevel
 
   // Check if this column header is being inline-edited
-  const isInlineEditing = useUISelector(
-    (state) => state.inlineEditBlock?.nodeId === nodeId,
-  )
+  const isInlineEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = renderPlain(getNodeDisplayName(repo, column.node))
@@ -303,15 +278,10 @@ export const Column = React.memo(function Column({
 
         jobRunner.submit({
           description: `Renaming '${oldName}' → '${newValue}'`,
-          impact:
-            impact.backlinks.length > 0
-              ? `${impact.backlinks.length} backlink${s} will be updated`
-              : "",
+          impact: impact.backlinks.length > 0 ? `${impact.backlinks.length} backlink${s} will be updated` : "",
           countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
           execute: (onProgress) => {
-            repo.renameNode(nodeId, newValue, (info) =>
-              onProgress(info.updated, info.total),
-            )
+            repo.renameNode(nodeId, newValue, (info) => onProgress(info.updated, info.total))
           },
         })
       } else {
@@ -334,8 +304,7 @@ export const Column = React.memo(function Column({
   const wipExceeded = wipLimit !== undefined && count > wipLimit
 
   // Build count display
-  const countDisplay =
-    wipLimit !== undefined ? `(${count}/${wipLimit})` : `(${count})`
+  const countDisplay = wipLimit !== undefined ? `(${count}/${wipLimit})` : `(${count})`
   const warningIndicator = wipExceeded ? " \u26A0" : ""
   const collapsedIndicator = isCollapsed ? " \u25B8" : ""
 
@@ -376,9 +345,7 @@ export const Column = React.memo(function Column({
   // - Non-tasks with color: filled circle (●) in that color
   // - Non-tasks without color: small bullet (·)
   // - Virtual body columns: dimmed info icon
-  const icon = isVirtual
-    ? { char: "·", color: "gray" as const }
-    : getNodeIcon(null, ownColor, false)
+  const icon = isVirtual ? { char: "·", color: "gray" as const } : getNodeIcon(null, ownColor, false)
   // When column is selected, icon should be black on yellow bg
   const iconColor = isColumnSelected ? "black" : icon.color
 
@@ -405,12 +372,7 @@ export const Column = React.memo(function Column({
       {/* Note: backgroundColor on Text (not Box) ensures fg color applies correctly */}
       <Box height={1} flexShrink={0} width={width}>
         {isInlineEditing ? (
-          <Text
-            bold
-            color={headerStyle.color}
-            backgroundColor={headerStyle.backgroundColor}
-            wrap="truncate"
-          >
+          <Text bold color={headerStyle.color} backgroundColor={headerStyle.backgroundColor} wrap="truncate">
             {" "}
             <Text color={iconColor}>{icon.char}</Text>{" "}
             <InlineEditField
@@ -430,17 +392,12 @@ export const Column = React.memo(function Column({
             {" "}
             <Text color={iconColor}>{icon.char}</Text> {name}
             {typeSuffix ? (
-              <Text
-                color={isColumnSelected ? "gray" : undefined}
-                dimColor={!isColumnSelected}
-              >{` ${typeSuffix}`}</Text>
+              <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${typeSuffix}`}</Text>
             ) : (
               ""
             )}
             {wipExceeded ? (
-              <Text color="red">
-                {` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}
-              </Text>
+              <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
             ) : (
               <Text
                 color={isColumnSelected ? "gray" : undefined}
@@ -465,13 +422,7 @@ export const Column = React.memo(function Column({
       </Box>
 
       {isCollapsed ? (
-        <Box
-          flexDirection="column"
-          flexGrow={1}
-          minHeight={1}
-          justifyContent="center"
-          alignItems="center"
-        >
+        <Box flexDirection="column" flexGrow={1} minHeight={1} justifyContent="center" alignItems="center">
           <Text dimColor>[collapsed - {count}]</Text>
         </Box>
       ) : column.cards.length > 0 ? (

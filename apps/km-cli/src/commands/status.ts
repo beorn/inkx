@@ -68,22 +68,15 @@ function displayStatus(node: KNode, options: { json?: boolean }): void {
   }
 
   const icon = getStatusIcon(status)
-  console.log(
-    `${icon} ${status}: ${node.content?.slice(0, 60) ?? "(no content)"}`,
-  )
+  console.log(`${icon} ${status}: ${node.content?.slice(0, 60) ?? "(no content)"}`)
 }
 
 /**
  * Handle recurring task completion: clone the task with next due date.
  * Returns true if the task was recurring (and output was emitted), false otherwise.
  */
-function handleRecurringTask(
-  repo: Repo,
-  node: KNode,
-  options: { json?: boolean },
-): boolean {
-  const recurrence =
-    (node.data?.recurrence as string) || (node.recurrence as string | undefined)
+function handleRecurringTask(repo: Repo, node: KNode, options: { json?: boolean }): boolean {
+  const recurrence = (node.data?.recurrence as string) || (node.recurrence as string | undefined)
   if (!recurrence) return false
 
   // Convert natural language to RRULE if needed
@@ -149,8 +142,7 @@ export const statusCommand = new Command("status")
     }
 
     // Handle recurring tasks when marking done
-    const isRecurring =
-      newStatus === "done" && handleRecurringTask(repo, node, options)
+    const isRecurring = newStatus === "done" && handleRecurringTask(repo, node, options)
 
     const newMark = getMarkForStatus(newStatus as TaskStatus)
 

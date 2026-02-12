@@ -72,27 +72,21 @@ describe("hydrateNode", () => {
 describe("dehydrateNode", () => {
   test("dehydrates to task content (adds checkbox prefix)", () => {
     const node = makeNode({ type: "task", task_mark: " " })
-    const desc = [
-      { type: "paragraph" as const, children: [{ text: "Buy groceries" }] },
-    ]
+    const desc = [{ type: "paragraph" as const, children: [{ text: "Buy groceries" }] }]
     const content = dehydrateNode(node, desc)
     expect(content).toBe("- [ ] Buy groceries")
   })
 
   test("dehydrates to done task content", () => {
     const node = makeNode({ type: "task", task_mark: "x" })
-    const desc = [
-      { type: "paragraph" as const, children: [{ text: "Done item" }] },
-    ]
+    const desc = [{ type: "paragraph" as const, children: [{ text: "Done item" }] }]
     const content = dehydrateNode(node, desc)
     expect(content).toBe("- [x] Done item")
   })
 
   test("dehydrates to section content", () => {
     const node = makeNode({ type: "section" })
-    const desc = [
-      { type: "paragraph" as const, children: [{ text: "Section Title" }] },
-    ]
+    const desc = [{ type: "paragraph" as const, children: [{ text: "Section Title" }] }]
     const content = dehydrateNode(node, desc)
     expect(content).toBe("Section Title")
   })

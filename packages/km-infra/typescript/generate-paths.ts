@@ -96,10 +96,7 @@ function findMonorepoRoot(startDir: string): string {
 }
 
 // Get all workspace package directories
-async function getWorkspacePackages(
-  root: string,
-  patterns: string[],
-): Promise<string[]> {
+async function getWorkspacePackages(root: string, patterns: string[]): Promise<string[]> {
   const packages: string[] = []
 
   for (const pattern of patterns) {
@@ -116,9 +113,7 @@ async function getWorkspacePackages(
 }
 
 // Resolve an export target to a file path
-function resolveExportTarget(
-  target: string | Record<string, unknown>,
-): string | null {
+function resolveExportTarget(target: string | Record<string, unknown>): string | null {
   if (typeof target === "string") {
     return target
   }
@@ -143,10 +138,7 @@ function resolveExportTarget(
 }
 
 // Generate paths entry for a package
-function generatePathsForPackage(
-  pkgDir: string,
-  root: string,
-): Record<string, string[]> {
+function generatePathsForPackage(pkgDir: string, root: string): Record<string, string[]> {
   const pkgJsonPath = join(root, pkgDir, "package.json")
   const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf-8")) as PackageJson
 
@@ -162,9 +154,7 @@ function generatePathsForPackage(
     } else {
       // Object exports
       for (const [exportPath, target] of Object.entries(pkg.exports)) {
-        const resolved = resolveExportTarget(
-          target as string | Record<string, unknown>,
-        )
+        const resolved = resolveExportTarget(target as string | Record<string, unknown>)
         if (!resolved) continue
 
         // Skip non-.ts files (like .js or .d.ts only)
@@ -202,9 +192,7 @@ async function main() {
   const shouldWrite = args.includes("--write")
 
   const root = findMonorepoRoot(process.cwd())
-  const rootPkgJson = JSON.parse(
-    readFileSync(join(root, "package.json"), "utf-8"),
-  ) as PackageJson
+  const rootPkgJson = JSON.parse(readFileSync(join(root, "package.json"), "utf-8")) as PackageJson
 
   if (!rootPkgJson.workspaces) {
     console.error("No workspaces found in package.json")
@@ -223,9 +211,7 @@ async function main() {
   if (shouldWrite) {
     // Read existing tsconfig.json (supports JSONC with comments)
     const tsconfigPath = join(root, "tsconfig.json")
-    const tsconfig = JSON.parse(
-      stripJsonComments(readFileSync(tsconfigPath, "utf-8")),
-    ) as TsConfig
+    const tsconfig = JSON.parse(stripJsonComments(readFileSync(tsconfigPath, "utf-8"))) as TsConfig
 
     // Update paths
     if (!tsconfig.compilerOptions) {

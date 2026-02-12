@@ -214,20 +214,10 @@ export function parseQuery(query: string): QueryAST {
 
 // --- Token classifiers ---
 
-type Classifier = (
-  term: string,
-  negated: boolean,
-  offset: QueryOffset,
-  ast: QueryAST,
-) => boolean
+type Classifier = (term: string, negated: boolean, offset: QueryOffset, ast: QueryAST) => boolean
 
 /** Classify @mention, #tag, +project references */
-function classifyRef(
-  term: string,
-  negated: boolean,
-  offset: QueryOffset,
-  ast: QueryAST,
-): boolean {
+function classifyRef(term: string, negated: boolean, offset: QueryOffset, ast: QueryAST): boolean {
   const prefixMap: Record<string, QueryRef["type"]> = {
     "@": "person",
     "#": "tag",
@@ -242,18 +232,8 @@ function classifyRef(
 }
 
 /** Classify path patterns: ./path, /path, path/, ** */
-function classifyPath(
-  term: string,
-  negated: boolean,
-  offset: QueryOffset,
-  ast: QueryAST,
-): boolean {
-  if (
-    !term.startsWith("./") &&
-    !term.startsWith("/") &&
-    !term.endsWith("/") &&
-    !term.includes("**")
-  ) {
+function classifyPath(term: string, negated: boolean, offset: QueryOffset, ast: QueryAST): boolean {
+  if (!term.startsWith("./") && !term.startsWith("/") && !term.endsWith("/") && !term.includes("**")) {
     return false
   }
 
@@ -274,12 +254,7 @@ function classifyPath(
 }
 
 /** Classify property queries: prop::* (exists), prop::value, prop::>N */
-function classifyProp(
-  term: string,
-  negated: boolean,
-  offset: QueryOffset,
-  ast: QueryAST,
-): boolean {
+function classifyProp(term: string, negated: boolean, offset: QueryOffset, ast: QueryAST): boolean {
   const propMatch = term.match(/^([a-z][a-z0-9_-]*)::(.*)$/i)
   if (!propMatch) return false
 
@@ -325,12 +300,7 @@ function classifyProp(
 }
 
 /** Classify special queries: blocked:true/false */
-function classifySpecial(
-  term: string,
-  _negated: boolean,
-  offset: QueryOffset,
-  ast: QueryAST,
-): boolean {
+function classifySpecial(term: string, _negated: boolean, offset: QueryOffset, ast: QueryAST): boolean {
   const lower = term.toLowerCase()
   if (lower !== "blocked:true" && lower !== "blocked:false") return false
 
@@ -343,12 +313,7 @@ function classifySpecial(
 }
 
 /** Classify field:value conditions with operator parsing and alias mapping */
-function classifyField(
-  term: string,
-  negated: boolean,
-  offset: QueryOffset,
-  ast: QueryAST,
-): boolean {
+function classifyField(term: string, negated: boolean, offset: QueryOffset, ast: QueryAST): boolean {
   const fieldMatch = term.match(/^([a-z_]+)([:=<>!]+)(.+)$/i)
   if (!fieldMatch) return false
 
@@ -385,10 +350,4 @@ function classifyField(
 }
 
 /** Ordered classifier chain - first match wins, else falls through to text */
-const classifiers: Classifier[] = [
-  classifyRef,
-  classifyPath,
-  classifyProp,
-  classifySpecial,
-  classifyField,
-]
+const classifiers: Classifier[] = [classifyRef, classifyPath, classifyProp, classifySpecial, classifyField]

@@ -32,26 +32,13 @@ export const GTD_BOARD_COLORS: Record<string, string> = {
 /**
  * Valid terminal color names
  */
-export type TermColor =
-  | "black"
-  | "red"
-  | "green"
-  | "yellow"
-  | "blue"
-  | "magenta"
-  | "cyan"
-  | "white"
-  | "gray"
-  | "grey"
+export type TermColor = "black" | "red" | "green" | "yellow" | "blue" | "magenta" | "cyan" | "white" | "gray" | "grey"
 
 /**
  * Get styling function for a color name.
  * Optionally pass a term instance to avoid creating one per call.
  */
-export function getTermColor(
-  color: string,
-  term?: StyleChain,
-): (text: string) => string {
+export function getTermColor(color: string, term?: StyleChain): (text: string) => string {
   const t = term ?? createTermStyle()
   switch (color) {
     case "black":

@@ -11,10 +11,7 @@ import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
 import { dialogTargetRef } from "../dialog-target.ts"
-import {
-  blockEditTargetRef,
-  type BlockEditTarget,
-} from "../block-edit-target.ts"
+import { blockEditTargetRef, type BlockEditTarget } from "../block-edit-target.ts"
 
 export interface NewItemDialogProps {
   /** The currently selected node (for context/defaults) */
@@ -37,9 +34,7 @@ const CONTAINER_TYPES = new Set(["section", "file", "folder"])
  */
 function getInsertParentId(cursorNode: KNode | null): string | null {
   if (!cursorNode) return null
-  return CONTAINER_TYPES.has(cursorNode.type)
-    ? cursorNode.id
-    : cursorNode.parent_id
+  return CONTAINER_TYPES.has(cursorNode.type) ? cursorNode.id : cursorNode.parent_id
 }
 
 /**
@@ -104,16 +99,9 @@ export function NewItemDialog({
 
   // Determine insert location
   const parentId = getInsertParentId(cursorNode)
-  const _parentIdx = getInsertIdx(
-    cursorNode,
-    parentId,
-    repo.getChildren.bind(repo),
-  )
-  const insertContext = getInsertContext(
-    cursorNode,
-    parentId,
-    repo.getNode.bind(repo),
-    (node) => getNodeDisplayName(repo, node),
+  const _parentIdx = getInsertIdx(cursorNode, parentId, repo.getChildren.bind(repo))
+  const insertContext = getInsertContext(cursorNode, parentId, repo.getNode.bind(repo), (node) =>
+    getNodeDisplayName(repo, node),
   )
 
   // Determine if cursor is a task (new item will also be a task)

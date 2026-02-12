@@ -96,9 +96,7 @@ export function createConsumer(options: ConsumerOptions = {}) {
 
     // Print failures
     if (failures.length > 0) {
-      const failureHeader = supportsColor
-        ? "\x1b[31m--- Failures ---\x1b[0m\n\n"
-        : "--- Failures ---\n\n"
+      const failureHeader = supportsColor ? "\x1b[31m--- Failures ---\x1b[0m\n\n" : "--- Failures ---\n\n"
       output.write(failureHeader)
       for (const f of failures) {
         const failMark = supportsColor ? "\x1b[31m✗\x1b[0m" : "✗"
@@ -115,16 +113,8 @@ export function createConsumer(options: ConsumerOptions = {}) {
 
     // Print summary
     const total = passed + failed + skipped
-    const status = supportsColor
-      ? failed > 0
-        ? "\x1b[31m✗\x1b[0m"
-        : "\x1b[32m✓\x1b[0m"
-      : failed > 0
-        ? "✗"
-        : "✓"
-    output.write(
-      `${status} ${total} tests: ${passed} passed, ${failed} failed, ${skipped} skipped\n`,
-    )
+    const status = supportsColor ? (failed > 0 ? "\x1b[31m✗\x1b[0m" : "\x1b[32m✓\x1b[0m") : failed > 0 ? "✗" : "✓"
+    output.write(`${status} ${total} tests: ${passed} passed, ${failed} failed, ${skipped} skipped\n`)
 
     // Print total time
     const timeOutput = supportsColor

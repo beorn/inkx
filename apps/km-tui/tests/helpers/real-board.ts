@@ -89,10 +89,7 @@ export interface TestBoardResult {
  * board.q("[data-cursor]").textContent()
  * ```
  */
-export async function testBoard(
-  vaultPath: string,
-  options?: TestBoardOptions,
-): Promise<TestBoardResult> {
+export async function testBoard(vaultPath: string, options?: TestBoardOptions): Promise<TestBoardResult> {
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
@@ -153,11 +150,7 @@ export async function testBoard(
     repo,
     toastQueue,
     layoutRegistry: registry,
-    initialBoardState: createBoardState(
-      initialState.rootId,
-      initialState.rootPath,
-      initialCursorNodeId,
-    ),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
@@ -171,9 +164,7 @@ export async function testBoard(
     dimensions: { columns, rows },
   }
 
-  const store = createStore<BoardAppStore>(
-    createBoardAppStoreState(storeParams),
-  )
+  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Render Board with StoreContext.Provider for L3 mode
   const render = createRenderer({ cols: columns, rows })
@@ -199,11 +190,7 @@ export async function testBoard(
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
-      handleKey(
-        { input, key: parsedKey },
-        { get: store.getState, set: store.setState },
-        () => {},
-      )
+      handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
     })
     void originalPress(key)
   }

@@ -10,12 +10,7 @@ import type { KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
-import {
-  fuzzyMatch,
-  fuzzyScore,
-  getParentName,
-  extractTags,
-} from "./search-utils.ts"
+import { fuzzyMatch, fuzzyScore, getParentName, extractTags } from "./search-utils.ts"
 import { parseQuery, type QueryAST } from "@km/core"
 import { useLineEdit } from "../hooks/use-line-edit.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
@@ -39,17 +34,12 @@ interface SearchResult {
  * Check if node matches query filters
  */
 // oxlint-disable-next-line complexity/complexity -- Query matching with refs, text, and phrase combinations
-function matchesQuery(
-  result: SearchResult,
-  queryAST: QueryAST,
-): { matches: boolean; matchType: "content" | "tag" } {
+function matchesQuery(result: SearchResult, queryAST: QueryAST): { matches: boolean; matchType: "content" | "tag" } {
   // Check tag filters (#tag syntax)
   if (queryAST.refs.length > 0) {
     for (const ref of queryAST.refs) {
       if (ref.type === "tag") {
-        const hasTag = result.tags.some((t) =>
-          t.toLowerCase().includes(ref.value.toLowerCase()),
-        )
+        const hasTag = result.tags.some((t) => t.toLowerCase().includes(ref.value.toLowerCase()))
         if (ref.negated ? hasTag : !hasTag) {
           return { matches: false, matchType: "tag" }
         }
@@ -74,10 +64,7 @@ function matchesQuery(
 
     // Check all phrases
     for (const phrase of queryAST.phrases) {
-      if (
-        !searchText.includes(phrase.toLowerCase()) &&
-        !titleText.includes(phrase.toLowerCase())
-      ) {
+      if (!searchText.includes(phrase.toLowerCase()) && !titleText.includes(phrase.toLowerCase())) {
         return { matches: false, matchType: "content" }
       }
     }
@@ -105,9 +92,7 @@ function loadSearchResults(repo: RepoContextValue): SearchResult[] {
 
     const title = getNodeDisplayName(repo, node)
     const content = node.content
-    const parentContext = getParentName(node, repo.getNode.bind(repo), (n) =>
-      getNodeDisplayName(repo, n),
-    )
+    const parentContext = getParentName(node, repo.getNode.bind(repo), (n) => getNodeDisplayName(repo, n))
     const tags = extractTags(content)
 
     results.push({
@@ -126,10 +111,7 @@ function loadSearchResults(repo: RepoContextValue): SearchResult[] {
 /**
  * Filter and score results by query
  */
-function filterResults(
-  allResults: SearchResult[],
-  query: string,
-): (SearchResult & { score: number })[] {
+function filterResults(allResults: SearchResult[], query: string): (SearchResult & { score: number })[] {
   const queryAST = parseQuery(query)
 
   return allResults
@@ -139,18 +121,14 @@ function filterResults(
 
       // Score against title and content
       const titleScore = fuzzyScore(query, result.title)
-      const contentScore = result.content
-        ? fuzzyScore(query, result.content) * 0.7
-        : -1
+      const contentScore = result.content ? fuzzyScore(query, result.content) * 0.7 : -1
       const tagScore = matchType === "tag" && result.tags.length > 0 ? 100 : 0
 
       const bestScore = Math.max(titleScore, contentScore) + tagScore
 
       return { ...result, score: bestScore, matchType }
     })
-    .filter(
-      (r): r is SearchResult & { score: number } => r !== null && r.score >= 0,
-    )
+    .filter((r): r is SearchResult & { score: number } => r !== null && r.score >= 0)
     .sort((a, b) => b.score - a.score)
 }
 
@@ -173,15 +151,9 @@ function SearchResults({
   scrollOffset,
   maxVisible,
 }: SearchResultsProps): React.ReactElement {
-  const filteredResults = React.useMemo(
-    () => filterResults(results, query),
-    [results, query],
-  )
+  const filteredResults = React.useMemo(() => filterResults(results, query), [results, query])
 
-  const visibleResults = filteredResults.slice(
-    scrollOffset,
-    scrollOffset + maxVisible,
-  )
+  const visibleResults = filteredResults.slice(scrollOffset, scrollOffset + maxVisible)
 
   if (filteredResults.length === 0) {
     return <Text dimColor>No matching items</Text>
@@ -233,10 +205,7 @@ interface SearchDialogHandle {
   clearQuery(): void
 }
 
-export const SearchDialog = React.forwardRef<
-  SearchDialogHandle,
-  SearchDialogProps
->(function SearchDialog(
+export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogProps>(function SearchDialog(
   { onSelect, onCancel, width, maxHeight, initialInput, onConsumeInitialInput },
   ref,
 ): React.ReactElement {
@@ -299,10 +268,7 @@ export const SearchDialog = React.forwardRef<
       },
       confirm() {
         if (allResultsRef.current) {
-          const filtered = filterResults(
-            allResultsRef.current,
-            trimmedQueryRef.current,
-          )
+          const filtered = filterResults(allResultsRef.current, trimmedQueryRef.current)
           const selected = filtered[selectedIndexRef.current]
           if (selected) {
             onSelectRef.current(selected.node)
@@ -326,10 +292,7 @@ export const SearchDialog = React.forwardRef<
     filteredCount = filtered.length
     scrollOffset = Math.max(
       0,
-      Math.min(
-        selectedIndex - Math.floor(maxVisible / 2),
-        Math.max(0, filteredCount - maxVisible),
-      ),
+      Math.min(selectedIndex - Math.floor(maxVisible / 2), Math.max(0, filteredCount - maxVisible)),
     )
   }
 
@@ -354,18 +317,10 @@ export const SearchDialog = React.forwardRef<
   )
 
   return (
-    <ModalDialog
-      title="Search"
-      width={width}
-      height={dialogHeight}
-      footer={footerContent}
-    >
+    <ModalDialog title="Search" width={width} height={dialogHeight} footer={footerContent}>
       {/* Search input with readline editing - flexShrink=0 prevents being pushed out */}
       <Box flexShrink={0}>
-        <InputBox
-          beforeCursor={lineEdit.beforeCursor}
-          afterCursor={lineEdit.afterCursor}
-        />
+        <InputBox beforeCursor={lineEdit.beforeCursor} afterCursor={lineEdit.afterCursor} />
       </Box>
 
       {/* Spacer before results - flexShrink=0 to maintain spacing */}
@@ -375,12 +330,7 @@ export const SearchDialog = React.forwardRef<
 
       {/* Results list — flexGrow fills available height */}
       <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
-        <Box
-          flexDirection="column"
-          flexGrow={1}
-          flexShrink={1}
-          overflow="hidden"
-        >
+        <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
           {trimmedQuery.length < MIN_QUERY_LENGTH ? (
             <Text dimColor>
               {trimmedQuery.length === 0

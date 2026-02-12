@@ -51,11 +51,9 @@ export interface DbOps {
 export function createDbOps(db: Database, emitter?: Emitter): DbOps {
   return {
     addNode: (parentId, node) => addNodeImpl(db, parentId, node, emitter),
-    updateNode: (nodeId, updates) =>
-      updateNodeImpl(db, nodeId, updates, emitter),
+    updateNode: (nodeId, updates) => updateNodeImpl(db, nodeId, updates, emitter),
     deleteNode: (nodeId) => deleteNodeImpl(db, nodeId, emitter),
-    moveNode: (nodeId, newParentId, newParentIdx) =>
-      moveNodeImpl(db, nodeId, newParentId, newParentIdx, emitter),
+    moveNode: (nodeId, newParentId, newParentIdx) => moveNodeImpl(db, nodeId, newParentId, newParentIdx, emitter),
   }
 }
 
@@ -70,9 +68,7 @@ function moveNodeImpl(
   newParentIdx: number,
   emitter?: Emitter,
 ): void {
-  log.debug?.(
-    `moveNode: ${nodeId} → parent=${newParentId} idx=${newParentIdx} emitter=${!!emitter}`,
-  )
+  log.debug?.(`moveNode: ${nodeId} → parent=${newParentId} idx=${newParentIdx} emitter=${!!emitter}`)
   if (emitter) {
     emitter.emit(
       {
@@ -87,23 +83,18 @@ function moveNodeImpl(
       { db },
     )
   } else {
-    db.run(
-      "UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?",
-      [newParentId, newParentIdx, Date.now(), nodeId],
-    )
+    db.run("UPDATE nodes SET parent_id = ?, parent_idx = ?, updated_at = ? WHERE id = ?", [
+      newParentId,
+      newParentIdx,
+      Date.now(),
+      nodeId,
+    ])
   }
 }
 
-function updateNodeImpl(
-  db: Database,
-  nodeId: string,
-  updates: Record<string, unknown>,
-  emitter?: Emitter,
-): void {
+function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, unknown>, emitter?: Emitter): void {
   if (!updates) {
-    throw new Error(
-      `updateNode called with undefined updates for node ${nodeId}`,
-    )
+    throw new Error(`updateNode called with undefined updates for node ${nodeId}`)
   }
   if (emitter) {
     emitter.emit(
@@ -150,16 +141,9 @@ function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
   }
 }
 
-function addNodeImpl(
-  db: Database,
-  parentId: string | null,
-  node: Partial<KNode>,
-  emitter?: Emitter,
-): string {
+function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>, emitter?: Emitter): string {
   const nodeId = node.id ?? ulid()
-  log.debug?.(
-    `addNode: ${nodeId} type=${node.type ?? "task"} parent=${parentId} emitter=${!!emitter}`,
-  )
+  log.debug?.(`addNode: ${nodeId} type=${node.type ?? "task"} parent=${parentId} emitter=${!!emitter}`)
   const now = Date.now()
 
   const nodeData = {

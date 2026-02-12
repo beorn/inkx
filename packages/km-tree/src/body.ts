@@ -41,12 +41,8 @@ export interface BodyExtraction<T extends { type: string }> {
  * // items = [section1, section2]
  * ```
  */
-export function extractBody<T extends { type: string }>(
-  children: T[],
-): BodyExtraction<T> {
-  const firstStructuralIdx = children.findIndex((c) =>
-    STRUCTURAL_TYPES.has(c.type),
-  )
+export function extractBody<T extends { type: string }>(children: T[]): BodyExtraction<T> {
+  const firstStructuralIdx = children.findIndex((c) => STRUCTURAL_TYPES.has(c.type))
 
   if (firstStructuralIdx === -1) {
     // No structural children - all content is body

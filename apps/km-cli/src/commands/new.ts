@@ -9,24 +9,14 @@ import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { join } from "path"
-import {
-  parseTaskMetadata,
-  extractTags,
-  extractMentions,
-  resolvePathArg,
-} from "@km/storage"
+import { parseTaskMetadata, extractTags, extractMentions, resolvePathArg } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 
 /**
  * Format task metadata as inline fields
  */
-function formatMetadata(options: {
-  due?: string
-  start?: string
-  priority?: string
-  owner?: string
-}): string {
+function formatMetadata(options: { due?: string; start?: string; priority?: string; owner?: string }): string {
   const parts: string[] = []
 
   if (options.due) {
@@ -57,10 +47,7 @@ export const newCommand = new Command("new")
   .argument("<content...>", "Task content")
   .option("-n, --next", "Add to @next board after creation")
   .option("-p, --parent <target>", "Add to parent file (ID, path, or filename)")
-  .option(
-    "-d, --due <date>",
-    "Set due date (YYYY-MM-DD or 'today', 'tomorrow')",
-  )
+  .option("-d, --due <date>", "Set due date (YYYY-MM-DD or 'today', 'tomorrow')")
   .option("-s, --start <date>", "Set start/scheduled date")
   .option("-o, --owner <user>", "Assign to user")
   .option("-P, --priority <n>", "Set priority (1-5)")
@@ -81,18 +68,9 @@ export const newCommand = new Command("new")
     // Add metadata from options (if not already in content)
     const metadata = formatMetadata({
       due: options.due && !existingMetadata.dueDate ? options.due : undefined,
-      start:
-        options.start && !existingMetadata.scheduledDate
-          ? options.start
-          : undefined,
-      priority:
-        options.priority && !existingMetadata.priority
-          ? options.priority
-          : undefined,
-      owner:
-        options.owner && !mentions.includes(options.owner)
-          ? options.owner
-          : undefined,
+      start: options.start && !existingMetadata.scheduledDate ? options.start : undefined,
+      priority: options.priority && !existingMetadata.priority ? options.priority : undefined,
+      owner: options.owner && !mentions.includes(options.owner) ? options.owner : undefined,
     })
 
     const taskLine = `- [ ] ${taskContent}${metadata}\n`
@@ -156,8 +134,6 @@ export const newCommand = new Command("new")
 
     // If --next flag, remind user to sync and add to @next
     if (options.next) {
-      console.log(
-        term.dim("  Hint: Run 'km sync' then 'km @next add' to add to board"),
-      )
+      console.log(term.dim("  Hint: Run 'km sync' then 'km @next add' to add to board"))
     }
   })

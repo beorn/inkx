@@ -18,12 +18,7 @@ export type EventStatus = (typeof EVENT_STATUSES)[number]
 /**
  * ATTENDEE PARTSTAT parameter values (RFC 5545 Section 3.2.12)
  */
-export const ATTENDEE_STATUSES = [
-  "NEEDS-ACTION",
-  "ACCEPTED",
-  "DECLINED",
-  "TENTATIVE",
-] as const
+export const ATTENDEE_STATUSES = ["NEEDS-ACTION", "ACCEPTED", "DECLINED", "TENTATIVE"] as const
 export type AttendeeStatus = (typeof ATTENDEE_STATUSES)[number]
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,50 +50,34 @@ export type AddressType = (typeof ADDRESS_TYPES)[number]
 /**
  * Validate and narrow a string to EventStatus
  */
-export function parseEventStatus(
-  v: string | undefined,
-): EventStatus | undefined {
-  return v && EVENT_STATUSES.includes(v as EventStatus)
-    ? (v as EventStatus)
-    : undefined
+export function parseEventStatus(v: string | undefined): EventStatus | undefined {
+  return v && EVENT_STATUSES.includes(v as EventStatus) ? (v as EventStatus) : undefined
 }
 
 /**
  * Validate and narrow a string to AttendeeStatus
  */
-export function parseAttendeeStatus(
-  v: string | undefined,
-): AttendeeStatus | undefined {
-  return v && ATTENDEE_STATUSES.includes(v as AttendeeStatus)
-    ? (v as AttendeeStatus)
-    : undefined
+export function parseAttendeeStatus(v: string | undefined): AttendeeStatus | undefined {
+  return v && ATTENDEE_STATUSES.includes(v as AttendeeStatus) ? (v as AttendeeStatus) : undefined
 }
 
 /**
  * Validate and narrow a string to EmailType
  */
 export function parseEmailType(v: string | undefined): EmailType | undefined {
-  return v && EMAIL_TYPES.includes(v as EmailType)
-    ? (v as EmailType)
-    : undefined
+  return v && EMAIL_TYPES.includes(v as EmailType) ? (v as EmailType) : undefined
 }
 
 /**
  * Validate and narrow a string to PhoneType
  */
 export function parsePhoneType(v: string | undefined): PhoneType | undefined {
-  return v && PHONE_TYPES.includes(v as PhoneType)
-    ? (v as PhoneType)
-    : undefined
+  return v && PHONE_TYPES.includes(v as PhoneType) ? (v as PhoneType) : undefined
 }
 
 /**
  * Validate and narrow a string to AddressType
  */
-export function parseAddressType(
-  v: string | undefined,
-): AddressType | undefined {
-  return v && ADDRESS_TYPES.includes(v as AddressType)
-    ? (v as AddressType)
-    : undefined
+export function parseAddressType(v: string | undefined): AddressType | undefined {
+  return v && ADDRESS_TYPES.includes(v as AddressType) ? (v as AddressType) : undefined
 }

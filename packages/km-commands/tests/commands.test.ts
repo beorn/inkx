@@ -14,29 +14,17 @@ import { taskCommands } from "../src/commands/task.ts"
 import { viewCommands } from "../src/commands/view.ts"
 import { historyCommands } from "../src/commands/history.ts"
 import { tuiCommands } from "../src/commands/tui.ts"
-import {
-  textEditingCommands,
-  detailPaneCommands,
-} from "../src/commands/text-editing.ts"
+import { textEditingCommands, detailPaneCommands } from "../src/commands/text-editing.ts"
 import { blockEditCommands } from "../src/commands/block-edit.ts"
 import { dialogCommands } from "../src/commands/dialog.ts"
-import type {
-  CommandContext,
-  TNode,
-  CommandAction,
-  CommandDef,
-} from "../src/types.ts"
+import type { CommandContext, TNode, CommandAction, CommandDef } from "../src/types.ts"
 
 // ============================================================================
 // Test Helpers
 // ============================================================================
 
 /** Create minimal TNode for testing */
-function createNode(
-  id: string,
-  children: TNode[] = [],
-  opts?: Partial<TNode>,
-): TNode {
+function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): TNode {
   return {
     id,
     type: "section",
@@ -78,9 +66,7 @@ function createContext(overrides?: Partial<CommandContext>): CommandContext {
 }
 
 /** Create context with task node */
-function createTaskContext(
-  status?: "todo" | "wip" | "done" | "dropped" | "blocked",
-): CommandContext {
+function createTaskContext(status?: "todo" | "wip" | "done" | "dropped" | "blocked"): CommandContext {
   const taskNode = createNode("task-node", [], {
     isTask: true,
     task_status: status ?? "todo",
@@ -234,13 +220,10 @@ describe("selectionCommands", () => {
       ["select_toggle", "SELECT_NODE_TOGGLE", "node-1"],
       ["select_add", "SELECT_NODE_ADD", "node-2"],
       ["select_remove", "SELECT_NODE_REMOVE", "node-3"],
-    ] as const)(
-      "%s returns %s when currentNodeId exists",
-      (id, type, nodeId) => {
-        const ctx = createContext({ currentNodeId: nodeId })
-        expectAction(selectionCommands, id, { type, nodeId }, ctx)
-      },
-    )
+    ] as const)("%s returns %s when currentNodeId exists", (id, type, nodeId) => {
+      const ctx = createContext({ currentNodeId: nodeId })
+      expectAction(selectionCommands, id, { type, nodeId }, ctx)
+    })
 
     it.each([["select_toggle"], ["select_add"], ["select_remove"]])(
       "%s returns null when currentNodeId is null",
@@ -282,12 +265,9 @@ describe("editCommands", () => {
       expectAction(editCommands, id, { type })
     })
 
-    it.each([["confirm_move"], ["cancel_move"]])(
-      "%s has move mode restriction",
-      (id) => {
-        expect(findCommand(editCommands, id).modes).toContain("move")
-      },
-    )
+    it.each([["confirm_move"], ["cancel_move"]])("%s has move mode restriction", (id) => {
+      expect(findCommand(editCommands, id).modes).toContain("move")
+    })
   })
 
   describe("shift commands", () => {
@@ -305,12 +285,7 @@ describe("editCommands", () => {
 describe("taskCommands", () => {
   describe("cycle_task_status", () => {
     it("returns null when currentNode is null", () => {
-      expectAction(
-        taskCommands,
-        "cycle_task_status",
-        null,
-        createNullNodeContext(),
-      )
+      expectAction(taskCommands, "cycle_task_status", null, createNullNodeContext())
     })
 
     it("returns null when node is not a task", () => {
@@ -327,11 +302,7 @@ describe("taskCommands", () => {
       ["done", "dropped"],
       ["dropped", "todo"],
     ] as const)("cycles %s -> %s", (from, to) => {
-      const result = executeCommand(
-        taskCommands,
-        "cycle_task_status",
-        createTaskContext(from),
-      ) as CommandAction
+      const result = executeCommand(taskCommands, "cycle_task_status", createTaskContext(from)) as CommandAction
       expect(result).toEqual({
         type: "TASK_SET_STATUS",
         nodeId: "task-node",
@@ -347,32 +318,18 @@ describe("taskCommands", () => {
         }),
         currentNodeId: "task-node",
       })
-      const result = executeCommand(
-        taskCommands,
-        "cycle_task_status",
-        ctx,
-      ) as CommandAction
+      const result = executeCommand(taskCommands, "cycle_task_status", ctx) as CommandAction
       expect((result as { status: string }).status).toBe("todo")
     })
   })
 
   describe("toggle_task_done", () => {
     it("returns null when currentNode is null", () => {
-      expectAction(
-        taskCommands,
-        "toggle_task_done",
-        null,
-        createNullNodeContext(),
-      )
+      expectAction(taskCommands, "toggle_task_done", null, createNullNodeContext())
     })
 
     it("returns null when node is not a task", () => {
-      expectAction(
-        taskCommands,
-        "toggle_task_done",
-        null,
-        createContext({ currentNode: createNode("not-task") }),
-      )
+      expectAction(taskCommands, "toggle_task_done", null, createContext({ currentNode: createNode("not-task") }))
     })
 
     it.each([
@@ -380,11 +337,7 @@ describe("taskCommands", () => {
       ["done", "todo"],
       ["wip", "done"],
     ] as const)("toggles %s -> %s", (from, to) => {
-      const result = executeCommand(
-        taskCommands,
-        "toggle_task_done",
-        createTaskContext(from),
-      ) as CommandAction
+      const result = executeCommand(taskCommands, "toggle_task_done", createTaskContext(from)) as CommandAction
       expect(result).toEqual({
         type: "TASK_SET_STATUS",
         nodeId: "task-node",
@@ -402,12 +355,7 @@ describe("taskCommands", () => {
       ["set_status_dropped", "dropped"],
     ] as const)("%s returns TASK_SET_STATUS with status=%s", (id, status) => {
       const ctx = createContext({ currentNodeId: "node-1" })
-      expectAction(
-        taskCommands,
-        id,
-        { type: "TASK_SET_STATUS", nodeId: "node-1", status },
-        ctx,
-      )
+      expectAction(taskCommands, id, { type: "TASK_SET_STATUS", nodeId: "node-1", status }, ctx)
     })
 
     it.each([
