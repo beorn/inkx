@@ -20,7 +20,6 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 
 import type { Event, KNode, TaskStatus } from "@km/core"
-import { ulid } from "ulid"
 import type { Config } from "./config-object.ts"
 import { loadConfigObject } from "./config-object.ts"
 import type { DataStore, HasDatabase } from "./data-store.ts"
@@ -211,19 +210,8 @@ function summarizeChanges(changes: Partial<KNode>): Record<string, unknown> {
 function createMutationMethods(
   deps: RepoMethodDeps,
   state: { version: number; notify(): void },
-  emitter?: Emitter,
 ) {
   const { dataStore, hooks, childrenCache } = deps
-
-  // Notify filesystem sync (SyncManager) about a mutation.
-  // Bypasses emitter.emit() to avoid double-writing to DB/events.jsonl —
-  // the DataStore mutation already happened above.
-  function notifyFs(event: Omit<Event, "id" | "ts">): void {
-    const fsSync = emitter?.getFsSync()
-    if (!fsSync) return
-    const fullEvent = { id: ulid(), ts: Date.now(), ...event } as Event
-    fsSync.applyEventToFs(fullEvent)
-  }
 
   const mutations = {
     updateNode(id: string, changes: Partial<KNode>) {
@@ -241,12 +229,6 @@ function createMutationMethods(
       state.notify()
       log.info?.(`mutation: update ${id}`, {
         changes: summarizeChanges(changes),
-      })
-      notifyFs({
-        type: "node_updated",
-        actor: "user",
-        target: id,
-        data: changes,
       })
     },
     moveNode(id: string, newParentId: string, position: number) {
@@ -273,12 +255,6 @@ function createMutationMethods(
       hooks?.afterMutation?.(ctx)
       state.notify()
       log.info?.(`mutation: move ${id} → parent=${newParentId} pos=${position}`)
-      notifyFs({
-        type: "node_moved",
-        actor: "user",
-        target: id,
-        data: { parent_id: newParentId, parent_idx: position },
-      })
     },
     deleteNode(id: string) {
       let ctx: MutationContext = { type: "delete", nodeId: id }
@@ -287,25 +263,14 @@ function createMutationMethods(
         if (result?.cancel) throw new Error("Mutation cancelled by hook")
         if (result?.context) ctx = result.context
       }
-      // Capture node data BEFORE deletion — sync handler needs fs_path and type
-      const deletedNode = dataStore.getNode(ctx.nodeId)
-      const deletedParentId = deletedNode?.parent_id ?? null
+      const deletedParentId =
+        dataStore.getNode(ctx.nodeId)?.parent_id ?? null
       dataStore.deleteNode(ctx.nodeId)
       childrenCache.bust(deletedParentId)
       state.version++
       hooks?.afterMutation?.(ctx)
       state.notify()
       log.info?.(`mutation: delete ${id}`)
-      notifyFs({
-        type: "node_deleted",
-        actor: "user",
-        target: id,
-        data: {
-          fs_path: deletedNode?.fs_path,
-          type: deletedNode?.type,
-          parent_id: deletedParentId,
-        },
-      })
     },
     addNode(parentId: string | null, node: Partial<KNode>) {
       let ctx: MutationContext = { type: "add", nodeId: "", node }
@@ -323,11 +288,6 @@ function createMutationMethods(
       log.info?.(`mutation: add ${newId} parent=${parentId}`, {
         type: node.type,
         content: node.content?.slice(0, 80),
-      })
-      notifyFs({
-        type: "node_created",
-        actor: "user",
-        data: { ...node, id: newId },
       })
       return newId
     },
@@ -692,6 +652,24 @@ export interface Repo extends Disposable {
    * @returns Query results as array of objects
    */
   rawQuery<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[]
+
+  // ===========================================================================
+  // Batch mutation helpers
+  // ===========================================================================
+
+  /**
+   * Run a function with FS sync paused.
+   * Mutations inside `fn` write to DB/events.jsonl but skip FS regeneration.
+   * After `fn` completes, call `syncToFs(nodeId)` to regenerate affected files.
+   */
+  withDeferredFs<T>(fn: () => T): T
+
+  /**
+   * Regenerate the .md file that contains `nodeId`.
+   * Walks up the parent chain to find the file node, then writes its subtree.
+   * No-op if the node has no file ancestor or if there's no FsSync configured.
+   */
+  syncToFs(nodeId: string): void
 
   // ===========================================================================
   // Sync and lifecycle
@@ -1123,7 +1101,7 @@ export function* createRepo(
       for (const cb of listeners) cb()
     },
   }
-  const mutationMethods = createMutationMethods(methodDeps, state, emitter)
+  const mutationMethods = createMutationMethods(methodDeps, state)
 
   const repo: Repo = {
     path: rootPath,
@@ -1167,6 +1145,33 @@ export function* createRepo(
     // Spread shared query and mutation methods
     ...queryMethods,
     ...mutationMethods,
+
+    // Batch mutation helpers
+    withDeferredFs(fn) {
+      const prev = emitter.getFsSync()
+      emitter.setFsSync(null)
+      try {
+        return fn()
+      } finally {
+        emitter.setFsSync(prev)
+      }
+    },
+
+    syncToFs(nodeId) {
+      const fsSync = emitter.getFsSync()
+      if (!fsSync) return
+      const node = dataStore.getNode(nodeId)
+      if (!node) return
+      // Synthesize a node_updated event to trigger file regeneration
+      fsSync.applyEventToFs({
+        id: "sync",
+        ts: Date.now(),
+        type: "node_updated",
+        actor: "user",
+        target: nodeId,
+        data: {},
+      } as Event)
+    },
 
     // Full-repo specific methods
     appendTaskToFile(filePath, content, opts) {
@@ -1316,7 +1321,7 @@ export function createBareRepo(
       for (const cb of listeners) cb()
     },
   }
-  const mutationMethods = createMutationMethods(methodDeps, state, emitter)
+  const mutationMethods = createMutationMethods(methodDeps, state)
 
   const repo: Repo = {
     path: repoPath,
@@ -1360,6 +1365,14 @@ export function createBareRepo(
     // Spread shared query and mutation methods
     ...queryMethods,
     ...mutationMethods,
+
+    // Batch mutation helpers (no-op for bare repos — no FS)
+    withDeferredFs(fn) {
+      return fn()
+    },
+    syncToFs() {
+      // No-op: bare repos have no filesystem
+    },
 
     // Bare repo specific methods (throw on file operations)
     appendTaskToFile() {

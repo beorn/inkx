@@ -13,10 +13,9 @@ import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
 const term = createTerm(process)
-import { ulid } from "ulid"
 import { realpathSync } from "fs"
 import { resolve } from "path"
-import { resolvePathArg, emitNodeCreatedWithEmitter } from "@km/storage"
+import { resolvePathArg } from "@km/storage"
 import type { KNode } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -24,6 +23,7 @@ import { loadRepo } from "../load-repo.ts"
 interface AddOptions {
   dryRun?: boolean
   json?: boolean
+  force?: boolean
 }
 
 /** Convert an absolute glob to repo-relative, or throw if outside the repo */
@@ -61,6 +61,7 @@ export const addCommand = new Command("add")
   .argument("<source...>", "Task IDs or query (e.g., ./inbox/**, status:todo)")
   .option("--dry-run", "Preview without making changes")
   .option("--json", "Output as JSON")
+  .option("--force", "Re-add tasks even if already linked on the target board")
   // oxlint-disable-next-line complexity/complexity -- CLI add with query matching and multiple input modes
   .action(async (target: string, sources: string[], options: AddOptions) => {
     // Resolve target path argument - may detect repo root
@@ -169,6 +170,31 @@ export const addCommand = new Command("add")
       actualTarget = defaultColumn
     }
 
+    // Filter out tasks already linked on the target board (unless --force)
+    let skipped: KNode[] = []
+    if (!options.force) {
+      const subtree = repo.getSubtree(targetNode.id)
+      const existingLinkTargets = new Set(
+        subtree.filter((n) => n.link_to).map((n) => n.link_to),
+      )
+      const kept: KNode[] = []
+      for (const t of tasksToAdd) {
+        if (existingLinkTargets.has(t.id)) skipped.push(t)
+        else kept.push(t)
+      }
+      tasksToAdd.length = 0
+      tasksToAdd.push(...kept)
+    }
+
+    if (tasksToAdd.length === 0 && skipped.length > 0) {
+      console.log(
+        term.yellow(
+          `All ${skipped.length} task(s) already linked (use --force to re-add)`,
+        ),
+      )
+      process.exit(0)
+    }
+
     // Use timestamp-based ordering for new items
     let nextIdx = Date.now()
 
@@ -179,28 +205,36 @@ export const addCommand = new Command("add")
           `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
         )
       }
+      if (skipped.length > 0) {
+        console.log(term.yellow(`\nSkipped (already linked):`))
+        for (const task of skipped) {
+          console.log(
+            `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`,
+          )
+        }
+      }
       console.log(
         term.dim(`\nTo: ${targetNode.content || targetNode.fs_path || target}`),
       )
       return
     }
 
-    // Create link nodes in the target (transclusion - tasks stay in original location)
-    for (const task of tasksToAdd) {
-      // Create a link node that points to the original task
-      const linkId = ulid()
-      emitNodeCreatedWithEmitter(repo.emitter, "cli:add", {
-        id: linkId,
-        type: "task",
-        parent_id: actualTarget.id,
-        parent_idx: nextIdx++,
-        link_to: task.id, // Points to the original task
-        // Copy some properties for display purposes
-        content: task.content,
-        task_status: task.task_status,
-        task_mark: task.task_mark,
-      })
-    }
+    // Create link nodes in the target (transclusion - tasks stay in original location).
+    // Defer FS writes to avoid O(n^2) regeneration — one write after all links are added.
+    repo.withDeferredFs(() => {
+      for (const task of tasksToAdd) {
+        repo.addNode(actualTarget.id, {
+          type: "task",
+          parent_idx: nextIdx++,
+          link_to: task.id, // Points to the original task
+          // Copy some properties for display purposes
+          content: task.content,
+          task_status: task.task_status,
+          task_mark: task.task_mark,
+        })
+      }
+    })
+    repo.syncToFs(actualTarget.id)
 
     if (options.json) {
       console.log(
@@ -208,6 +242,7 @@ export const addCommand = new Command("add")
           target: targetNode.id,
           linked: tasksToAdd.map((t) => t.id),
           count: tasksToAdd.length,
+          skipped: skipped.map((t) => t.id),
         }),
       )
       return
@@ -226,5 +261,12 @@ export const addCommand = new Command("add")
     }
     if (tasksToAdd.length > 5) {
       console.log(term.dim(`  ... and ${tasksToAdd.length - 5} more`))
+    }
+    if (skipped.length > 0) {
+      console.log(
+        term.dim(
+          `  Skipped ${skipped.length} already linked (use --force to re-add)`,
+        ),
+      )
     }
   })

@@ -285,11 +285,7 @@ export type { Config } from "./config-object.ts"
 // See: docs/00-principles.md
 export {
   createEmitter,
-  // Helper functions that take emitter as first parameter (PREFERRED)
-  emitNodeCreated as emitNodeCreatedWithEmitter,
-  emitNodeUpdated as emitNodeUpdatedWithEmitter,
-  emitNodeMoved as emitNodeMovedWithEmitter,
-  emitNodeDeleted as emitNodeDeletedWithEmitter,
+  // Helper functions that take emitter as first parameter
   emitTaskClaimed as emitTaskClaimedWithEmitter,
   emitTaskReleased as emitTaskReleasedWithEmitter,
   emitTaskCompleted as emitTaskCompletedWithEmitter,

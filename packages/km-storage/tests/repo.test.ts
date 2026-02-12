@@ -507,6 +507,8 @@ describe("Repo mutations notify FsSync", () => {
       },
     }
 
+    // Ensure .km dir exists so repo enters disk mode (emitter → fsSync pipeline)
+    mkdirSync(join(tempDir, ".km"), { recursive: true })
     const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
     repo.emitter.setFsSync(fsSpy)
     return { repo, events }
