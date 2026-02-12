@@ -133,6 +133,28 @@ export interface LayoutRegistry {
 
   /** Get count of registered cards in a column */
   getCardCount(colIndex: number): number
+
+  // === Deferred navigation (for off-screen columns) ===
+
+  /**
+   * Store a deferred navigation request for an off-screen column.
+   *
+   * When h/l navigation targets a column that's off-screen (no registered
+   * cards), the cursor lands on the column header temporarily. Call
+   * setDeferredResolve() to attach a callback that fires when
+   * registerCard runs for the target column during inkx's Phase 2.7.
+   */
+  setDeferredNavigation(targetColIndex: number, stickyY: number): void
+
+  /**
+   * Attach a resolve callback to the pending deferred navigation.
+   *
+   * Called from handleHorizontalNav (which has access to dispatchBoard).
+   * The callback fires synchronously from registerCard, inside inkx's
+   * act() boundary. React captures the resulting state update and
+   * flushes it in the doRender loop.
+   */
+  setDeferredResolve(resolve: (nodeId: string) => void): void
 }
 
 // =============================================================================
@@ -147,6 +169,10 @@ export function createLayoutRegistry(): LayoutRegistry {
   // Map: nodeId -> NodeLayout
   const nodeLayouts = new Map<string, NodeLayout>()
 
+  // Deferred navigation (for off-screen columns)
+  let deferredNav: { targetColIndex: number; stickyY: number; resolvedNodeId?: string } | null = null
+  let deferredResolve: ((nodeId: string) => void) | null = null
+
   // Map: colIndex -> Map<cardIndex, CardEntry>
   const cardLayouts = new Map<number, Map<number, CardEntry>>()
 
@@ -155,6 +181,38 @@ export function createLayoutRegistry(): LayoutRegistry {
 
   // Sticky X for board/column navigation (column index)
   let stickyX: number | null = null
+
+  // Inner implementation of findCardAtYVisual — shared between the public method
+  // and registerCard's deferred resolution.
+  function findCardAtYVisualImpl(colIndex: number, targetY: number): number {
+    const colMap = cardLayouts.get(colIndex)
+    if (!colMap || colMap.size === 0) return -1
+
+    // First pass: intersection with card box
+    for (const [cardIdx, entry] of colMap) {
+      const cardTop = entry.layout.y
+      const cardBottom = cardTop + entry.layout.cardHeight
+      if (targetY >= cardTop && targetY < cardBottom) return cardIdx
+    }
+
+    // Second pass: closest midpoint
+    let closestIdx = -1
+    let closestDist = Infinity
+    for (const [cardIdx, entry] of colMap) {
+      const cardMid = entry.layout.y + entry.layout.cardHeight / 2
+      const dist = Math.abs(cardMid - targetY)
+      if (dist < closestDist) {
+        closestDist = dist
+        closestIdx = cardIdx
+      }
+    }
+
+    // If above all cards, return -1 for column header
+    const firstCard = colMap.get(0)
+    if (firstCard && targetY < firstCard.layout.y) return -1
+
+    return closestIdx
+  }
 
   return {
     // === Node-level ===
@@ -200,6 +258,24 @@ export function createLayoutRegistry(): LayoutRegistry {
 
       // Also register by node ID for direct lookup
       nodeLayouts.set(nodeId, layout)
+
+      // Resolve deferred navigation when target column's cards are registered.
+      // registerCard fires from inkx's Phase 2.7 (layout subscribers).
+      // We resolve on EVERY registerCard for the target column — each call sees
+      // more registered cards, producing progressively better Y-matching. React
+      // batches all dispatches within the same synchronous pass; the last wins.
+      // We track resolvedNodeId to skip duplicate dispatches (prevents infinite
+      // re-render loops when the same cards re-register on the next pass).
+      if (deferredNav && deferredResolve && deferredNav.targetColIndex === colIndex) {
+        const targetCardIdx = findCardAtYVisualImpl(colIndex, deferredNav.stickyY)
+        if (targetCardIdx >= 0) {
+          const targetEntry = colMap.get(targetCardIdx)
+          if (targetEntry && targetEntry.nodeId !== deferredNav.resolvedNodeId) {
+            deferredNav.resolvedNodeId = targetEntry.nodeId
+            deferredResolve(targetEntry.nodeId)
+          }
+        }
+      }
 
       log.debug?.(`registerCard col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${layout.y}`)
     },
@@ -267,6 +343,9 @@ export function createLayoutRegistry(): LayoutRegistry {
         log.debug?.("clearStickyY")
         stickyY = null
       }
+      // j/k invalidates any pending deferred h/l correction
+      deferredNav = null
+      deferredResolve = null
     },
 
     // === Sticky X ===
@@ -379,6 +458,8 @@ export function createLayoutRegistry(): LayoutRegistry {
       cardLayouts.clear()
       stickyY = null
       stickyX = null
+      deferredNav = null
+      deferredResolve = null
       log.debug?.("cleared all layouts")
     },
 
@@ -389,6 +470,21 @@ export function createLayoutRegistry(): LayoutRegistry {
 
     getCardCount(colIndex: number): number {
       return cardLayouts.get(colIndex)?.size ?? 0
+    },
+
+    // === Deferred navigation ===
+
+    setDeferredNavigation(targetColIndex: number, targetStickyY: number): void {
+      deferredNav = { targetColIndex, stickyY: targetStickyY }
+      deferredResolve = null
+      log.debug?.(`setDeferredNavigation: col=${targetColIndex} stickyY=${targetStickyY}`)
+    },
+
+    setDeferredResolve(resolve: (nodeId: string) => void): void {
+      if (deferredNav) {
+        deferredResolve = resolve
+        log.debug?.(`setDeferredResolve: attached for col=${deferredNav.targetColIndex}`)
+      }
     },
 
     dump(): string {

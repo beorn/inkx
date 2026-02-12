@@ -395,8 +395,11 @@ export function testEnv(
       // state-changing keypress.
       store.setState((s) => s)
     })
-    // Flush remaining React effects via originalPress
-    void originalPress(key)
+    // Flush remaining React effects via originalPress (must be inside act()
+    // so deferred navigation dispatches are processed in this cycle)
+    act(() => {
+      void originalPress(key)
+    })
   }
 
   // Create fluent API using App's auto-refreshing locators

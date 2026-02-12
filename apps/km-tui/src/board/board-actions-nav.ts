@@ -130,6 +130,13 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
     const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
     if (targetId !== null) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
+      // In cards view, attach deferred resolve for off-screen Y-correction.
+      // registerCard will fire it during inkx's Phase 2.7.
+      if (ui.viewMode === "cards") {
+        layoutRegistry.setDeferredResolve((nodeId) => {
+          dispatchBoard({ type: "SELECT", nodeId })
+        })
+      }
       return ok()
     }
   }

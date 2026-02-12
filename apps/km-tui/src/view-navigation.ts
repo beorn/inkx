@@ -204,9 +204,14 @@ function navigateHorizontal(
     }
     // Empty source column → use stickyY if available to find card in target
     const stickyY = layoutRegistry.getStickyY()
-    if (stickyY !== null && layoutRegistry.hasCardsInColumn(targetColIdx)) {
-      const targetCardIdx = layoutRegistry.findCardAtYVisual(targetColIdx, stickyY)
-      return cardAt(targetCards, Math.max(0, targetCardIdx))
+    if (stickyY !== null) {
+      if (layoutRegistry.hasCardsInColumn(targetColIdx)) {
+        const targetCardIdx = layoutRegistry.findCardAtYVisual(targetColIdx, stickyY)
+        return cardAt(targetCards, Math.max(0, targetCardIdx))
+      }
+      // Target column off-screen: start at first card, deferred corrects to Y-match
+      layoutRegistry.setDeferredNavigation(targetColIdx, stickyY)
+      return cardAt(targetCards, 0)
     }
     return targetCol.id
   }
@@ -224,8 +229,10 @@ function navigateHorizontal(
     return cardAt(targetCards, Math.max(0, targetCardIdx))
   }
 
-  // Target column has cards but none are registered in layout (all off-screen).
-  // Use first card as we can't do position matching without rendered cards.
+  // Target column is off-screen (no registered cards). Start at first card;
+  // deferred correction adjusts to the Y-matching card when the column's
+  // cards are registered during the next render cycle (cards view only).
+  layoutRegistry.setDeferredNavigation(targetColIdx, stickyY)
   return cardAt(targetCards, 0)
 }
 
