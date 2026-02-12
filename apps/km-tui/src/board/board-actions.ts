@@ -23,7 +23,7 @@ import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody } from "@km/tree"
-import { clearSelection, progressiveSelectAll, pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, progressiveSelectAll, pushNavHistoryEntry, refreshBoardState } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ViewMode } from "../types.ts"
@@ -212,10 +212,19 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       handleTaskStatusCycle(ctx)
       return ok()
 
-    // === History actions (not yet implemented) ===
-    case "HISTORY_UNDO":
-    case "HISTORY_REDO":
-      return unimplemented("history")
+    // === History actions (undo/redo) ===
+    case "HISTORY_UNDO": {
+      if (!ctx.undoStack.canUndo()) return boundary("undo", "Nothing to undo")
+      ctx.undoStack.undo()
+      refreshBoardState(ctx)
+      return ok()
+    }
+    case "HISTORY_REDO": {
+      if (!ctx.undoStack.canRedo()) return boundary("redo", "Nothing to redo")
+      ctx.undoStack.redo()
+      refreshBoardState(ctx)
+      return ok()
+    }
 
     // === Board/navigation actions ===
     case "CURSOR_MOVE":

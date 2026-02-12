@@ -15,6 +15,7 @@ import type { ColumnsLayout, ColumnState, CardState } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
 import type { ViewNavigation } from "./view-navigation.ts"
+import type { UndoStack } from "./undo-stack.ts"
 
 /**
  * Context for all TUI action handlers.
@@ -65,6 +66,10 @@ export interface ActionCtx {
   setUI: (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
   /** Set foldedNodes (single source of truth at store root) */
   setFoldedNodes: (nodes: Set<string>) => void
+
+  // === Undo/Redo ===
+  /** Undo stack for reversible operations */
+  undoStack: UndoStack
 
   // === Lifecycle ===
   /** Exit the application */

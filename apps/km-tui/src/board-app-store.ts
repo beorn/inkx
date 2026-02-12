@@ -20,6 +20,7 @@ import type { BlockEditTarget } from "./block-edit-target.ts"
 import type { CursorStore } from "./cursor-store.ts"
 import { deriveColumnsFromRepo, buildNodeIndex } from "./hooks/use-columns.ts"
 import { deriveCursorPosition } from "./hooks/use-cursor-position.ts"
+import { createUndoStack, type UndoStack } from "./undo-stack.ts"
 
 // =============================================================================
 // Store Types
@@ -75,6 +76,9 @@ export interface BoardAppState {
 
   // --- Cursor store (lightweight pub/sub, bypasses Zustand for cursor moves) ---
   cursorStore: CursorStore
+
+  // --- Undo/redo stack ---
+  undoStack: UndoStack
 }
 
 /**
@@ -226,6 +230,9 @@ export function createBoardAppStoreState(
 
     // Cursor store
     cursorStore: params.cursorStore,
+
+    // Undo stack
+    undoStack: createUndoStack(),
 
     // --- Board action dispatcher (inlined from boardReducer) ---
 

@@ -94,7 +94,7 @@ export function ListView({
     const map = new Map<number, string[] | undefined>()
     state.columns.forEach((col, cIdx) => {
       const name = renderPlain(getNodeDisplayName(repo, col.node))
-      const sigils = deriveColumnExcludedSigils(name)
+      const sigils = deriveColumnExcludedSigils(name, col.node.id, col.node.fs_path)
       map.set(cIdx, sigils.length > 0 ? sigils : undefined)
     })
     return map

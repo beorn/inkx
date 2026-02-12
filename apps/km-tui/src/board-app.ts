@@ -60,6 +60,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     layoutRegistry: s.layoutRegistry,
     viewNavigation: cardsViewNavigation,
     toastQueue: s.toastQueue,
+    undoStack: s.undoStack,
     selectedNode: s.selectedNode,
     column,
     card,

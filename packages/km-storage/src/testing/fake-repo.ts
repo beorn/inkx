@@ -351,7 +351,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
     addNode(parentId, nodeData) {
       ensureNotClosed()
-      const id = `fake-${nextId++}`
+      const id = nodeData.id ?? `fake-${nextId++}`
       const siblings = this.getChildren(parentId)
       const position = siblings.length
       const now = Date.now()

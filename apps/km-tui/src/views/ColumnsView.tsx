@@ -91,7 +91,10 @@ const ColumnTree = React.memo(function ColumnTree({
   const iconColor = isColumnHeaderSelected ? "black" : icon.color
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
-  const columnExcludedSigils = useMemo(() => deriveColumnExcludedSigils(name), [name])
+  const columnExcludedSigils = useMemo(
+    () => deriveColumnExcludedSigils(name, column.node.id, column.node.fs_path),
+    [name, column.node.id, column.node.fs_path],
+  )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
   // Stable renderCard callback — doesn't depend on cardIndex.

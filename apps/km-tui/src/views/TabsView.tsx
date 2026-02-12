@@ -56,7 +56,10 @@ export function TabsView({
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
   const colName = currentColumn ? renderPlain(getNodeDisplayName(repo, currentColumn.node)) : ""
-  const columnExcludedSigils = useMemo(() => deriveColumnExcludedSigils(colName), [colName])
+  const columnExcludedSigils = useMemo(
+    () => deriveColumnExcludedSigils(colName, currentColumn?.node.id, currentColumn?.node.fs_path),
+    [colName, currentColumn?.node.id, currentColumn?.node.fs_path],
+  )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
   // Column header is selected when at column level

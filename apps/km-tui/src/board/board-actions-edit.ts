@@ -335,6 +335,7 @@ export function handleAddNodeBefore(ctx: ActionCtx): void {
 
 /**
  * Duplicate a node: create a copy immediately after it with the same content and type.
+ * Pushes an undo entry that deletes the new node.
  */
 export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
   const { layout, repo } = ctx
@@ -365,7 +366,19 @@ export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
     newNode.task_mark = sourceNode.task_mark
   }
 
-  repo.addNode(col.node.id, newNode)
+  const parentId = col.node.id
+  const newId = repo.addNode(parentId, newNode)
+
+  // Push undo entry: delete the duplicate
+  ctx.undoStack.push({
+    label: "Duplicate node",
+    undo: () => {
+      repo.deleteNode(newId)
+    },
+    redo: () => {
+      repo.addNode(parentId, { ...newNode, id: newId })
+    },
+  })
 
   refreshBoardState(ctx, {
     cardIndex: currentSibIdx + 1,

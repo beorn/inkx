@@ -79,12 +79,21 @@ export function deriveExcludedSigils(
 }
 
 /**
- * Derive excluded sigils from a column node's display name.
- * If the column name starts with a sigil prefix (@, #, +), that sigil
+ * Derive excluded sigils from a column node's display name, ID, or fs_path.
+ * If any of these starts with a sigil prefix (@, #, +), that sigil
  * should be hidden from cards inside the column (redundant context).
+ *
+ * Example: column file `@next.md` with display name "Next Actions" —
+ * the display name doesn't start with @, but the fs_path does → exclude "@next".
  */
-export function deriveColumnExcludedSigils(columnName: string): string[] {
+export function deriveColumnExcludedSigils(columnName: string, nodeId?: string, fsPath?: string): string[] {
   if (/^[@#\+]/.test(columnName)) return [columnName]
+  if (nodeId && /^[@#\+]/.test(nodeId)) return [nodeId]
+  if (fsPath) {
+    const filename = fsPath.split("/").pop() || ""
+    const name = filename.replace(/\.md$/, "")
+    if (/^[@#\+]/.test(name)) return [name]
+  }
   return []
 }
 

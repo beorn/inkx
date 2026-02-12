@@ -655,8 +655,6 @@ function NodeChildren({
   getBoardPills,
   extraExcludedSigils,
 }: NodeChildrenProps): React.ReactElement {
-  const indent = " ".repeat(depth)
-
   // Apply recursive body extraction: separate body content from structural items
   const { body: bodyChildren, items: structuralChildren } = extractBody(children)
 
@@ -698,9 +696,9 @@ function NodeChildren({
         )
       })}
       {hiddenCount > 0 && (
-        <Text dimColor wrap="truncate">
-          {indent} +{hiddenCount} more
-        </Text>
+        <Box justifyContent="center">
+          <Text dimColor>+{hiddenCount} more</Text>
+        </Box>
       )}
     </Box>
   )
