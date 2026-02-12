@@ -95,6 +95,15 @@ function navigateVertical(
   const isAtColumnLevel = cursorNode.parent_id === rootId && !isAtBoardLevel
   const isAtCardLevel = !isAtBoardLevel && !isAtColumnLevel
 
+  // Resolve sub-card descendants to their card-level ancestor.
+  // After indent, cursorNodeId may point to a node nested inside a card.
+  // j/k must navigate at card level (column children), not at the descendant's sibling level.
+  let cardNodeId = cursorNodeId
+  if (isAtCardLevel) {
+    const cardAncestor = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
+    if (cardAncestor) cardNodeId = cardAncestor
+  }
+
   if (dir === "down") {
     if (isAtBoardLevel) {
       // Board → column header (use stickyX to remember which column)
@@ -111,17 +120,18 @@ function navigateVertical(
     }
 
     if (isAtCardLevel) {
-      // Card → next sibling
-      return getSibling(cursorNodeId, repo, 1)
+      // Card → next sibling (using card-level ancestor)
+      return getSibling(cardNodeId, repo, 1)
     }
   } else {
     // k: move up
     if (isAtCardLevel) {
-      // Try previous sibling first
-      const prev = getSibling(cursorNodeId, repo, -1)
+      // Try previous sibling first (using card-level ancestor)
+      const prev = getSibling(cardNodeId, repo, -1)
       if (prev) return prev
       // At first card → parent (column header)
-      return cursorNode.parent_id
+      const cardNode = repo.getNode(cardNodeId)
+      return cardNode?.parent_id ?? cursorNode.parent_id
     }
 
     if (isAtColumnLevel) {

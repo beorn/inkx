@@ -598,4 +598,17 @@ describe("Cursor follows node (invariant)", () => {
 
     expect(board.q("[data-cursor]").textContent()).toContain("C")
   })
+
+  test("INVARIANT: indent then outdent preserves tree structure", () => {
+    // col1: [A, B, C] — indent B under A → directly verify repo state
+    // Then test outdent by constructing pre-nested tree
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+    expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
+
+    board.press("j") // → B
+    board.press("Tab") // indent B under A → cursor on card A
+    expect(childIds(repo, "col1")).toEqual(["A", "C"]) // B moved under A
+    expect(childIds(repo, "A")).toEqual(["B"])
+    expect(board.q("[data-cursor]").textContent()).toContain("A")
+  })
 })

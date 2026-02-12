@@ -188,9 +188,11 @@ export function indentNode(ctx: ActionCtx, card: CardState): boolean {
 
   if (!canIndent(ctx, card)) return false
 
-  const newParentId = executeIndent(ctx, card)
-  // Cursor goes to the parent card (the previous sibling the node was indented under)
-  ctx.dispatchBoard({ type: "SELECT", nodeId: newParentId ?? card.node.id })
+  executeIndent(ctx, card)
+  // Cursor follows the indented node. nodeIndex maps descendants to their
+  // containing card, so visual cursor lands on the parent card. Navigation
+  // resolves sub-card nodes to card level (see navigateVertical).
+  ctx.dispatchBoard({ type: "SELECT", nodeId: card.node.id })
   return true
 }
 
@@ -235,18 +237,17 @@ function canOutdent(ctx: ActionCtx, card: CardState): boolean {
 
 // --- Indent/Outdent Execution ---
 
-/** Execute indent for a single card (no validation, no refresh).
- * Returns the new parent ID (previous sibling) for cursor tracking. */
-function executeIndent(ctx: ActionCtx, card: CardState): string | null {
+/** Execute indent for a single card (no validation, no refresh). */
+function executeIndent(ctx: ActionCtx, card: CardState): void {
   const parentId = card.node.parent_id
-  if (!parentId) return null
+  if (!parentId) return
 
   const siblings = ctx.repo.getChildren(parentId)
   const myIndex = indexOfChild(siblings, card.node.id)
-  if (myIndex <= 0) return null
+  if (myIndex <= 0) return
 
   const prevSibling = siblings[myIndex - 1]
-  if (!prevSibling) return null
+  if (!prevSibling) return
   const newParentId = prevSibling.id
 
   const newParentChildren = ctx.repo.getChildren(newParentId)
@@ -254,7 +255,6 @@ function executeIndent(ctx: ActionCtx, card: CardState): string | null {
   const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0
 
   ctx.repo.moveNode(card.node.id, newParentId, newSortOrder)
-  return newParentId
 }
 
 /** Execute outdent for a single card (no validation, no refresh) */
@@ -306,14 +306,12 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sele
     return indexOfChild(siblingsB, b.node.id) - indexOfChild(siblingsA, a.node.id)
   })
 
-  let firstNewParentId: string | null = null
   for (const card of sortedCards) {
-    const newParentId = executeIndent(ctx, card)
-    if (!firstNewParentId) firstNewParentId = newParentId
+    executeIndent(ctx, card)
   }
 
-  // Cursor goes to the parent card of the first indented card
-  ctx.dispatchBoard({ type: "SELECT", nodeId: firstNewParentId ?? cards[0]!.node.id })
+  // Cursor follows first indented card (resolves to parent card via nodeIndex)
+  ctx.dispatchBoard({ type: "SELECT", nodeId: cards[0]!.node.id })
   clearSelection(ctx)
   return true
 }
