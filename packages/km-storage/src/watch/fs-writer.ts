@@ -23,7 +23,7 @@ import type { Event, KNode } from "@km/core"
 import type { Emitter, FsSync } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../path-utils.ts"
 import { getIgnorePatterns } from "../ignore.ts"
-import { getNode, getSubtree, nodesToMarkdown } from "../index.ts"
+import { getAllNodes, getNode, getSubtree, nodesToMarkdown } from "../index.ts"
 import { shouldApplyToFs } from "./writequeue.ts"
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
 
@@ -95,8 +95,8 @@ export class FsWriter implements FsSync {
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
     this.reconcileIfChanged(fileNode)
 
-    const allNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(allNodes)
+    const subtreeNodes = getSubtree(this.db, fileNode.id)
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
     this.writeSync(absPath, content)
   }
 
@@ -120,8 +120,8 @@ export class FsWriter implements FsSync {
       if (!fileNode?.fs_path) return
       this.reconcileIfChanged(fileNode)
       const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
-      const allNodes = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(allNodes)
+      const subtreeNodes = getSubtree(this.db, fileNode.id)
+      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
       this.writeSync(absPath, content)
     }
   }
@@ -156,8 +156,8 @@ export class FsWriter implements FsSync {
     this.reconcileIfChanged(fileNode)
 
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
-    const allNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(allNodes)
+    const subtreeNodes = getSubtree(this.db, fileNode.id)
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
     this.writeSync(absPath, content)
   }
 

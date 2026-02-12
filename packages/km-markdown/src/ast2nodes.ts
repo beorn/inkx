@@ -397,10 +397,7 @@ function convertListItem(
 /**
  * Check if text is purely an embedding (nothing but ![[...]])
  * Returns the embedding text if so, null otherwise
- *
- * TODO: Used in Phase 2 of km-xexz for target resolution
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getEmbeddingText(text: string): string | null {
   const trimmed = text.trim()
   // Match ![[...]] with optional section/blockId/alias
@@ -428,8 +425,19 @@ function convertBlock(
     case "paragraph": {
       type = "paragraph"
       content = nodeToText(block)
-      // TODO: When embedding detected (getEmbeddingText), resolve target and set link_to
-      // This requires Phase 2 of km-xexz (target resolution)
+      // Detect embedding syntax ![[...]] and store target for reconciliation
+      const embeddingText = getEmbeddingText(content)
+      if (embeddingText) {
+        const embMatch = embeddingText.match(
+          /^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:\^[^\]|]+)?(?:\|([^\]]+))?\]\]$/,
+        )
+        if (embMatch?.[1]) {
+          data.embeddingTarget = embMatch[1].trim()
+          if (embMatch[2]) {
+            data.embeddingAlias = embMatch[2].trim()
+          }
+        }
+      }
       break
     }
 
@@ -589,6 +597,16 @@ function mergeH1IntoFileNode(
   for (const child of filtered) {
     if (child.parent_id === h1Section.id) {
       child.parent_id = fileNode.id
+    }
+  }
+
+  // Renumber direct children of file for consistent indexing after merge.
+  // Without this, children keep their original AST sortOrder (which skipped
+  // index 0 for the removed H1), causing structural key mismatches in the differ.
+  let idx = 0
+  for (const child of filtered) {
+    if (child.parent_id === fileNode.id) {
+      child.parent_idx = idx++
     }
   }
 

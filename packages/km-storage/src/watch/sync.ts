@@ -474,8 +474,8 @@ export class SyncManager extends EventEmitter {
     this.reconcileIfChanged(fileNode)
 
     // Regenerate the file from (now-updated) DB state
-    const allNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(allNodes)
+    const subtreeNodes = getSubtree(this.db, fileNode.id)
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
 
     this.writeQueue.queue({
       path: absPath,
@@ -664,8 +664,8 @@ export class SyncManager extends EventEmitter {
         : null
       if (fileNode?.fs_path) {
         const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
-        const allNodes = getSubtree(this.db, fileNode.id)
-        const content = nodesToMarkdown(allNodes)
+        const subtreeNodes = getSubtree(this.db, fileNode.id)
+        const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
         this.writeQueue.queue({
           path: absPath,
           content,
@@ -695,8 +695,8 @@ export class SyncManager extends EventEmitter {
       this.reconcileIfChanged(fileNode)
 
       const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
-      const allNodes = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(allNodes)
+      const subtreeNodes = getSubtree(this.db, fileNode.id)
+      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
 
       this.writeQueue.queue({
         path: absPath,
@@ -862,7 +862,7 @@ export class SyncManager extends EventEmitter {
         if (fileNode) {
           const absPath = toAbsoluteFsPath(this.config.repoPath, filePath)
           const subtree = getSubtree(this.db, fileNode.id)
-          const content = nodesToMarkdown(subtree)
+          const content = nodesToMarkdown(subtree, getAllNodes(this.db))
           this.writeQueue.queue({
             path: absPath,
             content,
@@ -903,7 +903,7 @@ export class SyncManager extends EventEmitter {
       if (!fileNode.fs_path) continue
       const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
       const subtree = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(subtree)
+      const content = nodesToMarkdown(subtree, nodes)
 
       this.writeQueue.queue({
         path: absPath,

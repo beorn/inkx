@@ -90,6 +90,16 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
 
       // Check for changes
       const nodeChanges = diffNodeFields(existingNode, node, CHILD_DIFF_FIELDS)
+
+      // Preserve link_to/link_alias from existing node — parser can't resolve
+      // ![[...]] to link_to, so re-parsing would clear programmatic embeddings
+      if (existingNode.link_to && !node.link_to) {
+        delete nodeChanges.link_to
+      }
+      if (existingNode.link_alias && !node.link_alias) {
+        delete nodeChanges.link_alias
+      }
+
       if (Object.keys(nodeChanges).length > 0) {
         changes.push({
           type: "updated",
@@ -136,6 +146,12 @@ const CHILD_DIFF_FIELDS = [
   "task_status",
   "task_mark",
   "md_pos",
+  "due_date",
+  "scheduled_date",
+  "priority",
+  "link_to",
+  "link_alias",
+  "title",
 ] as const
 
 /** Fields to compare for file nodes */

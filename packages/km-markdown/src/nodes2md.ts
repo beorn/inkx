@@ -22,15 +22,20 @@ interface SerializeContext {
 /**
  * Convert nodes to markdown
  */
-export function nodesToMarkdown(nodes: KNode[]): string {
+export function nodesToMarkdown(
+  nodes: KNode[],
+  lookupNodes?: KNode[],
+): string {
   log.debug?.(`nodesToMarkdown: ${nodes.length} nodes`)
   if (nodes.length === 0) {
     return ""
   }
 
-  // Build tree structure and node lookup map
+  // Build tree structure from file's subtree, but use broader lookup for
+  // embedding target resolution (targets may be in other files)
   const tree = buildNodeTree(nodes)
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]))
+  const mapSource = lookupNodes ?? nodes
+  const nodeMap = new Map(mapSource.map((n) => [n.id, n]))
   const ctx: SerializeContext = { tree, nodeMap }
 
   // Find root node (file node)
