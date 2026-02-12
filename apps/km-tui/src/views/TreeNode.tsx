@@ -298,6 +298,12 @@ function TreeNodeImpl({
       const { mark } = extractTitleTaskMark(originalContent)
       const newContent = mark != null ? `[${mark}] ${newValue}` : newValue
 
+      // No-op: value didn't change
+      if (newContent === originalContent) {
+        setUI({ inlineEditBlock: null })
+        return
+      }
+
       // Only do a full rename if name was already in sync with content (or unset).
       // e.g., "@next" (name) vs "Next Actions" (title) → different → just update content.
       // e.g., "My Task" (name) vs "My Task" (content) → same → rename keeps them in sync.

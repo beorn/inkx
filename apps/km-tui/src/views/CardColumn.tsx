@@ -288,6 +288,13 @@ export const Column = React.memo(function Column({
       const node = repo.getNode(nodeId)
       const oldName = node?.name ?? ""
       const oldContent = (node?.content ?? "").replace(/^- \[.\]\s*/, "")
+
+      // No-op: value didn't change
+      if (newValue === (oldContent || oldName)) {
+        setUI({ inlineEditBlock: null })
+        return
+      }
+
       const nameMatchedContent = !oldName || oldName === oldContent
 
       if (nameMatchedContent) {
