@@ -38,6 +38,13 @@ export function createCursorStore(initial: CursorState): CursorStore {
       return state
     },
     setState(next: CursorState) {
+      // DEBUG: Track cursor store changes for km-e3rwl investigation
+      const _debugTopBar = (globalThis as any).__inkx_debug_topbar
+      if (_debugTopBar) {
+        const err = new Error()
+        const stack = err.stack?.split("\n").slice(1, 4).map((l: string) => l.trim()).join(" | ") ?? ""
+        _debugTopBar.push(`[CURSOR] col=${next.colIndex} card=${next.cardIndex} level=${next.selectionLevel} node=${next.cursorNodeId} from: ${stack}`)
+      }
       state = next
       version++
       for (const listener of listeners) {
