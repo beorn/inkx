@@ -4,7 +4,7 @@
  * Measures WALL-CLOCK time around board.press() AND per-phase pipeline timing.
  * board.press() includes: handleKey → React reconcile → render pipeline (×2 calls).
  *
- * Run: bun vitest run apps/km-tui/tests/cursor-profile.test.ts
+ * Run: bun vitest run apps/km-tui/tests/profile-cursor.ts
  */
 
 import { test, expect, beforeAll } from "vitest"
