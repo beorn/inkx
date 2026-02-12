@@ -51,8 +51,7 @@ function createPRNG(seed: number) {
 
 const NAV_KEYS = ["j", "k", "h", "l", "g", "G", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "<", ">"]
 
-// Skipped: pre-existing inkx incremental rendering bug. See bead km-e3rwl.
-describe.skip("breadcrumb stale after h/l navigation", () => {
+describe("breadcrumb stale after h/l navigation", () => {
   // Fuzz-style: random nav keys, check incremental vs fresh after each h/l
   for (const seed of [42, 1337, 2024, 9999, 31415]) {
     test(`incremental render matches fresh after h/l nav (seed=${seed})`, () => {

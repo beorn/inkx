@@ -124,32 +124,46 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
   let rules: NodeRules | undefined
 
   if (hasChildren) {
-    // Extract rules from column name
-    const limitMatch = content.match(/\blimit=(\d+)\b/)
-    const collapseMatch = content.match(/\bcollapse=(true|false)\b/)
-    const defaultMatch = content.match(/\bdefault=(true|false)\b/)
-    const syncMatch = content.match(/\bsync=([^\s]+)\b/)
-    const addMatch = content.match(/\badd=([^\s]+)\b/)
-    const colorMatch = content.match(/\bcolor=([^\s]+)\b/)
+    // Generic key=value extraction from column name
+    const regex = /`?(\w[\w-]*)=(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))`?/gi
+    const addValues: string[] = []
+    let match
+    while ((match = regex.exec(content)) !== null) {
+      const key = match[1]!
+      const value = match[2] ?? match[3] ?? match[4]!
+      if (!rules) rules = {}
+      switch (key) {
+        case "add":
+          addValues.push(value)
+          break
+        case "sync":
+          rules.sync = value
+          break
+        case "collapse":
+          if (value === "true") rules.collapse = true
+          break
+        case "limit":
+          rules.limit = Number.parseInt(value, 10)
+          break
+        case "default":
+          if (value === "true") rules.default = true
+          break
+        case "color":
+          rules.color = value
+          break
+      }
+    }
+    if (addValues.length === 1) {
+      if (!rules) rules = {}
+      rules.add = addValues[0]
+    } else if (addValues.length > 1) {
+      if (!rules) rules = {}
+      rules.add = addValues
+    }
 
-    if (limitMatch || collapseMatch || defaultMatch || syncMatch || addMatch || colorMatch) {
-      rules = {}
-      if (limitMatch) rules.limit = Number.parseInt(limitMatch[1] ?? "0", 10)
-      if (collapseMatch) rules.collapse = collapseMatch[1] === "true"
-      if (defaultMatch) rules.default = defaultMatch[1] === "true"
-      if (syncMatch) rules.sync = syncMatch[1] ?? ""
-      if (addMatch) rules.add = addMatch[1] ?? ""
-      if (colorMatch) rules.color = colorMatch[1] ?? ""
-
-      // Remove rules from content to get clean name
-      cleanContent = content
-        .replace(/\blimit=\d+\b/, "")
-        .replace(/\bcollapse=(true|false)\b/, "")
-        .replace(/\bdefault=(true|false)\b/, "")
-        .replace(/\bsync=[^\s]+\b/, "")
-        .replace(/\badd=[^\s]+\b/, "")
-        .replace(/\bcolor=[^\s]+\b/, "")
-        .trim()
+    if (rules) {
+      // Remove key=value patterns from content to get clean name
+      cleanContent = content.replace(/`?(\w[\w-]*)=(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))`?/gi, "").trim()
     }
   }
 
@@ -395,11 +409,13 @@ export function testEnv(
       // state-changing keypress.
       store.setState((s) => s)
     })
-    // Flush remaining React effects via originalPress (must be inside act()
-    // so deferred navigation dispatches are processed in this cycle)
-    act(() => {
-      void originalPress(key)
-    })
+    // Flush remaining React effects via originalPress.
+    // IMPORTANT: Do NOT wrap in act() — sendInput + doRender have their own
+    // act() calls internally. Wrapping in an outer act() makes doRender's
+    // inner act() a nested no-op, preventing React from flushing between
+    // pipeline iterations. This breaks the deferred resolve pattern (Phase 2.7
+    // cursor Y-correction) which needs React to commit between iterations.
+    void originalPress(key)
   }
 
   // Create fluent API using App's auto-refreshing locators
@@ -585,11 +601,11 @@ export function testEnvWithRepo(
     act(() => {
       handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
     })
-    // Flush remaining React effects via originalPress (must be inside act()
-    // to avoid ConcurrentRoot scheduling issues that corrupt absolute-positioned dialogs)
-    act(() => {
-      void originalPress(key)
-    })
+    // Flush remaining React effects via originalPress.
+    // IMPORTANT: Do NOT wrap in act() — sendInput + doRender have their own
+    // act() calls internally. Wrapping in an outer act() prevents React from
+    // flushing between pipeline iterations (breaks deferred resolve pattern).
+    void originalPress(key)
   }
 
   // Create fluent API with disposable pattern

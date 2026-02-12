@@ -671,6 +671,34 @@ describe("parseHeadingRules", () => {
     expect(result.rules.limit).toBe(10)
     expect(result.rules.collapse).toBe(true)
   })
+
+  test("should accumulate multiple add= into array", () => {
+    const result = parseHeadingRules('Inbox add="./inbox/**" add="/some/external/path/**" default=true')
+    expect(result.title).toBe("Inbox")
+    expect(result.rules.add).toEqual(["./inbox/**", "/some/external/path/**"])
+    expect(result.rules.default).toBe(true)
+  })
+
+  test("single add= stays string (backward compat)", () => {
+    const result = parseHeadingRules('Ready add="status:todo"')
+    expect(result.title).toBe("Ready")
+    expect(result.rules.add).toBe("status:todo")
+    expect(typeof result.rules.add).toBe("string")
+  })
+
+  test("should warn on duplicate singleton keys", () => {
+    const result = parseHeadingRules("Title color=cyan color=magenta")
+    expect(result.title).toBe("Title")
+    expect(result.rules.color).toBe("magenta") // last value wins
+    expect(result.warnings).toEqual(['duplicate key "color" — last value wins'])
+  })
+
+  test("should handle unknown key=value (stripped from title)", () => {
+    const result = parseHeadingRules("Title custom=hello color=cyan")
+    expect(result.title).toBe("Title")
+    expect(result.rules.color).toBe("cyan")
+    // unknown key "custom" is stripped from title but otherwise ignored
+  })
 })
 
 describe("Section title and rules parsing", () => {

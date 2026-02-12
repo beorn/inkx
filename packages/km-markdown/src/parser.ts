@@ -57,11 +57,10 @@ const SCHED_INLINE_REGEX = /\bstart:(\d{4}-\d{2}-\d{2})\b/
 const RECURRENCE_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/
 const PRIORITY_INLINE_REGEX = /\bp:([1-9])\b/
 
-// km-fast-md.4: Single-pass heading rules regex
-// Matches: add="query", sync=value, collapse=true, limit=N, default=true, removed=true, color=value
-// Also handles backtick-wrapped versions: `add="query"`
-const HEADING_RULE_REGEX =
-  /`?(?:add=["']([^"']+)["']|sync=["']?([^\s"'`]+)["']?|collapse=(true)|limit=(\d+)|default=(true)|removed=(true)|color=["']?([^\s"'`]+)["']?)`?/gi
+// Generic key=value regex for heading rules
+// Matches: key="value with spaces", key='value', key=simple_value, `key="value"`
+// Supports any key name — known keys are mapped to typed SectionRules fields
+const KEY_VALUE_REGEX = /`?(\w[\w-]*)=(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))`?/gi
 
 /**
  * Extended ListItem with task mark
@@ -296,7 +295,7 @@ export function parseTaskMetadata(text: string): {
  * Section/column rules parsed from inline attributes
  */
 export interface SectionRules {
-  add?: string // Query to auto-pull matching tasks
+  add?: string | string[] // Query to auto-pull matching tasks (multiple allowed)
   sync?: string // Bidirectional field sync (e.g., "status:blocked")
   collapse?: boolean // Start collapsed
   limit?: number // WIP limit
@@ -311,6 +310,7 @@ export interface SectionRules {
 export interface ParsedHeading {
   title: string // Clean title without rules
   rules: SectionRules // Extracted rules
+  warnings?: string[] // Duplicate singleton keys, unknown keys, etc.
 }
 
 /**
@@ -322,54 +322,70 @@ export interface ParsedHeading {
  */
 export function parseHeadingRules(text: string): ParsedHeading {
   const rules: SectionRules = {}
+  const addValues: string[] = []
+  const warnings: string[] = []
 
-  // km-fast-md.4: Single-pass extraction of all rules
-  // Reset lastIndex since it's global
-  HEADING_RULE_REGEX.lastIndex = 0
+  // Track which singleton keys we've seen, to warn on duplicates
+  const seenKeys = new Set<string>()
+  // Keys that allow multiple values (accumulated into arrays)
+  const multiKeys = new Set(["add"])
+
+  // Generic key=value extraction — reset lastIndex since it's global
+  KEY_VALUE_REGEX.lastIndex = 0
 
   // Track matched ranges for title extraction
   const matchedRanges: Array<{ start: number; end: number }> = []
 
   let match
-  while ((match = HEADING_RULE_REGEX.exec(text)) !== null) {
-    // Track where this match is for title cleanup
+  while ((match = KEY_VALUE_REGEX.exec(text)) !== null) {
+    const key = match[1]!
+    const value = match[2] ?? match[3] ?? match[4]!
+
     matchedRanges.push({
       start: match.index,
       end: match.index + match[0].length,
     })
 
-    // add="query"
-    if (match[1]) {
-      rules.add = match[1]
+    // Warn on duplicate singleton keys (add is multi-valued, so skip it)
+    if (!multiKeys.has(key) && seenKeys.has(key)) {
+      warnings.push(`duplicate key "${key}" — last value wins`)
     }
-    // sync=value
-    if (match[2]) {
-      rules.sync = match[2]
-    }
-    // collapse=true
-    if (match[3]) {
-      rules.collapse = true
-    }
-    // limit=N
-    if (match[4]) {
-      rules.limit = parseInt(match[4], 10)
-    }
-    // default=true
-    if (match[5]) {
-      rules.default = true
-    }
-    // removed=true
-    if (match[6]) {
-      rules.removed = true
-    }
-    // color=value
-    if (match[7]) {
-      rules.color = match[7]
+    seenKeys.add(key)
+
+    switch (key) {
+      case "add":
+        addValues.push(value)
+        break
+      case "sync":
+        rules.sync = value
+        break
+      case "collapse":
+        if (value === "true") rules.collapse = true
+        break
+      case "limit":
+        rules.limit = parseInt(value, 10)
+        break
+      case "default":
+        if (value === "true") rules.default = true
+        break
+      case "removed":
+        if (value === "true") rules.removed = true
+        break
+      case "color":
+        rules.color = value
+        break
+      // Unknown keys: stripped from title but otherwise ignored
     }
   }
 
-  // Extract title by removing matched rules
-  // Build title from non-matched portions
+  // Single add stays string for backward compat, multiple becomes array
+  if (addValues.length === 1) {
+    rules.add = addValues[0]
+  } else if (addValues.length > 1) {
+    rules.add = addValues
+  }
+
+  // Extract title by removing matched key=value ranges
   let title = ""
   let lastEnd = 0
   for (const range of matchedRanges) {
@@ -379,7 +395,7 @@ export function parseHeadingRules(text: string): ParsedHeading {
   title += text.slice(lastEnd)
   title = title.replace(/\s+/g, " ").trim()
 
-  return { title, rules }
+  return { title, rules, ...(warnings.length > 0 ? { warnings } : {}) }
 }
 
 /**

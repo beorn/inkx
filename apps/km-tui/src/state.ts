@@ -283,38 +283,42 @@ function normalizeColumnName(name: string): string {
 }
 
 /**
- * Parse column rules from heading content
+ * Parse column rules from heading content using generic key=value matching.
  * Format: "## Column Name add=\"query\" sync=field:value collapse=true limit=3"
  */
 export function parseColumnRules(content: string): ColumnRules {
   const rules: ColumnRules = {}
+  const addValues: string[] = []
 
-  // Parse add="query"
-  const addMatch = content.match(/\badd=["']([^"']+)["']/)
-  if (addMatch) {
-    rules.add = addMatch[1]
+  const regex = /`?(\w[\w-]*)=(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))`?/gi
+  let match
+  while ((match = regex.exec(content)) !== null) {
+    const key = match[1]!
+    const value = match[2] ?? match[3] ?? match[4]!
+
+    switch (key) {
+      case "add":
+        addValues.push(value)
+        break
+      case "sync":
+        rules.sync = value
+        break
+      case "collapse":
+        if (value === "true") rules.collapse = true
+        break
+      case "limit":
+        rules.limit = parseInt(value, 10)
+        break
+      case "default":
+        if (value === "true") rules.default = true
+        break
+    }
   }
 
-  // Parse sync=field:value (no quotes needed for simple values)
-  const syncMatch = content.match(/\bsync=["']?([^\s"']+)["']?/)
-  if (syncMatch) {
-    rules.sync = syncMatch[1]
-  }
-
-  // Parse collapse=true
-  if (/\bcollapse=true\b/i.test(content)) {
-    rules.collapse = true
-  }
-
-  // Parse limit=N
-  const limitMatch = content.match(/\blimit=(\d+)/)
-  if (limitMatch) {
-    rules.limit = parseInt(limitMatch[1] || "0", 10)
-  }
-
-  // Parse default=true
-  if (/\bdefault=true\b/i.test(content)) {
-    rules.default = true
+  if (addValues.length === 1) {
+    rules.add = addValues[0]
+  } else if (addValues.length > 1) {
+    rules.add = addValues
   }
 
   return rules

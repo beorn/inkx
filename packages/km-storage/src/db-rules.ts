@@ -96,9 +96,10 @@ function evaluateRulesForNode(db: Database, node: KNode, ctx: RuleContext): void
   const rules = node.rules
   if (!rules) return
 
-  // Evaluate add= rule
+  // Evaluate add= rule(s) — may be a single string or array of queries
   if (rules.add) {
-    evaluateAddRule(db, node.id, rules.add, ctx)
+    const queries = Array.isArray(rules.add) ? rules.add : [rules.add]
+    evaluateAddRule(db, node.id, queries, ctx)
   }
 
   // Future: evaluate sync= rule
@@ -108,12 +109,13 @@ function evaluateRulesForNode(db: Database, node: KNode, ctx: RuleContext): void
 }
 
 /**
- * Evaluate an add= rule and materialize results as embed nodes.
+ * Evaluate add= rule(s) and materialize results as embed nodes.
  * Creates embed nodes as children of the section, which get written back to markdown.
- * Removes embeds that no longer match the query (e.g., after status change).
+ * Removes embeds that no longer match any query (e.g., after status change).
+ * Multiple queries are unioned — a node matching any query is included.
  */
-function evaluateAddRule(db: Database, sectionId: string, query: string, ctx: RuleContext): void {
-  log.debug?.(`evaluateAddRule: section=${sectionId} query=${query}`)
+function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx: RuleContext): void {
+  log.debug?.(`evaluateAddRule: section=${sectionId} queries=${queries.join(" | ")}`)
 
   const section = getNode(db, sectionId)
   if (!section) {
@@ -124,10 +126,16 @@ function evaluateAddRule(db: Database, sectionId: string, query: string, ctx: Ru
   // Clear existing add-rule links from this section (for backward compat)
   removeLinksFromSourceByRelationship(db, sectionId, ADD_RULE_RELATIONSHIP)
 
-  // Evaluate query
-  const matchingNodes = queryNodes(db, query)
-  const matchingIds = new Set(matchingNodes.map((n) => n.id))
-  log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches`)
+  // Evaluate all queries and union results (deduplicate by node ID)
+  const matchingMap = new Map<string, KNode>()
+  for (const query of queries) {
+    for (const node of queryNodes(db, query)) {
+      matchingMap.set(node.id, node)
+    }
+  }
+  const matchingNodes = [...matchingMap.values()]
+  const matchingIds = new Set(matchingMap.keys())
+  log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches across ${queries.length} queries`)
 
   // Remove embeds that no longer match the query
   const existingEmbedNodes = getChildren(db, sectionId).filter((n) => n.type === "embed" && n.link_to)
@@ -434,7 +442,8 @@ export function onNodeChanged(
 
   for (const node of nodesWithAddRule) {
     if (node.rules?.add) {
-      evaluateAddRule(db, node.id, node.rules.add, ctx)
+      const queries = Array.isArray(node.rules.add) ? node.rules.add : [node.rules.add]
+      evaluateAddRule(db, node.id, queries, ctx)
     }
   }
 }

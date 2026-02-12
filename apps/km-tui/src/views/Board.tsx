@@ -9,7 +9,7 @@
  * State lives in the BoardAppStore (Zustand). Keys flow through term:key handler
  * in board-app.ts. Board is a pure view that reads state and pushes derived layout.
  */
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Box, Text, useApp, useStdout, ErrorBoundary, type PatchedConsole } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
 import { createLogger } from "@beorn/logger"
@@ -655,11 +655,7 @@ export function Board({ patchedConsole }: BoardProps) {
     selectedNode: KNode | null
     selectionLevel: string
   } | null>(null)
-  // useLayoutEffect (not useEffect): synchronous commit ensures cursorStore
-  // is updated BEFORE the inkx render pipeline runs. With useEffect, the update
-  // was deferred until after doRender() — causing stale breadcrumb text in the
-  // incremental buffer (km-e3rwl).
-  useLayoutEffect(() => {
+  useEffect(() => {
     const last = lastLayoutRef.current
     if (
       last &&

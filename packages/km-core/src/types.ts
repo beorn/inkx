@@ -123,7 +123,7 @@ export type Source =
 // =============================================================================
 
 export interface NodeRules {
-  add?: string // Query to auto-pull matching tasks
+  add?: string | string[] // Query to auto-pull matching tasks (multiple allowed)
   sync?: string // Bidirectional field sync (e.g., "status:blocked")
   collapse?: boolean // Start collapsed
   limit?: number // WIP limit
