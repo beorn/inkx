@@ -125,10 +125,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "CLOSE_OR_QUIT":
       return handleCloseOrQuit(ctx)
     case "INDENT_NODE":
-      if (card) indentNode(ctx, card)
+      if (!card) return boundary("indent", "No card to indent")
+      if (!indentNode(ctx, card)) return boundary("indent", "Can't indent further")
       return ok()
     case "OUTDENT_NODE":
-      if (card) outdentNode(ctx, card)
+      if (!card) return boundary("outdent", "No card to outdent")
+      if (!outdentNode(ctx, card)) return boundary("outdent", "Can't outdent further")
       return ok()
     case "NAV_SIBLING_BOARD":
       return handleNavSiblingBoard(ctx, action.direction)

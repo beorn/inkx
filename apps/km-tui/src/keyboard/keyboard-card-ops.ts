@@ -175,44 +175,41 @@ export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "le
 // Indent/Outdent
 // =============================================================================
 
-/** Indent node: reparent under previous sibling (make it last child) */
-export function indentNode(ctx: ActionCtx, card: CardState): void {
+/** Indent node: reparent under previous sibling (make it last child).
+ * Returns true if indent succeeded, false if blocked (caller should bell). */
+export function indentNode(ctx: ActionCtx, card: CardState): boolean {
   const col = ctx.layout.columns[ctx.layout.colIndex]
-  if (!col) return
+  if (!col) return false
 
   const selectedIndices = getSelectedCardIndices(ctx)
   if (selectedIndices.length > 1) {
-    indentNodesAtomically(ctx, col, selectedIndices)
-    return
+    return indentNodesAtomically(ctx, col, selectedIndices)
   }
 
-  if (!canIndent(ctx, card)) {
-    process.stdout.write("\x07")
-    return
-  }
+  if (!canIndent(ctx, card)) return false
 
-  executeIndent(ctx, card)
-  refreshBoardState(ctx)
+  const newParentId = executeIndent(ctx, card)
+  // Cursor goes to the parent card (the previous sibling the node was indented under)
+  ctx.dispatchBoard({ type: "SELECT", nodeId: newParentId ?? card.node.id })
+  return true
 }
 
-/** Outdent node: make it a sibling of its parent */
-export function outdentNode(ctx: ActionCtx, card: CardState): void {
+/** Outdent node: make it a sibling of its parent.
+ * Returns true if outdent succeeded, false if blocked (caller should bell). */
+export function outdentNode(ctx: ActionCtx, card: CardState): boolean {
   const col = ctx.layout.columns[ctx.layout.colIndex]
-  if (!col) return
+  if (!col) return false
 
   const selectedIndices = getSelectedCardIndices(ctx)
   if (selectedIndices.length > 1) {
-    outdentNodesAtomically(ctx, col, selectedIndices)
-    return
+    return outdentNodesAtomically(ctx, col, selectedIndices)
   }
 
-  if (!canOutdent(ctx, card)) {
-    process.stdout.write("\x07")
-    return
-  }
+  if (!canOutdent(ctx, card)) return false
 
   executeOutdent(ctx, card)
-  refreshBoardState(ctx)
+  ctx.dispatchBoard({ type: "SELECT", nodeId: card.node.id })
+  return true
 }
 
 // --- Indent/Outdent Validation ---
@@ -238,17 +235,18 @@ function canOutdent(ctx: ActionCtx, card: CardState): boolean {
 
 // --- Indent/Outdent Execution ---
 
-/** Execute indent for a single card (no validation, no refresh) */
-function executeIndent(ctx: ActionCtx, card: CardState): void {
+/** Execute indent for a single card (no validation, no refresh).
+ * Returns the new parent ID (previous sibling) for cursor tracking. */
+function executeIndent(ctx: ActionCtx, card: CardState): string | null {
   const parentId = card.node.parent_id
-  if (!parentId) return
+  if (!parentId) return null
 
   const siblings = ctx.repo.getChildren(parentId)
   const myIndex = indexOfChild(siblings, card.node.id)
-  if (myIndex <= 0) return
+  if (myIndex <= 0) return null
 
   const prevSibling = siblings[myIndex - 1]
-  if (!prevSibling) return
+  if (!prevSibling) return null
   const newParentId = prevSibling.id
 
   const newParentChildren = ctx.repo.getChildren(newParentId)
@@ -256,6 +254,7 @@ function executeIndent(ctx: ActionCtx, card: CardState): void {
   const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0
 
   ctx.repo.moveNode(card.node.id, newParentId, newSortOrder)
+  return newParentId
 }
 
 /** Execute outdent for a single card (no validation, no refresh) */
@@ -288,16 +287,13 @@ function executeOutdent(ctx: ActionCtx, card: CardState): void {
  * All-or-nothing: if any card can't be indented, none are.
  * Cards are processed bottom-up to avoid invalidating indices.
  */
-function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, selectedIndices: number[]): void {
+function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, selectedIndices: number[]): boolean {
   // Validate ALL cards can be indented
   const cards = selectedIndices.map((i) => col.cards[i]).filter((c): c is CardState => c !== undefined)
-  if (cards.length === 0) return
+  if (cards.length === 0) return false
 
   for (const card of cards) {
-    if (!canIndent(ctx, card)) {
-      process.stdout.write("\x07")
-      return
-    }
+    if (!canIndent(ctx, card)) return false
   }
 
   // Execute bottom-up (highest index first) to avoid index invalidation
@@ -310,12 +306,16 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sele
     return indexOfChild(siblingsB, b.node.id) - indexOfChild(siblingsA, a.node.id)
   })
 
+  let firstNewParentId: string | null = null
   for (const card of sortedCards) {
-    executeIndent(ctx, card)
+    const newParentId = executeIndent(ctx, card)
+    if (!firstNewParentId) firstNewParentId = newParentId
   }
 
-  refreshBoardState(ctx)
+  // Cursor goes to the parent card of the first indented card
+  ctx.dispatchBoard({ type: "SELECT", nodeId: firstNewParentId ?? cards[0]!.node.id })
   clearSelection(ctx)
+  return true
 }
 
 /**
@@ -323,16 +323,13 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sele
  * All-or-nothing: if any card can't be outdented, none are.
  * Cards are processed top-down to maintain sort order.
  */
-function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, selectedIndices: number[]): void {
+function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, selectedIndices: number[]): boolean {
   // Validate ALL cards can be outdented
   const cards = selectedIndices.map((i) => col.cards[i]).filter((c): c is CardState => c !== undefined)
-  if (cards.length === 0) return
+  if (cards.length === 0) return false
 
   for (const card of cards) {
-    if (!canOutdent(ctx, card)) {
-      process.stdout.write("\x07")
-      return
-    }
+    if (!canOutdent(ctx, card)) return false
   }
 
   // Execute top-down (lowest index first) to maintain relative order
@@ -349,6 +346,8 @@ function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sel
     executeOutdent(ctx, card)
   }
 
-  refreshBoardState(ctx)
+  // Cursor follows first card in batch
+  ctx.dispatchBoard({ type: "SELECT", nodeId: cards[0]!.node.id })
   clearSelection(ctx)
+  return true
 }

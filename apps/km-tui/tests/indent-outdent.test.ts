@@ -6,7 +6,9 @@
  *
  * Navigation model in cards view:
  * - j/k moves between sibling cards within a column (NOT into card children)
- * - After indent, cursor stays at same cardIndex (clamped to column size)
+ * - Cursor follows the moved node (invariant): after indent/outdent, cursorNodeId
+ *   tracks the moved card. For indent, this resolves to the parent card (the previous
+ *   sibling the node was indented under). For outdent, cursor follows to new position.
  * - Indent/outdent always operate on the currently cursored card (column child)
  *
  * Covers:
@@ -142,19 +144,19 @@ describe("Indent (Tab)", () => {
     })
   })
 
-  describe("cursor position after indent", () => {
-    test("cursor moves to next sibling after indent", () => {
-      // col1: [A, B, C] — indent B → cursor should land on C
+  describe("cursor follows node after indent", () => {
+    test("cursor follows indented node to parent card", () => {
+      // col1: [A, B, C] — indent B under A → cursor follows B, resolves to card A
       const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
       board.press("j") // → B
-      board.press("Tab") // indent B under A → col1=[A, C], cursor clamped to index 1 = C
+      board.press("Tab") // indent B under A → col1=[A, C], cursor follows B → card A
 
-      expect(board.q("[data-cursor]").textContent()).toContain("C")
+      expect(board.q("[data-cursor]").textContent()).toContain("A")
     })
 
-    test("cursor clamps to last card when indenting last sibling", () => {
-      // col1: [A, B] — indent B → col1=[A], cursor clamped to index 0 = A
+    test("cursor follows indented node when last sibling", () => {
+      // col1: [A, B] — indent B under A → col1=[A], cursor follows B → card A
       const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
       board.press("j") // → B
@@ -241,14 +243,14 @@ describe("Outdent (Shift+Tab)", () => {
     })
   })
 
-  describe("cursor position after outdent", () => {
-    test("cursor stays at same index after outdent", () => {
-      // col1: [A, B, C] — outdent A → col1=[B, C], cursor at index 0 = B
+  describe("cursor follows node after outdent", () => {
+    test("cursor follows outdented node to board level", () => {
+      // col1: [A, B, C] — outdent A → A moves to board level, cursor follows A
       const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
-      board.press("Shift+Tab") // outdent A
+      board.press("Shift+Tab") // outdent A → cursor follows A to board level
 
-      expect(board.q("[data-cursor]").textContent()).toContain("B")
+      expect(board.q("[data-cursor]").textContent()).toContain("A")
     })
   })
 })
@@ -283,9 +285,10 @@ describe("Sort order preservation", () => {
 
     // Indent A under parent
     board.press("j") // → A
-    board.press("Tab")
+    board.press("Tab") // A under parent, cursor follows A → card "parent" (index 0)
 
-    // cursor clamped to index 1 (B, the remaining sibling)
+    // Navigate to B (now at index 1 in [parent, B])
+    board.press("j") // → B
     // Indent B under parent
     board.press("Tab")
 
@@ -542,20 +545,20 @@ describe("Multi-select outdent (atomic batch)", () => {
 // Cursor position tracking (detailed)
 // =============================================================================
 
-describe("Cursor position tracking", () => {
-  test("cursor on correct card after indent middle of three", () => {
-    // col1: [A, B, C] — indent B → col1=[A, C], cursor at index 1 = C
+describe("Cursor follows node (invariant)", () => {
+  test("indent: cursor follows node to parent card", () => {
+    // col1: [A, B, C] — indent B under A → cursor follows B, resolves to card A
     const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     board.press("j") // → B (index 1)
     board.press("Tab") // indent B under A → col1=[A, C]
 
-    // Cursor should be on C (clamped from index 1 to index 1 = C)
-    expect(board.q("[data-cursor]").textContent()).toContain("C")
+    // Cursor follows B → B is child of A → cursor resolves to card A
+    expect(board.q("[data-cursor]").textContent()).toContain("A")
   })
 
-  test("cursor wraps to last card when indenting from end", () => {
-    // col1: [A, B] — indent B → col1=[A], cursor clamped to index 0 = A
+  test("indent: cursor follows node when only sibling left", () => {
+    // col1: [A, B] — indent B under A → col1=[A], cursor follows B → card A
     const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     board.press("j") // → B (index 1)
@@ -564,23 +567,35 @@ describe("Cursor position tracking", () => {
     expect(board.q("[data-cursor]").textContent()).toContain("A")
   })
 
-  test("cursor stays stable after outdent first card", () => {
-    // col1: [A, B, C] — outdent A → col1=[B, C], cursor at index 0 = B
+  test("outdent: cursor follows node to board level", () => {
+    // col1: [A, B, C] — outdent A → A moves to board level, cursor follows A
     const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
-    board.press("Shift+Tab") // outdent A (index 0)
+    board.press("Shift+Tab") // outdent A
 
-    // Cursor should be on B (new first card)
-    expect(board.q("[data-cursor]").textContent()).toContain("B")
+    // Cursor follows A to board level (A becomes a column)
+    expect(board.q("[data-cursor]").textContent()).toContain("A")
   })
 
-  test("cursor on correct card after outdent last card", () => {
-    // col1: [A, B] — j → B, Shift+Tab → col1=[A], cursor on A
+  test("outdent: cursor follows last card to board level", () => {
+    // col1: [A, B] — outdent B → B moves to board level, cursor follows B
     const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     board.press("j") // → B (index 1)
-    board.press("Shift+Tab") // outdent B → col1=[A]
+    board.press("Shift+Tab") // outdent B → B moves to board level
 
-    expect(board.q("[data-cursor]").textContent()).toContain("A")
+    expect(board.q("[data-cursor]").textContent()).toContain("B")
+  })
+
+  test("indent then navigate: can reach next sibling after indent", () => {
+    // Verify navigation works after cursor-follows-node
+    // col1: [A, B, C] — indent B under A → cursor on A, then j → C
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+
+    board.press("j") // → B
+    board.press("Tab") // indent B → cursor on card A (col1=[A, C])
+    board.press("j") // → C
+
+    expect(board.q("[data-cursor]").textContent()).toContain("C")
   })
 })
