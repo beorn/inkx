@@ -82,6 +82,52 @@ When working on TUI code using Ink, you MUST read @docs/dev/ink-patterns.md. Cri
 - **ANSI-aware text length** - Use displayLength() not .length
 - **Text truncation** - Use truncateText() for proper ANSI handling
 
+## Batch Operations Convention
+
+**Rule: Every card operation is inherently batch-aware. Single card = batch of 1.**
+
+All card operations in `board-actions-edit.ts` and `keyboard-card-ops.ts` follow this structure:
+
+```typescript
+export function handleFoo(ctx: ActionCtx): ActionResult {
+  // 1. GATHER — getSelectedCards returns multi-selected or cursor card
+  const cards = getSelectedCards(ctx)
+  if (cards.length === 0) return boundary("foo", "no cards")
+
+  // 2. VALIDATE — all-or-nothing: if ANY card fails, NONE execute
+  for (const c of cards) {
+    if (!canFoo(c)) return boundary("foo", "can't foo")
+  }
+
+  // 3. CONFIRM (optional) — only for destructive/non-trivial ops
+  // Set UI state and return; re-enter via separate action (e.g. DELETE_CONFIRM_EXECUTE)
+
+  // 4. EXECUTE — perform mutations
+  for (const c of cards) { executeFoo(ctx, c) }
+
+  // 5. CLEANUP — operation-specific (see selection cleanup rules below)
+  refreshBoardState(ctx)
+  return ok()
+}
+```
+
+Steps 2 and 3 are optional. Steps 1, 4, 5 are always present.
+
+**Validation is critical for batch**: Indent/outdent validate every card BEFORE executing any. Without this, partial execution creates a mess (some cards indented, some not). Delete aggregates impact across all cards for one confirm dialog.
+
+### Selection Cleanup After Batch
+
+NOT every operation clears the selection. The rule depends on what happened to the cards:
+
+| Situation | Action | Example |
+|-----------|--------|---------|
+| Cards destroyed | `clearSelection(ctx)` | Delete |
+| Cards moved in tree (positions invalid) | `clearSelection(ctx)` | Indent, outdent |
+| Cards moved in column (positions shifted) | `rebuildSelection` at new positions | Move up/down, move left/right |
+| Cards modified in place | Keep selection | Status toggle |
+
+**Key files**: `getSelectedCards()` in `keyboard-helpers.ts`, handlers in `board-actions-edit.ts` and `keyboard-card-ops.ts`.
+
 ## Input Architecture
 
 **Rule: Command system for discrete keys, `useInputLayer` only for text input.**

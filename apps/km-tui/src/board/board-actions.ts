@@ -7,6 +7,10 @@
  * These handlers bridge CommandAction from @km/commands to actual state changes.
  * Eventually, commands will be directly executable (per km-mz2g design),
  * but this extraction is a first step to make Board.tsx manageable.
+ *
+ * Card operations follow the batch convention (see board-actions-edit.ts header):
+ * gather → validate (all-or-nothing) → confirm? → execute → cleanup.
+ * Every operation is batch-aware; single card = batch of 1.
  */
 
 import { spawn } from "node:child_process"

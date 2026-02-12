@@ -167,7 +167,7 @@ describe("Multi-select status toggle", () => {
     expect(nodeStatus(repo, "D")).toBe("todo")
   })
 
-  test("batch status toggle clears selection", () => {
+  test("batch status toggle preserves selection for repeated toggling", () => {
     const { board, repo } = testEnv(() =>
       item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
     )
@@ -180,11 +180,14 @@ describe("Multi-select status toggle", () => {
 
     board.press("x") // batch toggle: A→wip, B→wip, C→wip
 
-    // Selection cleared: toggling again should only affect cursor node (C)
+    // Selection preserved: toggling again affects all selected cards
     board.press("x")
-    expect(nodeStatus(repo, "A")).toBe("wip") // unchanged
-    expect(nodeStatus(repo, "B")).toBe("wip") // unchanged
-    expect(nodeStatus(repo, "C")).toBe("blocked") // C advanced again (wip→blocked)
+    expect(nodeStatus(repo, "A")).toBe("blocked") // wip→blocked
+    expect(nodeStatus(repo, "B")).toBe("blocked") // wip→blocked
+    expect(nodeStatus(repo, "C")).toBe("blocked") // wip→blocked
+
+    // D unchanged throughout
+    expect(nodeStatus(repo, "D")).toBe("todo")
   })
 
   test("batch status toggle with mixed statuses advances each independently", () => {

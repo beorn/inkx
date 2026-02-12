@@ -1,3 +1,14 @@
+/**
+ * Command System Types
+ *
+ * Commands produce CommandActions which are dispatched to handlers in board-actions.ts.
+ * Card-level actions (delete, indent, status, move, etc.) are inherently batch-aware:
+ * handlers use getSelectedCards(ctx) to operate on multi-selected or cursor card.
+ *
+ * Batch convention: gather → validate (all-or-nothing) → confirm? → execute → cleanup.
+ * See board-actions-edit.ts header for the full pattern.
+ */
+
 import type { BoardAction, TNode, ViewMode, TaskStatus, NodeDirection } from "@km/board"
 
 export type CommandCategory = "Navigation" | "Selection" | "Edit" | "Task" | "Fold" | "View" | "TextEdit"

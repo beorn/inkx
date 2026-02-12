@@ -2,6 +2,23 @@
  * Board Action Handlers - Edit Operations
  *
  * Handles node creation, deletion, status changes, and card shifting.
+ *
+ * ## Batch Operations Convention
+ *
+ * Every card operation is inherently batch-aware (single = batch of 1).
+ * Each handler follows this structure:
+ *
+ * 1. GATHER — `getSelectedCards(ctx)` returns multi-selected or cursor card
+ * 2. VALIDATE — all-or-nothing: if ANY card fails, NONE execute
+ * 3. CONFIRM (optional) — set UI state, re-enter via separate action
+ * 4. EXECUTE — perform mutations on all cards
+ * 5. CLEANUP — operation-specific (see selection cleanup rules)
+ *
+ * Selection cleanup after batch:
+ * - Cards destroyed → clearSelection (delete)
+ * - Cards moved in tree → clearSelection (indent, outdent)
+ * - Cards repositioned → rebuildSelection (move up/down/left/right)
+ * - Cards modified in place → keep selection (status toggle)
  */
 
 import type { KNode, TaskMark, TaskStatus } from "@km/core"
@@ -383,7 +400,7 @@ export function handleConfirmMove(ctx: ActionCtx): void {
  *
  * Batch-aware: when multi-selection is active, cycles all selected cards.
  * Each card advances from its own current status independently.
- * Clears selection after batch operation.
+ * Selection is preserved — status is an in-place modification.
  */
 export function handleTaskStatusCycle(ctx: ActionCtx): void {
   const cards = getSelectedCards(ctx)
@@ -410,7 +427,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     })
   }
 
-  if (cards.length > 1) clearSelection(ctx)
+  // Selection preserved: status toggle is in-place modification.
+  // User can press x again to cycle all selected cards further.
   refreshBoardState(ctx)
 }
 
