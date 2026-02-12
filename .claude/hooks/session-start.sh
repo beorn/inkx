@@ -12,17 +12,19 @@ if [ -n "$CLAUDE_ENV_FILE" ] && [ -n "$SESSION_ID" ]; then
 fi
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+LOG="/tmp/recall-session-start.log"
+
 if [ -f "$REPO_ROOT/vendor/beorn-tools/tools/recall.ts" ]; then
-  # Incremental recall index update (background, silent, best-effort)
-  (cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts index --incremental) >/dev/null 2>&1 &
+  # Incremental recall index update (background, logged)
+  (cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts index --incremental 2>&1 | tail -5 >> "$LOG") &
 
   # Daily summarization (background, atomic via lock file)
   LOCK="/tmp/recall-summarize.lock"
   (
     if ! mkdir "$LOCK" 2>/dev/null; then exit 0; fi
     trap 'rmdir "$LOCK" 2>/dev/null' EXIT
-    cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts summarize
-  ) >/dev/null 2>&1 &
+    cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts summarize 2>&1 | tail -5 >> "$LOG"
+  ) &
 fi
 
 exit 0

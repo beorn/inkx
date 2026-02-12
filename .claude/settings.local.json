@@ -67,5 +67,6 @@
     "deny": [],
     "ask": []
   },
-  "outputStyle": "default"
+  "outputStyle": "default",
+  "spinnerTipsEnabled": false
 }

@@ -63,9 +63,10 @@ When user says `/pm work <id>` or `/pm do <id>`:
 
 1. **Claim the bead**: `bd update <id> --claim` (sets assignee + status=in_progress)
 2. **Get bead details**: `bd show <id>` to determine type
-3. **Staleness check**: If bead is >1 week old and type is feature/task, verify requirements against current codebase before implementing. Update notes if verified. (Bugs: just verify repro still applies.)
-4. **Proceed DIRECTLY to implementation** - DO NOT ask "should I start work?"
-5. **Load appropriate workflow** based on bead type:
+3. **Recall context**: `bun recall "<bead-id>"` — the session that created a bead contains the richest context (problem analysis, discussion, reasoning). The bead ID appears in that `bd create` call and in subsequent `bd show`/`bd update` calls, so searching by ID surfaces all sessions that touched it. Supplement with `bun recall "<keywords>"` for related work that didn't reference the bead. If recall reveals the work is already done or the approach was already tried, update/close the bead accordingly.
+4. **Staleness check**: If bead is >1 week old and type is feature/task, verify requirements against current codebase before implementing. Update notes if verified. (Bugs: just verify repro still applies.)
+5. **Proceed DIRECTLY to implementation** - DO NOT ask "should I start work?"
+6. **Load appropriate workflow** based on bead type:
    - Bug → [workflows/bugs.md](workflows/bugs.md)
    - Feature → [workflows/features.md](workflows/features.md)
    - Task → [workflows/tasks.md](workflows/tasks.md)
@@ -118,11 +119,12 @@ Beads older than **1 week** are suspect — requirements may have drifted. Befor
 ## Workflow
 
 1. **Find work**: `bd ready` or `bd list`
-2. **Staleness check**: If bead is >1 week old, verify requirements (see above)
-3. **Claim work**: `bd update <id> --claim` - MANDATORY before coding
-4. **Implement**: Do the work
-5. **Complete**: `bd close <id> --reason "..."`
-6. **Commit**: `git add .beads && git commit -m "chore: sync beads"`
+2. **Claim work**: `bd update <id> --claim` - MANDATORY before coding
+3. **Recall context**: `bun recall "<bead-id>"` — the creating session has the richest context. Also try keywords if ID results are sparse.
+4. **Staleness check**: If bead is >1 week old, verify requirements (see above)
+5. **Implement**: Do the work
+6. **Complete**: `bd close <id> --reason "..."`
+7. **Commit**: `git add .beads && git commit -m "chore: sync beads"`
 
 ## Quick Reference: Common Flag Mistakes
 

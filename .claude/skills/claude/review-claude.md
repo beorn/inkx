@@ -100,6 +100,24 @@ for plugin_dir in ~/.claude/plugins/cache/*/; do
 done
 ```
 
+### Step 1b: Recall System Health
+
+```bash
+# Run recall status and check for issues
+bun recall status 2>&1
+```
+
+**Check for:**
+
+| Check | Pass | Fail |
+|-------|------|------|
+| Index freshness | Rebuilt <1d ago | Stale (>1d) — run `bun recall index --incremental` |
+| UserPromptSubmit hook | `✓` configured | `✗` — add to `.claude/settings.json` |
+| SessionEnd hook | `✓` configured | `✗` — add to `.claude/settings.json` |
+| Incremental index runs | No errors in session-start.sh | UNIQUE constraint / crash → fix indexer |
+
+**Quick fix for stale index**: `bun recall index --incremental`
+
 ### Step 2: Session Error Analysis (parallel)
 
 Run [session-errors.md](session-errors.md) workflow simultaneously:
