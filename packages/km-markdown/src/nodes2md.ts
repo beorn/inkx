@@ -229,19 +229,9 @@ function serializeEmbedding(node: KNode, ctx: SerializeContext): string {
     return (node.content ?? "") + "\n\n"
   }
 
-  // Reconstruct the embedding path from target's fs_path
-  let path = ""
-  if (targetNode.fs_path) {
-    // Use filename without .md extension
-    const filename = targetNode.fs_path.split("/").pop() ?? ""
-    path = filename.replace(/\.md$/, "")
-  } else if (targetNode.title) {
-    // Use title for sections
-    path = targetNode.title
-  } else {
-    // Fallback to ID
-    path = targetNode.id
-  }
+  // Build embed path: prefer human-readable references that survive DB rebuilds.
+  // ULIDs are session-specific and become stale after re-parse.
+  const path = getEmbedPath(targetNode, ctx)
 
   // Add alias if present and different from path
   const alias = node.link_alias
@@ -250,6 +240,62 @@ function serializeEmbedding(node: KNode, ctx: SerializeContext): string {
   }
 
   return `![[${path}]]\n\n`
+}
+
+/**
+ * Get embed path for a target node.
+ * Files/folders use their basename. Tasks/sections without fs_path
+ * use ancestor file's basename + #content fragment.
+ */
+function getEmbedPath(target: KNode, ctx: SerializeContext): string {
+  // File or folder with fs_path — use basename
+  if (target.fs_path) {
+    const filename = target.fs_path.split("/").pop() ?? ""
+    return filename.replace(/\.md$/, "")
+  }
+
+  // Named node (folder without fs_path, named section)
+  if (target.name) {
+    return target.name
+  }
+
+  // Section with title — find ancestor file for qualified reference
+  if (target.title) {
+    const filePath = findAncestorFilePath(target, ctx)
+    if (filePath) {
+      return `${filePath}#${target.title}`
+    }
+    return target.title
+  }
+
+  // Task or other node — use ancestor file + content fragment
+  const content = target.content?.replace(/^- \[.\]\s*/, "") ?? ""
+  if (content) {
+    const filePath = findAncestorFilePath(target, ctx)
+    if (filePath) {
+      return `${filePath}#${content}`
+    }
+    return content
+  }
+
+  // Last resort — ID (should not happen for well-formed data)
+  return target.id
+}
+
+/** Walk up parent chain to find the ancestor file and return its basename */
+function findAncestorFilePath(node: KNode, ctx: SerializeContext): string | null {
+  let current = node
+  for (let i = 0; i < 20; i++) {
+    if (!current.parent_id) return null
+    const parent = ctx.nodeMap.get(current.parent_id)
+    if (!parent) return null
+    if (parent.fs_path) {
+      const filename = parent.fs_path.split("/").pop() ?? ""
+      return filename.replace(/\.md$/, "")
+    }
+    current = parent
+  }
+  return null
 }
 
 /**
