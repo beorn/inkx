@@ -461,8 +461,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         // than React renders. The new node has empty content, so just create
         // another sibling directly.
         handleAddNodeAfter(ctx)
-      } else {
-        // No edit active — no-op
       }
       return ok()
     }

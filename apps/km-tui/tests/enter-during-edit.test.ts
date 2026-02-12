@@ -303,3 +303,108 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
     board.expect("[data-cursor]").toExist()
   })
 })
+
+// =============================================================================
+// Enter on paragraph-type embeds — real vault scenario
+// =============================================================================
+
+describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
+  /**
+   * Build a board that mimics a real @next vault:
+   * - Embed nodes have type "paragraph" (from markdown parser)
+   * - link_to points to resolved target
+   * - Content is the ![[...]] syntax
+   */
+  function paragraphLinkBoard() {
+    const nodes = item("board", item("col1", item("link-a"), item("link-b"), item("link-c")))
+    // Create target nodes that the links point to
+    const targetA: KNode = {
+      id: "target-a",
+      type: "task",
+      content: "Target task A",
+      parent_id: "other-file",
+      parent_idx: 0,
+      link_to: null,
+      task_status: "todo",
+      task_mark: " ",
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const targetB: KNode = { ...targetA, id: "target-b", content: "Target task B", parent_idx: 1 }
+    const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
+    const otherFile: KNode = {
+      id: "other-file",
+      type: "folder",
+      content: undefined,
+      data: { name: "Other File" },
+      parent_id: ".",
+      parent_idx: 100,
+      link_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+
+    // Make the card nodes into paragraph-type embeds (matching real vault)
+    for (const n of nodes) {
+      if (n.id === "link-a") {
+        n.type = "paragraph"
+        n.link_to = "target-a"
+        n.content = "![[Other File#^a1]]"
+      }
+      if (n.id === "link-b") {
+        n.type = "paragraph"
+        n.link_to = "target-b"
+        n.content = "![[Other File#^b2]]"
+      }
+      if (n.id === "link-c") {
+        n.type = "paragraph"
+        n.link_to = "target-c"
+        n.content = "![[Other File#^c3]]"
+      }
+    }
+
+    return [...nodes, otherFile, targetA, targetB, targetC]
+  }
+
+  const colItems = (col: string) => `#${col} [data-view='item']`
+
+  test("Enter on paragraph embed creates new sibling and shows it", () => {
+    const { board } = testEnv(paragraphLinkBoard)
+
+    board.expect(colItems("col1")).toHaveCount(3)
+
+    board.press("Enter") // edit link-a (shows Target task A)
+    board.press("Enter") // save + create sibling
+
+    // DOM: 4 items in column (was 3)
+    board.expect(colItems("col1")).toHaveCount(4)
+  })
+
+  test("Multiple Enters on paragraph embeds create chain of siblings", () => {
+    const { board } = testEnv(paragraphLinkBoard)
+
+    board.expect(colItems("col1")).toHaveCount(3)
+
+    board.press("Enter") // edit link-a
+    board.press("Enter") // save + sibling1
+    board.press("Enter") // save sibling1 + sibling2
+    board.press("Enter") // save sibling2 + sibling3
+
+    // DOM: 3 original links + 3 new siblings
+    board.expect(colItems("col1")).toHaveCount(6)
+  })
+
+  test("keybindings work after Enter on paragraph embed", () => {
+    const { board } = testEnv(paragraphLinkBoard)
+
+    board.press("Enter") // edit
+    board.press("Enter") // save + create sibling (now editing new node)
+    board.press("Escape") // exit edit
+
+    // Should be able to navigate normally after
+    board.press("j") // move down
+    board.expect("[data-cursor]").toExist()
+  })
+})

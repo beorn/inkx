@@ -43,13 +43,7 @@ export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<s
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
   return useMemo(() => {
-    const start = performance.now()
-    const result = deriveColumnsFromRepo(repo, rootId, foldedNodes)
-    const duration = performance.now() - start
-    if (duration > 5) {
-      log.debug?.(`useColumns: ${duration.toFixed(2)}ms for ${result.length} columns`)
-    }
-    return result
+    return deriveColumnsFromRepo(repo, rootId, foldedNodes)
   }, [repoVersion, rootId, foldedNodes])
 }
 
