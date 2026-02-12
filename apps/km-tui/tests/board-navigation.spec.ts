@@ -221,7 +221,7 @@ describe("First/Last Jump", () => {
     board.press("j").press("j") // Navigate to 1c
     board.expect("#1c[data-cursor]").toExist()
 
-    board.press("g")
+    board.press("g").press("g")
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -229,7 +229,7 @@ describe("First/Last Jump", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("g")
+    board.press("g").press("g")
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -249,7 +249,7 @@ describe("First/Last Jump", () => {
     board.press("G")
     board.expect("#1c[data-cursor]").toExist()
 
-    board.press("g")
+    board.press("g").press("g")
     board.expect("#1a[data-cursor]").toExist()
   })
 })
@@ -353,7 +353,7 @@ describe("Combined Navigation", () => {
     const cursor2b = board.q("#2b[data-cursor]").count()
     expect(cursor2a + cursor2b).toBe(1) // Cursor is on one of them
 
-    board.press("g") // Jump to first in col2
+    board.press("g").press("g") // Jump to first in col2
     board.expect("#2a[data-cursor]").toExist()
   })
 })

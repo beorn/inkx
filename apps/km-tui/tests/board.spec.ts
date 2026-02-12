@@ -230,11 +230,11 @@ describe("Cursoring", () => {
       board.expect("#1c[data-cursor]").toExist()
 
       // g to first
-      board.press("g")
+      board.press("g").press("g")
       board.expect("#1a[data-cursor]").toExist()
 
       // g at first does nothing
-      board.press("g")
+      board.press("g").press("g")
       board.expect("#1a[data-cursor]").toExist()
     })
 
@@ -285,7 +285,7 @@ describe("Cursoring", () => {
         board.expect("#2c[data-cursor]").toExist()
 
         // Jump back to first - should stay in col2
-        board.press("g")
+        board.press("g").press("g")
         board.expect("#2a[data-cursor]").toExist()
       })
 
@@ -443,11 +443,11 @@ describe("Cursoring", () => {
       board.expect("#1c[data-cursor]").toExist()
 
       // g to first in column
-      board.press("g")
+      board.press("g").press("g")
       board.expect("#1a[data-cursor]").toExist()
 
       // g at first does nothing
-      board.press("g")
+      board.press("g").press("g")
       board.expect("#1a[data-cursor]").toExist()
     })
 
@@ -643,7 +643,7 @@ describe("Boundaries and Edge Cases", () => {
     test("single card - g/G do nothing", () => {
       const { board } = testEnv(() => item("board", item("col", item("only"))))
       board.expect("#only[data-cursor]").toExist()
-      board.press("g")
+      board.press("g").press("g")
       board.expect("#only[data-cursor]").toExist()
       board.press("G")
       board.expect("#only[data-cursor]").toExist()
@@ -779,7 +779,7 @@ describe("Boundaries and Edge Cases", () => {
       // z on column header does nothing
       board.press("k")
       board.expect("#col[data-cursor]").toExist()
-      board.press("z")
+      board.press("z").press("M")
       board.expect("#col[data-cursor]").toExist()
     })
 
@@ -792,7 +792,7 @@ describe("Boundaries and Edge Cases", () => {
       board.expect("#leaf[data-cursor]").toExist()
 
       // z on card without children
-      board.press("z")
+      board.press("z").press("M")
       board.expect("#leaf[data-cursor]").toExist()
     })
   })
@@ -1187,11 +1187,11 @@ describe("Content", () => {
 })
 
 describe("Dialogs", () => {
-  test("new item dialog shows on 'n' key and closes on Escape", () => {
+  test("new item dialog shows on 'gn' chord and closes on Escape", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))
 
-    // n opens dialog
-    board.press("n")
+    // gn opens dialog
+    board.press("g").press("n")
     let output = board.screenshot()
     expect(output).toContain("New")
     expect(output).toContain("Enter create")
@@ -1210,7 +1210,7 @@ describe("Folding", () => {
   test("z toggles fold state on card with children", () => {
     const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
     board.expect("#child1").toExist()
-    board.press("z")
+    board.press("z").press("M")
     board.expect("#child1").not.toExist()
     const output = board.screenshot()
     expect(output).toContain("▶\uFE0F 2") // Folded indicator (VS16 for emoji presentation)
@@ -1218,7 +1218,7 @@ describe("Folding", () => {
 
   test("folded card shows count indicator", () => {
     const { board } = testEnv(() => item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
-    board.press("z")
+    board.press("z").press("M")
     const output = board.screenshot()
     expect(output).toContain("▶\uFE0F 3")
   })

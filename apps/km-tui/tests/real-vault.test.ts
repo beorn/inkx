@@ -87,9 +87,11 @@ describe.skipIf(!process.env.TEST_VAULT)("Real vault diagnostics", () => {
 
     // Rapid fold/unfold is a known problem area
     for (let i = 0; i < 5; i++) {
-      await driver.press("z") // Toggle fold
+      await driver.press("z") // chord prefix
+      await driver.press("M") // fold_all
       await driver.cmd.down!() // Move to next
-      await driver.press("z") // Toggle again
+      await driver.press("z") // chord prefix
+      await driver.press("R") // unfold_all
       await driver.cmd.up!() // Move back
     }
   })
@@ -185,7 +187,10 @@ describe.skipIf(!process.env.TEST_VAULT)("Real vault diagnostics", () => {
       () => driver.cmd.down!(),
       () => driver.cmd.left!(),
       () => driver.cmd.right!(),
-      () => driver.press("z"),
+      async () => {
+        await driver.press("z")
+        await driver.press("M")
+      },
       () => driver.press(">"),
       () => driver.press("<"),
     ]

@@ -9,7 +9,7 @@
 import React from "react"
 import { Box, Text, VirtualList } from "inkx"
 import type { TUIBoardState, CardState } from "../types.ts"
-import { getNodeDisplayName } from "../state.ts"
+import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { useTreeRenderContext } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
@@ -67,6 +67,7 @@ export function TabsView({
         {state.columns.map((column, cIdx) => {
           const isActive = cIdx === colIndex
           const colName = getNodeDisplayName(repo, column.node)
+          const untitled = isNodeUntitled(repo, column.node)
           const colCount = column.cards.length
           const countStr = ` (${colCount})`
 
@@ -99,7 +100,7 @@ export function TabsView({
               >
                 <Text bold color={textColor} dimColor={!showActiveHighlight && selectionLevel === "board"}>
                   {" "}
-                  {truncatedName}
+                  {untitled ? <Text dimColor>{truncatedName}</Text> : truncatedName}
                   <Text dimColor={!isTabSelected}>{countStr}</Text>{" "}
                 </Text>
               </Box>

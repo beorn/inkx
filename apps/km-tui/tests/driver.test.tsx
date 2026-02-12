@@ -245,7 +245,7 @@ describe("withKeybindings", () => {
 
     const app = withKeybindings(appWithCmd, {
       bindings: defaultKeybindings,
-      getKeyContext: () => ({ mode: "normal", hasSelection: false }),
+      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
     })
 
     // Press j should trigger cursor_down
@@ -275,7 +275,7 @@ describe("withKeybindings", () => {
 
     const app = withKeybindings(appWithCmd, {
       bindings: defaultKeybindings,
-      getKeyContext: () => ({ mode: "normal", hasSelection: false }),
+      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
     })
 
     await app.press("ArrowDown")
@@ -304,7 +304,7 @@ describe("withKeybindings", () => {
 
     const app = withKeybindings(appWithCmd, {
       bindings: defaultKeybindings,
-      getKeyContext: () => ({ mode: "normal", hasSelection: false }),
+      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
     })
 
     await app.press("k")
@@ -333,7 +333,7 @@ describe("withKeybindings", () => {
 
     const app = withKeybindings(appWithCmd, {
       bindings: defaultKeybindings,
-      getKeyContext: () => ({ mode: "normal", hasSelection: false }),
+      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
     })
 
     // 'x' is not bound to any command
@@ -383,7 +383,7 @@ describe("composed app driver", () => {
       }),
       {
         bindings: defaultKeybindings,
-        getKeyContext: () => ({ mode: "normal", hasSelection: false }),
+        getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
       },
     )
 

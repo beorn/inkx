@@ -434,7 +434,7 @@ describe("Keyboard Navigation: g/G (first/last)", () => {
     board.expect("#1d[data-cursor]").toExist()
 
     // Press g to go to first
-    board.press("g")
+    board.press("g").press("g")
     board.expect("#1a[data-cursor]").toExist()
   })
 })
@@ -476,7 +476,7 @@ describe("Keyboard Navigation: combined navigation", () => {
 
     // Navigate back to 1a
     board.press("h") // to col1
-    board.press("g") // to first
+    board.press("g").press("g") // to first
     board.expect("#1a[data-cursor]").toExist()
   })
 })

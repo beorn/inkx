@@ -82,9 +82,15 @@ export {
   clearKeybindings,
   getAllKeybindings,
   resolveKeybinding,
+  isChordPrefix,
+  resolveChord,
   defaultKeybindings,
   initDefaultKeybindings,
 } from "./keybindings.ts"
+
+// Chord state
+export type { ChordState, ChordResult, ChordCallbacks } from "./chord-state.ts"
+export { createChordState } from "./chord-state.ts"
 
 // Commands
 export {
@@ -114,7 +120,7 @@ export {
   isInDetailPane,
   isInOutlineMode,
   isInlineEditing,
-  hasSelection,
+  hasMultiSelection,
   searchDialogOpen,
   projectPickerOpen,
   newItemDialogOpen,
@@ -133,6 +139,8 @@ export {
   processInkKey,
   buildKeybindingContext,
   wouldHandleKey,
+  getChordState,
+  handleChordTimeout,
   type InkKeyEvent,
   type InkCommandResult,
 } from "./ink-adapter.ts"

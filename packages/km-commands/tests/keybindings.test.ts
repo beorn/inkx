@@ -13,6 +13,8 @@ import {
   resolveKeybinding,
   initDefaultKeybindings,
   defaultKeybindings,
+  isChordPrefix,
+  resolveChord,
   type Keybinding,
   type KeybindingContext,
 } from "../src/keybindings.ts"
@@ -55,7 +57,7 @@ function createNode(id: string, opts?: Partial<TNode>): TNode {
 function createContext(overrides?: Partial<KeybindingContext>): KeybindingContext {
   return {
     mode: "normal",
-    hasSelection: false,
+    hasMultiSelection: false,
     isInDetailPane: false,
     isInOutlineMode: false,
     isInlineEditing: false,
@@ -304,10 +306,10 @@ describe("resolveKeybinding", () => {
       registerKeybinding({
         key: "d",
         commandId: "delete_selection",
-        when: (ctx) => ctx.hasSelection,
+        when: (ctx) => ctx.hasMultiSelection,
       })
 
-      const ctx = createContext({ hasSelection: true })
+      const ctx = createContext({ hasMultiSelection: true })
       expect(resolveKeybinding("d", {}, ctx)).toBe("delete_selection")
     })
 
@@ -315,10 +317,10 @@ describe("resolveKeybinding", () => {
       registerKeybinding({
         key: "d",
         commandId: "delete_selection",
-        when: (ctx) => ctx.hasSelection,
+        when: (ctx) => ctx.hasMultiSelection,
       })
 
-      const ctx = createContext({ hasSelection: false })
+      const ctx = createContext({ hasMultiSelection: false })
       expect(resolveKeybinding("d", {}, ctx)).toBeNull()
     })
 
@@ -337,7 +339,7 @@ describe("resolveKeybinding", () => {
       const testNode = createNode("test-node")
       const ctx = createContext({
         mode: "normal",
-        hasSelection: true,
+        hasMultiSelection: true,
         isInDetailPane: true,
         isInOutlineMode: false,
         currentNode: testNode,
@@ -347,7 +349,7 @@ describe("resolveKeybinding", () => {
 
       expect(receivedCtx).not.toBeNull()
       expect(receivedCtx!.mode).toBe("normal")
-      expect(receivedCtx!.hasSelection).toBe(true)
+      expect(receivedCtx!.hasMultiSelection).toBe(true)
       expect(receivedCtx!.isInDetailPane).toBe(true)
       expect(receivedCtx!.currentNode).toBe(testNode)
     })
@@ -477,7 +479,8 @@ describe("initDefaultKeybindings", () => {
   it.each([
     ["z", { ctrl: true }, "undo"],
     ["z", { ctrl: true, shift: true }, "redo"],
-    ["y", { ctrl: true }, "redo"],
+    // Ctrl+Y is now text.yank (when textInputFocused), not redo
+    // Redo only via Ctrl+Shift+Z
   ] as const)("undo/redo: ctrl+%s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
     expectKey(key, commandId, mods)
@@ -717,5 +720,84 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("sibling_board_next")
     expect(commandIds).toContain("sibling_board_prev")
     expect(commandIds).toContain("zoom_inwards")
+  })
+})
+
+describe("chord keybindings", () => {
+  beforeEach(() => {
+    clearKeybindings()
+    initDefaultKeybindings()
+  })
+
+  it("registers chord prefixes from default keybindings", () => {
+    expect(isChordPrefix("z")).toBe(true)
+    expect(isChordPrefix("g")).toBe(true)
+    expect(isChordPrefix("t")).toBe(true)
+    expect(isChordPrefix("s")).toBe(true)
+    // Not chord prefixes
+    expect(isChordPrefix("j")).toBe(false)
+    expect(isChordPrefix("k")).toBe(false)
+  })
+
+  it.each([
+    ["z", "a", "toggle_fold"],
+    ["z", "c", "fold_node"],
+    ["z", "o", "unfold_node"],
+    ["z", "O", "unfold_recursive"],
+    ["z", "M", "fold_all"],
+    ["z", "R", "unfold_all"],
+    ["g", "g", "cursor_first"],
+    ["g", "p", "project_picker"],
+    ["g", "n", "new_item"],
+    ["t", "d", "set_due_date"],
+    ["t", "r", "set_recurring"],
+    ["t", "s", "set_start_date"],
+    ["s", "p", "set_priority"],
+    ["s", "l", "set_label"],
+    ["s", "a", "set_assignee"],
+  ] as const)("chord %s%s resolves to %s", (prefix, key, commandId) => {
+    const ctx = createContext()
+    expect(resolveChord(prefix, key, {}, ctx)).toBe(commandId)
+  })
+
+  it("resolveChord returns null for unregistered chord", () => {
+    const ctx = createContext()
+    expect(resolveChord("z", "q", {}, ctx)).toBeNull()
+    expect(resolveChord("g", "x", {}, ctx)).toBeNull()
+  })
+
+  it("clearKeybindings clears chord state", () => {
+    expect(isChordPrefix("z")).toBe(true)
+    clearKeybindings()
+    expect(isChordPrefix("z")).toBe(false)
+    expect(resolveChord("z", "a", {}, createContext())).toBeNull()
+  })
+
+  it("getAllKeybindings includes chord bindings", () => {
+    const all = getAllKeybindings()
+    const chordBindings = all.filter((b) => b.chord)
+    expect(chordBindings.length).toBe(15) // 6 z + 3 g + 3 t + 3 s
+  })
+
+  it("new key remappings work", () => {
+    const ctx = createContext()
+    // x → cycle_task_status
+    expect(resolveKeybinding("x", {}, ctx)).toBe("cycle_task_status")
+    // d → duplicate_node
+    expect(resolveKeybinding("d", {}, ctx)).toBe("duplicate_node")
+    // p → insert_above
+    expect(resolveKeybinding("p", {}, ctx)).toBe("insert_above")
+    // n → insert_below
+    expect(resolveKeybinding("n", {}, ctx)).toBe("insert_below")
+    // Tab → indent_node (structural indent)
+    expect(resolveKeybinding("Tab", {}, ctx)).toBe("indent_node")
+    // \ → filter
+    expect(resolveKeybinding("\\", {}, ctx)).toBe("filter")
+  })
+
+  it("D no longer maps to delete_node", () => {
+    const ctx = createContext()
+    // D was removed — should NOT resolve to delete_node
+    expect(resolveKeybinding("D", { shift: true }, ctx)).not.toBe("delete_node")
   })
 })

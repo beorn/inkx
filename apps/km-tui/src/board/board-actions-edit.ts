@@ -134,6 +134,103 @@ export function handleAddNodeAfter(ctx: ActionCtx): void {
 }
 
 /**
+ * Create a new sibling node BEFORE the current card and enter inline edit on it.
+ *
+ * Sort order is placed between cursor and previous sibling (midpoint).
+ * Inherits node type from cursor node (task → task, section → section).
+ */
+export function handleAddNodeBefore(ctx: ActionCtx): void {
+  const { layout, repo } = ctx
+  const col = layout.columns[layout.colIndex]
+  if (!col) return
+
+  // Query repo for fresh children
+  const siblings = repo.getChildren(col.node.id)
+  const currentNodeId = ctx.cursorNodeId
+
+  // Find current node's position in fresh sibling list
+  const currentSibIdx = siblings.findIndex((s) => s.id === currentNodeId)
+  const currentNode = siblings[currentSibIdx]
+  if (!currentNode) return
+
+  // Sort order: midpoint between previous sibling and current
+  const currentIdx = currentNode.parent_idx ?? 0
+  const prevSibling = siblings[currentSibIdx - 1]
+  const prevIdx = prevSibling?.parent_idx ?? currentIdx - 1
+  const newSortOrder = (prevIdx + currentIdx) / 2
+
+  // Inherit type + depth from current node
+  const nodeType = currentNode.type === "task" ? "task" : "section"
+  const newNode: Partial<KNode> = {
+    type: nodeType,
+    content: "",
+    parent_idx: newSortOrder,
+  }
+  if (nodeType === "task") {
+    newNode.task_status = "todo"
+    newNode.task_mark = " "
+  }
+  if (currentNode.data?.depth) {
+    newNode.data = { ...newNode.data, depth: currentNode.data.depth }
+  }
+
+  const newId = repo.addNode(col.node.id, newNode)
+
+  // Refresh board state — new node is at cursor's current index
+  refreshBoardState(ctx, {
+    cardIndex: currentSibIdx,
+    usePositionHints: true,
+  })
+
+  // Enter inline edit on the new node
+  ctx.setUI({
+    inlineEditBlock: { nodeId: newId, blockIndex: 0 },
+  })
+
+  _needsFlush = true
+}
+
+/**
+ * Duplicate a node: create a copy immediately after it with the same content and type.
+ */
+export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
+  const { layout, repo } = ctx
+  const col = layout.columns[layout.colIndex]
+  if (!col) return
+
+  const sourceNode = repo.getNode(nodeId)
+  if (!sourceNode) return
+
+  // Find position in siblings
+  const siblings = repo.getChildren(col.node.id)
+  const currentSibIdx = siblings.findIndex((s) => s.id === nodeId)
+  if (currentSibIdx === -1) return
+
+  const currentIdx = sourceNode.parent_idx ?? 0
+  const nextSibling = siblings[currentSibIdx + 1]
+  const nextIdx = nextSibling?.parent_idx ?? currentIdx + 1
+  const newSortOrder = (currentIdx + nextIdx) / 2
+
+  const newNode: Partial<KNode> = {
+    type: sourceNode.type,
+    content: sourceNode.content,
+    parent_idx: newSortOrder,
+    data: sourceNode.data ? { ...sourceNode.data } : undefined,
+  }
+  if (sourceNode.task_status) {
+    newNode.task_status = sourceNode.task_status
+    newNode.task_mark = sourceNode.task_mark
+  }
+
+  repo.addNode(col.node.id, newNode)
+
+  refreshBoardState(ctx, {
+    cardIndex: currentSibIdx + 1,
+    usePositionHints: true,
+  })
+}
+
+/**
  * Confirm move operation - move selected nodes to target column.
  */
 export function handleConfirmMove(ctx: ActionCtx): void {

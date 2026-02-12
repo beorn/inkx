@@ -194,10 +194,10 @@ describe("buildKeybindingContext", () => {
     expect(ctx.mode).toBe("search")
   })
 
-  it("passes through hasSelection", () => {
-    expect(buildKeybindingContext({ hasSelection: true }).hasSelection).toBe(true)
-    expect(buildKeybindingContext({ hasSelection: false }).hasSelection).toBe(false)
-    expect(buildKeybindingContext({}).hasSelection).toBe(false)
+  it("passes through hasMultiSelection", () => {
+    expect(buildKeybindingContext({ hasMultiSelection: true }).hasMultiSelection).toBe(true)
+    expect(buildKeybindingContext({ hasMultiSelection: false }).hasMultiSelection).toBe(false)
+    expect(buildKeybindingContext({}).hasMultiSelection).toBe(false)
   })
 
   it("passes through isInDetailPane", () => {

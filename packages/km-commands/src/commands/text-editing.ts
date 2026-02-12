@@ -86,6 +86,13 @@ export const textEditingCommands: CommandDef[] = [
     category: "TextEdit",
     execute: (): CommandAction => ({ type: "TEXT_EXIT_EDIT" }),
   },
+  {
+    id: "text.yank",
+    name: "Yank (Paste Kill)",
+    description: "Paste killed text (emacs yank)",
+    category: "TextEdit",
+    execute: (): CommandAction => ({ type: "TEXT_YANK" }),
+  },
 ]
 
 /**

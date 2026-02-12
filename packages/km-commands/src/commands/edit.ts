@@ -53,18 +53,18 @@ const shiftDown = {
 const shiftLeft = {
   id: "shift_left",
   name: "Shift Left",
-  description: "Move node to parent level (outdent)",
+  description: "Move node left between columns",
   category: "Edit",
-  shortcuts: ["Alt+ArrowLeft", "Alt+h", "Shift+Tab"],
+  shortcuts: ["Alt+ArrowLeft", "Alt+h"],
   execute: () => ({ type: "SHIFT_LEFT" }),
 } satisfies CommandDef
 
 const shiftRight = {
   id: "shift_right",
   name: "Shift Right",
-  description: "Move node under previous sibling (indent)",
+  description: "Move node right between columns",
   category: "Edit",
-  shortcuts: ["Alt+ArrowRight", "Alt+l", "Tab"],
+  shortcuts: ["Alt+ArrowRight", "Alt+l"],
   execute: () => ({ type: "SHIFT_RIGHT" }),
 } satisfies CommandDef
 
@@ -89,6 +89,45 @@ const deleteNode = {
   },
 } satisfies CommandDef
 
+const indentNode = {
+  id: "indent_node",
+  name: "Indent",
+  description: "Reparent node under previous sibling",
+  category: "Edit",
+  shortcuts: ["Tab"],
+  execute: () => ({ type: "INDENT_NODE" }),
+} satisfies CommandDef
+
+const insertAbove = {
+  id: "insert_above",
+  name: "Insert Above",
+  description: "Insert sibling above and enter inline edit",
+  category: "Edit",
+  shortcuts: ["p"],
+  execute: () => ({ type: "INSERT_ABOVE" }),
+} satisfies CommandDef
+
+const insertBelow = {
+  id: "insert_below",
+  name: "Insert Below",
+  description: "Insert sibling below and enter inline edit",
+  category: "Edit",
+  shortcuts: ["n"],
+  execute: () => ({ type: "INSERT_BELOW" }),
+} satisfies CommandDef
+
+const duplicateNode = {
+  id: "duplicate_node",
+  name: "Duplicate",
+  description: "Duplicate current node",
+  category: "Edit",
+  shortcuts: ["d"],
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null
+    return { type: "DUPLICATE_NODE", nodeId: ctx.currentNodeId }
+  },
+} satisfies CommandDef
+
 export const editCommands: CommandDef[] = [
   enterMoveMode,
   confirmMove,
@@ -98,5 +137,9 @@ export const editCommands: CommandDef[] = [
   shiftDown,
   shiftLeft,
   shiftRight,
+  indentNode,
   deleteNode,
+  insertAbove,
+  insertBelow,
+  duplicateNode,
 ]

@@ -323,11 +323,11 @@ describe("Edit Operations", () => {
     board.expect("#3a[data-cursor]").toExist()
   })
 
-  test("D deletes the selected node", () => {
+  test("Backspace deletes the selected node", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("D")
+    board.press("Backspace")
 
     // 1a should be gone
     board.expect("#1a").not.toExist()
@@ -336,12 +336,12 @@ describe("Edit Operations", () => {
     expect(output).toContain("1b")
   })
 
-  test("D on last card in column moves cursor to previous card", () => {
+  test("Backspace on last card in column moves cursor to previous card", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
 
-    board.press("D")
+    board.press("Backspace")
 
     board.expect("#1b").not.toExist()
     board.expect("#1a[data-cursor]").toExist()

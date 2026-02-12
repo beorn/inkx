@@ -127,7 +127,7 @@ describe("Columns View", () => {
       board.press("G")
       board.expect("#1c[data-cursor]").toExist()
 
-      board.press("g")
+      board.press("g").press("g")
       board.expect("#1a[data-cursor]").toExist()
     })
 
@@ -194,7 +194,7 @@ describe("Columns View", () => {
       board.expect("#child1").toExist()
       board.expect("#child2").toExist()
 
-      board.press("z")
+      board.press("z").press("M")
       board.expect("#child1").not.toExist()
       board.expect("#child2").not.toExist()
       expect(board.screenshot()).toContain("\u25B6\uFE0F 2") // Folded indicator (VS16 for emoji presentation)
@@ -274,7 +274,7 @@ describe("Columns View", () => {
       board.expect("#card0[data-cursor]").toExist()
       board.press("G")
       board.expect("#card99[data-cursor]").toExist()
-      board.press("g")
+      board.press("g").press("g")
       board.expect("#card0[data-cursor]").toExist()
     })
 

@@ -8,6 +8,7 @@ import { describe, it, expect, test } from "vitest"
 import type { KNode } from "@km/core"
 import {
   getNodeDisplayName,
+  isNodeUntitled,
   getTypeIndicator,
   normalizeName,
   namesAreSimilar,
@@ -166,17 +167,85 @@ describe("getNodeDisplayName", () => {
   })
 
   describe("priority 6: short ID fallback", () => {
-    it("returns first 8 chars of ID when nothing else available", () => {
+    it("returns first 8 chars of ID in parens when nothing else available", () => {
       const node = createNode("abcdefghijklmnop")
-      expect(getNodeDisplayName(node)).toBe("abcdefgh")
+      expect(getNodeDisplayName(node)).toBe("(abcdefgh)")
     })
 
-    it("returns short ID from fs_path if filename is .md only", () => {
+    it("returns short ID in parens from fs_path if filename is .md only", () => {
       const node = createNode("abcdefgh12345", {
         fs_path: "/path/to/.md",
       })
-      expect(getNodeDisplayName(node)).toBe("abcdefgh")
+      expect(getNodeDisplayName(node)).toBe("(abcdefgh)")
     })
+
+    it("returns parens format for empty-titled sections (## with no text)", () => {
+      const node = createNode("01JTEST1234567", {
+        type: "section",
+        title: "",
+        content: "",
+      })
+      expect(getNodeDisplayName(node)).toBe("(01JTEST1)")
+    })
+  })
+})
+
+// =============================================================================
+// isNodeUntitled
+// =============================================================================
+
+describe("isNodeUntitled", () => {
+  it("returns true for node with no name sources", () => {
+    const node = createNode("abc123")
+    expect(isNodeUntitled(node)).toBe(true)
+  })
+
+  it("returns true for empty-titled section (## with no text)", () => {
+    const node = createNode("abc123", {
+      type: "section",
+      title: "",
+      content: "",
+    })
+    expect(isNodeUntitled(node)).toBe(true)
+  })
+
+  it("returns false when node has title", () => {
+    const node = createNode("abc123", { title: "Waiting" })
+    expect(isNodeUntitled(node)).toBe(false)
+  })
+
+  it("returns false when node has content", () => {
+    const node = createNode("abc123", { content: "Some text" })
+    expect(isNodeUntitled(node)).toBe(false)
+  })
+
+  it("returns false when node has data.name", () => {
+    const node = createNode("abc123", { data: { name: "Named" } })
+    expect(isNodeUntitled(node)).toBe(false)
+  })
+
+  it("returns false when node has data.title", () => {
+    const node = createNode("abc123", { data: { title: "Titled" } })
+    expect(isNodeUntitled(node)).toBe(false)
+  })
+
+  it("returns false when node has fs_path", () => {
+    const node = createNode("abc123", { fs_path: "/path/to/file.md" })
+    expect(isNodeUntitled(node)).toBe(false)
+  })
+
+  it("returns false for file node with titled first section", () => {
+    const fileNode = createNode("file1", { type: "file" })
+    const section = createNode("sec1", { type: "section", title: "Overview" })
+    const getChildren = (id: string) => (id === "file1" ? [section] : [])
+    expect(isNodeUntitled(fileNode, getChildren)).toBe(false)
+  })
+
+  it("returns true for file node with empty first section", () => {
+    const fileNode = createNode("file1", { type: "file" })
+    const section = createNode("sec1", { type: "section", title: "", content: "" })
+    const getChildren = (id: string) => (id === "file1" ? [section] : [])
+    expect(isNodeUntitled(fileNode, getChildren)).toBe(true)
   })
 })
 

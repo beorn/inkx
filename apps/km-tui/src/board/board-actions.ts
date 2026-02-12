@@ -15,7 +15,7 @@ import type { CommandAction } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createLogger } from "@beorn/logger"
 import { assertNever } from "../action-handlers.ts"
-import { outdentNode } from "../keyboard/keyboard-card-ops.ts"
+import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody } from "@km/tree"
@@ -31,7 +31,9 @@ import {
   executeDelete,
   handleConfirmMove,
   handleAddNodeAfter,
+  handleAddNodeBefore,
   handleDeleteNode,
+  handleDuplicateNode,
   handleShiftCard,
   handleTaskStatusCycle,
 } from "./board-actions-edit.ts"
@@ -122,6 +124,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return handleEditBlockNavigate(ctx, action.direction)
     case "CLOSE_OR_QUIT":
       return handleCloseOrQuit(ctx)
+    case "INDENT_NODE":
+      if (card) indentNode(ctx, card)
+      return ok()
     case "OUTDENT_NODE":
       if (card) outdentNode(ctx, card)
       return ok()
@@ -302,6 +307,64 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "SELECT_ALL":
       return unimplemented("selection")
 
+    // === Fold operations (single-node) ===
+    case "FOLD_NODE": {
+      const foldCard = col?.cards[layout.cardIndex]
+      if (!foldCard) return boundary("fold", "no card selected")
+      const newFolded = new Set(ctx.foldedNodes)
+      newFolded.add(foldCard.node.id)
+      ctx.setFoldedNodes(newFolded)
+      return ok()
+    }
+    case "UNFOLD_NODE": {
+      const unfoldCard = col?.cards[layout.cardIndex]
+      if (!unfoldCard) return boundary("fold", "no card selected")
+      const newFolded = new Set(ctx.foldedNodes)
+      newFolded.delete(unfoldCard.node.id)
+      ctx.setFoldedNodes(newFolded)
+      return ok()
+    }
+    case "UNFOLD_RECURSIVE": {
+      const recursiveCard = col?.cards[layout.cardIndex]
+      if (!recursiveCard) return boundary("fold", "no card selected")
+      const newFolded = new Set(ctx.foldedNodes)
+      // Unfold the card and all descendants
+      const unfoldDescendants = (nodeId: string) => {
+        newFolded.delete(nodeId)
+        for (const child of ctx.repo.getChildren(nodeId)) {
+          unfoldDescendants(child.id)
+        }
+      }
+      unfoldDescendants(recursiveCard.node.id)
+      ctx.setFoldedNodes(newFolded)
+      return ok()
+    }
+
+    // === Edit operations ===
+    case "INSERT_ABOVE":
+      handleAddNodeBefore(ctx)
+      return ok()
+    case "INSERT_BELOW":
+      handleAddNodeAfter(ctx)
+      return ok()
+    case "DUPLICATE_NODE":
+      handleDuplicateNode(ctx, action.nodeId)
+      return ok()
+
+    // === UI stubs (future features) ===
+    case "FILTER":
+    case "COMMAND_PALETTE":
+      return unimplemented("ui")
+
+    // === Property stubs (future features) ===
+    case "SET_DUE_DATE":
+    case "SET_START_DATE":
+    case "SET_RECURRING":
+    case "SET_PRIORITY":
+    case "SET_LABEL":
+    case "SET_ASSIGNEE":
+      return unimplemented("properties")
+
     // Legacy navigation actions removed (were in BoardAction, not in CommandAction)
 
     // === Move mode actions ===
@@ -408,6 +471,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       blockEditTargetRef.current?.save()
       ctx.setUI({ inlineEditBlock: null })
       return ok()
+    case "TEXT_YANK":
+      // Stub: yank (paste kill ring) — not yet implemented
+      return unimplemented("text.yank")
 
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":

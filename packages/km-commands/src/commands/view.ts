@@ -44,12 +44,39 @@ const toggleCollapse = {
   },
 } satisfies CommandDef
 
+const foldNode = {
+  id: "fold_node",
+  name: "Fold Node",
+  description: "Fold just this node",
+  category: "Fold",
+  shortcuts: ["zc"],
+  execute: () => ({ type: "FOLD_NODE" }),
+} satisfies CommandDef
+
+const unfoldNode = {
+  id: "unfold_node",
+  name: "Unfold Node",
+  description: "Unfold just this node",
+  category: "Fold",
+  shortcuts: ["zo"],
+  execute: () => ({ type: "UNFOLD_NODE" }),
+} satisfies CommandDef
+
+const unfoldRecursive = {
+  id: "unfold_recursive",
+  name: "Unfold Recursive",
+  description: "Unfold node and all descendants",
+  category: "Fold",
+  shortcuts: ["zO"],
+  execute: () => ({ type: "UNFOLD_RECURSIVE" }),
+} satisfies CommandDef
+
 const foldAll = {
   id: "fold_all",
   name: "Fold All",
   description: "Fold all nodes at depth 1",
   category: "Fold",
-  shortcuts: ["Z"],
+  shortcuts: ["z", "zM"],
   execute: () => ({ type: "FOLD_LEVEL", depth: 1 }),
 } satisfies CommandDef
 
@@ -58,7 +85,7 @@ const unfoldAll = {
   name: "Unfold All",
   description: "Unfold all nodes",
   category: "Fold",
-  shortcuts: ["Shift+Z"],
+  shortcuts: ["Z", "zR"],
   execute: () => ({ type: "UNFOLD_LEVEL", depth: 99 }),
 } satisfies CommandDef
 
@@ -103,6 +130,9 @@ export const viewCommands: CommandDef[] = [
   cycleViewMode,
   showHelp,
   toggleFold,
+  foldNode,
+  unfoldNode,
+  unfoldRecursive,
   toggleCollapse,
   foldAll,
   unfoldAll,

@@ -25,7 +25,7 @@ describe("Column Fold/Collapse", () => {
     board.expect("#sub2").toExist()
     board.expect("#sub3").toExist()
 
-    board.press("z")
+    board.press("z").press("M")
     board.expect("#sub1").not.toExist()
     board.expect("#sub2").not.toExist()
     board.expect("#sub3").not.toExist()
@@ -40,7 +40,7 @@ describe("Column Fold/Collapse", () => {
       ),
     )
     // Fold all first
-    board.press("z")
+    board.press("z").press("M")
     board.expect("#sub1").not.toExist()
     board.expect("#sub3").not.toExist()
 
@@ -59,7 +59,7 @@ describe("Column Fold/Collapse", () => {
     board.expect("#sub2").toExist()
 
     // z folds col1 only (cursor starts in col1)
-    board.press("z")
+    board.press("z").press("M")
     board.expect("#sub1").not.toExist()
     board.expect("#sub2").toExist() // col2 unaffected
   })
@@ -185,27 +185,27 @@ describe("Outline Depth and Content Lines", () => {
 // =============================================================================
 
 describe("Task Status", () => {
-  test("space cycles task status through multiple states", () => {
+  test("x cycles task status through multiple states", () => {
     // Use item.task() which sets task_status: "todo" (required for isTask)
     const { board } = testEnv(() => item("board", item("col", item.task("task"))))
     board.expect("#task[data-cursor]").toExist()
 
     // todo → wip (both show □, but different colors in ANSI)
-    board.press(" ")
+    board.press("x")
     board.expect("#task[data-cursor]").toExist()
 
     // wip → blocked (shows ✗ U+2717)
-    board.press(" ")
+    board.press("x")
     const output = board.screenshot()
     expect(output).toContain("\u2717") // ✗ blocked icon
   })
 
-  test("space on task does not affect other cards", () => {
+  test("x on task does not affect other cards", () => {
     const { board } = testEnv(() => item("board", item("col", item.task("task1"), item.task("task2"))))
     board.expect("#task1[data-cursor]").toExist()
 
     // Pressing space cycles task1's status, task2 unchanged
-    board.press(" ")
+    board.press("x")
     board.expect("#task1[data-cursor]").toExist()
     board.expect("#task2").toExist()
   })

@@ -135,6 +135,61 @@ const setStatusDropped = {
   },
 } satisfies CommandDef
 
+// Property stubs (future features)
+const setDueDate = {
+  id: "set_due_date",
+  name: "Set Due Date",
+  description: "Set or edit due date",
+  category: "Task",
+  shortcuts: ["td"],
+  execute: () => ({ type: "SET_DUE_DATE" }),
+} satisfies CommandDef
+
+const setStartDate = {
+  id: "set_start_date",
+  name: "Set Start Date",
+  description: "Set or edit start date",
+  category: "Task",
+  shortcuts: ["ts"],
+  execute: () => ({ type: "SET_START_DATE" }),
+} satisfies CommandDef
+
+const setRecurring = {
+  id: "set_recurring",
+  name: "Set Recurring",
+  description: "Set recurrence rule",
+  category: "Task",
+  shortcuts: ["tr"],
+  execute: () => ({ type: "SET_RECURRING" }),
+} satisfies CommandDef
+
+const setPriority = {
+  id: "set_priority",
+  name: "Set Priority",
+  description: "Set task priority",
+  category: "Task",
+  shortcuts: ["sp"],
+  execute: () => ({ type: "SET_PRIORITY" }),
+} satisfies CommandDef
+
+const setLabel = {
+  id: "set_label",
+  name: "Set Label",
+  description: "Set or add label/tag",
+  category: "Task",
+  shortcuts: ["sl"],
+  execute: () => ({ type: "SET_LABEL" }),
+} satisfies CommandDef
+
+const setAssignee = {
+  id: "set_assignee",
+  name: "Set Assignee",
+  description: "Set task assignee",
+  category: "Task",
+  shortcuts: ["sa"],
+  execute: () => ({ type: "SET_ASSIGNEE" }),
+} satisfies CommandDef
+
 export const taskCommands: CommandDef[] = [
   cycleTaskStatus,
   toggleTaskDone,
@@ -143,4 +198,10 @@ export const taskCommands: CommandDef[] = [
   setStatusBlocked,
   setStatusDone,
   setStatusDropped,
+  setDueDate,
+  setStartDate,
+  setRecurring,
+  setPriority,
+  setLabel,
+  setAssignee,
 ]

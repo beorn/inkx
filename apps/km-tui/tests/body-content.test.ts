@@ -89,7 +89,8 @@ describe("Body Content Visual Tests", () => {
     board.press("j")
     const afterTwoDown = board.screenshot()
 
-    // Press 'g' to go to top
+    // Press 'gg' to go to top
+    board.press("g")
     board.press("g")
     const afterGoTop = board.screenshot()
 

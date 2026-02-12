@@ -12,7 +12,7 @@ import { styledUnderline } from "chalkx"
 import type { JobRunner } from "@km/core"
 import type { CardState, ColumnState } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
-import { getNodeDisplayName, getCollapsedTypeSuffix } from "../state.ts"
+import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
@@ -252,6 +252,7 @@ export const Column = React.memo(function Column({
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = renderPlain(getNodeDisplayName(repo, column.node))
+  const untitled = isNodeUntitled(repo, column.node)
   const typeSuffix = getCollapsedTypeSuffix(repo, column.node)
   const count = column.cards.length
   const wipLimit = column.wipLimit
@@ -390,7 +391,7 @@ export const Column = React.memo(function Column({
             wrap="truncate"
           >
             {" "}
-            <Text color={iconColor}>{icon.char}</Text> {name}
+            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor>{name}</Text> : name}
             {typeSuffix ? (
               <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${typeSuffix}`}</Text>
             ) : (

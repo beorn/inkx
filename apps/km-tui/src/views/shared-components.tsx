@@ -12,7 +12,7 @@ const log = createLogger("km:tui:layout")
 import type { CardState, ColumnState } from "../types.ts"
 import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
-import { getNodeDisplayName } from "../state.ts"
+import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts"
 import { getNodeIcon, renderPlain, renderRich } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
@@ -189,6 +189,7 @@ export const MemoizedColumnHeader = React.memo(
 
     // Render header with wiki links stripped: [[target|alias]] → "alias"
     const headerText = renderPlain(getNodeDisplayName(repo, column.node))
+    const untitled = isNodeUntitled(repo, column.node)
     const countText = ` (${column.cards.length})`
     // Calculate padding to fill full width: " [icon] headerText countText" = 3 + headerText + countText
     const headerContentLen = 3 + headerText.length + countText.length
@@ -220,7 +221,7 @@ export const MemoizedColumnHeader = React.memo(
             wrap="truncate"
           >
             {" "}
-            <Text color={iconColor}>{icon.char}</Text> {headerText}
+            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor>{headerText}</Text> : headerText}
             <Text color={isColSelected ? "gray" : undefined} dimColor={!isColSelected}>
               {countText}
             </Text>

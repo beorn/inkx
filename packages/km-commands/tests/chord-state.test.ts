@@ -1,0 +1,163 @@
+/**
+ * Tests for chord state machine (chord-state.ts)
+ */
+
+import { describe, test, expect, beforeEach } from "vitest"
+import { createChordState, type ChordCallbacks } from "../src/chord-state.ts"
+
+/** Create a minimal chord callbacks mock */
+function createCallbacks(
+  opts: {
+    prefixes?: Set<string>
+    chords?: Map<string, string>
+    standalones?: Map<string, string>
+  } = {},
+): ChordCallbacks {
+  const prefixes = opts.prefixes ?? new Set(["z", "g"])
+  const chords =
+    opts.chords ??
+    new Map([
+      ["z:a", "toggle_fold"],
+      ["z:M", "fold_all"],
+      ["g:g", "cursor_first"],
+      ["g:p", "project_picker"],
+    ])
+  const standalones =
+    opts.standalones ??
+    new Map([
+      ["z", "fold_all"],
+      ["g", "cursor_first"],
+    ])
+
+  return {
+    isChordPrefix: (key) => prefixes.has(key),
+    resolveChord: (prefix, key) => chords.get(`${prefix}:${key}`) ?? null,
+    resolveStandalone: (key) => standalones.get(key) ?? null,
+  }
+}
+
+const noMods = { ctrl: false, meta: false, shift: false, alt: false }
+const ctrlMod = { ctrl: true, meta: false, shift: false, alt: false }
+
+describe("ChordState", () => {
+  let state: ReturnType<typeof createChordState>
+  let cb: ChordCallbacks
+
+  beforeEach(() => {
+    state = createChordState()
+    cb = createCallbacks()
+  })
+
+  describe("basic chord resolution", () => {
+    test("chord resolves on second key", () => {
+      const r1 = state.processKey("z", false, noMods, {}, cb)
+      expect(r1.type).toBe("pending")
+      if (r1.type === "pending") expect(r1.prefix).toBe("z")
+
+      const r2 = state.processKey("a", false, noMods, {}, cb)
+      expect(r2.type).toBe("resolved")
+      if (r2.type === "resolved") expect(r2.commandId).toBe("toggle_fold")
+    })
+
+    test("gg chord resolves to cursor_first", () => {
+      state.processKey("g", false, noMods, {}, cb)
+      const r = state.processKey("g", false, noMods, {}, cb)
+      expect(r.type).toBe("resolved")
+      if (r.type === "resolved") expect(r.commandId).toBe("cursor_first")
+    })
+
+    test("zM chord resolves to fold_all", () => {
+      state.processKey("z", false, noMods, {}, cb)
+      const r = state.processKey("M", false, noMods, {}, cb)
+      expect(r.type).toBe("resolved")
+      if (r.type === "resolved") expect(r.commandId).toBe("fold_all")
+    })
+
+    test("pending is null after resolution", () => {
+      state.processKey("z", false, noMods, {}, cb)
+      expect(state.pending).toBe("z")
+
+      state.processKey("a", false, noMods, {}, cb)
+      expect(state.pending).toBeNull()
+    })
+  })
+
+  describe("timeout", () => {
+    test("timeout returns pending prefix and clears state", () => {
+      state.processKey("z", false, noMods, {}, cb)
+      expect(state.pending).toBe("z")
+
+      const prefix = state.timeout()
+      expect(prefix).toBe("z")
+      expect(state.pending).toBeNull()
+    })
+
+    test("timeout returns null when no pending prefix", () => {
+      expect(state.timeout()).toBeNull()
+    })
+  })
+
+  describe("cancel", () => {
+    test("cancel clears pending state", () => {
+      state.processKey("z", false, noMods, {}, cb)
+      expect(state.pending).toBe("z")
+
+      state.cancel()
+      expect(state.pending).toBeNull()
+    })
+
+    test("cancel is safe when no pending prefix", () => {
+      state.cancel() // Should not throw
+      expect(state.pending).toBeNull()
+    })
+  })
+
+  describe("modifier keys", () => {
+    test("modifier keys skip chord detection", () => {
+      const r = state.processKey("z", true, ctrlMod, {}, cb)
+      expect(r.type).toBe("passthrough")
+      expect(state.pending).toBeNull()
+    })
+
+    test("non-prefix key passes through", () => {
+      const r = state.processKey("j", false, noMods, {}, cb)
+      expect(r.type).toBe("passthrough")
+    })
+  })
+
+  describe("unmatched second key", () => {
+    test("replays standalone + second key when chord doesnt match", () => {
+      state.processKey("g", false, noMods, {}, cb)
+      const r = state.processKey("q", false, noMods, {}, cb)
+      expect(r.type).toBe("replay")
+      if (r.type === "replay") {
+        expect(r.standaloneId).toBe("cursor_first")
+        expect(r.replayKey).toBe("q")
+      }
+    })
+
+    test("passthrough when prefix has no standalone binding", () => {
+      const noStandalone = createCallbacks({
+        standalones: new Map(), // No standalone bindings
+      })
+      state.processKey("z", false, noMods, {}, noStandalone)
+      const r = state.processKey("q", false, noMods, {}, noStandalone)
+      expect(r.type).toBe("passthrough")
+    })
+  })
+
+  describe("sequential chords", () => {
+    test("can process multiple chords in sequence", () => {
+      // First chord: za
+      state.processKey("z", false, noMods, {}, cb)
+      const r1 = state.processKey("a", false, noMods, {}, cb)
+      expect(r1.type).toBe("resolved")
+
+      // Second chord: gg
+      state.processKey("g", false, noMods, {}, cb)
+      const r2 = state.processKey("g", false, noMods, {}, cb)
+      expect(r2.type).toBe("resolved")
+      if (r2.type === "resolved") expect(r2.commandId).toBe("cursor_first")
+    })
+  })
+})

@@ -231,6 +231,26 @@ const openInTerminal = {
   },
 } satisfies CommandDef
 
+// Filter bar (stub)
+const filter = {
+  id: "filter",
+  name: "Filter",
+  description: "Open filter bar",
+  category: "Navigation",
+  shortcuts: ["\\"],
+  execute: () => ({ type: "FILTER" }),
+} satisfies CommandDef
+
+// Command palette (stub)
+const commandPalette = {
+  id: "command_palette",
+  name: "Command Palette",
+  description: "Open command palette",
+  category: "Navigation",
+  shortcuts: ["Ctrl+/"],
+  execute: () => ({ type: "COMMAND_PALETTE" }),
+} satisfies CommandDef
+
 export const navigationCommands: CommandDef[] = [
   cursorPrev,
   cursorNext,
@@ -255,4 +275,6 @@ export const navigationCommands: CommandDef[] = [
   followLink,
   openInSystem,
   openInTerminal,
+  filter,
+  commandPalette,
 ]

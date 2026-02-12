@@ -7,10 +7,11 @@
 
 import type { CommandContext, CommandAction, TNode } from "./types.ts"
 import type { KeybindingContext } from "./keybindings.ts"
-import { resolveKeybinding, initDefaultKeybindings } from "./keybindings.ts"
+import { resolveKeybinding, initDefaultKeybindings, isChordPrefix, resolveChord } from "./keybindings.ts"
 import { executeCommand } from "./executor.ts"
 import { registerCommands, clearRegistry } from "./registry.ts"
 import { allCommands } from "./commands/index.ts"
+import { createChordState, type ChordState } from "./chord-state.ts"
 
 /** Ink's Key event structure */
 export interface InkKeyEvent {
@@ -33,6 +34,7 @@ export function initCommandSystem(): void {
   clearRegistry()
   registerCommands(allCommands)
   initDefaultKeybindings()
+  chordState = createChordState()
 }
 
 /** Convert Ink key event to our key string format */
@@ -64,6 +66,9 @@ export function inkKeyToModifiers(key: InkKeyEvent): {
   }
 }
 
+// Module-level chord state (persists across key events)
+let chordState: ChordState = createChordState()
+
 export interface InkCommandResult {
   /** The command that was executed, or null if no command matched */
   commandId: string | null
@@ -71,6 +76,13 @@ export interface InkCommandResult {
   actions: CommandAction | CommandAction[] | null
   /** Whether a command was found (even if it returned null) */
   handled: boolean
+  /** If set, a chord is pending (show in status bar, start timeout) */
+  pending?: string
+}
+
+/** Check if a blocking modal is active (chords should not activate during these) */
+function isBlockingModal(kbCtx: KeybindingContext): boolean {
+  return kbCtx.helpOverlayOpen || kbCtx.consoleOpen || kbCtx.deleteConfirmOpen
 }
 
 /**
@@ -82,6 +94,7 @@ export interface InkCommandResult {
  * @param kbCtx - KeybindingContext for mode-aware resolution
  * @returns Result with commandId and actions to dispatch
  */
+// oxlint-disable-next-line complexity/complexity -- Sequential chord + keybinding resolution pipeline
 export function processInkKey(
   input: string,
   key: InkKeyEvent,
@@ -90,11 +103,11 @@ export function processInkKey(
 ): InkCommandResult {
   const keyStr = inkKeyToString(input, key)
   const modifiers = inkKeyToModifiers(key)
+  const hasModifiers = !!modifiers.ctrl || !!modifiers.meta || !!modifiers.shift || !!modifiers.alt
 
   // Text input priority: when textInputFocused and input is a printable character
   // (not a special key), short-circuit to text insert BEFORE keybinding resolution.
-  // This prevents normal-mode bindings (e.g., "-" → decrease_content_lines) from
-  // intercepting text that should be typed into the editor.
+  // Also cancel any pending chord since we're in text mode.
   if (
     kbCtx.textInputFocused &&
     input.length === 1 &&
@@ -107,10 +120,65 @@ export function processInkKey(
     !key.delete &&
     !key.tab
   ) {
+    chordState.cancel()
     return {
       commandId: "text.insert",
       actions: { type: "TEXT_INSERT", char: input },
       handled: true,
+    }
+  }
+
+  // Cancel chord on text input mode or blocking modals
+  if (kbCtx.textInputFocused || isBlockingModal(kbCtx)) {
+    chordState.cancel()
+  }
+
+  // Chord processing (only when not in text mode and no blocking modal)
+  if (!kbCtx.textInputFocused && !isBlockingModal(kbCtx)) {
+    const chordResult = chordState.processKey(keyStr, hasModifiers, modifiers, kbCtx, {
+      isChordPrefix,
+      resolveChord: (prefix, k, mods, kbCtxArg) => resolveChord(prefix, k, mods, kbCtxArg as KeybindingContext),
+      resolveStandalone: (k) => resolveKeybinding(k, {}, kbCtx),
+    })
+
+    switch (chordResult.type) {
+      case "pending":
+        return { commandId: null, actions: null, handled: true, pending: chordResult.prefix }
+      case "resolved": {
+        const actions = executeCommand(chordResult.commandId, ctx)
+        return { commandId: chordResult.commandId, actions, handled: true }
+      }
+      case "replay": {
+        // Execute the standalone command
+        const standaloneActions = executeCommand(chordResult.standaloneId, ctx)
+        // Then resolve the replayed key normally
+        const replayCommandId = resolveKeybinding(chordResult.replayKey, modifiers, kbCtx)
+        if (replayCommandId) {
+          const replayActions = executeCommand(replayCommandId, ctx)
+          // Return both actions combined
+          const allActions: CommandAction[] = []
+          if (standaloneActions) {
+            if (Array.isArray(standaloneActions)) allActions.push(...standaloneActions)
+            else allActions.push(standaloneActions)
+          }
+          if (replayActions) {
+            if (Array.isArray(replayActions)) allActions.push(...replayActions)
+            else allActions.push(replayActions)
+          }
+          return {
+            commandId: chordResult.standaloneId,
+            actions: allActions.length > 0 ? allActions : null,
+            handled: true,
+          }
+        }
+        // Replay key didn't match — just return standalone
+        return { commandId: chordResult.standaloneId, actions: standaloneActions, handled: true }
+      }
+      case "fallback": {
+        const actions = executeCommand(chordResult.commandId, ctx)
+        return { commandId: chordResult.commandId, actions, handled: true }
+      }
+      // "passthrough" — continue to normal resolution below
     }
   }
 
@@ -129,6 +197,26 @@ export function processInkKey(
   }
 }
 
+/** Get the current chord state (for external timeout handling) */
+export function getChordState(): ChordState {
+  return chordState
+}
+
+/**
+ * Handle chord timeout: resolve the pending prefix as its standalone command.
+ * Called by the TUI layer after 300ms of no second key.
+ */
+export function handleChordTimeout(ctx: CommandContext, kbCtx: KeybindingContext): InkCommandResult | null {
+  const prefix = chordState.timeout()
+  if (!prefix) return null
+
+  const commandId = resolveKeybinding(prefix, {}, kbCtx)
+  if (!commandId) return null
+
+  const actions = executeCommand(commandId, ctx)
+  return { commandId, actions, handled: true }
+}
+
 /**
  * Build KeybindingContext from UI state.
  * This should be called with the current UI state before processing keys.
@@ -137,7 +225,7 @@ export function buildKeybindingContext(options: {
   inMoveMode?: boolean
   inSearchMode?: boolean
   inInputMode?: boolean
-  hasSelection?: boolean
+  hasMultiSelection?: boolean
   isInDetailPane?: boolean
   isInOutlineMode?: boolean
   isInlineEditing?: boolean
@@ -158,7 +246,7 @@ export function buildKeybindingContext(options: {
 
   return {
     mode,
-    hasSelection: options.hasSelection ?? false,
+    hasMultiSelection: options.hasMultiSelection ?? false,
     isInDetailPane: options.isInDetailPane ?? false,
     isInOutlineMode: options.isInOutlineMode ?? false,
     isInlineEditing: options.isInlineEditing ?? false,

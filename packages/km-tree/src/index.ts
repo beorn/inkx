@@ -29,6 +29,7 @@ export {
 // Display utilities (moved from @km/tui-core)
 export {
   getNodeDisplayName,
+  isNodeUntitled,
   getTypeIndicator,
   normalizeName,
   namesAreSimilar,

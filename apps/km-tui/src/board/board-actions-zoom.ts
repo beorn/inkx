@@ -199,6 +199,21 @@ export function handleFollowLink(ctx: ActionCtx): ActionResult {
   })
 
   clearSelection(ctx)
+
+  // If target is a sub-item (3+ levels below root), enter outline mode
+  // so the cursor points at the specific sub-item within its parent card.
+  if (target.parent_id) {
+    const targetParent = ctx.repo.getNode(target.parent_id)
+    if (targetParent?.parent_id && targetParent.parent_id !== rootId) {
+      // target is inside a card — find its position in parent's children
+      const cardChildren = ctx.repo.getChildren(target.parent_id)
+      const subIndex = cardChildren.findIndex((c) => c.id === target.id) + 1
+      if (subIndex > 0) {
+        ctx.setUI({ inOutlineMode: true, subIndex })
+      }
+    }
+  }
+
   return ok()
 }
 

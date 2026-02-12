@@ -175,6 +175,39 @@ export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "le
 // Indent/Outdent
 // =============================================================================
 
+/** Indent node: reparent under previous sibling (make it last child) */
+export function indentNode(ctx: ActionCtx, card: CardState): void {
+  const parentId = card.node.parent_id
+  if (!parentId) {
+    process.stdout.write("\x07")
+    return
+  }
+
+  const siblings = ctx.repo.getChildren(parentId)
+  const myIndex = indexOfChild(siblings, card.node.id)
+
+  // Can't indent the first child — there's no previous sibling to nest under
+  if (myIndex <= 0) {
+    process.stdout.write("\x07")
+    return
+  }
+
+  const prevSibling = siblings[myIndex - 1]
+  if (!prevSibling) {
+    process.stdout.write("\x07")
+    return
+  }
+  const newParentId = prevSibling.id
+
+  // Append as last child of the previous sibling
+  const newParentChildren = ctx.repo.getChildren(newParentId)
+  const lastChild = newParentChildren[newParentChildren.length - 1]
+  const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0
+
+  ctx.repo.moveNode(card.node.id, newParentId, newSortOrder)
+  refreshBoardState(ctx)
+}
+
 /** Outdent node: make it a sibling of its parent */
 export function outdentNode(ctx: ActionCtx, card: CardState): void {
   const parentId = card.node.parent_id

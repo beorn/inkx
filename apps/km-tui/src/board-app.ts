@@ -12,7 +12,7 @@ import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { createBoardAppStoreState, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
-import { processKeyWithContext } from "./command-bridge.ts"
+import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
 import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import type { ActionCtx } from "./tui-context.ts"
@@ -69,6 +69,10 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
   }
 }
 
+// Chord timeout timer
+let chordTimer: ReturnType<typeof setTimeout> | null = null
+const CHORD_TIMEOUT_MS = 300
+
 /**
  * Handle term:key event — the single entry point for all keyboard input.
  * All modals (help, deleteConfirm, console, toast) are routed through the
@@ -91,6 +95,12 @@ export function handleKey(
     get().setUI({ bellState: null, status: null })
   }
 
+  // Clear any pending chord timeout (we got a new key)
+  if (chordTimer !== null) {
+    clearTimeout(chordTimer)
+    chordTimer = null
+  }
+
   routeThroughCommandSystem(input, key, get, exitApp)
   if (needsRenderFlush()) return "flush"
 }
@@ -108,6 +118,35 @@ function routeThroughCommandSystem(input: string, key: Key, get: () => BoardAppS
 
   // When a dialog is open, unhandled keys are expected (limited key set)
   const dialogOpen = ctx.ui.showSearchDialog || ctx.ui.showNewItemDialog || ctx.ui.showProjectPicker
+
+  // Chord pending: show status indicator and start timeout
+  if (result.pending) {
+    ctx.setUI({ status: { level: "info", message: `${result.pending}-` } })
+    chordTimer = setTimeout(() => {
+      chordTimer = null
+      const freshCtx = buildActionCtx(get, exitApp)
+      const timeoutResult = processChordTimeout(freshCtx)
+      if (timeoutResult?.actions) {
+        const actionList = Array.isArray(timeoutResult.actions) ? timeoutResult.actions : [timeoutResult.actions]
+        for (const action of actionList) {
+          const actionResult = handleCommandAction(freshCtx, action)
+          if (isErr(actionResult) && actionResult.error.type === "boundary") {
+            freshCtx.setUI({
+              bellState: actionResult.error.direction,
+              status: {
+                level: "warning",
+                message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
+              },
+            })
+            process.stdout.write("\x07")
+          }
+        }
+      }
+      // Clear chord status indicator
+      freshCtx.setUI({ status: null })
+    }, CHORD_TIMEOUT_MS)
+    return
+  }
 
   if (!result.handled) {
     // Visual bell for unhandled keys (only outside dialogs)

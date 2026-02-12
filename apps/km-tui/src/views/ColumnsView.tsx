@@ -13,7 +13,7 @@ import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:columns")
 import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
-import { getNodeDisplayName } from "../state.ts"
+import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { useTreeRenderContext } from "../ui-context.tsx"
 import { getNodeIcon, renderPlain } from "../text/index.ts"
@@ -78,6 +78,7 @@ const ColumnTree = React.memo(function ColumnTree({
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = renderPlain(getNodeDisplayName(repo, column.node))
+  const untitled = isNodeUntitled(repo, column.node)
   const count = column.cards.length
   const ownColor = getOwnColor(column.node)
 
@@ -121,7 +122,7 @@ const ColumnTree = React.memo(function ColumnTree({
         <Box>
           <Text bold color={headerStyle.color} backgroundColor={headerStyle.backgroundColor} wrap="truncate">
             {" "}
-            <Text color={iconColor}>{icon.char}</Text> {name}
+            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor>{name}</Text> : name}
             <Text
               color={isColumnHeaderSelected ? "gray" : undefined}
               dimColor={!isColumnHeaderSelected}

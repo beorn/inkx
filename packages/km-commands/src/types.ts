@@ -92,6 +92,10 @@ export interface TextExitEditAction {
   type: "TEXT_EXIT_EDIT"
 }
 
+export interface TextYankAction {
+  type: "TEXT_YANK"
+}
+
 export type TextEditAction =
   | TextInsertAction
   | TextDeleteBackwardAction
@@ -105,6 +109,7 @@ export type TextEditAction =
   | TextDeleteToEndAction
   | TextConfirmAction
   | TextExitEditAction
+  | TextYankAction
 
 // Detail pane action
 export interface DetailPaneCloseAction {
@@ -234,6 +239,67 @@ interface DevTestToastAction {
   type: "DEV_TEST_TOAST"
 }
 
+// Fold operations (single-node, handled by TUI)
+interface FoldNodeAction {
+  type: "FOLD_NODE"
+}
+
+interface UnfoldNodeAction {
+  type: "UNFOLD_NODE"
+}
+
+interface UnfoldRecursiveAction {
+  type: "UNFOLD_RECURSIVE"
+}
+
+// UI stubs (future features)
+interface FilterAction {
+  type: "FILTER"
+}
+
+interface CommandPaletteAction {
+  type: "COMMAND_PALETTE"
+}
+
+// Edit operations
+interface InsertAboveAction {
+  type: "INSERT_ABOVE"
+}
+
+interface InsertBelowAction {
+  type: "INSERT_BELOW"
+}
+
+interface DuplicateNodeAction {
+  type: "DUPLICATE_NODE"
+  nodeId: string
+}
+
+// Property stubs (future features)
+interface SetDueDateAction {
+  type: "SET_DUE_DATE"
+}
+
+interface SetStartDateAction {
+  type: "SET_START_DATE"
+}
+
+interface SetRecurringAction {
+  type: "SET_RECURRING"
+}
+
+interface SetPriorityAction {
+  type: "SET_PRIORITY"
+}
+
+interface SetLabelAction {
+  type: "SET_LABEL"
+}
+
+interface SetAssigneeAction {
+  type: "SET_ASSIGNEE"
+}
+
 interface NoopAction {
   type: "NOOP"
 }
@@ -257,6 +323,10 @@ interface EnterInlineEditAction {
 interface EditBlockNavigateAction {
   type: "EDIT_BLOCK_NAVIGATE"
   direction: "up" | "down"
+}
+
+interface IndentNodeAction {
+  type: "INDENT_NODE"
 }
 
 interface OutdentNodeAction {
@@ -323,6 +393,7 @@ export type TUIAction =
   | CloseOrQuitAction
   | EnterInlineEditAction
   | EditBlockNavigateAction
+  | IndentNodeAction
   | OutdentNodeAction
   | NavSiblingBoardAction
   | ZoomInwardsAction
@@ -346,6 +417,20 @@ export type TUIAction =
   | ToastDismissAction
   | DevTestToastAction
   | NoopAction
+  | FoldNodeAction
+  | UnfoldNodeAction
+  | UnfoldRecursiveAction
+  | FilterAction
+  | CommandPaletteAction
+  | InsertAboveAction
+  | InsertBelowAction
+  | DuplicateNodeAction
+  | SetDueDateAction
+  | SetStartDateAction
+  | SetRecurringAction
+  | SetPriorityAction
+  | SetLabelAction
+  | SetAssigneeAction
 
 export type UIAction =
   | ZoomOutwardsAction

@@ -12,6 +12,7 @@ import type { TUIBoardState, ColumnState, CardState, ColumnRules } from "./types
 import type { Repo } from "./repo-context.tsx"
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
+  isNodeUntitled as isNodeUntitledBase,
   getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,
   getParentContext as getParentContextBase,
   extractBody,
@@ -23,6 +24,8 @@ import {
 // These are the primary exports for TUI components
 export const getNodeDisplayName = (repo: Repo, node: Parameters<typeof getNodeDisplayNameBase>[0]) =>
   getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
+export const isNodeUntitled = (repo: Repo, node: Parameters<typeof isNodeUntitledBase>[0]) =>
+  isNodeUntitledBase(node, (id) => repo.getChildren(id))
 export const getCollapsedTypeSuffix = (repo: Repo, node: Parameters<typeof getCollapsedTypeSuffixBase>[0]) =>
   getCollapsedTypeSuffixBase(node, (id) => repo.getChildren(id))
 export const getParentContext = (

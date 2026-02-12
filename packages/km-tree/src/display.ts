@@ -97,11 +97,30 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
   // This is intentional - we fall back to short ID rather than throwing.
   if (node.fs_path) {
     const filename = node.fs_path.split("/").pop() || ""
-    return filename.replace(/\.md$/, "") || node.id.slice(0, 8)
+    return filename.replace(/\.md$/, "") || `(${node.id.slice(0, 8)})`
   }
 
-  // 6. Fallback to short ID
-  return node.id.slice(0, 8)
+  // 6. Fallback to short ID in parentheses (signals "untitled" to rendering layer)
+  return `(${node.id.slice(0, 8)})`
+}
+
+/**
+ * Check if a node has no meaningful display name (would fall back to ID).
+ *
+ * Used by rendering layer to apply dim styling for untitled nodes.
+ */
+export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolean {
+  if (node.data?.name) return false
+  if (node.title) return false
+  if (node.data?.title) return false
+  if (node.type === "file" && getChildren) {
+    const children = getChildren(node.id)
+    const firstSection = children.find((c: KNode) => c.type === "section")
+    if (firstSection?.title || firstSection?.data?.title || firstSection?.content) return false
+  }
+  if (node.content) return false
+  if (node.fs_path) return false
+  return true
 }
 
 /**

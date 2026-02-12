@@ -42,7 +42,7 @@ export const isInDetailPane = when("isInDetailPane", (ctx) => ctx.isInDetailPane
 
 export const isInOutlineMode = when("isInOutlineMode", (ctx) => ctx.isInOutlineMode)
 
-export const hasSelection = when("hasSelection", (ctx) => ctx.hasSelection)
+export const hasMultiSelection = when("hasMultiSelection", (ctx) => ctx.hasMultiSelection)
 
 export const isInlineEditing = when("isInlineEditing", (ctx) => ctx.isInlineEditing)
 

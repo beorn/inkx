@@ -12,6 +12,7 @@ import {
   deleteConfirmOpen,
   consoleOpen,
   hasActiveToast,
+  hasMultiSelection,
   not,
   and,
 } from "./when.ts"
@@ -24,6 +25,8 @@ export interface Keybinding {
   meta?: boolean
   shift?: boolean
   alt?: boolean
+  /** Chord prefix — if set, this binding requires the prefix key first (e.g., chord: "z" + key: "a" = "za") */
+  chord?: string
   commandId: string
   modes?: CommandMode[]
   when?: WhenPredicate | ((ctx: KeybindingContext) => boolean)
@@ -31,7 +34,7 @@ export interface Keybinding {
 
 export interface KeybindingContext {
   mode: CommandMode
-  hasSelection: boolean
+  hasMultiSelection: boolean
   isInDetailPane: boolean
   isInOutlineMode: boolean
   isInlineEditing: boolean
@@ -52,13 +55,26 @@ type OrderedBinding = Keybinding & { _order: number }
 // Key-indexed storage for fast lookup
 const keyMap = new Map<string, OrderedBinding[]>()
 const wildcardBindings: OrderedBinding[] = []
+// Chord storage: "z:a" → bindings for chord prefix "z" + key "a"
+const chordMap = new Map<string, OrderedBinding[]>()
+const chordPrefixes = new Set<string>()
 let nextOrder = 0
 
 export function registerKeybinding(binding: Keybinding): void {
   const ordered: OrderedBinding = Object.assign({}, binding, {
     _order: nextOrder++,
   })
-  if (binding.wildcard) {
+  if (binding.chord) {
+    // Chord binding: route to chordMap with key "prefix:secondKey"
+    const chordKey = `${binding.chord}:${binding.key}`
+    const bucket = chordMap.get(chordKey)
+    if (bucket) {
+      bucket.push(ordered)
+    } else {
+      chordMap.set(chordKey, [ordered])
+    }
+    chordPrefixes.add(binding.chord)
+  } else if (binding.wildcard) {
     wildcardBindings.push(ordered)
   } else {
     const bucket = keyMap.get(binding.key)
@@ -79,6 +95,8 @@ export function registerKeybindings(bindings: Keybinding[]): void {
 export function clearKeybindings(): void {
   keyMap.clear()
   wildcardBindings.length = 0
+  chordMap.clear()
+  chordPrefixes.clear()
   nextOrder = 0
 }
 
@@ -88,6 +106,9 @@ export function getAllKeybindings(): Keybinding[] {
     result.push(...bucket)
   }
   result.push(...wildcardBindings)
+  for (const bucket of chordMap.values()) {
+    result.push(...bucket)
+  }
   result.sort((a, b) => a._order - b._order)
   // Strip internal _order field from returned bindings
   return result.map(({ _order, ...binding }) => binding)
@@ -169,6 +190,33 @@ export function resolveKeybinding(
       wi++
     }
 
+    if (matchBinding(binding, key, modifiers, ctx)) return binding.commandId
+  }
+  return null
+}
+
+/** Check if a key is registered as a chord prefix */
+export function isChordPrefix(key: string): boolean {
+  return chordPrefixes.has(key)
+}
+
+/** Resolve a chord (prefix + second key) to a command ID */
+export function resolveChord(
+  prefix: string,
+  key: string,
+  modifiers: {
+    ctrl?: boolean
+    meta?: boolean
+    shift?: boolean
+    alt?: boolean
+  },
+  ctx: KeybindingContext,
+): string | null {
+  const chordKey = `${prefix}:${key}`
+  const bucket = chordMap.get(chordKey)
+  if (!bucket) return null
+
+  for (const binding of bucket) {
     if (matchBinding(binding, key, modifiers, ctx)) return binding.commandId
   }
   return null
@@ -358,19 +406,31 @@ export const defaultKeybindings: Keybinding[] = [
 
   // === Navigation ===
   // Visual navigation (j/k/arrows) - document traversal, crosses tree levels
-  // Per docs/06-ui.md: j at column level enters first card, k at first card exits to column
-  { key: "j", commandId: "cursor_down" }, // Next visible block (enters children, crosses siblings)
-  { key: "k", commandId: "cursor_up" }, // Previous visible block (exits to parent, crosses siblings)
-  { key: "h", commandId: "cursor_left" }, // Move left (column) - TUI: also closes detail pane contextually
-  { key: "l", commandId: "cursor_right" }, // Move right (column)
-  { key: "g", commandId: "cursor_first" }, // Move to first item in list
-  { key: "G", commandId: "cursor_last" }, // Move to last item in list
+  { key: "j", commandId: "cursor_down" },
+  { key: "k", commandId: "cursor_up" },
+  { key: "h", commandId: "cursor_left" },
+  { key: "l", commandId: "cursor_right" },
+  { key: "G", commandId: "cursor_last" },
 
-  // Arrows behave identically to hjkl per docs/06-ui.md
+  // Arrows behave identically to hjkl
   { key: "ArrowDown", commandId: "cursor_down" },
   { key: "ArrowUp", commandId: "cursor_up" },
   { key: "ArrowLeft", commandId: "cursor_left" },
   { key: "ArrowRight", commandId: "cursor_right" },
+
+  // Emacs-style Ctrl+N/P (normal mode only — dialogs take priority above)
+  {
+    key: "n",
+    ctrl: true,
+    commandId: "cursor_down",
+    when: not(anyDialogOpen),
+  },
+  {
+    key: "p",
+    ctrl: true,
+    commandId: "cursor_up",
+    when: not(anyDialogOpen),
+  },
 
   // History navigation
   { key: "[", commandId: "nav_back" },
@@ -385,37 +445,49 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "k", ctrl: true, commandId: "sibling_board_prev" },
 
   // Zoom/Navigate
-  { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] }, // Edit node title inline
-  { key: "e", commandId: "zoom_in" }, // Zoom into node (show children as board)
-  { key: "o", commandId: "open_in_system" }, // Open file/folder in macOS (Finder/editor)
-  { key: "O", commandId: "open_in_terminal" }, // Open terminal at closest folder
-  { key: "i", commandId: "zoom_inwards" }, // Zoom in one level closer to selected node
-  { key: "u", commandId: "zoom_outwards" }, // Zoom out one level (parent of root)
-  { key: "P", commandId: "follow_link" }, // Follow embedded link to target in context
+  { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] },
+  { key: "e", commandId: "zoom_in" },
+  { key: "o", commandId: "open_in_system" },
+  { key: "O", commandId: "open_in_terminal" },
+  { key: "i", commandId: "zoom_inwards" },
+  { key: "u", commandId: "zoom_outwards" },
+  { key: "P", commandId: "follow_link" },
+  { key: "Enter", ctrl: true, commandId: "follow_link" }, // Ctrl+Enter alternative
+  { key: "i", ctrl: true, commandId: "open_detail_pane" }, // Ctrl+I opens detail
 
   // === Selection ===
-  // NOTE: 'v' is NOT select_toggle in TUI - it cycles view mode
   // Progressive select all with Shift+A
   { key: "A", commandId: "select_all_progressive" },
-  // NOTE: Escape is handled by close_or_quit in TUI section below
+  // Ctrl+A selects all in normal mode (textInputFocused → text.cursor_start is above)
+  {
+    key: "a",
+    ctrl: true,
+    commandId: "select_all",
+    when: not(textInputFocused),
+  },
 
   // Extend selection with Shift+movement
   { key: "ArrowUp", shift: true, commandId: "extend_select_up" },
   { key: "ArrowDown", shift: true, commandId: "extend_select_down" },
   { key: "ArrowLeft", shift: true, commandId: "extend_select_left" },
   { key: "ArrowRight", shift: true, commandId: "extend_select_right" },
-  { key: "K", commandId: "extend_select_up" }, // Shift+K
-  { key: "J", commandId: "extend_select_down" }, // Shift+J
-  { key: "H", commandId: "extend_select_left" }, // Shift+H
-  { key: "L", commandId: "extend_select_right" }, // Shift+L
+  { key: "K", commandId: "extend_select_up" },
+  { key: "J", commandId: "extend_select_down" },
+  { key: "H", commandId: "extend_select_left" },
+  { key: "L", commandId: "extend_select_right" },
 
   // === Edit ===
   { key: "m", commandId: "enter_move_mode" },
   { key: "Enter", commandId: "confirm_move", modes: ["move"] },
   { key: "Escape", commandId: "cancel_move", modes: ["move"] },
-  { key: "D", commandId: "delete_node" },
+  // D no longer deletes — only Backspace/Delete
   { key: "Backspace", commandId: "delete_node" },
   { key: "Delete", commandId: "delete_node" },
+
+  // Insert above/below (outliner-style)
+  { key: "p", commandId: "insert_above" }, // Insert sibling above + inline edit
+  { key: "n", commandId: "insert_below" }, // Insert sibling below + inline edit
+  { key: "d", commandId: "duplicate_node" }, // Duplicate current node
 
   // Shifting (Alt/Meta+direction) - move nodes in tree
   { key: "ArrowUp", meta: true, commandId: "shift_up" },
@@ -427,25 +499,53 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "h", meta: true, commandId: "shift_left" },
   { key: "l", meta: true, commandId: "shift_right" },
 
-  // Tab toggles fold on current card (TUI behavior)
-  { key: "Tab", commandId: "toggle_fold" },
-  // Shift+Tab outdents node
+  // Tab indents (structural: reparent under prev sibling), Shift+Tab outdents
+  { key: "Tab", commandId: "indent_node" },
   { key: "Tab", shift: true, commandId: "outdent" },
 
   // === Task ===
-  { key: " ", commandId: "cycle_task_status" },
+  { key: "x", commandId: "cycle_task_status" }, // x cycles status (was Space)
+  // Space: context-dependent (selection toggle if multi-selected, else open detail pane)
+  { key: " ", commandId: "select_toggle", when: hasMultiSelection },
+  { key: " ", commandId: "open_detail_pane", when: not(hasMultiSelection) },
 
   // === Fold ===
-  // z/Z behavior from keyboard-handler.ts:
-  // - z (lowercase) = fold all cards in current column
-  // - Z (uppercase) = unfold all cards in current column
+  // z/Z standalone → fold_all/unfold_all (preserved behavior, also chord fallback)
   { key: "z", commandId: "fold_all" },
   { key: "Z", commandId: "unfold_all" },
-  { key: "c", commandId: "toggle_collapse" }, // Toggle column collapse
+  { key: "c", commandId: "toggle_collapse" },
+
+  // g/t/s standalone fallbacks for chord timeout
+  { key: "g", commandId: "cursor_first" }, // g standalone → first item (chord timeout)
+  { key: "t", commandId: "set_due_date" }, // t standalone → set due date (chord timeout)
+  { key: "s", commandId: "set_priority" }, // s standalone → set priority (chord timeout)
+
+  // z-prefix chords (vim fold)
+  { chord: "z", key: "a", commandId: "toggle_fold" },
+  { chord: "z", key: "o", commandId: "unfold_node" },
+  { chord: "z", key: "c", commandId: "fold_node" },
+  { chord: "z", key: "O", commandId: "unfold_recursive" },
+  { chord: "z", key: "M", commandId: "fold_all" },
+  { chord: "z", key: "R", commandId: "unfold_all" },
+
+  // g-prefix chords (go-to)
+  { chord: "g", key: "g", commandId: "cursor_first" },
+  { chord: "g", key: "p", commandId: "project_picker" },
+  { chord: "g", key: "n", commandId: "new_item" },
+
+  // t-prefix chords (time/date stubs)
+  { chord: "t", key: "d", commandId: "set_due_date" },
+  { chord: "t", key: "r", commandId: "set_recurring" },
+  { chord: "t", key: "s", commandId: "set_start_date" },
+
+  // s-prefix chords (set property stubs)
+  { chord: "s", key: "p", commandId: "set_priority" },
+  { chord: "s", key: "l", commandId: "set_label" },
+  { chord: "s", key: "a", commandId: "set_assignee" },
 
   // === View ===
-  { key: "v", commandId: "cycle_view_mode" }, // TUI: cycles through view modes
-  { key: "?", commandId: "show_help" }, // Toggle help overlay
+  { key: "v", commandId: "cycle_view_mode" },
+  { key: "?", commandId: "show_help" },
   { key: "<", commandId: "decrease_outline_depth" },
   { key: ">", commandId: "increase_outline_depth" },
   { key: "+", commandId: "increase_content_lines" },
@@ -453,15 +553,23 @@ export const defaultKeybindings: Keybinding[] = [
   { key: "-", commandId: "decrease_content_lines" },
   { key: "_", commandId: "decrease_content_lines" },
 
+  // Filter and command palette
+  { key: "\\", commandId: "filter" },
+  { key: "/", ctrl: true, commandId: "command_palette" },
+
   // === History (Undo/Redo) ===
   { key: "z", ctrl: true, commandId: "undo" },
   { key: "z", ctrl: true, shift: true, commandId: "redo" },
-  { key: "y", ctrl: true, commandId: "redo" },
+  // Ctrl+Y → text.yank when in text input, no longer redo
+  {
+    key: "y",
+    ctrl: true,
+    commandId: "text.yank",
+    when: textInputFocused,
+  },
 
   // === TUI-specific ===
   { key: "q", commandId: "quit" },
-  { key: "n", commandId: "new_item" },
-  { key: "p", commandId: "project_picker" },
   { key: "/", commandId: "search" },
 
   // Favorites (1-9) - jump to favorite boards

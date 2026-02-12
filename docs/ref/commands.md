@@ -134,7 +134,7 @@ interface Keybinding {
 
 interface KeybindingContext {
   mode: CommandMode
-  hasSelection: boolean
+  hasMultiSelection: boolean
   isInDetailPane: boolean
   isInOutlineMode: boolean
   currentNode: TNode | null

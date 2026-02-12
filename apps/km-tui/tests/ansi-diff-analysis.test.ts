@@ -477,7 +477,7 @@ describe("ANSI diff analysis", () => {
       // Navigate to a folder and fold/unfold
       board.press("l") // Move to second column (Health & Fitness)
       board.press("j") // Move down to a folder
-      board.press("z") // Toggle fold
+      board.press("z").press("M") // Fold all
 
       // Verify incremental matches fresh after fold
       const incremental1 = board.driver.app.lastBuffer()!
@@ -494,7 +494,7 @@ describe("ANSI diff analysis", () => {
       }
 
       // Unfold and verify again
-      board.press("z") // Toggle unfold
+      board.press("z").press("R") // Unfold all
 
       const incremental2 = board.driver.app.lastBuffer()!
       const fresh2 = board.driver.app.freshRender()
