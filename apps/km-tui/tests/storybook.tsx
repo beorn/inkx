@@ -1629,9 +1629,8 @@ function InteractiveStorybook({
 
           {/* Main content area */}
           <Box flexDirection="row" flexGrow={isInline ? undefined : 1}>
-            {/* Sidebar — fullscreen only */}
-            {!isInline && (
-              <Box
+            {/* Sidebar */}
+            <Box
                 flexDirection="column"
                 width={sidebarWidth}
                 borderStyle="single"
@@ -1656,7 +1655,6 @@ function InteractiveStorybook({
                   )
                 })}
               </Box>
-            )}
 
             {/* Content area */}
             <Box
