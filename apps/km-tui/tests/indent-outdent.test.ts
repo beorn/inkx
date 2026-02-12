@@ -635,3 +635,46 @@ describe("Cursor follows node (invariant)", () => {
     expect(childIds(repo, "A")).toEqual(["B"])
   })
 })
+
+// =============================================================================
+// Column Indent
+// =============================================================================
+
+describe("Column Indent", () => {
+  test("Tab on column header indents column under previous column", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))),
+    )
+
+    // Navigate to col2 header: right from col1's first card
+    board.press("k") // → col1 header
+    board.press("l") // → col2 header
+    board.expect("#col2[data-cursor]").toExist()
+
+    board.press("Tab") // indent col2 under col1
+
+    // col2 should now be a child of col1 (alongside 1a)
+    const col1Children = childIds(repo, "col1")
+    expect(col1Children).toContain("col2")
+    expect(col1Children).toContain("1a")
+
+    // col2's children should still be intact
+    expect(childIds(repo, "col2")).toEqual(["2a", "2b"])
+  })
+
+  test("Tab on first column header is blocked (boundary)", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("1a")), item("col2", item("2a"))),
+    )
+
+    // Navigate to col1 header
+    board.press("k") // → col1 header
+    board.expect("#col1[data-cursor]").toExist()
+
+    board.press("Tab") // try indent — should be blocked (first column)
+
+    // col1 should still be a top-level column
+    expect(childIds(repo, "board")).toContain("col1")
+    expect(childIds(repo, "board")).toContain("col2")
+  })
+})

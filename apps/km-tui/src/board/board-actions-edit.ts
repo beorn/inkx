@@ -5,9 +5,11 @@
  */
 
 import type { KNode, TaskMark, TaskStatus } from "@km/core"
+import { type ActionResult, boundary, ok } from "@km/commands"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { refreshBoardState } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
+import type { ColumnState } from "../types.ts"
 
 // Render flush flag — set by handleAddNodeAfter when a new InlineEditField
 // needs to mount before the next event handler runs.
@@ -430,4 +432,37 @@ function normalizeColumnSortOrders(ctx: ActionCtx): void {
       c.node.parent_idx = i
     }
   }
+}
+
+/**
+ * Indent a column: reparent it as the last card of the previous column.
+ *
+ * The column becomes a child of the previous column. Cursor moves to
+ * the previous column to follow the indented content.
+ */
+export function handleIndentColumn(ctx: ActionCtx, col: ColumnState): ActionResult {
+  const { layout, repo } = ctx
+  const colIndex = layout.colIndex
+
+  // Need a previous column to indent into
+  if (colIndex === 0) return boundary("indent", "First column can't be indented")
+
+  const prevCol = layout.columns[colIndex - 1]
+  if (!prevCol) return boundary("indent", "No previous column")
+
+  // Calculate sort order: after last card in target column
+  const targetCards = repo.getChildren(prevCol.node.id)
+  const lastCard = targetCards[targetCards.length - 1]
+  const newSortOrder = lastCard ? lastCard.parent_idx + 1 : 0
+
+  // Move the column node under the previous column
+  repo.moveNode(col.node.id, prevCol.node.id, newSortOrder)
+
+  // Cursor goes to previous column's first card (the column is now a card there)
+  refreshBoardState(ctx, {
+    colIndex: colIndex - 1,
+    cardIndex: () => targetCards.length, // the new card is at the end
+  })
+
+  return ok()
 }

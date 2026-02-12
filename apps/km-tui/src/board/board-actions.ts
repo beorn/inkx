@@ -34,6 +34,7 @@ import {
   handleAddNodeBefore,
   handleDeleteNode,
   handleDuplicateNode,
+  handleIndentColumn,
   handleShiftCard,
   handleTaskStatusCycle,
 } from "./board-actions-edit.ts"
@@ -125,6 +126,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "CLOSE_OR_QUIT":
       return handleCloseOrQuit(ctx)
     case "INDENT_NODE":
+      if (!card && col) return handleIndentColumn(ctx, col)
       if (!card) return boundary("indent", "No card to indent")
       if (!indentNode(ctx, card)) return boundary("indent", "Can't indent further")
       return ok()
