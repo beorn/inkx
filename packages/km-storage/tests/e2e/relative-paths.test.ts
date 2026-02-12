@@ -151,6 +151,8 @@ describe("disk mode root node", () => {
   test("events.jsonl with parent_id:null folders get reparented under root '.'", () => {
     const dir = createTempDir("disk-root")
     setupFiles(dir)
+    // Create directories referenced by events so filesystem reconciliation doesn't delete them
+    mkdirSync(join(dir, "ref"), { recursive: true })
     mkdirSync(join(dir, ".km"), { recursive: true })
 
     // Create events.jsonl with top-level folders having parent_id: null

@@ -19,8 +19,8 @@ declare function setImmediate(callback: (value?: unknown) => void): unknown
 
 import { createLogger } from "@beorn/logger"
 import { Database } from "bun:sqlite"
-import { existsSync, readFileSync, statSync } from "fs"
-import { join, dirname, basename, isAbsolute } from "path"
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
+import { join, dirname, basename, isAbsolute, relative } from "path"
 import { toRelativeFsPath } from "./path-utils.ts"
 import type { Event, KNode } from "@km/core"
 import { createParsePool } from "./parse-pool.ts"
@@ -31,6 +31,8 @@ import { applyEventWithDb } from "./db-events.ts"
 import { evaluateAllRules, createRuleContext } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { MemoryStore, type NodeStore } from "./store.ts"
+import { getIgnorePatterns, shouldIgnore, isHiddenFile } from "./ignore.ts"
+import { generatePathBasedId } from "./id-utils.ts"
 
 // Import extracted modules
 import { discoverFiles } from "./discovery.ts"
@@ -168,10 +170,10 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
     }
   } else {
     if (discoverOnly) {
-      yield { declare: ["Reading events", "Applying changes"] }
+      yield { declare: ["Reading events", "Applying changes", "Reconciling filesystem"] }
     } else {
       yield {
-        declare: ["Reading events", "Applying changes", "Evaluating rules"],
+        declare: ["Reading events", "Applying changes", "Reconciling filesystem", "Evaluating rules"],
       }
     }
   }
@@ -190,6 +192,14 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
 
   // 4. Shared pipeline (normalizes parent_id: null → ".")
   yield* applyEvents(db, source.events, errors, repoRoot)
+
+  // 4a. Disk mode: reconcile filesystem to detect externally added/removed files
+  if (mode === "disk") {
+    const reconcileEvents = yield* reconcileFilesystem(db, repoRoot, errors)
+    if (reconcileEvents.length > 0) {
+      yield* applyEvents(db, reconcileEvents, errors, repoRoot)
+    }
+  }
 
   // 5. Resolve links and evaluate rules
   let linkCount = 0
@@ -457,6 +467,246 @@ function* discoverFromEvents(
   log.debug?.(`discovered ${allEvents.length} events (${events.length} new)`)
 
   return { events, pendingLinks: [] }
+}
+
+// ============================================================================
+// FILESYSTEM RECONCILIATION (DISK MODE)
+// ============================================================================
+
+/**
+ * After disk mode applies events from events.jsonl, scan the filesystem
+ * to detect files present on disk but missing from the DB (externally added),
+ * and files in the DB that no longer exist on disk (externally deleted).
+ *
+ * Generates node_created / node_deleted events for the differences.
+ */
+function* reconcileFilesystem(
+  db: Database,
+  repoRoot: string,
+  errors: LoadError[],
+): Generator<StepYield, Event[], unknown> {
+  yield "Reconciling filesystem"
+
+  const events: Event[] = []
+  const now = Date.now()
+  const ignorePatterns = getIgnorePatterns(repoRoot)
+
+  // Collect all fs_path values from DB (non-null, excluding repo root ".")
+  const dbRows = db.prepare("SELECT id, fs_path FROM nodes WHERE fs_path IS NOT NULL AND fs_path != '.'").all() as {
+    id: string
+    fs_path: string
+  }[]
+
+  // Skip reconciliation if DB contains absolute paths (pre-migration database).
+  // Let the health check in createRepo handle this case with IncompleteDatabase.
+  if (dbRows.some((row) => isAbsolute(row.fs_path))) {
+    log.debug?.("reconcileFilesystem: skipping — DB contains absolute fs_path values")
+    yield { current: 0, total: 0 }
+    return events
+  }
+
+  const dbPathSet = new Set<string>()
+  const dbPathToId = new Map<string, string>()
+  for (const row of dbRows) {
+    dbPathSet.add(row.fs_path)
+    dbPathToId.set(row.fs_path, row.id)
+  }
+
+  // Walk the filesystem recursively, collecting all visible entries
+  const fsPathSet = new Set<string>()
+
+  let repoRealpath: string
+  try {
+    repoRealpath = realpathSync(repoRoot)
+  } catch {
+    errors.push({ phase: "discover", message: `Cannot resolve repo root: ${repoRoot}` })
+    yield { current: 0, total: 0 }
+    return events
+  }
+
+  const visitedDirs = new Set<string>([repoRealpath])
+
+  walkFilesystem(repoRoot, null)
+
+  function walkFilesystem(dirPath: string, _parentRelPath: string | null): void {
+    if (!existsSync(dirPath)) return
+
+    let entries
+    try {
+      entries = readdirSync(dirPath, { withFileTypes: true })
+    } catch {
+      return
+    }
+
+    for (const entry of entries) {
+      const fullPath = join(dirPath, entry.name)
+
+      // Skip hidden files
+      if (isHiddenFile(fullPath)) continue
+
+      // Skip ignored entries
+      if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
+
+      if (entry.isSymbolicLink()) {
+        let targetStat
+        try {
+          targetStat = statSync(fullPath) // follows symlink
+        } catch {
+          continue // broken symlink
+        }
+
+        if (targetStat.isDirectory()) {
+          // Check for symlink loops
+          let real: string
+          try {
+            real = realpathSync(fullPath)
+          } catch {
+            continue
+          }
+          if (real.startsWith(repoRealpath + "/") || real === repoRealpath) continue
+          if (visitedDirs.has(real)) continue
+          visitedDirs.add(real)
+
+          const relPath = toRelativeFsPath(repoRoot, fullPath)
+          fsPathSet.add(relPath)
+          walkFilesystem(fullPath, relPath)
+        } else if (targetStat.isFile()) {
+          const relPath = toRelativeFsPath(repoRoot, fullPath)
+          fsPathSet.add(relPath)
+        }
+        continue
+      }
+
+      if (entry.isDirectory()) {
+        let real: string
+        try {
+          real = realpathSync(fullPath)
+        } catch {
+          continue
+        }
+        if (visitedDirs.has(real)) continue
+        visitedDirs.add(real)
+
+        const relPath = toRelativeFsPath(repoRoot, fullPath)
+        fsPathSet.add(relPath)
+        walkFilesystem(fullPath, relPath)
+        continue
+      }
+
+      if (entry.isFile()) {
+        const relPath = toRelativeFsPath(repoRoot, fullPath)
+        fsPathSet.add(relPath)
+      }
+    }
+  }
+
+  // Sort new paths so directories come before their children.
+  // This ensures parent folders are processed (and trackable) before child files.
+  const newPaths = [...fsPathSet].filter((p) => !dbPathSet.has(p)).sort()
+
+  // Track newly created node IDs by relPath (for parent lookup of nested new entries)
+  const newPathToId = new Map<string, string>()
+
+  // Find files on disk but NOT in DB → generate node_created events
+  for (const relPath of newPaths) {
+    const fullPath = join(repoRoot, relPath)
+    const entryName = basename(relPath)
+    const parentRelPath = dirname(relPath)
+
+    // Determine parent ID: check DB first, then newly created nodes, fall back to repo root
+    let parentId = "."
+    if (parentRelPath !== ".") {
+      const parentRow = db.prepare("SELECT id FROM nodes WHERE fs_path = ?").get(parentRelPath) as {
+        id: string
+      } | null
+      if (parentRow) {
+        parentId = parentRow.id
+      } else if (newPathToId.has(parentRelPath)) {
+        parentId = newPathToId.get(parentRelPath)!
+      }
+    }
+
+    const nodeId = generatePathBasedId(repoRoot, fullPath)
+    newPathToId.set(relPath, nodeId)
+
+    let stat
+    try {
+      stat = statSync(fullPath)
+    } catch {
+      continue
+    }
+
+    if (stat.isDirectory()) {
+      events.push({
+        id: nodeId,
+        type: "node_created",
+        actor: "fs-reconcile",
+        ts: now,
+        data: {
+          id: nodeId,
+          type: "folder",
+          parent_id: parentId,
+          parent_idx: 0,
+          fs_path: relPath,
+          name: entryName,
+          content: entryName,
+        },
+      })
+    } else if (entryName.endsWith(".md")) {
+      const name = entryName.replace(/\.md$/i, "")
+      events.push({
+        id: nodeId,
+        type: "node_created",
+        actor: "fs-reconcile",
+        ts: now,
+        data: {
+          id: nodeId,
+          type: "file",
+          parent_id: parentId,
+          parent_idx: 0,
+          fs_path: relPath,
+          name,
+          title: name,
+          data: { _stub: true },
+        },
+      })
+    } else {
+      // Non-markdown file
+      events.push({
+        id: nodeId,
+        type: "node_created",
+        actor: "fs-reconcile",
+        ts: now,
+        data: {
+          id: nodeId,
+          type: "file",
+          parent_id: parentId,
+          parent_idx: 0,
+          fs_path: relPath,
+          content: entryName,
+        },
+      })
+    }
+  }
+
+  // Find files in DB but NOT on disk → generate node_deleted events
+  for (const [relPath, nodeId] of dbPathToId) {
+    if (!fsPathSet.has(relPath)) {
+      events.push({
+        id: `reconcile-del-${nodeId}`,
+        type: "node_deleted",
+        actor: "fs-reconcile",
+        target: nodeId,
+        ts: now,
+        data: {},
+      })
+    }
+  }
+
+  log.debug?.(`reconcileFilesystem: ${events.length} events (fs=${fsPathSet.size} db=${dbPathSet.size})`)
+  yield { current: events.length, total: events.length }
+
+  return events
 }
 
 // ============================================================================

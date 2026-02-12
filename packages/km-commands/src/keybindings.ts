@@ -542,6 +542,7 @@ export const defaultKeybindings: Keybinding[] = [
   { chord: "s", key: "p", commandId: "set_priority" },
   { chord: "s", key: "l", commandId: "set_label" },
   { chord: "s", key: "a", commandId: "set_assignee" },
+  { chord: "s", key: "r", commandId: "rename_node" },
 
   // === View ===
   { key: "v", commandId: "cycle_view_mode" },

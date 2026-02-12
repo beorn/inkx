@@ -77,6 +77,15 @@ const enterInlineEdit = {
   execute: (ctx) => (ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId } : null),
 } satisfies CommandDef
 
+const renameNode = {
+  id: "rename_node",
+  name: "Rename",
+  description: "Rename current node",
+  category: "Edit",
+  shortcuts: ["sr"],
+  execute: (ctx) => (ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId } : null),
+} satisfies CommandDef
+
 const deleteNode = {
   id: "delete_node",
   name: "Delete Node",
@@ -133,6 +142,7 @@ export const editCommands: CommandDef[] = [
   confirmMove,
   cancelMove,
   enterInlineEdit,
+  renameNode,
   shiftUp,
   shiftDown,
   shiftLeft,
