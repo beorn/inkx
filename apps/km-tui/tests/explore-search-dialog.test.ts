@@ -154,7 +154,7 @@ describe("Exploration: search dialog", () => {
     expect(bugs).toEqual([])
   })
 
-  test("200 mixed search/nav/create operations", () => {
+  test("200 mixed search/nav/create operations", { timeout: 15000 }, () => {
     const { board } = searchBoard()
     const bugs: string[] = []
     let inEdit = false

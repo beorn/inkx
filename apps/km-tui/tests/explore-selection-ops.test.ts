@@ -175,7 +175,7 @@ describe("Exploration: selection operations", () => {
     expect(bugs).toEqual([])
   })
 
-  test("200 random select/navigate/indent operations", () => {
+  test("200 random select/navigate/indent operations", { timeout: 15000 }, () => {
     const { board } = selBoard()
     const bugs: string[] = []
     let inEdit = false

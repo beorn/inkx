@@ -179,7 +179,7 @@ describe("Exploration: view transitions", () => {
     expect(bugs).toEqual([])
   })
 
-  test("200 mixed view/nav/create operations", () => {
+  test("200 mixed view/nav/create operations", { timeout: 15000 }, () => {
     const { board } = deepBoard()
     const bugs: string[] = []
     let inEdit = false

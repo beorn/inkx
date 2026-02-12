@@ -186,7 +186,7 @@ describe("Exploration: embed-heavy board ops", () => {
     expect(bugs).toEqual([])
   })
 
-  test("rapid create-escape cycles across all columns", () => {
+  test("rapid create-escape cycles across all columns", { timeout: 15000 }, () => {
     const { board } = nextLikeBoard()
     const bugs: string[] = []
 

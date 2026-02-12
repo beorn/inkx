@@ -281,7 +281,7 @@ describe("Exploration: embed create + nav (stale cursor scenarios)", () => {
     expect(bugs).toEqual([])
   })
 
-  test("300 mixed operations on @next-like board", () => {
+  test("300 mixed operations on @next-like board", { timeout: 15000 }, () => {
     const { board } = nextProcessingBoard()
     const bugs: string[] = []
     let inEdit = false

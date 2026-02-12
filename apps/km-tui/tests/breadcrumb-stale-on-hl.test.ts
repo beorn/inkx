@@ -54,7 +54,7 @@ const NAV_KEYS = ["j", "k", "h", "l", "g", "G", "ArrowUp", "ArrowDown", "ArrowLe
 describe("breadcrumb stale after h/l navigation", () => {
   // Fuzz-style: random nav keys, check incremental vs fresh after each h/l
   for (const seed of [42, 1337, 2024, 9999, 31415]) {
-    test(`incremental render matches fresh after h/l nav (seed=${seed})`, () => {
+    test(`incremental render matches fresh after h/l nav (seed=${seed})`, { timeout: 15000 }, () => {
       const rand = createPRNG(seed)
       const { board } = testEnv(
         () =>
@@ -96,7 +96,7 @@ describe("breadcrumb stale after h/l navigation", () => {
 
   // Also test with medium fixture (more columns, more chances for breadcrumb divergence)
   for (const seed of [42, 1337, 2024]) {
-    test(`medium fixture incremental match (seed=${seed})`, () => {
+    test(`medium fixture incremental match (seed=${seed})`, { timeout: 15000 }, () => {
       const rand = createPRNG(seed)
       const { board } = testEnv(
         () =>

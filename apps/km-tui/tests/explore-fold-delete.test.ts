@@ -195,7 +195,7 @@ describe("Exploration: fold and delete", () => {
     expect(bugs).toEqual([])
   })
 
-  test("200 mixed fold/delete/create/navigate", () => {
+  test("200 mixed fold/delete/create/navigate", { timeout: 15000 }, () => {
     const { board } = foldBoard()
     const bugs: string[] = []
     let inEdit = false

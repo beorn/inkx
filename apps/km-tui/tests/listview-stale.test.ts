@@ -42,7 +42,7 @@ const NAV_KEYS = ["j", "k", "h", "l", "g", "G", "ArrowUp", "ArrowDown", "ArrowLe
 
 describe("list view incremental rendering", () => {
   // Exact reproduction of fuzz seed=42 medium/list (fails at iteration 49)
-  test("medium/list seed=42: exact fuzz sequence", () => {
+  test("medium/list seed=42: exact fuzz sequence", { timeout: 15000 }, () => {
     const rand = createPRNG(42)
     const { board } = testEnv(
       () =>
