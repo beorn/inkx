@@ -231,9 +231,9 @@ function createGtdStructure(targetDir: string, force: boolean): void {
  */
 const GTD_NEXT_MD = `# Next Actions color=cyan
 
-## Inbox add="./inbox/**"
+## Inbox add="./inbox/**" default=true
 
-## Processing default=true
+## Processing
 
 ## Next
 

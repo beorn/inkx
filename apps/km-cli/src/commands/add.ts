@@ -90,7 +90,9 @@ export const addCommand = new Command("add")
   // oxlint-disable-next-line complexity/complexity -- CLI add with query matching, sigil tagging, and four-way dedup
   .action(async (target: string, sources: string[], options: AddOptions) => {
     // Detect sigil target (@next, +project, #tag)
-    const sigilMatch = target.match(/^([@+#])([a-zA-Z0-9_-]+)$/)
+    // Match bare sigil (e.g., @next) or extract from path basename (e.g., /tmp/vt/@next)
+    const basename = target.replace(/\/$/, "").split("/").pop() ?? target
+    const sigilMatch = basename.match(/^([@+#])([a-zA-Z0-9_-]+)$/)
     const sigilPrefix = sigilMatch?.[1] ?? null
     const sigilName = sigilMatch?.[2] ?? null
     const sigilStr = sigilMatch?.[0] ?? null

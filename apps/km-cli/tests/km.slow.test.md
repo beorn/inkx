@@ -178,14 +178,13 @@ $ km add @next './projects**'
 ✓ Added @next to 3 task(s)
 ```
 
-Verify tasks now appear under @next in the default (Processing) column:
+Verify tasks now appear under @next in the default (Inbox) column:
 
 ```console
 $ km show --tree @next
 [...]
 Children:
-[...]
-[...]section[...]Processing...
+[...]section[...]Inbox...
 [...]
 ```
 
