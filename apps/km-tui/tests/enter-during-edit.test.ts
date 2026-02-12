@@ -10,10 +10,16 @@
  *   3. handleAddNodeAfter(ctx) — create new sibling + refreshBoardState + enter edit
  *
  * Escape during editing: discard changes + exit edit mode (no new node).
+ *
+ * Assertions use DOM selectors for structural checks (count, ordering, parent-child)
+ * and repo queries for data-level checks (content, metadata).
  */
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+
+/** Select all item nodes inside a column (in render order) */
+const colItems = (col: string) => `#${col} [data-view='item']`
 
 describe("Outliner Enter — save + new sibling", () => {
   test("Enter saves content and creates new sibling", () => {
@@ -25,10 +31,10 @@ describe("Outliner Enter — save + new sibling", () => {
     board.press("X") // type "X" → content should be "1aX"
     board.press("Enter") // save + create new sibling
 
-    // Content saved
+    // DOM: 3 items in column (was 2)
+    board.expect(colItems("col1")).toHaveCount(3)
+    // Data: content saved
     expect(repo.getNode("1a")?.content).toBe("1aX")
-    // New sibling created (was 2, now 3)
-    expect(repo.getChildren("col1")).toHaveLength(3)
   })
 
   test("Enter with no changes still creates new sibling", () => {
@@ -36,31 +42,31 @@ describe("Outliner Enter — save + new sibling", () => {
       item("board", item("col1", item("1a"), item("1b"))),
     )
 
-    expect(repo.getChildren("col1")).toHaveLength(2)
+    board.expect(colItems("col1")).toHaveCount(2)
 
     board.press("Enter") // enter edit mode
     board.press("Enter") // save (no changes) + create sibling
 
-    // Content unchanged
+    // DOM: sibling added
+    board.expect(colItems("col1")).toHaveCount(3)
+    // Data: content unchanged
     expect(repo.getNode("1a")?.content).toBe("1a")
-    // New sibling created
-    expect(repo.getChildren("col1")).toHaveLength(3)
   })
 
   test("Multiple Enters create chain of siblings", () => {
-    const { board, repo } = testEnv(() =>
+    const { board } = testEnv(() =>
       item("board", item("col1", item("1a"))),
     )
 
-    expect(repo.getChildren("col1")).toHaveLength(1)
+    board.expect(colItems("col1")).toHaveCount(1)
 
     board.press("Enter") // edit 1a
     board.press("Enter") // save + create sibling1 + edit sibling1
     board.press("Enter") // save sibling1 + create sibling2 + edit sibling2
     board.press("Enter") // save sibling2 + create sibling3 + edit sibling3
 
-    // 1 original + 3 new siblings
-    expect(repo.getChildren("col1")).toHaveLength(4)
+    // DOM: 1 original + 3 new siblings
+    board.expect(colItems("col1")).toHaveCount(4)
   })
 
   test("After Enter, user is editing new sibling (can type into it)", () => {
@@ -76,9 +82,9 @@ describe("Outliner Enter — save + new sibling", () => {
     board.press("i")
     board.press("Escape") // cancel (discard typed content on new sibling)
 
-    // 3 children: 1a, new sibling, 1b
-    expect(repo.getChildren("col1")).toHaveLength(3)
-    // Original content preserved
+    // DOM: 3 items in column
+    board.expect(colItems("col1")).toHaveCount(3)
+    // Data: original content preserved
     expect(repo.getNode("1a")?.content).toBe("1a")
   })
 
@@ -87,19 +93,19 @@ describe("Outliner Enter — save + new sibling", () => {
       item("board", item("col1", item("1a"), item("1b"))),
     )
 
-    expect(repo.getChildren("col1")).toHaveLength(2)
+    board.expect(colItems("col1")).toHaveCount(2)
 
     board.press("Enter") // edit 1a
     board.press("X") // type
     board.press("Escape") // cancel
 
-    // No new nodes created
-    expect(repo.getChildren("col1")).toHaveLength(2)
+    // DOM: no new items
+    board.expect(colItems("col1")).toHaveCount(2)
 
-    // Content unchanged (cancelled)
+    // Data: content unchanged (cancelled)
     expect(repo.getNode("1a")?.content).toBe("1a")
 
-    // Back in normal mode
+    // DOM: cursor navigates normally (back in normal mode)
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
   })
@@ -119,13 +125,75 @@ describe("Outliner Enter — save + new sibling", () => {
     board.press("Enter") // edit 1a
     board.press("Enter") // save + create sibling
 
-    // New sibling should have depth=2 (inherited from 1a)
-    const children = repo.getChildren("col1")
-    expect(children).toHaveLength(3)
-    const newNode = children.find(
-      (n) => n.id !== "1a" && n.id !== "1b",
+    // DOM: 3 items in column
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(3)
+
+    // DOM: new sibling is at position 1 (between 1a and 1b)
+    const newNodeId = items.nth(1).getAttribute("id")
+    expect(newNodeId).toBeDefined()
+    expect(newNodeId).not.toBe("1a")
+    expect(newNodeId).not.toBe("1b")
+
+    // Data: new sibling inherited depth=2
+    expect(repo.getNode(newNodeId!)?.data?.depth).toBe(2)
+  })
+
+  test("new sibling is inserted AFTER current card, not before", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
     )
-    expect(newNode).toBeDefined()
-    expect(newNode!.data?.depth).toBe(2)
+
+    // Cursor on 1a, Enter → edit, Enter → save + new sibling
+    board.press("Enter")
+    board.press("Enter")
+    board.press("Escape") // exit edit on new sibling
+
+    // DOM: 4 items, ordered: 1a, NEW, 1b, 1c
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(4)
+    expect(items.nth(0).getAttribute("id")).toBe("1a")
+    expect(items.nth(1).getAttribute("id")).toMatch(/^fake-/) // new node
+    expect(items.nth(2).getAttribute("id")).toBe("1b")
+    expect(items.nth(3).getAttribute("id")).toBe("1c")
+  })
+
+  test("new sibling after LAST card is appended at end", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"))),
+    )
+
+    // Navigate to last card (1b)
+    board.press("j")
+    board.press("Enter") // edit 1b
+    board.press("Enter") // save + new sibling after 1b
+    board.press("Escape")
+
+    // DOM: 3 items, ordered: 1a, 1b, NEW
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(3)
+    expect(items.nth(0).getAttribute("id")).toBe("1a")
+    expect(items.nth(1).getAttribute("id")).toBe("1b")
+    expect(items.nth(2).getAttribute("id")).toMatch(/^fake-/) // new at end
+  })
+
+  test("new sibling after MIDDLE card goes between neighbors", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b"), item("1c"))),
+    )
+
+    // Navigate to middle card (1b)
+    board.press("j")
+    board.press("Enter") // edit 1b
+    board.press("Enter") // save + new sibling after 1b
+    board.press("Escape")
+
+    // DOM: 4 items, ordered: 1a, 1b, NEW, 1c
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(4)
+    expect(items.nth(0).getAttribute("id")).toBe("1a")
+    expect(items.nth(1).getAttribute("id")).toBe("1b")
+    expect(items.nth(2).getAttribute("id")).toMatch(/^fake-/) // new between 1b and 1c
+    expect(items.nth(3).getAttribute("id")).toBe("1c")
   })
 })

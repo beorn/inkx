@@ -369,7 +369,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         ...nodeData,
         id,
         parent_id: parentId,
-        parent_idx: position,
+        parent_idx: nodeData.parent_idx ?? position,
         link_to: null,
         data: nodeData.data ?? {},
         created_at: now,
