@@ -6,15 +6,11 @@
  *
  * ## Usage
  *
- * Interactive mode (default):
- *   bun run apps/km-tui/tests/storybook.tsx
+ *   bun storybook                   # inline (default) — terminal scrolling works
+ *   bun storybook --fullscreen      # alternate screen
+ *   bun storybook --fullscreen-nonalt  # fullscreen positioning, no alt screen
  *
- *   Keyboard controls:
- *   - j/k or arrows: Navigate between sections
- *   - q or Escape: Quit
- *
- * Static mode (for CI or piping):
- *   bun run apps/km-tui/tests/storybook.tsx --static
+ *   Keyboard: j/k to navigate sections, q to quit
  *
  * ## Storybook Rules
  *
@@ -28,7 +24,7 @@
  *    mock state from `createInitialUIState` + `createLayoutRegistry`.
  *    See `src/testing.ts:169-194`.
  *
- * 4. **Test both modes** — `bun storybook --static` (CI) + `bun storybook` (interactive).
+ * 4. **Test all modes** — `bun storybook` (inline), `--fullscreen`, `--fullscreen-nonalt`.
  *
  * 5. **Height handling** — BoardCore receives `dimensions` and handles height
  *    internally. ViewBox just needs enough space for the board.
@@ -71,7 +67,11 @@ import { BottomBar } from "../src/views/board-bottom-bar.tsx"
 import { ToastStack } from "../src/views/ToastStack.tsx"
 import type { KNode } from "@km/core"
 import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts"
-import { UIProvider } from "../src/ui-context.tsx"
+import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
+import { StoreContext } from "inkx/runtime"
+import { CursorStoreProvider } from "../src/cursor-context.tsx"
+import { createCursorStore } from "../src/cursor-store.ts"
+import { createStore } from "zustand/vanilla"
 import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
 import { createLayoutRegistry } from "../src/card-positions.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
@@ -128,6 +128,47 @@ const noopDialogHandlers = {
   handleNewItemCancel: () => {},
   handleSearchSelect: () => {},
   handleSearchCancel: () => {},
+}
+
+// Mock Zustand store satisfying TreeNode's useAppStore/useAppShallow requirements
+const mockZustandStore = createStore(() => ({
+  ui: {
+    ...mockUIState,
+    multiSelected: new Set<string>(),
+    inlineEditBlock: null,
+  },
+  foldedNodes: new Set<string>(),
+  jobRunner: { submit: () => ({ cancel() {} }) },
+  setUI: () => {},
+}))
+
+const defaultCursorStore = createCursorStore({
+  cursorNodeId: null,
+  colIndex: 0,
+  cardIndex: 0,
+  selectionLevel: "card",
+})
+
+// Wrap children with all providers TreeNode needs
+function StorybookProviders({
+  children,
+}: {
+  children: React.ReactNode
+}): React.ReactElement {
+  const treeConfig = deriveTreeConfig(mockUIState)
+  return (
+    <StoreContext.Provider value={mockZustandStore}>
+      <CursorStoreProvider store={defaultCursorStore}>
+        <TreeRenderProvider
+          treeConfig={treeConfig}
+          setUI={() => {}}
+          rootBoardId={null}
+        >
+          {children}
+        </TreeRenderProvider>
+      </CursorStoreProvider>
+    </StoreContext.Provider>
+  )
 }
 
 // ============================================================================
@@ -1008,6 +1049,7 @@ function Layer3AllViews(): React.ReactElement {
 
   return (
     <RepoProvider repo={populatedRepo}>
+      <StorybookProviders>
       <Box flexDirection="column">
         <SectionHeader title="Layer 3: All View Modes (via BoardCore)" />
         <Text dimColor>
@@ -1080,6 +1122,7 @@ function Layer3AllViews(): React.ReactElement {
           />
         </ViewBox>
       </Box>
+      </StorybookProviders>
     </RepoProvider>
   )
 }
@@ -1299,43 +1342,47 @@ function VisualLanguageSection(): React.ReactElement {
 // ============================================================================
 
 function ToastAndStatusSection(): React.ReactElement {
-  // Create mock toasts for demonstration
+  // Mock toasts matching actual app usage (board-effects.ts, board-actions.ts)
   const mockToasts: Toast[] = [
+    // Most common: file sync success (board-effects.ts:119)
     {
       id: "toast-1",
-      level: "info",
-      message: "3 tasks selected",
-      duration: 4000,
-      dismissible: true,
-    },
-    {
-      id: "toast-2",
       level: "success",
       message: "Synced 5 files",
       duration: 2000,
       dismissible: true,
     },
+    // Info toast from bottom bar (board-bottom-bar.tsx:49)
+    {
+      id: "toast-2",
+      level: "info",
+      message: "12 log messages — press ` to see",
+      duration: 4000,
+      dismissible: true,
+    },
+    // Error with description: parse error (board-effects.ts:144)
     {
       id: "toast-3",
-      level: "warning",
-      message: "Disk space low",
-      description: "Less than 10% remaining",
+      level: "error",
+      message: "Parse error in notes/todo.md:42",
+      description: "Unexpected token at column 8",
       duration: 4000,
       dismissible: true,
     },
+    // Warning with description: validation (board-effects.ts:160)
     {
       id: "toast-4",
-      level: "error",
-      message: "Failed to save",
-      description: "Network connection lost",
+      level: "warning",
+      message: "Validation warning",
+      description: "Duplicate heading in projects/api.md",
       duration: 4000,
       dismissible: true,
     },
+    // Error from open command (board-actions.ts:627)
     {
       id: "toast-5",
-      level: "info",
-      message: "Task archived",
-      action: { label: "Undo", trigger: "z" },
+      level: "error",
+      message: "Failed to open: ENOENT",
       duration: 4000,
       dismissible: true,
     },
@@ -1369,11 +1416,11 @@ function ToastAndStatusSection(): React.ReactElement {
       <Text> </Text>
 
       {[
-        { title: "Info Toast", idx: 0 },
-        { title: "Success Toast", idx: 1 },
-        { title: "Warning Toast with Description", idx: 2 },
-        { title: "Error Toast with Description", idx: 3 },
-        { title: "Toast with Action Button", idx: 4 },
+        { title: "Success: File Sync", idx: 0 },
+        { title: "Info: Log Messages", idx: 1 },
+        { title: "Error with Description: Parse Error", idx: 2 },
+        { title: "Warning with Description: Validation", idx: 3 },
+        { title: "Error: Open Failed", idx: 4 },
       ].map(({ title, idx }) => (
         <ViewBox key={idx} title={title}>
           <Box width={demoTermWidth} height={10} position="relative">
@@ -1522,116 +1569,107 @@ const sections: Section[] = [
   },
 ]
 
+type StorybookMode = "inline" | "fullscreen" | "fullscreen-nonalt"
+
 // Interactive Storybook with keyboard navigation
-function InteractiveStorybook(): React.ReactElement {
+function InteractiveStorybook({
+  mode,
+}: {
+  mode: StorybookMode
+}): React.ReactElement {
   const { exit } = useApp()
   const { stdout } = useStdout()
   const [selectedIndex, setSelectedIndex] = useState(0)
 
-  // Terminal dimensions
   const termWidth = stdout?.columns ?? 120
   const termHeight = stdout?.rows ?? 40
-
-  // Sidebar width
   const sidebarWidth = 28
+  const isInline = mode === "inline"
 
   useInput((input, key) => {
-    // Navigation
-    if (input === "j" || key.downArrow) {
+    if (input === "j") {
       setSelectedIndex((prev) => Math.min(prev + 1, sections.length - 1))
-    } else if (input === "k" || key.upArrow) {
+    } else if (input === "k") {
       setSelectedIndex((prev) => Math.max(prev - 1, 0))
-    }
-    // Quit
-    else if (input === "q" || key.escape) {
+    } else if (input === "q" || key.escape) {
       exit()
     }
   })
 
-  // Get the currently selected section
   const currentSection = sections[selectedIndex]
 
   return (
     <RepoProvider repo={mockRepo}>
-      <UIProvider state={mockUIState} dispatch={noopDispatch}>
-        <Box flexDirection="column" width={termWidth} height={termHeight}>
+      <StorybookProviders>
+        <Box
+          flexDirection="column"
+          width={termWidth}
+          height={isInline ? undefined : termHeight}
+        >
           {/* Header */}
-          <Box borderStyle="double" borderColor="cyan" paddingX={1}>
-            <Text bold color="cyan">
-              TUI Storybook
-            </Text>
-            <Text>{"  "}</Text>
-            <Text dimColor>j/k:nav q:quit</Text>
-          </Box>
+          {isInline ? (
+            <Box paddingX={1} gap={2}>
+              <Text bold color="cyan">
+                TUI Storybook
+              </Text>
+              <Text bold>
+                {currentSection?.title} ({selectedIndex + 1}/{sections.length})
+              </Text>
+              <Text dimColor>j/k:nav q:quit</Text>
+            </Box>
+          ) : (
+            <Box borderStyle="double" borderColor="cyan" paddingX={1}>
+              <Text bold color="cyan">
+                TUI Storybook
+              </Text>
+              <Text>{"  "}</Text>
+              <Text dimColor>j/k:nav q:quit</Text>
+            </Box>
+          )}
 
           {/* Main content area */}
-          <Box flexDirection="row" flexGrow={1}>
-            {/* Sidebar */}
-            <Box
-              flexDirection="column"
-              width={sidebarWidth}
-              borderStyle="single"
-              borderColor="gray"
-              paddingX={1}
-            >
-              <Text bold color="yellow">
-                Sections
-              </Text>
-              <Text dimColor>────────────────────────</Text>
-              {sections.map((section, idx) => {
-                const isSelected = idx === selectedIndex
-                return (
-                  <Text
-                    key={section.id}
-                    backgroundColor={isSelected ? "cyan" : undefined}
-                    color={isSelected ? "black" : "white"}
-                  >
-                    {isSelected ? "▸" : " "}{" "}
-                    {section.title.slice(0, sidebarWidth - 5)}
-                  </Text>
-                )
-              })}
-            </Box>
+          <Box flexDirection="row" flexGrow={isInline ? undefined : 1}>
+            {/* Sidebar — fullscreen only */}
+            {!isInline && (
+              <Box
+                flexDirection="column"
+                width={sidebarWidth}
+                borderStyle="single"
+                borderColor="gray"
+                paddingX={1}
+              >
+                <Text bold color="yellow">
+                  Sections
+                </Text>
+                <Text dimColor>────────────────────────</Text>
+                {sections.map((section, idx) => {
+                  const isSelected = idx === selectedIndex
+                  return (
+                    <Text
+                      key={section.id}
+                      backgroundColor={isSelected ? "cyan" : undefined}
+                      color={isSelected ? "black" : "white"}
+                    >
+                      {isSelected ? "▸" : " "}{" "}
+                      {section.title.slice(0, sidebarWidth - 5)}
+                    </Text>
+                  )
+                })}
+              </Box>
+            )}
 
-            {/* Content area — always shows selected section */}
+            {/* Content area */}
             <Box
               flexDirection="column"
-              flexGrow={1}
+              flexGrow={isInline ? undefined : 1}
               paddingX={1}
-              overflow="hidden"
+              overflow={isInline ? undefined : "hidden"}
             >
               {currentSection && <currentSection.component />}
             </Box>
           </Box>
         </Box>
-      </UIProvider>
-    </RepoProvider>
-  )
-}
-
-// Static Storybook (original behavior for --static flag)
-function StaticStorybook(): React.ReactElement {
-  return (
-    <RepoProvider repo={mockRepo}>
-      <UIProvider state={mockUIState} dispatch={noopDispatch}>
-        <Box flexDirection="column">
-          <Layer1RichText />
-          <Layer1TagPills />
-          <Layer1TaskStyling />
-          <Layer1FoldMarkers />
-          <Layer2Layout />
-          <Layer3Views />
-          <Layer3AllViews />
-          <VisualLanguageSection />
-          <ToastAndStatusSection />
-
-          <SectionHeader title="Summary" />
-          <Text>All components rendered successfully.</Text>
-          <Text> </Text>
-          <Text>To verify TUI components with real data, use:</Text>
-          <Text color="cyan"> bun km view @next</Text>
-        </Box>
-      </UIProvider>
+      </StorybookProviders>
     </RepoProvider>
   )
 }
@@ -1640,35 +1678,20 @@ function StaticStorybook(): React.ReactElement {
 // Render and Output
 // ============================================================================
 
-// Check for --static flag to use non-interactive mode
-const isStaticMode = process.argv.includes("--static")
+// Render mode: --inline (default), --fullscreen, --fullscreen-nonalt
+const mode: StorybookMode = process.argv.includes("--fullscreen-nonalt")
+  ? "fullscreen-nonalt"
+  : process.argv.includes("--fullscreen")
+    ? "fullscreen"
+    : "inline"
 
-if (isStaticMode) {
-  // Static mode: render to string and output (original behavior)
-  // Dynamic import to avoid setting IS_REACT_ACT_ENVIRONMENT in interactive mode
-  const { createRenderer } = await import("inkx/testing")
-  const render = createRenderer({ cols: 120, rows: 500 })
-  const app = render(<StaticStorybook />)
-  // Clean up output from 500-row buffer:
-  // 1. Remove trailing whitespace from each line
-  // 2. Remove trailing blank/ANSI-only lines
-  const ANSI_REGEX = /\x1b\[[0-9;]*m/g
-  const rawOutput = app.ansi
-  const lines = rawOutput.split("\n").map((line) => line.replace(/\s+$/, "")) // trim trailing whitespace
-  // Find last line with visible content (not just ANSI codes and whitespace)
-  let lastContentLine = lines.length - 1
-  while (lastContentLine >= 0) {
-    const line = lines[lastContentLine]
-    if (line && line.replace(ANSI_REGEX, "").trim() !== "") break
-    lastContentLine--
-  }
-  const output = lines.slice(0, lastContentLine + 1).join("\n")
-  console.log(output)
-} else {
-  // Interactive mode: render to terminal with keyboard input
-  using term = createTerm()
-  const instance = await inkxRender(<InteractiveStorybook />, term, {
-    exitOnCtrlC: true,
-  })
-  await instance.waitUntilExit()
-}
+const renderMode = mode === "inline" ? "inline" : "fullscreen"
+const alternateScreen = mode === "fullscreen" ? true : false
+
+using term = createTerm()
+const instance = await inkxRender(<InteractiveStorybook mode={mode} />, term, {
+  exitOnCtrlC: true,
+  mode: renderMode,
+  alternateScreen,
+})
+await instance.waitUntilExit()
