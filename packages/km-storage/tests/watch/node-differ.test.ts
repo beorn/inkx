@@ -70,7 +70,9 @@ describe("diffNodes", () => {
       expect(result.changes.filter((c) => c.type === "deleted")).toHaveLength(0)
     })
 
-    test("different parent_idx creates new node", () => {
+    test("lone child with different parent_idx matches by ordinal", () => {
+      // A single child at parent_idx=1 and a single child at parent_idx=0
+      // both have ordinal 0, so they match (same node, different raw index)
       const existing = [
         makeNode({ id: "file-1", type: "file" }),
         makeNode({
@@ -86,18 +88,62 @@ describe("diffNodes", () => {
           id: "task-new",
           type: "task",
           parent_id: "file-new",
-          parent_idx: 1, // Different index
+          parent_idx: 1, // Different raw index, but same ordinal (0)
         }),
       ]
 
       const result = diffNodes(existing, newNodes)
 
-      const created = result.changes.filter((c) => c.type === "created")
-      const deleted = result.changes.filter((c) => c.type === "deleted")
+      // Both are the only child → ordinal 0 → match
+      expect(result.idMap.get("task-new")).toBe("task-1")
+      expect(result.changes.filter((c) => c.type === "created")).toHaveLength(0)
+      expect(result.changes.filter((c) => c.type === "deleted")).toHaveLength(0)
+    })
 
-      expect(created).toHaveLength(1)
-      expect(deleted).toHaveLength(1)
-      expect(deleted[0]?.nodeId).toBe("task-1")
+    test("matches nodes with fractional parent_idx from TUI reorder", () => {
+      // DB has fractional values from midpoint calculations (0.5, 1)
+      // Parser produces sequential integers (0, 1) — should match by ordinal
+      const existing = [
+        makeNode({ id: "file-1", type: "file" }),
+        makeNode({
+          id: "task-1",
+          type: "task",
+          parent_id: "file-1",
+          parent_idx: 0.5,
+          content: "A",
+        }),
+        makeNode({
+          id: "task-2",
+          type: "task",
+          parent_id: "file-1",
+          parent_idx: 1,
+          content: "B",
+        }),
+      ]
+      const newNodes = [
+        makeNode({ id: "file-new", type: "file" }),
+        makeNode({
+          id: "task-new-1",
+          type: "task",
+          parent_id: "file-new",
+          parent_idx: 0,
+          content: "A",
+        }),
+        makeNode({
+          id: "task-new-2",
+          type: "task",
+          parent_id: "file-new",
+          parent_idx: 1,
+          content: "B",
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      expect(result.idMap.get("task-new-1")).toBe("task-1")
+      expect(result.idMap.get("task-new-2")).toBe("task-2")
+      expect(result.changes.filter((c) => c.type === "created")).toHaveLength(0)
+      expect(result.changes.filter((c) => c.type === "deleted")).toHaveLength(0)
     })
 
     test("different type creates new node", () => {

@@ -26,11 +26,41 @@ export interface DiffResult {
 }
 
 /**
- * Match nodes by structural position (parent_id + parent_idx + type).
- * This is more stable than md_pos which shifts when content changes.
+ * Compute ordinal positions for nodes within their parent group.
+ * Groups siblings by parent_id, sorts by parent_idx, assigns ordinal 0, 1, 2...
+ * This normalizes fractional parent_idx (from TUI midpoint reordering) and
+ * sequential integers (from parser) to the same ordinal space.
  */
-function makeStructuralKey(node: KNode): string {
-  return `${node.parent_id ?? "root"}:${node.parent_idx ?? 0}:${node.type}`
+function computeOrdinals(nodes: KNode[]): Map<string, number> {
+  const byParent = new Map<string, KNode[]>()
+  for (const node of nodes) {
+    if (node.type === "file") continue
+    const parentId = node.parent_id ?? "root"
+    let group = byParent.get(parentId)
+    if (!group) {
+      group = []
+      byParent.set(parentId, group)
+    }
+    group.push(node)
+  }
+
+  const ordinals = new Map<string, number>()
+  for (const [, siblings] of byParent) {
+    siblings.sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0))
+    for (let i = 0; i < siblings.length; i++) {
+      ordinals.set(siblings[i]!.id, i)
+    }
+  }
+  return ordinals
+}
+
+/**
+ * Match nodes by structural position (parent_id + ordinal + type).
+ * Uses ordinal position among siblings instead of raw parent_idx,
+ * which normalizes fractional and integer indices.
+ */
+function makeStructuralKey(parentId: string | null, ordinal: number, type: string): string {
+  return `${parentId ?? "root"}:${ordinal}:${type}`
 }
 
 /**
@@ -42,10 +72,13 @@ function makeStructuralKey(node: KNode): string {
 export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const changes: NodeChange[] = []
 
-  // Index existing by structural key (parent + index + type)
+  // Index existing by structural key (parent + ordinal + type)
+  const existingOrdinals = computeOrdinals(existing)
   const existingByKey = new Map<string, KNode>()
   for (const node of existing) {
-    const key = makeStructuralKey(node)
+    if (node.type === "file") continue
+    const ordinal = existingOrdinals.get(node.id) ?? 0
+    const key = makeStructuralKey(node.parent_id, ordinal, node.type)
     existingByKey.set(key, node)
   }
 
@@ -60,12 +93,14 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   }
 
   // Process non-file nodes with remapped parent IDs
+  const newOrdinals = computeOrdinals(newNodes)
   for (const node of newNodes) {
     if (node.type === "file") continue
 
     // Remap parent_id for key lookup
     const remappedParentId = node.parent_id ? (idMap.get(node.parent_id) ?? node.parent_id) : null
-    const key = `${remappedParentId ?? "root"}:${node.parent_idx ?? 0}:${node.type}`
+    const ordinal = newOrdinals.get(node.id) ?? 0
+    const key = makeStructuralKey(remappedParentId, ordinal, node.type)
 
     const existingNode = existingByKey.get(key)
 
@@ -120,9 +155,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
         changes: nodeChanges,
       })
     }
-    // Remove file from remaining check
-    const fileKey = makeStructuralKey(existingFile)
-    existingByKey.delete(fileKey)
+    // File nodes are not in existingByKey (skipped during indexing)
   }
 
   // Remaining existing nodes were deleted
