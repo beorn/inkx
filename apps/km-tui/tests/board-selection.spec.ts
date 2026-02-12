@@ -33,7 +33,7 @@ describe("Selection", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("J")
-    expect(board.getStatus()?.message).toMatch(/1 item/)
+    expect(board.getStatus()?.message).toMatch(/2 items/)
 
     board.press("J")
     board.expect("#1c[data-cursor]").toExist()
@@ -73,7 +73,7 @@ describe("Selection", () => {
     board.expect("#1c[data-cursor]").toExist()
 
     board.press("K")
-    expect(board.getStatus()?.message).toMatch(/1 item/)
+    expect(board.getStatus()?.message).toMatch(/2 items/)
 
     board.press("K")
     board.expect("#1a[data-cursor]").toExist()

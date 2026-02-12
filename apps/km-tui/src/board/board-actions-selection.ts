@@ -26,22 +26,32 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
 
   if (!card || !col) return
 
-  // Initialize anchor if starting fresh
-  if (ui.selectionAnchor === null) {
-    const newSelected = new Set(ui.multiSelected)
-    newSelected.add(makeSelectionKey(card.node.id, 0))
-    ctx.setUI({
-      selectionAnchor: { nodeId: card.node.id, sub: 0 },
-      multiSelected: newSelected,
-      status: { level: "info", message: "1 item selected" },
-    })
+  // Initialize anchor if starting fresh — set via setUI AND mutate ctx.ui
+  // so that updateSelectionRange (called below) can read it synchronously
+  // before React flushes the batched update.
+  const initAnchor = ui.selectionAnchor === null
+  if (initAnchor) {
+    const anchor = { nodeId: card.node.id, sub: 0 }
+    ctx.setUI({ selectionAnchor: anchor })
+    ctx.ui.selectionAnchor = anchor
   }
 
   // Calculate target
   const targetIdx =
     direction === "up" ? Math.max(0, layout.cardIndex - 1) : Math.min(col.cards.length - 1, layout.cardIndex + 1)
 
-  if (targetIdx === layout.cardIndex) return
+  if (targetIdx === layout.cardIndex) {
+    // At boundary: if we just initialized the anchor, select the current card
+    if (initAnchor) {
+      const newSelected = new Set(ui.multiSelected)
+      newSelected.add(makeSelectionKey(card.node.id, 0))
+      ctx.setUI({
+        multiSelected: newSelected,
+        status: { level: "info", message: "1 item selected" },
+      })
+    }
+    return
+  }
 
   // Move cursor (focus)
   const treeDir = direction === "up" ? "prev" : "next"
