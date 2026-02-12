@@ -394,17 +394,26 @@ export function handleCommandAction(
       blockEditTargetRef.current?.deleteToEnd()
       return ok()
     case "TEXT_CONFIRM": {
-      // Outliner-style Enter: if editor supports split, save current + create new sibling
-      const canSplit = blockEditTargetRef.current?.insertBreak?.()
-      if (canSplit) {
-        // Save current item, exit edit, create new sibling + enter edit on it
-        blockEditTargetRef.current?.save()
-        ctx.setUI({ inlineEditBlock: null })
+      // Outliner-style Enter: save current + create new sibling + edit it.
+      // Key insight: don't clear inlineEditBlock to null as intermediate state.
+      // Go directly from old edit → new edit. React handles unmount/mount via
+      // key change (different nodeId). The intermediate null creates a timing
+      // vulnerability where batched events or sync I/O can leave the ref null.
+      const target = blockEditTargetRef.current
+      if (target) {
+        target.insertBreak?.()
+        target.save()
+        // handleAddNodeAfter sets inlineEditBlock to newId directly —
+        // no intermediate null state that could be caught by batched events
+        handleAddNodeAfter(ctx)
+      } else if (ctx.ui.inlineEditBlock) {
+        // Batched Enter: inlineEditBlock is set but React hasn't rendered the
+        // InlineEditField yet (no ref). This happens when events arrive faster
+        // than React renders. The new node has empty content, so just create
+        // another sibling directly.
         handleAddNodeAfter(ctx)
       } else {
-        // Simple text input (search dialog, etc.) — just save + exit
-        blockEditTargetRef.current?.save()
-        ctx.setUI({ inlineEditBlock: null })
+        // No edit active — no-op
       }
       return ok()
     }
@@ -432,6 +441,57 @@ export function handleCommandAction(
     case "DIALOG_CANCEL":
       dialogTargetRef.current?.cancel()
       return ok()
+
+    // === Modal commands (routed through command system via when predicates) ===
+    case "NOOP":
+      return ok()
+    case "CONSOLE_TOGGLE":
+      ctx.setUI((prev) => ({ showConsole: !prev.showConsole }))
+      return ok()
+    case "CONSOLE_CLOSE":
+      ctx.setUI({ showConsole: false })
+      return ok()
+    case "DELETE_CONFIRM_EXECUTE":
+      if (ctx.ui.deleteConfirm) {
+        executeDelete(ctx, ctx.ui.deleteConfirm.nodeId)
+      }
+      ctx.setUI({ deleteConfirm: null })
+      return ok()
+    case "DELETE_CONFIRM_CANCEL":
+      ctx.setUI({ deleteConfirm: null })
+      return ok()
+    case "TOAST_DISMISS": {
+      const latest = ctx.toastQueue.getLatest()
+      if (latest?.action && typeof latest.action.trigger === "function") {
+        // Job cancel — the callback handles its own toast dismissal
+        latest.action.trigger()
+      } else {
+        ctx.toastQueue.dismissAll()
+      }
+      // Force re-render (toastQueue is external state, not in Zustand)
+      ctx.setUI({})
+      return ok()
+    }
+    case "DEV_TEST_TOAST": {
+      const { toastQueue } = ctx
+      const examples = [
+        () => toastQueue.success("Task completed!"),
+        () =>
+          toastQueue.error("Failed to save", {
+            description: "Network error",
+          }),
+        () => toastQueue.warning("Disk space low"),
+        () => toastQueue.info("3 tasks selected"),
+        () =>
+          toastQueue.info("File deleted", {
+            action: { label: "Undo", trigger: "z" },
+          }),
+      ]
+      const randomToast =
+        examples[Math.floor(Math.random() * examples.length)]
+      randomToast?.()
+      return ok()
+    }
 
     default:
       assertNever(action)

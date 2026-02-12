@@ -223,6 +223,34 @@ interface DialogCancelAction {
   type: "DIALOG_CANCEL"
 }
 
+interface ConsoleToggleAction {
+  type: "CONSOLE_TOGGLE"
+}
+
+interface ConsoleCloseAction {
+  type: "CONSOLE_CLOSE"
+}
+
+interface DeleteConfirmExecuteAction {
+  type: "DELETE_CONFIRM_EXECUTE"
+}
+
+interface DeleteConfirmCancelAction {
+  type: "DELETE_CONFIRM_CANCEL"
+}
+
+interface ToastDismissAction {
+  type: "TOAST_DISMISS"
+}
+
+interface DevTestToastAction {
+  type: "DEV_TEST_TOAST"
+}
+
+interface NoopAction {
+  type: "NOOP"
+}
+
 interface OpenInSystemAction {
   type: "OPEN_IN_SYSTEM"
   nodeId: string
@@ -319,6 +347,13 @@ export type TUIAction =
   | DialogNavDownAction
   | DialogConfirmAction
   | DialogCancelAction
+  | ConsoleToggleAction
+  | ConsoleCloseAction
+  | DeleteConfirmExecuteAction
+  | DeleteConfirmCancelAction
+  | ToastDismissAction
+  | DevTestToastAction
+  | NoopAction
 
 export type UIAction =
   | ZoomOutwardsAction

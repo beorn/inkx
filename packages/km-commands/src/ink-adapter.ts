@@ -146,6 +146,10 @@ export function buildKeybindingContext(options: {
   searchDialogOpen?: boolean
   projectPickerOpen?: boolean
   newItemDialogOpen?: boolean
+  helpOverlayOpen?: boolean
+  deleteConfirmOpen?: boolean
+  consoleOpen?: boolean
+  hasActiveToast?: boolean
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -163,6 +167,10 @@ export function buildKeybindingContext(options: {
     searchDialogOpen: options.searchDialogOpen ?? false,
     projectPickerOpen: options.projectPickerOpen ?? false,
     newItemDialogOpen: options.newItemDialogOpen ?? false,
+    helpOverlayOpen: options.helpOverlayOpen ?? false,
+    deleteConfirmOpen: options.deleteConfirmOpen ?? false,
+    consoleOpen: options.consoleOpen ?? false,
+    hasActiveToast: options.hasActiveToast ?? false,
   }
 }
 

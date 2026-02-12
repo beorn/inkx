@@ -366,7 +366,7 @@ describe("wouldHandleKey", () => {
 
     // Use keys/combinations that are definitely not registered
     expect(wouldHandleKey("~", {}, kbCtx)).toBe(false)
-    expect(wouldHandleKey("`", {}, kbCtx)).toBe(false)
+    // Note: backtick IS now registered (console.toggle)
     expect(wouldHandleKey("}", {}, kbCtx)).toBe(false)
   })
 

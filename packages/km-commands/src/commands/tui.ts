@@ -116,4 +116,80 @@ export const tuiCommands: CommandDef[] = [
     shortcuts: ["Shift+Tab"],
     execute: (): CommandAction => ({ type: "OUTDENT_NODE" }),
   },
+
+  // === Modal commands ===
+
+  // Help overlay
+  {
+    id: "help.dismiss",
+    name: "Dismiss Help",
+    description: "Close help overlay",
+    category: "View",
+    shortcuts: ["?", "Escape", "q"],
+    execute: (): CommandAction => ({ type: "HIDE_HELP" }),
+  },
+
+  // Delete confirmation
+  {
+    id: "delete_confirm.confirm",
+    name: "Confirm Delete",
+    description: "Execute pending deletion",
+    category: "Edit",
+    shortcuts: ["Enter"],
+    execute: (): CommandAction => ({ type: "DELETE_CONFIRM_EXECUTE" }),
+  },
+  {
+    id: "delete_confirm.cancel",
+    name: "Cancel Delete",
+    description: "Cancel pending deletion",
+    category: "Edit",
+    execute: (): CommandAction => ({ type: "DELETE_CONFIRM_CANCEL" }),
+  },
+
+  // Console
+  {
+    id: "console.close",
+    name: "Close Console",
+    description: "Close console overlay",
+    category: "View",
+    shortcuts: ["Escape", "`"],
+    execute: (): CommandAction => ({ type: "CONSOLE_CLOSE" }),
+  },
+  {
+    id: "console.toggle",
+    name: "Toggle Console",
+    description: "Toggle console overlay",
+    category: "View",
+    shortcuts: ["`"],
+    execute: (): CommandAction => ({ type: "CONSOLE_TOGGLE" }),
+  },
+
+  // Toast
+  {
+    id: "toast.dismiss",
+    name: "Dismiss Toast",
+    description: "Dismiss active toast notification",
+    category: "View",
+    shortcuts: ["Escape"],
+    execute: (): CommandAction => ({ type: "TOAST_DISMISS" }),
+  },
+
+  // Dev
+  {
+    id: "dev.test_toast",
+    name: "Test Toast",
+    description: "Fire a random test toast (dev)",
+    category: "View",
+    shortcuts: ["Ctrl+T"],
+    execute: (): CommandAction => ({ type: "DEV_TEST_TOAST" }),
+  },
+
+  // Noop — absorb key without action
+  {
+    id: "noop",
+    name: "No-op",
+    description: "Absorb key without action",
+    category: "View",
+    execute: (): CommandAction => ({ type: "NOOP" }),
+  },
 ]

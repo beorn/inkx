@@ -63,6 +63,13 @@ function createContext(
     isInlineEditing: false,
     currentNode: null,
     textInputFocused: false,
+    searchDialogOpen: false,
+    projectPickerOpen: false,
+    newItemDialogOpen: false,
+    helpOverlayOpen: false,
+    deleteConfirmOpen: false,
+    consoleOpen: false,
+    hasActiveToast: false,
     ...overrides,
   }
 }
@@ -537,6 +544,162 @@ describe("initDefaultKeybindings", () => {
   ] as const)("shift+%s extends selection (%s)", (key, commandId) => {
     initDefaultKeybindings()
     expectKey(key, commandId, { shift: true })
+  })
+})
+
+describe("wildcard keybindings", () => {
+  beforeEach(() => {
+    clearKeybindings()
+  })
+
+  it("wildcard matches any key when condition is met", () => {
+    registerKeybinding({
+      key: "*",
+      wildcard: true,
+      commandId: "catch_all",
+      when: (ctx) => ctx.helpOverlayOpen,
+    })
+
+    const helpOpen = createContext({ helpOverlayOpen: true })
+    const helpClosed = createContext({ helpOverlayOpen: false })
+
+    expect(resolveKeybinding("j", {}, helpOpen)).toBe("catch_all")
+    expect(resolveKeybinding("x", {}, helpOpen)).toBe("catch_all")
+    expect(resolveKeybinding("j", {}, helpClosed)).toBeNull()
+  })
+
+  it("specific key takes priority over wildcard when registered earlier", () => {
+    // Specific key registered first (lower _order)
+    registerKeybinding({
+      key: "?",
+      commandId: "dismiss_help",
+      when: (ctx) => ctx.helpOverlayOpen,
+    })
+    // Wildcard registered second (higher _order)
+    registerKeybinding({
+      key: "*",
+      wildcard: true,
+      commandId: "noop",
+      when: (ctx) => ctx.helpOverlayOpen,
+    })
+
+    const helpOpen = createContext({ helpOverlayOpen: true })
+
+    // ? should match dismiss_help (registered first), not noop
+    expect(resolveKeybinding("?", {}, helpOpen)).toBe("dismiss_help")
+    // j should match noop (wildcard fallback)
+    expect(resolveKeybinding("j", {}, helpOpen)).toBe("noop")
+  })
+
+  it("wildcard takes priority over later-registered specific keys", () => {
+    // Wildcard registered first (for modal blocking)
+    registerKeybinding({
+      key: "*",
+      wildcard: true,
+      commandId: "noop",
+      when: (ctx) => ctx.helpOverlayOpen,
+    })
+    // Normal binding registered later
+    registerKeybinding({ key: "j", commandId: "cursor_down" })
+
+    const helpOpen = createContext({ helpOverlayOpen: true })
+    const helpClosed = createContext({ helpOverlayOpen: false })
+
+    // When help is open: wildcard catches j before cursor_down
+    expect(resolveKeybinding("j", {}, helpOpen)).toBe("noop")
+    // When help is closed: wildcard doesn't match, cursor_down matches
+    expect(resolveKeybinding("j", {}, helpClosed)).toBe("cursor_down")
+  })
+
+  it("literal * key (column_8) is not treated as wildcard", () => {
+    // Normal binding for literal * key (Shift+8)
+    registerKeybinding({ key: "*", commandId: "column_8" })
+
+    const ctx = createContext()
+
+    // Literal * matches
+    expect(resolveKeybinding("*", {}, ctx)).toBe("column_8")
+    // Other keys don't match (it's not a wildcard)
+    expect(resolveKeybinding("j", {}, ctx)).toBeNull()
+  })
+})
+
+describe("modal keybindings (initDefaultKeybindings)", () => {
+  beforeEach(() => {
+    clearKeybindings()
+    initDefaultKeybindings()
+  })
+
+  it("help overlay: ? dismisses help", () => {
+    const ctx = createContext({ helpOverlayOpen: true })
+    expect(resolveKeybinding("?", {}, ctx)).toBe("help.dismiss")
+  })
+
+  it("help overlay: Escape dismisses help", () => {
+    const ctx = createContext({ helpOverlayOpen: true })
+    expect(resolveKeybinding("Escape", {}, ctx)).toBe("help.dismiss")
+  })
+
+  it("help overlay: q dismisses help", () => {
+    const ctx = createContext({ helpOverlayOpen: true })
+    expect(resolveKeybinding("q", {}, ctx)).toBe("help.dismiss")
+  })
+
+  it("help overlay: j is absorbed (noop)", () => {
+    const ctx = createContext({ helpOverlayOpen: true })
+    expect(resolveKeybinding("j", {}, ctx)).toBe("noop")
+  })
+
+  it("delete confirm: Enter confirms", () => {
+    const ctx = createContext({ deleteConfirmOpen: true })
+    expect(resolveKeybinding("Enter", {}, ctx)).toBe("delete_confirm.confirm")
+  })
+
+  it("delete confirm: any other key cancels", () => {
+    const ctx = createContext({ deleteConfirmOpen: true })
+    expect(resolveKeybinding("j", {}, ctx)).toBe("delete_confirm.cancel")
+    expect(resolveKeybinding("Escape", {}, ctx)).toBe("delete_confirm.cancel")
+  })
+
+  it("console: Escape closes", () => {
+    const ctx = createContext({ consoleOpen: true })
+    expect(resolveKeybinding("Escape", {}, ctx)).toBe("console.close")
+  })
+
+  it("console: backtick closes", () => {
+    const ctx = createContext({ consoleOpen: true })
+    expect(resolveKeybinding("`", {}, ctx)).toBe("console.close")
+  })
+
+  it("console: q quits", () => {
+    const ctx = createContext({ consoleOpen: true })
+    expect(resolveKeybinding("q", {}, ctx)).toBe("quit")
+  })
+
+  it("console: j is absorbed (noop)", () => {
+    const ctx = createContext({ consoleOpen: true })
+    expect(resolveKeybinding("j", {}, ctx)).toBe("noop")
+  })
+
+  it("toast: Escape dismisses when toast active", () => {
+    const ctx = createContext({ hasActiveToast: true })
+    expect(resolveKeybinding("Escape", {}, ctx)).toBe("toast.dismiss")
+  })
+
+  it("toast: Escape does NOT dismiss during inline edit", () => {
+    const ctx = createContext({ hasActiveToast: true, isInlineEditing: true })
+    // Should fall through to text.exit_edit (textInputFocused must be true too)
+    expect(resolveKeybinding("Escape", {}, ctx)).not.toBe("toast.dismiss")
+  })
+
+  it("backtick toggles console when not in modal", () => {
+    const ctx = createContext()
+    expect(resolveKeybinding("`", {}, ctx)).toBe("console.toggle")
+  })
+
+  it("Ctrl+T fires dev toast", () => {
+    const ctx = createContext()
+    expect(resolveKeybinding("t", { ctrl: true }, ctx)).toBe("dev.test_toast")
   })
 })
 

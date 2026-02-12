@@ -12,6 +12,17 @@ import {
 import { refreshBoardState } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
+// Render flush flag — set by handleAddNodeAfter when a new InlineEditField
+// needs to mount before the next event handler runs.
+let _needsFlush = false
+
+/** Consume and return the render flush flag. */
+export function needsRenderFlush(): boolean {
+  const result = _needsFlush
+  _needsFlush = false
+  return result
+}
+
 /**
  * Delete the selected node — with confirmation for non-empty nodes.
  *
@@ -84,18 +95,25 @@ export function executeDelete(ctx: ActionCtx, nodeId: string): void {
 export function handleAddNodeAfter(ctx: ActionCtx): void {
   const { layout, repo } = ctx
   const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  if (!col) return
 
-  if (!card || !col) return
+  // Query repo for fresh children (layout.columns.cards may be stale after prior addNode)
+  const siblings = repo.getChildren(col.node.id)
+  const currentNodeId = ctx.cursorNodeId
 
-  // Determine sort order: midpoint between current and next card
-  const currentIdx = card.node.parent_idx ?? 0
-  const nextCard = col.cards[layout.cardIndex + 1]
-  const nextIdx = nextCard?.node.parent_idx ?? currentIdx + 1
+  // Find current node's position in fresh sibling list
+  const currentSibIdx = siblings.findIndex((s) => s.id === currentNodeId)
+  const currentNode = siblings[currentSibIdx]
+  if (!currentNode) return
+
+  // Sort order: midpoint between current and next sibling
+  const currentIdx = currentNode.parent_idx ?? 0
+  const nextSibling = siblings[currentSibIdx + 1]
+  const nextIdx = nextSibling?.parent_idx ?? currentIdx + 1
   const newSortOrder = (currentIdx + nextIdx) / 2
 
-  // Inherit type from current node
-  const nodeType = card.node.type === "task" ? "task" : "section"
+  // Inherit type + depth from current node
+  const nodeType = currentNode.type === "task" ? "task" : "section"
   const newNode: Partial<KNode> = {
     type: nodeType,
     content: "",
@@ -105,22 +123,26 @@ export function handleAddNodeAfter(ctx: ActionCtx): void {
     newNode.task_status = "todo"
     newNode.task_mark = " "
   }
-  // Copy heading depth from sibling so serializer uses correct heading level
-  if (card.node.data?.depth) {
-    newNode.data = { ...newNode.data, depth: card.node.data.depth }
+  if (currentNode.data?.depth) {
+    newNode.data = { ...newNode.data, depth: currentNode.data.depth }
   }
 
   const newId = repo.addNode(col.node.id, newNode)
 
-  // Refresh board to pick up the new node, cursor on new card
+  // Refresh board state with fresh repo query.
+  // usePositionHints: new node isn't in nodeIndex yet (only rebuilt on render).
   refreshBoardState(ctx, {
-    cardIndex: layout.cardIndex + 1,
+    cardIndex: currentSibIdx + 1,
+    usePositionHints: true,
   })
 
   // Enter inline edit on the new node
   ctx.setUI({
     inlineEditBlock: { nodeId: newId, blockIndex: 0 },
   })
+
+  // Signal that a render flush is needed (new component must mount before next event)
+  _needsFlush = true
 }
 
 /**

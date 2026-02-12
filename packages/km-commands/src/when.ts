@@ -84,3 +84,20 @@ export const anyDialogOpen = when(
   (ctx) =>
     ctx.searchDialogOpen || ctx.projectPickerOpen || ctx.newItemDialogOpen,
 )
+
+export const helpOverlayOpen = when(
+  "helpOverlayOpen",
+  (ctx) => ctx.helpOverlayOpen,
+)
+
+export const deleteConfirmOpen = when(
+  "deleteConfirmOpen",
+  (ctx) => ctx.deleteConfirmOpen,
+)
+
+export const consoleOpen = when("consoleOpen", (ctx) => ctx.consoleOpen)
+
+export const hasActiveToast = when(
+  "hasActiveToast",
+  (ctx) => ctx.hasActiveToast,
+)

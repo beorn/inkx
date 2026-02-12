@@ -8,11 +8,18 @@ import {
   projectPickerOpen,
   newItemDialogOpen,
   anyDialogOpen,
+  helpOverlayOpen,
+  deleteConfirmOpen,
+  consoleOpen,
+  hasActiveToast,
   not,
+  and,
 } from "./when.ts"
 
 export interface Keybinding {
   key: string
+  /** If true, matches any key (key field is ignored for matching) */
+  wildcard?: boolean
   ctrl?: boolean
   meta?: boolean
   shift?: boolean
@@ -33,54 +40,135 @@ export interface KeybindingContext {
   searchDialogOpen: boolean
   projectPickerOpen: boolean
   newItemDialogOpen: boolean
+  helpOverlayOpen: boolean
+  deleteConfirmOpen: boolean
+  consoleOpen: boolean
+  hasActiveToast: boolean
 }
 
-const keybindings: Keybinding[] = []
+// Internal binding with registration order for priority interleaving
+type OrderedBinding = Keybinding & { _order: number }
+
+// Key-indexed storage for fast lookup
+const keyMap = new Map<string, OrderedBinding[]>()
+const wildcardBindings: OrderedBinding[] = []
+let nextOrder = 0
 
 export function registerKeybinding(binding: Keybinding): void {
-  keybindings.push(binding)
+  const ordered: OrderedBinding = Object.assign({}, binding, {
+    _order: nextOrder++,
+  })
+  if (binding.wildcard) {
+    wildcardBindings.push(ordered)
+  } else {
+    const bucket = keyMap.get(binding.key)
+    if (bucket) {
+      bucket.push(ordered)
+    } else {
+      keyMap.set(binding.key, [ordered])
+    }
+  }
 }
 
 export function registerKeybindings(bindings: Keybinding[]): void {
-  keybindings.push(...bindings)
+  for (const b of bindings) {
+    registerKeybinding(b)
+  }
 }
 
 export function clearKeybindings(): void {
-  keybindings.length = 0
+  keyMap.clear()
+  wildcardBindings.length = 0
+  nextOrder = 0
 }
 
 export function getAllKeybindings(): Keybinding[] {
-  return [...keybindings]
+  const result: OrderedBinding[] = []
+  for (const bucket of keyMap.values()) {
+    result.push(...bucket)
+  }
+  result.push(...wildcardBindings)
+  result.sort((a, b) => a._order - b._order)
+  // Strip internal _order field from returned bindings
+  return result.map(({ _order, ...binding }) => binding)
 }
 
-export function resolveKeybinding(
+/** Check if a single binding matches the given key, modifiers, and context */
+function matchBinding(
+  binding: Keybinding,
   key: string,
-  modifiers: { ctrl?: boolean; meta?: boolean; shift?: boolean; alt?: boolean },
+  modifiers: {
+    ctrl?: boolean
+    meta?: boolean
+    shift?: boolean
+    alt?: boolean
+  },
   ctx: KeybindingContext,
-): string | null {
-  for (const binding of keybindings) {
-    // Check key match
-    if (binding.key !== key) continue
-
-    // Check modifiers
-    if (!!binding.ctrl !== !!modifiers.ctrl) continue
-    if (!!binding.meta !== !!modifiers.meta) continue
+): boolean {
+  // Wildcards skip modifier checks — they absorb all keys regardless of modifiers
+  if (!binding.wildcard) {
+    if (!!binding.ctrl !== !!modifiers.ctrl) return false
+    if (!!binding.meta !== !!modifiers.meta) return false
     // For single uppercase letters (A-Z), the shift key is implicit in the character
     // Don't require explicit shift: true in the binding for capital letters
     const isUppercaseLetter =
       key.length === 1 && key >= "A" && key <= "Z" && !binding.shift
-    if (!isUppercaseLetter && !!binding.shift !== !!modifiers.shift) continue
-    if (!!binding.alt !== !!modifiers.alt) continue
+    if (!isUppercaseLetter && !!binding.shift !== !!modifiers.shift)
+      {return false}
+    if (!!binding.alt !== !!modifiers.alt) return false
+  }
 
-    // Check mode
-    if (binding.modes && binding.modes.length > 0) {
-      if (!binding.modes.includes(ctx.mode)) continue
+  // Check mode
+  if (binding.modes && binding.modes.length > 0) {
+    if (!binding.modes.includes(ctx.mode)) return false
+  }
+
+  // Check conditional
+  if (binding.when && !binding.when(ctx)) return false
+
+  return true
+}
+
+export function resolveKeybinding(
+  key: string,
+  modifiers: {
+    ctrl?: boolean
+    meta?: boolean
+    shift?: boolean
+    alt?: boolean
+  },
+  ctx: KeybindingContext,
+): string | null {
+  const bucket = keyMap.get(key) ?? []
+
+  // Fast path: no wildcards registered
+  if (wildcardBindings.length === 0) {
+    for (const binding of bucket) {
+      if (matchBinding(binding, key, modifiers, ctx)) return binding.commandId
+    }
+    return null
+  }
+
+  // Merge-iterate specific and wildcard bindings in registration order.
+  // Both arrays are pre-sorted by _order (insertion order).
+  // Wildcards registered early (e.g., modal catch-alls) take priority
+  // over specific bindings registered later (e.g., cursor_down).
+  let bi = 0
+  let wi = 0
+  while (bi < bucket.length || wi < wildcardBindings.length) {
+    const b = bucket[bi]
+    const w = wildcardBindings[wi]
+
+    let binding: OrderedBinding
+    if (w === undefined || (b !== undefined && b._order < w._order)) {
+      binding = b!
+      bi++
+    } else {
+      binding = w
+      wi++
     }
 
-    // Check conditional
-    if (binding.when && !binding.when(ctx)) continue
-
-    return binding.commandId
+    if (matchBinding(binding, key, modifiers, ctx)) return binding.commandId
   }
   return null
 }
@@ -88,6 +176,70 @@ export function resolveKeybinding(
 // Default keybindings
 // NOTE: These match docs/06-ui.md Navigation Model
 export const defaultKeybindings: Keybinding[] = [
+  // === Blocking modals (highest priority) ===
+  // These absorb ALL keys via wildcards; only listed specific keys do something.
+
+  // Help overlay — dismiss with ?, Escape, q; absorb everything else
+  { key: "?", commandId: "help.dismiss", when: helpOverlayOpen },
+  { key: "Escape", commandId: "help.dismiss", when: helpOverlayOpen },
+  {
+    key: "Escape",
+    meta: true,
+    commandId: "help.dismiss",
+    when: helpOverlayOpen,
+  },
+  { key: "q", commandId: "help.dismiss", when: helpOverlayOpen },
+  {
+    key: "*",
+    wildcard: true,
+    commandId: "noop",
+    when: helpOverlayOpen,
+  },
+
+  // Delete confirmation — Enter confirms, any other key cancels
+  {
+    key: "Enter",
+    commandId: "delete_confirm.confirm",
+    when: deleteConfirmOpen,
+  },
+  {
+    key: "*",
+    wildcard: true,
+    commandId: "delete_confirm.cancel",
+    when: deleteConfirmOpen,
+  },
+
+  // Console — Escape/backtick close, q quits, absorb rest
+  { key: "Escape", commandId: "console.close", when: consoleOpen },
+  { key: "Escape", meta: true, commandId: "console.close", when: consoleOpen },
+  { key: "`", commandId: "console.close", when: consoleOpen },
+  { key: "q", commandId: "quit", when: consoleOpen },
+  {
+    key: "*",
+    wildcard: true,
+    commandId: "noop",
+    when: consoleOpen,
+  },
+
+  // Toast dismiss (non-blocking — only intercepts Escape when toast active)
+  {
+    key: "Escape",
+    commandId: "toast.dismiss",
+    when: and(hasActiveToast, not(isInlineEditing)),
+  },
+  {
+    key: "Escape",
+    meta: true,
+    commandId: "toast.dismiss",
+    when: and(hasActiveToast, not(isInlineEditing)),
+  },
+
+  // Console toggle (available anytime)
+  { key: "`", commandId: "console.toggle" },
+
+  // Dev toast (Ctrl+T)
+  { key: "t", ctrl: true, commandId: "dev.test_toast" },
+
   // === Dialog navigation (when any dialog is open) ===
   // These must come first to intercept keys before normal bindings
   // Note: Escape sets meta=true in inkx (terminal emulation), so we need both variants

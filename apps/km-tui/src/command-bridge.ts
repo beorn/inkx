@@ -59,6 +59,10 @@ export function processKeyWithContext(
     searchDialogOpen: ui.showSearchDialog,
     projectPickerOpen: ui.showProjectPicker,
     newItemDialogOpen: ui.showNewItemDialog,
+    helpOverlayOpen: ui.showHelp,
+    deleteConfirmOpen: !!ui.deleteConfirm,
+    consoleOpen: ui.showConsole,
+    hasActiveToast: !!ctx.toastQueue.getLatest(),
   })
 
   const { colIndex, cardIndex, columns } = layout

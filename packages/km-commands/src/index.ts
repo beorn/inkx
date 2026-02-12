@@ -119,6 +119,10 @@ export {
   projectPickerOpen,
   newItemDialogOpen,
   anyDialogOpen,
+  helpOverlayOpen,
+  deleteConfirmOpen,
+  consoleOpen,
+  hasActiveToast,
 } from "./when.ts"
 
 // Ink Adapter (for TUI integration)

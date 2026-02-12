@@ -17,7 +17,7 @@ import {
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext } from "./command-bridge.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
-import { executeDelete } from "./board/board-actions-edit.ts"
+import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import type { ActionCtx } from "./tui-context.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
 
@@ -75,106 +75,28 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
 
 /**
  * Handle term:key event — the single entry point for all keyboard input.
- * Dialog guards → command routing → action handling → bell/status feedback.
+ * All modals (help, deleteConfirm, console, toast) are routed through the
+ * command system via keybindings with when predicates and wildcard catch-alls.
  */
-// oxlint-disable-next-line complexity/complexity -- Keyboard routing with dialog/modal state guards
 export function handleKey(
   data: { input: string; key: Key },
   ctx: EventHandlerContext<BoardAppStore>,
   exitApp: () => void,
-): void | "exit" {
+): void | "exit" | "flush" {
   const { input, key } = data
   const { get } = ctx
 
   ensureCommandSystemInitialized()
 
   const ui = get().ui
-  const dialogOpen =
-    ui.showSearchDialog || ui.showNewItemDialog || ui.showProjectPicker
-
-  // When a dialog is open, route through the command system directly
-  // (dialog and text commands are matched via when predicates)
-  if (dialogOpen) {
-    routeThroughCommandSystem(input, key, get, exitApp)
-    return
-  }
-
-  // Help overlay blocks most keys - only allow dismiss keys
-  if (ui.showHelp) {
-    if (input === "?" || key.escape || input === "q") {
-      get().setUI({ showHelp: false })
-    }
-    return
-  }
-
-  // Delete confirmation dialog - Enter confirms, Escape/any other key cancels
-  if (ui.deleteConfirm) {
-    if (key.return) {
-      const ctx = buildActionCtx(get, exitApp)
-      executeDelete(ctx, ui.deleteConfirm.nodeId)
-    }
-    get().setUI({ deleteConfirm: null })
-    return
-  }
-
-  // Console (normal screen) - dismiss with backtick/escape, quit with q
-  if (ui.showConsole) {
-    if (key.escape || input === "`") {
-      get().setUI({ showConsole: false })
-    } else if (input === "q") {
-      exitApp()
-    }
-    return
-  }
-
-  // Toggle console with backtick
-  if (input === "`") {
-    get().setUI((prev) => ({ showConsole: !prev.showConsole }))
-    return
-  }
 
   // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders).
   if (ui.bellState !== null || ui.status !== null) {
     get().setUI({ bellState: null, status: null })
   }
 
-  // DEV: Test toast command (Ctrl+T)
-  if (key.ctrl && input === "t") {
-    const { toastQueue } = get()
-    const examples = [
-      () => toastQueue.success("Task completed!"),
-      () =>
-        toastQueue.error("Failed to save", { description: "Network error" }),
-      () => toastQueue.warning("Disk space low"),
-      () => toastQueue.info("3 tasks selected"),
-      () =>
-        toastQueue.info("File deleted", {
-          action: { label: "Undo", trigger: "z" },
-        }),
-    ]
-    const randomToast = examples[Math.floor(Math.random() * examples.length)]
-    randomToast?.()
-    return
-  }
-
-  // Escape dismisses toast if present — invoke action callback if it's a function.
-  // But NOT during inline edit — Escape should cancel the edit (via command system).
-  if (key.escape && !ui.inlineEditBlock && get().toastQueue.getLatest()) {
-    const latest = get().toastQueue.getLatest()
-    if (latest?.action && typeof latest.action.trigger === "function") {
-      // Job cancel — the callback handles its own toast dismissal
-      latest.action.trigger()
-    } else {
-      get().toastQueue.dismissAll()
-    }
-    // Force re-render so ToastStack picks up the now-empty toast list.
-    // toastQueue is external state (not in Zustand), so dismissAll() alone
-    // doesn't trigger React updates. setUI({}) creates a new ui object ref.
-    get().setUI({})
-    return
-  }
-
   routeThroughCommandSystem(input, key, get, exitApp)
+  if (needsRenderFlush()) return "flush"
 }
 
 /**
