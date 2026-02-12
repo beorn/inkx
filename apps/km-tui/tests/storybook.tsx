@@ -1695,5 +1695,3 @@ const instance = await inkxRender(<InteractiveStorybook mode={mode} />, term, {
   alternateScreen,
 })
 await instance.waitUntilExit()
-// Restore cursor visibility (inline mode hides it but doesn't restore on exit)
-process.stdout.write("\x1b[?25h")
