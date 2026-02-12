@@ -7,9 +7,9 @@
 import type { KNode, TaskMark, TaskStatus } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
-import { clearSelection, getSelectedCardIndices, refreshBoardState } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, getSelectedCards, refreshBoardState } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import type { CardState, ColumnState } from "../types.ts"
+import type { ColumnState } from "../types.ts"
 
 /**
  * Determine the correct heading depth for a new sibling node.
@@ -70,12 +70,8 @@ export function handleDeleteNode(ctx: ActionCtx): void {
 
   if (!card) return // Board level — nothing to delete
 
-  // Multi-select: gather all selected cards in current column
-  const selectedIndices = getSelectedCardIndices(ctx)
-  const cards: CardState[] =
-    selectedIndices.length > 1
-      ? selectedIndices.map((i) => col!.cards[i]).filter((c): c is CardState => c !== undefined)
-      : [card]
+  const cards = getSelectedCards(ctx)
+  if (cards.length === 0) return
 
   // Aggregate impact across all cards
   const TRIVIAL_DATA_KEYS = new Set(["depth", "rules", "lang", "meta", "completion"])
@@ -100,7 +96,6 @@ export function handleDeleteNode(ctx: ActionCtx): void {
         : card.node.name ?? card.node.content ?? card.node.id
     ctx.setUI({
       deleteConfirm: {
-        nodeId: cards.length > 1 ? null : card.node.id,
         nodeIds: cards.map((c) => c.node.id),
         title,
         childCount: totalChildCount,
@@ -140,7 +135,6 @@ function handleDeleteColumn(
 
   ctx.setUI({
     deleteConfirm: {
-      nodeId,
       nodeIds: [nodeId],
       title: col.node.name ?? col.node.content ?? nodeId,
       childCount: totalDescendants,
@@ -392,16 +386,8 @@ export function handleConfirmMove(ctx: ActionCtx): void {
  * Clears selection after batch operation.
  */
 export function handleTaskStatusCycle(ctx: ActionCtx): void {
-  const { layout } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
-  if (!card) return
-
-  const selectedIndices = getSelectedCardIndices(ctx)
-  const cards: CardState[] =
-    selectedIndices.length > 1
-      ? selectedIndices.map((i) => col!.cards[i]).filter((c): c is CardState => c !== undefined)
-      : [card]
+  const cards = getSelectedCards(ctx)
+  if (cards.length === 0) return
 
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
   const markMap: Record<TaskStatus, TaskMark> = {
@@ -424,7 +410,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     })
   }
 
-  if (selectedIndices.length > 1) clearSelection(ctx)
+  if (cards.length > 1) clearSelection(ctx)
   refreshBoardState(ctx)
 }
 

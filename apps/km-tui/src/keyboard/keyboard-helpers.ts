@@ -136,6 +136,25 @@ export function clearSelection(ctx: ActionCtx): void {
   })
 }
 
+/**
+ * Get cards to operate on: multi-selected cards if multiple are selected,
+ * otherwise just the cursor card. Returns cards in column order.
+ *
+ * This is the standard way to make any card operation batch-aware:
+ * `const cards = getSelectedCards(ctx)` gives you the right set to iterate.
+ */
+export function getSelectedCards(ctx: ActionCtx): CardState[] {
+  const col = ctx.layout.columns[ctx.layout.colIndex]
+  const cursorCard = col?.cards[ctx.layout.cardIndex]
+  if (!col || !cursorCard) return []
+
+  const indices = getSelectedCardIndices(ctx)
+  if (indices.length > 1) {
+    return indices.map((i) => col.cards[i]).filter((c): c is CardState => c !== undefined)
+  }
+  return [cursorCard]
+}
+
 /** Get unique selected card indices from multi-selection */
 export function getSelectedCardIndices(ctx: ActionCtx): number[] {
   if (ctx.ui.multiSelected.size === 0) return []

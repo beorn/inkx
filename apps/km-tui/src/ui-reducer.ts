@@ -82,8 +82,7 @@ export interface UIState {
 
   // Delete confirmation dialog - shows impact before destructive delete
   deleteConfirm: {
-    nodeId: string | null // Single node ID (null when batch)
-    nodeIds?: string[] // Batch delete: all node IDs to delete
+    nodeIds: string[] // Node IDs to delete (single or batch)
     title: string
     childCount: number
     backlinkCount: number

@@ -508,8 +508,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "DELETE_CONFIRM_EXECUTE":
       if (ctx.ui.deleteConfirm) {
-        const ids = ctx.ui.deleteConfirm.nodeIds ?? (ctx.ui.deleteConfirm.nodeId ? [ctx.ui.deleteConfirm.nodeId] : [])
-        if (ids.length > 0) executeBatchDelete(ctx, ids)
+        executeBatchDelete(ctx, ctx.ui.deleteConfirm.nodeIds)
       }
       ctx.setUI({ deleteConfirm: null })
       return ok()
