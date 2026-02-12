@@ -283,3 +283,45 @@ describe("Column Jump", () => {
     board.expect("#2a[data-cursor]").toExist()
   })
 })
+
+// =============================================================================
+// Untitled Columns
+// =============================================================================
+
+describe("Untitled Columns", () => {
+  test("untitled columns render as (shortId) not sibling names", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item(
+          "board",
+          item("Named", item("task1")),
+          item("untitled-col", item("task2")),
+          item("Another", item("task3")),
+        )
+        // Clear the name from the middle column to simulate empty ## section
+        const untitledCol = nodes.find((n) => n.id === "untitled-col")
+        if (untitledCol) {
+          untitledCol.data = {}
+          untitledCol.title = undefined
+          untitledCol.content = undefined
+        }
+        return nodes
+      },
+      { columns: 120 },
+    )
+
+    const text = board.screenshot()
+
+    // Named columns should show their name
+    expect(text).toContain("Named")
+    expect(text).toContain("Another")
+
+    // Untitled column should show (shortId) not "Named" or "Another"
+    expect(text).toContain("(untitled")
+
+    // "Named" appears once in column header, possibly once in top bar
+    // But should NOT appear as the untitled column's name
+    const namedMatches = text.match(/\bNamed\b/g) ?? []
+    expect(namedMatches.length).toBeLessThanOrEqual(2)
+  })
+})
