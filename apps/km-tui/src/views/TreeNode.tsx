@@ -20,7 +20,7 @@ import {
   getNodeDisplayName,
   getParentContext as getParentContextFromState,
 } from "../state.ts"
-import { extractBody } from "@km/tree"
+import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
 import { renderRich } from "../text/index.ts"
 import { truncateText } from "../layout/index.ts"
 import { makeSelectionKey } from "../types.ts"
@@ -333,6 +333,36 @@ function TreeNodeImpl({
     [repo],
   )
 
+  // Split at boundary: Enter in title creates a new sibling node
+  const handleSplitAtBoundary = useCallback(
+    (offset: number) => {
+      try {
+        const result = splitNode(repo, displayNode.id, offset)
+        // Focus the new node (text after cursor) in edit mode
+        setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+      } catch {
+        // Split failed (e.g., root node) — visual bell
+        setUI({ bellState: "split-failed" })
+      }
+    },
+    [displayNode.id, repo, setUI],
+  )
+
+  // Merge backward: Backspace at start of title merges with previous sibling
+  const handleMergeBackward = useCallback(() => {
+    try {
+      const result = mergeWithPrevious(repo, displayNode.id)
+      if (result) {
+        // Focus the survivor with cursor at the merge point
+        setUI({ inlineEditBlock: { nodeId: result.survivorId, blockIndex: 0 } })
+        // TODO: set cursor offset to result.cursorOffset via BlockEditTarget after render
+      }
+    } catch {
+      // Merge failed — visual bell
+      setUI({ bellState: "merge-failed" })
+    }
+  }, [displayNode.id, repo, setUI])
+
   // Memoize rich text rendering - only recalc when content or sigil config changes
   // In multiline (cards) mode, truncate with ellipsis to fit on single line
   const styledContent = useMemo(() => {
@@ -485,6 +515,8 @@ function TreeNodeImpl({
                   onConfirm={handleInlineEditConfirm}
                   onCancel={handleInlineEditCancel}
                   onSave={handleTitleSave}
+                  onSplitAtBoundary={handleSplitAtBoundary}
+                  onMergeBackward={handleMergeBackward}
                 />
               </Text>
             ) : (
@@ -537,6 +569,24 @@ function TreeNodeImpl({
                   }}
                   onCancel={handleInlineEditCancel}
                   onSave={(v) => handleBlockSave(child.id, v)}
+                  onSplitAtBoundary={(offset) => {
+                    try {
+                      const result = splitNode(repo, child.id, offset)
+                      setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+                    } catch {
+                      setUI({ bellState: "split-failed" })
+                    }
+                  }}
+                  onMergeBackward={() => {
+                    try {
+                      const result = mergeWithPrevious(repo, child.id)
+                      if (result) {
+                        setUI({ inlineEditBlock: { nodeId: result.survivorId, blockIndex: 0 } })
+                      }
+                    } catch {
+                      setUI({ bellState: "merge-failed" })
+                    }
+                  }}
                 />
               ) : (
                 <Text dimColor>{renderRich(child.content ?? "")}</Text>

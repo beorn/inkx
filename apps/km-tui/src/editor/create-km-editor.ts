@@ -95,6 +95,8 @@ export function createKmEditor(options: KmEditorOptions = {}): KmEditor {
     editor.children = options.initialValue
     // Normalize to ensure valid state
     Editor.normalize(editor, { force: true })
+    // Set initial cursor at end (matches useLineEdit behavior: cursor = initialValue.length)
+    Transforms.select(editor, Editor.end(editor, []))
   }
 
   return editor

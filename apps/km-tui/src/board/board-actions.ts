@@ -33,7 +33,6 @@ const log = createLogger("km:tui:board-actions")
 // Import handlers from specialized modules
 import {
   executeDelete,
-  handleAddNodeAfter,
   handleConfirmMove,
   handleDeleteNode,
   handleShiftCard,
@@ -394,10 +393,9 @@ export function handleCommandAction(
       blockEditTargetRef.current?.deleteToEnd()
       return ok()
     case "TEXT_CONFIRM":
-      // Save current edit, create new sibling after current card, enter edit on it
+      // Save current edit and exit edit mode (Enter = confirm)
       blockEditTargetRef.current?.save()
       ctx.setUI({ inlineEditBlock: null })
-      handleAddNodeAfter(ctx)
       return ok()
     case "TEXT_EXIT_EDIT":
       // Save current content and exit edit mode (Esc = save + switch to node mode)
