@@ -29,6 +29,7 @@ const log = createLogger("km:tui:board-actions")
 // Import handlers from specialized modules
 import {
   executeDelete,
+  executeBatchDelete,
   handleConfirmMove,
   handleAddNodeAfter,
   handleAddNodeBefore,
@@ -507,7 +508,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "DELETE_CONFIRM_EXECUTE":
       if (ctx.ui.deleteConfirm) {
-        executeDelete(ctx, ctx.ui.deleteConfirm.nodeId)
+        const ids = ctx.ui.deleteConfirm.nodeIds ?? (ctx.ui.deleteConfirm.nodeId ? [ctx.ui.deleteConfirm.nodeId] : [])
+        if (ids.length > 0) executeBatchDelete(ctx, ids)
       }
       ctx.setUI({ deleteConfirm: null })
       return ok()

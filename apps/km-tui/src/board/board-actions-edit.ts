@@ -7,9 +7,9 @@
 import type { KNode, TaskMark, TaskStatus } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
-import { refreshBoardState } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, getSelectedCardIndices, refreshBoardState } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import type { ColumnState } from "../types.ts"
+import type { CardState, ColumnState } from "../types.ts"
 
 /**
  * Determine the correct heading depth for a new sibling node.
@@ -47,12 +47,15 @@ export function needsRenderFlush(): boolean {
 }
 
 /**
- * Delete the selected node — with confirmation for non-empty nodes.
+ * Delete the selected node(s) — with confirmation for non-empty nodes.
  *
  * Handles three levels:
  * - Board level (cursor on board title): not allowed
  * - Column level (cursor on column header): always confirms (columns have cards)
  * - Card level: confirms if node has children, backlinks, or metadata
+ *
+ * Multi-select: deletes all selected cards. Shows confirmation if ANY node
+ * has children/backlinks/metadata. All-or-nothing after confirmation.
  */
 export function handleDeleteNode(ctx: ActionCtx): void {
   const { layout, repo } = ctx
@@ -67,34 +70,49 @@ export function handleDeleteNode(ctx: ActionCtx): void {
 
   if (!card) return // Board level — nothing to delete
 
-  const nodeId = card.node.id
-  const children = repo.getChildren(nodeId)
-  const impact = repo.getRenameImpact(nodeId)
-  const childCount = children.length
-  const backlinkCount = impact.backlinks.length
-  // Filter out internal/computed metadata keys — only user-authored frontmatter counts
-  const TRIVIAL_DATA_KEYS = new Set(["depth", "rules", "lang", "meta", "completion"])
-  const significantKeys = card.node.data
-    ? Object.keys(card.node.data).filter((k) => !k.startsWith("_") && !TRIVIAL_DATA_KEYS.has(k))
-    : []
-  const hasMetadata = significantKeys.length > 0
+  // Multi-select: gather all selected cards in current column
+  const selectedIndices = getSelectedCardIndices(ctx)
+  const cards: CardState[] =
+    selectedIndices.length > 1
+      ? selectedIndices.map((i) => col!.cards[i]).filter((c): c is CardState => c !== undefined)
+      : [card]
 
-  if (childCount > 0 || backlinkCount > 0 || hasMetadata) {
-    // Non-trivial node: show confirmation dialog
+  // Aggregate impact across all cards
+  const TRIVIAL_DATA_KEYS = new Set(["depth", "rules", "lang", "meta", "completion"])
+  let totalChildCount = 0
+  let totalBacklinkCount = 0
+  let anyHasMetadata = false
+
+  for (const c of cards) {
+    totalChildCount += repo.getChildren(c.node.id).length
+    totalBacklinkCount += repo.getRenameImpact(c.node.id).backlinks.length
+    const significantKeys = c.node.data
+      ? Object.keys(c.node.data).filter((k) => !k.startsWith("_") && !TRIVIAL_DATA_KEYS.has(k))
+      : []
+    if (significantKeys.length > 0) anyHasMetadata = true
+  }
+
+  if (totalChildCount > 0 || totalBacklinkCount > 0 || anyHasMetadata) {
+    // Non-trivial: show confirmation dialog
+    const title =
+      cards.length > 1
+        ? `${cards.length} selected nodes`
+        : card.node.name ?? card.node.content ?? card.node.id
     ctx.setUI({
       deleteConfirm: {
-        nodeId,
-        title: card.node.name ?? card.node.content ?? nodeId,
-        childCount,
-        backlinkCount,
-        hasMetadata: !!hasMetadata,
+        nodeId: cards.length > 1 ? null : card.node.id,
+        nodeIds: cards.map((c) => c.node.id),
+        title,
+        childCount: totalChildCount,
+        backlinkCount: totalBacklinkCount,
+        hasMetadata: anyHasMetadata,
       },
     })
     return
   }
 
-  // Empty node with no children/backlinks/metadata: delete immediately
-  executeDelete(ctx, nodeId)
+  // All cards are empty: delete immediately
+  executeBatchDelete(ctx, cards.map((c) => c.node.id))
 }
 
 /**
@@ -123,6 +141,7 @@ function handleDeleteColumn(
   ctx.setUI({
     deleteConfirm: {
       nodeId,
+      nodeIds: [nodeId],
       title: col.node.name ?? col.node.content ?? nodeId,
       childCount: totalDescendants,
       backlinkCount: impact.backlinks.length,
@@ -138,6 +157,16 @@ function handleDeleteColumn(
  * for column-level deletes, moves to adjacent column.
  */
 export function executeDelete(ctx: ActionCtx, nodeId: string): void {
+  executeBatchDelete(ctx, [nodeId])
+}
+
+/**
+ * Execute batch deletion of multiple nodes and adjust cursor position.
+ *
+ * Deletes nodes bottom-up (highest index first) to avoid index invalidation.
+ * Clears multi-selection after deletion.
+ */
+export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
   const { layout, repo } = ctx
 
   // Recursively delete all descendants bottom-up
@@ -149,20 +178,23 @@ export function executeDelete(ctx: ActionCtx, nodeId: string): void {
     repo.deleteNode(id)
   }
 
-  // Determine if we're deleting a column (direct child of root) or a card
-  const node = repo.getNode(nodeId)
-  const isDeletingColumn = node?.parent_id === ctx.rootId
+  // Determine if we're deleting a column (direct child of root)
+  const firstNode = repo.getNode(nodeIds[0] ?? "")
+  const isDeletingColumn = firstNode?.parent_id === ctx.rootId
 
-  deleteRecursive(nodeId)
+  // Delete bottom-up to avoid index invalidation
+  for (const nodeId of [...nodeIds].reverse()) {
+    deleteRecursive(nodeId)
+  }
+
+  clearSelection(ctx)
 
   if (isDeletingColumn) {
-    // Column deleted: move cursor to adjacent column
     refreshBoardState(ctx, {
       colIndex: Math.max(0, layout.colIndex - 1),
       cardIndex: 0,
     })
   } else {
-    // Card deleted: move cursor to adjacent card in same column
     refreshBoardState(ctx, {
       cardIndex: (c) => Math.min(layout.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
     })
@@ -354,19 +386,24 @@ export function handleConfirmMove(ctx: ActionCtx): void {
 
 /**
  * Cycle task status (todo → wip → blocked → done → dropped).
+ *
+ * Batch-aware: when multi-selection is active, cycles all selected cards.
+ * Each card advances from its own current status independently.
+ * Clears selection after batch operation.
  */
 export function handleTaskStatusCycle(ctx: ActionCtx): void {
   const { layout } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
-
   if (!card) return
-  const targetId = card.node.link_to || card.node.id
-  const targetNode = card.node.link_to ? ctx.repo.getNode(card.node.link_to) : card.node
-  const currentStatus = targetNode?.task_status || "todo"
+
+  const selectedIndices = getSelectedCardIndices(ctx)
+  const cards: CardState[] =
+    selectedIndices.length > 1
+      ? selectedIndices.map((i) => col!.cards[i]).filter((c): c is CardState => c !== undefined)
+      : [card]
+
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
-  const currentIndex = statusCycle.indexOf(currentStatus)
-  const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus
   const markMap: Record<TaskStatus, TaskMark> = {
     todo: " ",
     wip: "/",
@@ -374,10 +411,20 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     done: "x",
     dropped: "-",
   }
-  ctx.repo.updateNode(targetId, {
-    task_status: nextStatus,
-    task_mark: markMap[nextStatus],
-  })
+
+  for (const c of cards) {
+    const targetId = c.node.link_to || c.node.id
+    const targetNode = c.node.link_to ? ctx.repo.getNode(c.node.link_to) : c.node
+    const currentStatus = targetNode?.task_status || "todo"
+    const currentIndex = statusCycle.indexOf(currentStatus)
+    const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus
+    ctx.repo.updateNode(targetId, {
+      task_status: nextStatus,
+      task_mark: markMap[nextStatus],
+    })
+  }
+
+  if (selectedIndices.length > 1) clearSelection(ctx)
   refreshBoardState(ctx)
 }
 
