@@ -1,11 +1,11 @@
 /**
- * Reproduction test: cursor right causes card border overflow
+ * Regression: cursor right causes card border overflow
  *
- * Bug: Moving cursor right to the next column causes the previous column's
- * cards to render incorrectly with text overflowing borders.
+ * Guards against moving cursor right to the next column causing the previous
+ * column's cards to render incorrectly with text overflowing borders.
  *
  * Run with real vault:
- *   TEST_VAULT=/tmp/vt bun vitest run apps/km-tui/tests/cursor-right-repro.test.ts
+ *   TEST_VAULT=/tmp/vt bun vitest run apps/km-tui/tests/cursor-border-overflow.test.ts
  */
 import { describe, test, expect } from "vitest"
 import { createRepo, getChildren, type Repo } from "@km/storage"

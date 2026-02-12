@@ -1,15 +1,9 @@
 /**
- * Reproduce stickyY bug: cursor down to non-first card, then h/l always
- * lands on first card in target column instead of matching Y position.
+ * Regression: stickyY cursor positioning
  *
- * Root cause: In the real app, React renders asynchronously. When you press
- * j (move down) then l (move right) quickly, VirtualList may not have
- * re-rendered the new card yet. The layout registry doesn't have the card's
- * headY, so stickyY capture fails, and navigation falls back to first card.
- *
- * In tests, act() forces synchronous rendering, masking this race condition.
- * We reproduce it by clearing the registry's headY for the current card before
- * pressing l, simulating the "not yet rendered" state.
+ * Guards against cursor down to non-first card, then h/l always landing on
+ * first card in target column instead of matching Y position. Also tests
+ * graceful fallback when registry has no headY for current card.
  */
 import { testEnv, item } from "./helpers/board-test.ts"
 import { describe, test, expect } from "vitest"

@@ -94,6 +94,11 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
 3. **Reproduce the bug** - if test fails, bug confirmed
 4. **Fix the code** - iterate on the fix
 5. **Promote to regression** - move to `apps/km-tui/tests/` when stable
+6. **Clean up** - after the bug is fixed, the repro test MUST be either:
+   - **Promoted**: renamed from `*-repro.test.ts` to a descriptive regression test name
+   - **Deleted**: if the bug is already covered by other tests
+   Never leave `*-repro*`, `*-debug*`, or `*-profile*` test files in the repo.
+   Use `.scratch.ts` (not `.test.ts`) for temporary investigation files so they don't run in test suites.
 
 ## Quick Start (Synthetic Data)
 

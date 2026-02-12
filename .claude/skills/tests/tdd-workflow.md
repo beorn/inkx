@@ -46,7 +46,8 @@ bun run test:all     # MUST pass
 3. `test:fast` passes
 4. `bun fix` passes
 5. `test:all` passes
-6. Commit
+6. Clean up: rename repro/debug test to a descriptive regression name, or delete if redundant. Use `.scratch.ts` for temporary investigation files.
+7. Commit
 
 ---
 

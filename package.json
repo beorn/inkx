@@ -48,7 +48,7 @@
     "type:coverage": "type-coverage --detail --at-least 90",
     "fix": "bun run codemod && bun run lint:fix && bun run format:fix",
     "vitest": "bunx --bun vitest",
-    "test:fast": "bun vitest run --exclude='**/*.slow.*' --exclude='vendor/**'",
+    "test:fast": "bash infra/test-perf/check-timing.sh bun vitest run --exclude='**/*.slow.*' --exclude='vendor/**'",
     "test:changed": "bun vitest run --changed --exclude='**/*.slow.*' --exclude='vendor/**'",
     "test:strict": "INKX_STRICT=1 bun vitest run",
     "test:fast2": "bun vitest run --exclude='**/*.slow.*' --reporter=vitestx/dotz",
