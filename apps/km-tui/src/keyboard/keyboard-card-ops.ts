@@ -7,7 +7,7 @@
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { getSelectedCardIndices, refreshBoardState } from "./keyboard-helpers.ts"
+import { clearSelection, getSelectedCardIndices, refreshBoardState } from "./keyboard-helpers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 
 // =============================================================================
@@ -177,51 +177,95 @@ export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "le
 
 /** Indent node: reparent under previous sibling (make it last child) */
 export function indentNode(ctx: ActionCtx, card: CardState): void {
-  const parentId = card.node.parent_id
-  if (!parentId) {
+  const col = ctx.layout.columns[ctx.layout.colIndex]
+  if (!col) return
+
+  const selectedIndices = getSelectedCardIndices(ctx)
+  if (selectedIndices.length > 1) {
+    indentNodesAtomically(ctx, col, selectedIndices)
+    return
+  }
+
+  if (!canIndent(ctx, card)) {
     process.stdout.write("\x07")
     return
   }
 
-  const siblings = ctx.repo.getChildren(parentId)
-  const myIndex = indexOfChild(siblings, card.node.id)
-
-  // Can't indent the first child — there's no previous sibling to nest under
-  if (myIndex <= 0) {
-    process.stdout.write("\x07")
-    return
-  }
-
-  const prevSibling = siblings[myIndex - 1]
-  if (!prevSibling) {
-    process.stdout.write("\x07")
-    return
-  }
-  const newParentId = prevSibling.id
-
-  // Append as last child of the previous sibling
-  const newParentChildren = ctx.repo.getChildren(newParentId)
-  const lastChild = newParentChildren[newParentChildren.length - 1]
-  const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0
-
-  ctx.repo.moveNode(card.node.id, newParentId, newSortOrder)
+  executeIndent(ctx, card)
   refreshBoardState(ctx)
 }
 
 /** Outdent node: make it a sibling of its parent */
 export function outdentNode(ctx: ActionCtx, card: CardState): void {
-  const parentId = card.node.parent_id
-  if (!parentId) {
+  const col = ctx.layout.columns[ctx.layout.colIndex]
+  if (!col) return
+
+  const selectedIndices = getSelectedCardIndices(ctx)
+  if (selectedIndices.length > 1) {
+    outdentNodesAtomically(ctx, col, selectedIndices)
+    return
+  }
+
+  if (!canOutdent(ctx, card)) {
     process.stdout.write("\x07")
     return
   }
 
+  executeOutdent(ctx, card)
+  refreshBoardState(ctx)
+}
+
+// --- Indent/Outdent Validation ---
+
+/** Check if a card can be indented (has a previous sibling to nest under) */
+function canIndent(ctx: ActionCtx, card: CardState): boolean {
+  const parentId = card.node.parent_id
+  if (!parentId) return false
+
+  const siblings = ctx.repo.getChildren(parentId)
+  const myIndex = indexOfChild(siblings, card.node.id)
+  return myIndex > 0
+}
+
+/** Check if a card can be outdented (has a grandparent to move to) */
+function canOutdent(ctx: ActionCtx, card: CardState): boolean {
+  const parentId = card.node.parent_id
+  if (!parentId) return false
+
+  const parent = ctx.repo.getNode(parentId)
+  return !!parent?.parent_id
+}
+
+// --- Indent/Outdent Execution ---
+
+/** Execute indent for a single card (no validation, no refresh) */
+function executeIndent(ctx: ActionCtx, card: CardState): void {
+  const parentId = card.node.parent_id
+  if (!parentId) return
+
+  const siblings = ctx.repo.getChildren(parentId)
+  const myIndex = indexOfChild(siblings, card.node.id)
+  if (myIndex <= 0) return
+
+  const prevSibling = siblings[myIndex - 1]
+  if (!prevSibling) return
+  const newParentId = prevSibling.id
+
+  const newParentChildren = ctx.repo.getChildren(newParentId)
+  const lastChild = newParentChildren[newParentChildren.length - 1]
+  const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0
+
+  ctx.repo.moveNode(card.node.id, newParentId, newSortOrder)
+}
+
+/** Execute outdent for a single card (no validation, no refresh) */
+function executeOutdent(ctx: ActionCtx, card: CardState): void {
+  const parentId = card.node.parent_id
+  if (!parentId) return
+
   const parent = ctx.repo.getNode(parentId)
   const grandparentId = parent?.parent_id
-  if (!parent || !grandparentId) {
-    process.stdout.write("\x07")
-    return
-  }
+  if (!parent || !grandparentId) return
 
   const grandparentChildren = ctx.repo.getChildren(grandparentId)
   const parentIndex = indexOfChild(grandparentChildren, parentId)
@@ -235,5 +279,76 @@ export function outdentNode(ctx: ActionCtx, card: CardState): void {
   }
 
   ctx.repo.moveNode(card.node.id, grandparentId, newSortOrder)
+}
+
+// --- Atomic Batch Operations ---
+
+/**
+ * Indent multiple selected cards atomically.
+ * All-or-nothing: if any card can't be indented, none are.
+ * Cards are processed bottom-up to avoid invalidating indices.
+ */
+function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, selectedIndices: number[]): void {
+  // Validate ALL cards can be indented
+  const cards = selectedIndices.map((i) => col.cards[i]).filter((c): c is CardState => c !== undefined)
+  if (cards.length === 0) return
+
+  for (const card of cards) {
+    if (!canIndent(ctx, card)) {
+      process.stdout.write("\x07")
+      return
+    }
+  }
+
+  // Execute bottom-up (highest index first) to avoid index invalidation
+  const sortedCards = [...cards].sort((a, b) => {
+    const parentA = a.node.parent_id
+    const parentB = b.node.parent_id
+    if (!parentA || !parentB) return 0
+    const siblingsA = ctx.repo.getChildren(parentA)
+    const siblingsB = ctx.repo.getChildren(parentB)
+    return indexOfChild(siblingsB, b.node.id) - indexOfChild(siblingsA, a.node.id)
+  })
+
+  for (const card of sortedCards) {
+    executeIndent(ctx, card)
+  }
+
   refreshBoardState(ctx)
+  clearSelection(ctx)
+}
+
+/**
+ * Outdent multiple selected cards atomically.
+ * All-or-nothing: if any card can't be outdented, none are.
+ * Cards are processed top-down to maintain sort order.
+ */
+function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, selectedIndices: number[]): void {
+  // Validate ALL cards can be outdented
+  const cards = selectedIndices.map((i) => col.cards[i]).filter((c): c is CardState => c !== undefined)
+  if (cards.length === 0) return
+
+  for (const card of cards) {
+    if (!canOutdent(ctx, card)) {
+      process.stdout.write("\x07")
+      return
+    }
+  }
+
+  // Execute top-down (lowest index first) to maintain relative order
+  const sortedCards = [...cards].sort((a, b) => {
+    const parentA = a.node.parent_id
+    const parentB = b.node.parent_id
+    if (!parentA || !parentB) return 0
+    const siblingsA = ctx.repo.getChildren(parentA)
+    const siblingsB = ctx.repo.getChildren(parentB)
+    return indexOfChild(siblingsA, a.node.id) - indexOfChild(siblingsB, b.node.id)
+  })
+
+  for (const card of sortedCards) {
+    executeOutdent(ctx, card)
+  }
+
+  refreshBoardState(ctx)
+  clearSelection(ctx)
 }

@@ -462,3 +462,125 @@ describe("Edge cases", () => {
     expect(childIds(repo, "col1")).toEqual(beforeCol1)
   })
 })
+
+// =============================================================================
+// Multi-select indent/outdent (atomic batch)
+// =============================================================================
+
+describe("Multi-select indent (atomic batch)", () => {
+  test("indent selected cards (B,C,D) under previous siblings", () => {
+    // col1: [A, B, C, D, E] — select B,C,D via 2 J presses from B
+    // (1st J: anchor=B, cursor→C, multiSelected={B}
+    //  2nd J: cursor→D, range B→D = {B,C,D})
+    // Tab → batch indent bottom-up: D→C, C→B, B→A
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
+    )
+
+    board.press("j") // → B (index 1)
+    board.press("J") // anchor=B, multiSelected={B:0}, cursor→C
+    board.press("J") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
+
+    board.press("Tab")
+
+    // Bottom-up: D under C, C under B, B under A
+    expect(childIds(repo, "A")).toEqual(["B"])
+    expect(childIds(repo, "B")).toEqual(["C"])
+    expect(childIds(repo, "C")).toEqual(["D"])
+    expect(childIds(repo, "col1")).toEqual(["A", "E"])
+  })
+
+  test("multi-select indent fails atomically when first card can't indent", () => {
+    // col1: [A, B, C, D] — select A,B,C via 2 J presses from A
+    // A is first child (no prev sibling) → entire batch fails
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+
+    board.press("J") // anchor=A, multiSelected={A:0}, cursor→B
+    board.press("J") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
+
+    board.press("Tab")
+
+    // Nothing moved — atomic failure
+    expect(childIds(repo, "col1")).toEqual(["A", "B", "C", "D"])
+  })
+
+  test("selection is cleared after successful multi-select indent", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+
+    board.press("j") // → B
+    board.press("J") // anchor=B, multiSelected={B:0}
+    board.press("J") // range B→D, multiSelected={B:0,C:0,D:0}
+    board.press("Tab")
+
+    // After successful batch indent, no "selected" status
+    const status = board.getStatus()
+    if (status) {
+      expect(status.message).not.toContain("selected")
+    }
+  })
+})
+
+describe("Multi-select outdent (atomic batch)", () => {
+  test("outdent selected cards from column to board level", () => {
+    // col1: [A, B, C, D] — select A,B,C via 2 J presses from A
+    // Shift+Tab → all three move to board level
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+
+    board.press("J") // anchor=A, multiSelected={A:0}, cursor→B
+    board.press("J") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
+
+    board.press("Shift+Tab")
+
+    expect(childIds(repo, "board")).toContain("A")
+    expect(childIds(repo, "board")).toContain("B")
+    expect(childIds(repo, "board")).toContain("C")
+    expect(childIds(repo, "col1")).toEqual(["D"])
+  })
+})
+
+// =============================================================================
+// Cursor position tracking (detailed)
+// =============================================================================
+
+describe("Cursor position tracking", () => {
+  test("cursor on correct card after indent middle of three", () => {
+    // col1: [A, B, C] — indent B → col1=[A, C], cursor at index 1 = C
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+
+    board.press("j") // → B (index 1)
+    board.press("Tab") // indent B under A → col1=[A, C]
+
+    // Cursor should be on C (clamped from index 1 to index 1 = C)
+    expect(board.q("[data-cursor]").textContent()).toContain("C")
+  })
+
+  test("cursor wraps to last card when indenting from end", () => {
+    // col1: [A, B] — indent B → col1=[A], cursor clamped to index 0 = A
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+
+    board.press("j") // → B (index 1)
+    board.press("Tab") // indent B under A → col1=[A]
+
+    expect(board.q("[data-cursor]").textContent()).toContain("A")
+  })
+
+  test("cursor stays stable after outdent first card", () => {
+    // col1: [A, B, C] — outdent A → col1=[B, C], cursor at index 0 = B
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+
+    board.press("Shift+Tab") // outdent A (index 0)
+
+    // Cursor should be on B (new first card)
+    expect(board.q("[data-cursor]").textContent()).toContain("B")
+  })
+
+  test("cursor on correct card after outdent last card", () => {
+    // col1: [A, B] — j → B, Shift+Tab → col1=[A], cursor on A
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+
+    board.press("j") // → B (index 1)
+    board.press("Shift+Tab") // outdent B → col1=[A]
+
+    expect(board.q("[data-cursor]").textContent()).toContain("A")
+  })
+})
