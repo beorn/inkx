@@ -23,7 +23,8 @@ export function indexOfChild(
   if (!map) {
     map = new Map()
     for (let i = 0; i < children.length; i++) {
-      map.set(children[i]!.id, i)
+      const child = children[i]
+      if (child) map.set(child.id, i)
     }
     childIndexCache.set(children, map)
   }

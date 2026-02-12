@@ -9,6 +9,7 @@
  * Root cause: Card Box had no paddingRight, so text could fill to the border.
  */
 import { describe, expect, test } from "vitest"
+import { writeFileSync } from "fs"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -184,7 +185,7 @@ describe("card layout across terminal widths", () => {
         { columns: cols, rows: 20 },
       )
       const ss = board.screenshot()
-      require("fs").writeFileSync(`/tmp/card-${cols}.txt`, ss)
+      writeFileSync(`/tmp/card-${cols}.txt`, ss)
       assertCardBordersClean(ss, `${cols}-col`)
     })
   }

@@ -211,8 +211,9 @@ createDebug.log = customLog
 const logPath = process.env.DEBUG_LOG
 
 if (logPath) {
-  stream = createWriteStream(logPath, { flags: "a" })
-  addWriter((formatted) => stream!.write(stripAnsi(formatted) + "\n"))
+  const logStream = createWriteStream(logPath, { flags: "a" })
+  stream = logStream
+  addWriter((formatted) => logStream.write(stripAnsi(formatted) + "\n"))
 
   // Clean up on exit - only close stream, don't call process.exit()
   // Other signal handlers (like TUI terminal restoration) need to run first

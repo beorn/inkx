@@ -113,8 +113,9 @@ function matchBinding(
     // Don't require explicit shift: true in the binding for capital letters
     const isUppercaseLetter =
       key.length === 1 && key >= "A" && key <= "Z" && !binding.shift
-    if (!isUppercaseLetter && !!binding.shift !== !!modifiers.shift)
-      {return false}
+    if (!isUppercaseLetter && !!binding.shift !== !!modifiers.shift) {
+      return false
+    }
     if (!!binding.alt !== !!modifiers.alt) return false
   }
 
@@ -161,7 +162,8 @@ export function resolveKeybinding(
 
     let binding: OrderedBinding
     if (w === undefined || (b !== undefined && b._order < w._order)) {
-      binding = b!
+      // b is defined: w is undefined OR b._order < w._order (both require b !== undefined)
+      binding = b as OrderedBinding
       bi++
     } else {
       binding = w

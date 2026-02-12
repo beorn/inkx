@@ -608,7 +608,9 @@ describe("FsWriter auto-registration", () => {
     diskRepo.close()
 
     // Force memory mode
-    const memRepo = runGenerator(createRepo(tempDir, { loadFiles: false, forceMemory: true }))
+    const memRepo = runGenerator(
+      createRepo(tempDir, { loadFiles: false, forceMemory: true }),
+    )
     expect(memRepo.emitter.getFsSync()).toBeNull()
     memRepo.close()
   })
@@ -642,7 +644,9 @@ describe("FsWriter auto-registration", () => {
     // Find nodes via DB
     const db = repo.database
     const inbox = db
-      .query("SELECT id FROM nodes WHERE content = 'Inbox' AND type = 'section'")
+      .query(
+        "SELECT id FROM nodes WHERE content = 'Inbox' AND type = 'section'",
+      )
       .get() as { id: string } | null
 
     if (!inbox) {
@@ -659,8 +663,7 @@ describe("FsWriter auto-registration", () => {
       task_mark: " ",
     })
 
-    const { readFileSync: readFs } = require("fs")
-    const content = readFs(join(tempDir, "board.md"), "utf-8") as string
+    const content = readFileSync(join(tempDir, "board.md"), "utf-8")
     expect(content).toContain("New CLI task")
 
     repo.close()

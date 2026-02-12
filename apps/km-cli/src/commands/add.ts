@@ -74,8 +74,9 @@ function toRepoRelativeGlob(source: string, repoRoot: string): string {
   }
 
   if (realBase === realRoot) return "." + suffix
-  if (realBase.startsWith(realRoot + "/"))
-    {return "./" + realBase.slice(realRoot.length + 1) + suffix}
+  if (realBase.startsWith(realRoot + "/")) {
+    return "./" + realBase.slice(realRoot.length + 1) + suffix
+  }
 
   throw new Error(`Path is outside the repo: ${source}`)
 }
@@ -212,8 +213,10 @@ export const addCommand = new Command("add")
       : new Set(
           repo
             .getSubtree(targetNode.id)
-            .filter((n) => n.link_to)
-            .map((n) => n.link_to!),
+            .filter(
+              (n): n is typeof n & { link_to: string } => n.link_to != null,
+            )
+            .map((n) => n.link_to),
         )
 
     const tasksToLink: KNode[] = []
@@ -223,8 +226,8 @@ export const addCommand = new Command("add")
     for (const task of candidates) {
       const hasLink = existingLinkTargets.has(task.id)
       const hasSigil =
-        sigilStr && !options.force
-          ? contentHasSigil(task, sigilPrefix!, sigilName!)
+        sigilStr && !options.force && sigilPrefix && sigilName
+          ? contentHasSigil(task, sigilPrefix, sigilName)
           : false
 
       if (options.force) {
@@ -243,7 +246,11 @@ export const addCommand = new Command("add")
       }
     }
 
-    if (tasksToLink.length === 0 && tasksToSigil.length === 0 && skipped.length > 0) {
+    if (
+      tasksToLink.length === 0 &&
+      tasksToSigil.length === 0 &&
+      skipped.length > 0
+    ) {
       console.log(
         term.yellow(
           `All ${skipped.length} task(s) already linked (use --force to re-add)`,
@@ -259,7 +266,8 @@ export const addCommand = new Command("add")
       if (tasksToLink.length > 0) {
         console.log(term.cyan("Dry run - would link:"))
         for (const task of tasksToLink) {
-          const needsSigil = sigilStr && tasksToSigil.some((t) => t.id === task.id)
+          const needsSigil =
+            sigilStr && tasksToSigil.some((t) => t.id === task.id)
           const suffix = needsSigil ? term.cyan(` (+ ${sigilStr})`) : ""
           console.log(
             `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}${suffix}`,
@@ -267,7 +275,9 @@ export const addCommand = new Command("add")
         }
       }
       // Tasks that only need sigil (already linked but missing sigil)
-      const sigilOnly = tasksToSigil.filter((t) => !tasksToLink.some((l) => l.id === t.id))
+      const sigilOnly = tasksToSigil.filter(
+        (t) => !tasksToLink.some((l) => l.id === t.id),
+      )
       if (sigilOnly.length > 0) {
         console.log(term.cyan(`\nWould add ${sigilStr} to (already linked):`))
         for (const task of sigilOnly) {
@@ -315,13 +325,16 @@ export const addCommand = new Command("add")
           if (task.link_to) continue
 
           // Re-check dedup (content may have changed since we checked)
-          if (!options.force && contentHasSigil(task, sigilPrefix, sigilName)) continue
+          if (!options.force && contentHasSigil(task, sigilPrefix, sigilName)) {
+            continue
+          }
 
           // Append sigil to content
           const newContent = (task.content || "") + " " + sigilStr
 
           // Update data with sigil added to the appropriate array
-          const existingArray = (task.data?.[dataKey] as string[] | undefined) ?? []
+          const existingArray =
+            (task.data?.[dataKey] as string[] | undefined) ?? []
           const newData = {
             ...task.data,
             [dataKey]: existingArray.includes(sigilName)
@@ -376,10 +389,7 @@ export const addCommand = new Command("add")
       }
     }
     if (sigilStr && sigilCount > 0) {
-      console.log(
-        term.green("✓"),
-        `Added ${sigilStr} to ${sigilCount} task(s)`,
-      )
+      console.log(term.green("✓"), `Added ${sigilStr} to ${sigilCount} task(s)`)
     }
     if (skipped.length > 0) {
       console.log(
