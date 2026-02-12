@@ -52,12 +52,13 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
   }
 
   // 2. Use pre-parsed title (for sections, already has rules stripped)
-  // Check node.title first (set during parsing), then data.title (persisted to DB)
-  // Strip inline rules as a safety fallback for legacy data
+  // node.title comes from the DB title column (reliably synced).
+  // data.title is from the DB data JSON blob and may be stale.
+  // Only fall back to data.title when node.title is undefined (not just empty).
   if (node.title) {
     return stripInlineRules(node.title).slice(0, 50)
   }
-  if (node.data?.title) {
+  if (node.title == null && node.data?.title) {
     return stripInlineRules(node.data.title as string).slice(0, 50)
   }
 
@@ -66,11 +67,11 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
     const children = getChildren(node.id)
     const firstSection = children.find((c: KNode) => c.type === "section")
     if (firstSection) {
-      // Use pre-parsed title if available (node.title or data.title)
+      // Use pre-parsed title if available (node.title takes precedence over data.title)
       if (firstSection.title) {
         return stripInlineRules(firstSection.title).slice(0, 50)
       }
-      if (firstSection.data?.title) {
+      if (firstSection.title == null && firstSection.data?.title) {
         return stripInlineRules(firstSection.data.title as string).slice(0, 50)
       }
       // Fallback: strip rules from content
@@ -112,7 +113,8 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
 export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolean {
   if (node.data?.name) return false
   if (node.title) return false
-  if (node.data?.title) return false
+  // Only check data.title when node.title is undefined (not just empty "")
+  if (node.title == null && node.data?.title) return false
   if (node.type === "file" && getChildren) {
     const children = getChildren(node.id)
     const firstSection = children.find((c: KNode) => c.type === "section")

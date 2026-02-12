@@ -125,8 +125,8 @@ function applyNodeUpdated(db: Database, event: Event): void {
 
   for (const [key, value] of Object.entries(data)) {
     if (key === "data") {
-      // Merge JSON data
-      sets.push("data = json_patch(data, ?)")
+      // Full replacement — json_patch merges and preserves stale properties
+      sets.push("data = ?")
       values.push(JSON.stringify(value))
     } else {
       sets.push(`${key} = ?`)

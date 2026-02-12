@@ -92,6 +92,27 @@ describe("getNodeDisplayName", () => {
       const node = createNode("abc123", { title: longTitle })
       expect(getNodeDisplayName(node)).toHaveLength(50)
     })
+
+    it("ignores stale data.title when node.title is empty string", () => {
+      // Regression: DB data.title can be stale when section heading is cleared.
+      // node.title="" (from DB title column, correctly synced) should take
+      // precedence over data.title="Waiting" (stale in DB data JSON blob).
+      const node = createNode("01KH8939", {
+        title: "",
+        content: "",
+        data: { depth: 2, rules: { color: "yellow" }, title: "Waiting" },
+      })
+      expect(getNodeDisplayName(node)).toBe("(01KH8939)")
+    })
+
+    it("uses data.title when node.title is undefined", () => {
+      // When node.title is truly absent (undefined), data.title is a valid fallback
+      const node = createNode("abc123", {
+        title: undefined,
+        data: { title: "From Data" },
+      })
+      expect(getNodeDisplayName(node)).toBe("From Data")
+    })
   })
 
   describe("priority 3: file node H1 heading", () => {
@@ -224,9 +245,19 @@ describe("isNodeUntitled", () => {
     expect(isNodeUntitled(node)).toBe(false)
   })
 
-  it("returns false when node has data.title", () => {
+  it("returns false when node has data.title and title is undefined", () => {
     const node = createNode("abc123", { data: { title: "Titled" } })
     expect(isNodeUntitled(node)).toBe(false)
+  })
+
+  it("returns true when title is empty string despite stale data.title", () => {
+    // Regression: stale data.title should not prevent untitled detection
+    const node = createNode("abc123", {
+      title: "",
+      content: "",
+      data: { depth: 2, title: "Waiting" },
+    })
+    expect(isNodeUntitled(node)).toBe(true)
   })
 
   it("returns false when node has fs_path", () => {
