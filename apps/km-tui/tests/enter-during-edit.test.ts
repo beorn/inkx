@@ -103,4 +103,29 @@ describe("Outliner Enter — save + new sibling", () => {
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
   })
+
+  test("new sibling inherits data.depth from current card", () => {
+    const { board, repo } = testEnv(() => {
+      const nodes = item("board", item("col1", item("1a"), item("1b")))
+      // Set depth=2 on the cards (simulates H2 sections parsed from markdown)
+      for (const n of nodes) {
+        if (n.id === "1a" || n.id === "1b") {
+          n.data = { ...n.data, depth: 2 }
+        }
+      }
+      return nodes
+    })
+
+    board.press("Enter") // edit 1a
+    board.press("Enter") // save + create sibling
+
+    // New sibling should have depth=2 (inherited from 1a)
+    const children = repo.getChildren("col1")
+    expect(children).toHaveLength(3)
+    const newNode = children.find(
+      (n) => n.id !== "1a" && n.id !== "1b",
+    )
+    expect(newNode).toBeDefined()
+    expect(newNode!.data?.depth).toBe(2)
+  })
 })

@@ -105,6 +105,10 @@ export function handleAddNodeAfter(ctx: ActionCtx): void {
     newNode.task_status = "todo"
     newNode.task_mark = " "
   }
+  // Copy heading depth from sibling so serializer uses correct heading level
+  if (card.node.data?.depth) {
+    newNode.data = { ...newNode.data, depth: card.node.data.depth }
+  }
 
   const newId = repo.addNode(col.node.id, newNode)
 

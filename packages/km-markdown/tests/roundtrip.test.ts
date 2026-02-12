@@ -1452,3 +1452,62 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     expect(md).not.toContain("- [ ]")
   })
 })
+
+describe("Section depth safety", () => {
+  test("section without data.depth defaults to H2 (not H1)", () => {
+    const fileNode = makeTestNode({
+      id: "file-1",
+      type: "file",
+      parent_id: ".",
+      content: "Document",
+      data: { depth: 1 },
+    })
+    const sectionNoDepth = makeTestNode({
+      id: "sec-1",
+      type: "section",
+      parent_id: "file-1",
+      parent_idx: 1,
+      content: "New Section",
+      // no data.depth — simulates node created by TUI without depth
+    })
+
+    const md = nodesToMarkdown([fileNode, sectionNoDepth])
+    // Must be H2, not H1 — H1 would break the document structure
+    expect(md).toContain("## New Section")
+    expect(md).not.toMatch(/^# New Section/m)
+  })
+
+  test("section with empty content and no depth serializes safely", () => {
+    const fileNode = makeTestNode({
+      id: "file-1",
+      type: "file",
+      parent_id: ".",
+      content: "Document",
+      data: { depth: 1 },
+    })
+    const existing = makeTestNode({
+      id: "sec-1",
+      type: "section",
+      parent_id: "file-1",
+      parent_idx: 1,
+      content: "Existing",
+      data: { depth: 2 },
+    })
+    const empty = makeTestNode({
+      id: "sec-2",
+      type: "section",
+      parent_id: "file-1",
+      parent_idx: 2,
+      content: "",
+      // no depth
+    })
+
+    const md = nodesToMarkdown([fileNode, existing, empty])
+    // Empty section should be H2 (sibling level), not H1
+    expect(md).toContain("## Existing")
+    expect(md).toContain("## ")
+    // Verify no bare H1 (only the file heading)
+    const h1Matches = md.match(/^# .+$/gm) ?? []
+    expect(h1Matches).toHaveLength(1) // just "# Document"
+  })
+})

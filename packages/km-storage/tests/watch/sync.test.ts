@@ -505,4 +505,96 @@ code
         }
       }))
   })
+
+  describe("applyEventToFs — node_created for section nodes", () => {
+    test("creating a section node regenerates parent file", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        // Create a file with two sections
+        const testFile = join(repoDir, "board.md")
+        writeFileSync(
+          testFile,
+          `# Board
+
+## Column A
+
+- [ ] Task 1
+
+## Column B
+
+- [ ] Task 2
+`,
+        )
+
+        const manager = new SyncManager({
+          db: db,
+          repoPath: repoDir,
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "last_write_wins",
+        })
+
+        await manager.syncFromFs()
+
+        // Find the file node
+        const fileNode = getNodeByPath(db, toRel(repoDir, testFile))
+        expect(fileNode).not.toBeNull()
+
+        // Find Column A section
+        const allNodes = getAllNodes(db)
+        const colA = allNodes.find(
+          (n) => n.type === "section" && n.content === "Column A",
+        )
+        expect(colA).toBeDefined()
+
+        // Simulate TUI creating a new section (like handleAddNodeAfter)
+        const newSectionEvent = {
+          id: "test-event-1",
+          ts: Date.now(),
+          type: "node_created" as const,
+          actor: "user",
+          data: {
+            id: "new-section-1",
+            type: "section",
+            parent_id: fileNode!.id,
+            parent_idx: (colA!.parent_idx ?? 0) + 0.5,
+            content: "",
+            data: { depth: 2 },
+          },
+        }
+
+        // Insert the node into DB first (emitter normally does this)
+        db.run(
+          `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            "new-section-1",
+            "section",
+            fileNode!.id,
+            (colA!.parent_idx ?? 0) + 0.5,
+            "",
+            JSON.stringify({ depth: 2 }),
+            Date.now(),
+            Date.now(),
+          ],
+        )
+
+        // Apply the event to filesystem
+        manager.applyEventToFs(newSectionEvent)
+
+        // Wait for debounced write queue to flush (debounceMs=0 still uses setTimeout)
+        await new Promise((r) => setTimeout(r, 50))
+
+        // Read the file — it should contain the new empty section
+        const content = readFileSync(testFile, "utf-8")
+        expect(content).toContain("## Column A")
+        expect(content).toContain("## Column B")
+        // The new section should be serialized at H2 level (not H1!)
+        // Count H2 headings — should be 3 (Column A, new empty, Column B)
+        const h2Matches = content.match(/^## /gm) ?? []
+        expect(h2Matches.length).toBe(3)
+        // No extra H1 headings (only "# Board")
+        const h1Matches = content.match(/^# /gm) ?? []
+        expect(h1Matches.length).toBe(1)
+      }))
+  })
 })

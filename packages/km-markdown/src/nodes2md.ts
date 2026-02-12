@@ -202,7 +202,7 @@ function serializeSection(
   children: KNode[],
   ctx: SerializeContext,
 ): string {
-  const depth = (node.data?.depth as number) ?? 1
+  const depth = (node.data?.depth as number) ?? 2
   const prefix = "#".repeat(depth)
   let md = `${prefix} ${node.content ?? ""}\n\n`
 
