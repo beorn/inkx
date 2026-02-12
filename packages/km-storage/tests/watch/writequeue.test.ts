@@ -575,3 +575,48 @@ describe("Permission Error Handling", () => {
     expect(errorsEvent).toHaveLength(1)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// In-Flight Generation Tracking
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("in-flight generation tracking", () => {
+  test("overlapping flushes do not prematurely clear in-flight status", async () => {
+    const mockFs = createMockFs()
+    const queue = createWriteQueue({ fs: mockFs })
+
+    // Track markInFlight / clearInFlight calls
+    const inFlightPaths = new Set<string>()
+    const tracker = {
+      markInFlight: (path: string) => inFlightPaths.add(path),
+      clearInFlight: (path: string) => inFlightPaths.delete(path),
+    }
+    queue.setWatcher(tracker)
+
+    // Flush 1: write @next.md at T=0
+    queue.queue({ path: "/vault/@next.md", content: "v1", sourceEventId: "1" })
+    await queue.forceFlush()
+    expect(inFlightPaths.has("/vault/@next.md")).toBe(true)
+
+    // Wait 500ms, then flush 2 at T=500 (before flush 1's 1000ms clear timer)
+    await new Promise((r) => setTimeout(r, 500))
+
+    queue.queue({ path: "/vault/@next.md", content: "v2", sourceEventId: "2" })
+    await queue.forceFlush()
+    expect(inFlightPaths.has("/vault/@next.md")).toBe(true)
+
+    // At T=1100, flush 1's clear timer fires (1000ms after T=0).
+    // With generation tracking: flush 2 superseded flush 1, so clear is skipped.
+    // Without generation tracking: clear would fire, leaving path unprotected!
+    await new Promise((r) => setTimeout(r, 700))
+
+    // CRITICAL: should STILL be in-flight (flush 2's timer hasn't fired yet)
+    expect(inFlightPaths.has("/vault/@next.md")).toBe(true)
+
+    // At T=1600, flush 2's clear timer fires (1000ms after T=500)
+    await new Promise((r) => setTimeout(r, 600))
+
+    // Now it should be cleared
+    expect(inFlightPaths.has("/vault/@next.md")).toBe(false)
+  })
+})

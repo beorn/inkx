@@ -304,6 +304,9 @@ export class WriteQueue extends EventEmitter {
   private conflictStrategy: ConflictStrategy
   private watcher: InFlightTracker | null = null
   private fs: FileSystemOps
+  /** Generation counter for in-flight tracking — prevents older flush timers from clearing newer markInFlight calls */
+  private flushGeneration = new Map<string, number>()
+  private currentGeneration = 0
 
   constructor(config: Partial<WriteQueueConfig> = {}) {
     super()
@@ -549,14 +552,19 @@ export class WriteQueue extends EventEmitter {
     log.debug?.(`flushing ${writes.length} operations`)
     const start = Date.now()
 
-    // Mark paths as in-flight to prevent watch triggering re-sync
+    // Mark paths as in-flight to prevent watch triggering re-sync.
+    // Track generation so clearInFlight from an older flush doesn't
+    // clear protection set by a newer flush (race condition fix).
+    const gen = ++this.currentGeneration
     for (const write of writes) {
       if (this.watcher) {
         this.watcher.markInFlight(write.path)
+        this.flushGeneration.set(write.path, gen)
         // For renames, also mark the destination so the watcher
         // doesn't treat the new file as an external addition.
         if (write.type === "rename" && write.newPath) {
           this.watcher.markInFlight(write.newPath)
+          this.flushGeneration.set(write.newPath, gen)
         }
       }
     }
@@ -573,14 +581,18 @@ export class WriteQueue extends EventEmitter {
       }
     }
 
-    // Clear in-flight status after a delay
+    // Clear in-flight status after a delay — only if no newer flush
+    // has re-marked the same path (prevents race condition where flush N's
+    // clear timer fires after flush N+1 has already marked the path)
     setTimeout(() => {
       for (const op of writes) {
-        if (this.watcher) {
+        if (this.watcher && this.flushGeneration.get(op.path) === gen) {
           this.watcher.clearInFlight(op.path, 0)
-          if (op.type === "rename" && op.newPath) {
-            this.watcher.clearInFlight(op.newPath, 0)
-          }
+          this.flushGeneration.delete(op.path)
+        }
+        if (this.watcher && op.type === "rename" && op.newPath && this.flushGeneration.get(op.newPath) === gen) {
+          this.watcher.clearInFlight(op.newPath, 0)
+          this.flushGeneration.delete(op.newPath)
         }
       }
     }, 1000)
