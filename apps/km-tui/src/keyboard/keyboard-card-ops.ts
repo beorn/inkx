@@ -216,8 +216,13 @@ export function outdentNode(ctx: ActionCtx, card: CardState): boolean {
 
 // --- Indent/Outdent Validation ---
 
+/** Node types that support indentation (outline structure, not content blocks). */
+const INDENTABLE_TYPES = new Set(["section", "task", "folder", "file"])
+
 /** Check if a card can be indented (has a previous sibling to nest under) */
 function canIndent(ctx: ActionCtx, card: CardState): boolean {
+  if (!INDENTABLE_TYPES.has(card.node.type)) return false
+
   const parentId = card.node.parent_id
   if (!parentId) return false
 
@@ -228,6 +233,8 @@ function canIndent(ctx: ActionCtx, card: CardState): boolean {
 
 /** Check if a card can be outdented (has a grandparent to move to) */
 function canOutdent(ctx: ActionCtx, card: CardState): boolean {
+  if (!INDENTABLE_TYPES.has(card.node.type)) return false
+
   const parentId = card.node.parent_id
   if (!parentId) return false
 

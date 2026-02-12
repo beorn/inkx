@@ -611,4 +611,27 @@ describe("Cursor follows node (invariant)", () => {
     expect(childIds(repo, "A")).toEqual(["B"])
     expect(board.q("[data-cursor]").textContent()).toContain("A")
   })
+
+  test("paragraph nodes cannot be indented (type restriction)", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+    // Change B's type to paragraph (non-indentable)
+    repo.updateNode("B", { type: "paragraph" })
+
+    board.press("j") // → B
+    board.press("Tab") // attempt indent — should be blocked
+
+    // B should still be a direct child of col1 (not moved under A)
+    expect(childIds(repo, "col1")).toEqual(["A", "B"])
+    expect(childIds(repo, "A")).toEqual([])
+  })
+
+  test("section and task nodes can still be indented (type restriction allows them)", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+    // B is a task (default from item()), A is also a task — both should be indentable
+    board.press("j") // → B
+    board.press("Tab") // indent B under A — should succeed
+
+    expect(childIds(repo, "col1")).toEqual(["A"])
+    expect(childIds(repo, "A")).toEqual(["B"])
+  })
 })
