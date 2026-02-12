@@ -33,7 +33,7 @@ import {
   findChildByContent,
   findFileByName,
 } from "./db-queries/wikilink-resolver.ts"
-import { rowToNode } from "./db-queries/index.ts"
+import { rowToNode, getNode } from "./db-queries/index.ts"
 import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:storage:store")
@@ -607,14 +607,17 @@ export class MemoryStore extends BaseStore {
 
     for (const { nodeId, link, relationship } of this.pendingWikilinks) {
       // Try to find target file by name
-      const fileNode = findFileByName(this.db, link.target)
+      let targetNode = findFileByName(this.db, link.target)
       // If there's a section reference, try to find the specific child node
-      let targetNode = fileNode
-      if (fileNode && link.section) {
-        const childNode = findChildByContent(this.db, fileNode.id, link.section)
+      if (targetNode && link.section) {
+        const childNode = findChildByContent(this.db, targetNode.id, link.section)
         if (childNode) {
           targetNode = childNode
         }
+      }
+      // Fallback: target might be a node ID (e.g., ![[ULID]] from serialized embeds)
+      if (!targetNode) {
+        targetNode = getNode(this.db, link.target)
       }
       addLink(this.db, {
         source_id: nodeId,

@@ -68,10 +68,21 @@ export function createLinkResolver(db: Database): LinkResolver {
   // Cache for section lookups: "fileId:sectionName" → nodeId
   const sectionCache = new Map<string, string | null>()
 
+  // Prepare statement for node ID fallback (used for ![[ULID]] embeds)
+  const nodeIdStmt = db.prepare(
+    "SELECT id FROM nodes WHERE id = ? LIMIT 1",
+  )
+
   return {
     resolveTarget(targetName: string): string | null {
       const normalized = targetName.toLowerCase().replace(/\.md$/i, "")
-      return filesByName.get(normalized) ?? null
+      const byName = filesByName.get(normalized)
+      if (byName) return byName
+
+      // Fallback: check if target is a node ID directly.
+      // Handles ![[ULID]] embeds serialized from link_to task targets.
+      const byId = nodeIdStmt.get(targetName) as { id: string } | null
+      return byId?.id ?? null
     },
 
     resolveSection(fileId: string, sectionName: string): string | null {
