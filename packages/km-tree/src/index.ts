@@ -49,3 +49,16 @@ export {
   isBodyType,
   type BodyExtraction,
 } from "./body.ts"
+
+// Block operations (split/merge for outline editing)
+export {
+  splitNode,
+  mergeWithPrevious,
+  getNodeText,
+  setNodeText,
+  getPreviousSibling,
+  getNextSibling,
+  type TreeMutator,
+  type SplitResult,
+  type MergeResult,
+} from "./block-ops.ts"
