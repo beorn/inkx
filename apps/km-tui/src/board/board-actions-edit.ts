@@ -23,15 +23,23 @@ export function needsRenderFlush(): boolean {
 /**
  * Delete the selected node — with confirmation for non-empty nodes.
  *
- * If the node has children or backlinks, shows a confirmation dialog
- * listing what will be deleted/broken. Otherwise deletes immediately.
+ * Handles three levels:
+ * - Board level (cursor on board title): not allowed
+ * - Column level (cursor on column header): always confirms (columns have cards)
+ * - Card level: confirms if node has children, backlinks, or metadata
  */
 export function handleDeleteNode(ctx: ActionCtx): void {
   const { layout, repo } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
-  if (!card) return
+  if (!card && col) {
+    // Column-level delete — always requires confirmation
+    handleDeleteColumn(ctx, col)
+    return
+  }
+
+  if (!card) return // Board level — nothing to delete
 
   const nodeId = card.node.id
   const children = repo.getChildren(nodeId)
@@ -64,14 +72,75 @@ export function handleDeleteNode(ctx: ActionCtx): void {
 }
 
 /**
+ * Handle column deletion — always shows confirmation.
+ *
+ * Counts all descendants recursively for the warning message.
+ */
+function handleDeleteColumn(
+  ctx: ActionCtx,
+  col: { node: { id: string; name?: string | null; content?: string | null; data?: Record<string, unknown> | null }; cards: { node: { id: string } }[] },
+): void {
+  const { repo } = ctx
+  const nodeId = col.node.id
+
+  // Count total descendants (cards + their children recursively)
+  let totalDescendants = 0
+  const countDescendants = (id: string) => {
+    const children = repo.getChildren(id)
+    totalDescendants += children.length
+    for (const child of children) countDescendants(child.id)
+  }
+  countDescendants(nodeId)
+
+  const impact = repo.getRenameImpact(nodeId)
+
+  ctx.setUI({
+    deleteConfirm: {
+      nodeId,
+      title: col.node.name ?? col.node.content ?? nodeId,
+      childCount: totalDescendants,
+      backlinkCount: impact.backlinks.length,
+    },
+  })
+}
+
+/**
  * Execute node deletion and adjust cursor position.
+ *
+ * Recursively deletes all descendants first (bottom-up), then the node itself.
+ * Adjusts cursor: for card-level deletes, moves to adjacent card;
+ * for column-level deletes, moves to adjacent column.
  */
 export function executeDelete(ctx: ActionCtx, nodeId: string): void {
-  const { layout } = ctx
-  ctx.repo.deleteNode(nodeId)
-  refreshBoardState(ctx, {
-    cardIndex: (c) => Math.min(layout.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
-  })
+  const { layout, repo } = ctx
+
+  // Recursively delete all descendants bottom-up
+  const deleteRecursive = (id: string) => {
+    const children = repo.getChildren(id)
+    for (const child of children) {
+      deleteRecursive(child.id)
+    }
+    repo.deleteNode(id)
+  }
+
+  // Determine if we're deleting a column (direct child of root) or a card
+  const node = repo.getNode(nodeId)
+  const isDeletingColumn = node?.parent_id === ctx.rootId
+
+  deleteRecursive(nodeId)
+
+  if (isDeletingColumn) {
+    // Column deleted: move cursor to adjacent column
+    refreshBoardState(ctx, {
+      colIndex: Math.max(0, layout.colIndex - 1),
+      cardIndex: 0,
+    })
+  } else {
+    // Card deleted: move cursor to adjacent card in same column
+    refreshBoardState(ctx, {
+      cardIndex: (c) => Math.min(layout.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
+    })
+  }
 }
 
 /**

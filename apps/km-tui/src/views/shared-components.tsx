@@ -437,3 +437,51 @@ export function NodeLine({
     </Box>
   )
 }
+
+// =============================================================================
+// Confirm Dialog Component
+// =============================================================================
+
+export interface ConfirmDialogProps {
+  /** Dialog title (e.g., 'Delete "My Node"?') */
+  title: string
+  /** Warning lines shown in yellow below title */
+  warnings?: string[]
+  /** Border color (default: red for destructive actions) */
+  borderColor?: string
+  /** Dialog width */
+  width?: number
+}
+
+/**
+ * Confirmation dialog built on ModalDialog.
+ *
+ * Used for destructive actions (delete node, delete column).
+ * Shows title + warning lines + Enter/Esc footer.
+ */
+export function ConfirmDialog({
+  title,
+  warnings = [],
+  borderColor = "red",
+  width,
+}: ConfirmDialogProps): React.ReactElement {
+  return (
+    <ModalDialog
+      borderColor={borderColor}
+      title={title}
+      titleAlign="flex-start"
+      width={width}
+      footer={
+        <Text dimColor>
+          Enter to confirm · Esc to cancel
+        </Text>
+      }
+    >
+      {warnings.map((w, i) => (
+        <Text key={i} color="yellow">
+          {w}
+        </Text>
+      ))}
+    </ModalDialog>
+  )
+}

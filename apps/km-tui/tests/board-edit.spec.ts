@@ -389,6 +389,100 @@ describe("Edit Operations", () => {
 })
 
 // =============================================================================
+// Delete Confirmation Dialog
+// =============================================================================
+
+describe("Delete Confirmation", () => {
+  test("Backspace on node with children shows confirmation dialog", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("other"))),
+    )
+    board.expect("#parent[data-cursor]").toExist()
+
+    board.press("Backspace")
+
+    // Confirmation dialog should be visible
+    const output = board.screenshot()
+    expect(output).toContain("Delete")
+    expect(output).toContain("parent")
+    expect(output).toContain("will be deleted")
+
+    // Parent should still exist (not deleted yet)
+    board.expect("#parent").toExist()
+  })
+
+  test("Enter confirms delete from confirmation dialog", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("other"))),
+    )
+    board.press("Backspace") // show confirm dialog
+    board.press("Enter") // confirm delete
+
+    // Parent and children should be gone
+    board.expect("#parent").not.toExist()
+    board.expect("#child1").not.toExist()
+    board.expect("#child2").not.toExist()
+
+    // Cursor should be on remaining card
+    board.expect("#other[data-cursor]").toExist()
+  })
+
+  test("Escape cancels delete confirmation dialog", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child1")), item("other"))),
+    )
+    board.press("Backspace") // show confirm dialog
+    board.press("Escape") // cancel
+
+    // Everything should still be there
+    board.expect("#parent").toExist()
+    board.expect("#child1").toExist()
+    board.expect("#parent[data-cursor]").toExist()
+  })
+
+  test("Backspace on column header shows confirmation for column delete", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
+    )
+    // Navigate to column header (k from first card)
+    board.press("k")
+    board.expect("#col1[data-cursor]").toExist()
+
+    board.press("Backspace")
+
+    // Confirmation dialog should be visible with child count
+    const output = board.screenshot()
+    expect(output).toContain("Delete")
+    expect(output).toContain("col1")
+    expect(output).toContain("will be deleted")
+
+    // Column should still exist
+    board.expect("#col1").toExist()
+  })
+
+  test("Enter confirms column delete, cursor moves to adjacent column", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
+    )
+    // Navigate to col1 header
+    board.press("k")
+    board.expect("#col1[data-cursor]").toExist()
+
+    board.press("Backspace") // show confirm
+    board.press("Enter") // confirm delete
+
+    // col1 and its children should be gone
+    board.expect("#col1").not.toExist()
+    board.expect("#1a").not.toExist()
+    board.expect("#1b").not.toExist()
+
+    // col2 should still exist
+    board.expect("#col2").toExist()
+    expect(repo.getNode("2a")).toBeTruthy()
+  })
+})
+
+// =============================================================================
 // Move Mode
 // =============================================================================
 

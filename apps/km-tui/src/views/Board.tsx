@@ -27,6 +27,7 @@ import { SearchDialog } from "./SearchDialog.tsx"
 import { Column } from "./CardColumn.tsx"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { ColumnsView } from "./ColumnsView.tsx"
+import { ConfirmDialog } from "./shared-components.tsx"
 import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { renderPath } from "../layout/index.ts"
@@ -433,6 +434,16 @@ export function BoardCore({
             (() => {
               const dc = ui.deleteConfirm
               const dialogWidth = Math.min(50, Math.floor(termWidth / 2))
+              const warnings: string[] = []
+              if (dc.childCount > 0) {
+                warnings.push(`${dc.childCount} child${dc.childCount !== 1 ? "ren" : ""} will be deleted`)
+              }
+              if (dc.backlinkCount > 0) {
+                warnings.push(`${dc.backlinkCount} backlink${dc.backlinkCount !== 1 ? "s" : ""} will break`)
+              }
+              if (dc.hasMetadata) {
+                warnings.push("Has metadata (frontmatter)")
+              }
               return (
                 <Box
                   position="absolute"
@@ -440,24 +451,7 @@ export function BoardCore({
                   marginTop={Math.floor(contentHeight / 3)}
                   data-dialog="delete-confirm"
                 >
-                  <Box flexDirection="column" borderStyle="single" borderColor="red" width={dialogWidth} paddingX={1}>
-                    <Text bold color="red">
-                      Delete "{dc.title}"?
-                    </Text>
-                    {dc.childCount > 0 && (
-                      <Text color="yellow">
-                        {dc.childCount} child{dc.childCount !== 1 ? "ren" : ""} will be deleted
-                      </Text>
-                    )}
-                    {dc.backlinkCount > 0 && (
-                      <Text color="yellow">
-                        {dc.backlinkCount} backlink
-                        {dc.backlinkCount !== 1 ? "s" : ""} will break
-                      </Text>
-                    )}
-                    {dc.hasMetadata && <Text color="yellow">Has metadata (frontmatter)</Text>}
-                    <Text dimColor>Enter to confirm, any key to cancel</Text>
-                  </Box>
+                  <ConfirmDialog title={`Delete "${dc.title}"?`} warnings={warnings} width={dialogWidth} />
                 </Box>
               )
             })()}
