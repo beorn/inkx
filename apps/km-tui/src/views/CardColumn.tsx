@@ -285,23 +285,32 @@ export const Column = React.memo(function Column({
   // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
-      const oldName = repo.getNode(nodeId)?.name ?? ""
-      const impact = repo.getRenameImpact(nodeId)
-      const s = impact.backlinks.length === 1 ? "" : "s"
+      const node = repo.getNode(nodeId)
+      const oldName = node?.name ?? ""
+      const oldContent = (node?.content ?? "").replace(/^- \[.\]\s*/, "")
+      const nameMatchedContent = !oldName || oldName === oldContent
 
-      jobRunner.submit({
-        description: `Renaming '${oldName}' → '${newValue}'`,
-        impact:
-          impact.backlinks.length > 0
-            ? `${impact.backlinks.length} backlink${s} will be updated`
-            : "",
-        countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
-        execute: (onProgress) => {
-          repo.renameNode(nodeId, newValue, (info) =>
-            onProgress(info.updated, info.total),
-          )
-        },
-      })
+      if (nameMatchedContent) {
+        const impact = repo.getRenameImpact(nodeId)
+        const s = impact.backlinks.length === 1 ? "" : "s"
+
+        jobRunner.submit({
+          description: `Renaming '${oldName}' → '${newValue}'`,
+          impact:
+            impact.backlinks.length > 0
+              ? `${impact.backlinks.length} backlink${s} will be updated`
+              : "",
+          countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
+          execute: (onProgress) => {
+            repo.renameNode(nodeId, newValue, (info) =>
+              onProgress(info.updated, info.total),
+            )
+          },
+        })
+      } else {
+        // Name and content diverged — just update content, don't rename
+        repo.updateNode(nodeId, { content: newValue })
+      }
 
       setUI({ inlineEditBlock: null })
     },

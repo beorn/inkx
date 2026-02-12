@@ -298,23 +298,36 @@ function TreeNodeImpl({
       const { mark } = extractTitleTaskMark(originalContent)
       const newContent = mark != null ? `[${mark}] ${newValue}` : newValue
 
-      const oldName = repo.getNode(displayNode.id)?.name ?? ""
-      const impact = repo.getRenameImpact(displayNode.id)
-      const s = impact.backlinks.length === 1 ? "" : "s"
+      // Only do a full rename if name was already in sync with content (or unset).
+      // e.g., "@next" (name) vs "Next Actions" (title) → different → just update content.
+      // e.g., "My Task" (name) vs "My Task" (content) → same → rename keeps them in sync.
+      // e.g., no name set → always rename (name gets derived from content).
+      const node = repo.getNode(displayNode.id)
+      const oldName = node?.name ?? ""
+      const oldContentName = (originalContent).replace(/^- \[.\]\s*/, "")
+      const nameMatchedContent = !oldName || oldName === oldContentName
 
-      jobRunner.submit({
-        description: `Renaming '${oldName}' → '${newValue}'`,
-        impact:
-          impact.backlinks.length > 0
-            ? `${impact.backlinks.length} backlink${s} will be updated`
-            : "",
-        countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
-        execute: (onProgress) => {
-          repo.renameNode(displayNode.id, newContent, (info) =>
-            onProgress(info.updated, info.total),
-          )
-        },
-      })
+      if (nameMatchedContent) {
+        const impact = repo.getRenameImpact(displayNode.id)
+        const s = impact.backlinks.length === 1 ? "" : "s"
+
+        jobRunner.submit({
+          description: `Renaming '${oldName}' → '${newValue}'`,
+          impact:
+            impact.backlinks.length > 0
+              ? `${impact.backlinks.length} backlink${s} will be updated`
+              : "",
+          countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
+          execute: (onProgress) => {
+            repo.renameNode(displayNode.id, newContent, (info) =>
+              onProgress(info.updated, info.total),
+            )
+          },
+        })
+      } else {
+        // Name and content diverged — just update content, don't rename
+        repo.updateNode(displayNode.id, { content: newContent })
+      }
 
       setUI({ inlineEditBlock: null })
     },
