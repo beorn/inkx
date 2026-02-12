@@ -115,7 +115,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | **Fuzz (TUI)** | gen/take/test.fuzz (vitestx) | [vitestx CLAUDE.md](../../../vendor/beorn-vitestx/CLAUDE.md) |
 | **Exploration** | Chaos + monkey testing | [chaos.md](chaos.md), `/explore` |
 | **Bench** | Benchmarks | [bench.md](bench.md) |
-| **Storybook** | Static component rendering | `bun storybook` |
+| **Storybook** | Interactive component catalog | `bun storybook` (inline), `--fullscreen` |
 
 - Any **test** can have `.slow.` suffix (manually assigned)
 - **Bench** and **Storybook** are not "tests" - must qualify

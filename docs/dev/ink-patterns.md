@@ -289,10 +289,12 @@ it("renders correctly", () => {
 Visual testing with [storybook.tsx](../../apps/km-tui/tests/storybook.tsx):
 
 ```bash
-bun storybook
+bun storybook                      # inline (default) — terminal scrolling works
+bun storybook --fullscreen         # alternate screen
+bun storybook --fullscreen-nonalt  # fullscreen positioning, no alt screen
 ```
 
-Displays all components in various states for visual verification.
+Interactive component catalog with j/k section navigation, q to quit.
 
 **Important:** The storybook must use production rendering code exclusively. It should never use `chalk` or raw Ink primitives (`<Text color=...>`) to implement styling directly. Instead:
 

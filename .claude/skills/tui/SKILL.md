@@ -39,8 +39,10 @@ Build and maintain the Ink-based TUI.
 INKX_STRICT=1 bun vitest run apps/km-tui/tests/
 INKX_STRICT=1 bun km view /path/to/vault
 
-# Run visual storybook
-bun storyboard
+# Run visual storybook (inline default, j/k to navigate, q to quit)
+bun storybook
+bun storybook --fullscreen       # alternate screen
+bun storybook --fullscreen-nonalt
 
 # Run TUI tests
 bun run test:mock
