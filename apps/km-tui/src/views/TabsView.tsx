@@ -100,7 +100,7 @@ export function TabsView({
               >
                 <Text bold color={textColor} dimColor={!showActiveHighlight && selectionLevel === "board"}>
                   {" "}
-                  {untitled ? <Text dimColor>{truncatedName}</Text> : truncatedName}
+                  {untitled ? <Text dimColor color="gray">{truncatedName}</Text> : truncatedName}
                   <Text dimColor={!isTabSelected}>{countStr}</Text>{" "}
                 </Text>
               </Box>

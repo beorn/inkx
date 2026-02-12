@@ -221,7 +221,7 @@ export const MemoizedColumnHeader = React.memo(
             wrap="truncate"
           >
             {" "}
-            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor>{headerText}</Text> : headerText}
+            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor color="gray">{headerText}</Text> : headerText}
             <Text color={isColSelected ? "gray" : undefined} dimColor={!isColSelected}>
               {countText}
             </Text>

@@ -122,7 +122,7 @@ const ColumnTree = React.memo(function ColumnTree({
         <Box>
           <Text bold color={headerStyle.color} backgroundColor={headerStyle.backgroundColor} wrap="truncate">
             {" "}
-            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor>{name}</Text> : name}
+            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor color="gray">{name}</Text> : name}
             <Text
               color={isColumnHeaderSelected ? "gray" : undefined}
               dimColor={!isColumnHeaderSelected}

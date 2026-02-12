@@ -16,7 +16,7 @@ import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
 import { extractTitleTaskMark } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
-import { getNodeDisplayName, getParentContext as getParentContextFromState } from "../state.ts"
+import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
 import { renderRich } from "../text/index.ts"
 import { truncateText } from "../layout/index.ts"
@@ -201,6 +201,9 @@ function TreeNodeImpl({
     () => getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing),
     [displayNode.id, displayNode.task_status, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing],
   )
+
+  // Untitled nodes (showing (shortId) fallback) render very dimmed
+  const untitled = isNodeUntitled(repo, displayNode)
 
   // Memoize prefix - only recalc when fold state or children count changes
   const prefix = useMemo(
@@ -466,8 +469,8 @@ function TreeNodeImpl({
               </Text>
             ) : (
               <Text
-                color={style.textColor}
-                dimColor={style.shouldDim}
+                color={untitled && !isSelected && !isMultiSelected ? "gray" : style.textColor}
+                dimColor={style.shouldDim || (untitled && !isSelected && !isMultiSelected)}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner ? "truncate" : "wrap"}
               >

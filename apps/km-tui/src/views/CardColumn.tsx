@@ -391,7 +391,7 @@ export const Column = React.memo(function Column({
             wrap="truncate"
           >
             {" "}
-            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor>{name}</Text> : name}
+            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor color="gray">{name}</Text> : name}
             {typeSuffix ? (
               <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${typeSuffix}`}</Text>
             ) : (
