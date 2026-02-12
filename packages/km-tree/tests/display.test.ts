@@ -151,6 +151,21 @@ describe("getNodeDisplayName", () => {
 
       expect(getNodeDisplayName(fileNode, getChildren)).toBe("Work")
     })
+
+    it("ignores stale data.title on first section of file node", () => {
+      const fileNode = createNode("file123", { type: "file" })
+      const sectionNode = createNode("section123", {
+        type: "section",
+        title: "",
+        content: "",
+        data: { depth: 1, title: "Old Stale Title" },
+      })
+
+      const getChildren = (id: string) => (id === "file123" ? [sectionNode] : [])
+
+      // Should fall through to short ID, NOT use stale data.title
+      expect(getNodeDisplayName(fileNode, getChildren)).toBe("(file123)")
+    })
   })
 
   describe("priority 4: node content", () => {

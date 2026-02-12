@@ -324,4 +324,38 @@ describe("Untitled Columns", () => {
     const namedMatches = text.match(/\bNamed\b/g) ?? []
     expect(namedMatches.length).toBeLessThanOrEqual(2)
   })
+
+  test("empty section with stale data.title does not show stale name", () => {
+    // Regression: DB data JSON blob can retain stale title from a previous
+    // state of the file. node.title="" should take precedence over data.title.
+    const { board } = testEnv(
+      () => {
+        const nodes = item(
+          "board",
+          item("Processing", item("task1")),
+          item("stale-col", item("task2")),
+          item("Waiting", item("task3")),
+        )
+        // Simulate stale DB state: title is empty but data.title still has old value
+        const staleCol = nodes.find((n) => n.id === "stale-col")
+        if (staleCol) {
+          staleCol.title = ""
+          staleCol.content = ""
+          staleCol.data = { depth: 2, rules: { color: "yellow" }, title: "Waiting" }
+        }
+        return nodes
+      },
+      { columns: 120 },
+    )
+
+    const text = board.screenshot()
+
+    // "Waiting" should appear exactly once (the real Waiting column)
+    // NOT twice (would indicate stale data.title leaking through)
+    const waitingMatches = text.match(/\bWaiting\b/g) ?? []
+    expect(waitingMatches.length).toBe(1)
+
+    // The stale column should show as untitled (shortId in parens)
+    expect(text).toContain("(stale")
+  })
 })

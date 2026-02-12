@@ -302,6 +302,45 @@ describe("diffNodes", () => {
       expect(updated?.changes?.data).toEqual({ tags: ["new", "added"] })
     })
 
+    test("detects data replacement when properties are removed", () => {
+      // Regression: When a section heading changes from "Waiting color=yellow"
+      // to empty, the new data should NOT retain the old title/rules properties.
+      const existing = [
+        makeNode({ id: "file-1", type: "file" }),
+        makeNode({
+          id: "section-1",
+          type: "section",
+          parent_id: "file-1",
+          parent_idx: 0,
+          title: "Waiting",
+          content: "Waiting color=yellow",
+          data: { depth: 2, rules: { color: "yellow" }, title: "Waiting" },
+        }),
+      ]
+      const newNodes = [
+        makeNode({ id: "file-new", type: "file" }),
+        makeNode({
+          id: "section-new",
+          type: "section",
+          parent_id: "file-new",
+          parent_idx: 0,
+          title: "",
+          content: "",
+          data: { depth: 2 },
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      const updated = result.changes.find((c) => c.type === "updated")
+      expect(updated?.nodeId).toBe("section-1")
+      // data should be the FULL new object, not a merge
+      expect(updated?.changes?.data).toEqual({ depth: 2 })
+      // Specifically: old title and rules must NOT be present
+      expect((updated?.changes?.data as Record<string, unknown>)?.title).toBeUndefined()
+      expect((updated?.changes?.data as Record<string, unknown>)?.rules).toBeUndefined()
+    })
+
     test("no changes when nodes are identical", () => {
       const existing = [
         makeNode({ id: "file-1", type: "file", content: "File" }),
