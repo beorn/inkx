@@ -8,6 +8,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { VirtualTerminal, outputPhase } from "inkx/toolbelt"
 
 describe("fold border blank (km-tui.fold-border-blank)", () => {
   /** Board with nested children that will shrink when outline depth decreases */
@@ -27,13 +28,28 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     )
   }
 
-  /** Verify that every row with bottom-border corners has matching top-border corners */
+  /** Verify border structure: top/bottom count match AND dashes are continuous */
   function checkBorderIntegrity(text: string, label: string) {
     const rows = text.split("\n")
     // Count top and bottom borders (round style: ╭╮ for top, ╰╯ for bottom)
     const topBorders = rows.filter((r) => r.includes("\u256d") && r.includes("\u256e"))
     const bottomBorders = rows.filter((r) => r.includes("\u2570") && r.includes("\u256f"))
     expect(bottomBorders.length, `${label}: bottom borders should match top borders`).toBe(topBorders.length)
+
+    // Check that each bottom border has continuous horizontal dashes (not spaces)
+    for (const row of bottomBorders) {
+      const leftIdx = row.indexOf("\u2570")
+      const rightIdx = row.lastIndexOf("\u256f")
+      if (leftIdx >= 0 && rightIdx > leftIdx + 1) {
+        const between = row.slice(leftIdx + 1, rightIdx)
+        for (let i = 0; i < between.length; i++) {
+          expect(
+            between[i],
+            `${label}: bottom border at col ${leftIdx + 1 + i} should be \u2500 but got "${between[i]}"`,
+          ).toBe("\u2500")
+        }
+      }
+    }
   }
 
   test("decrease outline depth preserves border integrity", () => {
@@ -129,5 +145,188 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
         )
       }
     }
+  })
+
+  /** Convert VirtualTerminal grid to text string (row per line) */
+  function vtermToText(vterm: VirtualTerminal): string {
+    const lines: string[] = []
+    for (let y = 0; y < vterm.height; y++) {
+      let line = ""
+      for (let x = 0; x < vterm.width; x++) {
+        line += vterm.getChar(x, y)
+      }
+      lines.push(line)
+    }
+    return lines.join("\n")
+  }
+
+  /** Verify ANSI diff replay produces correct terminal output */
+  function verifyDiffReplay(
+    prevBuffer: ReturnType<ReturnType<typeof import("inkx/testing").createRenderer>["lastBuffer"]>,
+    nextBuffer: ReturnType<ReturnType<typeof import("inkx/testing").createRenderer>["lastBuffer"]>,
+    label: string,
+  ) {
+    if (!prevBuffer || !nextBuffer) throw new Error(`${label}: No buffer`)
+
+    // Render initial state to a virtual terminal
+    const vterm = new VirtualTerminal(prevBuffer.width, prevBuffer.height)
+    const fullAnsi = outputPhase(null, prevBuffer)
+    vterm.applyAnsi(fullAnsi)
+
+    // Apply the incremental diff
+    const diffAnsi = outputPhase(prevBuffer, nextBuffer)
+    vterm.applyAnsi(diffAnsi)
+
+    // Compare virtual terminal content with expected buffer
+    const mismatches = vterm.compareToBuffer(nextBuffer)
+    if (mismatches.length > 0) {
+      const details = mismatches
+        .slice(0, 20)
+        .map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
+        .join("\n")
+      throw new Error(`${label}: ANSI diff replay mismatch: ${mismatches.length} cells differ:\n${details}`)
+    }
+  }
+
+  test("ANSI diff replay correct after decrease outline depth", () => {
+    const { board } = nestedBoard()
+
+    // Capture buffer before first <
+    const prevBuf1 = board._result.lastBuffer()!.clone()
+    board.press("<")
+    const afterBuf1 = board._result.lastBuffer()!
+    verifyDiffReplay(prevBuf1, afterBuf1, "after first <")
+
+    // Capture buffer before second <
+    const prevBuf2 = afterBuf1.clone()
+    board.press("<")
+    const afterBuf2 = board._result.lastBuffer()!
+    verifyDiffReplay(prevBuf2, afterBuf2, "after second <")
+  })
+
+  test("ANSI diff replay terminal borders correct after fold", () => {
+    const { board } = nestedBoard()
+
+    // Simulate what a real terminal sees: full render, then each diff in sequence
+    const buf0 = board._result.lastBuffer()!.clone()
+    const vterm = new VirtualTerminal(buf0.width, buf0.height)
+    vterm.applyAnsi(outputPhase(null, buf0))
+
+    // First < press
+    board.press("<")
+    const buf1 = board._result.lastBuffer()!
+    const diff1 = outputPhase(buf0, buf1)
+    vterm.applyAnsi(diff1)
+
+    // Verify first diff is correct
+    const mismatches1 = vterm.compareToBuffer(buf1)
+    expect(mismatches1.length, "vterm should match buf1 after first diff").toBe(0)
+
+    // Check after first diff
+    let terminalText = vtermToText(vterm)
+    checkBorderIntegrity(terminalText, "terminal after first <")
+
+    // Second < press
+    const buf1Clone = buf1.clone()
+    board.press("<")
+    const buf2 = board._result.lastBuffer()!
+    const diff2 = outputPhase(buf1Clone, buf2)
+    vterm.applyAnsi(diff2)
+
+    // Verify second diff cell-by-cell
+    const mismatches2 = vterm.compareToBuffer(buf2)
+    if (mismatches2.length > 0) {
+      const details = mismatches2
+        .slice(0, 30)
+        .map((m) => `  (${m.x},${m.y}): expected="${m.expected}" actual="${m.actual}"`)
+        .join("\n")
+      throw new Error(`vterm should match buf2 after second diff: ${mismatches2.length} cells differ:\n${details}`)
+    }
+
+    // Check after second diff
+    terminalText = vtermToText(vterm)
+    checkBorderIntegrity(terminalText, "terminal after second <")
+
+    // Check bottom border dash integrity (the specific bug symptom)
+    const rows = terminalText.split("\n")
+    for (const row of rows) {
+      const leftIdx = row.indexOf("\u2570")
+      const rightIdx = row.lastIndexOf("\u256f")
+      if (leftIdx >= 0 && rightIdx > leftIdx + 1) {
+        const between = row.slice(leftIdx + 1, rightIdx)
+        for (let i = 0; i < between.length; i++) {
+          expect(
+            between[i],
+            `bottom border at col ${leftIdx + 1 + i} should be \u2500 but got "${between[i]}"`,
+          ).toBe("\u2500")
+        }
+      }
+    }
+  })
+
+  test("incremental vs fresh buffer comparison after fold", () => {
+    // Run with incremental=true
+    const { board: incBoard } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("card-a", item("a-child1"), item("a-child2"), item("a-child3")),
+            item("card-b", item("b-child1")),
+            item("card-c"),
+          ),
+        ),
+      { columns: 50, rows: 30, incremental: true },
+    )
+    incBoard.press("<").press("<")
+    const incText = incBoard.screenshot()
+
+    // Run with incremental=false
+    const { board: freshBoard } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("card-a", item("a-child1"), item("a-child2"), item("a-child3")),
+            item("card-b", item("b-child1")),
+            item("card-c"),
+          ),
+        ),
+      { columns: 50, rows: 30, incremental: false },
+    )
+    freshBoard.press("<").press("<")
+    const freshText = freshBoard.screenshot()
+
+    // Compare line by line — collect all differences
+    const incRows = incText.split("\n")
+    const freshRows = freshText.split("\n")
+    const diffs: string[] = []
+    for (let i = 0; i < Math.max(incRows.length, freshRows.length); i++) {
+      if (incRows[i] !== freshRows[i]) {
+        diffs.push(`Row ${i}:\n  inc:   "${incRows[i]}"\n  fresh: "${freshRows[i]}"`)
+      }
+    }
+    if (diffs.length > 0) {
+      expect.fail(`${diffs.length} rows differ:\n${diffs.join("\n")}`)
+    }
+  })
+
+  test("ANSI diff replay correct after decrease content lines", () => {
+    const { board } = nestedBoard()
+
+    // Decrease content lines (- key) instead of outline depth
+    const prevBuf1 = board._result.lastBuffer()!.clone()
+    board.press("-")
+    const afterBuf1 = board._result.lastBuffer()!
+    verifyDiffReplay(prevBuf1, afterBuf1, "after first -")
+    checkBorderIntegrity(board.screenshot(), "buffer after first -")
+
+    const prevBuf2 = afterBuf1.clone()
+    board.press("-")
+    const afterBuf2 = board._result.lastBuffer()!
+    verifyDiffReplay(prevBuf2, afterBuf2, "after second -")
+    checkBorderIntegrity(board.screenshot(), "buffer after second -")
   })
 })
