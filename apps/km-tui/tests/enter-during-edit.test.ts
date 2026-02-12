@@ -16,6 +16,7 @@
  */
 
 import { describe, test, expect } from "vitest"
+import type { KNode } from "@km/core"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 /** Select all item nodes inside a column (in render order) */
@@ -179,5 +180,126 @@ describe("Outliner Enter — save + new sibling", () => {
     expect(items.nth(1).getAttribute("id")).toBe("1b")
     expect(items.nth(2).getAttribute("id")).toMatch(/^fake-/) // new between 1b and 1c
     expect(items.nth(3).getAttribute("id")).toBe("1c")
+  })
+})
+
+// =============================================================================
+// Enter on link_to (transclusion) nodes — mimics @next board
+// =============================================================================
+
+describe("Outliner Enter — link_to nodes (transclusion)", () => {
+  /** Build a board with a column containing link_to nodes, like @next */
+  function linkBoard() {
+    const nodes = item("board", item("col1", item("link-a"), item("link-b"), item("link-c")))
+    // Create target nodes that the links point to
+    const targetA: KNode = {
+      id: "target-a",
+      type: "task",
+      content: "Target task A",
+      parent_id: "other-file",
+      parent_idx: 0,
+      link_to: null,
+      task_status: "todo",
+      task_mark: " ",
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const targetB: KNode = { ...targetA, id: "target-b", content: "Target task B", parent_idx: 1 }
+    const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
+    const otherFile: KNode = {
+      id: "other-file",
+      type: "folder",
+      content: undefined,
+      data: { name: "Other File" },
+      parent_id: ".",
+      parent_idx: 100,
+      link_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+
+    // Make the card nodes into links
+    for (const n of nodes) {
+      if (n.id === "link-a") {
+        n.link_to = "target-a"
+        n.content = "Target task A"
+        n.task_status = "todo"
+        n.task_mark = " "
+      }
+      if (n.id === "link-b") {
+        n.link_to = "target-b"
+        n.content = "Target task B"
+        n.task_status = "todo"
+        n.task_mark = " "
+      }
+      if (n.id === "link-c") {
+        n.link_to = "target-c"
+        n.content = "Target task C"
+        n.task_status = "todo"
+        n.task_mark = " "
+      }
+    }
+
+    return [...nodes, otherFile, targetA, targetB, targetC]
+  }
+
+  const colItems = (col: string) => `#${col} [data-view='item']`
+
+  test("Enter on link_to card creates new sibling and shows it", () => {
+    const { board, repo } = testEnv(linkBoard)
+
+    board.expect(colItems("col1")).toHaveCount(3)
+
+    board.press("Enter") // edit link-a (shows Target task A)
+    board.press("Enter") // save + create sibling
+
+    // DOM: 4 items in column (was 3)
+    board.expect(colItems("col1")).toHaveCount(4)
+  })
+
+  test("Enter on link_to card: new sibling is a regular node, not a link", () => {
+    const { board, repo } = testEnv(linkBoard)
+
+    board.press("Enter") // edit
+    board.press("Enter") // save + create sibling
+    board.press("Escape") // exit edit on new sibling
+
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(4)
+
+    // New sibling (at position 1) should NOT be a link
+    const newNodeId = items.nth(1).getAttribute("id")!
+    const newNode = repo.getNode(newNodeId)
+    expect(newNode).toBeTruthy()
+    expect(newNode!.link_to).toBeNull()
+    expect(newNode!.content).toBe("") // empty new node
+  })
+
+  test("Multiple Enters on link_to board create chain of siblings", () => {
+    const { board } = testEnv(linkBoard)
+
+    board.expect(colItems("col1")).toHaveCount(3)
+
+    board.press("Enter") // edit link-a
+    board.press("Enter") // save + sibling1
+    board.press("Enter") // save sibling1 + sibling2
+    board.press("Enter") // save sibling2 + sibling3
+
+    // DOM: 3 original links + 3 new siblings
+    board.expect(colItems("col1")).toHaveCount(6)
+  })
+
+  test("keybindings work after Enter on link_to node", () => {
+    const { board } = testEnv(linkBoard)
+
+    board.press("Enter") // edit
+    board.press("Enter") // save + create sibling (now editing new node)
+    board.press("Escape") // exit edit
+
+    // Should be able to navigate normally after
+    board.press("j") // move down
+    board.expect("[data-cursor]").toExist()
   })
 })
