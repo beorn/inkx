@@ -13,7 +13,7 @@ allowed-tools: Bash, Read, Glob, Grep, Task
 ### Coding Iteration (every change)
 
 ```bash
-bun vitest run --changed              # Fastest: only tests affected by your changes
+bun run test:changed                  # Preferred: sub-second when focused on a few files
 bun vitest related src/foo.ts         # Tests importing a specific file
 bun vitest run apps/km-tui/tests/     # All tests in a directory
 ```
@@ -36,6 +36,7 @@ bun run test:all:html      # All tests + HTML report + perf tracking
 
 | Working on...        | Run during iteration                    |
 | -------------------- | --------------------------------------- |
+| Current changes      | `bun run test:changed`                  |
 | Specific changes     | `bun vitest run --changed`              |
 | Specific file        | `bun vitest related src/foo.ts`         |
 | Sync, watcher, chaos | `bun run test:slow`                     |
@@ -83,6 +84,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | `test:vendor`      | Vendor tests only (`--project vendor`)                        | Vendor isolation     |
 | `test:fast:html`   | Fast tests + HTML report + performance tracking               | Performance analysis |
 | `test:all:html`    | All tests + HTML report + performance tracking                | Full analysis        |
+| `test:changed`     | Changed files only (via vitest --changed)                     | Fastest iteration    |
 | `test:fast:serial` | Fast tests without parallelization                            | Accurate timing      |
 
 ## Benchmark Commands

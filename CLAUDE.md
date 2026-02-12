@@ -14,6 +14,7 @@ bun run test:fast | head -400   # Non-vendor tests (~124 files, ~8s)
 bun run test:vendor | head -400 # Vendor tests (~116 files)
 bun run test:all | head -400    # All tests (~240 files)
 bun vitest run <dir> # Run tests in a specific directory
+bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 ```
 
 **Never** use bare `bun test`. You must read [.claude/skills/tests/] for test commands, test types, and TDD workflow to use.

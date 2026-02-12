@@ -24,12 +24,11 @@ describe("Scroll Follow", () => {
   }
 
   test("list view scroll follows cursor past bottom", () => {
-    const { board } = testEnv(createLargeBoard, { rows: 24, columns: 80 })
-
-    // Switch to list view
-    while (!board.screenshot().includes("LIST VIEW")) {
-      board.press("v")
-    }
+    const { board } = testEnv(createLargeBoard, {
+      rows: 24,
+      columns: 80,
+      viewMode: "list",
+    })
 
     // Navigate down past visible area
     for (let i = 0; i < 18; i++) {
@@ -43,12 +42,11 @@ describe("Scroll Follow", () => {
   })
 
   test("cards view scroll follows cursor past bottom", () => {
-    const { board } = testEnv(createLargeBoard, { rows: 24, columns: 80 })
-
-    // Make sure we're in cards view
-    while (!board.screenshot().includes("CARDS VIEW")) {
-      board.press("v")
-    }
+    const { board } = testEnv(createLargeBoard, {
+      rows: 24,
+      columns: 80,
+      viewMode: "cards",
+    })
 
     // Navigate into first column then down
     board.press("j") // to column header
@@ -66,12 +64,11 @@ describe("Scroll Follow", () => {
   })
 
   test("columns view scroll follows cursor past bottom", () => {
-    const { board } = testEnv(createLargeBoard, { rows: 24, columns: 80 })
-
-    // Switch to columns view
-    while (!board.screenshot().includes("COLUMNS VIEW")) {
-      board.press("v")
-    }
+    const { board } = testEnv(createLargeBoard, {
+      rows: 24,
+      columns: 80,
+      viewMode: "columns",
+    })
 
     // Navigate into first column
     board.press("j") // to column header
