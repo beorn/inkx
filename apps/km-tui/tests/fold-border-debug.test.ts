@@ -41,8 +41,8 @@ test("border count matches through fold/unfold with many cards near overflow bou
     const text = board.screenshot()
     const topBorders = countTopBorders(text)
     const bottomBorders = countBottomBorders(text)
-    // Top can exceed bottom by at most 1 (partially visible card at viewport edge)
-    if (topBorders - bottomBorders > 1 || topBorders < bottomBorders) {
+    // Partial cards at viewport edge: top or bottom can exceed the other by at most 1
+    if (Math.abs(topBorders - bottomBorders) > 1) {
       const lines = text.split("\n")
       const annotated = lines.map((line, i) => {
         const hasTop = /╭.*╮/.test(line)
@@ -60,7 +60,7 @@ test("border count matches through fold/unfold with many cards near overflow bou
     const text = board.screenshot()
     const topBorders = countTopBorders(text)
     const bottomBorders = countBottomBorders(text)
-    expect(topBorders - bottomBorders, `After ${press} '>' presses: top=${topBorders} bottom=${bottomBorders}`).toBeLessThanOrEqual(1)
+    expect(Math.abs(topBorders - bottomBorders), `After ${press} '>' presses: top=${topBorders} bottom=${bottomBorders}`).toBeLessThanOrEqual(1)
   }
 })
 
@@ -95,5 +95,5 @@ test("border integrity with scrolled viewport after fold", () => {
   const text = board.screenshot()
   const topBorders = countTopBorders(text)
   const bottomBorders = countBottomBorders(text)
-  expect(topBorders - bottomBorders, `scrolled + folded: top (${topBorders}) should equal bottom (${bottomBorders})`).toBeLessThanOrEqual(1)
+  expect(Math.abs(topBorders - bottomBorders), `scrolled + folded: top (${topBorders}) should equal bottom (${bottomBorders})`).toBeLessThanOrEqual(1)
 })

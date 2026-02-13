@@ -44,7 +44,7 @@ describe("Fold border regression", () => {
       const top = countTopBorders(text)
       const bottom = countBottomBorders(text)
       // Top can exceed bottom by 1 (partially visible card at viewport edge)
-      expect(top - bottom, `After ${press} '<' presses: top=${top} bottom=${bottom}`).toBeLessThanOrEqual(1)
+      expect(Math.abs(top - bottom), `After ${press} '<' presses: top=${top} bottom=${bottom}`).toBeLessThanOrEqual(1)
     }
 
     for (let press = 0; press < 4; press++) {
@@ -52,7 +52,7 @@ describe("Fold border regression", () => {
       const text = board.screenshot()
       const top = countTopBorders(text)
       const bottom = countBottomBorders(text)
-      expect(top - bottom, `After ${press} '>' presses: top=${top} bottom=${bottom}`).toBeLessThanOrEqual(1)
+      expect(Math.abs(top - bottom), `After ${press} '>' presses: top=${top} bottom=${bottom}`).toBeLessThanOrEqual(1)
     }
   })
 
@@ -82,6 +82,6 @@ describe("Fold border regression", () => {
     const text = board.screenshot()
     const top = countTopBorders(text)
     const bottom = countBottomBorders(text)
-    expect(top - bottom, `scrolled + folded: top=${top} bottom=${bottom}`).toBeLessThanOrEqual(1)
+    expect(Math.abs(top - bottom), `scrolled + folded: top=${top} bottom=${bottom}`).toBeLessThanOrEqual(1)
   })
 })
