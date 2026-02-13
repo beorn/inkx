@@ -14,23 +14,25 @@ interface HelpOverlayProps {
 
 // Keyboard shortcuts organized by category
 // NOTE: Keep in sync with packages/km-commands/src/keybindings.ts
+// Key format: macOS modifier icons (⌃ ⇧ ⌥), dim "/" separators
 const shortcuts = [
   {
     category: "Navigation",
     keys: [
-      { key: "h/l or ←/→", desc: "Move between columns" },
-      { key: "j/k or ↓/↑", desc: "Move between cards" },
+      { key: "h / l (← / →)", desc: "Move between columns" },
+      { key: "j / k (↓ / ↑)", desc: "Move between cards" },
       { key: "gg / G", desc: "Go to first / last card" },
       { key: "Enter", desc: "Edit title inline" },
-      { key: "e / i / u", desc: "Zoom to / zoom in / zoom out" },
-      { key: "P / Ctrl+Enter", desc: "Follow embedded link" },
-      { key: "o / O", desc: "Open in system / open terminal" },
-      { key: "[/]", desc: "History back/forward" },
-      { key: "Ctrl+J/K", desc: "Navigate to sibling board" },
-      { key: "Ctrl+D/U", desc: "Page down/up (half page)" },
+      { key: "e / i / u", desc: "Zoom to / in / out" },
+      { key: "⌃Enter", desc: "Follow embedded link" },
+      { key: "o / O", desc: "Open / open in terminal" },
+      { key: "[ / ]", desc: "History back / forward" },
+      { key: "⌃J / ⌃K", desc: "Navigate to sibling board" },
+      { key: "⌃D / ⌃U", desc: "Page down / up (half page)" },
       { key: "/", desc: "Search items" },
-      { key: "gp / gn", desc: "Project picker / new item" },
-      { key: "Shift+1-9", desc: "Jump to column 1-9" },
+      { key: "gp", desc: "Project picker" },
+      { key: "gn", desc: "New item dialog" },
+      { key: "⇧1-9", desc: "Jump to column 1-9" },
       { key: "1-9", desc: "Jump to favorite board" },
       { key: "Esc", desc: "Close pane / exit mode / quit" },
     ],
@@ -40,41 +42,60 @@ const shortcuts = [
     keys: [
       { key: "n / p", desc: "Insert item below / above" },
       { key: "d", desc: "Duplicate item" },
-      { key: "Backspace/Del", desc: "Delete item" },
+      { key: "Backspace / Del", desc: "Delete item" },
       { key: "x", desc: "Cycle task status" },
       { key: "m", desc: "Enter move mode (Enter to confirm)" },
-      { key: "Opt+hjkl/↑↓←→", desc: "Shift item" },
-      { key: "Tab / Shift+Tab", desc: "Indent / outdent" },
-      { key: "Ctrl+Z / ⇧+Z", desc: "Undo / redo" },
+      { key: "⌥hjkl / ⌥↑↓←→", desc: "Shift item" },
+      { key: "Tab / ⇧Tab", desc: "Indent / outdent" },
+      { key: "⌃Z / ⌃⇧Z", desc: "Undo / redo" },
     ],
   },
   {
     category: "View",
     keys: [
-      { key: "v", desc: "Cycle view mode (cards/columns/list/tabs)" },
-      { key: "Space / Ctrl+I", desc: "Toggle detail pane" },
-      { key: "</>", desc: "Decrease/increase outline depth" },
-      { key: "+/-", desc: "Increase/decrease content lines" },
+      { key: "v", desc: "Cycle view (cards / columns / list / tabs)" },
+      { key: "Space / ⌃I", desc: "Toggle detail pane" },
+      { key: "< / >", desc: "Decrease / increase outline depth" },
+      { key: "+ / -", desc: "Increase / decrease content lines" },
       { key: "za / z / Z", desc: "Toggle fold / fold all / unfold all" },
-      { key: "c / C / gC", desc: "Collapse / ignore / reveal ignored" },
+      { key: "c", desc: "Collapse column" },
+      { key: "C", desc: "Ignore node" },
+      { key: "gC", desc: "Reveal ignored nodes" },
       { key: "`", desc: "Toggle console" },
     ],
   },
   {
-    category: "Selection",
+    category: "Selection & General",
     keys: [
-      { key: "Shift+A", desc: "Select all (progressive: card→column→board)" },
-      { key: "Shift+hjkl/↑↓←→", desc: "Extend selection" },
-    ],
-  },
-  {
-    category: "General",
-    keys: [
+      { key: "⇧A", desc: "Select all (progressive: card→col→board)" },
+      { key: "⇧hjkl / ⇧↑↓←→", desc: "Extend selection" },
       { key: "?", desc: "Toggle this help" },
       { key: "q", desc: "Quit" },
     ],
   },
 ]
+
+/**
+ * Render key text with dimmed "/" separators for visual clarity.
+ * Keys are yellow, "/" separators are dim.
+ */
+function KeyText({ text, width }: { text: string; width: number }) {
+  const padded = text.padEnd(width)
+  const parts = padded.split("/")
+  if (parts.length === 1) {
+    return <Text color="yellow">{padded}</Text>
+  }
+  return (
+    <>
+      {parts.map((part, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && <Text dimColor>/</Text>}
+          <Text color="yellow">{part}</Text>
+        </React.Fragment>
+      ))}
+    </>
+  )
+}
 
 // Calculate max key width across all shortcuts
 const maxKeyWidth = Math.max(...shortcuts.flatMap((cat) => cat.keys.map((k) => k.key.length)))
@@ -127,10 +148,8 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
             </Text>
             {category.keys.map((shortcut) => (
               <Text key={shortcut.key}>
-                <Text color="yellow">
-                  {"  "}
-                  {shortcut.key.padEnd(maxKeyWidth + 2)}
-                </Text>
+                {"  "}
+                <KeyText text={shortcut.key} width={maxKeyWidth + 2} />
                 <Text dimColor>{shortcut.desc}</Text>
               </Text>
             ))}
