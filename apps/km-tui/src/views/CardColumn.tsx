@@ -472,12 +472,18 @@ export const Column = React.memo(function Column({
         <Box width={1} flexShrink={0} />
       </Box>
 
+      {/* Separator line between header and cards */}
+      <Box height={1} flexShrink={0} width={width - 1}>
+        <Box width={1} flexShrink={0} />
+        <Text color={isColumnSelected ? "yellow" : undefined} dimColor={!isColumnSelected}>{"─".repeat(Math.max(0, width - 3))}</Text>
+      </Box>
+
       {column.cards.length > 0 ? (
         <ScrollTrackingVirtualList
           colIndex={colIndex}
           isSelected={isSelected}
           items={column.cards}
-          height={height - 2}
+          height={height - 3}
           itemHeight={ESTIMATED_CARD_HEIGHT}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_CARDS}
