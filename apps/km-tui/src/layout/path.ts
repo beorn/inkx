@@ -5,6 +5,7 @@
  */
 
 import type { KNode } from "@km/core"
+import { displayLength } from "../text/rich.ts"
 
 /**
  * Path segment for breadcrumb rendering.
@@ -22,7 +23,7 @@ export interface PathSegment {
  * Accounts for separator padding (shown as " sep ").
  */
 export function calcPathLength(segments: PathSegment[]): number {
-  return segments.reduce((acc, seg) => acc + seg.name.length + (seg.sep ? seg.sep.length + 2 : 0), 0)
+  return segments.reduce((acc, seg) => acc + displayLength(seg.name) + (seg.sep ? displayLength(seg.sep) + 2 : 0), 0)
 }
 
 /**

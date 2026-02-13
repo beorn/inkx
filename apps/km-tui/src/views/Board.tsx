@@ -132,6 +132,7 @@ function BoardTopBar({ state, termWidth }: { state: TUIBoardState; termWidth: nu
       : cursorPos.selectionLevel === "column" || !selectedCard
         ? selectedCol.node.id
         : selectedCard.node.id
+  // Let inkx's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
   const selectedPathSegments = renderPath(getPathSegments(repo, pathNodeId, state.rootId), termWidth - 4)
 
   const rootNode = state.rootId ? repo.getNode(state.rootId) : null
