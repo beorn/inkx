@@ -1305,7 +1305,7 @@ describe("Terminal Sizes", () => {
     // This test verifies the cursor position preservation architecture.
     // The system stores cursorNodeId (node ID string) rather than visual indices.
     //
-    // When terminal resizes, createSyncTerminalDimensions() dispatches setDimensions.
+    // When terminal resizes, BoardApp's resize handler calls store.setDimensions().
     // The Board component then:
     // 1. Updates ui.dimensions state
     // 2. useColumns re-derives columns from repo (triggered by dimension change)

@@ -1,7 +1,6 @@
 /**
  * Board lifecycle effects - setup/teardown hooks
  */
-import type { WriteStream } from "tty"
 import type { UIState } from "../ui-reducer.ts"
 import { createPasteHandler, supportsFileDrop } from "../handlers/paste-handler.ts"
 import { tuiEvents } from "../tui.tsx"
@@ -9,52 +8,6 @@ import type { WatcherStatus } from "@km/storage"
 import { kmEvents, type ToastQueue } from "@km/core"
 
 type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
-
-/**
- * Creates the terminal dimension sync effect
- * Polls for valid dimensions and handles resize events
- */
-export function createSyncTerminalDimensions(stdout: WriteStream | undefined, setUI: SetUI): () => void | undefined {
-  if (!stdout) return () => {}
-
-  const handleResize = () => {
-    setUI({ dimensions: { columns: stdout.columns, rows: stdout.rows } })
-  }
-
-  // Check if stdout has valid dimensions (not undefined)
-  const syncDimensions = () => {
-    if (stdout.columns !== undefined && stdout.rows !== undefined) {
-      setUI({ dimensions: { columns: stdout.columns, rows: stdout.rows } })
-      return true
-    }
-    return false
-  }
-
-  // Try to sync immediately, otherwise poll until dimensions are available
-  if (!syncDimensions()) {
-    const interval = setInterval(() => {
-      if (syncDimensions()) {
-        clearInterval(interval)
-        // Delay before marking ready to ensure alternate buffer is stable
-        setTimeout(() => setUI({ isReady: true }), 50)
-      }
-    }, 10)
-    stdout.on("resize", handleResize)
-    return () => {
-      clearInterval(interval)
-      stdout.off("resize", handleResize)
-    }
-  }
-
-  // Dimensions available immediately - still delay to avoid race condition
-  const timeout = setTimeout(() => setUI({ isReady: true }), 50)
-
-  stdout.on("resize", handleResize)
-  return () => {
-    clearTimeout(timeout)
-    stdout.off("resize", handleResize)
-  }
-}
 
 /**
  * Creates the file drop handler effect

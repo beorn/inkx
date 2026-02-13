@@ -760,17 +760,14 @@ export function BoardApp({
 }: BoardAppProps) {
   const { exit } = useApp()
   const { stdout } = useStdout()
-
-  const [dimensionState, setDimensions] = React.useState({
-    columns: stdout?.columns ?? 80,
-    rows: stdout?.rows ?? 24,
-  })
+  const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
+  const storeSetDimensions = useAppStore<BoardAppStore, BoardAppStore["setDimensions"]>((s) => s.setDimensions)
 
   useEffect(() => {
     if (!stdout) return
     const handleResize = () => {
       if (stdout.columns !== undefined && stdout.rows !== undefined) {
-        setDimensions({ columns: stdout.columns, rows: stdout.rows })
+        storeSetDimensions({ columns: stdout.columns, rows: stdout.rows })
       }
     }
     handleResize()
@@ -778,14 +775,14 @@ export function BoardApp({
     return () => {
       stdout.off("resize", handleResize)
     }
-  }, [stdout])
+  }, [stdout, storeSetDimensions])
 
   return (
-    <Box flexDirection="column" height={dimensionState.rows}>
+    <Box flexDirection="column" height={storeDimensions.rows}>
       <Board
         initialState={initialState}
         initialViewMode={initialViewMode}
-        dimensions={dimensionState}
+        dimensions={storeDimensions}
         onExit={exit}
         toastQueue={toastQueue}
         layoutRegistry={layoutRegistry}
