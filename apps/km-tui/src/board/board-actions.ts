@@ -588,18 +588,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 // Helper Functions (local to this file)
 // =============================================================================
 
-function getBlockCount(ctx: ActionCtx, nodeId: string): number {
-  const children = ctx.repo.getChildren(nodeId)
-  const { body } = extractBody(children)
-  return 1 + body.length // 1 for title + N body children
-}
-
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
   const { ui } = ctx
   const edit = ui.inlineEditBlock
   if (!edit) return ok()
 
-  const blockCount = getBlockCount(ctx, edit.nodeId)
+  const blockCount = 1 + extractBody(ctx.repo.getChildren(edit.nodeId)).body.length
   const nextIndex = edit.blockIndex + (direction === "down" ? 1 : -1)
 
   if (nextIndex < 0 || nextIndex >= blockCount) {

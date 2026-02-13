@@ -60,9 +60,9 @@ export function addIgnored(repoPath: string, path: string): void {
   if (existing.has(path)) return
 
   // Append to file
-  const separator = existsSync(filePath) ? "\n" : ""
-  const header = existsSync(filePath) ? "" : "# .km/ignored — paths hidden from board view\n\n"
-  writeFileSync(filePath, header + separator + path + "\n", { flag: "a" })
+  const fileExists = existsSync(filePath)
+  const content = fileExists ? `\n${path}\n` : `# .km/ignored — paths hidden from board view\n\n${path}\n`
+  writeFileSync(filePath, content, { flag: "a" })
 }
 
 /**

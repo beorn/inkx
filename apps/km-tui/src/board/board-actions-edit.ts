@@ -214,29 +214,40 @@ export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
 
 /**
  * Create a new sibling node after the current card and enter inline edit on it.
- *
- * The new node inherits the type of the current node (task → task, section → section).
- * Sort order is placed between current and next sibling (midpoint).
  */
 export function handleAddNodeAfter(ctx: ActionCtx): void {
+  handleAddNode(ctx, "after")
+}
+
+/**
+ * Create a new sibling node before the current card and enter inline edit on it.
+ */
+export function handleAddNodeBefore(ctx: ActionCtx): void {
+  handleAddNode(ctx, "before")
+}
+
+/**
+ * Shared implementation: create sibling node before/after cursor and enter inline edit.
+ *
+ * Sort order is placed as midpoint between cursor and adjacent sibling.
+ * Inherits node type from cursor node (task → task, section → section).
+ */
+function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   const { layout, repo } = ctx
   const col = layout.columns[layout.colIndex]
   if (!col) return
 
   // Query repo for fresh children (layout.columns.cards may be stale after prior addNode)
   const siblings = repo.getChildren(col.node.id)
-  const currentNodeId = ctx.cursorNodeId
-
-  // Find current node's position in fresh sibling list
-  const currentSibIdx = siblings.findIndex((s) => s.id === currentNodeId)
+  const currentSibIdx = siblings.findIndex((s) => s.id === ctx.cursorNodeId)
   const currentNode = siblings[currentSibIdx]
   if (!currentNode) return
 
-  // Sort order: midpoint between current and next sibling
+  // Sort order: midpoint between current and adjacent sibling
   const currentIdx = currentNode.parent_idx ?? 0
-  const nextSibling = siblings[currentSibIdx + 1]
-  const nextIdx = nextSibling?.parent_idx ?? currentIdx + 1
-  const newSortOrder = (currentIdx + nextIdx) / 2
+  const adjacentSibling = siblings[currentSibIdx + (position === "after" ? 1 : -1)]
+  const adjacentIdx = adjacentSibling?.parent_idx ?? currentIdx + (position === "after" ? 1 : -1)
+  const newSortOrder = (currentIdx + adjacentIdx) / 2
 
   // Inherit type + depth from current node
   const nodeType = currentNode.type === "task" ? "task" : "section"
@@ -259,77 +270,13 @@ export function handleAddNodeAfter(ctx: ActionCtx): void {
 
   const newId = repo.addNode(col.node.id, newNode)
 
-  // Refresh board state with fresh repo query.
-  // usePositionHints: new node isn't in nodeIndex yet (only rebuilt on render).
+  // Refresh board state — usePositionHints because new node isn't in nodeIndex yet
   refreshBoardState(ctx, {
-    cardIndex: currentSibIdx + 1,
+    cardIndex: position === "after" ? currentSibIdx + 1 : currentSibIdx,
     usePositionHints: true,
   })
 
-  // Enter inline edit on the new node
-  ctx.setUI({
-    inlineEditBlock: { nodeId: newId, blockIndex: 0 },
-  })
-
-  // Signal that a render flush is needed (new component must mount before next event)
-  _needsFlush = true
-}
-
-/**
- * Create a new sibling node BEFORE the current card and enter inline edit on it.
- *
- * Sort order is placed between cursor and previous sibling (midpoint).
- * Inherits node type from cursor node (task → task, section → section).
- */
-export function handleAddNodeBefore(ctx: ActionCtx): void {
-  const { layout, repo } = ctx
-  const col = layout.columns[layout.colIndex]
-  if (!col) return
-
-  // Query repo for fresh children
-  const siblings = repo.getChildren(col.node.id)
-  const currentNodeId = ctx.cursorNodeId
-
-  // Find current node's position in fresh sibling list
-  const currentSibIdx = siblings.findIndex((s) => s.id === currentNodeId)
-  const currentNode = siblings[currentSibIdx]
-  if (!currentNode) return
-
-  // Sort order: midpoint between previous sibling and current
-  const currentIdx = currentNode.parent_idx ?? 0
-  const prevSibling = siblings[currentSibIdx - 1]
-  const prevIdx = prevSibling?.parent_idx ?? currentIdx - 1
-  const newSortOrder = (prevIdx + currentIdx) / 2
-
-  // Inherit type + depth from current node
-  const nodeType = currentNode.type === "task" ? "task" : "section"
-  const newNode: Partial<KNode> = {
-    type: nodeType,
-    content: "",
-    parent_idx: newSortOrder,
-  }
-  if (nodeType === "task") {
-    newNode.task_status = "todo"
-    newNode.task_mark = " "
-  }
-  const depth = siblingOrParentDepth(currentNode, col.node, repo)
-  if (depth) {
-    newNode.data = { ...newNode.data, depth }
-  }
-
-  const newId = repo.addNode(col.node.id, newNode)
-
-  // Refresh board state — new node is at cursor's current index
-  refreshBoardState(ctx, {
-    cardIndex: currentSibIdx,
-    usePositionHints: true,
-  })
-
-  // Enter inline edit on the new node
-  ctx.setUI({
-    inlineEditBlock: { nodeId: newId, blockIndex: 0 },
-  })
-
+  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
   _needsFlush = true
 }
 

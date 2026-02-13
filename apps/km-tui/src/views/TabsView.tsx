@@ -80,18 +80,14 @@ export function TabsView({
           const colCount = column.cards.length
           const countStr = ` (${colCount})`
 
-          // Tab content: " name (count) " with min width of 10 chars for the name
-          const minNameWidth = 10
-          const displayName = colName.length > minNameWidth ? colName : colName
           // Truncate if name exceeds reasonable width (20 chars)
           const maxNameWidth = 20
           const truncatedName =
-            displayName.length > maxNameWidth ? displayName.slice(0, maxNameWidth - 1) + "\u2026" : displayName
+            colName.length > maxNameWidth ? colName.slice(0, maxNameWidth - 1) + "\u2026" : colName
 
           // Style like cards view column headers
           const isTabSelected = isActive && isColumnHeaderSelected
-          const isBoardLevel = selectionLevel === "board"
-          const showActiveHighlight = isActive && !isBoardLevel
+          const showActiveHighlight = isActive && selectionLevel !== "board"
 
           const textColor = isTabSelected ? "black" : showActiveHighlight ? "yellow" : "white"
 

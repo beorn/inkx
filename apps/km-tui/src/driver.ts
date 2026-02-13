@@ -173,16 +173,8 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const initialTUIState = buildBoardState(repo, rootId)
 
   // Compute initial cursor node
-  let initialCursorNodeId: string | null = null
-  if (initialTUIState.columns.length > 0) {
-    const firstCol = initialTUIState.columns[0]
-    if (firstCol && firstCol.cards.length > 0) {
-      const firstCard = firstCol.cards[0]
-      initialCursorNodeId = firstCard?.node.id ?? firstCol.node.id
-    } else if (firstCol) {
-      initialCursorNodeId = firstCol.node.id
-    }
-  }
+  const firstCol = initialTUIState.columns[0]
+  const initialCursorNodeId = firstCol?.cards[0]?.node.id ?? firstCol?.node.id ?? null
 
   // Create layout registry for position tracking
   const layoutRegistry = createLayoutRegistry()

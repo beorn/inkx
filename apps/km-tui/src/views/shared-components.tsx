@@ -60,10 +60,6 @@ export const MemoizedTreeCard = React.memo(
     const cursorIsSelected = useIsCursorAtCard(colIndex, cardIndex)
     const isSelected = isSelectedProp ?? cursorIsSelected
 
-    // Count renders for profiling
-    const g = globalThis as unknown as Record<string, number>
-    g.__memoizedTreeCardRenderCount = (g.__memoizedTreeCardRenderCount ?? 0) + 1
-    log.debug?.(`MemoizedTreeCard render: col=${colIndex} card=${cardIndex} id=${card.node.id.slice(-8)}`)
     return (
       <CardLayoutTracker nodeId={card.node.id} colIndex={colIndex} cardIndex={cardIndex} isSelected={isSelected}>
         <TreeNode

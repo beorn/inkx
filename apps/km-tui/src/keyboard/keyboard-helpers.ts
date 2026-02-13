@@ -80,7 +80,7 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
     for (let c = minCard; c <= maxCard; c++) {
       const card = ctx.layout.columns[toCol]?.cards[c]
       if (card) {
-        addAllCardItems(newSelected, ctx, card)
+        addCardItems(newSelected, ctx, card)
       }
     }
   } else {
@@ -91,7 +91,7 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
       const col = ctx.layout.columns[colIdx]
       if (col) {
         for (const card of col.cards) {
-          addAllCardItems(newSelected, ctx, card)
+          addCardItems(newSelected, ctx, card)
         }
       }
     }
@@ -118,13 +118,6 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
   }
 }
 
-/** Add all visible sub-items for a card to the selection set. */
-function addAllCardItems(selected: Set<SelectionKey>, ctx: ActionCtx, card: CardState): void {
-  const maxItems = 1 + ctx.countVisibleDescendants(card.node, 0, ctx.ui.maxOutlineDepth, ctx.foldedNodes)
-  for (let s = 0; s < maxItems; s++) {
-    selected.add(makeSelectionKey(card.node.id, s))
-  }
-}
 
 /** Clear all selection state */
 export function clearSelection(ctx: ActionCtx): void {

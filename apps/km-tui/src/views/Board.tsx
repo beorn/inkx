@@ -379,97 +379,38 @@ export function BoardCore({
           {/* Detail pane — subscribes to cursor position independently */}
           {ui.showDetailPane && <CursorAwareDetailPane state={state} width={detailPaneWidth} height={contentHeight} />}
           {/* Project picker modal */}
-          {ui.showProjectPicker &&
-            (() => {
-              const pickerWidth = Math.min(80, Math.floor(termWidth / 2))
-              return (
-                <Box
-                  position="absolute"
-                  marginLeft={Math.floor((termWidth - pickerWidth) / 2)}
-                  marginTop={Math.floor(contentHeight / 2)}
-                  data-dialog="project-picker"
-                >
-                  <ProjectPicker
-                    onSelect={dialogHandlers.handleProjectSelect}
-                    onCancel={dialogHandlers.handleProjectCancel}
-                    width={pickerWidth}
-                    height={Math.floor(contentHeight / 2)}
-                    recentProjectIds={ui.recentProjectIds}
-                  />
-                </Box>
-              )
-            })()}
+          {ui.showProjectPicker && <DialogBox termWidth={termWidth} contentHeight={contentHeight} maxWidth={80} topFraction={1 / 2} data-dialog="project-picker">
+            <ProjectPicker
+              onSelect={dialogHandlers.handleProjectSelect}
+              onCancel={dialogHandlers.handleProjectCancel}
+              width={Math.min(80, Math.floor(termWidth / 2))}
+              height={Math.floor(contentHeight / 2)}
+              recentProjectIds={ui.recentProjectIds}
+            />
+          </DialogBox>}
           {/* New item dialog modal */}
-          {ui.showNewItemDialog &&
-            (() => {
-              const newItemWidth = Math.min(70, Math.floor(termWidth / 2))
-              return (
-                <Box
-                  position="absolute"
-                  marginLeft={Math.floor((termWidth - newItemWidth) / 2)}
-                  marginTop={Math.floor(contentHeight / 3)}
-                  data-dialog="new-item"
-                >
-                  <CursorAwareNewItemDialog
-                    state={state}
-                    onCreate={dialogHandlers.handleNewItemCreate}
-                    onCancel={dialogHandlers.handleNewItemCancel}
-                    width={newItemWidth}
-                    height={10}
-                  />
-                </Box>
-              )
-            })()}
+          {ui.showNewItemDialog && <DialogBox termWidth={termWidth} contentHeight={contentHeight} maxWidth={70} topFraction={1 / 3} data-dialog="new-item">
+            <CursorAwareNewItemDialog
+              state={state}
+              onCreate={dialogHandlers.handleNewItemCreate}
+              onCancel={dialogHandlers.handleNewItemCancel}
+              width={Math.min(70, Math.floor(termWidth / 2))}
+              height={10}
+            />
+          </DialogBox>}
           {/* Search dialog modal */}
-          {ui.showSearchDialog &&
-            (() => {
-              const dialogWidth = Math.min(90, Math.floor((termWidth * 2) / 3))
-              const dialogMaxHeight = Math.floor((contentHeight * 2) / 3)
-              const dialogTop = Math.floor(contentHeight / 6)
-              return (
-                <Box
-                  position="absolute"
-                  marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
-                  marginTop={dialogTop}
-                  data-dialog="search"
-                >
-                  <SearchDialog
-                    onSelect={dialogHandlers.handleSearchSelect}
-                    onCancel={dialogHandlers.handleSearchCancel}
-                    width={dialogWidth}
-                    maxHeight={dialogMaxHeight}
-                    initialInput={ui.searchDialogInitialInput}
-                    onConsumeInitialInput={() => setUI({ searchDialogInitialInput: "" })}
-                  />
-                </Box>
-              )
-            })()}
+          {ui.showSearchDialog && <DialogBox termWidth={termWidth} contentHeight={contentHeight} maxWidth={90} widthFraction={2 / 3} topFraction={1 / 6} data-dialog="search">
+            <SearchDialog
+              onSelect={dialogHandlers.handleSearchSelect}
+              onCancel={dialogHandlers.handleSearchCancel}
+              width={Math.min(90, Math.floor((termWidth * 2) / 3))}
+              maxHeight={Math.floor((contentHeight * 2) / 3)}
+              initialInput={ui.searchDialogInitialInput}
+              onConsumeInitialInput={() => setUI({ searchDialogInitialInput: "" })}
+            />
+          </DialogBox>}
           {/* Delete confirmation dialog */}
-          {ui.deleteConfirm &&
-            (() => {
-              const dc = ui.deleteConfirm
-              const dialogWidth = Math.min(50, Math.floor(termWidth / 2))
-              const warnings: string[] = []
-              if (dc.childCount > 0) {
-                warnings.push(`${dc.childCount} child${dc.childCount !== 1 ? "ren" : ""} will be deleted`)
-              }
-              if (dc.backlinkCount > 0) {
-                warnings.push(`${dc.backlinkCount} backlink${dc.backlinkCount !== 1 ? "s" : ""} will break`)
-              }
-              if (dc.hasMetadata) {
-                warnings.push("Has metadata (frontmatter)")
-              }
-              return (
-                <Box
-                  position="absolute"
-                  marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
-                  marginTop={Math.floor(contentHeight / 3)}
-                  data-dialog="delete-confirm"
-                >
-                  <ConfirmDialog title={`Delete "${dc.title}"?`} warnings={warnings} width={dialogWidth} />
-                </Box>
-              )
-            })()}
+          {ui.deleteConfirm && <DeleteConfirmDialogBox termWidth={termWidth} contentHeight={contentHeight} deleteConfirm={ui.deleteConfirm} />}
           {/* Help overlay */}
           {ui.showHelp && <HelpOverlay width={termWidth} height={contentHeight} />}
           {/* Console now uses screen switching (pause/resume) instead of overlay */}
@@ -855,23 +796,52 @@ export function BoardApp({
 }
 
 // =============================================================================
-// Helper Functions
+// Dialog Layout Helpers
 // =============================================================================
 
-function countVisibleDescendants(
-  repo: Repo,
-  node: KNode,
-  depth: number,
-  maxDepth: number,
-  foldedNodes: Set<string>,
-): number {
-  if (depth > maxDepth || foldedNodes.has(node.id)) {
-    return 0
-  }
-  const children = repo.getChildren(node.id).slice(0, 10)
-  let count = children.length
-  for (const child of children) {
-    count += countVisibleDescendants(repo, child, depth + 1, maxDepth, foldedNodes)
-  }
-  return count
+function DialogBox({
+  termWidth,
+  contentHeight,
+  maxWidth,
+  widthFraction = 1 / 2,
+  topFraction,
+  children,
+  ...rest
+}: {
+  termWidth: number
+  contentHeight: number
+  maxWidth: number
+  widthFraction?: number
+  topFraction: number
+  children: React.ReactNode
+  "data-dialog": string
+}): React.ReactElement {
+  const w = Math.min(maxWidth, Math.floor(termWidth * widthFraction))
+  return (
+    <Box position="absolute" marginLeft={Math.floor((termWidth - w) / 2)} marginTop={Math.floor(contentHeight * topFraction)} {...rest}>
+      {children}
+    </Box>
+  )
 }
+
+function DeleteConfirmDialogBox({
+  termWidth,
+  contentHeight,
+  deleteConfirm: dc,
+}: {
+  termWidth: number
+  contentHeight: number
+  deleteConfirm: { nodeIds: string[]; title: string; childCount: number; backlinkCount: number; hasMetadata?: boolean }
+}): React.ReactElement {
+  const dialogWidth = Math.min(50, Math.floor(termWidth / 2))
+  const warnings: string[] = []
+  if (dc.childCount > 0) warnings.push(`${dc.childCount} child${dc.childCount !== 1 ? "ren" : ""} will be deleted`)
+  if (dc.backlinkCount > 0) warnings.push(`${dc.backlinkCount} backlink${dc.backlinkCount !== 1 ? "s" : ""} will break`)
+  if (dc.hasMetadata) warnings.push("Has metadata (frontmatter)")
+  return (
+    <Box position="absolute" marginLeft={Math.floor((termWidth - dialogWidth) / 2)} marginTop={Math.floor(contentHeight / 3)} data-dialog="delete-confirm">
+      <ConfirmDialog title={`Delete "${dc.title}"?`} warnings={warnings} width={dialogWidth} />
+    </Box>
+  )
+}
+

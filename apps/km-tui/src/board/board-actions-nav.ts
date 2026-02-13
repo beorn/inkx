@@ -187,71 +187,28 @@ function handleTreeNav(ctx: ActionCtx, dir: string): ActionResult {
  * Navigate back in history.
  */
 export function handleNavBack(ctx: ActionCtx): ActionResult {
-  const { ui, dispatchBoard } = ctx
-
-  // Check if we can go back
-  if (ui.navHistoryIndex <= 0) {
-    return boundary("back", "no history")
-  }
-
-  // Calculate new index
-  const newIndex = ui.navHistoryIndex - 1
-
-  // Get the entry we're navigating to
-  const entry = ui.navHistory[newIndex]
-  if (!entry) return ok()
-
-  // Move index back
-  ctx.setUI({ navHistoryIndex: newIndex })
-
-  // Navigate to the saved state
-  dispatchBoard({
-    type: "ZOOM_IN",
-    nodeId: entry.rootId || null,
-    cursorNodeId: entry.cursorNodeId || null,
-  })
-
-  // Restore selection state
-  if (entry.multiSelected && entry.multiSelected.size > 0) {
-    ctx.setUI({
-      multiSelected: entry.multiSelected,
-      ...(entry.inOutlineMode ? { inOutlineMode: true, subIndex: entry.subIndex } : {}),
-    })
-  } else {
-    clearSelection(ctx)
-    if (entry.inOutlineMode) {
-      ctx.setUI({ inOutlineMode: true, subIndex: entry.subIndex })
-    }
-  }
-
-  // Restore folded nodes state
-  if (entry.foldedNodes) {
-    ctx.setFoldedNodes(entry.foldedNodes)
-  }
-
-  return ok()
+  return navigateHistory(ctx, -1)
 }
 
 /**
  * Navigate forward in history.
  */
 export function handleNavForward(ctx: ActionCtx): ActionResult {
+  return navigateHistory(ctx, 1)
+}
+
+function navigateHistory(ctx: ActionCtx, delta: -1 | 1): ActionResult {
   const { ui, dispatchBoard } = ctx
+  const newIndex = ui.navHistoryIndex + delta
 
-  // Check if we can go forward
-  if (ui.navHistoryIndex >= ui.navHistory.length - 1) {
-    return boundary("forward", "at end of history")
-  }
+  if (newIndex < 0) return boundary("back", "no history")
+  if (newIndex >= ui.navHistory.length) return boundary("forward", "at end of history")
 
-  // Get the entry we're navigating to (before incrementing index)
-  const newIndex = ui.navHistoryIndex + 1
   const entry = ui.navHistory[newIndex]
   if (!entry) return ok()
 
-  // Move index forward
   ctx.setUI({ navHistoryIndex: newIndex })
 
-  // Navigate to the saved state
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: entry.rootId || null,
@@ -271,7 +228,6 @@ export function handleNavForward(ctx: ActionCtx): ActionResult {
     }
   }
 
-  // Restore folded nodes state
   if (entry.foldedNodes) {
     ctx.setFoldedNodes(entry.foldedNodes)
   }
