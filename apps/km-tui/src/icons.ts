@@ -148,7 +148,7 @@ export function getTypeBullet(node: { type: string; task_status?: string | null 
     case "folder":
       return { char: "\uF114", color: "white" } //  folder-o (nerdfont)
     case "file":
-      return { char: "\uF0F6", color: "gray" } //  file-text-o (nerdfont)
+      return { char: "\uF0F6", color: "white" } //  file-text-o (nerdfont)
     case "section":
       return { char: "\u00A7", color: "white" } // § section sign
     case "ul":
