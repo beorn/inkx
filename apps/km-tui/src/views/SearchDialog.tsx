@@ -1,17 +1,17 @@
 /**
  * Search Dialog Component
  *
- * Fuzzy search dialog for finding items by content or tags.
+ * Full-text search dialog using storage-level FTS5.
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React from "react"
 import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
-import { useRepo, type RepoContextValue } from "../repo-context.tsx"
+import { useRepo } from "../repo-context.tsx"
+import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
-import { fuzzyMatch, fuzzyScore, getParentName, extractTags } from "./search-utils.ts"
-import { parseQuery, type QueryAST } from "@km/core"
+import { getParentName, extractTags } from "./search-utils.ts"
 import { useLineEdit } from "../hooks/use-line-edit.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
 
@@ -23,113 +23,33 @@ const MIN_QUERY_LENGTH = 2
  */
 interface SearchResult {
   node: KNode
-  title: string // Display name of the node
-  content: string | undefined // Content for matching
-  parentContext: string | null // Parent name for context
-  tags: string[] // Extracted tags from content
-  matchType: "content" | "tag" // What matched
+  title: string
+  parentContext: string | null
+  tags: string[]
 }
 
 /**
- * Check if node matches query filters
+ * Search using storage-level FTS and enrich results with display info.
+ * FTS5 handles ranking internally (ORDER BY rank), so no client-side scoring needed.
  */
-// oxlint-disable-next-line complexity/complexity -- Query matching with refs, text, and phrase combinations
-function matchesQuery(result: SearchResult, queryAST: QueryAST): { matches: boolean; matchType: "content" | "tag" } {
-  // Check tag filters (#tag syntax)
-  if (queryAST.refs.length > 0) {
-    for (const ref of queryAST.refs) {
-      if (ref.type === "tag") {
-        const hasTag = result.tags.some((t) => t.toLowerCase().includes(ref.value.toLowerCase()))
-        if (ref.negated ? hasTag : !hasTag) {
-          return { matches: false, matchType: "tag" }
-        }
-        if (hasTag) {
-          return { matches: true, matchType: "tag" }
-        }
-      }
-    }
-  }
+function searchNodes(repo: Repo, query: string): SearchResult[] {
+  const nodes = repo.search(query)
 
-  // Check text search (plain words)
-  if (queryAST.text.length > 0 || queryAST.phrases.length > 0) {
-    const searchText = result.content?.toLowerCase() || ""
-    const titleText = result.title.toLowerCase()
-
-    // Check all text terms
-    for (const term of queryAST.text) {
-      if (!searchText.includes(term.toLowerCase())) {
-        return { matches: false, matchType: "content" }
-      }
-    }
-
-    // Check all phrases
-    for (const phrase of queryAST.phrases) {
-      if (!searchText.includes(phrase.toLowerCase()) && !titleText.includes(phrase.toLowerCase())) {
-        return { matches: false, matchType: "content" }
-      }
-    }
-
-    return { matches: true, matchType: "content" }
-  }
-
-  // No specific filters, match all
-  return { matches: true, matchType: "content" }
-}
-
-/**
- * Get all searchable nodes and convert to SearchResult[]
- */
-function loadSearchResults(repo: RepoContextValue): SearchResult[] {
-  const allNodes = repo.rawQuery<KNode>("SELECT * FROM nodes")
   const results: SearchResult[] = []
-
-  for (const node of allNodes) {
+  for (const node of nodes) {
     // Skip folders (not meaningful for search)
     if (node.type === "folder") continue
-
     // Skip links (search target instead)
     if (node.link_to) continue
 
     const title = getNodeDisplayName(repo, node)
-    const content = node.content
     const parentContext = getParentName(node, repo.getNode.bind(repo), (n) => getNodeDisplayName(repo, n))
-    const tags = extractTags(content)
+    const tags = extractTags(node.content)
 
-    results.push({
-      node,
-      title,
-      content,
-      parentContext,
-      tags,
-      matchType: "content",
-    })
+    results.push({ node, title, parentContext, tags })
   }
 
   return results
-}
-
-/**
- * Filter and score results by query
- */
-function filterResults(allResults: SearchResult[], query: string): (SearchResult & { score: number })[] {
-  const queryAST = parseQuery(query)
-
-  return allResults
-    .map((result) => {
-      const { matches, matchType } = matchesQuery(result, queryAST)
-      if (!matches) return null
-
-      // Score against title and content
-      const titleScore = fuzzyScore(query, result.title)
-      const contentScore = result.content ? fuzzyScore(query, result.content) * 0.7 : -1
-      const tagScore = matchType === "tag" && result.tags.length > 0 ? 100 : 0
-
-      const bestScore = Math.max(titleScore, contentScore) + tagScore
-
-      return { ...result, score: bestScore, matchType }
-    })
-    .filter((r): r is SearchResult & { score: number } => r !== null && r.score >= 0)
-    .sort((a, b) => b.score - a.score)
 }
 
 // =============================================================================
@@ -138,7 +58,6 @@ function filterResults(allResults: SearchResult[], query: string): (SearchResult
 
 interface SearchResultsProps {
   results: SearchResult[]
-  query: string
   selectedIndex: number
   scrollOffset: number
   maxVisible: number
@@ -146,16 +65,13 @@ interface SearchResultsProps {
 
 function SearchResults({
   results,
-  query,
   selectedIndex,
   scrollOffset,
   maxVisible,
 }: SearchResultsProps): React.ReactElement {
-  const filteredResults = React.useMemo(() => filterResults(results, query), [results, query])
+  const visibleResults = results.slice(scrollOffset, scrollOffset + maxVisible)
 
-  const visibleResults = filteredResults.slice(scrollOffset, scrollOffset + maxVisible)
-
-  if (filteredResults.length === 0) {
+  if (results.length === 0) {
     return <Text dimColor>No matching items</Text>
   }
 
@@ -227,11 +143,11 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
 
   const trimmedQuery = lineEdit.value.trim()
 
-  // Load search results synchronously on first need (SQLite queries are fast)
-  const allResultsRef = React.useRef<SearchResult[] | null>(null)
-  if (trimmedQuery.length >= MIN_QUERY_LENGTH && !allResultsRef.current) {
-    allResultsRef.current = loadSearchResults(repo)
-  }
+  // Run FTS query on each query change (FTS5 queries are fast, typically <1ms)
+  const results = React.useMemo(
+    () => (trimmedQuery.length >= MIN_QUERY_LENGTH ? searchNodes(repo, trimmedQuery) : []),
+    [repo, trimmedQuery],
+  )
 
   React.useImperativeHandle(ref, () => ({
     focusInput() {
@@ -251,8 +167,8 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
   // Use refs to avoid stale closure issues
   const selectedIndexRef = React.useRef(selectedIndex)
   selectedIndexRef.current = selectedIndex
-  const trimmedQueryRef = React.useRef(trimmedQuery)
-  trimmedQueryRef.current = trimmedQuery
+  const resultsRef = React.useRef(results)
+  resultsRef.current = results
   const onCancelRef = React.useRef(onCancel)
   onCancelRef.current = onCancel
   const onSelectRef = React.useRef(onSelect)
@@ -267,12 +183,9 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
         setSelectedIndex((i) => i + 1) // Clamped by rendering
       },
       confirm() {
-        if (allResultsRef.current) {
-          const filtered = filterResults(allResultsRef.current, trimmedQueryRef.current)
-          const selected = filtered[selectedIndexRef.current]
-          if (selected) {
-            onSelectRef.current(selected.node)
-          }
+        const selected = resultsRef.current[selectedIndexRef.current]
+        if (selected) {
+          onSelectRef.current(selected.node)
         }
       },
       cancel() {
@@ -285,32 +198,27 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
   }, [])
 
   // Calculate scroll offset and content-based height
-  let scrollOffset = 0
-  let filteredCount = 0
-  if (allResultsRef.current) {
-    const filtered = filterResults(allResultsRef.current, trimmedQuery)
-    filteredCount = filtered.length
-    scrollOffset = Math.max(
-      0,
-      Math.min(selectedIndex - Math.floor(maxVisible / 2), Math.max(0, filteredCount - maxVisible)),
-    )
-  }
+  const resultCount = results.length
+  const scrollOffset =
+    resultCount > 0
+      ? Math.max(0, Math.min(selectedIndex - Math.floor(maxVisible / 2), Math.max(0, resultCount - maxVisible)))
+      : 0
 
   // Auto-size: chrome + content rows, capped at maxHeight
   const contentRows =
     trimmedQuery.length < MIN_QUERY_LENGTH
       ? 1 // "Type to search..." or "Type N more chars..."
-      : Math.min(filteredCount || 1, maxVisible) // results or "No matching items"
+      : Math.min(resultCount || 1, maxVisible) // results or "No matching items"
   const dialogHeight = Math.min(DIALOG_CHROME + contentRows, maxHeight)
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>↑↓ nav Enter go Esc cancel #tag filter</Text>
-      {filteredCount > maxVisible && (
+      <Text dimColor>↑↓ nav Enter go Esc cancel</Text>
+      {resultCount > maxVisible && (
         <Text dimColor>
           {scrollOffset > 0 ? "↑" : " "}
-          {` ${selectedIndex + 1}/${filteredCount} `}
-          {scrollOffset + maxVisible < filteredCount ? "↓" : " "}
+          {` ${selectedIndex + 1}/${resultCount} `}
+          {scrollOffset + maxVisible < resultCount ? "↓" : " "}
         </Text>
       )}
     </Box>
@@ -337,15 +245,14 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
                 ? "Type to search..."
                 : `Type ${MIN_QUERY_LENGTH - trimmedQuery.length} more char${MIN_QUERY_LENGTH - trimmedQuery.length > 1 ? "s" : ""}...`}
             </Text>
-          ) : allResultsRef.current ? (
+          ) : (
             <SearchResults
-              results={allResultsRef.current}
-              query={trimmedQuery}
+              results={results}
               selectedIndex={selectedIndex}
               scrollOffset={scrollOffset}
               maxVisible={maxVisible}
             />
-          ) : null}
+          )}
         </Box>
       </ErrorBoundary>
     </ModalDialog>
@@ -353,4 +260,4 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
 })
 
 // Re-export for testing
-export { fuzzyMatch, fuzzyScore, extractTags } from "./search-utils.ts"
+export { extractTags } from "./search-utils.ts"

@@ -2,7 +2,7 @@
  * Tests for SearchDialog component
  */
 import { describe, test, expect } from "vitest"
-import { fuzzyMatch, fuzzyScore, extractTags } from "../src/views/SearchDialog.tsx"
+import { fuzzyMatch, fuzzyScore, extractTags } from "../src/views/search-utils.ts"
 
 describe("fuzzyMatch", () => {
   test("matches exact string", () => {
