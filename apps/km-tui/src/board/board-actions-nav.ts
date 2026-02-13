@@ -102,41 +102,7 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
     // a non-virtual card. The previous approach navigated in the same horizontal
     // direction, which fails at column boundaries (e.g., rightmost column).
     if (targetId && isVirtualCard(ctx, targetId)) {
-      const MAX_SKIP = 10
-      // Try navigating down first
-      let found = false
-      let tempId = targetId
-      for (let i = 0; i < MAX_SKIP && tempId && isVirtualCard(ctx, tempId); i++) {
-        const next = viewNavigation.navigate(
-          "down",
-          { ...navStateFrom(ctx), cursorNodeId: tempId },
-          ctx.repo,
-          layoutRegistry,
-        )
-        if (next === null) break
-        tempId = next
-      }
-      if (tempId && !isVirtualCard(ctx, tempId)) {
-        targetId = tempId
-        found = true
-      }
-      // If down didn't work, try up
-      if (!found) {
-        tempId = targetId
-        for (let i = 0; i < MAX_SKIP && tempId && isVirtualCard(ctx, tempId); i++) {
-          const next = viewNavigation.navigate(
-            "up",
-            { ...navStateFrom(ctx), cursorNodeId: tempId },
-            ctx.repo,
-            layoutRegistry,
-          )
-          if (next === null) break
-          tempId = next
-        }
-        if (tempId && !isVirtualCard(ctx, tempId)) {
-          targetId = tempId
-        }
-      }
+      targetId = skipVirtualCards(ctx, targetId, ["down", "up"]) ?? targetId
     }
 
     if (targetId !== null) {
@@ -167,20 +133,11 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
   let targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
   if (targetId === null) return boundary(dir)
 
-  const MAX_SKIP = 10
-  for (let i = 0; i < MAX_SKIP && targetId && isVirtualCard(ctx, targetId); i++) {
-    const next = viewNavigation.navigate(
-      dir,
-      { ...navStateFrom(ctx), cursorNodeId: targetId },
-      ctx.repo,
-      layoutRegistry,
-    )
-    if (next === null) break
-    targetId = next
+  if (isVirtualCard(ctx, targetId)) {
+    const resolved = skipVirtualCards(ctx, targetId, [dir])
+    if (!resolved) return boundary(dir)
+    targetId = resolved
   }
-
-  // If we still landed on a virtual card (all remaining cards are virtual), stay put
-  if (isVirtualCard(ctx, targetId)) return boundary(dir)
 
   dispatchBoard({ type: "SELECT", nodeId: targetId })
   return ok()
@@ -329,6 +286,29 @@ export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
       dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
     }
   }
+}
+
+/**
+ * Skip virtual cards by navigating in each direction until a non-virtual card is found.
+ * Returns the first non-virtual node ID, or null if all remaining cards are virtual.
+ */
+function skipVirtualCards(ctx: ActionCtx, startId: string, directions: ("up" | "down")[]): string | null {
+  const MAX_SKIP = 10
+  for (const dir of directions) {
+    let tempId = startId
+    for (let i = 0; i < MAX_SKIP && isVirtualCard(ctx, tempId); i++) {
+      const next = ctx.viewNavigation.navigate(
+        dir,
+        { ...navStateFrom(ctx), cursorNodeId: tempId },
+        ctx.repo,
+        ctx.layoutRegistry,
+      )
+      if (next === null) break
+      tempId = next
+    }
+    if (!isVirtualCard(ctx, tempId)) return tempId
+  }
+  return null
 }
 
 /** Check if a node ID corresponds to a virtual card in the current layout. */

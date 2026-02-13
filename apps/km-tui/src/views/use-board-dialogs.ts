@@ -16,6 +16,51 @@ import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:dialogs")
 
+/**
+ * Find appropriate zoom and cursor targets for a search result node.
+ * Walks up the ancestor chain to determine where to zoom so the target is visible.
+ */
+function findZoomTarget(
+  target: KNode,
+  repo: { getNode(id: string): KNode | null },
+): { zoomTarget: KNode; cursorTarget: KNode } {
+  // Build ancestor chain: [target, parent, grandparent, great-grandparent, ...]
+  const ancestors: KNode[] = [target]
+  let ancestor: KNode | null = target
+  while (ancestor?.parent_id) {
+    const parent = repo.getNode(ancestor.parent_id)
+    if (parent) ancestors.push(parent)
+    ancestor = parent
+  }
+  log.debug?.(`search: ancestor chain has ${ancestors.length} nodes: ${ancestors.map((n) => n.type).join(" > ")}`)
+
+  // Find best zoom target based on depth:
+  // depth >= 3: zoom to great-grandparent, cursor on parent (card)
+  // depth 2: zoom to grandparent, cursor on target (card)
+  // depth 1: zoom to parent, cursor on target (column)
+  // depth 0: zoom to target itself
+  let zoomTarget: KNode = target
+  let cursorTarget: KNode = target
+
+  const [, parent, grandparent, greatGrandparent] = ancestors
+
+  if (ancestors.length >= 4 && greatGrandparent && parent) {
+    zoomTarget = greatGrandparent
+    cursorTarget = parent
+    log.debug?.(`search: ZOOM_IN to great-grandparent=${zoomTarget.id.slice(-8)}, cursor on parent=${cursorTarget.id.slice(-8)}`)
+  } else if (ancestors.length >= 3 && grandparent) {
+    zoomTarget = grandparent
+    log.debug?.(`search: ZOOM_IN to grandparent=${zoomTarget.id.slice(-8)}, cursor on target`)
+  } else if (ancestors.length >= 2 && parent) {
+    zoomTarget = parent
+    log.debug?.(`search: ZOOM_IN to parent=${zoomTarget.id.slice(-8)}, cursor on target`)
+  } else {
+    log.debug?.(`search: ZOOM_IN to target itself`)
+  }
+
+  return { zoomTarget, cursorTarget }
+}
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -171,54 +216,9 @@ export function useBoardDialogs({
       }
 
       // Target not visible in current view - need to zoom
-      // Walk up to find appropriate zoom level where target (or ancestor) is visible as a card
-      // Goal: zoom to great-grandparent so target's grandparent is column, target's parent is card
       log.debug?.(`search: ZOOM needed, walked ${depth} levels`)
 
-      // Build ancestor chain: [target, parent, grandparent, great-grandparent, ...]
-      const ancestors: KNode[] = [target]
-      let ancestor: KNode | null = target
-      while (ancestor?.parent_id) {
-        const parent = repo.getNode(ancestor.parent_id)
-        if (parent) {
-          ancestors.push(parent)
-        }
-        ancestor = parent
-      }
-      log.debug?.(`search: ancestor chain has ${ancestors.length} nodes: ${ancestors.map((n) => n.type).join(" > ")}`)
-
-      // Find best zoom target:
-      // - If target is at depth >= 3, zoom to great-grandparent (target's parent shows as card)
-      // - If target is at depth 2, zoom to grandparent (target shows as card)
-      // - If target is at depth 1, zoom to parent (target shows as column)
-      // - If target is at depth 0, zoom to target itself
-      // Also find the best cursor target (the first navigable ancestor or target itself)
-      let zoomTarget: KNode = target
-      let cursorTarget: KNode = target
-
-      const greatGrandparent = ancestors[3]
-      const grandparent = ancestors[2]
-      const parent = ancestors[1]
-
-      if (ancestors.length >= 4 && greatGrandparent && parent) {
-        // Deeply nested: zoom to great-grandparent, cursor on parent (which will be a card)
-        zoomTarget = greatGrandparent
-        cursorTarget = parent // parent of target = card
-        log.debug?.(
-          `search: ZOOM_IN to great-grandparent=${zoomTarget.id.slice(-8)}, cursor on parent=${cursorTarget.id.slice(-8)}`,
-        )
-      } else if (ancestors.length >= 3 && grandparent) {
-        // 3 levels: zoom to grandparent, cursor on target (which will be a card)
-        zoomTarget = grandparent
-        log.debug?.(`search: ZOOM_IN to grandparent=${zoomTarget.id.slice(-8)}, cursor on target`)
-      } else if (ancestors.length >= 2 && parent) {
-        // 2 levels: zoom to parent, cursor on target (which will be a column)
-        zoomTarget = parent
-        log.debug?.(`search: ZOOM_IN to parent=${zoomTarget.id.slice(-8)}, cursor on target`)
-      } else {
-        // Only target itself, zoom into it
-        log.debug?.(`search: ZOOM_IN to target itself`)
-      }
+      const { zoomTarget, cursorTarget } = findZoomTarget(target, repo)
 
       dispatchBoard({
         type: "ZOOM_IN",

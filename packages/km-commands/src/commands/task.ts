@@ -60,80 +60,24 @@ const toggleTaskDone = {
   },
 } satisfies CommandDef
 
-const setStatusTodo = {
-  id: "set_status_todo",
-  name: "Set Todo",
-  description: "Set task status to todo",
-  category: "Task",
-  execute: (ctx) => {
-    if (!ctx.currentNodeId) return null
-    return {
-      type: "TASK_SET_STATUS",
-      nodeId: ctx.currentNodeId,
-      status: "todo",
-    } satisfies TaskSetStatusAction
-  },
-} satisfies CommandDef
+function createSetStatusCommand(id: string, name: string, description: string, status: TaskStatus): CommandDef {
+  return {
+    id,
+    name,
+    description,
+    category: "Task",
+    execute: (ctx) => {
+      if (!ctx.currentNodeId) return null
+      return { type: "TASK_SET_STATUS", nodeId: ctx.currentNodeId, status } satisfies TaskSetStatusAction
+    },
+  }
+}
 
-const setStatusWip = {
-  id: "set_status_wip",
-  name: "Set In Progress",
-  description: "Set task status to work in progress",
-  category: "Task",
-  execute: (ctx) => {
-    if (!ctx.currentNodeId) return null
-    return {
-      type: "TASK_SET_STATUS",
-      nodeId: ctx.currentNodeId,
-      status: "wip",
-    } satisfies TaskSetStatusAction
-  },
-} satisfies CommandDef
-
-const setStatusBlocked = {
-  id: "set_status_blocked",
-  name: "Set Blocked",
-  description: "Set task status to blocked",
-  category: "Task",
-  execute: (ctx) => {
-    if (!ctx.currentNodeId) return null
-    return {
-      type: "TASK_SET_STATUS",
-      nodeId: ctx.currentNodeId,
-      status: "blocked",
-    } satisfies TaskSetStatusAction
-  },
-} satisfies CommandDef
-
-const setStatusDone = {
-  id: "set_status_done",
-  name: "Set Done",
-  description: "Mark task as done",
-  category: "Task",
-  execute: (ctx) => {
-    if (!ctx.currentNodeId) return null
-    return {
-      type: "TASK_SET_STATUS",
-      nodeId: ctx.currentNodeId,
-      status: "done",
-    } satisfies TaskSetStatusAction
-  },
-} satisfies CommandDef
-
-const setStatusDropped = {
-  id: "set_status_dropped",
-  name: "Set Dropped",
-  description: "Mark task as dropped/cancelled",
-  category: "Task",
-  execute: (ctx) => {
-    if (!ctx.currentNodeId) return null
-    return {
-      type: "TASK_SET_STATUS",
-      nodeId: ctx.currentNodeId,
-      status: "dropped",
-    } satisfies TaskSetStatusAction
-  },
-} satisfies CommandDef
+const setStatusTodo = createSetStatusCommand("set_status_todo", "Set Todo", "Set task status to todo", "todo")
+const setStatusWip = createSetStatusCommand("set_status_wip", "Set In Progress", "Set task status to work in progress", "wip")
+const setStatusBlocked = createSetStatusCommand("set_status_blocked", "Set Blocked", "Set task status to blocked", "blocked")
+const setStatusDone = createSetStatusCommand("set_status_done", "Set Done", "Mark task as done", "done")
+const setStatusDropped = createSetStatusCommand("set_status_dropped", "Set Dropped", "Mark task as dropped/cancelled", "dropped")
 
 // Property commands
 const setDueDate = {

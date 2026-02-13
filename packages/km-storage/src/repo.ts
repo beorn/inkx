@@ -398,6 +398,22 @@ function replacePathInQuery(query: string, oldName: string, newName: string): st
   return query.replace(pathPattern, `$1${newName}$2`)
 }
 
+/** Replace path in a rule field (string or string[]), returning updated value and whether it changed. */
+function replacePathInRuleField(
+  field: string | string[] | undefined,
+  oldName: string,
+  newName: string,
+): { value: string | string[] | undefined; changed: boolean } {
+  if (!field) return { value: field, changed: false }
+  if (Array.isArray(field)) {
+    const updated = field.map((q) => replacePathInQuery(q, oldName, newName))
+    const changed = updated.some((q, i) => q !== field[i])
+    return { value: changed ? updated : field, changed }
+  }
+  const updated = replacePathInQuery(field, oldName, newName)
+  return { value: updated, changed: updated !== field }
+}
+
 /**
  * Update path references in section rules (add=, sync=) when a node is renamed.
  */
@@ -412,37 +428,16 @@ function updateRulePathReferences(
   for (const node of allNodes) {
     if (!node.rules) continue
 
-    let changed = false
     const newRules = { ...node.rules }
+    let changed = false
 
-    // Update add= rules
-    if (newRules.add) {
-      if (Array.isArray(newRules.add)) {
-        const updatedAdd = newRules.add.map((q) => replacePathInQuery(q, oldName, newName))
-        if (updatedAdd.some((q, i) => q !== newRules.add![i])) {
-          newRules.add = updatedAdd
-          changed = true
-        }
-      } else {
-        const updatedAdd = replacePathInQuery(newRules.add, oldName, newName)
-        if (updatedAdd !== newRules.add) {
-          newRules.add = updatedAdd
-          changed = true
-        }
-      }
-    }
+    const addResult = replacePathInRuleField(newRules.add, oldName, newName)
+    if (addResult.changed) { newRules.add = addResult.value as typeof newRules.add; changed = true }
 
-    // Update sync= rules
-    if (newRules.sync) {
-      const updatedSync = replacePathInQuery(newRules.sync, oldName, newName)
-      if (updatedSync !== newRules.sync) {
-        newRules.sync = updatedSync
-        changed = true
-      }
-    }
+    const syncResult = replacePathInRuleField(newRules.sync, oldName, newName)
+    if (syncResult.changed) { newRules.sync = syncResult.value as string; changed = true }
 
     if (changed) {
-      // Update the node's content and data (rules are stored in data.rules)
       const newData = { ...node.data, rules: newRules }
       const updatedContent = node.content
         ? node.content.replace(new RegExp(oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), newName)

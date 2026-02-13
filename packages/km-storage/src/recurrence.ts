@@ -27,6 +27,34 @@ export function getNextOccurrence(rrule: string, fromDate: string): string | nul
   }
 }
 
+/** Lookup tables for natural language → RRULE conversion */
+const PERIOD_ALIASES: Record<string, string> = {
+  daily: "FREQ=DAILY",
+  "every day": "FREQ=DAILY",
+  weekly: "FREQ=WEEKLY",
+  "every week": "FREQ=WEEKLY",
+  weekdays: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+  "every weekday": "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+  monthly: "FREQ=MONTHLY",
+  "every month": "FREQ=MONTHLY",
+  yearly: "FREQ=YEARLY",
+  annually: "FREQ=YEARLY",
+  "every year": "FREQ=YEARLY",
+}
+
+const INTERVAL_PATTERNS: [RegExp, string][] = [
+  [/every (\d+) days?/, "DAILY"],
+  [/every (\d+) weeks?/, "WEEKLY"],
+  [/every (\d+) months?/, "MONTHLY"],
+]
+
+const DAY_CODES: Record<string, string> = {
+  monday: "MO", mon: "MO", tuesday: "TU", tue: "TU",
+  wednesday: "WE", wed: "WE", thursday: "TH", thu: "TH",
+  friday: "FR", fri: "FR", saturday: "SA", sat: "SA",
+  sunday: "SU", sun: "SU",
+}
+
 /**
  * Convert natural language recurrence to RRULE
  * Handles Obsidian Tasks format: "every day", "every week", "every 2 weeks", etc.
@@ -34,79 +62,20 @@ export function getNextOccurrence(rrule: string, fromDate: string): string | nul
 export function naturalToRRule(natural: string): string | null {
   const lower = natural.toLowerCase().trim()
 
-  // Already RRULE format
-  if (lower.startsWith("freq=")) {
-    return natural.toUpperCase()
+  if (lower.startsWith("freq=")) return natural.toUpperCase()
+
+  const alias = PERIOD_ALIASES[lower]
+  if (alias) return alias
+
+  for (const [pattern, freq] of INTERVAL_PATTERNS) {
+    const match = lower.match(pattern)
+    if (match) return `FREQ=${freq};INTERVAL=${match[1]}`
   }
 
-  // "every day" / "daily"
-  if (lower === "daily" || lower === "every day") {
-    return "FREQ=DAILY"
-  }
-
-  // "every N days"
-  const daysMatch = lower.match(/every (\d+) days?/)
-  if (daysMatch) {
-    return `FREQ=DAILY;INTERVAL=${daysMatch[1]}`
-  }
-
-  // "every week" / "weekly"
-  if (lower === "weekly" || lower === "every week") {
-    return "FREQ=WEEKLY"
-  }
-
-  // "every N weeks"
-  const weeksMatch = lower.match(/every (\d+) weeks?/)
-  if (weeksMatch) {
-    return `FREQ=WEEKLY;INTERVAL=${weeksMatch[1]}`
-  }
-
-  // "every weekday" / "weekdays"
-  if (lower === "weekdays" || lower === "every weekday") {
-    return "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR"
-  }
-
-  // "every monday" or "every mon" (must be full match to avoid matching "month")
   const dayMatch = lower.match(
     /^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)$/,
   )
-  if (dayMatch) {
-    const dayName = dayMatch[1] as string
-    const dayMap: Record<string, string> = {
-      monday: "MO",
-      mon: "MO",
-      tuesday: "TU",
-      tue: "TU",
-      wednesday: "WE",
-      wed: "WE",
-      thursday: "TH",
-      thu: "TH",
-      friday: "FR",
-      fri: "FR",
-      saturday: "SA",
-      sat: "SA",
-      sunday: "SU",
-      sun: "SU",
-    }
-    const dayCode = dayMap[dayName] ?? "MO"
-    return `FREQ=WEEKLY;BYDAY=${dayCode}`
-  }
-
-  // "every month" / "monthly"
-  if (lower === "monthly" || lower === "every month") {
-    return "FREQ=MONTHLY"
-  }
-
-  // "every N months"
-  const monthsMatch = lower.match(/every (\d+) months?/)
-  if (monthsMatch) {
-    return `FREQ=MONTHLY;INTERVAL=${monthsMatch[1]}`
-  }
-
-  // "every year" / "yearly" / "annually"
-  if (lower === "yearly" || lower === "annually" || lower === "every year") {
-    return "FREQ=YEARLY"
-  }
+  if (dayMatch?.[1]) return `FREQ=WEEKLY;BYDAY=${DAY_CODES[dayMatch[1]] ?? "MO"}`
 
   return null
 }
