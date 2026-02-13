@@ -95,7 +95,26 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
 
   // Use ViewNavigation for the core navigation logic
   if (ctx.cursorNodeId) {
-    const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
+    let targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
+
+    // Skip virtual cards (body content without borders/selection)
+    if (targetId && isVirtualCard(ctx, targetId)) {
+      const tempCtx = { ...navStateFrom(ctx), cursorNodeId: targetId }
+      const MAX_SKIP = 10
+      for (let i = 0; i < MAX_SKIP && targetId && isVirtualCard(ctx, targetId); i++) {
+        const next = viewNavigation.navigate(dir, { ...tempCtx, cursorNodeId: targetId }, ctx.repo, layoutRegistry)
+        if (next === null) break
+        targetId = next
+      }
+      // If still virtual, try the column header instead
+      if (targetId && isVirtualCard(ctx, targetId)) {
+        const columns = ctx.repo.getChildren(ctx.rootId)
+        const targetColIdx = layout.colIndex + (dir === "left" ? -1 : 1)
+        const targetCol = columns[targetColIdx]
+        if (targetCol) targetId = targetCol.id
+      }
+    }
+
     if (targetId !== null) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
       // In cards view, attach deferred resolve for off-screen Y-correction.
@@ -120,8 +139,19 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
     throw new Error("[nav] handleVerticalNav called without cursorNodeId")
   }
 
-  const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
+  // Navigate, skipping virtual cards (body content rendered without borders/selection)
+  let targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
   if (targetId === null) return boundary(dir)
+
+  const MAX_SKIP = 10
+  for (let i = 0; i < MAX_SKIP && targetId && isVirtualCard(ctx, targetId); i++) {
+    const next = viewNavigation.navigate(dir, { ...navStateFrom(ctx), cursorNodeId: targetId }, ctx.repo, layoutRegistry)
+    if (next === null) break
+    targetId = next
+  }
+
+  // If we still landed on a virtual card (all remaining cards are virtual), stay put
+  if (isVirtualCard(ctx, targetId)) return boundary(dir)
 
   dispatchBoard({ type: "SELECT", nodeId: targetId })
   return ok()
@@ -296,17 +326,35 @@ export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
   // Page size is roughly half the visible cards
   const pageSize = Math.max(5, Math.floor((ui.dimensions.rows - 4) / 2))
 
-  const targetIdx =
+  let targetIdx =
     direction === "up"
       ? Math.max(0, layout.cardIndex - pageSize)
       : Math.min(col.cards.length - 1, layout.cardIndex + pageSize)
 
-  if (targetIdx !== layout.cardIndex) {
+  // Skip virtual cards at target position
+  const step = direction === "up" ? -1 : 1
+  while (targetIdx >= 0 && targetIdx < col.cards.length && col.cards[targetIdx]?.isVirtual) {
+    targetIdx += step
+  }
+  targetIdx = Math.max(0, Math.min(col.cards.length - 1, targetIdx))
+
+  if (targetIdx !== layout.cardIndex && !col.cards[targetIdx]?.isVirtual) {
     const targetCard = col.cards[targetIdx]
     if (targetCard) {
       dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
     }
   }
+}
+
+/** Check if a node ID corresponds to a virtual card in the current layout. */
+function isVirtualCard(ctx: ActionCtx, nodeId: string): boolean {
+  for (const col of ctx.layout.columns) {
+    if (col.isVirtual && col.node.id === nodeId) return true
+    for (const card of col.cards) {
+      if (card.node.id === nodeId && card.isVirtual) return true
+    }
+  }
+  return false
 }
 
 /** Build NavState from action context. Caller must guard that cursorNodeId is non-null. */

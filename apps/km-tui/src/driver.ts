@@ -302,6 +302,12 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
       handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
+      // Trigger a no-op Zustand store update to ensure any pending
+      // useSyncExternalStore updates (from CursorStore mutations done by
+      // handleKey's SELECT fast path) get flushed during this act() cycle.
+      // Without this, external store changes aren't reflected until the
+      // next state-changing keypress.
+      store.setState((s) => s)
     })
 
     // Trigger a second act() to flush any remaining effects (e.g. updateLayout
@@ -311,9 +317,11 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     return originalPress(key)
   }
 
-  // Build rich getState for AI introspection
+  // Build rich getState for AI introspection.
+  // Save original before Object.assign overwrites it.
+  const baseGetState = appWithCmd.getState.bind(appWithCmd)
   const getDriverState = (): TUIDriverState => {
-    const baseState = appWithCmd.getState()
+    const baseState = baseGetState()
     const s = store.getState()
 
     return {
@@ -339,13 +347,16 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     }
   }
 
-  // Return driver with all capabilities
-  return {
-    ...appWithCmd,
+  // Return driver with all capabilities.
+  // IMPORTANT: Use Object.assign (same pattern as withCommands) instead of spread.
+  // Spread `{ ...appWithCmd }` snapshots getters (text, ansi, lastBuffer) as
+  // static values from the initial render. Object.assign mutates the original
+  // object, preserving its getters so they return current buffer state.
+  return Object.assign(appWithCmd, {
     press: driverPress,
     getState: getDriverState,
     app: baseApp,
     layoutRegistry,
     store,
-  }
+  }) as BoardDriver
 }
