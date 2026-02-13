@@ -118,6 +118,41 @@ bun recall status 2>&1
 
 **Quick fix for stale index**: `bun recall index --incremental`
 
+### Step 1c: MEMORY.md Audit
+
+MEMORY.md loads into the system prompt every message (~4 tokens/line). Audit it for bloat.
+
+```bash
+# 1. Line count (target <120, truncated at 200)
+wc -l ~/.claude/projects/-Users-beorn-Code-pim-km/memory/MEMORY.md
+
+# 2. Entries that just point to other files (should be 1-line pointers, not inline copies)
+grep -n "^See \|See \`\." ~/.claude/projects/-Users-beorn-Code-pim-km/memory/MEMORY.md
+
+# 3. Date-stamped entries (check if still relevant)
+grep -n "([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\})" ~/.claude/projects/-Users-beorn-Code-pim-km/memory/MEMORY.md
+```
+
+**Evaluate each entry:**
+
+| Check | Pass | Fail |
+|-------|------|------|
+| **Staleness** | Entry still applies to current code | Issue fixed, one-time decision archived |
+| **Duplication** | Not in CLAUDE.md, skill, or vendor CLAUDE.md | Duplicated elsewhere — replace with 1-line pointer |
+| **Frequency** | Relevant weekly or more | Rarely relevant — move to skill or remove |
+| **Size** | 1-5 lines per entry | >5 lines — condense or replace with pointer |
+| **Referencing** | Pointers to skill/doc for detail | Inlines full content from skill/doc |
+| **Evergreen** | Still makes sense without date context | Stale date reference, completed work |
+
+**Common MEMORY.md anti-patterns:**
+- Full content from a skill file duplicated as a memory entry (→ replace with pointer)
+- Implementation details of a completed refactor (→ remove, code enforces it now)
+- Entries with "See X" that also inline X's content (→ keep only the pointer)
+- Tables that go stale (epic counts, bead inventories) (→ remove, query live with `bd`)
+- Architectural decisions that code now enforces (→ remove)
+
+**Target**: <120 lines total, <5 lines per entry average, zero duplication with skills/CLAUDE.md.
+
 ### Step 2: Session Error Analysis (parallel)
 
 Run [session-errors.md](session-errors.md) workflow simultaneously:
@@ -352,6 +387,48 @@ Copy this checklist and track progress:
 ```
 ````
 
+### Step 5: Measure Context Overhead
+
+Run in parallel to measure what loads at each stage:
+
+```bash
+# 1. CLAUDE.md chain
+for f in ~/CLAUDE.md ~/Code/CLAUDE.md ~/Code/pim/km/CLAUDE.md; do
+  lines=$(wc -l < "$f" 2>/dev/null || echo 0)
+  echo "$f: ${lines}L (~$((lines * 4)) tok)"
+done
+
+# 2. MEMORY.md
+lines=$(wc -l < ~/.claude/projects/-Users-beorn-Code-pim-km/memory/MEMORY.md)
+echo "MEMORY.md: ${lines}L (~$((lines * 4)) tok)"
+
+# 3. Skill count + plugin skill count
+echo "Project skills: $(ls -d .claude/skills/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
+# Check enabled plugins and count their skills from the available skills list
+
+# 4. MCP tools (project + user-level)
+echo "Project MCP:" && cat .mcp.json 2>/dev/null
+echo "User MCP:" && cat ~/.claude.json 2>/dev/null | python3 -c "import sys,json; [print(f'  {k}') for k in json.load(sys.stdin).get('mcpServers',{})]"
+
+# 5. Hook output size
+echo "bd prime output:" && bd prime 2>&1 | wc -l
+
+# 6. Deferred tool count (from ToolSearch list in system prompt)
+# Count by inspecting available deferred tools
+```
+
+**Token estimation rules:**
+- Markdown/text: ~4 tokens/line
+- MCP tool definition: ~300-600 tokens (simple-complex)
+- Skill metadata: ~100 tokens/skill
+- Plugin skill metadata: ~100 tokens/skill (when enabled)
+- Deferred tool entry: ~30 tokens/tool (name only)
+- Task tool subagent descriptions: ~200-500 tokens each (loaded regardless of plugins)
+- Built-in tool definitions: ~8,000 tokens total (fixed)
+- System prompt instructions: ~2,000 tokens (fixed)
+
+Fill in the "Context Budget" section of the output format with actual measurements.
+
 ## Output Format
 
 ```markdown
@@ -360,6 +437,7 @@ Copy this checklist and track progress:
 | Metric           | Current | Target | Status |
 | ---------------- | ------- | ------ | ------ |
 | CLAUDE.md        | X lines | <60    | ✓/✗    |
+| MEMORY.md        | X lines | <120   | ✓/✗    |
 | Largest skill    | X lines | <150   | ✓/✗    |
 | Orphan files     | X       | 0      | ✓/✗    |
 | Keyword overlaps | X       | 0      | ✓/✗    |
@@ -424,6 +502,130 @@ Copy this checklist and track progress:
 ## Proposed Edits
 
 [Edit tool calls to make]
+
+## Context Overhead Summary
+
+Measure and report what loads at each stage. Use `~4 tokens/line` for markdown, `~400 tokens/tool` for MCP tools, `~100 tokens/skill` for metadata scan.
+
+### How to Measure
+
+```bash
+# CLAUDE.md chain
+for f in ~/CLAUDE.md ~/Code/CLAUDE.md ~/Code/pim/km/CLAUDE.md; do
+  lines=$(wc -l < "$f" 2>/dev/null || echo 0)
+  echo "$f: ${lines}L (~$((lines * 4)) tok)"
+done
+
+# MEMORY.md
+lines=$(wc -l < ~/.claude/projects/-Users-beorn-Code-pim-km/memory/MEMORY.md)
+echo "MEMORY.md: ${lines}L (~$((lines * 4)) tok)"
+
+# Skill count (for metadata scan)
+echo "Skills: $(ls -d .claude/skills/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
+
+# Hooks output size
+bd prime 2>&1 | wc -l
+
+# MCP tool count (project)
+cat .mcp.json 2>/dev/null
+
+# Plugin skill count
+grep -c "compound-engineering:" <<< "$(cat ~/.claude/settings.json)" 2>/dev/null || echo 0
+
+# Stale MCP permissions (reference servers not in .mcp.json)
+jq -r '.permissions.allow[]' ~/.claude/settings.json 2>/dev/null | \
+  grep '^mcp__' | sed 's/__[^_]*$//' | sort -u | while read srv; do
+    name=$(echo "$srv" | sed 's/^mcp__//')
+    grep -q "\"$name\"" .mcp.json 2>/dev/null || echo "STALE: $srv"
+  done
+
+# PreToolUse hooks (runs on every Bash call)
+jq -r '.hooks.PreToolUse[]?.hooks[]?.command // empty' ~/.claude/settings.json 2>/dev/null
+```
+
+### Output Format
+
+```
+## Context Budget
+
+### Every Message (always in context)
+
+| Component                    | Size    | Est. Tokens | Notes                           |
+| ---------------------------- | ------- | ----------- | ------------------------------- |
+| System prompt (built-in)     | ~fixed  | ~8,000      | Tool defs, instructions, rules  |
+| Task tool (subagent types)   | ~fixed  | ~12,000     | All registered agent types      |
+| CLAUDE.md chain              | X lines | ~X,XXX      | ~/CLAUDE.md + Code + km         |
+| MEMORY.md                    | X lines | ~XXX        | Auto memory, loads every msg    |
+| Skill metadata scan          | N skills| ~X,XXX      | N × ~100 tokens (desc only)     |
+| Plugin skill metadata        | N skills| ~X,XXX      | N × ~100 tokens (if enabled)    |
+| MCP tool definitions         | N tools | ~X,XXX      | N × ~400 tokens (schema+desc)   |
+| Deferred tool list           | N tools | ~X,XXX      | N × ~30 tokens (names only)     |
+| Git status snapshot          | ~20L    | ~80         | Branch, status, recent commits  |
+| **Subtotal (per message)**   |         | **~XX,XXX** | **X% of 200k context window**   |
+
+### Session Start (one-time, first message only)
+
+| Component                    | Size    | Est. Tokens | Notes                           |
+| ---------------------------- | ------- | ----------- | ------------------------------- |
+| SessionStart hook (bd prime) | X lines | ~XXX        | Beads workflow context           |
+| Everything from "every msg"  |         | ~XX,XXX     | (included above)                |
+| **Total first message**      |         | **~XX,XXX** | **X% of 200k**                  |
+
+### On Compaction (context compressed)
+
+| Component                    | Size    | Est. Tokens | Notes                           |
+| ---------------------------- | ------- | ----------- | ------------------------------- |
+| PreCompact hook (bd prime)   | X lines | ~XXX        | Re-injected after compression   |
+| Compressed conversation      | varies  | ~varies     | Prior turns summarized           |
+| Everything from "every msg"  |         | ~XX,XXX     | (re-loaded fresh)               |
+
+### On Skill Activation (on-demand)
+
+| Component                    | Size    | Est. Tokens | Notes                           |
+| ---------------------------- | ------- | ----------- | ------------------------------- |
+| SKILL.md entry point         | 50-70L  | ~200-300    | Quick reference, sub-file table |
+| Sub-files (when loaded)      | 80-200L | ~300-800    | Full workflows                  |
+| Vendor CLAUDE.md (when ref'd)| varies  | ~500-2000   | Package-specific docs           |
+
+### Per-Tool-Call Overhead (system-reminders)
+
+| Component                    | Size    | Est. Tokens | Notes                           |
+| ---------------------------- | ------- | ----------- | ------------------------------- |
+| Available skills list        | N skills| ~X,XXX      | Re-injected on many tool results|
+| PreToolUse hook (dcg etc.)   | varies  | ~50-200     | Runs + injects output per Bash  |
+| Active skill instructions    | varies  | ~200-500    | Re-injected while skill is active|
+
+These add up fast in tool-heavy sessions. Count system-reminder injections in a sample turn.
+
+### Stale Permissions & Settings
+
+```bash
+# Check for permissions referencing nonexistent MCP servers
+jq -r '.permissions.allow[]' ~/.claude/settings.json 2>/dev/null | \
+  grep '^mcp__' | sed 's/__[^_]*$//' | sort -u | while read srv; do
+    name=$(echo "$srv" | sed 's/^mcp__//')
+    grep -q "\"$name\"" .mcp.json 2>/dev/null || echo "STALE: $srv (no server in .mcp.json)"
+  done
+
+# Check for disabled plugins still contributing metadata
+jq -r '.enabledPlugins | to_entries[] | select(.value == false) | .key' ~/.claude/settings.json 2>/dev/null
+```
+
+Stale permissions are harmless but noisy. Disabled plugins with skills still appearing in the skill list may still contribute metadata tokens.
+
+### Optimization Opportunities
+
+| Opportunity                        | Savings      | Effort | Priority |
+| ---------------------------------- | ------------ | ------ | -------- |
+| Trim CLAUDE.md chain to targets    | ~XXX tok/msg | Low    | P1       |
+| Trim MEMORY.md to <120 lines       | ~XXX tok/msg | Low    | P1       |
+| Disable unused plugins             | ~XXX tok/msg | None   | P1       |
+| Disable unused MCP servers         | ~XXX tok/msg | None   | P2       |
+| Clean stale MCP permissions        | ~noise       | None   | P2       |
+| Reduce skill count (merge similar) | ~XXX tok/msg | Medium | P3       |
+```
+
+Fill in actual measured values. Focus on "every message" costs — these compound across the entire session.
 ```
 
 ## Reference
@@ -510,6 +712,8 @@ Compare before/after metrics:
 | Metric                           | Before | After | Target |
 | -------------------------------- | ------ | ----- | ------ |
 | CLAUDE.md lines                  | X      | Y     | <60    |
+| MEMORY.md lines                  | X      | Y     | <120   |
+| MEMORY.md stale entries          | X      | Y     | 0      |
 | Files over limit                 | X      | Y     | 0      |
 | Orphan files                     | X      | Y     | 0      |
 | Keyword overlaps                 | X      | Y     | 0      |
@@ -519,6 +723,7 @@ Compare before/after metrics:
 | MCP servers                      | X      | Y     | <3     |
 | MCP token overhead               | Xk     | Yk    | <5k    |
 | Capability overlaps              | X      | Y     | 0      |
+| Stale MCP permissions            | X      | Y     | 0      |
 | Unused components (10+ sessions) | X      | Y     | 0      |
 
 ### 5. Session Error Analysis Integration

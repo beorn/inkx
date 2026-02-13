@@ -1,5 +1,5 @@
 ---
-description: Debug and fix inkx rendering issues — incremental rendering, dirty flags, scroll containers, sticky children
+description: Debug and fix inkx rendering issues — incremental rendering, dirty flags, scroll containers, sticky children. Use when inkx renders incorrectly or has visual artifacts.
 argument-hint: [symptom] (describe the visual glitch, or "fuzz" for fuzz-driven workflow)
 ---
 

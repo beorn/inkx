@@ -1,5 +1,5 @@
 ---
-description: "Commit changes to git"
+description: "Commit changes to git. Use when ready to commit staged or unstaged changes."
 allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git pull:*), Bash(bd sync:*), Bash(cd vendor/*), Bash(bun run lint:*), Bash(rm -f .git/index.lock:*), AskUserQuestion
 ---
 

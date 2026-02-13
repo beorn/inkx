@@ -1,5 +1,5 @@
 ---
-description: Debug and fix Flexx layout issues — caching, fingerprinting, zero-allocation, performance
+description: Debug and fix Flexx layout issues — caching, fingerprinting, zero-allocation, performance. Use when Flexx layout is broken or performance degrades.
 argument-hint: [symptom] (describe the layout bug, or "bench" for performance workflow)
 ---
 

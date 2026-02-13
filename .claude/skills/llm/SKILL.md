@@ -5,7 +5,7 @@ argument-hint: [deep|opinion|debate] <prompt>
 
 # LLM - Multi-Model Queries
 
-**Keywords**: gpt, chatgpt, openai, gemini, grok, deep research, thinkdeep, second opinion, consensus, research, ask
+**Keywords**: gpt, chatgpt, openai, gemini, grok, deep research, thinkdeep, second opinion, consensus, research, ask, quick question, fast answer, LLM query
 
 **Claude: Use this when the user wants another model's perspective or deep research (OpenAI's research mode, NOT DeepSeek).**
 
