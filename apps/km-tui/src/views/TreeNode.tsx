@@ -527,8 +527,8 @@ function TreeNodeImpl({
             <Box flexShrink={0}>
               <Text
                 bold={childrenHidden}
-                dimColor={!childrenHidden && !(isSelected || isMultiSelected)}
-                color={!childrenHidden ? "gray" : undefined}
+                dimColor={style.shouldDim || (!childrenHidden && !(isSelected || isMultiSelected))}
+                color={style.textColor ?? (!childrenHidden ? "gray" : undefined)}
               >
                 {` ${childCount}`}
               </Text>

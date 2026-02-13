@@ -217,4 +217,38 @@ describe("Exploration: Virtual Card Skip", () => {
     }
     expect(bugs).toEqual([])
   })
+
+  test("zoom into node with body paragraphs places cursor on first navigable card", () => {
+    // File-like node with body paragraphs before structural sections
+    // Simulates zooming into a file like CLAUDE.md
+    const { board } = testEnv(() =>
+      item("board",
+        item("col1",
+          item("CLAUDE.md",
+            item.paragraph("Description of the project"),
+            item.paragraph("More preamble text"),
+            item.section("Commands", item("bun fix"), item("bun km")),
+            item.section("Architecture", item("Layered design")),
+          ),
+        ),
+      ),
+    )
+
+    // Zoom into CLAUDE.md
+    board.press("i")
+
+    // After zoom, cursor should be on "Commands" (first structural child), not a paragraph
+    const cursor = board.q("[data-cursor]")
+    expect(cursor.count(), "cursor should exist after zoom").toBeGreaterThan(0)
+
+    // j should work (navigate to next card)
+    board.press("j")
+    const cursor2 = board.q("[data-cursor]")
+    expect(cursor2.count(), "cursor should exist after j").toBeGreaterThan(0)
+
+    // Verify no garbage
+    const text = board.screenshot()
+    expect(text).not.toContain("[object Object]")
+    expect(text).not.toContain("TypeError")
+  })
 })

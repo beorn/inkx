@@ -11,15 +11,21 @@ import { handleCursorMove } from "./board-actions-nav.ts"
 import { clearSelection, pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
+/** Body-type nodes that become virtual (non-navigable) cards */
+const BODY_TYPES = new Set(["paragraph", "code", "quote"])
+
 /**
- * After zoom, children become columns. Place cursor on the first card
- * (first grandchild) so j/k navigation works immediately.
- * Falls back to column header if no cards exist.
+ * After zoom, children become columns. Place cursor on the first navigable card
+ * (first non-virtual grandchild) so j/k navigation works immediately.
+ * Skips body-type nodes (paragraph, code, quote) since they're virtual.
+ * Falls back to column header if no navigable cards exist.
  */
 function firstCardId(children: { id: string }[], repo: ActionCtx["repo"]): string | null {
   const firstCol = children[0]
   if (!firstCol) return null
-  const firstCard = repo.getChildren(firstCol.id)[0]
+  const colChildren = repo.getChildren(firstCol.id)
+  // Skip body-type virtual cards (paragraph, code, quote without link_to)
+  const firstCard = colChildren.find((c) => !BODY_TYPES.has(c.type) || c.link_to)
   return firstCard?.id ?? firstCol.id
 }
 
