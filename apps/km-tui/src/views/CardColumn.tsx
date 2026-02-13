@@ -483,6 +483,7 @@ export const Column = React.memo(function Column({
           maxRendered={MAX_RENDERED_CARDS}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          overflowIndicator
         />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
