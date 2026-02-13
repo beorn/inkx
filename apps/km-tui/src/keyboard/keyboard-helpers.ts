@@ -239,7 +239,7 @@ export function refreshBoardState(
     cardIndex?: number
   } = {
     type: "SELECT",
-    nodeId: targetCard?.id ?? ctx.cursorNodeId,
+    nodeId: targetCard?.id ?? colNode?.id ?? ctx.cursorNodeId,
   }
   if (options?.usePositionHints) {
     selectAction.colIndex = colIndex
