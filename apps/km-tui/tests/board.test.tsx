@@ -47,6 +47,7 @@ function renderBoardCore(state: TUIBoardState, repo: Repo, options: { width?: nu
       handleSearchSelect: () => {},
       handleSearchCancel: () => {},
     },
+    collapsedNodes: new Set<string>(),
     moveMode: false,
     colScrollOffset: 0,
   })

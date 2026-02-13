@@ -71,10 +71,10 @@ describe("Column Fold/Collapse", () => {
     board.expect("#1a").toExist()
     board.expect("#1b").toExist()
 
-    // c collapses current column
+    // c collapses current column — cards hidden, column shows first letter
     board.press("c")
-    const output = board.screenshot()
-    expect(output).toContain("[collapsed")
+    board.expect("#1a").not.toExist()
+    board.expect("#1b").not.toExist()
 
     // c again un-collapses
     board.press("c")
@@ -88,10 +88,10 @@ describe("Column Fold/Collapse", () => {
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
 
-    // Collapse col2
+    // Collapse col2 — cards hidden
     board.press("c")
-    const output = board.screenshot()
-    expect(output).toContain("[collapsed")
+    board.expect("#2a").not.toExist()
+    board.expect("#2b").not.toExist()
 
     // col1 should still show its cards
     board.expect("#1a").toExist()

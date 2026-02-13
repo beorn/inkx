@@ -10,6 +10,15 @@ const cycleViewMode = {
   execute: () => ({ type: "CYCLE_VIEW_MODE" }),
 } satisfies CommandDef
 
+const cycleIconStyle = {
+  id: "cycle_icon_style",
+  name: "Cycle Icon Style",
+  description: "Cycle between nerdfont, workflowy, and regular bullet icons",
+  category: "View",
+  shortcuts: ["V"],
+  execute: () => ({ type: "CYCLE_ICON_STYLE" }),
+} satisfies CommandDef
+
 const showHelp = {
   id: "show_help",
   name: "Show Help",
@@ -89,6 +98,25 @@ const unfoldAll = {
   execute: () => ({ type: "UNFOLD_LEVEL", depth: 99 }),
 } satisfies CommandDef
 
+// Ignore operations
+const ignoreNode = {
+  id: "ignore_node",
+  name: "Ignore Node",
+  description: "Hide or un-hide node from board (persisted in .km/ignored)",
+  category: "Fold",
+  shortcuts: ["C"],
+  execute: () => ({ type: "IGNORE_NODE" }),
+} satisfies CommandDef
+
+const toggleShowIgnored = {
+  id: "toggle_show_ignored",
+  name: "Toggle Show Ignored",
+  description: "Reveal/hide ignored nodes (dimmed) for un-ignoring",
+  category: "Fold",
+  shortcuts: ["gC"],
+  execute: () => ({ type: "TOGGLE_SHOW_IGNORED" }),
+} satisfies CommandDef
+
 // View configuration
 const increaseOutlineDepth = {
   id: "increase_outline_depth",
@@ -128,12 +156,15 @@ const decreaseContentLines = {
 
 export const viewCommands: CommandDef[] = [
   cycleViewMode,
+  cycleIconStyle,
   showHelp,
   toggleFold,
   foldNode,
   unfoldNode,
   unfoldRecursive,
   toggleCollapse,
+  ignoreNode,
+  toggleShowIgnored,
   foldAll,
   unfoldAll,
   increaseOutlineDepth,

@@ -18,7 +18,7 @@ import { extractTitleTaskMark } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
-import { renderRich } from "../text/index.ts"
+import { renderRich, getTypeBullet, getCircleBullet, getFoldMarker, isSigilName, type StatusIcon } from "../text/index.ts"
 import { truncateText } from "../layout/index.ts"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
@@ -57,6 +57,8 @@ interface TreeNodeProps {
   getBoardPills?: GetBoardPillsFn
   /** Additional sigils to exclude (e.g., column-level sigils like @next inside @next column) */
   extraExcludedSigils?: string[]
+  /** Force dim styling on this node (used for virtual body cards) */
+  dim?: boolean
 }
 
 /**
@@ -90,6 +92,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
 
   // Visual state
   if (prev.dimInactiveChildren !== next.dimInactiveChildren) return false
+  if (prev.dim !== next.dim) return false
 
   // Node content that affects display
   if (
@@ -144,10 +147,11 @@ function TreeNodeImpl({
   getParentContext: getParentContextProp,
   getBoardPills = () => [],
   extraExcludedSigils,
+  dim = false,
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, setUI, rootBoardId } = useTreeRenderContext()
-  const { maxOutlineDepth: maxDepth, inOutlineMode, currentSubIndex, variant } = treeConfig
+  const { maxOutlineDepth: maxDepth, inOutlineMode, currentSubIndex, variant, iconStyle } = treeConfig
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
@@ -205,19 +209,36 @@ function TreeNodeImpl({
 
   // Memoize style calculation - only recalc when selection or node status changes
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
-  const style = useMemo(
-    () => getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing),
-    [displayNode.id, displayNode.task_status, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing],
-  )
+  const style = useMemo(() => {
+    const s = getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing)
+    if (dim) s.shouldDim = true
+    return s
+  }, [displayNode.id, displayNode.task_status, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing, dim])
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)
   const dimUntitled = untitled && !isSelected && !isMultiSelected
 
-  // Memoize prefix - only recalc when fold state or children count changes
+  // Compute the bullet icon based on icon style
+  const bulletIcon = useMemo((): StatusIcon => {
+    if (isTask && style.taskStatusIcon) return style.taskStatusIcon
+    if (iconStyle === "workflowy") {
+      const bullet = getCircleBullet(hasChildren, hasChildren && (isFolded || depth >= maxDepth))
+      return style.ownColor ? { ...bullet, color: style.ownColor } : bullet
+    }
+    if (iconStyle === "nerdfont") {
+      const bullet = getTypeBullet(displayNode, hasChildren) ?? getFoldMarker(hasChildren, isFolded, style.ownColor)
+      return style.ownColor ? { ...bullet, color: style.ownColor } : bullet
+    }
+    // "regular" style — existing fold markers
+    const bullet = getFoldMarker(hasChildren, isFolded, style.ownColor)
+    return bullet
+  }, [isTask, iconStyle, displayNode.type, hasChildren, isFolded, depth, maxDepth, style.ownColor, style.taskStatusIcon])
+
+  // Memoize prefix - only recalc when bullet icon changes
   const prefix = useMemo(
-    () => buildPrefix(hasChildren, isFolded, childCount, style.ownColor),
-    [hasChildren, isFolded, childCount, style.ownColor],
+    () => buildPrefix(bulletIcon),
+    [bulletIcon],
   )
 
   // Get content, stripping task marks for nodes with task_status
@@ -237,6 +258,14 @@ function TreeNodeImpl({
           ? getNodeDisplayName(repo, displayNode)
           : displayNode.content || getNodeDisplayName(repo, displayNode)
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
+
+  // Compute sigil for inline display: only if name is a sigil and differs from title
+  const sigilName = useMemo(() => {
+    const name = displayNode.name
+    if (!name || !isSigilName(name)) return null
+    if (name === cleanContent) return null // redundant — title IS the sigil
+    return name
+  }, [displayNode.name, cleanContent])
 
   // For inline editing, use the actual node content (not display name fallback).
   // This ensures new nodes with empty content show an empty edit field,
@@ -415,6 +444,10 @@ function TreeNodeImpl({
   const visibleChildren = children.slice(0, maxChildren)
   const hiddenCount = children.length - visibleChildren.length
 
+  // Children are hidden when individually folded OR when outline depth limit is exceeded
+  const childrenVisible = hasChildren && !isFolded && depth < maxDepth
+  const childrenHidden = hasChildren && !childrenVisible
+
   return (
     <Box flexDirection="column" height={isOneliner ? 1 : undefined} overflow={isOneliner ? "hidden" : undefined}>
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
@@ -442,23 +475,17 @@ function TreeNodeImpl({
           })}
           flexDirection="row"
           alignItems="flex-start"
-          paddingLeft={depth}
+          paddingLeft={Math.max(0, depth - 1)}
           backgroundColor={style.backgroundColor}
           height={isOneliner ? 1 : undefined}
         >
           {/* Fixed-width prefix box (fold marker only - new cards style) */}
           <Box width={prefix.length} flexShrink={0}>
-            <Text
-              color={style.textColor}
-              dimColor={style.shouldDim}
-              strikethrough={style.shouldStrikethrough}
-              wrap="truncate"
-            >
+            <Text color={style.textColor} dimColor={style.shouldDim}>
               <Text color={isSelected || isMultiSelected ? style.textColor : prefix.markerColor}>
                 {prefix.markerChar}
               </Text>
               {prefix.afterMarker}
-              {prefix.foldedCount}
             </Text>
           </Box>
           {/* Flexible content box */}
@@ -466,7 +493,6 @@ function TreeNodeImpl({
           <Box flexGrow={1} flexShrink={1} overflow={isOneliner ? "hidden" : undefined}>
             {editingTitle ? (
               <Text color={style.textColor} wrap={isOneliner ? "truncate" : "wrap"}>
-                {style.taskStatusIcon && <Text color={style.taskStatusIcon.color}>{style.taskStatusIcon.char} </Text>}
                 <InlineEditField
                   initialValue={editContent}
                   onConfirm={handleInlineEditConfirm}
@@ -478,27 +504,35 @@ function TreeNodeImpl({
               </Text>
             ) : (
               <Text
-                color={dimUntitled ? "gray" : style.textColor}
+                bold={depth === 0 && hasChildren}
+                color={dimUntitled ? "gray" : style.textColor ?? style.ownColor}
                 dimColor={style.shouldDim || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner ? "truncate" : "wrap"}
               >
-                {/* Task status icon prepended to content (new cards style) */}
-                {style.taskStatusIcon && (
-                  <Text color={isSelected || isMultiSelected ? style.textColor : style.taskStatusIcon.color}>
-                    {style.taskStatusIcon.char}{" "}
-                  </Text>
-                )}
-                {!isFolded && styledContent}
-                {!isFolded && infoSuffix && <Text dimColor>{infoSuffix}</Text>}
-                {!isFolded && showInlineContext && (
-                  <Text dimColor italic>
+                {styledContent}
+                {sigilName && <>{" "}<Text dimColor={!(isSelected || isMultiSelected)}>{sigilName}</Text></>}
+                {!childrenHidden && infoSuffix && <Text dimColor={!(isSelected || isMultiSelected)}>{infoSuffix}</Text>}
+                {!childrenHidden && showInlineContext && (
+                  <Text dimColor={!(isSelected || isMultiSelected)} italic>
                     {contextSuffix}
                   </Text>
                 )}
               </Text>
             )}
           </Box>
+          {/* Right-aligned: child count (always visible when has children) */}
+          {hasChildren && (
+            <Box flexShrink={0}>
+              <Text
+                bold={childrenHidden}
+                dimColor={!childrenHidden && !(isSelected || isMultiSelected)}
+                color={!childrenHidden ? "gray" : undefined}
+              >
+                {` ${childCount}`}
+              </Text>
+            </Box>
+          )}
         </Box>
       </HeadRow>
 
@@ -696,9 +730,9 @@ function NodeChildren({
         )
       })}
       {hiddenCount > 0 && (
-        <Box justifyContent="center">
-          <Text dimColor>+{hiddenCount} more</Text>
-        </Box>
+        <Text dimColor wrap="truncate">
+          {" ".repeat(Math.max(0, depth - 1))} +{hiddenCount} more
+        </Text>
       )}
     </Box>
   )

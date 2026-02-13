@@ -455,6 +455,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "z", commandId: "fold_all" },
       { key: "Z", commandId: "unfold_all" },
       { key: "c", commandId: "toggle_collapse" },
+      { key: "C", commandId: "ignore_node" },
 
       // g/t/s standalone fallbacks for chord timeout
       { key: "g", commandId: "cursor_first" },
@@ -473,6 +474,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "g", commandId: "cursor_first" },
       { chord: "g", key: "p", commandId: "project_picker" },
       { chord: "g", key: "n", commandId: "new_item" },
+      { chord: "g", key: "C", commandId: "toggle_show_ignored" },
 
       // t-prefix chords (time/date stubs)
       { chord: "t", key: "d", commandId: "set_due_date" },
@@ -512,8 +514,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "z", ctrl: true, commandId: "undo" },
       { key: "z", ctrl: true, shift: true, commandId: "redo" },
-      // Ctrl+Y → text.yank when in text input, no longer redo
+      // Ctrl+Y → text.yank in text input, redo otherwise
       { key: "y", ctrl: true, commandId: "text.yank", when: textInputFocused },
+      { key: "y", ctrl: true, commandId: "redo", when: not(textInputFocused) },
     ],
   },
 

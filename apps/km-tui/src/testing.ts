@@ -185,6 +185,7 @@ export async function createBoardTest(
       handleSearchSelect: () => {},
       handleSearchCancel: () => {},
     },
+    collapsedNodes: new Set<string>(),
     moveMode: false,
     colScrollOffset: 0,
   })

@@ -5,7 +5,7 @@
  */
 
 import { extractTitleTaskMark, type KNode } from "@km/core"
-import { getFoldMarker, getStatusIcon, styledUnderline, type StatusIcon } from "../text/index.ts"
+import { getStatusIcon, styledUnderline, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
 // =============================================================================
@@ -120,59 +120,33 @@ export function getNodeStyle(
 // =============================================================================
 
 export interface PrefixResult {
-  /** The fold marker character (●/•/·) */
+  /** The bullet character */
   markerChar: string
-  /** Color for the fold marker */
+  /** Color for the bullet */
   markerColor: string | undefined
   /** Space after marker */
   afterMarker: string
   /** Total prefix length in characters */
   length: number
-  /** Folded count suffix e.g. " (5)" */
-  foldedCount: string
 }
-
-/** Width reserved for fold marker (▶/●/•/· are display width 2 in Unicode) */
-const MARKER_SLOT_WIDTH = 2
 
 /**
  * Build the prefix portion of a tree node line.
  *
- * New cards style layout: [marker][space]
- *   - marker: fold state indicator (● folded, • unfolded, · empty)
- *   - space: single space before content
+ * Layout: [bullet][space] = 2 cells total.
+ * The bullet is type-specific, circle, or fold marker depending on icon style.
  *
  * Note: Depth-based indentation is handled by Box paddingLeft in TreeNode,
  * not by text spaces in the prefix. This avoids wrap-ansi trimming issues.
  *
- * @param hasChildren - Whether the node has children
- * @param isFolded - Whether children are hidden
- * @param childCount - Number of children (for fold count display)
- * @param ownColor - Node's own color (applies to marker)
+ * @param bulletIcon - The bullet icon to display
  */
-export function buildPrefix(
-  hasChildren: boolean,
-  isFolded: boolean,
-  childCount: number,
-  ownColor: string | undefined,
-): PrefixResult {
-  // Get fold marker based on children state
-  const marker = getFoldMarker(hasChildren, isFolded, ownColor)
-
-  // Layout: [marker][space] + [count if folded] - no depth indent (handled by Box)
-  // When folded, the space comes from the start of foldedCount
-  // When not folded, afterMarker provides the space
-  const isFoldedWithChildren = hasChildren && isFolded
-  const afterMarker = isFoldedWithChildren ? "" : " " // Space before content (or empty if count replaces it)
-  const foldedCount = isFoldedWithChildren ? ` ${childCount}` : ""
-  const length = MARKER_SLOT_WIDTH + afterMarker.length + foldedCount.length
-
+export function buildPrefix(bulletIcon: StatusIcon): PrefixResult {
   return {
-    markerChar: marker.char,
-    markerColor: marker.color,
-    afterMarker,
-    length,
-    foldedCount,
+    markerChar: bulletIcon.char,
+    markerColor: bulletIcon.color,
+    afterMarker: " ",
+    length: 2,
   }
 }
 

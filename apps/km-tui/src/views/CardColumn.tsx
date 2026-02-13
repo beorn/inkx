@@ -16,9 +16,9 @@ import type { BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { TreeNode } from "./TreeNode.tsx"
-import { getNodeIcon, renderPlain } from "../text/index.ts"
+import { getColumnHeaderIcon, isSigilName, renderPlain } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
-import { useUISelector, useSetUI, deriveColumnExcludedSigils } from "../ui-context.tsx"
+import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import type { NodeLayout } from "../card-positions.ts"
 import { useIsColumnSelected, useIsCursorAtCard } from "../cursor-context.tsx"
@@ -145,19 +145,20 @@ const Card = React.memo(
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
     const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId, 0)))
 
-    // Virtual body content renders borderless (inline body content)
+    // Virtual body content renders with a very dim border and de-emphasized text
     // This includes: cards in virtual columns OR individual virtual body cards
     if (isVirtualColumn || card.isVirtual) {
       return (
-        <Box flexDirection="column" flexShrink={0} width={width} paddingLeft={1}>
+        <Box flexDirection="column" flexShrink={0} width={width} borderStyle="round" borderColor={isSelected ? "yellow" : "black"}>
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
             node={card.node}
             depth={0}
-            isSelected={false}
+            isSelected={isSelected}
             colIndex={colIndex}
             cardIndex={cardIndex}
             subIndex={0}
+            dim={!isSelected}
             dimInactiveChildren={true}
             childCount={card.childCount}
             extraExcludedSigils={extraExcludedSigils}
@@ -216,10 +217,6 @@ const Card = React.memo(
 // Column Component
 // =============================================================================
 
-// =============================================================================
-// Column Component
-// =============================================================================
-
 interface ColumnProps {
   column: ColumnState
   colIndex: number
@@ -248,6 +245,7 @@ export const Column = React.memo(function Column({
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
   const setUI = useSetUI()
+  const { treeConfig: { iconStyle } } = useTreeRenderContext()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
   const nodeId = column.node.id
 
@@ -315,7 +313,7 @@ export const Column = React.memo(function Column({
   const wipExceeded = wipLimit !== undefined && count > wipLimit
 
   // Build count display
-  const countDisplay = wipLimit !== undefined ? `(${count}/${wipLimit})` : `(${count})`
+  const countDisplay = wipLimit !== undefined ? `${count}/${wipLimit}` : `${count}`
   const warningIndicator = wipExceeded ? " \u26A0" : ""
   const collapsedIndicator = isCollapsed ? " \u25B8" : ""
 
@@ -360,13 +358,46 @@ export const Column = React.memo(function Column({
 
   const keyExtractor = useCallback((card: CardState) => card.node.id, [])
 
-  // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
-  // - Non-tasks with color: filled circle (●) in that color
-  // - Non-tasks without color: small bullet (·)
-  // - Virtual body columns: dimmed info icon
-  const icon = isVirtual ? { char: "·", color: "gray" as const } : getNodeIcon(null, ownColor, false)
-  // When column is selected, icon should be black on yellow bg
+  // Get icon based on style
+  const icon = getColumnHeaderIcon(column.node, iconStyle, isVirtual, ownColor)
   const iconColor = isColumnSelected ? "black" : icon.color
+
+  // Collapsed: thin vertical strip — first letter + count, navigable
+  if (isCollapsed) {
+    const firstChar = name.charAt(0).toUpperCase() || "\u25B8"
+    return (
+      <Box
+        id={column.node.id}
+        data-view="column"
+        data-column={true}
+        data-col-index={colIndex}
+        data-collapsed={true}
+        {...(isSelected && { "data-selected": true })}
+        {...(isColumnSelected && { "data-cursor": true, "data-card-index": -1 })}
+        flexDirection="column"
+        width={width}
+        maxHeight={height}
+        overflow="hidden"
+      >
+        <Box height={1} flexShrink={0}>
+          <Text> </Text>
+        </Box>
+        <Box height={1} flexShrink={0}>
+          <Text
+            bold={isColumnSelected}
+            color={isColumnSelected ? "black" : (ownColor ?? "gray")}
+            backgroundColor={isColumnSelected ? "yellow" : undefined}
+            dimColor={!isColumnSelected}
+          >
+            {firstChar}
+          </Text>
+        </Box>
+        <Box flexDirection="column" flexGrow={1} minHeight={1}>
+          <Text dimColor>{count}</Text>
+        </Box>
+      </Box>
+    )
+  }
 
   return (
     <Box
@@ -387,64 +418,61 @@ export const Column = React.memo(function Column({
       </Box>
 
       {/* Column header with background spanning full width */}
-      {/* Bold text, bullet uses getNodeIcon for consistent styling with TreeNode */}
-      {/* Note: backgroundColor on Text (not Box) ensures fg color applies correctly */}
-      <Box height={1} flexShrink={0} width={width}>
-        {isInlineEditing ? (
-          <Text bold color={headerStyle.color} backgroundColor={headerStyle.backgroundColor} wrap="truncate">
-            {" "}
-            <Text color={iconColor}>{icon.char}</Text>{" "}
-            <InlineEditField
-              initialValue={name}
-              onConfirm={handleInlineEditConfirm}
-              onCancel={handleInlineEditCancel}
-            />
-          </Text>
-        ) : (
-          <Text
-            bold
-            color={headerStyle.color}
-            backgroundColor={headerStyle.backgroundColor}
-            dimColor={headerStyle.dimColor}
-            wrap="truncate"
-          >
-            {" "}
-            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor color="gray">{name}</Text> : name}
-            {typeSuffix ? (
-              <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${typeSuffix}`}</Text>
-            ) : (
-              ""
-            )}
-            {wipExceeded ? (
-              <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
-            ) : (
-              <Text
-                color={isColumnSelected ? "gray" : undefined}
-                dimColor={!isColumnSelected}
-              >{` ${countDisplay}`}</Text>
-            )}
-            {collapsedIndicator}
-            {/* Pad to full column width */}
-            {" ".repeat(
-              Math.max(
-                0,
-                width -
-                  4 -
-                  name.length -
-                  countDisplay.length -
-                  (typeSuffix?.length ?? 0) -
-                  (collapsedIndicator?.length ?? 0),
-              ),
-            )}
-          </Text>
-        )}
+      {/* Bold text, bullet uses icon style for consistent styling */}
+      <Box height={1} flexShrink={0} width={width - 1} flexDirection="row">
+        <Box width={1} flexShrink={0} />
+        <Box flexGrow={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
+          {isInlineEditing ? (
+            <Text bold color={headerStyle.color} wrap="truncate">
+              <Text color={iconColor}>{icon.char}</Text>{" "}
+              <InlineEditField
+                initialValue={name}
+                onConfirm={handleInlineEditConfirm}
+                onCancel={handleInlineEditCancel}
+              />
+            </Text>
+          ) : (
+            <>
+              <Box flexGrow={1} flexShrink={1} overflow="hidden">
+                <Text
+                  bold
+                  color={headerStyle.color}
+                  dimColor={headerStyle.dimColor}
+                  wrap="truncate"
+                >
+                  <Text color={iconColor}>{icon.char}</Text>{" "}
+                  <Text color={isColumnSelected ? undefined : ownColor}>
+                    {untitled ? <Text dimColor color="gray">{name}</Text> : name}
+                    {!isVirtual && isSigilName(column.node.name) && column.node.name !== name && (
+                      <>{" "}<Text dimColor>{column.node.name}</Text></>
+                    )}
+                  </Text>
+                  {typeSuffix ? (
+                    <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${typeSuffix}`}</Text>
+                  ) : (
+                    ""
+                  )}
+                  {collapsedIndicator}
+                </Text>
+              </Box>
+              <Box flexShrink={0}>
+                <Text color={headerStyle.color} dimColor={headerStyle.dimColor}>
+                  {wipExceeded ? (
+                    <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
+                  ) : (
+                    <Text color={isColumnSelected ? "gray" : ownColor} dimColor>
+                      {` ${countDisplay}`}
+                    </Text>
+                  )}
+                </Text>
+              </Box>
+            </>
+          )}
+        </Box>
+        <Box width={1} flexShrink={0} />
       </Box>
 
-      {isCollapsed ? (
-        <Box flexDirection="column" flexGrow={1} minHeight={1} justifyContent="center" alignItems="center">
-          <Text dimColor>[collapsed - {count}]</Text>
-        </Box>
-      ) : column.cards.length > 0 ? (
+      {column.cards.length > 0 ? (
         <ScrollTrackingVirtualList
           colIndex={colIndex}
           isSelected={isSelected}
@@ -458,7 +486,7 @@ export const Column = React.memo(function Column({
         />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
-          <Box marginTop={1}>
+          <Box marginTop={1} paddingLeft={3}>
             <Text dimColor>(empty)</Text>
           </Box>
         </Box>

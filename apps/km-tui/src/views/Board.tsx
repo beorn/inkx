@@ -71,6 +71,7 @@ import { createToastQueue } from "@km/core"
 import { getOwnColor } from "../board-pills.ts"
 import { getBoardColorByName, normalizeBoardName } from "../text/index.ts"
 import { getNodeDisplayName } from "../state.ts"
+import { readBoardIgnored, isIgnored } from "../ignored.ts"
 
 export { makeSelectionKey } from "../types.ts"
 
@@ -102,6 +103,8 @@ export interface BoardCoreProps {
     handleSearchSelect: (targetNode: KNode) => void
     handleSearchCancel: () => void
   }
+  /** Collapsed nodes (node IDs) */
+  collapsedNodes: Set<string>
   /** Move mode active (from board state) */
   moveMode: boolean
   /** Console stats for bottom bar indicator */
@@ -211,6 +214,7 @@ export function BoardCore({
   layoutRegistry,
   setUI,
   dialogHandlers,
+  collapsedNodes,
   moveMode,
   consoleStats,
   colScrollOffset,
@@ -280,15 +284,23 @@ export function BoardCore({
                   </Box>
                 ) : (
                   <>
-                    {/* Calculate column widths using shared utility */}
+                    {/* Calculate column widths — collapsed columns get thin strip */}
                     {(() => {
+                      const COLLAPSED_WIDTH = 3
+                      // Count collapsed among visible columns
+                      const collapsedCount = effectiveVisibleColumns.filter(
+                        (col) => col.rules?.collapse || collapsedNodes.has(col.node.id),
+                      ).length
+                      const expandedCount = effectiveVisibleColumns.length - collapsedCount
+
                       const widths = calcColumnWidths({
-                        boardWidth,
-                        visibleColumnCount: effectiveVisibleColumns.length,
-                        maxCols: effectiveMaxCols,
+                        boardWidth: boardWidth - collapsedCount * COLLAPSED_WIDTH,
+                        visibleColumnCount: expandedCount,
+                        maxCols: Math.max(1, effectiveMaxCols - collapsedCount),
                         scrollOffset: effectiveScrollOffset,
                         totalColumns: state.columns.length,
                       })
+                      let expandedIdx = 0
                       return (
                         <>
                           {/* Left scroll indicator - full height filled bar */}
@@ -296,13 +308,16 @@ export function BoardCore({
                           {effectiveVisibleColumns.map((col, i) => {
                             const actualColIndex = effectiveScrollOffset + i
                             const isLastCol = i === effectiveVisibleColumns.length - 1
-                            const adjustedColWidth = getColumnWidth(i, widths.baseColWidth, widths.remainder)
+                            const isColCollapsed = col.rules?.collapse ? true : collapsedNodes.has(col.node.id)
+                            const adjustedColWidth = isColCollapsed
+                              ? COLLAPSED_WIDTH
+                              : getColumnWidth(expandedIdx++, widths.baseColWidth, widths.remainder)
                             return (
                               <React.Fragment key={col.node.id}>
                                 <Column
                                   column={col}
                                   colIndex={actualColIndex}
-                                  isCollapsed={ui.collapsedColumns.has(actualColIndex)}
+                                  isCollapsed={isColCollapsed}
                                   selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
                                   width={adjustedColWidth}
                                   height={contentHeight}
@@ -524,6 +539,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // CursorStore provides cursor state without triggering Board re-render on SELECT
   const cursorStore = useAppStore<BoardAppStore, CursorStore>((s) => s.cursorStore)
   const foldedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.foldedNodes)
+  const collapsedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.collapsedNodes)
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.moveMode)
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const layoutRegistry = useAppStore<BoardAppStore, LayoutRegistry>((s) => s.layoutRegistry)
@@ -621,6 +637,15 @@ export function Board({ patchedConsole }: BoardProps) {
 
   const derivedSelectionLevel = cursorPosition.selectionLevel
 
+  // Read ignored paths for filtering (re-read only when ignore list actually changes)
+  const ignoredPaths = useMemo(() => readBoardIgnored(repo.path), [repo.path, ui.ignoreVersion])
+
+  // Filter ignored columns for rendering (keep all columns in layout for cursor positioning)
+  const visibleColumns = useMemo(() => {
+    if (ignoredPaths.size === 0 || ui.showIgnored) return columnsLayout.columns
+    return columnsLayout.columns.filter((col) => !isIgnored(ignoredPaths, col.node, repo))
+  }, [columnsLayout.columns, ignoredPaths, ui.showIgnored, repo])
+
   // Assemble TUIBoardState for rendering.
   // Uses individual fields as deps for stable memoization.
   const emptyStringSet = useMemo(() => new Set<string>(), [])
@@ -629,7 +654,7 @@ export function Board({ patchedConsole }: BoardProps) {
     () => ({
       rootId,
       rootPath,
-      columns: columnsLayout.columns,
+      columns: visibleColumns,
       selectedNodes: emptyStringSet,
       visualMode: false,
       foldedNodes,
@@ -638,7 +663,7 @@ export function Board({ patchedConsole }: BoardProps) {
       searchMode: false,
       helpMode: false,
     }),
-    [rootId, rootPath, columnsLayout.columns, foldedNodes, emptyStringSet, emptyNumberSet],
+    [rootId, rootPath, visibleColumns, foldedNodes, emptyStringSet, emptyNumberSet],
   )
 
   // Get selected node
@@ -738,7 +763,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
     () => deriveTreeConfig(ui),
-    [ui.viewMode, ui.maxOutlineDepth, ui.maxContentLines, ui.inOutlineMode, ui.subIndex],
+    [ui.viewMode, ui.maxOutlineDepth, ui.maxContentLines, ui.inOutlineMode, ui.subIndex, ui.iconStyle],
   )
 
   return (
@@ -753,6 +778,7 @@ export function Board({ patchedConsole }: BoardProps) {
           layoutRegistry={layoutRegistry}
           setUI={setUI}
           dialogHandlers={dialogHandlers}
+          collapsedNodes={collapsedNodes}
           moveMode={moveMode}
           consoleStats={consoleStats}
           colScrollOffset={colScrollOffset}

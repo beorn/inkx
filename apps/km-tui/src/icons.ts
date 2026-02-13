@@ -5,6 +5,14 @@
  * Used by both CLI commands and TUI components.
  */
 
+/** Regex for sigil names: strings starting with @, +, or # (e.g., @next, +project, #tag) */
+export const SIGIL_RE = /^[@#+]/
+
+/** Check if a string is a sigil name */
+export function isSigilName(name: string | null | undefined): boolean {
+  return name != null && SIGIL_RE.test(name)
+}
+
 export interface StatusIcon {
   char: string
   color: string
@@ -116,6 +124,94 @@ export function getTypeIcon(type: string): string {
     default:
       return "\u00B7" // middle dot · for list items
   }
+}
+
+// =============================================================================
+// Type-Specific Bullets (Nerdfont Style)
+// =============================================================================
+
+/**
+ * Get a type-specific bullet icon for a node.
+ *
+ * Nerdfont visual design: type-specific icons replace fold markers.
+ * Tasks return null because they use getStatusIcon for their checkbox bullet.
+ *
+ * @param node - The node to get a bullet for
+ * @param hasChildren - Whether the node has children (affects list item style)
+ * @returns StatusIcon with char and color, or null for tasks
+ */
+export function getTypeBullet(node: { type: string; task_status?: string | null }, hasChildren: boolean): StatusIcon | null {
+  // Tasks don't use a type bullet — their checkbox serves as the bullet
+  if (node.task_status != null) return null
+
+  switch (node.type) {
+    case "folder":
+      return { char: "\uF114", color: "white" } //  folder-o (nerdfont)
+    case "file":
+      return { char: "\uF0F6", color: "gray" } //  file-text-o (nerdfont)
+    case "section":
+      return { char: "\u00A7", color: "white" } // § section sign
+    case "ul":
+    case "ol":
+      // List containers with children get a bullet
+      if (hasChildren) return { char: "\u2022", color: "white" } // • bullet
+      return { char: "\u00B7", color: "gray" } // · middle dot
+    default:
+      // Leaf items: paragraphs, code, quote, task (non-task), etc.
+      return { char: "\u00B7", color: "gray" } // · middle dot
+  }
+}
+
+// =============================================================================
+// WorkFlowy-style Circle Bullets
+// =============================================================================
+
+/**
+ * Get circle bullet based on children state and fold state.
+ * - Has children + folded: ● (filled circle, white) — content hidden inside
+ * - Has children + unfolded: ○ (hollow circle, white) — content visible below
+ * - No children: · (middle dot, gray) — minimal leaf indicator
+ */
+export function getCircleBullet(hasChildren: boolean, isFolded = false): StatusIcon {
+  if (hasChildren) {
+    if (isFolded) {
+      return { char: "\u25CF", color: "white" } // ● filled circle
+    }
+    return { char: "\u25CB", color: "white" } // ○ hollow circle
+  }
+  return { char: "\u00B7", color: "gray" } // · middle dot
+}
+
+// =============================================================================
+// Column Header Icon (shared across views)
+// =============================================================================
+
+/**
+ * Get the bullet icon for a column header based on icon style.
+ *
+ * Shared by CardColumn, ColumnsView, and MemoizedColumnHeader to avoid
+ * duplicating the icon-style branching logic in each view component.
+ *
+ * @param node - Column header node (for type-based icon in nerdfont style)
+ * @param iconStyle - Current icon style setting
+ * @param isVirtual - Whether this is a virtual body column
+ * @param ownColor - Optional color override from node rules
+ */
+export function getColumnHeaderIcon(
+  node: { type: string; task_status?: string | null },
+  iconStyle: string,
+  isVirtual: boolean,
+  ownColor?: string,
+): StatusIcon {
+  if (isVirtual) return { char: "\u00B7", color: "gray" } // · middle dot
+
+  const baseIcon =
+    iconStyle === "workflowy"
+      ? getCircleBullet(true, false) // columns always expanded → ○
+      : iconStyle === "nerdfont"
+        ? (getTypeBullet(node, true) ?? { char: "\u00B7", color: "gray" as const })
+        : getFoldMarker(true, false) // regular: unfolded marker •
+  return ownColor ? { ...baseIcon, color: ownColor } : baseIcon
 }
 
 /**

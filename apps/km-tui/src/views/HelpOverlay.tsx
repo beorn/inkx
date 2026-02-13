@@ -56,7 +56,7 @@ const shortcuts = [
       { key: "</>", desc: "Decrease/increase outline depth" },
       { key: "+/-", desc: "Increase/decrease content lines" },
       { key: "za / z / Z", desc: "Toggle fold / fold all / unfold all" },
-      { key: "c", desc: "Toggle column collapse" },
+      { key: "c / C / gC", desc: "Collapse / ignore / reveal ignored" },
       { key: "`", desc: "Toggle console" },
     ],
   },

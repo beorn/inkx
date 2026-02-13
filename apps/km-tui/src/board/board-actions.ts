@@ -18,6 +18,7 @@ import { dirname, join } from "node:path"
 import type { CommandAction } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createLogger } from "@beorn/logger"
+import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
 import { assertNever } from "../action-handlers.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
@@ -166,6 +167,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         return { viewMode: modes[(idx + 1) % modes.length] ?? "cards" }
       })
       return ok()
+    case "CYCLE_ICON_STYLE":
+      ctx.setUI((prev) => {
+        const styles = ["nerdfont", "workflowy", "regular"] as const
+        const idx = styles.indexOf(prev.iconStyle)
+        return { iconStyle: styles[(idx + 1) % styles.length] ?? "nerdfont" }
+      })
+      return ok()
     case "SHOW_HELP":
       ctx.setUI({ showHelp: true })
       return ok()
@@ -252,14 +260,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         ctx.setFoldedNodes(newFolded)
       }
       return ok()
-    case "TOGGLE_COLLAPSE":
-      ctx.setUI((prev) => {
-        const s = new Set(prev.collapsedColumns)
-        if (s.has(layout.colIndex)) s.delete(layout.colIndex)
-        else s.add(layout.colIndex)
-        return { collapsedColumns: s }
-      })
+    case "TOGGLE_COLLAPSE": {
+      // Collapse the column (not the card) — use column node ID
+      const collapseNodeId = col?.node.id
+      if (!collapseNodeId) return boundary("collapse", "No column to collapse")
+      ctx.dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: collapseNodeId })
       return ok()
+    }
     case "NAV_BACK":
       return handleNavBack(ctx)
     case "NAV_FORWARD":
@@ -362,6 +369,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.setFoldedNodes(newFolded)
       return ok()
     }
+
+    // === Ignore operations ===
+    case "IGNORE_NODE":
+      return handleIgnoreNode(ctx)
+    case "TOGGLE_SHOW_IGNORED":
+      ctx.setUI((prev) => ({ showIgnored: !prev.showIgnored }))
+      return ok()
 
     // === Edit operations ===
     case "INSERT_ABOVE":
@@ -775,6 +789,33 @@ function handleOpenInSystem(ctx: ActionCtx, nodeId: string): void {
   const result = resolveNodeFsPath(ctx.repo, nodeId)
   log.debug?.("open_in_system: opening %s", result.fsPath)
   spawnOpen(ctx, [result.fsPath], "open_in_system")
+}
+
+function handleIgnoreNode(ctx: ActionCtx): ActionResult {
+  const { layout, repo } = ctx
+  const col = layout.columns[layout.colIndex]
+  const card = col?.cards[layout.cardIndex]
+  const node = card?.node ?? col?.node
+  if (!node) return boundary("ignore", "No node to ignore")
+
+  const ignorePath = computeIgnorePath(node, repo)
+  if (!ignorePath) return boundary("ignore", "Cannot compute ignore path")
+
+  const ignoredPaths = readBoardIgnored(repo.path)
+  const alreadyIgnored = isIgnored(ignoredPaths, node, repo)
+
+  if (alreadyIgnored) {
+    // Un-ignore (only works in reveal mode)
+    removeIgnored(repo.path, ignorePath)
+    ctx.toastQueue.info(`Un-ignored: ${ignorePath}`)
+  } else {
+    addIgnored(repo.path, ignorePath)
+    ctx.toastQueue.info(`Ignored: ${ignorePath}`)
+  }
+
+  // Bump ignore version so readBoardIgnored memo invalidates
+  ctx.setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
+  return ok()
 }
 
 function handleOpenInTerminal(ctx: ActionCtx, nodeId: string): void {

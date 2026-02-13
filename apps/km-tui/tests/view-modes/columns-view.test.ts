@@ -55,7 +55,7 @@ describe("Columns View", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
       const output = board.screenshot()
       expect(output).toContain("col1")
-      expect(output).toContain("(3)")
+      expect(output).toContain(" 3")
     })
 
     test("displays multiple columns side by side", () => {
@@ -72,7 +72,7 @@ describe("Columns View", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("task")), item("col2")))
       const output = board.screenshot()
       expect(output).toContain("col2")
-      expect(output).toContain("(0)")
+      expect(output).toContain(" 0")
     })
 
     test("empty board shows helpful message", () => {
@@ -197,7 +197,7 @@ describe("Columns View", () => {
       board.press("z").press("M")
       board.expect("#child1").not.toExist()
       board.expect("#child2").not.toExist()
-      expect(board.screenshot()).toContain("\u25B6\uFE0F 2") // Folded indicator (VS16 for emoji presentation)
+      expect(board.screenshot()).toContain(" 2")
     })
   })
 

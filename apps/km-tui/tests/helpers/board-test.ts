@@ -637,7 +637,9 @@ export function testEnvWithRepo(
         expect(loc.count()).toBe(n)
       },
     }),
-    screenshot: () => result.text,
+    screenshot: () => {
+      return result.text
+    },
     /** Get current status message if visible, or null if no status */
     getStatus: (): { level: string; message: string } | null => {
       const bottomBar = result.locator("#bottom-bar")
@@ -1257,6 +1259,7 @@ export function renderBoard(state: TUIBoardState, options: BoardTestOptions = {}
       handleSearchSelect: () => {},
       handleSearchCancel: () => {},
     },
+    collapsedNodes: new Set<string>(),
     moveMode: false,
     colScrollOffset: 0,
   })

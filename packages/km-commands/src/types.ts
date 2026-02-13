@@ -170,6 +170,10 @@ interface CycleViewModeAction {
   type: "CYCLE_VIEW_MODE"
 }
 
+interface CycleIconStyleAction {
+  type: "CYCLE_ICON_STYLE"
+}
+
 interface DeleteNodeAction {
   type: "DELETE_NODE"
   nodeId: string
@@ -261,6 +265,15 @@ interface UnfoldNodeAction {
 
 interface UnfoldRecursiveAction {
   type: "UNFOLD_RECURSIVE"
+}
+
+// Ignore operations (hide nodes from board)
+interface IgnoreNodeAction {
+  type: "IGNORE_NODE"
+}
+
+interface ToggleShowIgnoredAction {
+  type: "TOGGLE_SHOW_IGNORED"
 }
 
 // UI stubs (future features)
@@ -431,6 +444,8 @@ export type TUIAction =
   | FoldNodeAction
   | UnfoldNodeAction
   | UnfoldRecursiveAction
+  | IgnoreNodeAction
+  | ToggleShowIgnoredAction
   | FilterAction
   | CommandPaletteAction
   | InsertAboveAction
@@ -450,6 +465,7 @@ export type UIAction =
   | ShowHelpAction
   | HideHelpAction
   | CycleViewModeAction
+  | CycleIconStyleAction
   | DeleteNodeAction
   | SelectAllProgressiveAction
   | TUIAction

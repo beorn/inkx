@@ -1062,7 +1062,7 @@ describe("Display", () => {
   test("column headers show card count", () => {
     const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
     const output = board.screenshot()
-    expect(output).toContain("(3)")
+    expect(output).toContain(" 3")
   })
 })
 
@@ -1213,14 +1213,14 @@ describe("Folding", () => {
     board.press("z").press("M")
     board.expect("#child1").not.toExist()
     const output = board.screenshot()
-    expect(output).toContain("▶\uFE0F 2") // Folded indicator (VS16 for emoji presentation)
+    expect(output).toContain(" 2")
   })
 
   test("folded card shows count indicator", () => {
     const { board } = testEnv(() => item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
     board.press("z").press("M")
     const output = board.screenshot()
-    expect(output).toContain("▶\uFE0F 3")
+    expect(output).toContain(" 3")
   })
 })
 

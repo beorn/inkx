@@ -11,6 +11,7 @@ import { useMemo, useSyncExternalStore } from "react"
 import { createLogger } from "@beorn/logger"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
+import { extractBody } from "@km/tree"
 import type { ColumnState, CardState, ColumnRules } from "../types.ts"
 import { parseColumnRules } from "../state.ts"
 
@@ -148,16 +149,48 @@ function kNodeToColumnState(
   // Get cards (children of column)
   const cardNodes = repo.getChildren(node.id)
 
-  // Convert children to cards
-  const cards: CardState[] = cardNodes.map((child) => {
-    const childChildren = repo.getChildren(child.id)
-    const isFolded = foldedNodes.has(child.id)
-    return {
-      node: child,
-      children: isFolded ? [] : childChildren,
-      childCount: childChildren.length,
+  // Extract body content (paragraphs before first section/file/folder)
+  const { body: bodyNodes, items: structuralNodes } = extractBody(cardNodes)
+
+  // Convert children to cards, marking body content as virtual
+  const cards: CardState[] = []
+
+  if (structuralNodes.length > 0) {
+    // Body cards are virtual (borderless, de-emphasized)
+    for (const child of bodyNodes) {
+      const childChildren = repo.getChildren(child.id)
+      const isFolded = foldedNodes.has(child.id)
+      cards.push({
+        node: child,
+        children: isFolded ? [] : childChildren,
+        childCount: childChildren.length,
+        isVirtual: true,
+      })
     }
-  })
+    // Structural cards are regular
+    for (const child of structuralNodes) {
+      const childChildren = repo.getChildren(child.id)
+      const isFolded = foldedNodes.has(child.id)
+      cards.push({
+        node: child,
+        children: isFolded ? [] : childChildren,
+        childCount: childChildren.length,
+      })
+    }
+  } else {
+    // No structural children — mark non-task body as virtual
+    const allBody = !cardNodes.some((n) => n.type === "task")
+    for (const child of cardNodes) {
+      const childChildren = repo.getChildren(child.id)
+      const isFolded = foldedNodes.has(child.id)
+      cards.push({
+        node: child,
+        children: isFolded ? [] : childChildren,
+        childCount: childChildren.length,
+        ...(allBody ? { isVirtual: true } : {}),
+      })
+    }
+  }
 
   return {
     node,

@@ -1,3 +1,5 @@
+export type IconStyle = "nerdfont" | "workflowy" | "regular"
+
 /**
  * UI State Types and Factory
  *
@@ -19,6 +21,7 @@ export interface UIState {
   showDetailPane: boolean
   maxOutlineDepth: number
   maxContentLines: number
+  iconStyle: IconStyle
 
   // Board context
   rootBoardId: string | null
@@ -40,6 +43,11 @@ export interface UIState {
 
   // Column state
   collapsedColumns: Set<number>
+
+  // Ignore mode — when true, show ignored nodes (dimmed) for un-ignoring
+  showIgnored: boolean
+  /** Bumped when ignore list changes, to invalidate readBoardIgnored memoization */
+  ignoreVersion: number
 
   // Mouse state
   mouseSelection: SelectionRange | null
@@ -114,6 +122,7 @@ export function createInitialUIState(
     showDetailPane: initialViewMode === "list",
     maxOutlineDepth: 2,
     maxContentLines: 3,
+    iconStyle: "nerdfont" as IconStyle,
 
     rootBoardId,
 
@@ -131,6 +140,9 @@ export function createInitialUIState(
     selectAllLevel: 0,
 
     collapsedColumns: new Set(collapsedColumns),
+
+    showIgnored: false,
+    ignoreVersion: 0,
 
     mouseSelection: null,
     isMouseDragging: false,

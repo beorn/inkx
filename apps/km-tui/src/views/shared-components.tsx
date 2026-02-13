@@ -14,9 +14,10 @@ import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts"
-import { getNodeIcon, renderPlain, renderRich } from "../text/index.ts"
+import { getNodeIcon, getColumnHeaderIcon, isSigilName, renderPlain, renderRich } from "../text/index.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
+import { useTreeRenderContext } from "../ui-context.tsx"
 import { useIsCursorAtCard } from "../cursor-context.tsx"
 
 // =============================================================================
@@ -185,21 +186,16 @@ export const MemoizedColumnHeader = React.memo(
     showSeparator = true,
   }: MemoizedColumnHeaderProps): React.ReactElement {
     const repo = useRepo()
+    const { treeConfig: { iconStyle } } = useTreeRenderContext()
     const ownColor = getOwnColor(column.node)
     const headerStyle = getHeaderStyle(ownColor, isSelected, isColSelected)
 
-    // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
-    const icon = getNodeIcon(null, ownColor, false)
+    const icon = getColumnHeaderIcon(column.node, iconStyle, false, ownColor)
     const iconColor = isColSelected ? "black" : icon.color
 
     // Render header with wiki links stripped: [[target|alias]] → "alias"
     const headerText = renderPlain(getNodeDisplayName(repo, column.node))
     const untitled = isNodeUntitled(repo, column.node)
-    const countText = ` (${column.cards.length})`
-    // Calculate padding to fill full width: " [icon] headerText countText" = 3 + headerText + countText
-    const headerContentLen = 3 + headerText.length + countText.length
-    const headerPadding = " ".repeat(Math.max(0, width - headerContentLen))
-
     return (
       <Box
         flexDirection="column"
@@ -217,21 +213,32 @@ export const MemoizedColumnHeader = React.memo(
             <Text> </Text>
           </Box>
         )}
-        <Box width={width}>
-          <Text
-            bold
-            color={headerStyle.color}
-            dimColor={headerStyle.dimColor}
-            backgroundColor={headerStyle.backgroundColor}
-            wrap="truncate"
-          >
-            {" "}
-            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor color="gray">{headerText}</Text> : headerText}
-            <Text color={isColSelected ? "gray" : undefined} dimColor={!isColSelected}>
-              {countText}
-            </Text>
-            {headerPadding}
-          </Text>
+        <Box width={width} flexDirection="row">
+          <Box width={1} flexShrink={0} />
+          <Box flexGrow={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
+            <Box flexGrow={1} flexShrink={1} overflow="hidden">
+              <Text
+                bold
+                color={headerStyle.color}
+                dimColor={headerStyle.dimColor}
+                wrap="truncate"
+              >
+                <Text color={iconColor}>{icon.char}</Text>{" "}
+                <Text color={isColSelected ? undefined : ownColor}>
+                  {untitled ? <Text dimColor color="gray">{headerText}</Text> : headerText}
+                  {isSigilName(column.node.name) && column.node.name !== headerText ? <>{" "}<Text dimColor>{column.node.name}</Text></> : null}
+                </Text>
+              </Text>
+            </Box>
+            <Box flexShrink={0}>
+              <Text bold color={headerStyle.color} dimColor={headerStyle.dimColor}>
+                <Text color={isColSelected ? "gray" : ownColor} dimColor>
+                  {` ${column.cards.length}`}
+                </Text>
+              </Text>
+            </Box>
+          </Box>
+          <Box width={1} flexShrink={0} />
         </Box>
         {showSeparator && (
           <Box width={width}>

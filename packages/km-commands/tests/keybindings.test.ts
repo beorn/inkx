@@ -776,7 +776,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(16) // 6 z + 3 g + 3 t + 4 s
+    expect(chordBindings.length).toBe(17) // 6 z + 4 g + 3 t + 4 s
   })
 
   it("new key remappings work", () => {

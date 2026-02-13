@@ -16,7 +16,7 @@ import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
-import { getNodeIcon, renderPlain } from "../text/index.ts"
+import { getColumnHeaderIcon, isSigilName, renderPlain } from "../text/index.ts"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { calcColumnWidths, getColumnWidth } from "./board-layout.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
@@ -68,7 +68,7 @@ const ColumnTree = React.memo(function ColumnTree({
 }: ColumnTreeProps) {
   const repo = useRepo()
   const {
-    treeConfig: { inOutlineMode },
+    treeConfig: { inOutlineMode, iconStyle },
   } = useTreeRenderContext()
 
   // Subscribe to column selection only (stable on j/k within same column)
@@ -86,8 +86,7 @@ const ColumnTree = React.memo(function ColumnTree({
   const isColumnHeaderSelected = isSelected && selectionLevel === "column"
   const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnHeaderSelected)
 
-  // Get consistent bullet icon using getNodeIcon (same rules as TreeNode)
-  const icon = getNodeIcon(null, ownColor, false)
+  const icon = getColumnHeaderIcon(column.node, iconStyle, false, ownColor)
   const iconColor = isColumnHeaderSelected ? "black" : icon.color
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
@@ -103,13 +102,14 @@ const ColumnTree = React.memo(function ColumnTree({
     (card: CardState, actualIndex: number) => {
       log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`)
       return (
-        <MemoizedTreeCard
-          key={card.node.id}
-          card={card}
-          colIndex={colIndex}
-          cardIndex={actualIndex}
-          extraExcludedSigils={extraExcludedSigils}
-        />
+        <Box key={card.node.id} paddingLeft={1}>
+          <MemoizedTreeCard
+            card={card}
+            colIndex={colIndex}
+            cardIndex={actualIndex}
+            extraExcludedSigils={extraExcludedSigils}
+          />
+        </Box>
       )
     },
     [colIndex, extraExcludedSigils],
@@ -133,16 +133,30 @@ const ColumnTree = React.memo(function ColumnTree({
     >
       {/* Header section */}
       <Box flexDirection="column" height={2} flexShrink={0}>
-        {/* Header row - backgroundColor on Text ensures fg color applies correctly */}
-        <Box>
-          <Text bold color={headerStyle.color} backgroundColor={headerStyle.backgroundColor} wrap="truncate">
-            {" "}
-            <Text color={iconColor}>{icon.char}</Text> {untitled ? <Text dimColor color="gray">{name}</Text> : name}
-            <Text
-              color={isColumnHeaderSelected ? "gray" : undefined}
-              dimColor={!isColumnHeaderSelected}
-            >{` (${count})`}</Text>
-          </Text>
+        {/* Header row - spacer boxes simulate card border for matching inverse width */}
+        <Box flexDirection="row">
+          <Box width={1} flexShrink={0} />
+          <Box flexGrow={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
+            <Box flexGrow={1} flexShrink={1} overflow="hidden">
+              <Text bold color={headerStyle.color} wrap="truncate">
+                <Text color={iconColor}>{icon.char}</Text>{" "}
+                <Text color={isColumnHeaderSelected ? undefined : ownColor}>
+                  {untitled ? <Text dimColor color="gray">{name}</Text> : name}
+                  {isSigilName(column.node.name) && column.node.name !== name && (
+                    <>{" "}<Text dimColor>{column.node.name}</Text></>
+                  )}
+                </Text>
+              </Text>
+            </Box>
+            <Box flexShrink={0}>
+              <Text bold color={headerStyle.color}>
+                <Text color={isColumnHeaderSelected ? "gray" : ownColor} dimColor>
+                  {` ${count}`}
+                </Text>
+              </Text>
+            </Box>
+          </Box>
+          <Box width={1} flexShrink={0} />
         </Box>
         <Text dimColor wrap="truncate">
           {"─".repeat(100)}

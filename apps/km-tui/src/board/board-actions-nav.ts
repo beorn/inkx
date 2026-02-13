@@ -97,21 +97,35 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
   if (ctx.cursorNodeId) {
     let targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
 
-    // Skip virtual cards (body content without borders/selection)
+    // Skip virtual cards (body content without borders/selection).
+    // Navigate vertically (down, then up) within the target column to find
+    // a non-virtual card. The previous approach navigated in the same horizontal
+    // direction, which fails at column boundaries (e.g., rightmost column).
     if (targetId && isVirtualCard(ctx, targetId)) {
-      const tempCtx = { ...navStateFrom(ctx), cursorNodeId: targetId }
       const MAX_SKIP = 10
-      for (let i = 0; i < MAX_SKIP && targetId && isVirtualCard(ctx, targetId); i++) {
-        const next = viewNavigation.navigate(dir, { ...tempCtx, cursorNodeId: targetId }, ctx.repo, layoutRegistry)
+      // Try navigating down first
+      let found = false
+      let tempId = targetId
+      for (let i = 0; i < MAX_SKIP && tempId && isVirtualCard(ctx, tempId); i++) {
+        const next = viewNavigation.navigate("down", { ...navStateFrom(ctx), cursorNodeId: tempId }, ctx.repo, layoutRegistry)
         if (next === null) break
-        targetId = next
+        tempId = next
       }
-      // If still virtual, try the column header instead
-      if (targetId && isVirtualCard(ctx, targetId)) {
-        const columns = ctx.repo.getChildren(ctx.rootId)
-        const targetColIdx = layout.colIndex + (dir === "left" ? -1 : 1)
-        const targetCol = columns[targetColIdx]
-        if (targetCol) targetId = targetCol.id
+      if (tempId && !isVirtualCard(ctx, tempId)) {
+        targetId = tempId
+        found = true
+      }
+      // If down didn't work, try up
+      if (!found) {
+        tempId = targetId
+        for (let i = 0; i < MAX_SKIP && tempId && isVirtualCard(ctx, tempId); i++) {
+          const next = viewNavigation.navigate("up", { ...navStateFrom(ctx), cursorNodeId: tempId }, ctx.repo, layoutRegistry)
+          if (next === null) break
+          tempId = next
+        }
+        if (tempId && !isVirtualCard(ctx, tempId)) {
+          targetId = tempId
+        }
       }
     }
 
