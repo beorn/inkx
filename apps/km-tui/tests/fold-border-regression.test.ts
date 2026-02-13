@@ -38,7 +38,7 @@ describe("Fold border regression", () => {
             item("G", item("g1")),
           ),
         ),
-      { columns: 60, rows: 40 },
+      { columns: 60, rows: 20 },
     )
 
     // At every fold level, top borders must equal bottom borders
@@ -76,7 +76,7 @@ describe("Fold border regression", () => {
             item("H", item("h1")),
           ),
         ),
-      { columns: 60, rows: 40 },
+      { columns: 60, rows: 20 },
     )
 
     board.press("j").press("j").press("j").press("j")

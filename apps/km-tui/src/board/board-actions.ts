@@ -707,6 +707,10 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     ctx.setUI({ showHelp: false })
     return ok()
   }
+  if (ui.showSearchDialog) {
+    dialogTargetRef.current?.cancel()
+    return ok()
+  }
   if (ui.showProjectPicker) {
     ctx.setUI({ showProjectPicker: false })
     return ok()
@@ -795,20 +799,25 @@ function handleIgnoreNode(ctx: ActionCtx): ActionResult {
   const ignorePath = computeIgnorePath(node, repo)
   if (!ignorePath) return boundary("ignore", "Cannot compute ignore path")
 
-  const ignoredPaths = readBoardIgnored(repo.path)
-  const alreadyIgnored = isIgnored(ignoredPaths, node, repo)
+  try {
+    const ignoredPaths = readBoardIgnored(repo.path)
+    const alreadyIgnored = isIgnored(ignoredPaths, node, repo)
 
-  if (alreadyIgnored) {
-    // Un-ignore (only works in reveal mode)
-    removeIgnored(repo.path, ignorePath)
-    ctx.toastQueue.info(`Un-ignored: ${ignorePath}`)
-  } else {
-    addIgnored(repo.path, ignorePath)
-    ctx.toastQueue.info(`Ignored: ${ignorePath}`)
+    if (alreadyIgnored) {
+      // Un-ignore (only works in reveal mode)
+      removeIgnored(repo.path, ignorePath)
+      ctx.toastQueue.info(`Un-ignored: ${ignorePath}`)
+    } else {
+      addIgnored(repo.path, ignorePath)
+      ctx.toastQueue.info(`Ignored: ${ignorePath}`)
+    }
+
+    // Bump ignore version so readBoardIgnored memo invalidates
+    ctx.setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    ctx.toastQueue.error(`Failed to ignore: ${msg}`)
   }
-
-  // Bump ignore version so readBoardIgnored memo invalidates
-  ctx.setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
   return ok()
 }
 
