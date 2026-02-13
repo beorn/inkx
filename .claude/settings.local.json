@@ -3,6 +3,8 @@
     "allow": [
       "Bash",
       "Read",
+      "Glob",
+      "Grep",
       "Update",
       "Edit",
       "Write",
