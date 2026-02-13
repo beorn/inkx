@@ -13,9 +13,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 
 describe("Exploration: Column Delete", () => {
   test("Backspace on column header with children shows confirm dialog", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     // Navigate to col1 header
@@ -38,9 +36,7 @@ describe("Exploration: Column Delete", () => {
   })
 
   test("Backspace on column header, confirm with Enter", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     // Navigate to col1 header
@@ -58,9 +54,7 @@ describe("Exploration: Column Delete", () => {
   })
 
   test("Backspace on column header, cancel with Escape", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     // Navigate to col1 header
@@ -84,9 +78,7 @@ describe("Exploration: Column Delete", () => {
   })
 
   test("Backspace on empty column", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2")),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A")), item("col2")))
     const bugs: string[] = []
 
     // Navigate to col2 header (empty column)
@@ -103,9 +95,7 @@ describe("Exploration: Column Delete", () => {
   })
 
   test("delete last column via header", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     const bugs: string[] = []
 
     // Navigate to col2 header

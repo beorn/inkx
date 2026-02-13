@@ -107,7 +107,12 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
       let found = false
       let tempId = targetId
       for (let i = 0; i < MAX_SKIP && tempId && isVirtualCard(ctx, tempId); i++) {
-        const next = viewNavigation.navigate("down", { ...navStateFrom(ctx), cursorNodeId: tempId }, ctx.repo, layoutRegistry)
+        const next = viewNavigation.navigate(
+          "down",
+          { ...navStateFrom(ctx), cursorNodeId: tempId },
+          ctx.repo,
+          layoutRegistry,
+        )
         if (next === null) break
         tempId = next
       }
@@ -119,7 +124,12 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
       if (!found) {
         tempId = targetId
         for (let i = 0; i < MAX_SKIP && tempId && isVirtualCard(ctx, tempId); i++) {
-          const next = viewNavigation.navigate("up", { ...navStateFrom(ctx), cursorNodeId: tempId }, ctx.repo, layoutRegistry)
+          const next = viewNavigation.navigate(
+            "up",
+            { ...navStateFrom(ctx), cursorNodeId: tempId },
+            ctx.repo,
+            layoutRegistry,
+          )
           if (next === null) break
           tempId = next
         }
@@ -159,7 +169,12 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
 
   const MAX_SKIP = 10
   for (let i = 0; i < MAX_SKIP && targetId && isVirtualCard(ctx, targetId); i++) {
-    const next = viewNavigation.navigate(dir, { ...navStateFrom(ctx), cursorNodeId: targetId }, ctx.repo, layoutRegistry)
+    const next = viewNavigation.navigate(
+      dir,
+      { ...navStateFrom(ctx), cursorNodeId: targetId },
+      ctx.repo,
+      layoutRegistry,
+    )
     if (next === null) break
     targetId = next
   }

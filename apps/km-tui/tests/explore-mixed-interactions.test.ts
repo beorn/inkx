@@ -20,9 +20,7 @@ function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, un
 
 describe("Exploration: Mixed Interactions", () => {
   test("detail pane then batch select then toggle", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     setTaskStatus(repo, ["A", "B", "C", "D"])
     const bugs: string[] = []
 
@@ -171,10 +169,7 @@ describe("Exploration: Mixed Interactions", () => {
 
   test("multiple view modes with indent", () => {
     for (const viewMode of ["cards", "columns", "list"] as const) {
-      const { board, repo } = testEnv(
-        () => item("board", item("col1", item("A"), item("B"), item("C"))),
-        { viewMode },
-      )
+      const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), { viewMode })
       const bugs: string[] = []
 
       board.press("j") // → B
@@ -192,12 +187,7 @@ describe("Exploration: Mixed Interactions", () => {
 
   test("h/l boundary navigation: h at leftmost, l at rightmost", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     const bugs: string[] = []
 
@@ -280,19 +270,34 @@ describe("Exploration: Mixed Interactions", () => {
 
   test("rapid key sequences don't accumulate errors", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("A"), item("B"), item("C")),
-        item("col2", item("D"), item("E")),
-      ),
+      item("board", item("col1", item("A"), item("B"), item("C")), item("col2", item("D"), item("E"))),
     )
     const bugs: string[] = []
 
     // Rapid navigation
     const keys = [
-      "j", "j", "k", "l", "j", "h", "j", "k", "k",
-      "l", "l", "h", "g", "G", "j", "k", "h", "l",
-      "j", "j", "k", "g",
+      "j",
+      "j",
+      "k",
+      "l",
+      "j",
+      "h",
+      "j",
+      "k",
+      "k",
+      "l",
+      "l",
+      "h",
+      "g",
+      "G",
+      "j",
+      "k",
+      "h",
+      "l",
+      "j",
+      "j",
+      "k",
+      "g",
     ]
     for (const key of keys) {
       board.press(key)

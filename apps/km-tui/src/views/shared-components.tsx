@@ -182,7 +182,9 @@ export const MemoizedColumnHeader = React.memo(
     showSeparator = true,
   }: MemoizedColumnHeaderProps): React.ReactElement {
     const repo = useRepo()
-    const { treeConfig: { iconStyle } } = useTreeRenderContext()
+    const {
+      treeConfig: { iconStyle },
+    } = useTreeRenderContext()
     const ownColor = getOwnColor(column.node)
     const headerStyle = getHeaderStyle(ownColor, isSelected, isColSelected)
 
@@ -213,16 +215,22 @@ export const MemoizedColumnHeader = React.memo(
           <Box width={1} flexShrink={0} />
           <Box flexGrow={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
             <Box flexGrow={1} flexShrink={1} overflow="hidden">
-              <Text
-                bold
-                color={headerStyle.color}
-                dimColor={headerStyle.dimColor}
-                wrap="truncate"
-              >
+              <Text bold color={headerStyle.color} dimColor={headerStyle.dimColor} wrap="truncate">
                 <Text color={iconColor}>{icon.char}</Text>{" "}
                 <Text color={isColSelected ? undefined : ownColor}>
-                  {untitled ? <Text dimColor color="gray">{headerText}</Text> : headerText}
-                  {isSigilName(column.node.name) && column.node.name !== headerText ? <>{" "}<Text dimColor>{column.node.name}</Text></> : null}
+                  {untitled ? (
+                    <Text dimColor color="gray">
+                      {headerText}
+                    </Text>
+                  ) : (
+                    headerText
+                  )}
+                  {isSigilName(column.node.name) && column.node.name !== headerText ? (
+                    <>
+                      {" "}
+                      <Text dimColor>{column.node.name}</Text>
+                    </>
+                  ) : null}
                 </Text>
               </Text>
             </Box>
@@ -479,11 +487,7 @@ export function ConfirmDialog({
       title={title}
       titleAlign="flex-start"
       width={width}
-      footer={
-        <Text dimColor>
-          Enter to confirm · Esc to cancel
-        </Text>
-      }
+      footer={<Text dimColor>Enter to confirm · Esc to cancel</Text>}
     >
       {warnings.map((w, i) => (
         <Text key={i} color="yellow">

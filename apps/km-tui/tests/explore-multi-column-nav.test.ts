@@ -10,10 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Exploration: Multi-Column Navigation", () => {
   test("h/l navigate between columns", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     board.press("l") // Move to col2
     board.press("h") // Back to col1
@@ -24,9 +21,7 @@ describe("Exploration: Multi-Column Navigation", () => {
   })
 
   test("l at rightmost column wraps or stops", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     board.press("l") // Move to col2
     board.press("l") // Already at rightmost
     const text = board.screenshot()
@@ -35,9 +30,7 @@ describe("Exploration: Multi-Column Navigation", () => {
   })
 
   test("h at leftmost column wraps or stops", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     board.press("h") // Already at leftmost
     const text = board.screenshot()
     expect(text).not.toContain("[object Object]")
@@ -46,11 +39,7 @@ describe("Exploration: Multi-Column Navigation", () => {
 
   test("navigate to third column", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A")),
-        item("col2", item("B")),
-        item("col3", item("C")),
-      ),
+      item("board", item("col1", item("A")), item("col2", item("B")), item("col3", item("C"))),
     )
     board.press("l").press("l") // Move to col3
     const text = board.screenshot()
@@ -60,10 +49,7 @@ describe("Exploration: Multi-Column Navigation", () => {
 
   test("cursor memory: remember card position per column", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B"), item("C")),
-        item("col2", item("D"), item("E")),
-      ),
+      item("board", item("col1", item("A"), item("B"), item("C")), item("col2", item("D"), item("E"))),
     )
     board.press("j").press("j") // Move to C in col1
     board.press("l") // Move to col2
@@ -75,9 +61,7 @@ describe("Exploration: Multi-Column Navigation", () => {
   })
 
   test("single column board with h/l", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("l") // No second column
     board.press("h") // Still only one column
     const text = board.screenshot()
@@ -87,7 +71,8 @@ describe("Exploration: Multi-Column Navigation", () => {
 
   test("many columns with rapid navigation", () => {
     const { board } = testEnv(() =>
-      item("board",
+      item(
+        "board",
         item("c1", item("A")),
         item("c2", item("B")),
         item("c3", item("C")),
@@ -103,12 +88,7 @@ describe("Exploration: Multi-Column Navigation", () => {
   })
 
   test("delete item in one column, navigate to another", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     board.press("x") // Delete A in col1
     board.press("l") // Navigate to col2
     const text = board.screenshot()
@@ -119,10 +99,7 @@ describe("Exploration: Multi-Column Navigation", () => {
 
   test("navigate between columns of different heights", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A")),
-        item("col2", item("B"), item("C"), item("D"), item("E"), item("F")),
-      ),
+      item("board", item("col1", item("A")), item("col2", item("B"), item("C"), item("D"), item("E"), item("F"))),
     )
     board.press("l") // To col2
     board.press("j").press("j").press("j").press("j") // To F
@@ -134,9 +111,7 @@ describe("Exploration: Multi-Column Navigation", () => {
   })
 
   test("G jumps to last item in column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     board.press("G") // Jump to last
     const text = board.screenshot()
     expect(text).not.toContain("[object Object]")
@@ -144,9 +119,7 @@ describe("Exploration: Multi-Column Navigation", () => {
   })
 
   test("g g jumps to first item", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     board.press("j").press("j").press("j") // Move to D
     board.press("g").press("g") // Jump to first (gg chord)
     const text = board.screenshot()

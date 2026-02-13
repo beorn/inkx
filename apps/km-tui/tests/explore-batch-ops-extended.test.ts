@@ -20,9 +20,7 @@ function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, un
 
 describe("Exploration: Batch Ops Extended", () => {
   test("batch duplicate: J select 2, then d duplicates both", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("J") // anchor=A, cursor→B
@@ -42,9 +40,7 @@ describe("Exploration: Batch Ops Extended", () => {
   })
 
   test("batch delete first card, cursor moves to next", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     // Select A only (single selection, no J needed — just Backspace)
@@ -63,9 +59,7 @@ describe("Exploration: Batch Ops Extended", () => {
   })
 
   test("batch delete last card, cursor moves to previous", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Navigate to last card
@@ -86,12 +80,10 @@ describe("Exploration: Batch Ops Extended", () => {
 
   test("batch x on mixed task statuses", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item.task("A", "todo"),
-        item.task("B", "wip"),
-        item.task("C", "done"),
-        item.task("D", "todo"),
-      )),
+      item(
+        "board",
+        item("col1", item.task("A", "todo"), item.task("B", "wip"), item.task("C", "done"), item.task("D", "todo")),
+      ),
     )
     const bugs: string[] = []
 
@@ -111,10 +103,7 @@ describe("Exploration: Batch Ops Extended", () => {
 
   test("J past column boundary: select in col1, navigate to col2", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     const bugs: string[] = []
 
@@ -129,12 +118,7 @@ describe("Exploration: Batch Ops Extended", () => {
   })
 
   test("batch delete with single item in column", () => {
-    const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("only")),
-        item("col2", item("C")),
-      ),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("only")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press("Backspace") // delete the only card
@@ -150,11 +134,7 @@ describe("Exploration: Batch Ops Extended", () => {
 
   test("select then Escape clears, then batch op affects only cursor", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item.task("A", "todo"),
-        item.task("B", "todo"),
-        item.task("C", "todo"),
-      )),
+      item("board", item("col1", item.task("A", "todo"), item.task("B", "todo"), item.task("C", "todo"))),
     )
     const bugs: string[] = []
 
@@ -178,10 +158,7 @@ describe("Exploration: Batch Ops Extended", () => {
 
   test("batch delete with confirm dialog for parent nodes", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("leaf"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2")), item("leaf"))),
     )
     const bugs: string[] = []
 
@@ -197,9 +174,7 @@ describe("Exploration: Batch Ops Extended", () => {
   })
 
   test("J K alternating does not corrupt selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     // Alternating J and K
@@ -217,9 +192,7 @@ describe("Exploration: Batch Ops Extended", () => {
   })
 
   test("batch duplicate then undo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Select A→B then duplicate

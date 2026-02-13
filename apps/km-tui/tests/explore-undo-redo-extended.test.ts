@@ -14,9 +14,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 
 describe("Exploration: Undo/Redo Extended", () => {
   test("undo duplicate on last card in column", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("last"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("last"))))
     const bugs: string[] = []
 
     // Navigate to last
@@ -44,10 +42,7 @@ describe("Exploration: Undo/Redo Extended", () => {
 
   test("undo duplicate in second column", () => {
     const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     const bugs: string[] = []
 
@@ -77,10 +72,7 @@ describe("Exploration: Undo/Redo Extended", () => {
 
   test("undo with folded node", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -105,10 +97,7 @@ describe("Exploration: Undo/Redo Extended", () => {
 
   test("multiple undos across different columns", () => {
     const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     const bugs: string[] = []
 
@@ -139,9 +128,7 @@ describe("Exploration: Undo/Redo Extended", () => {
   })
 
   test("undo renders board correctly (no stale cards)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("d") // dup A
@@ -159,12 +146,7 @@ describe("Exploration: Undo/Redo Extended", () => {
   })
 
   test("undo does not affect other state (view mode, folds)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     // Change some state
@@ -183,9 +165,7 @@ describe("Exploration: Undo/Redo Extended", () => {
   })
 
   test("undo at stack capacity boundary", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Push many undo entries (undo stack has max 100)

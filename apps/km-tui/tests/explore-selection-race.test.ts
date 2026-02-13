@@ -10,9 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Selection Race", () => {
   test("J extends selection downward from first card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     board.press("J") // select A→B
@@ -27,9 +25,7 @@ describe("Exploration: Selection Race", () => {
   })
 
   test("K extends selection upward from last card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     // Navigate to last card
@@ -47,9 +43,7 @@ describe("Exploration: Selection Race", () => {
   })
 
   test("J then K contracts selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     board.press("J") // A→B
@@ -66,9 +60,7 @@ describe("Exploration: Selection Race", () => {
   })
 
   test("rapid J/K alternation does not crash", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     // Rapid alternation
@@ -85,9 +77,7 @@ describe("Exploration: Selection Race", () => {
   })
 
   test("J past last card hits boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("J") // A→B
@@ -103,9 +93,7 @@ describe("Exploration: Selection Race", () => {
   })
 
   test("K past first card hits boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("K") // boundary — already at first card
@@ -145,9 +133,7 @@ describe("Exploration: Selection Race", () => {
   })
 
   test("J selection then Escape clears selection cleanly", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("J").press("J") // select A→C
@@ -165,9 +151,7 @@ describe("Exploration: Selection Race", () => {
   })
 
   test("J in column with single card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("only"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("only"))))
     const bugs: string[] = []
 
     board.press("J") // no card to extend to
@@ -180,9 +164,7 @@ describe("Exploration: Selection Race", () => {
   })
 
   test("selection across view mode change", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("J") // start selection

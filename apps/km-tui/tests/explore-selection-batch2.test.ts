@@ -9,9 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Selection + Batch Operations", () => {
   test("toggle selection with v", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     board.press("v") // Toggle selection on A
     const text = board.screenshot()
@@ -20,9 +18,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("extend selection down with Shift-J", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     board.press("v") // Start selection
     board.press("S-j") // Extend down
@@ -33,9 +29,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("extend selection up with Shift-K", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Move to D
     board.press("j").press("j").press("j")
@@ -48,9 +42,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("select all with Ctrl-A", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     board.press("C-a") // Select all
     const text = board.screenshot()
@@ -59,9 +51,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("batch indent with selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Select B and C
     board.press("j") // Move to B
@@ -74,9 +64,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("batch delete with selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Select B and C
     board.press("j") // Move to B
@@ -90,9 +78,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("clear selection with Escape", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     board.press("v") // Start selection
     board.press("S-j") // Extend
@@ -121,9 +107,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("Shift-J past end of column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     board.press("v") // Start selection on A
     // Press Shift-J many times past the end
@@ -136,9 +120,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("Shift-K past start of column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     board.press("v") // Start selection on A
     // Press Shift-K many times past the start
@@ -151,9 +133,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("select then move cursor (j) clears selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     board.press("v") // Select A
     board.press("S-j") // Extend to B
@@ -165,9 +145,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("batch shift down with selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Select A and B
     board.press("v")
@@ -181,9 +159,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("batch task status toggle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.task("A"), item.task("B"), item.task("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("A"), item.task("B"), item.task("C"))))
 
     // Select all tasks
     board.press("v")
@@ -199,9 +175,7 @@ describe("Exploration: Selection + Batch Operations", () => {
   })
 
   test("rapid selection toggle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Rapidly toggle selection
     for (let i = 0; i < 10; i++) {

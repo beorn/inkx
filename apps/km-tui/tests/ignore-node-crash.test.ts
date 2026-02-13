@@ -15,15 +15,10 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
   function makeBoard() {
-    return testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("Task A"), item("Task B")),
-          item("col2", item("Task C")),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    return testEnv(() => item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))), {
+      columns: 80,
+      rows: 24,
+    })
   }
 
   test("pressing C (ignore_node) does not crash on fake repo", () => {

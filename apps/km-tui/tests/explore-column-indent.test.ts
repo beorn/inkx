@@ -13,9 +13,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 
 describe("Exploration: Column Indent/Outdent", () => {
   test("Tab on column header indents column under previous", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"), item("C"))))
     const bugs: string[] = []
 
     // Navigate to col2 header
@@ -38,9 +36,7 @@ describe("Exploration: Column Indent/Outdent", () => {
   })
 
   test("Tab on first column header is blocked", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     const bugs: string[] = []
 
     // Navigate to col1 header
@@ -59,9 +55,7 @@ describe("Exploration: Column Indent/Outdent", () => {
   })
 
   test("Shift-Tab on column header outdents to board level", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     const bugs: string[] = []
 
     // Navigate to col2 header, indent it first
@@ -124,9 +118,7 @@ describe("Exploration: Column Indent/Outdent", () => {
   })
 
   test("column indent then navigate back to card level", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     // Indent col2 under col1

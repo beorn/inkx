@@ -82,8 +82,7 @@ export function TabsView({
 
           // Truncate if name exceeds reasonable width (20 chars)
           const maxNameWidth = 20
-          const truncatedName =
-            colName.length > maxNameWidth ? colName.slice(0, maxNameWidth - 1) + "\u2026" : colName
+          const truncatedName = colName.length > maxNameWidth ? colName.slice(0, maxNameWidth - 1) + "\u2026" : colName
 
           // Style like cards view column headers
           const isTabSelected = isActive && isColumnHeaderSelected
@@ -105,7 +104,13 @@ export function TabsView({
               >
                 <Text bold color={textColor} dimColor={!showActiveHighlight && selectionLevel === "board"}>
                   {" "}
-                  {untitled ? <Text dimColor color="gray">{truncatedName}</Text> : truncatedName}
+                  {untitled ? (
+                    <Text dimColor color="gray">
+                      {truncatedName}
+                    </Text>
+                  ) : (
+                    truncatedName
+                  )}
                   <Text dimColor={!isTabSelected}>{countStr}</Text>{" "}
                 </Text>
               </Box>

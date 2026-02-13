@@ -12,10 +12,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 describe("Exploration: Move Mode", () => {
   test("m enters move mode without crash", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     const bugs: string[] = []
 
@@ -30,10 +27,7 @@ describe("Exploration: Move Mode", () => {
 
   test("m then navigate then Enter confirms move", () => {
     const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     const bugs: string[] = []
 
@@ -49,12 +43,7 @@ describe("Exploration: Move Mode", () => {
   })
 
   test("m then Escape cancels move", () => {
-    const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C")),
-      ),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     const beforeCol1 = childIds(repo, "col1")
@@ -77,10 +66,7 @@ describe("Exploration: Move Mode", () => {
 
   test("move mode navigation j/k", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B"), item("C")),
-        item("col2", item("D"), item("E")),
-      ),
+      item("board", item("col1", item("A"), item("B"), item("C")), item("col2", item("D"), item("E"))),
     )
     const bugs: string[] = []
 
@@ -98,10 +84,7 @@ describe("Exploration: Move Mode", () => {
 
   test("move mode with selection", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B"), item("C")),
-        item("col2", item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B"), item("C")), item("col2", item("D"))),
     )
     const bugs: string[] = []
 
@@ -117,9 +100,7 @@ describe("Exploration: Move Mode", () => {
   })
 
   test("move mode then help overlay", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("m") // move mode

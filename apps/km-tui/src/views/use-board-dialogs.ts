@@ -5,11 +5,13 @@
  * Handles project picker and new item dialog interactions.
  */
 import { useCallback } from "react"
-import type { KNode } from "@km/core"
+import { type KNode, resolveRelativeDate } from "@km/core"
+import { naturalToRRule } from "@km/storage"
 import type { BoardAction } from "../board-types.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { TUIBoardState } from "../types.ts"
 import type { UIState } from "../ui-reducer.ts"
+import { blockEditTargetRef } from "../block-edit-target.ts"
 import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:dialogs")
@@ -38,6 +40,8 @@ interface BoardDialogHandlers {
   handleNewItemCancel: () => void
   handleSearchSelect: (targetNode: KNode) => void
   handleSearchCancel: () => void
+  handleDatePromptConfirm: () => void
+  handleDatePromptCancel: () => void
 }
 
 // =============================================================================
@@ -231,6 +235,51 @@ export function useBoardDialogs({
     setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
   }, [setUI])
 
+  // Date prompt: confirm handler reads input from blockEditTargetRef and resolves dates
+  const handleDatePromptConfirm = useCallback(() => {
+    const input = blockEditTargetRef.current?.getContent() ?? ""
+    const trimmed = input.trim()
+
+    setUI((prev) => {
+      const prompt = prev.datePrompt
+      if (!prompt) return { datePrompt: null }
+
+      const { field, nodeIds } = prompt
+
+      if (field === "recurrence") {
+        const rrule = trimmed ? naturalToRRule(trimmed) : null
+        if (trimmed && !rrule) {
+          // Can't show toast here without toastQueue — just close
+          return { datePrompt: null }
+        }
+        for (const nodeId of nodeIds) {
+          repo.updateNode(nodeId, { recurrence: rrule })
+        }
+      } else {
+        const timeField = field === "due_date" ? "due_time" : "scheduled_time"
+        if (trimmed) {
+          const resolved = resolveRelativeDate(trimmed)
+          if (!resolved) {
+            return { datePrompt: null }
+          }
+          for (const nodeId of nodeIds) {
+            repo.updateNode(nodeId, { [field]: resolved.date, [timeField]: resolved.time ?? null })
+          }
+        } else {
+          for (const nodeId of nodeIds) {
+            repo.updateNode(nodeId, { [field]: null, [timeField]: null })
+          }
+        }
+      }
+
+      return { datePrompt: null }
+    })
+  }, [repo, setUI])
+
+  const handleDatePromptCancel = useCallback(() => {
+    setUI({ datePrompt: null })
+  }, [setUI])
+
   return {
     handleProjectSelect,
     handleProjectCancel,
@@ -238,5 +287,7 @@ export function useBoardDialogs({
     handleNewItemCancel,
     handleSearchSelect,
     handleSearchCancel,
+    handleDatePromptConfirm,
+    handleDatePromptCancel,
   }
 }

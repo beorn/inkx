@@ -15,10 +15,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 describe("Exploration: Interaction Combinations", () => {
   test("duplicate then fold then undo", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -39,12 +36,7 @@ describe("Exploration: Interaction Combinations", () => {
   })
 
   test("detail pane open then fold node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press(" ") // open detail pane on parent
@@ -59,12 +51,7 @@ describe("Exploration: Interaction Combinations", () => {
   })
 
   test("fold then open detail pane on folded node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("z").press("a") // fold parent
@@ -78,9 +65,7 @@ describe("Exploration: Interaction Combinations", () => {
   })
 
   test("selection then help overlay then back", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("J") // start selection
@@ -95,9 +80,7 @@ describe("Exploration: Interaction Combinations", () => {
   })
 
   test("undo then view mode change", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // dup
@@ -118,9 +101,7 @@ describe("Exploration: Interaction Combinations", () => {
   })
 
   test("batch delete then undo (if supported)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -141,13 +122,7 @@ describe("Exploration: Interaction Combinations", () => {
 
   test("fold all then navigate", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("p1", item("c1")),
-          item("p2", item("c2")),
-          item("p3", item("c3")),
-        ),
-      ),
+      item("board", item("col1", item("p1", item("c1")), item("p2", item("c2")), item("p3", item("c3")))),
     )
     const bugs: string[] = []
 
@@ -167,14 +142,7 @@ describe("Exploration: Interaction Combinations", () => {
   })
 
   test("unfold all then navigate", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("p1", item("c1")),
-          item("p2", item("c2")),
-        ),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("p1", item("c1")), item("p2", item("c2")))))
     const bugs: string[] = []
 
     // Fold then unfold
@@ -195,13 +163,7 @@ describe("Exploration: Interaction Combinations", () => {
 
   test("detail pane + navigation + fold + undo sequence", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("A"),
-          item("parent", item("c1"), item("c2")),
-          item("B"),
-        ),
-      ),
+      item("board", item("col1", item("A"), item("parent", item("c1"), item("c2")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -222,10 +184,7 @@ describe("Exploration: Interaction Combinations", () => {
 
   test("column collapse then undo", () => {
     const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     const bugs: string[] = []
 

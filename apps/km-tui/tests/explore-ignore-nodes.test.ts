@@ -10,9 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Board Ignore", () => {
   test("ignore node with I key (in-memory repo)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     // Cursor on A
     board.press("I")
     const text = board.screenshot()
@@ -23,9 +21,7 @@ describe("Exploration: Board Ignore", () => {
   })
 
   test("toggle show ignored with Shift-I", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     // Toggle show ignored
     board.press("S-i")
     const text = board.screenshot()
@@ -34,9 +30,7 @@ describe("Exploration: Board Ignore", () => {
   })
 
   test("ignore then toggle show", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     // Ignore A
     board.press("I")
     // Toggle show ignored
@@ -47,9 +41,7 @@ describe("Exploration: Board Ignore", () => {
   })
 
   test("ignore on column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     // Move to column level (up from A should go to col header or boundary)
     board.press("k")
     board.press("I")
@@ -59,9 +51,7 @@ describe("Exploration: Board Ignore", () => {
   })
 
   test("ignore multiple nodes sequentially", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     board.press("I") // Ignore A
     board.press("I") // Ignore next visible (B)
     board.press("I") // Ignore next visible (C)
@@ -71,9 +61,7 @@ describe("Exploration: Board Ignore", () => {
   })
 
   test("ignore all nodes in column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("I")
     board.press("I")
     const text = board.screenshot()
@@ -82,9 +70,7 @@ describe("Exploration: Board Ignore", () => {
   })
 
   test("rapid ignore/show-ignored toggle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     for (let i = 0; i < 5; i++) {
       board.press("S-i")
     }

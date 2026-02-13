@@ -8,9 +8,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Cursor Recovery", () => {
   test("delete middle item cursor moves to next", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -25,9 +23,7 @@ describe("Exploration: Cursor Recovery", () => {
   })
 
   test("delete last item cursor moves to previous", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("j") // → B (last)
@@ -41,9 +37,7 @@ describe("Exploration: Cursor Recovery", () => {
   })
 
   test("indent then navigate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -59,12 +53,7 @@ describe("Exploration: Cursor Recovery", () => {
   })
 
   test("outdent then navigate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("child")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("child")), item("B"))))
     const bugs: string[] = []
 
     // Navigate to child
@@ -82,9 +71,7 @@ describe("Exploration: Cursor Recovery", () => {
   })
 
   test("Alt+j move then continue navigating", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     board.press("Alt+j") // move A down
@@ -100,12 +87,7 @@ describe("Exploration: Cursor Recovery", () => {
   })
 
   test("Alt+l cross-column move then navigate", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press("Alt+l") // move A to col2
@@ -121,12 +103,7 @@ describe("Exploration: Cursor Recovery", () => {
   })
 
   test("delete folder with children", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("Backspace") // delete parent (with children)
@@ -139,9 +116,7 @@ describe("Exploration: Cursor Recovery", () => {
   })
 
   test("delete then undo then navigate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("d") // duplicate A
@@ -157,9 +132,7 @@ describe("Exploration: Cursor Recovery", () => {
   })
 
   test("G then delete last then check cursor", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     board.press("G") // go to last (D)
@@ -176,11 +149,7 @@ describe("Exploration: Cursor Recovery", () => {
   })
 
   test("batch delete selected then navigate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("A"), item("B"), item("C"), item("D"), item("E"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     board.press("J") // select A→B

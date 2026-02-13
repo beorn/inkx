@@ -12,10 +12,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("fold-all-corruption", () => {
   test("zM (fold all chord) folds all cards in column", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item.folder("Parent", item("child-1"), item("child-2"))),
-      ),
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
     expect(board.screenshot()).toContain("child-1")
@@ -31,10 +28,7 @@ describe("fold-all-corruption", () => {
 
   test("zc folds a card, Z should unfold it", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item.folder("Parent", item("child-1"), item("child-2"))),
-      ),
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
     // Fold via zc chord
@@ -52,10 +46,7 @@ describe("fold-all-corruption", () => {
 
   test("za (toggle fold chord) folds current card and hides children", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item.folder("Parent", item("child-1"), item("child-2"))),
-      ),
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
     expect(board.screenshot()).toContain("child-1")
@@ -71,10 +62,7 @@ describe("fold-all-corruption", () => {
 
   test("zo (unfold node chord) restores children after fold", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item.folder("Parent", item("child-1"), item("child-2"))),
-      ),
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
     // Fold with zc
@@ -93,18 +81,14 @@ describe("fold-all-corruption", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item(
-          "col1",
-          item.folder("Processing", item("sub-a"), item("sub-b")),
-          item.folder("Review", item("sub-c")),
-        ),
+        item("col1", item.folder("Processing", item("sub-a"), item("sub-b")), item.folder("Review", item("sub-c"))),
       ),
     )
 
     // Fold both cards individually with zc
-    board.press("z").press("c")   // fold Processing
-    board.press("j")              // move to Review
-    board.press("z").press("c")   // fold Review
+    board.press("z").press("c") // fold Processing
+    board.press("j") // move to Review
+    board.press("z").press("c") // fold Review
 
     expect(board.screenshot()).not.toContain("sub-a")
     expect(board.screenshot()).not.toContain("sub-c")

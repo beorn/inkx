@@ -49,9 +49,7 @@ describe("Exploration: Detail Pane Extended", () => {
   })
 
   test("detail pane toggle rapid open/close cycle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Rapid open/close cycles
@@ -94,9 +92,7 @@ describe("Exploration: Detail Pane Extended", () => {
   })
 
   test("detail pane on empty column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2")),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2")))
     const bugs: string[] = []
 
     // Navigate to col2 (empty)
@@ -115,10 +111,7 @@ describe("Exploration: Detail Pane Extended", () => {
 
   test("detail pane across all view modes", () => {
     for (const viewMode of ["cards", "columns", "list"] as const) {
-      const { board } = testEnv(
-        () => item("board", item("col1", item("A"), item("B"))),
-        { viewMode },
-      )
+      const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))), { viewMode })
       const bugs: string[] = []
 
       board.press("i")
@@ -134,9 +127,7 @@ describe("Exploration: Detail Pane Extended", () => {
   })
 
   test("detail pane then Tab indent", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Open detail pane on A
@@ -176,9 +167,7 @@ describe("Exploration: Detail Pane Extended", () => {
   })
 
   test("detail pane after batch delete", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     // Select and delete B,C

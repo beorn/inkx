@@ -163,7 +163,10 @@ function createQueryMethods(deps: RepoMethodDeps) {
 
           // Check blocked-by properties
           const props = n.data?.props as Record<string, { type: string; target?: string }> | undefined
-          if (props?.["blocked-by"]?.type === "link" && props["blocked-by"].target?.toLowerCase() === oldName.toLowerCase()) {
+          if (
+            props?.["blocked-by"]?.type === "link" &&
+            props["blocked-by"].target?.toLowerCase() === oldName.toLowerCase()
+          ) {
             propRefs++
           }
         }
@@ -442,12 +445,12 @@ function updateRulePathReferences(
       // Update the node's content and data (rules are stored in data.rules)
       const newData = { ...node.data, rules: newRules }
       const updatedContent = node.content
-        ? node.content.replace(
-            new RegExp(oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"),
-            newName,
-          )
+        ? node.content.replace(new RegExp(oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), newName)
         : node.content
-      mutations.updateNode(node.id, { data: JSON.stringify(newData) as unknown as Record<string, unknown>, content: updatedContent })
+      mutations.updateNode(node.id, {
+        data: JSON.stringify(newData) as unknown as Record<string, unknown>,
+        content: updatedContent,
+      })
     }
   }
 }

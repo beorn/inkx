@@ -46,7 +46,7 @@ bun run test:all     # MUST pass
 3. `test:fast` passes
 4. `bun fix` passes
 5. `test:all` passes
-6. Clean up: rename repro/debug test to a descriptive regression name, or delete if redundant. Use `.scratch.ts` for temporary investigation files.
+6. Clean up: if the test is worth keeping, rename it to a descriptive `.test.ts` name. If it was ad-hoc investigation, either delete it or rename to `.scratch.ts` (not picked up by vitest).
 7. Commit
 
 ---
@@ -59,6 +59,9 @@ bun run test:all     # MUST pass
 | Slow integration | `.slow.test.ts`        | Real DB, workers           |
 | Spec/acceptance  | `.spec.ts`, `.test.md` | UI behavior, CLI           |
 | Chaos            | `chaos/*.test.ts`      | Sync edge cases            |
+| Ad-hoc/scratch   | `.scratch.ts`          | Temporary investigation    |
+
+**Scratch vs test**: Useful tests that verify behavior belong in the suite as `.test.ts`. Ad-hoc investigation/debugging files use `.scratch.ts` — vitest ignores them (include pattern: `*.{test,spec}.*`). Always decide: is this test worth keeping? If yes → `.test.ts`. If throwaway → `.scratch.ts`.
 
 **Target**: `test:fast` <15 seconds. If >15s, something is wrong — create P0 bead. Move slow tests to `.slow.test.ts`.
 

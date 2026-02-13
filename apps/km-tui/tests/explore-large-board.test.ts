@@ -80,7 +80,14 @@ describe("Exploration: large board", () => {
           n.link_to = `target-${n.id}`
           n.data = {}
         }
-        if (n.id === "processing" || n.id === "next" || n.id === "doing" || n.id === "waiting" || n.id === "done" || n.id === "asdfkj") {
+        if (
+          n.id === "processing" ||
+          n.id === "next" ||
+          n.id === "doing" ||
+          n.id === "waiting" ||
+          n.id === "done" ||
+          n.id === "asdfkj"
+        ) {
           n.type = "section"
           n.data = { depth: 2 }
         }
@@ -160,7 +167,7 @@ describe("Exploration: large board", () => {
     // Create 10 nodes among the 40 embeds
     for (let i = 0; i < 10; i++) {
       // Navigate to random-ish position
-      for (let j = 0; j < (i * 3) % 7 + 1; j++) {
+      for (let j = 0; j < ((i * 3) % 7) + 1; j++) {
         board.press("j")
       }
 

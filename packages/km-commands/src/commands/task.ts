@@ -135,14 +135,17 @@ const setStatusDropped = {
   },
 } satisfies CommandDef
 
-// Property stubs (future features)
+// Property commands
 const setDueDate = {
   id: "set_due_date",
   name: "Set Due Date",
   description: "Set or edit due date",
   category: "Task",
   shortcuts: ["td"],
-  execute: () => ({ type: "SET_DUE_DATE" }),
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null
+    return { type: "SET_DUE_DATE", nodeId: ctx.currentNodeId }
+  },
 } satisfies CommandDef
 
 const setStartDate = {
@@ -151,7 +154,10 @@ const setStartDate = {
   description: "Set or edit start date",
   category: "Task",
   shortcuts: ["ts"],
-  execute: () => ({ type: "SET_START_DATE" }),
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null
+    return { type: "SET_START_DATE", nodeId: ctx.currentNodeId }
+  },
 } satisfies CommandDef
 
 const setRecurring = {
@@ -160,7 +166,10 @@ const setRecurring = {
   description: "Set recurrence rule",
   category: "Task",
   shortcuts: ["tr"],
-  execute: () => ({ type: "SET_RECURRING" }),
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null
+    return { type: "SET_RECURRING", nodeId: ctx.currentNodeId }
+  },
 } satisfies CommandDef
 
 const setPriority = {
@@ -169,7 +178,10 @@ const setPriority = {
   description: "Set task priority",
   category: "Task",
   shortcuts: ["sp"],
-  execute: () => ({ type: "SET_PRIORITY" }),
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null
+    return { type: "SET_PRIORITY", nodeId: ctx.currentNodeId }
+  },
 } satisfies CommandDef
 
 const setLabel = {

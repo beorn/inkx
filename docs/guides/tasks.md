@@ -387,9 +387,13 @@ km init gtd --dry-run      # Preview what would be created
 ```markdown
 # @next.md
 
-## inbox add="./inbox/\*\*"
+## Overdue add="due:past status:todo" add="due:past status:wip" color=red
 
-## processing default=true
+## Today add="due:today status:todo" add="start:past status:todo" color=yellow
+
+## inbox add="./inbox/\*\*" default=true
+
+## processing
 
 ## next
 
@@ -398,6 +402,8 @@ km init gtd --dry-run      # Preview what would be created
 ## waiting color=yellow
 
 ## done collapse=true color=green
+
+## removed collapse=true removed=true
 ```
 
 ```markdown

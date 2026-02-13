@@ -9,9 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Cursor After Delete", () => {
   test("delete first item, cursor moves to next", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("x") // Delete A
     const text = board.screenshot()
     expect(text).not.toContain("[object Object]")
@@ -21,9 +19,7 @@ describe("Exploration: Cursor After Delete", () => {
   })
 
   test("delete middle item", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j") // Move to B
     board.press("x") // Delete B
     const text = board.screenshot()
@@ -32,9 +28,7 @@ describe("Exploration: Cursor After Delete", () => {
   })
 
   test("delete last item, cursor moves to previous", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j").press("j") // Move to C
     board.press("x") // Delete C
     const text = board.screenshot()
@@ -43,9 +37,7 @@ describe("Exploration: Cursor After Delete", () => {
   })
 
   test("delete all items in column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("x") // Delete A
     board.press("x") // Delete B (or whatever is left)
     const text = board.screenshot()
@@ -56,9 +48,7 @@ describe("Exploration: Cursor After Delete", () => {
   })
 
   test("delete all items then navigate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     board.press("x") // Delete A
     board.press("l") // Navigate to col2
     const text = board.screenshot()
@@ -67,9 +57,7 @@ describe("Exploration: Cursor After Delete", () => {
   })
 
   test("delete then add", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("x") // Delete A
     board.press("a") // Add after cursor
     board.press("return") // Confirm
@@ -79,9 +67,7 @@ describe("Exploration: Cursor After Delete", () => {
   })
 
   test("batch delete selected items", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     board.press("v") // Select A
     board.press("S-j") // Extend to B
     board.press("S-j") // Extend to C
@@ -94,9 +80,7 @@ describe("Exploration: Cursor After Delete", () => {
   })
 
   test("delete only item in single-column board", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"))))
     board.press("x") // Delete A
     const text = board.screenshot()
     expect(text).not.toContain("[object Object]")
@@ -104,9 +88,7 @@ describe("Exploration: Cursor After Delete", () => {
   })
 
   test("delete then undo restores cursor", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j") // Move to B
     board.press("x") // Delete B
     board.press("C-z") // Undo delete
@@ -116,9 +98,7 @@ describe("Exploration: Cursor After Delete", () => {
   })
 
   test("select all then delete", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("C-a") // Select all
     board.press("x") // Delete all
     const text = board.screenshot()

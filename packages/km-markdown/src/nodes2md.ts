@@ -6,7 +6,8 @@
 
 import { createLogger } from "@beorn/logger"
 import { stringify as stringifyYaml } from "yaml"
-import type { KNode } from "@km/core"
+import type { KNode, TaskStatus } from "@km/core"
+import { getMarkForStatus } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 
 const log = createLogger("km:markdown:nodes2md")
@@ -389,21 +390,8 @@ function serializeListItem(
  * This ensures edits to task_status are reflected in the serialized output.
  */
 function statusToMark(status: string | undefined, existingMark?: string): string {
-  switch (status) {
-    case "done":
-      return "x"
-    case "blocked":
-      return "!"
-    case "dropped":
-      return "-"
-    case "wip":
-      return "/"
-    case "todo":
-      return " "
-    default:
-      // If no status, use existing mark or default to space
-      return existingMark ?? " "
-  }
+  if (!status) return existingMark ?? " "
+  return getMarkForStatus(status as TaskStatus)
 }
 
 /**
@@ -426,17 +414,25 @@ function serializeTask(
   const metadata: string[] = []
 
   if (node.due_date && !content.includes("📅")) {
-    metadata.push(`📅 ${node.due_date}`)
+    const dueSuffix = node.due_time ? `T${node.due_time}` : ""
+    metadata.push(`📅 ${node.due_date}${dueSuffix}`)
   }
 
   if (node.scheduled_date && !content.includes("⏳")) {
-    metadata.push(`⏳ ${node.scheduled_date}`)
+    const schedSuffix = node.scheduled_time ? `T${node.scheduled_time}` : ""
+    metadata.push(`⏳ ${node.scheduled_date}${schedSuffix}`)
   }
 
   if (node.priority && !content.match(/[⏫🔼🔽]/)) {
     if (node.priority === 1) metadata.push("⏫")
     else if (node.priority === 2) metadata.push("🔼")
     else if (node.priority === 3) metadata.push("🔽")
+  }
+
+  // Recurrence: use top-level field or data.recurrence
+  const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
+  if (recurrence && !content.includes("🔁")) {
+    metadata.push(`🔁 ${recurrence}`)
   }
 
   if (metadata.length > 0 && content) {

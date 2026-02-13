@@ -9,9 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Add Node Consolidation", () => {
   test("add node after (a) creates new node", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cursor on A, add after
     board.press("a")
@@ -22,9 +20,7 @@ describe("Exploration: Add Node Consolidation", () => {
   })
 
   test("add node before (A) creates new node", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Move to B, add before
     board.press("j")
@@ -35,9 +31,7 @@ describe("Exploration: Add Node Consolidation", () => {
   })
 
   test("add after last item", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Move to last item C
     board.press("j").press("j")
@@ -48,9 +42,7 @@ describe("Exploration: Add Node Consolidation", () => {
   })
 
   test("add before first item", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cursor on A (first item), add before
     board.press("A")
@@ -60,9 +52,7 @@ describe("Exploration: Add Node Consolidation", () => {
   })
 
   test("add node then escape (cancel)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     board.press("a") // Start add
     board.press("escape") // Cancel
@@ -72,9 +62,7 @@ describe("Exploration: Add Node Consolidation", () => {
   })
 
   test("add node, type content, then Enter (confirm)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     const nodesBefore = repo.getChildren("col1").length
 
@@ -93,9 +81,7 @@ describe("Exploration: Add Node Consolidation", () => {
   })
 
   test("multiple add operations in sequence", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"))))
 
     // Add after, confirm immediately (no typing - testEnv limitation)
     board.press("a")
@@ -111,9 +97,7 @@ describe("Exploration: Add Node Consolidation", () => {
   })
 
   test("add in empty column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1"), item("col2", item("A"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1"), item("col2", item("A"))))
 
     // Cursor should be on col1 header (empty column)
     board.press("a")
@@ -123,9 +107,7 @@ describe("Exploration: Add Node Consolidation", () => {
   })
 
   test("add node in second column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"), item("C"))))
 
     // Move to col2
     board.press("l")
@@ -137,9 +119,7 @@ describe("Exploration: Add Node Consolidation", () => {
   })
 
   test("add before and after preserves ordering", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Move to B
     board.press("j")

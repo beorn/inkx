@@ -5,47 +5,9 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { parseRRule, getNextOccurrence, naturalToRRule } from "../src/recurrence.ts"
+import { getNextOccurrence, naturalToRRule } from "../src/recurrence.ts"
 
 describe("recurrence.ts", () => {
-  describe("parseRRule", () => {
-    test("parses simple daily rule", () => {
-      const result = parseRRule("FREQ=DAILY")
-      expect(result.freq).toBe("DAILY")
-      expect(result.interval).toBe(1)
-    })
-
-    test("parses weekly rule with interval", () => {
-      const result = parseRRule("FREQ=WEEKLY;INTERVAL=2")
-      expect(result.freq).toBe("WEEKLY")
-      expect(result.interval).toBe(2)
-    })
-
-    test("parses weekly rule with BYDAY", () => {
-      const result = parseRRule("FREQ=WEEKLY;BYDAY=MO,WE,FR")
-      expect(result.freq).toBe("WEEKLY")
-      expect(result.byDay).toEqual(["MO", "WE", "FR"])
-    })
-
-    test("parses monthly rule with BYMONTHDAY", () => {
-      const result = parseRRule("FREQ=MONTHLY;BYMONTHDAY=1,15")
-      expect(result.freq).toBe("MONTHLY")
-      expect(result.byMonthDay).toEqual([1, 15])
-    })
-
-    test("handles case insensitivity", () => {
-      const result = parseRRule("freq=weekly;interval=3")
-      expect(result.freq).toBe("WEEKLY")
-      expect(result.interval).toBe(3)
-    })
-
-    test("defaults to DAILY with interval 1", () => {
-      const result = parseRRule("")
-      expect(result.freq).toBe("DAILY")
-      expect(result.interval).toBe(1)
-    })
-  })
-
   describe("getNextOccurrence", () => {
     test("calculates next daily occurrence", () => {
       const next = getNextOccurrence("FREQ=DAILY", "2024-01-15")

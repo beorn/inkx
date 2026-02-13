@@ -57,10 +57,7 @@ describe("Multi-select delete", () => {
 
   test("batch delete shows confirmation when any node has children", () => {
     const { board, repo } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("A"), item("parent", item("child1"), item("child2")), item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("parent", item("child1"), item("child2")), item("C"), item("D"))),
     )
 
     // Cursor starts on A. Select A→C (2 J presses). parent has children.
@@ -77,10 +74,7 @@ describe("Multi-select delete", () => {
 
   test("batch delete confirms and executes all nodes", () => {
     const { board, repo } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("A"), item("parent", item("child1"), item("child2")), item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("parent", item("child1"), item("child2")), item("C"), item("D"))),
     )
 
     // Cursor starts on A. Select A→C (2 J presses). parent has children.
@@ -112,9 +106,7 @@ describe("Multi-select delete", () => {
   })
 
   test("batch delete clears selection", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Cursor starts on A. Select A→C (2 J presses).
     board.press("J") // anchor=A, cursor→B
@@ -127,9 +119,7 @@ describe("Multi-select delete", () => {
   })
 
   test("single card delete still works (no regression)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cursor starts on A. Move to B. No selection.
     board.press("j") // → B
@@ -146,9 +136,7 @@ describe("Multi-select delete", () => {
 
 describe("Multi-select status toggle", () => {
   test("toggle status on multiple selected tasks", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(repo, ["A", "B", "C", "D"])
 
@@ -168,9 +156,7 @@ describe("Multi-select status toggle", () => {
   })
 
   test("batch status toggle preserves selection for repeated toggling", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(repo, ["A", "B", "C", "D"])
 
@@ -191,9 +177,7 @@ describe("Multi-select status toggle", () => {
   })
 
   test("batch status toggle with mixed statuses advances each independently", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     setTaskStatus(repo, ["A", "B", "C", "D"])
 
@@ -218,9 +202,7 @@ describe("Multi-select status toggle", () => {
   })
 
   test("single card status toggle still works (no regression)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     setTaskStatus(repo, ["A", "B"])
 

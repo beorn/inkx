@@ -14,9 +14,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("redo-duplicate-broken (km-wacsx)", () => {
   test("redo after undo restores the duplicated node", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     // Baseline: 2 children
     expect(repo.getChildren("col1").map((n) => n.id)).toEqual(["A", "B"])
@@ -35,15 +33,13 @@ describe("redo-duplicate-broken (km-wacsx)", () => {
   })
 
   test("rapid undo/redo cycle preserves duplicate", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
-    board.press("d")        // dup -> 3
-    board.press("Ctrl+Z")   // undo -> 2
-    board.press("Ctrl+Y")   // redo -> 3
-    board.press("Ctrl+Z")   // undo -> 2
-    board.press("Ctrl+Y")   // redo -> 3
+    board.press("d") // dup -> 3
+    board.press("Ctrl+Z") // undo -> 2
+    board.press("Ctrl+Y") // redo -> 3
+    board.press("Ctrl+Z") // undo -> 2
+    board.press("Ctrl+Y") // redo -> 3
 
     expect(repo.getChildren("col1")).toHaveLength(3)
   })

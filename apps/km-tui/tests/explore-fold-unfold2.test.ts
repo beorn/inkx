@@ -10,10 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Exploration: Fold/Unfold + Borders", () => {
   test("fold node with za chord (toggle fold)", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("parent", item("child1"), item("child2")), item("B")),
-      ),
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))),
     )
     // Cursor on parent, use za chord to toggle fold
     board.press("z").press("a")
@@ -27,10 +24,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
 
   test("unfold node with za chord (toggle)", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("parent", item("child1"), item("child2")), item("B")),
-      ),
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))),
     )
     board.press("z").press("a") // Fold
     board.press("z").press("a") // Unfold
@@ -41,15 +35,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
 
   test("fold all with zM chord", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item(
-          "col1",
-          item("p1", item("c1"), item("c2")),
-          item("p2", item("c3"), item("c4")),
-          item("leaf"),
-        ),
-      ),
+      item("board", item("col1", item("p1", item("c1"), item("c2")), item("p2", item("c3"), item("c4")), item("leaf"))),
     )
     board.press("z").press("M") // Fold all
     const text = board.screenshot()
@@ -62,14 +48,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
 
   test("unfold all with zR chord", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item(
-          "col1",
-          item("p1", item("c1"), item("c2")),
-          item("p2", item("c3"), item("c4")),
-        ),
-      ),
+      item("board", item("col1", item("p1", item("c1"), item("c2")), item("p2", item("c3"), item("c4")))),
     )
     board.press("z").press("M") // Fold all
     board.press("z").press("R") // Unfold all
@@ -79,10 +58,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
 
   test("fold then navigate past folded item", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("parent", item("child1"), item("child2")), item("B"), item("C")),
-      ),
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"), item("C"))),
     )
     board.press("z").press("a") // Toggle fold parent
     board.press("j") // Move to B (should skip children)
@@ -94,14 +70,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
 
   test("fold deeply nested tree", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item(
-          "col1",
-          item("L1", item("L2", item("L3", item("L4", item("deep leaf"))))),
-          item("Other"),
-        ),
-      ),
+      item("board", item("col1", item("L1", item("L2", item("L3", item("L4", item("deep leaf"))))), item("Other"))),
     )
     board.press("z").press("a") // Toggle fold L1
     const text = board.screenshot()
@@ -110,12 +79,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
   })
 
   test("fold, delete, then navigate", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("parent", item("child1")), item("B"), item("C")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("child1")), item("B"), item("C"))))
     board.press("z").press("a") // Toggle fold parent
     board.press("j") // Move to B
     board.press("x") // Delete B
@@ -125,12 +89,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
   })
 
   test("fold then indent", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("A"), item("parent", item("child1")), item("C")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("parent", item("child1")), item("C"))))
     // Move to parent and fold
     board.press("j")
     board.press("z").press("a") // Toggle fold
@@ -143,11 +102,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
 
   test("collapse column with c", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     // c toggles column collapse
     board.press("c")
@@ -158,10 +113,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
 
   test("rapid fold/unfold cycling", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("parent", item("child1"), item("child2")), item("B")),
-      ),
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))),
     )
     for (let i = 0; i < 20; i++) {
       board.press("z").press("a") // Toggle fold
@@ -173,10 +125,7 @@ describe("Exploration: Fold/Unfold + Borders", () => {
 
   test("fold with selection active", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("parent", item("child1"), item("child2")), item("B"), item("C")),
-      ),
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"), item("C"))),
     )
     board.press("v") // Select parent
     board.press("S-j") // Extend to B

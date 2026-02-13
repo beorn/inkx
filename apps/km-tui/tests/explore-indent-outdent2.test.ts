@@ -10,9 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Indent/Outdent", () => {
   test("indent first item (no-op, no sibling above)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("Tab") // Try to indent A — no sibling above
     expect(repo.getNode("A")?.parent_id).toBe("col1") // Should stay
     const text = board.screenshot()
@@ -21,9 +19,7 @@ describe("Exploration: Indent/Outdent", () => {
   })
 
   test("indent second item under first", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j") // Move to B
     board.press("Tab") // Indent B under A
     expect(repo.getNode("B")?.parent_id).toBe("A")
@@ -33,9 +29,7 @@ describe("Exploration: Indent/Outdent", () => {
   })
 
   test("outdent child back to column level", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A", item("B")), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A", item("B")), item("C"))))
     // B is child of A; navigate to B
     board.press("j") // Move toward B
     board.press("Shift+Tab") // Outdent B back to col1
@@ -45,9 +39,7 @@ describe("Exploration: Indent/Outdent", () => {
   })
 
   test("indent then navigate (no undo assertion — km-tui.indent-undo)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("j") // Move to B
     board.press("Tab") // Indent B under A
     expect(repo.getNode("B")?.parent_id).toBe("A")
@@ -59,9 +51,7 @@ describe("Exploration: Indent/Outdent", () => {
   })
 
   test("double indent (two levels deep)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j") // Move to B
     board.press("Tab") // Indent B under A
     expect(repo.getNode("B")?.parent_id).toBe("A")
@@ -80,9 +70,7 @@ describe("Exploration: Indent/Outdent", () => {
   })
 
   test("outdent at top level (BUG: moves card to board level)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("Shift+Tab") // Try to outdent A — should be no-op
     // BUG: A.parent_id becomes "board" instead of staying "col1"
     // canOutdent() doesn't check if grandparent is board/root
@@ -98,9 +86,7 @@ describe("Exploration: Indent/Outdent", () => {
   })
 
   test("indent then delete parent", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j") // Move to B
     board.press("Tab") // Indent B under A
     board.press("k") // Move to A
@@ -111,9 +97,7 @@ describe("Exploration: Indent/Outdent", () => {
   })
 
   test("indent with selection (batch indent)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     board.press("j") // Move to B
     board.press("v") // Select B
     board.press("J") // Extend to C (J = extend_select_down)
@@ -124,9 +108,7 @@ describe("Exploration: Indent/Outdent", () => {
   })
 
   test("rapid indent/outdent cycle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("j") // Move to B
     board.press("Tab") // Indent
     board.press("Shift+Tab") // Outdent

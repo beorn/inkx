@@ -43,6 +43,7 @@ export interface KeybindingContext {
   searchDialogOpen: boolean
   projectPickerOpen: boolean
   newItemDialogOpen: boolean
+  datePromptOpen: boolean
   helpOverlayOpen: boolean
   deleteConfirmOpen: boolean
   consoleOpen: boolean

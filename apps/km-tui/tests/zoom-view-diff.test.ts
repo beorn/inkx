@@ -45,8 +45,22 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const nodes: KNode[] = [
       makeNode({ id: rootId, type: "file", title: "Next Actions", parent_id: null }),
       makeNode({ id: sectionId, type: "section", title: "Processing", parent_id: rootId, parent_idx: 0 }),
-      makeNode({ id: embed1Id, type: "embed", content: "Embed 1", parent_id: sectionId, parent_idx: 0, link_to: targetId }),
-      makeNode({ id: embed2Id, type: "embed", content: "Embed 2", parent_id: sectionId, parent_idx: 1, link_to: targetId }),
+      makeNode({
+        id: embed1Id,
+        type: "embed",
+        content: "Embed 1",
+        parent_id: sectionId,
+        parent_idx: 0,
+        link_to: targetId,
+      }),
+      makeNode({
+        id: embed2Id,
+        type: "embed",
+        content: "Embed 2",
+        parent_id: sectionId,
+        parent_idx: 1,
+        link_to: targetId,
+      }),
       // Target node for embeds
       makeNode({ id: targetId, type: "task", title: "Some task", parent_id: null }),
     ]
@@ -110,7 +124,14 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
       makeNode({ id: rootId, type: "file", title: "Mixed", parent_id: null }),
       makeNode({ id: sectionId, type: "section", title: "Section", parent_id: rootId, parent_idx: 0 }),
       makeNode({ id: paraId, type: "paragraph", content: "Intro text", parent_id: sectionId, parent_idx: 0 }),
-      makeNode({ id: embedId, type: "embed", content: "Embed ref", parent_id: sectionId, parent_idx: 1, link_to: targetId }),
+      makeNode({
+        id: embedId,
+        type: "embed",
+        content: "Embed ref",
+        parent_id: sectionId,
+        parent_idx: 1,
+        link_to: targetId,
+      }),
       makeNode({ id: targetId, type: "task", title: "Target", parent_id: null }),
     ]
 

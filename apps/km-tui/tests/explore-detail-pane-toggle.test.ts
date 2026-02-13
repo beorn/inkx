@@ -10,9 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Detail Pane Toggle", () => {
   test("Space opens detail pane on leaf node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press(" ") // Space opens detail pane
@@ -25,9 +23,7 @@ describe("Exploration: Detail Pane Toggle", () => {
   })
 
   test("h closes detail pane in cards view", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press(" ") // open detail pane
@@ -41,9 +37,7 @@ describe("Exploration: Detail Pane Toggle", () => {
   })
 
   test("Escape closes detail pane", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press(" ") // open
@@ -57,9 +51,7 @@ describe("Exploration: Detail Pane Toggle", () => {
   })
 
   test("Space toggle: open, close, open cycle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press(" ") // open
@@ -74,9 +66,7 @@ describe("Exploration: Detail Pane Toggle", () => {
   })
 
   test("j/k navigation with detail pane open updates content", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press(" ") // open detail pane on A
@@ -104,12 +94,9 @@ describe("Exploration: Detail Pane Toggle", () => {
 
   test("detail pane on task with status", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item.task("Buy groceries", "todo"),
-          item.task("Fix bug", "wip"),
-          item.task("Deploy", "done"),
-        ),
+      item(
+        "board",
+        item("col1", item.task("Buy groceries", "todo"), item.task("Fix bug", "wip"), item.task("Deploy", "done")),
       ),
     )
     const bugs: string[] = []
@@ -138,10 +125,7 @@ describe("Exploration: Detail Pane Toggle", () => {
 
   test("detail pane with column navigation l", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     const bugs: string[] = []
 
@@ -158,10 +142,7 @@ describe("Exploration: Detail Pane Toggle", () => {
   })
 
   test("detail pane in list view: Space opens, h navigates", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"), item("C"))),
-      { viewMode: "list" },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), { viewMode: "list" })
     const bugs: string[] = []
 
     board.press(" ") // Space in list view
@@ -175,10 +156,7 @@ describe("Exploration: Detail Pane Toggle", () => {
   })
 
   test("detail pane in narrow terminal", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"))),
-      { columns: 40, rows: 12 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))), { columns: 40, rows: 12 })
     const bugs: string[] = []
 
     board.press(" ")
@@ -192,12 +170,7 @@ describe("Exploration: Detail Pane Toggle", () => {
 
   test("detail pane on folder opens detail (not zoom)", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("folder-with-children", item("child1"), item("child2")),
-          item("leaf"),
-        ),
-      ),
+      item("board", item("col1", item("folder-with-children", item("child1"), item("child2")), item("leaf"))),
     )
     const bugs: string[] = []
 

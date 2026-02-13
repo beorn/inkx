@@ -10,14 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Exploration: Fold Depth Border", () => {
   test("repeated < on folder does not lose borders", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item("child1"),
-          item("child2"),
-          item("child3"),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("child1"), item("child2"), item("child3")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -35,14 +28,7 @@ describe("Exploration: Fold Depth Border", () => {
 
   test("< then > on folder preserves layout", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item("child1"),
-          item("child2"),
-        ),
-        item("B"),
-        item("C"),
-      )),
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"), item("C"))),
     )
     const bugs: string[] = []
 
@@ -60,17 +46,7 @@ describe("Exploration: Fold Depth Border", () => {
 
   test("< on deeply nested structure", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("L1",
-          item("L2",
-            item("L3",
-              item("deep1"),
-              item("deep2"),
-            ),
-          ),
-        ),
-        item("sibling"),
-      )),
+      item("board", item("col1", item("L1", item("L2", item("L3", item("deep1"), item("deep2")))), item("sibling"))),
     )
     const bugs: string[] = []
 
@@ -87,9 +63,7 @@ describe("Exploration: Fold Depth Border", () => {
   })
 
   test("< on leaf node (no children)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("<") // < on leaf — should be no-op or minimal effect
@@ -102,9 +76,7 @@ describe("Exploration: Fold Depth Border", () => {
   })
 
   test("> on leaf node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press(">") // > on leaf
@@ -117,12 +89,7 @@ describe("Exploration: Fold Depth Border", () => {
   })
 
   test("fold za then < then unfold", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("z").press("a") // fold
@@ -144,15 +111,10 @@ describe("Exploration: Fold Depth Border", () => {
 
   test("< with multiple columns", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("p1", item("a1"), item("a2")),
-          item("x"),
-        ),
-        item("col2",
-          item("p2", item("b1"), item("b2")),
-          item("y"),
-        ),
+      item(
+        "board",
+        item("col1", item("p1", item("a1"), item("a2")), item("x")),
+        item("col2", item("p2", item("b1"), item("b2")), item("y")),
       ),
     )
     const bugs: string[] = []
@@ -170,13 +132,7 @@ describe("Exploration: Fold Depth Border", () => {
 
   test("rapid < > alternation", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item("child1"),
-          item("child2"),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -193,13 +149,10 @@ describe("Exploration: Fold Depth Border", () => {
   })
 
   test("< on narrow terminal", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-      { columns: 30, rows: 10 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))), {
+      columns: 30,
+      rows: 10,
+    })
     const bugs: string[] = []
 
     board.press("<")
@@ -214,14 +167,7 @@ describe("Exploration: Fold Depth Border", () => {
 
   test("< then navigate then < again", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item("child1"),
-          item("child2"),
-        ),
-        item("B"),
-        item("C"),
-      )),
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"), item("C"))),
     )
     const bugs: string[] = []
 

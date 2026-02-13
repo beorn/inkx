@@ -33,13 +33,8 @@ describe("Exploration: Stress Navigation", () => {
   })
 
   test("50 j keys on long column", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1",
-          ...Array.from({ length: 20 }, (_, i) => item(`item-${i + 1}`)),
-        ),
-      ),
+    const { board } = testEnv(
+      () => item("board", item("col1", ...Array.from({ length: 20 }, (_, i) => item(`item-${i + 1}`)))),
       { rows: 12 }, // small viewport to test scrolling
     )
     const bugs: string[] = []
@@ -57,13 +52,8 @@ describe("Exploration: Stress Navigation", () => {
   })
 
   test("50 k keys after navigating to bottom", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1",
-          ...Array.from({ length: 15 }, (_, i) => item(`item-${i + 1}`)),
-        ),
-      ),
+    const { board } = testEnv(
+      () => item("board", item("col1", ...Array.from({ length: 15 }, (_, i) => item(`item-${i + 1}`)))),
       { rows: 10 },
     )
     const bugs: string[] = []
@@ -81,9 +71,7 @@ describe("Exploration: Stress Navigation", () => {
   })
 
   test("h/l oscillation at boundaries", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 30; i++) {
@@ -99,9 +87,7 @@ describe("Exploration: Stress Navigation", () => {
   })
 
   test("level transitions: card→column→board→column→card cycle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 10; i++) {
@@ -121,9 +107,7 @@ describe("Exploration: Stress Navigation", () => {
   })
 
   test("g then G then g — first/last oscillation", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 15; i++) {
@@ -139,12 +123,8 @@ describe("Exploration: Stress Navigation", () => {
   })
 
   test("Arrow keys vs vim keys produce same behavior", () => {
-    const { board: b1 } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
-    const { board: b2 } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board: b1 } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
+    const { board: b2 } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     // Same sequence with vim keys
@@ -164,9 +144,7 @@ describe("Exploration: Stress Navigation", () => {
   })
 
   test("navigation on single-card single-column board", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("only"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("only"))))
     const bugs: string[] = []
 
     // All navigation should be no-ops or bells
@@ -185,9 +163,7 @@ describe("Exploration: Stress Navigation", () => {
   })
 
   test("navigation on board with empty columns", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("empty-col"), item("col3", item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("empty-col"), item("col3", item("B"))))
     const bugs: string[] = []
 
     board.press("l") // → empty-col
@@ -205,10 +181,7 @@ describe("Exploration: Stress Navigation", () => {
 
   test("very wide board with many columns", () => {
     const { board } = testEnv(
-      () =>
-        item("board",
-          ...Array.from({ length: 10 }, (_, i) => item(`col${i}`, item(`c${i}-a`), item(`c${i}-b`))),
-        ),
+      () => item("board", ...Array.from({ length: 10 }, (_, i) => item(`col${i}`, item(`c${i}-a`), item(`c${i}-b`)))),
       { columns: 200 },
     )
     const bugs: string[] = []

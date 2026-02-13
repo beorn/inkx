@@ -31,11 +31,7 @@ describe("Exploration: Breadcrumb Rendering", () => {
 
   test("breadcrumb reflects current cursor after h navigation", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a"), item("2b")),
-      ),
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
     )
     const bugs: string[] = []
 
@@ -50,9 +46,7 @@ describe("Exploration: Breadcrumb Rendering", () => {
   })
 
   test("breadcrumb updates on j/k within column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -118,9 +112,7 @@ describe("Exploration: Breadcrumb Rendering", () => {
   })
 
   test("breadcrumb at column level vs card level", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     // Go to column level
@@ -142,9 +134,7 @@ describe("Exploration: Breadcrumb Rendering", () => {
   })
 
   test("breadcrumb after g/G (first/last card)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     board.press("G") // jump to last card (E)

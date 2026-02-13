@@ -50,9 +50,9 @@ const HAS_WIKILINK = /\[\[/
 
 // km-fast-md.3: Individual task metadata regexes compiled at module level
 // (Combined regex was consuming whitespace between patterns, causing misses)
-const DUE_EMOJI_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})/
+const DUE_EMOJI_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
 const DUE_INLINE_REGEX = /\bdue:(\d{4}-\d{2}-\d{2})\b/
-const SCHED_EMOJI_REGEX = /⏳\s*(\d{4}-\d{2}-\d{2})/
+const SCHED_EMOJI_REGEX = /⏳\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
 const SCHED_INLINE_REGEX = /\bstart:(\d{4}-\d{2}-\d{2})\b/
 const RECURRENCE_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/
 const PRIORITY_INLINE_REGEX = /\bp:([1-9])\b/
@@ -237,32 +237,38 @@ export function extractAllRefs(text: string): {
  */
 export function parseTaskMetadata(text: string): {
   dueDate?: string
+  dueTime?: string
   scheduledDate?: string
+  scheduledTime?: string
   priority?: number
   recurrence?: string
 } {
   const result: {
     dueDate?: string
+    dueTime?: string
     scheduledDate?: string
+    scheduledTime?: string
     priority?: number
     recurrence?: string
   } = {}
 
   // km-fast-md.3: Use module-level compiled regexes
-  // Due date: 📅 2024-01-15 OR due:2024-01-15
+  // Due date: 📅 2024-01-15 or 📅 2024-01-15T14:30 OR due:2024-01-15
   const dueMatch = text.match(DUE_EMOJI_REGEX)
   if (dueMatch) {
     result.dueDate = dueMatch[1]
+    if (dueMatch[2]) result.dueTime = dueMatch[2]
   }
   const dueInlineMatch = text.match(DUE_INLINE_REGEX)
   if (dueInlineMatch && !result.dueDate) {
     result.dueDate = dueInlineMatch[1]
   }
 
-  // Scheduled date: ⏳ 2024-01-10 OR start:2024-01-10
+  // Scheduled date: ⏳ 2024-01-10 or ⏳ 2024-01-10T09:00 OR start:2024-01-10
   const scheduledMatch = text.match(SCHED_EMOJI_REGEX)
   if (scheduledMatch) {
     result.scheduledDate = scheduledMatch[1]
+    if (scheduledMatch[2]) result.scheduledTime = scheduledMatch[2]
   }
   const startInlineMatch = text.match(SCHED_INLINE_REGEX)
   if (startInlineMatch && !result.scheduledDate) {

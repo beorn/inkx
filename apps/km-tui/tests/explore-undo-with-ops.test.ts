@@ -9,10 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Exploration: Undo with Operations", () => {
   test("duplicate then fold then undo", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -30,9 +27,7 @@ describe("Exploration: Undo with Operations", () => {
   })
 
   test("duplicate then search then undo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // duplicate A
@@ -48,9 +43,7 @@ describe("Exploration: Undo with Operations", () => {
   })
 
   test("duplicate then detail pane then undo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // duplicate A
@@ -66,12 +59,7 @@ describe("Exploration: Undo with Operations", () => {
   })
 
   test("duplicate then navigate to other column then undo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C")),
-      ),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press("d") // duplicate A
@@ -86,9 +74,7 @@ describe("Exploration: Undo with Operations", () => {
   })
 
   test("duplicate then inline edit then undo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // duplicate A
@@ -104,9 +90,7 @@ describe("Exploration: Undo with Operations", () => {
   })
 
   test("multiple duplicates then multiple undos", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // dup 1
@@ -124,9 +108,7 @@ describe("Exploration: Undo with Operations", () => {
   })
 
   test("undo then redo then undo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // dup
@@ -142,9 +124,7 @@ describe("Exploration: Undo with Operations", () => {
   })
 
   test("undo on empty undo stack with different modes", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // No undoable action performed

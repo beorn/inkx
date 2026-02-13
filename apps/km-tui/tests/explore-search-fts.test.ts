@@ -48,8 +48,7 @@ describe("Exploration: Search FTS", () => {
       if (hasSearchBox) {
         // This IS a bug: Escape doesn't close the search dialog
         expect.fail(
-          "BUG: Escape did not close the search dialog. " +
-          "The dialog is still visible after pressing Escape."
+          "BUG: Escape did not close the search dialog. " + "The dialog is still visible after pressing Escape.",
         )
       }
     }

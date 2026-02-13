@@ -18,7 +18,14 @@ import { extractTitleTaskMark } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
-import { renderRich, getTypeBullet, getCircleBullet, getFoldMarker, isSigilName, type StatusIcon } from "../text/index.ts"
+import {
+  renderRich,
+  getTypeBullet,
+  getCircleBullet,
+  getFoldMarker,
+  isSigilName,
+  type StatusIcon,
+} from "../text/index.ts"
 import { truncateText } from "../layout/index.ts"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
@@ -213,7 +220,16 @@ function TreeNodeImpl({
     const s = getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing)
     if (dim) s.shouldDim = true
     return s
-  }, [displayNode.id, displayNode.task_status, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing, dim])
+  }, [
+    displayNode.id,
+    displayNode.task_status,
+    isSelected,
+    isMultiSelected,
+    dimInactiveChildren,
+    depth,
+    isInlineEditing,
+    dim,
+  ])
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)
@@ -233,13 +249,20 @@ function TreeNodeImpl({
     // "regular" style — existing fold markers
     const bullet = getFoldMarker(hasChildren, isFolded, style.ownColor)
     return bullet
-  }, [isTask, iconStyle, displayNode.type, hasChildren, isFolded, depth, maxDepth, style.ownColor, style.taskStatusIcon])
+  }, [
+    isTask,
+    iconStyle,
+    displayNode.type,
+    hasChildren,
+    isFolded,
+    depth,
+    maxDepth,
+    style.ownColor,
+    style.taskStatusIcon,
+  ])
 
   // Memoize prefix - only recalc when bullet icon changes
-  const prefix = useMemo(
-    () => buildPrefix(bulletIcon),
-    [bulletIcon],
-  )
+  const prefix = useMemo(() => buildPrefix(bulletIcon), [bulletIcon])
 
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
@@ -506,13 +529,18 @@ function TreeNodeImpl({
             ) : (
               <Text
                 bold={depth === 0 && hasChildren}
-                color={dimUntitled ? "gray" : style.textColor ?? style.ownColor}
+                color={dimUntitled ? "gray" : (style.textColor ?? style.ownColor)}
                 dimColor={style.shouldDim || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner ? "truncate" : "wrap"}
               >
                 {styledContent}
-                {sigilName && <>{" "}<Text dimColor={!(isSelected || isMultiSelected)}>{sigilName}</Text></>}
+                {sigilName && (
+                  <>
+                    {" "}
+                    <Text dimColor={!(isSelected || isMultiSelected)}>{sigilName}</Text>
+                  </>
+                )}
                 {!childrenHidden && infoSuffix && <Text dimColor={!(isSelected || isMultiSelected)}>{infoSuffix}</Text>}
                 {!childrenHidden && showInlineContext && (
                   <Text dimColor={!(isSelected || isMultiSelected)} italic>
@@ -527,8 +555,8 @@ function TreeNodeImpl({
             <Box flexShrink={0}>
               <Text
                 bold={childrenHidden}
-                dimColor={style.shouldDim || (!childrenHidden && !(isSelected || isMultiSelected))}
-                color={style.textColor ?? (!childrenHidden ? "gray" : undefined)}
+                dimColor={style.shouldDim || dimUntitled || (!childrenHidden && !(isSelected || isMultiSelected))}
+                color={dimUntitled ? "gray" : (style.textColor ?? (!childrenHidden ? "gray" : undefined))}
               >
                 {` ${childCount}`}
               </Text>

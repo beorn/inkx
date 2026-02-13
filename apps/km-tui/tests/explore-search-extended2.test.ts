@@ -13,18 +13,8 @@ describe("Exploration: Search Extended", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item("Buy groceries"),
-            item("Fix the bug"),
-            item("Write documentation"),
-            item("Review PR #42"),
-          ),
-          item(
-            "col2",
-            item("Deploy to staging"),
-            item("Email client update"),
-          ),
+          item("col1", item("Buy groceries"), item("Fix the bug"), item("Write documentation"), item("Review PR #42")),
+          item("col2", item("Deploy to staging"), item("Email client update")),
         ),
       { columns: 100, rows: 30 },
     )
@@ -130,7 +120,7 @@ describe("Exploration: Search Extended", () => {
   test("open search, navigate results, Enter selects", () => {
     const { board } = makeBoard()
     board.press("/")
-    board.press("t").press("h")  // Matches "Fix the bug", "Write the..."
+    board.press("t").press("h") // Matches "Fix the bug", "Write the..."
     board.press("down") // Move to second result
     board.press("return") // Select
     const text = board.screenshot()
@@ -153,10 +143,7 @@ describe("Exploration: Search Extended", () => {
   test("search with many results scrolls correctly", () => {
     // Create a board with many items
     const items = Array.from({ length: 20 }, (_, i) => item(`Task ${i + 1}`))
-    const { board } = testEnv(
-      () => item("board", item("col1", ...items)),
-      { columns: 100, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", ...items)), { columns: 100, rows: 24 })
 
     board.press("/")
     board.press("T").press("a") // Matches all "Task N"

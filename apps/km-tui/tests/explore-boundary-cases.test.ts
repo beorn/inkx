@@ -8,9 +8,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Boundary Cases", () => {
   test("board with single empty column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1")),
-    )
+    const { board } = testEnv(() => item("board", item("col1")))
     const bugs: string[] = []
 
     board.press("j")
@@ -27,7 +25,8 @@ describe("Exploration: Boundary Cases", () => {
 
   test("board with many columns (8)", () => {
     const { board } = testEnv(() =>
-      item("board",
+      item(
+        "board",
         item("c1", item("a1")),
         item("c2", item("a2")),
         item("c3", item("a3")),
@@ -54,19 +53,7 @@ describe("Exploration: Boundary Cases", () => {
 
   test("deep nesting navigation", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("L1",
-            item("L2",
-              item("L3",
-                item("L4",
-                  item("L5", item("deepest")),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+      item("board", item("col1", item("L1", item("L2", item("L3", item("L4", item("L5", item("deepest")))))))),
     )
     const bugs: string[] = []
 
@@ -87,9 +74,7 @@ describe("Exploration: Boundary Cases", () => {
   })
 
   test("board with only one card", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("only"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("only"))))
     const bugs: string[] = []
 
     // Various operations on single card
@@ -107,12 +92,7 @@ describe("Exploration: Boundary Cases", () => {
   })
 
   test("delete all cards in column then navigate", () => {
-    const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C")),
-      ),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press("Backspace") // delete A
@@ -148,10 +128,10 @@ describe("Exploration: Boundary Cases", () => {
   })
 
   test("narrow terminal (30 cols) operations", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-      { columns: 30, rows: 10 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))), {
+      columns: 30,
+      rows: 10,
+    })
     const bugs: string[] = []
 
     board.press("j")
@@ -167,10 +147,10 @@ describe("Exploration: Boundary Cases", () => {
   })
 
   test("very wide terminal (200 cols)", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-      { columns: 200, rows: 40 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))), {
+      columns: 200,
+      rows: 40,
+    })
     const bugs: string[] = []
 
     board.press("j")
@@ -184,9 +164,7 @@ describe("Exploration: Boundary Cases", () => {
   })
 
   test("Tab indent on first card (no previous sibling)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("Tab") // indent A — no previous sibling to indent under
@@ -199,9 +177,7 @@ describe("Exploration: Boundary Cases", () => {
   })
 
   test("Shift+Tab outdent at top level", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("Shift+Tab") // outdent A — already at top level
@@ -214,9 +190,7 @@ describe("Exploration: Boundary Cases", () => {
   })
 
   test("gg goes to first card, G goes to last", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     board.press("j").press("j") // → C

@@ -234,6 +234,7 @@ export function buildKeybindingContext(options: {
   searchDialogOpen?: boolean
   projectPickerOpen?: boolean
   newItemDialogOpen?: boolean
+  datePromptOpen?: boolean
   helpOverlayOpen?: boolean
   deleteConfirmOpen?: boolean
   consoleOpen?: boolean
@@ -255,6 +256,7 @@ export function buildKeybindingContext(options: {
     searchDialogOpen: options.searchDialogOpen ?? false,
     projectPickerOpen: options.projectPickerOpen ?? false,
     newItemDialogOpen: options.newItemDialogOpen ?? false,
+    datePromptOpen: options.datePromptOpen ?? false,
     helpOverlayOpen: options.helpOverlayOpen ?? false,
     deleteConfirmOpen: options.deleteConfirmOpen ?? false,
     consoleOpen: options.consoleOpen ?? false,

@@ -9,10 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Exploration: Embed Operations", () => {
   test("duplicate embed node", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item.task("original", "todo"),
-        item.task("target", "wip"),
-      )),
+      item("board", item("col1", item.task("original", "todo"), item.task("target", "wip"))),
     )
     const bugs: string[] = []
 
@@ -29,11 +26,7 @@ describe("Exploration: Embed Operations", () => {
 
   test("delete embed node", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("embed-node"),
-        item.task("target", "todo"),
-        item("C"),
-      )),
+      item("board", item("col1", item("embed-node"), item.task("target", "todo"), item("C"))),
     )
     const bugs: string[] = []
 
@@ -49,13 +42,7 @@ describe("Exploration: Embed Operations", () => {
 
   test("fold embed parent", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item("embed-child"),
-          item("regular-child"),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("embed-child"), item("regular-child")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -71,11 +58,7 @@ describe("Exploration: Embed Operations", () => {
 
   test("move embed with Alt+j", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("embed-node"),
-        item.task("target", "todo"),
-        item("C"),
-      )),
+      item("board", item("col1", item("embed-node"), item.task("target", "todo"), item("C"))),
     )
     const bugs: string[] = []
 
@@ -91,12 +74,7 @@ describe("Exploration: Embed Operations", () => {
 
   test("navigate through embeds", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("A"),
-        item("embed1"),
-        item("embed2"),
-        item("D"),
-      )),
+      item("board", item("col1", item("A"), item("embed1"), item("embed2"), item("D"))),
     )
     const bugs: string[] = []
 
@@ -116,12 +94,7 @@ describe("Exploration: Embed Operations", () => {
   })
 
   test("detail pane on embed", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("embed-node"),
-        item.task("target", "wip"),
-      )),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("embed-node"), item.task("target", "wip"))))
     const bugs: string[] = []
 
     repo.updateNode("embed-node", { link_to: "target" })
@@ -135,12 +108,7 @@ describe("Exploration: Embed Operations", () => {
   })
 
   test("inline edit on embed", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("embed-node"),
-        item.task("target", "todo"),
-      )),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("embed-node"), item.task("target", "todo"))))
     const bugs: string[] = []
 
     repo.updateNode("embed-node", { link_to: "target" })
@@ -156,11 +124,7 @@ describe("Exploration: Embed Operations", () => {
 
   test("select embed then batch delete", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("embed-node"),
-        item.task("target", "todo"),
-        item("C"),
-      )),
+      item("board", item("col1", item("embed-node"), item.task("target", "todo"), item("C"))),
     )
     const bugs: string[] = []
 

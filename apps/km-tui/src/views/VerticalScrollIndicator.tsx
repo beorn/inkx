@@ -19,10 +19,11 @@ export interface VerticalScrollIndicatorProps {
  * Arrow is centered vertically using flexbox justifyContent.
  */
 export function VerticalScrollIndicator({ direction }: VerticalScrollIndicatorProps): React.ReactElement {
-  const arrow = direction === "left" ? "◀" : "▶"
+  const arrow = direction === "left" ? "◂" : "▸"
 
   return (
     <Box
+      data-scroll-indicator={direction}
       flexDirection="column"
       width={1}
       flexGrow={1}

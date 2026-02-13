@@ -28,14 +28,7 @@ describe("Exploration: embed-heavy board ops", () => {
     return testEnv(() => {
       const nodes = item(
         "board",
-        item(
-          "processing",
-          item("embed-1"),
-          item("embed-2"),
-          item("fbar-task"),
-          item("thoughts"),
-          item("embed-3"),
-        ),
+        item("processing", item("embed-1"), item("embed-2"), item("fbar-task"), item("thoughts"), item("embed-3")),
         item("next-col", item("task-a"), item("task-b"), item("task-c")),
         item("doing", item("task-d"), item("task-e")),
       )
@@ -73,15 +66,24 @@ describe("Exploration: embed-heavy board ops", () => {
 
     // Deterministic navigation sequence
     const actions = [
-      "j", "j", "j", "j", "j", // down through processing
-      "k", "k", // back up
+      "j",
+      "j",
+      "j",
+      "j",
+      "j", // down through processing
+      "k",
+      "k", // back up
       "l", // to next column
-      "j", "j", "j", // down in next
+      "j",
+      "j",
+      "j", // down in next
       "l", // to doing
       "j", // down in doing
       "h", // back to next
       "h", // back to processing
-      "k", "k", "k", // up in processing
+      "k",
+      "k",
+      "k", // up in processing
     ]
 
     // Repeat the pattern to hit 100 interactions
@@ -268,16 +270,56 @@ describe("Exploration: embed-heavy board ops", () => {
 
     // Deterministic mixed sequence
     const ops = [
-      "j", "j", "n", "Escape", "Tab",       // create + indent
-      "k", "k", "n", "Escape", "Shift+Tab",  // create + outdent
-      "l", "j", "j", "n", "Escape",          // col switch + create
-      "h", "k", "n", "Escape", "Tab",        // back + create + indent
-      "j", "j", "j", "l", "j",              // navigate
-      "n", "Escape", "k", "k", "k",          // create + navigate up
-      "l", "j", "n", "Escape", "Tab",        // next col + create + indent
-      "h", "h", "j", "j", "j",              // back to first col
-      "n", "Escape", "j", "n", "Escape",     // two creates
-      "k", "k", "Tab", "j", "j",            // indent + navigate
+      "j",
+      "j",
+      "n",
+      "Escape",
+      "Tab", // create + indent
+      "k",
+      "k",
+      "n",
+      "Escape",
+      "Shift+Tab", // create + outdent
+      "l",
+      "j",
+      "j",
+      "n",
+      "Escape", // col switch + create
+      "h",
+      "k",
+      "n",
+      "Escape",
+      "Tab", // back + create + indent
+      "j",
+      "j",
+      "j",
+      "l",
+      "j", // navigate
+      "n",
+      "Escape",
+      "k",
+      "k",
+      "k", // create + navigate up
+      "l",
+      "j",
+      "n",
+      "Escape",
+      "Tab", // next col + create + indent
+      "h",
+      "h",
+      "j",
+      "j",
+      "j", // back to first col
+      "n",
+      "Escape",
+      "j",
+      "n",
+      "Escape", // two creates
+      "k",
+      "k",
+      "Tab",
+      "j",
+      "j", // indent + navigate
     ]
 
     for (let i = 0; i < ops.length; i++) {

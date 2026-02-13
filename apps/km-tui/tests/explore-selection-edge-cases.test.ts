@@ -21,9 +21,7 @@ describe("Exploration: Selection Edge Cases", () => {
     // REPORTED BUG: After 1 J press, behavior is non-deterministic between
     // isolated and parallel test runs. Sometimes multiSelected has 1 item (anchor only),
     // sometimes it has 2 (anchor + focus). This makes batch ops unreliable with 1 J press.
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     setTaskStatus(repo, ["A", "B", "C"])
 
     board.press("J") // 1 J press: anchor=A, cursor→B
@@ -42,9 +40,7 @@ describe("Exploration: Selection Edge Cases", () => {
   })
 
   test("J at last card: boundary selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("j") // → B (last card)
@@ -58,9 +54,7 @@ describe("Exploration: Selection Edge Cases", () => {
   })
 
   test("K at first card: boundary selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Cursor starts on A (first card)
@@ -74,9 +68,7 @@ describe("Exploration: Selection Edge Cases", () => {
   })
 
   test("J then K: select then deselect direction change", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -93,11 +85,7 @@ describe("Exploration: Selection Edge Cases", () => {
 
   test("selection then h/l column navigation clears selection", () => {
     const { board, repo } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("A"), item("B"), item("C")),
-        item("col2", item("D"), item("E")),
-      ),
+      item("board", item("col1", item("A"), item("B"), item("C")), item("col2", item("D"), item("E"))),
     )
     setTaskStatus(repo, ["A", "B", "C", "D", "E"])
     const bugs: string[] = []
@@ -213,9 +201,7 @@ describe("Exploration: Selection Edge Cases", () => {
   })
 
   test("select all cards then navigate j — boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Select A→C (all)

@@ -9,9 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Duplicate Undo Focus", () => {
   test("duplicate creates undo entry", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     const before = repo.getChildren("col1").length
     expect(before).toBe(2)
@@ -33,19 +31,17 @@ describe("Duplicate Undo Focus", () => {
 
       // Check all children after undo to see if the node was truly deleted
       const children = repo.getChildren("col1")
-      const contents = children.map(c => c.content || c.id)
+      const contents = children.map((c) => c.content || c.id)
       // Report this as a bug
       expect.fail(
         `BUG: Duplicate undo didn't work. Children after undo: ${JSON.stringify(contents)}. ` +
-        `Expected 2 children, got ${afterUndo}.`
+          `Expected 2 children, got ${afterUndo}.`,
       )
     }
   })
 
   test("duplicate creates node with correct parent", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     board.press("d") // Duplicate A
     const children = repo.getChildren("col1")
@@ -57,7 +53,7 @@ describe("Duplicate Undo Focus", () => {
     }
 
     // At least one should have content "A" (the duplicate should copy content)
-    const aNodes = children.filter(c => c.content === "A")
+    const aNodes = children.filter((c) => c.content === "A")
     expect(aNodes.length).toBe(2) // Original A + duplicate
   })
 })

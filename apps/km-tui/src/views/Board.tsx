@@ -23,6 +23,7 @@ import { DetailPane } from "./DetailPane.tsx"
 import { ProjectPicker } from "./ProjectPicker.tsx"
 import { HelpOverlay } from "./HelpOverlay.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
+import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
 import { Column } from "./CardColumn.tsx"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
@@ -60,11 +61,7 @@ import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-con
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
 import { ToastStack } from "./ToastStack.tsx"
-import {
-  createFileDropHandler,
-  createWatcherStatusHandler,
-  createErrorWarningHandler,
-} from "./board-effects.ts"
+import { createFileDropHandler, createWatcherStatusHandler, createErrorWarningHandler } from "./board-effects.ts"
 import type { ToastQueue } from "@km/core"
 import { createToastQueue } from "@km/core"
 import { getOwnColor } from "../board-pills.ts"
@@ -101,6 +98,8 @@ export interface BoardCoreProps {
     handleNewItemCancel: () => void
     handleSearchSelect: (targetNode: KNode) => void
     handleSearchCancel: () => void
+    handleDatePromptConfirm: () => void
+    handleDatePromptCancel: () => void
   }
   /** Collapsed nodes (node IDs) */
   collapsedNodes: Set<string>
@@ -379,38 +378,88 @@ export function BoardCore({
           {/* Detail pane — subscribes to cursor position independently */}
           {ui.showDetailPane && <CursorAwareDetailPane state={state} width={detailPaneWidth} height={contentHeight} />}
           {/* Project picker modal */}
-          {ui.showProjectPicker && <DialogBox termWidth={termWidth} contentHeight={contentHeight} maxWidth={80} topFraction={1 / 2} data-dialog="project-picker">
-            <ProjectPicker
-              onSelect={dialogHandlers.handleProjectSelect}
-              onCancel={dialogHandlers.handleProjectCancel}
-              width={Math.min(80, Math.floor(termWidth / 2))}
-              height={Math.floor(contentHeight / 2)}
-              recentProjectIds={ui.recentProjectIds}
-            />
-          </DialogBox>}
+          {ui.showProjectPicker && (
+            <DialogBox
+              termWidth={termWidth}
+              contentHeight={contentHeight}
+              maxWidth={80}
+              topFraction={1 / 2}
+              data-dialog="project-picker"
+            >
+              <ProjectPicker
+                onSelect={dialogHandlers.handleProjectSelect}
+                onCancel={dialogHandlers.handleProjectCancel}
+                width={Math.min(80, Math.floor(termWidth / 2))}
+                height={Math.floor(contentHeight / 2)}
+                recentProjectIds={ui.recentProjectIds}
+              />
+            </DialogBox>
+          )}
           {/* New item dialog modal */}
-          {ui.showNewItemDialog && <DialogBox termWidth={termWidth} contentHeight={contentHeight} maxWidth={70} topFraction={1 / 3} data-dialog="new-item">
-            <CursorAwareNewItemDialog
-              state={state}
-              onCreate={dialogHandlers.handleNewItemCreate}
-              onCancel={dialogHandlers.handleNewItemCancel}
-              width={Math.min(70, Math.floor(termWidth / 2))}
-              height={10}
-            />
-          </DialogBox>}
+          {ui.showNewItemDialog && (
+            <DialogBox
+              termWidth={termWidth}
+              contentHeight={contentHeight}
+              maxWidth={70}
+              topFraction={1 / 3}
+              data-dialog="new-item"
+            >
+              <CursorAwareNewItemDialog
+                state={state}
+                onCreate={dialogHandlers.handleNewItemCreate}
+                onCancel={dialogHandlers.handleNewItemCancel}
+                width={Math.min(70, Math.floor(termWidth / 2))}
+                height={10}
+              />
+            </DialogBox>
+          )}
           {/* Search dialog modal */}
-          {ui.showSearchDialog && <DialogBox termWidth={termWidth} contentHeight={contentHeight} maxWidth={90} widthFraction={2 / 3} topFraction={1 / 6} data-dialog="search">
-            <SearchDialog
-              onSelect={dialogHandlers.handleSearchSelect}
-              onCancel={dialogHandlers.handleSearchCancel}
-              width={Math.min(90, Math.floor((termWidth * 2) / 3))}
-              maxHeight={Math.floor((contentHeight * 2) / 3)}
-              initialInput={ui.searchDialogInitialInput}
-              onConsumeInitialInput={() => setUI({ searchDialogInitialInput: "" })}
-            />
-          </DialogBox>}
+          {ui.showSearchDialog && (
+            <DialogBox
+              termWidth={termWidth}
+              contentHeight={contentHeight}
+              maxWidth={90}
+              widthFraction={2 / 3}
+              topFraction={1 / 6}
+              data-dialog="search"
+            >
+              <SearchDialog
+                onSelect={dialogHandlers.handleSearchSelect}
+                onCancel={dialogHandlers.handleSearchCancel}
+                width={Math.min(90, Math.floor((termWidth * 2) / 3))}
+                maxHeight={Math.floor((contentHeight * 2) / 3)}
+                initialInput={ui.searchDialogInitialInput}
+                onConsumeInitialInput={() => setUI({ searchDialogInitialInput: "" })}
+              />
+            </DialogBox>
+          )}
           {/* Delete confirmation dialog */}
-          {ui.deleteConfirm && <DeleteConfirmDialogBox termWidth={termWidth} contentHeight={contentHeight} deleteConfirm={ui.deleteConfirm} />}
+          {ui.deleteConfirm && (
+            <DeleteConfirmDialogBox
+              termWidth={termWidth}
+              contentHeight={contentHeight}
+              deleteConfirm={ui.deleteConfirm}
+            />
+          )}
+          {/* Date prompt dialog */}
+          {ui.datePrompt && (
+            <DialogBox
+              termWidth={termWidth}
+              contentHeight={contentHeight}
+              maxWidth={60}
+              topFraction={1 / 3}
+              data-dialog="date-prompt"
+            >
+              <DatePromptDialog
+                field={ui.datePrompt.field}
+                currentValue={ui.datePrompt.currentValue}
+                onConfirm={dialogHandlers.handleDatePromptConfirm}
+                onCancel={dialogHandlers.handleDatePromptCancel}
+                width={Math.min(60, Math.floor(termWidth / 2))}
+                height={10}
+              />
+            </DialogBox>
+          )}
           {/* Help overlay */}
           {ui.showHelp && <HelpOverlay width={termWidth} height={contentHeight} />}
           {/* Console now uses screen switching (pause/resume) instead of overlay */}
@@ -801,7 +850,12 @@ function DialogBox({
 }): React.ReactElement {
   const w = Math.min(maxWidth, Math.floor(termWidth * widthFraction))
   return (
-    <Box position="absolute" marginLeft={Math.floor((termWidth - w) / 2)} marginTop={Math.floor(contentHeight * topFraction)} {...rest}>
+    <Box
+      position="absolute"
+      marginLeft={Math.floor((termWidth - w) / 2)}
+      marginTop={Math.floor(contentHeight * topFraction)}
+      {...rest}
+    >
       {children}
     </Box>
   )
@@ -822,9 +876,13 @@ function DeleteConfirmDialogBox({
   if (dc.backlinkCount > 0) warnings.push(`${dc.backlinkCount} backlink${dc.backlinkCount !== 1 ? "s" : ""} will break`)
   if (dc.hasMetadata) warnings.push("Has metadata (frontmatter)")
   return (
-    <Box position="absolute" marginLeft={Math.floor((termWidth - dialogWidth) / 2)} marginTop={Math.floor(contentHeight / 3)} data-dialog="delete-confirm">
+    <Box
+      position="absolute"
+      marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
+      marginTop={Math.floor(contentHeight / 3)}
+      data-dialog="delete-confirm"
+    >
       <ConfirmDialog title={`Delete "${dc.title}"?`} warnings={warnings} width={dialogWidth} />
     </Box>
   )
 }
-

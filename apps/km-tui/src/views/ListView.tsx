@@ -173,7 +173,16 @@ export function ListView({
         />
       )
     },
-    [colIndex, cardIndex, subIndex, selectionLevel, inOutlineMode, width, getCachedBoardPills, columnExcludedSigilsByCol],
+    [
+      colIndex,
+      cardIndex,
+      subIndex,
+      selectionLevel,
+      inOutlineMode,
+      width,
+      getCachedBoardPills,
+      columnExcludedSigilsByCol,
+    ],
   )
 
   // Empty state

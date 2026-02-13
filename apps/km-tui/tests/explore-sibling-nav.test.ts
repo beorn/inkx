@@ -7,9 +7,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Sibling/History Navigation", () => {
   test("history back/forward on single board does not crash", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("[") // history back — no history
@@ -23,14 +21,7 @@ describe("Exploration: Sibling/History Navigation", () => {
   })
 
   test("zoom in creates history, [ goes back", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("parent", item("c1"), item("c2")),
-          item("B"),
-        ),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("i") // zoom into parent (or open detail if leaf)
@@ -44,9 +35,7 @@ describe("Exploration: Sibling/History Navigation", () => {
   })
 
   test("Ctrl+J/K sibling nav at root level", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("Ctrl+J") // sibling board down (if any)
@@ -61,13 +50,7 @@ describe("Exploration: Sibling/History Navigation", () => {
 
   test("zoom in then out preserves cursor", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("parent", item("c1"), item("c2")),
-          item("B"),
-          item("C"),
-        ),
-      ),
+      item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"), item("C"))),
     )
     const bugs: string[] = []
 
@@ -85,11 +68,7 @@ describe("Exploration: Sibling/History Navigation", () => {
 
   test("Shift+1 through Shift+3 jumps to columns", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A")),
-        item("col2", item("B")),
-        item("col3", item("C")),
-      ),
+      item("board", item("col1", item("A")), item("col2", item("B")), item("col3", item("C"))),
     )
     const bugs: string[] = []
 

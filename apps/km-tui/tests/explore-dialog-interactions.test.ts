@@ -8,9 +8,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Dialog Interactions", () => {
   test("cycle through all dialog types", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Search
@@ -34,9 +32,7 @@ describe("Exploration: Dialog Interactions", () => {
   })
 
   test("new item while detail pane is open", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press(" ") // open detail pane
@@ -50,10 +46,7 @@ describe("Exploration: Dialog Interactions", () => {
   })
 
   test("help while detail pane is open", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-      { columns: 80, rows: 50 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))), { columns: 80, rows: 50 })
     const bugs: string[] = []
 
     board.press(" ") // open detail pane
@@ -67,9 +60,7 @@ describe("Exploration: Dialog Interactions", () => {
   })
 
   test("inline edit then dialog", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("Enter") // inline edit
@@ -85,12 +76,7 @@ describe("Exploration: Dialog Interactions", () => {
   })
 
   test("fold then dialog interactions", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("z").press("a") // fold
@@ -109,9 +95,7 @@ describe("Exploration: Dialog Interactions", () => {
   })
 
   test("selection then dialogs", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("J") // select A→B
@@ -126,12 +110,7 @@ describe("Exploration: Dialog Interactions", () => {
   })
 
   test("outline mode then dialogs", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     // Enter outline mode on a folder
@@ -150,9 +129,7 @@ describe("Exploration: Dialog Interactions", () => {
   })
 
   test("console panel toggle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("`") // toggle console
@@ -166,9 +143,7 @@ describe("Exploration: Dialog Interactions", () => {
   })
 
   test("console then search then new item", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("`") // console open
@@ -186,10 +161,7 @@ describe("Exploration: Dialog Interactions", () => {
   })
 
   test("all overlays on narrow terminal", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"))),
-      { columns: 30, rows: 10 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))), { columns: 30, rows: 10 })
     const bugs: string[] = []
 
     board.press("n")

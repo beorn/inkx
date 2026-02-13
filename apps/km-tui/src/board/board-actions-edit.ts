@@ -23,6 +23,7 @@
 
 import type { KNode, TaskMark, TaskStatus } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
+import { getNextOccurrence } from "@km/storage"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { clearSelection, getSelectedCards, refreshBoardState } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -108,9 +109,7 @@ export function handleDeleteNode(ctx: ActionCtx): void {
   if (totalChildCount > 0 || totalBacklinkCount > 0 || anyHasMetadata) {
     // Non-trivial: show confirmation dialog
     const title =
-      cards.length > 1
-        ? `${cards.length} selected nodes`
-        : card.node.name ?? card.node.content ?? card.node.id
+      cards.length > 1 ? `${cards.length} selected nodes` : (card.node.name ?? card.node.content ?? card.node.id)
     ctx.setUI({
       deleteConfirm: {
         nodeIds: cards.map((c) => c.node.id),
@@ -124,7 +123,10 @@ export function handleDeleteNode(ctx: ActionCtx): void {
   }
 
   // All cards are empty: delete immediately
-  executeBatchDelete(ctx, cards.map((c) => c.node.id))
+  executeBatchDelete(
+    ctx,
+    cards.map((c) => c.node.id),
+  )
 }
 
 /**
@@ -134,7 +136,10 @@ export function handleDeleteNode(ctx: ActionCtx): void {
  */
 function handleDeleteColumn(
   ctx: ActionCtx,
-  col: { node: { id: string; name?: string | null; content?: string | null; data?: Record<string, unknown> | null }; cards: { node: { id: string } }[] },
+  col: {
+    node: { id: string; name?: string | null; content?: string | null; data?: Record<string, unknown> | null }
+    cards: { node: { id: string } }[]
+  },
 ): void {
   const { repo } = ctx
   const nodeId = col.node.id
@@ -381,10 +386,44 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     const currentStatus = targetNode?.task_status || "todo"
     const currentIndex = statusCycle.indexOf(currentStatus)
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus
-    ctx.repo.updateNode(targetId, {
-      task_status: nextStatus,
-      task_mark: markMap[nextStatus],
-    })
+
+    // Recurrence: when a recurring task transitions to "done", clone it with next due date
+    if (nextStatus === "done" && targetNode?.recurrence && targetNode.due_date) {
+      const nextDue = getNextOccurrence(targetNode.recurrence, targetNode.due_date)
+      // Mark current task done with completion timestamp
+      ctx.repo.updateNode(targetId, {
+        task_status: "done",
+        task_mark: "x",
+        completed_at: Date.now(),
+      })
+      if (nextDue) {
+        // Clone task with next due date, reset to todo
+        const parentId = targetNode.parent_id
+        if (parentId) {
+          ctx.repo.addNode(parentId, {
+            type: targetNode.type,
+            content: targetNode.content,
+            task_status: "todo",
+            task_mark: " ",
+            due_date: nextDue,
+            due_time: targetNode.due_time,
+            scheduled_date: targetNode.scheduled_date,
+            scheduled_time: targetNode.scheduled_time,
+            recurrence: targetNode.recurrence,
+            priority: targetNode.priority,
+            assigned_to: targetNode.assigned_to,
+            recur_prev: targetId,
+            parent_idx: (targetNode.parent_idx ?? 0) + 0.001,
+            data: targetNode.data ? { ...targetNode.data } : undefined,
+          })
+        }
+      }
+    } else {
+      ctx.repo.updateNode(targetId, {
+        task_status: nextStatus,
+        task_mark: markMap[nextStatus],
+      })
+    }
   }
 
   // Selection preserved: status toggle is in-place modification.

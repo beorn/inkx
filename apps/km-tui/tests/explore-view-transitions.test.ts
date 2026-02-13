@@ -26,12 +26,7 @@ describe("Exploration: view transitions", () => {
         "board",
         item(
           "projects",
-          item(
-            "proj-a",
-            item("task-a1"),
-            item("task-a2"),
-            item("task-a3", item("sub-1"), item("sub-2")),
-          ),
+          item("proj-a", item("task-a1"), item("task-a2"), item("task-a3", item("sub-1"), item("sub-2"))),
           item("proj-b", item("task-b1"), item("task-b2")),
         ),
         item(

@@ -8,9 +8,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Task Status", () => {
   test("x cycles task status todo → wip → done → dropped → todo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item.task("A", "todo"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item.task("A", "todo"), item("B"))))
     const bugs: string[] = []
 
     // Actual cycle (5 states): todo → wip → blocked → done → dropped → todo
@@ -35,12 +33,7 @@ describe("Exploration: Task Status", () => {
   })
 
   test("x on non-task node does not crash", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("x") // x on folder (parent) — should be no-op or handle gracefully
@@ -53,9 +46,7 @@ describe("Exploration: Task Status", () => {
   })
 
   test("Space on task cycles status (with no selection)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item.task("A", "todo"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item.task("A", "todo"))))
     const bugs: string[] = []
 
     // Space without multi-selection should open detail pane, not cycle status
@@ -71,11 +62,7 @@ describe("Exploration: Task Status", () => {
 
   test("batch x on selected tasks with same initial status", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item.task("A", "todo"),
-        item.task("B", "todo"),
-        item.task("C", "todo"),
-      )),
+      item("board", item("col1", item.task("A", "todo"), item.task("B", "todo"), item.task("C", "todo"))),
     )
     const bugs: string[] = []
 
@@ -99,9 +86,7 @@ describe("Exploration: Task Status", () => {
   })
 
   test("x on task then undo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item.task("A", "todo"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item.task("A", "todo"), item("B"))))
     const bugs: string[] = []
 
     board.press("x") // cycle
@@ -116,12 +101,7 @@ describe("Exploration: Task Status", () => {
   })
 
   test("detail pane shows task status", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item.task("Important task", "wip"),
-        item("Other"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("Important task", "wip"), item("Other"))))
     const bugs: string[] = []
 
     board.press(" ") // open detail pane
@@ -135,10 +115,7 @@ describe("Exploration: Task Status", () => {
 
   test("x on embed node", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item.task("original", "todo"),
-        item.task("embed-src", "todo"),
-      )),
+      item("board", item("col1", item.task("original", "todo"), item.task("embed-src", "todo"))),
     )
     const bugs: string[] = []
 

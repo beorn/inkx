@@ -293,12 +293,21 @@ describe("Exploration: embed create + nav (stale cursor scenarios)", () => {
     }
 
     const normalOps = [
-      "j", "j", "k", // weighted more toward navigation
-      "l", "h",
-      "n", "Tab", "Shift+Tab",
-      "v", "z", "d",
-      "e", "u",
-      "<", ">",
+      "j",
+      "j",
+      "k", // weighted more toward navigation
+      "l",
+      "h",
+      "n",
+      "Tab",
+      "Shift+Tab",
+      "v",
+      "z",
+      "d",
+      "e",
+      "u",
+      "<",
+      ">",
     ]
     const editOps = ["Escape", "Enter"]
 

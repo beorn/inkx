@@ -118,7 +118,9 @@
   "dependencies": {
     "@types/debug": "^4.1.12",
     "chokidar": "^5.0.0",
+    "chrono-node": "^2.9.0",
     "debug": "^4.4.3",
+    "rrule": "^2.8.1",
     "ulid": "^3.0.2"
   }
 }

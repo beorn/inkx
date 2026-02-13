@@ -133,9 +133,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     expect(cardABottom).toBeGreaterThan(cardATopRowAfter)
 
     // Check that rows between card-a bottom and card-b top have no stale border chars
-    const cardBTop = afterRows.findIndex(
-      (r, i) => i > cardABottom && r.includes("\u256d") && r.includes("\u256e"),
-    )
+    const cardBTop = afterRows.findIndex((r, i) => i > cardABottom && r.includes("\u256d") && r.includes("\u256e"))
     if (cardBTop > cardABottom + 1) {
       // Rows between cards should not have border characters
       for (let i = cardABottom + 1; i < cardBTop; i++) {
@@ -255,10 +253,9 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
       if (leftIdx >= 0 && rightIdx > leftIdx + 1) {
         const between = row.slice(leftIdx + 1, rightIdx)
         for (let i = 0; i < between.length; i++) {
-          expect(
-            between[i],
-            `bottom border at col ${leftIdx + 1 + i} should be \u2500 but got "${between[i]}"`,
-          ).toBe("\u2500")
+          expect(between[i], `bottom border at col ${leftIdx + 1 + i} should be \u2500 but got "${between[i]}"`).toBe(
+            "\u2500",
+          )
         }
       }
     }

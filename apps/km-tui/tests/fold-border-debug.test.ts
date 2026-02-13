@@ -44,12 +44,14 @@ test("border count matches through fold/unfold with many cards near overflow bou
     // Partial cards at viewport edge: top or bottom can exceed the other by at most 1
     if (Math.abs(topBorders - bottomBorders) > 1) {
       const lines = text.split("\n")
-      const annotated = lines.map((line, i) => {
-        const hasTop = /╭.*╮/.test(line)
-        const hasBottom = /╰.*╯/.test(line)
-        const marker = hasTop ? "T" : hasBottom ? "B" : " "
-        return `${String(i).padStart(2)} ${marker} ${line}`
-      }).join("\n")
+      const annotated = lines
+        .map((line, i) => {
+          const hasTop = /╭.*╮/.test(line)
+          const hasBottom = /╰.*╯/.test(line)
+          const marker = hasTop ? "T" : hasBottom ? "B" : " "
+          return `${String(i).padStart(2)} ${marker} ${line}`
+        })
+        .join("\n")
       expect.fail(`After ${press} '<' presses: top (${topBorders}) - bottom (${bottomBorders}) > 1\n${annotated}`)
     }
   }
@@ -60,7 +62,10 @@ test("border count matches through fold/unfold with many cards near overflow bou
     const text = board.screenshot()
     const topBorders = countTopBorders(text)
     const bottomBorders = countBottomBorders(text)
-    expect(Math.abs(topBorders - bottomBorders), `After ${press} '>' presses: top=${topBorders} bottom=${bottomBorders}`).toBeLessThanOrEqual(1)
+    expect(
+      Math.abs(topBorders - bottomBorders),
+      `After ${press} '>' presses: top=${topBorders} bottom=${bottomBorders}`,
+    ).toBeLessThanOrEqual(1)
   }
 })
 
@@ -95,5 +100,8 @@ test("border integrity with scrolled viewport after fold", () => {
   const text = board.screenshot()
   const topBorders = countTopBorders(text)
   const bottomBorders = countBottomBorders(text)
-  expect(Math.abs(topBorders - bottomBorders), `scrolled + folded: top (${topBorders}) should equal bottom (${bottomBorders})`).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(topBorders - bottomBorders),
+    `scrolled + folded: top (${topBorders}) should equal bottom (${bottomBorders})`,
+  ).toBeLessThanOrEqual(1)
 })

@@ -148,9 +148,7 @@ export function* discoverFiles(
     }
 
     if (visitedDirs.has(real)) {
-      const msg = isSymlink
-        ? `Symlink loop: ${dirPath} → ${real}`
-        : `Already visited: ${dirPath} → ${real}`
+      const msg = isSymlink ? `Symlink loop: ${dirPath} → ${real}` : `Already visited: ${dirPath} → ${real}`
       log.debug?.(msg)
       errors.push({ phase: "discover", path: dirPath, message: msg })
       return false

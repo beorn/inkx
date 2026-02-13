@@ -21,9 +21,7 @@ describe("Exploration: Zoom & Navigation", () => {
   })
 
   test("zoom out with N", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("parent", item("child1")), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("child1")), item("B"))))
     board.press("n") // Zoom in
     board.press("N") // Zoom out
     const text = board.screenshot()
@@ -33,10 +31,7 @@ describe("Exploration: Zoom & Navigation", () => {
 
   test("zoom in twice (nested zoom)", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("level1", item("level2", item("deep1"), item("deep2")), item("sib")),
-        item("B"),
-      )),
+      item("board", item("col1", item("level1", item("level2", item("deep1"), item("deep2")), item("sib")), item("B"))),
     )
     board.press("n") // Zoom into level1
     board.press("n") // Zoom into level2
@@ -47,9 +42,7 @@ describe("Exploration: Zoom & Navigation", () => {
   })
 
   test("zoom out at root level (no-op)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("N") // Already at root
     const text = board.screenshot()
     expect(text).not.toContain("[object Object]")
@@ -59,10 +52,7 @@ describe("Exploration: Zoom & Navigation", () => {
 
   test("zoom in then navigate", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2"), item("c3")),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2"), item("c3")), item("B"))),
     )
     board.press("n") // Zoom into parent
     board.press("j") // Navigate down in zoomed view
@@ -73,11 +63,7 @@ describe("Exploration: Zoom & Navigation", () => {
   })
 
   test("zoom + delete child", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-      )),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")))))
     board.press("n") // Zoom into parent
     board.press("x") // Delete c1
     const text = board.screenshot()
@@ -86,12 +72,7 @@ describe("Exploration: Zoom & Navigation", () => {
   })
 
   test("nav back after zoom", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     board.press("n") // Zoom in
     board.press("A-left") // Nav back (should zoom out)
     const text = board.screenshot()
@@ -100,12 +81,7 @@ describe("Exploration: Zoom & Navigation", () => {
   })
 
   test("nav forward after back", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     board.press("n") // Zoom in
     board.press("A-left") // Nav back
     board.press("A-right") // Nav forward
@@ -115,9 +91,7 @@ describe("Exploration: Zoom & Navigation", () => {
   })
 
   test("zoom into empty node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("empty"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("empty"), item("B"))))
     board.press("n") // Zoom into empty — has no children
     const text = board.screenshot()
     expect(text).not.toContain("[object Object]")
@@ -126,10 +100,7 @@ describe("Exploration: Zoom & Navigation", () => {
 
   test("zoom + shift + zoom back", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2"), item("c3")),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2"), item("c3")), item("B"))),
     )
     board.press("n") // Zoom in
     board.press("J") // Shift c1 down
@@ -140,11 +111,7 @@ describe("Exploration: Zoom & Navigation", () => {
   })
 
   test("deep zoom (3 levels) and back", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("L1", item("L2", item("L3", item("deep")))),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("L1", item("L2", item("L3", item("deep")))))))
     board.press("n") // Zoom L1
     board.press("n") // Zoom L2
     board.press("n") // Zoom L3

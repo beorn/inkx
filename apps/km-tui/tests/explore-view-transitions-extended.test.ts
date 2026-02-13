@@ -11,9 +11,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 
 describe("Exploration: View Transitions Extended", () => {
   test("cards → columns → list → cards cycle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     // v toggles between views (1=cards, 2=columns, 3=list, 4=tabs)
@@ -64,10 +62,9 @@ describe("Exploration: View Transitions Extended", () => {
   })
 
   test("indent in list view then switch to cards", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-      { viewMode: "list" },
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), {
+      viewMode: "list",
+    })
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -86,9 +83,7 @@ describe("Exploration: View Transitions Extended", () => {
   })
 
   test("detail pane in cards then switch to columns", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     // Open detail pane in cards view
@@ -105,9 +100,7 @@ describe("Exploration: View Transitions Extended", () => {
   })
 
   test("selection in cards then switch to list", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Start selection in cards
@@ -149,9 +142,7 @@ describe("Exploration: View Transitions Extended", () => {
   })
 
   test("zoom in then switch view mode then zoom out", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     // Zoom into parent

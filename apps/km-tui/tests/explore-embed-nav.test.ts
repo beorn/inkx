@@ -80,11 +80,7 @@ describe("Exploration: Embed Navigation", () => {
 
   test("heading depth < > on section nodes", () => {
     const { board, repo } = testEnv(() => {
-      const nodes = item(
-        "board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C")),
-      )
+      const nodes = item("board", item("col1", item("A"), item("B")), item("col2", item("C")))
       // Make columns into sections with depth
       for (const n of nodes) {
         if (n.id === "col1") {
@@ -116,10 +112,7 @@ describe("Exploration: Embed Navigation", () => {
 
   test("x toggles task status on embed node", () => {
     const { board, repo } = testEnv(() => {
-      const nodes = item(
-        "board",
-        item("col1", item("embed-a"), item("regular-task")),
-      )
+      const nodes = item("board", item("col1", item("embed-a"), item("regular-task")))
       for (const n of nodes) {
         if (n.id === "embed-a") {
           n.type = "paragraph"
@@ -171,10 +164,7 @@ describe("Exploration: Embed Navigation", () => {
 
   test("navigation to embed then zoom in", () => {
     const { board } = testEnv(() => {
-      const nodes = item(
-        "board",
-        item("col1", item("embed-a"), item("B")),
-      )
+      const nodes = item("board", item("col1", item("embed-a"), item("B")))
       for (const n of nodes) {
         if (n.id === "embed-a") {
           n.type = "paragraph"
@@ -216,10 +206,7 @@ describe("Exploration: Embed Navigation", () => {
     const { board } = testEnv(() => {
       const nodes = item(
         "board",
-        item("col1",
-          item("t1"), item("e1"), item("t2"), item("e2"),
-          item("t3"), item("e3"), item("t4"), item("e4"),
-        ),
+        item("col1", item("t1"), item("e1"), item("t2"), item("e2"), item("t3"), item("e3"), item("t4"), item("e4")),
       )
       for (const n of nodes) {
         if (n.id.startsWith("e")) {

@@ -72,6 +72,28 @@ export function getMarkForStatus(status: TaskStatus): TaskMark {
   }
 }
 
+/**
+ * Get task status from a checkbox mark character.
+ * Maps TaskMark → TaskStatus for markdown parsing.
+ * Returns undefined if mark is undefined (not a task).
+ */
+export function getStatusForMark(mark: string | undefined): TaskStatus | undefined {
+  if (mark === undefined) return undefined
+  switch (mark) {
+    case "x":
+    case "X":
+      return "done"
+    case "!":
+      return "blocked"
+    case "-":
+      return "dropped"
+    case "/":
+      return "wip"
+    default:
+      return "todo"
+  }
+}
+
 /** Task mark from title (e.g., "[x] Title") */
 const TITLE_TASK_MARK_REGEX = new RegExp(`^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`)
 
@@ -117,6 +139,14 @@ export type Source =
   | { type: "md"; line: number; pos?: number } // Position within markdown file
 // Future: { type: "sync"; uri: string; etag?: string }  // CalDAV/CardDAV
 // Future: { type: "api"; endpoint: string; id: string } // External API
+
+// =============================================================================
+// Reminder Type
+// =============================================================================
+
+export interface Reminder {
+  minutes_before: number // Relative to due datetime (negative = after)
+}
 
 // =============================================================================
 // Node Rules
@@ -184,10 +214,16 @@ export interface KNode {
   task_mark?: TaskMark // Only meaningful for type: "task" (checkbox nodes)
   assigned_to?: string
   due_date?: string // YYYY-MM-DD
+  due_time?: string // HH:MM (stored in data blob, no schema change)
+  due_tz?: string // IANA timezone (stored in data blob)
   scheduled_date?: string
-  priority?: number // 1-5
+  scheduled_time?: string // HH:MM (stored in data blob)
+  scheduled_tz?: string // IANA timezone (stored in data blob)
+  priority?: number // 1-4 (P1=critical, P4=backlog)
   recurrence?: string // iCal RRULE format
   recur_prev?: string // Previous recurrence instance ID
+  completed_at?: number // Unix ms — when task was marked done (stored in data blob)
+  reminders?: Reminder[] // [{minutes_before: 15}] (stored in data blob)
 
   // Content
   content?: string // Text content (inline for small)

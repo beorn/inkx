@@ -428,9 +428,7 @@ describe("Delete Confirmation", () => {
   })
 
   test("Escape cancels delete confirmation dialog", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("parent", item("child1")), item("other"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("child1")), item("other"))))
     board.press("Backspace") // show confirm dialog
     board.press("Escape") // cancel
 
@@ -441,9 +439,7 @@ describe("Delete Confirmation", () => {
   })
 
   test("Backspace on column header shows confirmation for column delete", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // Navigate to column header (k from first card)
     board.press("k")
     board.expect("#col1[data-cursor]").toExist()
@@ -461,9 +457,7 @@ describe("Delete Confirmation", () => {
   })
 
   test("Enter confirms column delete, cursor moves to adjacent column", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // Navigate to col1 header
     board.press("k")
     board.expect("#col1[data-cursor]").toExist()

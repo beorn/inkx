@@ -9,11 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Complex Sequences", () => {
   test("navigate, indent, zoom, navigate, zoom back", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("A"), item("B"), item("C"), item("D"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     board.press("j") // B
     board.press("Tab") // Indent B under A
     board.press("k") // A
@@ -27,11 +23,7 @@ describe("Exploration: Complex Sequences", () => {
 
   test("fold all, navigate, unfold at cursor", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("P1", item("c1"), item("c2")),
-        item("P2", item("c3"), item("c4")),
-        item("leaf"),
-      )),
+      item("board", item("col1", item("P1", item("c1"), item("c2")), item("P2", item("c3"), item("c4")), item("leaf"))),
     )
     board.press("z").press("M") // Fold all
     board.press("j") // Next (P2)
@@ -43,11 +35,7 @@ describe("Exploration: Complex Sequences", () => {
   })
 
   test("select, indent, deselect, navigate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("A"), item("B"), item("C"), item("D"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     board.press("j") // B
     board.press("v") // Select B
     board.press("J") // Extend to C
@@ -61,9 +49,7 @@ describe("Exploration: Complex Sequences", () => {
   })
 
   test("add, navigate, delete, undo", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("a").press("return") // Add after A
     board.press("j") // Navigate
     board.press("Backspace") // Delete
@@ -75,7 +61,8 @@ describe("Exploration: Complex Sequences", () => {
 
   test("cross-column operations", () => {
     const { board } = testEnv(() =>
-      item("board",
+      item(
+        "board",
         item("col1", item("A"), item("B"), item("C")),
         item("col2", item("D"), item("E")),
         item("col3", item("F")),
@@ -93,9 +80,7 @@ describe("Exploration: Complex Sequences", () => {
   })
 
   test("view switch during navigation", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j") // B
     board.press("2") // Switch to columns view
     board.press("j") // Navigate in columns view
@@ -108,10 +93,7 @@ describe("Exploration: Complex Sequences", () => {
 
   test("depth change then fold", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("A", item("c1", item("deep")), item("c2")),
-        item("B"),
-      )),
+      item("board", item("col1", item("A", item("c1", item("deep")), item("c2")), item("B"))),
     )
     board.press(">") // Increase depth
     board.press("z").press("M") // Fold all
@@ -123,9 +105,7 @@ describe("Exploration: Complex Sequences", () => {
   })
 
   test("duplicate + indent + zoom", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("d") // Duplicate A
     board.press("j") // Move to duplicate
     board.press("Tab") // Indent duplicate under A
@@ -137,9 +117,7 @@ describe("Exploration: Complex Sequences", () => {
   })
 
   test("help overlay during selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("v") // Select A
     board.press("J") // Extend to B
     board.press("?") // Help overlay
@@ -150,9 +128,7 @@ describe("Exploration: Complex Sequences", () => {
   })
 
   test("search open/close cycle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("/") // Open search
     board.press("escape") // Close (or try to)
     board.press("j") // Navigate

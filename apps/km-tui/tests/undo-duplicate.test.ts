@@ -89,8 +89,12 @@ describe("UndoStack unit tests", () => {
     let value = 0
     stack.push({
       label: "increment",
-      undo: () => { value-- },
-      redo: () => { value++ },
+      undo: () => {
+        value--
+      },
+      redo: () => {
+        value++
+      },
     })
     value++ // simulate the original action
     expect(value).toBe(1)
@@ -104,8 +108,12 @@ describe("UndoStack unit tests", () => {
     let value = 0
     stack.push({
       label: "increment",
-      undo: () => { value-- },
-      redo: () => { value++ },
+      undo: () => {
+        value--
+      },
+      redo: () => {
+        value++
+      },
     })
     value++
 
@@ -119,9 +127,25 @@ describe("UndoStack unit tests", () => {
   test("undo clears redo history when new entry pushed", () => {
     const stack = createUndoStack()
     let value = 0
-    stack.push({ label: "a", undo: () => { value-- }, redo: () => { value++ } })
+    stack.push({
+      label: "a",
+      undo: () => {
+        value--
+      },
+      redo: () => {
+        value++
+      },
+    })
     value++
-    stack.push({ label: "b", undo: () => { value -= 10 }, redo: () => { value += 10 } })
+    stack.push({
+      label: "b",
+      undo: () => {
+        value -= 10
+      },
+      redo: () => {
+        value += 10
+      },
+    })
     value += 10
 
     // Undo "b"
@@ -130,7 +154,15 @@ describe("UndoStack unit tests", () => {
     expect(stack.canRedo()).toBe(true)
 
     // Push new entry — should clear redo history
-    stack.push({ label: "c", undo: () => { value -= 100 }, redo: () => { value += 100 } })
+    stack.push({
+      label: "c",
+      undo: () => {
+        value -= 100
+      },
+      redo: () => {
+        value += 100
+      },
+    })
     value += 100
     expect(stack.canRedo()).toBe(false)
   })

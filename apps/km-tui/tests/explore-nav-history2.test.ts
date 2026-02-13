@@ -80,14 +80,7 @@ describe("Exploration: Nav History", () => {
 
   test("zoom into nested folder then back multiple times", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item("level1", item("level2", item("level3", item("leaf1"), item("leaf2")))),
-          ),
-        ),
+      () => item("board", item("col1", item("level1", item("level2", item("level3", item("leaf1"), item("leaf2")))))),
       { columns: 100, rows: 30 },
     )
 
@@ -124,12 +117,7 @@ describe("Exploration: Nav History", () => {
 
   test("sibling board navigation ([ and ])", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "root",
-          item("board1", item("col1a", item("A"))),
-          item("board2", item("col2a", item("B"))),
-        ),
+      () => item("root", item("board1", item("col1a", item("A"))), item("board2", item("col2a", item("B")))),
       { columns: 100, rows: 30 },
     )
 

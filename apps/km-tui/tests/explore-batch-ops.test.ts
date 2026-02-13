@@ -20,9 +20,7 @@ function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, un
 
 describe("Exploration: Batch Operations", () => {
   test("J extends selection downwards", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     board.press("J") // anchor=A, cursor→B
@@ -36,9 +34,7 @@ describe("Exploration: Batch Operations", () => {
   })
 
   test("K extends selection upwards", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     // Move to D, then select upwards
@@ -54,9 +50,7 @@ describe("Exploration: Batch Operations", () => {
   })
 
   test("Escape clears selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("J").press("J") // select A→C
@@ -97,9 +91,7 @@ describe("Exploration: Batch Operations", () => {
   })
 
   test("batch status toggle advances all selected tasks", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     setTaskStatus(repo, ["A", "B", "C", "D"])
     const bugs: string[] = []
 
@@ -125,9 +117,7 @@ describe("Exploration: Batch Operations", () => {
   })
 
   test("batch indent: selected B,C indented under A", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -150,9 +140,7 @@ describe("Exploration: Batch Operations", () => {
   })
 
   test("batch outdent: selected cards from column to board level", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     // Select A→C
@@ -210,9 +198,7 @@ describe("Exploration: Batch Operations", () => {
   })
 
   test("batch status toggle twice cycles all", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     setTaskStatus(repo, ["A", "B", "C", "D"])
     const bugs: string[] = []
 

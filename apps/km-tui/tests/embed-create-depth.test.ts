@@ -21,10 +21,7 @@ describe("embed create depth", () => {
     // When creating a new node among the embeds, it should get depth=3
     // (parent depth 2 + 1), NOT depth=2 (the default).
     const { board, repo } = testEnv(() => {
-      const nodes = item(
-        "board",
-        item("col1", item("embed-a"), item("embed-b")),
-      )
+      const nodes = item("board", item("col1", item("embed-a"), item("embed-b")))
       // Set parent column to depth=2 (simulates an H2 section)
       for (const n of nodes) {
         if (n.id === "col1") {
@@ -64,10 +61,7 @@ describe("embed create depth", () => {
     // When siblings have explicit depth, the new node should inherit it
     // directly (not compute from parent).
     const { board, repo } = testEnv(() => {
-      const nodes = item(
-        "board",
-        item("col1", item("sec-a"), item("sec-b")),
-      )
+      const nodes = item("board", item("col1", item("sec-a"), item("sec-b")))
       // Parent column is H1 (depth=1 would be unusual, let's use a more
       // realistic H2 parent with H3 children)
       for (const n of nodes) {
@@ -102,10 +96,7 @@ describe("embed create depth", () => {
     // When the parent column has no depth (file node), children should
     // default to depth=2 (standard H2 under a file).
     const { board, repo } = testEnv(() => {
-      const nodes = item(
-        "board",
-        item("col1", item("child-a"), item("child-b")),
-      )
+      const nodes = item("board", item("col1", item("child-a"), item("child-b")))
       // col1 has no depth (simulates a file node)
       // children also have no depth (e.g., paragraphs or embeds)
       for (const n of nodes) {
@@ -136,10 +127,7 @@ describe("embed create depth", () => {
     // Same bug could occur with `p` (insert above) — verify it uses
     // siblingOrParentDepth too.
     const { board, repo } = testEnv(() => {
-      const nodes = item(
-        "board",
-        item("col1", item("embed-a"), item("embed-b")),
-      )
+      const nodes = item("board", item("col1", item("embed-a"), item("embed-b")))
       for (const n of nodes) {
         if (n.id === "col1") {
           n.data = { ...n.data, depth: 2 }

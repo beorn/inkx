@@ -203,13 +203,32 @@ export function formatInfoSuffix(
   if (!isCompact) {
     const infoParts: string[] = []
 
+    // Priority badge (P1=red, P2=orange, P3=yellow, P4=dim)
+    if (node.priority && node.priority >= 1 && node.priority <= 4) {
+      const priorityColors = ["\x1b[31m", "\x1b[33m", "\x1b[93m", "\x1b[2m"] // red, yellow, bright yellow, dim
+      const color = priorityColors[node.priority - 1] ?? ""
+      infoParts.push(`${color}P${node.priority}\x1b[0m`)
+    }
+
+    // Recurrence icon
+    if (node.recurrence) {
+      infoParts.push("🔁")
+    }
+
     if (node.assigned_to) infoParts.push(`@${node.assigned_to}`)
 
-    if (node.due_date) {
-      infoParts.push(formatDueDate(new Date(node.due_date)))
-    } else if (node.scheduled_date) {
+    // Scheduled date (start date)
+    if (node.scheduled_date) {
       const schedStr = new Date(node.scheduled_date).toISOString().slice(5, 10)
-      infoParts.push(`▶${schedStr}`)
+      const timeStr = node.scheduled_time ? ` ${node.scheduled_time}` : ""
+      infoParts.push(`▶${schedStr}${timeStr}`)
+    }
+
+    // Due date
+    if (node.due_date) {
+      const dueDisplay = formatDueDate(new Date(node.due_date))
+      const timeStr = node.due_time ? ` ${node.due_time}` : ""
+      infoParts.push(`${dueDisplay}${timeStr}`)
     }
 
     if (boardPillsStr) infoParts.push(boardPillsStr)

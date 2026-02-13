@@ -19,12 +19,15 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("card index out of bounds on h", () => {
   test("h does not throw after mixed operations that change column sizes", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("projects",
+      item(
+        "board",
+        item(
+          "projects",
           item("proj-a", item("task-a1"), item("task-a2"), item("task-a3", item("sub-1"), item("sub-2"))),
           item("proj-b", item("task-b1"), item("task-b2")),
         ),
-        item("areas",
+        item(
+          "areas",
           item("health", item("exercise"), item("diet")),
           item("finance", item("budget"), item("invest")),
           item("learning", item("books"), item("courses")),
@@ -58,7 +61,11 @@ describe("card index out of bounds on h", () => {
         // This is "h" and should NOT throw — card index must be clamped
         expect(() => board.press(op)).not.toThrow()
       } else {
-        try { board.press(op) } catch { inEdit = false }
+        try {
+          board.press(op)
+        } catch {
+          inEdit = false
+        }
       }
     }
   })

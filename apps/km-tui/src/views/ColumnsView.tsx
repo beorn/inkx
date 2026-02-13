@@ -141,9 +141,18 @@ const ColumnTree = React.memo(function ColumnTree({
               <Text bold color={headerStyle.color} wrap="truncate">
                 <Text color={iconColor}>{icon.char}</Text>{" "}
                 <Text color={isColumnHeaderSelected ? undefined : ownColor}>
-                  {untitled ? <Text dimColor color="gray">{name}</Text> : name}
+                  {untitled ? (
+                    <Text dimColor color="gray">
+                      {name}
+                    </Text>
+                  ) : (
+                    name
+                  )}
                   {isSigilName(column.node.name) && column.node.name !== name && (
-                    <>{" "}<Text dimColor>{column.node.name}</Text></>
+                    <>
+                      {" "}
+                      <Text dimColor>{column.node.name}</Text>
+                    </>
                   )}
                 </Text>
               </Text>

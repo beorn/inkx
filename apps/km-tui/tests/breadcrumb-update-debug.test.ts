@@ -38,10 +38,11 @@ describe("breadcrumb ANSI replay on column navigation", () => {
       item("Gamma Column", item("task-c1")),
     )
     const repo = createFakeRepo({ nodes })
-    const driver = withDiagnostics(
-      createBoardDriver(repo, "board", { columns: 120, rows: 24, incremental: true }),
-      { checkIncremental: true, checkReplay: true, checkStability: false },
-    )
+    const driver = withDiagnostics(createBoardDriver(repo, "board", { columns: 120, rows: 24, incremental: true }), {
+      checkIncremental: true,
+      checkReplay: true,
+      checkStability: false,
+    })
 
     // Navigate columns — withDiagnostics checks ANSI replay after each command
     await driver.press("l")
@@ -61,10 +62,11 @@ describe("breadcrumb ANSI replay on column navigation", () => {
       item("Reference", item("Archive", item("Ref 1"), item("Ref 2"), item("Ref 3"))),
     )
     const repo = createFakeRepo({ nodes })
-    const driver = withDiagnostics(
-      createBoardDriver(repo, "board", { columns: 120, rows: 24, incremental: true }),
-      { checkIncremental: true, checkReplay: true, checkStability: false },
-    )
+    const driver = withDiagnostics(createBoardDriver(repo, "board", { columns: 120, rows: 24, incremental: true }), {
+      checkIncremental: true,
+      checkReplay: true,
+      checkStability: false,
+    })
 
     // Navigate through all columns
     for (let i = 0; i < 5; i++) {

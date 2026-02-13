@@ -88,6 +88,13 @@ export interface UIState {
   // blockIndex 0 = title, 1+ = body children (1-indexed into extractBody result)
   inlineEditBlock: { nodeId: string; blockIndex: number } | null
 
+  // Date/recurrence prompt dialog
+  datePrompt: {
+    field: "due_date" | "scheduled_date" | "recurrence"
+    nodeIds: string[]
+    currentValue: string
+  } | null
+
   // Delete confirmation dialog - shows impact before destructive delete
   deleteConfirm: {
     nodeIds: string[] // Node IDs to delete (single or batch)
@@ -166,6 +173,8 @@ export function createInitialUIState(
     watcherStatus: null,
 
     inlineEditBlock: null,
+
+    datePrompt: null,
 
     deleteConfirm: null,
 

@@ -12,9 +12,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 
 describe("Exploration: View Mode Stress", () => {
   test("rapid view cycling 1→2→3→4→1", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press("2") // columns
@@ -30,10 +28,7 @@ describe("Exploration: View Mode Stress", () => {
   })
 
   test("duplicate in list view then switch to cards", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"))),
-      { viewMode: "list" },
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))), { viewMode: "list" })
     const bugs: string[] = []
 
     board.press("d") // dup in list view
@@ -47,9 +42,7 @@ describe("Exploration: View Mode Stress", () => {
   })
 
   test("delete in columns view", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("2") // columns view
@@ -63,13 +56,9 @@ describe("Exploration: View Mode Stress", () => {
   })
 
   test("fold in list view", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-      { viewMode: "list" },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))), {
+      viewMode: "list",
+    })
     const bugs: string[] = []
 
     board.press("z").press("a") // fold
@@ -82,9 +71,7 @@ describe("Exploration: View Mode Stress", () => {
   })
 
   test("selection in tabs view", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press("4") // tabs view
@@ -99,9 +86,7 @@ describe("Exploration: View Mode Stress", () => {
   })
 
   test("v key cycles through all view modes", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 5; i++) {
@@ -116,10 +101,7 @@ describe("Exploration: View Mode Stress", () => {
 
   test("navigate in each view mode", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B"), item("C")),
-        item("col2", item("D"), item("E")),
-      ),
+      item("board", item("col1", item("A"), item("B"), item("C")), item("col2", item("D"), item("E"))),
     )
     const bugs: string[] = []
 
@@ -139,9 +121,7 @@ describe("Exploration: View Mode Stress", () => {
   })
 
   test("undo after view mode change", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // dup in cards view

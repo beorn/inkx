@@ -117,9 +117,7 @@ describe("Exploration: Fold Interactions", () => {
   })
 
   test("fold then switch view mode", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     // Fold
@@ -139,12 +137,7 @@ describe("Exploration: Fold Interactions", () => {
 
   test("multiple folds then batch operations", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("p1", item("c1")),
-        item("p2", item("c2")),
-        item("p3", item("c3")),
-        item("B"),
-      )),
+      item("board", item("col1", item("p1", item("c1")), item("p2", item("c2")), item("p3", item("c3")), item("B"))),
     )
     const bugs: string[] = []
 

@@ -9,15 +9,10 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Exploration: Fold Border Regression", () => {
   test("single < decreases outline depth without corruption", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("parent1", item("c1"), item("c2")),
-          item("parent2", item("c3"), item("c4")),
-        ),
-        item("col2",
-          item("task1"),
-          item("task2"),
-        ),
+      item(
+        "board",
+        item("col1", item("parent1", item("c1"), item("c2")), item("parent2", item("c3"), item("c4"))),
+        item("col2", item("task1"), item("task2")),
       ),
     )
     const bugs: string[] = []
@@ -35,15 +30,10 @@ describe("Exploration: Fold Border Regression", () => {
 
   test("multiple < presses do not corrupt rendering", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("A", item("a1", item("deep1")), item("a2")),
-          item("B"),
-        ),
-        item("col2",
-          item("C"),
-          item("D"),
-        ),
+      item(
+        "board",
+        item("col1", item("A", item("a1", item("deep1")), item("a2")), item("B")),
+        item("col2", item("C"), item("D")),
       ),
     )
     const bugs: string[] = []
@@ -72,13 +62,7 @@ describe("Exploration: Fold Border Regression", () => {
 
   test("< then > round trip preserves card borders", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("parent", item("c1"), item("c2"), item("c3")),
-          item("B"),
-          item("C"),
-        ),
-      ),
+      item("board", item("col1", item("parent", item("c1"), item("c2"), item("c3")), item("B"), item("C"))),
     )
     const bugs: string[] = []
 
@@ -99,13 +83,7 @@ describe("Exploration: Fold Border Regression", () => {
 
   test("rapid < < < > > > cycle", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("A", item("a1", item("deep"))),
-          item("B", item("b1")),
-          item("C"),
-        ),
-      ),
+      item("board", item("col1", item("A", item("a1", item("deep"))), item("B", item("b1")), item("C"))),
     )
     const bugs: string[] = []
 
@@ -122,10 +100,7 @@ describe("Exploration: Fold Border Regression", () => {
 
   test("< after navigation to different column", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C", item("c1"), item("c2")), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C", item("c1"), item("c2")), item("D"))),
     )
     const bugs: string[] = []
 
@@ -140,14 +115,7 @@ describe("Exploration: Fold Border Regression", () => {
   })
 
   test("fold za then < — combined fold operations", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("parent", item("c1"), item("c2")),
-          item("B"),
-        ),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     // za folds the current node
@@ -163,11 +131,7 @@ describe("Exploration: Fold Border Regression", () => {
   })
 
   test("< at minimum depth does not crash", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Press < many times — should not crash at minimum depth
@@ -183,11 +147,7 @@ describe("Exploration: Fold Border Regression", () => {
   })
 
   test("> at maximum depth does not crash", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Press > many times — should not crash at maximum depth
@@ -204,18 +164,7 @@ describe("Exploration: Fold Border Regression", () => {
 
   test("< with deep nesting preserves structure", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("L1",
-            item("L2",
-              item("L3",
-                item("L4", item("deep-leaf")),
-              ),
-            ),
-          ),
-          item("sibling"),
-        ),
-      ),
+      item("board", item("col1", item("L1", item("L2", item("L3", item("L4", item("deep-leaf"))))), item("sibling"))),
     )
     const bugs: string[] = []
 

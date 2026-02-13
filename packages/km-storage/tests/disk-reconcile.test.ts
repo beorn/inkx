@@ -29,7 +29,14 @@ function runLoadRepo(...args: Parameters<typeof loadRepo>) {
 /** Helper: create a .km directory with events.jsonl from given events */
 function setupDiskMode(
   repoRoot: string,
-  events: Array<{ id?: string; type: string; actor?: string; target?: string; ts?: number; data: Record<string, unknown> }>,
+  events: Array<{
+    id?: string
+    type: string
+    actor?: string
+    target?: string
+    ts?: number
+    data: Record<string, unknown>
+  }>,
 ): void {
   const kmDir = join(repoRoot, ".km")
   mkdirSync(kmDir, { recursive: true })

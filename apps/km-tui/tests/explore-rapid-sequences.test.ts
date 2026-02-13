@@ -24,9 +24,7 @@ describe("Exploration: Rapid Sequences", () => {
   })
 
   test("rapid j/k alternation", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 20; i++) {
@@ -43,10 +41,7 @@ describe("Exploration: Rapid Sequences", () => {
 
   test("rapid fold/unfold", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2"), item("c3")),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2"), item("c3")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -62,9 +57,7 @@ describe("Exploration: Rapid Sequences", () => {
   })
 
   test("rapid duplicate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 8; i++) board.press("d")
@@ -77,9 +70,7 @@ describe("Exploration: Rapid Sequences", () => {
   })
 
   test("rapid undo after duplicates", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 5; i++) board.press("d")
@@ -93,12 +84,7 @@ describe("Exploration: Rapid Sequences", () => {
   })
 
   test("rapid x task status cycling", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item.task("T1", "todo"),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("T1", "todo"), item("B"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 15; i++) board.press("x")
@@ -111,9 +97,7 @@ describe("Exploration: Rapid Sequences", () => {
   })
 
   test("rapid space (detail pane toggle)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 10; i++) board.press(" ")
@@ -126,9 +110,7 @@ describe("Exploration: Rapid Sequences", () => {
   })
 
   test("rapid enter/escape (inline edit)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 8; i++) {
@@ -161,11 +143,7 @@ describe("Exploration: Rapid Sequences", () => {
   })
 
   test("rapid selection extend and clear", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("A"), item("B"), item("C"), item("D"), item("E"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 4; i++) board.press("J") // select down

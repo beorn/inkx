@@ -36,9 +36,7 @@ function checkBorderBalance(text: string): string[] {
 
 describe("Exploration: Border Integrity", () => {
   test("basic board has balanced borders", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     const text = board.screenshot()
     const bugs = checkBorderBalance(text)
@@ -49,12 +47,7 @@ describe("Exploration: Border Integrity", () => {
   })
 
   test("borders after single <", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
 
     board.press("<")
 
@@ -68,13 +61,7 @@ describe("Exploration: Border Integrity", () => {
 
   test("borders after repeated < (depth to 0)", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item("child1"),
-          item("child2"),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))),
     )
 
     // Press < enough times to reach depth 0
@@ -91,12 +78,7 @@ describe("Exploration: Border Integrity", () => {
   })
 
   test("borders after < then >", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
 
     board.press("<")
     board.press("<")
@@ -112,14 +94,7 @@ describe("Exploration: Border Integrity", () => {
 
   test("borders with deeply nested folder after <", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("L1",
-          item("L2",
-            item("L3", item("deep")),
-          ),
-        ),
-        item("sibling"),
-      )),
+      item("board", item("col1", item("L1", item("L2", item("L3", item("deep")))), item("sibling"))),
     )
 
     board.press("<")
@@ -143,12 +118,7 @@ describe("Exploration: Border Integrity", () => {
   })
 
   test("borders after fold za", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
 
     board.press("z").press("a") // fold
 
@@ -162,11 +132,7 @@ describe("Exploration: Border Integrity", () => {
 
   test("borders after fold then <", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-        item("C"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"), item("C"))),
     )
 
     board.press("z").press("a") // fold parent
@@ -182,15 +148,10 @@ describe("Exploration: Border Integrity", () => {
 
   test("borders with multiple columns after <", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("p1", item("a"), item("b")),
-          item("X"),
-        ),
-        item("col2",
-          item("p2", item("c"), item("d")),
-          item("Y"),
-        ),
+      item(
+        "board",
+        item("col1", item("p1", item("a"), item("b")), item("X")),
+        item("col2", item("p2", item("c"), item("d")), item("Y")),
       ),
     )
 
@@ -205,13 +166,10 @@ describe("Exploration: Border Integrity", () => {
   })
 
   test("borders on narrow terminal after <", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-      { columns: 30, rows: 15 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))), {
+      columns: 30,
+      rows: 15,
+    })
 
     board.press("<")
     board.press("<")
@@ -225,12 +183,7 @@ describe("Exploration: Border Integrity", () => {
   })
 
   test("borders after za fold + za unfold cycle", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
 
     for (let i = 0; i < 3; i++) {
       board.press("z").press("a") // toggle fold
@@ -246,12 +199,7 @@ describe("Exploration: Border Integrity", () => {
 
   test("borders after < navigate < navigate", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-        item("C"),
-        item("D"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"), item("C"), item("D"))),
     )
 
     board.press("<")

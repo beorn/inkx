@@ -33,9 +33,7 @@ describe("Exploration: Batch Delete Edge Cases", () => {
   })
 
   test("delete then undo attempt (no actual undo, just navigation)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -55,9 +53,7 @@ describe("Exploration: Batch Delete Edge Cases", () => {
   })
 
   test("delete all cards in column leaves empty column", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     const bugs: string[] = []
 
     // Delete the only card in col1
@@ -74,9 +70,7 @@ describe("Exploration: Batch Delete Edge Cases", () => {
   })
 
   test("batch delete with confirm cancel preserves all", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A", item("child")), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A", item("child")), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Select A→B (A has children → will show confirm)
@@ -127,9 +121,7 @@ describe("Exploration: Batch Delete Edge Cases", () => {
   })
 
   test("batch select all, cancel confirm, then single delete", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A", item("child")), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A", item("child")), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Select all and try batch delete

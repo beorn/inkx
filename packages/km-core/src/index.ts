@@ -37,10 +37,19 @@ export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } fr
 export type { BuildInfo } from "./build-info.gen.ts"
 
 // Task utilities
-export { getMarkForStatus, extractTitleTaskMark } from "./types.ts"
+export { getMarkForStatus, getStatusForMark, extractTitleTaskMark } from "./types.ts"
 
 // Query language parser (pure parsing, no DB)
-export { parseQuery, mapFieldName, resolveDateQuery, isDateShortcut, isDateField } from "./query/index.ts"
+export {
+  parseQuery,
+  mapFieldName,
+  resolveDateQuery,
+  resolveRelativeDate,
+  formatDate,
+  formatTime,
+  isDateShortcut,
+  isDateField,
+} from "./query/index.ts"
 export type {
   QueryAST,
   QueryCondition,
@@ -52,6 +61,7 @@ export type {
   QueryPropCondition,
   QuerySpecial,
   DateRange,
+  ResolvedDate,
 } from "./query/index.ts"
 
 // Service interface and utilities

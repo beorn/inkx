@@ -12,12 +12,8 @@ const WIDE = { columns: 120, rows: 24 }
 
 describe("Exploration: Multi-Column Operations", () => {
   test("move item across 3 columns", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A")),
-        item("col2", item("B")),
-        item("col3", item("C")),
-      ),
+    const { board } = testEnv(
+      () => item("board", item("col1", item("A")), item("col2", item("B")), item("col3", item("C"))),
       WIDE,
     )
     const bugs: string[] = []
@@ -33,12 +29,8 @@ describe("Exploration: Multi-Column Operations", () => {
   })
 
   test("shift+number column jumps with operations", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A")),
-        item("col2", item("B")),
-        item("col3", item("C")),
-      ),
+    const { board } = testEnv(
+      () => item("board", item("col1", item("A")), item("col2", item("B")), item("col3", item("C"))),
       WIDE,
     )
     const bugs: string[] = []
@@ -56,12 +48,8 @@ describe("Exploration: Multi-Column Operations", () => {
   })
 
   test("navigate to empty column between filled columns", () => {
-    const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1", item("A")),
-        item("col2", item("middle")),
-        item("col3", item("C")),
-      ),
+    const { board, repo } = testEnv(
+      () => item("board", item("col1", item("A")), item("col2", item("middle")), item("col3", item("C"))),
       WIDE,
     )
     const bugs: string[] = []
@@ -81,12 +69,7 @@ describe("Exploration: Multi-Column Operations", () => {
   })
 
   test("Alt+l on last column (boundary)", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A")),
-        item("col2", item("B")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     const bugs: string[] = []
 
     board.press("l") // → col2
@@ -100,12 +83,7 @@ describe("Exploration: Multi-Column Operations", () => {
   })
 
   test("Alt+h on first column (boundary)", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A")),
-        item("col2", item("B")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     const bugs: string[] = []
 
     board.press("Alt+h") // move A left — no col to the left
@@ -118,12 +96,7 @@ describe("Exploration: Multi-Column Operations", () => {
   })
 
   test("duplicate then move across columns", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press("d") // duplicate A
@@ -138,10 +111,7 @@ describe("Exploration: Multi-Column Operations", () => {
 
   test("select across columns with Shift+H/L", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C"), item("D")),
-      ),
+      item("board", item("col1", item("A"), item("B")), item("col2", item("C"), item("D"))),
     )
     const bugs: string[] = []
 
@@ -156,11 +126,9 @@ describe("Exploration: Multi-Column Operations", () => {
 
   test("fold in one column then navigate to another", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("parent", item("c1"), item("c2")),
-          item("B"),
-        ),
+      item(
+        "board",
+        item("col1", item("parent", item("c1"), item("c2")), item("B")),
         item("col2", item("C"), item("D")),
       ),
     )
@@ -179,11 +147,9 @@ describe("Exploration: Multi-Column Operations", () => {
 
   test("< depth change then column navigation", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("parent", item("c1"), item("c2")),
-          item("B"),
-        ),
+      item(
+        "board",
+        item("col1", item("parent", item("c1"), item("c2")), item("B")),
         item("col2", item("C"), item("D")),
       ),
     )
@@ -202,15 +168,10 @@ describe("Exploration: Multi-Column Operations", () => {
 
   test("multiple columns with different depths after <", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("L1a", item("L2a", item("deep-a"))),
-          item("flat-a"),
-        ),
-        item("col2",
-          item("L1b", item("L2b", item("deep-b"))),
-          item("flat-b"),
-        ),
+      item(
+        "board",
+        item("col1", item("L1a", item("L2a", item("deep-a"))), item("flat-a")),
+        item("col2", item("L1b", item("L2b", item("deep-b"))), item("flat-b")),
       ),
     )
     const bugs: string[] = []

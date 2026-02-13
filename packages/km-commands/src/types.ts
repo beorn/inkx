@@ -299,21 +299,34 @@ interface DuplicateNodeAction {
   nodeId: string
 }
 
-// Property stubs (future features)
+// Property actions
 interface SetDueDateAction {
   type: "SET_DUE_DATE"
+  nodeId: string
 }
 
 interface SetStartDateAction {
   type: "SET_START_DATE"
+  nodeId: string
 }
 
 interface SetRecurringAction {
   type: "SET_RECURRING"
+  nodeId: string
 }
 
 interface SetPriorityAction {
   type: "SET_PRIORITY"
+  nodeId: string
+}
+
+// Date prompt dialog actions
+interface DatePromptConfirmAction {
+  type: "DATE_PROMPT_CONFIRM"
+}
+
+interface DatePromptCancelAction {
+  type: "DATE_PROMPT_CANCEL"
 }
 
 interface SetLabelAction {
@@ -457,6 +470,8 @@ export type TUIAction =
   | SetPriorityAction
   | SetLabelAction
   | SetAssigneeAction
+  | DatePromptConfirmAction
+  | DatePromptCancelAction
 
 export type UIAction =
   | ZoomOutwardsAction

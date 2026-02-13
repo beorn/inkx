@@ -19,4 +19,13 @@ export {
   type QuerySpecial,
 } from "./parser.ts"
 
-export { resolveDateQuery, isDateShortcut, isDateField, type DateRange } from "./date.ts"
+export {
+  resolveDateQuery,
+  resolveRelativeDate,
+  formatDate,
+  formatTime,
+  isDateShortcut,
+  isDateField,
+  type DateRange,
+  type ResolvedDate,
+} from "./date.ts"

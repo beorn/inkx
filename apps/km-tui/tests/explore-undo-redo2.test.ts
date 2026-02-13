@@ -10,9 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Undo/Redo", () => {
   test("undo indent (Tab then Ctrl-Z)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     // Cursor starts on A. Move to B.
     board.press("j")
 
@@ -42,9 +40,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("redo after undo (Ctrl-Z then Ctrl-Y)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j") // Move to B
     board.press("tab") // Indent B
 
@@ -61,9 +57,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("multiple undo steps", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     // Indent B
     board.press("j").press("tab")
     // Move to C and indent it
@@ -78,9 +72,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("undo with nothing to undo (boundary)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     // Ctrl-Z with no history should not crash
     board.press("C-z")
     const text = board.screenshot()
@@ -91,9 +83,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("redo with nothing to redo (boundary)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     // Ctrl-Y with no redo history should not crash
     board.press("C-y")
     const text = board.screenshot()
@@ -103,11 +93,9 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("new action after undo clears redo stack", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j").press("tab") // Indent B
-    board.press("C-z")            // Undo
+    board.press("C-z") // Undo
 
     // New action: indent C
     board.press("j").press("tab")
@@ -120,9 +108,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("undo delete node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     // Delete A (cursor starts on A)
     board.press("x")
 
@@ -137,9 +123,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("rapid undo/redo cycling", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j").press("tab") // Indent B
 
     // Rapid cycle
@@ -153,9 +137,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("undo after shift card down", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     // Shift A down
     board.press("J")
     const afterShift = board.screenshot()
@@ -167,9 +149,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("undo after shift card up", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("j") // Move to B
     board.press("K") // Shift B up
     const afterShift = board.screenshot()

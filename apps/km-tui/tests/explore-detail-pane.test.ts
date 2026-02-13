@@ -10,9 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Detail Pane", () => {
   test("i on leaf node opens detail pane", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     // Cursor starts on A (leaf task). Press i to zoom in — should open detail pane.
@@ -28,9 +26,7 @@ describe("Exploration: Detail Pane", () => {
   })
 
   test("i on folder node zooms in instead of opening detail pane", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A", item("child1"), item("child2")), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A", item("child1"), item("child2")), item("B"))))
     const bugs: string[] = []
 
     // A has children → i should zoom in, not open detail pane
@@ -44,9 +40,7 @@ describe("Exploration: Detail Pane", () => {
   })
 
   test("h closes detail pane in cards view", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Open detail pane with i on leaf
@@ -62,9 +56,7 @@ describe("Exploration: Detail Pane", () => {
   })
 
   test("detail pane after navigation j/k", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Open detail pane
@@ -102,9 +94,7 @@ describe("Exploration: Detail Pane", () => {
   })
 
   test("Escape closes detail pane or overlay", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Open detail pane
@@ -120,9 +110,7 @@ describe("Exploration: Detail Pane", () => {
   })
 
   test("detail pane reopened after close", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Open, close, reopen
@@ -155,10 +143,7 @@ describe("Exploration: Detail Pane", () => {
   })
 
   test("detail pane width doesn't crash with narrow terminal", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"))),
-      { columns: 40, rows: 12 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))), { columns: 40, rows: 12 })
     const bugs: string[] = []
 
     board.press("i")
@@ -171,10 +156,7 @@ describe("Exploration: Detail Pane", () => {
   })
 
   test("list view has detail pane by default, h navigates", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"), item("C"))),
-      { viewMode: "list" },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), { viewMode: "list" })
     const bugs: string[] = []
 
     // In list view, detail pane is on by default

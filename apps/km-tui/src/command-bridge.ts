@@ -25,9 +25,8 @@ export function ensureCommandSystemInitialized(): void {
   initCommandSystem()
 }
 
-export function processKeyWithContext(input: string, key: InkKeyEvent, ctx: ActionCtx): InkCommandResult {
-  ensureCommandSystemInitialized()
-
+/** Build command and keybinding contexts from the current ActionCtx */
+function buildCommandContexts(ctx: ActionCtx) {
   const { ui, layout, selectedNode } = ctx
 
   // Compute TNode derived fields from KNode for the command system.
@@ -36,8 +35,9 @@ export function processKeyWithContext(input: string, key: InkKeyEvent, ctx: Acti
   const nodeForCtx: TNode | null = selectedNode
     ? ({
         ...selectedNode,
-        isTask: selectedNode.task_status != null
-          || (selectedNode.link_to != null && ctx.repo.getNode(selectedNode.link_to)?.task_status != null),
+        isTask:
+          selectedNode.task_status != null ||
+          (selectedNode.link_to != null && ctx.repo.getNode(selectedNode.link_to)?.task_status != null),
         children: [],
         depth: 0,
         childCount: 0,
@@ -53,11 +53,13 @@ export function processKeyWithContext(input: string, key: InkKeyEvent, ctx: Acti
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
     currentNode: nodeForCtx,
-    textInputFocused: !!ui.inlineEditBlock || ui.showSearchDialog || ui.showNewItemDialog || ui.showProjectPicker,
+    textInputFocused:
+      !!ui.inlineEditBlock || ui.showSearchDialog || ui.showNewItemDialog || ui.showProjectPicker || !!ui.datePrompt,
     isInlineEditing: !!ui.inlineEditBlock,
     searchDialogOpen: ui.showSearchDialog,
     projectPickerOpen: ui.showProjectPicker,
     newItemDialogOpen: ui.showNewItemDialog,
+    datePromptOpen: !!ui.datePrompt,
     helpOverlayOpen: ui.showHelp,
     deleteConfirmOpen: !!ui.deleteConfirm,
     consoleOpen: ui.showConsole,
@@ -79,61 +81,19 @@ export function processKeyWithContext(input: string, key: InkKeyEvent, ctx: Acti
     foldedNodes: ctx.foldedNodes,
   })
 
+  return { cmdCtx, kbCtx }
+}
+
+export function processKeyWithContext(input: string, key: InkKeyEvent, ctx: ActionCtx): InkCommandResult {
+  ensureCommandSystemInitialized()
+  const { cmdCtx, kbCtx } = buildCommandContexts(ctx)
   return processInkKey(input, key, cmdCtx, kbCtx)
 }
 
 /** Handle chord timeout — resolves the pending prefix as its standalone command */
 export function processChordTimeout(ctx: ActionCtx): InkCommandResult | null {
   ensureCommandSystemInitialized()
-
-  const { ui, layout, selectedNode } = ctx
-
-  const nodeForCtx: TNode | null = selectedNode
-    ? ({
-        ...selectedNode,
-        isTask: selectedNode.task_status != null
-          || (selectedNode.link_to != null && ctx.repo.getNode(selectedNode.link_to)?.task_status != null),
-        children: [],
-        depth: 0,
-        childCount: 0,
-        childrenLoaded: true,
-      } as TNode)
-    : null
-
-  const kbCtx = buildKeybindingContext({
-    inMoveMode: ctx.moveMode,
-    inSearchMode: ui.showSearchDialog,
-    inInputMode: ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog,
-    hasMultiSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
-    isInDetailPane: ui.showDetailPane,
-    isInOutlineMode: ui.inOutlineMode,
-    currentNode: nodeForCtx,
-    textInputFocused: !!ui.inlineEditBlock || ui.showSearchDialog || ui.showNewItemDialog || ui.showProjectPicker,
-    isInlineEditing: !!ui.inlineEditBlock,
-    searchDialogOpen: ui.showSearchDialog,
-    projectPickerOpen: ui.showProjectPicker,
-    newItemDialogOpen: ui.showNewItemDialog,
-    helpOverlayOpen: ui.showHelp,
-    deleteConfirmOpen: !!ui.deleteConfirm,
-    consoleOpen: ui.showConsole,
-    hasActiveToast: !!ctx.toastQueue.getLatest(),
-  })
-
-  const { colIndex, cardIndex, columns } = layout
-  const column = columns[colIndex]
-
-  const cmdCtx = buildContext(ui.viewMode, {
-    currentNode: nodeForCtx,
-    currentNodeId: selectedNode?.id ?? null,
-    selectedNodes: Array.from(ctx.selectedNodes),
-    siblingCount: column?.cards.length ?? 0,
-    siblingIndex: cardIndex >= 0 ? cardIndex : 0,
-    columnIndex: colIndex >= 0 ? colIndex : 0,
-    columnCount: columns.length,
-    moveMode: ctx.moveMode,
-    foldedNodes: ctx.foldedNodes,
-  })
-
+  const { cmdCtx, kbCtx } = buildCommandContexts(ctx)
   return handleChordTimeout(cmdCtx, kbCtx)
 }
 

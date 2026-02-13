@@ -9,9 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Heading Depth", () => {
   test("new item creation (n) does not crash", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("n") // create new item below A
@@ -24,9 +22,7 @@ describe("Exploration: Heading Depth", () => {
   })
 
   test("new item above (p) does not crash", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -41,12 +37,7 @@ describe("Exploration: Heading Depth", () => {
 
   test("new item in column with nested sections", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item.section("S1", item("task1")),
-          item.section("S2", item("task2")),
-        ),
-      ),
+      item("board", item("col1", item.section("S1", item("task1")), item.section("S2", item("task2")))),
     )
     const bugs: string[] = []
 
@@ -62,8 +53,10 @@ describe("Exploration: Heading Depth", () => {
 
   test("new item among mixed types (paragraphs + sections)", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
+      item(
+        "board",
+        item(
+          "col1",
           item.paragraph("intro"),
           item.section("Section 1", item("task1")),
           item.section("Section 2", item("task2")),
@@ -84,17 +77,7 @@ describe("Exploration: Heading Depth", () => {
   })
 
   test("duplicate in deeply nested structure", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("L1",
-            item("L2",
-              item("L3", item("deep-task")),
-            ),
-          ),
-        ),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("L1", item("L2", item("L3", item("deep-task")))))))
     const bugs: string[] = []
 
     board.press("d") // duplicate L1
@@ -107,15 +90,7 @@ describe("Exploration: Heading Depth", () => {
   })
 
   test("new item after embeds (link_to nodes)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("task1"),
-          item("task2"),
-          item("task3"),
-        ),
-      ),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
     const bugs: string[] = []
 
     // Make task2 an embed by setting link_to

@@ -7,9 +7,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: New Item Dialog", () => {
   test("n opens new item dialog", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("n") // open new item dialog
@@ -22,9 +20,7 @@ describe("Exploration: New Item Dialog", () => {
   })
 
   test("n then Escape closes dialog", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("n") // open
@@ -38,9 +34,7 @@ describe("Exploration: New Item Dialog", () => {
   })
 
   test("gn chord opens new item dialog", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"))))
     const bugs: string[] = []
 
     board.press("g").press("n") // chord
@@ -53,9 +47,7 @@ describe("Exploration: New Item Dialog", () => {
   })
 
   test("n on empty column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1")),
-    )
+    const { board } = testEnv(() => item("board", item("col1")))
     const bugs: string[] = []
 
     board.press("n") // new item on empty board
@@ -68,9 +60,7 @@ describe("Exploration: New Item Dialog", () => {
   })
 
   test("new item dialog then navigation keys", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("n") // open dialog
@@ -88,9 +78,7 @@ describe("Exploration: New Item Dialog", () => {
   })
 
   test("rapid open/close new item dialog", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 5; i++) {

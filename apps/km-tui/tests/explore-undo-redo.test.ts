@@ -19,9 +19,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 
 describe("Exploration: Undo/Redo", () => {
   test("duplicate then undo removes the duplicate", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     const before = childIds(repo, "col1")
@@ -51,9 +49,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("undo then redo restores the duplicate", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // duplicate A
@@ -79,9 +75,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("multiple duplicates then multiple undos", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // dup A (3 children)
@@ -113,9 +107,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("undo at boundary does not crash (nothing to undo)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Press undo with no history
@@ -129,9 +121,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("redo at boundary does not crash (nothing to redo)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Press redo with no redo history
@@ -145,9 +135,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("new action after undo truncates redo history", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("d") // dup A (4 children)
@@ -174,9 +162,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("undo after navigation still works", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press("d") // dup A
@@ -197,9 +183,7 @@ describe("Exploration: Undo/Redo", () => {
   })
 
   test("undo + redo rapid sequence", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // dup

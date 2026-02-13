@@ -52,10 +52,10 @@ export const projectPickerOpen = when("projectPickerOpen", (ctx) => ctx.projectP
 
 export const newItemDialogOpen = when("newItemDialogOpen", (ctx) => ctx.newItemDialogOpen)
 
-/** Any dialog is open (search, project picker, or new item) */
+/** Any dialog is open (search, project picker, new item, or date prompt) */
 export const anyDialogOpen = when(
   "anyDialogOpen",
-  (ctx) => ctx.searchDialogOpen || ctx.projectPickerOpen || ctx.newItemDialogOpen,
+  (ctx) => ctx.searchDialogOpen || ctx.projectPickerOpen || ctx.newItemDialogOpen || ctx.datePromptOpen,
 )
 
 export const helpOverlayOpen = when("helpOverlayOpen", (ctx) => ctx.helpOverlayOpen)

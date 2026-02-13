@@ -11,9 +11,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 
 describe("Exploration: Shift Operations", () => {
   test("Alt+j moves item down", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("Alt+j") // move A down
@@ -26,9 +24,7 @@ describe("Exploration: Shift Operations", () => {
   })
 
   test("Alt+k moves item up", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -42,12 +38,7 @@ describe("Exploration: Shift Operations", () => {
   })
 
   test("Alt+l moves item right (to next column)", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A"), item("B")),
-        item("col2", item("C")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
     const bugs: string[] = []
 
     board.press("Alt+l") // move A to col2
@@ -60,12 +51,7 @@ describe("Exploration: Shift Operations", () => {
   })
 
   test("Alt+h moves item left (to prev column)", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("A")),
-        item("col2", item("B"), item("C")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("l") // → col2
@@ -79,9 +65,7 @@ describe("Exploration: Shift Operations", () => {
   })
 
   test("Alt+j at last position is boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("j") // → B (last)
@@ -95,9 +79,7 @@ describe("Exploration: Shift Operations", () => {
   })
 
   test("Alt+k at first position is boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("Alt+k") // A is first, boundary
@@ -110,9 +92,7 @@ describe("Exploration: Shift Operations", () => {
   })
 
   test("shift then undo", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("Alt+j") // move A down
@@ -126,9 +106,7 @@ describe("Exploration: Shift Operations", () => {
   })
 
   test("rapid Alt+j shifts", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     board.press("Alt+j")

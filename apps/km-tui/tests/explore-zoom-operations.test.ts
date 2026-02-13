@@ -8,12 +8,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Zoom Operations", () => {
   test("i zooms into folder", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("i") // zoom into parent
@@ -26,12 +21,7 @@ describe("Exploration: Zoom Operations", () => {
   })
 
   test("i then u (zoom in/out)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("i") // zoom in
@@ -45,12 +35,7 @@ describe("Exploration: Zoom Operations", () => {
   })
 
   test("e zooms to cursor", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -65,13 +50,7 @@ describe("Exploration: Zoom Operations", () => {
 
   test("zoom in then fold then zoom out", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item("sub", item("deep1"), item("deep2")),
-          item("c2"),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("sub", item("deep1"), item("deep2")), item("c2")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -87,12 +66,7 @@ describe("Exploration: Zoom Operations", () => {
   })
 
   test("zoom in then duplicate then undo then zoom out", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("i") // zoom into parent
@@ -109,13 +83,7 @@ describe("Exploration: Zoom Operations", () => {
 
   test("zoom in then < depth change then zoom out", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item("sub", item("d1"), item("d2")),
-          item("c2"),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item("sub", item("d1"), item("d2")), item("c2")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -131,9 +99,7 @@ describe("Exploration: Zoom Operations", () => {
   })
 
   test("i on leaf node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("i") // zoom into leaf — should be no-op or open detail
@@ -146,9 +112,7 @@ describe("Exploration: Zoom Operations", () => {
   })
 
   test("u at root level (cannot zoom out further)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("u") // already at root
@@ -162,14 +126,7 @@ describe("Exploration: Zoom Operations", () => {
 
   test("rapid zoom in/out", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("L1",
-          item("L2",
-            item("L3", item("deep")),
-          ),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("L1", item("L2", item("L3", item("deep")))), item("B"))),
     )
     const bugs: string[] = []
 
@@ -188,12 +145,7 @@ describe("Exploration: Zoom Operations", () => {
   })
 
   test("zoom in then search then zoom out", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("i") // zoom in

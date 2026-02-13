@@ -14,9 +14,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("stale-cursor-after-delete-all", () => {
   test("deleting all cards in column should not leave stale cursor", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
 
     // Delete A (cursor moves to B)
     board.press("Backspace")

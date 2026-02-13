@@ -140,7 +140,10 @@ export function getTypeIcon(type: string): string {
  * @param hasChildren - Whether the node has children (affects list item style)
  * @returns StatusIcon with char and color, or null for tasks
  */
-export function getTypeBullet(node: { type: string; task_status?: string | null }, hasChildren: boolean): StatusIcon | null {
+export function getTypeBullet(
+  node: { type: string; task_status?: string | null },
+  hasChildren: boolean,
+): StatusIcon | null {
   // Tasks don't use a type bullet — their checkbox serves as the bullet
   if (node.task_status != null) return null
 

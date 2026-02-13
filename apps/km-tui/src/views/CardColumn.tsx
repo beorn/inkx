@@ -149,7 +149,13 @@ const Card = React.memo(
     // This includes: cards in virtual columns OR individual virtual body cards
     if (isVirtualColumn || card.isVirtual) {
       return (
-        <Box flexDirection="column" flexShrink={0} width={width} borderStyle="round" borderColor={isSelected ? "yellow" : "black"}>
+        <Box
+          flexDirection="column"
+          flexShrink={0}
+          width={width}
+          borderStyle="round"
+          borderColor={isSelected ? "yellow" : "black"}
+        >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
             node={card.node}
@@ -245,7 +251,9 @@ export const Column = React.memo(function Column({
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
   const setUI = useSetUI()
-  const { treeConfig: { iconStyle } } = useTreeRenderContext()
+  const {
+    treeConfig: { iconStyle },
+  } = useTreeRenderContext()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
   const nodeId = column.node.id
 
@@ -434,21 +442,28 @@ export const Column = React.memo(function Column({
           ) : (
             <>
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
-                <Text
-                  bold
-                  color={headerStyle.color}
-                  dimColor={headerStyle.dimColor}
-                  wrap="truncate"
-                >
+                <Text bold color={headerStyle.color} dimColor={headerStyle.dimColor} wrap="truncate">
                   <Text color={iconColor}>{icon.char}</Text>{" "}
                   <Text color={isColumnSelected ? undefined : ownColor}>
-                    {untitled ? <Text dimColor color="gray">{name}</Text> : name}
+                    {untitled ? (
+                      <Text dimColor color="gray">
+                        {name}
+                      </Text>
+                    ) : (
+                      name
+                    )}
                     {!isVirtual && isSigilName(column.node.name) && column.node.name !== name && (
-                      <>{" "}<Text dimColor>{column.node.name}</Text></>
+                      <>
+                        {" "}
+                        <Text dimColor>{column.node.name}</Text>
+                      </>
                     )}
                   </Text>
                   {typeSuffix ? (
-                    <Text color={isColumnSelected ? "gray" : undefined} dimColor={!isColumnSelected}>{` ${typeSuffix}`}</Text>
+                    <Text
+                      color={isColumnSelected ? "gray" : undefined}
+                      dimColor={!isColumnSelected}
+                    >{` ${typeSuffix}`}</Text>
                   ) : (
                     ""
                   )}
@@ -460,7 +475,7 @@ export const Column = React.memo(function Column({
                   {wipExceeded ? (
                     <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
                   ) : (
-                    <Text color={isColumnSelected ? headerStyle.color : ownColor} dimColor={!isColumnSelected}>
+                    <Text color={isColumnSelected ? headerStyle.color : ownColor} dimColor={headerStyle.dimColor}>
                       {` ${countDisplay}`}
                     </Text>
                   )}
@@ -475,7 +490,9 @@ export const Column = React.memo(function Column({
       {/* Separator line between header and cards */}
       <Box height={1} flexShrink={0} width={width - 1}>
         <Box width={1} flexShrink={0} />
-        <Text color={isColumnSelected ? "yellow" : undefined} dimColor={!isColumnSelected}>{"─".repeat(Math.max(0, width - 3))}</Text>
+        <Text color={isColumnSelected ? "yellow" : undefined} dimColor={!isColumnSelected}>
+          {"─".repeat(Math.max(0, width - 3))}
+        </Text>
       </Box>
 
       {column.cards.length > 0 ? (

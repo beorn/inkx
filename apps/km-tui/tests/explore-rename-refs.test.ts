@@ -9,9 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Rename Refs", () => {
   test("sr opens inline edit on current node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     // sr chord: s then r
@@ -26,9 +24,7 @@ describe("Exploration: Rename Refs", () => {
   })
 
   test("sr on different cards", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("Alpha"), item("Beta"), item("Gamma"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Alpha"), item("Beta"), item("Gamma"))))
     const bugs: string[] = []
 
     // Navigate to Beta, then sr
@@ -44,9 +40,7 @@ describe("Exploration: Rename Refs", () => {
   })
 
   test("sr then Escape cancels rename", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("s")
@@ -61,9 +55,7 @@ describe("Exploration: Rename Refs", () => {
   })
 
   test("sr on column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     const bugs: string[] = []
 
     // Navigate to column header
@@ -83,9 +75,7 @@ describe("Exploration: Rename Refs", () => {
   })
 
   test("Enter during inline edit doesn't crash", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     // Open inline edit via Enter key

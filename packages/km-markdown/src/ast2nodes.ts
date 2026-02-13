@@ -27,7 +27,7 @@ const log = createLogger("km:markdown:ast2nodes")
 import type { Root, RootContent, Heading, List, ListItem } from "mdast"
 import { parse as parseYaml } from "yaml"
 import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core"
-import { CUSTOM_TASK_MARKS } from "@km/core"
+import { CUSTOM_TASK_MARKS, getStatusForMark } from "@km/core"
 import {
   parseMarkdown,
   extractFrontmatter,
@@ -185,28 +185,7 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
       const hasRules = Object.keys(rules).length > 0
       const sectionName = slugify(title)
 
-      // Determine task status from mark (same logic as list items)
-      let taskStatus: TaskStatus | undefined
-      if (taskMark !== undefined) {
-        switch (taskMark) {
-          case "x":
-          case "X":
-            taskStatus = "done"
-            break
-          case "!":
-            taskStatus = "blocked"
-            break
-          case "-":
-            taskStatus = "dropped"
-            break
-          case "/":
-            taskStatus = "wip"
-            break
-          case " ":
-          default:
-            taskStatus = "todo"
-        }
-      }
+      const taskStatus = getStatusForMark(taskMark)
 
       const parentSection = sectionStack[sectionStack.length - 1]
       const sectionNode: KNode = {
@@ -300,27 +279,7 @@ function convertListItem(
     text = text.slice(0, -blockIdMatch[0].length)
   }
 
-  // Determine task status from mark
-  let taskStatus: TaskStatus | undefined
-  if (isTask) {
-    switch (taskMark) {
-      case "x":
-      case "X":
-        taskStatus = "done"
-        break
-      case "!":
-        taskStatus = "blocked"
-        break
-      case "-":
-        taskStatus = "dropped"
-        break
-      case "/":
-        taskStatus = "wip"
-        break
-      default:
-        taskStatus = "todo"
-    }
-  }
+  const taskStatus = isTask ? getStatusForMark(taskMark) ?? ("todo" as TaskStatus) : undefined
 
   // Parse task metadata from text
   const metadata = isTask ? parseTaskMetadata(text) : {}
@@ -345,8 +304,11 @@ function convertListItem(
     task_status: taskStatus,
     task_mark: taskMark as KNode["task_mark"],
     due_date: metadata.dueDate,
+    due_time: metadata.dueTime,
     scheduled_date: metadata.scheduledDate,
+    scheduled_time: metadata.scheduledTime,
     priority,
+    recurrence: metadata.recurrence,
     data: {
       ...(tags.length > 0 ? { tags } : {}),
       ...(mentions.length > 0 ? { mentions } : {}),

@@ -88,7 +88,9 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
         <Box>
           <Text>
             <Text dimColor>Contents: </Text>
-            <Text>{totalChildren} item{totalChildren !== 1 ? "s" : ""}</Text>
+            <Text>
+              {totalChildren} item{totalChildren !== 1 ? "s" : ""}
+            </Text>
           </Text>
         </Box>
 
@@ -107,7 +109,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
               </Box>
             )
           })}
-          {hasMore && <Text dimColor>  ...and more</Text>}
+          {hasMore && <Text dimColor> ...and more</Text>}
         </Box>
 
         {/* Footer hint */}
@@ -229,7 +231,28 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
             <Text dimColor>Status: </Text>
             <Text color={statusInfo.color}>{statusInfo.text}</Text>
           </Text>
-          {dueDate.text && (
+          {node.priority != null && node.priority > 0 && (
+            <Text>
+              <Text dimColor>Priority: </Text>
+              <Text
+                color={
+                  node.priority === 1
+                    ? "red"
+                    : node.priority === 2
+                      ? "yellow"
+                      : node.priority === 3
+                        ? "yellowBright"
+                        : "gray"
+                }
+              >
+                P{node.priority}
+              </Text>
+            </Text>
+          )}
+        </Box>
+
+        {dueDate.text && (
+          <Box>
             <Text>
               <Text dimColor>Due: </Text>
               <Text
@@ -238,9 +261,29 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
               >
                 {dueDate.text}
               </Text>
+              {node.due_time && <Text dimColor> {node.due_time}</Text>}
             </Text>
-          )}
-        </Box>
+          </Box>
+        )}
+
+        {node.scheduled_date && (
+          <Box>
+            <Text>
+              <Text dimColor>Start: </Text>
+              <Text>{formatDate(node.scheduled_date).text}</Text>
+              {node.scheduled_time && <Text dimColor> {node.scheduled_time}</Text>}
+            </Text>
+          </Box>
+        )}
+
+        {node.recurrence && (
+          <Box>
+            <Text>
+              <Text dimColor>Recurrence: </Text>
+              <Text>{node.recurrence}</Text>
+            </Text>
+          </Box>
+        )}
 
         {assignedTo && (
           <Box flexDirection="row" gap={2}>

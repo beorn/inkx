@@ -8,9 +8,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Help Overlay", () => {
   test("? opens help overlay", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("?")
@@ -27,9 +25,7 @@ describe("Exploration: Help Overlay", () => {
   })
 
   test("? closes help overlay (toggle)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("?") // open
@@ -43,9 +39,7 @@ describe("Exploration: Help Overlay", () => {
   })
 
   test("Escape closes help overlay", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("?") // open
@@ -60,10 +54,7 @@ describe("Exploration: Help Overlay", () => {
 
   test("help overlay includes key categories", () => {
     // Use taller terminal to fit all help content
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"))),
-      { columns: 80, rows: 50 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"))), { columns: 80, rows: 50 })
     const bugs: string[] = []
 
     board.press("?")
@@ -82,10 +73,7 @@ describe("Exploration: Help Overlay", () => {
   })
 
   test("help fits in 80x24 terminal", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"))), { columns: 80, rows: 24 })
     const bugs: string[] = []
 
     board.press("?")
@@ -111,9 +99,7 @@ describe("Exploration: Help Overlay", () => {
   })
 
   test("navigation works after closing help", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("?") // open help
@@ -133,10 +119,7 @@ describe("Exploration: Help Overlay", () => {
   })
 
   test("help in narrow terminal", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A"))),
-      { columns: 40, rows: 12 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"))), { columns: 40, rows: 12 })
     const bugs: string[] = []
 
     board.press("?")
@@ -149,9 +132,7 @@ describe("Exploration: Help Overlay", () => {
   })
 
   test("help overlay blocks other keys", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("?") // open help
@@ -176,9 +157,7 @@ describe("Exploration: Help Overlay", () => {
   })
 
   test("help overlay reopened multiple times", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 5; i++) {

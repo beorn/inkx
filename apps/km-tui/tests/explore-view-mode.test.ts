@@ -7,9 +7,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: View Mode", () => {
   test("Ctrl+T switches to columns view", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("Ctrl+T") // switch to columns view
@@ -22,9 +20,7 @@ describe("Exploration: View Mode", () => {
   })
 
   test("Ctrl+T twice returns to cards", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("Ctrl+T")
@@ -38,9 +34,7 @@ describe("Exploration: View Mode", () => {
   })
 
   test("view switch then navigation", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("Ctrl+T") // columns view
@@ -57,12 +51,7 @@ describe("Exploration: View Mode", () => {
   })
 
   test("view switch with folder", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("Ctrl+T") // columns view
@@ -77,12 +66,7 @@ describe("Exploration: View Mode", () => {
   })
 
   test("view switch then fold", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("Ctrl+T")
@@ -97,9 +81,7 @@ describe("Exploration: View Mode", () => {
   })
 
   test("rapid view switching", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 8; i++) {

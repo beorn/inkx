@@ -59,12 +59,7 @@ function fullCheck(board: ReturnType<typeof testEnv>["board"], label: string): v
 describe("Visual: Search Dialog", () => {
   test("search opens cleanly with empty query", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item("Alpha"), item("Beta"), item("Gamma")),
-          item("Col2", item("Delta")),
-        ),
+      () => item("board", item("Col1", item("Alpha"), item("Beta"), item("Gamma")), item("Col2", item("Delta"))),
       { columns: 80, rows: 24 },
     )
 
@@ -78,12 +73,7 @@ describe("Visual: Search Dialog", () => {
 
   test("search dialog closes with Escape and restores board", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item("Alpha"), item("Beta")),
-          item("Col2", item("Gamma")),
-        ),
+      () => item("board", item("Col1", item("Alpha"), item("Beta")), item("Col2", item("Gamma"))),
       { columns: 80, rows: 24 },
     )
 
@@ -93,10 +83,7 @@ describe("Visual: Search Dialog", () => {
   })
 
   test("search dialog in narrow terminal", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item("Alpha"), item("Beta"))),
-      { columns: 50, rows: 16 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item("Alpha"), item("Beta"))), { columns: 50, rows: 16 })
 
     board.press("/")
     const text = board.screenshot()
@@ -114,11 +101,7 @@ describe("Visual: Search Dialog", () => {
 describe("Visual: Undo/Redo", () => {
   test("undo after duplicate restores original state", () => {
     const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item.task("Original A"), item.task("Original B")),
-        ),
+      () => item("board", item("Col1", item.task("Original A"), item.task("Original B"))),
       { columns: 80, rows: 24 },
     )
 
@@ -137,14 +120,10 @@ describe("Visual: Undo/Redo", () => {
   })
 
   test("redo after undo re-applies duplicate", () => {
-    const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item.task("TaskX"), item.task("TaskY")),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    const { board, repo } = testEnv(() => item("board", item("Col1", item.task("TaskX"), item.task("TaskY"))), {
+      columns: 80,
+      rows: 24,
+    })
 
     board.press("d") // duplicate
     const afterDup = repo.getChildren("Col1").length
@@ -159,10 +138,7 @@ describe("Visual: Undo/Redo", () => {
   })
 
   test("undo with nothing to undo shows warning", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item.task("Only"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item.task("Only"))), { columns: 80, rows: 24 })
 
     board.press("Ctrl+z")
     const status = board.getStatus()
@@ -170,10 +146,7 @@ describe("Visual: Undo/Redo", () => {
   })
 
   test("redo with nothing to redo shows warning", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item.task("Only"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item.task("Only"))), { columns: 80, rows: 24 })
 
     board.press("Ctrl+y")
     const status = board.getStatus()
@@ -181,14 +154,10 @@ describe("Visual: Undo/Redo", () => {
   })
 
   test("multiple undo/redo cycles preserve borders", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item.task("A"), item.task("B"), item.task("C")),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item.task("A"), item.task("B"), item.task("C"))), {
+      columns: 80,
+      rows: 24,
+    })
 
     for (let i = 0; i < 3; i++) {
       board.press("d") // duplicate
@@ -208,15 +177,7 @@ describe("Visual: Undo/Redo", () => {
 describe("Visual: Node Headers & Icons", () => {
   test("task nodes show status icons", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "Col1",
-            item.task("Todo task", "todo"),
-            item.task("Done task", "done"),
-          ),
-        ),
+      () => item("board", item("Col1", item.task("Todo task", "todo"), item.task("Done task", "done"))),
       { columns: 80, rows: 24 },
     )
 
@@ -247,19 +208,7 @@ describe("Visual: Node Headers & Icons", () => {
 
   test("folder with child count renders correctly", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "Col1",
-            item(
-              "Project",
-              item.task("Step 1"),
-              item.task("Step 2"),
-              item.task("Step 3"),
-            ),
-          ),
-        ),
+      () => item("board", item("Col1", item("Project", item.task("Step 1"), item.task("Step 2"), item.task("Step 3")))),
       { columns: 80, rows: 24 },
     )
 
@@ -278,10 +227,7 @@ describe("Visual: Overflow Indicators", () => {
   test("overflow indicator appears when cards exceed viewport", () => {
     const tasks: ReturnType<typeof item.task>[] = []
     for (let i = 1; i <= 15; i++) tasks.push(item.task(`Item ${i}`))
-    const { board } = testEnv(
-      () => item("board", item("Col1", ...tasks)),
-      { columns: 50, rows: 18 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", ...tasks)), { columns: 50, rows: 18 })
 
     const text = board.screenshot()
     const bugs = checkGarbage(text)
@@ -295,10 +241,7 @@ describe("Visual: Overflow Indicators", () => {
   test("scrolling down reveals top overflow indicator", () => {
     const tasks: ReturnType<typeof item.task>[] = []
     for (let i = 1; i <= 20; i++) tasks.push(item.task(`Item ${i}`))
-    const { board } = testEnv(
-      () => item("board", item("Col1", ...tasks)),
-      { columns: 50, rows: 18 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", ...tasks)), { columns: 50, rows: 18 })
 
     // Scroll to bottom
     board.press("G")
@@ -311,10 +254,7 @@ describe("Visual: Overflow Indicators", () => {
   test("overflow indicator count is reasonable", () => {
     const tasks: ReturnType<typeof item.task>[] = []
     for (let i = 1; i <= 10; i++) tasks.push(item.task(`T${i}`))
-    const { board } = testEnv(
-      () => item("board", item("Col1", ...tasks)),
-      { columns: 50, rows: 15 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", ...tasks)), { columns: 50, rows: 15 })
 
     const text = board.screenshot()
     // The overflow indicator should show a reasonable count
@@ -332,12 +272,7 @@ describe("Visual: Overflow Indicators", () => {
 describe("Visual: Cursor After Delete", () => {
   test("deleting only card lands cursor on column header", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item.task("Single item")),
-          item("Col2", item.task("Other")),
-        ),
+      () => item("board", item("Col1", item.task("Single item")), item("Col2", item.task("Other"))),
       { columns: 80, rows: 24 },
     )
 
@@ -350,11 +285,7 @@ describe("Visual: Cursor After Delete", () => {
 
   test("deleting last card in column moves cursor up", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item.task("First"), item.task("Second"), item.task("Third")),
-        ),
+      () => item("board", item("Col1", item.task("First"), item.task("Second"), item.task("Third"))),
       { columns: 80, rows: 24 },
     )
 
@@ -374,17 +305,7 @@ describe("Visual: Cursor After Delete", () => {
 describe("Visual: Selection", () => {
   test("Shift-J extends selection downward cleanly", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "Col1",
-            item.task("A"),
-            item.task("B"),
-            item.task("C"),
-            item.task("D"),
-          ),
-        ),
+      () => item("board", item("Col1", item.task("A"), item.task("B"), item.task("C"), item.task("D"))),
       { columns: 80, rows: 24 },
     )
 
@@ -400,19 +321,10 @@ describe("Visual: Selection", () => {
   })
 
   test("Shift-K extends selection upward", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "Col1",
-            item.task("A"),
-            item.task("B"),
-            item.task("C"),
-          ),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item.task("A"), item.task("B"), item.task("C"))), {
+      columns: 80,
+      rows: 24,
+    })
 
     board.press("j").press("j") // cursor on C
     board.press("K") // select C+B
@@ -423,12 +335,7 @@ describe("Visual: Selection", () => {
 
   test("Escape clears selection and restores normal view", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item.task("A"), item.task("B"), item.task("C")),
-          item("Col2", item.task("D")),
-        ),
+      () => item("board", item("Col1", item.task("A"), item.task("B"), item.task("C")), item("Col2", item.task("D"))),
       { columns: 80, rows: 24 },
     )
 
@@ -445,10 +352,7 @@ describe("Visual: Selection", () => {
 
 describe("Visual: Help Overlay Compact", () => {
   test("help overlay shows all three categories", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item("A"))),
-      { columns: 80, rows: 40 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item("A"))), { columns: 80, rows: 40 })
 
     board.press("?")
     const text = board.screenshot()
@@ -460,10 +364,7 @@ describe("Visual: Help Overlay Compact", () => {
   })
 
   test("help overlay shows undo/redo shortcuts", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item("A"))),
-      { columns: 80, rows: 40 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item("A"))), { columns: 80, rows: 40 })
 
     board.press("?")
     const text = board.screenshot()
@@ -476,10 +377,7 @@ describe("Visual: Help Overlay Compact", () => {
   })
 
   test("help overlay renders within border box", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item("A"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item("A"))), { columns: 80, rows: 24 })
 
     board.press("?")
     const text = board.screenshot()
@@ -526,14 +424,7 @@ describe("Visual: Fold/Unfold Borders", () => {
       () =>
         item(
           "board",
-          item(
-            "Col1",
-            item(
-              "Deep",
-              item("L2", item("L3", item("leaf1"), item("leaf2"))),
-            ),
-            item.task("Sibling"),
-          ),
+          item("Col1", item("Deep", item("L2", item("L3", item("leaf1"), item("leaf2")))), item.task("Sibling")),
         ),
       { columns: 80, rows: 24 },
     )
@@ -559,10 +450,7 @@ describe("Visual: Fold/Unfold Borders", () => {
     for (let i = 1; i <= 8; i++) {
       items.push(item(`Parent${i}`, item(`c${i}a`), item(`c${i}b`)))
     }
-    const { board } = testEnv(
-      () => item("board", item("Col1", ...items)),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", ...items)), { columns: 60, rows: 20 })
 
     // Scroll down
     board.press("j").press("j").press("j").press("j")
@@ -619,10 +507,7 @@ describe("Visual: Terminal Size Rendering", () => {
   })
 
   test("single column terminal (20 cols)", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", item.task("Hi"))),
-      { columns: 20, rows: 10 },
-    )
+    const { board } = testEnv(() => item("board", item("Col", item.task("Hi"))), { columns: 20, rows: 10 })
 
     fullCheck(board, "20x10 terminal")
   })
@@ -672,12 +557,7 @@ describe("Visual: Combined Interactions", () => {
       () =>
         item(
           "board",
-          item(
-            "Col1",
-            item.task("Alpha"),
-            item.task("Beta"),
-            item.task("Gamma"),
-          ),
+          item("Col1", item.task("Alpha"), item.task("Beta"), item.task("Gamma")),
           item("Col2", item.task("Delta")),
         ),
       { columns: 80, rows: 24 },
@@ -701,13 +581,7 @@ describe("Visual: Combined Interactions", () => {
       () =>
         item(
           "board",
-          item(
-            "Col1",
-            item.task("T1"),
-            item.task("T2"),
-            item("F1", item.task("T3"), item.task("T4")),
-            item.task("T5"),
-          ),
+          item("Col1", item.task("T1"), item.task("T2"), item("F1", item.task("T3"), item.task("T4")), item.task("T5")),
           item("Col2", item.task("T6")),
         ),
       { columns: 80, rows: 24 },
@@ -715,14 +589,23 @@ describe("Visual: Combined Interactions", () => {
 
     // Rapid mixed operations
     const keys = [
-      "j", "j", "z", "Z", // nav + fold
-      "d", "Ctrl+z", // dup + undo
-      "<", ">", // depth
-      "l", "h", // column nav
-      "J", "Escape", // select + clear
-      "?", "Escape", // help
+      "j",
+      "j",
+      "z",
+      "Z", // nav + fold
+      "d",
+      "Ctrl+z", // dup + undo
+      "<",
+      ">", // depth
+      "l",
+      "h", // column nav
+      "J",
+      "Escape", // select + clear
+      "?",
+      "Escape", // help
       "x", // task status
-      "g", "g", // go to top
+      "g",
+      "g", // go to top
       "G", // go to bottom
     ]
     for (const key of keys) {

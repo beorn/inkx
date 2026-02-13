@@ -13,8 +13,10 @@ describe("Exploration: Virtual Card Skip", () => {
     // Create a column with paragraph body + section children
     // The paragraphs become virtual cards, sections become real cards
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
+      item(
+        "board",
+        item(
+          "col1",
           item.paragraph("body text 1"),
           item.paragraph("body text 2"),
           item.section("Section A", item("task1")),
@@ -47,8 +49,10 @@ describe("Exploration: Virtual Card Skip", () => {
 
   test("k skips virtual body cards going up", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
+      item(
+        "board",
+        item(
+          "col1",
           item.paragraph("body1"),
           item.section("Section A", item("task1")),
           item.section("Section B", item("task2")),
@@ -82,7 +86,8 @@ describe("Exploration: Virtual Card Skip", () => {
   test("h/l skip virtual body columns", () => {
     // Root has body content + section children: body becomes a virtual column
     const { board } = testEnv(() =>
-      item("board",
+      item(
+        "board",
         item.paragraph("root body"),
         item.section("Col A", item("taskA")),
         item.section("Col B", item("taskB")),
@@ -122,18 +127,21 @@ describe("Exploration: Virtual Card Skip", () => {
   })
 
   test("page up/down skip virtual cards", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item.paragraph("body1"),
-          item.paragraph("body2"),
-          item.section("S1", item("t1")),
-          item.section("S2", item("t2")),
-          item.section("S3", item("t3")),
-          item.section("S4", item("t4")),
-          item.section("S5", item("t5")),
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.paragraph("body1"),
+            item.paragraph("body2"),
+            item.section("S1", item("t1")),
+            item.section("S2", item("t2")),
+            item.section("S3", item("t3")),
+            item.section("S4", item("t4")),
+            item.section("S5", item("t5")),
+          ),
         ),
-      ),
       { rows: 12 }, // small terminal to trigger page navigation
     )
     const bugs: string[] = []
@@ -168,10 +176,7 @@ describe("Exploration: Virtual Card Skip", () => {
   test("initial cursor does not land on virtual card", () => {
     // Board where first column has only body content (virtual)
     const { board } = testEnv(() =>
-      item("board",
-        item.paragraph("body only"),
-        item.section("Real Section", item("task1")),
-      ),
+      item("board", item.paragraph("body only"), item.section("Real Section", item("task1"))),
     )
     const bugs: string[] = []
 
@@ -193,15 +198,10 @@ describe("Exploration: Virtual Card Skip", () => {
   test("j on column with only virtual cards hits boundary", () => {
     // Column where ALL cards are virtual (body content, no structural children)
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item.paragraph("p1"),
-          item.paragraph("p2"),
-          item.paragraph("p3"),
-        ),
-        item("col2",
-          item.section("Real", item("task1")),
-        ),
+      item(
+        "board",
+        item("col1", item.paragraph("p1"), item.paragraph("p2"), item.paragraph("p3")),
+        item("col2", item.section("Real", item("task1"))),
       ),
     )
     const bugs: string[] = []
@@ -222,9 +222,12 @@ describe("Exploration: Virtual Card Skip", () => {
     // File-like node with body paragraphs before structural sections
     // Simulates zooming into a file like CLAUDE.md
     const { board } = testEnv(() =>
-      item("board",
-        item("col1",
-          item("CLAUDE.md",
+      item(
+        "board",
+        item(
+          "col1",
+          item(
+            "CLAUDE.md",
             item.paragraph("Description of the project"),
             item.paragraph("More preamble text"),
             item.section("Commands", item("bun fix"), item("bun km")),

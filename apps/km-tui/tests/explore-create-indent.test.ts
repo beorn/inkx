@@ -59,9 +59,7 @@ describe("Create + Indent cursor stability", () => {
   })
 
   test("multiple create-indent cycles maintain cursor stability", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cycle 1: create after A, indent under A
     board.press("n")
@@ -89,9 +87,7 @@ describe("Create + Indent cursor stability", () => {
   })
 
   test("Enter-Enter creates new siblings without cursor loss", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Start inline edit on A
     board.press("Enter")
@@ -113,12 +109,10 @@ describe("Create + Indent cursor stability", () => {
   })
 
   test("Enter-Enter then indent maintains cursor", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Navigate to B, enter edit, press Enter twice to create nodes
-    board.press("j")     // B
+    board.press("j") // B
     board.press("Enter") // enter inline edit on B
     board.press("Enter") // TEXT_CONFIRM: save B + create new1 + edit new1
     board.press("Enter") // TEXT_CONFIRM: save new1 + create new2 + edit new2
@@ -135,9 +129,7 @@ describe("Create + Indent cursor stability", () => {
   })
 
   test("indent after create preserves fractional parent_idx without cursor loss", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("first"), item("second"), item("third"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("first"), item("second"), item("third"))))
 
     // Navigate to "second"
     board.press("j")
@@ -150,9 +142,7 @@ describe("Create + Indent cursor stability", () => {
     // Verify new node exists between second and third
     const col1Kids = repo.getChildren("col1")
     expect(col1Kids.length).toBe(4)
-    const newNode = col1Kids.find(
-      (n) => n.id !== "first" && n.id !== "second" && n.id !== "third",
-    )
+    const newNode = col1Kids.find((n) => n.id !== "first" && n.id !== "second" && n.id !== "third")
     expect(newNode).toBeDefined()
 
     // Check fractional parent_idx

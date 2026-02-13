@@ -14,9 +14,7 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
 
 describe("Exploration: Cursor Follows Indent", () => {
   test("indent middle card: cursor follows to parent card", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -36,9 +34,7 @@ describe("Exploration: Cursor Follows Indent", () => {
 
   test("outdent from nested position: cursor follows node up", () => {
     // Pre-nest: A → B (B is child of A)
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A", item("child-of-A")), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A", item("child-of-A")), item("C"))))
     const bugs: string[] = []
 
     // Cursor starts on A (first card). Navigate to C (second card).
@@ -102,9 +98,7 @@ describe("Exploration: Cursor Follows Indent", () => {
   })
 
   test("indent then immediately outdent: round trip", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     const before = childIds(repo, "col1")
@@ -125,10 +119,9 @@ describe("Exploration: Cursor Follows Indent", () => {
   })
 
   test("cursor follows indent in columns view", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"), item("C"))),
-      { viewMode: "columns" },
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), {
+      viewMode: "columns",
+    })
     const bugs: string[] = []
 
     board.press("j") // → B
@@ -144,10 +137,9 @@ describe("Exploration: Cursor Follows Indent", () => {
   })
 
   test("cursor follows indent in list view", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("col1", item("A"), item("B"), item("C"))),
-      { viewMode: "list" },
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), {
+      viewMode: "list",
+    })
     const bugs: string[] = []
 
     board.press("j") // → B

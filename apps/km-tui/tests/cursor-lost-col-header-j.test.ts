@@ -40,12 +40,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
 
   test("j from column header selects first card (file children)", () => {
     // Bug case: columns with file-type children
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col-with-files", item.file("file1"), item.file("file2")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item("col-with-files", item.file("file1"), item.file("file2"))))
 
     // Navigate up to board level
     board.press("k").press("k")
@@ -84,12 +79,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
   })
 
   test("j from column header with mixed file/folder children", () => {
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col-mixed", item.file("file-a"), item.folder("folder-b")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item("col-mixed", item.file("file-a"), item.folder("folder-b"))))
 
     // Navigate to board level
     board.press("k").press("k")
@@ -107,10 +97,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     // Edge case: column has only paragraph children (body content, no structural items)
     // This tests the extractBody filtering scenario
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col-body", item.paragraph("para-1"), item.paragraph("para-2")),
-      ),
+      item.root("board", item("col-body", item.paragraph("para-1"), item.paragraph("para-2"))),
     )
 
     // Navigate up to board level
@@ -157,13 +144,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
   })
 
   test("j from board level with code block before columns", () => {
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item.code("some code"),
-        item("col1", item("task1")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item.code("some code"), item("col1", item("task1"))))
 
     board.press("k").press("k")
     board.press("j")
@@ -176,13 +157,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
   })
 
   test("j from board level with quote before columns", () => {
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item.quote("a quote"),
-        item("col1", item("task1")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item.quote("a quote"), item("col1", item("task1"))))
 
     board.press("k").press("k")
     board.press("j")
@@ -195,11 +170,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
 
   test("round-trip navigation preserves cursor for file children columns", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item.file("f1"), item.file("f2")),
-        item("col2", item.file("f3")),
-      ),
+      item.root("board", item("col1", item.file("f1"), item.file("f2")), item("col2", item.file("f3"))),
     )
 
     // Navigate down through col1

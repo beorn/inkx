@@ -48,6 +48,8 @@ const shortcuts = [
       { key: "⌥hjkl / ⌥↑↓←→", desc: "Shift item" },
       { key: "Tab / ⇧Tab", desc: "Indent / outdent" },
       { key: "⌃Z / ⌃⇧Z", desc: "Undo / redo" },
+      { key: "td / ts / tr", desc: "Date due / start / recur" },
+      { key: "sp", desc: "Cycle priority (P1-P4)" },
     ],
   },
   {

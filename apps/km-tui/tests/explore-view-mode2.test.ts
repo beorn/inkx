@@ -138,14 +138,10 @@ describe("Exploration: View Mode Transitions", () => {
   })
 
   test("fold in different view modes", () => {
-    const env = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("parent", item("child1"), item("child2")), item("B")),
-        ),
-      { columns: 100, rows: 30 },
-    )
+    const env = testEnv(() => item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))), {
+      columns: 100,
+      rows: 30,
+    })
     const { board } = env
 
     // Fold in cards view

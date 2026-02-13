@@ -7,9 +7,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Search Dialog Extended", () => {
   test("/ opens search dialog", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("Alpha"), item("Beta"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Alpha"), item("Beta"))))
     const bugs: string[] = []
 
     board.press("/") // open search
@@ -22,9 +20,7 @@ describe("Exploration: Search Dialog Extended", () => {
   })
 
   test("/ then Escape closes search", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("Alpha"), item("Beta"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Alpha"), item("Beta"))))
     const bugs: string[] = []
 
     board.press("/")
@@ -38,9 +34,7 @@ describe("Exploration: Search Dialog Extended", () => {
   })
 
   test("search then navigate after close", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("Alpha"), item("Beta"), item("Charlie"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Alpha"), item("Beta"), item("Charlie"))))
     const bugs: string[] = []
 
     board.press("/")
@@ -56,9 +50,7 @@ describe("Exploration: Search Dialog Extended", () => {
   })
 
   test("search on empty column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1")),
-    )
+    const { board } = testEnv(() => item("board", item("col1")))
     const bugs: string[] = []
 
     board.press("/")
@@ -72,9 +64,7 @@ describe("Exploration: Search Dialog Extended", () => {
   })
 
   test("rapid open/close search", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     for (let i = 0; i < 5; i++) {
@@ -90,9 +80,7 @@ describe("Exploration: Search Dialog Extended", () => {
   })
 
   test("search then detail pane", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("/")
@@ -107,9 +95,7 @@ describe("Exploration: Search Dialog Extended", () => {
   })
 
   test("detail pane then search", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press(" ") // open detail pane
@@ -123,9 +109,7 @@ describe("Exploration: Search Dialog Extended", () => {
   })
 
   test("help overlay then search", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("?") // open help

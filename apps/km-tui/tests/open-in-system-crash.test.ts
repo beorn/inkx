@@ -13,9 +13,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Open in System (o key)", () => {
   test("pressing o does not crash when repo.data is null", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task-a"), item("task-b")))
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))))
 
     // Navigate to first card
     board.press("j")
@@ -25,9 +23,7 @@ describe("Open in System (o key)", () => {
   })
 
   test("pressing O (open in terminal) does not crash when repo.data is null", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task-a"), item("task-b")))
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))))
 
     board.press("j")
 

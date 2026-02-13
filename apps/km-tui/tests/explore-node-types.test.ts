@@ -9,13 +9,17 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Exploration: Node Types", () => {
   test("board with mixed node types", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item.task("Task 1", "todo"),
-        item("Regular item"),
-        item.paragraph("A paragraph node"),
-        item.task("Task 2", "wip"),
-        item("Folder", item("child1"), item("child2")),
-      )),
+      item(
+        "board",
+        item(
+          "col1",
+          item.task("Task 1", "todo"),
+          item("Regular item"),
+          item.paragraph("A paragraph node"),
+          item.task("Task 2", "wip"),
+          item("Folder", item("child1"), item("child2")),
+        ),
+      ),
     )
     const bugs: string[] = []
 
@@ -32,11 +36,7 @@ describe("Exploration: Node Types", () => {
 
   test("x on task among non-tasks", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item("Regular"),
-        item.task("My Task", "todo"),
-        item("Another regular"),
-      )),
+      item("board", item("col1", item("Regular"), item.task("My Task", "todo"), item("Another regular"))),
     )
     const bugs: string[] = []
 
@@ -53,12 +53,7 @@ describe("Exploration: Node Types", () => {
   })
 
   test("duplicate task preserves type", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1",
-        item.task("Original", "wip"),
-        item("B"),
-      )),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Original", "wip"), item("B"))))
     const bugs: string[] = []
 
     board.press("d") // duplicate task
@@ -72,10 +67,7 @@ describe("Exploration: Node Types", () => {
 
   test("detail pane on paragraph node", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item.paragraph("This is a paragraph with some text content"),
-        item("B"),
-      )),
+      item("board", item("col1", item.paragraph("This is a paragraph with some text content"), item("B"))),
     )
     const bugs: string[] = []
 
@@ -90,11 +82,10 @@ describe("Exploration: Node Types", () => {
 
   test("fold folder among tasks", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item.task("T1", "todo"),
-        item("Folder", item("c1"), item("c2")),
-        item.task("T2", "done"),
-      )),
+      item(
+        "board",
+        item("col1", item.task("T1", "todo"), item("Folder", item("c1"), item("c2")), item.task("T2", "done")),
+      ),
     )
     const bugs: string[] = []
 
@@ -111,12 +102,7 @@ describe("Exploration: Node Types", () => {
   })
 
   test("inline edit on task node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item.task("Edit me", "todo"),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("Edit me", "todo"), item("B"))))
     const bugs: string[] = []
 
     board.press("Enter") // inline edit on task
@@ -131,11 +117,7 @@ describe("Exploration: Node Types", () => {
 
   test("section node operations", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item.section("Section Header"),
-        item("Regular"),
-        item.section("Another Section"),
-      )),
+      item("board", item("col1", item.section("Section Header"), item("Regular"), item.section("Another Section"))),
     )
     const bugs: string[] = []
 
@@ -152,12 +134,7 @@ describe("Exploration: Node Types", () => {
   })
 
   test("quote node with detail pane", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item.quote("A quoted text block"),
-        item("Regular"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.quote("A quoted text block"), item("Regular"))))
     const bugs: string[] = []
 
     board.press(" ") // detail pane on quote

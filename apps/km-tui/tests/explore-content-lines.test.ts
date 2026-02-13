@@ -9,13 +9,14 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Exploration: Content Lines", () => {
   test("+ increases content lines", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item.paragraph("Some body text here that should show in content area"),
-          item("child1"),
+      item(
+        "board",
+        item(
+          "col1",
+          item("parent", item.paragraph("Some body text here that should show in content area"), item("child1")),
+          item("B"),
         ),
-        item("B"),
-      )),
+      ),
     )
     const bugs: string[] = []
 
@@ -31,13 +32,7 @@ describe("Exploration: Content Lines", () => {
 
   test("- decreases content lines to 0", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item.paragraph("body text"),
-          item("child1"),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item.paragraph("body text"), item("child1")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -54,13 +49,7 @@ describe("Exploration: Content Lines", () => {
 
   test("+ and - rapid toggling", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item.paragraph("body"),
-          item("child"),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item.paragraph("body"), item("child")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -78,13 +67,7 @@ describe("Exploration: Content Lines", () => {
 
   test("+ then < depth change", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item.paragraph("body text"),
-          item("L2", item("deep")),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item.paragraph("body text"), item("L2", item("deep"))), item("B"))),
     )
     const bugs: string[] = []
 
@@ -101,13 +84,7 @@ describe("Exploration: Content Lines", () => {
 
   test("+ then fold", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item.paragraph("body"),
-          item("child"),
-        ),
-        item("B"),
-      )),
+      item("board", item("col1", item("parent", item.paragraph("body"), item("child")), item("B"))),
     )
     const bugs: string[] = []
 
@@ -122,9 +99,7 @@ describe("Exploration: Content Lines", () => {
   })
 
   test("- at 0 then navigate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     // Press - enough to reach 0

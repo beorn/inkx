@@ -211,6 +211,26 @@ tags: [a, b, c]
       const result = parseTaskMetadata("Task 📅 2025-03-15 due:2026-01-20")
       expect(result.dueDate).toBe("2025-03-15") // Emoji takes precedence
     })
+
+    test("parses due date with time", () => {
+      const result = parseTaskMetadata("Task 📅 2025-03-15T14:30")
+      expect(result.dueDate).toBe("2025-03-15")
+      expect(result.dueTime).toBe("14:30")
+    })
+
+    test("parses scheduled date with time", () => {
+      const result = parseTaskMetadata("Task ⏳ 2025-03-10T09:00")
+      expect(result.scheduledDate).toBe("2025-03-10")
+      expect(result.scheduledTime).toBe("09:00")
+    })
+
+    test("date without time has no time field", () => {
+      const result = parseTaskMetadata("Task 📅 2025-03-15 ⏳ 2025-03-10")
+      expect(result.dueDate).toBe("2025-03-15")
+      expect(result.dueTime).toBeUndefined()
+      expect(result.scheduledDate).toBe("2025-03-10")
+      expect(result.scheduledTime).toBeUndefined()
+    })
   })
 
   describe("parseWikiLinks", () => {
@@ -536,6 +556,70 @@ describe("Nodes to Markdown", () => {
 
     test("should serialize horizontal rule", () => {
       expect(nodesToMarkdown([makeHr()])).toContain("---")
+    })
+
+    test("should serialize task with due_time as T suffix", () => {
+      const node = makeTestNode({
+        type: "task",
+        content: "Meeting prep",
+        task_status: "todo",
+        task_mark: " ",
+        due_date: "2025-03-15",
+        due_time: "14:30",
+      })
+      const md = nodesToMarkdown([node])
+      expect(md).toContain("📅 2025-03-15T14:30")
+    })
+
+    test("should serialize task with scheduled_time as T suffix", () => {
+      const node = makeTestNode({
+        type: "task",
+        content: "Start project",
+        task_status: "todo",
+        task_mark: " ",
+        scheduled_date: "2025-03-10",
+        scheduled_time: "09:00",
+      })
+      const md = nodesToMarkdown([node])
+      expect(md).toContain("⏳ 2025-03-10T09:00")
+    })
+
+    test("should serialize recurrence from top-level field", () => {
+      const node = makeTestNode({
+        type: "task",
+        content: "Daily standup",
+        task_status: "todo",
+        task_mark: " ",
+        recurrence: "every day",
+      })
+      const md = nodesToMarkdown([node])
+      expect(md).toContain("🔁 every day")
+    })
+
+    test("should serialize recurrence from data.recurrence", () => {
+      const node = makeTestNode({
+        type: "task",
+        content: "Weekly review",
+        task_status: "todo",
+        task_mark: " ",
+        data: { recurrence: "every week" },
+      })
+      const md = nodesToMarkdown([node])
+      expect(md).toContain("🔁 every week")
+    })
+
+    test("should not duplicate recurrence if already in content", () => {
+      const node = makeTestNode({
+        type: "task",
+        content: "Weekly review 🔁 every week",
+        task_status: "todo",
+        task_mark: " ",
+        recurrence: "every week",
+      })
+      const md = nodesToMarkdown([node])
+      // Should appear exactly once
+      const matches = md.match(/🔁/g)
+      expect(matches).toHaveLength(1)
     })
   })
 })

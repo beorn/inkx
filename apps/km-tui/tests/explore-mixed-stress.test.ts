@@ -9,11 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("Exploration: Mixed Stress", () => {
   test("nav + fold + depth + dup + undo", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-        item("C"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"), item("C"))),
     )
     const bugs: string[] = []
 
@@ -36,11 +32,7 @@ describe("Exploration: Mixed Stress", () => {
 
   test("search + detail + edit + task status cycle", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item.task("Task A", "todo"),
-        item("B"),
-        item.task("Task C", "wip"),
-      )),
+      item("board", item("col1", item.task("Task A", "todo"), item("B"), item.task("Task C", "wip"))),
     )
     const bugs: string[] = []
 
@@ -64,16 +56,7 @@ describe("Exploration: Mixed Stress", () => {
 
   test("zoom + shift + fold + gg/G", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent",
-          item("c1"),
-          item("c2"),
-          item("c3"),
-        ),
-        item("B"),
-        item("C"),
-        item("D"),
-      )),
+      item("board", item("col1", item("parent", item("c1"), item("c2"), item("c3")), item("B"), item("C"), item("D"))),
     )
     const bugs: string[] = []
 
@@ -93,11 +76,7 @@ describe("Exploration: Mixed Stress", () => {
   })
 
   test("selection + dup + shift + undo sequence", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("A"), item("B"), item("C"), item("D"), item("E"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))))
     const bugs: string[] = []
 
     board.press("J") // select A→B
@@ -118,28 +97,33 @@ describe("Exploration: Mixed Stress", () => {
 
   test("50 random-ish operations", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("A"),
-        item("B"),
-        item.task("T1", "todo"),
-        item("C"),
-      )),
+      item(
+        "board",
+        item("col1", item("parent", item("c1"), item("c2")), item("A"), item("B"), item.task("T1", "todo"), item("C")),
+      ),
     )
     const bugs: string[] = []
 
     // Simulate a realistic user session
     const ops = [
-      "j", "j", "j", "k", // navigate
+      "j",
+      "j",
+      "j",
+      "k", // navigate
       "d", // duplicate
       "j", // past duplicate
       "Alt+j", // shift down
-      "k", "k", // back up
-      "z", "a", // fold parent
+      "k",
+      "k", // back up
+      "z",
+      "a", // fold parent
       "<", // decrease depth
       ">", // restore depth
-      "z", "a", // unfold
-      "j", "j", "j", // navigate down
+      "z",
+      "a", // unfold
+      "j",
+      "j",
+      "j", // navigate down
       "x", // cycle task status
       "x", // cycle again
       " ", // detail pane
@@ -150,9 +134,11 @@ describe("Exploration: Mixed Stress", () => {
       "Escape", // close
       "/", // search
       "Escape", // close
-      "g", "g", // go to first
+      "g",
+      "g", // go to first
       "G", // go to last
-      "k", "k", // navigate up
+      "k",
+      "k", // navigate up
       "Enter", // inline edit
       "Escape", // cancel
       "Ctrl+Z", // undo
@@ -160,7 +146,8 @@ describe("Exploration: Mixed Stress", () => {
       "j", // navigate
       "+", // content lines
       "-", // content lines
-      "j", "j", // navigate to end
+      "j",
+      "j", // navigate to end
     ]
 
     for (const op of ops) {

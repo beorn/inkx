@@ -7,9 +7,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Inline Edit", () => {
   test("Enter opens inline edit", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("Enter") // edit A title
@@ -22,9 +20,7 @@ describe("Exploration: Inline Edit", () => {
   })
 
   test("Enter then Escape cancels edit", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("Enter") // edit
@@ -38,9 +34,7 @@ describe("Exploration: Inline Edit", () => {
   })
 
   test("Enter then type then Enter saves", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const bugs: string[] = []
 
     board.press("Enter") // edit
@@ -55,9 +49,7 @@ describe("Exploration: Inline Edit", () => {
   })
 
   test("inline edit then navigation after", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     const bugs: string[] = []
 
     board.press("Enter") // edit
@@ -73,9 +65,7 @@ describe("Exploration: Inline Edit", () => {
   })
 
   test("Enter on column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
     const bugs: string[] = []
 
     // Navigate up to column level (press k past first card)
@@ -90,12 +80,7 @@ describe("Exploration: Inline Edit", () => {
   })
 
   test("inline edit on folded node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1",
-        item("parent", item("c1"), item("c2")),
-        item("B"),
-      )),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("parent", item("c1"), item("c2")), item("B"))))
     const bugs: string[] = []
 
     board.press("z").press("a") // fold parent

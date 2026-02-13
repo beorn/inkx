@@ -642,9 +642,7 @@ describe("Cursor follows node (invariant)", () => {
 
 describe("Column Indent", () => {
   test("Tab on column header indents column under previous column", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
 
     // Navigate to col2 header: right from col1's first card
     board.press("k") // → col1 header
@@ -663,9 +661,7 @@ describe("Column Indent", () => {
   })
 
   test("Tab on first column header is blocked (boundary)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     // Navigate to col1 header
     board.press("k") // → col1 header

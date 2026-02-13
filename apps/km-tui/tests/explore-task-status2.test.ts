@@ -9,9 +9,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Exploration: Task Status + Duplicate", () => {
   test("cycle task status with space", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.task("Task A"), item.task("Task B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("Task A"), item.task("Task B"))))
     board.press("space") // Cycle A: todo -> in_progress
     const text = board.screenshot()
     expect(text).not.toContain("[object Object]")
@@ -19,9 +17,7 @@ describe("Exploration: Task Status + Duplicate", () => {
   })
 
   test("cycle task status multiple times", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.task("Task A"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("Task A"))))
     // Cycle through all states
     board.press("space") // todo -> in_progress
     board.press("space") // in_progress -> done
@@ -32,9 +28,7 @@ describe("Exploration: Task Status + Duplicate", () => {
   })
 
   test("space on non-task node", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("Not a task"), item("Also not"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Not a task"), item("Also not"))))
     board.press("space")
     const text = board.screenshot()
     expect(text).not.toContain("[object Object]")
@@ -42,9 +36,7 @@ describe("Exploration: Task Status + Duplicate", () => {
   })
 
   test("duplicate node with d", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     const childrenBefore = repo.getChildren("col1").length
     board.press("d") // Duplicate A
     const childrenAfter = repo.getChildren("col1").length
@@ -56,9 +48,7 @@ describe("Exploration: Task Status + Duplicate", () => {
   })
 
   test("duplicate then undo (KNOWN BUG: undo doesn't reverse duplicate)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("d") // Duplicate A
     const afterDup = repo.getChildren("col1").length
     expect(afterDup).toBe(3) // A + duplicate + B
@@ -71,9 +61,7 @@ describe("Exploration: Task Status + Duplicate", () => {
   })
 
   test("duplicate then navigate to duplicate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("d") // Duplicate A
     board.press("j") // Move to duplicate
     board.press("j") // Move past duplicate
@@ -83,9 +71,7 @@ describe("Exploration: Task Status + Duplicate", () => {
   })
 
   test("duplicate in second column", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2", item("B"), item("C"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"), item("C"))))
     board.press("l") // Move to col2
     board.press("d") // Duplicate B
     const text = board.screenshot()
@@ -95,9 +81,7 @@ describe("Exploration: Task Status + Duplicate", () => {
   })
 
   test("duplicate then delete duplicate", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     board.press("d") // Duplicate A
     board.press("j") // Move to duplicate
     board.press("x") // Delete duplicate
@@ -107,9 +91,7 @@ describe("Exploration: Task Status + Duplicate", () => {
   })
 
   test("batch duplicate with selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B"), item("C"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
     board.press("v") // Select A
     board.press("S-j") // Extend to B
     board.press("d") // Duplicate selected
