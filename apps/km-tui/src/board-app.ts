@@ -240,6 +240,10 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
       )
       return result
     },
+    "term:resize": (data, ctx) => {
+      const { cols, rows } = data as { cols: number; rows: number }
+      ctx.get().setDimensions({ columns: cols, rows: rows })
+    },
   })
 
   // Wrap run to capture the exit function

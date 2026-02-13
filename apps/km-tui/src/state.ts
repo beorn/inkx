@@ -18,6 +18,9 @@ import {
   extractBody,
 } from "@km/tree"
 
+/** Body content types that render as virtual (borderless, de-emphasized) cards */
+const BODY_TYPES = new Set(["paragraph", "code", "quote"])
+
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
 
 // Bound versions that inject repo dependencies
@@ -194,15 +197,15 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
         })
       }
     } else {
-      // No structural children — mark non-task body content as virtual (borderless).
-      // Task-type nodes render as regular bordered cards.
-      const allBody = !cardNodes.some((n) => n.type === "task")
+      // No structural children — mark body-type cards (paragraph, code, quote) as virtual,
+      // UNLESS they have a link_to (embed links are first-class navigable items).
       for (const cardNode of cardNodes) {
+        const isBodyType = BODY_TYPES.has(cardNode.type) && !cardNode.link_to
         cards.push({
           node: cardNode,
           children: [],
           childCount: childCounts.get(cardNode.id) ?? 0,
-          ...(allBody ? { isVirtual: true } : {}),
+          ...(isBodyType ? { isVirtual: true } : {}),
         })
       }
     }
@@ -429,14 +432,15 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
         })
       }
     } else {
-      // No structural children — mark non-task body content as virtual (borderless).
-      const allBody = !cardNodes.some((n) => n.type === "task")
+      // No structural children — mark body-type cards (paragraph, code, quote) as virtual,
+      // UNLESS they have a link_to (embed links are first-class navigable items).
       for (const cardNode of cardNodes) {
+        const isBodyType = BODY_TYPES.has(cardNode.type) && !cardNode.link_to
         cards.push({
           node: cardNode,
           children: [],
           childCount: childCounts.get(cardNode.id) ?? 0,
-          ...(allBody ? { isVirtual: true } : {}),
+          ...(isBodyType ? { isVirtual: true } : {}),
         })
       }
     }

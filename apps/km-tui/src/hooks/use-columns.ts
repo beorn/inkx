@@ -178,16 +178,17 @@ function kNodeToColumnState(
       })
     }
   } else {
-    // No structural children — mark non-task body as virtual
-    const allBody = !cardNodes.some((n) => n.type === "task")
+    // No structural children — mark body-type cards (paragraph, code, quote) as virtual,
+    // UNLESS they have a link_to (embed links are first-class navigable items).
     for (const child of cardNodes) {
       const childChildren = repo.getChildren(child.id)
       const isFolded = foldedNodes.has(child.id)
+      const isBodyType = NON_COLUMN_TYPES.has(child.type) && !child.link_to
       cards.push({
         node: child,
         children: isFolded ? [] : childChildren,
         childCount: childChildren.length,
-        ...(allBody ? { isVirtual: true } : {}),
+        ...(isBodyType ? { isVirtual: true } : {}),
       })
     }
   }

@@ -10,7 +10,7 @@
  * in board-app.ts. Board is a pure view that reads state and pushes derived layout.
  */
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { Box, Text, useApp, useStdout, ErrorBoundary, type PatchedConsole } from "inkx"
+import { Box, Text, useApp, ErrorBoundary, type PatchedConsole } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
 import { createLogger } from "@beorn/logger"
 
@@ -62,7 +62,6 @@ import { BottomBar } from "./board-bottom-bar.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import {
   createFileDropHandler,
-  createRefreshHandler,
   createWatcherStatusHandler,
   createErrorWarningHandler,
 } from "./board-effects.ts"
@@ -697,7 +696,6 @@ export function Board({ patchedConsole }: BoardProps) {
   useEffect(() => createFileDropHandler(setUI), [setUI])
   useEffect(() => createWatcherStatusHandler(setUI, toastQueue), [setUI, toastQueue])
   useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
-  useEffect(() => createRefreshHandler(), [])
 
   // NO useInput — keys handled by term:key in board-app.ts
 
@@ -759,23 +757,10 @@ export function BoardApp({
   patchedConsole,
 }: BoardAppProps) {
   const { exit } = useApp()
-  const { stdout } = useStdout()
   const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
-  const storeSetDimensions = useAppStore<BoardAppStore, BoardAppStore["setDimensions"]>((s) => s.setDimensions)
 
-  useEffect(() => {
-    if (!stdout) return
-    const handleResize = () => {
-      if (stdout.columns !== undefined && stdout.rows !== undefined) {
-        storeSetDimensions({ columns: stdout.columns, rows: stdout.rows })
-      }
-    }
-    handleResize()
-    stdout.on("resize", handleResize)
-    return () => {
-      stdout.off("resize", handleResize)
-    }
-  }, [stdout, storeSetDimensions])
+  // Resize is handled via "term:resize" event in board-app.ts → store.setDimensions().
+  // createApp provides a mock stdout to StdoutContext, so stdout.on("resize") is a no-op.
 
   return (
     <Box flexDirection="column" height={storeDimensions.rows}>

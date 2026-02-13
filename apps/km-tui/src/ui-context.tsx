@@ -10,7 +10,8 @@ import React, { createContext, useContext, useMemo } from "react"
 import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
 import type { UIState, IconStyle } from "./ui-reducer.ts"
 import type { BoardAppStore } from "./board-app-store.ts"
-import { useRepo } from "./repo-context.tsx"
+import { useRepo, type Repo } from "./repo-context.tsx"
+import { getOwnColor } from "./board-pills.ts"
 
 // =============================================================================
 // Core Hooks
@@ -164,6 +165,7 @@ export interface TreeConfig {
 export interface TreeRenderCtx {
   treeConfig: TreeConfig
   sigilColors: Map<string, string>
+  resolveSigilColor: (sigil: string) => string | undefined
   setUI: BoardAppStore["setUI"]
   rootBoardId: string | null
 }
@@ -198,6 +200,25 @@ export function deriveTreeConfig(ui: UIState): TreeConfig {
 }
 
 /**
+ * Create a sigil color resolver that looks up nodes in the repo.
+ * For sigils like @name, #name, +name — strips the prefix, resolves the node,
+ * and returns the node's own color (from rules.color).
+ */
+function createSigilColorResolver(repo: Repo): (sigil: string) => string | undefined {
+  // Cache resolved colors within a single render cycle
+  const cache = new Map<string, string | undefined>()
+  return (sigil: string) => {
+    if (cache.has(sigil)) return cache.get(sigil)
+    // Strip the sigil prefix (@, #, +) to get the node name
+    const name = sigil.slice(1)
+    const node = repo.resolveNode(name)
+    const color = node ? getOwnColor(node) : undefined
+    cache.set(sigil, color)
+    return color
+  }
+}
+
+/**
  * Provider for tree rendering context.
  * Placed at the Board level to give all TreeNode instances
  * access to global config without per-node store subscriptions.
@@ -213,14 +234,19 @@ export function TreeRenderProvider({
   rootBoardId: string | null
   children: React.ReactNode
 }): React.ReactElement {
+  const repo = useRepo()
+  // Dynamic sigil resolver: resolves sigils not in the static GTD map
+  // by looking up the node in the repo and getting its color
+  const resolveSigilColor = useMemo(() => createSigilColorResolver(repo), [repo])
   const ctx = useMemo(
     () => ({
       treeConfig,
       sigilColors: STATIC_SIGIL_COLORS,
+      resolveSigilColor,
       setUI,
       rootBoardId,
     }),
-    [treeConfig, setUI, rootBoardId],
+    [treeConfig, resolveSigilColor, setUI, rootBoardId],
   )
   return <TreeRenderContext.Provider value={ctx}>{children}</TreeRenderContext.Provider>
 }

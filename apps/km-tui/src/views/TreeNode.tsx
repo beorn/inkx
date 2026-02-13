@@ -150,7 +150,7 @@ function TreeNodeImpl({
   dim = false,
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
-  const { treeConfig, sigilColors, setUI, rootBoardId } = useTreeRenderContext()
+  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId } = useTreeRenderContext()
   const { maxOutlineDepth: maxDepth, inOutlineMode, currentSubIndex, variant, iconStyle } = treeConfig
 
   // Single store subscription for per-node state only.
@@ -385,6 +385,7 @@ function TreeNodeImpl({
     const rich = renderRich(cleanContent, {
       excludeSigils: excludedSigils,
       sigilColors,
+      resolveSigilColor,
     })
     // Estimate available width for cards (accounting for borders, padding, prefix)
     // This is approximate - actual width depends on terminal and column layout
@@ -392,7 +393,7 @@ function TreeNodeImpl({
       return truncateText(rich, 70) // Default ~70 chars for card title
     }
     return rich
-  }, [cleanContent, excludedSigils, sigilColors, isOneliner])
+  }, [cleanContent, excludedSigils, sigilColors, resolveSigilColor, isOneliner])
 
   // Memoize info suffix - only recalc when node metadata changes
   // Use displayNode for metadata (due_date, assigned_to, etc.)

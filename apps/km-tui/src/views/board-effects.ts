@@ -26,25 +26,6 @@ export function createFileDropHandler(setUI: SetUI): () => void | undefined {
 }
 
 /**
- * Creates the refresh handler effect
- * Subscribes to external refresh events (filesystem changes)
- *
- * Columns are derived from repo at render time. The useColumns hook
- * depends on repo.version, so React re-renders when repo changes.
- * This handler keeps the event subscription alive for future use.
- */
-export function createRefreshHandler(): () => void {
-  const handleRefresh = () => {
-    // No-op: useColumns re-derives from repo.version changes
-  }
-
-  tuiEvents.on("refresh", handleRefresh)
-  return () => {
-    tuiEvents.off("refresh", handleRefresh)
-  }
-}
-
-/**
  * Creates the watcher status handler effect
  * Subscribes to watcher status updates for bottom bar display
  */

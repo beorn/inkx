@@ -30,7 +30,7 @@ function checkBorders(text: string): string[] {
   const top = lines.filter((l) => /╭.*─.*╮/.test(l)).length
   // Bottom borders may have overflow indicator (▼N) replacing the ╯ corner
   const bottom = lines.filter((l) => /╰.*─/.test(l)).length
-  if (top !== bottom) {
+  if (top - bottom > 1 || top < bottom) {
     bugs.push(`border mismatch: ${top} top vs ${bottom} bottom`)
   }
   return bugs

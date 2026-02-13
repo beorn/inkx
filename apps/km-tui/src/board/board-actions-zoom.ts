@@ -12,6 +12,18 @@ import { clearSelection, pushNavHistoryEntry } from "../keyboard/keyboard-helper
 import type { ActionCtx } from "../tui-context.ts"
 
 /**
+ * After zoom, children become columns. Place cursor on the first card
+ * (first grandchild) so j/k navigation works immediately.
+ * Falls back to column header if no cards exist.
+ */
+function firstCardId(children: { id: string }[], repo: ActionCtx["repo"]): string | null {
+  const firstCol = children[0]
+  if (!firstCol) return null
+  const firstCard = repo.getChildren(firstCol.id)[0]
+  return firstCard?.id ?? firstCol.id
+}
+
+/**
  * Zoom out to parent level.
  * Handles detail pane, outline mode, and actual zoom operations.
  */
@@ -101,12 +113,10 @@ export function handleZoomIn(ctx: ActionCtx): ActionResult {
     ctx.foldedNodes,
   )
 
-  // Dispatch zoom to the node, with first child as initial cursor
-  const firstChild = children[0]
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId,
-    cursorNodeId: firstChild?.id ?? null,
+    cursorNodeId: firstCardId(children, ctx.repo),
   })
 
   clearSelection(ctx)
@@ -138,12 +148,10 @@ export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
     ctx.foldedNodes,
   )
 
-  // Dispatch zoom with first child as initial cursor
-  const firstChild = children[0]
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId,
-    cursorNodeId: firstChild?.id ?? null,
+    cursorNodeId: firstCardId(children, ctx.repo),
   })
 
   clearSelection(ctx)
@@ -266,14 +274,11 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
 
       ctx.setUI({ inOutlineMode: false, subIndex: 0 })
 
-      // Get first child of zoom target for cursor initialization
       const targetChildChildren = ctx.repo.getChildren(targetChild.node.id)
-      const firstChild = targetChildChildren[0]
-
       dispatchBoard({
         type: "ZOOM_IN",
         nodeId: targetChild.node.id,
-        cursorNodeId: firstChild?.id ?? null,
+        cursorNodeId: firstCardId(targetChildChildren, ctx.repo),
       })
 
       clearSelection(ctx)

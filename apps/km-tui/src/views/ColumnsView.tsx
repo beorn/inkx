@@ -175,6 +175,7 @@ const ColumnTree = React.memo(function ColumnTree({
           maxRendered={MAX_RENDERED_ITEMS}
           keyExtractor={(card) => card.node.id}
           renderItem={renderCard}
+          overflowIndicator
         />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>

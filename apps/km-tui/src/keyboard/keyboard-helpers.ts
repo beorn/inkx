@@ -118,7 +118,6 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
   }
 }
 
-
 /** Clear all selection state */
 export function clearSelection(ctx: ActionCtx): void {
   ctx.setUI({

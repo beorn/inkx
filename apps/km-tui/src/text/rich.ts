@@ -14,6 +14,7 @@
 import { createTerm, stripAnsi, type StyleChain } from "inkx"
 import { dashedUnderline } from "chalkx"
 import stringWidth from "string-width"
+import { getTermColor } from "./colors.ts"
 
 /**
  * Create a term instance with truecolor support.
@@ -107,9 +108,14 @@ export interface RenderRichOptions {
   excludeSigils?: string[]
   /**
    * Map of sigil to color (e.g., { "@next": "cyan", "#urgent": "red" }).
-   * Sigils with a color are displayed in that color; others use dim white.
+   * Resolved sigils are displayed in their color; unresolved render as plain text.
    */
   sigilColors?: Map<string, string>
+  /**
+   * Dynamic resolver for sigil colors. Called for sigils not found in sigilColors map.
+   * Return a color name for resolved sigils, or undefined for unresolved ones.
+   */
+  resolveSigilColor?: (sigil: string) => string | undefined
 }
 
 /**
@@ -117,8 +123,8 @@ export interface RenderRichOptions {
  *
  * Transformations:
  * - Strips inline fields: [due:: 2024-01-15] → ""
- * - Styles wiki links: [[note]] → dim underlined "note"
- * - Styles sigils: @mention, #tag, +project → cyan underlined
+ * - Styles wiki links: [[note]] → underlined "note"
+ * - Styles sigils: resolved → colored by node, unresolved → plain text
  * - Filters out excluded sigils (e.g., @issue when viewing @issue board)
  * - Styles **bold** → bold
  * - Styles *italic* → italic
@@ -164,43 +170,23 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
     return style.underline(display)
   })
 
-  // Style sigils (@mention, #tag, +project) - use node color if available, else dim
+  // Style sigils (@mention, #tag, +project) - resolved sigils get node color, unresolved are plain
   // Filter out excluded sigils (e.g., @issue when viewing the @issue board)
+  const resolveSigilColor = options?.resolveSigilColor
   result = result.replace(SIGIL_REGEX, (_match, prefix: string, name: string) => {
     const sigil = `${prefix}${name}`
     // If this sigil should be excluded, remove it entirely (including surrounding space)
     if (excludeSigils.has(sigil)) {
       return ""
     }
-    // Use sigil's color if provided, otherwise dim white
-    // Always dim the sigil to keep it subtle - color + dim for toned-down appearance
-    const color = sigilColors.get(sigil)
+    // Check static map first, then dynamic resolver
+    const color = sigilColors.get(sigil) ?? resolveSigilColor?.(sigil)
     if (color) {
-      // Use the sigil node's color, but dimmed for subtlety
-      switch (color) {
-        case "red":
-          return style.dim.red(sigil)
-        case "green":
-          return style.dim.green(sigil)
-        case "yellow":
-          return style.dim.yellow(sigil)
-        case "blue":
-          return style.dim.blue(sigil)
-        case "magenta":
-          return style.dim.magenta(sigil)
-        case "cyan":
-          return style.dim.cyan(sigil)
-        case "white":
-          return style.dim.white(sigil)
-        case "gray":
-        case "grey":
-          return style.gray(sigil)
-        default:
-          return style.dim(sigil)
-      }
+      // Resolved sigil: render in the target node's color
+      return getTermColor(color, style)(sigil)
     }
-    // Default: subtle dim text
-    return style.dim(sigil)
+    // Unresolved sigil: render as plain text (no special styling)
+    return sigil
   })
 
   // Style bold text (must be before italic to avoid conflicts)
