@@ -751,3 +751,211 @@ oi(fstype:mdsection, name:"see-also")
 - `[[ref]]` as standalone block → link node with embed:false
 - `[[ref]]` inline in text → stays in content string, indexed in links table
 - embed:false = show as a clickable reference card, don't transclude content
+
+## Fixture 23: Frontmatter
+
+### Markdown
+
+```markdown
+---
+tags: [project, active]
+priority: 2
+due: 2026-03-01
+---
+
+# Sprint Plan
+
+Tasks for this sprint.
+```
+
+### AST
+
+```
+oi(fstype:mdfile, name:"sprint-plan", data:{tags:["project","active"], priority:2, due:"2026-03-01"})
+  h(content:"Sprint Plan")
+  p(content:"Tasks for this sprint.")
+```
+
+**Key points:**
+
+- Frontmatter is NOT a node — it's parsed into the `data` JSON field on the file's oi
+- Round-trip: `data` is serialized back to YAML frontmatter on write
+- Frontmatter fields can be queried (`priority:2`, `tags:active`)
+
+## Fixture 24: Math blocks
+
+### Markdown
+
+```markdown
+## Derivation
+
+The integral is:
+
+$$
+\int_0^1 f(x) \, dx = F(1) - F(0)
+$$
+
+And inline math like $E = mc^2$ stays in text.
+```
+
+### AST
+
+```
+oi(fstype:mdsection, name:"derivation")
+  h(content:"Derivation")
+  p(content:"The integral is:")
+  math(content:"\\int_0^1 f(x) \\, dx = F(1) - F(0)")
+  p(content:"And inline math like $E = mc^2$ stays in text.")
+```
+
+**Key points:**
+
+- `$$...$$` block math → `math` node (distinct from `code`)
+- Inline math (`$...$`) stays in content strings (block-level AST only)
+- Content is raw LaTeX without the `$$` delimiters
+
+## Fixture 25: Callout / Admonition
+
+### Markdown
+
+```markdown
+## Setup
+
+> [!WARNING] Requires admin access
+> This operation modifies system files.
+> Make sure you have a backup.
+
+Follow the steps below.
+```
+
+### AST
+
+```
+oi(fstype:mdsection, name:"setup")
+  h(content:"Setup")
+  quote(data:{callout_type:"WARNING", callout_title:"Requires admin access"})
+    p(content:"This operation modifies system files.\nMake sure you have a backup.")
+  p(content:"Follow the steps below.")
+```
+
+**Key points:**
+
+- Callouts are `quote` nodes — syntactically they ARE blockquotes
+- `data.callout_type` stores the type (NOTE, WARNING, TIP, etc.)
+- `data.callout_title` stores the optional title text after the type
+- Rendering can style based on callout_type (icons, colors)
+- Regular blockquotes have no `data.callout_type`
+
+## Fixture 26: Nested blockquote
+
+### Markdown
+
+```markdown
+## Discussion
+
+> Alice said:
+>
+> > Bob originally wrote:
+> >
+> > This is the original proposal.
+>
+> I agree with this approach.
+```
+
+### AST
+
+```
+oi(fstype:mdsection, name:"discussion")
+  h(content:"Discussion")
+  quote
+    p(content:"Alice said:")
+    quote
+      p(content:"Bob originally wrote:")
+      p(content:"This is the original proposal.")
+    p(content:"I agree with this approach.")
+```
+
+**Key points:**
+
+- Nested blockquotes are `quote` containing `quote` — recursive
+- Each quote level is a separate node (not tracked by depth number)
+- Content after inner quote returns to outer quote's children
+
+## Fixture 27: List inside blockquote
+
+### Markdown
+
+```markdown
+## Requirements
+
+> The system must:
+>
+> - Handle 1000 requests/sec
+> - Support graceful degradation
+>   - Fallback to cache
+>   - Show stale data indicator
+> - [ ] Implement rate limiting
+```
+
+### AST
+
+```
+oi(fstype:mdsection, name:"requirements")
+  h(content:"Requirements")
+  quote
+    p(content:"The system must:")
+    li(list_marker:"-")
+      p(content:"Handle 1000 requests/sec")
+    li(list_marker:"-")
+      p(content:"Support graceful degradation")
+      li(list_marker:"-")
+        p(content:"Fallback to cache")
+      li(list_marker:"-")
+        p(content:"Show stale data indicator")
+    li(list_marker:"-", task_marker:"[ ]")
+      p(content:"Implement rate limiting")
+```
+
+**Key points:**
+
+- Lists inside blockquotes work — `li` can appear in `quote` children
+- Nested lists inside blockquotes also work (li within li within quote)
+- Task items in blockquotes preserve their markers
+- Heading inside a blockquote stays as `h` block (not a new `oi`)
+
+## Fixture 28: Multi-paragraph list item
+
+### Markdown
+
+```markdown
+## Notes
+
+- First point with a long explanation.
+
+  This continues the first point with a second paragraph.
+
+  ```python
+  print("still part of first item")
+  ```
+
+- Second point.
+```
+
+### AST
+
+```
+oi(fstype:mdsection, name:"notes")
+  h(content:"Notes")
+  li(list_marker:"-")
+    p(content:"First point with a long explanation.")
+    p(content:"This continues the first point with a second paragraph.")
+    code(content:"print(\"still part of first item\")", data:{lang:"python"})
+  li(list_marker:"-")
+    p(content:"Second point.")
+```
+
+**Key points:**
+
+- Multi-paragraph list items have multiple `p` blocks as children of `li`
+- Code blocks, quotes, etc. can also appear inside a list item
+- Indented continuation (4 spaces or 1 tab) signals same list item

@@ -57,7 +57,7 @@ node
     └── ...             # table, hr, html
 ````
 
-> **Planned: km-ast** — The above 14-type enum is being replaced by a 10-type model with 3 categories: Block (p, h, code, quote, table, hr, html), Item (oi, li), and Link (link). folder/file/section unify into `oi` with `fstype`; ul/ol/task unify into `li` with markers. See [design/km-ast/model.md](design/km-ast/model.md).
+> **Planned: km-ast** — The above 14-type enum is being replaced by an 11-type model with 3 categories: Block (p, h, code, quote, table, hr, html, math), Item (oi, li), and Link (link). folder/file/section unify into `oi` with `fstype`; ul/ol/task unify into `li` with markers. See [design/km-ast/model.md](design/km-ast/model.md).
 
 ---
 

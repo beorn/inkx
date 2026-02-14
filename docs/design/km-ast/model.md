@@ -5,11 +5,11 @@ The node model for km's knowledge tree. All content (markdown files, folders, li
 ## Types
 
 ```typescript
-// 10 node types, 3 categories
-type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html"  // 7
-type ItemType  = "oi" | "li"                                              // 2
-type LinkType  = "link"                                                   // 1
-type NodeType  = BlockType | ItemType | LinkType                          // 10
+// 11 node types, 3 categories
+type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math"  // 8
+type ItemType  = "oi" | "li"                                                       // 2
+type LinkType  = "link"                                                            // 1
+type NodeType  = BlockType | ItemType | LinkType                                   // 11
 ```
 
 ## Terminology
@@ -34,6 +34,7 @@ Content leaf. Has a `content` string.
 | `table` | Raw markdown table               |
 | `hr`    | Empty (horizontal rule)          |
 | `html`  | Raw HTML                         |
+| `math`  | Block math (LaTeX)               |
 
 ### OutlineItem (oi)
 
@@ -172,6 +173,8 @@ const isBlock    = (t: NodeType) => !isItem(t) && !isLink(t)
 
 `isOutline` replaces all 12+ extractBody/NON_COLUMN_TYPES/BODY_TYPES/STRUCTURAL_TYPES call sites.
 
+Note: `math` is a block — `isBlock("math")` returns true.
+
 ## Lazy Loading (SQL)
 
 ```sql
@@ -186,16 +189,65 @@ SELECT content FROM nodes WHERE parent_id = ? AND type != 'oi'
   ORDER BY parent_idx LIMIT 1
 ```
 
+## Markdown Coverage
+
+How every CommonMark + GFM + Obsidian construct maps to km-ast:
+
+| Markdown Construct | km-ast Representation |
+|---|---|
+| **Block-level** | |
+| Paragraph | `p` |
+| ATX heading (`# text`) | `h` (level implicit from tree depth) |
+| Setext heading (`text\n===`) | `h` (normalized to ATX on round-trip) |
+| Fenced code block (` ``` `) | `code` (lang in `data.lang`) |
+| Indented code block | `code` |
+| Blockquote (`> text`) | `quote` (children are blocks) |
+| Nested blockquote (`>> text`) | `quote` containing `quote` |
+| Thematic break (`---` / `***`) | `hr` |
+| GFM table | `table` (raw markdown in content) |
+| HTML block | `html` |
+| Block math (`$$...$$`) | `math` (LaTeX in content) |
+| **Lists** | |
+| Unordered list item (`- text`) | `li(list_marker:"-")` |
+| Ordered list item (`1. text`) | `li(list_marker:"1.")` |
+| Task list item (`- [ ] text`) | `li(list_marker:"-", task_marker:"[ ]")` |
+| Nested list | `li` containing child `li` |
+| Multi-paragraph list item | `li` containing multiple `p` blocks |
+| Footnote def (`[^1]: text`) | `li(list_marker:"[^1]")` |
+| **Outline structure** | |
+| Directory | `oi(fstype:"folder")` |
+| Markdown file | `oi(fstype:"mdfile")` |
+| Non-markdown file | `oi(fstype:"file")` |
+| Section (H2+ heading) | `oi(fstype:"mdsection")` with `h` as blocks[0] |
+| Repository root | `oi(fstype:"repo")` |
+| **Links & embeds** | |
+| `![[target]]` (embed) | `link(embed:true)` |
+| `![[target\|alias]]` | `link(embed:true)` with `p("alias")` as blocks[0] |
+| `[[target]]` standalone | `link(embed:false)` |
+| `[[target]]` inline | Stays in `p.content`, indexed in `links` table |
+| `[text](url)` | Stays in `p.content` (inline) |
+| `![alt](url)` | Stays in `p.content` (inline image) |
+| `![[image.png]]` (vault image) | `link(embed:true)` pointing to image node |
+| `[^1]` reference | Stays in `p.content` (inline) |
+| **Metadata** | |
+| YAML frontmatter (`---`) | `data` JSON field on file's `oi` node |
+| **Extensions** | |
+| Callout (`> [!NOTE]`) | `quote` with `data.callout_type` |
+| Inline math (`$...$`) | Stays in `p.content` |
+| Strikethrough (`~~text~~`) | Stays in `p.content` (inline) |
+| Autolinks | Stays in `p.content` (inline) |
+| Definition lists | Not supported (not CommonMark) |
+
 ## Content Model (Parent Constraints)
 
 What can contain what:
 
 ```
-oi  → blocks (p, h, code, quote, table, hr, html, link, li) + subitems (oi)
-li  → blocks (p, h, code, quote, table, hr, html, link)      + subitems (li)
-quote → blocks (p, h, code, table, hr, html, link, li)
-link → blocks (p) — alias only
-p, h, code, table, hr, html → no children (leaf nodes)
+oi    → blocks (p, h, code, quote, math, table, hr, html, link, li) + subitems (oi)
+li    → blocks (p, h, code, quote, math, table, hr, html, link)     + subitems (li)
+quote → blocks (p, h, code, math, table, hr, html, link, li)
+link  → blocks (p) — alias only
+p, h, code, math, table, hr, html → no children (leaf nodes)
 ```
 
 Key constraints:
@@ -234,15 +286,6 @@ Choices made deliberately, with trade-offs acknowledged:
 | No list container nodes | Simpler tree, matches Notion's flat approach | Serializer must detect consecutive `li` siblings to wrap in `<ul>`/`<ol>` |
 | `link` as third category (not Item) | Keeps transclusion as lightweight pointer | Can't directly hold target's subtree — resolved at render time |
 | Block-level AST only | Sufficient for TUI outline/kanban views | No inline node manipulation (bold spans, etc.) |
-
-## Changes from Current (14 → 10 types)
-
-| Current                | km-ast                              |
-|------------------------|-------------------------------------|
-| folder, file, section  | oi + fstype                         |
-| paragraph              | p                                   |
-| ul, ol, task           | li + list_marker + task_marker      |
-| embed                  | link (type, with embed flag)        |
-| *(new)*                | h (heading block)                   |
-| code, quote, table, hr, html | unchanged                      |
-| agent, board           | removed (data-layer concern)        |
+| `math` as separate type (not `code`) | Semantically distinct — renders as equations, not source | One more type (11 vs 10) |
+| Callouts as `quote` + data | Syntactically they ARE blockquotes | Requires `data.callout_type` check for styling |
+| Frontmatter as `data` field (not a node) | Metadata, not content — doesn't render in outline | Must serialize back from JSON on write |
