@@ -30,9 +30,11 @@ describe("Display", () => {
 
   test("columns show side by side", () => {
     // Use wider terminal (120 columns) so 3 columns fit side by side
-    const { board } = testEnv(() => item("board", item("Todo"), item("InProgress"), item("Done")), {
-      columns: 120,
-    })
+    // Use item.section() to create oi-type column nodes (leaf item() creates li, not columns)
+    const { board } = testEnv(
+      () => item("board", item.section("Todo"), item.section("InProgress"), item.section("Done")),
+      { columns: 120 },
+    )
     const output = board.screenshot()
     expect(output).toContain("Todo")
     expect(output).toContain("InProgress")
@@ -518,5 +520,82 @@ describe("Help and Keyboard Shortcuts", () => {
     board.press("?")
     const output = board.screenshot()
     expect(output).toMatch(/help|shortcuts|keys/i)
+  })
+})
+
+describe("Content Lines (+/-)", () => {
+  // Note: keyToAnsi("+") fails because "+" is the modifier separator.
+  // Use "=" (same keybinding) for increase_content_lines tests.
+
+  test("= increases visible children inside cards", () => {
+    // Card with 6 children -- default maxContentLines=3 should show 3, then = shows 4
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col", item("parent", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6"))),
+      ),
+    )
+    const before = board.screenshot()
+    // Default maxContentLines=3: should show c1, c2, c3 and hide c4-c6
+    expect(before).toContain("c1")
+    expect(before).toContain("c2")
+    expect(before).toContain("c3")
+    expect(before).not.toContain("c4")
+
+    board.press("=")
+    const after = board.screenshot()
+    // After =, maxContentLines=4: should now show c4
+    expect(after).toContain("c4")
+    expect(after).not.toContain("c5")
+  })
+
+  test("- decreases visible children inside cards", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col", item("parent", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6"))),
+      ),
+    )
+    const before = board.screenshot()
+    expect(before).toContain("c3")
+
+    board.press("-")
+    const after = board.screenshot()
+    // After -, maxContentLines=2: c3 should be hidden
+    expect(after).not.toContain("c3")
+    expect(after).toContain("c1")
+    expect(after).toContain("c2")
+  })
+
+  test("multiple = presses progressively reveal more children", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col", item("parent", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6"))),
+      ),
+    )
+    // Start: maxContentLines=3 (c1, c2, c3 visible)
+    expect(board.screenshot()).not.toContain("c4")
+
+    board.press("=") // maxContentLines=4
+    expect(board.screenshot()).toContain("c4")
+    expect(board.screenshot()).not.toContain("c5")
+
+    board.press("=") // maxContentLines=5
+    expect(board.screenshot()).toContain("c5")
+    expect(board.screenshot()).not.toContain("c6")
+
+    board.press("=") // maxContentLines=6
+    expect(board.screenshot()).toContain("c6")
+  })
+
+  test("=/- shows status feedback in bottom bar", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col", item("parent", item("c1"), item("c2"), item("c3"), item("c4")))),
+    )
+    board.press("=")
+    const status = board.getStatus()
+    expect(status).not.toBeNull()
+    expect(status!.message).toContain("Content lines: 4")
   })
 })

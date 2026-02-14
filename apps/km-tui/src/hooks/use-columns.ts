@@ -8,20 +8,12 @@
  */
 
 import { useMemo, useSyncExternalStore } from "react"
-import { createLogger } from "@beorn/logger"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
+import { isBlock } from "@km/core"
 import { extractBody } from "@km/tree"
 import type { ColumnState, CardState, ColumnRules } from "../types.ts"
 import { parseColumnRules } from "../state.ts"
-
-const log = createLogger("km:perf")
-
-// =============================================================================
-// Non-Column Types (content blocks, not navigable columns)
-// =============================================================================
-
-import { isBlock } from "@km/core"
 
 // =============================================================================
 // Hook
@@ -92,17 +84,40 @@ function mapDescendants(
 /**
  * Pure function to derive columns from Repo.
  * Can be used outside of React for testing and in the store for synchronous layout.
+ *
+ * Uses extractBody to split root children into leading body content and
+ * structural (oi) columns -- matching buildBoardState's logic so that
+ * zoomed-in views render identically to the board root.
  */
 export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnState[] {
-  // Get children of root, filtered to exclude non-column types
+  // Split root children into leading body content and structural columns.
+  // Only oi nodes become columns; li/link/block nodes before the first oi
+  // are leading body content (displayed as a virtual "Description" column).
   const allChildren = repo.getChildren(rootId)
-  const columnNodes = allChildren.filter((n) => !isBlock(n.type))
+  const { body: bodyNodes, items: columnNodes } = extractBody(allChildren)
 
-  // Extract WIP limits from root frontmatter
+  // Extract WIP limits from column frontmatter
   const wipLimits = extractWipLimits(columnNodes)
 
-  // Convert to column state
-  return columnNodes.map((node) => kNodeToColumnState(repo, node, wipLimits, foldedNodes))
+  const columns: ColumnState[] = []
+
+  // Add virtual body column for meaningful leading content
+  // (paragraphs, tasks, embeds that appear before the first section/file/folder)
+  const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
+  if (meaningfulBody.length > 0) {
+    columns.push({
+      node: createVirtualBodyNode(rootId),
+      cards: [{ node: meaningfulBody[0]!, children: [], childCount: 0, isVirtual: true, bodyNodes: meaningfulBody }],
+      isVirtual: true,
+    })
+  }
+
+  // Convert structural children to columns
+  for (const node of columnNodes) {
+    columns.push(kNodeToColumnState(repo, node, wipLimits, foldedNodes))
+  }
+
+  return columns
 }
 
 // =============================================================================
@@ -152,97 +167,37 @@ function kNodeToColumnState(
   // Extract body content (paragraphs before first section/file/folder)
   const { body: bodyNodes, items: structuralNodes } = extractBody(cardNodes)
 
-  // Convert children to cards, marking body content as virtual
+  // Build cards from body + structural children.
+  // Body blocks (p, code, quote) merge into one virtual card.
+  // Non-block body items (li, link/embed) become individual cards.
+  // Structural (oi) nodes are regular cards.
   const cards: CardState[] = []
 
-  if (structuralNodes.length > 0) {
-    // Merge body nodes into virtual cards, but keep embed links as individual cards
-    const mergeableBody: KNode[] = []
-    for (const child of bodyNodes) {
-      if (isBlock(child.type) && !child.link_to) {
-        mergeableBody.push(child)
-      } else {
-        // Flush accumulated body nodes as one merged card
-        if (mergeableBody.length > 0) {
-          cards.push({
-            node: mergeableBody[0]!,
-            children: [],
-            childCount: 0,
-            isVirtual: true,
-            bodyNodes: [...mergeableBody],
-          })
-          mergeableBody.length = 0
-        }
-        // Non-body node (e.g., embed link, task) gets its own card
-        const childChildren = repo.getChildren(child.id)
-        const isFolded = foldedNodes.has(child.id)
-        cards.push({
-          node: child,
-          children: isFolded ? [] : childChildren,
-          childCount: childChildren.length,
-          isVirtual: true,
-        })
-      }
-    }
-    if (mergeableBody.length > 0) {
-      cards.push({
-        node: mergeableBody[0]!,
-        children: [],
-        childCount: 0,
-        isVirtual: true,
-        bodyNodes: [...mergeableBody],
-      })
-    }
-    // Structural cards are regular
-    for (const child of structuralNodes) {
-      const childChildren = repo.getChildren(child.id)
-      const isFolded = foldedNodes.has(child.id)
-      cards.push({
-        node: child,
-        children: isFolded ? [] : childChildren,
-        childCount: childChildren.length,
-      })
-    }
-  } else {
-    // No structural children — merge consecutive body-type nodes into one card,
-    // UNLESS they have a link_to (embed links are first-class navigable items).
-    const bodyTypeNodes: KNode[] = []
-    for (const child of cardNodes) {
-      const isBodyType = isBlock(child.type) && !child.link_to
-      if (isBodyType) {
-        bodyTypeNodes.push(child)
-      } else {
-        // Flush accumulated body nodes as one merged card
-        if (bodyTypeNodes.length > 0) {
-          cards.push({
-            node: bodyTypeNodes[0]!,
-            children: [],
-            childCount: 0,
-            isVirtual: true,
-            bodyNodes: [...bodyTypeNodes],
-          })
-          bodyTypeNodes.length = 0
-        }
-        // Regular card
-        const childChildren = repo.getChildren(child.id)
-        const isFolded = foldedNodes.has(child.id)
-        cards.push({
-          node: child,
-          children: isFolded ? [] : childChildren,
-          childCount: childChildren.length,
-        })
-      }
-    }
-    // Flush remaining body nodes
-    if (bodyTypeNodes.length > 0) {
-      cards.push({
-        node: bodyTypeNodes[0]!,
-        children: [],
-        childCount: 0,
-        isVirtual: true,
-        bodyNodes: [...bodyTypeNodes],
-      })
-    }
+  // Block-type nodes without link_to are pure body content (p, code, quote).
+  // Nodes with link_to are embeds — discrete navigable items even if block-typed.
+  const isMergeableBody = (n: KNode) => isBlock(n.type) && !n.link_to
+  const mergedBody = bodyNodes.filter(isMergeableBody)
+  const discreteBody = bodyNodes.filter((n) => !isMergeableBody(n))
+
+  if (mergedBody.length > 0) {
+    cards.push({
+      node: mergedBody[0]!,
+      children: [],
+      childCount: 0,
+      isVirtual: true,
+      bodyNodes: mergedBody,
+    })
+  }
+
+  // Non-block body items (li, link/embed) and structural (oi) nodes are regular cards
+  for (const child of [...discreteBody, ...structuralNodes]) {
+    const childChildren = repo.getChildren(child.id)
+    const isFolded = foldedNodes.has(child.id)
+    cards.push({
+      node: child,
+      children: isFolded ? [] : childChildren,
+      childCount: childChildren.length,
+    })
   }
 
   return {
@@ -250,5 +205,27 @@ function kNodeToColumnState(
     cards,
     wipLimit,
     rules,
+  }
+}
+
+/**
+ * Create a virtual node for the body column.
+ * This node represents leading non-section content grouped for display.
+ */
+function createVirtualBodyNode(parentId: string | null): KNode {
+  const now = Date.now()
+  return {
+    id: `__body__${parentId ?? "root"}`,
+    type: "oi",
+    fstype: "mdsection",
+    parent_id: parentId,
+    parent_idx: 0,
+    title: "Description",
+    content: "",
+    data: {},
+    link_to: null,
+    created_at: now,
+    updated_at: now,
+    version: "",
   }
 }

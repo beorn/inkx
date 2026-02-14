@@ -5,6 +5,7 @@
  */
 
 import type { KNode } from "@km/core"
+import { isBlock } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
@@ -18,13 +19,46 @@ import {
   extractBody,
 } from "@km/tree"
 
-/** Body content types that render as virtual (borderless, de-emphasized) cards.
- * Only block-level content types; list items (li) are always individual cards. */
-const BODY_TYPES = new Set(["p", "code", "quote"])
+/**
+ * Build cards for a column from its body and structural children.
+ * Body blocks (p, code, quote) merge into one virtual card.
+ * Non-block body items (li, link/embed) become individual cards.
+ * Structural (oi) nodes are regular cards.
+ * childCounts is an optional pre-fetched map (used by batch-optimized buildBoardState).
+ */
+function buildColumnCards(
+  bodyNodes: KNode[],
+  structuralNodes: KNode[],
+  childCounts?: Map<string, number>,
+): CardState[] {
+  const cards: CardState[] = []
 
-/** Check if a node should be treated as mergeable body content */
-function isBodyNode(node: KNode): boolean {
-  return BODY_TYPES.has(node.type)
+  // Block-type nodes without link_to are pure body content (p, code, quote).
+  // Nodes with link_to are embeds — discrete navigable items even if block-typed.
+  const isMergeableBody = (n: KNode) => isBlock(n.type) && !n.link_to
+  const mergedBody = bodyNodes.filter(isMergeableBody)
+  const discreteBody = bodyNodes.filter((n) => !isMergeableBody(n))
+
+  if (mergedBody.length > 0) {
+    cards.push({
+      node: mergedBody[0]!,
+      children: [],
+      childCount: 0,
+      isVirtual: true,
+      bodyNodes: mergedBody,
+    })
+  }
+
+  // Non-block body items (li, link/embed) and structural (oi) nodes are regular cards
+  for (const node of [...discreteBody, ...structuralNodes]) {
+    cards.push({
+      node,
+      children: [],
+      childCount: childCounts?.get(node.id) ?? 0,
+    })
+  }
+
+  return cards
 }
 
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
@@ -173,89 +207,11 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     const cardNodes = columnCardNodes[colIdx] ?? []
     const rules = colNode.rules ?? parseColumnRules(colNode.content || "")
 
-    // Extract body content within column (tasks/paragraphs before subsections)
+    // Split into body content (before first oi) and structural cards.
+    // All body nodes merge into one virtual card; structural nodes are regular cards.
     const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes)
 
-    const cards: CardState[] = []
-
-    if (structuralCards.length > 0) {
-      // Merge body nodes, but keep embed links as individual cards
-      const mergeableBody: KNode[] = []
-      for (const bodyNode of colBodyNodes) {
-        if (isBodyNode(bodyNode) && !bodyNode.link_to) {
-          mergeableBody.push(bodyNode)
-        } else {
-          if (mergeableBody.length > 0) {
-            cards.push({
-              node: mergeableBody[0]!,
-              children: [],
-              childCount: 0,
-              isVirtual: true,
-              bodyNodes: [...mergeableBody],
-            })
-            mergeableBody.length = 0
-          }
-          cards.push({
-            node: bodyNode,
-            children: [],
-            childCount: childCounts.get(bodyNode.id) ?? 0,
-            isVirtual: true,
-          })
-        }
-      }
-      if (mergeableBody.length > 0) {
-        cards.push({
-          node: mergeableBody[0]!,
-          children: [],
-          childCount: 0,
-          isVirtual: true,
-          bodyNodes: [...mergeableBody],
-        })
-      }
-      // Then add structural cards
-      for (const cardNode of structuralCards) {
-        cards.push({
-          node: cardNode,
-          children: [],
-          childCount: childCounts.get(cardNode.id) ?? 0,
-        })
-      }
-    } else {
-      // No structural children — merge consecutive body-type nodes into one card,
-      // UNLESS they have a link_to (embed links are first-class navigable items).
-      const bodyTypeNodes: KNode[] = []
-      for (const cardNode of cardNodes) {
-        const isBodyType = isBodyNode(cardNode) && !cardNode.link_to
-        if (isBodyType) {
-          bodyTypeNodes.push(cardNode)
-        } else {
-          if (bodyTypeNodes.length > 0) {
-            cards.push({
-              node: bodyTypeNodes[0]!,
-              children: [],
-              childCount: 0,
-              isVirtual: true,
-              bodyNodes: [...bodyTypeNodes],
-            })
-            bodyTypeNodes.length = 0
-          }
-          cards.push({
-            node: cardNode,
-            children: [],
-            childCount: childCounts.get(cardNode.id) ?? 0,
-          })
-        }
-      }
-      if (bodyTypeNodes.length > 0) {
-        cards.push({
-          node: bodyTypeNodes[0]!,
-          children: [],
-          childCount: 0,
-          isVirtual: true,
-          bodyNodes: [...bodyTypeNodes],
-        })
-      }
-    }
+    const cards: CardState[] = buildColumnCards(colBodyNodes, structuralCards, childCounts)
 
     const colName = getNodeDisplayName(repo, colNode)
     const normalizedName = normalizeColumnName(colName)
@@ -451,89 +407,11 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
     const cardNodes = columnCardNodes[colIdx] ?? []
     const rules = colNode.rules ?? parseColumnRules(colNode.content || "")
 
-    // Extract body content within column (tasks/paragraphs before subsections)
+    // Split into body content (before first oi) and structural cards.
+    // All body nodes merge into one virtual card; structural nodes are regular cards.
     const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes)
 
-    const cards: CardState[] = []
-
-    if (structuralCards.length > 0) {
-      // Merge body nodes, but keep embed links as individual cards
-      const mergeableBody: KNode[] = []
-      for (const bodyNode of colBodyNodes) {
-        if (isBodyNode(bodyNode) && !bodyNode.link_to) {
-          mergeableBody.push(bodyNode)
-        } else {
-          if (mergeableBody.length > 0) {
-            cards.push({
-              node: mergeableBody[0]!,
-              children: [],
-              childCount: 0,
-              isVirtual: true,
-              bodyNodes: [...mergeableBody],
-            })
-            mergeableBody.length = 0
-          }
-          cards.push({
-            node: bodyNode,
-            children: [],
-            childCount: childCounts.get(bodyNode.id) ?? 0,
-            isVirtual: true,
-          })
-        }
-      }
-      if (mergeableBody.length > 0) {
-        cards.push({
-          node: mergeableBody[0]!,
-          children: [],
-          childCount: 0,
-          isVirtual: true,
-          bodyNodes: [...mergeableBody],
-        })
-      }
-      // Then add structural cards
-      for (const cardNode of structuralCards) {
-        cards.push({
-          node: cardNode,
-          children: [],
-          childCount: childCounts.get(cardNode.id) ?? 0,
-        })
-      }
-    } else {
-      // No structural children — merge consecutive body-type nodes into one card,
-      // UNLESS they have a link_to (embed links are first-class navigable items).
-      const bodyTypeNodes: KNode[] = []
-      for (const cardNode of cardNodes) {
-        const isBodyType = isBodyNode(cardNode) && !cardNode.link_to
-        if (isBodyType) {
-          bodyTypeNodes.push(cardNode)
-        } else {
-          if (bodyTypeNodes.length > 0) {
-            cards.push({
-              node: bodyTypeNodes[0]!,
-              children: [],
-              childCount: 0,
-              isVirtual: true,
-              bodyNodes: [...bodyTypeNodes],
-            })
-            bodyTypeNodes.length = 0
-          }
-          cards.push({
-            node: cardNode,
-            children: [],
-            childCount: childCounts.get(cardNode.id) ?? 0,
-          })
-        }
-      }
-      if (bodyTypeNodes.length > 0) {
-        cards.push({
-          node: bodyTypeNodes[0]!,
-          children: [],
-          childCount: 0,
-          isVirtual: true,
-          bodyNodes: [...bodyTypeNodes],
-        })
-      }
-    }
+    const cards: CardState[] = buildColumnCards(colBodyNodes, structuralCards, childCounts)
 
     // Look up WIP limit (from rules or frontmatter)
     const colName = getNodeDisplayName(repo, colNode)

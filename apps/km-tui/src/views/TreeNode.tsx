@@ -164,7 +164,8 @@ function TreeNodeImpl({
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId } = useTreeRenderContext()
-  const { maxOutlineDepth: maxDepth, inOutlineMode, currentSubIndex, variant, iconStyle } = treeConfig
+  const { maxOutlineDepth: maxDepth, maxContentLines, inOutlineMode, currentSubIndex, variant, iconStyle } =
+    treeConfig
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
@@ -481,7 +482,9 @@ function TreeNodeImpl({
   )
 
   // Child rendering
-  const { maxChildren } = VARIANT_CONFIG[variant]
+  // In multiline (cards) mode, maxContentLines controls how many children are visible.
+  // In oneliner mode, a fixed cap prevents performance issues with large nodes.
+  const maxChildren = variant === "multiline" ? maxContentLines : VARIANT_CONFIG.oneliner.maxChildren
   const visibleChildren = children.slice(0, maxChildren)
   const hiddenCount = children.length - visibleChildren.length
 

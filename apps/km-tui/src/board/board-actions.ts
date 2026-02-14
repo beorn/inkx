@@ -306,26 +306,46 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "EXTEND_SELECT_RIGHT":
       handleExtendSelectHorizontal(ctx, "right")
       return ok()
-    case "INCREASE_OUTLINE_DEPTH":
-      ctx.setUI((prev) => ({
-        maxOutlineDepth: Math.min(10, prev.maxOutlineDepth + 1),
-      }))
+    case "INCREASE_OUTLINE_DEPTH": {
+      ctx.setUI((prev) => {
+        const next = Math.min(10, prev.maxOutlineDepth + 1)
+        return {
+          maxOutlineDepth: next,
+          status: { level: "info" as const, message: `Outline depth: ${next}` },
+        }
+      })
       return ok()
-    case "DECREASE_OUTLINE_DEPTH":
-      ctx.setUI((prev) => ({
-        maxOutlineDepth: Math.max(0, prev.maxOutlineDepth - 1),
-      }))
+    }
+    case "DECREASE_OUTLINE_DEPTH": {
+      ctx.setUI((prev) => {
+        const next = Math.max(0, prev.maxOutlineDepth - 1)
+        return {
+          maxOutlineDepth: next,
+          status: { level: "info" as const, message: `Outline depth: ${next}` },
+        }
+      })
       return ok()
-    case "INCREASE_CONTENT_LINES":
-      ctx.setUI((prev) => ({
-        maxContentLines: Math.min(10, prev.maxContentLines + 1),
-      }))
+    }
+    case "INCREASE_CONTENT_LINES": {
+      ctx.setUI((prev) => {
+        const next = Math.min(10, prev.maxContentLines + 1)
+        return {
+          maxContentLines: next,
+          status: { level: "info" as const, message: `Content lines: ${next}` },
+        }
+      })
       return ok()
-    case "DECREASE_CONTENT_LINES":
-      ctx.setUI((prev) => ({
-        maxContentLines: Math.max(1, prev.maxContentLines - 1),
-      }))
+    }
+    case "DECREASE_CONTENT_LINES": {
+      ctx.setUI((prev) => {
+        const next = Math.max(1, prev.maxContentLines - 1)
+        return {
+          maxContentLines: next,
+          status: { level: "info" as const, message: `Content lines: ${next}` },
+        }
+      })
       return ok()
+    }
     case "SHIFT_UP":
       handleShiftCard(ctx, "up")
       return ok()
@@ -835,6 +855,26 @@ function handleIgnoreNode(ctx: ActionCtx): ActionResult {
     } else {
       addIgnored(repo.path, ignorePath)
       ctx.toastQueue.info(`Ignored: ${ignorePath}`)
+
+      // Move cursor to a neighbor so it doesn't point at the now-hidden node.
+      // When ignoring a column (cursor at column level), move to adjacent column.
+      // When ignoring a card within a column, the column is hidden so move to adjacent column too.
+      const isIgnoringColumn = node === col?.node
+      if (isIgnoringColumn || (col && node === card?.node)) {
+        const colIndex = layout.colIndex
+        // Try next column, then previous
+        const nextCol = layout.columns[colIndex + 1]
+        const prevCol = colIndex > 0 ? layout.columns[colIndex - 1] : undefined
+        const targetCol = nextCol ?? prevCol
+        if (targetCol) {
+          // Select first card in target column, or column header if empty
+          const firstCard = targetCol.cards[0]
+          ctx.dispatchBoard({
+            type: "SELECT",
+            nodeId: firstCard?.node.id ?? targetCol.node.id,
+          })
+        }
+      }
     }
 
     // Bump ignore version so readBoardIgnored memo invalidates

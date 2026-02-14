@@ -79,11 +79,13 @@ const shortcuts = [
 
 /**
  * Render key text with dimmed "/" separators for visual clarity.
- * Keys are yellow, "/" separators are dim.
+ * Keys are yellow, " / " separators (space-slash-space) are dim.
+ * A bare "/" key (e.g., for search) renders yellow, not as a separator.
  */
 function KeyText({ text, width }: { text: string; width: number }) {
   const padded = text.padEnd(width)
-  const parts = padded.split("/")
+  // Split on " / " (space-slash-space) to distinguish separators from "/" as a key
+  const parts = padded.split(" / ")
   if (parts.length === 1) {
     return <Text color="yellow">{padded}</Text>
   }
@@ -91,7 +93,13 @@ function KeyText({ text, width }: { text: string; width: number }) {
     <>
       {parts.map((part, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text dimColor>/</Text>}
+          {i > 0 && (
+            <>
+              <Text color="yellow"> </Text>
+              <Text dimColor>/</Text>
+              <Text color="yellow"> </Text>
+            </>
+          )}
           <Text color="yellow">{part}</Text>
         </React.Fragment>
       ))}

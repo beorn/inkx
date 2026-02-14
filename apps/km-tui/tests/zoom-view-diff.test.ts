@@ -1,19 +1,22 @@
 /**
  * Zoom View Diff Test
  *
- * When zooming into a file-backed node (.md), cards should render with the same
- * border style as at the root level. Previously, embed cards were incorrectly
- * marked as virtual (isVirtual: true) when zoomed in, causing their borders
- * to use "black" (invisible) instead of "blackBright" (visible gray).
+ * When zooming into a file-backed node (.md), cards should render identically
+ * to the board root view. Two issues caused visual differences:
  *
- * Root cause: kNodeToColumnState marks all non-task cards as virtual when
- * a column has no structural children (sections/files/folders). Embeds
- * are not structural and not tasks, so they got marked virtual.
+ * 1. Root-level column derivation: deriveColumnsFromRepo used !isBlock() to
+ *    filter columns, making li/link nodes into columns. buildBoardState uses
+ *    extractBody() which only treats oi nodes as columns. Fix: use extractBody
+ *    in both paths, with a virtual body column for leading content.
+ *
+ * 2. Per-column embed handling: kNodeToColumnState correctly handles embeds
+ *    as non-virtual cards when no structural children exist.
  */
 
 import { describe, test, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
+import { buildBoardState } from "../src/state.ts"
 import type { KNode } from "@km/core"
 import { ulid } from "ulid"
 
@@ -156,5 +159,130 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
 
     // After fix: embed should not be virtual
     expect(embedCard?.isVirtual).toBeFalsy()
+  })
+})
+
+describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () => {
+  test("li nodes before sections become body, not columns", () => {
+    // When a file has list items before sections, they should NOT become columns.
+    // Previously, deriveColumnsFromRepo used !isBlock() which made li/link into columns.
+    const rootId = ulid()
+    const taskId = ulid()
+    const sectionId = ulid()
+    const cardId = ulid()
+
+    const nodes: KNode[] = [
+      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Board", parent_id: null }),
+      makeNode({ id: taskId, type: "li", list_marker: "-", content: "Leading task", parent_id: rootId, parent_idx: 0 }),
+      makeNode({
+        id: sectionId,
+        type: "oi",
+        fstype: "mdsection",
+        title: "Section",
+        parent_id: rootId,
+        parent_idx: 1,
+      }),
+      makeNode({
+        id: cardId,
+        type: "li",
+        list_marker: "-",
+        content: "Card in section",
+        parent_id: sectionId,
+        parent_idx: 0,
+      }),
+    ]
+
+    const repo = createFakeRepo({ nodes })
+
+    // deriveColumnsFromRepo should produce the same structure as buildBoardState
+    const derived = deriveColumnsFromRepo(repo, rootId, new Set())
+    const built = buildBoardState(repo, rootId)
+
+    // Both should have: 1 virtual body column + 1 structural column = 2 columns
+    expect(derived.length).toBe(2)
+    expect(built.columns.length).toBe(2)
+
+    // First column should be virtual body
+    expect(derived[0]!.isVirtual).toBe(true)
+    expect(built.columns[0]!.isVirtual).toBe(true)
+
+    // Second column should be the section
+    expect(derived[1]!.node.id).toBe(sectionId)
+    expect(built.columns[1]!.node.id).toBe(sectionId)
+  })
+
+  test("only oi nodes become columns in deriveColumnsFromRepo", () => {
+    // Verify that link nodes are not turned into columns
+    const rootId = ulid()
+    const embedId = ulid()
+    const targetId = ulid()
+    const sectionId = ulid()
+
+    const nodes: KNode[] = [
+      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Board", parent_id: null }),
+      makeNode({
+        id: embedId,
+        type: "link",
+        embed: true,
+        content: "Leading embed",
+        parent_id: rootId,
+        parent_idx: 0,
+        link_to: targetId,
+      }),
+      makeNode({
+        id: sectionId,
+        type: "oi",
+        fstype: "mdsection",
+        title: "Section",
+        parent_id: rootId,
+        parent_idx: 1,
+      }),
+      makeNode({ id: targetId, type: "li", list_marker: "-", title: "Target task", parent_id: null }),
+    ]
+
+    const repo = createFakeRepo({ nodes })
+    const columns = deriveColumnsFromRepo(repo, rootId, new Set())
+
+    // Should have 2 columns: virtual body (with embed) + Section
+    // NOT 3 columns (embed as column + section as column)
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.isVirtual).toBe(true)
+    expect(columns[1]!.node.id).toBe(sectionId)
+  })
+
+  test("file with only sections produces same columns from both paths", () => {
+    // Common case: .md file with only section children (no leading body)
+    const rootId = ulid()
+    const sec1Id = ulid()
+    const sec2Id = ulid()
+    const task1Id = ulid()
+    const task2Id = ulid()
+
+    const nodes: KNode[] = [
+      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Board", parent_id: null }),
+      makeNode({ id: sec1Id, type: "oi", fstype: "mdsection", title: "Todo", parent_id: rootId, parent_idx: 0 }),
+      makeNode({ id: sec2Id, type: "oi", fstype: "mdsection", title: "Done", parent_id: rootId, parent_idx: 1 }),
+      makeNode({ id: task1Id, type: "li", list_marker: "-", content: "Task 1", parent_id: sec1Id, parent_idx: 0 }),
+      makeNode({ id: task2Id, type: "li", list_marker: "-", content: "Task 2", parent_id: sec2Id, parent_idx: 0 }),
+    ]
+
+    const repo = createFakeRepo({ nodes })
+
+    const derived = deriveColumnsFromRepo(repo, rootId, new Set())
+    const built = buildBoardState(repo, rootId)
+
+    // Both should have exactly 2 columns (no body column)
+    expect(derived.length).toBe(2)
+    expect(built.columns.length).toBe(2)
+
+    // Column structure should match
+    expect(derived[0]!.node.id).toBe(sec1Id)
+    expect(derived[1]!.node.id).toBe(sec2Id)
+    expect(built.columns[0]!.node.id).toBe(sec1Id)
+    expect(built.columns[1]!.node.id).toBe(sec2Id)
+
+    // Card counts should match
+    expect(derived[0]!.cards.length).toBe(built.columns[0]!.cards.length)
+    expect(derived[1]!.cards.length).toBe(built.columns[1]!.cards.length)
   })
 })

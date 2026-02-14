@@ -636,6 +636,20 @@ export function Board({ patchedConsole }: BoardProps) {
     return columnsLayout.columns.filter((col) => !isIgnored(ignoredPaths, col.node, repo))
   }, [columnsLayout.columns, ignoredPaths, ui.showIgnored, repo])
 
+  // When ignored filtering removes columns, remap the cursor's colIndex from the
+  // full columns array to the visible columns array. Without this, colIndex can
+  // be out-of-bounds, causing blank board after ignore.
+  const visibleColIndex = useMemo(() => {
+    if (visibleColumns === columnsLayout.columns) return columnsLayout.colIndex
+    // Find the cursor's column in the visible list by node ID
+    const cursorCol = columnsLayout.columns[columnsLayout.colIndex]
+    if (!cursorCol) return Math.min(columnsLayout.colIndex, Math.max(0, visibleColumns.length - 1))
+    const idx = visibleColumns.findIndex((c) => c.node.id === cursorCol.node.id)
+    if (idx >= 0) return idx
+    // Cursor's column was filtered — clamp to valid range
+    return Math.min(columnsLayout.colIndex, Math.max(0, visibleColumns.length - 1))
+  }, [visibleColumns, columnsLayout])
+
   // Assemble TUIBoardState for rendering.
   // Uses individual fields as deps for stable memoization.
   const emptyStringSet = useMemo(() => new Set<string>(), [])
@@ -656,12 +670,16 @@ export function Board({ patchedConsole }: BoardProps) {
     [rootId, rootPath, visibleColumns, foldedNodes, emptyStringSet, emptyNumberSet],
   )
 
-  // Get selected node
-  const selectedCol = tuiBoardState.columns[columnsLayout.colIndex]
+  // Get selected node — use columnsLayout indices (for store consistency)
+  // Note: when ignored filtering is active, this may be null (cursor on ignored column),
+  // but the store and key handler use the full columns layout.
+  const selectedCol = columnsLayout.columns[columnsLayout.colIndex]
   const selectedCard = selectedCol?.cards[columnsLayout.cardIndex]
   const selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
 
   // Push derived layout back to store so term:key handler has fresh data.
+  // IMPORTANT: Store gets the full (unfiltered) columnsLayout so key handler
+  // navigates across all columns. Visible layout is only for rendering.
   // Gated: only call updateLayout when something actually changed (by using
   // a ref to track what was last pushed). This avoids the re-render feedback loop
   // where updateLayout → set() → subscription → re-render → updateLayout → ...
@@ -714,11 +732,11 @@ export function Board({ patchedConsole }: BoardProps) {
     rootId,
   })
 
-  // Scroll offset
+  // Scroll offset — use visibleColIndex for rendering (scrolls through visible columns only)
   const termWidth = ui.dimensions.columns
   const maxCols = Math.min(tuiBoardState.columns.length, Math.max(2, Math.floor(termWidth / 35)))
   const colScrollOffset = calcEdgeBasedColumnScrollOffset(
-    columnsLayout.colIndex,
+    visibleColIndex,
     colScrollOffsetRef.current,
     maxCols,
     tuiBoardState.columns.length,
@@ -760,7 +778,7 @@ export function Board({ patchedConsole }: BoardProps) {
       <TreeRenderProvider treeConfig={treeConfig} setUI={setUI} rootBoardId={ui.rootBoardId}>
         <BoardCore
           state={tuiBoardState}
-          layout={columnsLayout}
+          layout={visibleColIndex === columnsLayout.colIndex ? columnsLayout : { ...columnsLayout, columns: visibleColumns, colIndex: visibleColIndex }}
           ui={ui}
           derivedSelectionLevel={derivedSelectionLevel}
           dimensions={ui.dimensions}

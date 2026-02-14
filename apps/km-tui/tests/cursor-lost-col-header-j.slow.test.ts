@@ -112,17 +112,14 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     expect(cursor.textContent()).toContain("para-1")
   })
 
-  test("j from board level with body content (paragraph before columns)", () => {
-    // KEY BUG CASE: Root has leading paragraph content before structural columns.
-    // navigateVertical at board level uses repo.getChildren(rootId) which includes
-    // paragraph nodes, but the visual layout (deriveColumnsFromRepo) filters them
-    // out using NON_COLUMN_TYPES. This causes a mismatch between array indices.
+  test("j from board level with body content lands on Description column", () => {
+    // Body content (paragraphs, code, quotes) before structural children
+    // becomes a virtual "Description" column. Pressing j from board level
+    // lands on this column first, then l navigates to the structural columns.
     const { board } = testEnv(() =>
       item.root(
         "board",
-        // Leading paragraph (body content) - filtered from columns by NON_COLUMN_TYPES
         item.paragraph("intro text"),
-        // Structural children - become visual columns
         item("col1", item.file("file1"), item.file("file2")),
         item("col2", item("task1")),
       ),
@@ -130,20 +127,22 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
 
     // Navigate up to board level
     board.press("k").press("k")
-    // Board -> should go to first visual column (col1), NOT the paragraph
+    // Board -> first column is the virtual Description column
     board.press("j")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
-    // Bug: cursor lands on paragraph (repo.getChildren index 0) instead of
-    // column col1 (visual column index 0). The paragraph is not in nodeIndex
-    // as a column, so SELECT falls through to "board" level.
+    // Cursor lands on Description column header (body content is inside it)
     const cursorText = cursor.textContent()
-    // Should NOT contain "intro text" (the paragraph) - should be on col1 header
-    expect(cursorText).not.toContain("intro text")
+    expect(cursorText).toContain("Description")
+
+    // l moves to the first structural column
+    board.press("l")
+    const cursor2 = board.q("[data-cursor]")
+    expect(cursor2.textContent()).toContain("col1")
   })
 
-  test("j from board level with code block before columns", () => {
+  test("j from board level with code block before columns lands on Description", () => {
     const { board } = testEnv(() => item.root("board", item.code("some code"), item("col1", item("task1"))))
 
     board.press("k").press("k")
@@ -151,12 +150,11 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
-    // Should be on col1, not the code block
-    const cursorText = cursor.textContent()
-    expect(cursorText).not.toContain("some code")
+    // Lands on Description column, not directly on the code block
+    expect(cursor.textContent()).toContain("Description")
   })
 
-  test("j from board level with quote before columns", () => {
+  test("j from board level with quote before columns lands on Description", () => {
     const { board } = testEnv(() => item.root("board", item.quote("a quote"), item("col1", item("task1"))))
 
     board.press("k").press("k")
@@ -164,8 +162,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
-    const cursorText = cursor.textContent()
-    expect(cursorText).not.toContain("a quote")
+    expect(cursor.textContent()).toContain("Description")
   })
 
   test("round-trip navigation preserves cursor for file children columns", () => {
