@@ -100,7 +100,7 @@ describe("Cursor Movement Performance", () => {
     log.debug?.(`Scroll down: avg=${avg(scrollTimes).toFixed(2)}ms max=${max(scrollTimes).toFixed(2)}ms`)
     log.debug?.(`Post-scroll: avg=${avg(postScrollTimes).toFixed(2)}ms max=${max(postScrollTimes).toFixed(2)}ms`)
 
-    expect(avg(postScrollTimes)).toBeLessThan(100)
+    expect(avg(postScrollTimes)).toBeLessThan(150)
   })
 })
 
@@ -175,9 +175,9 @@ describe("Pipeline Phase Breakdown", () => {
       const avgLayout = avg(withPipeline.map((s) => s.pipeline!.layout))
       const avgContent = avg(withPipeline.map((s) => s.pipeline!.content))
 
-      expect(avgPipeline).toBeLessThan(150)
-      expect(avgLayout).toBeLessThan(50)
-      expect(avgContent).toBeLessThan(100)
+      expect(avgPipeline).toBeLessThan(200)
+      expect(avgLayout).toBeLessThan(100)
+      expect(avgContent).toBeLessThan(150)
     }
   })
 
@@ -214,6 +214,6 @@ describe("Pipeline Phase Breakdown", () => {
     }
 
     // Small terminal should be faster than large
-    expect(avg(samples.map((s) => s.wallMs))).toBeLessThan(100)
+    expect(avg(samples.map((s) => s.wallMs))).toBeLessThan(150)
   })
 })

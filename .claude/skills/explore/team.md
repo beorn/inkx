@@ -196,8 +196,10 @@ DO NOT write test files. DO NOT fix bugs. DO NOT run bun fix or bun run test:all
 ```
 You are a targeted explorer for km TUI. Your job is to find bugs by writing and running custom exploration scripts. Send bugs directly to reproducer.
 
-Write scripts in apps/km-tui/tests/ using testEnv() + item() from ./helpers/board-test.ts.
-Name files with "explore-" prefix: explore-navigation.test.ts, explore-dialogs.test.ts, etc.
+Write scripts in /tmp/km-explore-tests/ using testEnv() + item() from apps/km-tui/tests/helpers/board-test.ts.
+IMPORTANT: NEVER write explore tests to apps/km-tui/tests/ — use /tmp/ to avoid polluting the test suite.
+
+  Bash: mkdir -p /tmp/km-explore-tests
 
 Explore these areas (write a separate script for each, run immediately):
 - Navigation edge cases: deep nesting, single-item columns, empty columns
@@ -207,9 +209,9 @@ Explore these areas (write a separate script for each, run immediately):
 - Fold/unfold (z/Z) combined with navigation
 - Cursor at boundaries: first item, last item, first column, last column
 
-Script template:
+Script template (in /tmp/km-explore-tests/):
   import { describe, test, expect } from "vitest"
-  import { testEnv, item } from "./helpers/board-test.ts"
+  import { testEnv, item } from "../../apps/km-tui/tests/helpers/board-test.ts"
 
   describe("Exploration: [area]", () => {
     test("[description]", () => {
@@ -225,7 +227,7 @@ Script template:
     })
   })
 
-Run each script: bun vitest run <file>
+Run each script: bun vitest run /tmp/km-explore-tests/<file>
 
 When you find a bug, send to reproducer immediately:
   SendMessage(recipient="reproducer", content="BUG: [description]\nKey sequence: [...]\nFixture: item(...)\nError: [message]")
@@ -260,16 +262,17 @@ For EACH unique bug:
    bd update <id> --claim
 
 2. Write a FAILING headless test:
-   File: apps/km-tui/tests/<descriptive-name>.test.ts
-   Use testEnv() + item() from ./helpers/board-test.ts
+   File: /tmp/km-explore-tests/<descriptive-name>.test.ts
+   Use testEnv() + item() (import from ../../apps/km-tui/tests/helpers/board-test.ts)
    The test MUST FAIL — it documents the bug
+   NEVER write to apps/km-tui/tests/ — explore tests go in /tmp/
 
    For VISUAL BUG reports from explorer-interactive:
    - Reconstruct the key sequence in a headless test
    - Use board.textContent() to verify the visual issue
    - If the bug is purely visual (pixel-level) and can't be caught headless, note this in the bead
 
-3. Confirm it fails: bun vitest run <test-file>
+3. Confirm it fails: bun vitest run /tmp/km-explore-tests/<test-file>
 
 4. Send bead ID + test path to fixer IMMEDIATELY — don't batch, send as each one is ready
 
@@ -289,9 +292,8 @@ When the reproducer sends a failing test:
 2. Investigate root cause in source
 3. Implement minimal fix
 4. Confirm test passes: bun vitest run <test-file>
-5. Check regressions — but ONLY run test files that existed before your session:
+5. Check regressions:
    bun vitest run apps/km-tui/tests/ --reporter=verbose 2>&1 | head -300
-   If you see failures in files named "explore-*.test.ts", ignore them — those are being written concurrently by the targeted explorer and may be incomplete.
 6. Close bead: bd close <id> --reason "Fixed: [description]"
 7. Notify lead that fix is done, then immediately pick up next bug
 
@@ -342,9 +344,10 @@ Exploration ends when:
 1. Wait for explorers to report completion
 2. Wait for reproducer + fixer to drain their queues
 3. Send shutdown to all teammates
-4. Clean up explore-*.test.ts files written by targeted explorer (delete or keep as regression tests)
-5. Collect screenshots from `/tmp/explore-screenshots/` — present gallery to user
-6. Run `bun fix && bun run test:all` from lead
-7. Write exploration summary (see [reporting.md](reporting.md))
-8. Commit + push
-9. `TeamDelete()`
+4. Promote valuable tests: if any /tmp/km-explore-tests/ tests catch real bugs, merge the test cases into the appropriate EXISTING test file in apps/km-tui/tests/ (don't copy the whole file — just the relevant test case)
+5. Clean up: rm -rf /tmp/km-explore-tests/
+6. Collect screenshots from `/tmp/explore-screenshots/` — present gallery to user
+7. Run `bun fix && bun run test:all` from lead
+8. Write exploration summary (see [reporting.md](reporting.md))
+9. Commit + push
+10. `TeamDelete()`

@@ -73,8 +73,10 @@ FUZZ_SEED=12345 bun test:fuzz                    # Reproducible run
 **When bugs are found:**
 1. Fuzz tests auto-shrink to minimal failing sequence
 2. Create bead: `bd create "TUI: [description]" --type=bug`
-3. Copy minimal sequence to a deterministic test in `apps/km-tui/tests/`
+3. Write repro test in `/tmp/km-explore-tests/` first, then promote to the appropriate EXISTING test file in `apps/km-tui/tests/` (merge into the relevant file, don't create new explore-* files)
 4. Reference bead in test comment (e.g., "See bead km-xyz")
+
+**IMPORTANT:** Never write explore-* test files to `apps/km-tui/tests/`. Exploration tests go to `/tmp/km-explore-tests/`. Only promote confirmed bug regressions by merging into existing test files.
 
 ## Modes
 

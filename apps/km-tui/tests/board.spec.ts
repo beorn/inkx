@@ -345,8 +345,8 @@ describe("Cursoring", () => {
         expect(Math.abs(returnedBox!.y - card1cBox!.y)).toBeLessThanOrEqual(15)
       })
 
-      // SKIP: curswantY requires position registry to be populated with card layouts.
-      // Test infrastructure doesn't measure layouts, so h/l navigation falls back to first card.
+      // TODO: Implement once test infra supports position registry (card layouts).
+      // curswantY needs real layout measurements for h/l nav; without them it falls back to first card.
       // See board-actions.ts handleCursorMove() - "Fallback when positions aren't available"
       test.skip("adjusts Y position when target column is shorter", () => {
         const { board } = testEnv(() =>
