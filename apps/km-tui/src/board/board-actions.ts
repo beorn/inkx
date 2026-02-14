@@ -220,6 +220,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "CLOSE_DETAIL_PANE":
       ctx.setUI({ showDetailPane: false })
       return ok()
+    case "TOGGLE_DETAIL_PANE":
+      ctx.setUI({ showDetailPane: !ctx.ui.showDetailPane })
+      return ok()
     case "ZOOM_OUTWARDS":
       return handleZoomOutwards(ctx)
     case "DELETE_NODE":

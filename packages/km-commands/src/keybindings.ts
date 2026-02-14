@@ -442,9 +442,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "task",
     bindings: [
       { key: "x", commandId: "cycle_task_status" },
-      // Space: context-dependent (selection toggle if multi-selected, else open detail pane)
-      { key: " ", commandId: "select_toggle", when: hasMultiSelection },
-      { key: " ", commandId: "open_detail_pane", when: not(hasMultiSelection) },
+      { key: " ", commandId: "toggle_detail_pane" },
     ],
   },
 

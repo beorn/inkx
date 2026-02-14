@@ -158,6 +158,10 @@ interface CloseDetailPaneAction {
   type: "CLOSE_DETAIL_PANE"
 }
 
+interface ToggleDetailPaneAction {
+  type: "TOGGLE_DETAIL_PANE"
+}
+
 interface ShowHelpAction {
   type: "SHOW_HELP"
 }
@@ -477,6 +481,7 @@ export type UIAction =
   | ZoomOutwardsAction
   | OpenDetailPaneAction
   | CloseDetailPaneAction
+  | ToggleDetailPaneAction
   | ShowHelpAction
   | HideHelpAction
   | CycleViewModeAction

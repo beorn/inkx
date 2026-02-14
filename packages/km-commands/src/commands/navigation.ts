@@ -146,6 +146,16 @@ const openDetailPane = {
   execute: () => ({ type: "OPEN_DETAIL_PANE" }),
 } satisfies CommandDef
 
+// Toggle detail pane (open if closed, close if open)
+const toggleDetailPane = {
+  id: "toggle_detail_pane",
+  name: "Toggle Detail",
+  description: "Toggle detail pane for current node",
+  category: "Navigation",
+  shortcuts: ["Space"],
+  execute: () => ({ type: "TOGGLE_DETAIL_PANE" }),
+} satisfies CommandDef
+
 // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
 const pageDown = {
   id: "page_down",
@@ -267,6 +277,7 @@ export const navigationCommands: CommandDef[] = [
   zoomIn,
   zoomOutwards,
   openDetailPane,
+  toggleDetailPane,
   pageDown,
   pageUp,
   siblingBoardNext,
