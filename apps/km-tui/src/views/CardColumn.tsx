@@ -405,11 +405,13 @@ export const Column = React.memo(function Column({
   const icon = getColumnHeaderIcon(column.node, iconStyle, isVirtual, ownColor)
   const iconColor = isColumnSelected ? "black" : icon.color
 
-  // Collapsed: 3-char vertical strip with rotated title, navigable
+  // Collapsed: bordered card-like strip spanning full column height with vertical title
   if (isCollapsed) {
     // Build vertical text: one char per row from column name
-    const verticalChars = name.slice(0, Math.max(0, height - 4)).split("")
+    // Account for border (2 rows) and count line (1 row)
+    const verticalChars = name.slice(0, Math.max(0, height - 3)).split("")
     const countStr = String(count)
+    const borderColor = isColumnSelected ? "yellow" : "gray"
     return (
       <Box
         id={column.node.id}
@@ -421,39 +423,37 @@ export const Column = React.memo(function Column({
         {...(isColumnSelected && { "data-cursor": true, "data-card-index": -1 })}
         flexDirection="column"
         width={width}
-        maxHeight={height}
-        overflow="hidden"
+        height={height}
       >
-        {/* Top blank line (matches expanded column) */}
-        <Box height={1} flexShrink={0}>
-          <Text> </Text>
-        </Box>
-        {/* Separator */}
-        <Box height={1} flexShrink={0}>
-          <Text
-            color={isColumnSelected ? "yellow" : undefined}
-            dimColor={!isColumnSelected}
-          >
-            {"\u2500".repeat(Math.max(0, width))}
-          </Text>
-        </Box>
-        {/* Vertical title — one char per row, centered in 3-char width */}
-        {verticalChars.map((ch, i) => (
-          <Box key={i} height={1} flexShrink={0}>
+        <Box
+          flexDirection="column"
+          flexGrow={1}
+          borderStyle="round"
+          borderColor={borderColor}
+          overflow="hidden"
+          backgroundColor={isColumnSelected ? "yellow" : undefined}
+        >
+          {/* Vertical title — one char per row, top-aligned */}
+          {verticalChars.map((ch, i) => (
+            <Box key={i} height={1} flexShrink={0}>
+              <Text
+                bold={isColumnSelected}
+                color={isColumnSelected ? "black" : (ownColor ?? "gray")}
+                dimColor={!isColumnSelected}
+              >
+                {ch}
+              </Text>
+            </Box>
+          ))}
+          {/* Count at bottom, pushed down by flexGrow on spacer */}
+          <Box flexGrow={1} />
+          <Box height={1} flexShrink={0}>
             <Text
-              bold={isColumnSelected}
-              color={isColumnSelected ? "black" : (ownColor ?? "gray")}
-              backgroundColor={isColumnSelected ? "yellow" : undefined}
               dimColor={!isColumnSelected}
+              color={isColumnSelected ? "black" : undefined}
             >
-              {` ${ch} `.slice(0, width)}
+              {countStr}
             </Text>
-          </Box>
-        ))}
-        {/* Count at bottom */}
-        <Box flexDirection="column" flexGrow={1} minHeight={1} justifyContent="flex-end">
-          <Box height={1}>
-            <Text dimColor>{` ${countStr}`.slice(0, width)}</Text>
           </Box>
         </Box>
       </Box>

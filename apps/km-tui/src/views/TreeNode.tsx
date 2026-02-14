@@ -791,9 +791,11 @@ function NodeChildren({
         )
       })}
       {hiddenCount > 0 && (
-        <Text dimColor wrap="truncate">
-          {" ".repeat(Math.max(0, depth - 1))} +{hiddenCount} more
-        </Text>
+        <Box justifyContent="center">
+          <Text dimColor wrap="truncate">
+            +{hiddenCount} more
+          </Text>
+        </Box>
       )}
     </Box>
   )
