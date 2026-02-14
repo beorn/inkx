@@ -202,4 +202,89 @@ export abstract class BaseStore implements NodeStore {
       // Ignore write errors
     }
   }
+
+  /**
+   * Write date field changes back to markdown file.
+   * Updates existing date markers or appends new ones.
+   * Supports both emoji (📅/⏳) and inline (due:/start:) formats.
+   */
+  protected writeDateToFile(filePath: string, mdLine: number, node: KNode): void {
+    try {
+      const content = readFileSync(filePath, "utf-8")
+      const lines = content.split("\n")
+
+      if (mdLine >= lines.length) return
+      let line = lines[mdLine]
+      if (!line) return
+
+      // Update or add due_date
+      line = this.updateDateField(line, node.due_date ?? null, node.due_time ?? null, "due")
+      // Update or add scheduled_date
+      line = this.updateDateField(line, node.scheduled_date ?? null, node.scheduled_time ?? null, "scheduled")
+
+      lines[mdLine] = line
+      writeFileSync(filePath, lines.join("\n"))
+    } catch {
+      // Ignore write errors
+    }
+  }
+
+  /**
+   * Update a date field on a task line. Handles both emoji and inline formats.
+   */
+  private updateDateField(
+    line: string,
+    date: string | null,
+    time: string | null,
+    field: "due" | "scheduled",
+  ): string {
+    const emojiRegex = field === "due"
+      ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
+      : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
+    const inlineRegex = field === "due"
+      ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g
+      : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
+
+    const hasEmoji = emojiRegex.test(line)
+    const hasInline = inlineRegex.test(line)
+
+    if (date) {
+      const timeSuffix = time ? `T${time}` : ""
+      if (hasEmoji) {
+        // Replace existing emoji format
+        const emoji = field === "due" ? "📅" : "⏳"
+        const replaceRegex = field === "due"
+          ? /📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
+          : /⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
+        line = line.replace(replaceRegex, `${emoji} ${date}${timeSuffix}`)
+      } else if (hasInline) {
+        // Replace existing inline format
+        const replaceRegex = field === "due"
+          ? /\bdue:\d{4}-\d{2}-\d{2}\b/
+          : /\bstart:\d{4}-\d{2}-\d{2}\b/
+        const inlineKey = field === "due" ? "due" : "start"
+        line = line.replace(replaceRegex, `${inlineKey}:${date}`)
+      } else {
+        // Append inline format (preferred for new dates)
+        const inlineKey = field === "due" ? "due" : "start"
+        line = line.trimEnd() + ` ${inlineKey}:${date}`
+      }
+    } else {
+      // Clear date: remove both emoji and inline formats
+      if (hasEmoji) {
+        const clearRegex = field === "due"
+          ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
+          : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
+        line = line.replace(clearRegex, "")
+      }
+      if (hasInline) {
+        const clearRegex = field === "due"
+          ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g
+          : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
+        line = line.replace(clearRegex, "")
+      }
+    }
+
+    return line
+  }
 }

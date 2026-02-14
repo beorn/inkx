@@ -10,6 +10,7 @@ import { mkdirSync, rmSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
 import { MemoryStore } from "../src/store.ts"
+import type { KNode } from "@km/core"
 
 // Track created directories for cleanup
 const createdDirs: string[] = []
@@ -253,6 +254,90 @@ describe("MemoryStore", () => {
     // Verify write-through to file
     const fileContent = readFileSync(join(rootDir, "tasks.md"), "utf-8")
     expect(fileContent).toContain("- [x] Open task")
+  })
+
+  test("should update due_date and write through to file", () => {
+    const rootDir = createMemoryStoreTestRepo()
+    using store = new MemoryStore(rootDir)
+
+    const tasks = store.getAllTasks()
+    const openTask = tasks.find((t) => t.content === "Open task")
+    expect(openTask).toBeDefined()
+
+    // Set due_date
+    store.updateNode(openTask!.id, { due_date: "2026-03-15" })
+
+    // Verify in-memory update
+    const updated = store.getNode(openTask!.id)
+    expect(updated!.due_date).toBe("2026-03-15")
+
+    // Verify write-through to file
+    const fileContent = readFileSync(join(rootDir, "tasks.md"), "utf-8")
+    expect(fileContent).toContain("due:2026-03-15")
+  })
+
+  test("should handle due_time in data blob, not as SQL column", () => {
+    const rootDir = createMemoryStoreTestRepo()
+    using store = new MemoryStore(rootDir)
+
+    const tasks = store.getAllTasks()
+    const openTask = tasks.find((t) => t.content === "Open task")
+    expect(openTask).toBeDefined()
+
+    // This is what handleDatePromptConfirm does: passes due_date + due_time
+    store.updateNode(openTask!.id, {
+      due_date: "2026-03-15",
+      due_time: "14:30",
+    } as Partial<KNode>)
+
+    // Both should be readable
+    const updated = store.getNode(openTask!.id)
+    expect(updated!.due_date).toBe("2026-03-15")
+    expect(updated!.due_time).toBe("14:30")
+  })
+
+  test("should clear due_date and remove from file", () => {
+    const rootDir = createTestDir()
+    writeFileSync(
+      join(rootDir, "tasks.md"),
+      `# Tasks\n\n- [ ] Task with date due:2026-03-15\n`,
+    )
+    using store = new MemoryStore(rootDir)
+
+    const tasks = store.getAllTasks()
+    const task = tasks.find((t) => t.content?.includes("Task with date"))
+    expect(task).toBeDefined()
+    expect(task!.due_date).toBe("2026-03-15")
+
+    // Clear the date
+    store.updateNode(task!.id, { due_date: null } as Partial<KNode>)
+
+    const updated = store.getNode(task!.id)
+    expect(updated!.due_date).toBeUndefined()
+
+    // File should no longer contain the date
+    const fileContent = readFileSync(join(rootDir, "tasks.md"), "utf-8")
+    expect(fileContent).not.toContain("due:2026-03-15")
+  })
+
+  test("should update existing emoji date in file", () => {
+    const rootDir = createTestDir()
+    writeFileSync(
+      join(rootDir, "tasks.md"),
+      `# Tasks\n\n- [ ] Task with emoji 📅 2026-01-01\n`,
+    )
+    using store = new MemoryStore(rootDir)
+
+    const tasks = store.getAllTasks()
+    const task = tasks.find((t) => t.content?.includes("Task with emoji"))
+    expect(task).toBeDefined()
+
+    // Update to new date
+    store.updateNode(task!.id, { due_date: "2026-06-15" })
+
+    const fileContent = readFileSync(join(rootDir, "tasks.md"), "utf-8")
+    expect(fileContent).toContain("📅 2026-06-15")
+    expect(fileContent).not.toContain("2026-01-01")
   })
 
   test("should refresh and rescan filesystem", () => {

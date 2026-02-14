@@ -11,7 +11,7 @@ import { join, dirname, basename, relative } from "path"
 import { toRelativeFsPath } from "./path-utils.ts"
 import type { KNode } from "@km/core"
 import { parseMarkdownWithLinks } from "@km/markdown"
-import { SCHEMA } from "./schema.ts"
+import { SCHEMA, NODE_COLUMNS } from "./schema.ts"
 import { addLink } from "./db.ts"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import { ensureRepoRootNode } from "./repo-loader.ts"
@@ -367,31 +367,53 @@ export class MemoryStore extends BaseStore {
   }
 
   /**
-   * Insert a node into the in-memory database
+   * Insert a node into the in-memory database.
+   * Non-column KNode fields (due_time, scheduled_time, etc.) are merged into data blob.
    */
   private insertNode(node: Partial<KNode>): void {
     const now = Date.now()
+
+    // Merge non-column fields into data blob (matches db-ops.ts addNodeImpl)
+    const mergedData: Record<string, unknown> = { ...(node.data ?? {}) }
+    for (const [key, value] of Object.entries(node)) {
+      if (key !== "data" && !NODE_COLUMNS.has(key) && value !== undefined && value !== null) {
+        mergedData[key] = value
+      }
+    }
+
     this.db.run(
       `INSERT INTO nodes (
-        id, type, fstype, parent_id, parent_idx, fs_path, md_line, name, block_id,
-        content, title, list_marker, task_marker, task_status, data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, type, fstype, parent_id, parent_idx, link_to, link_alias, embed,
+        fs_path, md_pos, md_line, name, block_id,
+        content, content_hash, title, list_marker, task_marker,
+        task_status, assigned_to, due_date, scheduled_date, priority,
+        data, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id ?? null,
         node.type ?? null,
         node.fstype ?? null,
         node.parent_id ?? null,
         node.parent_idx ?? 0,
+        node.link_to ?? null,
+        node.link_alias ?? null,
+        node.embed ? 1 : 0,
         node.fs_path ?? null,
+        node.md_pos ?? null,
         node.md_line ?? null,
         node.name ?? null,
         node.block_id ?? null,
         node.content ?? null,
+        node.content_hash ?? null,
         node.title ?? null,
         node.list_marker ?? null,
         node.task_marker ?? null,
         node.task_status ?? null,
-        JSON.stringify(node.data ?? {}),
+        node.assigned_to ?? null,
+        node.due_date ?? null,
+        node.scheduled_date ?? null,
+        node.priority ?? null,
+        JSON.stringify(mergedData),
         now,
         now,
       ] as SQLQueryBindings[],
@@ -405,30 +427,58 @@ export class MemoryStore extends BaseStore {
     const node = this.getNode(id)
     if (!node) return
 
-    // Update in-memory SQLite
+    // Route fields to SQL columns vs data blob (matches db-ops.ts logic)
     const sets: string[] = []
-    const values: unknown[] = []
+    const values: (string | number | null)[] = []
+    const dataOverrides: Record<string, unknown> = {}
 
     for (const [key, value] of Object.entries(changes)) {
       if (key === "id") continue
-      sets.push(`${key} = ?`)
-      values.push(value)
+      if (key === "data") {
+        const jsonStr = typeof value === "string" ? value : JSON.stringify(value)
+        sets.push("data = ?")
+        values.push(jsonStr)
+      } else if (NODE_COLUMNS.has(key)) {
+        sets.push(`${key} = ?`)
+        values.push(value as string | number | null)
+      } else {
+        // Non-column KNode field (due_time, scheduled_time, etc.) → data blob
+        dataOverrides[key] = value
+      }
+    }
+
+    if (Object.keys(dataOverrides).length > 0) {
+      sets.push("data = json_patch(data, ?)")
+      values.push(JSON.stringify(dataOverrides))
     }
 
     if (sets.length === 0) return
 
     sets.push("updated_at = ?")
-    values.push(Date.now(), id)
+    values.push(Date.now())
+    values.push(id)
 
     this.db.run(`UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`, values as SQLQueryBindings[])
 
     // Write through to markdown file for task status changes
     if (changes.task_status !== undefined && node.md_line !== undefined) {
-      // Tasks may not have fs_path directly - look up from parent file node
       const relPath = node.fs_path || this.getFilePathForNode(node)
       if (relPath) {
         const absPath = join(this.rootPath, relPath)
         this.writeTaskStatusToFile(absPath, node.md_line, changes.task_status)
+      }
+    }
+
+    // Write through date fields to markdown file
+    if ((changes.due_date !== undefined || changes.scheduled_date !== undefined) && node.md_line !== undefined) {
+      const relPath = node.fs_path || this.getFilePathForNode(node)
+      if (relPath) {
+        const absPath = join(this.rootPath, relPath)
+        // Re-read the updated node to get merged state
+        const updated = this.getNode(id)
+        if (updated?.md_line !== undefined) {
+          this.writeDateToFile(absPath, updated.md_line, updated)
+        }
       }
     }
   }
