@@ -239,22 +239,12 @@ const Card = React.memo(
     )
   },
   (prev, next) => {
-    // Fast equality check for Card props.
+    // Reference equality on card — structural sharing in useColumns ensures
+    // unchanged cards keep the same object reference across re-derivations.
     // isSelected is driven by CursorStore self-subscription (not props),
     // so it's not compared here — CursorStore triggers re-renders independently.
     return (
-      prev.card.node.id === next.card.node.id &&
-      prev.card.node.content === next.card.node.content &&
-      prev.card.node.task_status === next.card.node.task_status &&
-      prev.card.node.due_date === next.card.node.due_date &&
-      prev.card.node.due_time === next.card.node.due_time &&
-      prev.card.node.scheduled_date === next.card.node.scheduled_date &&
-      prev.card.node.scheduled_time === next.card.node.scheduled_time &&
-      prev.card.node.priority === next.card.node.priority &&
-      prev.card.node.recurrence === next.card.node.recurrence &&
-      prev.card.childCount === next.card.childCount &&
-      prev.card.children?.length === next.card.children?.length &&
-      prev.card.bodyNodes?.length === next.card.bodyNodes?.length &&
+      prev.card === next.card &&
       prev.selectedSubIndex === next.selectedSubIndex &&
       prev.width === next.width &&
       prev.colIndex === next.colIndex &&
@@ -415,9 +405,11 @@ export const Column = React.memo(function Column({
   const icon = getColumnHeaderIcon(column.node, iconStyle, isVirtual, ownColor)
   const iconColor = isColumnSelected ? "black" : icon.color
 
-  // Collapsed: thin vertical strip — first letter + count, navigable
+  // Collapsed: 3-char vertical strip with rotated title, navigable
   if (isCollapsed) {
-    const firstChar = name.charAt(0).toUpperCase() || "\u25B8"
+    // Build vertical text: one char per row from column name
+    const verticalChars = name.slice(0, Math.max(0, height - 4)).split("")
+    const countStr = String(count)
     return (
       <Box
         id={column.node.id}
@@ -432,25 +424,45 @@ export const Column = React.memo(function Column({
         maxHeight={height}
         overflow="hidden"
       >
+        {/* Top blank line (matches expanded column) */}
         <Box height={1} flexShrink={0}>
           <Text> </Text>
         </Box>
+        {/* Separator */}
         <Box height={1} flexShrink={0}>
           <Text
-            bold={isColumnSelected}
-            color={isColumnSelected ? "black" : (ownColor ?? "gray")}
-            backgroundColor={isColumnSelected ? "yellow" : undefined}
+            color={isColumnSelected ? "yellow" : undefined}
             dimColor={!isColumnSelected}
           >
-            {firstChar}
+            {"\u2500".repeat(Math.max(0, width))}
           </Text>
         </Box>
-        <Box flexDirection="column" flexGrow={1} minHeight={1}>
-          <Text dimColor>{count}</Text>
+        {/* Vertical title — one char per row, centered in 3-char width */}
+        {verticalChars.map((ch, i) => (
+          <Box key={i} height={1} flexShrink={0}>
+            <Text
+              bold={isColumnSelected}
+              color={isColumnSelected ? "black" : (ownColor ?? "gray")}
+              backgroundColor={isColumnSelected ? "yellow" : undefined}
+              dimColor={!isColumnSelected}
+            >
+              {` ${ch} `.slice(0, width)}
+            </Text>
+          </Box>
+        ))}
+        {/* Count at bottom */}
+        <Box flexDirection="column" flexGrow={1} minHeight={1} justifyContent="flex-end">
+          <Box height={1}>
+            <Text dimColor>{` ${countStr}`.slice(0, width)}</Text>
+          </Box>
         </Box>
       </Box>
     )
   }
+
+  // Column title border: subtle black border (like cards but dimmer).
+  // When column is selected, use yellow to match card selection style.
+  const columnBorderColor = isColumnSelected ? "yellow" : "black"
 
   return (
     <Box
@@ -465,15 +477,14 @@ export const Column = React.memo(function Column({
       maxHeight={height}
       overflow="hidden"
     >
-      {/* Blank line above header */}
-      <Box height={1} flexShrink={0}>
-        <Text> </Text>
-      </Box>
-
-      {/* Column header with background spanning full width */}
-      {/* Bold text, bullet uses icon style for consistent styling */}
-      <Box height={1} flexShrink={0} width={width - 1} flexDirection="row">
-        <Box width={1} flexShrink={0} />
+      {/* Column header with border (like cards but dimmer) */}
+      <Box
+        flexShrink={0}
+        width={width - 1}
+        borderStyle="round"
+        borderColor={columnBorderColor}
+        paddingRight={1}
+      >
         <Box flexGrow={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
           {isInlineEditing ? (
             <Text bold color={headerStyle.color} wrap="truncate">
@@ -529,14 +540,6 @@ export const Column = React.memo(function Column({
             </>
           )}
         </Box>
-      </Box>
-
-      {/* Separator line between header and cards */}
-      <Box height={1} flexShrink={0} width={width - 1}>
-        <Box width={1} flexShrink={0} />
-        <Text color={isColumnSelected ? "yellow" : undefined} dimColor={!isColumnSelected}>
-          {"─".repeat(Math.max(0, width - 2))}
-        </Text>
       </Box>
 
       {column.cards.length > 0 ? (

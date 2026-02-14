@@ -257,6 +257,24 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
     return handleZoomIn(ctx)
   }
 
-  // target is now the child of root on the path to cursor
-  return handleZoomInNode(ctx, target)
+  // target is now the child of root on the path to cursor.
+  // Verify it has children (required for zoom).
+  const children = ctx.repo.getChildren(target)
+  if (children.length === 0) {
+    return boundary("in", "no children")
+  }
+
+  saveNavHistory(ctx)
+
+  // Keep the cursor on the current card (cursorId) instead of jumping
+  // to firstCardId. The user pressed 'i' while looking at a specific
+  // card — zooming closer should preserve that focus.
+  dispatchBoard({
+    type: "ZOOM_IN",
+    nodeId: target,
+    cursorNodeId: cursorId,
+  })
+
+  clearSelection(ctx)
+  return ok()
 }

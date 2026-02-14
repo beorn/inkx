@@ -363,7 +363,7 @@ export function testEnv(
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
@@ -562,7 +562,7 @@ export function testEnvWithRepo(
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
@@ -1356,7 +1356,7 @@ export function renderBoardWithStore(
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],

@@ -1042,6 +1042,7 @@ function createMockTUIBoardState(): TUIBoardState {
     visualMode: false,
     foldedNodes: new Set<string>(),
     collapsedColumns: new Set<number>(),
+    collapsedNodeIds: new Set<string>(),
     searchQuery: "",
     searchMode: false,
     helpMode: false,

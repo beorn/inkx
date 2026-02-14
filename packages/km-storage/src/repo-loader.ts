@@ -25,7 +25,7 @@ import { toRelativeFsPath } from "./path-utils.ts"
 import type { Event, KNode } from "@km/core"
 import { createParsePool } from "./parse-pool.ts"
 import { runDeferredPipeline } from "./pipeline.ts"
-import { parseMarkdownWithLinks } from "@km/markdown"
+import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
 import { SCHEMA } from "./schema.ts"
 import { applyEventWithDb } from "./db-events.ts"
 import { evaluateAllRules, createRuleContext } from "./db-rules.ts"
@@ -654,8 +654,10 @@ function* reconcileFilesystem(
           content: entryName,
         },
       })
-    } else if (entryName.endsWith(".md")) {
-      const name = entryName.replace(/\.md$/i, "")
+    } else if (entryName.endsWith(".md") || entryName.endsWith(".txt")) {
+      const isTxt = entryName.endsWith(".txt")
+      const ext = isTxt ? /\.txt$/i : /\.md$/i
+      const name = entryName.replace(ext, "")
       events.push({
         id: nodeId,
         type: "node_created",
@@ -664,7 +666,7 @@ function* reconcileFilesystem(
         data: {
           id: nodeId,
           type: "oi",
-          fstype: "mdfile",
+          fstype: isTxt ? "txtfile" : "mdfile",
           parent_id: parentId,
           parent_idx: 0,
           fs_path: relPath,
@@ -935,7 +937,10 @@ function parseOneFile(
 ): PendingLink[] | null {
   const { nodeId, fsPath } = deferredFile
   const content = readFileSync(fsPath, "utf-8")
-  const { nodes, wikilinks } = parseMarkdownWithLinks(content, fsPath)
+  const isTxt = fsPath.endsWith(".txt")
+  const { nodes, wikilinks } = isTxt
+    ? parsePlainTextToNodes(content, fsPath)
+    : parseMarkdownWithLinks(content, fsPath)
 
   const stubRow = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
     parent_id: string | null
@@ -950,7 +955,7 @@ function parseOneFile(
   deleteStmt.run(nodeId)
 
   const fileNode = nodes[0]
-  if (fileNode?.type === "oi" && (fileNode.fstype === "file" || fileNode.fstype === "mdfile")) {
+  if (fileNode?.type === "oi" && (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")) {
     fileNode.id = nodeId
     fileNode.parent_id = stubRow.parent_id
     fileNode.parent_idx = stubRow.parent_idx
@@ -1036,7 +1041,10 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string): boo
 
   try {
     const content = readFileSync(fsPath, "utf-8")
-    const { nodes } = parseMarkdownWithLinks(content, fsPath)
+    const isTxt = fsPath.endsWith(".txt")
+    const { nodes } = isTxt
+      ? parsePlainTextToNodes(content, fsPath)
+      : parseMarkdownWithLinks(content, fsPath)
 
     const stubRow = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
       parent_id: string | null
@@ -1055,7 +1063,7 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string): boo
 
       const fileNode = nodes[0]
       const originalFileId = fileNode?.id
-      if (fileNode?.type === "oi" && (fileNode.fstype === "file" || fileNode.fstype === "mdfile")) {
+      if (fileNode?.type === "oi" && (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")) {
         fileNode.id = nodeId
         fileNode.parent_id = stubRow.parent_id
         fileNode.parent_idx = stubRow.parent_idx

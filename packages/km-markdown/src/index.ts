@@ -30,7 +30,7 @@ export type {
 } from "./parser.ts"
 
 // AST to nodes
-export { parseMarkdownToNodes, parseMarkdownWithLinks, buildNodeTree } from "./ast2nodes.ts"
+export { parseMarkdownToNodes, parseMarkdownWithLinks, parsePlainTextToNodes, buildNodeTree } from "./ast2nodes.ts"
 
 export type { ParseResult, ParseWarning, ExtractedLink } from "./ast2nodes.ts"
 

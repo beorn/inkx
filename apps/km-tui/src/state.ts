@@ -89,6 +89,7 @@ export function createEmptyState(): TUIBoardState {
     visualMode: false,
     foldedNodes: new Set(),
     collapsedColumns: new Set(),
+    collapsedNodeIds: new Set(),
     searchQuery: "",
     searchMode: false,
     helpMode: false,
@@ -145,6 +146,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   const rootNode = repo.getNode(rootId)
   const wipLimits = extractWipLimits(rootNode)
   const collapsedColumns = new Set<number>()
+  const collapsedNodeIds = new Set<string>()
 
   // Get direct children and split into body content vs structural items
   const allChildren = repo.getChildren(rootId)
@@ -219,8 +221,10 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
 
     // Track collapsed columns (offset by body column if present)
     const actualColIdx = colIdx + (bodyNodes.length > 0 ? 1 : 0)
-    if (rules.collapse) {
+    const isCollapsed = rules.collapse || (colNode.data as Record<string, unknown>)?.collapsed === true
+    if (isCollapsed) {
       collapsedColumns.add(actualColIdx)
+      collapsedNodeIds.add(colNode.id)
     }
 
     columns.push({ node: colNode, cards, wipLimit, rules })
@@ -234,6 +238,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     visualMode: false,
     foldedNodes: new Set(),
     collapsedColumns,
+    collapsedNodeIds,
     searchQuery: "",
     searchMode: false,
     helpMode: false,
@@ -345,6 +350,7 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
   const rootNode = repo.getNode(rootId)
   const wipLimits = extractWipLimits(rootNode)
   const collapsedColumns = new Set<number>()
+  const collapsedNodeIds = new Set<string>()
 
   // Get direct children and split into body content vs structural items
   const allChildren = repo.getChildren(rootId)
@@ -420,8 +426,10 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
 
     // Track collapsed columns (offset by body column if present)
     const actualColIdx = colIdx + (bodyNodes.length > 0 ? 1 : 0)
-    if (rules.collapse) {
+    const isCollapsed = rules.collapse || (colNode.data as Record<string, unknown>)?.collapsed === true
+    if (isCollapsed) {
       collapsedColumns.add(actualColIdx)
+      collapsedNodeIds.add(colNode.id)
     }
 
     columns.push({ node: colNode, cards, wipLimit, rules })
@@ -435,6 +443,7 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
     visualMode: false,
     foldedNodes: new Set(),
     collapsedColumns,
+    collapsedNodeIds,
     searchQuery: "",
     searchMode: false,
     helpMode: false,

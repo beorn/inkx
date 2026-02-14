@@ -495,6 +495,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "view",
     bindings: [
       { key: "v", commandId: "cycle_view_mode" },
+      { key: "V", commandId: "cycle_icon_style" },
       { key: "?", commandId: "show_help" },
       { key: "<", commandId: "decrease_outline_depth" },
       { key: ">", commandId: "increase_outline_depth" },

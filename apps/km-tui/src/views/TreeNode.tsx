@@ -290,12 +290,14 @@ function TreeNodeImpl({
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
 
   // Compute sigil for inline display: only if name is a sigil and differs from title
+  // Skip sigils that are in the excluded list (e.g., @next on the @next board)
   const sigilName = useMemo(() => {
     const name = displayNode.name
     if (!name || !isSigilName(name)) return null
     if (name === cleanContent) return null // redundant — title IS the sigil
+    if (excludedSigils.includes(name)) return null // redundant — excluded by board/column context
     return name
-  }, [displayNode.name, cleanContent])
+  }, [displayNode.name, cleanContent, excludedSigils])
 
   // For inline editing, use the actual node content (not display name fallback).
   // This ensures new nodes with empty content show an empty edit field,
@@ -457,12 +459,14 @@ function TreeNodeImpl({
     (n: KNode) => (getParentContextProp ? getParentContextProp(n) : getParentContextFromState(repo, n)),
     [getParentContextProp, repo],
   )
-  const parentContext =
+  const rawParentContext =
     parentContextProp !== undefined
       ? parentContextProp
       : depth === 0 && isTask && isEmbedded
         ? resolvedGetParentContext(node)
         : null
+  // Suppress parent context if it matches an excluded sigil (redundant on that board/column)
+  const parentContext = rawParentContext && excludedSigils.includes(rawParentContext) ? null : rawParentContext
 
   // Context suffix (shown inline for oneliner variant only)
   const truncatedContext = isOneliner

@@ -53,7 +53,22 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
     return
   }
 
-  // For non-.md files, just update mtime/ino tracking
+  // For .txt files, update content directly (no markdown parsing)
+  if (op.path.endsWith(".txt")) {
+    const content = fs.readFileSync(op.path, "utf-8")
+    const stat = fs.statSync(op.path)
+    const updates: Record<string, unknown> = {
+      content,
+      fs_mtime: op.mtime ?? stat.mtimeMs,
+    }
+    if (op.ino !== undefined) {
+      updates.fs_ino = op.ino
+    }
+    emitNodeUpdated(emitter, "fs-watch", op.nodeId, updates)
+    return
+  }
+
+  // For non-.md, non-.txt files, just update mtime/ino tracking
   if (!op.path.endsWith(".md")) {
     const updates: Record<string, unknown> = { fs_mtime: op.mtime }
     if (op.ino !== undefined) {

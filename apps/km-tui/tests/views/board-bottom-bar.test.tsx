@@ -123,6 +123,7 @@ describe("BottomBar", () => {
     visualMode: false,
     foldedNodes: new Set(),
     collapsedColumns: new Set(),
+    collapsedNodeIds: new Set(),
     searchQuery: "",
     searchMode: false,
     helpMode: false,

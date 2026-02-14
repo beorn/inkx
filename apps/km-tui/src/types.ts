@@ -20,6 +20,7 @@ export interface TUIBoardState {
   visualMode: boolean
   foldedNodes: Set<string>
   collapsedColumns: Set<number> // Column indices that are collapsed (show count only)
+  collapsedNodeIds: Set<string> // Node IDs of collapsed columns (for initializing BoardState.collapsedNodes)
   searchQuery: string
   searchMode: boolean
   helpMode: boolean

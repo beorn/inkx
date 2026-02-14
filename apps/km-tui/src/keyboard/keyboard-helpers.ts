@@ -4,10 +4,10 @@
  * Utility functions for keyboard handling.
  */
 
-import { isBlock } from "@km/core"
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey, parseSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
+import { deriveColumnsFromRepo } from "../hooks/use-columns.ts"
 
 // =============================================================================
 // Navigation History
@@ -198,6 +198,14 @@ export function getSelectedCardIndices(ctx: ActionCtx): number[] {
 
 /** Rebuild board state after a mutation, preserving navigation context.
  *
+ * When called without options, re-SELECTs the current cursorNodeId (the node
+ * hasn't moved, only its properties changed). This is the common case for
+ * property mutations (priority, status, date, undo/redo).
+ *
+ * When called with positional options (colIndex/cardIndex), derives fresh
+ * columns from repo using deriveColumnsFromRepo (same logic as useColumns)
+ * to correctly account for virtual body columns.
+ *
  * @param options.usePositionHints - When true, pass computed colIndex/cardIndex
  *   directly to SELECT (bypasses stale nodeIndex). Use after addNode where the
  *   new node isn't in the nodeIndex yet.
@@ -214,22 +222,30 @@ export function refreshBoardState(
   // repo mutations via useSyncExternalStore. This function only needs to
   // update the cursor position after mutations.
 
-  // Query repo to calculate new cursor position
-  const allChildren = ctx.repo.getChildren(ctx.rootId)
-  const columns = allChildren.filter((n) => !isBlock(n.type))
+  // Fast path: no positional options — just re-SELECT the current cursor node.
+  // The node hasn't moved (only properties changed), so cursorNodeId is still valid.
+  // dispatchBoard(SELECT) triggers recomputeLayout which re-derives columns from
+  // repo and resolves the correct position via nodeIndex.
+  if (!options || (options.colIndex === undefined && options.cardIndex === undefined)) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+    return
+  }
+
+  // Positional path: derive fresh columns using the same logic as useColumns
+  // to correctly account for virtual body columns and extractBody splitting.
+  const columns = deriveColumnsFromRepo(ctx.repo, ctx.rootId, ctx.foldedNodes)
 
   // Calculate new cursor position
-  const colIndex = options?.colIndex ?? ctx.layout.colIndex
-  const colNode = columns[colIndex]
-  const cards = colNode ? ctx.repo.getChildren(colNode.id) : []
+  const colIndex = options.colIndex ?? ctx.layout.colIndex
+  const col = columns[colIndex]
+  const cards = col?.cards ?? []
   let cardIndex: number
 
-  if (typeof options?.cardIndex === "function") {
-    // cardIndex callback receives column shape with cards array
-    const colShape = colNode ? { cards: cards.map((c) => ({ node: c, children: [] })) } : undefined
-    cardIndex = options.cardIndex(colShape)
+  if (typeof options.cardIndex === "function") {
+    // cardIndex callback receives column shape for dynamic calculation
+    cardIndex = options.cardIndex(col)
   } else {
-    cardIndex = options?.cardIndex ?? ctx.layout.cardIndex
+    cardIndex = options.cardIndex ?? ctx.layout.cardIndex
   }
 
   // Clamp card index to valid range
@@ -246,9 +262,9 @@ export function refreshBoardState(
     cardIndex?: number
   } = {
     type: "SELECT",
-    nodeId: targetCard?.id ?? colNode?.id ?? ctx.cursorNodeId,
+    nodeId: targetCard?.node.id ?? col?.node.id ?? ctx.cursorNodeId,
   }
-  if (options?.usePositionHints) {
+  if (options.usePositionHints) {
     selectAction.colIndex = colIndex
     selectAction.cardIndex = cardIndex
   }

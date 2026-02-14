@@ -96,6 +96,45 @@ describe("Column Fold/Collapse", () => {
     // col1 should still show its cards
     board.expect("#1a").toExist()
   })
+
+  test("collapsed column shows vertical title text", () => {
+    const { board } = testEnv(
+      () => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a"))),
+      { columns: 80, rows: 20 },
+    )
+    board.expect("#1a").toExist()
+
+    // Collapse "Todo" column
+    board.press("c")
+    board.expect("#1a").not.toExist()
+
+    // The collapsed column should show "data-collapsed" attribute
+    board.expect("[data-collapsed]").toExist()
+  })
+
+  test("c persists collapsed state to node data", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
+    )
+    // Collapse col1
+    board.press("c")
+    board.expect("#1a").not.toExist()
+
+    // Verify the collapsed state is persisted in node data
+    const colNode = repo.getNode("col1")!
+    expect((colNode.data as Record<string, unknown>).collapsed).toBe(true)
+
+    // Uncollapse col1
+    board.press("c")
+    board.expect("#1a").toExist()
+
+    // Verify the collapsed key is removed from node data
+    const colNodeAfter = repo.getNode("col1")!
+    expect((colNodeAfter.data as Record<string, unknown>).collapsed).toBeUndefined()
+  })
+
+  // TODO(km-tui.collapse-persist): tests for persisted collapsed state
+  // Need createFakeRepo + buildBoardState to test restore from node.data
 })
 
 // =============================================================================
@@ -357,5 +396,40 @@ describe("Untitled Columns", () => {
 
     // The stale column should show as untitled (shortId in parens)
     expect(text).toContain("(stale")
+  })
+})
+
+// =============================================================================
+// Icon Style Cycling (V key)
+// =============================================================================
+
+describe("Icon Style Cycling", () => {
+  test("V cycles icon style from nerdfont to workflowy", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    board.press("V")
+    const status = board.getStatus()
+    expect(status).not.toBeNull()
+    expect(status?.message).toBe("Icon style: workflowy")
+  })
+
+  test("V cycles through all three styles", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    // nerdfont -> workflowy
+    board.press("V")
+    expect(board.getStatus()?.message).toBe("Icon style: workflowy")
+
+    // workflowy -> regular
+    board.press("V")
+    expect(board.getStatus()?.message).toBe("Icon style: regular")
+
+    // regular -> nerdfont (wraps around)
+    board.press("V")
+    expect(board.getStatus()?.message).toBe("Icon style: nerdfont")
+  })
+
+  test("V does not trigger bell (is a valid action)", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    board.press("V")
+    expect(board.bell).toBe(false)
   })
 })

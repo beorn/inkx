@@ -131,6 +131,40 @@ export function parseMarkdownWithLinks(content: string, fsPath: string, fsIno?: 
 }
 
 /**
+ * Parse a plain text file into km nodes.
+ * Creates a simple file node with the raw text as content — no markdown parsing.
+ * Whitespace, newlines, and all content are preserved exactly.
+ */
+export function parsePlainTextToNodes(content: string, fsPath: string, fsIno?: number, fsMtime?: number): ParseResult {
+  const now = Date.now()
+  const filename = fsPath.split("/").pop() || ""
+  const ext = filename.lastIndexOf(".") !== -1 ? filename.slice(filename.lastIndexOf(".")) : ""
+  const name = ext ? filename.slice(0, -ext.length) : filename
+
+  const fileNode: KNode = {
+    id: ulid(),
+    type: "oi",
+    fstype: "txtfile",
+    parent_id: null,
+    parent_idx: 0,
+    link_to: null,
+    fs_path: fsPath,
+    fs_ino: fsIno,
+    fs_mtime: fsMtime,
+    name,
+    title: name,
+    content: content,
+    content_hash: undefined,
+    data: {},
+    created_at: now,
+    updated_at: now,
+    version: "",
+  }
+
+  return { nodes: [fileNode], wikilinks: [], warnings: [] }
+}
+
+/**
  * Parse YAML frontmatter into data object
  */
 function parseFrontmatter(yaml: string): Record<string, unknown> {

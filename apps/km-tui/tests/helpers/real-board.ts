@@ -150,7 +150,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     repo,
     toastQueue,
     layoutRegistry: registry,
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],

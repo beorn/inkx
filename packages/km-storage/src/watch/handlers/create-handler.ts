@@ -22,6 +22,7 @@ import {
   type ProcessedMarkdown,
   type WikilinkRef,
 } from "../../markdown-processing.ts"
+import { parsePlainTextToNodes } from "@km/markdown"
 import type { FileSystemOps } from "../writequeue.ts"
 import type { ReconcileOp } from "../reconcile.ts"
 import type { ParseResult } from "../../parse-pool.ts"
@@ -89,8 +90,10 @@ export function handleCreate(options: CreateHandlerOptions): void {
 
   if (op.path.endsWith(".md")) {
     handleMarkdownCreate(options, parentId, stat)
+  } else if (op.path.endsWith(".txt")) {
+    handleTxtCreate(options, parentId, stat)
   } else if (stat) {
-    // Non-markdown file - create simple file node
+    // Non-parseable file - create simple file node
     emitNodeCreated(emitter, "fs-watch", {
       id: ulid(),
       type: "oi",
@@ -179,6 +182,40 @@ function handleMarkdownCreate(
   if (fileNode) {
     ctx.newFiles.push({ id: fileNode.id, name: fileName })
     // Update resolver so subsequent files can link to this one
+    ctx.resolver.addFile(fileNode.id, fileName)
+  }
+}
+
+/**
+ * Handle plain text file creation
+ */
+function handleTxtCreate(
+  options: CreateHandlerOptions,
+  parentId: string | null,
+  stat: ReturnType<FileSystemOps["statSync"]> | null,
+): void {
+  const { op, repoRoot, emitter, fs, ctx } = options
+
+  const content = fs.readFileSync(op.path, "utf-8")
+  const fileStat = stat ?? fs.statSync(op.path)
+  const { nodes } = parsePlainTextToNodes(content, op.path, op.ino, op.mtime ?? fileStat.mtimeMs)
+
+  const fileNode = nodes[0]
+  if (fileNode) {
+    fileNode.parent_id = parentId
+    fileNode.fs_path = toRelativeFsPath(repoRoot, op.path)
+    if (op.ino !== undefined) fileNode.fs_ino = op.ino
+    fileNode.fs_mtime = op.mtime ?? fileStat.mtimeMs
+  }
+
+  for (const node of nodes) {
+    emitNodeCreated(emitter, "fs-watch", node as unknown as Record<string, unknown>)
+  }
+
+  // Update resolver map
+  const fileName = basename(op.path).replace(/\.txt$/, "")
+  if (fileNode) {
+    ctx.newFiles.push({ id: fileNode.id, name: fileName })
     ctx.resolver.addFile(fileNode.id, fileName)
   }
 }

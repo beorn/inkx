@@ -230,7 +230,7 @@ export async function runBoard(state: TUIBoardState | null, options?: TuiOptions
         cardIndex: 0,
         selectionLevel: initialSelectionLevel,
       }),
-      initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId),
+      initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId, state.collapsedNodeIds),
       initialUIState: createInitialUIState(
         viewMode,
         [...(state.collapsedColumns ?? [])],

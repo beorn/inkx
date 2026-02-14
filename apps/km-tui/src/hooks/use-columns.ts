@@ -7,7 +7,7 @@
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
-import { useMemo, useSyncExternalStore } from "react"
+import { useMemo, useRef, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { isBlock } from "@km/core"
@@ -26,6 +26,10 @@ import { parseColumnRules } from "../state.ts"
  * automatically recompute when any mutation (updateNode, moveNode, etc.)
  * occurs, without requiring manual dispatch at each call site.
  *
+ * Structural sharing: reuses previous CardState references when the
+ * underlying data hasn't changed, enabling simple reference equality
+ * checks in React.memo instead of field-by-field comparison.
+ *
  * @param repo - Repo instance
  * @param rootId - Current zoom root (null for repo root)
  * @param foldedNodes - Set of folded node IDs
@@ -34,9 +38,13 @@ import { parseColumnRules } from "../state.ts"
 export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnState[] {
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
+  const prevColumnsRef = useRef<ColumnState[]>([])
 
   return useMemo(() => {
-    return deriveColumnsFromRepo(repo, rootId, foldedNodes)
+    const next = deriveColumnsFromRepo(repo, rootId, foldedNodes)
+    const shared = applyStructuralSharing(prevColumnsRef.current, next)
+    prevColumnsRef.current = shared
+    return shared
   }, [repoVersion, rootId, foldedNodes])
 }
 
@@ -228,4 +236,119 @@ function createVirtualBodyNode(parentId: string | null): KNode {
     updated_at: now,
     version: "",
   }
+}
+
+// =============================================================================
+// Structural Sharing
+// =============================================================================
+
+/**
+ * Check if two KNode instances have the same render-relevant fields.
+ * These are the fields that affect how a card is displayed in the TUI.
+ */
+function nodesEqual(a: KNode, b: KNode): boolean {
+  return (
+    a.id === b.id &&
+    a.content === b.content &&
+    a.task_status === b.task_status &&
+    a.due_date === b.due_date &&
+    a.due_time === b.due_time &&
+    a.scheduled_date === b.scheduled_date &&
+    a.scheduled_time === b.scheduled_time &&
+    a.priority === b.priority &&
+    a.recurrence === b.recurrence
+  )
+}
+
+/**
+ * Check if two CardState instances are structurally equal.
+ * If so, the previous reference can be reused to skip re-renders.
+ */
+function cardsEqual(prev: CardState, next: CardState): boolean {
+  if (!nodesEqual(prev.node, next.node)) return false
+  if (prev.childCount !== next.childCount) return false
+  if ((prev.children?.length ?? 0) !== (next.children?.length ?? 0)) return false
+  if ((prev.bodyNodes?.length ?? 0) !== (next.bodyNodes?.length ?? 0)) return false
+  if (prev.isVirtual !== next.isVirtual) return false
+
+  // Check bodyNodes content if present (merged body cards)
+  if (prev.bodyNodes && next.bodyNodes) {
+    for (let i = 0; i < prev.bodyNodes.length; i++) {
+      if (!nodesEqual(prev.bodyNodes[i]!, next.bodyNodes[i]!)) return false
+    }
+  }
+
+  // Check children nodes for content changes (unfolded cards)
+  if (prev.children.length > 0 && next.children.length > 0) {
+    for (let i = 0; i < prev.children.length; i++) {
+      if (!nodesEqual(prev.children[i]!, next.children[i]!)) return false
+    }
+  }
+
+  return true
+}
+
+/**
+ * Apply structural sharing between previous and next column arrays.
+ * Reuses previous CardState references when the underlying data hasn't changed,
+ * enabling simple reference equality checks in React.memo.
+ *
+ * Exported for testing.
+ */
+export function applyStructuralSharing(prev: ColumnState[], next: ColumnState[]): ColumnState[] {
+  // Build lookup from previous columns: nodeId -> ColumnState
+  const prevByNodeId = new Map<string, ColumnState>()
+  for (const col of prev) {
+    prevByNodeId.set(col.node.id, col)
+  }
+
+  let anyColumnChanged = false
+  const result: ColumnState[] = []
+
+  for (const nextCol of next) {
+    const prevCol = prevByNodeId.get(nextCol.node.id)
+    if (!prevCol) {
+      // New column — no sharing possible
+      result.push(nextCol)
+      anyColumnChanged = true
+      continue
+    }
+
+    // Share individual cards within the column
+    let anyCardChanged = false
+    const sharedCards: CardState[] = []
+
+    for (let i = 0; i < nextCol.cards.length; i++) {
+      const nextCard = nextCol.cards[i]!
+      const prevCard = prevCol.cards[i]
+
+      if (prevCard && cardsEqual(prevCard, nextCard)) {
+        // Reuse previous reference — enables === check in React.memo
+        sharedCards.push(prevCard)
+      } else {
+        sharedCards.push(nextCard)
+        anyCardChanged = true
+      }
+    }
+
+    // If card count changed, column changed
+    if (nextCol.cards.length !== prevCol.cards.length) {
+      anyCardChanged = true
+    }
+
+    if (anyCardChanged || !nodesEqual(prevCol.node, nextCol.node) || prevCol.wipLimit !== nextCol.wipLimit) {
+      result.push({ ...nextCol, cards: sharedCards })
+      anyColumnChanged = true
+    } else {
+      // Entire column unchanged — reuse previous reference
+      result.push(prevCol)
+    }
+  }
+
+  // If nothing changed and same length, reuse the entire array
+  if (!anyColumnChanged && prev.length === next.length) {
+    return prev
+  }
+
+  return result
 }

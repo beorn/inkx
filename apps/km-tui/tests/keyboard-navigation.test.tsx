@@ -480,3 +480,45 @@ describe("Keyboard Navigation: combined navigation", () => {
     board.expect("#1a[data-cursor]").toExist()
   })
 })
+
+describe("Keyboard Navigation: i (zoom inwards)", () => {
+  test("i keeps cursor on the same card after zoom inwards", () => {
+    // Structure: board > col1 > [1a, 1b, 1c]
+    // Each card needs children so zoom inwards has somewhere to go
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a", item("sub1")), item("1b", item("sub2")), item("1c", item("sub3"))),
+        item("col2", item("2a", item("sub4"))),
+      ),
+    )
+
+    // Start at first card
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Move to second card
+    board.press("j")
+    board.expect("#1b[data-cursor]").toExist()
+
+    // Press i to zoom inwards — cursor should stay on 1b
+    board.press("i")
+    board.expect("#1b[data-cursor]").toExist()
+  })
+
+  test("i keeps cursor on third card after zoom inwards", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("1a", item("sub1")), item("1b", item("sub2")), item("1c", item("sub3"))),
+      ),
+    )
+
+    // Navigate to third card
+    board.press("j").press("j")
+    board.expect("#1c[data-cursor]").toExist()
+
+    // Press i to zoom inwards — cursor should stay on 1c
+    board.press("i")
+    board.expect("#1c[data-cursor]").toExist()
+  })
+})

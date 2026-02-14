@@ -79,7 +79,7 @@ function buildStoreParams(
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(rootId, null, initialCursorNodeId),
+    initialBoardState: createBoardState(rootId, null, initialCursorNodeId, initialState.collapsedNodeIds),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],

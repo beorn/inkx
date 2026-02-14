@@ -13,6 +13,7 @@ import { describe, test, expect } from "vitest"
 import { bufferToText } from "inkx/testing"
 import { compareBuffers, formatMismatch } from "inkx/testing"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { parseRepeats, deriveSeeds } from "vitestx/fuzz"
 
 // =============================================================================
 // Seeded PRNG (xoshiro128** — fast, reproducible)
@@ -93,8 +94,12 @@ const FIXTURES = [
 
 const VIEW_MODES = ["cards", "columns", "list"] as const
 
-const SEEDS = [42, 1337, 2024, 9999, 31415]
+const BASE_SEEDS = [42, 1337, 2024, 9999, 31415]
 const ITERATIONS = 200
+
+// When FUZZ_REPEATS > 1, derive additional seeds for extended coverage
+const repeats = parseRepeats()
+const SEEDS = repeats <= 1 ? BASE_SEEDS : [...BASE_SEEDS, ...deriveSeeds(42, repeats - BASE_SEEDS.length)]
 
 // =============================================================================
 // Test Suite

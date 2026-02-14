@@ -663,11 +663,12 @@ export function Board({ patchedConsole }: BoardProps) {
       visualMode: false,
       foldedNodes,
       collapsedColumns: emptyNumberSet,
+      collapsedNodeIds: collapsedNodes,
       searchQuery: "",
       searchMode: false,
       helpMode: false,
     }),
-    [rootId, rootPath, visibleColumns, foldedNodes, emptyStringSet, emptyNumberSet],
+    [rootId, rootPath, visibleColumns, foldedNodes, emptyStringSet, emptyNumberSet, collapsedNodes],
   )
 
   // Get selected node — use columnsLayout indices (for store consistency)

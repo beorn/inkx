@@ -67,11 +67,18 @@ export function nodesToMarkdown(
     existingBlockIds,
   }
 
-  // Find root node (file node: oi with fstype mdfile or file)
-  const fileNode = nodes.find((n) => n.type === "oi" && (n.fstype === "mdfile" || n.fstype === "file"))
+  // Find root node (file node: oi with fstype mdfile, txtfile, or file)
+  const fileNode = nodes.find(
+    (n) => n.type === "oi" && (n.fstype === "mdfile" || n.fstype === "txtfile" || n.fstype === "file"),
+  )
   if (!fileNode) {
     // No file node, serialize all nodes flat
     return nodes.map((n) => serializeNode(n, ctx, 0)).join("")
+  }
+
+  // Plain text files: return content as-is (no markdown structure)
+  if (fileNode.fstype === "txtfile") {
+    return fileNode.content ?? ""
   }
 
   return serializeFile(fileNode, ctx)
@@ -161,6 +168,9 @@ function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTr
   switch (node.type) {
     case "oi":
       // Dispatch by fstype
+      if (node.fstype === "txtfile") {
+        return node.content ?? ""
+      }
       if (node.fstype === "mdfile" || node.fstype === "file") {
         return serializeFile(node, ctx)
       }
@@ -312,7 +322,7 @@ function findAncestorFilePath(node: KNode, ctx: SerializeContext): string | null
     if (!current.parent_id) return null
     const parent = ctx.nodeMap.get(current.parent_id)
     if (!parent) return null
-    if (parent.type === "oi" && (parent.fstype === "file" || parent.fstype === "mdfile") && parent.fs_path) {
+    if (parent.type === "oi" && (parent.fstype === "file" || parent.fstype === "mdfile" || parent.fstype === "txtfile") && parent.fs_path) {
       const filename = parent.fs_path.split("/").pop() ?? ""
       return filename.replace(/\.md$/, "")
     }

@@ -36,7 +36,7 @@ export type LinkType = "link"
 export type NodeType = BlockType | ItemType | LinkType
 
 /** Filesystem subtype for oi (outline item) nodes */
-export type FsType = "repo" | "folder" | "file" | "mdfile" | "mdsection"
+export type FsType = "repo" | "folder" | "file" | "mdfile" | "txtfile" | "mdsection"
 
 // =============================================================================
 // Type Predicates

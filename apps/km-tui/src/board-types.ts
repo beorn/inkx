@@ -175,6 +175,7 @@ export function createBoardState(
   rootId: string | null = null,
   rootPath: string | null = null,
   cursorNodeId: string | null = null,
+  collapsedNodeIds?: Set<string>,
 ): BoardState {
   return {
     rootId,
@@ -182,7 +183,7 @@ export function createBoardState(
     cursorNodeId,
     selectedNodes: new Set(),
     foldedNodes: new Set(),
-    collapsedNodes: new Set(),
+    collapsedNodes: collapsedNodeIds ?? new Set(),
     navHistory: [],
     navHistoryIndex: 0,
     moveMode: false,

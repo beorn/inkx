@@ -208,7 +208,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(initialTUIState.rootId, initialTUIState.rootPath, initialCursorNodeId),
+    initialBoardState: createBoardState(initialTUIState.rootId, initialTUIState.rootPath, initialCursorNodeId, initialTUIState.collapsedNodeIds),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialTUIState.collapsedColumns ?? [])],

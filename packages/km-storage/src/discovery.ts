@@ -23,7 +23,7 @@ import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "f
 import { join } from "path"
 import type { Event } from "@km/core"
 import { createLogger } from "@beorn/logger"
-import { parseMarkdownWithLinks } from "@km/markdown"
+import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo-loader.ts"
 import { generatePathBasedId } from "./id-utils.ts"
@@ -217,22 +217,25 @@ export function* discoverFiles(
     }
   }
 
-  // --- Handle any file (markdown or non-markdown) ---
+  // --- Handle any file (markdown, plain text, or other) ---
   function* handleFile(
     fullPath: string,
     parentId: string | null,
     order: number,
     entryName: string,
   ): Generator<StepYield, void, unknown> {
-    if (!entryName.endsWith(".md")) {
+    const isMd = entryName.endsWith(".md")
+    const isTxt = entryName.endsWith(".txt")
+
+    if (!isMd && !isTxt) {
       const fileId = generateId(repoRoot, fullPath)
       events.push(createNonMdFileEvent(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), entryName, now))
       return
     }
     if (parseMode === "stub") {
-      yield* handleStubFile(fullPath, parentId, order, entryName)
+      yield* handleStubFile(fullPath, parentId, order, entryName, isTxt)
     } else {
-      yield* handleFullParseFile(fullPath, parentId, order, entryName)
+      yield* handleFullParseFile(fullPath, parentId, order, entryName, isTxt)
     }
   }
 
@@ -242,11 +245,14 @@ export function* discoverFiles(
     parentId: string | null,
     order: number,
     entryName: string,
+    isTxt: boolean = false,
   ): Generator<StepYield, void, unknown> {
     const fileId = generateId(repoRoot, fullPath)
-    const name = entryName.replace(/\.md$/i, "")
+    const ext = isTxt ? /\.txt$/i : /\.md$/i
+    const name = entryName.replace(ext, "")
+    const fstype = isTxt ? "txtfile" : "mdfile"
 
-    events.push(createStubFileEvent(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), name, now))
+    events.push(createStubFileEvent(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), name, now, fstype))
     deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
 
     current++
@@ -255,16 +261,19 @@ export function* discoverFiles(
     }
   }
 
-  // --- Full mode: parse markdown and extract wikilinks ---
+  // --- Full mode: parse file content and extract nodes ---
   function* handleFullParseFile(
     fullPath: string,
     parentId: string | null,
     order: number,
     _entryName: string,
+    isTxt: boolean = false,
   ): Generator<StepYield, void, unknown> {
     try {
       const content = readFileSync(fullPath, "utf-8")
-      const { nodes, wikilinks } = parseMarkdownWithLinks(content, fullPath)
+      const { nodes, wikilinks } = isTxt
+        ? parsePlainTextToNodes(content, fullPath)
+        : parseMarkdownWithLinks(content, fullPath)
 
       // First node is always the file node
       const fileNode = nodes[0]
@@ -307,9 +316,15 @@ export function* discoverFiles(
 // HELPER FUNCTIONS
 // ============================================================================
 
+/** Check if a filename has a parseable extension (.md or .txt) */
+function isParseableFile(name: string): boolean {
+  return name.endsWith(".md") || name.endsWith(".txt")
+}
+
 /**
- * Fast markdown file count using stack-based iteration (no recursion).
- * Follows symlinks with cycle detection. Used for progress display only.
+ * Fast parseable file count using stack-based iteration (no recursion).
+ * Counts .md and .txt files. Follows symlinks with cycle detection.
+ * Used for progress display only.
  */
 function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): number {
   if (!existsSync(rootPath)) return 0
@@ -341,7 +356,7 @@ function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): num
                 visitedSymlinks.add(real)
                 stack.push(fullPath)
               }
-            } else if (stat.isFile() && entry.name.endsWith(".md")) {
+            } else if (stat.isFile() && isParseableFile(entry.name)) {
               count++
             }
           } catch {
@@ -349,7 +364,7 @@ function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): num
           }
         } else if (entry.isDirectory()) {
           stack.push(fullPath)
-        } else if (entry.isFile() && entry.name.endsWith(".md")) {
+        } else if (entry.isFile() && isParseableFile(entry.name)) {
           count++
         }
       }
@@ -401,6 +416,7 @@ function createStubFileEvent(
   fsPath: string,
   name: string,
   ts: number,
+  fstype: "mdfile" | "txtfile" = "mdfile",
 ): Event {
   return {
     id,
@@ -410,7 +426,7 @@ function createStubFileEvent(
     data: {
       id,
       type: "oi",
-      fstype: "mdfile",
+      fstype,
       parent_id: parentId,
       parent_idx: order,
       fs_path: fsPath,

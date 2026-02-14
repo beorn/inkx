@@ -179,7 +179,11 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.setUI((prev) => {
         const styles = ["nerdfont", "workflowy", "regular"] as const
         const idx = styles.indexOf(prev.iconStyle)
-        return { iconStyle: styles[(idx + 1) % styles.length] ?? "nerdfont" }
+        const next = styles[(idx + 1) % styles.length] ?? "nerdfont"
+        return {
+          iconStyle: next,
+          status: { level: "info" as const, message: `Icon style: ${next}` },
+        }
       })
       return ok()
     case "SHOW_HELP":
@@ -274,6 +278,20 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // Collapse the column (not the card) — use column node ID
       const collapseNodeId = col?.node.id
       if (!collapseNodeId) return boundary("collapse", "No column to collapse")
+      // Persist collapsed state to node.data so it survives across sessions
+      const colNode = ctx.repo.getNode(collapseNodeId)
+      if (colNode) {
+        const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
+        const newCollapsed = !wasCollapsed
+        const existingData = (colNode.data ?? {}) as Record<string, unknown>
+        if (newCollapsed) {
+          ctx.repo.updateNode(collapseNodeId, { data: { ...existingData, collapsed: true } })
+        } else {
+          // Remove the collapsed key to keep data clean
+          const { collapsed: _, ...rest } = existingData
+          ctx.repo.updateNode(collapseNodeId, { data: rest })
+        }
+      }
       ctx.dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: collapseNodeId })
       return ok()
     }
