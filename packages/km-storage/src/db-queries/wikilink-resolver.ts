@@ -56,8 +56,8 @@ export function findFileByName(db: Database, name: string): KNode | null {
 export function findChildByContent(db: Database, fileId: string, sectionName: string): KNode | null {
   const normalizedSection = sectionName.toLowerCase().trim()
 
-  // Get all descendants of this file
-  const rows = db
+  // Get the best-matching descendant of this file
+  const row = db
     .query(
       `
     WITH RECURSIVE descendants AS (
@@ -100,6 +100,6 @@ export function findChildByContent(db: Database, fileId: string, sectionName: st
       normalizedSection,
     ) as Record<string, unknown> | null
 
-  if (!rows) return null
-  return rowToNode(rows)
+  if (!row) return null
+  return rowToNode(row)
 }

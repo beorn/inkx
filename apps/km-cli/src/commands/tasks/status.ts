@@ -14,6 +14,20 @@ import { getMarkerForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
 
+/** Get styled status icon for terminal display */
+function getStatusIcon(status: string): string {
+  switch (status) {
+    case "done":
+      return term.green("✓")
+    case "wip":
+      return term.yellow("●")
+    case "blocked":
+      return term.red("✗")
+    default:
+      return term.dim("○")
+  }
+}
+
 /**
  * Create the status subcommand
  */
@@ -48,16 +62,7 @@ export function createStatusCommand() {
         }
 
         const status = task.task_status ?? "todo"
-        const statusIcon =
-          status === "done"
-            ? term.green("✓")
-            : status === "wip"
-              ? term.yellow("●")
-              : status === "blocked"
-                ? term.red("✗")
-                : term.dim("○")
-
-        console.log(`${statusIcon} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`)
+        console.log(`${getStatusIcon(status)} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`)
         return
       }
 
@@ -81,17 +86,8 @@ export function createStatusCommand() {
         return
       }
 
-      const statusIcon =
-        newStatus === "done"
-          ? term.green("✓")
-          : newStatus === "wip"
-            ? term.yellow("●")
-            : newStatus === "blocked"
-              ? term.red("✗")
-              : term.dim("○")
-
       console.log(
-        `${statusIcon} ${term.dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
+        `${getStatusIcon(newStatus)} ${term.dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
       )
     })
 }

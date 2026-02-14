@@ -34,14 +34,18 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showI
     return prefix + name + style.gray(` ${ca.typeSuffix}`)
   }
   // No collapsed suffix - show individual type indicator based on fstype
-  if (ca.node.type === "oi" && ca.node.fstype === "folder") {
-    return prefix + name + style.gray("/")
-  } else if (ca.node.type === "oi" && (ca.node.fstype === "file" || ca.node.fstype === "mdfile")) {
-    // Only add .md if name doesn't already end with it
-    return prefix + (name.endsWith(".md") ? name : name + style.gray(".md"))
-  } else if (ca.node.type === "oi" && ca.node.fstype === "mdsection") {
-    const depth = (ca.node.data?.depth as number) ?? 1
-    return prefix + style.gray("#".repeat(depth) + " ") + name
+  if (ca.node.type === "oi") {
+    switch (ca.node.fstype) {
+      case "folder":
+        return prefix + name + style.gray("/")
+      case "file":
+      case "mdfile":
+        return prefix + (name.endsWith(".md") ? name : name + style.gray(".md"))
+      case "mdsection": {
+        const depth = (ca.node.data?.depth as number) ?? 1
+        return prefix + style.gray("#".repeat(depth) + " ") + name
+      }
+    }
   }
   return prefix + name
 }

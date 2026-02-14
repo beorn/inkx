@@ -6,12 +6,10 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
-import type { KNode } from "@km/core"
+import { isBlock, type KNode } from "@km/core"
 import { handleCursorMove } from "./board-actions-nav.ts"
-import { clearSelection, pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
-
-import { isBlock } from "@km/core"
 
 /**
  * After zoom, children become columns. Place cursor on the first navigable card
@@ -59,17 +57,7 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
     // We have a parent - zoom out to it
     const parentNode = ctx.repo.getNode(currentRoot.parent_id)
     if (parentNode) {
-      pushNavHistoryEntry(
-        ctx.setUI,
-        ctx.rootId,
-        layout.colIndex,
-        layout.cardIndex,
-        ui.subIndex,
-        ui.multiSelected,
-        ui.inOutlineMode,
-        ctx.cursorNodeId,
-        ctx.foldedNodes,
-      )
+      saveNavHistory(ctx)
 
       // When zooming out, keep the current root as the cursor
       dispatchBoard({
@@ -91,7 +79,7 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
  * Zoom into the selected card.
  */
 export function handleZoomIn(ctx: ActionCtx): ActionResult {
-  const { ui, dispatchBoard, layout } = ctx
+  const { dispatchBoard, layout } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
 
@@ -106,17 +94,7 @@ export function handleZoomIn(ctx: ActionCtx): ActionResult {
   }
 
   // Save current state to history
-  pushNavHistoryEntry(
-    ctx.setUI,
-    ctx.rootId,
-    layout.colIndex,
-    layout.cardIndex,
-    ui.subIndex,
-    ui.multiSelected,
-    ui.inOutlineMode,
-    ctx.cursorNodeId,
-    ctx.foldedNodes,
-  )
+  saveNavHistory(ctx)
 
   dispatchBoard({
     type: "ZOOM_IN",
@@ -132,7 +110,7 @@ export function handleZoomIn(ctx: ActionCtx): ActionResult {
  * Zoom into a specific node by ID (works for both cards and columns)
  */
 export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
-  const { ui, dispatchBoard, layout } = ctx
+  const { dispatchBoard } = ctx
 
   // Verify node has children
   const children = ctx.repo.getChildren(nodeId)
@@ -141,17 +119,7 @@ export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
   }
 
   // Save current state to history
-  pushNavHistoryEntry(
-    ctx.setUI,
-    ctx.rootId,
-    layout.colIndex,
-    layout.cardIndex,
-    ui.subIndex,
-    ui.multiSelected,
-    ui.inOutlineMode,
-    ctx.cursorNodeId,
-    ctx.foldedNodes,
-  )
+  saveNavHistory(ctx)
 
   dispatchBoard({
     type: "ZOOM_IN",
@@ -174,7 +142,7 @@ export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
  * Stops walking at repo root (parent_id === null).
  */
 export function handleFollowLink(ctx: ActionCtx): ActionResult {
-  const { layout, dispatchBoard, ui } = ctx
+  const { layout, dispatchBoard } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
   const linkTo = card?.node.link_to
@@ -193,17 +161,7 @@ export function handleFollowLink(ctx: ActionCtx): ActionResult {
     rootId = node.parent_id
   }
 
-  pushNavHistoryEntry(
-    ctx.setUI,
-    ctx.rootId,
-    layout.colIndex,
-    layout.cardIndex,
-    ui.subIndex,
-    ui.multiSelected,
-    ui.inOutlineMode,
-    ctx.cursorNodeId,
-    ctx.foldedNodes,
-  )
+  saveNavHistory(ctx)
 
   dispatchBoard({
     type: "ZOOM_IN",
@@ -265,17 +223,7 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
     const targetChild = flatChildren[ui.subIndex - 1]
     if (targetChild?.node) {
       // Save state and zoom to child
-      pushNavHistoryEntry(
-        ctx.setUI,
-        ctx.rootId,
-        layout.colIndex,
-        layout.cardIndex,
-        ui.subIndex,
-        ui.multiSelected,
-        ui.inOutlineMode,
-        ctx.cursorNodeId,
-        ctx.foldedNodes,
-      )
+      saveNavHistory(ctx)
 
       ctx.setUI({ inOutlineMode: false, subIndex: 0 })
 

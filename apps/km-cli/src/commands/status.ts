@@ -17,9 +17,8 @@ import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 import { getMarkerForStatus } from "@km/core"
-import type { TaskStatus, TaskMarker, KNode } from "@km/core"
+import type { TaskStatus, KNode } from "@km/core"
 import type { Repo } from "@km/storage"
-
 
 /** Get styled status icon for terminal display */
 function getStatusIcon(status: string): string {

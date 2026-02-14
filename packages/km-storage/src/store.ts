@@ -346,7 +346,7 @@ export class MemoryStore extends BaseStore {
 
     // Log parse errors summary if any occurred
     if (this.parseErrors.length > 0) {
-      log.warn(`${this.parseErrors.length} file(s) could not be parsed`, {
+      log.warn?.(`${this.parseErrors.length} file(s) could not be parsed`, {
         errors: this.parseErrors.slice(0, 5).map(({ path, error }) => ({ path, error })),
         truncated: this.parseErrors.length > 5 ? this.parseErrors.length - 5 : 0,
       })

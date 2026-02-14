@@ -33,8 +33,8 @@ import type { KNode } from "@km/core"
 import type { ParsePoolService } from "./parse-pool.ts"
 import type { Emitter } from "./emitter.ts"
 import { emitNodeCreated, emitNodeUpdated } from "./emitter.ts"
-import { createLinkResolver, type LinkResolver } from "./link-resolver.ts"
-import type { WikilinkRef, ResolvedLink } from "./markdown-processing.ts"
+import { createLinkResolver } from "./link-resolver.ts"
+import { resolveWikilink, type WikilinkRef, type ResolvedLink } from "./markdown-processing.ts"
 
 const log = createLogger("km:storage:pipeline")
 
@@ -255,40 +255,6 @@ export async function* pipelineResolveLinks(
   log.debug?.("pipelineResolveLinks: completed")
 }
 
-/**
- * Resolve a single wikilink using the resolver.
- */
-function resolveWikilink(ref: WikilinkRef, resolver: LinkResolver): ResolvedLink {
-  const { nodeId, link, relationship } = ref
-
-  let targetId: string | null = null
-
-  // Prefer block_id resolution (stable across content edits)
-  if (link.blockId) {
-    targetId = resolver.resolveBlockId(link.blockId)
-  }
-
-  if (!targetId) {
-    targetId = resolver.resolveTarget(link.target)
-    if (targetId && link.section) {
-      const sectionId = resolver.resolveSection(targetId, link.section)
-      if (sectionId) {
-        targetId = sectionId
-      }
-    }
-  }
-
-  return {
-    source_id: nodeId,
-    target_name: link.target,
-    target_id: targetId,
-    section: link.section ?? null,
-    block_id: link.blockId ?? null,
-    alias: link.alias ?? null,
-    embedded: link.embedded ?? false,
-    relationship: relationship ?? null,
-  }
-}
 
 // ============================================================================
 // STAGE 4: applyLinks - Buffering

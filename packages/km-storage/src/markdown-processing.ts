@@ -139,39 +139,46 @@ export interface ResolvedLink {
 }
 
 /**
+ * Resolve a single wikilink reference using a LinkResolver.
+ */
+export function resolveWikilink(ref: WikilinkRef, resolver: LinkResolver): ResolvedLink {
+  const { nodeId, link, relationship } = ref
+
+  let targetId: string | null = null
+
+  // Prefer block_id resolution (stable across content edits)
+  if (link.blockId) {
+    targetId = resolver.resolveBlockId(link.blockId)
+  }
+
+  if (!targetId) {
+    targetId = resolver.resolveTarget(link.target)
+    if (targetId && link.section) {
+      const sectionId = resolver.resolveSection(targetId, link.section)
+      if (sectionId) {
+        targetId = sectionId
+      }
+    }
+  }
+
+  return {
+    source_id: nodeId,
+    target_name: link.target,
+    target_id: targetId,
+    section: link.section ?? null,
+    block_id: link.blockId ?? null,
+    alias: link.alias ?? null,
+    embedded: link.embedded ?? false,
+    relationship: relationship ?? null,
+  }
+}
+
+/**
  * Resolve wikilinks using a LinkResolver.
  * Used by the syncing path for immediate resolution.
  */
 export function toResolvedLinks(processed: ProcessedMarkdown, resolver: LinkResolver): ResolvedLink[] {
-  return processed.wikilinks.map(({ nodeId, link, relationship }) => {
-    let targetId: string | null = null
-
-    // Prefer block_id resolution (stable across content edits)
-    if (link.blockId) {
-      targetId = resolver.resolveBlockId(link.blockId)
-    }
-
-    if (!targetId) {
-      targetId = resolver.resolveTarget(link.target)
-      if (targetId && link.section) {
-        const sectionId = resolver.resolveSection(targetId, link.section)
-        if (sectionId) {
-          targetId = sectionId
-        }
-      }
-    }
-
-    return {
-      source_id: nodeId,
-      target_name: link.target,
-      target_id: targetId,
-      section: link.section ?? null,
-      block_id: link.blockId ?? null,
-      alias: link.alias ?? null,
-      embedded: link.embedded ?? false,
-      relationship: relationship ?? null,
-    }
-  })
+  return processed.wikilinks.map((ref) => resolveWikilink(ref, resolver))
 }
 
 /**

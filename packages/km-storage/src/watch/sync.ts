@@ -17,6 +17,7 @@ import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
+import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
 import type { Event, KNode } from "@km/core"
@@ -436,11 +437,7 @@ export class SyncManager extends EventEmitter {
 
   /** Walk up parent chain to find the containing file node */
   private findFileNode(node: KNode): KNode | null {
-    if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile")) return node
-    if (!node.parent_id) return null
-    const parent = getNode(this.db, node.parent_id)
-    if (!parent) return null
-    return this.findFileNode(parent)
+    return findFileNode(this.db, node)
   }
 
   /**
@@ -967,37 +964,3 @@ export class SyncManager extends EventEmitter {
   }
 }
 
-/**
- * Find the file node that contains a given node
- */
-function findFileNode(db: Database, node: KNode): KNode | null {
-  if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile")) {
-    return node
-  }
-
-  if (!node.parent_id) {
-    return null
-  }
-
-  const parent = getNode(db, node.parent_id)
-  if (!parent) {
-    return null
-  }
-
-  return findFileNode(db, parent)
-}
-
-/**
- * Convert a title to a safe filename.
- * Preserves case, replaces unsafe chars with dashes, appends .md.
- */
-function titleToFilename(title: string): string {
-  const name = title
-    .trim()
-    .replace(/[/\\:*?"<>|]/g, "-") // Replace filesystem-unsafe chars
-    .replace(/\s+/g, " ") // Normalize whitespace but keep spaces (readable filenames)
-    .replace(/^\.+/, "") // Remove leading dots (hidden files)
-    .replace(/-+/g, "-") // Collapse multiple dashes
-    .replace(/^-|-$/g, "") // Remove leading/trailing dashes
-  return (name || "untitled") + ".md"
-}

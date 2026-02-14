@@ -8,18 +8,8 @@ import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
 const term = createTerm(process)
-import type { Repo } from "@km/storage"
 import { loadRepo } from "../load-repo.ts"
 import * as readline from "readline"
-
-/**
- * Get the inbox node (or default to ./inbox folder)
- */
-function getInboxNode(repo: Repo) {
-  // Try to find inbox folder
-  const inbox = repo.resolveNode("inbox")
-  return inbox
-}
 
 export const inboxCommand = new Command("inbox")
   .description("GTD-style inbox processing")
@@ -28,7 +18,7 @@ export const inboxCommand = new Command("inbox")
     using repo = await loadRepo(process.cwd())
 
     // List inbox items
-    const inbox = getInboxNode(repo)
+    const inbox = repo.resolveNode("inbox")
     if (!inbox) {
       if (options.json) {
         console.log(JSON.stringify({ items: [], count: 0 }))
@@ -71,7 +61,7 @@ inboxCommand
   .description("Interactive inbox processing")
   .action(async () => {
     using repo = await loadRepo(process.cwd())
-    const inbox = getInboxNode(repo)
+    const inbox = repo.resolveNode("inbox")
 
     if (!inbox) {
       console.log(term.yellow("No inbox found. Create an inbox/ folder."))
@@ -189,7 +179,7 @@ inboxCommand
   .option("--json", "Output as JSON")
   .action(async (content: string[], options: { json?: boolean }) => {
     using repo = await loadRepo(process.cwd())
-    const inbox = getInboxNode(repo)
+    const inbox = repo.resolveNode("inbox")
 
     if (!inbox) {
       console.error(term.red("No inbox found. Create an inbox/ folder."))

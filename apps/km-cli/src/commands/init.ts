@@ -39,31 +39,7 @@ export const initCommand = new Command("init")
     // Priority: --repo from parent > path arg > KM_ROOT env > cwd
     const parentOpts = command.parent?.opts() as { repo?: string } | undefined
     const globalRoot = parentOpts?.repo || process.env.KM_ROOT
-    let targetDir: string
-
-    if (pathArg) {
-      // Path argument provided
-      const expanded = pathArg.startsWith("~") ? pathArg.replace("~", process.env.HOME || "") : pathArg
-      targetDir = resolve(expanded)
-
-      // Create target directory if it doesn't exist
-      if (!existsSync(targetDir)) {
-        mkdirSync(targetDir, { recursive: true })
-        console.log(term.dim(`Created directory: ${targetDir}`))
-      }
-    } else if (globalRoot) {
-      // Expand ~ and resolve to absolute path
-      const expanded = globalRoot.startsWith("~") ? globalRoot.replace("~", process.env.HOME || "") : globalRoot
-      targetDir = resolve(expanded)
-
-      // Create target directory if it doesn't exist
-      if (!existsSync(targetDir)) {
-        mkdirSync(targetDir, { recursive: true })
-        console.log(term.dim(`Created directory: ${targetDir}`))
-      }
-    } else {
-      targetDir = resolve(process.cwd())
-    }
+    const targetDir = resolveTargetDir(pathArg ?? globalRoot)
 
     const kmDir = join(targetDir, ".km")
 
@@ -141,6 +117,21 @@ export const initCommand = new Command("init")
 // ============================================
 // Helper Functions
 // ============================================
+
+/**
+ * Resolve target directory from a path argument (expanding ~ and creating if needed).
+ * Falls back to cwd if no path provided.
+ */
+function resolveTargetDir(pathArg: string | undefined): string {
+  if (!pathArg) return resolve(process.cwd())
+  const expanded = pathArg.startsWith("~") ? pathArg.replace("~", process.env.HOME || "") : pathArg
+  const dir = resolve(expanded)
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
+    console.log(term.dim(`Created directory: ${dir}`))
+  }
+  return dir
+}
 
 /**
  * Search for .km/ in ancestors of the given directory

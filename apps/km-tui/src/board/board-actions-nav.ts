@@ -7,7 +7,7 @@
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { getCardMidY } from "../card-positions.ts"
-import { clearSelection, pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -211,7 +211,7 @@ function navigateHistory(ctx: ActionCtx, delta: -1 | 1): ActionResult {
  * Navigate to sibling board.
  */
 export function handleNavSiblingBoard(ctx: ActionCtx, direction: "next" | "prev"): ActionResult {
-  const { ui, dispatchBoard, layout } = ctx
+  const { dispatchBoard } = ctx
 
   if (!ctx.rootId) {
     return boundary(direction, "no root")
@@ -233,18 +233,7 @@ export function handleNavSiblingBoard(ctx: ActionCtx, direction: "next" | "prev"
   const targetSibling = siblings[targetIdx]
   if (!targetSibling || targetSibling.id === currentRoot.id) return ok()
 
-  // Save current state
-  pushNavHistoryEntry(
-    ctx.setUI,
-    ctx.rootId,
-    layout.colIndex,
-    layout.cardIndex,
-    ui.subIndex,
-    ui.multiSelected,
-    ui.inOutlineMode,
-    ctx.cursorNodeId,
-    ctx.foldedNodes,
-  )
+  saveNavHistory(ctx)
 
   // Navigate to sibling
   dispatchBoard({

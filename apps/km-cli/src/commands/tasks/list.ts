@@ -148,7 +148,7 @@ function renderFlat(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
     const rawAncestors = repo.getAncestors(task.id)
     const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
     const lines = formatTaskWithPath(repo, task, collapsedAncestors, {
-      verbose: options.detail,
+      detail: options.detail,
       flat: true,
       showId: options.id,
     })
@@ -213,7 +213,7 @@ function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
     // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
     const taskIndent = hasSection ? fsDepth + 3 : fsDepth
     const taskPrefix = " ".repeat(taskIndent)
-    console.log(taskPrefix + formatTaskLine(task, { verbose: options.detail, showId: options.id }))
+    console.log(taskPrefix + formatTaskLine(task, { detail: options.detail, showId: options.id }))
 
     previousAncestorKeys = ancestorKeys
   }

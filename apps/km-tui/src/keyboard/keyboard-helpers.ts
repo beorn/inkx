@@ -41,6 +41,21 @@ export function pushNavHistoryEntry(
   })
 }
 
+/** Push nav history from ActionCtx (convenience wrapper to avoid 9-arg repetition) */
+export function saveNavHistory(ctx: ActionCtx): void {
+  pushNavHistoryEntry(
+    ctx.setUI,
+    ctx.rootId,
+    ctx.layout.colIndex,
+    ctx.layout.cardIndex,
+    ctx.ui.subIndex,
+    ctx.ui.multiSelected,
+    ctx.ui.inOutlineMode,
+    ctx.cursorNodeId,
+    ctx.foldedNodes,
+  )
+}
+
 // =============================================================================
 // Selection Helpers
 // =============================================================================

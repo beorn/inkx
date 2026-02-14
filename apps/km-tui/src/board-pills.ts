@@ -30,10 +30,7 @@ export function getOwnColor(node: KNode): string | undefined {
     return node.rules.color
   }
   const dataRules = node.data?.rules as { color?: string } | undefined
-  if (dataRules?.color) {
-    return dataRules.color
-  }
-  return undefined
+  return dataRules?.color
 }
 
 /**
@@ -50,14 +47,10 @@ function getInheritedColor(repo: Repo, node: KNode): string | undefined {
   }
 
   // Check ancestors for inherited color
-  const ancestors = repo.getAncestors(node.id)
-  for (const ancestor of ancestors) {
+  for (const ancestor of repo.getAncestors(node.id)) {
     const ancestorColor = getOwnColor(ancestor)
-    if (ancestorColor) {
-      return ancestorColor
-    }
+    if (ancestorColor) return ancestorColor
   }
-
   return undefined
 }
 

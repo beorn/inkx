@@ -6,6 +6,7 @@
 
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
 import type { Issue, CreateIssueOptions } from "./types.ts"
 import { generateShortId, generateCustomId, generateSubId } from "./short-ids.ts"
 
@@ -102,28 +103,8 @@ export function updateIssueFields(
   }
 
   if (changes.status !== undefined) {
-    switch (changes.status) {
-      case "done":
-        updates.task_status = "done"
-        updates.task_marker = "[x]"
-        break
-      case "wip":
-        updates.task_status = "wip"
-        updates.task_marker = "[/]"
-        break
-      case "blocked":
-        updates.task_status = "blocked"
-        updates.task_marker = "[!]"
-        break
-      case "dropped":
-        updates.task_status = "dropped"
-        updates.task_marker = "[-]"
-        break
-      case "todo":
-        updates.task_status = "todo"
-        updates.task_marker = "[ ]"
-        break
-    }
+    updates.task_status = changes.status
+    updates.task_marker = getMarkerForStatus(changes.status)
   }
 
   if (changes.priority !== undefined) {
@@ -143,7 +124,7 @@ export function updateIssueFields(
 export function closeIssueFields(reason?: string): Partial<KNode> {
   const updates: Partial<KNode> = {
     task_status: "done",
-    task_marker: "[x]",
+    task_marker: getMarkerForStatus("done"),
     updated_at: Date.now(),
   }
 
@@ -161,7 +142,7 @@ export function closeIssueFields(reason?: string): Partial<KNode> {
 export function dropIssueFields(reason?: string): Partial<KNode> {
   const updates: Partial<KNode> = {
     task_status: "dropped",
-    task_marker: "[-]",
+    task_marker: getMarkerForStatus("dropped"),
     updated_at: Date.now(),
   }
 

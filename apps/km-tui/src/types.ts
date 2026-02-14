@@ -4,7 +4,7 @@
  * Shared types for the boardliner TUI
  */
 
-import type { KNode, TaskStatus, TaskMarker } from "@km/core"
+import type { KNode } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 
 /**
@@ -25,14 +25,6 @@ export interface TUIBoardState {
   helpMode: boolean
 }
 
-/**
- * WIP (Work In Progress) limit configuration for a column
- * Extracted from file frontmatter under columns.<column-name>.limit
- */
-export interface WipConfig {
-  limit?: number // Maximum cards allowed in this column
-}
-
 export interface ColumnState {
   node: KNode
   cards: CardState[]
@@ -51,18 +43,6 @@ export interface CardState {
   isVirtual?: boolean
   /** Body content nodes merged into this virtual card (stacked rendering) */
   bodyNodes?: KNode[]
-}
-
-// Status cycle order
-export const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
-
-// Task markers by status (full bracket strings)
-export const STATUS_MARKERS: Record<TaskStatus, TaskMarker> = {
-  todo: "[ ]",
-  wip: "[/]",
-  blocked: "[!]",
-  done: "[x]",
-  dropped: "[-]",
 }
 
 /**

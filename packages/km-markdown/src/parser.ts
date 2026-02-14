@@ -86,12 +86,10 @@ export interface WikiLink {
  * Parse markdown content into AST
  */
 export function parseMarkdown(content: string): Root {
-  const tree = fromMarkdown(content, {
+  return fromMarkdown(content, {
     extensions: [gfm()],
     mdastExtensions: [gfmFromMarkdown()],
   })
-
-  return tree
 }
 
 /**

@@ -30,7 +30,7 @@ import {
   clearSelection,
   getSelectedCards,
   progressiveSelectAll,
-  pushNavHistoryEntry,
+  saveNavHistory,
   refreshBoardState,
 } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
@@ -667,8 +667,6 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
 }
 
 function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
-  const { ui, dispatchBoard, layout } = ctx
-
   const favoriteKey = `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES
   const favoriteId = DEFAULT_FAVORITES[favoriteKey]
 
@@ -677,25 +675,8 @@ function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
   const targetNode = ctx.repo.getNode(favoriteId)
   if (!targetNode) return
 
-  // Save current state
-  pushNavHistoryEntry(
-    ctx.setUI,
-    ctx.rootId,
-    layout.colIndex,
-    layout.cardIndex,
-    ui.subIndex,
-    ui.multiSelected,
-    ui.inOutlineMode,
-    ctx.cursorNodeId,
-    ctx.foldedNodes,
-  )
-
-  // Navigate to favorite
-  dispatchBoard({
-    type: "ZOOM_IN",
-    nodeId: favoriteId,
-  })
-
+  saveNavHistory(ctx)
+  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: favoriteId })
   clearSelection(ctx)
 }
 
@@ -914,12 +895,7 @@ function handleSetDatePrompt(ctx: ActionCtx, field: "due_date" | "scheduled_date
   if (!firstNodeId) return boundary(field, "No card selected")
 
   const firstNode = ctx.repo.getNode(firstNodeId)
-  let currentValue = ""
-  if (firstNode) {
-    if (field === "due_date") currentValue = firstNode.due_date ?? ""
-    else if (field === "scheduled_date") currentValue = firstNode.scheduled_date ?? ""
-    else if (field === "recurrence") currentValue = firstNode.recurrence ?? ""
-  }
+  const currentValue = firstNode?.[field] ?? ""
 
   ctx.setUI({
     datePrompt: { field, nodeIds, currentValue },

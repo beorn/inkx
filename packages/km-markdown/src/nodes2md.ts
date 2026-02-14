@@ -78,13 +78,6 @@ export function nodesToMarkdown(
 }
 
 /**
- * Check if a node is a list item type (task, ul, ol)
- */
-function isListItemType(node: KNode): boolean {
-  return node.type === "li"
-}
-
-/**
  * Serialize children with proper list grouping.
  * Consecutive list items are grouped together with no blank lines between them,
  * and a single blank line is added after each group.
@@ -97,8 +90,8 @@ function serializeChildren(children: KNode[], ctx: SerializeContext): string {
     const child = children[i]!
     const nextChild = children[i + 1]
 
-    const isCurrentList = isListItemType(child)
-    const isNextList = nextChild && isListItemType(nextChild)
+    const isCurrentList = child.type === "li"
+    const isNextList = nextChild?.type === "li"
 
     if (isCurrentList) {
       // For list items: serialize without trailing newline, add blank line only at end of group
