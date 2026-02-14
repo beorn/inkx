@@ -337,116 +337,13 @@ export function parseColumnRules(content: string): ColumnRules {
 }
 
 /**
- * Build board state from a specific root ID
- *
- * Board hierarchy:
- * - Root node's children become columns
- * - Each column's children become cards
- *
- * For markdown files, the parser merges the H1 into the file node,
- * so H2 sections are direct children of the file node (columns).
+ * Build board state from a specific root ID (synchronous).
+ * Delegates to the generator version, exhausting all yields.
  */
 export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
-  const rootNode = repo.getNode(rootId)
-  const wipLimits = extractWipLimits(rootNode)
-  const collapsedColumns = new Set<number>()
-  const collapsedNodeIds = new Set<string>()
-
-  // Get direct children and split into body content vs structural items
-  const allChildren = repo.getChildren(rootId)
-  const { body: bodyNodes, items: columnNodes } = extractBody(allChildren)
-
-  // PERFORMANCE OPTIMIZATION: Batch query child counts for all columns FIRST
-  // This lets us skip getChildren() calls for columns with 0 children.
-  // For flat boards like @issue with 766 files, this reduces 766 queries to 1.
-  const columnIds = columnNodes.map((n) => n.id)
-  const columnChildCounts = repo.getChildCounts(columnIds)
-
-  // First pass: collect all card IDs across all columns for batch child count query
-  // Note: getChildren() now includes query:add links from storage layer,
-  // so we don't need to evaluate add= rules here at display time.
-  const columnCardNodes: KNode[][] = []
-  const allCardIds: string[] = []
-
-  for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
-    const colNode = columnNodes[colIdx]
-    if (!colNode) continue
-
-    // OPTIMIZATION: Skip getChildren() for columns with no children
-    const colChildCount = columnChildCounts.get(colNode.id) ?? 0
-    if (colChildCount === 0) {
-      columnCardNodes[colIdx] = []
-      continue
-    }
-
-    // getChildren includes both direct children AND linked children from add= rules
-    const cardNodes = repo.getChildren(colNode.id)
-    columnCardNodes[colIdx] = cardNodes
-
-    // Collect IDs for batch query
-    for (const cardNode of cardNodes) {
-      allCardIds.push(cardNode.id)
-    }
-  }
-
-  // Single batch query for all child counts - avoids N+1 problem
-  const childCounts = repo.getChildCounts(allCardIds)
-
-  // Second pass: build columns with the pre-fetched child counts
-  const columns: ColumnState[] = []
-
-  // Add virtual body column if there's meaningful leading content
-  // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
-  const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
-  if (meaningfulBody.length > 0) {
-    columns.push({
-      node: createVirtualBodyNode(rootId),
-      cards: [{ node: meaningfulBody[0]!, children: [], childCount: 0, isVirtual: true, bodyNodes: meaningfulBody }],
-      isVirtual: true,
-    })
-  }
-
-  for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
-    const colNode = columnNodes[colIdx]
-    if (!colNode) continue
-
-    const cardNodes = columnCardNodes[colIdx] ?? []
-    const rules = colNode.rules ?? parseColumnRules(colNode.content || "")
-
-    // Split into body content (before first oi) and structural cards.
-    // All body nodes merge into one virtual card; structural nodes are regular cards.
-    const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes)
-
-    const cards: CardState[] = buildColumnCards(colBodyNodes, structuralCards, childCounts)
-
-    // Look up WIP limit (from rules or frontmatter)
-    const colName = getNodeDisplayName(repo, colNode)
-    const normalizedName = normalizeColumnName(colName)
-    const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
-
-    // Track collapsed columns (offset by body column if present)
-    const actualColIdx = colIdx + (bodyNodes.length > 0 ? 1 : 0)
-    const isCollapsed = rules.collapse || (colNode.data as Record<string, unknown>)?.collapsed === true
-    if (isCollapsed) {
-      collapsedColumns.add(actualColIdx)
-      collapsedNodeIds.add(colNode.id)
-    }
-
-    columns.push({ node: colNode, cards, wipLimit, rules })
-  }
-
-  return {
-    rootId,
-    rootPath: null, // Will be set by caller if needed
-    columns,
-    selectedNodes: new Set(),
-    visualMode: false,
-    foldedNodes: new Set(),
-    collapsedColumns,
-    collapsedNodeIds,
-    searchQuery: "",
-    searchMode: false,
-    helpMode: false,
-  }
+  const gen = buildBoardStateGenerator(repo, rootId)
+  let result = gen.next()
+  while (!result.done) result = gen.next()
+  return result.value
 }
 
