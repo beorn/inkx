@@ -53,6 +53,7 @@ export interface ColumnRules {
   add?: string | string[] // Query to auto-pull matching tasks (multiple allowed)
   sync?: string // Bidirectional field sync (e.g., "status:blocked")
   collapse?: boolean // Start collapsed
+  hidden?: boolean // Hide column from view entirely
   limit?: number // WIP limit
   default?: boolean // Default column for new items
 }

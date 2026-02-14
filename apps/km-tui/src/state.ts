@@ -209,6 +209,9 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     const cardNodes = columnCardNodes[colIdx] ?? []
     const rules = colNode.rules ?? parseColumnRules(colNode.content || "")
 
+    // Skip hidden columns entirely
+    if (rules.hidden) continue
+
     // Split into body content (before first oi) and structural cards.
     // All body nodes merge into one virtual card; structural nodes are regular cards.
     const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes)
@@ -317,6 +320,9 @@ export function parseColumnRules(content: string): ColumnRules {
         break
       case "collapse":
         if (value === "true") rules.collapse = true
+        break
+      case "hidden":
+        if (value === "true") rules.hidden = true
         break
       case "limit":
         rules.limit = parseInt(value, 10)
