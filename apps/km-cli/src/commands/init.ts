@@ -219,6 +219,8 @@ const GTD_NEXT_MD = `# Next Actions color=cyan
 
 ## Today add="due:today status:todo" add="start:past status:todo" color=yellow
 
+## This Week add="due:week status:todo" add="due:week status:wip"
+
 ## Inbox add="./inbox/**" default=true
 
 ## Processing

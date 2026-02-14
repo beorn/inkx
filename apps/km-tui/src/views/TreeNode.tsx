@@ -34,6 +34,7 @@ import {
   getNodeStyle,
   buildPrefix,
   formatInfoSuffix,
+  formatDateBadge,
   truncateContext,
   stripTaskMark,
   VARIANT_CONFIG,
@@ -106,6 +107,11 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     prev.node.content !== next.node.content ||
     prev.node.task_status !== next.node.task_status ||
     prev.node.due_date !== next.node.due_date ||
+    prev.node.due_time !== next.node.due_time ||
+    prev.node.scheduled_date !== next.node.scheduled_date ||
+    prev.node.scheduled_time !== next.node.scheduled_time ||
+    prev.node.priority !== next.node.priority ||
+    prev.node.recurrence !== next.node.recurrence ||
     prev.node.type !== next.node.type
   ) {
     return false
@@ -419,18 +425,29 @@ function TreeNodeImpl({
   }, [cleanContent, excludedSigils, sigilColors, resolveSigilColor, isOneliner])
 
   // Memoize info suffix - only recalc when node metadata changes
-  // Use displayNode for metadata (due_date, assigned_to, etc.)
+  // Use displayNode for metadata (assigned_to, board pills)
   const infoSuffix = useMemo(
     () => formatInfoSuffix(displayNode, !isOneliner, excludeBoardIds, getBoardPills),
     [
       displayNode.id,
-      displayNode.due_date,
-      displayNode.scheduled_date,
       displayNode.assigned_to,
       displayNode.task_status,
       isOneliner,
       rootBoardId,
       getBoardPills,
+    ],
+  )
+
+  // Memoize date badge (priority, recurrence, scheduled, due) - shown right-aligned
+  const dateBadge = useMemo(
+    () => formatDateBadge(displayNode),
+    [
+      displayNode.due_date,
+      displayNode.due_time,
+      displayNode.scheduled_date,
+      displayNode.scheduled_time,
+      displayNode.priority,
+      displayNode.recurrence,
     ],
   )
 
@@ -550,6 +567,14 @@ function TreeNodeImpl({
               </Text>
             )}
           </Box>
+          {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
+          {dateBadge && (
+            <Box flexShrink={0}>
+              <Text dimColor={!(isSelected || isMultiSelected)} wrap="truncate">
+                {" "}{dateBadge}
+              </Text>
+            </Box>
+          )}
           {/* Right-aligned: child count (always visible when has children) */}
           {hasChildren && (
             <Box flexShrink={0}>

@@ -5,7 +5,7 @@
  */
 
 import { extractTitleTaskMark, type KNode } from "@km/core"
-import { getStatusIcon, styledUnderline, type StatusIcon } from "../text/index.ts"
+import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
 // =============================================================================
@@ -154,35 +154,105 @@ export function buildPrefix(bulletIcon: StatusIcon): PrefixResult {
 // Info Suffix Helpers
 // =============================================================================
 
-/**
- * Format a due date with urgency-based styling.
- */
-function formatDueDate(dueDate: Date): string {
-  const dueStr = dueDate.toISOString().slice(5, 10)
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+const RED = "\x1b[31m"
+const GREEN = "\x1b[32m"
+const RESET = "\x1b[0m"
+
+/** Format a date as "Feb 11" */
+function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr)
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`
+}
+
+/** Compute days from today (negative = past, 0 = today, positive = future) */
+function daysFromToday(dateStr: string): number {
+  const d = new Date(dateStr)
   const now = new Date()
-  const daysUntilDue = Math.floor((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  const target = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  return Math.round((target - today) / (1000 * 60 * 60 * 24))
+}
 
-  let dueDisplay = `⏰${dueStr}`
-  if (daysUntilDue < 0) {
-    // Overdue - red curly underline
-    dueDisplay = styledUnderline("curly", [255, 80, 80], dueDisplay)
-  } else if (daysUntilDue <= 1) {
-    // Due today or tomorrow - orange underline
-    dueDisplay = styledUnderline("curly", [255, 165, 0], dueDisplay)
-  } else if (daysUntilDue <= 7) {
-    // Due within a week - yellow underline
-    dueDisplay = styledUnderline("single", [255, 255, 0], dueDisplay)
+/**
+ * Format a date as a relative string:
+ * - Past: "Feb 12"
+ * - Today: "Today"
+ * - Tomorrow: "Tomorrow"
+ * - 2-6 days: day name ("Sunday", "Monday", ...)
+ * - 7+ days: "Feb 20"
+ */
+function formatRelativeDate(dateStr: string): string {
+  const diff = daysFromToday(dateStr)
+  if (diff < 0) return formatShortDate(dateStr)
+  if (diff === 0) return "Today"
+  if (diff === 1) return "Tomorrow"
+  if (diff <= 6) return DAYS[new Date(dateStr).getUTCDay()] ?? formatShortDate(dateStr)
+  return formatShortDate(dateStr)
+}
+
+/**
+ * Format a due date with urgency coloring:
+ * - Overdue: red
+ * - Today/Tomorrow: green
+ * - Future: no color
+ */
+function formatDueDisplay(dateStr: string): string {
+  const diff = daysFromToday(dateStr)
+  const text = formatRelativeDate(dateStr)
+  if (diff < 0) return `${RED}${text}${RESET}`
+  if (diff <= 1) return `${GREEN}${text}${RESET}`
+  return text
+}
+
+// Priority ANSI colors: P1=red, P2=yellow, P3=bright yellow, P4=dim
+const PRIORITY_COLORS = ["\x1b[31m", "\x1b[33m", "\x1b[93m", "\x1b[2m"]
+
+/**
+ * Build a compact right-aligned date badge for a node.
+ * Format: `P2 Mar 10 → Today ↻` (each part optional, space-separated)
+ * Uses relative dates (Today, Tomorrow, day names) and urgency coloring on due dates.
+ * Visible in both cards and columns view.
+ */
+export function formatDateBadge(node: KNode): string {
+  const parts: string[] = []
+
+  // Priority badge
+  if (node.priority && node.priority >= 1 && node.priority <= 4) {
+    const color = PRIORITY_COLORS[node.priority - 1] ?? ""
+    parts.push(`${color}P${node.priority}\x1b[0m`)
   }
-  // No underline for dates > 7 days out
 
-  return dueDisplay
+  // Start date → due date (or just one)
+  // Hide past start dates for WIP tasks (already started, not useful info)
+  const hasStart = !!node.scheduled_date
+  const startInPast = hasStart && daysFromToday(node.scheduled_date!) < 0
+  const showStart = hasStart && !(startInPast && node.task_status === "wip")
+  const hasDue = !!node.due_date
+
+  if (showStart && hasDue) {
+    parts.push(`${formatRelativeDate(node.scheduled_date!)} → ${formatDueDisplay(node.due_date!)}`)
+  } else if (showStart) {
+    parts.push(`${formatRelativeDate(node.scheduled_date!)} →`)
+  } else if (hasDue) {
+    parts.push(formatDueDisplay(node.due_date!))
+  }
+
+  // Recurrence
+  if (node.recurrence) {
+    parts.push("↻")
+  }
+
+  return parts.length > 0 ? parts.join(" ") : ""
 }
 
 /** Type for getBoardPills callback (repo is captured in closure by caller) */
 export type GetBoardPillsFn = (node: KNode, excludeBoardIds: Set<string>) => BoardPill[]
 
 /**
- * Build the info suffix for a node (assignee, due date, board pills).
+ * Build the info suffix for a node (assignee + board pills).
+ * Date/priority/recurrence are handled separately by formatDateBadge.
  * In compact mode, only shows board pill dots.
  *
  * @param getBoardPills - Optional callback to get board pills (defaults to storage lookup)
@@ -203,34 +273,7 @@ export function formatInfoSuffix(
   if (!isCompact) {
     const infoParts: string[] = []
 
-    // Priority badge (P1=red, P2=orange, P3=yellow, P4=dim)
-    if (node.priority && node.priority >= 1 && node.priority <= 4) {
-      const priorityColors = ["\x1b[31m", "\x1b[33m", "\x1b[93m", "\x1b[2m"] // red, yellow, bright yellow, dim
-      const color = priorityColors[node.priority - 1] ?? ""
-      infoParts.push(`${color}P${node.priority}\x1b[0m`)
-    }
-
-    // Recurrence icon
-    if (node.recurrence) {
-      infoParts.push("🔁")
-    }
-
     if (node.assigned_to) infoParts.push(`@${node.assigned_to}`)
-
-    // Scheduled date (start date)
-    if (node.scheduled_date) {
-      const schedStr = new Date(node.scheduled_date).toISOString().slice(5, 10)
-      const timeStr = node.scheduled_time ? ` ${node.scheduled_time}` : ""
-      infoParts.push(`▶${schedStr}${timeStr}`)
-    }
-
-    // Due date
-    if (node.due_date) {
-      const dueDisplay = formatDueDate(new Date(node.due_date))
-      const timeStr = node.due_time ? ` ${node.due_time}` : ""
-      infoParts.push(`${dueDisplay}${timeStr}`)
-    }
-
     if (boardPillsStr) infoParts.push(boardPillsStr)
 
     return infoParts.length > 0 ? `  ${infoParts.join(" ")}` : ""

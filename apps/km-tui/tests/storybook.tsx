@@ -52,6 +52,7 @@ import {
   renderParentPath,
   type PathSegment,
 } from "../src/layout/index.ts"
+import { formatDateBadge } from "../src/views/tree-node-helpers.ts"
 import { TreeNode } from "../src/views/TreeNode.tsx"
 import { BoardCore } from "../src/views/Board.tsx"
 import { BottomBar } from "../src/views/board-bottom-bar.tsx"
@@ -119,6 +120,8 @@ const noopDialogHandlers = {
   handleNewItemCancel: () => {},
   handleSearchSelect: () => {},
   handleSearchCancel: () => {},
+  handleDatePromptConfirm: () => {},
+  handleDatePromptCancel: () => {},
 }
 
 // Mock Zustand store satisfying TreeNode's useAppStore/useAppShallow requirements
@@ -440,6 +443,72 @@ function Layer1TaskStyling(): React.ReactElement {
         {"    "}
         Missing status (null/undefined)
       </Text>
+      <Text> </Text>
+
+      <SubsectionHeader title="Date Badges (formatDateBadge)" />
+      <Text dimColor> Right-aligned badge: priority, start → due, recurrence</Text>
+      <Text dimColor> Format: P2 Mar 10 → Mar 15 ↻ (each part optional)</Text>
+      <Text> </Text>
+      <DateBadgeDemo />
+    </>
+  )
+}
+
+function DateBadgeDemo(): React.ReactElement {
+  const now = Date.now()
+  const day = 86400000
+
+  const d = (offset: number) => {
+    const date = new Date(now + offset * day)
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, "0")
+    const dd = String(date.getDate()).padStart(2, "0")
+    return `${y}-${m}-${dd}`
+  }
+
+  const examples = [
+    // Due date relative formatting + urgency coloring
+    { label: "Overdue (3 days ago)", badge: formatDateBadge({ due_date: d(-3) } as KNode) },
+    { label: "Overdue (yesterday)", badge: formatDateBadge({ due_date: d(-1) } as KNode) },
+    { label: "Due today", badge: formatDateBadge({ due_date: d(0) } as KNode) },
+    { label: "Due tomorrow", badge: formatDateBadge({ due_date: d(1) } as KNode) },
+    { label: "Due in 2 days", badge: formatDateBadge({ due_date: d(2) } as KNode) },
+    { label: "Due in 4 days", badge: formatDateBadge({ due_date: d(4) } as KNode) },
+    { label: "Due in 6 days", badge: formatDateBadge({ due_date: d(6) } as KNode) },
+    { label: "Due in 10 days", badge: formatDateBadge({ due_date: d(10) } as KNode) },
+
+    // With priority
+    { label: "P1 overdue", badge: formatDateBadge({ priority: 1, due_date: d(-3) } as KNode) },
+    { label: "P2 due today", badge: formatDateBadge({ priority: 2, due_date: d(0) } as KNode) },
+
+    // With recurrence
+    { label: "Due tomorrow ↻", badge: formatDateBadge({ due_date: d(1), recurrence: "weekly" } as KNode) },
+    { label: "Future ↻", badge: formatDateBadge({ due_date: d(14), recurrence: "monthly" } as KNode) },
+
+    // Start date
+    { label: "Start only (future)", badge: formatDateBadge({ scheduled_date: d(3) } as KNode) },
+    { label: "Start → due", badge: formatDateBadge({ scheduled_date: d(2), due_date: d(7) } as KNode) },
+    { label: "Start past, WIP (hidden)", badge: formatDateBadge({ scheduled_date: d(-5), due_date: d(3), task_status: "wip" } as KNode) },
+    { label: "Start past, todo (shown)", badge: formatDateBadge({ scheduled_date: d(-5), due_date: d(3), task_status: "todo" } as KNode) },
+
+    // Full combo
+    { label: "P2 start → due ↻", badge: formatDateBadge({ priority: 2, scheduled_date: d(1), due_date: d(7), recurrence: "monthly" } as KNode) },
+
+    // Edge cases
+    { label: "P4 only (dim)", badge: formatDateBadge({ priority: 4 } as KNode) },
+    { label: "No metadata", badge: formatDateBadge({} as KNode) },
+  ]
+
+  return (
+    <>
+      <Text dimColor> {"Description".padEnd(34)} Badge Output</Text>
+      <Text dimColor> {"─".repeat(34)} {"─".repeat(30)}</Text>
+      {examples.map(({ label, badge }, i) => (
+        <Text key={i}>
+          {" "}
+          {label.padEnd(34)} {badge || <Text dimColor>(empty)</Text>}
+        </Text>
+      ))}
     </>
   )
 }
@@ -644,7 +713,17 @@ function mockNode(
   content: string,
   status?: string,
   type: string = "task",
-  options?: { parentId?: string; linkTo?: string; linkAlias?: string },
+  options?: {
+    parentId?: string
+    linkTo?: string
+    linkAlias?: string
+    due_date?: string
+    due_time?: string
+    scheduled_date?: string
+    scheduled_time?: string
+    priority?: number
+    recurrence?: string
+  },
 ): KNode {
   const node: KNode = {
     id,
@@ -655,6 +734,12 @@ function mockNode(
     link_alias: options?.linkAlias,
     content,
     task_status: status as KNode["task_status"],
+    due_date: options?.due_date,
+    due_time: options?.due_time,
+    scheduled_date: options?.scheduled_date,
+    scheduled_time: options?.scheduled_time,
+    priority: options?.priority,
+    recurrence: options?.recurrence,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -668,18 +753,24 @@ function mockNode(
 }
 
 // Shared TreeNode props for storybook demos (DI uses in-memory store)
-function treeProps(width = 40) {
-  return {
-    depth: 0,
-    width,
-    colIndex: 0,
-    cardIndex: 0,
-    subIndex: 0,
-    dimInactiveChildren: false,
-    getChildren: getChildrenFromStore,
-    getParentContext: getParentContextFromStore,
-    getBoardPills: getBoardPillsFromStore,
-  }
+const treeNodeDIProps = {
+  depth: 0,
+  colIndex: 0,
+  cardIndex: 0,
+  subIndex: 0,
+  dimInactiveChildren: false,
+  getChildren: getChildrenFromStore,
+  getParentContext: getParentContextFromStore,
+  getBoardPills: getBoardPillsFromStore,
+}
+
+/** Width-constrained TreeNode wrapper for storybook demos */
+function DemoTreeNode({ maxWidth = 40, ...props }: { maxWidth?: number } & React.ComponentProps<typeof TreeNode>): React.ReactElement {
+  return (
+    <Box width={maxWidth}>
+      <TreeNode {...props} />
+    </Box>
+  )
 }
 
 function Layer3Views(): React.ReactElement {
@@ -689,7 +780,31 @@ function Layer3Views(): React.ReactElement {
   const doneTask = mockNode("done-1", "Implement auth", "done")
   const blockedTask = mockNode("blocked-1", "Wait on API", "blocked")
   const droppedTask = mockNode("dropped-1", "Old approach", "dropped")
-  const commonProps = treeProps(40)
+  const commonProps = treeNodeDIProps
+
+  // Tasks with date badges
+  const overdueTask = mockNode("dated-1", "Overdue payment", "todo", "task", {
+    priority: 1,
+    due_date: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
+  })
+  const dueTodayTask = mockNode("dated-2", "Submit report", "wip", "task", {
+    priority: 2,
+    due_date: new Date().toISOString().slice(0, 10),
+    due_time: "17:00",
+  })
+  const dueWeekTask = mockNode("dated-3", "Review design docs", "todo", "task", {
+    due_date: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+  })
+  const recurringTask = mockNode("dated-4", "Weekly standup", "todo", "task", {
+    due_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+    recurrence: "weekly",
+  })
+  const fullBadgeTask = mockNode("dated-5", "Launch feature", "wip", "task", {
+    priority: 2,
+    scheduled_date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+    due_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+    recurrence: "monthly",
+  })
 
   return (
     <>
@@ -700,31 +815,51 @@ function Layer3Views(): React.ReactElement {
       <Text> </Text>
 
       <Text bold>Todo (open):</Text>
-      <TreeNode {...commonProps} node={todoTask} isSelected={false} />
+      <DemoTreeNode {...commonProps} node={todoTask} isSelected={false} />
 
       <Text bold>WIP (in progress):</Text>
-      <TreeNode {...commonProps} node={wipTask} isSelected={false} />
+      <DemoTreeNode {...commonProps} node={wipTask} isSelected={false} />
 
       <Text bold>Blocked:</Text>
-      <TreeNode {...commonProps} node={blockedTask} isSelected={false} />
+      <DemoTreeNode {...commonProps} node={blockedTask} isSelected={false} />
 
-      <Text bold>Done (strikethrough + dim):</Text>
-      <TreeNode {...commonProps} node={doneTask} isSelected={false} />
+      <Text bold>Done (dim):</Text>
+      <DemoTreeNode {...commonProps} node={doneTask} isSelected={false} />
 
-      <Text bold>Dropped (strikethrough + dim):</Text>
-      <TreeNode {...commonProps} node={droppedTask} isSelected={false} />
+      <Text bold>Dropped (dim):</Text>
+      <DemoTreeNode {...commonProps} node={droppedTask} isSelected={false} />
+
+      <Text> </Text>
+      <SubsectionHeader title="TreeNode - Date Badges (right-aligned)" />
+      <Text dimColor>Priority, recurrence, scheduled/due dates shown after title:</Text>
+      <Text> </Text>
+
+      <Text bold>P1 Overdue (red curly underline):</Text>
+      <DemoTreeNode {...commonProps} node={overdueTask} isSelected={false} />
+
+      <Text bold>P2 Due today (orange curly underline):</Text>
+      <DemoTreeNode {...commonProps} node={dueTodayTask} isSelected={false} />
+
+      <Text bold>Due this week (yellow underline):</Text>
+      <DemoTreeNode {...commonProps} node={dueWeekTask} isSelected={false} />
+
+      <Text bold>Recurring + future due:</Text>
+      <DemoTreeNode {...commonProps} node={recurringTask} isSelected={false} />
+
+      <Text bold>Full badge (P2 + recurrence + scheduled + due):</Text>
+      <DemoTreeNode {...commonProps} node={fullBadgeTask} isSelected={false} />
 
       <Text> </Text>
       <SubsectionHeader title="TreeNode - Selection States" />
 
       <Text bold>Normal (not selected):</Text>
-      <TreeNode {...commonProps} node={todoTask} isSelected={false} />
+      <DemoTreeNode {...commonProps} node={todoTask} isSelected={false} />
 
-      <Text bold>Selected (cyan background):</Text>
-      <TreeNode {...commonProps} node={todoTask} isSelected={true} />
+      <Text bold>Selected (yellow background):</Text>
+      <DemoTreeNode {...commonProps} node={todoTask} isSelected={true} />
 
-      <Text bold>Multi-selected (also cyan background):</Text>
-      <TreeNode {...commonProps} node={todoTask} isSelected={false} />
+      <Text bold>Selected with date badge:</Text>
+      <DemoTreeNode {...commonProps} node={overdueTask} isSelected={true} />
     </>
   )
 }
@@ -967,8 +1102,10 @@ function makeBoardCoreProps(
     derivedSelectionLevel: selectionLevel,
     dimensions: dims,
     layoutRegistry: createLayoutRegistry(),
+    setUI: () => {},
     dispatch: noopDispatch,
     dialogHandlers: noopDialogHandlers,
+    collapsedNodes: new Set<string>(),
     moveMode: false,
     colScrollOffset: 0,
   }
@@ -1056,7 +1193,7 @@ function VisualLanguageSection(): React.ReactElement {
   const wipTask = mockNode("vl-2", "Work in progress task", "wip")
   const doneTask = mockNode("vl-3", "Completed task item", "done")
 
-  const commonProps = treeProps(35)
+  const commonProps = treeNodeDIProps
 
   return (
     <>
@@ -1071,13 +1208,13 @@ function VisualLanguageSection(): React.ReactElement {
       <Box flexDirection="row" gap={2}>
         <Box flexDirection="column" width={38}>
           <Text bold>Normal (no selection):</Text>
-          <TreeNode {...commonProps} node={todoTask} isSelected={false} />
+          <DemoTreeNode {...commonProps} node={todoTask} isSelected={false} />
         </Box>
         <Box flexDirection="column" width={38}>
           <Text bold color="yellow">
             Selected (yellow bg):
           </Text>
-          <TreeNode {...commonProps} node={todoTask} isSelected={true} />
+          <DemoTreeNode {...commonProps} node={todoTask} isSelected={true} />
         </Box>
       </Box>
       <Text> </Text>
@@ -1163,13 +1300,13 @@ function VisualLanguageSection(): React.ReactElement {
       <Box flexDirection="row" gap={2}>
         <Box flexDirection="column" width={30}>
           <Text bold>Active states:</Text>
-          <TreeNode {...commonProps} node={todoTask} isSelected={false} />
-          <TreeNode {...commonProps} node={wipTask} isSelected={false} />
+          <DemoTreeNode {...commonProps} node={todoTask} isSelected={false} />
+          <DemoTreeNode {...commonProps} node={wipTask} isSelected={false} />
         </Box>
         <Box flexDirection="column" width={38}>
           <Text bold>Terminal states (dim only):</Text>
-          <TreeNode {...commonProps} node={doneTask} isSelected={false} />
-          <TreeNode {...commonProps} node={mockNode("vl-4", "Dropped task item", "dropped")} isSelected={false} />
+          <DemoTreeNode {...commonProps} node={doneTask} isSelected={false} />
+          <DemoTreeNode {...commonProps} node={mockNode("vl-4", "Dropped task item", "dropped")} isSelected={false} />
         </Box>
       </Box>
       <Text> </Text>
@@ -1198,22 +1335,76 @@ function VisualLanguageSection(): React.ReactElement {
       </Box>
       <Text> </Text>
 
-      <SubsectionHeader title="Due Date Urgency (underlines)" />
-      <Text dimColor> Uses 24-bit RGB colors - may not render in all terminals</Text>
+      <SubsectionHeader title="Date Badges (right-aligned on cards)" />
+      <Text dimColor> Priority, recurrence, scheduled/due dates shown right-aligned</Text>
+      <Text dimColor> Uses 24-bit RGB underlines for due date urgency</Text>
       <Text> </Text>
-      <Text>
-        {" "}
-        <Text color="red">Overdue</Text>: red curly underline [255,80,80]
-      </Text>
-      <Text>
-        {" "}
-        <Text color="#FFA500">Today/Tomorrow</Text>: orange curly underline [255,165,0]
-      </Text>
-      <Text>
-        {" "}
-        <Text color="yellow">This week</Text>: yellow single underline [255,255,0]
-      </Text>
-      <Text> Beyond 7 days: no underline</Text>
+
+      <Text bold>Overdue task (red curly underline):</Text>
+      <TreeNode
+        {...commonProps}
+        node={mockNode("db-1", "Overdue payment", "todo", "task", {
+          priority: 1,
+          due_date: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
+        })}
+        isSelected={false}
+      />
+      <Text> </Text>
+
+      <Text bold>Due today (orange curly underline):</Text>
+      <TreeNode
+        {...commonProps}
+        node={mockNode("db-2", "Submit report", "wip", "task", {
+          priority: 2,
+          due_date: new Date().toISOString().slice(0, 10),
+          due_time: "17:00",
+        })}
+        isSelected={false}
+      />
+      <Text> </Text>
+
+      <Text bold>Due this week (yellow single underline):</Text>
+      <TreeNode
+        {...commonProps}
+        node={mockNode("db-3", "Review design docs", "todo", "task", {
+          due_date: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+        })}
+        isSelected={false}
+      />
+      <Text> </Text>
+
+      <Text bold>Future date (no underline) + recurrence:</Text>
+      <TreeNode
+        {...commonProps}
+        node={mockNode("db-4", "Weekly standup", "todo", "task", {
+          due_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+          recurrence: "weekly",
+        })}
+        isSelected={false}
+      />
+      <Text> </Text>
+
+      <Text bold>Scheduled + due + priority:</Text>
+      <TreeNode
+        {...commonProps}
+        node={mockNode("db-5", "Launch feature", "wip", "task", {
+          priority: 2,
+          scheduled_date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+          due_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+          recurrence: "monthly",
+        })}
+        isSelected={false}
+      />
+      <Text> </Text>
+
+      <Text bold>P4 backlog item (dim priority):</Text>
+      <TreeNode
+        {...commonProps}
+        node={mockNode("db-6", "Nice to have feature", "todo", "task", {
+          priority: 4,
+        })}
+        isSelected={false}
+      />
     </>
   )
 }
