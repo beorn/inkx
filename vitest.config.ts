@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config"
 import { availableParallelism } from "node:os"
 
 export default defineConfig({
+	cacheDir: "node_modules/.vitest",
 	plugins: [mdtest()],
 	test: {
 		reporter: "dot",
