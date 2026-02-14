@@ -22,7 +22,8 @@ import type { TNode } from "../src/types.ts"
 function createNode(id: string, children: TNode[] = []): TNode {
   return {
     id,
-    type: "section",
+    type: "oi",
+    fstype: "mdsection",
     parent_id: null,
     parent_idx: 0,
     link_to: null,

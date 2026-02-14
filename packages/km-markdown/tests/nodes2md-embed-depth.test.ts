@@ -18,21 +18,24 @@ describe("Embed depth: section created among embeds", () => {
   const targetNodes = [
     makeTestNode({
       id: "target-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/File1.md",
       content: "File1",
       block_id: "abc",
     }),
     makeTestNode({
       id: "target-2",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/File2.md",
       content: "File2",
       block_id: "def",
     }),
     makeTestNode({
       id: "target-3",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/File3.md",
       content: "File3",
       block_id: "ghi",
@@ -43,7 +46,8 @@ describe("Embed depth: section created among embeds", () => {
     // Simulate the correct scenario: inner section has depth=3 (child of depth=2 parent)
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       parent_id: ".",
       content: "Next Actions",
       data: { depth: 1 },
@@ -51,7 +55,8 @@ describe("Embed depth: section created among embeds", () => {
     })
     const processingSection = makeTestNode({
       id: "sec-processing",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
       content: "Processing",
@@ -60,7 +65,7 @@ describe("Embed depth: section created among embeds", () => {
     })
     const embed1 = makeTestNode({
       id: "embed-1",
-      type: "paragraph",
+      type: "p",
       parent_id: "sec-processing",
       parent_idx: 1,
       link_to: "target-1",
@@ -68,7 +73,7 @@ describe("Embed depth: section created among embeds", () => {
     })
     const embed2 = makeTestNode({
       id: "embed-2",
-      type: "paragraph",
+      type: "p",
       parent_id: "sec-processing",
       parent_idx: 2,
       link_to: "target-2",
@@ -77,7 +82,8 @@ describe("Embed depth: section created among embeds", () => {
     // CORRECT depth: 3 means this is a child of "Processing" (depth=2)
     const innerSection = makeTestNode({
       id: "sec-inner",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "sec-processing",
       parent_idx: 3,
       content: "",
@@ -86,7 +92,7 @@ describe("Embed depth: section created among embeds", () => {
     })
     const embed3 = makeTestNode({
       id: "embed-3",
-      type: "paragraph",
+      type: "p",
       parent_id: "sec-processing",
       parent_idx: 4,
       link_to: "target-3",
@@ -104,7 +110,7 @@ describe("Embed depth: section created among embeds", () => {
 
     // Re-parse
     const result = parseMarkdownWithLinks(md, "next-actions.md")
-    const sections = result.nodes.filter((n) => n.type === "section")
+    const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     // "Processing" should be a section
     const processing = sections.find((s) => s.content === "Processing")
@@ -122,7 +128,8 @@ describe("Embed depth: section created among embeds", () => {
     // Simulate the bug: inner section has depth=2 (same as parent) due to missing depth
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       parent_id: ".",
       content: "Next Actions",
       data: { depth: 1 },
@@ -130,7 +137,8 @@ describe("Embed depth: section created among embeds", () => {
     })
     const processingSection = makeTestNode({
       id: "sec-processing",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
       content: "Processing",
@@ -139,7 +147,7 @@ describe("Embed depth: section created among embeds", () => {
     })
     const embed1 = makeTestNode({
       id: "embed-1",
-      type: "paragraph",
+      type: "p",
       parent_id: "sec-processing",
       parent_idx: 1,
       link_to: "target-1",
@@ -147,7 +155,7 @@ describe("Embed depth: section created among embeds", () => {
     })
     const embed2 = makeTestNode({
       id: "embed-2",
-      type: "paragraph",
+      type: "p",
       parent_id: "sec-processing",
       parent_idx: 2,
       link_to: "target-2",
@@ -157,7 +165,8 @@ describe("Embed depth: section created among embeds", () => {
     // handleAddNodeAfter creates a section with no depth info from embed siblings
     const innerSection = makeTestNode({
       id: "sec-inner",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "sec-processing",
       parent_idx: 3,
       content: "",
@@ -166,7 +175,7 @@ describe("Embed depth: section created among embeds", () => {
     })
     const embed3 = makeTestNode({
       id: "embed-3",
-      type: "paragraph",
+      type: "p",
       parent_id: "sec-processing",
       parent_idx: 4,
       link_to: "target-3",
@@ -185,12 +194,12 @@ describe("Embed depth: section created among embeds", () => {
 
     // Re-parse: parser sees two ## headings and makes them siblings under file
     const result = parseMarkdownWithLinks(md, "next-actions.md")
-    const sections = result.nodes.filter((n) => n.type === "section")
+    const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     const processing = sections.find((s) => s.content === "Processing")
     expect(processing).toBeDefined()
 
-    const fileId = result.nodes.find((n) => n.type === "file")!.id
+    const fileId = result.nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")!.id
     const innerSections = sections.filter((s) => s.content !== "Processing")
     expect(innerSections.length).toBeGreaterThanOrEqual(1)
 
@@ -204,14 +213,16 @@ describe("Embed depth: section created among embeds", () => {
   test("nodes2md serializes depth=3 section as ### heading", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       parent_id: ".",
       content: "Document",
       data: { depth: 1 },
     })
     const section = makeTestNode({
       id: "sec-1",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
       content: "Subsection",

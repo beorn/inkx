@@ -20,64 +20,71 @@ import {
 // Helpers
 // =============================================================================
 
-/** Create a repo with a parent section and task children for testing */
+/** Create a repo with a parent outline item and task children for testing */
 function setupTaskTree() {
   const repo = createTestRepo()
 
-  // Create parent section
+  // Create parent outline item (section)
   const parentId = repo.addNode(null, {
-    type: "section",
+    type: "oi",
+    fstype: "mdsection",
     name: "Tasks",
     content: "Tasks",
   })
 
-  // Create three task children
+  // Create three task children (list items with task markers)
   const task1Id = repo.addNode(parentId, {
-    type: "task",
+    type: "li",
+    list_marker: "-",
     content: "- [ ] Alpha bravo",
     task_status: "todo",
-    task_mark: " ",
+    task_marker: "[ ]",
     parent_idx: 1,
   })
 
   const task2Id = repo.addNode(parentId, {
-    type: "task",
+    type: "li",
+    list_marker: "-",
     content: "- [ ] Charlie delta",
     task_status: "todo",
-    task_mark: " ",
+    task_marker: "[ ]",
     parent_idx: 2,
   })
 
   const task3Id = repo.addNode(parentId, {
-    type: "task",
+    type: "li",
+    list_marker: "-",
     content: "- [ ] Echo foxtrot",
     task_status: "todo",
-    task_mark: " ",
+    task_marker: "[ ]",
     parent_idx: 3,
   })
 
   return { repo, parentId, task1Id, task2Id, task3Id }
 }
 
-/** Create a repo with nested sections for testing */
+/** Create a repo with nested outline items for testing */
 function setupSectionTree() {
   const repo = createTestRepo()
 
   const rootId = repo.addNode(null, {
-    type: "section",
+    type: "oi",
+    fstype: "mdsection",
     name: "Root",
     content: "Root",
   })
 
   const sec1Id = repo.addNode(rootId, {
-    type: "section",
+    type: "oi",
+    fstype: "mdsection",
     name: "Section One",
     content: "Section One",
     parent_idx: 1,
   })
 
   const sec2Id = repo.addNode(rootId, {
-    type: "section",
+    type: "oi",
+    fstype: "mdsection",
     name: "Section Two",
     content: "Section Two",
     parent_idx: 2,
@@ -93,15 +100,16 @@ function setupSectionTree() {
 describe("getNodeText", () => {
   test("returns task content without checkbox prefix", () => {
     const node = {
-      type: "task" as const,
+      type: "li",
+      task_marker: "[ ]",
       content: "- [ ] Buy groceries",
     } as any
     expect(getNodeText(node)).toBe("Buy groceries")
   })
 
-  test("returns section name", () => {
+  test("returns outline item name", () => {
     const node = {
-      type: "section" as const,
+      type: "oi",
       name: "My Section",
       content: "My Section",
     } as any
@@ -109,21 +117,21 @@ describe("getNodeText", () => {
   })
 
   test("returns content for other types", () => {
-    const node = { type: "paragraph" as const, content: "Hello world" } as any
+    const node = { type: "p", content: "Hello world" } as any
     expect(getNodeText(node)).toBe("Hello world")
   })
 
-  test("handles done task mark", () => {
+  test("handles done task marker", () => {
     const node = {
-      type: "task" as const,
+      type: "li",
+      task_marker: "[x]",
       content: "- [x] Completed item",
-      task_mark: "x",
     } as any
     expect(getNodeText(node)).toBe("Completed item")
   })
 
   test("handles null content", () => {
-    const node = { type: "paragraph" as const, content: null } as any
+    const node = { type: "p", content: null } as any
     expect(getNodeText(node)).toBe("")
   })
 })
@@ -131,27 +139,27 @@ describe("getNodeText", () => {
 describe("setNodeText", () => {
   test("wraps task text with checkbox prefix", () => {
     const node = {
-      type: "task" as const,
-      task_mark: " ",
+      type: "li",
+      task_marker: "[ ]",
     } as any
     expect(setNodeText(node, "New text")).toBe("- [ ] New text")
   })
 
-  test("preserves done task mark", () => {
+  test("preserves done task marker", () => {
     const node = {
-      type: "task" as const,
-      task_mark: "x",
+      type: "li",
+      task_marker: "[x]",
     } as any
     expect(setNodeText(node, "Done item")).toBe("- [x] Done item")
   })
 
-  test("returns plain text for sections", () => {
-    const node = { type: "section" as const } as any
+  test("returns plain text for outline items", () => {
+    const node = { type: "oi" } as any
     expect(setNodeText(node, "Section Name")).toBe("Section Name")
   })
 
   test("returns plain text for other types", () => {
-    const node = { type: "paragraph" as const } as any
+    const node = { type: "p" } as any
     expect(setNodeText(node, "Paragraph")).toBe("Paragraph")
   })
 })
@@ -172,12 +180,12 @@ describe("splitNode", () => {
     // Original node should have "Charlie"
     const before = repo.getNode(result.beforeId)!
     expect(getNodeText(before)).toBe("Charlie")
-    expect(before.type).toBe("task")
+    expect(before.type).toBe("li")
 
     // New node should have " delta"
     const after = repo.getNode(result.afterId)!
     expect(getNodeText(after)).toBe(" delta")
-    expect(after.type).toBe("task")
+    expect(after.type).toBe("li")
     expect(after.task_status).toBe("todo")
 
     // Both should be children of the parent
@@ -227,10 +235,11 @@ describe("splitNode", () => {
 
     // Add children to task2
     const childId = repo.addNode(task2Id, {
-      type: "task",
+      type: "li",
+      list_marker: "-",
       content: "- [ ] Sub task",
       task_status: "todo",
-      task_mark: " ",
+      task_marker: "[ ]",
       parent_idx: 1,
     })
 
@@ -257,7 +266,7 @@ describe("splitNode", () => {
 
     const after = repo.getNode(result.afterId)!
     expect(after.content).toBe(" One")
-    expect(after.type).toBe("section")
+    expect(after.type).toBe("oi")
   })
 
   test("new node sort order is between current and next sibling", () => {
@@ -326,10 +335,11 @@ describe("mergeWithPrevious", () => {
 
     // Add empty task after task1
     const emptyId = repo.addNode(parentId, {
-      type: "task",
+      type: "li",
+      list_marker: "-",
       content: "- [ ] ",
       task_status: "todo",
-      task_mark: " ",
+      task_marker: "[ ]",
       parent_idx: 1.5,
     })
 
@@ -366,10 +376,11 @@ describe("mergeWithPrevious", () => {
 
     // Add a child to task1
     repo.addNode(task1Id, {
-      type: "task",
+      type: "li",
+      list_marker: "-",
       content: "- [ ] Sub task",
       task_status: "todo",
-      task_mark: " ",
+      task_marker: "[ ]",
       parent_idx: 1,
     })
 
@@ -389,7 +400,8 @@ describe("mergeWithPrevious", () => {
 
     // Add a child to sec1
     const childId = repo.addNode(sec1Id, {
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       name: "Child",
       content: "Child",
       parent_idx: 1,
@@ -410,16 +422,18 @@ describe("mergeWithPrevious", () => {
 
     // Single root node with child
     const rootId = repo.addNode(null, {
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       name: "Root",
       content: "Root",
     })
 
     const childId = repo.addNode(rootId, {
-      type: "task",
+      type: "li",
+      list_marker: "-",
       content: "- [ ] Only child",
       task_status: "todo",
-      task_mark: " ",
+      task_marker: "[ ]",
       parent_idx: 1,
     })
 

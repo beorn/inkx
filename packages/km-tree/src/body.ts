@@ -1,37 +1,33 @@
 /**
  * Body Content Utilities
  *
- * Body = leading non-section content (paragraphs, code, quotes, tasks, etc.)
- * that appears before any structural children (sections, files, folders).
+ * Body = leading non-outline content (blocks, list items) that appears
+ * before any outline items (oi nodes).
  *
  * These utilities support the "virtual body" pattern where body content
  * is grouped at display time for rendering as virtual columns/cards.
  */
 
-/**
- * Node types that create structural hierarchy (columns, cards, subitems).
- * Everything else is considered "body content" when it appears before these.
- */
-const STRUCTURAL_TYPES = new Set(["section", "file", "folder"])
+import { isOutline } from "@km/core"
 
 /**
  * Result of extracting body content from children.
  */
 export interface BodyExtraction<T extends { type: string }> {
-  /** Leading non-structural content (before first section/file/folder) */
+  /** Leading non-outline content (before first oi node) */
   body: T[]
-  /** Structural children (sections, files, folders) */
+  /** Outline item children (oi nodes) */
   items: T[]
 }
 
 /**
  * Extract body content from a node's children.
  *
- * Body = all children before the first structural child (section/file/folder).
- * Items = all structural children.
+ * Body = all children before the first outline item (oi).
+ * Items = all outline item children.
  *
- * Content appearing AFTER structural children is included in body
- * (we assume non-structural content comes first by convention).
+ * Content appearing AFTER outline items is included in body
+ * (we assume non-outline content comes first by convention).
  *
  * @example
  * ```typescript
@@ -42,7 +38,7 @@ export interface BodyExtraction<T extends { type: string }> {
  * ```
  */
 export function extractBody<T extends { type: string }>(children: T[]): BodyExtraction<T> {
-  const firstStructuralIdx = children.findIndex((c) => STRUCTURAL_TYPES.has(c.type))
+  const firstStructuralIdx = children.findIndex((c) => isOutline(c.type))
 
   if (firstStructuralIdx === -1) {
     // No structural children - all content is body
@@ -61,25 +57,25 @@ export function extractBody<T extends { type: string }>(children: T[]): BodyExtr
 }
 
 /**
- * Check if children array has body content (non-structural before structural).
+ * Check if children array has body content (non-outline before outline items).
  */
 export function hasBody<T extends { type: string }>(children: T[]): boolean {
   const first = children[0]
   if (!first) return false
-  // Has body if first child is not structural
-  return !STRUCTURAL_TYPES.has(first.type)
+  // Has body if first child is not an outline item
+  return !isOutline(first.type)
 }
 
 /**
- * Check if a node type is structural (creates hierarchy) vs body content.
+ * Check if a node type is structural/outline (oi — creates hierarchy).
  */
 export function isStructuralType(type: string): boolean {
-  return STRUCTURAL_TYPES.has(type)
+  return isOutline(type)
 }
 
 /**
- * Check if a node type is body content (non-structural).
+ * Check if a node type is body content (not an outline item).
  */
 export function isBodyType(type: string): boolean {
-  return !STRUCTURAL_TYPES.has(type)
+  return !isOutline(type)
 }

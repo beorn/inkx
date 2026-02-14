@@ -26,13 +26,12 @@ import { ulid } from "ulid"
 const log = createLogger("km:markdown:ast2nodes")
 import type { Root, RootContent, Heading, List, ListItem } from "mdast"
 import { parse as parseYaml } from "yaml"
-import type { KNode, NodeType, TaskStatus, TaskMark } from "@km/core"
-import { CUSTOM_TASK_MARKS, getStatusForMark } from "@km/core"
+import type { KNode, NodeType, TaskStatus, TaskMarker } from "@km/core"
+import { CUSTOM_TASK_MARKS, getStatusForMarker, markToMarker, extractTitleTaskMarker } from "@km/core"
 import {
   parseMarkdown,
   extractFrontmatter,
   extractTaskMark,
-  extractTitleTaskMark,
   nodeToText,
   listItemToText,
   slugify,
@@ -181,29 +180,29 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
       }
 
       const { title: titleWithRules, rules } = parseHeadingRules(headingText)
-      const { mark: taskMark, cleanText: title } = extractTitleTaskMark(titleWithRules)
+      const { marker: taskMarker, cleanText: title } = extractTitleTaskMarker(titleWithRules)
       const hasRules = Object.keys(rules).length > 0
       const sectionName = slugify(title)
 
-      const taskStatus = getStatusForMark(taskMark)
+      const taskStatus = getStatusForMarker(taskMarker)
 
       const parentSection = sectionStack[sectionStack.length - 1]
       const sectionNode: KNode = {
         id: ulid(),
-        type: "section",
+        type: "oi",
+        fstype: "mdsection",
         parent_id: parentSection ? parentSection.node.id : fileNode.id,
         parent_idx: sortOrder++,
         link_to: null,
         name: sectionName, // Slug/identifier derived from heading
         md_pos: heading.position?.start.offset,
-        md_slug: sectionName, // Keep for backwards compatibility
         block_id: sectionBlockId,
         content: headingText, // Clean content without ^block-id suffix
         content_hash: undefined,
         title, // Clean title without rules and task mark
         rules: hasRules ? rules : undefined, // Only set if rules exist
         task_status: taskStatus,
-        task_mark: taskMark as TaskMark,
+        task_marker: taskMarker,
         data: {
           depth: heading.depth,
           ...(hasRules ? { rules, title } : {}), // Store rules and clean title in data for DB persistence
@@ -279,7 +278,8 @@ function convertListItem(
     text = text.slice(0, -blockIdMatch[0].length)
   }
 
-  const taskStatus = isTask ? getStatusForMark(taskMark) ?? ("todo" as TaskStatus) : undefined
+  const taskMarker: TaskMarker | undefined = isTask ? markToMarker(taskMark ?? " ") : undefined
+  const taskStatus = isTask ? getStatusForMarker(taskMarker) ?? ("todo" as TaskStatus) : undefined
 
   // Parse task metadata from text
   const metadata = isTask ? parseTaskMetadata(text) : {}
@@ -292,7 +292,9 @@ function convertListItem(
 
   const node: KNode = {
     id: ulid(),
-    type: isTask ? "task" : ordered ? "ol" : "ul",
+    type: "li",
+    list_marker: ordered ? "1." : "-",
+    task_marker: taskMarker,
     parent_id: parent.id,
     parent_idx: sortOrder,
     link_to: null,
@@ -302,7 +304,6 @@ function convertListItem(
     content: text,
     content_hash: undefined,
     task_status: taskStatus,
-    task_mark: taskMark as KNode["task_mark"],
     due_date: metadata.dueDate,
     due_time: metadata.dueTime,
     scheduled_date: metadata.scheduledDate,
@@ -364,7 +365,7 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNo
 
   switch (block.type) {
     case "paragraph": {
-      type = "paragraph"
+      type = "p"
       content = nodeToText(block)
       // Strip ^block-id suffix if present (must be at end of line, preceded by space)
       const blockIdMatch = content.match(/ \^([a-zA-Z0-9_-]+)$/)
@@ -479,7 +480,8 @@ function createFileNode(
 
   return {
     id: ulid(),
-    type: "file",
+    type: "oi",
+    fstype: "mdfile",
     parent_id: null, // Will be set based on folder structure
     parent_idx: 0,
     link_to: null,
@@ -502,7 +504,7 @@ function createFileNode(
  * Returns filtered childNodes (H1 removed) and whether an H1 was found.
  */
 function mergeH1IntoFileNode(fileNode: KNode, childNodes: KNode[]): { childNodes: KNode[]; hadH1: boolean } {
-  const h1Section = childNodes.find((n) => n.type === "section" && n.data?.depth === 1)
+  const h1Section = childNodes.find((n) => n.type === "oi" && n.data?.depth === 1)
 
   if (!h1Section) {
     return { childNodes, hadH1: false }
@@ -512,7 +514,6 @@ function mergeH1IntoFileNode(fileNode: KNode, childNodes: KNode[]): { childNodes
   fileNode.title = h1Section.title
   fileNode.content = h1Section.content
   fileNode.md_pos = h1Section.md_pos
-  fileNode.md_slug = h1Section.md_slug
   if (h1Section.rules) {
     fileNode.rules = h1Section.rules
   }
@@ -520,8 +521,8 @@ function mergeH1IntoFileNode(fileNode: KNode, childNodes: KNode[]): { childNodes
   if (h1Section.task_status) {
     fileNode.task_status = h1Section.task_status
   }
-  if (h1Section.task_mark) {
-    fileNode.task_mark = h1Section.task_mark
+  if (h1Section.task_marker) {
+    fileNode.task_marker = h1Section.task_marker
   }
   // Merge H1's data into file data, but frontmatter takes precedence
   // (frontmatter fields overwrite H1 data fields)
@@ -661,7 +662,7 @@ function aggregateRefs(fileNode: KNode, childNodes: KNode[]): void {
  */
 function validateH1Count(childNodes: KNode[], fsPath: string, hadH1: boolean): ParseWarning[] {
   const warnings: ParseWarning[] = []
-  const h1Count = childNodes.filter((n) => n.type === "section" && n.data?.depth === 1).length
+  const h1Count = childNodes.filter((n) => n.type === "oi" && n.data?.depth === 1).length
   // Add 1 for the merged H1 if it existed
   const totalH1s = hadH1 ? h1Count + 1 : h1Count
 
@@ -672,7 +673,7 @@ function validateH1Count(childNodes: KNode[], fsPath: string, hadH1: boolean): P
     })
   } else if (totalH1s > 1) {
     // Find the second H1 for line number
-    const secondH1 = childNodes.find((n) => n.type === "section" && n.data?.depth === 1)
+    const secondH1 = childNodes.find((n) => n.type === "oi" && n.data?.depth === 1)
     warnings.push({
       type: "multiple_h1",
       message: `${fsPath}: Multiple H1 headings found (${totalH1s}). Each markdown file should have exactly one # heading.`,

@@ -62,10 +62,10 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
     return stripInlineRules(node.data.title as string).slice(0, 50)
   }
 
-  // 3. For file nodes, use first section's title or content (H1 heading)
-  if (node.type === "file" && getChildren) {
+  // 3. For file/mdfile nodes, use first section's title or content (H1 heading)
+  if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
     const children = getChildren(node.id)
-    const firstSection = children.find((c: KNode) => c.type === "section")
+    const firstSection = children.find((c: KNode) => c.type === "oi" && c.fstype === "mdsection")
     if (firstSection) {
       // Use pre-parsed title if available (node.title takes precedence over data.title)
       if (firstSection.title) {
@@ -115,9 +115,9 @@ export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolea
   if (node.title) return false
   // Only check data.title when node.title is undefined (not just empty "")
   if (node.title == null && node.data?.title) return false
-  if (node.type === "file" && getChildren) {
+  if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
     const children = getChildren(node.id)
-    const firstSection = children.find((c: KNode) => c.type === "section")
+    const firstSection = children.find((c: KNode) => c.type === "oi" && c.fstype === "mdsection")
     if (firstSection?.title || firstSection?.data?.title || firstSection?.content) return false
   }
   if (node.content) return false
@@ -126,18 +126,21 @@ export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolea
 }
 
 /**
- * Get type indicator for a node type
+ * Get type indicator for a node's fstype
  * - folder: /
- * - file: .md
- * - section: #
+ * - file/mdfile: .md
+ * - mdsection: #
  */
-export function getTypeIndicator(type: string): string {
-  switch (type) {
+export function getTypeIndicator(type: string, fstype?: string): string {
+  if (type !== "oi") return ""
+  switch (fstype) {
     case "folder":
+    case "repo":
       return "/"
     case "file":
+    case "mdfile":
       return ".md"
-    case "section":
+    case "mdsection":
       return "#"
     default:
       return ""
@@ -185,7 +188,7 @@ export function getCollapsedTypeSuffix(node: KNode, getChildren?: GetChildrenFn)
   const indicators: string[] = []
 
   // Add this node's type indicator
-  const thisIndicator = getTypeIndicator(node.type)
+  const thisIndicator = getTypeIndicator(node.type, node.fstype)
   if (thisIndicator) {
     indicators.push(thisIndicator)
   }
@@ -207,7 +210,7 @@ export function getCollapsedTypeSuffix(node: KNode, getChildren?: GetChildrenFn)
     )
     if (!matchingChild) break
 
-    const childIndicator = getTypeIndicator(matchingChild.type)
+    const childIndicator = getTypeIndicator(matchingChild.type, matchingChild.fstype)
     if (childIndicator) {
       indicators.push(childIndicator)
     }
@@ -262,7 +265,7 @@ export function collapseAncestorsWithTypes(ancestors: KNode[]): CollapsedAncesto
       const candidateName = normalizeName(getNodeDisplayName(candidate))
       if (candidateName !== currentName) break
 
-      const indicator = getTypeIndicator(candidate.type)
+      const indicator = getTypeIndicator(candidate.type, (candidate as KNode).fstype)
       if (indicator) {
         collapsedTypes.push(indicator)
       }
@@ -328,14 +331,14 @@ export function getParentContext(node: KNode, skipParentId?: string | null, getN
     const parent = getNode(currentId)
     if (!parent) break
 
-    // If we find a file node, return its display name
-    if (parent.type === "file") {
+    // If we find a file/mdfile node, return its display name
+    if (parent.type === "oi" && (parent.fstype === "file" || parent.fstype === "mdfile")) {
       return getNodeDisplayName(parent)
     }
 
     // If we find a meaningful section (not a board column), return it
     // Board columns typically have rules like add=, sync=, default=
-    if (parent.type === "section" && !parent.rules) {
+    if (parent.type === "oi" && parent.fstype === "mdsection" && !parent.rules) {
       return getNodeDisplayName(parent)
     }
 

@@ -30,23 +30,24 @@ import { makeTestNode } from "./helpers/test-utils.ts"
 // -----------------------------------------------------------------------------
 
 /** Create a paragraph node for serialization tests */
-const makeParagraph = (content: string) => makeTestNode({ type: "paragraph", content })
+const makeParagraph = (content: string) => makeTestNode({ type: "p", content })
 
 /** Create a task node for serialization tests */
 const makeTask = (
   content: string,
   opts: {
     status?: "todo" | "done" | "wip" | "dropped" | "blocked"
-    mark?: " " | "x" | "X" | "/" | "-" | "!"
+    marker?: "[ ]" | "[x]" | "[X]" | "[/]" | "[-]" | "[!]"
     dueDate?: string
     priority?: number
   } = {},
 ) =>
   makeTestNode({
-    type: "task",
+    type: "li",
+    list_marker: "-",
     content,
     task_status: opts.status ?? "todo",
-    task_mark: opts.mark ?? " ",
+    task_marker: opts.marker ?? "[ ]",
     due_date: opts.dueDate,
     priority: opts.priority,
   })
@@ -54,9 +55,10 @@ const makeTask = (
 /** Create a section node for serialization tests */
 const makeSection = (content: string, depth: number) =>
   makeTestNode({
-    type: "section",
+    type: "oi",
+    fstype: "mdsection",
     content,
-    md_slug: content.toLowerCase().replace(/\s+/g, "-"),
+    name: content.toLowerCase().replace(/\s+/g, "-"),
     data: { depth },
   })
 
@@ -370,11 +372,11 @@ This is a paragraph.
       expect(nodes.length).toBeGreaterThan(0)
 
       // H1 is merged into file node, so check file has title
-      const fileNode = nodes.find((n) => n.type === "file")
+      const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
       expect(fileNode?.title).toBe("Title")
 
-      // Should have tasks
-      const tasks = nodes.filter((n) => n.type === "task")
+      // Should have tasks (li with task_marker)
+      const tasks = nodes.filter((n) => n.type === "li" && n.task_marker)
       expect(tasks.length).toBe(2)
     })
 
@@ -382,7 +384,7 @@ This is a paragraph.
       // Parser uses Obsidian Tasks emoji format: 📅 for due, ⏳ for scheduled, ⏫/🔼/🔽 for priority
       const md = `- [ ] Task with due 📅 2025-03-15 ⏫`
       const nodes = parseMarkdownToNodes(md, "test.md")
-      const task = nodes.find((n) => n.type === "task")
+      const task = nodes.find((n) => n.type === "li" && n.task_marker)
 
       expect(task).toBeDefined()
       expect(task!.due_date).toBe("2025-03-15")
@@ -405,12 +407,12 @@ Content B
 More content
 `
       const nodes = parseMarkdownToNodes(md, "nested.md")
-      const sections = nodes.filter((n) => n.type === "section")
+      const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
       // H1 is merged into file, so we have 3 sections: A, B, B1
       expect(sections.length).toBeGreaterThanOrEqual(3)
 
       // File node should have H1 title
-      const fileNode = nodes.find((n) => n.type === "file")
+      const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
       expect(fileNode?.title).toBe("Top Level")
     })
 
@@ -434,7 +436,7 @@ More content
 - [X] Also completed
 `
       const nodes = parseMarkdownToNodes(md, "tasks.md")
-      const tasks = nodes.filter((n) => n.type === "task")
+      const tasks = nodes.filter((n) => n.type === "li" && n.task_marker)
 
       expect(tasks.length).toBe(3)
 
@@ -453,8 +455,8 @@ More content
 - [?] Unknown mark (not supported)
 `
       const nodes = parseMarkdownToNodes(md, "tasks.md")
-      const tasks = nodes.filter((n) => n.type === "task")
-      const listItems = nodes.filter((n) => n.type === "ul")
+      const tasks = nodes.filter((n) => n.type === "li" && n.task_marker)
+      const listItems = nodes.filter((n) => n.type === "li" && !n.task_marker)
 
       // Custom marks [/], [-], [!] are recognized as tasks
       expect(tasks.length).toBe(3)
@@ -475,8 +477,8 @@ More content
   - Subtask 1B
 `
       const nodes = parseMarkdownToNodes(md, "nested.md")
-      const tasks = nodes.filter((n) => n.type === "task")
-      const listItems = nodes.filter((n) => n.type === "ul")
+      const tasks = nodes.filter((n) => n.type === "li" && n.task_marker)
+      const listItems = nodes.filter((n) => n.type === "li" && !n.task_marker)
 
       // Parent is a task, children are list items
       expect(tasks.length).toBe(1)
@@ -529,7 +531,7 @@ describe("Nodes to Markdown", () => {
     })
 
     test("should serialize completed task", () => {
-      expect(nodesToMarkdown([makeTask("Done task", { status: "done", mark: "x" })])).toContain("- [x]")
+      expect(nodesToMarkdown([makeTask("Done task", { status: "done", marker: "[x]" })])).toContain("- [x]")
     })
 
     test("should serialize task with metadata using emoji format", () => {
@@ -560,10 +562,11 @@ describe("Nodes to Markdown", () => {
 
     test("should serialize task with due_time as T suffix", () => {
       const node = makeTestNode({
-        type: "task",
+        type: "li",
+        list_marker: "-",
         content: "Meeting prep",
         task_status: "todo",
-        task_mark: " ",
+        task_marker: "[ ]",
         due_date: "2025-03-15",
         due_time: "14:30",
       })
@@ -573,10 +576,11 @@ describe("Nodes to Markdown", () => {
 
     test("should serialize task with scheduled_time as T suffix", () => {
       const node = makeTestNode({
-        type: "task",
+        type: "li",
+        list_marker: "-",
         content: "Start project",
         task_status: "todo",
-        task_mark: " ",
+        task_marker: "[ ]",
         scheduled_date: "2025-03-10",
         scheduled_time: "09:00",
       })
@@ -586,10 +590,11 @@ describe("Nodes to Markdown", () => {
 
     test("should serialize recurrence from top-level field", () => {
       const node = makeTestNode({
-        type: "task",
+        type: "li",
+        list_marker: "-",
         content: "Daily standup",
         task_status: "todo",
-        task_mark: " ",
+        task_marker: "[ ]",
         recurrence: "every day",
       })
       const md = nodesToMarkdown([node])
@@ -598,10 +603,11 @@ describe("Nodes to Markdown", () => {
 
     test("should serialize recurrence from data.recurrence", () => {
       const node = makeTestNode({
-        type: "task",
+        type: "li",
+        list_marker: "-",
         content: "Weekly review",
         task_status: "todo",
-        task_mark: " ",
+        task_marker: "[ ]",
         data: { recurrence: "every week" },
       })
       const md = nodesToMarkdown([node])
@@ -610,10 +616,11 @@ describe("Nodes to Markdown", () => {
 
     test("should not duplicate recurrence if already in content", () => {
       const node = makeTestNode({
-        type: "task",
+        type: "li",
+        list_marker: "-",
         content: "Weekly review 🔁 every week",
         task_status: "todo",
-        task_mark: " ",
+        task_marker: "[ ]",
         recurrence: "every week",
       })
       const md = nodesToMarkdown([node])
@@ -798,7 +805,7 @@ describe("Section title and rules parsing", () => {
 - [x] Completed task
 `
     const result = parseMarkdownWithLinks(md, "board.md")
-    const sections = result.nodes.filter((n) => n.type === "section")
+    const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     // H1 is merged into file node, so no depth-1 section should exist
     const h1Sections = sections.filter((s) => s.data?.depth === 1)
@@ -831,8 +838,8 @@ describe("H1 merge into file node", () => {
 - [ ] Task 2
 `
     const result = parseMarkdownWithLinks(md, "board.md")
-    const fileNode = result.nodes.find((n) => n.type === "file")
-    const sections = result.nodes.filter((n) => n.type === "section")
+    const fileNode = result.nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     // File node should have H1's title
     expect(fileNode?.title).toBe("Board Title")
@@ -863,8 +870,8 @@ Content A
 Content B
 `
     const result = parseMarkdownWithLinks(md, "test.md")
-    const fileNode = result.nodes.find((n) => n.type === "file")
-    const sections = result.nodes.filter((n) => n.type === "section")
+    const fileNode = result.nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     // All sections should be children of the file node
     expect(fileNode).toBeDefined()
@@ -881,7 +888,7 @@ Content B
 - [ ] Task
 `
     const result = parseMarkdownWithLinks(md, "board.md")
-    const fileNode = result.nodes.find((n) => n.type === "file")
+    const fileNode = result.nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
 
     expect(fileNode?.title).toBe("Board")
     expect(fileNode?.rules?.default).toBe(true)
@@ -894,8 +901,8 @@ Content B
 - [ ] Task
 `
     const result = parseMarkdownWithLinks(md, "no-h1.md")
-    const fileNode = result.nodes.find((n) => n.type === "file")
-    const sections = result.nodes.filter((n) => n.type === "section")
+    const fileNode = result.nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     // File node has no title (no H1 to merge)
     expect(fileNode?.title).toBeUndefined()
@@ -915,7 +922,7 @@ author: test
 ## Section
 `
     const result = parseMarkdownWithLinks(md, "with-frontmatter.md")
-    const fileNode = result.nodes.find((n) => n.type === "file")
+    const fileNode = result.nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
 
     // Both frontmatter and H1 data should be present
     expect(fileNode?.data?.author).toBe("test")
@@ -933,7 +940,7 @@ author: test
 More content
 `
     const result = parseMarkdownWithLinks(md, "multi-h1.md")
-    const fileNode = result.nodes.find((n) => n.type === "file")
+    const fileNode = result.nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
 
     // First H1 merged into file
     expect(fileNode?.title).toBe("First Title")

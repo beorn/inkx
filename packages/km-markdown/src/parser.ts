@@ -11,7 +11,7 @@
  * Exports:
  * - parseMarkdown: string → mdast Root
  * - extractFrontmatter: string → { frontmatter, body }
- * - extractTaskMark/extractTitleTaskMark: text → task mark
+ * - extractTaskMark/extractTitleTaskMarker: text → task marker
  * - parseWikiLinks: text → WikiLink[]
  * - extractTags/Mentions/Projects: text → string[]
  * - parseTaskMetadata: text → { dueDate, priority, ... }
@@ -25,7 +25,7 @@ import { fromMarkdown } from "mdast-util-from-markdown"
 import { gfmFromMarkdown } from "mdast-util-gfm"
 import { gfm } from "micromark-extension-gfm"
 import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdast"
-import { TASK_MARK_REGEX_CLASS, extractTitleTaskMark } from "@km/core"
+import { TASK_MARK_REGEX_CLASS, extractTitleTaskMarker } from "@km/core"
 
 // Re-export types
 export type { Root, RootContent, ListItem, Heading, Paragraph, List }
@@ -37,7 +37,7 @@ export type { Root, RootContent, ListItem, Heading, Paragraph, List }
 /** Task mark from list item (e.g., "- [x]") */
 const TASK_MARK_REGEX = new RegExp(`^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\\]`)
 
-// TITLE_TASK_MARK_REGEX moved to @km/core (extractTitleTaskMark)
+// TITLE_TASK_MARK_REGEX moved to @km/core (extractTitleTaskMarker)
 
 /** Wikilinks: [[target]], [[target|alias]], ![[embed]], ![[target#^blockid]] */
 const WIKILINK_REGEX = /(!?)\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g
@@ -66,7 +66,7 @@ const KEY_VALUE_REGEX = /`?(\w[\w-]*)=(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))`?/gi
  * Extended ListItem with task mark
  */
 export interface TaskListItem extends ListItem {
-  taskMark?: string // See TaskMark type in @km/core
+  taskMark?: string // Single char mark extracted from markdown, convert to TaskMarker with markToMarker()
 }
 
 /**
@@ -130,8 +130,8 @@ export function extractTaskMark(content: string, position?: { start: { offset: n
   return match?.[1]
 }
 
-// Re-export from @km/core for backward compatibility
-export { extractTitleTaskMark }
+// Re-export from @km/core
+export { extractTitleTaskMarker }
 
 /**
  * Parse wikilinks from text

@@ -14,9 +14,13 @@ export type {
   TNode,
   Source,
   NodeType,
+  BlockType,
+  ItemType,
+  LinkType,
+  FsType,
   NodeRules,
   TaskStatus,
-  TaskMark,
+  TaskMarker,
   Event,
   EventType,
   NodeCreatedData,
@@ -36,8 +40,11 @@ export { CUSTOM_TASK_MARKS, TASK_MARK_REGEX_CLASS } from "./types.ts"
 export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } from "./build-info.gen.ts"
 export type { BuildInfo } from "./build-info.gen.ts"
 
-// Task utilities
-export { getMarkForStatus, getStatusForMark, extractTitleTaskMark } from "./types.ts"
+// Type predicates (km-ast)
+export { isOutline, isListItem, isItem, isLink, isBlock } from "./types.ts"
+
+// Task utilities (new names)
+export { getMarkerForStatus, getStatusForMarker, markToMarker, extractTitleTaskMarker } from "./types.ts"
 
 // Query language parser (pure parsing, no DB)
 export {

@@ -7,7 +7,7 @@
 import { createLogger } from "@beorn/logger"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode, TaskStatus } from "@km/core"
-import { getMarkForStatus } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 
 const log = createLogger("km:markdown:nodes2md")
@@ -67,8 +67,8 @@ export function nodesToMarkdown(
     existingBlockIds,
   }
 
-  // Find root node (file node)
-  const fileNode = nodes.find((n) => n.type === "file")
+  // Find root node (file node: oi with fstype mdfile or file)
+  const fileNode = nodes.find((n) => n.type === "oi" && (n.fstype === "mdfile" || n.fstype === "file"))
   if (!fileNode) {
     // No file node, serialize all nodes flat
     return nodes.map((n) => serializeNode(n, ctx, 0)).join("")
@@ -81,7 +81,7 @@ export function nodesToMarkdown(
  * Check if a node is a list item type (task, ul, ol)
  */
 function isListItemType(node: KNode): boolean {
-  return node.type === "task" || node.type === "ul" || node.type === "ol"
+  return node.type === "li"
 }
 
 /**
@@ -160,19 +160,24 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
 function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTrailingNewline: boolean = true): string {
   const children = ctx.tree.get(node.id) ?? []
 
-  // Any node with link_to is a transclusion — serialize as ![[target]] embed
-  if (node.link_to) {
+  // Link nodes with embed flag or any node with link_to is a transclusion
+  if (node.type === "link" || node.link_to) {
     return serializeEmbedding(node, ctx)
   }
 
   switch (node.type) {
-    case "file":
-      return serializeFile(node, ctx)
-
-    case "section":
+    case "oi":
+      // Dispatch by fstype
+      if (node.fstype === "mdfile" || node.fstype === "file") {
+        return serializeFile(node, ctx)
+      }
+      // mdsection or other oi types
       return serializeSection(node, children, ctx)
 
-    case "paragraph": {
+    case "li":
+      return serializeLi(node, children, ctx, indent, addTrailingNewline)
+
+    case "p": {
       let paraContent = node.content ?? ""
       if (node.block_id) paraContent += ` ^${node.block_id}`
       return paraContent + "\n\n"
@@ -183,15 +188,6 @@ function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTr
 
     case "code":
       return serializeCode(node)
-
-    case "ul":
-      return serializeListItem(node, children, ctx, indent, false, addTrailingNewline)
-
-    case "ol":
-      return serializeListItem(node, children, ctx, indent, true, addTrailingNewline)
-
-    case "task":
-      return serializeTask(node, children, ctx, indent, addTrailingNewline)
 
     case "hr":
       return "---\n\n"
@@ -323,7 +319,7 @@ function findAncestorFilePath(node: KNode, ctx: SerializeContext): string | null
     if (!current.parent_id) return null
     const parent = ctx.nodeMap.get(current.parent_id)
     if (!parent) return null
-    if (parent.fs_path) {
+    if (parent.type === "oi" && (parent.fstype === "file" || parent.fstype === "mdfile") && parent.fs_path) {
       const filename = parent.fs_path.split("/").pop() ?? ""
       return filename.replace(/\.md$/, "")
     }
@@ -352,52 +348,18 @@ function serializeCode(node: KNode): string {
 }
 
 /**
- * Serialize a list item
- */
-function serializeListItem(
-  node: KNode,
-  children: KNode[],
-  ctx: SerializeContext,
-  indent: number,
-  ordered: boolean,
-  addTrailingNewline: boolean = true,
-): string {
-  const indentStr = "  ".repeat(indent)
-  const marker = ordered ? "1." : "-"
-  let line = `${indentStr}${marker} ${node.content ?? ""}`
-  if (node.block_id) {
-    line += ` ^${node.block_id}`
-  }
-  let md = line + "\n"
-
-  // Nested items
-  for (const child of children) {
-    if (child.type === "ul" || child.type === "ol" || child.type === "task") {
-      md += serializeNode(child, ctx, indent + 1)
-    }
-  }
-
-  // Add trailing newline only at top level when requested
-  if (indent === 0 && addTrailingNewline) {
-    md += "\n"
-  }
-
-  return md
-}
-
-/**
- * Derive the checkbox mark from task_status.
+ * Derive the task marker from task_status.
  * This ensures edits to task_status are reflected in the serialized output.
  */
-function statusToMark(status: string | undefined, existingMark?: string): string {
-  if (!status) return existingMark ?? " "
-  return getMarkForStatus(status as TaskStatus)
+function statusToMarker(status: string | undefined, existingMarker?: string): string {
+  if (!status) return existingMarker ?? "[ ]"
+  return getMarkerForStatus(status as TaskStatus)
 }
 
 /**
- * Serialize a task item
+ * Serialize a list item (unified: handles tasks, unordered, and ordered lists)
  */
-function serializeTask(
+function serializeLi(
   node: KNode,
   children: KNode[],
   ctx: SerializeContext,
@@ -405,41 +367,65 @@ function serializeTask(
   addTrailingNewline: boolean = true,
 ): string {
   const indentStr = "  ".repeat(indent)
-  // Derive mark from task_status (which may have been updated)
-  // Fall back to task_mark for backwards compatibility
-  const mark = statusToMark(node.task_status, node.task_mark)
-  let content = node.content ?? ""
 
-  // Add task metadata if not already in content
-  const metadata: string[] = []
+  if (node.task_marker) {
+    // Task item
+    const marker = statusToMarker(node.task_status, node.task_marker)
+    let content = node.content ?? ""
 
-  if (node.due_date && !content.includes("📅")) {
-    const dueSuffix = node.due_time ? `T${node.due_time}` : ""
-    metadata.push(`📅 ${node.due_date}${dueSuffix}`)
+    // Add task metadata if not already in content
+    const metadata: string[] = []
+
+    if (node.due_date && !content.includes("📅")) {
+      const dueSuffix = node.due_time ? `T${node.due_time}` : ""
+      metadata.push(`📅 ${node.due_date}${dueSuffix}`)
+    }
+
+    if (node.scheduled_date && !content.includes("⏳")) {
+      const schedSuffix = node.scheduled_time ? `T${node.scheduled_time}` : ""
+      metadata.push(`⏳ ${node.scheduled_date}${schedSuffix}`)
+    }
+
+    if (node.priority && !content.match(/[⏫🔼🔽]/)) {
+      if (node.priority === 1) metadata.push("⏫")
+      else if (node.priority === 2) metadata.push("🔼")
+      else if (node.priority === 3) metadata.push("🔽")
+    }
+
+    // Recurrence: use top-level field or data.recurrence
+    const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
+    if (recurrence && !content.includes("🔁")) {
+      metadata.push(`🔁 ${recurrence}`)
+    }
+
+    if (metadata.length > 0 && content) {
+      content += " " + metadata.join(" ")
+    }
+
+    let line = `${indentStr}- ${marker} ${content}`
+    if (node.block_id) {
+      line += ` ^${node.block_id}`
+    }
+    let md = line + "\n"
+
+    // Nested items
+    for (const child of children) {
+      if (child.type === "li") {
+        md += serializeNode(child, ctx, indent + 1)
+      }
+    }
+
+    // Add trailing newline only at top level when requested
+    if (indent === 0 && addTrailingNewline) {
+      md += "\n"
+    }
+
+    return md
   }
 
-  if (node.scheduled_date && !content.includes("⏳")) {
-    const schedSuffix = node.scheduled_time ? `T${node.scheduled_time}` : ""
-    metadata.push(`⏳ ${node.scheduled_date}${schedSuffix}`)
-  }
-
-  if (node.priority && !content.match(/[⏫🔼🔽]/)) {
-    if (node.priority === 1) metadata.push("⏫")
-    else if (node.priority === 2) metadata.push("🔼")
-    else if (node.priority === 3) metadata.push("🔽")
-  }
-
-  // Recurrence: use top-level field or data.recurrence
-  const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
-  if (recurrence && !content.includes("🔁")) {
-    metadata.push(`🔁 ${recurrence}`)
-  }
-
-  if (metadata.length > 0 && content) {
-    content += " " + metadata.join(" ")
-  }
-
-  let line = `${indentStr}- [${mark}] ${content}`
+  // Plain list item (not a task)
+  const listMarker = node.list_marker === "1." ? "1." : "-"
+  let line = `${indentStr}${listMarker} ${node.content ?? ""}`
   if (node.block_id) {
     line += ` ^${node.block_id}`
   }
@@ -447,7 +433,7 @@ function serializeTask(
 
   // Nested items
   for (const child of children) {
-    if (child.type === "ul" || child.type === "ol" || child.type === "task") {
+    if (child.type === "li") {
       md += serializeNode(child, ctx, indent + 1)
     }
   }

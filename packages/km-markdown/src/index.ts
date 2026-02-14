@@ -3,7 +3,7 @@ export {
   parseMarkdown,
   extractFrontmatter,
   extractTaskMark,
-  extractTitleTaskMark,
+  extractTitleTaskMarker,
   parseWikiLinks,
   extractTags,
   extractMentions,

@@ -96,9 +96,9 @@ export function splitNode(tree: TreeMutator, nodeId: string, offset: number): Sp
   }
 
   // Inherit task properties if the original is a task
-  if (node.type === "task") {
+  if (node.task_marker) {
     newNode.task_status = node.task_status ?? "todo"
-    newNode.task_mark = node.task_mark ?? " "
+    newNode.task_marker = node.task_marker ?? "[ ]"
   }
 
   const newId = tree.addNode(parentId, newNode)
@@ -202,16 +202,16 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
 
 /**
  * Get the display/edit text of a node.
- * For tasks, this is the content without the checkbox prefix.
- * For sections, this is the name (heading text).
+ * For outline items (oi), this is the name (heading text).
+ * For list items with task markers, strips the checkbox prefix.
  * For other types, this is the content.
  */
 export function getNodeText(node: KNode): string {
-  // Sections use name as their heading text
-  if (node.type === "section") return node.name ?? node.content ?? ""
-  // Tasks: content includes the checkbox prefix "- [x] ..."
+  // Outline items use name as their heading text
+  if (node.type === "oi") return node.name ?? node.content ?? ""
+  // Tasks (list items with task_marker): content includes the checkbox prefix "- [x] ..."
   // Strip exactly the prefix "- [.] " (dash, space, bracket, mark, bracket, space)
-  if (node.type === "task" && node.content) {
+  if (node.task_marker && node.content) {
     return node.content.replace(/^- \[.\] /, "")
   }
   return node.content ?? ""
@@ -222,10 +222,11 @@ export function getNodeText(node: KNode): string {
  * Returns the new content string (does NOT mutate).
  */
 export function setNodeText(node: KNode, text: string): string {
-  if (node.type === "section") return text
-  if (node.type === "task") {
-    const mark = node.task_mark ?? " "
-    return `- [${mark}] ${text}`
+  if (node.type === "oi") return text
+  if (node.task_marker) {
+    // Extract inner character from marker: "[x]" → "x"
+    const inner = node.task_marker.length === 3 ? node.task_marker[1] : " "
+    return `- [${inner}] ${text}`
   }
   return text
 }

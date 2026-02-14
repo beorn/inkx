@@ -412,8 +412,8 @@ describe("Round-trip: Fixture Files", () => {
     expect(md2).toContain("Code Blocks")
 
     // Node counts should be consistent between round-trips
-    expect(nodes1.filter((n) => n.type === "task").length).toBe(nodes2.filter((n) => n.type === "task").length)
-    expect(nodes1.filter((n) => n.type === "section").length).toBe(nodes2.filter((n) => n.type === "section").length)
+    expect(nodes1.filter((n) => n.type === "li" && n.task_marker).length).toBe(nodes2.filter((n) => n.type === "li" && n.task_marker).length)
+    expect(nodes1.filter((n) => n.type === "oi" && n.fstype === "mdsection").length).toBe(nodes2.filter((n) => n.type === "oi" && n.fstype === "mdsection").length)
   })
 })
 
@@ -421,7 +421,7 @@ describe("Round-trip: Content Preservation Verification", () => {
   test("should preserve task status in node", () => {
     const nodes = parse(`- [ ] Open
 - [x] Done`)
-    const tasks = nodes.filter((n) => n.type === "task")
+    const tasks = nodes.filter((n) => n.type === "li" && n.task_marker)
 
     expect(tasks.length).toBe(2)
     expect(tasks[0]!.task_status).toBe("todo")
@@ -429,7 +429,7 @@ describe("Round-trip: Content Preservation Verification", () => {
 
     // After round-trip, statuses should be preserved
     const nodes2 = parse(nodesToMarkdown(nodes))
-    const tasks2 = nodes2.filter((n) => n.type === "task")
+    const tasks2 = nodes2.filter((n) => n.type === "li" && n.task_marker)
 
     expect(tasks2[0]!.task_status).toBe("todo")
     expect(tasks2[1]!.task_status).toBe("done")
@@ -437,14 +437,14 @@ describe("Round-trip: Content Preservation Verification", () => {
 
   test("should preserve task metadata in node", () => {
     const nodes = parse(`- [ ] Task 📅 2025-12-25 ⏫`)
-    const task = nodes.find((n) => n.type === "task")
+    const task = nodes.find((n) => n.type === "li" && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.due_date).toBe("2025-12-25")
     expect(task!.priority).toBe(1)
 
     // After round-trip, metadata should be preserved
-    const task2 = parse(nodesToMarkdown(nodes)).find((n) => n.type === "task")
+    const task2 = parse(nodesToMarkdown(nodes)).find((n) => n.type === "li" && n.task_marker)
     expect(task2!.due_date).toBe("2025-12-25")
     expect(task2!.priority).toBe(1)
   })
@@ -455,8 +455,8 @@ describe("Round-trip: Content Preservation Verification", () => {
 ## H2
 
 ### H3`)
-    const sections = nodes.filter((n) => n.type === "section")
-    const fileNode = nodes.find((n) => n.type === "file")
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
 
     // H1 is merged into file node, so only 2 section nodes
     expect(sections.length).toBe(2)
@@ -466,8 +466,8 @@ describe("Round-trip: Content Preservation Verification", () => {
 
     // After round-trip
     const nodes2 = parse(nodesToMarkdown(nodes))
-    const sections2 = nodes2.filter((n) => n.type === "section")
-    const fileNode2 = nodes2.find((n) => n.type === "file")
+    const sections2 = nodes2.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+    const fileNode2 = nodes2.find((n) => n.type === "oi" && n.fstype === "mdfile")
 
     expect(fileNode2?.data?.depth).toBe(1)
     expect(sections2[0]?.data?.depth).toBe(2)
@@ -509,8 +509,8 @@ Some content here.
 
 More content.`)
 
-    expect(nodes.filter((n) => n.type === "task").length).toBe(0)
-    expect(nodes.filter((n) => n.type === "section").length).toBeGreaterThan(0)
+    expect(nodes.filter((n) => n.type === "li" && n.task_marker).length).toBe(0)
+    expect(nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection").length).toBeGreaterThan(0)
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("# Main Title")
@@ -549,10 +549,10 @@ More content.`)
 Content at deepest level.`)
 
     // H1 is merged into file node, so only 5 section nodes (levels 2-6)
-    expect(nodes.filter((n) => n.type === "section").length).toBe(5)
+    expect(nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection").length).toBe(5)
 
     // File node should have H1 title
-    expect(nodes.find((n) => n.type === "file")?.title).toBe("Level 1")
+    expect(nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")?.title).toBe("Level 1")
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("# Level 1")
@@ -566,7 +566,7 @@ Content at deepest level.`)
 
   test("should handle document with only a single task", () => {
     const nodes = parse(`- [ ] Single task`)
-    const tasks = nodes.filter((n) => n.type === "task")
+    const tasks = nodes.filter((n) => n.type === "li" && n.task_marker)
 
     expect(tasks.length).toBe(1)
     expect(tasks[0]!.content).toBe("Single task")
@@ -602,14 +602,14 @@ describe("Round-trip: Wiki Link Embeddings", () => {
   })
 
   test("should preserve embedding syntax in paragraph content", () => {
-    const para = parse(`![[Target]]`).find((n) => n.type === "paragraph")
+    const para = parse(`![[Target]]`).find((n) => n.type === "p")
     expect(para).toBeDefined()
     expect(para!.content).toBe("![[Target]]")
     expect(para!.link_to).toBeNull()
   })
 
   test("should preserve mixed-content paragraph with embedding", () => {
-    const para = parse(`Some text before ![[Target]] and after.`).find((n) => n.type === "paragraph")
+    const para = parse(`Some text before ![[Target]] and after.`).find((n) => n.type === "p")
     expect(para).toBeDefined()
     expect(para!.content).toBe("Some text before ![[Target]] and after.")
   })
@@ -653,7 +653,7 @@ describe("Round-trip: All Task Status Marks", () => {
 - [/] In progress task (wip)
 - [-] Dropped/cancelled task (dropped)
 - [!] Blocked task (blocked)`)
-    const tasks = nodes.filter((n) => n.type === "task")
+    const tasks = nodes.filter((n) => n.type === "li" && n.task_marker)
 
     // Should have 6 tasks
     expect(tasks.length).toBe(6)
@@ -666,13 +666,13 @@ describe("Round-trip: All Task Status Marks", () => {
     expect(statuses).toContain("dropped")
     expect(statuses).toContain("blocked")
 
-    // Verify task marks are preserved
-    const marks = tasks.map((t) => t.task_mark)
-    expect(marks).toContain(" ")
-    expect(marks.filter((m) => m === "x" || m === "X").length).toBe(2)
-    expect(marks).toContain("/")
-    expect(marks).toContain("-")
-    expect(marks).toContain("!")
+    // Verify task markers are preserved
+    const markers = tasks.map((t) => t.task_marker)
+    expect(markers).toContain("[ ]")
+    expect(markers.filter((m) => m === "[x]" || m === "[X]").length).toBe(2)
+    expect(markers).toContain("[/]")
+    expect(markers).toContain("[-]")
+    expect(markers).toContain("[!]")
 
     // After round-trip, marks should be preserved
     const output = nodesToMarkdown(nodes)
@@ -697,7 +697,7 @@ describe("Round-trip: All Task Status Marks", () => {
 describe("Round-trip: Task Metadata Formats", () => {
   test("should preserve Obsidian Tasks emoji format", () => {
     const nodes = parse(`- [ ] Task with all metadata 📅 2025-12-25 ⏳ 2025-12-20 ⏫`)
-    const task = nodes.find((n) => n.type === "task")
+    const task = nodes.find((n) => n.type === "li" && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.due_date).toBe("2025-12-25")
@@ -711,14 +711,14 @@ describe("Round-trip: Task Metadata Formats", () => {
   })
 
   test("should preserve recurrence metadata", () => {
-    const task = parse(`- [ ] Recurring task 🔁 every week`).find((n) => n.type === "task")
+    const task = parse(`- [ ] Recurring task 🔁 every week`).find((n) => n.type === "li" && n.task_marker)
     expect(task).toBeDefined()
     expect(task!.data?.recurrence).toBe("every week")
   })
 
   test("should preserve inline field format (due:, start:, p:)", () => {
     const task = parse(`- [ ] Task with inline fields due:2025-11-15 start:2025-11-10 p:2`).find(
-      (n) => n.type === "task",
+      (n) => n.type === "li" && n.task_marker,
     )
 
     expect(task).toBeDefined()
@@ -731,7 +731,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     const nodes = parse(`- [ ] High priority ⏫
 - [ ] Medium priority 🔼
 - [ ] Low priority 🔽`)
-    const tasks = nodes.filter((n) => n.type === "task")
+    const tasks = nodes.filter((n) => n.type === "li" && n.task_marker)
 
     expect(tasks[0]?.priority).toBe(1)
     expect(tasks[1]?.priority).toBe(2)
@@ -811,7 +811,7 @@ describe("Round-trip: Section Rules (Board Syntax)", () => {
 ## Done collapse=true
 
 - [x] Task 3`)
-    const sections = nodes.filter((n) => n.type === "section")
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     // Verify rules are parsed
     expect(sections.find((s) => s.title === "Ready")?.rules?.add).toBe("status:todo")
@@ -832,13 +832,13 @@ describe("Round-trip: Section Rules (Board Syntax)", () => {
 
   test("should preserve color rule", () => {
     const nodes = parse(`## Section color=cyan`)
-    expect(nodes.find((n) => n.type === "section")?.rules?.color).toBe("cyan")
+    expect(nodes.find((n) => n.type === "oi" && n.fstype === "mdsection")?.rules?.color).toBe("cyan")
     expect(nodesToMarkdown(nodes)).toContain("color=cyan")
   })
 
   test("should preserve default=true rule", () => {
     const nodes = parse(`## Inbox default=true`)
-    expect(nodes.find((n) => n.type === "section")?.rules?.default).toBe(true)
+    expect(nodes.find((n) => n.type === "oi" && n.fstype === "mdsection")?.rules?.default).toBe(true)
     expect(nodesToMarkdown(nodes)).toContain("default=true")
   })
 })
@@ -850,7 +850,7 @@ describe("Round-trip: Nested Tasks (Indentation)", () => {
   - [x] Child task 2
     - [ ] Grandchild task`)
 
-    expect(nodes.filter((n) => n.type === "task").length).toBeGreaterThanOrEqual(4)
+    expect(nodes.filter((n) => n.type === "li" && n.task_marker).length).toBeGreaterThanOrEqual(4)
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("Parent task")
@@ -890,7 +890,7 @@ created: 2025-01-15
     expect(frontmatter).toContain("- tag1")
     expect(frontmatter).toContain("priority: 1")
 
-    expect(parse(body).find((n) => n.type === "file")?.title).toBe("Content")
+    expect(parse(body).find((n) => n.type === "oi" && n.fstype === "mdfile")?.title).toBe("Content")
   })
 
   test("should handle frontmatter with type field", () => {
@@ -913,7 +913,7 @@ describe("Round-trip: H1 Merging Edge Cases", () => {
     const nodes = parse(`# Board default=true color=blue
 
 ## Column 1`)
-    const fileNode = nodes.find((n) => n.type === "file")
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
 
     expect(fileNode?.title).toBe("Board")
     expect(fileNode?.rules?.default).toBe(true)
@@ -926,8 +926,8 @@ describe("Round-trip: H1 Merging Edge Cases", () => {
 Content here.
 
 ## Another Section`)
-    const fileNode = nodes.find((n) => n.type === "file")
-    const sections = nodes.filter((n) => n.type === "section")
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     expect(fileNode?.title).toBeUndefined()
     expect(sections.length).toBe(2)
@@ -945,7 +945,7 @@ Content.
 
 # Second Title
 
-More content.`).find((n) => n.type === "file")?.title,
+More content.`).find((n) => n.type === "oi" && n.fstype === "mdfile")?.title,
     ).toBe("First Title")
   })
 })
@@ -965,8 +965,8 @@ describe("Round-trip: Deep Section Hierarchy", () => {
 ###### H6 Level
 
 Deepest content.`)
-    const fileNode = nodes.find((n) => n.type === "file")
-    const sections = nodes.filter((n) => n.type === "section")
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     expect(fileNode?.title).toBe("H1 Level")
     expect(fileNode?.data?.depth).toBe(1)
@@ -987,7 +987,7 @@ Deepest content.`)
 
 #### Skipped to H4
 
-###### Skipped to H6`).filter((n) => n.type === "section")
+###### Skipped to H6`).filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     const depths = sections.map((s) => s.data?.depth)
     expect(depths).toEqual(expect.arrayContaining([2, 4, 6]))
@@ -1007,8 +1007,8 @@ Content B
 ## Section C
 
 Content C`)
-    const fileNode = nodes.find((n) => n.type === "file")
-    const sections = nodes.filter((n) => n.type === "section")
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     expect(sections.length).toBe(3)
     expect(fileNode).toBeDefined()
@@ -1029,7 +1029,7 @@ describe("Round-trip: Empty Content Edge Cases", () => {
 
 Content here.`)
 
-    expect(nodes.filter((n) => n.type === "section").length).toBe(2)
+    expect(nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection").length).toBe(2)
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("## Empty Section")
@@ -1038,7 +1038,7 @@ Content here.`)
 
   test("should handle task with minimal content", () => {
     const nodes = parse(`- [ ] x`)
-    const task = nodes.find((n) => n.type === "task")
+    const task = nodes.find((n) => n.type === "li" && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.task_status).toBe("todo")
@@ -1062,9 +1062,9 @@ describe("Round-trip: Data Model Integrity", () => {
 ## Section
 
 - [ ] Task in section`)
-    const fileNode = nodes.find((n) => n.type === "file")
-    const section = nodes.find((n) => n.type === "section")
-    const task = nodes.find((n) => n.type === "task")
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const section = nodes.find((n) => n.type === "oi" && n.fstype === "mdsection")
+    const task = nodes.find((n) => n.type === "li" && n.task_marker)
 
     expect(section?.parent_id).toBe(fileNode?.id)
     expect(task?.parent_id).toBe(section?.id)
@@ -1073,7 +1073,7 @@ describe("Round-trip: Data Model Integrity", () => {
   test("should assign parent_idx for ordering", () => {
     const tasks = parse(`- [ ] First
 - [ ] Second
-- [ ] Third`).filter((n) => n.type === "task")
+- [ ] Third`).filter((n) => n.type === "li" && n.task_marker)
 
     expect(tasks[0]?.parent_idx).toBeLessThan(tasks[1]?.parent_idx ?? -1)
     expect(tasks[1]?.parent_idx).toBeLessThan(tasks[2]?.parent_idx ?? -1)
@@ -1081,14 +1081,14 @@ describe("Round-trip: Data Model Integrity", () => {
 
   test("should preserve content_hash for large content", () => {
     const longContent = "A".repeat(1000)
-    const para = parse(`${longContent}`).find((n) => n.type === "paragraph")
+    const para = parse(`${longContent}`).find((n) => n.type === "p")
 
     expect(para?.content?.length || 0).toBeGreaterThan(0)
   })
 
   test("should set created_at and updated_at timestamps", () => {
     const beforeParse = Date.now()
-    const task = parse(`- [ ] Task`).find((n) => n.type === "task")
+    const task = parse(`- [ ] Task`).find((n) => n.type === "li" && n.task_marker)
     const afterParse = Date.now()
 
     expect(task?.created_at).toBeGreaterThanOrEqual(beforeParse)
@@ -1134,18 +1134,20 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("should serialize embedding from link_to target", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-id-123",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/projects/api.md",
       content: "API Documentation",
     })
     const embeddingNode = makeTestNode({
       id: "embed-id-456",
-      type: "paragraph",
+      type: "p",
       parent_id: "file-id-789",
       parent_idx: 1,
       link_to: "target-id-123",
@@ -1158,18 +1160,20 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("should serialize embedding with alias from link_alias", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-id-123",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/docs/authentication.md",
       content: "Authentication Guide",
     })
     const embeddingNode = makeTestNode({
       id: "embed-id-456",
-      type: "paragraph",
+      type: "p",
       parent_id: "file-id-789",
       parent_idx: 1,
       link_to: "target-id-123",
@@ -1183,12 +1187,14 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("should serialize embedding to section using title", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetSection = makeTestNode({
       id: "section-id-123",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "parent-file",
       parent_idx: 1,
       title: "API Reference",
@@ -1197,7 +1203,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     })
     const embeddingNode = makeTestNode({
       id: "embed-id-456",
-      type: "paragraph",
+      type: "p",
       parent_id: "file-id-789",
       parent_idx: 1,
       link_to: "section-id-123",
@@ -1210,12 +1216,13 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("should fallback to content when link_to target not found", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const embeddingNode = makeTestNode({
       id: "embed-id-456",
-      type: "paragraph",
+      type: "p",
       parent_id: "file-id-789",
       parent_idx: 1,
       link_to: "nonexistent-target",
@@ -1228,12 +1235,14 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("should serialize task with link_to as embed, not raw task", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/board.md",
     })
     const sectionNode = makeTestNode({
       id: "section-id-1",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "file-id-789",
       parent_idx: 1,
       content: "Inbox",
@@ -1241,21 +1250,23 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     })
     const targetTask = makeTestNode({
       id: "original-task-1",
-      type: "task",
+      type: "li",
+      list_marker: "-",
       parent_id: "other-file",
       content: "Buy groceries",
       task_status: "todo",
-      task_mark: " ",
+      task_marker: "[ ]",
     })
     const linkTask = makeTestNode({
       id: "link-task-1",
-      type: "task",
+      type: "li",
+      list_marker: "-",
       parent_id: "section-id-1",
       parent_idx: 1,
       link_to: "original-task-1",
       content: "Buy groceries",
       task_status: "todo",
-      task_mark: " ",
+      task_marker: "[ ]",
     })
 
     const md = nodesToMarkdown([fileNode, sectionNode, linkTask, targetTask])
@@ -1268,18 +1279,21 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("should serialize ul with link_to as embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-ul-1",
-      type: "ul",
+      type: "li",
+      list_marker: "-",
       parent_id: "other-file",
       content: "Some list item",
     })
     const linkUl = makeTestNode({
       id: "link-ul-1",
-      type: "ul",
+      type: "li",
+      list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
       link_to: "target-ul-1",
@@ -1294,18 +1308,21 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("should serialize ol with link_to as embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-ol-1",
-      type: "ol",
+      type: "li",
+      list_marker: "1.",
       parent_id: "other-file",
       content: "Numbered item",
     })
     const linkOl = makeTestNode({
       id: "link-ol-1",
-      type: "ol",
+      type: "li",
+      list_marker: "1.",
       parent_id: "file-1",
       parent_idx: 1,
       link_to: "target-ol-1",
@@ -1320,19 +1337,22 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("should serialize section with link_to as embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-section-1",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "other-file",
       content: "Linked Section",
       data: { depth: 2 },
     })
     const linkSection = makeTestNode({
       id: "link-section-1",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
       link_to: "target-section-1",
@@ -1348,18 +1368,21 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("link_to with target in nodeMap uses target fs_path", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/board.md",
     })
     const targetFile = makeTestNode({
       id: "target-file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "inbox/tasks.md",
       content: "Tasks",
     })
     const linkTask = makeTestNode({
       id: "link-1",
-      type: "task",
+      type: "li",
+      list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
       link_to: "target-file-1",
@@ -1374,12 +1397,14 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   test("link_to with missing target falls back to content", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       fs_path: "/repo/board.md",
     })
     const linkTask = makeTestNode({
       id: "link-1",
-      type: "task",
+      type: "li",
+      list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
       link_to: "nonexistent-id",
@@ -1397,14 +1422,16 @@ describe("Section depth safety", () => {
   test("section without data.depth defaults to H2 (not H1)", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       parent_id: ".",
       content: "Document",
       data: { depth: 1 },
     })
     const sectionNoDepth = makeTestNode({
       id: "sec-1",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
       content: "New Section",
@@ -1420,14 +1447,16 @@ describe("Section depth safety", () => {
   test("section with empty content and no depth serializes safely", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       parent_id: ".",
       content: "Document",
       data: { depth: 1 },
     })
     const existing = makeTestNode({
       id: "sec-1",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
       content: "Existing",
@@ -1435,7 +1464,8 @@ describe("Section depth safety", () => {
     })
     const empty = makeTestNode({
       id: "sec-2",
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 2,
       content: "",

@@ -1,6 +1,12 @@
 /**
- * km Node Types
- * Core type definitions for the unified node model
+ * km Node Types — km-ast domain model
+ *
+ * 11 node types in 3 categories:
+ * - Block (8): p, h, code, quote, table, hr, html, math — content leaves
+ * - Item (2): oi, li — structural nodes with .blocks[] and .subitems[]
+ * - Link (1): link — references to other nodes
+ *
+ * See docs/design/km-ast/model.md for the full specification.
  */
 
 // =============================================================================
@@ -14,31 +20,55 @@
 export type NotificationLevel = "info" | "success" | "warning" | "error"
 
 // =============================================================================
-// Node Type Hierarchy
+// Node Type Hierarchy (km-ast: 11 types, 3 categories)
 // =============================================================================
 
-export type NodeType =
-  // Items (have children, navigable)
-  | "folder"
-  | "file"
-  | "section"
-  // Blocks (content leaves)
-  | "paragraph"
-  | "quote"
-  | "code"
-  | "ul"
-  | "ol"
-  | "task"
-  | "table"
-  | "hr"
-  | "html"
-  // Special
-  | "agent"
-  | "board"
-  | "embed"
+/** Content leaf nodes with a content string */
+export type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math"
+
+/** Structural nodes: outline items and list items */
+export type ItemType = "oi" | "li"
+
+/** Reference nodes pointing to other nodes */
+export type LinkType = "link"
+
+/** All 11 node types */
+export type NodeType = BlockType | ItemType | LinkType
+
+/** Filesystem subtype for oi (outline item) nodes */
+export type FsType = "repo" | "folder" | "file" | "mdfile" | "mdsection"
 
 // =============================================================================
-// Task Status and Marks
+// Type Predicates
+// =============================================================================
+
+/** oi — creates outline hierarchy (replaces STRUCTURAL_TYPES / extractBody checks) */
+export function isOutline(type: string): boolean {
+  return type === "oi"
+}
+
+/** li — list/task item in body content */
+export function isListItem(type: string): boolean {
+  return type === "li"
+}
+
+/** oi or li — structural item with .blocks[] and .subitems[] */
+export function isItem(type: string): boolean {
+  return type === "oi" || type === "li"
+}
+
+/** link — reference to another node */
+export function isLink(type: string): boolean {
+  return type === "link"
+}
+
+/** Block — content leaf (p, h, code, quote, table, hr, html, math) */
+export function isBlock(type: string): boolean {
+  return !isItem(type) && !isLink(type)
+}
+
+// =============================================================================
+// Task Status and Markers
 // =============================================================================
 
 export type TaskStatus =
@@ -48,38 +78,57 @@ export type TaskStatus =
   | "done" // [x] — completed
   | "dropped" // [-] — cancelled, won't do
 
-export type TaskMark = " " | "x" | "X" | "!" | "-" | "/"
+/**
+ * Task marker — full bracket string stored on item nodes.
+ * Stores the complete checkbox notation for round-trip fidelity.
+ */
+export type TaskMarker = "[ ]" | "[x]" | "[X]" | "[/]" | "[!]" | "[-]"
 
+/**
+ * Inner characters of non-standard task markers.
+ * Used by the markdown parser for detection (GFM only handles space/x/X).
+ */
 export const CUSTOM_TASK_MARKS = ["/", "-", "!"] as const
+
+/** Regex character class matching any task mark inner character */
 export const TASK_MARK_REGEX_CLASS = "[ xX/\\-!]"
 
 /**
- * Get the markdown checkbox mark for a task status.
- * Maps TaskStatus → TaskMark for markdown rendering.
+ * Get the task marker (full bracket string) for a task status.
+ * Maps TaskStatus → TaskMarker for storage and serialization.
+ *
+ * @example getMarkerForStatus("done") // "[x]"
+ * @example getMarkerForStatus("todo") // "[ ]"
  */
-export function getMarkForStatus(status: TaskStatus): TaskMark {
+export function getMarkerForStatus(status: TaskStatus): TaskMarker {
   switch (status) {
     case "done":
-      return "x"
+      return "[x]"
     case "wip":
-      return "/"
+      return "[/]"
     case "blocked":
-      return "!"
+      return "[!]"
     case "dropped":
-      return "-"
+      return "[-]"
     default:
-      return " "
+      return "[ ]"
   }
 }
 
 /**
- * Get task status from a checkbox mark character.
- * Maps TaskMark → TaskStatus for markdown parsing.
- * Returns undefined if mark is undefined (not a task).
+ * Get task status from a marker string.
+ * Accepts both full bracket markers "[x]" and single characters "x".
+ * Returns undefined if marker is undefined (not a task).
+ *
+ * @example getStatusForMarker("[x]")  // "done"
+ * @example getStatusForMarker("x")    // "done" (backwards compat)
+ * @example getStatusForMarker(undefined) // undefined
  */
-export function getStatusForMark(mark: string | undefined): TaskStatus | undefined {
-  if (mark === undefined) return undefined
-  switch (mark) {
+export function getStatusForMarker(marker: string | undefined): TaskStatus | undefined {
+  if (marker === undefined) return undefined
+  // Extract inner character: "[x]" → "x", "x" → "x"
+  const inner = marker.length === 3 && marker[0] === "[" && marker[2] === "]" ? marker[1] : marker
+  switch (inner) {
     case "x":
     case "X":
       return "done"
@@ -94,33 +143,43 @@ export function getStatusForMark(mark: string | undefined): TaskStatus | undefin
   }
 }
 
-/** Task mark from title (e.g., "[x] Title") */
-const TITLE_TASK_MARK_REGEX = new RegExp(`^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`)
+/**
+ * Convert a single mark character to a full task marker.
+ * Used by the parser after extracting the inner character from markdown.
+ *
+ * @example markToMarker("x") // "[x]"
+ * @example markToMarker(" ") // "[ ]"
+ */
+export function markToMarker(mark: string): TaskMarker {
+  return `[${mark}]` as TaskMarker
+}
+
+/** Task marker regex for matching [x] in title text */
+const TITLE_TASK_MARKER_REGEX = new RegExp(`^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`)
 
 /**
- * Extract task mark from title text.
- * Returns the mark character and the cleaned text without the mark prefix.
+ * Extract task marker from title text.
+ * Returns the full marker and the cleaned text without the marker prefix.
  *
- * Examples:
- *   "[ ] Todo task" → { mark: " ", cleanText: "Todo task" }
- *   "[x] Done task" → { mark: "x", cleanText: "Done task" }
- *   "Regular text" → { mark: undefined, cleanText: "Regular text" }
+ * @example extractTitleTaskMarker("[ ] Todo task") // { marker: "[ ]", cleanText: "Todo task" }
+ * @example extractTitleTaskMarker("[x] Done task") // { marker: "[x]", cleanText: "Done task" }
+ * @example extractTitleTaskMarker("Regular text")  // { marker: undefined, cleanText: "Regular text" }
  */
-export function extractTitleTaskMark(text: string): {
-  mark: string | undefined
+export function extractTitleTaskMarker(text: string): {
+  marker: TaskMarker | undefined
   cleanText: string
 } {
-  const match = text.match(TITLE_TASK_MARK_REGEX)
+  const match = text.match(TITLE_TASK_MARKER_REGEX)
 
   if (match) {
     return {
-      mark: match[1],
+      marker: `[${match[1]}]` as TaskMarker,
       cleanText: text.slice(match[0].length),
     }
   }
 
   return {
-    mark: undefined,
+    marker: undefined,
     cleanText: text,
   }
 }
@@ -167,51 +226,52 @@ export interface NodeRules {
 // =============================================================================
 
 /**
- * KNode - the unified node type for km
+ * KNode - the unified node type for km (km-ast model)
  *
- * This is the single node type used across all layers:
- * - Storage: stored in SQLite with snake_case columns
- * - Tree: extended with `children[]` and `depth` as TNode
- * - Board: used directly with foldedNodes/selectedNodes Sets for UI state
+ * Flat record stored in SQLite. Extended with `children[]` as TNode for tree ops.
+ *
+ * ## Node Categories
+ *
+ * - **Blocks** (p, h, code, quote, table, hr, html, math): content leaves
+ * - **Items** (oi, li): structural nodes with blocks[] and subitems[]
+ * - **Links** (link): references to other nodes
  *
  * ## Task Definition
  *
- * A node is considered a "task" (for querying and workflow purposes) if it has
- * a `task_status` property set, regardless of its `type`. This means:
- *
- * - `type: "task"` - checkbox-originated items (e.g., `- [ ] item`)
- * - Any other type with `task_status` - can participate in task workflows
- *
- * Query behavior:
- * - `type:task` - only checkbox-originated nodes
- * - `status:todo` or `task_status:todo` - any node with that status
+ * Any item (oi or li) with `task_marker` set is a task.
+ * `task_status` is derived from `task_marker`.
  */
 export interface KNode {
   id: string // ULID
   type: NodeType
   parent_id: string | null
   parent_idx: number
-  link_to: string | null // Target node ID for embeddings (![[...]])
-  link_alias?: string // Optional display alias from |alias syntax
 
-  // Filesystem mapping (for folder/file)
+  // km-ast: subtype and marker fields
+  fstype?: FsType // For oi: repo, folder, file, mdfile, mdsection
+  list_marker?: string // For li: "-", "*", "+", "1.", "1)", "[^1]", etc.
+  task_marker?: TaskMarker // For oi/li: "[ ]", "[x]", "[/]", "[!]", "[-]"
+
+  // Link fields (meaningful for type: "link")
+  link_to: string | null // Target node ID
+  link_alias?: string // Display alias from |alias syntax
+  embed?: boolean // true = transclude, false = reference
+
+  // Filesystem mapping (for oi with fstype folder/file/mdfile)
   fs_path?: string
   fs_ino?: number // Inode for rename detection
   fs_mtime?: number // File modification time at last sync (milliseconds)
 
   // Identity
-  name?: string // Slug/identifier (filename without .md, or md_slug for sections)
+  name?: string // Slug/identifier (filename without .md, heading slug)
   block_id?: string // On-demand block identifier (^block-id) for stable embed references
 
-  // Markdown mapping (for sections/blocks)
+  // Markdown source mapping
   md_pos?: number // Byte offset in file
   md_line?: number // Line number in file (0-indexed)
-  md_slug?: string // Heading slug (for sections) - DEPRECATED: use name instead
 
-  // Task properties (can be set on any node type, not just type: "task")
-  // A node with task_status is considered a "task" for workflow purposes
-  task_status?: TaskStatus
-  task_mark?: TaskMark // Only meaningful for type: "task" (checkbox nodes)
+  // Task properties (set on items with task_marker)
+  task_status?: TaskStatus // Derived from task_marker
   assigned_to?: string
   due_date?: string // YYYY-MM-DD
   due_time?: string // HH:MM (stored in data blob, no schema change)
@@ -228,7 +288,7 @@ export interface KNode {
   // Content
   content?: string // Text content (inline for small)
   content_hash?: string // CAS reference for large content
-  title?: string // Display title (for sections: heading without rules)
+  title?: string // Materialized display title (from blocks[0].content or name)
 
   // Column/section rules (parsed from inline attributes)
   rules?: NodeRules
@@ -256,7 +316,7 @@ export interface TNode extends KNode {
 
   // Computed display properties
   childCount: number // Total children (may exceed loaded children.length)
-  isTask: boolean // Computed: task_status !== undefined
+  isTask: boolean // Computed: task_marker !== undefined
 
   // Lazy loading state
   childrenLoaded: boolean // true = children array is populated, false = only childCount known
@@ -304,8 +364,12 @@ export interface NodeCreatedData {
   type: NodeType
   parent_id?: string | null
   parent_idx?: number
+  fstype?: FsType
+  list_marker?: string
+  task_marker?: TaskMarker
   link_to?: string | null
   link_alias?: string
+  embed?: boolean
   fs_path?: string
   fs_ino?: number
   fs_mtime?: number
@@ -313,9 +377,7 @@ export interface NodeCreatedData {
   block_id?: string
   md_pos?: number
   md_line?: number
-  md_slug?: string
   task_status?: TaskStatus
-  task_mark?: TaskMark
   assigned_to?: string
   due_date?: string
   scheduled_date?: string
