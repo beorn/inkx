@@ -106,3 +106,17 @@ CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id);
 CREATE INDEX IF NOT EXISTS idx_links_target_name ON links(target_name);
 CREATE INDEX IF NOT EXISTS idx_links_target_id ON links(target_id);
 `
+
+/**
+ * Set of actual SQL column names on the nodes table.
+ * Used to route non-column KNode fields (due_time, scheduled_time, etc.) to the data blob.
+ */
+export const NODE_COLUMNS = new Set([
+  "id", "type", "parent_id", "link_to", "link_alias", "parent_idx",
+  "fs_path", "fs_ino", "fs_mtime",
+  "name", "block_id", "title",
+  "md_pos", "md_line", "md_slug",
+  "task_status", "task_mark", "assigned_to", "due_date", "scheduled_date", "priority",
+  "content", "content_hash",
+  "data", "created_at", "updated_at", "version",
+])

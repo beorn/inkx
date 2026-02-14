@@ -13,6 +13,7 @@ import { ulid } from "ulid"
 
 const log = createLogger("km:storage:db:ops")
 import type { KNode } from "@km/core"
+import { NODE_COLUMNS } from "./schema.ts"
 import type { Emitter } from "./emitter.ts"
 
 // =============================================================================
@@ -109,10 +110,26 @@ function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, un
   } else {
     const sets: string[] = []
     const values: (string | number | null)[] = []
+    const dataOverrides: Record<string, unknown> = {}
 
     for (const [key, value] of Object.entries(updates)) {
-      sets.push(`${key} = ?`)
-      values.push(value as string | number | null)
+      if (key === "data") {
+        // Full replacement — callers (e.g. rename) pass complete data object
+        const jsonStr = typeof value === "string" ? value : JSON.stringify(value)
+        sets.push("data = ?")
+        values.push(jsonStr)
+      } else if (NODE_COLUMNS.has(key)) {
+        sets.push(`${key} = ?`)
+        values.push(value as string | number | null)
+      } else {
+        // Non-column KNode field (due_time, scheduled_time, etc.) → data blob
+        dataOverrides[key] = value
+      }
+    }
+
+    if (Object.keys(dataOverrides).length > 0) {
+      sets.push("data = json_patch(data, ?)")
+      values.push(JSON.stringify(dataOverrides))
     }
 
     sets.push("updated_at = ?")
@@ -146,6 +163,14 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
   log.debug?.(`addNode: ${nodeId} type=${node.type ?? "task"} parent=${parentId} emitter=${!!emitter}`)
   const now = Date.now()
 
+  // Merge data-blob fields (due_time, scheduled_time, etc.) into the data object
+  const mergedData: Record<string, unknown> = { ...(node.data ?? {}) }
+  for (const [key, value] of Object.entries(node)) {
+    if (key !== "data" && !NODE_COLUMNS.has(key) && value !== undefined && value !== null) {
+      mergedData[key] = value
+    }
+  }
+
   const nodeData = {
     id: nodeId,
     type: node.type ?? "task",
@@ -168,7 +193,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     priority: node.priority ?? null,
     content: node.content ?? null,
     content_hash: node.content_hash ?? null,
-    data: node.data ?? {},
+    data: mergedData,
     created_at: now,
     updated_at: now,
   }

@@ -55,6 +55,21 @@ function testDataStore(name: string, factory: () => DataStore) {
         expect(child?.parent_id).toBe(parentId)
       })
 
+      test("stores non-column fields in data blob", () => {
+        const id = store.addNode(null, {
+          type: "task",
+          content: "Test",
+          due_date: "2026-03-01",
+          due_time: "09:00",
+          scheduled_time: "10:30",
+        } as Partial<import("@km/core").KNode>)
+
+        const node = store.getNode(id)
+        expect(node?.due_date).toBe("2026-03-01")
+        expect(node?.due_time).toBe("09:00")
+        expect(node?.scheduled_time).toBe("10:30")
+      })
+
       test("sets task defaults for task type", () => {
         const id = store.addNode(null, { type: "task", content: "Test" })
         const node = store.getNode(id)
@@ -155,6 +170,16 @@ function testDataStore(name: string, factory: () => DataStore) {
       test("does nothing for non-existent node", () => {
         // Should not throw
         store.updateNode("nonexistent", { content: "Test" })
+      })
+
+      test("routes non-column fields to data blob", () => {
+        const id = store.addNode(null, { type: "task", content: "Test" })
+        store.updateNode(id, { due_date: "2026-03-01", due_time: "14:30" } as Record<string, unknown>)
+
+        const node = store.getNode(id)
+        expect(node?.due_date).toBe("2026-03-01")
+        // due_time is stored in data blob and extracted by rowToNode
+        expect(node?.due_time).toBe("14:30")
       })
     })
 

@@ -6,7 +6,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import type { KNode, TaskStatus, NodeType, NodeRules } from "@km/core"
+import type { KNode, TaskStatus, NodeType, NodeRules, Reminder } from "@km/core"
 
 // =============================================================================
 // Utility Queries
@@ -85,6 +85,15 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     content_hash: row.content_hash as string | undefined,
     title: row.title as string | undefined,
     rules,
+    // Extract data-blob fields (stored in data JSON, surfaced as top-level KNode fields)
+    due_time: data.due_time as string | undefined,
+    due_tz: data.due_tz as string | undefined,
+    scheduled_time: data.scheduled_time as string | undefined,
+    scheduled_tz: data.scheduled_tz as string | undefined,
+    recurrence: data.recurrence as string | undefined,
+    recur_prev: data.recur_prev as string | undefined,
+    completed_at: data.completed_at as number | undefined,
+    reminders: data.reminders as Reminder[] | undefined,
     data,
     created_at: row.created_at as number,
     updated_at: row.updated_at as number,

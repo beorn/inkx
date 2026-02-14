@@ -12,6 +12,7 @@ const log = createLogger("km:storage:db:events")
 import { readFileSync } from "fs"
 import { getMarkForStatus } from "@km/core"
 import type { Event, TaskStatus } from "@km/core"
+import { NODE_COLUMNS } from "./schema.ts"
 
 // =============================================================================
 // Event Application
@@ -123,15 +124,25 @@ function applyNodeUpdated(db: Database, event: Event): void {
   const sets: string[] = []
   const values: unknown[] = []
 
+  const dataOverrides: Record<string, unknown> = {}
+
   for (const [key, value] of Object.entries(data)) {
     if (key === "data") {
       // Full replacement — json_patch merges and preserves stale properties
       sets.push("data = ?")
       values.push(JSON.stringify(value))
-    } else {
+    } else if (NODE_COLUMNS.has(key)) {
       sets.push(`${key} = ?`)
       values.push(value)
+    } else {
+      // Non-column KNode field (due_time, scheduled_time, etc.) → data blob
+      dataOverrides[key] = value
     }
+  }
+
+  if (Object.keys(dataOverrides).length > 0) {
+    sets.push("data = json_patch(data, ?)")
+    values.push(JSON.stringify(dataOverrides))
   }
 
   sets.push("updated_at = ?", "version = ?")
