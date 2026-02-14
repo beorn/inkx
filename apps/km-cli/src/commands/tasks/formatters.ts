@@ -27,12 +27,12 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor): stri
     return name + term.gray(` ${ca.typeSuffix}`)
   }
   // No collapsed suffix - show individual type indicator
-  if (ca.node.type === "folder") {
+  if (ca.node.type === "oi" && ca.node.fstype === "folder") {
     return name + term.gray("/")
-  } else if (ca.node.type === "file") {
+  } else if (ca.node.type === "oi" && (ca.node.fstype === "file" || ca.node.fstype === "mdfile")) {
     // Only add .md if name doesn't already end with it
     return name.endsWith(".md") ? name : name + term.gray(".md")
-  } else if (ca.node.type === "section") {
+  } else if (ca.node.type === "oi" && ca.node.fstype === "mdsection") {
     const depth = (ca.node.data?.depth as number) ?? 1
     return term.gray("#".repeat(depth) + " ") + name
   }
@@ -64,7 +64,7 @@ export function formatTaskWithPath(
     for (const ca of collapsedAncestors) {
       const prefix = " ".repeat(fsDepth)
       lines.push(prefix + term.dim(formatCollapsedAncestor(repo, ca)))
-      if (ca.node.type === "section") {
+      if (ca.node.type === "oi" && ca.node.fstype === "mdsection") {
         hasSection = true
       } else {
         // Only folders/files increase the depth
@@ -84,11 +84,11 @@ export function formatTaskWithPath(
  * Format the task line itself (checkbox, id, content)
  */
 export function formatTaskLine(task: KNode, options: { detail?: boolean; showId?: boolean } = {}): string {
-  const mark = task.task_mark ?? " "
+  const marker = task.task_marker ?? "[ ]"
   const status = task.task_status ?? "todo"
 
-  // Color the checkbox based on status, using actual task mark
-  const checkboxStr = `[${mark}]`
+  // Color the checkbox based on status, using actual task marker
+  const checkboxStr = marker
   const checkbox =
     status === "done"
       ? term.green(checkboxStr)

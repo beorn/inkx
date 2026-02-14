@@ -13,7 +13,7 @@ import { Database, type SQLQueryBindings } from "bun:sqlite"
 import { existsSync, readdirSync, statSync, readFileSync, mkdirSync, writeFileSync, appendFileSync } from "fs"
 import { join, dirname, basename, relative, isAbsolute } from "path"
 import { toRelativeFsPath } from "./path-utils.ts"
-import { getMarkForStatus } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
 import type { KNode, TaskStatus } from "@km/core"
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
 import { parseMarkdownWithLinks } from "@km/markdown"
@@ -137,7 +137,7 @@ abstract class BaseStore implements NodeStore {
   getAllTasks(): KNode[] {
     const rows = this.db
       .query(
-        `SELECT * FROM nodes WHERE type = 'task'
+        `SELECT * FROM nodes WHERE task_status IS NOT NULL
          ORDER BY task_status, priority ASC, due_date ASC, created_at ASC`,
       )
       .all() as Record<string, unknown>[]
@@ -149,7 +149,7 @@ abstract class BaseStore implements NodeStore {
     const placeholders = statuses.map(() => "?").join(", ")
     const rows = this.db
       .query(
-        `SELECT * FROM nodes WHERE type = 'task' AND task_status IN (${placeholders})
+        `SELECT * FROM nodes WHERE task_status IS NOT NULL AND task_status IN (${placeholders})
          ORDER BY priority ASC, due_date ASC, created_at ASC`,
       )
       .all(...statuses) as Record<string, unknown>[]
@@ -218,7 +218,7 @@ abstract class BaseStore implements NodeStore {
   protected getFilePathForNode(node: KNode): string | null {
     let current: KNode | null = node
     while (current) {
-      if (current.fs_path && current.type === "file") {
+      if (current.fs_path && current.type === "oi" && (current.fstype === "file" || current.fstype === "mdfile")) {
         return current.fs_path
       }
       if (!current.parent_id) break
@@ -240,9 +240,10 @@ abstract class BaseStore implements NodeStore {
       const line = lines[mdLine]
       if (!line) return
 
-      const newMark = getMarkForStatus(newStatus)
+      const marker = getMarkerForStatus(newStatus)
+      const mark = marker[1] // Extract inner char from "[x]" → "x"
 
-      lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`)
+      lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${mark}$2`)
 
       // Use synchronous write to ensure completion before CLI exits
       writeFileSync(filePath, lines.join("\n"))
@@ -440,7 +441,8 @@ export class MemoryStore extends BaseStore {
         const folderId = this.generateId(fullPath)
         this.insertNode({
           id: folderId,
-          type: "folder",
+          type: "oi",
+          fstype: "folder",
           parent_id: parentId,
           fs_path: toRelativeFsPath(this.rootPath, fullPath),
           name: entry.name, // Folder name for link resolution (e.g., "inbox" for [[inbox]])
@@ -466,7 +468,8 @@ export class MemoryStore extends BaseStore {
           const fileId = this.generateId(fullPath)
           this.insertNode({
             id: fileId,
-            type: "file",
+            type: "oi",
+            fstype: "file",
             parent_id: parentId,
             fs_path: toRelativeFsPath(this.rootPath, fullPath),
             content: entry.name,
@@ -494,7 +497,7 @@ export class MemoryStore extends BaseStore {
 
       // The first node is always the file node
       const fileNode = nodes[0]
-      if (fileNode?.type !== "file") {
+      if (fileNode?.type !== "oi" || (fileNode.fstype !== "file" && fileNode.fstype !== "mdfile")) {
         return
       }
 
@@ -604,12 +607,13 @@ export class MemoryStore extends BaseStore {
     const now = Date.now()
     this.db.run(
       `INSERT INTO nodes (
-        id, type, parent_id, parent_idx, fs_path, md_line, name, block_id,
-        content, title, task_status, task_mark, data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, type, fstype, parent_id, parent_idx, fs_path, md_line, name, block_id,
+        content, title, list_marker, task_marker, task_status, data, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id ?? null,
         node.type ?? null,
+        node.fstype ?? null,
         node.parent_id ?? null,
         node.parent_idx ?? 0,
         node.fs_path ?? null,
@@ -618,8 +622,9 @@ export class MemoryStore extends BaseStore {
         node.block_id ?? null,
         node.content ?? null,
         node.title ?? null,
+        node.list_marker ?? null,
+        node.task_marker ?? null,
         node.task_status ?? null,
-        node.task_mark ?? null,
         JSON.stringify(node.data ?? {}),
         now,
         now,
@@ -706,7 +711,7 @@ export class MemoryStore extends BaseStore {
 
   cloneTask(sourceId: string, changes: Partial<KNode>): string | null {
     const source = this.getNode(sourceId)
-    if (source?.type !== "task") return null
+    if (!source?.task_marker) return null
 
     // Generate new ID (ephemeral for memory mode)
     const newId = `clone-${Date.now()}`
@@ -714,11 +719,11 @@ export class MemoryStore extends BaseStore {
 
     // Clone the task with changes
     const id = newId
-    const type = "task"
+    const type = source.type
     const parent_id = changes.parent_id ?? source.parent_id
     const parent_idx = changes.parent_idx ?? source.parent_idx + 0.001
     const task_status = changes.task_status ?? "todo"
-    const task_mark = changes.task_mark ?? " "
+    const task_marker = changes.task_marker ?? "[ ]"
     const assigned_to = changes.assigned_to ?? source.assigned_to ?? null
     const due_date = changes.due_date ?? source.due_date ?? null
     const scheduled_date = changes.scheduled_date ?? source.scheduled_date ?? null
@@ -733,7 +738,7 @@ export class MemoryStore extends BaseStore {
     // Insert into database
     this.db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx,
-        task_status, task_mark, assigned_to, due_date, scheduled_date,
+        task_status, task_marker, assigned_to, due_date, scheduled_date,
         priority, content, data, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -742,7 +747,7 @@ export class MemoryStore extends BaseStore {
         parent_id,
         parent_idx,
         task_status,
-        task_mark,
+        task_marker,
         assigned_to,
         due_date,
         scheduled_date,

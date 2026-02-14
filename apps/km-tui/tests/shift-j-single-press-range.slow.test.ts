@@ -36,9 +36,9 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     const { board, repo } = makeBoard()
 
     // Make A and B proper tasks
-    repo.updateNode("A", { type: "task", task_status: "todo", task_mark: " " })
-    repo.updateNode("B", { type: "task", task_status: "todo", task_mark: " " })
-    repo.updateNode("C", { type: "task", task_status: "todo", task_mark: " " })
+    repo.updateNode("A", { task_status: "todo", task_marker: "[ ]" })
+    repo.updateNode("B", { task_status: "todo", task_marker: "[ ]" })
+    repo.updateNode("C", { task_status: "todo", task_marker: "[ ]" })
 
     // Re-render to pick up node type changes
     board.press("J") // anchor=A, cursor→B — should select range [A, B]

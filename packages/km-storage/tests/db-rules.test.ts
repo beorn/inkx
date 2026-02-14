@@ -73,7 +73,7 @@ describe("Database Rules", () => {
           expect(nodesWithRules.length).toBe(2)
 
           for (const node of nodesWithRules) {
-            expect(node.type).toBe("section")
+            expect(node.type).toBe("oi")
             expect(node.rules?.add).toBeDefined()
           }
         },
@@ -155,13 +155,13 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "section" && n.rules?.add === "@issue status:todo")
+          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo")
           expect(openSection).toBeDefined()
 
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const embeds = children.filter((c) => c.type === "embed")
+          const embeds = children.filter((c) => c.type === "link" && c.embed)
 
           expect(embeds.length).toBe(2)
           expect(embeds.every((e) => e.link_to)).toBe(true)
@@ -189,14 +189,14 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "section" && n.rules?.add === "@issue status:todo")
+          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo")
           expect(openSection).toBeDefined()
 
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const embeds = children.filter((c) => c.type === "embed")
-          const directTasks = children.filter((c) => c.type === "task")
+          const embeds = children.filter((c) => c.type === "link" && c.embed)
+          const directTasks = children.filter((c) => c.task_status != null)
 
           expect(embeds.length).toBe(1)
           expect(directTasks.length).toBe(1)
@@ -234,14 +234,14 @@ describe("Database Rules", () => {
           }
 
           const allNodes = store.getAllNodes()
-          const todoSection = allNodes.find((n) => n.type === "section" && n.rules?.add === "@project status:todo")
-          const doneSection = allNodes.find((n) => n.type === "section" && n.rules?.add === "@project status:done")
+          const todoSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@project status:todo")
+          const doneSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@project status:done")
 
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
 
-          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter((c) => c.type === "embed")
-          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter((c) => c.type === "embed")
+          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter((c) => c.type === "link" && c.embed)
+          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter((c) => c.type === "link" && c.embed)
 
           expect(todoEmbeds.length).toBe(2)
           expect(doneEmbeds.length).toBe(1)
@@ -272,7 +272,7 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "section" && n.rules?.add === "@issue status:todo")
+          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo")
           expect(openSection).toBeDefined()
 
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
@@ -280,7 +280,7 @@ describe("Database Rules", () => {
           const children = getChildren(store.getDatabase(), openSection!.id)
 
           expect(children.length).toBe(2)
-          expect(children.every((c) => c.type === "embed")).toBe(true)
+          expect(children.every((c) => c.type === "link" && c.embed)).toBe(true)
           expect(children.every((c) => c.link_to)).toBe(true)
         },
       ))
@@ -300,7 +300,7 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "section" && n.rules?.add === "status:todo")
+          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "status:todo")
           expect(openSection).toBeDefined()
 
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
@@ -340,8 +340,8 @@ describe("Database Rules", () => {
           }
 
           const allNodes = store.getAllNodes()
-          const todoSection = allNodes.find((n) => n.type === "section" && n.rules?.add === "@tag status:todo")
-          const doneSection = allNodes.find((n) => n.type === "section" && n.rules?.add === "@tag status:done")
+          const todoSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@tag status:todo")
+          const doneSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@tag status:done")
 
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
@@ -352,10 +352,10 @@ describe("Database Rules", () => {
           expect(todoChildren.length).toBe(2)
           expect(doneChildren.length).toBe(0)
 
-          const taskA = allNodes.find((n) => n.type === "task" && n.content?.includes("Task A"))
+          const taskA = allNodes.find((n) => n.task_status != null && n.content?.includes("Task A"))
           expect(taskA).toBeDefined()
 
-          store.updateNode(taskA!.id, { task_status: "done", task_mark: "x" })
+          store.updateNode(taskA!.id, { task_status: "done", task_marker: "[x]" })
 
           for (const _ of evaluateAllRules(store.getDatabase(), createRuleContext())) {
             /* exhaust generator */
@@ -398,7 +398,7 @@ describe("Database Rules", () => {
           }
 
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "section" && n.rules?.add === "@issue status:todo")
+          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo")
           expect(openSection).toBeDefined()
 
           const counts = getChildCountsBatch(store.getDatabase(), [openSection!.id])

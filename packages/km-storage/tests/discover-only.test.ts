@@ -47,7 +47,7 @@ More content.
     // Find the file node
     const fileNode = resolveNode(db, "test.md")
     expect(fileNode).toBeDefined()
-    expect(fileNode?.type).toBe("file")
+    expect(fileNode?.type).toBe("oi")
 
     // In stub mode, file has no children (content not parsed)
     const children = getChildren(db, fileNode!.id)
@@ -86,7 +86,7 @@ Content for section two.
     // Find the file node (stub)
     const fileNode = resolveNode(db, "test.md")
     expect(fileNode).toBeDefined()
-    expect(fileNode?.type).toBe("file")
+    expect(fileNode?.type).toBe("oi")
 
     // Before parsing: no children
     const beforeChildren = getChildren(db, fileNode!.id)
@@ -101,7 +101,7 @@ Content for section two.
     expect(afterChildren.length).toBeGreaterThan(0)
 
     // Verify we got the expected sections
-    const sectionChildren = afterChildren.filter((c) => c.type === "section")
+    const sectionChildren = afterChildren.filter((c) => c.type === "oi" && c.fstype === "mdsection")
     expect(sectionChildren.length).toBe(2)
   })
 
@@ -127,7 +127,7 @@ Content for section two.
     // Find the docs folder node
     const docsNode = resolveNode(db, "docs")
     expect(docsNode).toBeDefined()
-    expect(docsNode?.type).toBe("folder")
+    expect(docsNode?.type).toBe("oi")
 
     // Folder should have file children (stub nodes)
     const children = getChildren(db, docsNode!.id)
@@ -135,7 +135,7 @@ Content for section two.
 
     // Each child should be a file type
     for (const child of children) {
-      expect(child.type).toBe("file")
+      expect(child.type).toBe("oi")
     }
   })
 })

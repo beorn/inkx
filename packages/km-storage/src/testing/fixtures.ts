@@ -55,7 +55,8 @@ export function board(title: string, columns: NodeBuilder[]): BoardFixture {
   nodes.push(
     makeNode({
       id: rootId,
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       title,
       parent_id: null,
       parent_idx: 0,
@@ -78,7 +79,7 @@ export function board(title: string, columns: NodeBuilder[]): BoardFixture {
  */
 export function column(title: string, children: NodeBuilder[] = []): NodeBuilder {
   return {
-    _type: "section",
+    _type: "oi",
     _title: title,
     _children: children,
   }
@@ -89,7 +90,7 @@ export function column(title: string, children: NodeBuilder[] = []): NodeBuilder
  */
 export function task(content: string, opts?: { done?: boolean }): NodeBuilder {
   return {
-    _type: "task",
+    _type: "li",
     _content: content,
     _done: opts?.done,
   }
@@ -100,7 +101,7 @@ export function task(content: string, opts?: { done?: boolean }): NodeBuilder {
  */
 export function section(title: string, children: NodeBuilder[] = []): NodeBuilder {
   return {
-    _type: "section",
+    _type: "oi",
     _title: title,
     _children: children,
   }
@@ -111,7 +112,7 @@ export function section(title: string, children: NodeBuilder[] = []): NodeBuilde
  */
 export function paragraph(content: string): NodeBuilder {
   return {
-    _type: "paragraph",
+    _type: "p",
     _content: content,
   }
 }
@@ -130,8 +131,8 @@ function buildNode(builder: NodeBuilder, parentId: string, idx: number, nodes: K
     parent_idx: idx,
     title: builder._title,
     content: builder._content,
-    task_status: builder._type === "task" ? (builder._done ? "done" : "todo") : undefined,
-    task_mark: builder._type === "task" ? (builder._done ? "x" : " ") : undefined,
+    task_status: builder._type === "li" ? (builder._done ? "done" : "todo") : undefined,
+    task_marker: builder._type === "li" ? (builder._done ? "[x]" : "[ ]") : undefined,
     created_at: now,
     updated_at: now,
   })
@@ -153,13 +154,14 @@ function makeNode(partial: Partial<KNode> & { id: string; type: NodeType }): KNo
   return {
     id: partial.id,
     type: partial.type,
+    fstype: partial.fstype,
     parent_id: partial.parent_id ?? null,
     parent_idx: partial.parent_idx ?? 0,
     link_to: null,
     title: partial.title,
     content: partial.content,
     task_status: partial.task_status,
-    task_mark: partial.task_mark,
+    task_marker: partial.task_marker,
     data: {},
     created_at: partial.created_at ?? Date.now(),
     updated_at: partial.updated_at ?? Date.now(),

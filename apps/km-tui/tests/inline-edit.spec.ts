@@ -191,38 +191,38 @@ describe("Inline Edit — Readline Integration", () => {
   })
 })
 
-describe("Inline Edit — Task Marks", () => {
-  test("editing a task node preserves task mark on save", () => {
+describe("Inline Edit — Task Markers", () => {
+  test("editing a task node preserves task marker on save", () => {
     const { board, repo } = testEnv(() => {
       const nodes = item("board", item("col1", item("task1")))
-      // Make task1 a proper task with a mark
+      // Make task1 a proper task with a marker
       const taskNode = nodes.find((n) => n.id === "task1")!
-      taskNode.content = "[x] task1"
+      taskNode.content = "- [x] task1"
       taskNode.task_status = "done"
-      taskNode.task_mark = "x"
+      taskNode.task_marker = "[x]"
       return nodes
     })
 
     board.expect("#task1[data-cursor]").toExist()
     board.press("Enter")
 
-    // The edit field should show "task1" (stripped mark), not "[x] task1"
+    // The edit field should show "task1" (stripped marker), not "- [x] task1"
     // Type to append
     for (const c of "-ok") board.press(c)
     board.press("Enter")
 
-    // Repo should have mark preserved
-    expect(repo.getNode("task1")?.content).toBe("[x] task1-ok")
+    // Repo should have marker preserved
+    expect(repo.getNode("task1")?.content).toBe("- [x] task1-ok")
     expect(board.screenshot()).toContain("task1-ok")
   })
 
-  test("editing a todo task preserves todo mark", () => {
+  test("editing a todo task preserves todo marker", () => {
     const { board, repo } = testEnv(() => {
       const nodes = item("board", item("col1", item("mytodo")))
       const taskNode = nodes.find((n) => n.id === "mytodo")!
-      taskNode.content = "[ ] mytodo"
+      taskNode.content = "- [ ] mytodo"
       taskNode.task_status = "todo"
-      taskNode.task_mark = " "
+      taskNode.task_marker = "[ ]"
       return nodes
     })
 
@@ -231,7 +231,7 @@ describe("Inline Edit — Task Marks", () => {
     for (const c of "-done") board.press(c)
     board.press("Enter")
 
-    expect(repo.getNode("mytodo")?.content).toBe("[ ] mytodo-done")
+    expect(repo.getNode("mytodo")?.content).toBe("- [ ] mytodo-done")
     expect(board.screenshot()).toContain("mytodo-done")
   })
 })

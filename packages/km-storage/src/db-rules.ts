@@ -151,7 +151,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches across ${queries.length} queries`)
 
   // Remove embeds that no longer match the query
-  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => n.type === "embed" && n.link_to)
+  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => n.type === "link" && n.embed && n.link_to)
   let removedCount = 0
   for (const embed of existingEmbedNodes) {
     // link_to is guaranteed by the filter above, but TypeScript doesn't narrow through filter
@@ -172,7 +172,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
 
   // Get existing embed children in this section (by link_to) - refresh after cleanup
   const existingEmbeds = getChildren(db, sectionId)
-    .filter((n) => n.type === "embed" && n.link_to)
+    .filter((n) => n.type === "link" && n.embed && n.link_to)
     .map((n) => n.link_to as string)
 
   // Get next parent_idx for new embeds
@@ -205,14 +205,15 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     const embedId = ulid()
     const now = Date.now()
     db.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, link_to, content, data, created_at, updated_at, version)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, link_to, embed, content, data, created_at, updated_at, version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         embedId,
-        "embed",
+        "link",
         sectionId,
         nextIdx++,
         match.id,
+        1, // embed = true
         `![[${targetPath}]]`,
         JSON.stringify({ targetPath }),
         now,
@@ -252,7 +253,7 @@ function findFileAncestor(db: Database, nodeId: string, ctx: RuleContext): KNode
   // Fallback to tree walk for incremental updates
   let current = getNode(db, nodeId)
   while (current) {
-    if (current.type === "file") {
+    if (current.type === "oi" && (current.fstype === "file" || current.fstype === "mdfile")) {
       return current
     }
     if (!current.parent_id) {
@@ -329,7 +330,7 @@ function buildFileAncestorCache(db: Database): Map<string, KNode | null> {
   const cache = new Map<string, KNode | null>()
 
   // Get all file nodes first
-  const fileRows = db.query("SELECT * FROM nodes WHERE type = 'file'").all() as Record<string, unknown>[]
+  const fileRows = db.query("SELECT * FROM nodes WHERE type = 'oi' AND fstype IN ('file', 'mdfile')").all() as Record<string, unknown>[]
   const fileNodes = new Map<string, KNode>()
   for (const row of fileRows) {
     const node = rowToNode(row)

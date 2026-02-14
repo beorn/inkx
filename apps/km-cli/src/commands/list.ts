@@ -207,7 +207,7 @@ function displayWithContext(repo: Repo, nodes: KNode[], options: { showId: boole
         for (const ca of collapsed) {
           const prefix = " ".repeat(depth)
           console.log(prefix + term.dim(formatCollapsedAncestor(repo, ca, options.showId)))
-          if (ca.node.type !== "section") {
+          if (!(ca.node.type === "oi" && ca.node.fstype === "mdsection")) {
             depth++
           }
         }

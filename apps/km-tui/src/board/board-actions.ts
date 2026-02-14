@@ -197,7 +197,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       const curNode = curNodeId ? ctx.repo.getNode(curNodeId) : undefined
       // Resolve embedded links to get the actual target node type
       const resolvedNode = curNode?.link_to ? ctx.repo.getNode(curNode.link_to) : curNode
-      const isFolder = resolvedNode?.type === "folder"
+      const isFolder = resolvedNode?.type === "oi" && resolvedNode?.fstype === "folder"
       log.debug?.(
         `OPEN_DETAIL_PANE: colIndex=${layout.colIndex} cardIndex=${layout.cardIndex} curNodeId=${curNodeId} isFolder=${isFolder}`,
       )
@@ -774,7 +774,7 @@ function resolveNodeFsPath(repo: ActionCtx["repo"], nodeId: string): { fsPath: s
       const absPath = join(repo.path, current.fs_path)
       return {
         fsPath: absPath,
-        isFolder: current.type === "folder",
+        isFolder: current.type === "oi" && current.fstype === "folder",
       }
     }
     if (!current.parent_id) break

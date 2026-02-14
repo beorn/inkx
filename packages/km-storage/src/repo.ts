@@ -179,7 +179,7 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return dbResolveNode(db, queryStr, { ...baseOpts, repoRoot: rootPath })
     },
     getRepoRootNode() {
-      const row = db.prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'folder'").get() as
+      const row = db.prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'oi' AND fstype = 'folder'").get() as
         | Record<string, unknown>
         | undefined
       if (!row) return null
@@ -187,6 +187,7 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return {
         id: row.id as string,
         type: row.type as string,
+        fstype: row.fstype as string | null,
         parent_id: row.parent_id as string | null,
         parent_idx: row.parent_idx as number,
         fs_path: row.fs_path as string | null,
@@ -302,15 +303,15 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
     },
     cloneTask(sourceId: string, changes: Partial<KNode>) {
       const source = dataStore.getNode(sourceId)
-      if (source?.type !== "task") return null
+      if (!source?.task_marker) return null
 
-      const clonedNode: Partial<KNode> & { type: "task"; content: string } = {
-        type: "task",
+      const clonedNode: Partial<KNode> & { content: string } = {
+        type: source.type,
         content: changes.content ?? source.content ?? "",
         parent_id: changes.parent_id ?? source.parent_id,
         parent_idx: changes.parent_idx ?? (source.parent_idx ?? 0) + 0.001,
         task_status: changes.task_status ?? "todo",
-        task_mark: changes.task_mark ?? " ",
+        task_marker: changes.task_marker ?? "[ ]",
         assigned_to: changes.assigned_to ?? source.assigned_to,
         due_date: changes.due_date ?? source.due_date,
         scheduled_date: changes.scheduled_date ?? source.scheduled_date,
@@ -585,7 +586,7 @@ export interface SyncConflict {
  * ```typescript
  * // Full repo with files (most common)
  * using repo = createRepo("/path/to/repo")
- * const tasks = repo.data.getAllNodes().filter(n => n.type === "task")
+ * const tasks = repo.data.getAllNodes().filter(n => n.task_marker !== undefined)
  *
  * // Bare repo - no files (daemon, API server)
  * const data = createMemDataStore()
@@ -883,7 +884,7 @@ function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): st
   // Check root's structural children (files and folders that should map to fs entries)
   const rootStructural = (
     db
-      .prepare("SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type IN ('file', 'folder')")
+      .prepare("SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type = 'oi'")
       .get() as { cnt: number }
   ).cnt
 

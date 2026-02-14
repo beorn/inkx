@@ -7,7 +7,7 @@ describe("ChaosFakeRepo", () => {
     it("logs addNode operations", () => {
       const repo = createChaosFakeRepo()
 
-      repo.addNode(null, { type: "section", content: "Test" })
+      repo.addNode(null, { type: "oi", content: "Test" })
 
       const log = repo.getTransactionLog()
       expect(log).toHaveLength(1)
@@ -54,14 +54,14 @@ describe("ChaosFakeRepo", () => {
     it("can disable logging", () => {
       const repo = createChaosFakeRepo({ logTransactions: false })
 
-      repo.addNode(null, { type: "section", content: "Test" })
+      repo.addNode(null, { type: "oi", content: "Test" })
 
       expect(repo.getTransactionLog()).toHaveLength(0)
     })
 
     it("clearTransactionLog clears the log", () => {
       const repo = createChaosFakeRepo()
-      repo.addNode(null, { type: "section", content: "Test" })
+      repo.addNode(null, { type: "oi", content: "Test" })
 
       repo.clearTransactionLog()
 
@@ -88,7 +88,7 @@ describe("ChaosFakeRepo", () => {
 
       repo.injectOrphan({
         id: "orphan",
-        type: "task",
+        type: "li",
         content: "Orphan task",
         parent_id: "missing-parent",
         parent_idx: 0,
@@ -283,7 +283,7 @@ describe("ChaosFakeRepo", () => {
 function createNode(overrides: Partial<KNode> & { id: string; parent_id?: string | null }): KNode {
   const now = Date.now()
   return {
-    type: "section",
+    type: "oi",
     parent_id: null,
     parent_idx: 0,
     link_to: null,

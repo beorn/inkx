@@ -10,7 +10,8 @@ import { descendantsToText } from "../../src/editor/schema.ts"
 function makeNode(overrides: Partial<KNode>): KNode {
   return {
     id: "test-1",
-    type: "task",
+    type: "li",
+    list_marker: "-",
     parent_id: "parent",
     parent_idx: 0,
     link_to: null,
@@ -25,17 +26,18 @@ function makeNode(overrides: Partial<KNode>): KNode {
 describe("hydrateNode", () => {
   test("hydrates task node (strips checkbox prefix)", () => {
     const node = makeNode({
-      type: "task",
+      type: "li",
       content: "- [ ] Buy groceries",
-      task_mark: " ",
+      task_marker: "[ ]",
     })
     const desc = hydrateNode(node)
     expect(descendantsToText(desc)).toBe("Buy groceries")
   })
 
-  test("hydrates section node (uses name)", () => {
+  test("hydrates oi node (uses name)", () => {
     const node = makeNode({
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       name: "My Section",
       content: "My Section",
     })
@@ -45,7 +47,7 @@ describe("hydrateNode", () => {
 
   test("hydrates paragraph node", () => {
     const node = makeNode({
-      type: "paragraph",
+      type: "p",
       content: "Plain text paragraph",
     })
     const desc = hydrateNode(node)
@@ -53,14 +55,14 @@ describe("hydrateNode", () => {
   })
 
   test("hydrates empty node", () => {
-    const node = makeNode({ type: "task", content: "- [ ] " })
+    const node = makeNode({ type: "li", content: "- [ ] ", task_marker: "[ ]" })
     const desc = hydrateNode(node)
     expect(descendantsToText(desc)).toBe("")
   })
 
   test("hydrates multiline content into paragraphs", () => {
     const node = makeNode({
-      type: "paragraph",
+      type: "p",
       content: "First line\nSecond line",
     })
     const desc = hydrateNode(node)
@@ -71,21 +73,21 @@ describe("hydrateNode", () => {
 
 describe("dehydrateNode", () => {
   test("dehydrates to task content (adds checkbox prefix)", () => {
-    const node = makeNode({ type: "task", task_mark: " " })
+    const node = makeNode({ type: "li", task_marker: "[ ]" })
     const desc = [{ type: "paragraph" as const, children: [{ text: "Buy groceries" }] }]
     const content = dehydrateNode(node, desc)
     expect(content).toBe("- [ ] Buy groceries")
   })
 
   test("dehydrates to done task content", () => {
-    const node = makeNode({ type: "task", task_mark: "x" })
+    const node = makeNode({ type: "li", task_marker: "[x]" })
     const desc = [{ type: "paragraph" as const, children: [{ text: "Done item" }] }]
     const content = dehydrateNode(node, desc)
     expect(content).toBe("- [x] Done item")
   })
 
-  test("dehydrates to section content", () => {
-    const node = makeNode({ type: "section" })
+  test("dehydrates to oi content", () => {
+    const node = makeNode({ type: "oi", fstype: "mdsection" })
     const desc = [{ type: "paragraph" as const, children: [{ text: "Section Title" }] }]
     const content = dehydrateNode(node, desc)
     expect(content).toBe("Section Title")
@@ -93,18 +95,19 @@ describe("dehydrateNode", () => {
 
   test("round-trip preserves task content", () => {
     const node = makeNode({
-      type: "task",
+      type: "li",
       content: "- [ ] Buy groceries",
-      task_mark: " ",
+      task_marker: "[ ]",
     })
     const desc = hydrateNode(node)
     const content = dehydrateNode(node, desc)
     expect(content).toBe("- [ ] Buy groceries")
   })
 
-  test("round-trip preserves section content", () => {
+  test("round-trip preserves oi content", () => {
     const node = makeNode({
-      type: "section",
+      type: "oi",
+      fstype: "mdsection",
       name: "My Section",
       content: "My Section",
     })

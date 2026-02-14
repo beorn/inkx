@@ -131,7 +131,7 @@ export class Verifier implements IVerifier {
       }
     }
 
-    const fileNodes = nodes.filter((n) => n.type === "file")
+    const fileNodes = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
 
     return {
       passed: errors.length === 0,
@@ -198,10 +198,10 @@ export class Verifier implements IVerifier {
       }
 
       // Check for orphaned nodes (non-root, non-folder with no parent but has fs_path suggesting nesting)
-      if (node.type !== "folder" && !node.parent_id && node.fs_path) {
+      if (!(node.type === "oi" && node.fstype === "folder") && !node.parent_id && node.fs_path) {
         const pathParts = node.fs_path.split("/")
         // If path has multiple segments, probably should have a parent
-        if (pathParts.length > 2 && node.type !== "file") {
+        if (pathParts.length > 2 && !(node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile"))) {
           orphaned++
         }
       }
@@ -226,7 +226,7 @@ export class Verifier implements IVerifier {
     const nodes = getAllNodes(db)
     const errors: string[] = []
 
-    const fsNodes = nodes.filter((n) => n.type === "file" || n.type === "folder")
+    const fsNodes = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") || n.type === "oi" && n.fstype === "folder")
 
     for (const node of fsNodes) {
       if (!node.fs_path) {
@@ -240,7 +240,7 @@ export class Verifier implements IVerifier {
       warnings: [],
       stats: {
         expectedFiles: 0,
-        actualFiles: fsNodes.filter((n) => n.type === "file").length,
+        actualFiles: fsNodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile")).length,
         duplicateNodes: 0,
         orphanedNodes: 0,
         missingParents: 0,
@@ -276,7 +276,7 @@ export class Verifier implements IVerifier {
 
     // Get database file nodes
     const nodes = getAllNodes(db)
-    const dbFiles = new Set(nodes.filter((n) => n.type === "file" && n.fs_path).map((n) => n.fs_path!))
+    const dbFiles = new Set(nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path).map((n) => n.fs_path!))
 
     // Check for files in filesystem but not in database
     for (const path of fsFiles) {
@@ -317,7 +317,7 @@ export class Verifier implements IVerifier {
     const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
-    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path)
+    const fileNodes = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path)
 
     for (const node of fileNodes) {
       const fsPath = node.fs_path!
@@ -383,7 +383,7 @@ export class Verifier implements IVerifier {
     const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
-    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path)
+    const fileNodes = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path)
 
     for (const node of fileNodes) {
       const fsPath = node.fs_path!

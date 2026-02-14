@@ -127,7 +127,7 @@ export interface ExpectedState {
   /** Specific nodes to verify */
   nodes?: Array<{
     path: string
-    type: "file" | "folder" | "section" | "task"
+    type: "oi" | "li"
     content?: string
     task_status?: string
     children?: number

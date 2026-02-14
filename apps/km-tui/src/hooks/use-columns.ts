@@ -21,7 +21,7 @@ const log = createLogger("km:perf")
 // Non-Column Types (content blocks, not navigable columns)
 // =============================================================================
 
-const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
+import { isBlock } from "@km/core"
 
 // =============================================================================
 // Hook
@@ -96,7 +96,7 @@ function mapDescendants(
 export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnState[] {
   // Get children of root, filtered to exclude non-column types
   const allChildren = repo.getChildren(rootId)
-  const columnNodes = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
+  const columnNodes = allChildren.filter((n) => !isBlock(n.type))
 
   // Extract WIP limits from root frontmatter
   const wipLimits = extractWipLimits(columnNodes)
@@ -159,7 +159,7 @@ function kNodeToColumnState(
     // Merge body nodes into virtual cards, but keep embed links as individual cards
     const mergeableBody: KNode[] = []
     for (const child of bodyNodes) {
-      if (NON_COLUMN_TYPES.has(child.type) && !child.link_to) {
+      if (isBlock(child.type) && !child.link_to) {
         mergeableBody.push(child)
       } else {
         // Flush accumulated body nodes as one merged card
@@ -208,7 +208,7 @@ function kNodeToColumnState(
     // UNLESS they have a link_to (embed links are first-class navigable items).
     const bodyTypeNodes: KNode[] = []
     for (const child of cardNodes) {
-      const isBodyType = NON_COLUMN_TYPES.has(child.type) && !child.link_to
+      const isBodyType = isBlock(child.type) && !child.link_to
       if (isBodyType) {
         bodyTypeNodes.push(child)
       } else {

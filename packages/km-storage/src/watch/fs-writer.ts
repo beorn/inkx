@@ -106,7 +106,7 @@ export class FsWriter implements FsSync {
     const changes = event.data as Partial<KNode>
 
     // Folder rename: content change on a folder → rename directory on disk
-    if (node.type === "folder" && node.fs_path && changes.content) {
+    if (node.type === "oi" && node.fstype === "folder" && node.fs_path && changes.content) {
       this.handleFolderRename(node, changes.content, event.id)
       return
     }
@@ -135,10 +135,10 @@ export class FsWriter implements FsSync {
   private handleNodeCreated(event: Event): void {
     const data = event.data as Partial<KNode>
 
-    if (data.type === "folder" && data.fs_path) {
+    if (data.type === "oi" && data.fstype === "folder" && data.fs_path) {
       const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
       mkdirSync(absPath, { recursive: true })
-    } else if (data.type === "file" && data.fs_path) {
+    } else if (data.type === "oi" && (data.fstype === "file" || data.fstype === "mdfile") && data.fs_path) {
       const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
       this.writeSync(absPath, "")
     } else if (data.parent_id) {
@@ -164,7 +164,7 @@ export class FsWriter implements FsSync {
     if (!event.target) return
 
     const node = getNode(this.db, event.target)
-    if (node?.fs_path && (node.type === "file" || node.type === "folder")) {
+    if (node?.fs_path && node.type === "oi" && (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")) {
       const absPath = toAbsoluteFsPath(this.repoPath, node.fs_path)
       if (existsSync(absPath)) {
         unlinkSync(absPath)
@@ -323,7 +323,7 @@ export class FsWriter implements FsSync {
  * Find the file node that contains a given node (walk up parent chain).
  */
 function findFileNode(db: Database, node: KNode): KNode | null {
-  if (node.type === "file") return node
+  if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile")) return node
   if (!node.parent_id) return null
 
   const parent = getNode(db, node.parent_id)

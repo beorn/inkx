@@ -6,7 +6,7 @@
  */
 
 import { createTerm, type StyleChain } from "inkx"
-import type { KNode } from "@km/core"
+import { getStatusForMarker, type KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameBase, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "../repo-context.tsx"
 
@@ -33,13 +33,13 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showI
   if (ca.typeSuffix) {
     return prefix + name + style.gray(` ${ca.typeSuffix}`)
   }
-  // No collapsed suffix - show individual type indicator
-  if (ca.node.type === "folder") {
+  // No collapsed suffix - show individual type indicator based on fstype
+  if (ca.node.type === "oi" && ca.node.fstype === "folder") {
     return prefix + name + style.gray("/")
-  } else if (ca.node.type === "file") {
+  } else if (ca.node.type === "oi" && (ca.node.fstype === "file" || ca.node.fstype === "mdfile")) {
     // Only add .md if name doesn't already end with it
     return prefix + (name.endsWith(".md") ? name : name + style.gray(".md"))
-  } else if (ca.node.type === "section") {
+  } else if (ca.node.type === "oi" && ca.node.fstype === "mdsection") {
     const depth = (ca.node.data?.depth as number) ?? 1
     return prefix + style.gray("#".repeat(depth) + " ") + name
   }
@@ -58,31 +58,44 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
 
   const name = getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
 
+  // Handle outline items by fstype
+  if (node.type === "oi") {
+    switch (node.fstype) {
+      case "folder":
+        return prefix + style.blue(name) + style.gray("/")
+      case "file":
+      case "mdfile":
+        return prefix + style.cyan(name)
+      case "mdsection": {
+        const depth = (node.data?.depth as number) ?? 1
+        return prefix + style.gray("#".repeat(depth) + " ") + style.yellow(name)
+      }
+      default:
+        return prefix + style.yellow(name)
+    }
+  }
+
+  // Handle tasks (li with task_marker)
+  if (node.task_marker != null) {
+    const marker = node.task_marker
+    // Extract inner character from bracket marker: "[x]" → "x"
+    const inner = marker.length === 3 ? marker[1]! : marker
+    const status = getStatusForMarker(marker) ?? "todo"
+    // Only color the marker character, not the brackets
+    const coloredMark =
+      status === "done"
+        ? style.green(inner)
+        : status === "wip"
+          ? style.yellow(inner)
+          : status === "blocked"
+            ? style.red(inner)
+            : style.dim(inner)
+    const checkbox = style.dim("[") + coloredMark + style.dim("]")
+    return prefix + checkbox + " " + (node.content ?? "(no content)")
+  }
+
   switch (node.type) {
-    case "folder":
-      return prefix + style.blue(name) + style.gray("/")
-    case "file":
-      return prefix + style.cyan(name)
-    case "section": {
-      const depth = (node.data?.depth as number) ?? 1
-      return prefix + style.gray("#".repeat(depth) + " ") + style.yellow(name)
-    }
-    case "task": {
-      const mark = node.task_mark ?? " "
-      const status = node.task_status ?? "todo"
-      // Only color the marker character, not the brackets
-      const coloredMark =
-        status === "done"
-          ? style.green(mark)
-          : status === "wip"
-            ? style.yellow(mark)
-            : status === "blocked"
-              ? style.red(mark)
-              : style.dim(mark)
-      const checkbox = style.dim("[") + coloredMark + style.dim("]")
-      return prefix + checkbox + " " + (node.content ?? "(no content)")
-    }
-    case "paragraph":
+    case "p":
       return prefix + style.dim("¶ ") + (node.content?.slice(0, 50) ?? "")
     default:
       return prefix + style.dim("• ") + (node.content?.slice(0, 50) ?? node.type)

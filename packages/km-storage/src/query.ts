@@ -55,9 +55,11 @@ export function executeQuery(db: Database, ast: QueryAST, baseType?: string, opt
   let sql = needsPathFilter ? buildPathCteSelect() : "SELECT * FROM nodes WHERE 1=1"
 
   // Apply type and task_status filters
+  // Translate virtual types from old schema to new km-ast types
   if (baseType) {
-    sql += " AND type = ?"
-    params.push(baseType)
+    const typeFilter = translateBaseType(baseType)
+    sql += typeFilter.sql
+    params.push(...typeFilter.params)
   }
   if (requireTaskStatus) {
     sql += " AND task_status IS NOT NULL"
@@ -108,6 +110,54 @@ export function queryNodes(db: Database, query: string, type?: string): KNode[] 
 }
 
 // ---------------------------------------------------------------------------
+// Virtual type translation
+// The query language uses user-friendly type names (task, section, file, folder)
+// which map to the km-ast schema (type + fstype columns).
+// ---------------------------------------------------------------------------
+
+/** Translate a virtual base type to SQL filter */
+function translateBaseType(baseType: string): { sql: string; params: (string | number)[] } {
+  switch (baseType) {
+    case "task":
+      return { sql: " AND task_status IS NOT NULL", params: [] }
+    case "section":
+      return { sql: " AND type = 'oi' AND fstype IS NULL", params: [] }
+    case "file":
+      return { sql: " AND type = 'oi' AND fstype IN ('file', 'mdfile')", params: [] }
+    case "folder":
+      return { sql: " AND type = 'oi' AND fstype = 'folder'", params: [] }
+    default:
+      return { sql: " AND type = ?", params: [baseType] }
+  }
+}
+
+/** Translate a type:X field condition to proper SQL */
+function translateTypeCondition(value: string, op: string, params: (string | number)[]): string {
+  const negated = op === "!="
+  switch (value) {
+    case "task":
+      return negated
+        ? " AND NOT (type = 'li' AND task_marker IS NOT NULL)"
+        : " AND type = 'li' AND task_marker IS NOT NULL"
+    case "section":
+      return negated
+        ? " AND NOT (type = 'oi' AND fstype IS NULL)"
+        : " AND type = 'oi' AND fstype IS NULL"
+    case "file":
+      return negated
+        ? " AND NOT (type = 'oi' AND fstype IN ('file', 'mdfile'))"
+        : " AND type = 'oi' AND fstype IN ('file', 'mdfile')"
+    case "folder":
+      return negated
+        ? " AND NOT (type = 'oi' AND fstype = 'folder')"
+        : " AND type = 'oi' AND fstype = 'folder'"
+    default:
+      params.push(value)
+      return negated ? ` AND (type != ? OR type IS NULL)` : ` AND type = ?`
+  }
+}
+
+// ---------------------------------------------------------------------------
 // SQL builder helpers
 // Each takes the relevant AST piece and a params array (which it pushes to),
 // and returns a SQL fragment string (e.g., " AND field = ?").
@@ -155,6 +205,11 @@ function buildPathCteSelect(): string {
 /** Handle date shortcut resolution and general field conditions */
 function buildFieldCondition(cond: QueryCondition, params: (string | number)[]): string {
   const { field, op, value } = cond
+
+  // Handle type: conditions with virtual type translation
+  if (field === "type" && (op === "=" || op === "!=")) {
+    return translateTypeCondition(value, op, params)
+  }
 
   // Handle date shortcuts for date fields
   if (isDateField(field) && isDateShortcut(value)) {

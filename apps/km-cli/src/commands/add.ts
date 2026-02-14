@@ -20,6 +20,7 @@ import { realpathSync } from "fs"
 import { resolve } from "path"
 import { resolvePathArg } from "@km/storage"
 import type { KNode } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 
@@ -146,7 +147,7 @@ export const addCommand = new Command("add")
 
       // Try as node ID/path first
       const nodeRef = resolvedSource.nodeRef ?? source
-      const node = repo.resolveNode(nodeRef, "task")
+      const node = repo.resolveNode(nodeRef, { taskOnly: true })
       if (node) {
         candidates.push(node)
         continue
@@ -179,7 +180,7 @@ export const addCommand = new Command("add")
       const children = repo.getChildren(parentId)
       let firstSection: KNode | undefined
       for (const child of children) {
-        if (child.type === "section") {
+        if (child.type === "oi" && child.fstype === "mdsection") {
           if (!firstSection) {
             firstSection = child
           }
@@ -285,12 +286,13 @@ export const addCommand = new Command("add")
       // Create link nodes
       for (const task of tasksToLink) {
         repo.addNode(actualTarget.id, {
-          type: "task",
+          type: "li",
+          list_marker: "-",
+          task_marker: task.task_marker ?? getMarkerForStatus(task.task_status ?? "todo"),
           parent_idx: nextIdx++,
           link_to: task.id,
           content: task.content,
           task_status: task.task_status,
-          task_mark: task.task_mark,
         })
       }
 

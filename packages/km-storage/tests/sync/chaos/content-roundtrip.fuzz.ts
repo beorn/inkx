@@ -35,7 +35,7 @@ interface NodeSnapshot {
   parent_id: string | null
   parent_idx: number | null
   task_status: string | null
-  task_mark: string | null
+  task_marker: string | null
   data: Record<string, unknown>
 }
 
@@ -50,7 +50,7 @@ function snapshot(nodes: KNode[]): Map<string, NodeSnapshot> {
       parent_id: n.parent_id ?? null,
       parent_idx: n.parent_idx ?? null,
       task_status: n.task_status ?? null,
-      task_mark: n.task_mark ?? null,
+      task_marker: n.task_marker ?? null,
       data: n.data ?? {},
     })
   }
@@ -68,7 +68,7 @@ function compareSnapshots(
   // Check node IDs survived
   for (const [id, bSnap] of before) {
     // Skip root node (parent_id = null, type = folder) — it's the repo root
-    if (bSnap.parent_id === "." && bSnap.type === "folder") continue
+    if (bSnap.parent_id === "." && bSnap.type === "oi") continue
 
     const aSnap = after.get(id)
     if (!aSnap) {
@@ -157,8 +157,8 @@ type Mutation =
 
 /** Pick a random valid mutation given current DB state */
 function pickMutation(rng: SeededRandom, nodes: KNode[], opts?: { allowAdd?: boolean }): Mutation | null {
-  const tasks = nodes.filter((n) => n.type === "task")
-  const sections = nodes.filter((n) => n.type === "section")
+  const tasks = nodes.filter((n) => n.task_status != null)
+  const sections = nodes.filter((n) => n.type === "oi" && !n.fstype)
   const allowAdd = opts?.allowAdd ?? false
 
   if (tasks.length === 0 && sections.length === 0) return null
@@ -213,8 +213,8 @@ function applyMutation(
       const node = getAllNodes(db).find((n) => n.id === mutation.nodeId)
       if (!node) return
       const newStatus = node.task_status === "done" ? "todo" : "done"
-      const newMark = newStatus === "done" ? "x" : " "
-      repo.updateNode(mutation.nodeId, { task_status: newStatus, task_mark: newMark })
+      const newMark = newStatus === "done" ? "[x]" : "[ ]"
+      repo.updateNode(mutation.nodeId, { task_status: newStatus, task_marker: newMark })
       break
     }
     case "edit_content": {
@@ -223,11 +223,11 @@ function applyMutation(
     }
     case "add_task": {
       repo.addNode(mutation.parentId, {
-        type: "task",
+        type: "li",
         content: mutation.content,
         parent_idx: mutation.afterIdx,
         task_status: "todo",
-        task_mark: " ",
+        task_marker: "[ ]",
       })
       break
     }
@@ -266,15 +266,15 @@ describe("Content Round-Trip Fuzz", () => {
       // Toggle 10 random tasks, verifying round-trip after each
       for (let i = 0; i < 10; i++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.type === "task")
+        const tasks = nodes.filter((n) => n.task_status != null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
         const newStatus = task.task_status === "done" ? "todo" : "done"
-        const newMark = newStatus === "done" ? "x" : " "
+        const newMark = newStatus === "done" ? "[x]" : "[ ]"
 
         // Mutate via repo (triggers FS write via SyncManager)
-        repo.updateNode(task.id, { task_status: newStatus, task_mark: newMark })
+        repo.updateNode(task.id, { task_status: newStatus, task_marker: newMark })
 
         // Wait for write queue flush
         await Bun.sleep(100)
@@ -310,7 +310,7 @@ describe("Content Round-Trip Fuzz", () => {
 
       for (let i = 0; i < 10; i++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.type === "task")
+        const tasks = nodes.filter((n) => n.task_status != null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
@@ -405,7 +405,7 @@ describe("Content Round-Trip Fuzz", () => {
       await syncManager.syncFromFs()
 
       const before = snapshot(getAllNodes(db))
-      const sections = getAllNodes(db).filter((n) => n.type === "section")
+      const sections = getAllNodes(db).filter((n) => n.type === "oi" && !n.fstype)
       const taskSection = sections.find((s) => s.content === "Tasks")
       expect(taskSection).toBeDefined()
 
@@ -413,11 +413,11 @@ describe("Content Round-Trip Fuzz", () => {
       const taskA = getAllNodes(db).find((n) => n.content === "Task A")
       expect(taskA).toBeDefined()
       repo.addNode(taskSection!.id, {
-        type: "task",
+        type: "li",
         content: "Task A.5",
         parent_idx: (taskA!.parent_idx ?? 0) + 0.5,
         task_status: "todo",
-        task_mark: " ",
+        task_marker: "[ ]",
       })
 
       await Bun.sleep(100)
@@ -427,7 +427,7 @@ describe("Content Round-Trip Fuzz", () => {
 
       // The new task should exist in the DB
       const allNodes = getAllNodes(db)
-      const taskContents = allNodes.filter((n) => n.type === "task").map((n) => n.content)
+      const taskContents = allNodes.filter((n) => n.task_status != null).map((n) => n.content)
       expect(taskContents).toContain("Task A")
       expect(taskContents).toContain("Task A.5")
       expect(taskContents).toContain("Task B")
@@ -467,13 +467,13 @@ describe("Content Round-Trip Fuzz", () => {
       // Do 10 edits that don't add/delete nodes — only content + status changes
       for (let i = 0; i < 10; i++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.type === "task")
+        const tasks = nodes.filter((n) => n.task_status != null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
         if (rng.bool(0.5)) {
           const newStatus = task.task_status === "done" ? "todo" : "done"
-          repo.updateNode(task.id, { task_status: newStatus, task_mark: newStatus === "done" ? "x" : " " })
+          repo.updateNode(task.id, { task_status: newStatus, task_marker: newStatus === "done" ? "[x]" : "[ ]" })
         } else {
           repo.updateNode(task.id, { content: `Stable edit ${i}` })
         }
@@ -509,14 +509,14 @@ describe("Content Round-Trip Fuzz", () => {
       // Get per-file task counts
       const getFileTaskCounts = () => {
         const nodes = getAllNodes(db)
-        const files = nodes.filter((n) => n.type === "file")
+        const files = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
         const counts = new Map<string, number>()
         for (const file of files) {
           const children = getChildren(db, file.id)
           let taskCount = 0
           const traverse = (parentId: string) => {
             for (const child of getChildren(db, parentId)) {
-              if (child.type === "task") taskCount++
+              if (child.task_status != null) taskCount++
               traverse(child.id)
             }
           }
@@ -529,7 +529,7 @@ describe("Content Round-Trip Fuzz", () => {
       // Edit tasks in one file, verify others are unchanged
       for (let round = 0; round < 5; round++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.type === "task")
+        const tasks = nodes.filter((n) => n.task_status != null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
@@ -537,7 +537,7 @@ describe("Content Round-Trip Fuzz", () => {
 
         // Toggle task
         const newStatus = task.task_status === "done" ? "todo" : "done"
-        repo.updateNode(task.id, { task_status: newStatus, task_mark: newStatus === "done" ? "x" : " " })
+        repo.updateNode(task.id, { task_status: newStatus, task_marker: newStatus === "done" ? "[x]" : "[ ]" })
 
         await Bun.sleep(100)
         await syncManager.syncFromFs()
@@ -590,13 +590,13 @@ describe("Content Round-Trip Fuzz", () => {
       // Record section depths
       const getSectionDepths = () => {
         const nodes = getAllNodes(db)
-        return new Map(nodes.filter((n) => n.type === "section").map((n) => [n.id, n.data?.depth ?? null]))
+        return new Map(nodes.filter((n) => n.type === "oi" && !n.fstype).map((n) => [n.id, n.data?.depth ?? null]))
       }
 
       const depthsBefore = getSectionDepths()
 
       // Edit a task under Level 3
-      const tasks = getAllNodes(db).filter((n) => n.type === "task" && n.content?.includes("3.1"))
+      const tasks = getAllNodes(db).filter((n) => n.task_status != null && n.content?.includes("3.1"))
       if (tasks.length > 0) {
         repo.updateNode(tasks[0]!.id, { content: "Edited task 3.1" })
         await Bun.sleep(100)
@@ -644,15 +644,15 @@ type: daily
       await syncManager.syncFromFs()
 
       // Find file node and verify frontmatter
-      const fileNode = getAllNodes(db).find((n) => n.type === "file")
+      const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
       expect(fileNode).toBeDefined()
       expect(fileNode!.data?.title).toBe("My Document")
       expect(fileNode!.data?.tags).toEqual(["project", "work"])
 
       // Toggle a task
-      const task = getAllNodes(db).find((n) => n.type === "task")
+      const task = getAllNodes(db).find((n) => n.task_status != null)
       expect(task).toBeDefined()
-      repo.updateNode(task!.id, { task_status: "done", task_mark: "x" })
+      repo.updateNode(task!.id, { task_status: "done", task_marker: "[x]" })
       await Bun.sleep(100)
 
       // Verify frontmatter in FS
@@ -664,7 +664,7 @@ type: daily
 
       // Re-parse and verify frontmatter in DB
       await syncManager.syncFromFs()
-      const updatedFile = getAllNodes(db).find((n) => n.type === "file")
+      const updatedFile = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
       expect(updatedFile!.data?.title).toBe("My Document")
       expect(updatedFile!.data?.tags).toEqual(["project", "work"])
     }))
@@ -686,7 +686,7 @@ type: daily
       // Do mutations, then verify FS file content matches what nodesToMarkdown would produce
       for (let i = 0; i < 5; i++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.type === "task")
+        const tasks = nodes.filter((n) => n.task_status != null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
@@ -700,7 +700,7 @@ type: daily
       // Re-parse and verify the DB matches FS
       await syncManager.syncFromFs()
       const finalNodes = getAllNodes(db)
-      const tasks = finalNodes.filter((n) => n.type === "task")
+      const tasks = finalNodes.filter((n) => n.task_status != null)
 
       // Every task in DB should have its content appear in the FS file
       for (const task of tasks) {

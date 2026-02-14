@@ -614,8 +614,8 @@ describe("Cursor follows node (invariant)", () => {
 
   test("paragraph nodes cannot be indented (type restriction)", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
-    // Change B's type to paragraph (non-indentable)
-    repo.updateNode("B", { type: "paragraph" })
+    // Change B's type to p (non-indentable block type)
+    repo.updateNode("B", { type: "p" })
 
     board.press("j") // → B
     board.press("Tab") // attempt indent — should be blocked

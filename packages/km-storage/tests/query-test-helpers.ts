@@ -12,8 +12,9 @@ import { SCHEMA } from "../src/schema.ts"
 export interface TestNode {
   id: string
   type: string
+  fstype?: string | null
   task_status?: string | null
-  task_mark?: string | null
+  task_marker?: string | null
   priority?: number | null
   content: string
   fs_path?: string | null
@@ -41,10 +42,10 @@ export function seedTestData(db: Database, nodes: TestNode[]): void {
   const now = Date.now()
   const stmt = db.prepare(`
     INSERT INTO nodes (
-      id, type, name, task_status, task_mark, priority, content,
+      id, type, fstype, name, task_status, task_marker, priority, content,
       fs_path, due_date, scheduled_date, data,
       created_at, updated_at, version, parent_idx
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   for (let i = 0; i < nodes.length; i++) {
@@ -52,9 +53,10 @@ export function seedTestData(db: Database, nodes: TestNode[]): void {
     stmt.run(
       n.id,
       n.type,
+      n.fstype ?? null,
       n.name ?? null,
       n.task_status ?? null,
-      n.task_mark ?? null,
+      n.task_marker ?? null,
       n.priority ?? null,
       n.content,
       n.fs_path ?? null,

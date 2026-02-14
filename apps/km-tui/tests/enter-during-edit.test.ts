@@ -194,13 +194,15 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
     // Create target nodes that the links point to
     const targetA: KNode = {
       id: "target-a",
-      type: "task",
+      type: "li",
+      list_marker: "-",
       content: "Target task A",
       parent_id: "other-file",
       parent_idx: 0,
       link_to: null,
       task_status: "todo",
-      task_mark: " ",
+      task_marker: "[ ]",
+      data: {},
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",
@@ -209,7 +211,8 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
     const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
     const otherFile: KNode = {
       id: "other-file",
-      type: "folder",
+      type: "oi",
+      fstype: "folder",
       content: undefined,
       data: { name: "Other File" },
       parent_id: ".",
@@ -226,19 +229,19 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
         n.link_to = "target-a"
         n.content = "Target task A"
         n.task_status = "todo"
-        n.task_mark = " "
+        n.task_marker = "[ ]"
       }
       if (n.id === "link-b") {
         n.link_to = "target-b"
         n.content = "Target task B"
         n.task_status = "todo"
-        n.task_mark = " "
+        n.task_marker = "[ ]"
       }
       if (n.id === "link-c") {
         n.link_to = "target-c"
         n.content = "Target task C"
         n.task_status = "todo"
-        n.task_mark = " "
+        n.task_marker = "[ ]"
       }
     }
 
@@ -320,13 +323,15 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     // Create target nodes that the links point to
     const targetA: KNode = {
       id: "target-a",
-      type: "task",
+      type: "li",
+      list_marker: "-",
       content: "Target task A",
       parent_id: "other-file",
       parent_idx: 0,
       link_to: null,
       task_status: "todo",
-      task_mark: " ",
+      task_marker: "[ ]",
+      data: {},
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",
@@ -335,7 +340,8 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
     const otherFile: KNode = {
       id: "other-file",
-      type: "folder",
+      type: "oi",
+      fstype: "folder",
       content: undefined,
       data: { name: "Other File" },
       parent_id: ".",
@@ -349,17 +355,17 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     // Make the card nodes into paragraph-type embeds (matching real vault)
     for (const n of nodes) {
       if (n.id === "link-a") {
-        n.type = "paragraph"
+        n.type = "p"
         n.link_to = "target-a"
         n.content = "![[Other File#^a1]]"
       }
       if (n.id === "link-b") {
-        n.type = "paragraph"
+        n.type = "p"
         n.link_to = "target-b"
         n.content = "![[Other File#^b2]]"
       }
       if (n.id === "link-c") {
-        n.type = "paragraph"
+        n.type = "p"
         n.link_to = "target-c"
         n.content = "![[Other File#^c3]]"
       }

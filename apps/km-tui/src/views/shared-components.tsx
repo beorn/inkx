@@ -435,7 +435,7 @@ export function NodeLine({
   children,
 }: NodeLineProps): React.ReactElement {
   const prefix = isSelected ? "▸ " : "  "
-  const icon = getNodeIcon(node.task_status, undefined, node.type === "task")
+  const icon = getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   return (
     <Box width="100%" height={1} backgroundColor={isSelected ? "cyan" : "black"}>

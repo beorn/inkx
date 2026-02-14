@@ -6,9 +6,9 @@ describe("createIssueNode", () => {
   test("creates a basic issue node", () => {
     const { node, shortId } = createIssueNode("Fix the login bug")
 
-    expect(node.type).toBe("task")
+    expect(node.type).toBe("li")
     expect(node.task_status).toBe("todo")
-    expect(node.task_mark).toBe(" ")
+    expect(node.task_marker).toBe("[ ]")
     expect(node.content).toContain("Fix the login bug")
     expect(node.content).toContain("@issue")
     expect(shortId).toMatch(/^km-[a-z0-9]{4}$/)
@@ -78,28 +78,28 @@ describe("updateIssueFields", () => {
     const updates = updateIssueFields(baseIssue, { status: "done" })
 
     expect(updates.task_status).toBe("done")
-    expect(updates.task_mark).toBe("x")
+    expect(updates.task_marker).toBe("[x]")
   })
 
   test("updates status to wip", () => {
     const updates = updateIssueFields(baseIssue, { status: "wip" })
 
     expect(updates.task_status).toBe("wip")
-    expect(updates.task_mark).toBe("/")
+    expect(updates.task_marker).toBe("[/]")
   })
 
   test("updates status to blocked", () => {
     const updates = updateIssueFields(baseIssue, { status: "blocked" })
 
     expect(updates.task_status).toBe("blocked")
-    expect(updates.task_mark).toBe("!")
+    expect(updates.task_marker).toBe("[!]")
   })
 
   test("updates status to dropped", () => {
     const updates = updateIssueFields(baseIssue, { status: "dropped" })
 
     expect(updates.task_status).toBe("dropped")
-    expect(updates.task_mark).toBe("-")
+    expect(updates.task_marker).toBe("[-]")
   })
 
   test("updates priority", () => {
@@ -129,7 +129,7 @@ describe("closeIssueFields", () => {
     const updates = closeIssueFields()
 
     expect(updates.task_status).toBe("done")
-    expect(updates.task_mark).toBe("x")
+    expect(updates.task_marker).toBe("[x]")
   })
 
   test("closes issue with reason", () => {
@@ -144,7 +144,7 @@ describe("dropIssueFields", () => {
     const updates = dropIssueFields()
 
     expect(updates.task_status).toBe("dropped")
-    expect(updates.task_mark).toBe("-")
+    expect(updates.task_marker).toBe("[-]")
   })
 
   test("drops issue with reason", () => {

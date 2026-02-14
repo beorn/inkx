@@ -110,7 +110,7 @@ export function getEmbedTargetsOnBoard(db: Database, boardRootId: string | null)
     )
     SELECT link_to FROM nodes
     WHERE id IN (SELECT id FROM descendants)
-    AND type = 'embed' AND link_to IS NOT NULL
+    AND type = 'link' AND embed = 1 AND link_to IS NOT NULL
   `,
     )
     .all(boardRootId) as { link_to: string }[]

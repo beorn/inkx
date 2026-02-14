@@ -89,7 +89,7 @@ export function* discoverFiles(
   // Query for existing repo root node (created by migration)
   // Use is_repo_root flag to distinguish from other folders with NULL parent_id
   const repoRootRow = db
-    .prepare("SELECT id FROM nodes WHERE type = 'folder' AND json_extract(data, '$.is_repo_root') = 1")
+    .prepare("SELECT id FROM nodes WHERE type = 'oi' AND fstype = 'folder' AND json_extract(data, '$.is_repo_root') = 1")
     .get() as { id: string } | undefined
 
   if (!repoRootRow) {
@@ -268,7 +268,7 @@ export function* discoverFiles(
 
       // First node is always the file node
       const fileNode = nodes[0]
-      if (fileNode?.type === "file") {
+      if (fileNode?.type === "oi" && (fileNode.fstype === "file" || fileNode.fstype === "mdfile")) {
         fileNode.parent_id = parentId
         fileNode.parent_idx = order
         fileNode.fs_path = toRelativeFsPath(repoRoot, fullPath)
@@ -382,7 +382,8 @@ function createFolderEvent(
     ts,
     data: {
       id,
-      type: "folder",
+      type: "oi",
+      fstype: "folder",
       parent_id: parentId,
       parent_idx: order,
       fs_path: fsPath,
@@ -408,7 +409,8 @@ function createStubFileEvent(
     ts,
     data: {
       id,
-      type: "file",
+      type: "oi",
+      fstype: "mdfile",
       parent_id: parentId,
       parent_idx: order,
       fs_path: fsPath,
@@ -435,7 +437,8 @@ function createNonMdFileEvent(
     ts,
     data: {
       id,
-      type: "file",
+      type: "oi",
+      fstype: "file",
       parent_id: parentId,
       parent_idx: order,
       fs_path: fsPath,

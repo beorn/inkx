@@ -60,7 +60,8 @@ describe("Board Pure Rendering", () => {
     const cardState: CardState = {
       node: {
         id: "test-card",
-        type: "task",
+        type: "li",
+        list_marker: "-",
         parent_id: null,
         parent_idx: 0,
         link_to: null,
@@ -82,7 +83,8 @@ describe("Board Pure Rendering", () => {
     const cardState: CardState = {
       node: {
         id: "test-card",
-        type: "task",
+        type: "li",
+        list_marker: "-",
         parent_id: null,
         parent_idx: 0,
         link_to: null,
@@ -95,7 +97,8 @@ describe("Board Pure Rendering", () => {
       children: [
         {
           id: "child-1",
-          type: "task",
+          type: "li",
+          list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
           link_to: null,
@@ -117,7 +120,8 @@ describe("Board Pure Rendering", () => {
     const cardState: CardState = {
       node: {
         id: "test-card",
-        type: "task",
+        type: "li",
+        list_marker: "-",
         parent_id: null,
         parent_idx: 0,
         link_to: null,
@@ -130,7 +134,8 @@ describe("Board Pure Rendering", () => {
       children: [
         {
           id: "child-1",
-          type: "task",
+          type: "li",
+          list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
           link_to: null,
@@ -142,7 +147,8 @@ describe("Board Pure Rendering", () => {
         },
         {
           id: "child-2",
-          type: "task",
+          type: "li",
+          list_marker: "-",
           parent_id: "test-card",
           parent_idx: 1,
           link_to: null,
@@ -165,7 +171,7 @@ describe("Board Pure Rendering", () => {
     // Demonstrate using the createCardState fixture
     const cardState = createCardState({
       content: "Fixture Card",
-      type: "task",
+      type: "li",
     })
 
     const output = renderCard(repo, cardState, 40, false, false, false)

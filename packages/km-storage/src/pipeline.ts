@@ -173,12 +173,12 @@ export async function* applyNodes(
   const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?")
   const insertStmt = db.prepare(`
     INSERT INTO nodes (
-      id, type, parent_id, link_to, link_alias, parent_idx,
-      fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line, md_slug,
-      task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+      id, type, fstype, parent_id, link_to, link_alias, parent_idx,
+      fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
+      list_marker, task_marker, task_status, assigned_to, due_date, scheduled_date, priority,
       content, content_hash, data,
       created_at, updated_at, version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const now = Date.now()
@@ -447,6 +447,7 @@ function insertFileNodes(
     insertStmt.run(
       node.id,
       node.type,
+      node.fstype ?? null,
       node.parent_id ?? null,
       node.link_to ?? null,
       node.link_alias ?? null,
@@ -459,9 +460,9 @@ function insertFileNodes(
       node.title ?? null,
       node.md_pos ?? null,
       node.md_line ?? null,
-      node.md_slug ?? null,
+      node.list_marker ?? null,
+      node.task_marker ?? null,
       node.task_status ?? null,
-      node.task_mark ?? null,
       node.assigned_to ?? null,
       node.due_date ?? null,
       node.scheduled_date ?? null,

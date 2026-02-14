@@ -58,10 +58,10 @@ This is a paragraph.
 
         const fileNode = getNodeByPath(db, toRel(repoDir, testFile))
         expect(fileNode).not.toBeNull()
-        expect(fileNode!.type).toBe("file")
+        expect(fileNode!.type).toBe("oi")
         expect(fileNode!.fs_path).toBe(toRel(repoDir, testFile))
 
-        const tasks = allNodes.filter((n) => n.type === "task")
+        const tasks = allNodes.filter((n) => n.task_status != null)
         expect(tasks.length).toBe(2)
 
         const todoTask = tasks.find((t) => t.task_status === "todo")
@@ -90,7 +90,7 @@ This is a paragraph.
         expect(result.processed).toBeGreaterThan(0)
 
         const allNodes = getAllNodes(db)
-        const fileNodes = allNodes.filter((n) => n.type === "file")
+        const fileNodes = allNodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNodes.length).toBeGreaterThan(0)
 
         const fileNode = fileNodes.find((n) => n.fs_path === toRel(repoDir, testFile))
@@ -126,7 +126,7 @@ Some content here.
 
         const fileNode = getNodeByPath(db, toRel(repoDir, testFile))
         expect(fileNode).not.toBeNull()
-        expect(fileNode!.type).toBe("file")
+        expect(fileNode!.type).toBe("oi")
         expect(fileNode!.data).toBeDefined()
         expect(fileNode!.data.title).toBe("Test Document")
         expect(fileNode!.data.type).toBe("daily")
@@ -157,7 +157,7 @@ Some content here.
         await manager.syncFromFs()
 
         const allNodes = getAllNodes(db)
-        const tasks = allNodes.filter((n) => n.type === "task")
+        const tasks = allNodes.filter((n) => n.task_status != null)
 
         expect(tasks.length).toBe(4)
 
@@ -228,20 +228,17 @@ code
         const allNodes = getAllNodes(db)
 
         const validTypes = [
-          "folder",
-          "file",
-          "section",
-          "paragraph",
-          "task",
-          "ul",
-          "ol",
-          "quote",
+          "oi",
+          "li",
+          "p",
           "code",
+          "quote",
           "table",
           "hr",
           "html",
-          "agent",
-          "board",
+          "math",
+          "h",
+          "link",
         ]
 
         for (const node of allNodes) {
@@ -274,7 +271,7 @@ code
         await manager.syncFromFs()
 
         const allNodes = getAllNodes(db)
-        const tasks = allNodes.filter((n) => n.type === "task")
+        const tasks = allNodes.filter((n) => n.task_status != null)
 
         expect(tasks.length).toBe(3)
       }))
@@ -341,17 +338,17 @@ code
 
         const allNodes = getAllNodes(db)
 
-        const folderNodes = allNodes.filter((n) => n.type === "folder")
+        const folderNodes = allNodes.filter((n) => n.type === "oi" && n.fstype === "folder")
         expect(folderNodes.length).toBeGreaterThanOrEqual(2)
 
         const projectsFolder = getNodeByPath(db, toRel(repoDir, subFolder))
         const activeFolder = getNodeByPath(db, toRel(repoDir, deepFolder))
 
         expect(projectsFolder).not.toBeNull()
-        expect(projectsFolder!.type).toBe("folder")
+        expect(projectsFolder!.type).toBe("oi")
 
         expect(activeFolder).not.toBeNull()
-        expect(activeFolder!.type).toBe("folder")
+        expect(activeFolder!.type).toBe("oi")
       }))
 
     test("should link files to their parent folder via parent_id", () =>
@@ -444,22 +441,22 @@ code
         await manager.syncFromFs()
 
         const allNodes = getAllNodes(db)
-        const taskNode = allNodes.find((n) => n.type === "task")
+        const taskNode = allNodes.find((n) => n.task_status != null)
         expect(taskNode).toBeDefined()
 
         const ancestors = getAncestors(db, taskNode!.id)
 
         expect(ancestors.length).toBeGreaterThanOrEqual(3)
 
-        const folderAncestor = ancestors.find((a) => a.type === "folder")
+        const folderAncestor = ancestors.find((a) => a.type === "oi" && a.fstype === "folder")
         expect(folderAncestor).toBeDefined()
         expect(folderAncestor!.fs_path).toBe(toRel(repoDir, subFolder))
 
-        const fileAncestor = ancestors.find((a) => a.type === "file")
+        const fileAncestor = ancestors.find((a) => a.type === "oi" && (a.fstype === "file" || a.fstype === "mdfile"))
         expect(fileAncestor).toBeDefined()
         expect(fileAncestor!.fs_path).toBe(toRel(repoDir, testFile))
 
-        const sectionAncestors = ancestors.filter((a) => a.type === "section")
+        const sectionAncestors = ancestors.filter((a) => a.type === "oi" && a.fstype === "mdsection")
         expect(sectionAncestors.length).toBeGreaterThanOrEqual(1)
       }))
 
@@ -485,10 +482,10 @@ code
         const allNodes = getAllNodes(db)
 
         const relSubFolder = toRel(repoDir, subFolder)
-        const folderNodes = allNodes.filter((n) => n.type === "folder" && n.fs_path === relSubFolder)
+        const folderNodes = allNodes.filter((n) => n.type === "oi" && n.fstype === "folder" && n.fs_path === relSubFolder)
         expect(folderNodes.length).toBe(1)
 
-        const fileNodes = allNodes.filter((n) => n.type === "file" && n.fs_path?.startsWith(relSubFolder))
+        const fileNodes = allNodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.startsWith(relSubFolder))
         expect(fileNodes.length).toBe(3)
 
         const folderId = folderNodes[0]!.id
@@ -533,7 +530,7 @@ code
 
         // Find Column A section
         const allNodes = getAllNodes(db)
-        const colA = allNodes.find((n) => n.type === "section" && n.content === "Column A")
+        const colA = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.content === "Column A")
         expect(colA).toBeDefined()
 
         // Simulate TUI creating a new section (like handleAddNodeAfter)
@@ -544,7 +541,7 @@ code
           actor: "user",
           data: {
             id: "new-section-1",
-            type: "section",
+            type: "oi",
             parent_id: fileNode!.id,
             parent_idx: (colA!.parent_idx ?? 0) + 0.5,
             content: "",
@@ -554,11 +551,12 @@ code
 
         // Insert the node into DB first (emitter normally does this)
         db.run(
-          `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO nodes (id, type, fstype, parent_id, parent_idx, content, data, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             "new-section-1",
-            "section",
+            "oi",
+            "mdsection",
             fileNode!.id,
             (colA!.parent_idx ?? 0) + 0.5,
             "",

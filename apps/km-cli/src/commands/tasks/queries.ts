@@ -36,7 +36,7 @@ export function findNodeByPathOrId(repo: Repo, pathOrId: string): KNode | null {
  */
 export function getTasksUnderNode(repo: Repo, nodeId: string): KNode[] {
   const subtree = repo.getSubtree(nodeId)
-  return subtree.filter((n) => n.type === "task" || n.task_status)
+  return subtree.filter((n) => n.task_marker !== undefined || n.task_status !== undefined)
 }
 
 /**
@@ -119,8 +119,8 @@ function getNodeSegmentName(node: KNode): string | null {
   if (node.content) {
     return node.content
   }
-  if (node.md_slug) {
-    return node.md_slug
+  if (node.name) {
+    return node.name
   }
   return null
 }

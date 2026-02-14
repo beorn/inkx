@@ -331,11 +331,12 @@ export function ensureRepoRootNode(db: Database, repoRoot: string): void {
   const now = Date.now()
   db.prepare(`
     INSERT INTO nodes (
-      id, type, parent_id, parent_idx, fs_path, content, data,
+      id, type, fstype, parent_id, parent_idx, fs_path, content, data,
       created_at, updated_at, version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     ".",
+    "oi",
     "folder",
     null,
     0,
@@ -644,7 +645,8 @@ function* reconcileFilesystem(
         ts: now,
         data: {
           id: nodeId,
-          type: "folder",
+          type: "oi",
+          fstype: "folder",
           parent_id: parentId,
           parent_idx: 0,
           fs_path: relPath,
@@ -661,7 +663,8 @@ function* reconcileFilesystem(
         ts: now,
         data: {
           id: nodeId,
-          type: "file",
+          type: "oi",
+          fstype: "mdfile",
           parent_id: parentId,
           parent_idx: 0,
           fs_path: relPath,
@@ -679,7 +682,8 @@ function* reconcileFilesystem(
         ts: now,
         data: {
           id: nodeId,
-          type: "file",
+          type: "oi",
+          fstype: "file",
           parent_id: parentId,
           parent_idx: 0,
           fs_path: relPath,
@@ -713,21 +717,21 @@ function* reconcileFilesystem(
 // SHARED INSERT HELPERS
 // ============================================================================
 
-/** SQL for the 27-column INSERT used by applyEvents, parseDeferredSequential, and parseStubFile.
+/** SQL for the 28-column INSERT used by applyEvents, parseDeferredSequential, and parseStubFile.
  * Uses INSERT OR IGNORE to match applyEventWithDb behavior — in disk mode,
  * events.jsonl may contain events for nodes that already exist in state.db. */
 const INSERT_NODE_SQL = `
   INSERT OR IGNORE INTO nodes (
-    id, type, parent_id, link_to, link_alias, parent_idx,
-    fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line, md_slug,
-    task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+    id, type, fstype, parent_id, link_to, link_alias, parent_idx,
+    fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
+    list_marker, task_marker, task_status, assigned_to, due_date, scheduled_date, priority,
     content, content_hash, data,
     created_at, updated_at, version
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 /**
- * Run the 27-column INSERT for a KNode.
+ * Run the 28-column INSERT for a KNode.
  * Shared by parseDeferredSequential and parseStubFile where the source is a KNode.
  */
 function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode, now: number): void {
@@ -735,6 +739,7 @@ function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode, now: 
   stmt.run(
     node.id,
     node.type,
+    node.fstype ?? null,
     node.parent_id ?? null,
     node.link_to ?? null,
     node.link_alias ?? null,
@@ -747,9 +752,9 @@ function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode, now: 
     node.title ?? null,
     node.md_pos ?? null,
     node.md_line ?? null,
-    node.md_slug ?? null,
+    node.list_marker ?? null,
+    node.task_marker ?? null,
     node.task_status ?? null,
-    node.task_mark ?? null,
     node.assigned_to ?? null,
     node.due_date ?? null,
     node.scheduled_date ?? null,
@@ -798,6 +803,7 @@ function* applyEvents(
           insertStmt.run(
             data.id as string,
             data.type as string,
+            (data.fstype as string) ?? null,
             parentId,
             (data.link_to as string) ?? null,
             (data.link_alias as string) ?? null,
@@ -810,9 +816,9 @@ function* applyEvents(
             (data.title as string) ?? null,
             (data.md_pos as number) ?? null,
             (data.md_line as number) ?? null,
-            (data.md_slug as string) ?? null,
+            (data.list_marker as string) ?? null,
+            (data.task_marker as string) ?? null,
             (data.task_status as string) ?? null,
-            (data.task_mark as string) ?? null,
             (data.assigned_to as string) ?? null,
             (data.due_date as string) ?? null,
             (data.scheduled_date as string) ?? null,
@@ -944,7 +950,7 @@ function parseOneFile(
   deleteStmt.run(nodeId)
 
   const fileNode = nodes[0]
-  if (fileNode?.type === "file") {
+  if (fileNode?.type === "oi" && (fileNode.fstype === "file" || fileNode.fstype === "mdfile")) {
     fileNode.id = nodeId
     fileNode.parent_id = stubRow.parent_id
     fileNode.parent_idx = stubRow.parent_idx
@@ -1049,7 +1055,7 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string): boo
 
       const fileNode = nodes[0]
       const originalFileId = fileNode?.id
-      if (fileNode?.type === "file") {
+      if (fileNode?.type === "oi" && (fileNode.fstype === "file" || fileNode.fstype === "mdfile")) {
         fileNode.id = nodeId
         fileNode.parent_id = stubRow.parent_id
         fileNode.parent_idx = stubRow.parent_idx

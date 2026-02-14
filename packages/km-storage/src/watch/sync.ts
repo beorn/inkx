@@ -436,7 +436,7 @@ export class SyncManager extends EventEmitter {
 
   /** Walk up parent chain to find the containing file node */
   private findFileNode(node: KNode): KNode | null {
-    if (node.type === "file") return node
+    if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile")) return node
     if (!node.parent_id) return null
     const parent = getNode(this.db, node.parent_id)
     if (!parent) return null
@@ -458,7 +458,7 @@ export class SyncManager extends EventEmitter {
     const changes = event.data as Partial<KNode>
 
     // Folder rename: content change on a folder → rename directory on disk
-    if (node.type === "folder" && node.fs_path && changes.content) {
+    if (node.type === "oi" && node.fstype === "folder" && node.fs_path && changes.content) {
       this.handleFolderRename(node, changes.content, event.id)
       return
     }
@@ -621,7 +621,7 @@ export class SyncManager extends EventEmitter {
   private handleNodeCreated(event: Event): void {
     const data = event.data as Partial<KNode>
 
-    if (data.type === "folder" && data.fs_path) {
+    if (data.type === "oi" && data.fstype === "folder" && data.fs_path) {
       // Create directory — resolve relative path for FS operation
       const absPath = toAbsoluteFsPath(this.config.repoPath, data.fs_path)
       try {
@@ -629,7 +629,7 @@ export class SyncManager extends EventEmitter {
       } catch (err) {
         this.emit("error", err instanceof Error ? err : new Error(String(err)))
       }
-    } else if (data.type === "file" && data.fs_path) {
+    } else if (data.type === "oi" && (data.fstype === "file" || data.fstype === "mdfile") && data.fs_path) {
       // Create file — resolve relative path for FS operation
       const absPath = toAbsoluteFsPath(this.config.repoPath, data.fs_path)
       this.writeQueue.queue({
@@ -673,7 +673,7 @@ export class SyncManager extends EventEmitter {
     const fsPath = data?.fs_path
     const nodeType = data?.type
 
-    if (fsPath && (nodeType === "file" || nodeType === "folder")) {
+    if (fsPath && nodeType === "oi") {
       // File/folder node: delete the file from disk
       const absPath = toAbsoluteFsPath(this.config.repoPath, fsPath)
       this.writeQueue.queueDelete(absPath, event.id)
@@ -903,7 +903,7 @@ export class SyncManager extends EventEmitter {
 
     const nodes = getAllNodes(this.db)
     // CRITICAL: Only sync .md files to prevent corruption of source code/config files
-    const fileNodes = nodes.filter((n) => n.type === "file" && n.fs_path?.endsWith(".md"))
+    const fileNodes = nodes.filter((n) => n.type === "oi" && n.fstype === "mdfile" && n.fs_path?.endsWith(".md"))
 
     log.debug?.(`syncToFs: writing ${fileNodes.length} files`)
 
@@ -971,7 +971,7 @@ export class SyncManager extends EventEmitter {
  * Find the file node that contains a given node
  */
 function findFileNode(db: Database, node: KNode): KNode | null {
-  if (node.type === "file") {
+  if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile")) {
     return node
   }
 

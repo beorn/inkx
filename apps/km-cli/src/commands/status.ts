@@ -16,26 +16,10 @@ const term = createTerm(process)
 import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
-import type { TaskStatus, TaskMark, KNode } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
+import type { TaskStatus, TaskMarker, KNode } from "@km/core"
 import type { Repo } from "@km/storage"
 
-/**
- * Get task mark for status
- */
-function getMarkForStatus(status: TaskStatus): TaskMark {
-  switch (status) {
-    case "done":
-      return "x"
-    case "wip":
-      return "/"
-    case "blocked":
-      return "!"
-    case "dropped":
-      return "-"
-    default:
-      return " "
-  }
-}
 
 /** Get styled status icon for terminal display */
 function getStatusIcon(status: string): string {
@@ -60,7 +44,7 @@ function displayStatus(node: KNode, options: { json?: boolean }): void {
       JSON.stringify({
         id: node.id,
         status,
-        mark: node.task_mark ?? " ",
+        mark: node.task_marker ?? "[ ]",
         content: node.content,
       }),
     )
@@ -91,7 +75,7 @@ function handleRecurringTask(repo: Repo, node: KNode, options: { json?: boolean 
   const newId = repo.cloneTask(node.id, {
     due_date: nextDue,
     task_status: "todo",
-    task_mark: " ",
+    task_marker: "[ ]",
   })
 
   if (options.json) {
@@ -144,11 +128,11 @@ export const statusCommand = new Command("status")
     // Handle recurring tasks when marking done
     const isRecurring = newStatus === "done" && handleRecurringTask(repo, node, options)
 
-    const newMark = getMarkForStatus(newStatus as TaskStatus)
+    const newMarker = getMarkerForStatus(newStatus as TaskStatus)
 
     repo.updateNode(node.id, {
       task_status: newStatus as TaskStatus,
-      task_mark: newMark,
+      task_marker: newMarker,
     })
 
     if (options.json) {

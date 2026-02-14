@@ -11,8 +11,7 @@ import { handleCursorMove } from "./board-actions-nav.ts"
 import { clearSelection, pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
-/** Body-type nodes that become virtual (non-navigable) cards */
-const BODY_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
+import { isBlock } from "@km/core"
 
 /**
  * After zoom, children become columns. Place cursor on the first navigable card
@@ -25,7 +24,7 @@ function firstCardId(children: { id: string }[], repo: ActionCtx["repo"]): strin
   if (!firstCol) return null
   const colChildren = repo.getChildren(firstCol.id)
   // Skip body-type virtual cards (paragraph, code, quote without link_to)
-  const firstCard = colChildren.find((c) => !BODY_TYPES.has(c.type) || c.link_to)
+  const firstCard = colChildren.find((c) => !isBlock(c.type) || c.link_to)
   return firstCard?.id ?? firstCol.id
 }
 

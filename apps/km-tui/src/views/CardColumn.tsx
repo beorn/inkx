@@ -157,11 +157,10 @@ const Card = React.memo(
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           {card.bodyNodes.map((bodyNode, i) => {
-            const isListItem = bodyNode.type === "ol" || bodyNode.type === "ul"
-            const prevIsListItem =
-              i > 0 && (card.bodyNodes![i - 1]!.type === "ol" || card.bodyNodes![i - 1]!.type === "ul")
+            const isLi = bodyNode.type === "li"
+            const prevIsLi = i > 0 && card.bodyNodes![i - 1]!.type === "li"
             // Add vertical space between blocks, but not between consecutive list items
-            const needsSpacer = i > 0 && !isListItem && !prevIsListItem
+            const needsSpacer = i > 0 && !isLi && !prevIsLi
             return (
               <React.Fragment key={bodyNode.id}>
                 {needsSpacer && <Box height={1} />}
@@ -247,6 +246,12 @@ const Card = React.memo(
       prev.card.node.id === next.card.node.id &&
       prev.card.node.content === next.card.node.content &&
       prev.card.node.task_status === next.card.node.task_status &&
+      prev.card.node.due_date === next.card.node.due_date &&
+      prev.card.node.due_time === next.card.node.due_time &&
+      prev.card.node.scheduled_date === next.card.node.scheduled_date &&
+      prev.card.node.scheduled_time === next.card.node.scheduled_time &&
+      prev.card.node.priority === next.card.node.priority &&
+      prev.card.node.recurrence === next.card.node.recurrence &&
       prev.card.childCount === next.card.childCount &&
       prev.card.children?.length === next.card.children?.length &&
       prev.card.bodyNodes?.length === next.card.bodyNodes?.length &&

@@ -21,24 +21,27 @@ describe("Query Executor", () => {
     seedTestData(db, [
       {
         id: "task1",
-        type: "task",
+        type: "li",
         task_status: "todo",
+        task_marker: "[ ]",
         priority: 1,
         content: "Task for @bjorn #urgent",
         data: '{"mentions":["bjorn"],"tags":["urgent"]}',
       },
       {
         id: "task2",
-        type: "task",
+        type: "li",
         task_status: "done",
+        task_marker: "[x]",
         priority: 2,
         content: "Done task @jane",
         data: '{"mentions":["jane"]}',
       },
       {
         id: "task3",
-        type: "task",
+        type: "li",
         task_status: "todo",
+        task_marker: "[ ]",
         priority: null,
         content: "Another task +project-alpha",
         data: '{"projects":["project-alpha"]}',
@@ -97,35 +100,35 @@ describe("Path Pattern Query Execution", () => {
     seedTestData(db, [
       {
         id: "inbox-task1",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Task in inbox",
         fs_path: "/repo/inbox/tasks.md",
       },
       {
         id: "inbox-task2",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Another inbox task",
         fs_path: "/repo/inbox/notes.md",
       },
       {
         id: "project-task1",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Task in project",
         fs_path: "/repo/projects/alpha/tasks.md",
       },
       {
         id: "archive-task1",
-        type: "task",
+        type: "li",
         task_status: "done",
         content: "Archived task",
         fs_path: "/repo/archive/2024/tasks.md",
       },
       {
         id: "root-task1",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Task at root",
         fs_path: "/repo/root-tasks.md",
@@ -166,28 +169,28 @@ describe("Date Query Execution", () => {
     seedTestData(db, [
       {
         id: "task-today",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Task due today",
         due_date: formatDate(today()),
       },
       {
         id: "task-overdue",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Overdue task",
         due_date: formatDate(offsetDate(-1)),
       },
       {
         id: "task-tomorrow",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Task due tomorrow",
         due_date: formatDate(offsetDate(1)),
       },
       {
         id: "task-nodue",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Task without due date",
         due_date: null,
@@ -234,17 +237,17 @@ describe("Full-text Search with Phrases", () => {
     seedTestData(db, [
       {
         id: "doc1",
-        type: "file",
+        type: "oi", fstype: "mdfile",
         content: "The budget review meeting is scheduled for Monday",
       },
       {
         id: "doc2",
-        type: "file",
+        type: "oi", fstype: "mdfile",
         content: "Please review the budget before the deadline",
       },
       {
         id: "doc3",
-        type: "file",
+        type: "oi", fstype: "mdfile",
         content: "This document is about quarterly reports",
       },
     ])
@@ -300,34 +303,34 @@ describe("Status on Any Node Type", () => {
     seedTestData(db, [
       {
         id: "task1",
-        type: "task",
+        type: "li",
         task_status: "todo",
-        task_mark: " ",
+        task_marker: "[ ]",
         content: "Regular checkbox task",
       },
       {
         id: "section1",
-        type: "section",
+        type: "oi",
         task_status: "wip",
         content: "Project Phase 1",
         data: '{"depth": 2}',
       },
       {
         id: "file1",
-        type: "file",
+        type: "oi", fstype: "mdfile",
         task_status: "done",
         content: "Completed Document",
         fs_path: "/repo/completed.md",
       },
       {
         id: "para1",
-        type: "paragraph",
+        type: "p",
         task_status: "blocked",
         content: "Waiting on external review",
       },
       {
         id: "section2",
-        type: "section",
+        type: "oi",
         content: "Normal section",
         data: '{"depth": 2}',
       },
@@ -339,10 +342,10 @@ describe("Status on Any Node Type", () => {
   })
 
   test.each([
-    ["status:todo", 1, "task1", "task"],
-    ["status:wip", 1, "section1", "section"],
-    ["status:done", 1, "file1", "file"],
-    ["status:blocked", 1, "para1", "paragraph"],
+    ["status:todo", 1, "task1", "li"],
+    ["status:wip", 1, "section1", "oi"],
+    ["status:done", 1, "file1", "oi"],
+    ["status:blocked", 1, "para1", "p"],
   ] as const)("%s matches correct node type", (query, count, expectedId, expectedType) => {
     const ast = parseQuery(query)
     const results = executeQuery(db, ast)
@@ -356,6 +359,7 @@ describe("Status on Any Node Type", () => {
     const results = executeQuery(db, ast)
     expect(results.length).toBe(1)
     expect(results[0]!.id).toBe("task1")
+    expect(results[0]!.type).toBe("li")
   })
 
   test("type:section matches sections regardless of status", () => {
@@ -376,7 +380,7 @@ describe("Status on Any Node Type", () => {
   test("queryTasks only returns type:task nodes", () => {
     const results = queryTasks(db, "status:todo")
     expect(results.length).toBe(1)
-    expect(results[0]?.type).toBe("task")
+    expect(results[0]?.type).toBe("li")
   })
 
   test("-status:done excludes nodes with that status, any type", () => {
@@ -409,7 +413,7 @@ describe("Property Query Execution", () => {
     seedTestData(db, [
       {
         id: "task-rated",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Book review rating:: 5",
         data: JSON.stringify({
@@ -419,7 +423,7 @@ describe("Property Query Execution", () => {
       },
       {
         id: "task-blocked",
-        type: "task",
+        type: "li",
         name: "blocked-task",
         task_status: "todo",
         content: "Deploy blocked-by:: [[blocker-task]]",
@@ -430,14 +434,14 @@ describe("Property Query Execution", () => {
       },
       {
         id: "blocker-task",
-        type: "task",
+        type: "li",
         name: "blocker-task",
         task_status: "todo",
         content: "This blocks other tasks",
       },
       {
         id: "task-unblocked",
-        type: "task",
+        type: "li",
         name: "unblocked-task",
         task_status: "todo",
         content: "Was blocked blocked-by:: [[done-blocker]]",
@@ -448,14 +452,14 @@ describe("Property Query Execution", () => {
       },
       {
         id: "done-blocker",
-        type: "task",
+        type: "li",
         name: "done-blocker",
         task_status: "done",
         content: "Completed blocker",
       },
       {
         id: "task-authored",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Document author:: alice",
         data: JSON.stringify({
@@ -465,7 +469,7 @@ describe("Property Query Execution", () => {
       },
       {
         id: "task-low-rated",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Mediocre book rating:: 2",
         data: JSON.stringify({
@@ -475,13 +479,13 @@ describe("Property Query Execution", () => {
       },
       {
         id: "task-plain",
-        type: "task",
+        type: "li",
         task_status: "todo",
         content: "Plain task without properties",
       },
       {
         id: "task-multi-blocked",
-        type: "task",
+        type: "li",
         name: "multi-blocked-task",
         task_status: "todo",
         content: "Multi blocked blocked-by:: [[blocker-task]], [[done-blocker]]",

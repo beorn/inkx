@@ -39,7 +39,7 @@ export const inboxCommand = new Command("inbox")
     }
 
     // Get all tasks in inbox
-    const items = repo.getChildren(inbox.id).filter((n) => n.type === "task")
+    const items = repo.getChildren(inbox.id).filter((n) => n.type === "li" && n.task_marker !== undefined)
 
     if (items.length === 0) {
       if (options.json) {
@@ -79,7 +79,7 @@ inboxCommand
     }
 
     // Get all tasks in inbox
-    const items = repo.getChildren(inbox.id).filter((n) => n.type === "task")
+    const items = repo.getChildren(inbox.id).filter((n) => n.type === "li" && n.task_marker !== undefined)
 
     if (items.length === 0) {
       console.log(term.green("Inbox is empty!"))
@@ -142,7 +142,7 @@ inboxCommand
           case "d": // Mark done
             repo.updateNode(item.id, {
               task_status: "done",
-              task_mark: "x",
+              task_marker: "[x]",
             })
             console.log(term.green("✓ Marked done"))
             processed = true
@@ -151,7 +151,7 @@ inboxCommand
           case "D": // Delete (drop)
             repo.updateNode(item.id, {
               task_status: "dropped",
-              task_mark: "-",
+              task_marker: "[-]",
             })
             console.log(term.red("✗ Dropped"))
             processed = true

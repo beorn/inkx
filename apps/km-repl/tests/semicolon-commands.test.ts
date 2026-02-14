@@ -14,7 +14,7 @@ function createTestTree(): TNode[] {
   return [
     {
       id: "section-1",
-      type: "section",
+      type: "oi",
       parent_id: null,
       parent_idx: 0,
       link_to: null,
@@ -22,7 +22,7 @@ function createTestTree(): TNode[] {
       name: "tasks",
       title: "Tasks",
       task_status: undefined,
-      task_mark: undefined,
+      task_marker: undefined,
       priority: undefined,
       due_date: undefined,
       scheduled_date: undefined,
@@ -35,7 +35,7 @@ function createTestTree(): TNode[] {
       children: [
         {
           id: "task-a",
-          type: "task",
+          type: "li",
           parent_id: "section-1",
           parent_idx: 0,
           link_to: null,
@@ -43,7 +43,7 @@ function createTestTree(): TNode[] {
           name: "task-a",
           title: "Task A",
           task_status: "todo",
-          task_mark: " ",
+          task_marker: "[ ]",
           priority: undefined,
           due_date: undefined,
           scheduled_date: undefined,
@@ -61,7 +61,7 @@ function createTestTree(): TNode[] {
         },
         {
           id: "task-b",
-          type: "task",
+          type: "li",
           parent_id: "section-1",
           parent_idx: 1,
           link_to: null,
@@ -69,7 +69,7 @@ function createTestTree(): TNode[] {
           name: "task-b",
           title: "Task B",
           task_status: "todo",
-          task_mark: " ",
+          task_marker: "[ ]",
           priority: undefined,
           due_date: undefined,
           scheduled_date: undefined,
@@ -87,7 +87,7 @@ function createTestTree(): TNode[] {
         },
         {
           id: "task-c",
-          type: "task",
+          type: "li",
           parent_id: "section-1",
           parent_idx: 2,
           link_to: null,
@@ -95,7 +95,7 @@ function createTestTree(): TNode[] {
           name: "task-c",
           title: "Task C",
           task_status: "todo",
-          task_mark: " ",
+          task_marker: "[ ]",
           priority: undefined,
           due_date: undefined,
           scheduled_date: undefined,
@@ -119,7 +119,7 @@ function createTestTree(): TNode[] {
     },
     {
       id: "section-2",
-      type: "section",
+      type: "oi",
       parent_id: null,
       parent_idx: 1,
       link_to: null,
@@ -127,7 +127,7 @@ function createTestTree(): TNode[] {
       name: "done",
       title: "Done",
       task_status: undefined,
-      task_mark: undefined,
+      task_marker: undefined,
       priority: undefined,
       due_date: undefined,
       scheduled_date: undefined,
@@ -140,7 +140,7 @@ function createTestTree(): TNode[] {
       children: [
         {
           id: "task-d",
-          type: "task",
+          type: "li",
           parent_id: "section-2",
           parent_idx: 0,
           link_to: null,
@@ -148,7 +148,7 @@ function createTestTree(): TNode[] {
           name: "task-d",
           title: "Task D",
           task_status: "done",
-          task_mark: "x",
+          task_marker: "[x]",
           priority: undefined,
           due_date: undefined,
           scheduled_date: undefined,

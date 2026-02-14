@@ -10,7 +10,7 @@ import type { Database, SQLQueryBindings } from "bun:sqlite"
 
 const log = createLogger("km:storage:db:events")
 import { readFileSync } from "fs"
-import { getMarkForStatus } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
 import type { Event, TaskStatus } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
 
@@ -73,15 +73,17 @@ function applyNodeCreated(db: Database, event: Event): void {
   db.run(
     `
     INSERT OR IGNORE INTO nodes (
-      id, type, parent_id, link_to, link_alias, parent_idx,
-      fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line, md_slug,
-      task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+      id, type, fstype, parent_id, link_to, link_alias, embed, parent_idx,
+      fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line,
+      list_marker, task_marker,
+      task_status, assigned_to, due_date, scheduled_date, priority,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
-      ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?,
+      ?, ?, ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?
     )
@@ -89,9 +91,11 @@ function applyNodeCreated(db: Database, event: Event): void {
     [
       data.id as string,
       data.type as string,
+      (data.fstype as string) ?? null,
       (data.parent_id as string) ?? null,
       (data.link_to as string) ?? null,
       (data.link_alias as string) ?? null,
+      data.embed ? 1 : 0,
       (data.parent_idx as number) ?? 0,
       (data.fs_path as string) ?? null,
       (data.fs_ino as number) ?? null,
@@ -100,9 +104,9 @@ function applyNodeCreated(db: Database, event: Event): void {
       (data.title as string) ?? null,
       (data.md_pos as number) ?? null,
       (data.md_line as number) ?? null,
-      (data.md_slug as string) ?? null,
+      (data.list_marker as string) ?? null,
+      (data.task_marker as string) ?? null,
       (data.task_status as string) ?? null,
-      (data.task_mark as string) ?? null,
       (data.assigned_to as string) ?? null,
       (data.due_date as string) ?? null,
       (data.scheduled_date as string) ?? null,
@@ -169,13 +173,13 @@ function applyNodeUpdated(db: Database, event: Event): void {
           .query(
             `
             WITH RECURSIVE ancestors AS (
-              SELECT id, parent_id, fs_path, type FROM nodes WHERE id = ?
+              SELECT id, parent_id, fs_path, type, fstype FROM nodes WHERE id = ?
               UNION ALL
-              SELECT n.id, n.parent_id, n.fs_path, n.type
+              SELECT n.id, n.parent_id, n.fs_path, n.type, n.fstype
               FROM nodes n
               JOIN ancestors a ON n.id = a.parent_id
             )
-            SELECT fs_path FROM ancestors WHERE type = 'file' AND fs_path IS NOT NULL LIMIT 1
+            SELECT fs_path FROM ancestors WHERE type = 'oi' AND fstype IN ('file', 'mdfile') AND fs_path IS NOT NULL LIMIT 1
           `,
           )
           .get(task.parent_id) as { fs_path: string } | null
@@ -202,9 +206,10 @@ function writeTaskStatusToFile(fsPath: string, mdLine: number, newStatus: TaskSt
     const line = lines[mdLine]
     if (!line) return
 
-    const newMark = getMarkForStatus(newStatus)
+    const marker = getMarkerForStatus(newStatus)
+    const mark = marker[1] // Extract inner char from "[x]" → "x"
 
-    lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${newMark}$2`)
+    lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${mark}$2`)
 
     void Bun.write(fsPath, lines.join("\n"))
   } catch {
@@ -264,7 +269,7 @@ function applyTaskCompleted(db: Database, event: Event): void {
   db.run(
     `
     UPDATE nodes
-    SET task_status = 'done', task_mark = 'x', updated_at = ?, version = ?
+    SET task_status = 'done', task_marker = '[x]', updated_at = ?, version = ?
     WHERE id = ?
   `,
     [event.ts, event.id, event.target],

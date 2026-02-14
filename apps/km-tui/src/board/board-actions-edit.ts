@@ -21,7 +21,7 @@
  * - Cards modified in place → keep selection (status toggle)
  */
 
-import type { KNode, TaskMark, TaskStatus } from "@km/core"
+import { getMarkerForStatus, type KNode, type TaskMarker, type TaskStatus } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
@@ -255,15 +255,19 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   const newSortOrder = (currentIdx + adjacentIdx) / 2
 
   // Inherit type + depth from current node
-  const nodeType = currentNode.type === "task" ? "task" : "section"
+  // Tasks (li with task_marker) create new tasks; outline items create new outline items
+  const isCurrentTask = currentNode.task_marker !== undefined
   const newNode: Partial<KNode> = {
-    type: nodeType,
+    type: isCurrentTask ? "li" : "oi",
     content: "",
     parent_idx: newSortOrder,
   }
-  if (nodeType === "task") {
+  if (isCurrentTask) {
     newNode.task_status = "todo"
-    newNode.task_mark = " "
+    newNode.task_marker = "[ ]"
+    newNode.list_marker = currentNode.list_marker ?? "-"
+  } else if (newNode.type === "oi") {
+    newNode.fstype = "mdsection"
   }
   // Depth: inherit from sibling if available, otherwise compute from parent.
   // Embeds/paragraphs have no depth — using the default (2) would create a
@@ -315,7 +319,13 @@ export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
   }
   if (sourceNode.task_status) {
     newNode.task_status = sourceNode.task_status
-    newNode.task_mark = sourceNode.task_mark
+    newNode.task_marker = sourceNode.task_marker
+  }
+  if (sourceNode.list_marker) {
+    newNode.list_marker = sourceNode.list_marker
+  }
+  if (sourceNode.fstype) {
+    newNode.fstype = sourceNode.fstype
   }
 
   const parentId = col.node.id
@@ -372,13 +382,6 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
   if (cards.length === 0) return
 
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
-  const markMap: Record<TaskStatus, TaskMark> = {
-    todo: " ",
-    wip: "/",
-    blocked: "!",
-    done: "x",
-    dropped: "-",
-  }
 
   for (const c of cards) {
     const targetId = c.node.link_to || c.node.id
@@ -393,7 +396,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
       // Mark current task done with completion timestamp
       ctx.repo.updateNode(targetId, {
         task_status: "done",
-        task_mark: "x",
+        task_marker: "[x]",
         completed_at: Date.now(),
       })
       if (nextDue) {
@@ -404,7 +407,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
             type: targetNode.type,
             content: targetNode.content,
             task_status: "todo",
-            task_mark: " ",
+            task_marker: "[ ]",
+            list_marker: targetNode.list_marker,
             due_date: nextDue,
             due_time: targetNode.due_time,
             scheduled_date: targetNode.scheduled_date,
@@ -421,7 +425,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     } else {
       ctx.repo.updateNode(targetId, {
         task_status: nextStatus,
-        task_mark: markMap[nextStatus],
+        task_marker: getMarkerForStatus(nextStatus),
       })
     }
   }

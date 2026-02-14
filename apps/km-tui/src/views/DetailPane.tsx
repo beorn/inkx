@@ -25,7 +25,7 @@ export function DetailPane({ node, width, height }: DetailPaneProps): React.Reac
   const repo = useRepo()
   // Resolve embedded links to show the target node's details
   const resolvedNode = node.link_to ? (repo.getNode(node.link_to) ?? node) : node
-  if (resolvedNode.type === "folder") {
+  if (resolvedNode.type === "oi" && resolvedNode.fstype === "folder") {
     return <FolderDetailPane node={resolvedNode} width={width} height={height} />
   }
   return <TaskDetailPane node={resolvedNode} width={width} height={height} />
@@ -98,7 +98,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
         <Box flexDirection="column" marginTop={1} overflow="hidden" flexGrow={1}>
           {entries.map((entry) => {
             const indent = "  ".repeat(entry.depth)
-            const icon = getNodeIcon(entry.node.task_status, undefined, entry.node.type === "task")
+            const icon = getNodeIcon(entry.node.task_status, undefined, entry.node.task_marker !== undefined)
             const entryTitle = getNodeDisplayName(repo, entry.node)
             return (
               <Box key={entry.node.id} height={1}>
@@ -162,7 +162,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 
   // Get subtasks (children that are tasks)
   const children = repo.getChildren(node.id)
-  const subtasks = children.filter((c: KNode) => c.type === "task")
+  const subtasks = children.filter((c: KNode) => c.task_marker !== undefined)
 
   // Get backlinks
   const backlinks = repo.getBacklinks(node.id)
@@ -486,7 +486,7 @@ function getProjectPath(repo: Repo, node: KNode): string[] {
     if (!parent) break
 
     // Only include folders and files (not sections or the board root)
-    if (parent.type === "folder" || parent.type === "file") {
+    if (parent.type === "oi" && (parent.fstype === "folder" || parent.fstype === "file" || parent.fstype === "mdfile")) {
       path.unshift(getNodeDisplayName(repo, parent))
     }
     currentId = parent.parent_id

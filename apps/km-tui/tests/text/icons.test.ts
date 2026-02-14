@@ -69,20 +69,20 @@ describe("getStatusIcon", () => {
 })
 
 describe("getTypeIcon", () => {
-  it("returns folder emoji for folder", () => {
-    expect(getTypeIcon("folder")).toBe("📁")
+  it("returns folder emoji for oi folder", () => {
+    expect(getTypeIcon("oi", "folder")).toBe("📁")
   })
 
-  it("returns file emoji for file", () => {
-    expect(getTypeIcon("file")).toBe("📄")
+  it("returns file emoji for oi mdfile", () => {
+    expect(getTypeIcon("oi", "mdfile")).toBe("📄")
   })
 
-  it("returns hash for section", () => {
-    expect(getTypeIcon("section")).toBe("#")
+  it("returns hash for oi mdsection", () => {
+    expect(getTypeIcon("oi", "mdsection")).toBe("#")
   })
 
-  it("returns empty string for paragraph", () => {
-    expect(getTypeIcon("paragraph")).toBe("")
+  it("returns empty string for p (paragraph)", () => {
+    expect(getTypeIcon("p")).toBe("")
   })
 
   it("returns empty for code (rich text handles it)", () => {

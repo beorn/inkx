@@ -10,7 +10,7 @@ import { createTerm } from "inkx"
 const term = createTerm(process)
 import { resolvePathArg } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
-import { getMarkForStatus } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
 
@@ -40,7 +40,7 @@ export function createStatusCommand() {
             JSON.stringify({
               id: task.id,
               status: task.task_status ?? "todo",
-              mark: task.task_mark ?? " ",
+              mark: task.task_marker ?? "[ ]",
               content: task.content,
             }),
           )
@@ -69,11 +69,11 @@ export function createStatusCommand() {
         process.exit(1)
       }
 
-      const newMark = getMarkForStatus(newStatus as TaskStatus)
+      const newMarker = getMarkerForStatus(newStatus as TaskStatus)
 
       repo.updateNode(task.id, {
         task_status: newStatus as TaskStatus,
-        task_mark: newMark,
+        task_marker: newMarker,
       })
 
       if (options.json) {

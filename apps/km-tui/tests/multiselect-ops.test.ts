@@ -30,7 +30,7 @@ function nodeStatus(repo: { getNode(id: string): { task_status?: string | null }
 /** Make leaf nodes into proper tasks with task_status */
 function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, unknown>): void }, ids: string[]) {
   for (const id of ids) {
-    repo.updateNode(id, { task_status: "todo", task_mark: " " })
+    repo.updateNode(id, { task_status: "todo", task_marker: "[ ]" })
   }
 }
 

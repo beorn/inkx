@@ -55,14 +55,14 @@ export interface FakeRepo extends Repo {
  * // With canned data
  * const repo = createFakeRepo({
  *   nodes: [
- *     { id: "1", type: "section", content: "Tasks", parentId: null, ... },
- *     { id: "2", type: "task", content: "Do something", parentId: "1", ... },
+ *     { id: "1", type: "oi", fstype: "mdsection", content: "Tasks", parentId: null, ... },
+ *     { id: "2", type: "li", task_marker: "[ ]", content: "Do something", parentId: "1", ... },
  *   ],
  * });
  *
  * // Empty repo
  * const repo = createFakeRepo();
- * repo.addNode(null, { type: "section", content: "New section" });
+ * repo.addNode(null, { type: "oi", fstype: "mdsection", content: "New section" });
  *
  * @param options - Configuration with initial data
  * @returns FakeRepo instance
@@ -229,12 +229,12 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
     getAllTasks() {
       ensureNotClosed()
-      return [...nodes.values()].filter((n) => n.type === "task")
+      return [...nodes.values()].filter((n) => n.task_status != null)
     },
 
     getTasksByStatus(status) {
       ensureNotClosed()
-      return [...nodes.values()].filter((n) => n.type === "task" && n.task_status === status)
+      return [...nodes.values()].filter((n) => n.task_status != null && n.task_status === status)
     },
 
     search(query) {
@@ -264,7 +264,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     queryTasks(expression) {
       ensureNotClosed()
       // Simple implementation: filter query results to only tasks
-      return this.query(expression).filter((n) => n.type === "task")
+      return this.query(expression).filter((n) => n.task_status != null)
     },
 
     getLinksTo(targetId) {
@@ -309,7 +309,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       ensureNotClosed()
       // Find the folder node with no parent (repo root)
       for (const node of nodes.values()) {
-        if (node.parent_id === null && node.type === "folder") {
+        if (node.parent_id === null && node.type === "oi" && node.fstype === "folder") {
           return node
         }
       }
@@ -367,7 +367,8 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         created_at: now,
         updated_at: now,
         version: "fake-0",
-        task_status: nodeData.type === "task" ? ("todo" as TaskStatus) : undefined,
+        task_status: nodeData.task_status ?? (nodeData.type === "li" ? ("todo" as TaskStatus) : undefined),
+        task_marker: nodeData.task_marker ?? (nodeData.type === "li" ? "[ ]" : undefined),
       } as KNode
 
       nodes.set(id, node)
@@ -379,7 +380,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     cloneTask(sourceId, changes) {
       ensureNotClosed()
       const source = nodes.get(sourceId)
-      if (source?.type !== "task") return null
+      if (!source?.task_status) return null
 
       const id = `fake-${nextId++}`
       const now = Date.now()
@@ -388,7 +389,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         ...source,
         id,
         task_status: changes.task_status ?? "todo",
-        task_mark: changes.task_mark ?? " ",
+        task_marker: changes.task_marker ?? "[ ]",
         content: changes.content ?? source.content,
         due_date: changes.due_date ?? source.due_date,
         scheduled_date: changes.scheduled_date ?? source.scheduled_date,

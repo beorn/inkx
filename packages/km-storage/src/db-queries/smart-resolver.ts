@@ -23,7 +23,7 @@ const log = createLogger("km:storage:db:queries")
 // =============================================================================
 
 interface ResolveOptions {
-  /** Filter by node type (e.g., "task", "file") */
+  /** Filter by node type (e.g., "oi", "li", "p") */
   type?: string
   /** Only return nodes with task_status set */
   taskOnly?: boolean
@@ -288,8 +288,8 @@ function checkAmbiguity(matches: KNode[], matchType: string, q: string): KNode |
   // Sort matches: folders first, then by path length (shorter = closer to root)
   const sorted = [...matches].sort((a, b) => {
     // Folders before files
-    if (a.type === "folder" && b.type !== "folder") return -1
-    if (b.type === "folder" && a.type !== "folder") return 1
+    if (a.fstype === "folder" && b.fstype !== "folder") return -1
+    if (b.fstype === "folder" && a.fstype !== "folder") return 1
     // Shorter paths first (parent directories)
     const aPath = a.fs_path ?? ""
     const bPath = b.fs_path ?? ""

@@ -14,7 +14,7 @@ import type { JobRunner } from "@km/core"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
-import { extractTitleTaskMark } from "@km/core"
+import { extractTitleTaskMarker } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
@@ -275,15 +275,15 @@ function TreeNodeImpl({
   // For embeds: use resolved target's display name, never raw "![[target]]" syntax
   const rawContent =
     isEmbedded && resolvedNode
-      ? resolvedNode.type === "folder"
+      ? resolvedNode.type === "oi" && resolvedNode.fstype === "folder"
         ? getNodeDisplayName(repo, resolvedNode) + "/"
-        : resolvedNode.type === "section"
+        : resolvedNode.type === "oi" && resolvedNode.fstype === "mdsection"
           ? getNodeDisplayName(repo, resolvedNode)
           : resolvedNode.content || getNodeDisplayName(repo, resolvedNode)
       : isEmbedded && !resolvedNode
         ? // Unresolved embed — extract target name from ![[target]] syntax
           (node.content?.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1") ?? getNodeDisplayName(repo, node))
-        : displayNode.type === "section"
+        : displayNode.type === "oi" && displayNode.fstype === "mdsection"
           ? getNodeDisplayName(repo, displayNode)
           : displayNode.content || getNodeDisplayName(repo, displayNode)
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
@@ -315,8 +315,8 @@ function TreeNodeImpl({
   const handleTitleSave = useCallback(
     (newValue: string) => {
       const originalContent = displayNode.content ?? ""
-      const { mark } = extractTitleTaskMark(originalContent)
-      const newContent = mark != null ? `[${mark}] ${newValue}` : newValue
+      const { marker } = extractTitleTaskMarker(originalContent)
+      const newContent = marker != null ? `${marker} ${newValue}` : newValue
       repo.updateNode(displayNode.id, { content: newContent })
     },
     [displayNode.id, displayNode.content, repo],
@@ -326,8 +326,8 @@ function TreeNodeImpl({
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
       const originalContent = displayNode.content ?? ""
-      const { mark } = extractTitleTaskMark(originalContent)
-      const newContent = mark != null ? `[${mark}] ${newValue}` : newValue
+      const { marker } = extractTitleTaskMarker(originalContent)
+      const newContent = marker != null ? `${marker} ${newValue}` : newValue
 
       // No-op: value didn't change
       if (newContent === originalContent) {

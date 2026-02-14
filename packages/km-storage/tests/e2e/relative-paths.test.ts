@@ -104,11 +104,11 @@ describe("absolute path detection", () => {
     db.run(SCHEMA)
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
-       VALUES ('.', 'folder', NULL, 0, '/old/absolute/repo', ${Date.now()}, ${Date.now()}, '1', '{}')`,
+       VALUES ('.', 'oi', NULL, 0, '/old/absolute/repo', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
-       VALUES ('file1', 'file', '.', 0, '/old/absolute/repo/@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
+       VALUES ('file1', 'oi', '.', 0, '/old/absolute/repo/@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
     // Write events.jsonl so the DB isn't considered "fresh"
     writeFileSync(join(dir, ".km/events.jsonl"), "")
@@ -131,11 +131,11 @@ describe("absolute path detection", () => {
     db.run(SCHEMA)
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
-       VALUES ('.', 'folder', NULL, 0, '.', ${Date.now()}, ${Date.now()}, '1', '{}')`,
+       VALUES ('.', 'oi', NULL, 0, '.', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
-       VALUES ('file1', 'file', '.', 0, '@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
+       VALUES ('file1', 'oi', '.', 0, '@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
     writeFileSync(join(dir, ".km/events.jsonl"), "")
     db.close()
@@ -166,7 +166,7 @@ describe("disk mode root node", () => {
         actor: "fs-watch",
         data: {
           id: "Projects",
-          type: "folder",
+          type: "oi", fstype: "folder",
           fs_path: "Projects",
           parent_id: null,
           name: "Projects",
@@ -181,7 +181,7 @@ describe("disk mode root node", () => {
         actor: "fs-watch",
         data: {
           id: "ref",
-          type: "folder",
+          type: "oi", fstype: "folder",
           fs_path: "ref",
           parent_id: null,
           name: "ref",
@@ -196,7 +196,7 @@ describe("disk mode root node", () => {
         actor: "fs-watch",
         data: {
           id: "next-file",
-          type: "file",
+          type: "oi", fstype: "mdfile",
           fs_path: "@next.md",
           parent_id: null,
           name: "@next",

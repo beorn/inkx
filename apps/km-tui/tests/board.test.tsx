@@ -144,9 +144,9 @@ describe("State", () => {
     expect(state.columns).toHaveLength(3)
     expect(state.columns[0]!.isVirtual).toBe(true)
     expect(state.columns[0]!.cards).toHaveLength(1)
-    expect(state.columns[0]!.cards[0]!.node.type).toBe("paragraph")
-    expect(state.columns[1]!.node.type).toBe("section")
-    expect(state.columns[2]!.node.type).toBe("section")
+    expect(state.columns[0]!.cards[0]!.node.type).toBe("p")
+    expect(state.columns[1]!.node.type).toBe("oi")
+    expect(state.columns[2]!.node.type).toBe("oi")
   })
 
   test("buildBoardState filters out code and quote nodes as columns", () => {
@@ -193,7 +193,8 @@ describe("Render", () => {
     const cardState: CardState = {
       node: {
         id: "test-card",
-        type: "task",
+        type: "li",
+        list_marker: "-",
         parent_id: null,
         parent_idx: 0,
         link_to: null,
@@ -214,7 +215,8 @@ describe("Render", () => {
     const cardState: CardState = {
       node: {
         id: "test-card",
-        type: "task",
+        type: "li",
+        list_marker: "-",
         parent_id: null,
         parent_idx: 0,
         link_to: null,
@@ -227,7 +229,8 @@ describe("Render", () => {
       children: [
         {
           id: "child-1",
-          type: "task",
+          type: "li",
+          list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
           link_to: null,
@@ -248,7 +251,8 @@ describe("Render", () => {
     const cardState: CardState = {
       node: {
         id: "test-card",
-        type: "task",
+        type: "li",
+        list_marker: "-",
         parent_id: null,
         parent_idx: 0,
         link_to: null,
@@ -261,7 +265,8 @@ describe("Render", () => {
       children: [
         {
           id: "child-1",
-          type: "task",
+          type: "li",
+          list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
           link_to: null,
@@ -273,7 +278,8 @@ describe("Render", () => {
         },
         {
           id: "child-2",
-          type: "task",
+          type: "li",
+          list_marker: "-",
           parent_id: "test-card",
           parent_idx: 1,
           link_to: null,

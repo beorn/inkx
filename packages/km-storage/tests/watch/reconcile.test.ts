@@ -84,8 +84,20 @@ function assertNodeNotExists(db: Database, path: string): void {
   expect(getNodeByPath(db, toRel(path))).toBeNull()
 }
 
-/** Get children of a specific type */
+/** Get children of a specific type (uses new km-ast types) */
 function getChildrenOfType(db: Database, parentId: string, type: string): ReturnType<typeof getChildren> {
+  if (type === "task") {
+    return getChildren(db, parentId).filter((n) => n.task_status != null)
+  }
+  if (type === "section") {
+    return getChildren(db, parentId).filter((n) => n.type === "oi" && n.fstype === "mdsection")
+  }
+  if (type === "file") {
+    return getChildren(db, parentId).filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+  }
+  if (type === "folder") {
+    return getChildren(db, parentId).filter((n) => n.type === "oi" && n.fstype === "folder")
+  }
   return getChildren(db, parentId).filter((n) => n.type === type)
 }
 
@@ -236,13 +248,13 @@ describe("reconcile.ts", () => {
       {
         name: "file node from markdown",
         setup: (dir: string) => createMdFile(dir, "new-file.md", "# New File\n\n- [ ] Task 1\n- [x] Task 2"),
-        expectedType: "file",
+        expectedType: "oi",
         checkChildren: true,
       },
       {
         name: "folder node",
         setup: (dir: string) => createFolder(dir, "new-folder"),
-        expectedType: "folder",
+        expectedType: "oi",
         checkChildren: false,
       },
     ])("creates $name", ({ setup, expectedType, checkChildren }) =>
@@ -446,7 +458,7 @@ describe("reconcile.ts", () => {
         const folderNode = assertNodeExists(db, issueFolder)
         const fileNodes = getChildren(db, folderNode.id)
         expect(fileNodes.length).toBe(1)
-        expect(fileNodes[0]?.type).toBe("file")
+        expect(fileNodes[0]?.type).toBe("oi")
 
         const sections = getChildrenOfType(db, fileNodes[0]!.id, "section")
         expect(sections.length).toBe(2)
@@ -496,7 +508,7 @@ describe("reconcile.ts", () => {
         const folderPath = createFolder(repoDir, "no-dup-folder")
         await syncDir(db, repoDir, repoDir, emitter)
 
-        const countQuery = "SELECT COUNT(*) as cnt FROM nodes WHERE type = 'folder' AND name = 'no-dup-folder'"
+        const countQuery = "SELECT COUNT(*) as cnt FROM nodes WHERE type = 'oi' AND fstype = 'folder' AND name = 'no-dup-folder'"
         expect((db.query(countQuery).get() as { cnt: number }).cnt).toBe(1)
 
         // Simulate watch handler and discovery both running
@@ -514,7 +526,7 @@ describe("reconcile.ts", () => {
           ts: Date.now(),
           data: {
             id: folderId,
-            type: "folder",
+            type: "oi", fstype: "folder",
             fs_path: toRel(folderPath),
             name: "no-dup-folder",
           },

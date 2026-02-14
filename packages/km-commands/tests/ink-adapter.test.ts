@@ -22,7 +22,7 @@ import { clearKeybindings } from "../src/keybindings.ts"
 function createNode(id: string, opts?: Partial<TNode>): TNode {
   return {
     id,
-    type: "section",
+    type: "oi",
     parent_id: null,
     parent_idx: 0,
     link_to: null,

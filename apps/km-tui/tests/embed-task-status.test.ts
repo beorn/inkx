@@ -22,24 +22,26 @@ describe("embed task status cycling (km-79kld)", () => {
       // Set up embed-a and embed-b as link nodes pointing to task targets
       for (const n of nodes) {
         if (n.id === "embed-a") {
-          n.type = "paragraph"
+          n.type = "p"
           n.link_to = "target-a"
           n.task_status = undefined
           n.data = {}
         }
         if (n.id === "embed-b") {
-          n.type = "paragraph"
+          n.type = "p"
           n.link_to = "target-b"
           n.task_status = undefined
           n.data = {}
         }
         if (n.id === "regular-task") {
-          n.type = "task"
+          n.type = "li"
+          n.list_marker = "-"
           n.task_status = "todo"
-          n.task_mark = " "
+          n.task_marker = "[ ]"
         }
         if (n.id === "col1" || n.id === "col2") {
-          n.type = "section"
+          n.type = "oi"
+          n.fstype = "mdsection"
           n.data = { depth: 2 }
         }
       }
@@ -47,12 +49,13 @@ describe("embed task status cycling (km-79kld)", () => {
       // Add the target nodes (tasks that the embeds point to)
       nodes.push({
         id: "target-a",
-        type: "task",
+        type: "li",
+        list_marker: "-",
         parent_id: "some-other-parent",
         parent_idx: 0,
         link_to: null,
         task_status: "todo",
-        task_mark: " ",
+        task_marker: "[ ]",
         content: "Target task A",
         data: {},
         created_at: Date.now(),
@@ -61,12 +64,13 @@ describe("embed task status cycling (km-79kld)", () => {
       })
       nodes.push({
         id: "target-b",
-        type: "task",
+        type: "li",
+        list_marker: "-",
         parent_id: "some-other-parent",
         parent_idx: 1,
         link_to: null,
         task_status: "done",
-        task_mark: "x",
+        task_marker: "[x]",
         content: "Target task B",
         data: {},
         created_at: Date.now(),

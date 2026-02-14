@@ -316,7 +316,7 @@ function shouldEmitOsc133(): boolean {
 
 /**
  * Get node name (slug identifier)
- * Uses node.name if available, otherwise derives from fs_path/md_slug
+ * Uses node.name if available, otherwise derives from fs_path
  */
 function getNodeName(node: KNode): string {
   // Prefer the stored name
@@ -329,10 +329,6 @@ function getNodeName(node: KNode): string {
     if (filename) {
       return filename.replace(/\.md$/, "")
     }
-  }
-  // Fallback: use md_slug for sections
-  if (node.md_slug) {
-    return node.md_slug
   }
   // Last resort: short ID
   return node.id.slice(0, 8)
@@ -354,7 +350,7 @@ function kNodeToTNode(repo: Repo, node: KNode, depth: number): TNode {
     name: getNodeName(node),
     title: getNodeDisplayName(node),
     task_status: node.task_status,
-    task_mark: node.task_mark,
+    task_marker: node.task_marker,
     priority: node.priority,
     due_date: node.due_date,
     scheduled_date: node.scheduled_date,
@@ -377,7 +373,7 @@ function kNodeToTNode(repo: Repo, node: KNode, depth: number): TNode {
     }),
     childCount: children.length,
     childrenLoaded: true,
-    isTask: node.task_status !== undefined,
+    isTask: node.task_marker !== undefined,
     depth,
   }
 }

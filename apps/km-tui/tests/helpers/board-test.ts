@@ -169,7 +169,8 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
 
   const node: KNode = {
     id: content,
-    type: hasChildren ? "folder" : "task",
+    type: hasChildren ? "oi" : "li",
+    ...(hasChildren ? { fstype: "folder" as const } : { list_marker: "-", task_marker: "[ ]", task_status: "todo" as const }),
     content: hasChildren ? undefined : cleanContent,
     data: hasChildren ? { name: cleanContent } : {},
     parent_id: null,
@@ -201,7 +202,7 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
 function makeNodeWithType(
   content: string,
   type: NodeType,
-  props: { is_repo_root?: boolean },
+  props: { is_repo_root?: boolean; fstype?: KNode["fstype"]; list_marker?: string },
   ...childArrays: KNode[][]
 ): KNode[] {
   const hasChildren = childArrays.length > 0
@@ -209,6 +210,8 @@ function makeNodeWithType(
   const node: KNode = {
     id: content,
     type,
+    ...(props.fstype ? { fstype: props.fstype } : {}),
+    ...(props.list_marker ? { list_marker: props.list_marker } : {}),
     content: hasChildren ? undefined : content,
     data: {
       ...(hasChildren ? { name: content } : {}),
@@ -237,28 +240,28 @@ function makeNodeWithType(
 
 // Type-specific factories attached to item()
 item.root = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "folder", { is_repo_root: true }, ...childArrays)
+  makeNodeWithType(content, "oi", { is_repo_root: true, fstype: "repo" }, ...childArrays)
 
 item.folder = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "folder", {}, ...childArrays)
+  makeNodeWithType(content, "oi", { fstype: "folder" }, ...childArrays)
 
 item.section = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "section", {}, ...childArrays)
+  makeNodeWithType(content, "oi", { fstype: "mdsection" }, ...childArrays)
 
-item.paragraph = (content: string): KNode[] => makeNodeWithType(content, "paragraph", {})
+item.paragraph = (content: string): KNode[] => makeNodeWithType(content, "p", {})
 
 item.file = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "file", {}, ...childArrays)
+  makeNodeWithType(content, "oi", { fstype: "mdfile" }, ...childArrays)
 
 item.code = (content: string): KNode[] => makeNodeWithType(content, "code", {})
 
 item.quote = (content: string): KNode[] => makeNodeWithType(content, "quote", {})
 
 item.task = (content: string, status?: string): KNode[] => {
-  const nodes = makeNodeWithType(content, "task", {})
+  const nodes = makeNodeWithType(content, "li", { list_marker: "-" })
   if (nodes[0]) {
     nodes[0].task_status = (status ?? "todo") as KNode["task_status"]
-    nodes[0].task_mark = " " as KNode["task_mark"]
+    nodes[0].task_marker = "[ ]"
   }
   return nodes
 }
@@ -1402,7 +1405,8 @@ export function column(title: string, cards: (string | { title: string; children
     }
     const children = (card.children ?? []).map((childContent, childIdx) => ({
       id: `child-${idx}-${childIdx}`,
-      type: "task" as const,
+      type: "li" as const,
+      list_marker: "-" as const,
       parent_id: `card-${idx}`,
       parent_idx: childIdx,
       content: childContent,

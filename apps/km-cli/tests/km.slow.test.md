@@ -90,7 +90,7 @@ Commands accept filenames like `@next`:
 ```console
 $ km show @next
 ID: ...
-Type: file
+Type: oi
 Path: .../@next.md
 Title: Next Actions
 [...]
@@ -103,7 +103,7 @@ Commands accept relative paths:
 ```console
 $ km show ./@next.md
 ID: ...
-Type: file
+Type: oi
 Path: .../@next.md
 Title: Next Actions
 [...]
@@ -184,7 +184,8 @@ Verify tasks now appear under @next in the default (Inbox) column:
 $ km show --tree @next
 [...]
 Children:
-[...]section[...]Inbox...
+[...]
+[...]oi[...]Inbox...
 [...]
 ```
 
@@ -232,7 +233,7 @@ The file node should display with the H1 title "Welcome to My Project":
 ```console
 $ km show docs/readme.md
 ID: ...
-Type: file
+Type: oi
 Path: .../docs/readme.md
 Title: Welcome to My Project
 [...]
@@ -244,10 +245,10 @@ H2 sections should be direct children of the file (not nested under an H1 sectio
 $ km show --tree docs/readme.md
 [...]
 Children:
-[...]paragraph[...]This is the intro paragraph.
-[...]section[...]Getting Started
-[...]task[...]Read the docs
-[...]task[...]Install dependencies
+[...]p[...]This is the intro paragraph.
+[...]oi[...]Getting Started
+[...]li[...]Read the docs
+[...]li[...]Install dependencies
 ```
 
 Clean up:

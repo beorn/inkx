@@ -6,7 +6,7 @@
  */
 import React, { useState } from "react"
 import { Box, Text } from "inkx"
-import type { KNode } from "@km/core"
+import { isOutline, type KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
@@ -25,8 +25,7 @@ export interface NewItemDialogProps {
   height: number
 }
 
-// Types that act as containers (insert as child, not sibling)
-const CONTAINER_TYPES = new Set(["section", "file", "folder"])
+// Outline items (oi) act as containers (insert as child, not sibling)
 
 /**
  * Get the parent to insert into based on cursor node
@@ -34,7 +33,7 @@ const CONTAINER_TYPES = new Set(["section", "file", "folder"])
  */
 function getInsertParentId(cursorNode: KNode | null): string | null {
   if (!cursorNode) return null
-  return CONTAINER_TYPES.has(cursorNode.type) ? cursorNode.id : cursorNode.parent_id
+  return isOutline(cursorNode.type) ? cursorNode.id : cursorNode.parent_id
 }
 
 /**
@@ -105,7 +104,7 @@ export function NewItemDialog({
   )
 
   // Determine if cursor is a task (new item will also be a task)
-  const isTask = cursorNode?.type === "task" || cursorNode === null
+  const isTask = cursorNode?.task_marker != null || cursorNode === null
 
   // Use refs to avoid stale closure issues with the handler
   const contentRef = React.useRef(content)
@@ -124,10 +123,11 @@ export function NewItemDialog({
         return
       }
       const nodeId = repo.addNode(parentId, {
-        type: isTask ? "task" : "paragraph",
+        type: isTask ? "li" : "p",
         content: contentRef.current.trim(),
         task_status: isTask ? "todo" : undefined,
-        task_mark: isTask ? " " : undefined,
+        task_marker: isTask ? "[ ]" : undefined,
+        list_marker: isTask ? "-" : undefined,
       })
       onCreateRef.current(nodeId)
     }

@@ -38,7 +38,7 @@ function searchNodes(repo: Repo, query: string): SearchResult[] {
   const results: SearchResult[] = []
   for (const node of nodes) {
     // Skip folders (not meaningful for search)
-    if (node.type === "folder") continue
+    if (node.type === "oi" && node.fstype === "folder") continue
     // Skip links (search target instead)
     if (node.link_to) continue
 

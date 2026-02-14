@@ -42,7 +42,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.type === "task")
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("todo")
 
@@ -78,7 +78,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.type === "task")
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
 
         // Update task text (simulating TUI edit)
@@ -128,7 +128,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Verify new task was synced
         const allNodes = getAllNodes(db)
-        const tasks = allNodes.filter((n) => n.type === "task")
+        const tasks = allNodes.filter((n) => n.task_status != null)
         expect(tasks.length).toBe(2)
       }))
 
@@ -153,7 +153,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Verify initial state
         let allNodes = getAllNodes(db)
-        let task = allNodes.find((n) => n.type === "task")
+        let task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.content).toContain("Original task")
 
@@ -172,7 +172,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Verify database was updated
         allNodes = getAllNodes(db)
-        task = allNodes.find((n) => n.type === "task")
+        task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.content).toContain("Modified task")
       }))
@@ -263,7 +263,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Final content should be the last edit
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.type === "task")
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.content).toContain("Task 4")
       }))
@@ -287,7 +287,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Get task node
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.type === "task")
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
 
         // Simulate concurrent operations:
@@ -305,7 +305,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Verify new task was picked up from filesystem
         const finalNodes = getAllNodes(db)
-        const tasks = finalNodes.filter((n) => n.type === "task")
+        const tasks = finalNodes.filter((n) => n.task_status != null)
 
         // Should have 2 tasks (external edit added Task B)
         expect(tasks.length).toBe(2)
@@ -358,7 +358,7 @@ describe("Full Round-Trip", () => {
         await syncManager.syncFromFs()
 
         // Find task in DB
-        const task = getAllNodes(db).find((n) => n.type === "task")
+        const task = getAllNodes(db).find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("todo")
 
@@ -366,7 +366,7 @@ describe("Full Round-Trip", () => {
         const versionBefore = repo.version
 
         // Simulate TUI edit (same as board-actions-edit.ts toggleTaskStatus)
-        repo.updateNode(task!.id, { task_status: "done", task_mark: "x" })
+        repo.updateNode(task!.id, { task_status: "done", task_marker: "[x]" })
 
         // 1. DB should be updated immediately
         const dbNode = getAllNodes(db).find((n) => n.id === task!.id)
@@ -401,7 +401,7 @@ describe("Full Round-Trip", () => {
 
         await syncManager.syncFromFs()
 
-        const task = getAllNodes(db).find((n) => n.type === "task")
+        const task = getAllNodes(db).find((n) => n.task_status != null)
         expect(task).toBeDefined()
 
         const versionBefore = repo.version
@@ -436,7 +436,7 @@ describe("Full Round-Trip", () => {
         const syncManager = createTestSyncManager(db, repoDir)
         await syncManager.syncFromFs()
 
-        const task = getAllNodes(db).find((n) => n.type === "task")
+        const task = getAllNodes(db).find((n) => n.task_status != null)
         expect(task).toBeDefined()
 
         // Subscribe (same pattern as useSyncExternalStore in useColumns)
@@ -473,7 +473,7 @@ describe("Full Round-Trip", () => {
         await syncManager.syncFromFs()
 
         // Verify initial state
-        const initialTask = getAllNodes(db).find((n) => n.type === "task")
+        const initialTask = getAllNodes(db).find((n) => n.task_status != null)
         expect(initialTask).toBeDefined()
         expect(initialTask!.content).toContain("Original")
 
@@ -490,7 +490,7 @@ describe("Full Round-Trip", () => {
         await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
 
         // 1. DB should have the new content
-        const updatedTask = getAllNodes(db).find((n) => n.type === "task")
+        const updatedTask = getAllNodes(db).find((n) => n.task_status != null)
         expect(updatedTask).toBeDefined()
         expect(updatedTask!.content).toContain("Modified by external editor")
 
@@ -516,7 +516,7 @@ describe("Full Round-Trip", () => {
 
         await syncManager.syncFromFs()
 
-        const task = getAllNodes(db).find((n) => n.type === "task")
+        const task = getAllNodes(db).find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("todo")
 
@@ -531,7 +531,7 @@ describe("Full Round-Trip", () => {
         await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
 
         // DB should reflect the status change
-        const updated = getAllNodes(db).find((n) => n.type === "task")
+        const updated = getAllNodes(db).find((n) => n.task_status != null)
         expect(updated).toBeDefined()
         expect(updated!.task_status).toBe("done")
       }))
@@ -566,7 +566,7 @@ describe("File & Folder Renames", () => {
         await syncManager.syncFromFs()
 
         // Find the file node
-        const fileNode = getAllNodes(db).find((n) => n.type === "file")
+        const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNode).toBeDefined()
         expect(fileNode!.content).toBe("Old Name")
 
@@ -611,7 +611,7 @@ describe("File & Folder Renames", () => {
 
         await syncManager.syncFromFs()
 
-        const fileNode = getAllNodes(db).find((n) => n.type === "file" && n.fs_path?.includes("draft"))
+        const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("draft"))
         expect(fileNode).toBeDefined()
 
         repo.updateNode(fileNode!.id, { content: "Published" })
@@ -642,7 +642,7 @@ describe("File & Folder Renames", () => {
         writeFileSync(join(repoDir, "safe.md"), "# Safe\n")
         await syncManager.syncFromFs()
 
-        const fileNode = getAllNodes(db).find((n) => n.type === "file")
+        const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNode).toBeDefined()
 
         // Title with filesystem-unsafe chars
@@ -672,7 +672,7 @@ describe("File & Folder Renames", () => {
         writeFileSync(join(repoDir, "My Note.md"), "# My Note\n\nBody text.\n")
         await syncManager.syncFromFs()
 
-        const fileNode = getAllNodes(db).find((n) => n.type === "file")
+        const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNode).toBeDefined()
 
         // Update content to same value as existing filename
@@ -705,7 +705,7 @@ describe("File & Folder Renames", () => {
 
         await syncManager.syncFromFs()
 
-        const folderNode = getAllNodes(db).find((n) => n.type === "folder")
+        const folderNode = getAllNodes(db).find((n) => n.type === "oi" && n.fstype === "folder")
         expect(folderNode).toBeDefined()
         expect(folderNode!.content).toBe("projects")
 
@@ -726,7 +726,7 @@ describe("File & Folder Renames", () => {
         expect(updatedFolder!.name).toBe("archive")
 
         // Child nodes should have updated fs_path
-        const childFile = getAllNodes(db).find((n) => n.type === "file" && n.fs_path?.includes("readme"))
+        const childFile = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("readme"))
         expect(childFile!.fs_path).toBe("archive/readme.md")
       }))
 
@@ -750,7 +750,7 @@ describe("File & Folder Renames", () => {
 
         await syncManager.syncFromFs()
 
-        const folderNode = getAllNodes(db).find((n) => n.type === "folder")
+        const folderNode = getAllNodes(db).find((n) => n.type === "oi" && n.fstype === "folder")
         expect(folderNode).toBeDefined()
 
         repo.updateNode(folderNode!.id, { content: "processed" })

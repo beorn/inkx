@@ -27,7 +27,7 @@ import type { CommandContext, TNode, CommandAction, CommandDef } from "../src/ty
 function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): TNode {
   return {
     id,
-    type: "section",
+    type: "oi",
     parent_id: null,
     parent_idx: 0,
     link_to: null,

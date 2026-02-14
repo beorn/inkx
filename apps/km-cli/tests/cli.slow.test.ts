@@ -257,7 +257,7 @@ describe("CLI Integration", () => {
       const tasks = await getTasks()
       expect(tasks.length).toBeGreaterThan(0)
       expect(tasks[0]).toHaveProperty("id")
-      expect(tasks[0]).toHaveProperty("type", "task")
+      expect(tasks[0]).toHaveProperty("type", "li")
     })
   })
 
@@ -421,7 +421,7 @@ Some paragraph content.
     const result = await km(["ls", "--type", "task", "--json"])
     const nodes = parseJson<TaskJson[]>(result)
     expect(nodes.length).toBeGreaterThan(0)
-    expect(nodes[0]).toHaveProperty("type", "task")
+    expect(nodes[0]).toHaveProperty("type", "li")
   })
 })
 

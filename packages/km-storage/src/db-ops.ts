@@ -43,11 +43,11 @@ export interface DbOps {
  * @example
  * // Memory mode - direct SQL
  * const ops = createDbOps(db)
- * ops.addNode(null, { type: "task", content: "Test" })
+ * ops.addNode(null, { type: "li", task_marker: "[ ]", content: "Test" })
  *
  * // Disk mode - emit events
  * const ops = createDbOps(db, emitter)
- * ops.addNode(null, { type: "task", content: "Test" })  // emits node_created
+ * ops.addNode(null, { type: "li", task_marker: "[ ]", content: "Test" })  // emits node_created
  */
 export function createDbOps(db: Database, emitter?: Emitter): DbOps {
   return {
@@ -160,7 +160,7 @@ function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
 
 function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>, emitter?: Emitter): string {
   const nodeId = node.id ?? ulid()
-  log.debug?.(`addNode: ${nodeId} type=${node.type ?? "task"} parent=${parentId} emitter=${!!emitter}`)
+  log.debug?.(`addNode: ${nodeId} type=${node.type ?? "li"} parent=${parentId} emitter=${!!emitter}`)
   const now = Date.now()
 
   // Merge data-blob fields (due_time, scheduled_time, etc.) into the data object
@@ -171,22 +171,28 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     }
   }
 
+  // Default type: "li" with task_marker "[ ]" (replaces old "task" default)
+  const defaultType = node.type ?? "li"
+  const isTask = node.task_marker !== undefined || (defaultType === "li" && node.type === undefined)
+
   const nodeData = {
     id: nodeId,
-    type: node.type ?? "task",
+    type: defaultType,
+    fstype: node.fstype ?? null,
     parent_id: parentId ?? ".",
     parent_idx: node.parent_idx ?? now,
     link_to: node.link_to ?? null,
     link_alias: node.link_alias ?? null,
+    embed: node.embed ? 1 : 0,
     fs_path: node.fs_path ?? null,
     fs_ino: node.fs_ino ?? null,
     name: node.name ?? null,
     title: node.title ?? null,
     md_pos: node.md_pos ?? null,
     md_line: node.md_line ?? null,
-    md_slug: node.md_slug ?? null,
-    task_status: node.task_status ?? (node.type === "task" ? "todo" : null),
-    task_mark: node.task_mark ?? (node.type === "task" ? " " : null),
+    list_marker: node.list_marker ?? null,
+    task_marker: node.task_marker ?? (isTask ? "[ ]" : null),
+    task_status: node.task_status ?? (isTask ? "todo" : null),
     assigned_to: node.assigned_to ?? null,
     due_date: node.due_date ?? null,
     scheduled_date: node.scheduled_date ?? null,
@@ -210,32 +216,36 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
   } else {
     db.run(
       `INSERT INTO nodes (
-        id, type, parent_id, parent_idx, link_to, link_alias,
-        fs_path, fs_ino, name, title, md_pos, md_line, md_slug,
-        task_status, task_mark, assigned_to, due_date, scheduled_date, priority,
+        id, type, fstype, parent_id, parent_idx, link_to, link_alias, embed,
+        fs_path, fs_ino, name, title, md_pos, md_line,
+        list_marker, task_marker,
+        task_status, assigned_to, due_date, scheduled_date, priority,
         content, content_hash, data, created_at, updated_at
       ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
+        ?, ?,
+        ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?
       )`,
       [
         nodeData.id,
         nodeData.type,
+        nodeData.fstype,
         nodeData.parent_id,
         nodeData.parent_idx,
         nodeData.link_to,
         nodeData.link_alias,
+        nodeData.embed,
         nodeData.fs_path,
         nodeData.fs_ino,
         nodeData.name,
         nodeData.title,
         nodeData.md_pos,
         nodeData.md_line,
-        nodeData.md_slug,
+        nodeData.list_marker,
+        nodeData.task_marker,
         nodeData.task_status,
-        nodeData.task_mark,
         nodeData.assigned_to,
         nodeData.due_date,
         nodeData.scheduled_date,

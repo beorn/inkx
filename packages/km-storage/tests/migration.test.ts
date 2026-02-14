@@ -24,7 +24,7 @@ test("ensureRepoRootNode creates root node in empty DB", () => {
   }
 
   expect(root).toBeDefined()
-  expect(root.type).toBe("folder")
+  expect(root.type).toBe("oi")
   expect(root.fs_path).toBe(".")
   expect(JSON.parse(root.data).is_repo_root).toBe(true)
 })

@@ -18,8 +18,14 @@ import {
   extractBody,
 } from "@km/tree"
 
-/** Body content types that render as virtual (borderless, de-emphasized) cards */
-const BODY_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
+/** Body content types that render as virtual (borderless, de-emphasized) cards.
+ * Only block-level content types; list items (li) are always individual cards. */
+const BODY_TYPES = new Set(["p", "code", "quote"])
+
+/** Check if a node should be treated as mergeable body content */
+function isBodyNode(node: KNode): boolean {
+  return BODY_TYPES.has(node.type)
+}
 
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
 
@@ -176,7 +182,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
       // Merge body nodes, but keep embed links as individual cards
       const mergeableBody: KNode[] = []
       for (const bodyNode of colBodyNodes) {
-        if (BODY_TYPES.has(bodyNode.type) && !bodyNode.link_to) {
+        if (isBodyNode(bodyNode) && !bodyNode.link_to) {
           mergeableBody.push(bodyNode)
         } else {
           if (mergeableBody.length > 0) {
@@ -219,7 +225,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
       // UNLESS they have a link_to (embed links are first-class navigable items).
       const bodyTypeNodes: KNode[] = []
       for (const cardNode of cardNodes) {
-        const isBodyType = BODY_TYPES.has(cardNode.type) && !cardNode.link_to
+        const isBodyType = isBodyNode(cardNode) && !cardNode.link_to
         if (isBodyType) {
           bodyTypeNodes.push(cardNode)
         } else {
@@ -286,7 +292,8 @@ function createVirtualBodyNode(parentId: string): KNode {
   const now = Date.now()
   return {
     id: `__body__${parentId}`,
-    type: "section",
+    type: "oi",
+    fstype: "mdsection",
     parent_id: parentId,
     parent_idx: 0,
     title: "Description",
@@ -453,7 +460,7 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
       // Merge body nodes, but keep embed links as individual cards
       const mergeableBody: KNode[] = []
       for (const bodyNode of colBodyNodes) {
-        if (BODY_TYPES.has(bodyNode.type) && !bodyNode.link_to) {
+        if (isBodyNode(bodyNode) && !bodyNode.link_to) {
           mergeableBody.push(bodyNode)
         } else {
           if (mergeableBody.length > 0) {
@@ -496,7 +503,7 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
       // UNLESS they have a link_to (embed links are first-class navigable items).
       const bodyTypeNodes: KNode[] = []
       for (const cardNode of cardNodes) {
-        const isBodyType = BODY_TYPES.has(cardNode.type) && !cardNode.link_to
+        const isBodyType = isBodyNode(cardNode) && !cardNode.link_to
         if (isBodyType) {
           bodyTypeNodes.push(cardNode)
         } else {

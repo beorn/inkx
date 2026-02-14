@@ -61,13 +61,14 @@ export function createIssueNode(title: string, options: CreateIssueOptions = {})
 
   const node: KNode = {
     id,
-    type: "task",
+    type: "li",
+    list_marker: "-",
     parent_id: null, // Will be set based on path
     parent_idx: 0,
     link_to: null,
     content,
     task_status: "todo",
-    task_mark: " ",
+    task_marker: "[ ]",
     priority,
     data: {
       short_id: shortId,
@@ -104,23 +105,23 @@ export function updateIssueFields(
     switch (changes.status) {
       case "done":
         updates.task_status = "done"
-        updates.task_mark = "x"
+        updates.task_marker = "[x]"
         break
       case "wip":
         updates.task_status = "wip"
-        updates.task_mark = "/"
+        updates.task_marker = "[/]"
         break
       case "blocked":
         updates.task_status = "blocked"
-        updates.task_mark = "!"
+        updates.task_marker = "[!]"
         break
       case "dropped":
         updates.task_status = "dropped"
-        updates.task_mark = "-"
+        updates.task_marker = "[-]"
         break
       case "todo":
         updates.task_status = "todo"
-        updates.task_mark = " "
+        updates.task_marker = "[ ]"
         break
     }
   }
@@ -142,7 +143,7 @@ export function updateIssueFields(
 export function closeIssueFields(reason?: string): Partial<KNode> {
   const updates: Partial<KNode> = {
     task_status: "done",
-    task_mark: "x",
+    task_marker: "[x]",
     updated_at: Date.now(),
   }
 
@@ -160,7 +161,7 @@ export function closeIssueFields(reason?: string): Partial<KNode> {
 export function dropIssueFields(reason?: string): Partial<KNode> {
   const updates: Partial<KNode> = {
     task_status: "dropped",
-    task_mark: "-",
+    task_marker: "[-]",
     updated_at: Date.now(),
   }
 

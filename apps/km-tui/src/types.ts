@@ -4,7 +4,7 @@
  * Shared types for the boardliner TUI
  */
 
-import type { KNode, TaskStatus, TaskMark } from "@km/core"
+import type { KNode, TaskStatus, TaskMarker } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 
 /**
@@ -56,13 +56,13 @@ export interface CardState {
 // Status cycle order
 export const STATUS_CYCLE: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
-// Task marks by status
-export const STATUS_MARKS: Record<TaskStatus, TaskMark> = {
-  todo: " ",
-  wip: "/",
-  blocked: "!",
-  done: "x",
-  dropped: "-",
+// Task markers by status (full bracket strings)
+export const STATUS_MARKERS: Record<TaskStatus, TaskMarker> = {
+  todo: "[ ]",
+  wip: "[/]",
+  blocked: "[!]",
+  done: "[x]",
+  dropped: "[-]",
 }
 
 /**

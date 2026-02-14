@@ -4,7 +4,7 @@
  * Pure functions extracted from TreeNode for testability and clarity.
  */
 
-import { extractTitleTaskMark, type KNode } from "@km/core"
+import { extractTitleTaskMarker, type KNode } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
@@ -13,8 +13,8 @@ import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts
 // =============================================================================
 
 /**
- * Strip markdown task mark from the beginning of text.
- * Uses the shared extractTitleTaskMark from @km/core.
+ * Strip markdown task marker from the beginning of text.
+ * Uses the shared extractTitleTaskMarker from @km/core.
  *
  * Used to remove [x], [ ], [/], etc. from displayed content since
  * the task status is shown via the icon instead.
@@ -25,7 +25,7 @@ import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts
  * stripTaskMark("Regular text") => "Regular text"
  */
 export function stripTaskMark(text: string): string {
-  return extractTitleTaskMark(text).cleanText
+  return extractTitleTaskMarker(text).cleanText
 }
 
 // =============================================================================

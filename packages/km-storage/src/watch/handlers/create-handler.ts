@@ -72,7 +72,8 @@ export function handleCreate(options: CreateHandlerOptions): void {
     const folderName = basename(op.path)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
-      type: "folder",
+      type: "oi",
+      fstype: "folder",
       fs_path: relPath,
       fs_ino: op.ino,
       fs_mtime: op.mtime ?? stat.mtimeMs,
@@ -92,7 +93,8 @@ export function handleCreate(options: CreateHandlerOptions): void {
     // Non-markdown file - create simple file node
     emitNodeCreated(emitter, "fs-watch", {
       id: ulid(),
-      type: "file",
+      type: "oi",
+      fstype: "file",
       fs_path: toRelativeFsPath(repoRoot, op.path),
       fs_ino: op.ino,
       fs_mtime: op.mtime ?? stat.mtimeMs,
@@ -239,7 +241,8 @@ function ensureFolderHierarchy(
     const folderName = basename(parentPath)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
-      type: "folder",
+      type: "oi",
+      fstype: "folder",
       fs_path: relPath,
       fs_ino: stat.ino,
       fs_mtime: stat.mtimeMs,

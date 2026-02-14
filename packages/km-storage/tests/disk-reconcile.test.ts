@@ -68,7 +68,7 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "existing.md",
-          type: "file",
+          type: "oi", fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,
           fs_path: "existing.md",
@@ -95,7 +95,7 @@ describe("disk mode filesystem reconciliation", () => {
       type: string
     } | null
     expect(existing).toBeDefined()
-    expect(existing?.type).toBe("file")
+    expect(existing?.type).toBe("oi")
 
     const newFile = db.prepare("SELECT id, fs_path, type, name FROM nodes WHERE fs_path = 'new-file.md'").get() as {
       id: string
@@ -104,7 +104,7 @@ describe("disk mode filesystem reconciliation", () => {
       name: string
     } | null
     expect(newFile).toBeDefined()
-    expect(newFile?.type).toBe("file")
+    expect(newFile?.type).toBe("oi")
     expect(newFile?.name).toBe("new-file")
   })
 
@@ -131,7 +131,7 @@ describe("disk mode filesystem reconciliation", () => {
       content: string
     } | null
     expect(pdfNode).toBeDefined()
-    expect(pdfNode?.type).toBe("file")
+    expect(pdfNode?.type).toBe("oi")
     expect(pdfNode?.content).toBe("document.pdf")
   })
 
@@ -159,7 +159,7 @@ describe("disk mode filesystem reconciliation", () => {
       type: string
     } | null
     expect(folder).toBeDefined()
-    expect(folder?.type).toBe("folder")
+    expect(folder?.type).toBe("oi")
 
     // File inside folder should exist with correct parent
     const file = db.prepare("SELECT id, fs_path, type, parent_id FROM nodes WHERE fs_path = 'notes/idea.md'").get() as {
@@ -169,7 +169,7 @@ describe("disk mode filesystem reconciliation", () => {
       parent_id: string
     } | null
     expect(file).toBeDefined()
-    expect(file?.type).toBe("file")
+    expect(file?.type).toBe("oi")
     expect(file?.parent_id).toBe(folder?.id)
   })
 
@@ -183,7 +183,7 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "deleted.md",
-          type: "file",
+          type: "oi", fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,
           fs_path: "deleted.md",
@@ -269,7 +269,7 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "existing.md",
-          type: "file",
+          type: "oi", fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,
           fs_path: "existing.md",
@@ -328,7 +328,7 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "kept.md",
-          type: "file",
+          type: "oi", fstype: "mdfile",
           parent_id: ".",
           fs_path: "kept.md",
           name: "kept",
@@ -338,7 +338,7 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "removed.md",
-          type: "file",
+          type: "oi", fstype: "mdfile",
           parent_id: ".",
           fs_path: "removed.md",
           name: "removed",

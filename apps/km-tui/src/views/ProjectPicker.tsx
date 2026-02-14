@@ -6,7 +6,7 @@
  */
 import React from "react"
 import { Box, Text } from "inkx"
-import type { KNode } from "@km/core"
+import { isOutline, type KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, NodeLine } from "./shared-components.tsx"
@@ -27,7 +27,7 @@ function getProjectPath(
   let current: KNode | null = node
 
   while (current) {
-    if (current.type === "folder" || current.type === "file") {
+    if (current.type === "oi" && (current.fstype === "folder" || current.fstype === "file" || current.fstype === "mdfile")) {
       parts.unshift(getDisplayName(current))
     }
     current = current.parent_id ? (getNode(current.parent_id) ?? null) : null
@@ -57,8 +57,8 @@ function loadProjectOptions(repo: RepoContextValue, recentIds: string[]): Projec
   const getDisplayName = (node: KNode) => getNodeDisplayName(repo, node)
 
   for (const node of allNodes) {
-    // Only show sections, files, and folders as valid targets
-    if (node.type === "section" || node.type === "file" || node.type === "folder") {
+    // Only show outline items (sections, files, folders) as valid targets
+    if (isOutline(node.type)) {
       const title = getDisplayName(node)
       const parentContext = getParentName(node, repo.getNode.bind(repo), getDisplayName)
       const path = getProjectPath(node, repo.getNode.bind(repo), getDisplayName)

@@ -141,8 +141,8 @@ export function getFilteredNodes(
     params.push(options.type)
   }
 
-  // Filter by status (for tasks)
-  if (options.type === "task") {
+  // Filter by status (for tasks - when filtering by type with task_status)
+  if (options.status || options.excludeDone) {
     if (options.status) {
       sql += " AND task_status = ?"
       params.push(options.status)
@@ -168,7 +168,7 @@ export function findProject(db: Database, name: string): KNode | null {
     .query(
       `
     SELECT * FROM nodes
-    WHERE type IN ('folder', 'file', 'section')
+    WHERE type = 'oi'
     AND (
       LOWER(content) = ?
       OR LOWER(content) LIKE ?

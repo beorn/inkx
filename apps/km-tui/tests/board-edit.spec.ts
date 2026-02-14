@@ -138,7 +138,7 @@ describe("Edit Operations", () => {
     const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
     // Force all cards to have parent_idx=0 (DB default scenario)
     for (const n of nodes) {
-      if (n.type === "task") {
+      if (n.type === "li") {
         n.parent_idx = 0
       }
     }

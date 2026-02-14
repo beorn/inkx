@@ -6,7 +6,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import type { KNode, TaskStatus, NodeType, NodeRules, Reminder } from "@km/core"
+import type { KNode, TaskStatus, TaskMarker, FsType, NodeType, NodeRules, Reminder } from "@km/core"
 
 // =============================================================================
 // Utility Queries
@@ -63,24 +63,26 @@ export function rowToNode(row: Record<string, unknown>): KNode {
   return {
     id: row.id as string,
     type,
+    fstype: (row.fstype ?? undefined) as FsType | undefined,
     parent_id: row.parent_id as string | null,
     parent_idx: row.parent_idx as number,
     link_to: row.link_to as string | null,
-    link_alias: row.link_alias as string | undefined,
-    fs_path: row.fs_path as string | undefined,
-    fs_ino: row.fs_ino as number | undefined,
-    fs_mtime: row.fs_mtime as number | undefined,
-    name: row.name as string | undefined,
-    block_id: row.block_id as string | undefined,
-    md_pos: row.md_pos as number | undefined,
-    md_slug: row.md_slug as string | undefined,
-    md_line: row.md_line as number | undefined,
-    task_status: row.task_status as TaskStatus | undefined,
-    task_mark: row.task_mark as KNode["task_mark"],
-    assigned_to: row.assigned_to as string | undefined,
-    due_date: row.due_date as string | undefined,
-    scheduled_date: row.scheduled_date as string | undefined,
-    priority: row.priority as number | undefined,
+    link_alias: (row.link_alias ?? undefined) as string | undefined,
+    embed: row.embed ? true : undefined,
+    fs_path: (row.fs_path ?? undefined) as string | undefined,
+    fs_ino: (row.fs_ino ?? undefined) as number | undefined,
+    fs_mtime: (row.fs_mtime ?? undefined) as number | undefined,
+    name: (row.name ?? undefined) as string | undefined,
+    block_id: (row.block_id ?? undefined) as string | undefined,
+    md_pos: (row.md_pos ?? undefined) as number | undefined,
+    md_line: (row.md_line ?? undefined) as number | undefined,
+    list_marker: (row.list_marker ?? undefined) as string | undefined,
+    task_marker: (row.task_marker ?? undefined) as TaskMarker | undefined,
+    task_status: (row.task_status ?? undefined) as TaskStatus | undefined,
+    assigned_to: (row.assigned_to ?? undefined) as string | undefined,
+    due_date: (row.due_date ?? undefined) as string | undefined,
+    scheduled_date: (row.scheduled_date ?? undefined) as string | undefined,
+    priority: (row.priority ?? undefined) as number | undefined,
     content,
     content_hash: row.content_hash as string | undefined,
     title: row.title as string | undefined,

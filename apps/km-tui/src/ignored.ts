@@ -96,7 +96,7 @@ export function removeIgnored(repoPath: string, path: string): void {
 export function computeIgnorePath(node: KNode, repo: Repo): string | null {
   // File or folder with fs_path
   if (node.fs_path) {
-    return node.type === "folder" ? node.fs_path + "/" : node.fs_path
+    return node.type === "oi" && node.fstype === "folder" ? node.fs_path + "/" : node.fs_path
   }
 
   // Section or child item — walk up to find parent file
@@ -113,7 +113,7 @@ export function computeIgnorePath(node: KNode, repo: Repo): string | null {
       parentFile = current
       break
     }
-    if (current.type === "section" && !parentSection) {
+    if (current.type === "oi" && current.fstype === "mdsection" && !parentSection) {
       parentSection = current
     }
     current = current.parent_id ? repo.getNode(current.parent_id) : undefined
@@ -124,7 +124,7 @@ export function computeIgnorePath(node: KNode, repo: Repo): string | null {
     return `#${slug}`
   }
 
-  if (node.type === "section") {
+  if (node.type === "oi" && node.fstype === "mdsection") {
     return `${parentFile.fs_path}#${slug}`
   }
 

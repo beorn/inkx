@@ -10,9 +10,11 @@ export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS nodes (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL,
+  fstype TEXT,
   parent_id TEXT,
   link_to TEXT,
   link_alias TEXT,
+  embed INTEGER DEFAULT 0,
   parent_idx REAL DEFAULT 0,
 
   -- Filesystem
@@ -28,11 +30,13 @@ CREATE TABLE IF NOT EXISTS nodes (
   -- Markdown
   md_pos INTEGER,
   md_line INTEGER,
-  md_slug TEXT,
+
+  -- Item markers
+  list_marker TEXT,
+  task_marker TEXT,
 
   -- Task
   task_status TEXT,
-  task_mark TEXT,
   assigned_to TEXT,
   due_date TEXT,
   scheduled_date TEXT,
@@ -54,6 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_nodes_parent ON nodes(parent_id);
 CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
 CREATE INDEX IF NOT EXISTS idx_nodes_fs_path ON nodes(fs_path);
 CREATE INDEX IF NOT EXISTS idx_nodes_fs_ino ON nodes(fs_ino);
+CREATE INDEX IF NOT EXISTS idx_nodes_fstype ON nodes(fstype);
 CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
 CREATE INDEX IF NOT EXISTS idx_nodes_assigned ON nodes(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_nodes_due ON nodes(due_date);
@@ -112,11 +117,12 @@ CREATE INDEX IF NOT EXISTS idx_links_target_id ON links(target_id);
  * Used to route non-column KNode fields (due_time, scheduled_time, etc.) to the data blob.
  */
 export const NODE_COLUMNS = new Set([
-  "id", "type", "parent_id", "link_to", "link_alias", "parent_idx",
+  "id", "type", "fstype", "parent_id", "link_to", "link_alias", "embed", "parent_idx",
   "fs_path", "fs_ino", "fs_mtime",
   "name", "block_id", "title",
-  "md_pos", "md_line", "md_slug",
-  "task_status", "task_mark", "assigned_to", "due_date", "scheduled_date", "priority",
+  "md_pos", "md_line",
+  "list_marker", "task_marker",
+  "task_status", "assigned_to", "due_date", "scheduled_date", "priority",
   "content", "content_hash",
   "data", "created_at", "updated_at", "version",
 ])

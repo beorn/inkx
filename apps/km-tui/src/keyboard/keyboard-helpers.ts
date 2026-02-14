@@ -4,6 +4,7 @@
  * Utility functions for keyboard handling.
  */
 
+import { isBlock } from "@km/core"
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey, parseSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -199,9 +200,8 @@ export function refreshBoardState(
   // update the cursor position after mutations.
 
   // Query repo to calculate new cursor position
-  const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
   const allChildren = ctx.repo.getChildren(ctx.rootId)
-  const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
+  const columns = allChildren.filter((n) => !isBlock(n.type))
 
   // Calculate new cursor position
   const colIndex = options?.colIndex ?? ctx.layout.colIndex

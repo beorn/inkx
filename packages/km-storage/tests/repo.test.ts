@@ -53,19 +53,19 @@ describe("createTestRepo", () => {
   test("supports basic node operations", () => {
     using repo = createTestRepo()
 
-    const id = repo.data.addNode(null, { type: "task", content: "Test task" })
+    const id = repo.data.addNode(null, { type: "li", content: "Test task" })
     const node = repo.data.getNode(id)
 
     expect(node).toBeDefined()
     expect(node?.content).toBe("Test task")
-    expect(node?.type).toBe("task")
+    expect(node?.type).toBe("li")
   })
 
   test("supports query operations", () => {
     using repo = createTestRepo()
 
-    repo.data.addNode(null, { type: "task", content: "First task" })
-    repo.data.addNode(null, { type: "task", content: "Second task" })
+    repo.data.addNode(null, { type: "li", content: "First task" })
+    repo.data.addNode(null, { type: "li", content: "Second task" })
 
     const allNodes = repo.data.getAllNodes()
     expect(allNodes.length).toBe(2)
@@ -106,7 +106,7 @@ describe("createBareRepo", () => {
 
   test("preserves DataStore state", () => {
     const data = createMemDataStore()
-    const id = data.addNode(null, { type: "task", content: "Pre-existing" })
+    const id = data.addNode(null, { type: "li", content: "Pre-existing" })
 
     using repo = createBareRepo(data)
     const node = repo.data.getNode(id)
@@ -118,7 +118,7 @@ describe("createBareRepo", () => {
     const data = createMemDataStore()
     using repo = createBareRepo(data)
 
-    const id = repo.data.addNode(null, { type: "task", content: "New task" })
+    const id = repo.data.addNode(null, { type: "li", content: "New task" })
 
     // Verify via original data store
     const node = data.getNode(id)
@@ -131,7 +131,7 @@ describe("createBareRepo", () => {
     repo.close()
 
     // Wrapped store should still work (caller manages lifecycle)
-    const id = data.addNode(null, { type: "task", content: "After close" })
+    const id = data.addNode(null, { type: "li", content: "After close" })
     expect(data.getNode(id)?.content).toBe("After close")
 
     data.close()
@@ -165,7 +165,7 @@ describe("createRepo", () => {
     using repo = runGenerator(createRepo(tempDir))
 
     // No .km dir = memory mode
-    const id = repo.data.addNode(null, { type: "task", content: "Memory task" })
+    const id = repo.data.addNode(null, { type: "li", content: "Memory task" })
     expect(repo.data.getNode(id)).toBeDefined()
   })
 
@@ -175,7 +175,7 @@ describe("createRepo", () => {
 
     using repo = runGenerator(createRepo(tempDir))
 
-    const id = repo.data.addNode(null, { type: "task", content: "Disk task" })
+    const id = repo.data.addNode(null, { type: "li", content: "Disk task" })
     expect(repo.data.getNode(id)).toBeDefined()
 
     // Verify database file was created
@@ -190,7 +190,7 @@ describe("createRepo", () => {
 
     // Should work even with .km dir present
     const id = repo.data.addNode(null, {
-      type: "task",
+      type: "li",
       content: "Forced memory",
     })
     expect(repo.data.getNode(id)).toBeDefined()
@@ -283,7 +283,7 @@ describe("createRepo", () => {
     {
       using repo = runGenerator(createRepo(tempDir))
       repoRef = repo
-      repo.data.addNode(null, { type: "task", content: "Test" })
+      repo.data.addNode(null, { type: "li", content: "Test" })
     }
 
     // After block, repo should be closed
@@ -397,7 +397,7 @@ describe("Repo.needsRebuild", () => {
     {
       using repo = runGenerator(createRepo(tempDir))
       // Add a node to generate an event
-      repo.data.addNode(null, { type: "task", content: "Test task" })
+      repo.data.addNode(null, { type: "li", content: "Test task" })
     }
 
     // Manually add an event that wasn't applied (simulate external write)
@@ -508,7 +508,7 @@ describe("Repo mutations notify FsSync", () => {
   test("updateNode notifies FsSync with node_updated event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
-    const id = repo.addNode(null, { type: "task", content: "original" })
+    const id = repo.addNode(null, { type: "li", content: "original" })
     events.length = 0 // clear the node_created event
 
     repo.updateNode(id, { content: "changed" })
@@ -524,9 +524,9 @@ describe("Repo mutations notify FsSync", () => {
   test("moveNode notifies FsSync with node_moved event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
-    const parentA = repo.addNode(null, { type: "section", content: "A" })
-    const parentB = repo.addNode(null, { type: "section", content: "B" })
-    const child = repo.addNode(parentA, { type: "task", content: "child" })
+    const parentA = repo.addNode(null, { type: "oi", content: "A" })
+    const parentB = repo.addNode(null, { type: "oi", content: "B" })
+    const child = repo.addNode(parentA, { type: "li", content: "child" })
     events.length = 0
 
     repo.moveNode(child, parentB, 0)
@@ -542,7 +542,7 @@ describe("Repo mutations notify FsSync", () => {
   test("deleteNode notifies FsSync with node_deleted event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
-    const id = repo.addNode(null, { type: "task", content: "to-delete" })
+    const id = repo.addNode(null, { type: "li", content: "to-delete" })
     events.length = 0
 
     repo.deleteNode(id)
@@ -559,7 +559,7 @@ describe("Repo mutations notify FsSync", () => {
     const { repo, events } = createRepoWithFsSpy()
 
     events.length = 0
-    const id = repo.addNode(null, { type: "task", content: "new-task" })
+    const id = repo.addNode(null, { type: "li", content: "new-task" })
 
     expect(events).toHaveLength(1)
     expect(events[0]!.type).toBe("node_created")
@@ -572,7 +572,7 @@ describe("Repo mutations notify FsSync", () => {
   test("no FsSync notification when no FsSync is set", () => {
     const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
     // Don't set FsSync — should not throw
-    const id = repo.addNode(null, { type: "task", content: "no-spy" })
+    const id = repo.addNode(null, { type: "li", content: "no-spy" })
     repo.updateNode(id, { content: "changed" })
     repo.deleteNode(id)
     // If we got here, no errors from notifyFs with null fsSync
@@ -629,7 +629,7 @@ describe("FsWriter auto-registration", () => {
 
     // Find nodes via DB
     const db = repo.database
-    const inbox = db.query("SELECT id FROM nodes WHERE content = 'Inbox' AND type = 'section'").get() as {
+    const inbox = db.query("SELECT id FROM nodes WHERE content = 'Inbox' AND type = 'oi' AND fstype = 'mdsection'").get() as {
       id: string
     } | null
 
@@ -641,10 +641,10 @@ describe("FsWriter auto-registration", () => {
 
     // Add a task — FsWriter should regenerate the file
     repo.addNode(inbox.id, {
-      type: "task",
+      type: "li",
       content: "New CLI task",
       task_status: "todo",
-      task_mark: " ",
+      task_marker: "[ ]",
     })
 
     const content = readFileSync(join(tempDir, "board.md"), "utf-8")

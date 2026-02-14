@@ -162,7 +162,7 @@ describe("getStatusDisplay", () => {
 describe("getProjectPath", () => {
   test("returns empty array for node with no parent", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([{ id: "task1", type: "task", content: "Standalone task" }]),
+      nodes: createTestNodes([{ id: "task1", type: "li", content: "Standalone task" }]),
     })
     const node = repo.getNode("task1")!
     expect(getProjectPath(repo, node)).toEqual([])
@@ -171,16 +171,16 @@ describe("getProjectPath", () => {
   test("returns folder names in path", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "folder1", type: "folder", content: "Work" },
+        { id: "folder1", type: "oi", fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "folder",
+          type: "oi", fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
         {
           id: "task1",
-          type: "task",
+          type: "li",
           content: "Review budget",
           parent_id: "folder2",
         },
@@ -193,11 +193,11 @@ describe("getProjectPath", () => {
   test("includes files in path", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "folder1", type: "folder", content: "Projects" },
-        { id: "file1", type: "file", content: "todo.md", parent_id: "folder1" },
+        { id: "folder1", type: "oi", fstype: "folder" as const, content: "Projects" },
+        { id: "file1", type: "oi", fstype: "mdfile" as const, content: "todo.md", parent_id: "folder1" },
         {
           id: "task1",
-          type: "task",
+          type: "li",
           content: "Do something",
           parent_id: "file1",
         },
@@ -214,7 +214,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "task",
+          type: "li",
           content: "Review Q1 budget",
           task_status: "todo",
           due_date: "2026-01-10",
@@ -236,21 +236,23 @@ describe("DetailPane", () => {
   test("shows subtasks", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "parent1", type: "task", content: "Parent task" },
+        { id: "parent1", type: "li", content: "Parent task" },
         {
           id: "sub1",
-          type: "task",
+          type: "li",
           content: "Subtask 1",
           parent_id: "parent1",
           task_status: "done",
+          task_marker: "[x]",
         },
         {
           id: "sub2",
-          type: "task",
+          type: "li",
           content: "Subtask 2",
           parent_id: "parent1",
           parent_idx: 1,
           task_status: "todo",
+          task_marker: "[ ]",
         },
       ]),
     })
@@ -266,7 +268,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "task",
+          type: "li",
           content: "Talk to @john about #budget for +work project [[Meeting Notes]]",
         },
       ]),
@@ -282,16 +284,16 @@ describe("DetailPane", () => {
   test("shows project path", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "folder1", type: "folder", content: "Work" },
+        { id: "folder1", type: "oi", fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "folder",
+          type: "oi", fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
         {
           id: "task1",
-          type: "task",
+          type: "li",
           content: "Review budget",
           parent_id: "folder2",
         },
@@ -306,7 +308,7 @@ describe("DetailPane", () => {
 
   test("shows keybindings hint", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([{ id: "task1", type: "task", content: "Simple task" }]),
+      nodes: createTestNodes([{ id: "task1", type: "li", content: "Simple task" }]),
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 50, 24)
@@ -320,7 +322,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "task",
+          type: "li",
           content: "Completed task",
           task_status: "done",
         },
@@ -334,10 +336,10 @@ describe("DetailPane", () => {
   test("shows backlinks when present", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "target1", type: "task", content: "Target task" },
+        { id: "target1", type: "li", content: "Target task" },
         {
           id: "source1",
-          type: "file",
+          type: "oi", fstype: "mdfile" as const,
           content: "Meeting Notes",
           parent_idx: 1,
         },

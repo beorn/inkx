@@ -27,7 +27,7 @@ function testDataStore(name: string, factory: () => DataStore) {
 
     describe("addNode", () => {
       test("adds a node with generated ID", () => {
-        const id = store.addNode(null, { type: "task", content: "Test task" })
+        const id = store.addNode(null, { type: "li", content: "Test task" })
         expect(id).toBeTruthy()
         expect(typeof id).toBe("string")
       })
@@ -35,7 +35,7 @@ function testDataStore(name: string, factory: () => DataStore) {
       test("adds a node with specified ID", () => {
         const id = store.addNode(null, {
           id: "custom-id",
-          type: "task",
+          type: "li",
           content: "Test",
         })
         expect(id).toBe("custom-id")
@@ -43,11 +43,11 @@ function testDataStore(name: string, factory: () => DataStore) {
 
       test("adds a node under parent", () => {
         const parentId = store.addNode(null, {
-          type: "section",
+          type: "oi",
           content: "Parent",
         })
         const childId = store.addNode(parentId, {
-          type: "task",
+          type: "li",
           content: "Child",
         })
 
@@ -57,7 +57,7 @@ function testDataStore(name: string, factory: () => DataStore) {
 
       test("stores non-column fields in data blob", () => {
         const id = store.addNode(null, {
-          type: "task",
+          type: "li",
           content: "Test",
           due_date: "2026-03-01",
           due_time: "09:00",
@@ -71,11 +71,11 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("sets task defaults for task type", () => {
-        const id = store.addNode(null, { type: "task", content: "Test" })
+        const id = store.addNode(null, { type: "li", task_marker: "[ ]", content: "Test" })
         const node = store.getNode(id)
 
         expect(node?.task_status).toBe("todo")
-        expect(node?.task_mark).toBe(" ")
+        expect(node?.task_marker).toBe("[ ]")
       })
     })
 
@@ -85,7 +85,7 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("returns node by ID", () => {
-        const id = store.addNode(null, { type: "task", content: "Test" })
+        const id = store.addNode(null, { type: "li", content: "Test" })
         const node = store.getNode(id)
 
         expect(node).not.toBeNull()
@@ -96,23 +96,23 @@ function testDataStore(name: string, factory: () => DataStore) {
 
     describe("getChildren", () => {
       test("returns empty array for no children", () => {
-        const parentId = store.addNode(null, { type: "section" })
+        const parentId = store.addNode(null, { type: "oi" })
         expect(store.getChildren(parentId)).toEqual([])
       })
 
       test("returns children sorted by parent_idx", () => {
-        const parentId = store.addNode(null, { type: "section" })
-        store.addNode(parentId, { type: "task", content: "C", parent_idx: 3 })
-        store.addNode(parentId, { type: "task", content: "A", parent_idx: 1 })
-        store.addNode(parentId, { type: "task", content: "B", parent_idx: 2 })
+        const parentId = store.addNode(null, { type: "oi" })
+        store.addNode(parentId, { type: "li", content: "C", parent_idx: 3 })
+        store.addNode(parentId, { type: "li", content: "A", parent_idx: 1 })
+        store.addNode(parentId, { type: "li", content: "B", parent_idx: 2 })
 
         const children = store.getChildren(parentId)
         expect(children.map((n) => n.content)).toEqual(["A", "B", "C"])
       })
 
       test("returns root-level nodes with null parent", () => {
-        store.addNode(null, { type: "file", content: "Root 1" })
-        store.addNode(null, { type: "file", content: "Root 2" })
+        store.addNode(null, { type: "oi", content: "Root 1" })
+        store.addNode(null, { type: "oi", content: "Root 2" })
 
         const roots = store.getChildren(null)
         expect(roots.length).toBe(2)
@@ -125,9 +125,9 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("returns all nodes", () => {
-        store.addNode(null, { type: "task", content: "One" })
-        store.addNode(null, { type: "task", content: "Two" })
-        store.addNode(null, { type: "task", content: "Three" })
+        store.addNode(null, { type: "li", content: "One" })
+        store.addNode(null, { type: "li", content: "Two" })
+        store.addNode(null, { type: "li", content: "Three" })
 
         expect(store.getAllNodes().length).toBe(3)
       })
@@ -135,7 +135,7 @@ function testDataStore(name: string, factory: () => DataStore) {
 
     describe("updateNode", () => {
       test("updates node properties", () => {
-        const id = store.addNode(null, { type: "task", content: "Original" })
+        const id = store.addNode(null, { type: "li", content: "Original" })
         store.updateNode(id, { content: "Updated" })
 
         const node = store.getNode(id)
@@ -144,7 +144,7 @@ function testDataStore(name: string, factory: () => DataStore) {
 
       test("preserves unmodified properties", () => {
         const id = store.addNode(null, {
-          type: "task",
+          type: "li",
           content: "Test",
           priority: 1,
         })
@@ -155,7 +155,7 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("updates updated_at timestamp", () => {
-        const id = store.addNode(null, { type: "task", content: "Test" })
+        const id = store.addNode(null, { type: "li", content: "Test" })
         const before = store.getNode(id)?.updated_at ?? 0
 
         // Small delay to ensure timestamp changes
@@ -173,7 +173,7 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("routes non-column fields to data blob", () => {
-        const id = store.addNode(null, { type: "task", content: "Test" })
+        const id = store.addNode(null, { type: "li", content: "Test" })
         store.updateNode(id, { due_date: "2026-03-01", due_time: "14:30" } as Record<string, unknown>)
 
         const node = store.getNode(id)
@@ -185,7 +185,7 @@ function testDataStore(name: string, factory: () => DataStore) {
 
     describe("deleteNode", () => {
       test("removes node", () => {
-        const id = store.addNode(null, { type: "task", content: "Test" })
+        const id = store.addNode(null, { type: "li", content: "Test" })
         store.deleteNode(id)
 
         expect(store.getNode(id)).toBeNull()
@@ -199,9 +199,9 @@ function testDataStore(name: string, factory: () => DataStore) {
 
     describe("moveNode", () => {
       test("moves node to new parent", () => {
-        const parent1 = store.addNode(null, { type: "section" })
-        const parent2 = store.addNode(null, { type: "section" })
-        const child = store.addNode(parent1, { type: "task", content: "Child" })
+        const parent1 = store.addNode(null, { type: "oi" })
+        const parent2 = store.addNode(null, { type: "oi" })
+        const child = store.addNode(parent1, { type: "li", content: "Child" })
 
         store.moveNode(child, parent2, 100)
 
@@ -211,7 +211,7 @@ function testDataStore(name: string, factory: () => DataStore) {
       })
 
       test("does nothing for non-existent node", () => {
-        const parent = store.addNode(null, { type: "section" })
+        const parent = store.addNode(null, { type: "oi" })
         // Should not throw
         store.moveNode("nonexistent", parent, 100)
       })
@@ -219,16 +219,16 @@ function testDataStore(name: string, factory: () => DataStore) {
 
     describe("search", () => {
       test("finds nodes by content", () => {
-        store.addNode(null, { type: "task", content: "Buy groceries" })
-        store.addNode(null, { type: "task", content: "Call mom" })
-        store.addNode(null, { type: "task", content: "Buy presents" })
+        store.addNode(null, { type: "li", content: "Buy groceries" })
+        store.addNode(null, { type: "li", content: "Call mom" })
+        store.addNode(null, { type: "li", content: "Buy presents" })
 
         const results = store.search("Buy")
         expect(results.length).toBe(2)
       })
 
       test("returns empty array for no matches", () => {
-        store.addNode(null, { type: "task", content: "Test" })
+        store.addNode(null, { type: "li", content: "Test" })
         expect(store.search("nonexistent")).toEqual([])
       })
     })

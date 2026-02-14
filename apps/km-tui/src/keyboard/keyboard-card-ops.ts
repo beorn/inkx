@@ -4,6 +4,7 @@
  * Functions for moving, indenting, and outdenting cards.
  */
 
+import { isBlock, isOutline, isItem } from "@km/core"
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -68,9 +69,8 @@ function calculateSortOrder(col: { cards: CardState[] }, targetIndex: number, di
  */
 function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCardIds: string[]): void {
   const newSelected = new Set<SelectionKey>()
-  const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
   const allChildren = ctx.repo.getChildren(ctx.rootId)
-  const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
+  const columns = allChildren.filter((n) => !isBlock(n.type))
   const newCol = columns[colIndex]
   if (newCol) {
     const cards = ctx.repo.getChildren(newCol.id)
@@ -217,11 +217,11 @@ export function outdentNode(ctx: ActionCtx, card: CardState): boolean {
 // --- Indent/Outdent Validation ---
 
 /** Node types that support indentation (outline structure, not content blocks). */
-const INDENTABLE_TYPES = new Set(["section", "task", "folder", "file"])
+// Items (oi, li) are indentable — not blocks or links
 
 /** Check if a card can be indented (has a previous sibling to nest under) */
 function canIndent(ctx: ActionCtx, card: CardState): boolean {
-  if (!INDENTABLE_TYPES.has(card.node.type)) return false
+  if (!isItem(card.node.type)) return false
 
   const parentId = card.node.parent_id
   if (!parentId) return false
@@ -233,7 +233,7 @@ function canIndent(ctx: ActionCtx, card: CardState): boolean {
 
 /** Check if a card can be outdented (has a grandparent to move to) */
 function canOutdent(ctx: ActionCtx, card: CardState): boolean {
-  if (!INDENTABLE_TYPES.has(card.node.type)) return false
+  if (!isItem(card.node.type)) return false
 
   const parentId = card.node.parent_id
   if (!parentId) return false

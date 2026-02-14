@@ -21,6 +21,9 @@ function makeNode(partial: Partial<KNode> & { id: string; type: KNode["type"] })
   return {
     id: partial.id,
     type: partial.type,
+    ...(partial.fstype ? { fstype: partial.fstype } : {}),
+    ...(partial.list_marker ? { list_marker: partial.list_marker } : {}),
+    ...(partial.embed ? { embed: partial.embed } : {}),
     parent_id: partial.parent_id ?? null,
     parent_idx: partial.parent_idx ?? 0,
     link_to: partial.link_to ?? null,
@@ -43,11 +46,12 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const targetId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "file", title: "Next Actions", parent_id: null }),
-      makeNode({ id: sectionId, type: "section", title: "Processing", parent_id: rootId, parent_idx: 0 }),
+      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Next Actions", parent_id: null }),
+      makeNode({ id: sectionId, type: "oi", fstype: "mdsection", title: "Processing", parent_id: rootId, parent_idx: 0 }),
       makeNode({
         id: embed1Id,
-        type: "embed",
+        type: "link",
+        embed: true,
         content: "Embed 1",
         parent_id: sectionId,
         parent_idx: 0,
@@ -55,14 +59,15 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
       }),
       makeNode({
         id: embed2Id,
-        type: "embed",
+        type: "link",
+        embed: true,
         content: "Embed 2",
         parent_id: sectionId,
         parent_idx: 1,
         link_to: targetId,
       }),
       // Target node for embeds
-      makeNode({ id: targetId, type: "task", title: "Some task", parent_id: null }),
+      makeNode({ id: targetId, type: "li", list_marker: "-", title: "Some task", parent_id: null }),
     ]
 
     const repo = createFakeRepo({ nodes })
@@ -93,10 +98,10 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const para2Id = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "file", title: "Notes", parent_id: null }),
-      makeNode({ id: sectionId, type: "section", title: "Intro", parent_id: rootId, parent_idx: 0 }),
-      makeNode({ id: para1Id, type: "paragraph", content: "First paragraph", parent_id: sectionId, parent_idx: 0 }),
-      makeNode({ id: para2Id, type: "paragraph", content: "Second paragraph", parent_id: sectionId, parent_idx: 1 }),
+      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Notes", parent_id: null }),
+      makeNode({ id: sectionId, type: "oi", fstype: "mdsection", title: "Intro", parent_id: rootId, parent_idx: 0 }),
+      makeNode({ id: para1Id, type: "p", content: "First paragraph", parent_id: sectionId, parent_idx: 0 }),
+      makeNode({ id: para2Id, type: "p", content: "Second paragraph", parent_id: sectionId, parent_idx: 1 }),
     ]
 
     const repo = createFakeRepo({ nodes })
@@ -121,18 +126,19 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const targetId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "file", title: "Mixed", parent_id: null }),
-      makeNode({ id: sectionId, type: "section", title: "Section", parent_id: rootId, parent_idx: 0 }),
-      makeNode({ id: paraId, type: "paragraph", content: "Intro text", parent_id: sectionId, parent_idx: 0 }),
+      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Mixed", parent_id: null }),
+      makeNode({ id: sectionId, type: "oi", fstype: "mdsection", title: "Section", parent_id: rootId, parent_idx: 0 }),
+      makeNode({ id: paraId, type: "p", content: "Intro text", parent_id: sectionId, parent_idx: 0 }),
       makeNode({
         id: embedId,
-        type: "embed",
+        type: "link",
+        embed: true,
         content: "Embed ref",
         parent_id: sectionId,
         parent_idx: 1,
         link_to: targetId,
       }),
-      makeNode({ id: targetId, type: "task", title: "Target", parent_id: null }),
+      makeNode({ id: targetId, type: "li", list_marker: "-", title: "Target", parent_id: null }),
     ]
 
     const repo = createFakeRepo({ nodes })

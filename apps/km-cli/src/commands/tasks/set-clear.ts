@@ -9,7 +9,7 @@ import { createTerm } from "inkx"
 
 const term = createTerm(process)
 import { resolvePathArg } from "@km/storage"
-import { getMarkForStatus } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
 import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
 import { loadRepo } from "../../load-repo.ts"
@@ -66,7 +66,7 @@ export function createSetCommand() {
           case "status":
           case "task_status":
             updates.task_status = value as TaskStatus
-            updates.task_mark = getMarkForStatus(value as TaskStatus)
+            updates.task_marker = getMarkerForStatus(value as TaskStatus)
             break
           case "assigned":
           case "assigned_to":

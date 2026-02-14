@@ -31,7 +31,7 @@ describe("embed create depth", () => {
         // and setting link_to (what makes them embeds in the real app)
         if (n.id === "embed-a" || n.id === "embed-b") {
           n.link_to = "some-target"
-          n.type = "section"
+          n.type = "oi"
           n.data = {} // no depth, like real embeds
         }
       }
@@ -69,7 +69,7 @@ describe("embed create depth", () => {
           n.data = { ...n.data, depth: 2 }
         }
         if (n.id === "sec-a" || n.id === "sec-b") {
-          n.type = "section"
+          n.type = "oi"
           n.data = { depth: 3 }
         }
       }
@@ -101,7 +101,7 @@ describe("embed create depth", () => {
       // children also have no depth (e.g., paragraphs or embeds)
       for (const n of nodes) {
         if (n.id === "child-a" || n.id === "child-b") {
-          n.type = "section"
+          n.type = "oi"
           n.data = {} // no depth
         }
       }
@@ -134,7 +134,7 @@ describe("embed create depth", () => {
         }
         if (n.id === "embed-a" || n.id === "embed-b") {
           n.link_to = "some-target"
-          n.type = "section"
+          n.type = "oi"
           n.data = {}
         }
       }

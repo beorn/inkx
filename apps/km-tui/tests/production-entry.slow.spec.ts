@@ -539,7 +539,7 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
 
       // Find the task node
       const allNodes = getAllNodes(db)
-      const task = allNodes.find((n) => n.type === "task")
+      const task = allNodes.find((n) => n.task_marker != null)
       expect(task).toBeDefined()
       expect(task!.content).toContain("Original title")
 

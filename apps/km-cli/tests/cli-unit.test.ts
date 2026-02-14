@@ -20,7 +20,9 @@ function createTask(db: Database, content: string, options: Partial<KNode> = {})
 
   const node: KNode = {
     id,
-    type: "task",
+    type: "li",
+    list_marker: "-",
+    task_marker: "[ ]",
     content,
     task_status: "todo",
     created_at: now,
@@ -29,11 +31,13 @@ function createTask(db: Database, content: string, options: Partial<KNode> = {})
   } as KNode
 
   db.prepare(
-    `INSERT INTO nodes (id, type, content, task_status, priority, due_date, assigned_to, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO nodes (id, type, list_marker, task_marker, content, task_status, priority, due_date, assigned_to, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     node.id,
     node.type,
+    (node as KNode).list_marker ?? "-",
+    (node as KNode).task_marker ?? "[ ]",
     node.content ?? null,
     node.task_status ?? "todo",
     node.priority ?? null,
@@ -221,7 +225,7 @@ describe.sequential("Task Assignment", () => {
       createTask(db, "Unassigned task")
 
       const aliceTasks = db
-        .prepare("SELECT * FROM nodes WHERE type = 'task' AND assigned_to = ?")
+        .prepare("SELECT * FROM nodes WHERE task_status IS NOT NULL AND assigned_to = ?")
         .all("alice") as KNode[]
 
       expect(aliceTasks.length).toBe(1)
@@ -235,7 +239,7 @@ describe.sequential("Task Assignment", () => {
       createTask(db, "Unassigned 1")
       createTask(db, "Unassigned 2")
 
-      const unassigned = db.prepare("SELECT * FROM nodes WHERE type = 'task' AND assigned_to IS NULL").all() as KNode[]
+      const unassigned = db.prepare("SELECT * FROM nodes WHERE task_status IS NOT NULL AND assigned_to IS NULL").all() as KNode[]
 
       expect(unassigned.length).toBe(2)
     })
@@ -283,7 +287,7 @@ describe.sequential("Search Functionality", () => {
       createTask(db, "Call Alice")
       createTask(db, "Review code")
 
-      const results = db.prepare("SELECT * FROM nodes WHERE type = 'task' AND content LIKE ?").all("%Alice%") as KNode[]
+      const results = db.prepare("SELECT * FROM nodes WHERE task_status IS NOT NULL AND content LIKE ?").all("%Alice%") as KNode[]
 
       expect(results.length).toBe(1)
       expect(results[0]!.content).toBe("Call Alice")
@@ -296,7 +300,7 @@ describe.sequential("Search Functionality", () => {
       createTask(db, "groceries list")
 
       const results = db
-        .prepare("SELECT * FROM nodes WHERE type = 'task' AND LOWER(content) LIKE LOWER(?)")
+        .prepare("SELECT * FROM nodes WHERE task_status IS NOT NULL AND LOWER(content) LIKE LOWER(?)")
         .all("%groceries%") as KNode[]
 
       expect(results.length).toBe(2)
@@ -308,7 +312,7 @@ describe.sequential("Search Functionality", () => {
       createTask(db, "Buy groceries")
 
       const results = db
-        .prepare("SELECT * FROM nodes WHERE type = 'task' AND content LIKE ?")
+        .prepare("SELECT * FROM nodes WHERE task_status IS NOT NULL AND content LIKE ?")
         .all("%nonexistent%") as KNode[]
 
       expect(results.length).toBe(0)
@@ -323,9 +327,9 @@ describe.sequential("Task Data Field", () => {
       const data = { tags: ["work", "urgent"], notes: "Important" }
 
       db.prepare(
-        `INSERT INTO nodes (id, type, content, task_status, data, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      ).run(id, "task", "Test task", "todo", JSON.stringify(data), Date.now(), Date.now())
+        `INSERT INTO nodes (id, type, list_marker, task_marker, content, task_status, data, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(id, "li", "-", "[ ]", "Test task", "todo", JSON.stringify(data), Date.now(), Date.now())
 
       const found = getNode(db, id)
       expect(found?.data).toEqual(data)

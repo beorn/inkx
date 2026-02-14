@@ -2,7 +2,7 @@
  * Board top bar - path segments rendering
  */
 import { createTerm, type StyleChain } from "inkx"
-import type { KNode } from "@km/core"
+import { isOutline, type KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderPlain, colorize } from "../text/index.ts"
@@ -77,7 +77,7 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
     const name = renderPlain(rawName)
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex
 
-    if (node.type === "folder" || node.type === "file") {
+    if (node.type === "oi" && (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")) {
       segments.push({
         id: node.id,
         name,
@@ -85,9 +85,9 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
         isWithinBoard,
         node,
       })
-    } else if (node.type === "section") {
+    } else if (node.type === "oi" && node.fstype === "mdsection") {
       segments.push({ id: node.id, name, sep: "#", isWithinBoard, node })
-    } else if (node.type === "board") {
+    } else if (isOutline(node.type)) {
       if (segments.length === 0) {
         segments.push({
           id: node.id,

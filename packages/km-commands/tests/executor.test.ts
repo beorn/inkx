@@ -13,7 +13,7 @@ import type { CommandDef, CommandContext, TNode, ViewMode } from "../src/types.t
 function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): TNode {
   return {
     id,
-    type: "section",
+    type: "oi",
     parent_id: null,
     parent_idx: 0,
     link_to: null,

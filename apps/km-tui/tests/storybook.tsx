@@ -712,7 +712,7 @@ function mockNode(
   id: string,
   content: string,
   status?: string,
-  type: string = "task",
+  type: string = "li",
   options?: {
     parentId?: string
     linkTo?: string
@@ -723,17 +723,21 @@ function mockNode(
     scheduled_time?: string
     priority?: number
     recurrence?: string
+    fstype?: KNode["fstype"]
   },
 ): KNode {
   const node: KNode = {
     id,
     type: type as KNode["type"],
+    ...(type === "oi" && options?.fstype ? { fstype: options.fstype } : {}),
+    ...(type === "li" ? { list_marker: "-" as const } : {}),
     parent_id: options?.parentId ?? null,
     parent_idx: 0,
     link_to: options?.linkTo ?? null,
     link_alias: options?.linkAlias,
     content,
     task_status: status as KNode["task_status"],
+    ...(status ? { task_marker: (status === "done" ? "[x]" : status === "wip" ? "[/]" : status === "blocked" ? "[!]" : status === "dropped" ? "[-]" : "[ ]") as KNode["task_marker"] } : {}),
     due_date: options?.due_date,
     due_time: options?.due_time,
     scheduled_date: options?.scheduled_date,
@@ -783,23 +787,23 @@ function Layer3Views(): React.ReactElement {
   const commonProps = treeNodeDIProps
 
   // Tasks with date badges
-  const overdueTask = mockNode("dated-1", "Overdue payment", "todo", "task", {
+  const overdueTask = mockNode("dated-1", "Overdue payment", "todo", "li", {
     priority: 1,
     due_date: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
   })
-  const dueTodayTask = mockNode("dated-2", "Submit report", "wip", "task", {
+  const dueTodayTask = mockNode("dated-2", "Submit report", "wip", "li", {
     priority: 2,
     due_date: new Date().toISOString().slice(0, 10),
     due_time: "17:00",
   })
-  const dueWeekTask = mockNode("dated-3", "Review design docs", "todo", "task", {
+  const dueWeekTask = mockNode("dated-3", "Review design docs", "todo", "li", {
     due_date: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
   })
-  const recurringTask = mockNode("dated-4", "Weekly standup", "todo", "task", {
+  const recurringTask = mockNode("dated-4", "Weekly standup", "todo", "li", {
     due_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
     recurrence: "weekly",
   })
-  const fullBadgeTask = mockNode("dated-5", "Launch feature", "wip", "task", {
+  const fullBadgeTask = mockNode("dated-5", "Launch feature", "wip", "li", {
     priority: 2,
     scheduled_date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
     due_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
@@ -872,7 +876,7 @@ function Layer3Views(): React.ReactElement {
 // Children are created with proper parent_id for getChildren() to work
 function mockCard(node: KNode, childDefs: Array<{ content: string; status?: string }> = []): CardState {
   const children = childDefs.map((def, i) =>
-    mockNode(`${node.id}-child-${i}`, def.content, def.status, "task", {
+    mockNode(`${node.id}-child-${i}`, def.content, def.status, "li", {
       parentId: node.id,
     }),
   )
@@ -882,7 +886,7 @@ function mockCard(node: KNode, childDefs: Array<{ content: string; status?: stri
 // Helper to create mock ColumnState
 function mockColumn(name: string, cards: CardState[]): ColumnState {
   return {
-    node: mockNode(`col-${name}`, name, undefined, "section"),
+    node: mockNode(`col-${name}`, name, undefined, "oi", { fstype: "mdsection" }),
     cards,
   }
 }
@@ -901,39 +905,39 @@ function createMockTUIBoardState(): TUIBoardState {
   // When we link to source-task, it shows "source-section" as the parent context
 
   // File level (grandparent - not shown in context)
-  mockNode("source-file-api", "projects/api.md", undefined, "file")
-  mockNode("source-file-design", "projects/design.md", undefined, "file")
-  mockNode("source-file-infra", "projects/infra.md", undefined, "file")
+  mockNode("source-file-api", "projects/api.md", undefined, "oi", { fstype: "mdfile" })
+  mockNode("source-file-design", "projects/design.md", undefined, "oi", { fstype: "mdfile" })
+  mockNode("source-file-infra", "projects/infra.md", undefined, "oi", { fstype: "mdfile" })
 
   // Section level (parent - THIS is shown in context as "{section name}")
-  mockNode("source-api", "API Integration Project", undefined, "section", {
+  mockNode("source-api", "API Integration Project", undefined, "oi", { fstype: "mdsection",
     parentId: "source-file-api",
   })
-  mockNode("source-design", "Design System Work", undefined, "section", {
+  mockNode("source-design", "Design System Work", undefined, "oi", { fstype: "mdsection",
     parentId: "source-file-design",
   })
-  mockNode("source-infra", "Infrastructure Tasks", undefined, "section", {
+  mockNode("source-infra", "Infrastructure Tasks", undefined, "oi", { fstype: "mdsection",
     parentId: "source-file-infra",
   })
 
   // Original tasks (these are what we link TO from the board)
   // The embedded tasks in the board will link to these, and show their parent (section) as context
-  mockNode("orig-api-endpoints", "Implement REST endpoints", "wip", "task", {
+  mockNode("orig-api-endpoints", "Implement REST endpoints", "wip", "li", {
     parentId: "source-api",
   })
-  mockNode("orig-design-buttons", "Create button components", "todo", "task", {
+  mockNode("orig-design-buttons", "Create button components", "todo", "li", {
     parentId: "source-design",
   })
-  mockNode("orig-infra-cicd", "Setup CI/CD pipeline", "done", "task", {
+  mockNode("orig-infra-cicd", "Setup CI/CD pipeline", "done", "li", {
     parentId: "source-infra",
   })
-  mockNode("orig-infra-db", "Database migrations", "wip", "task", {
+  mockNode("orig-infra-db", "Database migrations", "wip", "li", {
     parentId: "source-infra",
   })
-  mockNode("orig-infra-logging", "Configure logging", "done", "task", {
+  mockNode("orig-infra-logging", "Configure logging", "done", "li", {
     parentId: "source-infra",
   })
-  mockNode("orig-api-review", "Review PR #42", "todo", "task", {
+  mockNode("orig-api-review", "Review PR #42", "todo", "li", {
     parentId: "source-api",
   })
 
@@ -963,25 +967,25 @@ function createMockTUIBoardState(): TUIBoardState {
   const embeddedCards: CardState[] = [
     // Embedded task from API project - shows "API Integration Project"
     mockCard(
-      mockNode("emb1", "Implement REST endpoints", "wip", "task", {
+      mockNode("emb1", "Implement REST endpoints", "wip", "li", {
         linkTo: "orig-api-endpoints", // Links to original task, shows its parent section
       }),
     ),
     // Embedded task from Design System - shows "Design System Work"
     mockCard(
-      mockNode("emb2", "Create button components", "todo", "task", {
+      mockNode("emb2", "Create button components", "todo", "li", {
         linkTo: "orig-design-buttons",
       }),
     ),
     // Embedded task from Infrastructure - shows "Infrastructure Tasks"
     mockCard(
-      mockNode("emb3", "Setup CI/CD pipeline", "done", "task", {
+      mockNode("emb3", "Setup CI/CD pipeline", "done", "li", {
         linkTo: "orig-infra-cicd",
       }),
     ),
     // Embedded task with children AND parent context
     mockCard(
-      mockNode("emb4", "Database migrations", "wip", "task", {
+      mockNode("emb4", "Database migrations", "wip", "li", {
         linkTo: "orig-infra-db",
       }),
       [
@@ -991,7 +995,7 @@ function createMockTUIBoardState(): TUIBoardState {
     ),
     // Another embedded with alias
     mockCard(
-      mockNode("emb5", "Review PR #42", "todo", "task", {
+      mockNode("emb5", "Review PR #42", "todo", "li", {
         linkTo: "orig-api-review",
         linkAlias: "API Review",
       }),
@@ -1008,7 +1012,7 @@ function createMockTUIBoardState(): TUIBoardState {
     mockCard(mockNode("cmp3", "Old migration script", "dropped")),
     // Embedded + done = dimmed with parent context
     mockCard(
-      mockNode("cmp4", "Configure logging", "done", "task", {
+      mockNode("cmp4", "Configure logging", "done", "li", {
         linkTo: "orig-infra-logging",
       }),
     ),
@@ -1343,7 +1347,7 @@ function VisualLanguageSection(): React.ReactElement {
       <Text bold>Overdue task (red curly underline):</Text>
       <TreeNode
         {...commonProps}
-        node={mockNode("db-1", "Overdue payment", "todo", "task", {
+        node={mockNode("db-1", "Overdue payment", "todo", "li", {
           priority: 1,
           due_date: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
         })}
@@ -1354,7 +1358,7 @@ function VisualLanguageSection(): React.ReactElement {
       <Text bold>Due today (orange curly underline):</Text>
       <TreeNode
         {...commonProps}
-        node={mockNode("db-2", "Submit report", "wip", "task", {
+        node={mockNode("db-2", "Submit report", "wip", "li", {
           priority: 2,
           due_date: new Date().toISOString().slice(0, 10),
           due_time: "17:00",
@@ -1366,7 +1370,7 @@ function VisualLanguageSection(): React.ReactElement {
       <Text bold>Due this week (yellow single underline):</Text>
       <TreeNode
         {...commonProps}
-        node={mockNode("db-3", "Review design docs", "todo", "task", {
+        node={mockNode("db-3", "Review design docs", "todo", "li", {
           due_date: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
         })}
         isSelected={false}
@@ -1376,7 +1380,7 @@ function VisualLanguageSection(): React.ReactElement {
       <Text bold>Future date (no underline) + recurrence:</Text>
       <TreeNode
         {...commonProps}
-        node={mockNode("db-4", "Weekly standup", "todo", "task", {
+        node={mockNode("db-4", "Weekly standup", "todo", "li", {
           due_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
           recurrence: "weekly",
         })}
@@ -1387,7 +1391,7 @@ function VisualLanguageSection(): React.ReactElement {
       <Text bold>Scheduled + due + priority:</Text>
       <TreeNode
         {...commonProps}
-        node={mockNode("db-5", "Launch feature", "wip", "task", {
+        node={mockNode("db-5", "Launch feature", "wip", "li", {
           priority: 2,
           scheduled_date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
           due_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
@@ -1400,7 +1404,7 @@ function VisualLanguageSection(): React.ReactElement {
       <Text bold>P4 backlog item (dim priority):</Text>
       <TreeNode
         {...commonProps}
-        node={mockNode("db-6", "Nice to have feature", "todo", "task", {
+        node={mockNode("db-6", "Nice to have feature", "todo", "li", {
           priority: 4,
         })}
         isSelected={false}

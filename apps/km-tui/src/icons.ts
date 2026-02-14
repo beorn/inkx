@@ -109,15 +109,22 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
  * Note: code and quote blocks don't need icons - rich text rendering
  * handles their visual distinction (backticks for code, italics for quotes).
  */
-export function getTypeIcon(type: string): string {
+export function getTypeIcon(type: string, fstype?: string): string {
+  if (type === "oi") {
+    switch (fstype) {
+      case "folder":
+        return "\uD83D\uDCC1" // folder 📁
+      case "file":
+      case "mdfile":
+        return "\uD83D\uDCC4" // file 📄
+      case "mdsection":
+        return "#" // hash for section
+      default:
+        return "\u00B7" // middle dot · for other outline items
+    }
+  }
   switch (type) {
-    case "folder":
-      return "\uD83D\uDCC1" // folder 📁
-    case "file":
-      return "\uD83D\uDCC4" // file 📄
-    case "section":
-      return "#" // hash for section
-    case "paragraph":
+    case "p":
     case "code":
     case "quote":
       return "" // empty - rely on rich text rendering
@@ -141,28 +148,34 @@ export function getTypeIcon(type: string): string {
  * @returns StatusIcon with char and color, or null for tasks
  */
 export function getTypeBullet(
-  node: { type: string; task_status?: string | null },
+  node: { type: string; fstype?: string; task_status?: string | null; task_marker?: string },
   hasChildren: boolean,
 ): StatusIcon | null {
   // Tasks don't use a type bullet — their checkbox serves as the bullet
-  if (node.task_status != null) return null
+  if (node.task_status != null || node.task_marker !== undefined) return null
 
-  switch (node.type) {
-    case "folder":
-      return { char: "\uF114", color: "white" } //  folder-o (nerdfont)
-    case "file":
-      return { char: "\uF0F6", color: "white" } //  file-text-o (nerdfont)
-    case "section":
-      return { char: "\u00A7", color: "white" } // § section sign
-    case "ul":
-    case "ol":
-      // List containers with children get a bullet
-      if (hasChildren) return { char: "\u2022", color: "white" } // • bullet
-      return { char: "\u00B7", color: "gray" } // · middle dot
-    default:
-      // Leaf items: paragraphs, code, quote, task (non-task), etc.
-      return { char: "\u00B7", color: "gray" } // · middle dot
+  if (node.type === "oi") {
+    switch (node.fstype) {
+      case "folder":
+        return { char: "\uF114", color: "white" } //  folder-o (nerdfont)
+      case "file":
+      case "mdfile":
+        return { char: "\uF0F6", color: "white" } //  file-text-o (nerdfont)
+      case "mdsection":
+        return { char: "\u00A7", color: "white" } // § section sign
+      default:
+        return { char: "\u00B7", color: "gray" } // · middle dot
+    }
   }
+
+  if (node.type === "li") {
+    // List items with children get a bullet
+    if (hasChildren) return { char: "\u2022", color: "white" } // • bullet
+    return { char: "\u00B7", color: "gray" } // · middle dot
+  }
+
+  // Leaf items: p, code, quote, etc.
+  return { char: "\u00B7", color: "gray" } // · middle dot
 }
 
 // =============================================================================
@@ -201,7 +214,7 @@ export function getCircleBullet(hasChildren: boolean, isFolded = false): StatusI
  * @param ownColor - Optional color override from node rules
  */
 export function getColumnHeaderIcon(
-  node: { type: string; task_status?: string | null },
+  node: { type: string; fstype?: string; task_status?: string | null; task_marker?: string },
   iconStyle: string,
   isVirtual: boolean,
   ownColor?: string,

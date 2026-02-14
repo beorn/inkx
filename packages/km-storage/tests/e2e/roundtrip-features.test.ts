@@ -63,27 +63,27 @@ describe("E2E Round-Trip Features", () => {
           "# Tasks\n\n- [ ] Todo item\n- [x] Done item\n- [/] WIP item\n",
         )
 
-        const tasks = nodes.filter((n) => n.type === "task")
+        const tasks = nodes.filter((n) => n.task_status != null)
         expect(tasks).toHaveLength(3)
 
         const todo = tasks.find((t) => t.content?.includes("Todo"))
         expect(todo?.task_status).toBe("todo")
-        expect(todo?.task_mark).toBe(" ")
+        expect(todo?.task_marker).toBe("[ ]")
 
         const done = tasks.find((t) => t.content?.includes("Done"))
         expect(done?.task_status).toBe("done")
-        expect(done?.task_mark).toBe("x")
+        expect(done?.task_marker).toBe("[x]")
 
         const wip = tasks.find((t) => t.content?.includes("WIP"))
         expect(wip?.task_status).toBe("wip")
-        expect(wip?.task_mark).toBe("/")
+        expect(wip?.task_marker).toBe("[/]")
       }))
 
     test("due date survives round-trip", () =>
       withTestEnv(async ({ repoDir, data }) => {
         const { nodes } = await roundTrip(data.database, repoDir, "due.md", "# Due\n\n- [ ] Pay bills 📅 2025-03-15\n")
 
-        const task = nodes.find((n) => n.type === "task")
+        const task = nodes.find((n) => n.task_status != null)
         expect(task?.due_date).toBe("2025-03-15")
       }))
 
@@ -96,7 +96,7 @@ describe("E2E Round-Trip Features", () => {
           "# Scheduled\n\n- [ ] Meeting prep ⏳ 2025-03-10\n",
         )
 
-        const task = nodes.find((n) => n.type === "task")
+        const task = nodes.find((n) => n.task_status != null)
         expect(task?.scheduled_date).toBe("2025-03-10")
       }))
 
@@ -109,7 +109,7 @@ describe("E2E Round-Trip Features", () => {
           "# Priority\n\n- [ ] Urgent ⏫\n- [ ] High 🔼\n- [ ] Low 🔽\n",
         )
 
-        const tasks = nodes.filter((n) => n.type === "task")
+        const tasks = nodes.filter((n) => n.task_status != null)
         const urgent = tasks.find((t) => t.content?.includes("Urgent"))
         expect(urgent?.priority).toBe(1)
 
@@ -136,7 +136,7 @@ describe("E2E Round-Trip Features", () => {
         expect(fileContent).toContain("limit=5")
 
         // Section node should have rules in data
-        const section = nodes.find((n) => n.type === "section")
+        const section = nodes.find((n) => n.type === "oi" && n.fstype === "mdsection")
         expect(section?.title).toBe("Todo")
         expect(section?.data?.rules).toBeDefined()
       }))
@@ -157,7 +157,7 @@ describe("E2E Round-Trip Features", () => {
         expect(fileContent).toContain("tags:")
 
         // File node should have frontmatter data
-        const fileNode = nodes.find((n) => n.type === "file")
+        const fileNode = nodes.find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNode?.data?.tags).toContain("project")
         expect(fileNode?.data?.author).toBe("test")
       }))
@@ -177,7 +177,7 @@ describe("E2E Round-Trip Features", () => {
         expect(fileContent).toContain("### Subsection")
         expect(fileContent).toContain("## Section B")
 
-        const sections = nodes.filter((n) => n.type === "section")
+        const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
         expect(sections).toHaveLength(3) // H2, H3, H2
 
         const h3 = sections.find((n) => n.data?.depth === 3)
@@ -238,7 +238,7 @@ describe("E2E Round-Trip Features", () => {
           "# Order\n\n- [ ] First\n- [ ] Second\n- [ ] Third\n",
         )
 
-        const tasks = nodes.filter((n) => n.type === "task").sort((a, b) => a.parent_idx - b.parent_idx)
+        const tasks = nodes.filter((n) => n.task_status != null).sort((a, b) => a.parent_idx - b.parent_idx)
 
         expect(tasks[0]?.content).toContain("First")
         expect(tasks[1]?.content).toContain("Second")
@@ -257,15 +257,15 @@ describe("E2E Round-Trip Features", () => {
 
         // Find source tasks
         const allNodes = getAllNodes(data.database)
-        const sourceFile = allNodes.find((n) => n.type === "file" && n.fs_path?.includes("source"))!
-        const sourceTasks = allNodes.filter((n) => n.type === "task" && n.parent_id === sourceFile.id)
+        const sourceFile = allNodes.find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("source"))!
+        const sourceTasks = allNodes.filter((n) => n.task_status != null && n.parent_id === sourceFile.id)
         expect(sourceTasks).toHaveLength(2)
 
         // Step 2: Create target file, sync it
         writeFileSync(join(repoDir, "target.md"), "# Target\n")
         await manager.syncFromFs()
 
-        const targetFile = getAllNodes(data.database).find((n) => n.type === "file" && n.fs_path?.includes("target"))!
+        const targetFile = getAllNodes(data.database).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("target"))!
 
         // Step 3: Create embedding nodes programmatically (simulating `km add`)
         const taskAlpha = sourceTasks.find((t) => t.content?.includes("Alpha"))!
@@ -275,7 +275,7 @@ describe("E2E Round-Trip Features", () => {
           timestamp: Date.now(),
           data: {
             id: "embed-alpha",
-            type: "paragraph",
+            type: "p",
             parent_id: targetFile.id,
             parent_idx: 0,
             link_to: taskAlpha.id,
@@ -315,14 +315,14 @@ describe("E2E Round-Trip Features", () => {
         await manager.syncFromFs()
 
         const nodes = getAllNodes(data.database)
-        const srcFile = nodes.find((n) => n.type === "file" && n.fs_path?.includes("src"))!
-        const srcTask = nodes.find((n) => n.type === "task" && n.parent_id === srcFile.id)!
+        const srcFile = nodes.find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("src"))!
+        const srcTask = nodes.find((n) => n.task_status != null && n.parent_id === srcFile.id)!
 
         // Create target with embedding
         writeFileSync(join(repoDir, "tgt.md"), "# Target\n")
         await manager.syncFromFs()
 
-        const tgtFile = getAllNodes(data.database).find((n) => n.type === "file" && n.fs_path?.includes("tgt"))!
+        const tgtFile = getAllNodes(data.database).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("tgt"))!
 
         // Create embedding with alias
         applyEventWithDb(data.database, {
@@ -331,7 +331,7 @@ describe("E2E Round-Trip Features", () => {
           timestamp: Date.now(),
           data: {
             id: "embed-alias",
-            type: "paragraph",
+            type: "p",
             parent_id: tgtFile.id,
             parent_idx: 0,
             link_to: srcTask.id,
