@@ -199,7 +199,7 @@ export function refreshBoardState(
   // update the cursor position after mutations.
 
   // Query repo to calculate new cursor position
-  const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
+  const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
   const allChildren = ctx.repo.getChildren(ctx.rootId)
   const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
 

@@ -21,7 +21,7 @@ const log = createLogger("km:perf")
 // Non-Column Types (content blocks, not navigable columns)
 // =============================================================================
 
-const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
+const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
 
 // =============================================================================
 // Hook
@@ -156,15 +156,41 @@ function kNodeToColumnState(
   const cards: CardState[] = []
 
   if (structuralNodes.length > 0) {
-    // Body cards are virtual (borderless, de-emphasized)
+    // Merge body nodes into virtual cards, but keep embed links as individual cards
+    const mergeableBody: KNode[] = []
     for (const child of bodyNodes) {
-      const childChildren = repo.getChildren(child.id)
-      const isFolded = foldedNodes.has(child.id)
+      if (NON_COLUMN_TYPES.has(child.type) && !child.link_to) {
+        mergeableBody.push(child)
+      } else {
+        // Flush accumulated body nodes as one merged card
+        if (mergeableBody.length > 0) {
+          cards.push({
+            node: mergeableBody[0]!,
+            children: [],
+            childCount: 0,
+            isVirtual: true,
+            bodyNodes: [...mergeableBody],
+          })
+          mergeableBody.length = 0
+        }
+        // Non-body node (e.g., embed link, task) gets its own card
+        const childChildren = repo.getChildren(child.id)
+        const isFolded = foldedNodes.has(child.id)
+        cards.push({
+          node: child,
+          children: isFolded ? [] : childChildren,
+          childCount: childChildren.length,
+          isVirtual: true,
+        })
+      }
+    }
+    if (mergeableBody.length > 0) {
       cards.push({
-        node: child,
-        children: isFolded ? [] : childChildren,
-        childCount: childChildren.length,
+        node: mergeableBody[0]!,
+        children: [],
+        childCount: 0,
         isVirtual: true,
+        bodyNodes: [...mergeableBody],
       })
     }
     // Structural cards are regular
@@ -178,17 +204,43 @@ function kNodeToColumnState(
       })
     }
   } else {
-    // No structural children — mark body-type cards (paragraph, code, quote) as virtual,
+    // No structural children — merge consecutive body-type nodes into one card,
     // UNLESS they have a link_to (embed links are first-class navigable items).
+    const bodyTypeNodes: KNode[] = []
     for (const child of cardNodes) {
-      const childChildren = repo.getChildren(child.id)
-      const isFolded = foldedNodes.has(child.id)
       const isBodyType = NON_COLUMN_TYPES.has(child.type) && !child.link_to
+      if (isBodyType) {
+        bodyTypeNodes.push(child)
+      } else {
+        // Flush accumulated body nodes as one merged card
+        if (bodyTypeNodes.length > 0) {
+          cards.push({
+            node: bodyTypeNodes[0]!,
+            children: [],
+            childCount: 0,
+            isVirtual: true,
+            bodyNodes: [...bodyTypeNodes],
+          })
+          bodyTypeNodes.length = 0
+        }
+        // Regular card
+        const childChildren = repo.getChildren(child.id)
+        const isFolded = foldedNodes.has(child.id)
+        cards.push({
+          node: child,
+          children: isFolded ? [] : childChildren,
+          childCount: childChildren.length,
+        })
+      }
+    }
+    // Flush remaining body nodes
+    if (bodyTypeNodes.length > 0) {
       cards.push({
-        node: child,
-        children: isFolded ? [] : childChildren,
-        childCount: childChildren.length,
-        ...(isBodyType ? { isVirtual: true } : {}),
+        node: bodyTypeNodes[0]!,
+        children: [],
+        childCount: 0,
+        isVirtual: true,
+        bodyNodes: [...bodyTypeNodes],
       })
     }
   }

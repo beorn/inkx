@@ -68,7 +68,7 @@ function calculateSortOrder(col: { cards: CardState[] }, targetIndex: number, di
  */
 function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCardIds: string[]): void {
   const newSelected = new Set<SelectionKey>()
-  const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote"])
+  const NON_COLUMN_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
   const allChildren = ctx.repo.getChildren(ctx.rootId)
   const columns = allChildren.filter((n) => !NON_COLUMN_TYPES.has(n.type))
   const newCol = columns[colIndex]

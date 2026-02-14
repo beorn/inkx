@@ -19,7 +19,7 @@ import {
 } from "@km/tree"
 
 /** Body content types that render as virtual (borderless, de-emphasized) cards */
-const BODY_TYPES = new Set(["paragraph", "code", "quote"])
+const BODY_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
 
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
 
@@ -153,14 +153,9 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
   const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
   if (meaningfulBody.length > 0) {
-    const bodyCards: CardState[] = meaningfulBody.map((node) => ({
-      node,
-      children: [],
-      childCount: 0,
-    }))
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: bodyCards,
+      cards: [{ node: meaningfulBody[0]!, children: [], childCount: 0, isVirtual: true, bodyNodes: meaningfulBody }],
       isVirtual: true,
     })
   }
@@ -177,15 +172,38 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
 
     const cards: CardState[] = []
 
-    // If there are structural children, body content becomes virtual body cards
     if (structuralCards.length > 0) {
-      // Add body cards first (virtual, displayed differently)
+      // Merge body nodes, but keep embed links as individual cards
+      const mergeableBody: KNode[] = []
       for (const bodyNode of colBodyNodes) {
+        if (BODY_TYPES.has(bodyNode.type) && !bodyNode.link_to) {
+          mergeableBody.push(bodyNode)
+        } else {
+          if (mergeableBody.length > 0) {
+            cards.push({
+              node: mergeableBody[0]!,
+              children: [],
+              childCount: 0,
+              isVirtual: true,
+              bodyNodes: [...mergeableBody],
+            })
+            mergeableBody.length = 0
+          }
+          cards.push({
+            node: bodyNode,
+            children: [],
+            childCount: childCounts.get(bodyNode.id) ?? 0,
+            isVirtual: true,
+          })
+        }
+      }
+      if (mergeableBody.length > 0) {
         cards.push({
-          node: bodyNode,
+          node: mergeableBody[0]!,
           children: [],
-          childCount: childCounts.get(bodyNode.id) ?? 0,
+          childCount: 0,
           isVirtual: true,
+          bodyNodes: [...mergeableBody],
         })
       }
       // Then add structural cards
@@ -197,15 +215,38 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
         })
       }
     } else {
-      // No structural children — mark body-type cards (paragraph, code, quote) as virtual,
+      // No structural children — merge consecutive body-type nodes into one card,
       // UNLESS they have a link_to (embed links are first-class navigable items).
+      const bodyTypeNodes: KNode[] = []
       for (const cardNode of cardNodes) {
         const isBodyType = BODY_TYPES.has(cardNode.type) && !cardNode.link_to
+        if (isBodyType) {
+          bodyTypeNodes.push(cardNode)
+        } else {
+          if (bodyTypeNodes.length > 0) {
+            cards.push({
+              node: bodyTypeNodes[0]!,
+              children: [],
+              childCount: 0,
+              isVirtual: true,
+              bodyNodes: [...bodyTypeNodes],
+            })
+            bodyTypeNodes.length = 0
+          }
+          cards.push({
+            node: cardNode,
+            children: [],
+            childCount: childCounts.get(cardNode.id) ?? 0,
+          })
+        }
+      }
+      if (bodyTypeNodes.length > 0) {
         cards.push({
-          node: cardNode,
+          node: bodyTypeNodes[0]!,
           children: [],
-          childCount: childCounts.get(cardNode.id) ?? 0,
-          ...(isBodyType ? { isVirtual: true } : {}),
+          childCount: 0,
+          isVirtual: true,
+          bodyNodes: [...bodyTypeNodes],
         })
       }
     }
@@ -389,14 +430,9 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
   // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
   const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
   if (meaningfulBody.length > 0) {
-    const bodyCards: CardState[] = meaningfulBody.map((node) => ({
-      node,
-      children: [],
-      childCount: 0,
-    }))
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: bodyCards,
+      cards: [{ node: meaningfulBody[0]!, children: [], childCount: 0, isVirtual: true, bodyNodes: meaningfulBody }],
       isVirtual: true,
     })
   }
@@ -414,13 +450,37 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
     const cards: CardState[] = []
 
     if (structuralCards.length > 0) {
-      // Add body cards first (virtual, displayed differently)
+      // Merge body nodes, but keep embed links as individual cards
+      const mergeableBody: KNode[] = []
       for (const bodyNode of colBodyNodes) {
+        if (BODY_TYPES.has(bodyNode.type) && !bodyNode.link_to) {
+          mergeableBody.push(bodyNode)
+        } else {
+          if (mergeableBody.length > 0) {
+            cards.push({
+              node: mergeableBody[0]!,
+              children: [],
+              childCount: 0,
+              isVirtual: true,
+              bodyNodes: [...mergeableBody],
+            })
+            mergeableBody.length = 0
+          }
+          cards.push({
+            node: bodyNode,
+            children: [],
+            childCount: childCounts.get(bodyNode.id) ?? 0,
+            isVirtual: true,
+          })
+        }
+      }
+      if (mergeableBody.length > 0) {
         cards.push({
-          node: bodyNode,
+          node: mergeableBody[0]!,
           children: [],
-          childCount: childCounts.get(bodyNode.id) ?? 0,
+          childCount: 0,
           isVirtual: true,
+          bodyNodes: [...mergeableBody],
         })
       }
       // Then add structural cards
@@ -432,15 +492,38 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
         })
       }
     } else {
-      // No structural children — mark body-type cards (paragraph, code, quote) as virtual,
+      // No structural children — merge consecutive body-type nodes into one card,
       // UNLESS they have a link_to (embed links are first-class navigable items).
+      const bodyTypeNodes: KNode[] = []
       for (const cardNode of cardNodes) {
         const isBodyType = BODY_TYPES.has(cardNode.type) && !cardNode.link_to
+        if (isBodyType) {
+          bodyTypeNodes.push(cardNode)
+        } else {
+          if (bodyTypeNodes.length > 0) {
+            cards.push({
+              node: bodyTypeNodes[0]!,
+              children: [],
+              childCount: 0,
+              isVirtual: true,
+              bodyNodes: [...bodyTypeNodes],
+            })
+            bodyTypeNodes.length = 0
+          }
+          cards.push({
+            node: cardNode,
+            children: [],
+            childCount: childCounts.get(cardNode.id) ?? 0,
+          })
+        }
+      }
+      if (bodyTypeNodes.length > 0) {
         cards.push({
-          node: cardNode,
+          node: bodyTypeNodes[0]!,
           children: [],
-          childCount: childCounts.get(cardNode.id) ?? 0,
-          ...(isBodyType ? { isVirtual: true } : {}),
+          childCount: 0,
+          isVirtual: true,
+          bodyNodes: [...bodyTypeNodes],
         })
       }
     }

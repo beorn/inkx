@@ -12,7 +12,7 @@ import { clearSelection, pushNavHistoryEntry } from "../keyboard/keyboard-helper
 import type { ActionCtx } from "../tui-context.ts"
 
 /** Body-type nodes that become virtual (non-navigable) cards */
-const BODY_TYPES = new Set(["paragraph", "code", "quote"])
+const BODY_TYPES = new Set(["paragraph", "code", "quote", "ol", "ul"])
 
 /**
  * After zoom, children become columns. Place cursor on the first navigable card

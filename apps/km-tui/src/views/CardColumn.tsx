@@ -145,6 +145,45 @@ const Card = React.memo(
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
     const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId, 0)))
 
+    // Merged body card — multiple body nodes stacked in one card
+    if (card.bodyNodes && card.bodyNodes.length > 0) {
+      return (
+        <Box
+          flexDirection="column"
+          flexShrink={0}
+          width={width}
+          borderStyle="round"
+          borderColor={isSelected ? "yellow" : "black"}
+        >
+          <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
+          {card.bodyNodes.map((bodyNode, i) => {
+            const isListItem = bodyNode.type === "ol" || bodyNode.type === "ul"
+            const prevIsListItem =
+              i > 0 && (card.bodyNodes![i - 1]!.type === "ol" || card.bodyNodes![i - 1]!.type === "ul")
+            // Add vertical space between blocks, but not between consecutive list items
+            const needsSpacer = i > 0 && !isListItem && !prevIsListItem
+            return (
+              <React.Fragment key={bodyNode.id}>
+                {needsSpacer && <Box height={1} />}
+                <TreeNode
+                  node={bodyNode}
+                  depth={0}
+                  isSelected={isSelected}
+                  colIndex={colIndex}
+                  cardIndex={cardIndex}
+                  subIndex={0}
+                  dim={!isSelected}
+                  dimInactiveChildren={true}
+                  childCount={0}
+                  extraExcludedSigils={extraExcludedSigils}
+                />
+              </React.Fragment>
+            )
+          })}
+        </Box>
+      )
+    }
+
     // Virtual body content renders with a very dim border and de-emphasized text
     // This includes: cards in virtual columns OR individual virtual body cards
     if (isVirtualColumn || card.isVirtual) {
@@ -210,6 +249,7 @@ const Card = React.memo(
       prev.card.node.task_status === next.card.node.task_status &&
       prev.card.childCount === next.card.childCount &&
       prev.card.children?.length === next.card.children?.length &&
+      prev.card.bodyNodes?.length === next.card.bodyNodes?.length &&
       prev.selectedSubIndex === next.selectedSubIndex &&
       prev.width === next.width &&
       prev.colIndex === next.colIndex &&
