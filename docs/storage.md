@@ -327,6 +327,8 @@ type NodeType =
   | "embed" // Embedded reference (![[target]]) linking to another node
 ````
 
+> **Planned: km-ast** — 14 types → 10 types in 3 categories. folder/file/section → `oi` + `fstype`. ul/ol/task → `li` + `list_marker` + `task_marker`. embed → `link` type. paragraph → `p`. New: `h` (heading block). agent/board removed. See [design/km-ast/model.md](design/km-ast/model.md).
+
 ### Task Status
 
 ```typescript
