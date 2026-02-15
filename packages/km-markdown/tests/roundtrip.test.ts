@@ -200,6 +200,36 @@ describe("Round-trip: Tables", () => {
     expect(output).toContain("1")
     expect(output).toContain("2")
   })
+
+  test("should preserve table cell delimiters, not concatenate text", () => {
+    const input = `| Key | Value |
+|---|---|
+| Location | 670 Hamilton Ave |
+| Phone | 555-1234 |`
+
+    const output = roundtrip(input)
+    // Must NOT produce concatenated "KeyValueLocation670 Hamilton Ave..."
+    expect(output).not.toContain("KeyValue")
+    expect(output).not.toContain("LocationPhone")
+    // Must preserve pipe delimiters
+    expect(output).toContain("|")
+    expect(output).toContain("Key")
+    expect(output).toContain("Value")
+    expect(output).toContain("670 Hamilton Ave")
+  })
+
+  test("table content stored as markdown table format", () => {
+    const input = `| Name | Age |
+|---|---|
+| Alice | 30 |`
+
+    const nodes = parse(input)
+    const tableNode = nodes.find((n) => n.type === "table")
+    expect(tableNode).toBeDefined()
+    // Content should have pipe delimiters, not concatenated text
+    expect(tableNode!.content).toContain("|")
+    expect(tableNode!.content).not.toBe("NameAgeAlice30")
+  })
 })
 
 describe("Round-trip: Sections with Content", () => {

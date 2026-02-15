@@ -33,6 +33,7 @@ import {
   extractFrontmatter,
   extractTaskMark,
   nodeToText,
+  tableToMarkdown,
   listItemToText,
   slugify,
   parseTaskMetadata,
@@ -443,7 +444,7 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNo
 
     case "table":
       type = "table"
-      content = nodeToText(block)
+      content = tableToMarkdown(block)
       break
 
     case "html":

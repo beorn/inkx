@@ -403,6 +403,32 @@ export function parseHeadingRules(text: string): ParsedHeading {
 }
 
 /**
+ * Convert mdast table node to markdown table string.
+ * Preserves pipe-delimited structure: | col1 | col2 |
+ */
+export function tableToMarkdown(node: RootContent): string {
+  if (node.type !== "table" || !("children" in node)) return nodeToText(node)
+
+  const rows = (node as { children: RootContent[] }).children
+  const lines: string[] = []
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i] as { children?: RootContent[] }
+    if (!row?.children) continue
+
+    const cells = row.children.map((cell) => nodeToText(cell as RootContent))
+    lines.push("| " + cells.join(" | ") + " |")
+
+    // Add separator after header row
+    if (i === 0) {
+      lines.push("|" + cells.map(() => "---|").join(""))
+    }
+  }
+
+  return lines.join("\n")
+}
+
+/**
  * Convert mdast node to plain text
  */
 export function nodeToText(node: RootContent | Root): string {
