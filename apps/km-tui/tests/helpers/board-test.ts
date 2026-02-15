@@ -89,6 +89,53 @@ import {
 } from "../fixtures/board-fixtures.ts"
 
 // =============================================================================
+// Cursor Initialization Helper
+// =============================================================================
+
+/**
+ * Compute initial cursor placement for a board state.
+ * Skips collapsed columns to avoid placing cursor on invisible cards.
+ */
+function computeInitialCursor(initialState: TUIBoardState) {
+  let cursorNodeId: string | null = null
+  let colIndex = 0
+  let cardIndex = -1
+
+  if (initialState.columns.length > 0) {
+    // Find first non-collapsed column
+    for (let i = 0; i < initialState.columns.length; i++) {
+      const col = initialState.columns[i]
+      if (!col) continue
+      if (initialState.collapsedNodeIds.has(col.node.id)) continue
+      colIndex = i
+      if (col.cards.length > 0) {
+        cursorNodeId = col.cards[0]?.node.id ?? col.node.id
+        cardIndex = 0
+      } else {
+        cursorNodeId = col.node.id
+        cardIndex = -1
+      }
+      break
+    }
+    // If all columns collapsed, use first column header
+    if (cursorNodeId === null && initialState.columns.length > 0) {
+      const firstCol = initialState.columns[0]!
+      cursorNodeId = firstCol.node.id
+      colIndex = 0
+      cardIndex = -1
+    }
+  }
+
+  const selectedCol = initialState.columns[colIndex]
+  const isCollapsed = selectedCol ? initialState.collapsedNodeIds.has(selectedCol.node.id) : false
+  const selectedCard = selectedCol && !isCollapsed ? selectedCol.cards[0] : undefined
+  const selectionLevel: "board" | "column" | "card" =
+    cursorNodeId === null ? "board" : selectedCard ? "card" : "column"
+
+  return { cursorNodeId, colIndex, cardIndex: selectedCard ? 0 : cardIndex, selectedCard, selectedCol, selectionLevel }
+}
+
+// =============================================================================
 // Tree Fixture Builder (decker-inspired)
 // =============================================================================
 
@@ -324,34 +371,18 @@ export function testEnv(
   const registry = createLayoutRegistry()
   const toastQueue = createToastQueue()
 
-  // Compute initial cursor
-  let initialCursorNodeId: string | null = null
-  if (initialState.columns.length > 0) {
-    const firstCol = initialState.columns[0]
-    if (firstCol && firstCol.cards.length > 0) {
-      initialCursorNodeId = firstCol.cards[0]?.node.id ?? firstCol.node.id
-    } else if (firstCol) {
-      initialCursorNodeId = firstCol.node.id
-    }
-  }
+  const { cursorNodeId: initialCursorNodeId, colIndex: initialColIndex, selectedCard, selectedCol, selectionLevel: initialSelectionLevel } = computeInitialCursor(initialState)
 
   const initialLayout = {
     columns: initialState.columns,
-    colIndex: 0,
-    cardIndex: 0,
+    colIndex: initialColIndex,
+    cardIndex: selectedCard ? 0 : -1,
     subPath: [] as string[],
-    isAtCardLevel:
-      initialCursorNodeId !== null &&
-      initialState.columns.length > 0 &&
-      (initialState.columns[0]?.cards.length ?? 0) > 0,
+    isAtCardLevel: selectedCard != null,
     isInOutlineMode: false,
   }
 
-  const selectedCol = initialState.columns[0]
-  const selectedCard = selectedCol?.cards[0]
   const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-  const initialSelectionLevel: "board" | "column" | "card" =
-    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
@@ -359,8 +390,8 @@ export function testEnv(
     layoutRegistry: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
-      colIndex: 0,
-      cardIndex: 0,
+      colIndex: initialColIndex,
+      cardIndex: selectedCard ? 0 : -1,
       selectionLevel: initialSelectionLevel,
     }),
     initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
@@ -523,34 +554,18 @@ export function testEnvWithRepo(
   const registry = createLayoutRegistry()
   const toastQueue = createToastQueue()
 
-  // Compute initial cursor
-  let initialCursorNodeId: string | null = null
-  if (initialState.columns.length > 0) {
-    const firstCol = initialState.columns[0]
-    if (firstCol && firstCol.cards.length > 0) {
-      initialCursorNodeId = firstCol.cards[0]?.node.id ?? firstCol.node.id
-    } else if (firstCol) {
-      initialCursorNodeId = firstCol.node.id
-    }
-  }
+  const { cursorNodeId: initialCursorNodeId, colIndex: initialColIndex, selectedCard, selectedCol, selectionLevel: initialSelectionLevel } = computeInitialCursor(initialState)
 
   const initialLayout = {
     columns: initialState.columns,
-    colIndex: 0,
-    cardIndex: 0,
+    colIndex: initialColIndex,
+    cardIndex: selectedCard ? 0 : -1,
     subPath: [] as string[],
-    isAtCardLevel:
-      initialCursorNodeId !== null &&
-      initialState.columns.length > 0 &&
-      (initialState.columns[0]?.cards.length ?? 0) > 0,
+    isAtCardLevel: selectedCard != null,
     isInOutlineMode: false,
   }
 
-  const selectedCol = initialState.columns[0]
-  const selectedCard = selectedCol?.cards[0]
   const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-  const initialSelectionLevel: "board" | "column" | "card" =
-    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
@@ -558,8 +573,8 @@ export function testEnvWithRepo(
     layoutRegistry: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
-      colIndex: 0,
-      cardIndex: 0,
+      colIndex: initialColIndex,
+      cardIndex: selectedCard ? 0 : -1,
       selectionLevel: initialSelectionLevel,
     }),
     initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
@@ -1317,34 +1332,18 @@ export function renderBoardWithStore(
 
   ensureCommandSystemInitialized()
 
-  // Compute initial cursor
-  let initialCursorNodeId: string | null = null
-  if (initialState.columns.length > 0) {
-    const firstCol = initialState.columns[0]
-    if (firstCol && firstCol.cards.length > 0) {
-      initialCursorNodeId = firstCol.cards[0]?.node.id ?? firstCol.node.id
-    } else if (firstCol) {
-      initialCursorNodeId = firstCol.node.id
-    }
-  }
+  const { cursorNodeId: initialCursorNodeId, colIndex: initialColIndex, selectedCard, selectedCol, selectionLevel: initialSelectionLevel } = computeInitialCursor(initialState)
 
   const initialLayout = {
     columns: initialState.columns,
-    colIndex: 0,
-    cardIndex: 0,
+    colIndex: initialColIndex,
+    cardIndex: selectedCard ? 0 : -1,
     subPath: [] as string[],
-    isAtCardLevel:
-      initialCursorNodeId !== null &&
-      initialState.columns.length > 0 &&
-      (initialState.columns[0]?.cards.length ?? 0) > 0,
+    isAtCardLevel: selectedCard != null,
     isInOutlineMode: false,
   }
 
-  const selectedCol = initialState.columns[0]
-  const selectedCard = selectedCol?.cards[0]
   const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-  const initialSelectionLevel: "board" | "column" | "card" =
-    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
@@ -1352,8 +1351,8 @@ export function renderBoardWithStore(
     layoutRegistry: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
-      colIndex: 0,
-      cardIndex: 0,
+      colIndex: initialColIndex,
+      cardIndex: selectedCard ? 0 : -1,
       selectionLevel: initialSelectionLevel,
     }),
     initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),

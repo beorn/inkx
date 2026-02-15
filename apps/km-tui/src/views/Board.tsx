@@ -289,7 +289,7 @@ export function BoardCore({
                       const COLLAPSED_WIDTH = 3
                       // Count collapsed among visible columns
                       const collapsedCount = effectiveVisibleColumns.filter(
-                        (col) => col.rules?.collapse || collapsedNodes.has(col.node.id),
+                        (col) => collapsedNodes.has(col.node.id),
                       ).length
                       const expandedCount = effectiveVisibleColumns.length - collapsedCount
 
@@ -315,7 +315,7 @@ export function BoardCore({
                           {effectiveVisibleColumns.map((col, i) => {
                             const actualColIndex = effectiveScrollOffset + i
                             const isLastCol = i === effectiveVisibleColumns.length - 1
-                            const isColCollapsed = col.rules?.collapse ? true : collapsedNodes.has(col.node.id)
+                            const isColCollapsed = collapsedNodes.has(col.node.id)
                             const adjustedColWidth = isColCollapsed
                               ? COLLAPSED_WIDTH
                               : getColumnWidth(expandedIdx++, widths.baseColWidth, widths.remainder)
