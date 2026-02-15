@@ -114,6 +114,8 @@ function navigateVertical(
     }
 
     if (isAtColumnLevel) {
+      // Collapsed column → can't go down into cards (they're not rendered)
+      if (state.collapsedNodes.has(cursorNodeId)) return null
       // Column header → first card in column
       const cards = repo.getChildren(cursorNodeId)
       return cards[0]?.id ?? null
@@ -193,6 +195,13 @@ function navigateHorizontal(
   const targetCol = columns[targetColIdx]
   if (!targetCol) {
     throw new Error(`[nav] column at index ${targetColIdx} missing after bounds check`)
+  }
+
+  // Collapsed target column → always land on column header.
+  // Cards exist in repo but aren't rendered, so stickyY-based card matching would
+  // select an invisible card, leaving the column visually unselected.
+  if (state.collapsedNodes.has(targetCol.id)) {
+    return targetCol.id
   }
 
   // Get cards in target column

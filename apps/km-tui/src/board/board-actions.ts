@@ -281,13 +281,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // Collapse the column (not the card) — use column node ID
       const collapseNodeId = col?.node.id
       if (!collapseNodeId) return boundary("collapse", "No column to collapse")
+      const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
       // Persist collapsed state to node.data so it survives across sessions
       const colNode = ctx.repo.getNode(collapseNodeId)
       if (colNode) {
-        const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
-        const newCollapsed = !wasCollapsed
         const existingData = (colNode.data ?? {}) as Record<string, unknown>
-        if (newCollapsed) {
+        if (!wasCollapsed) {
           ctx.repo.updateNode(collapseNodeId, { data: { ...existingData, collapsed: true } })
         } else {
           // Remove the collapsed key to keep data clean
@@ -296,6 +295,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         }
       }
       ctx.dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: collapseNodeId })
+      // When collapsing, move cursor to column header so it's on a visible element.
+      // Without this, the cursor stays on an invisible card inside the collapsed column,
+      // causing the column to not show as selected and j/k to behave unexpectedly.
+      if (!wasCollapsed && ctx.cursorNodeId !== collapseNodeId) {
+        ctx.dispatchBoard({ type: "SELECT", nodeId: collapseNodeId })
+      }
       return ok()
     }
     case "NAV_BACK":

@@ -156,29 +156,21 @@ const Card = React.memo(
           borderColor={isSelected ? "yellow" : "black"}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
-          {card.bodyNodes.map((bodyNode, i) => {
-            const isLi = bodyNode.type === "li"
-            const prevIsLi = i > 0 && card.bodyNodes![i - 1]!.type === "li"
-            // Add vertical space between blocks, but not between consecutive list items
-            const needsSpacer = i > 0 && !isLi && !prevIsLi
-            return (
-              <React.Fragment key={bodyNode.id}>
-                {needsSpacer && <Box height={1} />}
-                <TreeNode
-                  node={bodyNode}
-                  depth={0}
-                  isSelected={isSelected}
-                  colIndex={colIndex}
-                  cardIndex={cardIndex}
-                  subIndex={0}
-                  dim={!isSelected}
-                  dimInactiveChildren={true}
-                  childCount={0}
-                  extraExcludedSigils={extraExcludedSigils}
-                />
-              </React.Fragment>
-            )
-          })}
+          {card.bodyNodes.map((bodyNode) => (
+            <TreeNode
+              key={bodyNode.id}
+              node={bodyNode}
+              depth={0}
+              isSelected={isSelected}
+              colIndex={colIndex}
+              cardIndex={cardIndex}
+              subIndex={0}
+              dim={!isSelected}
+              dimInactiveChildren={true}
+              childCount={0}
+              extraExcludedSigils={extraExcludedSigils}
+            />
+          ))}
         </Box>
       )
     }
@@ -473,10 +465,9 @@ export const Column = React.memo(function Column({
       height={height}
       overflow="hidden"
     >
-      {/* Column header row */}
+      {/* Column header row — paddingLeft aligns icon with card content (cards have 1-char border) */}
       <Box height={1} flexShrink={0} width={width - 1} flexDirection="row">
-        <Box width={1} flexShrink={0} />
-        <Box flexGrow={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
+        <Box flexGrow={1} flexDirection="row" paddingLeft={1} paddingRight={1} backgroundColor={headerStyle.backgroundColor}>
           {isInlineEditing ? (
             <Text bold color={headerStyle.color} wrap="truncate">
               <Text color={iconColor}>{icon.char}</Text>{" "}
@@ -535,9 +526,8 @@ export const Column = React.memo(function Column({
 
       {/* Separator line between header and cards */}
       <Box height={1} flexShrink={0} width={width - 1}>
-        <Box width={1} flexShrink={0} />
         <Text color={isColumnSelected ? "yellow" : undefined} dimColor={!isColumnSelected}>
-          {"\u2500".repeat(Math.max(0, width - 3))}
+          {"\u2500".repeat(Math.max(0, width - 1))}
         </Text>
       </Box>
 

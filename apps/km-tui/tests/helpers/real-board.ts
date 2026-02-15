@@ -43,6 +43,7 @@ import {
 } from "../../src/board-app-store.ts"
 import { createInitialUIState } from "../../src/ui-reducer.ts"
 import { handleKey } from "../../src/board-app.ts"
+import { createCursorStore } from "../../src/cursor-store.ts"
 
 export interface TestBoardOptions {
   /** Terminal columns (default: 80) */
@@ -150,6 +151,12 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     repo,
     toastQueue,
     layoutRegistry: registry,
+    cursorStore: createCursorStore({
+      cursorNodeId: initialCursorNodeId,
+      colIndex: 0,
+      cardIndex: 0,
+      selectionLevel: initialSelectionLevel,
+    }),
     initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
     initialUIState: createInitialUIState(
       viewMode,
@@ -191,6 +198,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
       handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
+      store.setState((s) => s)
     })
     void originalPress(key)
   }

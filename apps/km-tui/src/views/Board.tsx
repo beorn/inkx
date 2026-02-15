@@ -272,6 +272,7 @@ export function BoardCore({
       >
         {/* Top bar — subscribes to cursor position independently */}
         <BoardTopBar state={state} termWidth={termWidth} />
+        <Box height={1} flexShrink={0} />
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Cards, Columns, or List view */}
           {ui.viewMode === "cards" ? (
@@ -292,8 +293,15 @@ export function BoardCore({
                       ).length
                       const expandedCount = effectiveVisibleColumns.length - collapsedCount
 
+                      // Separators rendered: effectiveVisibleColumns.length - 1
+                      // Separators accounted for by calcColumnWidths: expandedCount - 1
+                      // Unaccounted separators (between collapsed/expanded pairs): collapsedCount
+                      const totalSeparators = effectiveVisibleColumns.length - 1
+                      const expandedSeparators = Math.max(0, expandedCount - 1)
+                      const extraSeparators = totalSeparators - expandedSeparators
+
                       const widths = calcColumnWidths({
-                        boardWidth: boardWidth - collapsedCount * COLLAPSED_WIDTH,
+                        boardWidth: boardWidth - collapsedCount * COLLAPSED_WIDTH - extraSeparators,
                         visibleColumnCount: expandedCount,
                         maxCols: Math.max(1, effectiveMaxCols - collapsedCount),
                         scrollOffset: effectiveScrollOffset,
