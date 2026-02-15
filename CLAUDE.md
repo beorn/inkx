@@ -2,6 +2,25 @@
 
 TypeScript, Bun, Ink (React TUI), SQLite. Bidirectional sync: TUI ↔ Model ↔ Markdown files.
 
+## Priorities
+
+Correctness > maintainability > simplicity > performance. Write the minimal correct change. Test before fix. Don't guess — reproduce first. When uncertain, ask.
+
+## Boundaries
+
+**Always**: write a failing test before fixing a bug; run `bun fix` and `bun run test:fast` before closing work; claim a bead before coding; search history (`bun recall`) before theorizing.
+
+**Ask first**: destructive operations (deleting files, dropping data); architectural changes touching 3+ packages; anything that changes public API surface; closing someone else's bead.
+
+**Never**: commit secrets/credentials; use `git stash`, `git reset --hard`, `git checkout .`, `git restore`, `git clean -f`; use bare `bun test`; work around vendor bugs (fix them directly); skip tests; close a bead without evidence.
+
+## When Stuck
+
+1. `bun recall "keywords"` — prior sessions may have already diagnosed the problem
+2. `/discuss` — pause implementation, checkpoint context, discuss alternatives
+3. `/fresh` — deep research via external LLM for a second opinion
+4. Ask the user — if none of the above helps, describe what you've tried
+
 ## Commands
 
 ```bash
@@ -69,6 +88,10 @@ Use `/git commit`. Follow [Conventional Commits](https://conventionalcommits.org
 
 Before ending: `bun fix && bun run test:all && git push`. Propose next steps with AskUserQuestion.
 Sub-agents skip this — only the top-level session runs verification.
+
+## Maintaining These Docs
+
+If you discover a skill doc is outdated (command changed, convention shifted, file moved), update it. These docs are living — they should reflect actual practice, not aspirational intent.
 
 ## Skills (load when needed)
 
