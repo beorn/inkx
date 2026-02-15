@@ -160,9 +160,8 @@ describe("State", () => {
     const state = buildBoardState(repo, "readme.md")
     expect(state.columns).toHaveLength(2)
     expect(state.columns[0]!.isVirtual).toBe(true)
-    // Body content (code + quote) merged into one virtual card
-    expect(state.columns[0]!.cards).toHaveLength(1)
-    expect(state.columns[0]!.cards[0]!.bodyNodes).toHaveLength(2)
+    // Each body node is its own navigable card
+    expect(state.columns[0]!.cards).toHaveLength(2)
     expect(state.columns[1]!.node.id).toBe("Getting Started")
   })
 })

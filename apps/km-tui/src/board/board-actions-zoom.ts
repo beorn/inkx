@@ -6,24 +6,21 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
-import { isBlock, type KNode } from "@km/core"
+import type { KNode } from "@km/core"
 import { handleCursorMove } from "./board-actions-nav.ts"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
 /**
- * After zoom, children become columns. Place cursor on the first navigable card
- * (first non-virtual grandchild) so j/k navigation works immediately.
- * Skips body-type nodes (paragraph, code, quote) since they're virtual.
- * Falls back to column header if no navigable cards exist.
+ * After zoom, children become columns. Place cursor on the first card
+ * in the first column. Body cards are navigable (isVirtual is styling-only).
+ * Falls back to column header if the column is empty.
  */
 function firstCardId(children: { id: string }[], repo: ActionCtx["repo"]): string | null {
   const firstCol = children[0]
   if (!firstCol) return null
   const colChildren = repo.getChildren(firstCol.id)
-  // Skip body-type virtual cards (paragraph, code, quote without link_to)
-  const firstCard = colChildren.find((c) => !isBlock(c.type) || c.link_to)
-  return firstCard?.id ?? firstCol.id
+  return colChildren[0]?.id ?? firstCol.id
 }
 
 /**
@@ -87,7 +84,7 @@ export function handleZoomIn(ctx: ActionCtx): ActionResult {
   const nodeId = card?.node.id ?? col?.node.id
   if (!nodeId) return precondition("card")
 
-  // If node has no children, return boundary (nothing to zoom into)
+  // If node has no children, return boundary.
   const children = ctx.repo.getChildren(nodeId)
   if (children.length === 0) {
     return boundary("in", "no children")
@@ -112,7 +109,7 @@ export function handleZoomIn(ctx: ActionCtx): ActionResult {
 export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
   const { dispatchBoard } = ctx
 
-  // Verify node has children
+  // If node has no children, return boundary.
   const children = ctx.repo.getChildren(nodeId)
   if (children.length === 0) {
     return boundary("in", "no children")
@@ -258,7 +255,6 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
   }
 
   // target is now the child of root on the path to cursor.
-  // Verify it has children (required for zoom).
   const children = ctx.repo.getChildren(target)
   if (children.length === 0) {
     return boundary("in", "no children")

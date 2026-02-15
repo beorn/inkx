@@ -10,7 +10,6 @@
 import { useMemo, useRef, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
-import { isBlock } from "@km/core"
 import { extractBody } from "@km/tree"
 import type { ColumnState, CardState, ColumnRules } from "../types.ts"
 import { parseColumnRules } from "../state.ts"
@@ -115,7 +114,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
   if (meaningfulBody.length > 0) {
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: [{ node: meaningfulBody[0]!, children: [], childCount: 0, isVirtual: true, bodyNodes: meaningfulBody }],
+      cards: meaningfulBody.map((n) => ({ node: n, children: [], childCount: 0, ...(n.link_to ? {} : { isVirtual: true }) })),
       isVirtual: true,
     })
   }
@@ -176,29 +175,23 @@ function kNodeToColumnState(
   const { body: bodyNodes, items: structuralNodes } = extractBody(cardNodes)
 
   // Build cards from body + structural children.
-  // Body blocks (p, code, quote) merge into one virtual card.
-  // Non-block body items (li, link/embed) become individual cards.
+  // Each body node is its own navigable card (isVirtual for styling).
   // Structural (oi) nodes are regular cards.
   const cards: CardState[] = []
 
-  // Block-type nodes without link_to are pure body content (p, code, quote).
-  // Nodes with link_to are embeds — discrete navigable items even if block-typed.
-  const isMergeableBody = (n: KNode) => isBlock(n.type) && !n.link_to
-  const mergedBody = bodyNodes.filter(isMergeableBody)
-  const discreteBody = bodyNodes.filter((n) => !isMergeableBody(n))
-
-  if (mergedBody.length > 0) {
+  // Body nodes: each becomes its own navigable card.
+  // Embed links (link_to) are discrete items — not virtual.
+  for (const child of bodyNodes) {
     cards.push({
-      node: mergedBody[0]!,
+      node: child,
       children: [],
       childCount: 0,
-      isVirtual: true,
-      bodyNodes: mergedBody,
+      ...(child.link_to ? {} : { isVirtual: true }),
     })
   }
 
-  // Non-block body items (li, link/embed) and structural (oi) nodes are regular cards
-  for (const child of [...discreteBody, ...structuralNodes]) {
+  // Structural (oi) nodes are regular cards
+  for (const child of structuralNodes) {
     const childChildren = repo.getChildren(child.id)
     const isFolded = foldedNodes.has(child.id)
     cards.push({
@@ -268,15 +261,7 @@ function cardsEqual(prev: CardState, next: CardState): boolean {
   if (!nodesEqual(prev.node, next.node)) return false
   if (prev.childCount !== next.childCount) return false
   if ((prev.children?.length ?? 0) !== (next.children?.length ?? 0)) return false
-  if ((prev.bodyNodes?.length ?? 0) !== (next.bodyNodes?.length ?? 0)) return false
   if (prev.isVirtual !== next.isVirtual) return false
-
-  // Check bodyNodes content if present (merged body cards)
-  if (prev.bodyNodes && next.bodyNodes) {
-    for (let i = 0; i < prev.bodyNodes.length; i++) {
-      if (!nodesEqual(prev.bodyNodes[i]!, next.bodyNodes[i]!)) return false
-    }
-  }
 
   // Check children nodes for content changes (unfolded cards)
   if (prev.children.length > 0 && next.children.length > 0) {

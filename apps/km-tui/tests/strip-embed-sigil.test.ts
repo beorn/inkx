@@ -128,6 +128,54 @@ describe("strip embed sigil", () => {
     expect(text).toMatch(/Wait for reply\s+@waiting/)
   })
 
+  test("inline @next sigil in card content is stripped inside @next column", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item(
+          "board",
+          item("@next", item("task-a"), item("task-b")),
+        )
+
+        for (const n of nodes) {
+          if (n.id === "@next") {
+            n.type = "oi"
+            n.fstype = "mdsection"
+            n.data = { depth: 2, name: "@next" }
+            n.name = "@next"
+          }
+          // Tasks with @next inline in content
+          if (n.id === "task-a") {
+            n.content = "Buy groceries @next"
+            n.name = "@next"
+          }
+          if (n.id === "task-b") {
+            n.content = "Call dentist @next @urgent"
+            n.name = "@next"
+          }
+        }
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+
+    // Find card lines (contain □ marker) — skip top bar which shows full path
+    const cardLines = text.split("\n").filter((l) => l.includes("□"))
+
+    // Card with "Buy groceries" should NOT show @next
+    const groceriesLine = cardLines.find((l) => l.includes("Buy groceries"))
+    expect(groceriesLine).toBeDefined()
+    expect(groceriesLine).not.toContain("@next")
+
+    // Card with "Call dentist" should NOT show @next, but SHOULD show @urgent
+    const dentistLine = cardLines.find((l) => l.includes("Call dentist"))
+    expect(dentistLine).toBeDefined()
+    expect(dentistLine).not.toContain("@next")
+    expect(dentistLine).toContain("@urgent")
+  })
+
   test("parent context is suppressed when it matches an excluded sigil", () => {
     // Build a board where embedded tasks come from a file named "@next"
     // The parent context would normally show "@next" but should be suppressed

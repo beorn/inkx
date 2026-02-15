@@ -883,10 +883,9 @@ function mockCard(node: KNode, childDefs: Array<{ content: string; status?: stri
   return { node, children }
 }
 
-/** Create a card with merged body content (simulates body nodes like p, code, table, quote) */
-function mockBodyCard(id: string, title: string, bodyDefs: Array<{ type: string; content: string }>): CardState {
-  const titleNode = mockNode(id, title, undefined, "oi", { fstype: "mdsection" })
-  const bodyNodes = bodyDefs.map((def, i) => {
+/** Create individual body content cards (p, code, table, quote — each navigable) */
+function mockBodyCards(id: string, bodyDefs: Array<{ type: string; content: string }>): CardState[] {
+  return bodyDefs.map((def, i) => {
     const bNode: KNode = {
       id: `${id}-body-${i}`,
       type: def.type as KNode["type"],
@@ -900,9 +899,8 @@ function mockBodyCard(id: string, title: string, bodyDefs: Array<{ type: string;
       version: "1",
     }
     registerNode(bNode)
-    return bNode
+    return { node: bNode, children: [], isVirtual: true }
   })
-  return { node: titleNode, children: [], bodyNodes }
 }
 
 // Helper to create mock ColumnState
@@ -1052,25 +1050,25 @@ function createMockTUIBoardState(): TUIBoardState {
 
   // Column 5 - Markdown body content (p, code, table, quote, etc.)
   const markdownCards: CardState[] = [
-    // Card with paragraph body
-    mockBodyCard("md-p", "Paragraphs", [
+    // Paragraph body cards
+    ...mockBodyCards("md-p", [
       { type: "p", content: "This is a paragraph with **bold** and *italic* text." },
       { type: "p", content: "Second paragraph below the first, separated naturally." },
     ]),
-    // Card with code block body
-    mockBodyCard("md-code", "Code Block", [
+    // Code block body card
+    ...mockBodyCards("md-code", [
       { type: "code", content: "const greeting = \"Hello, world!\"\nfunction add(a: number, b: number): number {\n  return a + b\n}" },
     ]),
-    // Card with table body (pipe-delimited markdown)
-    mockBodyCard("md-table", "Table", [
+    // Table body card (pipe-delimited markdown)
+    ...mockBodyCards("md-table", [
       { type: "table", content: "| Name    | Role      | Status |\n| ------- | --------- | ------ |\n| Alice   | Engineer  | Active |\n| Bob     | Designer  | Away   |\n| Charlie | PM        | Active |" },
     ]),
-    // Card with blockquote body
-    mockBodyCard("md-quote", "Blockquote", [
+    // Blockquote body card
+    ...mockBodyCards("md-quote", [
       { type: "quote", content: "The best way to predict the future is to invent it. — Alan Kay" },
     ]),
-    // Card with mixed body content
-    mockBodyCard("md-mixed", "Mixed Content", [
+    // Mixed body content cards
+    ...mockBodyCards("md-mixed", [
       { type: "p", content: "A project description with **key points**:" },
       { type: "code", content: "npm install && npm run build" },
       { type: "table", content: "| Metric | Value |\n| ------ | ----- |\n| Users  | 1.2k  |\n| DAU    | 340   |" },

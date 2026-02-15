@@ -42,8 +42,6 @@ export interface CardState {
   childCount?: number
   /** True for virtual body card (displays leading non-section content) */
   isVirtual?: boolean
-  /** Body content nodes merged into this virtual card (stacked rendering) */
-  bodyNodes?: KNode[]
 }
 
 /**

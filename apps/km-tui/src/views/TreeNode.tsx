@@ -795,7 +795,7 @@ function NodeChildren({
         )
       })}
       {hiddenCount > 0 && (
-        <Box justifyContent="center">
+        <Box flexDirection="column" alignItems="center">
           <Text dimColor wrap="truncate">
             +{hiddenCount} more
           </Text>

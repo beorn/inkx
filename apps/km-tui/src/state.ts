@@ -5,7 +5,6 @@
  */
 
 import type { KNode } from "@km/core"
-import { isBlock } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
@@ -21,8 +20,7 @@ import {
 
 /**
  * Build cards for a column from its body and structural children.
- * Body blocks (p, code, quote) merge into one virtual card.
- * Non-block body items (li, link/embed) become individual cards.
+ * Each body node is its own navigable card (isVirtual for styling).
  * Structural (oi) nodes are regular cards.
  * childCounts is an optional pre-fetched map (used by batch-optimized buildBoardState).
  */
@@ -33,24 +31,19 @@ function buildColumnCards(
 ): CardState[] {
   const cards: CardState[] = []
 
-  // Block-type nodes without link_to are pure body content (p, code, quote).
-  // Nodes with link_to are embeds — discrete navigable items even if block-typed.
-  const isMergeableBody = (n: KNode) => isBlock(n.type) && !n.link_to
-  const mergedBody = bodyNodes.filter(isMergeableBody)
-  const discreteBody = bodyNodes.filter((n) => !isMergeableBody(n))
-
-  if (mergedBody.length > 0) {
+  // Each body node becomes its own navigable card.
+  // Embed links (link_to) are discrete items — not virtual.
+  for (const node of bodyNodes) {
     cards.push({
-      node: mergedBody[0]!,
+      node,
       children: [],
       childCount: 0,
-      isVirtual: true,
-      bodyNodes: mergedBody,
+      ...(node.link_to ? {} : { isVirtual: true }),
     })
   }
 
-  // Non-block body items (li, link/embed) and structural (oi) nodes are regular cards
-  for (const node of [...discreteBody, ...structuralNodes]) {
+  // Structural (oi) nodes are regular cards
+  for (const node of structuralNodes) {
     cards.push({
       node,
       children: [],
@@ -197,7 +190,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   if (meaningfulBody.length > 0) {
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: [{ node: meaningfulBody[0]!, children: [], childCount: 0, isVirtual: true, bodyNodes: meaningfulBody }],
+      cards: meaningfulBody.map((n) => ({ node: n, children: [], childCount: 0, ...(n.link_to ? {} : { isVirtual: true }) })),
       isVirtual: true,
     })
   }

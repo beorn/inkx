@@ -112,10 +112,10 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     expect(cursor.textContent()).toContain("para-1")
   })
 
-  test("j from board level with body content lands on Description column", () => {
+  test("j from board level with body content lands on first body card", () => {
     // Body content (paragraphs, code, quotes) before structural children
-    // becomes a virtual "Description" column. Pressing j from board level
-    // lands on this column first, then l navigates to the structural columns.
+    // becomes a virtual "Description" column with individually navigable cards.
+    // j from board level lands on the first body card directly.
     const { board } = testEnv(() =>
       item.root(
         "board",
@@ -125,44 +125,44 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
       ),
     )
 
-    // Navigate up to board level
-    board.press("k").press("k")
-    // Board -> first column is the virtual Description column
+    // Navigate up to board level (k from body card goes directly to board)
+    board.press("k")
+    // Board -> first body card in virtual Description column
     board.press("j")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
-    // Cursor lands on Description column header (body content is inside it)
-    const cursorText = cursor.textContent()
-    expect(cursorText).toContain("Description")
+    expect(cursor.textContent()).toContain("intro text")
 
     // l moves to the first structural column
     board.press("l")
     const cursor2 = board.q("[data-cursor]")
-    expect(cursor2.textContent()).toContain("col1")
+    expect(cursor2.textContent()).toContain("file1")
   })
 
-  test("j from board level with code block before columns lands on Description", () => {
+  test("j from board level with code block before columns lands on code card", () => {
     const { board } = testEnv(() => item.root("board", item.code("some code"), item("col1", item("task1"))))
 
-    board.press("k").press("k")
+    // k from body card goes directly to board level
+    board.press("k")
     board.press("j")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
-    // Lands on Description column, not directly on the code block
-    expect(cursor.textContent()).toContain("Description")
+    // Body cards are navigable — lands directly on the code block card
+    expect(cursor.textContent()).toContain("some code")
   })
 
-  test("j from board level with quote before columns lands on Description", () => {
+  test("j from board level with quote before columns lands on quote card", () => {
     const { board } = testEnv(() => item.root("board", item.quote("a quote"), item("col1", item("task1"))))
 
-    board.press("k").press("k")
+    // k from body card goes directly to board level
+    board.press("k")
     board.press("j")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
-    expect(cursor.textContent()).toContain("Description")
+    expect(cursor.textContent()).toContain("a quote")
   })
 
   test("round-trip navigation preserves cursor for file children columns", () => {

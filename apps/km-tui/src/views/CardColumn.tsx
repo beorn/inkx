@@ -145,36 +145,6 @@ const Card = React.memo(
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
     const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId, 0)))
 
-    // Merged body card — multiple body nodes stacked in one card
-    if (card.bodyNodes && card.bodyNodes.length > 0) {
-      return (
-        <Box
-          flexDirection="column"
-          flexShrink={0}
-          width={width}
-          borderStyle="round"
-          borderColor={isSelected ? "yellow" : "black"}
-        >
-          <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
-          {card.bodyNodes.map((bodyNode) => (
-            <TreeNode
-              key={bodyNode.id}
-              node={bodyNode}
-              depth={0}
-              isSelected={isSelected}
-              colIndex={colIndex}
-              cardIndex={cardIndex}
-              subIndex={0}
-              dim={!isSelected}
-              dimInactiveChildren={true}
-              childCount={0}
-              extraExcludedSigils={extraExcludedSigils}
-            />
-          ))}
-        </Box>
-      )
-    }
-
     // Virtual body content renders with a very dim border and de-emphasized text
     // This includes: cards in virtual columns OR individual virtual body cards
     if (isVirtualColumn || card.isVirtual) {

@@ -198,61 +198,63 @@ describe("applyStructuralSharing", () => {
     expect(result[1]!.cards[0]!.node.content).toBe("B changed")
   })
 
-  it("handles bodyNodes changes in virtual cards", () => {
-    const bodyNode1 = makeNode({ id: "body-1", type: "p", content: "Paragraph 1" })
-    const bodyNode2 = makeNode({ id: "body-2", type: "p", content: "Paragraph 2" })
-
-    const prevCard = makeCard({
+  it("handles virtual body cards (individual, not merged)", () => {
+    const prevCard1 = makeCard({
       node: { id: "body-1", type: "p", content: "Paragraph 1" },
       isVirtual: true,
-      bodyNodes: [bodyNode1, bodyNode2],
+    })
+    const prevCard2 = makeCard({
+      node: { id: "body-2", type: "p", content: "Paragraph 2" },
+      isVirtual: true,
     })
 
     // Same body content
-    const nextCard = makeCard({
+    const nextCard1 = makeCard({
       node: { id: "body-1", type: "p", content: "Paragraph 1" },
       isVirtual: true,
-      bodyNodes: [
-        makeNode({ id: "body-1", type: "p", content: "Paragraph 1" }),
-        makeNode({ id: "body-2", type: "p", content: "Paragraph 2" }),
-      ],
+    })
+    const nextCard2 = makeCard({
+      node: { id: "body-2", type: "p", content: "Paragraph 2" },
+      isVirtual: true,
     })
 
-    const prev = [makeColumn("col-1", [prevCard])]
-    const next = [makeColumn("col-1", [nextCard])]
+    const prev = [makeColumn("col-1", [prevCard1, prevCard2])]
+    const next = [makeColumn("col-1", [nextCard1, nextCard2])]
 
     const result = applyStructuralSharing(prev, next)
 
-    // Body content unchanged — reuse reference
-    expect(result[0]!.cards[0]).toBe(prevCard)
+    // Body content unchanged — reuse references
+    expect(result[0]!.cards[0]).toBe(prevCard1)
+    expect(result[0]!.cards[1]).toBe(prevCard2)
   })
 
-  it("detects bodyNodes content change", () => {
-    const prevCard = makeCard({
+  it("detects virtual body card content change", () => {
+    const prevCard1 = makeCard({
       node: { id: "body-1", type: "p", content: "Paragraph 1" },
       isVirtual: true,
-      bodyNodes: [
-        makeNode({ id: "body-1", type: "p", content: "Paragraph 1" }),
-        makeNode({ id: "body-2", type: "p", content: "Old text" }),
-      ],
+    })
+    const prevCard2 = makeCard({
+      node: { id: "body-2", type: "p", content: "Old text" },
+      isVirtual: true,
     })
 
-    const nextCard = makeCard({
+    const nextCard1 = makeCard({
       node: { id: "body-1", type: "p", content: "Paragraph 1" },
       isVirtual: true,
-      bodyNodes: [
-        makeNode({ id: "body-1", type: "p", content: "Paragraph 1" }),
-        makeNode({ id: "body-2", type: "p", content: "New text" }),
-      ],
+    })
+    const nextCard2 = makeCard({
+      node: { id: "body-2", type: "p", content: "New text" },
+      isVirtual: true,
     })
 
-    const prev = [makeColumn("col-1", [prevCard])]
-    const next = [makeColumn("col-1", [nextCard])]
+    const prev = [makeColumn("col-1", [prevCard1, prevCard2])]
+    const next = [makeColumn("col-1", [nextCard1, nextCard2])]
 
     const result = applyStructuralSharing(prev, next)
 
-    // Body content changed — use new reference
-    expect(result[0]!.cards[0]).toBe(nextCard)
+    // First card unchanged, second changed
+    expect(result[0]!.cards[0]).toBe(prevCard1)
+    expect(result[0]!.cards[1]).toBe(nextCard2)
   })
 })
 

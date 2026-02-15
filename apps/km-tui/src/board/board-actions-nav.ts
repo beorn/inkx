@@ -97,14 +97,6 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
   if (ctx.cursorNodeId) {
     let targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
 
-    // Skip virtual cards (body content without borders/selection).
-    // Navigate vertically (down, then up) within the target column to find
-    // a non-virtual card. The previous approach navigated in the same horizontal
-    // direction, which fails at column boundaries (e.g., rightmost column).
-    if (targetId && isVirtualCard(ctx, targetId)) {
-      targetId = skipVirtualCards(ctx, targetId, ["down", "up"]) ?? targetId
-    }
-
     if (targetId !== null) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
       // In cards view, attach deferred resolve for off-screen Y-correction.
@@ -129,15 +121,8 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
     throw new Error("[nav] handleVerticalNav called without cursorNodeId")
   }
 
-  // Navigate, skipping virtual cards (body content rendered without borders/selection)
-  let targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
+  const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
   if (targetId === null) return boundary(dir)
-
-  if (isVirtualCard(ctx, targetId)) {
-    const resolved = skipVirtualCards(ctx, targetId, [dir])
-    if (!resolved) return boundary(dir)
-    targetId = resolved
-  }
 
   dispatchBoard({ type: "SELECT", nodeId: targetId })
   return ok()
@@ -262,53 +247,12 @@ export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
       ? Math.max(0, layout.cardIndex - pageSize)
       : Math.min(col.cards.length - 1, layout.cardIndex + pageSize)
 
-  // Skip virtual cards at target position
-  const step = direction === "up" ? -1 : 1
-  while (targetIdx >= 0 && targetIdx < col.cards.length && col.cards[targetIdx]?.isVirtual) {
-    targetIdx += step
-  }
-  targetIdx = Math.max(0, Math.min(col.cards.length - 1, targetIdx))
-
-  if (targetIdx !== layout.cardIndex && !col.cards[targetIdx]?.isVirtual) {
+  if (targetIdx !== layout.cardIndex) {
     const targetCard = col.cards[targetIdx]
     if (targetCard) {
       dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
     }
   }
-}
-
-/**
- * Skip virtual cards by navigating in each direction until a non-virtual card is found.
- * Returns the first non-virtual node ID, or null if all remaining cards are virtual.
- */
-function skipVirtualCards(ctx: ActionCtx, startId: string, directions: ("up" | "down")[]): string | null {
-  const MAX_SKIP = 10
-  for (const dir of directions) {
-    let tempId = startId
-    for (let i = 0; i < MAX_SKIP && isVirtualCard(ctx, tempId); i++) {
-      const next = ctx.viewNavigation.navigate(
-        dir,
-        { ...navStateFrom(ctx), cursorNodeId: tempId },
-        ctx.repo,
-        ctx.layoutRegistry,
-      )
-      if (next === null) break
-      tempId = next
-    }
-    if (!isVirtualCard(ctx, tempId)) return tempId
-  }
-  return null
-}
-
-/** Check if a node ID corresponds to a virtual card in the current layout. */
-function isVirtualCard(ctx: ActionCtx, nodeId: string): boolean {
-  for (const col of ctx.layout.columns) {
-    if (col.isVirtual && col.node.id === nodeId) return true
-    for (const card of col.cards) {
-      if (card.node.id === nodeId && card.isVirtual) return true
-    }
-  }
-  return false
 }
 
 /** Build NavState from action context. Caller must guard that cursorNodeId is non-null. */
