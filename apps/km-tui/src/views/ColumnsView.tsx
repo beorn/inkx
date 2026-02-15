@@ -89,6 +89,19 @@ const ColumnTree = React.memo(function ColumnTree({
   const icon = getColumnHeaderIcon(column.node, iconStyle, false, ownColor)
   const iconColor = isColumnHeaderSelected ? "black" : icon.color
 
+  // Calculate available width for header name text.
+  // Header layout: [spacer(1)][icon(1)+space(1)][name...][space+count][spacer(1)]
+  const countStr = String(count)
+  const countWidth = 1 + countStr.length
+  const availableNameWidth = width - 2 - 2 - countWidth
+
+  // Conditionally show sigil suffix only when it fits alongside the display name.
+  // This prevents the sigil from causing truncation to eat into the display name.
+  const sigilName = isSigilName(column.node.name) && column.node.name !== name
+    ? column.node.name
+    : null
+  const showSigilSuffix = sigilName != null && name.length + 1 + sigilName.length <= availableNameWidth
+
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
   const columnExcludedSigils = useMemo(
     () => deriveColumnExcludedSigils(name, column.node.id, column.node.fs_path),
@@ -148,10 +161,10 @@ const ColumnTree = React.memo(function ColumnTree({
                   ) : (
                     name
                   )}
-                  {isSigilName(column.node.name) && column.node.name !== name && (
+                  {showSigilSuffix && (
                     <>
                       {" "}
-                      <Text dimColor>{column.node.name}</Text>
+                      <Text dimColor>{sigilName}</Text>
                     </>
                   )}
                 </Text>

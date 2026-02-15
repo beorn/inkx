@@ -9,6 +9,7 @@
  */
 
 import type { Repo } from "@km/storage"
+import { isOutline } from "@km/core"
 import { createLogger } from "@beorn/logger"
 import type { LayoutRegistry } from "./card-positions.ts"
 
@@ -156,6 +157,24 @@ function navigateVertical(
 // Horizontal navigation (h/l)
 // =============================================================================
 
+/**
+ * Split root children into body content nodes and structural (oi) columns.
+ * Mirrors the view layer's extractBody split: body nodes are grouped into
+ * a single virtual "Description" column, only oi nodes are real columns.
+ */
+function splitBodyAndColumns(allChildren: { id: string; type: string }[]): {
+  bodyNodes: { id: string; type: string }[]
+  structuralCols: { id: string; type: string }[]
+} {
+  const firstStructuralIdx = allChildren.findIndex((c) => isOutline(c.type))
+  if (firstStructuralIdx === -1) return { bodyNodes: allChildren, structuralCols: [] }
+  if (firstStructuralIdx === 0) return { bodyNodes: [], structuralCols: allChildren }
+  return {
+    bodyNodes: allChildren.slice(0, firstStructuralIdx),
+    structuralCols: allChildren.slice(firstStructuralIdx),
+  }
+}
+
 function navigateHorizontal(
   dir: "left" | "right",
   state: NavState,
@@ -173,86 +192,146 @@ function navigateHorizontal(
   // At board level, h/l can't move
   if (cursorNodeId === rootId) return null
 
-  // Determine which column cursor is in and what position
-  const columns = repo.getChildren(rootId)
-  const cursorColId = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
-  if (!cursorColId) {
-    throw new Error(`[nav] cursor ${cursorNodeId} has no column ancestor under root ${rootId}`)
+  // Split root children into body content and structural (oi) columns.
+  // This mirrors the view layer's extractBody split — body nodes are grouped
+  // into a single virtual "Description" column, only oi nodes are real columns.
+  const allChildren = repo.getChildren(rootId)
+  const { bodyNodes, structuralCols } = splitBodyAndColumns(allChildren)
+  const hasBody = bodyNodes.length > 0
+
+  // Determine if cursor is in body content (before the first oi node).
+  // Check membership in bodyNodes rather than just type — non-oi nodes that
+  // appear AFTER the first oi are treated as structural columns by the view.
+  const cursorDirectChild = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
+  if (!cursorDirectChild) {
+    throw new Error(`[nav] cursor ${cursorNodeId} has no ancestor under root ${rootId}`)
+  }
+  const isInBody = hasBody && bodyNodes.some((n) => n.id === cursorDirectChild)
+
+  if (isInBody) {
+    // Cursor is in the virtual body column
+    if (dir === "left") return null // Body is leftmost column
+    // dir === "right": navigate to first structural column
+    if (structuralCols.length === 0) return null
+    return navigateToStructuralCol(0, structuralCols, state, layoutRegistry, repo, hasBody)
   }
 
-  const colIdx = indexOfChild(columns, cursorColId)
+  // Cursor is in a structural column — find its index within structural columns only
+  const cursorColId = cursorDirectChild
+  const colIdx = indexOfChild(structuralCols, cursorColId)
   if (colIdx < 0) {
-    throw new Error(`[nav] column ${cursorColId} not found in root children`)
+    throw new Error(`[nav] column ${cursorColId} not found in structural children`)
   }
 
   const isAtColumnLevel = cursorNode.parent_id === rootId
 
-  const targetColIdx = colIdx + (dir === "left" ? -1 : 1)
-
-  if (targetColIdx < 0 || targetColIdx >= columns.length) return null
-  if (targetColIdx === colIdx) return null
-
-  const targetCol = columns[targetColIdx]
-  if (!targetCol) {
-    throw new Error(`[nav] column at index ${targetColIdx} missing after bounds check`)
+  if (dir === "left") {
+    if (colIdx === 0) {
+      // First structural column → navigate left to body (if it exists)
+      if (!hasBody) return null
+      return navigateToBody(bodyNodes, layoutRegistry)
+    }
+    // Navigate to previous structural column
+    return navigateToStructuralCol(colIdx - 1, structuralCols, state, layoutRegistry, repo, hasBody, isAtColumnLevel, cursorColId)
   }
 
-  // Collapsed target column → always land on column header.
-  // Cards exist in repo but aren't rendered, so stickyY-based card matching would
-  // select an invisible card, leaving the column visually unselected.
+  // dir === "right"
+  const targetColIdx = colIdx + 1
+  if (targetColIdx >= structuralCols.length) return null
+  return navigateToStructuralCol(targetColIdx, structuralCols, state, layoutRegistry, repo, hasBody, isAtColumnLevel, cursorColId)
+}
+
+/**
+ * Navigate to a structural column at the given index, selecting the appropriate card.
+ * viewColIdx accounts for the virtual body column offset when computing layout positions.
+ */
+function navigateToStructuralCol(
+  structIdx: number,
+  structuralCols: { id: string }[],
+  state: NavState,
+  layoutRegistry: LayoutRegistry,
+  repo: Repo,
+  hasBody: boolean,
+  isAtColumnLevel?: boolean,
+  sourceColId?: string,
+): string | null {
+  const targetCol = structuralCols[structIdx]
+  if (!targetCol) return null
+
+  // View column index: offset by 1 if body column exists (body is view column 0)
+  const viewColIdx = hasBody ? structIdx + 1 : structIdx
+
+  // Collapsed target column → always land on column header
   if (state.collapsedNodes.has(targetCol.id)) {
     return targetCol.id
   }
 
-  // Get cards in target column
   const targetCards = repo.getChildren(targetCol.id)
 
   if (targetCards.length === 0) {
-    // Empty target column → move to column header
     return targetCol.id
   }
 
   if (isAtColumnLevel) {
-    // At column header: if current column has cards, user intentionally moved to
-    // header level (via k) → stay at header level in target column.
-    // If current column is empty, user was forced to header → use stickyY to
-    // drop into a card in the target column.
-    const currentCards = repo.getChildren(cursorColId)
-    if (currentCards.length > 0) {
-      return targetCol.id
+    // At column header: if current column has cards, stay at header level
+    if (sourceColId) {
+      const currentCards = repo.getChildren(sourceColId)
+      if (currentCards.length > 0) {
+        return targetCol.id
+      }
     }
-    // Empty source column → use stickyY if available to find card in target
+    // Empty source column → use stickyY if available
     const stickyY = layoutRegistry.getStickyY()
     if (stickyY !== null) {
-      if (layoutRegistry.hasCardsInColumn(targetColIdx)) {
-        const targetCardIdx = layoutRegistry.findCardAtYVisual(targetColIdx, stickyY)
+      if (layoutRegistry.hasCardsInColumn(viewColIdx)) {
+        const targetCardIdx = layoutRegistry.findCardAtYVisual(viewColIdx, stickyY)
         return cardAt(targetCards, Math.min(Math.max(0, targetCardIdx), targetCards.length - 1))
       }
-      // Target column off-screen: start at first card, deferred corrects to Y-match
-      layoutRegistry.setDeferredNavigation(targetColIdx, stickyY)
+      layoutRegistry.setDeferredNavigation(viewColIdx, stickyY)
       return cardAt(targetCards, 0)
     }
     return targetCol.id
   }
 
-  // At card level: stickyY is usually set (lazily captured by h/l handler).
-  // If card wasn't measured yet (rare: first render not complete), fall back
-  // to first card in target column.
+  // At card level (or navigating from body): use stickyY for Y-position matching
   const stickyY = layoutRegistry.getStickyY()
   if (stickyY === null) {
     return cardAt(targetCards, 0)
   }
 
-  if (layoutRegistry.hasCardsInColumn(targetColIdx)) {
-    const targetCardIdx = layoutRegistry.findCardAtYVisual(targetColIdx, stickyY)
+  if (layoutRegistry.hasCardsInColumn(viewColIdx)) {
+    const targetCardIdx = layoutRegistry.findCardAtYVisual(viewColIdx, stickyY)
     return cardAt(targetCards, Math.min(Math.max(0, targetCardIdx), targetCards.length - 1))
   }
 
-  // Target column is off-screen (no registered cards). Start at first card;
-  // deferred correction adjusts to the Y-matching card when the column's
-  // cards are registered during the next render cycle (cards view only).
-  layoutRegistry.setDeferredNavigation(targetColIdx, stickyY)
+  // Target column off-screen: start at first card, deferred corrects to Y-match
+  layoutRegistry.setDeferredNavigation(viewColIdx, stickyY)
   return cardAt(targetCards, 0)
+}
+
+/**
+ * Navigate to the virtual body column, selecting the appropriate body card.
+ * Body cards are at view column index 0.
+ */
+function navigateToBody(
+  bodyNodes: { id: string }[],
+  layoutRegistry: LayoutRegistry,
+): string | null {
+  if (bodyNodes.length === 0) return null
+
+  const stickyY = layoutRegistry.getStickyY()
+  if (stickyY === null) {
+    return bodyNodes[0]!.id
+  }
+
+  // Body is always view column 0
+  if (layoutRegistry.hasCardsInColumn(0)) {
+    const targetCardIdx = layoutRegistry.findCardAtYVisual(0, stickyY)
+    const clampedIdx = Math.min(Math.max(0, targetCardIdx), bodyNodes.length - 1)
+    return bodyNodes[clampedIdx]!.id
+  }
+
+  return bodyNodes[0]!.id
 }
 
 // =============================================================================

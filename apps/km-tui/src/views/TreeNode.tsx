@@ -500,6 +500,22 @@ function TreeNodeImpl({
   const childrenVisible = hasChildren && !isFolded && depth < maxDepth
   const childrenHidden = hasChildren && !childrenVisible
 
+  // In cards mode (multiline), show a single consolidated "..." at the card root
+  // instead of individual "+N more" at each heading level.
+  const isCardRoot = !isOneliner && depth === 0
+  const suppressChildOverflow = !isOneliner // Suppress "+N more" at all levels in cards mode
+  const hasAnyOverflow = useMemo(() => {
+    if (!isCardRoot || !childrenVisible) return false
+    // Root's own children truncated
+    if (hiddenCount > 0) return true
+    // Check if any visible child has children that would be truncated
+    for (const child of visibleChildren) {
+      const grandchildren = resolvedGetChildren(child.id)
+      if (grandchildren.length > maxChildren) return true
+    }
+    return false
+  }, [isCardRoot, childrenVisible, hiddenCount, visibleChildren, resolvedGetChildren, maxChildren])
+
   return (
     <Box flexDirection="column" height={isOneliner ? 1 : undefined} overflow={isOneliner ? "hidden" : undefined}>
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
@@ -678,8 +694,18 @@ function TreeNodeImpl({
             getParentContext={resolvedGetParentContext}
             getBoardPills={getBoardPills}
             extraExcludedSigils={extraExcludedSigils}
+            showOverflowIndicator={!suppressChildOverflow}
           />
         </ErrorBoundary>
+      )}
+
+      {/* Consolidated overflow indicator: single "···" at card bottom when any content is truncated */}
+      {isCardRoot && hasAnyOverflow && (
+        <Box flexDirection="column" alignItems="center">
+          <Text dimColor wrap="truncate">
+            {"···"}
+          </Text>
+        </Box>
       )}
     </Box>
   )
@@ -737,6 +763,9 @@ interface NodeChildrenProps {
   getBoardPills?: GetBoardPillsFn
   /** Additional sigils to exclude (e.g., column-level sigils like @next inside @next column) */
   extraExcludedSigils?: string[]
+  /** Whether to show the "+N more" overflow indicator (default: true).
+   * In cards mode, suppressed at all levels in favor of a single consolidated "..." at the card root. */
+  showOverflowIndicator?: boolean
 }
 
 function NodeChildren({
@@ -753,6 +782,7 @@ function NodeChildren({
   getParentContext,
   getBoardPills,
   extraExcludedSigils,
+  showOverflowIndicator = true,
 }: NodeChildrenProps): React.ReactElement {
   // Apply recursive body extraction: separate body content from structural items
   const { body: bodyChildren, items: structuralChildren } = extractBody(children)
@@ -794,7 +824,7 @@ function NodeChildren({
           />
         )
       })}
-      {hiddenCount > 0 && (
+      {hiddenCount > 0 && showOverflowIndicator && (
         <Box flexDirection="column" alignItems="center">
           <Text dimColor wrap="truncate">
             +{hiddenCount} more
