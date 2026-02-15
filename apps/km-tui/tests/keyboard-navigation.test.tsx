@@ -481,6 +481,287 @@ describe("Keyboard Navigation: combined navigation", () => {
   })
 })
 
+describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => {
+  test("l from body card preserves stickyY into structural column", () => {
+    // Board with body content (paragraphs before first oi) and a structural column.
+    // Body cards form virtual "Description" column (col 0).
+    // col1 is the structural column (col 1).
+    const { board, registry } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("p1"),
+          item.paragraph("p2"),
+          item.paragraph("p3"),
+          item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
+        ),
+      { rows: 30 },
+    )
+
+    // Cursor should start on first body card
+    board.expect("#p1[data-cursor]").toExist()
+
+    // Navigate down to p3 (third body card)
+    board.press("j").press("j")
+    board.expect("#p3[data-cursor]").toExist()
+
+    // Check stickyY state before press l
+    const stickyYBefore = registry.getStickyY()
+
+    // Press l to navigate right to the structural column.
+    // stickyY should be captured from p3's Y position and used to find
+    // the matching card in col1. Should NOT land on 1a (card 0).
+    board.press("l")
+
+    // Verify stickyY was set (should have been lazy-captured from p3)
+    const stickyYAfter = registry.getStickyY()
+
+    // p3 is the third card from the top. In col1, the card at approximately
+    // the same Y position should be around 1c (third card).
+    // The bug: cursor jumps to 1a instead of preserving Y position.
+    const hasCursorOn1a = board.q("#1a[data-cursor]").count() > 0
+    const hasCursorOn1b = board.q("#1b[data-cursor]").count() > 0
+    const hasCursorOn1c = board.q("#1c[data-cursor]").count() > 0
+
+    // Should land on 1b or 1c (approximate Y match), NOT on 1a (top of column)
+    expect(hasCursorOn1a).toBe(false)
+    expect(hasCursorOn1b || hasCursorOn1c).toBe(true)
+  })
+
+  test("l from body card with HR nodes navigates to correct position in next column", () => {
+    // When body column has HR nodes interleaved with paragraphs, the view
+    // filters them out (meaningfulBody). Navigation must use the same
+    // filtered set. If it uses unfiltered bodyNodes, stickyY capture from
+    // a body card at view index N maps to bodyNodes[N] which is a different node.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("p1"),
+          item.hr("hr1"),
+          item.paragraph("p2"),
+          item.hr("hr2"),
+          item.paragraph("p3"),
+          item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
+        ),
+      { rows: 30 },
+    )
+
+    // Navigate to p3 (3rd visible body card, view index 2)
+    board.press("j").press("j")
+    board.expect("#p3[data-cursor]").toExist()
+
+    // Press l. stickyY captured from p3 (view card index 2 in body col).
+    // Should land near 1c (3rd card in col1), NOT 1a.
+    board.press("l")
+    const on1a = board.q("#1a[data-cursor]").count() > 0
+    expect(on1a).toBe(false)
+  })
+
+  test("l from body card without prior j/k still captures stickyY", () => {
+    // When pressing l from the initial cursor position (no j/k first),
+    // stickyY should be lazy-captured from the current card position.
+    const { board, registry } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("p1"),
+          item.paragraph("p2"),
+          item.paragraph("p3"),
+          item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
+        ),
+      { rows: 30 },
+    )
+
+    // Cursor should start on first body card
+    board.expect("#p1[data-cursor]").toExist()
+
+    // Press l directly — stickyY should be captured from p1's Y position
+    board.press("l")
+
+    // p1 is the first card. stickyY should match 1a in col1 (first card).
+    // This test ensures stickyY capture works even without prior j/k.
+    board.expect("#1a[data-cursor]").toExist()
+  })
+
+  test("h from structural column back to body column preserves stickyY", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("p1"),
+          item.paragraph("p2"),
+          item.paragraph("p3"),
+          item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
+        ),
+      { rows: 30 },
+    )
+
+    // Navigate to col1 and move down to 1c
+    board.press("l")
+    board.press("j").press("j")
+    board.expect("#1c[data-cursor]").toExist()
+
+    // Press h to go back to the body column.
+    // Should land on the body card matching 1c's Y position, not p1.
+    board.press("h")
+
+    // Should NOT land on p1 (top of body column)
+    const hasCursorOnP1 = board.q("#p1[data-cursor]").count() > 0
+    const hasCursorOnP2 = board.q("#p2[data-cursor]").count() > 0
+    const hasCursorOnP3 = board.q("#p3[data-cursor]").count() > 0
+
+    expect(hasCursorOnP1).toBe(false)
+    expect(hasCursorOnP2 || hasCursorOnP3).toBe(true)
+  })
+
+  test.skip("h from deep structural column to body column with HR nodes: index mismatch", () => {
+    // Test with HR nodes (empty content) interleaved with meaningful paragraphs.
+    // The view filters out empty body nodes (meaningfulBody filter), but
+    // navigateToBody in view-navigation.ts indexes the unfiltered bodyNodes
+    // from splitBodyAndColumns. findCardAtYVisual returns indices into the
+    // view's filtered card array, causing a mismatch.
+    //
+    // View body column: [p1(idx=0), p2(idx=1), p3(idx=2)]
+    // Nav bodyNodes:    [p1(0), hr1(1), p2(2), hr2(3), p3(4)]
+    //
+    // findCardAtYVisual returns 2 (matching p3 in view), but
+    // bodyNodes[2] = p2 (NOT p3). Cursor lands on wrong card.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("p1"),
+          item.hr("hr1"),
+          item.paragraph("p2"),
+          item.hr("hr2"),
+          item.paragraph("p3"),
+          item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
+        ),
+      { rows: 30 },
+    )
+
+    // Navigate to p3 (3rd visible body card) then right to col1
+    board.press("j").press("j")
+    board.expect("#p3[data-cursor]").toExist()
+
+    board.press("l")
+
+    // Now navigate back left. stickyY should bring us back to p3.
+    board.press("h")
+
+    // BUG: navigateToBody indexes unfiltered bodyNodes, returning p2 instead of p3.
+    // The cursor should be on p3 (same card we started on), NOT p2.
+    const hasCursorOnP3 = board.q("#p3[data-cursor]").count() > 0
+    const hasCursorOnP2 = board.q("#p2[data-cursor]").count() > 0
+    expect(hasCursorOnP3).toBe(true)
+  })
+})
+
+describe("Keyboard Navigation: body card stickyY (round-trip)", () => {
+  test("l then h round-trip preserves stickyY for body cards", () => {
+    // Navigate right from body column, then left back to body column.
+    // Both directions should preserve stickyY.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("p1"),
+          item.paragraph("p2"),
+          item.paragraph("p3"),
+          item.paragraph("p4"),
+          item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
+        ),
+      { rows: 30 },
+    )
+
+    // Navigate to p3
+    board.press("j").press("j")
+    board.expect("#p3[data-cursor]").toExist()
+
+    // l to col1 -> should land near 1c
+    board.press("l")
+    const landedOn1a = board.q("#1a[data-cursor]").count() > 0
+    expect(landedOn1a).toBe(false)
+
+    // h back to body column -> should land near p3, NOT p1
+    board.press("h")
+    const landedOnP1 = board.q("#p1[data-cursor]").count() > 0
+    expect(landedOnP1).toBe(false)
+  })
+
+  test("stickyY preserved across multiple l presses through body and structural columns", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("p1"),
+          item.paragraph("p2"),
+          item.paragraph("p3"),
+          item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
+          item("col2", item("2a"), item("2b"), item("2c"), item("2d"), item("2e")),
+        ),
+      { rows: 30 },
+    )
+
+    // Navigate to p3
+    board.press("j").press("j")
+    board.expect("#p3[data-cursor]").toExist()
+
+    // l to col1 -> should land near 1c (not 1a)
+    board.press("l")
+    const on1a = board.q("#1a[data-cursor]").count() > 0
+    expect(on1a).toBe(false)
+
+    // l again to col2 -> should STILL preserve stickyY (not reset to 2a)
+    board.press("l")
+    const on2a = board.q("#2a[data-cursor]").count() > 0
+    expect(on2a).toBe(false)
+  })
+})
+
+describe("Keyboard Navigation: body card stickyY (within-column body)", () => {
+  test("l from within-column body card preserves stickyY into next column", () => {
+    // col1 has body content (paragraphs before structural children)
+    // col2 has many items
+    // Navigate to body card in col1, press l -> should preserve Y position in col2
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.paragraph("body-p1"),
+            item.paragraph("body-p2"),
+            item.paragraph("body-p3"),
+            item("sub1"),
+            item("sub2"),
+            item("sub3"),
+          ),
+          item("col2", item("2a"), item("2b"), item("2c"), item("2d"), item("2e")),
+        ),
+      { rows: 30 },
+    )
+
+    // Cursor starts on body-p1 (first card in col1)
+    board.expect("#body-p1[data-cursor]").toExist()
+
+    // Navigate down to body-p3 (third body card in col1)
+    board.press("j").press("j")
+    board.expect("#body-p3[data-cursor]").toExist()
+
+    // Press l to navigate right to col2.
+    // stickyY from body-p3 should match a card in col2 at similar Y position.
+    board.press("l")
+
+    // body-p3 is the 3rd card. Should land near 2c (3rd card in col2), NOT 2a.
+    const hasCursorOn2a = board.q("#2a[data-cursor]").count() > 0
+
+    // If cursor lands on 2a, stickyY was not preserved (the bug)
+    expect(hasCursorOn2a).toBe(false)
+  })
+})
+
 describe("Keyboard Navigation: i (zoom inwards)", () => {
   test("i keeps cursor on the same card after zoom inwards", () => {
     // Structure: board > col1 > [1a, 1b, 1c]

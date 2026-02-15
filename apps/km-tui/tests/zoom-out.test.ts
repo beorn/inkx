@@ -11,7 +11,8 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { createFakeRepo } from "@km/storage"
+import { item, testEnv, testEnvWithRepo } from "./helpers/board-test.ts"
 
 describe("u zooms out to parent", () => {
   test("u zooms out one level, cursor stays on previously-rooted node", () => {
@@ -149,5 +150,64 @@ describe("u zooms out to parent", () => {
     board.press("u")
     board.expect("#card1[data-cursor]").toExist()
     board.expect("#card2").toExist()
+  })
+
+  test("u zooms out when viewing a file inside a repo (km view file.md scenario)", () => {
+    // Simulates: km view /tmp/vt/CLAUDE.md
+    // Repo root (folder) → file → section1, section2
+    // Board starts rooted at the file, not the repo root
+    const nodes = item.root("repo",
+      item.file("file",
+        item.section("section1", item("task1"), item("task2")),
+        item.section("section2", item("task3")),
+      ),
+    )
+    const repo = createFakeRepo({ nodes })
+
+    // Start board rooted at the file (like km view file.md)
+    const { board } = testEnvWithRepo(repo, "file")
+
+    // Board should show file's children as columns
+    board.expect("#section1").toExist()
+    board.expect("#section2").toExist()
+
+    // Press u — should zoom out from file to repo root
+    board.press("u")
+
+    // After zooming out, the file should be visible as a card/column
+    // and cursor should be on the file node
+    board.expect("#file[data-cursor]").toExist()
+  })
+
+  test("u zooms out from file to folder, then falls back to cursor-up at repo root", () => {
+    // Deeper tree: repo > folder > file > sections
+    const nodes = item.root("repo",
+      item.folder("folder",
+        item.file("file",
+          item.section("sec1", item("t1")),
+          item.section("sec2", item("t2")),
+        ),
+      ),
+    )
+    const repo = createFakeRepo({ nodes })
+
+    // Start board rooted at file
+    const { board } = testEnvWithRepo(repo, "file")
+
+    board.expect("#sec1").toExist()
+    board.expect("#sec2").toExist()
+
+    // First u: zoom out from file to folder
+    board.press("u")
+    board.expect("#file[data-cursor]").toExist()
+
+    // Second u: zoom out from folder to repo root
+    board.press("u")
+    board.expect("#folder[data-cursor]").toExist()
+
+    // Third u: at repo root, falls back to cursor-up
+    board.press("u")
+    // repo root has parent_id null, so u acts as cursor-up
+    board.expect("#repo[data-cursor]").toExist()
   })
 })

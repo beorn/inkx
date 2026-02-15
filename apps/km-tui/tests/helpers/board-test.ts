@@ -259,6 +259,8 @@ function makeNodeWithType(
     type,
     ...(props.fstype ? { fstype: props.fstype } : {}),
     ...(props.list_marker ? { list_marker: props.list_marker } : {}),
+    // Set name for mdsection nodes to match production (ast2nodes sets name: slugified heading)
+    ...(props.fstype === "mdsection" && hasChildren ? { name: content.toLowerCase().replace(/\s+/g, "-") } : {}),
     content: hasChildren ? undefined : content,
     data: {
       ...(hasChildren ? { name: content } : {}),

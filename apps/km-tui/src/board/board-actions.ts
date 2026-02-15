@@ -846,8 +846,10 @@ function handleOpenInSystem(ctx: ActionCtx, nodeId: string): void {
 function handleIgnoreNode(ctx: ActionCtx): ActionResult {
   const { layout, repo } = ctx
   const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
-  const node = card?.node ?? col?.node
+  // Always ignore at column level — Board.tsx filters columns, not individual cards.
+  // Using card?.node would write an ignore path for the task, but the column would
+  // stay visible because isIgnored only checks col.node during rendering.
+  const node = col?.node
   if (!node) return boundary("ignore", "No node to ignore")
 
   const ignorePath = computeIgnorePath(node, repo)
@@ -865,24 +867,18 @@ function handleIgnoreNode(ctx: ActionCtx): ActionResult {
       addIgnored(repo.path, ignorePath)
       ctx.toastQueue.info(`Ignored: ${ignorePath}`)
 
-      // Move cursor to a neighbor so it doesn't point at the now-hidden node.
-      // When ignoring a column (cursor at column level), move to adjacent column.
-      // When ignoring a card within a column, the column is hidden so move to adjacent column too.
-      const isIgnoringColumn = node === col?.node
-      if (isIgnoringColumn || (col && node === card?.node)) {
-        const colIndex = layout.colIndex
-        // Try next column, then previous
-        const nextCol = layout.columns[colIndex + 1]
-        const prevCol = colIndex > 0 ? layout.columns[colIndex - 1] : undefined
-        const targetCol = nextCol ?? prevCol
-        if (targetCol) {
-          // Select first card in target column, or column header if empty
-          const firstCard = targetCol.cards[0]
-          ctx.dispatchBoard({
-            type: "SELECT",
-            nodeId: firstCard?.node.id ?? targetCol.node.id,
-          })
-        }
+      // Move cursor to adjacent column since this column is now hidden.
+      const colIndex = layout.colIndex
+      const nextCol = layout.columns[colIndex + 1]
+      const prevCol = colIndex > 0 ? layout.columns[colIndex - 1] : undefined
+      const targetCol = nextCol ?? prevCol
+      if (targetCol) {
+        // Select first card in target column, or column header if empty
+        const firstCard = targetCol.cards[0]
+        ctx.dispatchBoard({
+          type: "SELECT",
+          nodeId: firstCard?.node.id ?? targetCol.node.id,
+        })
       }
     }
 
