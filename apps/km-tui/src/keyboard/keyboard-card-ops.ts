@@ -94,6 +94,10 @@ export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up
   const col = ctx.layout.columns[ctx.layout.colIndex]
   if (!col) return boundary(direction)
 
+  // Batch all moves (normalize + card moves) into a single undo entry
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Move card")
+
   // Fix duplicate parent_idx before calculating new sort order
   normalizeSortOrders(ctx, col)
 
@@ -104,7 +108,10 @@ export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up
       : [{ index: ctx.layout.cardIndex, card }]
 
   const validCards = cardsToMove.filter((c): c is { index: number; card: CardState } => c.card !== undefined)
-  if (validCards.length === 0) return boundary(direction)
+  if (validCards.length === 0) {
+    ctx.undoHandle.endBatch()
+    return boundary(direction)
+  }
 
   const sortedCards =
     direction === "up"
@@ -112,9 +119,15 @@ export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up
       : validCards.sort((a: { index: number }, b: { index: number }) => b.index - a.index)
 
   const firstToMove = sortedCards[0]
-  if (!firstToMove) return boundary(direction)
+  if (!firstToMove) {
+    ctx.undoHandle.endBatch()
+    return boundary(direction)
+  }
   const targetIndex = direction === "up" ? firstToMove.index - 1 : firstToMove.index + 1
-  if (targetIndex < 0 || targetIndex >= col.cards.length) return boundary(direction)
+  if (targetIndex < 0 || targetIndex >= col.cards.length) {
+    ctx.undoHandle.endBatch()
+    return boundary(direction)
+  }
 
   for (const { index: currentIndex, card: cardToMove } of sortedCards) {
     const cardTargetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
@@ -123,6 +136,8 @@ export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up
     const newSortOrder = calculateSortOrder(col, cardTargetIndex, direction)
     ctx.repo.moveNode(cardToMove.node.id, col.node.id, newSortOrder)
   }
+
+  ctx.undoHandle.endBatch()
 
   const movedCardIds = validCards.map((c) => c.card.node.id)
   const newCardIndex = direction === "up" ? ctx.layout.cardIndex - 1 : ctx.layout.cardIndex + 1
@@ -155,6 +170,10 @@ export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "le
 
   if (cardsToMove.length === 0) return boundary(direction)
 
+  // Batch all moves into a single undo entry
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Move card to column")
+
   let newSortOrder =
     targetCol.cards.length > 0 ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1 : 0
 
@@ -162,6 +181,8 @@ export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "le
     ctx.repo.moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder)
     newSortOrder++
   }
+
+  ctx.undoHandle.endBatch()
 
   const movedCardIds = cardsToMove.map((c) => c.node.id)
   const expectedCardIndex = targetCol.cards.length
@@ -193,6 +214,7 @@ export function indentNode(ctx: ActionCtx, card: CardState): boolean {
 
   if (!canIndent(ctx, card)) return false
 
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
   executeIndent(ctx, card)
   // Cursor follows the indented node. nodeIndex maps descendants to their
   // containing card, so visual cursor lands on the parent card. Navigation
@@ -214,6 +236,7 @@ export function outdentNode(ctx: ActionCtx, card: CardState): boolean {
 
   if (!canOutdent(ctx, card)) return false
 
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
   executeOutdent(ctx, card)
   ctx.dispatchBoard({ type: "SELECT", nodeId: card.node.id })
   return true
@@ -308,12 +331,18 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sele
     if (!canIndent(ctx, card)) return false
   }
 
+  // Batch all indent moves into a single undo entry
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Indent nodes")
+
   // Process bottom-up (highest column index first) to avoid invalidating sibling indices
   const bottomUp = [...selectedIndices].sort((a, b) => b - a)
   for (const idx of bottomUp) {
     const card = col.cards[idx]
     if (card) executeIndent(ctx, card)
   }
+
+  ctx.undoHandle.endBatch()
 
   // Cursor follows first indented card (resolves to parent card via nodeIndex)
   ctx.dispatchBoard({ type: "SELECT", nodeId: cards[0]!.node.id })
@@ -335,12 +364,18 @@ function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sel
     if (!canOutdent(ctx, card)) return false
   }
 
+  // Batch all outdent moves into a single undo entry
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Outdent nodes")
+
   // Process top-down (lowest column index first) to maintain relative order
   const topDown = [...selectedIndices].sort((a, b) => a - b)
   for (const idx of topDown) {
     const card = col.cards[idx]
     if (card) executeOutdent(ctx, card)
   }
+
+  ctx.undoHandle.endBatch()
 
   // Cursor follows first card in batch
   ctx.dispatchBoard({ type: "SELECT", nodeId: cards[0]!.node.id })

@@ -61,6 +61,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     viewNavigation: cardsViewNavigation,
     toastQueue: s.toastQueue,
     undoStack: s.undoStack,
+    undoHandle: s.undoHandle,
     selectedNode: s.selectedNode,
     column,
     card,

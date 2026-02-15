@@ -21,6 +21,7 @@ import type { CursorStore } from "./cursor-store.ts"
 import { deriveColumnsFromRepo, buildNodeIndex } from "./hooks/use-columns.ts"
 import { deriveCursorPosition } from "./hooks/use-cursor-position.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"
+import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
 
 // =============================================================================
 // Store Types
@@ -77,8 +78,9 @@ export interface BoardAppState {
   // --- Cursor store (lightweight pub/sub, bypasses Zustand for cursor moves) ---
   cursorStore: CursorStore
 
-  // --- Undo/redo stack ---
+  // --- Undo/redo ---
   undoStack: UndoStack
+  undoHandle: UndoableRepoHandle
 }
 
 /**
@@ -189,7 +191,12 @@ export function createBoardAppStoreState(
 ) => BoardAppStore {
   const bs = params.initialBoardState
 
-  return (set, _get) => ({
+  return (set, _get) => {
+    // Create undo system: wrap repo so mutations are auto-recorded
+    const undoStack = createUndoStack()
+    const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(params.repo, undoStack)
+
+    return {
     // Board navigation (flat — source of truth)
     rootId: bs.rootId,
     rootPath: bs.rootPath,
@@ -216,8 +223,8 @@ export function createBoardAppStoreState(
     selectedNode: params.initialSelectedNode,
     selectionLevel: params.initialSelectionLevel,
 
-    // Injected
-    repo: params.repo,
+    // Injected — use the undoable-wrapped repo so mutations auto-record
+    repo: undoableRepo,
     toastQueue: params.toastQueue,
     jobRunner: createJobRunner(params.toastQueue),
     layoutRegistry: params.layoutRegistry,
@@ -231,8 +238,9 @@ export function createBoardAppStoreState(
     // Cursor store
     cursorStore: params.cursorStore,
 
-    // Undo stack
-    undoStack: createUndoStack(),
+    // Undo/redo
+    undoStack,
+    undoHandle,
 
     // --- Board action dispatcher (inlined from boardReducer) ---
 
@@ -485,5 +493,5 @@ export function createBoardAppStoreState(
       state.selectionLevel = selectionLevel
       state.tuiBoardState = tuiBoardState
     },
-  })
+  }}
 }

@@ -198,10 +198,16 @@ export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
   const firstNode = repo.getNode(nodeIds[0] ?? "")
   const isDeletingColumn = firstNode?.parent_id === ctx.rootId
 
+  // Batch all deletions into a single undo entry
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Delete")
+
   // Delete bottom-up to avoid index invalidation
   for (const nodeId of [...nodeIds].reverse()) {
     deleteRecursive(nodeId)
   }
+
+  ctx.undoHandle.endBatch()
 
   clearSelection(ctx)
 
@@ -277,6 +283,7 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
     newNode.data = { ...newNode.data, depth }
   }
 
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
   const newId = repo.addNode(col.node.id, newNode)
 
   // Refresh board state — usePositionHints because new node isn't in nodeIndex yet
@@ -329,19 +336,9 @@ export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
   }
 
   const parentId = col.node.id
-  const newId = repo.addNode(parentId, newNode)
-
-  // Push undo entry: delete the duplicate
-  ctx.undoStack.push({
-    label: "Duplicate node",
-    cursorNodeId: ctx.cursorNodeId,
-    undo: () => {
-      repo.deleteNode(newId)
-    },
-    redo: () => {
-      repo.addNode(parentId, { ...newNode, id: newId })
-    },
-  })
+  // Auto-recorded by undoable repo — no manual undo entry needed
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  repo.addNode(parentId, newNode)
 
   refreshBoardState(ctx, {
     cardIndex: currentSibIdx + 1,
@@ -358,12 +355,19 @@ export function handleConfirmMove(ctx: ActionCtx): void {
   if (sourceNodeIds.length === 0) return
   const targetCol = layout.columns[layout.colIndex]
   if (!targetCol) return
+
+  // Batch all moves into a single undo entry
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Move cards")
+
   let newSortOrder =
     targetCol.cards.length > 0 ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1 : 0
   for (const nodeId of sourceNodeIds) {
     repo.moveNode(nodeId, targetCol.node.id, newSortOrder)
     newSortOrder++
   }
+
+  ctx.undoHandle.endBatch()
   dispatchBoard({ type: "CONFIRM_MOVE" })
   refreshBoardState(ctx, {
     colIndex: layout.colIndex,
@@ -381,6 +385,10 @@ export function handleConfirmMove(ctx: ActionCtx): void {
 export function handleTaskStatusCycle(ctx: ActionCtx): void {
   const cards = getSelectedCards(ctx)
   if (cards.length === 0) return
+
+  // Batch all status changes (especially recurring task clone: updateNode + addNode)
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Toggle status")
 
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
@@ -431,6 +439,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     }
   }
 
+  ctx.undoHandle.endBatch()
+
   // Selection preserved: status toggle is in-place modification.
   // User can press x again to cycle all selected cards further.
   refreshBoardState(ctx)
@@ -477,6 +487,10 @@ function moveColumn(
   const targetCol = layout.columns[targetIndex]
   if (!targetCol) return boundary(direction)
 
+  // Batch all moves (normalize + swap) into a single undo entry
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Move column")
+
   // Normalize column sort orders when duplicates exist (e.g., all default to 0)
   normalizeColumnSortOrders(ctx)
 
@@ -486,6 +500,8 @@ function moveColumn(
   const targetOrder = targetCol.node.parent_idx
   repo.moveNode(col.node.id, parentId, targetOrder)
   repo.moveNode(targetCol.node.id, parentId, curOrder)
+
+  ctx.undoHandle.endBatch()
 
   refreshBoardState(ctx, { colIndex: targetIndex })
   return ok()
