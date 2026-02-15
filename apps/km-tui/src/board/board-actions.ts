@@ -127,10 +127,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
-    case "ENTER_INLINE_EDIT": {
-      // Block editing on HR nodes — they have no editable text content
-      const editNode = ctx.repo.getNode(action.nodeId)
-      if (editNode?.type === "hr") return boundary("edit", "HR nodes are not editable")
+    case "ENTER_INLINE_EDIT":
       ctx.setUI({
         inlineEditBlock: {
           nodeId: action.nodeId,
@@ -138,7 +135,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         },
       })
       return ok()
-    }
     case "EDIT_BLOCK_NAVIGATE":
       return handleEditBlockNavigate(ctx, action.direction)
     case "CLOSE_OR_QUIT":

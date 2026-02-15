@@ -132,7 +132,7 @@ describe("HR display", () => {
     expect(text).toContain("─")
   })
 
-  test("pressing Enter on HR does NOT enter edit mode", () => {
+  test("pressing Enter on HR enters edit mode showing raw content", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -145,18 +145,23 @@ describe("HR display", () => {
     // Cursor starts on HR (first card in column)
     board.expect("#my-hr[data-cursor]").toExist()
 
-    // Press Enter to try editing — should be blocked
+    // HR initially renders as horizontal line
+    let text = stripAnsi(board.screenshot())
+    expect(text).toContain("─")
+
+    // Press Enter to edit — should enter edit mode
     board.press("Enter")
 
-    // Should ring the bell (boundary/rejected action)
-    expect(board.bell).toBe(true)
+    // Should NOT ring the bell (editing is allowed)
+    expect(board.bell).toBe(false)
 
-    // HR should still render as horizontal line (not destroyed)
-    const text = stripAnsi(board.screenshot())
+    // After Escape, HR should render as horizontal line again
+    board.press("Escape")
+    text = stripAnsi(board.screenshot())
     expect(text).toContain("─")
   })
 
-  test("pressing Enter on HR preserves cursor position", () => {
+  test("HR edit mode: Escape returns to line rendering", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -170,10 +175,15 @@ describe("HR display", () => {
     board.press("j")
     board.expect("#my-hr[data-cursor]").toExist()
 
-    // Press Enter — should be rejected
+    // Enter edit mode
     board.press("Enter")
 
-    // Cursor should still be on the HR
+    // Escape back
+    board.press("Escape")
+
+    // Should be back on the HR with line rendering
     board.expect("#my-hr[data-cursor]").toExist()
+    const text = stripAnsi(board.screenshot())
+    expect(text).toContain("─")
   })
 })

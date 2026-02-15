@@ -163,8 +163,8 @@ const Card = React.memo(
       return { hasOverflow: total > 0, hiddenCount: total }
     }, [directHidden, card.children, maxChildren, repo])
 
-    // HR nodes render as borderless horizontal lines (checked before virtual body)
-    if (card.node.type === "hr") {
+    // HR nodes render as borderless horizontal lines (unless being edited)
+    if (card.node.type === "hr" && !isEditing) {
       return (
         <Box flexDirection="column" flexShrink={0} width={width} height={1}>
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
