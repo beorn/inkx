@@ -1,6 +1,6 @@
 # Team-Based Exploration
 
-**Default mode for `/explore`.** Interactive AI exploration as the main activity, with headless tests as a background health check. Pipeline: interactive explorer discovers visual/UX issues, targeted explorer writes edge-case tests, reproducer creates beads + failing tests, fixer implements fixes — all running concurrently.
+**Default mode for `/explore`.** Interactive AI exploration as the main activity, with TUI tests as a background health check. Pipeline: interactive explorer discovers visual/UX issues, targeted explorer writes edge-case tests, reproducer creates beads + failing tests, fixer implements fixes — all running concurrently.
 
 ## Philosophy
 
@@ -10,15 +10,15 @@
 
 The lead interprets `/explore` args to decide what to emphasize:
 
-| Args | Interactive TTY? | Headless tests? | Example |
-|------|-----------------|-----------------|---------|
+| Args | GUI (interactive TTY)? | TUI tests? | Example |
+|------|----------------------|------------|---------|
 | No args | Yes (main) | Background health check | `/explore` |
 | Broad description | Yes (focused) | Background health check | `/explore recent batch ops` |
 | Specific bug repro | Maybe (verify) | Yes (primary for repro) | `/explore cursor jumps after indent` |
 | `--fuzz` | No | Yes (sole activity) | `/explore --fuzz` |
 | `--gui` / `--gui <path>` | Yes (manual, no team) | No | `/explore --gui` |
 
-Rule: if args describe *what to explore*, include interactive. If they describe *a specific bug to reproduce*, lead headless but verify interactively.
+Rule: if args describe *what to explore*, include interactive. If they describe *a specific bug to reproduce*, lead with TUI tests but verify interactively.
 
 ## Priming: What to Explore
 
@@ -207,7 +207,7 @@ DO NOT write test files. DO NOT fix bugs. DO NOT run bun fix or bun run test:all
 
 ### 4. Explorer — Targeted (`explorer-targeted`)
 
-**Secondary explorer.** Writes headless tests for edge cases, follows up on issues the interactive explorer spots.
+**Secondary explorer.** Writes TUI tests for edge cases, follows up on issues the interactive explorer spots.
 
 **Spawned with prompt**:
 ```
@@ -249,7 +249,7 @@ Run each script: bun vitest run /tmp/km-explore-tests/<file>
 When you find a bug, send to reproducer immediately:
   SendMessage(recipient="reproducer", content="BUG: [description]\nKey sequence: [...]\nFixture: item(...)\nError: [message]")
 
-Also handle requests from explorer-interactive — if the interactive explorer spots a visual issue, write a headless test to confirm it.
+Also handle requests from explorer-interactive — if the interactive explorer spots a visual issue, write a TUI test to confirm it.
 
 STOPPING RULE:
 - Minimum: cover all 6 areas above with at least one script each
@@ -278,16 +278,16 @@ For EACH unique bug:
    bd update <id> --parent km-tui
    bd update <id> --claim
 
-2. Write a FAILING headless test:
+2. Write a FAILING TUI test:
    File: /tmp/km-explore-tests/<descriptive-name>.test.ts
    Use testEnv() + item() (import from ../../apps/km-tui/tests/helpers/board-test.ts)
    The test MUST FAIL — it documents the bug
    NEVER write to apps/km-tui/tests/ — explore tests go in /tmp/
 
    For VISUAL BUG reports from explorer-interactive:
-   - Reconstruct the key sequence in a headless test
+   - Reconstruct the key sequence in a TUI test
    - Use board.textContent() to verify the visual issue
-   - If the bug is purely visual (pixel-level) and can't be caught headless, note this in the bead
+   - If the bug is purely visual (pixel-level) and can't be caught in a TUI test, note this in the bead
 
 3. Confirm it fails: bun vitest run /tmp/km-explore-tests/<test-file>
 
@@ -311,18 +311,10 @@ When the reproducer sends a failing test:
 4. Confirm test passes: bun vitest run <test-file>
 5. Check regressions:
    bun vitest run apps/km-tui/tests/ --reporter=verbose 2>&1 | head -300
-6. **For rendering/visual bugs**: TTY ad-hoc verification is MANDATORY before closing.
-   Use mcp_tty tools (ToolSearch "tty" first) to:
-   - Launch TUI with a test fixture that exercises the bug
-   - Navigate to reproduce the scenario
-   - Take a screenshot to /tmp/verify-<bead-id>.png
-   - Confirm the fix visually looks correct on a real terminal
-   - **Calibrate the regression test**: if TTY shows the bug is fixed but the headless test
-     would NOT have caught it, improve the headless test with better visual assertions
-     (expectNodeColor, expectCellColor, expectRow, expectNodeBorder). The headless test
-     is the ongoing guard; TTY is the one-time calibration.
-   Pure logic bugs (wrong state, bad data) can skip TTY — state "Verified: headless only" in close reason.
-7. Close bead: bd close <id> --reason "Fixed: [description]. Verified: headless + TTY screenshot (/tmp/verify-<id>.png)"
+6. **For rendering/visual bugs**: **You MUST follow** the [two-layer verification protocol](../tui/fix.md#two-layer-verification) —
+   use mcp_tty tools (ToolSearch "tty" first) for GUI verification + calibrate the regression test.
+   Pure logic bugs can skip GUI — state "Verified: TUI tests only" in close reason.
+7. Close bead using the [structured close reason format](../pm/workflows/bugs.md#close-reason-template) — **read it for the mandatory format**.
 8. Notify lead that fix is done, then immediately pick up next bug
 
 DO NOT run bun fix or bun run test:all — lead handles that.

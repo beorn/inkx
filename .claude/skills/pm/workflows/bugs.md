@@ -75,7 +75,7 @@ is no longer reproducible. If you can reproduce a bug now, prioritize fixing it
 immediately rather than deferring. Create a test that captures the reproduction
 conditions if possible.
 
-**For TUI bugs** - headless capture:
+**For TUI bugs** - TUI test capture:
 
 ```bash
 pkill -f ttyd 2>/dev/null || true
@@ -147,24 +147,9 @@ test("card has left/right borders", () => {
 })
 ```
 
-### Visual toolbelt API (apps/km-tui/tests/helpers/board-test.ts)
+### Visual toolbelt API
 
-| Method | What it checks |
-|--------|---------------|
-| `board.screen.cell(x,y)` | Raw cell: `{char, fg, bg, attrs}` |
-| `board.screen.row(n)` | Text of row n |
-| `board.screen.nodePos(id)` | Screen position of a node |
-| `board.screen.nodeBox(id)` | Bounding box of a node |
-| `board.screen.findRow(text)` | Find row containing text |
-| `board.expectScreen(text)` | Screen contains text |
-| `board.expectRow(n, pattern)` | Row contains/matches |
-| `board.expectCellChar(x,y,c)` | Character at position |
-| `board.expectCellColor(x,y,{fg,bg})` | Colors at position |
-| `board.expectNodeColor(id,{fg,bg,attrs})` | Colors on node's text |
-| `board.expectNodeBorder(id)` | Node has border chars |
-| `board.expectNodeNoBorder(id)` | Node has no border |
-
-Full API reference: [tests/tui.md](../../tests/tui.md#visual-assertions)
+**You MUST use** the [visual assertion API](../../tests/tui.md#visual-assertions) for rendering bugs — read that section for the full method list and color codes. State assertions (`toExist()`) miss rendering issues.
 
 Run `bun run test:fast` - verify the test fails for the right reason.
 
@@ -196,41 +181,9 @@ make the test pass, the bug isn't fixed.
 
 <a name="tty-verification"></a>
 
-### TTY Visual Verification (MANDATORY for rendering/visual bugs)
+### GUI Visual Verification (MANDATORY for rendering/visual bugs)
 
-**Any bug that affects what the user sees on screen** — colors, borders, layout, alignment,
-truncation, spacing, cursor rendering, fold/unfold appearance — **MUST be verified with
-TTY screenshot** in addition to headless tests. Headless tests check DOM/text content but
-do NOT catch all terminal rendering issues.
-
-**Two-layer verification:**
-1. **Headless regression test** (fast, runs in CI) — catches the bug programmatically so
-   it never regresses. This is the primary guard. Must be fast enough to run in `test:fast`.
-2. **TTY ad-hoc verification** (manual, not in CI) — proves the fix actually looks correct
-   on a real terminal. This is a one-time check at fix time, not part of the test suite.
-
-```bash
-# TTY verification — use mcp_tty tools or /explore --gui
-# 1. Launch TUI with test data that triggers the scenario
-# 2. Navigate to reproduce the bug's context
-# 3. Take screenshot — save to /tmp/verify-<bead-id>.png
-# 4. Visually confirm the fix looks correct on screen
-```
-
-**After TTY verification, evaluate the regression test:**
-- Does the headless test actually catch the visual issue? (e.g., wrong color, missing border)
-- If the headless test passes but the TTY screenshot still shows the bug → the regression
-  test is insufficient. Improve it: use `expectNodeColor`, `expectCellColor`, `expectRow`,
-  `expectNodeBorder`, or add new visual assertions to the test toolbelt.
-- Goal: the headless regression test should be good enough that if someone breaks this
-  again, the test fails — the TTY step is a calibration check, not the ongoing guard.
-
-**The close reason MUST state how visual verification was done:**
-- `Verified: headless + TTY screenshot (/tmp/verify-km-tui.xyz.png)`
-- `Verified: headless only — pure logic bug, no visual component`
-
-**If TTY is unavailable**, document why in the close reason and flag for future visual
-verification. Do NOT close a visual bug as "verified" with only headless tests.
+Any bug affecting what the user sees on screen requires **two-layer verification**: TUI regression test + GUI screenshot. Pure logic bugs need TUI tests only. **You MUST follow** the [two-layer verification protocol](../../tui/fix.md#two-layer-verification) — read it for the full procedure, calibration steps, and close reason requirements.
 
 <a name="close-reason-template"></a>
 
@@ -239,36 +192,36 @@ verification. Do NOT close a visual bug as "verified" with only headless tests.
 ```bash
 bd close <id> --reason "Fixed: <what changed, file:line>
 Test: <test file and test name>
-Verified: <how — headless/TTY/both, what was checked>"
+Verified: <how — TUI test/GUI/both, what was checked>"
 ```
 
-Example (visual bug — requires TTY):
+Example (visual bug — requires GUI verification):
 
 ```bash
 bd close km-tui.xyz --reason "Fixed: CardColumn.tsx:42 — guard against empty children array
 Test: apps/km-tui/tests/card-column.test.tsx 'handles empty children'
-Verified: headless (expectNodeBorder passes) + TTY screenshot (/tmp/verify-km-tui.xyz.png)
-  TTY: launched with item('board', item('col', item('task'))), pressed c, confirmed border renders correctly"
+Verified: TUI test (expectNodeBorder passes) + GUI screenshot (/tmp/verify-km-tui.xyz.png)
+  GUI: launched with item('board', item('col', item('task'))), pressed c, confirmed border renders correctly"
 ```
 
-Example (logic bug — no TTY needed):
+Example (logic bug — no GUI needed):
 
 ```bash
 bd close km-tui.abc --reason "Fixed: state.ts:128 — reset stickyX on OOB
 Test: apps/km-tui/tests/keyboard-navigation.test.tsx 'stickyX resets on boundary'
-Verified: headless only — pure state bug, no visual component"
+Verified: TUI tests only — pure state bug, no visual component"
 ```
 
 **IMPORTANT**: The close reason is the permanent record of what verification was done.
-Future sessions check this to know if TTY was performed. If a bead was closed without
-TTY verification but should have had it, re-open and verify.
+Future sessions check this to know if GUI verification was performed. If a bead was closed
+without GUI verification but should have had it, re-open and verify.
 
 **Do NOT close a bead without:**
 1. A **failing test written BEFORE** the fix (test-first is mandatory)
 2. The test now **passes** after the fix
 3. `bun run test:fast` passing (run it, don't assume)
-4. **TTY visual verification** for any rendering/visual bug (screenshot + visual confirm)
-5. A verification method stated in the close reason (headless-only OR headless+TTY)
+4. **GUI visual verification** for any rendering/visual bug (screenshot + visual confirm)
+5. A verification method stated in the close reason (TUI-tests-only OR TUI-test+GUI)
 6. The structured Fixed/Test/Verified format
 
 For non-trivial bugs, report to user first and wait for confirmation.
@@ -279,7 +232,7 @@ If this bug was found during a tracked session (session bead exists):
 
 ```bash
 # Log to session bead
-bd update <session-id> --append-notes "HH:MM — Fixed <bug-id>: <summary>. Verified: headless + TTY"
+bd update <session-id> --append-notes "HH:MM — Fixed <bug-id>: <summary>. Verified: TUI test + GUI"
 
 # Include session reference in bug close reason
 bd close <bug-id> --reason "Fixed: ... Session: <session-id>"
@@ -405,7 +358,7 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 - ❌ Guessing at fixes without reproducing bugs
 - ❌ Writing the fix before writing a failing test (test-first is mandatory)
 - ❌ Only using state assertions for visual bugs (use visual toolbelt)
-- ❌ Closing a visual/rendering bug with only headless verification (MUST use TTY screenshot)
+- ❌ Closing a visual/rendering bug with only TUI test verification (MUST use GUI screenshot)
 - ❌ Closing bead because "tests pass" without a test that specifically targets the bug
 - ❌ Closing bead before tests pass
 - ❌ Refactoring unrelated code "while I'm here"
@@ -426,10 +379,10 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 - [ ] The specific failing test now passes
 - [ ] `bun run test:fast` passes (no regressions)
 - [ ] `bun fix` passes
-- [ ] **TTY visual verification for rendering/visual bugs** (screenshot proves it looks right on screen)
+- [ ] **GUI visual verification for rendering/visual bugs** (screenshot proves it looks right on screen)
 - [ ] Recall searched for prior context
 - [ ] Root cause identified (not just symptom)
 - [ ] Detection gap analyzed (why tests missed it)
 - [ ] Prevention bead created (if non-trivial)
 - [ ] No console.log left
-- [ ] Evidence in close reason (Fixed/Test/Verified format, must state headless-only OR headless+TTY)
+- [ ] Evidence in close reason (Fixed/Test/Verified format, must state TUI-tests-only OR TUI-test+GUI)

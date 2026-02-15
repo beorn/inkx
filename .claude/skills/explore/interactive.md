@@ -102,7 +102,7 @@ Text output: [relevant section of mcp__tty__text]
 Screenshot: /tmp/explore-screenshots/NN-name.png
 ```
 
-Include **every key pressed** from session start — the reproducer needs this to write a headless test that recreates the exact state.
+Include **every key pressed** from session start — the reproducer needs this to write a TUI test that recreates the exact state.
 
 ## Budgets
 

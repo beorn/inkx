@@ -153,6 +153,6 @@ NOT every operation clears the selection. The rule depends on what happened to t
 
 For testing TUI appearance, see [tui.md](../tests/tui.md):
 
-- ttyd + Playwright for headless capture
-- Storybook for component isolation
+- TUI tests (vitest + inkx virtual buffer) for fast deterministic checks
+- GUI tests (TTY MCP) for pixel-level verification
 - DEBUG_LOG for correlating state with visuals

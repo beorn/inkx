@@ -15,7 +15,7 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 |-----------|--------|---------|
 | `/explore` (no args) | **Team exploration** — interactive TTY + background health check | See [team.md](team.md) |
 | `/explore <broad description>` | **Team exploration** — focused interactive + health check | See [team.md](team.md) |
-| `/explore <specific bug repro>` | Targeted bug repro — headless primary, interactive verify | See [targeted.md](targeted.md) + [team.md](team.md) |
+| `/explore <specific bug repro>` | Targeted bug repro — TUI tests primary, GUI verify | See [targeted.md](targeted.md) + [team.md](team.md) |
 | `/explore --fuzz` | Run fuzz suite only (no team, no TTY) | `bun test:fuzz` |
 | `/explore --gui` or `/explore --gui <path>` | Visual TTY mode (manual, no team) | See [TTY section](#gui-mode) below |
 | `/explore km view <path>` or `/explore --path <path>` | Test real vault with diagnostics | `TEST_VAULT=<path> bun vitest run apps/km-tui/tests/real-vault.test.ts` |
@@ -23,7 +23,7 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 
 **Session tracking**: Team and solo modes create a session bead (`km-session.<MMDD><seq>`) for persistent tracking. Quick modes (`--fuzz`, `--path`) skip this. See [reporting.md](reporting.md) for conventions.
 
-**Smart routing rule**: If the args describe *what to explore*, include interactive TTY as the main activity. If they describe *a specific bug to reproduce*, lead with headless but verify interactively. If `--fuzz`, tests only.
+**Smart routing rule**: If the args describe *what to explore*, include interactive TTY as the main activity. If they describe *a specific bug to reproduce*, lead with TUI tests but verify interactively. If `--fuzz`, tests only.
 
 **Do NOT**: read fuzz test source files, try deprecated scripts, or guess vitest CLI flags. The commands above work as-is.
 
@@ -32,7 +32,7 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 ```
 /explore                            # Team: interactive TTY + health check
 /explore recent batch ops           # Team: focused on batch operations area
-/explore cursor jumps after indent  # Targeted: headless repro + interactive verify
+/explore cursor jumps after indent  # Targeted: TUI test repro + GUI verify
 /explore --fuzz                     # Fuzz suite only (bun test:fuzz)
 /explore --gui                      # Manual visual mode with screenshots
 /explore --peekaboo                 # Inspect your live Ghostty terminal
@@ -85,12 +85,12 @@ FUZZ_SEED=12345 bun test:fuzz                    # Reproducible run
 | Mode | Speed | Use Case |
 |------|-------|----------|
 | **Interactive (team default)** | ~1/s per action | AI-driven TTY exploration — observe, hypothesize, investigate |
-| **Headless** | Fast (~1000/s) | `bun test:fuzz`, `TEST_VAULT=...`, DOM-level checks |
+| **TUI tests** | Fast (~1000/s) | `bun test:fuzz`, `TEST_VAULT=...`, DOM-level checks |
 | **GUI (`--gui`)** | ~1/s | Manual pixel verification, visual bugs |
 | **Peekaboo (`--peekaboo`)** | Interactive | Inspect live Ghostty terminal |
 | **Targeted** | Varies | User-described scenario first, then expand |
 
-**Mode selection**: `/explore` (no args or broad description) uses interactive TTY as the main activity with headless tests as a background health check. For specific bug repros, headless tests are primary. For `--fuzz`, tests only. See [interactive.md](interactive.md) for the interactive philosophy.
+**Mode selection**: `/explore` (no args or broad description) uses interactive TTY as the main activity with TUI tests as a background health check. For specific bug repros, TUI tests are primary. For `--fuzz`, tests only. See [interactive.md](interactive.md) for the interactive philosophy.
 
 <a name="gui-mode"></a>
 

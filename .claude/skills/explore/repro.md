@@ -1,6 +1,6 @@
 # Reproducing Unreproducible Bugs
 
-When a bug cannot be reproduced in headless testing (timing-dependent, terminal-specific, etc.):
+When a bug cannot be reproduced in TUI testing (timing-dependent, terminal-specific, etc.):
 
 ## Step 0: Search Prior Sessions
 

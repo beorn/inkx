@@ -1,5 +1,5 @@
 ---
-description: Debug and fix TUI rendering issues using headless tests
+description: Debug and fix TUI rendering issues using TUI tests
 argument-hint: [issue] (describe the visual bug, or "explore" for full check)
 ---
 
@@ -103,7 +103,7 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
 
 ## Visual Test Toolbelt
 
-Use the [visual assertion API](../tests/tui.md#visual-assertions) for rendering bugs. Key methods: `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()`.
+**You MUST read and use** the [visual assertion API](../tests/tui.md#visual-assertions) for rendering bugs — it has the full method list, color codes, and usage guidance.
 
 ```typescript
 const { board } = testEnv(() => item("board", item("col", item("task"))))
@@ -120,38 +120,40 @@ Every bug fix MUST satisfy all items before the bead can be closed:
 - [ ] Test passes after fix
 - [ ] `bun vitest run apps/km-tui/tests/` — no NEW failures introduced
 - [ ] `bun run test:fast` — full suite green
-- [ ] **TTY visual verification for rendering/visual bugs** — headless tests alone are NOT sufficient
-- [ ] Close reason uses structured format (see [bugs.md](../pm/workflows/bugs.md#close-reason-template))
+- [ ] **GUI visual verification for rendering/visual bugs** — TUI tests alone are NOT sufficient
+- [ ] Close reason uses structured format — **read** [bugs.md](../pm/workflows/bugs.md#close-reason-template) for the mandatory format
+
+<a name="two-layer-verification"></a>
 
 ### Two-Layer Verification (MANDATORY for visual/rendering bugs)
 
-Headless tests check DOM content and computed colors, but they do NOT catch all terminal
+TUI tests check DOM content and computed colors, but they do NOT catch all terminal
 rendering issues (pixel alignment, actual ANSI rendering, layout proportions, border
 continuity). Any bug that affects what the user **sees on screen** requires BOTH:
 
-1. **Headless regression test** (fast, runs in CI) — catches the bug programmatically so
+1. **TUI regression test** (fast, runs in CI) — catches the bug programmatically so
    it never regresses. Must be fast enough for `test:fast`. This is the ongoing guard.
-2. **TTY ad-hoc verification** (manual, not in CI) — a one-time check at fix time that
+2. **GUI verification** (manual, not in CI) — a one-time check at fix time that
    proves the fix actually looks correct on a real terminal.
 
 ```bash
 # Use mcp_tty tools to launch TUI, reproduce scenario, screenshot
 # Save as /tmp/verify-<bead-id>.png
-# Close reason must reference: "Verified: headless + TTY screenshot"
+# Close reason must reference: "Verified: TUI test + GUI screenshot"
 ```
 
-**After TTY verification, calibrate the regression test:**
-- If the headless test passes but TTY still shows the bug → the test is insufficient.
+**After GUI verification, calibrate the regression test:**
+- If the TUI test passes but GUI still shows the bug, the test is insufficient.
   Improve it with better visual assertions (`expectNodeColor`, `expectCellColor`,
   `expectRow`, `expectNodeBorder`).
-- Goal: the headless test should catch future regressions without needing TTY again.
-  TTY is the calibration step, not the ongoing guard.
+- Goal: the TUI test should catch future regressions without needing GUI verification again.
+  GUI is the calibration step, not the ongoing guard.
 
 **Pure logic bugs** (wrong state, bad cursor position, missing data) can be verified with
-headless tests only. The close reason should state: `Verified: headless only — no visual component`.
+TUI tests only. The close reason should state: `Verified: TUI tests only — no visual component`.
 
-**Do NOT close a visual bead if TTY verification is unchecked.** If TTY is unavailable,
-document why and flag for future visual verification.
+**Do NOT close a visual bead if GUI verification is unchecked.** If GUI tools are unavailable,
+document why and flag for future GUI verification.
 
 ## Quick Start (Synthetic Data)
 

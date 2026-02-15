@@ -86,9 +86,9 @@ Control+c, Control+d, Shift+Tab (modifiers)
 
 ---
 
-## Headless Screenshots (Preferred)
+## In-Process Screenshots (Preferred)
 
-For most cases, prefer headless `app.screenshot()` over TTY MCP. The inkx App now supports direct screenshot capture:
+For most cases, prefer in-process `app.screenshot()` over TTY MCP. The inkx App now supports direct screenshot capture:
 
 ```typescript
 const driver = createBoardDriver(repo, rootId)
@@ -145,7 +145,7 @@ bun tools/tty.ts capture --command "bun km view /path" --wait-for "BOARD" --text
 | Need | Use |
 |------|-----|
 | Automated TUI tests | [TUI tests (inkx)](tui.md) |
-| Headless screenshots | `app.screenshot()` / `withDiagnostics({ captureOnFailure })` |
+| In-process screenshots | `app.screenshot()` / `withDiagnostics({ captureOnFailure })` |
 | Pixel-level verification | TTY MCP `mcp__tty__screenshot` |
 | Debug visual issue | TTY MCP |
 | One-shot capture | `bun tools/tty.ts capture` |
