@@ -100,6 +100,19 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
    Never leave `*-repro*`, `*-debug*`, or `*-profile*` test files in the repo.
    Use `.scratch.ts` (not `.test.ts`) for temporary investigation files so they don't run in test suites.
 
+## Definition of Done (Mandatory)
+
+Every bug fix MUST satisfy all items before the bead can be closed:
+
+- [ ] Failing test written that reproduces the bug
+- [ ] Test passes after fix
+- [ ] `bun vitest run apps/km-tui/tests/` — no NEW failures introduced
+- [ ] `bun run test:fast` — full suite green
+- [ ] Visual verification (describe what was checked; if no TTY, explain headless equivalent)
+- [ ] Close reason uses structured format (see [bugs.md](../pm/workflows/bugs.md#close-reason-template))
+
+**Do NOT close a bead if any item is unchecked.** If you cannot complete an item (e.g., no TTY available for visual verification), document why in the close reason.
+
 ## Quick Start (Synthetic Data)
 
 For issues without a specific vault:

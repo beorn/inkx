@@ -50,8 +50,14 @@ bun recall -r -s 1w "error"
 # Tool-specific messages
 bun recall -t Write -p "*km*" -s 1d
 
-# Content types: p=plan, m=message, s=summary, t=todo, f=first_prompt
+# Content types: p=plan, m=message, s=summary, t=todo, f=first_prompt, k=skill
 bun recall -i p,m "refactor"
+
+# Skill invocations — find past uses of /pm, /explore, etc.
+bun recall -k "bug"           # All skill invocations mentioning "bug"
+bun recall -k pm              # Only /pm invocations
+bun recall -k explore -s 1w   # /explore invocations this week
+bun recall -i k "deploy"      # Same as -k but via include flag
 
 # Regex search (slower, scans raw files)
 bun recall -g "function\s+\w+Async"
@@ -108,7 +114,8 @@ bun recall index --incremental   # Update new sessions only
 | `-r, --response` | Only assistant responses (implies --raw) |
 | `-t, --tool <name>` | Messages with specific tool (implies --raw) |
 | `--session <id>` | Specific session (implies --raw) |
-| `-i, --include <types>` | Content types: p,m,s,t,f (implies --raw) |
+| `-k, --skill [name]` | Skill invocations only, optionally filter by name (implies --raw) |
+| `-i, --include <types>` | Content types: p,m,s,t,f,b,e,d,c,k (implies --raw) |
 
 ## Time Formats
 

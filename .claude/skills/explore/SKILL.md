@@ -130,6 +130,44 @@ driver.cmd.describe() // Human/AI-readable command list
 - Fuzz testing: Random command sequences with invariant checks
 - Acceptance tests: Verify cursor movement, dialog state, navigation
 
+## Test Sweep — Find and Fix Broken Tests
+
+After multi-agent sessions, tests may be left broken. Run a test sweep to find and fix them.
+
+**How to run:**
+
+```bash
+# Run the fast suite and look for failures
+cd /Users/beorn/Code/pim/km ; bun run test:fast | head -400
+
+# If output is too long and saved to a file, scan for failures
+grep "FAIL\|Error\|✗\|×" <saved-output-file>
+
+# Run specific package tests for targeted sweep
+bun vitest run apps/km-tui/tests/
+bun vitest run packages/km-storage/tests/
+bun vitest run packages/km-markdown/tests/
+```
+
+**Triage failures:**
+
+| Failure type | Action |
+|---|---|
+| Test references removed/renamed code | Update test to match current code |
+| Test expects old behavior after intentional change | Update assertion to match new behavior |
+| Test has a genuine bug (regression) | Fix the bug, don't just fix the test |
+| Flaky test (passes on re-run) | Add `.retry(2)` or fix the race condition |
+| Test file left as `*-repro*` or `*-debug*` | Promote to regression test or delete |
+
+**After fixing:**
+
+```bash
+bun run test:fast    # Confirm all green
+bun fix              # Lint + format
+```
+
+Create beads for any genuine regressions found. For test-only fixes (updating assertions after intentional changes), no bead needed.
+
 ## Sub-Skills
 
 | File | Purpose |

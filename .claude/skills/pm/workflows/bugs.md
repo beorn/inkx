@@ -131,8 +131,11 @@ Document if non-obvious:
 
 ## Step 5: Verify & Close
 
+**Mandatory before closing any bug bead:**
+
 ```bash
-bun run test:fast  # Should pass
+bun run test:fast    # MUST pass — no new failures
+bun fix              # MUST pass — lint + format clean
 ```
 
 **For TUI bugs** - visual comparison:
@@ -145,11 +148,28 @@ HEADLESS=true bun x playwright screenshot \
 open /tmp/bug-before.png /tmp/bug-after.png
 ```
 
-**Close:**
+<a name="close-reason-template"></a>
+
+**Close with structured reason (mandatory format):**
 
 ```bash
-bd close <id> --reason "Fixed in <file>:<line>. Test: <test name> passes."
+bd close <id> --reason "Fixed: <what changed, file:line>
+Test: <test file and test name>
+Verified: <how — headless/TTY/both, what was checked>"
 ```
+
+Example:
+
+```bash
+bd close km-tui.xyz --reason "Fixed: CardColumn.tsx:42 — guard against empty children array
+Test: apps/km-tui/tests/card-column.test.tsx 'handles empty children'
+Verified: headless — empty column renders placeholder, no blank cards"
+```
+
+**Do NOT close a bead without:**
+1. `bun run test:fast` passing (run it, don't assume)
+2. A verification method stated in the close reason
+3. The structured Fixed/Test/Verified format
 
 For non-trivial bugs, report to user first and wait for confirmation.
 
