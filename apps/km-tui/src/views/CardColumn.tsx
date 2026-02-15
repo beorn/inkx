@@ -322,21 +322,6 @@ export const Column = React.memo(function Column({
   const warningIndicator = wipExceeded ? " \u26A0" : ""
   const collapsedIndicator = isCollapsed ? " \u25B8" : ""
 
-  // Calculate available width for header name text.
-  // Header layout: [padding=1][icon(1)+space(1)][name...][space+count][padding=1]
-  // The outer header row has width={width-1}. Subtract padding (2), icon+space (2), and count display.
-  const countWidth = 1 + countDisplay.length + (wipExceeded ? warningIndicator.length : 0)
-  const availableNameWidth = width - 1 - 2 - 2 - countWidth
-
-  // Determine which decorations fit alongside the display name.
-  // Priority: name > typeSuffix > sigil suffix. Omit decorations that would
-  // cause truncation to eat into the display name itself.
-  const sigilName = !isVirtual && isSigilName(column.node.name) && column.node.name !== name
-    ? column.node.name
-    : null
-  const showSigilSuffix = sigilName != null && name.length + 1 + sigilName.length <= availableNameWidth
-  const showTypeSuffix = typeSuffix != null && name.length + (showSigilSuffix ? 1 + (sigilName?.length ?? 0) : 0) + 1 + typeSuffix.length <= availableNameWidth
-
   const isColumnSelected = isSelected && selectionLevel === "column"
   const headerStyle = isInlineEditing
     ? {
@@ -477,14 +462,14 @@ export const Column = React.memo(function Column({
                     ) : (
                       name
                     )}
-                    {showSigilSuffix && (
+                    {!isVirtual && isSigilName(column.node.name) && column.node.name !== name && (
                       <>
                         {" "}
-                        <Text dimColor>{sigilName}</Text>
+                        <Text dimColor>{column.node.name}</Text>
                       </>
                     )}
                   </Text>
-                  {showTypeSuffix ? (
+                  {typeSuffix ? (
                     <Text
                       color={isColumnSelected ? "gray" : undefined}
                       dimColor={!isColumnSelected}
