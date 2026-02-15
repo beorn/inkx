@@ -14,12 +14,12 @@ import { testEnv, item } from "./helpers/board-test.ts"
 import { stripAnsi } from "inkx"
 
 describe("HR display", () => {
-  test("HR node (type=hr) renders as horizontal line with box-drawing characters", () => {
+  test("HR node (type=hr) renders as horizontal line, NOT as node ID", () => {
     const { board } = testEnv(
       () =>
         item(
           "board",
-          item("col1", item("task-above"), item.hr("hr-node"), item("task-below")),
+          item("col1", item("task-above"), item.hr("my-hr-node"), item("task-below")),
         ),
       { columns: 60, rows: 20 },
     )
@@ -30,6 +30,8 @@ describe("HR display", () => {
     // Normal items should also be visible
     expect(text).toContain("task-above")
     expect(text).toContain("task-below")
+    // HR should NOT show its node ID
+    expect(text).not.toContain("my-hr-node")
   })
 
   test("item with content '---' renders as horizontal line", () => {

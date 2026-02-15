@@ -35,6 +35,8 @@ interface LookupOptions {
  * Supports both prefix matching (start of ID) and suffix matching (end of ID).
  * The CLI displays short IDs using the last 8 chars (suffix), so we try both.
  *
+ * Returns null when a prefix/suffix matches multiple nodes (ambiguous).
+ *
  * @param idPrefix - The ID or partial ID to search for
  * @param options - Optional filters (type or taskOnly)
  */
@@ -55,30 +57,30 @@ function getNodeByIdPrefixWithOptions(db: Database, idPrefix: string, options?: 
 
   const filterClause = filters.length > 0 ? " AND " + filters.join(" AND ") : ""
 
-  // Try exact match first
-  let row = db.query(`SELECT * FROM nodes WHERE id = ?${filterClause}`).get(idPrefix, ...filterParams) as Record<
+  // Try exact match first (unambiguous by definition)
+  const exactRow = db.query(`SELECT * FROM nodes WHERE id = ?${filterClause}`).get(idPrefix, ...filterParams) as Record<
     string,
     unknown
   > | null
 
-  if (row) return rowToNode(row)
+  if (exactRow) return rowToNode(exactRow)
 
-  // Try prefix match (ID starts with input)
-  row = db.query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`).get(`${idPrefix}%`, ...filterParams) as Record<
-    string,
-    unknown
-  > | null
+  // Try prefix match (ID starts with input) — return null if ambiguous
+  const prefixRows = db
+    .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause} LIMIT 2`)
+    .all(`${idPrefix}%`, ...filterParams) as Record<string, unknown>[]
 
-  if (row) return rowToNode(row)
+  if (prefixRows.length === 1) return rowToNode(prefixRows[0]!)
 
-  // Try suffix match (ID ends with input) - for short IDs displayed as last 8 chars
-  row = db.query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause}`).get(`%${idPrefix}`, ...filterParams) as Record<
-    string,
-    unknown
-  > | null
+  // Try suffix match (ID ends with input) — return null if ambiguous
+  // Used for short IDs displayed as last 8 chars
+  const suffixRows = db
+    .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause} LIMIT 2`)
+    .all(`%${idPrefix}`, ...filterParams) as Record<string, unknown>[]
 
-  if (!row) return null
-  return rowToNode(row)
+  if (suffixRows.length === 1) return rowToNode(suffixRows[0]!)
+
+  return null
 }
 
 /**

@@ -15,6 +15,7 @@ import {
   isNodeUntitled as isNodeUntitledBase,
   getCollapsedTypeSuffix as getCollapsedTypeSuffixBase,
   getParentContext as getParentContextBase,
+  getParentContextEx as getParentContextExBase,
   extractBody,
 } from "@km/tree"
 
@@ -69,6 +70,11 @@ export const getParentContext = (
   node: Parameters<typeof getParentContextBase>[0],
   skipParentId?: string | null,
 ) => getParentContextBase(node, skipParentId, (id) => repo.getNode(id))
+export const getParentContextEx = (
+  repo: Repo,
+  node: Parameters<typeof getParentContextExBase>[0],
+  skipParentId?: string | null,
+) => getParentContextExBase(node, skipParentId, (id) => repo.getNode(id))
 
 /**
  * Create an empty board state

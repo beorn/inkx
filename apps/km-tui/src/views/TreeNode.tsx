@@ -14,9 +14,9 @@ import type { JobRunner } from "@km/core"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback, stripAnsi } from "inkx"
 import type { KNode } from "@km/core"
-import { extractTitleTaskMarker, isBlock } from "@km/core"
+import { extractTitleTaskMarker, hasTaskProperties, isBlock } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
-import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState } from "../state.ts"
+import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState, getParentContextEx as getParentContextExFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
 import {
   renderRich,
@@ -105,7 +105,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   if (prev.dim !== next.dim) return false
   if (prev.compactContent !== next.compactContent) return false
 
-  // Node content that affects display
+  // Node content that affects display (includes implicit task properties)
   if (
     prev.node.content !== next.node.content ||
     prev.node.task_status !== next.node.task_status ||
@@ -115,6 +115,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     prev.node.scheduled_time !== next.node.scheduled_time ||
     prev.node.priority !== next.node.priority ||
     prev.node.recurrence !== next.node.recurrence ||
+    prev.node.assigned_to !== next.node.assigned_to ||
     prev.node.type !== next.node.type
   ) {
     return false
@@ -223,12 +224,14 @@ function TreeNodeImpl({
     `TreeNode ${sid(node.id)} children=${children.length} childCount=${childCount} content=${displayNode.content?.slice(0, 30) ?? "(empty)"}`,
   )
 
-  // A node is a task if it has task_status set, regardless of structural type
-  // For embeds, check the target node's status
-  const isTask = displayNode.task_status != null
+  // A node is a task if it has task_status set, or has task-related properties
+  // (due_date, priority, scheduled_date, assigned_to, recurrence).
+  // For embeds, check the target node's status/properties.
+  const isTask = displayNode.task_status != null || hasTaskProperties(displayNode)
 
   // Memoize style calculation - only recalc when selection or node status changes
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
+  // Include implicit task properties in deps so style recalculates when they change
   const style = useMemo(() => {
     const s = getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing)
     if (dim) s.shouldDim = true
@@ -236,6 +239,11 @@ function TreeNodeImpl({
   }, [
     displayNode.id,
     displayNode.task_status,
+    displayNode.due_date,
+    displayNode.priority,
+    displayNode.scheduled_date,
+    displayNode.assigned_to,
+    displayNode.recurrence,
     isSelected,
     isMultiSelected,
     dimInactiveChildren,
@@ -472,8 +480,29 @@ function TreeNodeImpl({
       : depth === 0 && isTask && isEmbedded
         ? resolvedGetParentContext(node)
         : null
-  // Suppress parent context if it matches an excluded sigil (redundant on that board/column)
-  const parentContext = rawParentContext && excludedSigils.includes(rawParentContext) ? null : rawParentContext
+  // Suppress parent context if it matches an excluded sigil (redundant on that board/column).
+  // Check both the display name AND the source node's sigil name / fs_path.
+  // This handles the case where a column is "@next" but its display name is "Next Actions".
+  const parentContext = useMemo(() => {
+    if (!rawParentContext) return null
+    // Direct match: display name is in excluded sigils
+    if (excludedSigils.includes(rawParentContext)) return null
+    // Extended check: resolve the parent context source node and compare its name/fs_path
+    if (parentContextProp === undefined && depth === 0 && isTask && isEmbedded) {
+      const result = getParentContextExFromState(repo, node)
+      if (result) {
+        // Check if the source node's name (sigil) is excluded
+        if (result.nodeName && excludedSigils.includes(result.nodeName)) return null
+        // Check if the source node's fs_path matches an excluded sigil
+        if (result.fsPath) {
+          const filename = result.fsPath.split("/").pop() || ""
+          const fsName = filename.replace(/\.md$/, "")
+          if (excludedSigils.includes(fsName)) return null
+        }
+      }
+    }
+    return rawParentContext
+  }, [rawParentContext, excludedSigils, parentContextProp, depth, isTask, isEmbedded, repo, node])
 
   // Context suffix (shown inline for oneliner variant only)
   const truncatedContext = isOneliner
@@ -596,7 +625,7 @@ function TreeNodeImpl({
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
           {dateBadge && (
             <Box flexShrink={0}>
-              <Text wrap="truncate">
+              <Text color={style.textColor} wrap="truncate">
                 {" "}{isHighlighted ? stripAnsi(dateBadge) : dateBadge}
               </Text>
             </Box>
@@ -623,8 +652,8 @@ function TreeNodeImpl({
           const blockIndex = i + 1 // 0 is title
           const isActiveBlock = editBlockIndex === blockIndex
           return (
-            <Box key={child.id} paddingLeft={depth + 1}>
-              <Text dimColor>{"  "}</Text>
+            <Box key={child.id} paddingLeft={depth + 1} backgroundColor={isActiveBlock ? "blueBright" : undefined}>
+              <Text dimColor={!isActiveBlock} color={isActiveBlock ? "white" : "cyan"}>{"  "}</Text>
               {isActiveBlock ? (
                 <InlineEditField
                   initialValue={child.content ?? ""}
@@ -664,7 +693,7 @@ function TreeNodeImpl({
                   }}
                 />
               ) : (
-                <Text dimColor>{renderRich(child.content ?? "")}</Text>
+                <Text color="cyan" dimColor>{renderRich(child.content ?? "")}</Text>
               )}
             </Box>
           )
@@ -756,6 +785,11 @@ function getDisplayContent(
   if (isEmbedded) {
     // Unresolved embed — extract target name from ![[target]] syntax
     return node.content?.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1") ?? getNodeDisplayName(repo, node)
+  }
+  // Content with embed syntax ![[target]] but link_to not set (unresolved embed)
+  // Strip the ![[...]] wrapper so it doesn't render as "!Target" in the TUI
+  if (displayNode.content && /^!\[\[.+\]\]$/.test(displayNode.content.trim())) {
+    return displayNode.content.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1")
   }
   if (displayNode.type === "oi" && displayNode.fstype === "mdsection") {
     return getNodeDisplayName(repo, displayNode)

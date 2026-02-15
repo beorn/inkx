@@ -185,6 +185,30 @@ export function extractTitleTaskMarker(text: string): {
 }
 
 // =============================================================================
+// Implicit Task Detection
+// =============================================================================
+
+/**
+ * Check if a node has task-related properties set, indicating it should be
+ * treated as an implicit task even without an explicit task_status.
+ *
+ * Properties checked: due_date, priority (1-4), scheduled_date, assigned_to, recurrence.
+ *
+ * @example hasTaskProperties({ due_date: "2026-02-20" } as KNode) // true
+ * @example hasTaskProperties({ priority: 2 } as KNode) // true
+ * @example hasTaskProperties({} as KNode) // false
+ */
+export function hasTaskProperties(node: Pick<KNode, "due_date" | "priority" | "scheduled_date" | "assigned_to" | "recurrence">): boolean {
+  return !!(
+    node.due_date ||
+    (node.priority && node.priority >= 1 && node.priority <= 4) ||
+    node.scheduled_date ||
+    node.assigned_to ||
+    node.recurrence
+  )
+}
+
+// =============================================================================
 // Source Type - Where a node comes from
 // =============================================================================
 

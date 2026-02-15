@@ -741,18 +741,26 @@ export function testEnv(
       const box = loc.boundingBox()
       expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
       if (!box) return board
+      // The nodeBox is the TreeNode content area INSIDE the Card's bordered Box.
+      // Border characters are 1 cell outside the nodeBox on each side.
+      const borderLeft = box.x - 1
+      const borderRight = box.x + box.width
       for (let y = box.y; y < box.y + box.height; y++) {
-        const leftCell = result.term.cell(box.x, y)
-        const rightCell = result.term.cell(box.x + box.width - 1, y)
         const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
-        expect(
-          isBorderChar(leftCell.char),
-          `node "${nodeId}" left border at y=${y}: got "${leftCell.char}"`,
-        ).toBe(true)
-        expect(
-          isBorderChar(rightCell.char),
-          `node "${nodeId}" right border at y=${y}: got "${rightCell.char}"`,
-        ).toBe(true)
+        if (borderLeft >= 0) {
+          const leftCell = result.term.cell(borderLeft, y)
+          expect(
+            isBorderChar(leftCell.char),
+            `node "${nodeId}" left border at (${borderLeft},${y}): got "${leftCell.char}"`,
+          ).toBe(true)
+        }
+        if (borderRight < columns) {
+          const rightCell = result.term.cell(borderRight, y)
+          expect(
+            isBorderChar(rightCell.char),
+            `node "${nodeId}" right border at (${borderRight},${y}): got "${rightCell.char}"`,
+          ).toBe(true)
+        }
       }
       return board
     },
@@ -766,12 +774,16 @@ export function testEnv(
       const box = loc.boundingBox()
       expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
       if (!box) return board
-      const leftCell = result.term.cell(box.x, box.y)
+      // Check 1 cell outside the nodeBox (where Card border would be)
+      const borderLeft = box.x - 1
       const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
-      expect(
-        isBorderChar(leftCell.char),
-        `node "${nodeId}" should not have border at (${box.x},${box.y}): got "${leftCell.char}"`,
-      ).toBe(false)
+      if (borderLeft >= 0) {
+        const leftCell = result.term.cell(borderLeft, box.y)
+        expect(
+          isBorderChar(leftCell.char),
+          `node "${nodeId}" should not have border at (${borderLeft},${box.y}): got "${leftCell.char}"`,
+        ).toBe(false)
+      }
       return board
     },
 

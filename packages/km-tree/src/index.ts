@@ -37,6 +37,8 @@ export {
   collapseRedundantAncestors,
   collapseAncestorsWithTypes,
   getParentContext,
+  getParentContextEx,
+  type ParentContextResult,
   type GetChildrenFn,
   type GetNodeFn,
   type CollapsedAncestor,

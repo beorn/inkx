@@ -320,7 +320,7 @@ export function BoardCore({
                               ? COLLAPSED_WIDTH
                               : getColumnWidth(expandedIdx++, widths.baseColWidth, widths.remainder)
                             return (
-                              <React.Fragment key={col.node.id}>
+                              <React.Fragment key={`${col.node.id}${isColCollapsed ? "-c" : ""}`}>
                                 <Column
                                   column={col}
                                   colIndex={actualColIndex}

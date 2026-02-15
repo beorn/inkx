@@ -317,13 +317,13 @@ function checkAmbiguity(matches: KNode[], matchType: string, q: string): KNode |
     }
   }
 
-  // Truly ambiguous - warn the user
-  log.warn?.(`Ambiguous resolution for '${q}' - ${matches.length} matches found (using first)`, {
+  // Truly ambiguous - return null instead of silently picking one
+  log.debug?.(`Ambiguous resolution for '${q}' - ${matches.length} ${matchType} matches, returning null`, {
     query: q,
     matchType,
     matches: matches.map((n) => n.id),
   })
-  return best
+  return null
 }
 
 /**

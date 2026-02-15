@@ -163,6 +163,32 @@ const Card = React.memo(
       return { hasOverflow: total > 0, hiddenCount: total }
     }, [directHidden, card.children, maxChildren, repo])
 
+    // HR nodes render as borderless horizontal lines (checked before virtual body)
+    if (card.node.type === "hr") {
+      return (
+        <Box flexDirection="column" flexShrink={0} width={width} height={1}>
+          <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
+          <Box
+            id={nodeId}
+            data-view="item"
+            {...(isSelected && {
+              "data-cursor": true,
+              "data-col-index": colIndex,
+              "data-card-index": cardIndex,
+            })}
+          >
+            <Text
+              color={isSelected || isMultiSelected ? "yellow" : undefined}
+              dimColor={!isSelected && !isMultiSelected}
+              wrap="truncate"
+            >
+              {"─".repeat(width)}
+            </Text>
+          </Box>
+        </Box>
+      )
+    }
+
     // Virtual body content renders with a very dim border and de-emphasized text
     // This includes: cards in virtual columns OR individual virtual body cards
     if (isVirtualColumn || card.isVirtual) {
@@ -449,6 +475,7 @@ export const Column = React.memo(function Column({
       >
         <Box
           flexDirection="column"
+          width={width}
           flexGrow={1}
           borderStyle="round"
           borderColor={borderColor}

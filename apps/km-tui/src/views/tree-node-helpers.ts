@@ -4,7 +4,7 @@
  * Pure functions extracted from TreeNode for testability and clarity.
  */
 
-import { extractTitleTaskMarker, type KNode } from "@km/core"
+import { extractTitleTaskMarker, hasTaskProperties, type KNode } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
@@ -75,12 +75,15 @@ export function getNodeStyle(
   depth: number,
   isInlineEditing = false,
 ): NodeStyleResult {
-  // A node is a task if it has task_status set, regardless of structural type
-  const isTask = node.task_status != null
+  // A node is a task if it has task_status set, or has task-related properties
+  // (due_date, priority, scheduled_date, assigned_to, recurrence)
+  const isExplicitTask = node.task_status != null
+  const isTask = isExplicitTask || hasTaskProperties(node)
   const ownColor = getOwnColor(node)
 
   // Task status icon: prepended to content for tasks
-  const taskStatusIcon = isTask ? getStatusIcon(node.task_status) : null
+  // For implicit tasks (no explicit status), show the "todo" icon
+  const taskStatusIcon = isTask ? getStatusIcon(node.task_status ?? "todo") : null
 
   // Background/text colors
   // Node colors only affect the fold marker icon, NOT the background
@@ -100,7 +103,8 @@ export function getNodeStyle(
   // No colored background for nodes with ownColor - color only applies to fold marker
 
   // Dim state for done/dropped tasks (no strikethrough per design)
-  const isDoneOrDropped = isTask && (node.task_status === "done" || node.task_status === "dropped")
+  // Only explicit task statuses trigger dimming — implicit tasks are never dimmed
+  const isDoneOrDropped = isExplicitTask && (node.task_status === "done" || node.task_status === "dropped")
   const isInactiveChild = dimInactiveChildren && depth > 0
   const shouldDim = isDoneOrDropped || isInactiveChild
   const shouldStrikethrough = false // Disabled per design decision
@@ -206,6 +210,19 @@ function formatDueDisplay(dateStr: string): string {
   return text
 }
 
+/**
+ * Format a scheduled/start date with coloring:
+ * - Today/Tomorrow: green (actionable now)
+ * - Future: no color
+ * - Past: no color (past start dates are already hidden for WIP)
+ */
+function formatScheduledDisplay(dateStr: string): string {
+  const diff = daysFromToday(dateStr)
+  const text = formatRelativeDate(dateStr)
+  if (diff >= 0 && diff <= 1) return `${GREEN}${text}${RESET}`
+  return text
+}
+
 // Priority ANSI colors: P1=red, P2=yellow, P3=bright yellow, P4=dim
 const PRIORITY_COLORS = ["\x1b[31m", "\x1b[33m", "\x1b[93m", "\x1b[2m"]
 
@@ -232,9 +249,9 @@ export function formatDateBadge(node: KNode): string {
   const hasDue = !!node.due_date
 
   if (showStart && hasDue) {
-    parts.push(`${formatRelativeDate(node.scheduled_date!)} → ${formatDueDisplay(node.due_date!)}`)
+    parts.push(`${formatScheduledDisplay(node.scheduled_date!)} → ${formatDueDisplay(node.due_date!)}`)
   } else if (showStart) {
-    parts.push(`${formatRelativeDate(node.scheduled_date!)} →`)
+    parts.push(`${formatScheduledDisplay(node.scheduled_date!)} →`)
   } else if (hasDue) {
     parts.push(formatDueDisplay(node.due_date!))
   }
@@ -263,8 +280,8 @@ export function formatInfoSuffix(
   excludeBoardIds: Set<string>,
   getBoardPills: GetBoardPillsFn,
 ): string {
-  // A node is a task if it has task_status set, regardless of structural type
-  const isTask = node.task_status != null
+  // A node is a task if it has task_status set, or has task-related properties
+  const isTask = node.task_status != null || hasTaskProperties(node)
 
   // Board pills - show which boards this task is on
   const boardPills = isTask ? getBoardPills(node, excludeBoardIds) : []

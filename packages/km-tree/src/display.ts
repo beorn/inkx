@@ -347,3 +347,71 @@ export function getParentContext(node: KNode, skipParentId?: string | null, getN
 
   return null
 }
+
+/**
+ * Extended parent context result with source node metadata.
+ * Used for sigil-aware suppression in board views.
+ */
+export interface ParentContextResult {
+  /** Display name of the parent (same as getParentContext return value) */
+  displayName: string
+  /** The parent node's name (sigil-style, e.g., "@next") if available */
+  nodeName: string | undefined
+  /** The parent node's fs_path if available */
+  fsPath: string | undefined
+}
+
+/**
+ * Get parent context with source node metadata.
+ * Same logic as getParentContext, but returns richer data for sigil-aware suppression.
+ */
+export function getParentContextEx(
+  node: KNode,
+  skipParentId?: string | null,
+  getNode?: GetNodeFn,
+): ParentContextResult | null {
+  if (!getNode) return null
+
+  let targetNode = node
+  if (node.link_to) {
+    const originalNode = getNode(node.link_to)
+    if (originalNode) {
+      targetNode = originalNode
+    }
+  }
+
+  if (!targetNode.parent_id) return null
+
+  let currentId: string | null = targetNode.parent_id
+
+  while (currentId) {
+    if (skipParentId && currentId === skipParentId) {
+      const parent = getNode(currentId)
+      currentId = parent?.parent_id ?? null
+      continue
+    }
+
+    const parent = getNode(currentId)
+    if (!parent) break
+
+    if (parent.type === "oi" && (parent.fstype === "file" || parent.fstype === "mdfile")) {
+      return {
+        displayName: getNodeDisplayName(parent),
+        nodeName: parent.name,
+        fsPath: parent.fs_path,
+      }
+    }
+
+    if (parent.type === "oi" && parent.fstype === "mdsection" && !parent.rules) {
+      return {
+        displayName: getNodeDisplayName(parent),
+        nodeName: parent.name,
+        fsPath: parent.fs_path,
+      }
+    }
+
+    currentId = parent.parent_id
+  }
+
+  return null
+}
