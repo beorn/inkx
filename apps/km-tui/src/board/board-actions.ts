@@ -283,6 +283,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // Collapse the column (not the card) — use column node ID
       const collapseNodeId = col?.node.id
       if (!collapseNodeId) return boundary("collapse", "No column to collapse")
+      // Virtual body columns (synthetic __body__ IDs) don't exist in the repo
+      // and cannot be collapsed — return boundary to ring the bell.
+      if (collapseNodeId.startsWith("__body__")) return boundary("collapse", "Body column cannot be collapsed")
       const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
       // Persist collapsed state to node.data so it survives across sessions
       const colNode = ctx.repo.getNode(collapseNodeId)
