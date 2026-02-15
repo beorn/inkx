@@ -1,543 +1,231 @@
 /**
  * Beads Command (bd)
  *
- * Issue tracking integrated with km storage.
- * Thin CLI wrapper around @km/beads package.
+ * Thin proxy to the standalone `bd` binary with km-specific native commands.
+ * Tier 1-4 commands (list, show, create, update, close, ready, dep, search,
+ * query, blocked, stale, children, epic, etc.) proxy directly to bd.
+ * Tier 5 commands (info, where, config, migrate, export) are handled natively.
  */
 
 import { Command } from "@commander-js/extra-typings"
+import { spawnSync } from "child_process"
 import { createTerm } from "inkx"
-
-const term = createTerm(process)
-import {
-  queryReady,
-  queryIssues,
-  createIssueNode,
-  updateIssueFields,
-  closeIssueFields,
-  dropIssueFields,
-  addDependency,
-  removeDependency,
-  getDependencies,
-  type Issue,
-  type IssueFilter,
-} from "@km/beads"
-import { resolvePathArg, loadConfigObject } from "@km/storage"
-import { loadRepo } from "../load-repo.ts"
 import { join } from "path"
 import { existsSync } from "fs"
+import { resolvePathArg, loadConfigObject } from "@km/storage"
+import { queryIssues } from "@km/beads"
+import { loadRepo } from "../load-repo.ts"
 
-// Import from extracted modules
-import { issueToBdJson, printIssue, printReadyIssue, printIssueDetails } from "./bd-format.ts"
-import { resolveIssueArg } from "./bd-query-helpers.ts"
+// Import Tier 5 native subcommands
 import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
 
-// Commander option interfaces
-interface ReadyOptions {
-  type?: string
-  assignee?: string
-  priority?: number
-  all?: boolean
-  json?: boolean
+const term = createTerm(process)
+
+/**
+ * Resolve km repo root, falling back to cwd on error.
+ */
+function getRepoRoot(): string {
+  try {
+    return resolvePathArg(undefined).repoRoot
+  } catch {
+    return process.cwd()
+  }
 }
 
-interface ListOptions {
-  status?: string
-  type?: string
-  assignee?: string
-  priority?: number
-  blocked?: boolean
-  unblocked?: boolean
-  all?: boolean
-  json?: boolean
+/**
+ * Proxy args to the standalone bd binary.
+ * Runs from km repo root with inherited env (BD_ACTOR set by session prehook).
+ */
+function proxyToBd(args: string[]): void {
+  const result = spawnSync("bd", args, {
+    cwd: getRepoRoot(),
+    env: process.env,
+    stdio: "inherit",
+  })
+
+  if (result.error) {
+    const err = result.error as NodeJS.ErrnoException
+    if (err.code === "ENOENT") {
+      console.error(term.red("bd binary not found. Install with: brew install beads"))
+    } else {
+      console.error(term.red(`Failed to run bd: ${result.error.message}`))
+    }
+    process.exitCode = 1
+    return
+  }
+
+  if (result.status !== null && result.status !== 0) {
+    process.exitCode = result.status
+  }
+}
+
+/**
+ * Native handler: km bd info [scope]
+ * Shows km+beads combined configuration and statistics.
+ */
+// oxlint-disable-next-line complexity/complexity -- CLI info display with sequential reporting steps
+async function handleInfo(args: string[]): Promise<void> {
+  const scope = args[0]
+  const resolved = resolvePathArg(scope)
+  const kmDir = join(resolved.repoRoot, ".km")
+
+  using repo = await loadRepo(resolved.repoRoot)
+  const scopePath = resolved.nodeRef ?? undefined
+  const configObj = loadConfigObject(resolved.repoRoot)
+  const config = configObj.beads
+  const dbPath = join(kmDir, "state.db")
+  const repoMode = repo.mode
+
+  const boardTag = config.board || undefined
+  const issues = queryIssues({}, scopePath, boardTag, { repo })
+
+  console.log(term.bold("Beads Configuration"))
+  console.log("===================")
+  console.log(`Board:  ${config.board || term.dim("(none - showing all tasks)")}`)
+  console.log(`Parent: ${config.parent || term.dim("(none - create manually)")}`)
+  console.log(`Prefix: ${config.prefix}`)
+  if (configObj.path) {
+    console.log(term.dim(`Config: ${configObj.path}`))
+  }
+
+  console.log()
+  console.log(term.bold("How tasks are tracked:"))
+  if (config.board) {
+    console.log(`  Tasks tagged @${config.board} are shown by 'km bd' commands.`)
+    console.log(`  View the board with 'km view @${config.board}'.`)
+  } else {
+    console.log(`  All tasks in the repo are shown (no board filter configured).`)
+    console.log(`  Set beads.board in .km/config.yaml to filter to a specific board.`)
+  }
+  if (config.parent) {
+    console.log(`  New issues will be created in ${config.parent}.`)
+  }
+
+  console.log()
+  console.log(term.bold("Storage"))
+  console.log(`  Database: ${dbPath}`)
+  console.log(`  Mode: ${repoMode}`)
+  console.log(`  Repo: ${resolved.repoRoot}`)
+  console.log(`  KM Dir: ${kmDir}`)
+  if (scopePath) {
+    console.log(`  Scope: ${scopePath}`)
+  }
+
+  console.log()
+  const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
+  console.log(term.bold(`Statistics${scopeMsg}`))
+  console.log(`  Total: ${issues.length} issues`)
+
+  const byStatus = {
+    open: issues.filter((i) => i.status === "todo").length,
+    in_progress: issues.filter((i) => i.status === "wip").length,
+    blocked: issues.filter((i) => i.status === "blocked").length,
+    closed: issues.filter((i) => i.status === "done").length,
+    dropped: issues.filter((i) => i.status === "dropped").length,
+  }
+  if (issues.length > 0) {
+    console.log(`  Open: ${byStatus.open}, In Progress: ${byStatus.in_progress}, Blocked: ${byStatus.blocked}`)
+    console.log(`  Closed: ${byStatus.closed}, Dropped: ${byStatus.dropped}`)
+
+    const pathsWithTasks = new Set<string>()
+    for (const issue of issues) {
+      if (issue.path) {
+        pathsWithTasks.add(issue.path)
+      }
+    }
+    if (pathsWithTasks.size > 0) {
+      console.log()
+      console.log(term.bold("Files with tasks:"))
+      const paths = Array.from(pathsWithTasks).slice(0, 5)
+      for (const path of paths) {
+        const count = issues.filter((i) => i.path === path).length
+        console.log(term.dim(`  ${path} (${count})`))
+      }
+      if (pathsWithTasks.size > 5) {
+        console.log(term.dim(`  ... and ${pathsWithTasks.size - 5} more files`))
+      }
+    }
+  }
+}
+
+/**
+ * Native handler: km bd where [scope]
+ * Shows km-specific paths and configuration.
+ */
+function handleWhere(args: string[]): void {
+  const scope = args[0]
+  const resolved = resolvePathArg(scope)
+  const kmDir = join(resolved.repoRoot, ".km")
+  const dbPath = join(kmDir, "state.db")
+  const configObj = loadConfigObject(resolved.repoRoot)
+
+  if (existsSync(kmDir)) {
+    console.log(kmDir)
+    console.log(`  prefix: ${configObj.beads.prefix}`)
+    console.log(`  board: ${configObj.beads.board || "(none)"}`)
+    console.log(`  parent: ${configObj.beads.parent || "(none)"}`)
+    console.log(`  database: ${dbPath}`)
+    console.log(`  repo: ${resolved.repoRoot}`)
+    if (resolved.nodeRef) {
+      console.log(`  scope: ${resolved.nodeRef}`)
+    }
+  } else {
+    console.log(term.yellow("No km directory found."))
+    console.log(`  repo: ${resolved.repoRoot}`)
+  }
 }
 
 export const bdCommand = new Command("bd")
-  .description("Issue tracking (beads-compatible)")
+  .description("Issue tracking (proxy to bd with km defaults)")
+  .allowExcessArguments(true)
+  .allowUnknownOption(true)
   .addHelpText(
     "after",
     `
-Markdown tasks ARE the issues. By default, queries filter to @issue
-and new issues are created in issue/. See 'km bd config' to customize,
-'km bd info' for stats, or 'km bd agent' for agent integration.`,
+Most commands proxy to the standalone bd binary with km defaults
+(repo root as cwd, BD_ACTOR from session context).
+
+Native km commands:
+  info      Show km+beads combined configuration and statistics
+  where     Show km-specific paths
+  config    View/modify km beads configuration (.km/config.yaml)
+  migrate   Import from .beads/issues.jsonl to km markdown
+  export    Export km issues to .beads/issues.jsonl
+
+All other commands (list, show, create, update, close, ready, search,
+query, dep, blocked, stale, children, epic, rename, sync, etc.)
+proxy directly to bd. Run 'bd --help' for the full command reference.`,
   )
-  .allowUnknownOption(false)
+  .action(async (_opts, cmd) => {
+    const args = cmd.args
 
-// bd ready [scope] - Find available work
-bdCommand
-  .command("ready [scope]")
-  .description("List ready issues (unblocked, todo status)")
-  .option("-t, --type <type>", "Filter by issue type (bug, feature, etc.)")
-  .option("-a, --assignee <name>", "Filter by assignee")
-  .option("-p, --priority <n>", "Filter by priority (0-4)", parseInt)
-  .option("--all", "Show all tasks (ignore board filter)")
-  .option("--json", "Output as JSON")
-  // oxlint-disable-next-line complexity/complexity -- CLI info display with config/stats sections
-  .action(async (scope: string | undefined, opts: ReadyOptions) => {
-    const resolved = resolvePathArg(scope)
-    const scopePath = resolved.nodeRef ?? undefined
-    const configObj = loadConfigObject(resolved.repoRoot)
-
-    using repo = await loadRepo(resolved.repoRoot)
-
-    const filter: Partial<IssueFilter> = {}
-    if (opts.type) filter.type = opts.type
-    if (opts.assignee) filter.assignee = opts.assignee
-    if (opts.priority !== undefined) filter.priority = opts.priority
-
-    // Use board filter from config unless --all or explicit scope given
-    const boardTag = (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
-    const issues = queryReady(filter, scopePath, boardTag, { repo })
-
-    if (opts.json) {
-      console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
+    if (args.length === 0) {
+      proxyToBd([])
       return
     }
 
-    if (issues.length === 0) {
-      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
-      console.log(term.yellow(`No ready issues found${scopeMsg}.`))
-      return
-    }
+    const subcommand = args[0]
 
-    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
-    console.log(term.bold(`📋 Ready work (${issues.length} issues with no blockers${scopeMsg}):\n`))
-    issues.forEach((issue, i) => {
-      printReadyIssue(issue, i + 1)
-    })
-  })
-
-// bd list [scope] - List issues with filters
-bdCommand
-  .command("list [scope]")
-  .description("List issues with optional filters")
-  .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
-  .option("-t, --type <type>", "Filter by issue type")
-  .option("-a, --assignee <name>", "Filter by assignee")
-  .option("-p, --priority <n>", "Filter by priority", parseInt)
-  .option("--blocked", "Show only blocked issues")
-  .option("--unblocked", "Show only unblocked issues")
-  .option("--all", "Show all tasks (ignore board filter)")
-  .option("--json", "Output as JSON")
-  .action(async (scope: string | undefined, opts: ListOptions) => {
-    const resolved = resolvePathArg(scope)
-    const scopePath = resolved.nodeRef ?? undefined
-    const configObj = loadConfigObject(resolved.repoRoot)
-
-    using repo = await loadRepo(resolved.repoRoot)
-
-    const filter: IssueFilter = {}
-    if (opts.status) filter.status = opts.status.split(",")
-    if (opts.type) filter.type = opts.type
-    if (opts.assignee) filter.assignee = opts.assignee
-    if (opts.priority !== undefined) filter.priority = opts.priority
-    if (opts.blocked) filter.blocked = true
-    if (opts.unblocked) filter.blocked = false
-
-    // Use board filter from config unless --all or explicit scope given
-    const boardTag = (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
-    const issues = queryIssues(filter, scopePath, boardTag, { repo })
-
-    if (opts.json) {
-      console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
-      return
-    }
-
-    if (issues.length === 0) {
-      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
-      console.log(term.yellow(`No issues found${scopeMsg}.`))
-      return
-    }
-
-    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
-    console.log(term.bold(`Issues (${issues.length}${scopeMsg}):\n`))
-    for (const issue of issues) {
-      printIssue(issue)
+    switch (subcommand) {
+      // Tier 5: native km-specific commands
+      case "info":
+        await handleInfo(args.slice(1))
+        return
+      case "where":
+        handleWhere(args.slice(1))
+        return
+      case "config":
+        await configCommand.parseAsync(args.slice(1), { from: "user" })
+        return
+      case "migrate":
+        await migrateCommand.parseAsync(args.slice(1), { from: "user" })
+        return
+      case "export":
+        await exportCommand.parseAsync(args.slice(1), { from: "user" })
+        return
+      default:
+        // Tier 1-4: proxy to bd binary
+        proxyToBd(args)
     }
   })
-
-// bd show [id] - Show issue details
-const showCmd = bdCommand
-  .command("show [id]")
-  .description("Show issue details")
-  .option("--json", "Output as JSON")
-  .action(async (id, opts) => {
-    if (!id) {
-      showCmd.outputHelp()
-      return
-    }
-
-    const resolved = resolvePathArg(undefined)
-    using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
-
-    if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
-      process.exitCode = 1
-      return
-    }
-
-    if (opts.json) {
-      console.log(JSON.stringify(issueToBdJson(issue), null, 2))
-      return
-    }
-
-    printIssueDetails(issue)
-  })
-
-// bd create <title> - Create a new issue
-bdCommand
-  .command("create <title>")
-  .description("Create a new issue")
-  .option("-t, --type <type>", "Issue type (bug, feature, epic, task, docs)")
-  .option("-p, --priority <n>", "Priority (0-4, default: 2)", parseInt)
-  .option("-a, --assignee <name>", "Assign to person")
-  .option("-l, --label <labels...>", "Add labels")
-  .option("--id <custom>", "Custom short ID")
-  .option("--parent <id>", "Parent issue for sub-issues")
-  .option("--json", "Output as JSON")
-  .action((title, opts) => {
-    const { node, shortId } = createIssueNode(title, {
-      type: opts.type,
-      priority: opts.priority,
-      assignee: opts.assignee,
-      labels: opts.label,
-      customId: opts.id,
-      parentId: opts.parent,
-    })
-
-    if (opts.json) {
-      console.log(JSON.stringify({ shortId, node }, null, 2))
-      return
-    }
-
-    console.log(term.green(`Created issue: ${shortId}`))
-    console.log(term.dim(`Title: ${title}`))
-    if (opts.type) console.log(term.dim(`Type: ${opts.type}`))
-    console.log(term.dim(`Priority: P${opts.priority ?? 2}`))
-
-    // Note: Actual persistence requires km-storage integration
-    console.log(term.yellow("\nNote: Issue created in memory. Persistence pending."))
-  })
-
-// bd update [id] - Update issue fields
-const updateCmd = bdCommand
-  .command("update [id]")
-  .description("Update issue status, priority, or assignee")
-  .option("-s, --status <status>", "Set status (todo, wip, blocked, done, dropped)")
-  .option("-p, --priority <n>", "Set priority (0-4)", parseInt)
-  .option("-a, --assignee <name>", "Set assignee")
-  .option("-t, --title <title>", "Set title")
-  .action(async (id, opts) => {
-    if (!id) {
-      updateCmd.outputHelp()
-      return
-    }
-
-    const resolved = resolvePathArg(undefined)
-    using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
-    if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
-      process.exitCode = 1
-      return
-    }
-
-    const changes: Parameters<typeof updateIssueFields>[1] = {}
-    if (opts.status) changes.status = opts.status as Issue["status"]
-    if (opts.priority !== undefined) changes.priority = opts.priority
-    if (opts.assignee) changes.assignee = opts.assignee
-    if (opts.title) changes.title = opts.title
-
-    const updates = updateIssueFields(issue, changes)
-
-    console.log(term.green(`Updated ${issue.shortId}:`))
-    if (updates.task_status) {
-      console.log(term.dim(`  Status: ${updates.task_status}`))
-    }
-    if (updates.priority !== undefined) {
-      console.log(term.dim(`  Priority: P${updates.priority}`))
-    }
-    if (updates.content) {
-      console.log(term.dim(`  Title: ${updates.content}`))
-    }
-
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
-  })
-
-// bd close [id] - Close an issue
-const closeCmd = bdCommand
-  .command("close [id]")
-  .description("Close an issue (mark as done)")
-  .option("-r, --reason <reason>", "Close reason")
-  .action(async (id, opts) => {
-    if (!id) {
-      closeCmd.outputHelp()
-      return
-    }
-
-    const resolved = resolvePathArg(undefined)
-    using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
-    if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
-      process.exitCode = 1
-      return
-    }
-
-    const updates = closeIssueFields(opts.reason)
-    void updates // Use updates for persistence later
-
-    console.log(term.green(`Closed ${issue.shortId}`))
-    if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
-  })
-
-// bd drop [id] - Drop an issue
-const dropCmd = bdCommand
-  .command("drop [id]")
-  .description("Drop an issue (mark as won't do)")
-  .option("-r, --reason <reason>", "Drop reason")
-  .action(async (id, opts) => {
-    if (!id) {
-      dropCmd.outputHelp()
-      return
-    }
-
-    const resolved = resolvePathArg(undefined)
-    using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
-    if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
-      process.exitCode = 1
-      return
-    }
-
-    const updates = dropIssueFields(opts.reason)
-    void updates
-
-    console.log(term.yellow(`Dropped ${issue.shortId}`))
-    if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
-  })
-
-// bd dep - Manage dependencies
-const depCommand = new Command("dep").description("Manage issue dependencies")
-
-const depAddCmd = depCommand
-  .command("add [id] [depends-on]")
-  .description("Add a dependency (issue is blocked by depends-on)")
-  .action(async (id, dependsOn) => {
-    if (!id || !dependsOn) {
-      depAddCmd.outputHelp()
-      return
-    }
-
-    const resolved = resolvePathArg(undefined)
-    using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
-    if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
-      process.exitCode = 1
-      return
-    }
-
-    const props = addDependency(issue, dependsOn)
-    void props
-
-    console.log(term.green(`Added dependency: ${issue.shortId} blocked-by ${dependsOn}`))
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
-  })
-
-const depRemoveCmd = depCommand
-  .command("remove [id] [depends-on]")
-  .description("Remove a dependency")
-  .action(async (id, dependsOn) => {
-    if (!id || !dependsOn) {
-      depRemoveCmd.outputHelp()
-      return
-    }
-
-    const resolved = resolvePathArg(undefined)
-    using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
-    if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
-      process.exitCode = 1
-      return
-    }
-
-    const result = removeDependency(issue, dependsOn)
-    if (!result) {
-      console.error(term.yellow(`${issue.shortId} does not depend on ${dependsOn}`))
-      return
-    }
-
-    console.log(term.green(`Removed dependency: ${issue.shortId} no longer blocked-by ${dependsOn}`))
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
-  })
-
-const depListCmd = depCommand
-  .command("list [id]")
-  .description("List dependencies for an issue")
-  .action(async (id) => {
-    if (!id) {
-      depListCmd.outputHelp()
-      return
-    }
-
-    const resolved = resolvePathArg(undefined)
-    using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
-    if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
-      process.exitCode = 1
-      return
-    }
-
-    const deps = getDependencies(issue)
-    if (deps.length === 0) {
-      console.log(term.dim(`${issue.shortId} has no dependencies`))
-      return
-    }
-
-    console.log(term.bold(`Dependencies for ${issue.shortId}:`))
-    for (const dep of deps) {
-      console.log(term.dim(`  - ${dep}`))
-    }
-  })
-
-bdCommand.addCommand(depCommand)
-
-// bd agent - Agent work queue integration
-import { bdAgentCommand } from "./bd-agent.ts"
-bdCommand.addCommand(bdAgentCommand)
-
-// bd info [scope] - Show database information
-bdCommand
-  .command("info [scope]")
-  .description("Show beads configuration and statistics")
-  // oxlint-disable-next-line complexity/complexity -- CLI action with sequential reporting steps
-  .action(async (scope) => {
-    const resolved = resolvePathArg(scope)
-    const kmDir = join(resolved.repoRoot, ".km")
-
-    // Load repo for database access and mode
-    using repo = await loadRepo(resolved.repoRoot)
-    const scopePath = resolved.nodeRef ?? undefined
-    const configObj = loadConfigObject(resolved.repoRoot)
-    const config = configObj.beads
-    const dbPath = join(kmDir, "state.db")
-    const repoMode = repo.mode
-
-    // Query with board filter if configured
-    const boardTag = config.board || undefined
-    const issues = queryIssues({}, scopePath, boardTag, { repo })
-
-    console.log(term.bold("Beads Configuration"))
-    console.log("===================")
-    console.log(`Board:  ${config.board || term.dim("(none - showing all tasks)")}`)
-    console.log(`Parent: ${config.parent || term.dim("(none - create manually)")}`)
-    console.log(`Prefix: ${config.prefix}`)
-    if (configObj.path) {
-      console.log(term.dim(`Config: ${configObj.path}`))
-    }
-
-    console.log()
-    console.log(term.bold("How tasks are tracked:"))
-    if (config.board) {
-      console.log(`  Tasks tagged @${config.board} are shown by 'km bd' commands.`)
-      console.log(`  View the board with 'km view @${config.board}'.`)
-    } else {
-      console.log(`  All tasks in the repo are shown (no board filter configured).`)
-      console.log(`  Set beads.board in .km/config.yaml to filter to a specific board.`)
-    }
-    if (config.parent) {
-      console.log(`  New issues will be created in ${config.parent}.`)
-    }
-
-    console.log()
-    console.log(term.bold("Storage"))
-    console.log(`  Database: ${dbPath}`)
-    console.log(`  Mode: ${repoMode}`)
-    console.log(`  Repo: ${resolved.repoRoot}`)
-    if (kmDir) {
-      console.log(`  KM Dir: ${kmDir}`)
-    }
-    if (scopePath) {
-      console.log(`  Scope: ${scopePath}`)
-    }
-
-    console.log()
-    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
-    console.log(term.bold(`Statistics${scopeMsg}`))
-    console.log(`  Total: ${issues.length} issues`)
-
-    // Show breakdown by status
-    const byStatus = {
-      open: issues.filter((i) => i.status === "todo").length,
-      in_progress: issues.filter((i) => i.status === "wip").length,
-      blocked: issues.filter((i) => i.status === "blocked").length,
-      closed: issues.filter((i) => i.status === "done").length,
-      dropped: issues.filter((i) => i.status === "dropped").length,
-    }
-    if (issues.length > 0) {
-      console.log(`  Open: ${byStatus.open}, In Progress: ${byStatus.in_progress}, Blocked: ${byStatus.blocked}`)
-      console.log(`  Closed: ${byStatus.closed}, Dropped: ${byStatus.dropped}`)
-
-      // Show files with tasks
-      const pathsWithTasks = new Set<string>()
-      for (const issue of issues) {
-        if (issue.path) {
-          pathsWithTasks.add(issue.path)
-        }
-      }
-      if (pathsWithTasks.size > 0) {
-        console.log()
-        console.log(term.bold("Files with tasks:"))
-        const paths = Array.from(pathsWithTasks).slice(0, 5)
-        for (const path of paths) {
-          const count = issues.filter((i) => i.path === path).length
-          console.log(term.dim(`  ${path} (${count})`))
-        }
-        if (pathsWithTasks.size > 5) {
-          console.log(term.dim(`  ... and ${pathsWithTasks.size - 5} more files`))
-        }
-      }
-    }
-  })
-
-// bd where [scope] - Show paths
-bdCommand
-  .command("where [scope]")
-  .description("Show beads paths and configuration")
-  .action(async (scope) => {
-    const resolved = resolvePathArg(scope)
-    const kmDir = join(resolved.repoRoot, ".km")
-
-    // Load repo (unused but kept for consistency - may use in future)
-    using _repo = await loadRepo(resolved.repoRoot)
-    const dbPath = join(kmDir, "state.db")
-    const configObj = loadConfigObject(resolved.repoRoot)
-
-    if (existsSync(kmDir)) {
-      console.log(kmDir)
-      console.log(`  prefix: ${configObj.beads.prefix}`)
-      console.log(`  board: ${configObj.beads.board || "(none)"}`)
-      console.log(`  parent: ${configObj.beads.parent || "(none)"}`)
-      console.log(`  database: ${dbPath}`)
-      console.log(`  repo: ${resolved.repoRoot}`)
-      if (resolved.nodeRef) {
-        console.log(`  scope: ${resolved.nodeRef}`)
-      }
-    } else {
-      console.log(term.yellow("No km directory found."))
-      console.log(`  repo: ${resolved.repoRoot}`)
-    }
-  })
-
-// Add extracted subcommands
-bdCommand.addCommand(configCommand)
-bdCommand.addCommand(migrateCommand)
-bdCommand.addCommand(exportCommand)
