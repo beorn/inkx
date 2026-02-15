@@ -36,8 +36,12 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
     clearSelection(ctx)
   }
 
-  // Horizontal (h/l) — preserves stickyY across columns
-  if (dir === "left" || dir === "right") return handleHorizontalNav(ctx, dir)
+  // Horizontal (h/l) — preserves stickyY across columns, clears stickyX
+  if (dir === "left" || dir === "right") {
+    const result = handleHorizontalNav(ctx, dir)
+    ctx.layoutRegistry.clearStickyX()
+    return result
+  }
 
   // Hierarchical vertical (up/down) — clears stickyY so h/l will lazy-capture
   if (dir === "up" || dir === "down") {
