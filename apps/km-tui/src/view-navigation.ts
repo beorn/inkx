@@ -125,11 +125,11 @@ function navigateVertical(
     }
 
     if (isBodyContent) {
-      // Body card → next body sibling.
-      // Body nodes are siblings within root's children, before the first oi.
-      // Use extractBody to get the body nodes in order, then find next.
+      // Body card → next meaningful body sibling.
+      // Use filterMeaningfulBody to skip HR/empty nodes that the view doesn't render.
       const allChildren = repo.getChildren(rootId)
-      const { body: bodyNodes } = extractBody(allChildren)
+      const { body: rawBody } = extractBody(allChildren)
+      const bodyNodes = filterMeaningfulBody(rawBody)
       const bodyIdx = bodyNodes.findIndex((n) => n.id === cursorNodeId)
       if (bodyIdx >= 0 && bodyIdx < bodyNodes.length - 1) {
         return bodyNodes[bodyIdx + 1]!.id
@@ -154,9 +154,11 @@ function navigateVertical(
   } else {
     // k: move up
     if (isBodyContent) {
-      // Body card → previous body sibling, or board level if at first.
+      // Body card → previous meaningful body sibling, or board level if at first.
+      // Use filterMeaningfulBody to skip HR/empty nodes that the view doesn't render.
       const allChildren = repo.getChildren(rootId)
-      const { body: bodyNodes } = extractBody(allChildren)
+      const { body: rawBody } = extractBody(allChildren)
+      const bodyNodes = filterMeaningfulBody(rawBody)
       const bodyIdx = bodyNodes.findIndex((n) => n.id === cursorNodeId)
       if (bodyIdx > 0) {
         return bodyNodes[bodyIdx - 1]!.id
@@ -195,19 +197,36 @@ function navigateVertical(
 // =============================================================================
 
 /**
+ * Filter body nodes to only those with meaningful content.
+ * Mirrors the view layer's meaningfulBody filter in use-columns.ts:
+ *   bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
+ *
+ * Navigation must use this filter so that card indices match what the view
+ * renders and what LayoutRegistry tracks. Without this, HR nodes and empty
+ * paragraphs create an index mismatch between navigation's bodyNodes[]
+ * and the view's registered card array.
+ */
+function filterMeaningfulBody<T extends { content?: string }>(nodes: T[]): T[] {
+  return nodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
+}
+
+/**
  * Split root children into body content nodes and structural (oi) columns.
  * Mirrors the view layer's extractBody split: body nodes are grouped into
  * a single virtual "Description" column, only oi nodes are real columns.
+ *
+ * Body nodes are filtered to match the view layer's meaningfulBody filter,
+ * so navigation indices align with rendered card indices.
  */
-function splitBodyAndColumns(allChildren: { id: string; type: string }[]): {
-  bodyNodes: { id: string; type: string }[]
-  structuralCols: { id: string; type: string }[]
+function splitBodyAndColumns(allChildren: { id: string; type: string; content?: string }[]): {
+  bodyNodes: { id: string; type: string; content?: string }[]
+  structuralCols: { id: string; type: string; content?: string }[]
 } {
   const firstStructuralIdx = allChildren.findIndex((c) => isOutline(c.type))
-  if (firstStructuralIdx === -1) return { bodyNodes: allChildren, structuralCols: [] }
+  if (firstStructuralIdx === -1) return { bodyNodes: filterMeaningfulBody(allChildren), structuralCols: [] }
   if (firstStructuralIdx === 0) return { bodyNodes: [], structuralCols: allChildren }
   return {
-    bodyNodes: allChildren.slice(0, firstStructuralIdx),
+    bodyNodes: filterMeaningfulBody(allChildren.slice(0, firstStructuralIdx)),
     structuralCols: allChildren.slice(firstStructuralIdx),
   }
 }

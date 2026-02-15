@@ -615,7 +615,7 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
     expect(hasCursorOnP2 || hasCursorOnP3).toBe(true)
   })
 
-  test.skip("h from deep structural column to body column with HR nodes: index mismatch", () => {
+  test("h from deep structural column to body column with HR nodes: index mismatch", () => {
     // Test with HR nodes (empty content) interleaved with meaningful paragraphs.
     // The view filters out empty body nodes (meaningfulBody filter), but
     // navigateToBody in view-navigation.ts indexes the unfiltered bodyNodes
