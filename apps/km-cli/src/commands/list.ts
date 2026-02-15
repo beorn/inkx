@@ -31,8 +31,12 @@ export const listCommand = new Command("list")
   .argument("[query]", "Filter by path, ID prefix, -status:done negation")
   .allowUnknownOption()
   .option("-t, --type <type>", "Filter by node type (task, section, file, folder)")
-  .option("--status <status>", "Filter tasks by status (todo, wip, done)")
+  .option("-s, --status <status>", "Filter tasks by status (todo, wip, done)")
   .option("-a, --all", "Show all (including done tasks)")
+  .option("--assignee <name>", "Filter by assignee")
+  .option("-p, --priority <n>", "Filter by priority (0-4)", parseInt)
+  .option("--blocked", "Show only blocked")
+  .option("--unblocked", "Show only unblocked")
   .option("-c, --context", "Show ancestor paths (like tasks command)")
   .option("-i, --id", "Show node IDs")
   .option("-f, --flat", "Flat output with path prefixes")
@@ -60,6 +64,10 @@ export const listCommand = new Command("list")
       query,
       status: options.status,
       all: options.all,
+      assignee: options.assignee,
+      priority: options.priority,
+      blocked: options.blocked,
+      unblocked: options.unblocked,
     })
 
     if (options.json) {
@@ -126,12 +134,27 @@ function getFilteredNodesWithQuery(
     query?: string
     status?: string
     all?: boolean
+    assignee?: string
+    priority?: number
+    blocked?: boolean
+    unblocked?: boolean
   },
 ): KNode[] {
   // Build query expression based on options
   let nodes: KNode[]
 
-  if (options.type === "task") {
+  // If assignee/priority flags are set, build a query string and use repo.query()
+  const hasAdvancedFilters = options.assignee || options.priority !== undefined
+  if (hasAdvancedFilters) {
+    const parts: string[] = []
+    if (options.type) parts.push(`type:${options.type}`)
+    if (options.status) parts.push(`status:${options.status}`)
+    else if (!options.all) parts.push(`-status:done`)
+    if (options.assignee) parts.push(`@${options.assignee}`)
+    if (options.priority !== undefined) parts.push(`#P${options.priority}`)
+    if (options.query) parts.push(options.query)
+    nodes = repo.query(parts.join(" ") || "*")
+  } else if (options.type === "task") {
     if (options.status) {
       nodes = repo.getTasksByStatus(options.status as NonNullable<KNode["task_status"]>)
     } else if (options.all) {
@@ -154,12 +177,28 @@ function getFilteredNodesWithQuery(
     nodes = rootNode ? [rootNode, ...getAllDescendants(null)] : getAllDescendants(null)
   }
 
-  // Apply query filter if provided
-  if (options.query) {
+  // Apply query filter if provided (only when not already handled above)
+  if (options.query && !hasAdvancedFilters) {
     const query = options.query
     nodes = nodes.filter((node) => {
       const ancestors = repo.getAncestors(node.id)
       return matchesQuery(node, query, ancestors)
+    })
+  }
+
+  // Apply blocked/unblocked filter
+  if (options.blocked) {
+    nodes = nodes.filter((n) => {
+      const data = n.data as Record<string, unknown> | undefined
+      const props = data?.props as Record<string, { type: string; target?: string; values?: unknown[] }> | undefined
+      return props?.["blocked-by"] !== undefined
+    })
+  }
+  if (options.unblocked) {
+    nodes = nodes.filter((n) => {
+      const data = n.data as Record<string, unknown> | undefined
+      const props = data?.props as Record<string, { type: string; target?: string; values?: unknown[] }> | undefined
+      return !props?.["blocked-by"]
     })
   }
 

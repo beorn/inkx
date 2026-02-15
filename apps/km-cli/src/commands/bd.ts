@@ -12,6 +12,7 @@ const term = createTerm(process)
 import {
   queryReady,
   queryIssues,
+  nodeToIssue,
   createIssueNode,
   updateIssueFields,
   closeIssueFields,
@@ -19,6 +20,7 @@ import {
   addDependency,
   removeDependency,
   getDependencies,
+  mergeDepProps,
   type Issue,
   type IssueFilter,
 } from "@km/beads"
@@ -32,6 +34,7 @@ import { issueToBdJson, printIssue, printReadyIssue, printIssueDetails } from ".
 import { resolveIssueArg } from "./bd-query-helpers.ts"
 import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
+import { buildQueryString, type SharedQueryFlags } from "./shared-query.ts"
 
 // Commander option interfaces
 interface ReadyOptions {
@@ -108,10 +111,10 @@ bdCommand
     })
   })
 
-// bd list [scope] - List issues with filters
+// bd list [query...] - List issues with filters
 bdCommand
-  .command("list [scope]")
-  .description("List issues with optional filters")
+  .command("list [query...]")
+  .description("List issues with optional filters or raw DSL query")
   .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
   .option("-t, --type <type>", "Filter by issue type")
   .option("-a, --assignee <name>", "Filter by assignee")
@@ -120,24 +123,73 @@ bdCommand
   .option("--unblocked", "Show only unblocked issues")
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
-  .action(async (scope: string | undefined, opts: ListOptions) => {
-    const resolved = resolvePathArg(scope)
-    const scopePath = resolved.nodeRef ?? undefined
+  .action(async (queryParts: string[], opts: ListOptions) => {
+    const positionalQuery = queryParts.length > 0 ? queryParts.join(" ") : undefined
+
+    // Detect if positional arg looks like a path (backward compat with old [scope])
+    const isPath =
+      positionalQuery &&
+      (positionalQuery.startsWith("/") || positionalQuery.startsWith(".") || positionalQuery.startsWith("~"))
+
+    if (isPath) {
+      // Legacy path-based scope — use old behavior
+      const resolved = resolvePathArg(positionalQuery)
+      const scopePath = resolved.nodeRef ?? undefined
+      const configObj = loadConfigObject(resolved.repoRoot)
+
+      using repo = await loadRepo(resolved.repoRoot)
+
+      const filter: IssueFilter = {}
+      if (opts.status) filter.status = opts.status.split(",")
+      if (opts.type) filter.type = opts.type
+      if (opts.assignee) filter.assignee = opts.assignee
+      if (opts.priority !== undefined) filter.priority = opts.priority
+      if (opts.blocked) filter.blocked = true
+      if (opts.unblocked) filter.blocked = false
+
+      const boardTag = (opts.all ?? positionalQuery) ? undefined : configObj.beads.board || undefined
+      const issues = queryIssues(filter, scopePath, boardTag, { repo })
+
+      if (opts.json) {
+        console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
+        return
+      }
+
+      if (issues.length === 0) {
+        const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
+        console.log(term.yellow(`No issues found${scopeMsg}.`))
+        return
+      }
+
+      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
+      console.log(term.bold(`Issues (${issues.length}${scopeMsg}):\n`))
+      for (const issue of issues) {
+        printIssue(issue)
+      }
+      return
+    }
+
+    // New unified query path
+    const resolved = resolvePathArg(undefined)
     const configObj = loadConfigObject(resolved.repoRoot)
 
     using repo = await loadRepo(resolved.repoRoot)
 
-    const filter: IssueFilter = {}
-    if (opts.status) filter.status = opts.status.split(",")
-    if (opts.type) filter.type = opts.type
-    if (opts.assignee) filter.assignee = opts.assignee
-    if (opts.priority !== undefined) filter.priority = opts.priority
-    if (opts.blocked) filter.blocked = true
-    if (opts.unblocked) filter.blocked = false
+    // Build query from board config + flags
+    const boardTag = opts.all ? undefined : configObj.beads.board || undefined
+    const flags: SharedQueryFlags = opts
+    const queryStr = buildQueryString(positionalQuery, flags, { boardTag })
 
-    // Use board filter from config unless --all or explicit scope given
-    const boardTag = (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
-    const issues = queryIssues(filter, scopePath, boardTag, { repo })
+    const nodes = repo.query(queryStr)
+    let issues = nodes.map((n) => nodeToIssue(n, { repo }))
+
+    // Apply blocked/unblocked filter (not part of query DSL)
+    if (opts.blocked) {
+      issues = issues.filter((i) => i.blockedBy && i.blockedBy.length > 0)
+    }
+    if (opts.unblocked) {
+      issues = issues.filter((i) => !i.blockedBy || i.blockedBy.length === 0)
+    }
 
     if (opts.json) {
       console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
@@ -145,13 +197,11 @@ bdCommand
     }
 
     if (issues.length === 0) {
-      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
-      console.log(term.yellow(`No issues found${scopeMsg}.`))
+      console.log(term.yellow("No issues found."))
       return
     }
 
-    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
-    console.log(term.bold(`Issues (${issues.length}${scopeMsg}):\n`))
+    console.log(term.bold(`Issues (${issues.length}):\n`))
     for (const issue of issues) {
       printIssue(issue)
     }
@@ -197,7 +247,11 @@ bdCommand
   .option("--id <custom>", "Custom short ID")
   .option("--parent <id>", "Parent issue for sub-issues")
   .option("--json", "Output as JSON")
-  .action((title, opts) => {
+  .action(async (title, opts) => {
+    const resolved = resolvePathArg(undefined)
+    const configObj = loadConfigObject(resolved.repoRoot)
+    using repo = await loadRepo(resolved.repoRoot)
+
     const { node, shortId } = createIssueNode(title, {
       type: opts.type,
       priority: opts.priority,
@@ -206,6 +260,22 @@ bdCommand
       customId: opts.id,
       parentId: opts.parent,
     })
+
+    // Resolve parent: explicit --parent flag, or config default
+    const parentRef = opts.parent || configObj.beads.parent
+    let parentId: string | null = null
+    if (parentRef) {
+      const parentNode = repo.resolveNode(parentRef)
+      if (parentNode) {
+        parentId = parentNode.id
+      } else {
+        console.error(term.red(`Parent not found: ${parentRef}`))
+        process.exitCode = 1
+        return
+      }
+    }
+
+    repo.addNode(parentId, node)
 
     if (opts.json) {
       console.log(JSON.stringify({ shortId, node }, null, 2))
@@ -216,9 +286,6 @@ bdCommand
     console.log(term.dim(`Title: ${title}`))
     if (opts.type) console.log(term.dim(`Type: ${opts.type}`))
     console.log(term.dim(`Priority: P${opts.priority ?? 2}`))
-
-    // Note: Actual persistence requires km-storage integration
-    console.log(term.yellow("\nNote: Issue created in memory. Persistence pending."))
   })
 
 // bd update [id] - Update issue fields
@@ -251,6 +318,7 @@ const updateCmd = bdCommand
     if (opts.title) changes.title = opts.title
 
     const updates = updateIssueFields(issue, changes)
+    repo.updateNode(issue.id, updates)
 
     console.log(term.green(`Updated ${issue.shortId}:`))
     if (updates.task_status) {
@@ -262,8 +330,6 @@ const updateCmd = bdCommand
     if (updates.content) {
       console.log(term.dim(`  Title: ${updates.content}`))
     }
-
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 // bd close [id] - Close an issue
@@ -287,11 +353,10 @@ const closeCmd = bdCommand
     }
 
     const updates = closeIssueFields(opts.reason)
-    void updates // Use updates for persistence later
+    repo.updateNode(issue.id, updates)
 
     console.log(term.green(`Closed ${issue.shortId}`))
     if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 // bd drop [id] - Drop an issue
@@ -315,11 +380,10 @@ const dropCmd = bdCommand
     }
 
     const updates = dropIssueFields(opts.reason)
-    void updates
+    repo.updateNode(issue.id, updates)
 
     console.log(term.yellow(`Dropped ${issue.shortId}`))
     if (opts.reason) console.log(term.dim(`Reason: ${opts.reason}`))
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 // bd dep - Manage dependencies
@@ -344,10 +408,10 @@ const depAddCmd = depCommand
     }
 
     const props = addDependency(issue, dependsOn)
-    void props
+    const node = repo.getNode(issue.id)
+    repo.updateNode(issue.id, { data: mergeDepProps(node?.data as Record<string, unknown> | undefined, props) })
 
     console.log(term.green(`Added dependency: ${issue.shortId} blocked-by ${dependsOn}`))
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 const depRemoveCmd = depCommand
@@ -374,8 +438,10 @@ const depRemoveCmd = depCommand
       return
     }
 
+    const node = repo.getNode(issue.id)
+    repo.updateNode(issue.id, { data: mergeDepProps(node?.data as Record<string, unknown> | undefined, result) })
+
     console.log(term.green(`Removed dependency: ${issue.shortId} no longer blocked-by ${dependsOn}`))
-    console.log(term.yellow("\nNote: Update created in memory. Persistence pending."))
   })
 
 const depListCmd = depCommand
@@ -409,6 +475,136 @@ const depListCmd = depCommand
   })
 
 bdCommand.addCommand(depCommand)
+
+// bd stale [--days N] - Show stale issues
+bdCommand
+  .command("stale")
+  .description("List issues not updated in N days")
+  .option("-d, --days <n>", "Days threshold", parseInt, 14)
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    const resolved = resolvePathArg(undefined)
+    const configObj = loadConfigObject(resolved.repoRoot)
+    using repo = await loadRepo(resolved.repoRoot)
+
+    const boardTag = configObj.beads.board || undefined
+    const issues = queryIssues({}, undefined, boardTag, { repo })
+    const threshold = Date.now() - opts.days * 86400000
+    const stale = issues.filter((i) => i.updatedAt < threshold && i.status !== "done" && i.status !== "dropped")
+
+    if (opts.json) {
+      console.log(JSON.stringify(stale.map(issueToBdJson), null, 2))
+      return
+    }
+
+    if (stale.length === 0) {
+      console.log(term.green(`No stale issues (threshold: ${opts.days} days).`))
+      return
+    }
+
+    console.log(term.bold(`Stale issues (not updated in ${opts.days}+ days):\n`))
+    for (const issue of stale) {
+      printIssue(issue)
+    }
+  })
+
+// bd claim <id> - Claim an issue (set status=wip + assignee)
+bdCommand
+  .command("claim <id>")
+  .description("Claim an issue (set status to wip and assign to you)")
+  .action(async (id) => {
+    const resolved = resolvePathArg(undefined)
+    using repo = await loadRepo(resolved.repoRoot)
+    const issue = resolveIssueArg(repo, id)
+    if (!issue) {
+      console.error(term.red(`Issue not found: ${id}`))
+      process.exitCode = 1
+      return
+    }
+
+    let gitUser = "unknown"
+    try {
+      const { execSync } = await import("child_process")
+      gitUser = execSync("git config user.name", { encoding: "utf-8" }).trim()
+    } catch {
+      // Fall back to "unknown" if git config not set
+    }
+
+    const updates = updateIssueFields(issue, { status: "wip", assignee: gitUser })
+    repo.updateNode(issue.id, updates)
+
+    console.log(term.green(`Claimed ${issue.shortId}`))
+    console.log(term.dim(`  Status: wip`))
+    console.log(term.dim(`  Assignee: ${gitUser}`))
+  })
+
+// bd children <id> - List children of an epic
+bdCommand
+  .command("children <id>")
+  .description("List children of an issue (e.g., sub-tasks of an epic)")
+  .option("--json", "Output as JSON")
+  .action(async (id, opts) => {
+    const resolved = resolvePathArg(undefined)
+    using repo = await loadRepo(resolved.repoRoot)
+    const issue = resolveIssueArg(repo, id)
+    if (!issue) {
+      console.error(term.red(`Issue not found: ${id}`))
+      process.exitCode = 1
+      return
+    }
+
+    const children = repo.getChildren(issue.id)
+    const childIssues = children
+      .filter((c) => c.task_status != null)
+      .map((c) => nodeToIssue(c, { repo }))
+
+    if (opts.json) {
+      console.log(JSON.stringify(childIssues.map(issueToBdJson), null, 2))
+      return
+    }
+
+    if (childIssues.length === 0) {
+      console.log(term.dim(`${issue.shortId} has no child tasks.`))
+      return
+    }
+
+    console.log(term.bold(`Children of ${issue.shortId} (${childIssues.length}):\n`))
+    for (const child of childIssues) {
+      printIssue(child)
+    }
+  })
+
+// bd blocked - List all blocked issues
+bdCommand
+  .command("blocked")
+  .description("List all blocked issues")
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    const resolved = resolvePathArg(undefined)
+    const configObj = loadConfigObject(resolved.repoRoot)
+    using repo = await loadRepo(resolved.repoRoot)
+
+    const boardTag = configObj.beads.board || undefined
+    const issues = queryIssues({}, undefined, boardTag, { repo })
+    const blocked = issues.filter((i) => i.blockedBy && i.blockedBy.length > 0 && i.status !== "done" && i.status !== "dropped")
+
+    if (opts.json) {
+      console.log(JSON.stringify(blocked.map(issueToBdJson), null, 2))
+      return
+    }
+
+    if (blocked.length === 0) {
+      console.log(term.green("No blocked issues."))
+      return
+    }
+
+    console.log(term.bold(`Blocked issues (${blocked.length}):\n`))
+    for (const issue of blocked) {
+      const blockers = issue.blockedBy?.join(", ") ?? ""
+      printIssue(issue)
+      console.log(term.dim(`    blocked-by: ${blockers}`))
+    }
+  })
 
 // bd agent - Agent work queue integration
 import { bdAgentCommand } from "./bd-agent.ts"
@@ -534,6 +730,36 @@ bdCommand
     } else {
       console.log(term.yellow("No km directory found."))
       console.log(`  repo: ${resolved.repoRoot}`)
+    }
+  })
+
+// bd query <expression...> - Raw DSL query (no default board filter)
+bdCommand
+  .command("query <expression...>")
+  .description("Query issues with raw DSL expression (no default board filter)")
+  .option("--json", "Output as JSON")
+  .action(async (expressionParts: string[], opts: { json?: boolean }) => {
+    const expression = expressionParts.join(" ")
+
+    const resolved = resolvePathArg(undefined)
+    using repo = await loadRepo(resolved.repoRoot)
+
+    const nodes = repo.query(expression)
+    const issues = nodes.map((n) => nodeToIssue(n, { repo }))
+
+    if (opts.json) {
+      console.log(JSON.stringify(issues.map(issueToBdJson), null, 2))
+      return
+    }
+
+    if (issues.length === 0) {
+      console.log(term.yellow("No issues found."))
+      return
+    }
+
+    console.log(term.bold(`Issues (${issues.length}):\n`))
+    for (const issue of issues) {
+      printIssue(issue)
     }
   })
 

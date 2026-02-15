@@ -339,13 +339,15 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       if (!oldName || oldName === newName) {
         // Still update content even if name didn't change
         if (node.content !== newContent) {
-          mutations.updateNode(id, { content: newContent })
+          // Use this.updateNode so undo proxy can intercept when wrapped
+          this.updateNode(id, { content: newContent })
         }
         return
       }
 
       // 1. Rename the node itself (update both content and name)
-      mutations.updateNode(id, { content: newContent, name: newName })
+      // Use this.updateNode (not mutations.updateNode) so undo proxy intercepts
+      this.updateNode(id, { content: newContent, name: newName })
 
       // 2. Update backlinks in source nodes
       const backlinks = dbGetBacklinks(deps.db, id)
@@ -360,7 +362,7 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
 
         const updatedContent = sourceNode.content.replace(pattern, `$1${newName}$2$3`)
         if (updatedContent !== sourceNode.content) {
-          mutations.updateNode(link.source_id, { content: updatedContent })
+          this.updateNode(link.source_id, { content: updatedContent })
         }
         updated++
         onProgress?.({ updated, total })
@@ -370,10 +372,11 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       dbUpdateTargetName(deps.db, oldName, newName)
 
       // 4. Update path references in section rules (add=, sync=)
-      updateRulePathReferences(dataStore, mutations, oldName, newName)
+      // Pass this (not mutations) so undo proxy intercepts through the proxy chain
+      updateRulePathReferences(dataStore, this, oldName, newName)
 
       // 5. Update blocked-by property targets
-      updateBlockedByReferences(dataStore, mutations, oldName, newName)
+      updateBlockedByReferences(dataStore, this, oldName, newName)
     },
   }
 
