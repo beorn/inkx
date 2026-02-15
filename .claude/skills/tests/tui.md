@@ -108,12 +108,37 @@ board.press("k") // vim-style up
 
 ## Key APIs
 
+### DOM/State Assertions
+
 | Method | Purpose |
 |--------|---------|
 | `board.press("ArrowDown")` | Send keyboard input |
 | `board.expect(selector).toExist()` | Assert element exists |
 | `board.expect(selector).toHaveCount(n)` | Assert count |
 | `board.q(selector).boundingBox()` | Get position/size |
+
+### Visual Assertions (screen buffer)
+
+For rendering bugs (wrong colors, missing borders, bad layout), use the visual toolbelt:
+
+| Method | What it checks |
+|--------|---------------|
+| `board.screen.cell(x,y)` | Raw cell: `{char, fg, bg, attrs}` |
+| `board.screen.row(n)` | Text of row n |
+| `board.screen.nodePos(id)` | Screen position of a node |
+| `board.screen.nodeBox(id)` | Bounding box of a node |
+| `board.screen.findRow(text)` | Find row containing text |
+| `board.expectScreen(text)` | Screen contains text |
+| `board.expectRow(n, pattern)` | Row contains/matches |
+| `board.expectCellChar(x,y,c)` | Character at position |
+| `board.expectCellColor(x,y,{fg,bg})` | Colors at position |
+| `board.expectNodeColor(id,{fg,bg,attrs})` | Colors on node's text |
+| `board.expectNodeBorder(id)` | Node has border chars |
+| `board.expectNodeNoBorder(id)` | Node has no border |
+
+**Color numbers**: 0=black, 1=red, 2=green, 3=yellow, 4=blue, 5=magenta, 6=cyan, 7=white
+
+**When to use visual assertions**: Prefer visual assertions for any bug involving colors, borders, alignment, or layout. State assertions (`board.expect("#id").toExist()`) only verify DOM presence — they pass even when rendering is broken. Visual assertions verify what the user actually sees.
 
 ---
 
@@ -178,12 +203,23 @@ test("debugging example", () => {
 
 ---
 
+## Bug Classification — Choose the Right Test Type
+
+| Bug Type | Test Approach | Example |
+|----------|--------------|---------|
+| **State bug** (wrong cursor, missing node, bad logic) | DOM assertions: `board.expect("#id").toExist()` | Cursor lands on wrong card |
+| **Visual bug** (wrong color, missing border, bad layout) | Visual assertions: `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` | Selected card text is wrong color |
+| **Mixed** (state + visual symptoms) | Both: DOM + visual assertions | Card exists but border is missing |
+
+**CRITICAL**: For visual bugs, state-only assertions (`toExist()`) are insufficient — they pass even when the rendering is broken. Always use visual toolbelt assertions for rendering issues.
+
 ## When to Use
 
 | Need | Use |
 |------|-----|
 | TUI interaction/navigation | Acceptance test `.spec.ts` |
 | Component rendering | Component test `.test.ts` |
+| Visual/rendering bugs | Visual toolbelt in `.test.ts` |
 | Pure functions | Unit test `.test.ts` |
 
 ---

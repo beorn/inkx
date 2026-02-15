@@ -100,11 +100,38 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
    Never leave `*-repro*`, `*-debug*`, or `*-profile*` test files in the repo.
    Use `.scratch.ts` (not `.test.ts`) for temporary investigation files so they don't run in test suites.
 
+## Visual Test Toolbelt
+
+For rendering bugs, use the visual assertions in `testEnv()`:
+
+```typescript
+const { board } = testEnv(() => item("board", item("col", item("task"))))
+
+// Check colors: 0=black, 1=red, 2=green, 3=yellow, 4=blue, 5=magenta, 6=cyan, 7=white
+board.expectNodeColor("task", { fg: 0, bg: 3 }) // black on yellow (selected)
+board.expectCellColor(5, 3, { fg: 0, bg: 3 })   // cell-level color check
+
+// Check borders and characters
+board.expectNodeBorder("task")                     // has │╭╮╯╰ on edges
+board.expectCellChar(0, 3, "│")                    // specific char at position
+
+// Check content
+board.expectScreen("Task text")                    // screen contains text
+board.expectRow(5, "─────")                        // row contains pattern
+
+// Debug helpers
+board.screen.cell(x, y)     // { char, fg, bg, attrs }
+board.screen.nodeBox("task") // { x, y, width, height }
+```
+
+See [tests/tui.md](../tests/tui.md) for the full API reference.
+
 ## Definition of Done (Mandatory)
 
 Every bug fix MUST satisfy all items before the bead can be closed:
 
-- [ ] Failing test written that reproduces the bug
+- [ ] Failing test written BEFORE the fix (test-first mandatory)
+- [ ] Visual test used for visual bugs (`expectNodeColor`, `expectRow`, `expectCellColor`, etc.)
 - [ ] Test passes after fix
 - [ ] `bun vitest run apps/km-tui/tests/` — no NEW failures introduced
 - [ ] `bun run test:fast` — full suite green
