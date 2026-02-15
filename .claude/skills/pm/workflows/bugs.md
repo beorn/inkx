@@ -241,13 +241,26 @@ Test: <test file and test name>
 Verified: <how — headless/TTY/both, what was checked>"
 ```
 
-Example:
+Example (visual bug — requires TTY):
 
 ```bash
 bd close km-tui.xyz --reason "Fixed: CardColumn.tsx:42 — guard against empty children array
 Test: apps/km-tui/tests/card-column.test.tsx 'handles empty children'
-Verified: headless visual — expectNodeBorder('card1') passes, no blank cards"
+Verified: headless (expectNodeBorder passes) + TTY screenshot (/tmp/verify-km-tui.xyz.png)
+  TTY: launched with item('board', item('col', item('task'))), pressed c, confirmed border renders correctly"
 ```
+
+Example (logic bug — no TTY needed):
+
+```bash
+bd close km-tui.abc --reason "Fixed: state.ts:128 — reset stickyX on OOB
+Test: apps/km-tui/tests/keyboard-navigation.test.tsx 'stickyX resets on boundary'
+Verified: headless only — pure state bug, no visual component"
+```
+
+**IMPORTANT**: The close reason is the permanent record of what verification was done.
+Future sessions check this to know if TTY was performed. If a bead was closed without
+TTY verification but should have had it, re-open and verify.
 
 **Do NOT close a bead without:**
 1. A **failing test written BEFORE** the fix (test-first is mandatory)
