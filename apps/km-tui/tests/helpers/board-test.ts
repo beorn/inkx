@@ -526,6 +526,287 @@ export function testEnv(
       return level && message ? { level, message } : null
     },
     _result: result,
+
+    // =========================================================================
+    // Visual Test Toolbelt — screen buffer inspection & assertions
+    // =========================================================================
+
+    /**
+     * Screen access for visual testing.
+     * Provides direct access to the rendered terminal buffer, including
+     * character content, colors, and text attributes at any position.
+     *
+     * @example
+     * ```typescript
+     * // Check what's rendered
+     * const rows = board.screen.rows
+     * const cell = board.screen.cell(10, 5) // { char, fg, bg, attrs }
+     *
+     * // Find where a node is rendered
+     * const pos = board.screen.nodePos("task1")
+     * const borderCell = board.screen.cell(pos.x, pos.y)
+     * ```
+     */
+    screen: {
+      /** Plain text content (no ANSI codes) — same as screenshot() */
+      get text(): string {
+        return result.text
+      },
+      /** ANSI-coded content with color escape sequences */
+      get ansi(): string {
+        return result.ansi
+      },
+      /** Text split into rows */
+      get rows(): string[] {
+        return result.text.split("\n")
+      },
+      /** Get text of a specific row (0-indexed) */
+      row(n: number): string {
+        return result.text.split("\n")[n] ?? ""
+      },
+      /**
+       * Get cell at screen coordinates.
+       * Returns { char, fg, bg, attrs } where:
+       * - fg/bg: Color (number for 256-color, {r,g,b} for truecolor, null for default)
+       * - attrs: { bold, dim, italic, underline, inverse, strikethrough }
+       *
+       * Named colors: 0=black, 1=red, 2=green, 3=yellow, 4=blue, 5=magenta, 6=cyan, 7=white
+       */
+      cell(x: number, y: number) {
+        return result.term.cell(x, y)
+      },
+      /**
+       * Get screen position of a node's top-left corner.
+       * Uses locator boundingBox to find where the node is rendered.
+       */
+      nodePos(nodeId: string): { x: number; y: number } | null {
+        const loc = result.locator(`[id="${nodeId}"]`)
+        if (loc.count() === 0) return null
+        const box = loc.boundingBox()
+        return box ? { x: box.x, y: box.y } : null
+      },
+      /**
+       * Get bounding box of a node.
+       * Returns { x, y, width, height } or null if not found.
+       */
+      nodeBox(nodeId: string) {
+        const loc = result.locator(`[id="${nodeId}"]`)
+        if (loc.count() === 0) return null
+        return loc.boundingBox()
+      },
+      /**
+       * Find the first row index containing the given text.
+       * Returns -1 if not found.
+       */
+      findRow(text: string): number {
+        const rows = result.text.split("\n")
+        return rows.findIndex((row) => row.includes(text))
+      },
+      /** Terminal width */
+      width: columns,
+      /** Terminal height */
+      height: rows,
+    },
+
+    /**
+     * Assert rendered screen text contains the given string.
+     * Chainable — returns board for fluent API.
+     *
+     * @example
+     * ```typescript
+     * board.expectScreen("Task 1").expectScreen("─")
+     * ```
+     */
+    expectScreen(text: string) {
+      expect(result.text).toContain(text)
+      return board
+    },
+
+    /**
+     * Assert rendered screen text does NOT contain the given string.
+     */
+    expectScreenNot(text: string) {
+      expect(result.text).not.toContain(text)
+      return board
+    },
+
+    /**
+     * Assert that row n contains text or matches a regex.
+     *
+     * @example
+     * ```typescript
+     * board.expectRow(5, "─────")  // HR row has line chars
+     * board.expectRow(0, /│.*col1.*│/) // Border pattern
+     * ```
+     */
+    expectRow(n: number, pattern: string | RegExp) {
+      const row = result.text.split("\n")[n] ?? ""
+      if (typeof pattern === "string") {
+        expect(row).toContain(pattern)
+      } else {
+        expect(row).toMatch(pattern)
+      }
+      return board
+    },
+
+    /**
+     * Assert the character at screen position (x, y).
+     *
+     * @example
+     * ```typescript
+     * board.expectCellChar(0, 3, "│") // Left border present
+     * ```
+     */
+    expectCellChar(x: number, y: number, char: string) {
+      const cell = result.term.cell(x, y)
+      expect(cell.char, `cell(${x},${y}).char`).toBe(char)
+      return board
+    },
+
+    /**
+     * Assert foreground and/or background color at screen position.
+     * Named colors: 0=black, 1=red, 2=green, 3=yellow, 4=blue, 5=magenta, 6=cyan, 7=white
+     * Pass null for default terminal color.
+     *
+     * @example
+     * ```typescript
+     * board.expectCellColor(5, 3, { fg: 0, bg: 3 }) // black on yellow
+     * board.expectCellColor(5, 3, { bg: 3 })         // just check bg
+     * ```
+     */
+    expectCellColor(x: number, y: number, opts: { fg?: number | null; bg?: number | null }) {
+      const cell = result.term.cell(x, y)
+      if (opts.fg !== undefined) {
+        expect(cell.fg, `cell(${x},${y}).fg`).toEqual(opts.fg)
+      }
+      if (opts.bg !== undefined) {
+        expect(cell.bg, `cell(${x},${y}).bg`).toEqual(opts.bg)
+      }
+      return board
+    },
+
+    /**
+     * Assert foreground and/or background color of a node's rendered text.
+     * Finds the node by ID, gets its screen position, checks the first
+     * non-border character's colors.
+     *
+     * @example
+     * ```typescript
+     * board.expectNodeColor("task1", { fg: 0, bg: 3 }) // black on yellow (selected)
+     * board.expectNodeColor("task1", { attrs: { dim: true } }) // dimmed text
+     * ```
+     */
+    expectNodeColor(nodeId: string, opts: { fg?: number | null; bg?: number | null; attrs?: Record<string, boolean> }) {
+      const loc = result.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return board
+      // Check the first non-space character in the node's area
+      for (let x = box.x; x < box.x + box.width; x++) {
+        const cell = result.term.cell(x, box.y)
+        if (cell.char.trim() === "") continue
+        if (opts.fg !== undefined) {
+          expect(cell.fg, `node "${nodeId}" fg at (${x},${box.y}) char="${cell.char}"`).toEqual(opts.fg)
+        }
+        if (opts.bg !== undefined) {
+          expect(cell.bg, `node "${nodeId}" bg at (${x},${box.y}) char="${cell.char}"`).toEqual(opts.bg)
+        }
+        if (opts.attrs) {
+          for (const [attr, value] of Object.entries(opts.attrs)) {
+            expect(
+              (cell.attrs as Record<string, unknown>)[attr],
+              `node "${nodeId}" attrs.${attr} at (${x},${box.y})`,
+            ).toBe(value)
+          }
+        }
+        break
+      }
+      return board
+    },
+
+    /**
+     * Assert that a node has a complete border (│ on left and right edges
+     * for each row of its bounding box).
+     *
+     * @example
+     * ```typescript
+     * board.expectNodeBorder("task1")     // has border
+     * board.expectNodeNoBorder("hr-node") // no border
+     * ```
+     */
+    expectNodeBorder(nodeId: string) {
+      const loc = result.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return board
+      for (let y = box.y; y < box.y + box.height; y++) {
+        const leftCell = result.term.cell(box.x, y)
+        const rightCell = result.term.cell(box.x + box.width - 1, y)
+        const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
+        expect(
+          isBorderChar(leftCell.char),
+          `node "${nodeId}" left border at y=${y}: got "${leftCell.char}"`,
+        ).toBe(true)
+        expect(
+          isBorderChar(rightCell.char),
+          `node "${nodeId}" right border at y=${y}: got "${rightCell.char}"`,
+        ).toBe(true)
+      }
+      return board
+    },
+
+    /**
+     * Assert that a node does NOT have border characters at its edges.
+     */
+    expectNodeNoBorder(nodeId: string) {
+      const loc = result.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return board
+      const leftCell = result.term.cell(box.x, box.y)
+      const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
+      expect(
+        isBorderChar(leftCell.char),
+        `node "${nodeId}" should not have border at (${box.x},${box.y}): got "${leftCell.char}"`,
+      ).toBe(false)
+      return board
+    },
+
+    /**
+     * Debug helper: dump cell info at a position (char, fg, bg, attrs).
+     * Returns the cell for further inspection. Not an assertion.
+     */
+    inspectCell(x: number, y: number) {
+      const cell = result.term.cell(x, y)
+      // eslint-disable-next-line no-console
+      console.log(`cell(${x},${y}):`, JSON.stringify({ char: cell.char, fg: cell.fg, bg: cell.bg, attrs: cell.attrs }))
+      return cell
+    },
+
+    /**
+     * Debug helper: dump a node's screen position and first cell.
+     */
+    inspectNode(nodeId: string) {
+      const loc = result.locator(`[id="${nodeId}"]`)
+      if (loc.count() === 0) {
+        // eslint-disable-next-line no-console
+        console.log(`node "${nodeId}": NOT FOUND`)
+        return null
+      }
+      const box = loc.boundingBox()
+      if (!box) {
+        // eslint-disable-next-line no-console
+        console.log(`node "${nodeId}": no boundingBox`)
+        return null
+      }
+      const cell = result.term.cell(box.x, box.y)
+      // eslint-disable-next-line no-console
+      console.log(`node "${nodeId}": box=${JSON.stringify(box)}, cell(${box.x},${box.y})=${JSON.stringify({ char: cell.char, fg: cell.fg, bg: cell.bg, attrs: cell.attrs })}`)
+      return { box, cell }
+    },
   }
   return { board, repo, registry, toastQueue }
 }
