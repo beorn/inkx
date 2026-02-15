@@ -117,11 +117,24 @@ function navigateVertical(
 
   if (dir === "down") {
     if (isAtBoardLevel) {
-      // Board → column header (use stickyX to remember which column)
+      // Board → first meaningful body card or column header.
+      // stickyX remembers which column was last visited.
       const stickyX = layoutRegistry.getStickyX()
-      const columns = repo.getChildren(rootId)
-      const targetIdx = stickyX !== null && stickyX < columns.length ? stickyX : 0
-      return columns[targetIdx]?.id ?? null
+      const allChildren = repo.getChildren(rootId)
+      const { bodyNodes, structuralCols } = splitBodyAndColumns(allChildren)
+
+      if (stickyX !== null) {
+        // stickyX indexes into structural columns (set by column-level k)
+        if (stickyX < structuralCols.length) {
+          return structuralCols[stickyX]?.id ?? null
+        }
+      }
+
+      // No stickyX: prefer first meaningful body card, then first structural column
+      if (bodyNodes.length > 0) {
+        return bodyNodes[0]!.id
+      }
+      return structuralCols[0]?.id ?? allChildren[0]?.id ?? null
     }
 
     if (isBodyContent) {
@@ -177,9 +190,10 @@ function navigateVertical(
     }
 
     if (isAtColumnLevel) {
-      // Column header → board (save column index for return via stickyX)
-      const columns = repo.getChildren(rootId)
-      const colIdx = indexOfChild(columns, cursorNodeId)
+      // Column header → board (save structural column index for return via stickyX)
+      const allChildren = repo.getChildren(rootId)
+      const { structuralCols } = splitBodyAndColumns(allChildren)
+      const colIdx = indexOfChild(structuralCols, cursorNodeId)
       if (colIdx >= 0) layoutRegistry.setStickyX(colIdx)
       return rootId
     }

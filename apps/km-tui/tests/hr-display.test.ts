@@ -131,4 +131,49 @@ describe("HR display", () => {
     const text = stripAnsi(board.screenshot())
     expect(text).toContain("─")
   })
+
+  test("pressing Enter on HR does NOT enter edit mode", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item.hr("my-hr"), item("task-below")),
+        ),
+      { columns: 60, rows: 20 },
+    )
+
+    // Cursor starts on HR (first card in column)
+    board.expect("#my-hr[data-cursor]").toExist()
+
+    // Press Enter to try editing — should be blocked
+    board.press("Enter")
+
+    // Should ring the bell (boundary/rejected action)
+    expect(board.bell).toBe(true)
+
+    // HR should still render as horizontal line (not destroyed)
+    const text = stripAnsi(board.screenshot())
+    expect(text).toContain("─")
+  })
+
+  test("pressing Enter on HR preserves cursor position", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("task-above"), item.hr("my-hr"), item("task-below")),
+        ),
+      { columns: 60, rows: 20 },
+    )
+
+    // Move to HR
+    board.press("j")
+    board.expect("#my-hr[data-cursor]").toExist()
+
+    // Press Enter — should be rejected
+    board.press("Enter")
+
+    // Cursor should still be on the HR
+    board.expect("#my-hr[data-cursor]").toExist()
+  })
 })

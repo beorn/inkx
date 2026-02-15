@@ -10,6 +10,17 @@ Workflow for tasks (refactoring, cleanup, docs, dependency updates).
 
 If the bead is **older than 1 week**, re-verify requirements before starting. Tasks are particularly prone to staleness — refactoring targets may have already been cleaned up, docs may have been updated, dependencies may have changed. See [SKILL.md Staleness Check](../SKILL.md#staleness-check).
 
+## Search History
+
+**Before starting, search for prior context:**
+
+```bash
+bun recall "keywords from task description"
+bun recall --raw "affected module or function"
+```
+
+Prior sessions may have already started this refactoring, documented constraints, or made related changes. Skip only if recall auto-context (hook) already surfaced relevant results.
+
 ## Common TDD Cycle
 
 For tasks requiring tests (refactoring, moves):
@@ -184,8 +195,9 @@ bd update <id> --type feature --notes "Scope expanded, needs feature treatment"
 
 **Before closing:**
 
-- [ ] Tests pass (if applicable)
-- [ ] bun fix passes
+- [ ] Recall searched for prior context
+- [ ] Tests pass (if applicable) (`bun run test:fast`)
+- [ ] `bun fix` passes
 - [ ] No console.log left
 - [ ] Behavior preserved (for refactoring)
 - [ ] Evidence in close reason

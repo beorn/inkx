@@ -431,4 +431,5 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 - [ ] Root cause identified (not just symptom)
 - [ ] Detection gap analyzed (why tests missed it)
 - [ ] Prevention bead created (if non-trivial)
+- [ ] No console.log left
 - [ ] Evidence in close reason (Fixed/Test/Verified format, must state headless-only OR headless+TTY)

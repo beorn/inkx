@@ -6,19 +6,37 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
-import type { KNode } from "@km/core"
+import { isOutline, type KNode } from "@km/core"
 import { handleCursorMove } from "./board-actions-nav.ts"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
 /**
  * After zoom, children become columns. Place cursor on the first card
- * in the first column. Body cards are navigable (isVirtual is styling-only).
+ * in the first column, or the first meaningful body card.
+ *
+ * Body nodes (non-oi children before the first oi) need special handling:
+ * - Meaningful body cards (with visible content) → cursor on first
+ * - Filtered body nodes (HR, empty paragraphs) → skip to first structural column
  * Falls back to column header if the column is empty.
  */
-function firstCardId(children: { id: string }[], repo: ActionCtx["repo"]): string | null {
-  const firstCol = children[0]
-  if (!firstCol) return null
+function firstCardId(children: { id: string; type: string; content?: string }[], repo: ActionCtx["repo"]): string | null {
+  if (children.length === 0) return null
+
+  // Split children into body (before first oi) and structural (oi).
+  const firstOiIdx = children.findIndex((c) => isOutline(c.type))
+  const bodyNodes = firstOiIdx === -1 ? children : firstOiIdx === 0 ? [] : children.slice(0, firstOiIdx)
+  const structuralNodes = firstOiIdx === -1 ? [] : children.slice(firstOiIdx)
+
+  // Try meaningful body card first (must have visible non-HTML content)
+  const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
+  if (meaningfulBody.length > 0) {
+    return meaningfulBody[0]!.id
+  }
+
+  // Fall back to first structural column's first card
+  const firstCol = structuralNodes[0]
+  if (!firstCol) return children[0]!.id // all body, none meaningful — best effort
   const colChildren = repo.getChildren(firstCol.id)
   return colChildren[0]?.id ?? firstCol.id
 }

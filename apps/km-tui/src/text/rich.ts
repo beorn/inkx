@@ -56,8 +56,9 @@ const INLINE_FIELD_REGEX = /\[(\w+)::\s*([^\]]*)\]/g
 
 /**
  * Regex to match wiki links: [[note]] or [[path/to/note|alias]]
+ * Also matches embed syntax: ![[note]] (the ! prefix is stripped)
  */
-const WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g
+const WIKI_LINK_REGEX = /!?\[\[([^\]]+)\]\]/g
 
 /**
  * Extract display text and target from a wiki link content.

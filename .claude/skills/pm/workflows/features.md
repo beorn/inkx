@@ -60,6 +60,23 @@ If the bead is **older than 1 week**, re-verify requirements before starting:
 
 This doesn't apply to beads created in the current session or verified within the last week.
 
+## Step 0.5: Search History
+
+**Before planning or coding, search for prior context:**
+
+```bash
+bun recall "keywords from feature description"
+bun recall --raw "affected module or function"
+```
+
+Prior sessions may have:
+- Already discussed approaches or architecture for this feature
+- Partially implemented it (check for abandoned branches or beads)
+- Made design decisions that affect implementation
+- Documented constraints or trade-offs
+
+Skip only if recall auto-context (hook) already surfaced relevant results.
+
 ## Step 1: Assess Complexity
 
 **Trivial** (implement inline):
@@ -249,9 +266,10 @@ Task({
 
 **Before closing:**
 
-- [ ] Acceptance test written
-- [ ] Tests pass
-- [ ] bun fix passes
+- [ ] Recall searched for prior context
+- [ ] Acceptance test written BEFORE implementation (test-first)
+- [ ] Tests pass (`bun run test:fast`)
+- [ ] `bun fix` passes
 - [ ] No console.log left
 - [ ] **TTY visual verification for UI features** (screenshot proves it looks right on screen)
 - [ ] Evidence in close reason (must state headless-only OR headless+TTY)

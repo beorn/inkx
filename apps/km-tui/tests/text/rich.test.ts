@@ -126,6 +126,24 @@ describe("renderRich", () => {
       const result = renderRich("See [[folder/subfolder/note]]")
       expect(stripAnsi(result)).toBe("See folder/subfolder/note")
     })
+
+    it("strips embed syntax ![[target]] like a wiki link", () => {
+      const result = renderRich("![[2026 @Kaiser Guide.pdf]]")
+      expect(stripAnsi(result)).not.toContain("!")
+      expect(stripAnsi(result)).not.toContain("[[")
+      expect(stripAnsi(result)).not.toContain("]]")
+    })
+
+    it("strips embed syntax with alias ![[target|alias]]", () => {
+      const result = renderRich("![[path/to/note|My Note]]")
+      expect(stripAnsi(result)).toBe("My Note")
+    })
+
+    it("strips embed syntax mixed with text", () => {
+      const result = renderRich("See ![[embedded]] here")
+      expect(stripAnsi(result)).toBe("See embedded here")
+      expect(stripAnsi(result)).not.toContain("!")
+    })
   })
 
   describe("markdown link styling", () => {
@@ -269,5 +287,13 @@ describe("renderPlain", () => {
 
   it("handles multiple markdown links", () => {
     expect(renderPlain("[one](url1) and [two](url2)")).toBe("one and two")
+  })
+
+  it("strips embed syntax ![[target]]", () => {
+    expect(renderPlain("![[Some File.pdf]]")).toBe("Some File.pdf")
+  })
+
+  it("strips embed syntax with alias ![[target|alias]]", () => {
+    expect(renderPlain("![[path|My Alias]]")).toBe("My Alias")
   })
 })
