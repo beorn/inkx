@@ -240,8 +240,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === History actions (undo/redo) ===
     case "HISTORY_UNDO": {
       if (!ctx.undoStack.canUndo()) return boundary("undo", "Nothing to undo")
-      ctx.undoStack.undo()
-      refreshBoardState(ctx)
+      const result = ctx.undoStack.undo()
+      // Restore cursor to saved position if available, otherwise keep current
+      const cursorNodeId = (result.ok && result.cursorNodeId != null) ? result.cursorNodeId : ctx.cursorNodeId
+      ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
       return ok()
     }
     case "HISTORY_REDO": {
@@ -949,6 +951,7 @@ function handleSetPriority(ctx: ActionCtx): ActionResult {
 
   ctx.undoStack.push({
     label: "Set priority",
+    cursorNodeId: ctx.cursorNodeId,
     undo: () => {
       for (const { nodeId, priority } of prevValues) {
         ctx.repo.updateNode(nodeId, { priority })
@@ -1092,15 +1095,13 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
   // Push undo
   ctx.undoStack.push({
     label: `Set ${field}`,
+    cursorNodeId: ctx.cursorNodeId,
     undo: () => {
       for (const { nodeId, values } of prevValues) {
         ctx.repo.updateNode(nodeId, values)
       }
     },
-    redo: () => {
-      // Re-apply — simplification: just re-run the same logic isn't practical,
-      // so we store forward values
-    },
+    redo: () => {}, // TODO: capture forward values for redo support
   })
 
   ctx.setUI({ datePrompt: null })

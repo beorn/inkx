@@ -334,6 +334,7 @@ export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
   // Push undo entry: delete the duplicate
   ctx.undoStack.push({
     label: "Duplicate node",
+    cursorNodeId: ctx.cursorNodeId,
     undo: () => {
       repo.deleteNode(newId)
     },

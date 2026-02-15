@@ -25,15 +25,24 @@ export interface UndoEntry {
   undo: () => void
   /** Re-apply the mutation */
   redo: () => void
+  /** Cursor node to restore on undo (position before the operation) */
+  cursorNodeId?: string | null
+}
+
+export interface UndoResult {
+  /** Whether an operation was undone/redone */
+  ok: boolean
+  /** Cursor node to restore (null = no cursor preference) */
+  cursorNodeId?: string | null
 }
 
 export interface UndoStack {
   /** Push a new undo entry. Truncates any redo history. */
   push(entry: UndoEntry): void
-  /** Undo the last operation. Returns true if something was undone. */
-  undo(): boolean
-  /** Redo the last undone operation. Returns true if something was redone. */
-  redo(): boolean
+  /** Undo the last operation. Returns result with cursor to restore. */
+  undo(): UndoResult
+  /** Redo the last undone operation. Returns result with cursor to restore. */
+  redo(): UndoResult
   /** Whether undo is available */
   canUndo(): boolean
   /** Whether redo is available */
@@ -66,26 +75,26 @@ export function createUndoStack(maxSize = 100): UndoStack {
       log.debug?.(`push: "${entry.label}" (stack size=${entries.length}, cursor=${cursor})`)
     },
 
-    undo(): boolean {
-      if (cursor <= 0) return false
+    undo(): UndoResult {
+      if (cursor <= 0) return { ok: false }
       cursor--
       const entry = entries[cursor]
-      if (!entry) return false
+      if (!entry) return { ok: false }
 
       log.info?.(`undo: "${entry.label}"`)
       entry.undo()
-      return true
+      return { ok: true, cursorNodeId: entry.cursorNodeId }
     },
 
-    redo(): boolean {
-      if (cursor >= entries.length) return false
+    redo(): UndoResult {
+      if (cursor >= entries.length) return { ok: false }
       const entry = entries[cursor]
-      if (!entry) return false
+      if (!entry) return { ok: false }
 
       log.info?.(`redo: "${entry.label}"`)
       entry.redo()
       cursor++
-      return true
+      return { ok: true }
     },
 
     canUndo(): boolean {

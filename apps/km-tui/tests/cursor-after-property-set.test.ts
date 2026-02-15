@@ -100,12 +100,12 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     board.press("s").press("p")
     board.expect("#tB[data-cursor]").toExist()
 
-    // Undo
-    board.press("u")
+    // Undo (Ctrl-z)
+    board.press("Control-z")
     board.expect("#tB[data-cursor]").toExist()
 
-    // Redo
-    board.press("Control-r")
+    // Redo (Ctrl-y)
+    board.press("Control-y")
     board.expect("#tB[data-cursor]").toExist()
   })
 })
