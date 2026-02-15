@@ -239,16 +239,17 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === History actions (undo/redo) ===
     case "HISTORY_UNDO": {
-      if (!ctx.undoStack.canUndo()) return boundary("undo", "Nothing to undo")
-      const result = ctx.undoStack.undo()
+      if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
+      const result = ctx.undoHandle.undo()
       // Restore cursor to saved position if available, otherwise keep current
       const cursorNodeId = (result.ok && result.cursorNodeId != null) ? result.cursorNodeId : ctx.cursorNodeId
+      refreshBoardState(ctx)
       ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
       return ok()
     }
     case "HISTORY_REDO": {
-      if (!ctx.undoStack.canRedo()) return boundary("redo", "Nothing to redo")
-      ctx.undoStack.redo()
+      if (!ctx.undoHandle.canRedo()) return boundary("redo", "Nothing to redo")
+      ctx.undoHandle.redo()
       refreshBoardState(ctx)
       return ok()
     }
@@ -941,27 +942,13 @@ function handleSetPriority(ctx: ActionCtx): ActionResult {
   const current = firstNode?.priority ?? 0
   const next = current >= 4 ? 0 : (current || 0) + 1
 
-  const prevValues: Array<{ nodeId: string; priority: number | null }> = []
+  // Auto-recorded by undoable repo — batch multiple updates into one undo entry
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  if (nodeIds.length > 1) ctx.undoHandle.startBatch("Set priority")
   for (const nodeId of nodeIds) {
-    const node = ctx.repo.getNode(nodeId)
-    prevValues.push({ nodeId, priority: node?.priority ?? null })
     ctx.repo.updateNode(nodeId, { priority: next || null })
   }
-
-  ctx.undoStack.push({
-    label: "Set priority",
-    cursorNodeId: ctx.cursorNodeId,
-    undo: () => {
-      for (const { nodeId, priority } of prevValues) {
-        ctx.repo.updateNode(nodeId, { priority })
-      }
-    },
-    redo: () => {
-      for (const nodeId of nodeIds) {
-        ctx.repo.updateNode(nodeId, { priority: next || null })
-      }
-    },
-  })
+  if (nodeIds.length > 1) ctx.undoHandle.endBatch()
 
   const label = next ? `P${next}` : "None"
   ctx.toastQueue.info(`Priority: ${label}`)
@@ -1028,19 +1015,20 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
 
   const { field, nodeIds } = prompt
 
-  // Build prev values for undo
-  const prevValues: Array<{ nodeId: string; values: Record<string, unknown> }> = []
+  // Auto-recorded by undoable repo — batch multiple updates into one undo entry
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  const useBatch = nodeIds.length > 1
+  if (useBatch) ctx.undoHandle.startBatch(`Set ${field}`)
 
   if (field === "recurrence") {
     // Recurrence: convert NL → RRULE, or clear
     const rrule = trimmed ? naturalToRRule(trimmed) : null
     if (trimmed && !rrule) {
+      if (useBatch) ctx.undoHandle.endBatch()
       ctx.toastQueue.error("Invalid recurrence: " + trimmed)
       return ok()
     }
     for (const nodeId of nodeIds) {
-      const node = ctx.repo.getNode(nodeId)
-      prevValues.push({ nodeId, values: { recurrence: node?.recurrence ?? null } })
       ctx.repo.updateNode(nodeId, { recurrence: rrule })
     }
     ctx.toastQueue.info(rrule ? `Recurrence: ${trimmed}` : "Recurrence cleared")
@@ -1049,20 +1037,13 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
     if (trimmed) {
       const resolved = resolveDate(trimmed)
       if (!resolved) {
+        if (useBatch) ctx.undoHandle.endBatch()
         ctx.toastQueue.error("Invalid date: " + trimmed)
         return ok()
       }
       const dateField = field // "due_date" | "scheduled_date"
       const timeField = field === "due_date" ? "due_time" : "scheduled_time"
       for (const nodeId of nodeIds) {
-        const node = ctx.repo.getNode(nodeId)
-        prevValues.push({
-          nodeId,
-          values: {
-            [dateField]: node?.[dateField] ?? null,
-            [timeField]: node?.[timeField as keyof typeof node] ?? null,
-          },
-        })
         const update: Record<string, unknown> = { [dateField]: resolved.date }
         if (resolved.time) update[timeField] = resolved.time
         else update[timeField] = null
@@ -1076,14 +1057,6 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
       const dateField = field
       const timeField = field === "due_date" ? "due_time" : "scheduled_time"
       for (const nodeId of nodeIds) {
-        const node = ctx.repo.getNode(nodeId)
-        prevValues.push({
-          nodeId,
-          values: {
-            [dateField]: node?.[dateField] ?? null,
-            [timeField]: node?.[timeField as keyof typeof node] ?? null,
-          },
-        })
         ctx.repo.updateNode(nodeId, { [dateField]: null, [timeField]: null })
       }
       const label = field === "due_date" ? "Due date" : "Start date"
@@ -1091,17 +1064,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
     }
   }
 
-  // Push undo
-  ctx.undoStack.push({
-    label: `Set ${field}`,
-    cursorNodeId: ctx.cursorNodeId,
-    undo: () => {
-      for (const { nodeId, values } of prevValues) {
-        ctx.repo.updateNode(nodeId, values)
-      }
-    },
-    redo: () => {}, // TODO: capture forward values for redo support
-  })
+  if (useBatch) ctx.undoHandle.endBatch()
 
   ctx.setUI({ datePrompt: null })
   refreshBoardState(ctx)

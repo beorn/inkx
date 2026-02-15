@@ -16,6 +16,7 @@ import type { UIState } from "./ui-reducer.ts"
 import type { LayoutRegistry } from "./card-positions.ts"
 import type { ViewNavigation } from "./view-navigation.ts"
 import type { UndoStack } from "./undo-stack.ts"
+import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
 
 /**
  * Context for all TUI action handlers.
@@ -70,6 +71,8 @@ export interface ActionCtx {
   // === Undo/Redo ===
   /** Undo stack for reversible operations */
   undoStack: UndoStack
+  /** Undoable repo handle for batching and cursor state */
+  undoHandle: UndoableRepoHandle
 
   // === Lifecycle ===
   /** Exit the application */
