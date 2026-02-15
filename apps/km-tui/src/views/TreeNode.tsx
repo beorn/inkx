@@ -596,7 +596,7 @@ function TreeNodeImpl({
                 dimColor={style.shouldDim || (!isSelected && !isMultiSelected)}
                 wrap="truncate"
               >
-                {"─".repeat(200)}
+                {cleanContent.trim()}
               </Text>
             ) : (
               <Text

@@ -163,8 +163,13 @@ const Card = React.memo(
       return { hasOverflow: total > 0, hiddenCount: total }
     }, [directHidden, card.children, maxChildren, repo])
 
-    // HR nodes render as borderless horizontal lines (unless being edited)
+    // HR nodes render as borderless centered content (unless being edited,
+    // in which case they fall through to normal bordered card with InlineEditField)
     if (card.node.type === "hr" && !isEditing) {
+      const hrContent = card.node.content ?? "---"
+      const padTotal = Math.max(0, width - hrContent.length)
+      const padLeft = Math.floor(padTotal / 2)
+      const padRight = padTotal - padLeft
       return (
         <Box flexDirection="column" flexShrink={0} width={width} height={1}>
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
@@ -182,7 +187,7 @@ const Card = React.memo(
               dimColor={!isSelected && !isMultiSelected}
               wrap="truncate"
             >
-              {"─".repeat(width)}
+              {"─".repeat(padLeft)}{hrContent}{"─".repeat(padRight)}
             </Text>
           </Box>
         </Box>

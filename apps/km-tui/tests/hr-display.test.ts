@@ -2,11 +2,11 @@
  * HR node visual rendering
  *
  * HR nodes (type: "hr" from markdown thematic breaks, or items with content
- * matching ---, asterisks, or underscores) render as horizontal lines spanning
- * available width.
+ * matching ---, asterisks, or underscores) render with their content centered
+ * between ─ padding, without a border.
  * - Dimmed when cursor is NOT on the node
- * - Selection-styled when cursor IS on the node (yellow bg, black text in cards view)
- * - In edit mode: shows raw content (e.g., '---')
+ * - Selection-styled when cursor IS on the node
+ * - In edit mode: shows as a normal bordered card with editable content
  */
 
 import { describe, test, expect } from "vitest"
@@ -14,7 +14,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 import { stripAnsi } from "inkx"
 
 describe("HR display", () => {
-  test("HR node (type=hr) renders as horizontal line, NOT as node ID", () => {
+  test("HR node (type=hr) renders with centered content and ─ padding", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -25,8 +25,9 @@ describe("HR display", () => {
     )
 
     const text = stripAnsi(board.screenshot())
-    // The HR line should contain ─ characters
+    // The HR should have ─ padding and show default content (---)
     expect(text).toContain("─")
+    expect(text).toContain("---")
     // Normal items should also be visible
     expect(text).toContain("task-above")
     expect(text).toContain("task-below")
@@ -34,7 +35,7 @@ describe("HR display", () => {
     expect(text).not.toContain("my-hr-node")
   })
 
-  test("item with content '---' renders as horizontal line", () => {
+  test("item with content '---' renders showing its content", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -45,8 +46,8 @@ describe("HR display", () => {
     )
 
     const text = stripAnsi(board.screenshot())
-    // Should render as a line, not show literal "---"
-    expect(text).toContain("─")
+    // Should show the raw HR content
+    expect(text).toContain("---")
   })
 
   test("HR line is dimmed when cursor is NOT on it", () => {
@@ -104,7 +105,7 @@ describe("HR display", () => {
     expect(text).toContain("---foo")
   })
 
-  test("item with content '***' renders as horizontal line", () => {
+  test("item with content '***' renders showing its content", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -115,10 +116,10 @@ describe("HR display", () => {
     )
 
     const text = stripAnsi(board.screenshot())
-    expect(text).toContain("─")
+    expect(text).toContain("***")
   })
 
-  test("item with content '___' renders as horizontal line", () => {
+  test("item with content '___' renders showing its content", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -129,7 +130,7 @@ describe("HR display", () => {
     )
 
     const text = stripAnsi(board.screenshot())
-    expect(text).toContain("─")
+    expect(text).toContain("___")
   })
 
   test("pressing Enter on HR enters edit mode showing raw content", () => {
