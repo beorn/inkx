@@ -6,7 +6,6 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
-import { getCardMidY } from "../card-positions.ts"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../sibling-index.ts"
@@ -39,20 +38,20 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
   // Horizontal (h/l) — preserves stickyY across columns, clears stickyX
   if (dir === "left" || dir === "right") {
     const result = handleHorizontalNav(ctx, dir)
-    ctx.layoutRegistry.clearStickyX()
+    ctx.navigator.clearStickyX()
     return result
   }
 
   // Hierarchical vertical (up/down) — clears stickyY so h/l will lazy-capture
   if (dir === "up" || dir === "down") {
     const result = handleVerticalNav(ctx, dir)
-    ctx.layoutRegistry.clearStickyY()
+    ctx.navigator.clearStickyY()
     return result
   }
 
   // Tree navigation (first, last, prev, next, in, out)
   const result = handleTreeNav(ctx, dir)
-  ctx.layoutRegistry.clearStickyY()
+  ctx.navigator.clearStickyY()
   return result
 }
 
@@ -76,7 +75,7 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: CardState 
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */
 function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResult {
-  const { layout, ui, dispatchBoard, layoutRegistry, viewNavigation } = ctx
+  const { layout, ui, dispatchBoard, navigator, viewNavigation } = ctx
 
   // In non-list views, h closes the detail pane if it's open (before navigation).
   // In list view, showDetailPane defaults to true so h must always navigate.
@@ -88,10 +87,10 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
   // Lazy capture: if stickyY not yet set, capture from current card by nodeId.
   // At h/l time, the focused card is always rendered (no dispatch has happened yet).
   // j/k clears stickyY; subsequent h/l preserves it.
-  if (layoutRegistry.getStickyY() === null && layout.isAtCardLevel && ctx.cursorNodeId) {
-    const nodeLayout = layoutRegistry.getNodeOptional(ctx.cursorNodeId)
-    if (nodeLayout?.headY !== undefined && nodeLayout.headHeight !== undefined) {
-      layoutRegistry.setStickyY(getCardMidY(nodeLayout))
+  if (navigator.stickyY === null && layout.isAtCardLevel) {
+    const midY = navigator.getItemMidY(layout.colIndex, layout.cardIndex)
+    if (midY > 0) {
+      navigator.setStickyY(midY)
     }
     // If card not yet measured, stickyY stays null — navigateHorizontal
     // falls back to first card in target column.
@@ -99,15 +98,24 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
 
   // Use ViewNavigation for the core navigation logic
   if (ctx.cursorNodeId) {
-    let targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
+    const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
 
     if (targetId !== null) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
       // In cards view, attach deferred resolve for off-screen Y-correction.
-      // registerCard will fire it during inkx's Phase 2.7.
+      // register() will fire it during inkx's Phase 2.7.
       if (ui.viewMode === "cards") {
-        layoutRegistry.setDeferredResolve((nodeId) => {
-          dispatchBoard({ type: "SELECT", nodeId })
+        // Find the column that contains targetId for deferred resolution
+        const targetNode = ctx.repo.getNode(targetId)
+        const columnId = targetNode?.parent_id
+        navigator.setDeferredResolve((itemIndex) => {
+          if (columnId) {
+            const children = ctx.repo.getChildren(columnId)
+            const child = children[itemIndex]
+            if (child) {
+              dispatchBoard({ type: "SELECT", nodeId: child.id })
+            }
+          }
         })
       }
       return ok()
@@ -117,19 +125,19 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
   // Boundary: clear stickyY so it doesn't pollute the next h/l navigation.
   // Without this, lazy capture or a prior successful h/l leaves a stale stickyY
   // that would skip fresh capture on the next h/l press.
-  layoutRegistry.clearStickyY()
+  navigator.clearStickyY()
   return boundary(dir)
 }
 
 /** Hierarchical vertical navigation (j/k up/down). */
 function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
-  const { dispatchBoard, layoutRegistry, viewNavigation } = ctx
+  const { dispatchBoard, navigator, viewNavigation } = ctx
 
   if (!ctx.cursorNodeId) {
     throw new Error("[nav] handleVerticalNav called without cursorNodeId")
   }
 
-  const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, layoutRegistry)
+  const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
   if (targetId === null) return boundary(dir)
 
   dispatchBoard({ type: "SELECT", nodeId: targetId })

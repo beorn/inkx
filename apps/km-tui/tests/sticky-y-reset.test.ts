@@ -88,14 +88,14 @@ describe("stickyY reset on boundary actions", () => {
     // Press l — lazy captures stickyY from 1e, navigates to 2e
     press(board, "l", "l to col2")
     board.expect("#2e[data-cursor]").toExist()
-    expect(registry.getStickyY(), "stickyY set after successful l").not.toBeNull()
+    expect(registry.stickyY, "stickyY set after successful l").not.toBeNull()
 
     // Press l again — boundary (rightmost column).
     press(board, "l", "l boundary at rightmost")
     board.expect("#2e[data-cursor]").toExist()
 
     // After boundary, stickyY should be null (cleared by fix)
-    expect(registry.getStickyY(), "stickyY cleared after boundary l").toBeNull()
+    expect(registry.stickyY, "stickyY cleared after boundary l").toBeNull()
   })
 
   test("h boundary at leftmost column clears stickyY", () => {
@@ -121,7 +121,7 @@ describe("stickyY reset on boundary actions", () => {
     board.expect("#1e[data-cursor]").toExist()
 
     // stickyY should be cleared after boundary
-    expect(registry.getStickyY(), "stickyY cleared after boundary h").toBeNull()
+    expect(registry.stickyY, "stickyY cleared after boundary h").toBeNull()
   })
 
   test("3-column cross-column navigation with boundary and invariants", () => {
@@ -154,7 +154,7 @@ describe("stickyY reset on boundary actions", () => {
     // Boundary l at rightmost — stickyY cleared
     press(board, "l", "l boundary at col3")
     board.expect("#3e[data-cursor]").toExist()
-    expect(registry.getStickyY(), "stickyY cleared after rightmost boundary").toBeNull()
+    expect(registry.stickyY, "stickyY cleared after rightmost boundary").toBeNull()
 
     // Navigate up to 3a
     press(board, "k", "k to 3d")
@@ -174,7 +174,7 @@ describe("stickyY reset on boundary actions", () => {
     // Boundary h at leftmost — stickyY cleared again
     press(board, "h", "h boundary at col1")
     board.expect("#1a[data-cursor]").toExist()
-    expect(registry.getStickyY(), "stickyY cleared after leftmost boundary").toBeNull()
+    expect(registry.stickyY, "stickyY cleared after leftmost boundary").toBeNull()
 
     // l should fresh-capture from 1a
     press(board, "l", "l to col2 from 1a")
@@ -200,12 +200,12 @@ describe("stickyY reset on boundary actions", () => {
     // Press h — boundary (leftmost col). Lazy capture fires then is cleared.
     press(board, "h", "h boundary at 1c")
     board.expect("#1c[data-cursor]").toExist()
-    expect(registry.getStickyY(), "stickyY null after boundary h").toBeNull()
+    expect(registry.stickyY, "stickyY null after boundary h").toBeNull()
 
     // Press l — lazy capture fires fresh from 1c, should land on 2c
     press(board, "l", "l from 1c to col2")
     board.expect("#2c[data-cursor]").toExist()
-    expect(registry.getStickyY(), "stickyY set after successful l").not.toBeNull()
+    expect(registry.stickyY, "stickyY set after successful l").not.toBeNull()
 
     // Navigate up to 2a, then h back — verify column alignment preserved
     press(board, "k", "k to 2b")
@@ -241,12 +241,12 @@ describe("stickyY reset on boundary actions", () => {
 
     // Boundary h — clears stickyY
     press(board, "h", "h boundary")
-    expect(registry.getStickyY()).toBeNull()
+    expect(registry.stickyY).toBeNull()
 
     // j down — also clears stickyY (no error from clearing null)
     press(board, "j", "j boundary at bottom")
     board.expect("#1c[data-cursor]").toExist()
-    expect(registry.getStickyY()).toBeNull()
+    expect(registry.stickyY).toBeNull()
 
     // k up then l — should work normally
     press(board, "k", "k to 1b")

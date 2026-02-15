@@ -15,7 +15,7 @@ import type { Repo } from "./repo-context.tsx"
 import type { BoardAction, BoardState, NavHistoryEntry } from "./board-types.ts"
 import type { TUIBoardState, ColumnsLayout } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
-import type { LayoutRegistry } from "./card-positions.ts"
+import type { GridNavigator } from "@km/board"
 import type { BlockEditTarget } from "./block-edit-target.ts"
 import type { CursorStore } from "./cursor-store.ts"
 import { deriveColumnsFromRepo, buildNodeIndex } from "./hooks/use-columns.ts"
@@ -66,7 +66,7 @@ export interface BoardAppState {
   repo: Repo
   toastQueue: ToastQueue
   jobRunner: JobRunner
-  layoutRegistry: LayoutRegistry
+  navigator: GridNavigator
 
   // --- Text input target ---
   textEditTarget: BlockEditTarget | null
@@ -166,7 +166,7 @@ function recomputeLayout(get: () => BoardAppStore): void {
 export interface CreateBoardAppStoreParams {
   repo: Repo
   toastQueue: ToastQueue
-  layoutRegistry: LayoutRegistry
+  navigator: GridNavigator
   cursorStore: CursorStore
   initialBoardState: BoardState
   initialUIState: UIState
@@ -220,7 +220,7 @@ export function createBoardAppStoreState(
     repo: params.repo,
     toastQueue: params.toastQueue,
     jobRunner: createJobRunner(params.toastQueue),
-    layoutRegistry: params.layoutRegistry,
+    navigator: params.navigator,
 
     // Text input
     textEditTarget: null,

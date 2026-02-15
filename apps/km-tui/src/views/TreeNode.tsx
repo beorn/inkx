@@ -40,7 +40,7 @@ import {
   VARIANT_CONFIG,
   type GetBoardPillsFn,
 } from "./tree-node-helpers.ts"
-import { useLayoutRegistryOptional } from "../layout-context.tsx"
+import { useNavigator } from "../layout-context.tsx"
 
 /** Regex to extract target name from ![[target]] or ![[target|alias]] embed syntax. */
 const EMBED_EXTRACT_RE = /^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/
@@ -512,11 +512,11 @@ function TreeNodeImpl({
   const showInlineContext = truncatedContext !== null
 
   // Head row measurement for curswantY (only at depth 0)
-  const registry = useLayoutRegistryOptional()
+  const registry = useNavigator()
   const handleHeadLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
       if (!registry || depth !== 0) return
-      registry.updateCardHead(colIndex, cardIndex, computed.y, computed.height)
+      registry.updateHead(colIndex, cardIndex, computed.y, computed.height)
     },
     [registry, depth, colIndex, cardIndex],
   )

@@ -12,7 +12,7 @@ import type { Repo } from "@km/storage"
 import { isOutline } from "@km/core"
 import { createLogger } from "@beorn/logger"
 import { extractBody } from "@km/tree"
-import type { LayoutRegistry } from "./card-positions.ts"
+import type { GridNavigator } from "@km/board"
 
 const log = createLogger("km:nav")
 
@@ -44,7 +44,7 @@ export interface ViewNavigation {
     dir: "up" | "down" | "left" | "right",
     state: NavState,
     repo: Repo,
-    layoutRegistry: LayoutRegistry,
+    navigator: GridNavigator,
   ): string | null
 }
 
@@ -62,13 +62,13 @@ export interface ViewNavigation {
  */
 export function createCardsViewNavigation(): ViewNavigation {
   return {
-    navigate(dir, state, repo, layoutRegistry) {
+    navigate(dir, state, repo, navigator) {
       if (dir === "up" || dir === "down") {
-        return navigateVertical(dir, state, repo, layoutRegistry)
+        return navigateVertical(dir, state, repo, navigator)
       }
 
       // dir === "left" || dir === "right"
-      return navigateHorizontal(dir, state, repo, layoutRegistry)
+      return navigateHorizontal(dir, state, repo, navigator)
     },
   }
 }
@@ -81,7 +81,7 @@ function navigateVertical(
   dir: "up" | "down",
   state: NavState,
   repo: Repo,
-  layoutRegistry: LayoutRegistry,
+  navigator: GridNavigator,
 ): string | null {
   const { cursorNodeId, rootId } = state
 
@@ -119,7 +119,7 @@ function navigateVertical(
     if (isAtBoardLevel) {
       // Board → first meaningful body card or column header.
       // stickyX remembers which column was last visited.
-      const stickyX = layoutRegistry.getStickyX()
+      const stickyX = navigator.stickyX
       const allChildren = repo.getChildren(rootId)
       const { bodyNodes, structuralCols } = splitBodyAndColumns(allChildren)
 
@@ -194,7 +194,7 @@ function navigateVertical(
       const allChildren = repo.getChildren(rootId)
       const { structuralCols } = splitBodyAndColumns(allChildren)
       const colIdx = indexOfChild(structuralCols, cursorNodeId)
-      if (colIdx >= 0) layoutRegistry.setStickyX(colIdx)
+      if (colIdx >= 0) navigator.setStickyX(colIdx)
       return rootId
     }
 
@@ -216,7 +216,7 @@ function navigateVertical(
  *   bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
  *
  * Navigation must use this filter so that card indices match what the view
- * renders and what LayoutRegistry tracks. Without this, HR nodes and empty
+ * renders and what GridNavigator tracks. Without this, HR nodes and empty
  * paragraphs create an index mismatch between navigation's bodyNodes[]
  * and the view's registered card array.
  */
@@ -249,7 +249,7 @@ function navigateHorizontal(
   dir: "left" | "right",
   state: NavState,
   repo: Repo,
-  layoutRegistry: LayoutRegistry,
+  navigator: GridNavigator,
 ): string | null {
   const { cursorNodeId, rootId } = state
 
@@ -283,7 +283,7 @@ function navigateHorizontal(
     if (dir === "left") return null // Body is leftmost column
     // dir === "right": navigate to first structural column
     if (structuralCols.length === 0) return null
-    return navigateToStructuralCol(0, structuralCols, state, layoutRegistry, repo, hasBody)
+    return navigateToStructuralCol(0, structuralCols, state, navigator, repo, hasBody)
   }
 
   // Cursor is in a structural column — find its index within structural columns only
@@ -299,16 +299,16 @@ function navigateHorizontal(
     if (colIdx === 0) {
       // First structural column → navigate left to body (if it exists)
       if (!hasBody) return null
-      return navigateToBody(bodyNodes, layoutRegistry)
+      return navigateToBody(bodyNodes, navigator)
     }
     // Navigate to previous structural column
-    return navigateToStructuralCol(colIdx - 1, structuralCols, state, layoutRegistry, repo, hasBody, isAtColumnLevel, cursorColId)
+    return navigateToStructuralCol(colIdx - 1, structuralCols, state, navigator, repo, hasBody, isAtColumnLevel, cursorColId)
   }
 
   // dir === "right"
   const targetColIdx = colIdx + 1
   if (targetColIdx >= structuralCols.length) return null
-  return navigateToStructuralCol(targetColIdx, structuralCols, state, layoutRegistry, repo, hasBody, isAtColumnLevel, cursorColId)
+  return navigateToStructuralCol(targetColIdx, structuralCols, state, navigator, repo, hasBody, isAtColumnLevel, cursorColId)
 }
 
 /**
@@ -319,7 +319,7 @@ function navigateToStructuralCol(
   structIdx: number,
   structuralCols: { id: string }[],
   state: NavState,
-  layoutRegistry: LayoutRegistry,
+  navigator: GridNavigator,
   repo: Repo,
   hasBody: boolean,
   isAtColumnLevel?: boolean,
@@ -351,31 +351,31 @@ function navigateToStructuralCol(
       }
     }
     // Empty source column → use stickyY if available
-    const stickyY = layoutRegistry.getStickyY()
+    const stickyY = navigator.stickyY
     if (stickyY !== null) {
-      if (layoutRegistry.hasCardsInColumn(viewColIdx)) {
-        const targetCardIdx = layoutRegistry.findCardAtYVisual(viewColIdx, stickyY)
+      if (navigator.hasSection(viewColIdx)) {
+        const targetCardIdx = navigator.findItemAtY(viewColIdx, stickyY)
         return cardAt(targetCards, Math.min(Math.max(0, targetCardIdx), targetCards.length - 1))
       }
-      layoutRegistry.setDeferredNavigation(viewColIdx, stickyY)
+      navigator.setDeferredNavigation(viewColIdx, stickyY)
       return cardAt(targetCards, 0)
     }
     return targetCol.id
   }
 
   // At card level (or navigating from body): use stickyY for Y-position matching
-  const stickyY = layoutRegistry.getStickyY()
+  const stickyY = navigator.stickyY
   if (stickyY === null) {
     return cardAt(targetCards, 0)
   }
 
-  if (layoutRegistry.hasCardsInColumn(viewColIdx)) {
-    const targetCardIdx = layoutRegistry.findCardAtYVisual(viewColIdx, stickyY)
+  if (navigator.hasSection(viewColIdx)) {
+    const targetCardIdx = navigator.findItemAtY(viewColIdx, stickyY)
     return cardAt(targetCards, Math.min(Math.max(0, targetCardIdx), targetCards.length - 1))
   }
 
   // Target column off-screen: start at first card, deferred corrects to Y-match
-  layoutRegistry.setDeferredNavigation(viewColIdx, stickyY)
+  navigator.setDeferredNavigation(viewColIdx, stickyY)
   return cardAt(targetCards, 0)
 }
 
@@ -385,18 +385,18 @@ function navigateToStructuralCol(
  */
 function navigateToBody(
   bodyNodes: { id: string }[],
-  layoutRegistry: LayoutRegistry,
+  navigator: GridNavigator,
 ): string | null {
   if (bodyNodes.length === 0) return null
 
-  const stickyY = layoutRegistry.getStickyY()
+  const stickyY = navigator.stickyY
   if (stickyY === null) {
     return bodyNodes[0]!.id
   }
 
   // Body is always view column 0
-  if (layoutRegistry.hasCardsInColumn(0)) {
-    const targetCardIdx = layoutRegistry.findCardAtYVisual(0, stickyY)
+  if (navigator.hasSection(0)) {
+    const targetCardIdx = navigator.findItemAtY(0, stickyY)
     const clampedIdx = Math.min(Math.max(0, targetCardIdx), bodyNodes.length - 1)
     return bodyNodes[clampedIdx]!.id
   }

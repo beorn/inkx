@@ -154,6 +154,7 @@
       "dependencies": {
         "@km/core": "workspace:*",
         "@km/tree": "workspace:*",
+        "inkx": "workspace:*",
       },
     },
     "packages/km-commands": {

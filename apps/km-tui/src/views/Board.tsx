@@ -32,7 +32,7 @@ import { ConfirmDialog } from "./shared-components.tsx"
 import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { renderPath } from "../layout/index.ts"
-import { type LayoutRegistry } from "../card-positions.ts"
+import type { GridNavigator } from "@km/board"
 import type { UIState } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
@@ -87,7 +87,7 @@ export interface BoardCoreProps {
   /** Terminal dimensions */
   dimensions: { columns: number; rows: number }
   /** Layout registry for card position tracking */
-  layoutRegistry: LayoutRegistry
+  navigator: GridNavigator
   /** Direct UI state setter */
   setUI: BoardAppStore["setUI"]
   /** Dialog handlers (types match ProjectPicker, NewItemDialog, and SearchDialog props) */
@@ -210,7 +210,7 @@ export function BoardCore({
   ui,
   derivedSelectionLevel,
   dimensions,
-  layoutRegistry,
+  navigator,
   setUI,
   dialogHandlers,
   collapsedNodes,
@@ -509,7 +509,7 @@ export interface BoardProps {
   /** Toast queue instance (injected, not global) */
   toastQueue?: ToastQueue
   /** Optional layout registry for card position tracking (for testing) */
-  layoutRegistry?: LayoutRegistry
+  navigator?: GridNavigator
   /** Patched console for debug output modal */
   patchedConsole?: PatchedConsole | null
 }
@@ -540,7 +540,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const collapsedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.collapsedNodes)
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.moveMode)
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
-  const layoutRegistry = useAppStore<BoardAppStore, LayoutRegistry>((s) => s.layoutRegistry)
+  const navigator = useAppStore<BoardAppStore, GridNavigator>((s) => s.navigator)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const updateLayout = useAppStore<BoardAppStore, BoardAppStore["updateLayout"]>((s) => s.updateLayout)
@@ -791,7 +791,7 @@ export function Board({ patchedConsole }: BoardProps) {
           ui={ui}
           derivedSelectionLevel={derivedSelectionLevel}
           dimensions={ui.dimensions}
-          layoutRegistry={layoutRegistry}
+          navigator={navigator}
           setUI={setUI}
           dialogHandlers={dialogHandlers}
           collapsedNodes={collapsedNodes}
@@ -817,7 +817,7 @@ export interface BoardAppProps {
   /** Toast queue instance (injected from runBoard) */
   toastQueue?: ToastQueue
   /** Optional layout registry for card position tracking (for testing) */
-  layoutRegistry?: LayoutRegistry
+  navigator?: GridNavigator
   /** Patched console for capturing console output (optional) */
   patchedConsole?: PatchedConsole | null
 }
@@ -830,7 +830,7 @@ export function BoardApp({
   initialState,
   initialViewMode = "cards",
   toastQueue,
-  layoutRegistry,
+  navigator,
   patchedConsole,
 }: BoardAppProps) {
   const { exit } = useApp()
@@ -847,7 +847,7 @@ export function BoardApp({
         dimensions={storeDimensions}
         onExit={exit}
         toastQueue={toastQueue}
-        layoutRegistry={layoutRegistry}
+        navigator={navigator}
         patchedConsole={patchedConsole}
       />
     </Box>

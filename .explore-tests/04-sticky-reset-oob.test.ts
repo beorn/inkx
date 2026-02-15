@@ -98,7 +98,7 @@ describe("sticky reset on out-of-bounds (km-tui.sticky-reset-oob)", () => {
     board.expect("#board[data-cursor]").toExist()
 
     // stickyX should be 2 (col2)
-    expect(registry.getStickyX()).toBe(2)
+    expect(registry.stickyX).toBe(2)
 
     // j from board should go back to col2 via stickyX
     board.press("j")

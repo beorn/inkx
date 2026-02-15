@@ -38,7 +38,7 @@ import type { Repo } from "@km/storage"
 import type { TUIBoardState } from "./types.ts"
 import { BoardCore } from "./views/index.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
-import { createLayoutRegistry } from "./card-positions.ts"
+import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "./repo-context.tsx"
 import { CursorStoreProvider } from "./cursor-context.tsx"
 import { createCursorStore } from "./cursor-store.ts"
@@ -175,7 +175,7 @@ export async function createBoardTest(
     ui: createInitialUIState("cards", [], { columns: width, rows: height }),
     derivedSelectionLevel: "card",
     dimensions: { columns: width, rows: height },
-    layoutRegistry: createLayoutRegistry(),
+    navigator: createGridNavigator(),
     dispatch: () => {},
     dialogHandlers: {
       handleProjectSelect: () => {},

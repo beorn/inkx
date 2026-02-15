@@ -17,10 +17,9 @@ import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../s
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { getColumnHeaderIcon, isSigilName, renderPlain } from "../text/index.ts"
-import { useLayoutRegistryOptional } from "../layout-context.tsx"
+import { useNavigator } from "../layout-context.tsx"
 import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
-import type { NodeLayout } from "../card-positions.ts"
 import { useIsColumnSelected, useIsCursorAtCard } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 
@@ -80,13 +79,12 @@ interface CardProps {
 function CardLayoutRegistrar({
   colIndex,
   cardIndex,
-  nodeId,
 }: {
   colIndex: number
   cardIndex: number
   nodeId: string
 }): null {
-  const registry = useLayoutRegistryOptional()
+  const registry = useNavigator()
 
   const handleLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
@@ -95,28 +93,21 @@ function CardLayoutRegistrar({
         return
       }
 
-      const layout: NodeLayout = {
-        x: computed.x,
-        y: computed.y,
-        cardWidth: computed.width,
-        cardHeight: computed.height,
-      }
-
       layoutLog.trace?.(`CardLayoutRegistrar: col=${colIndex} card=${cardIndex} y=${computed.y} h=${computed.height}`)
-      registry.registerCard(colIndex, cardIndex, nodeId, layout)
+      registry.register(colIndex, cardIndex, { x: computed.x, y: computed.y, width: computed.width, height: computed.height })
     },
-    [registry, colIndex, cardIndex, nodeId],
+    [registry, colIndex, cardIndex],
   )
 
   useScreenRectCallback(handleLayout)
 
   // Clean up registry entry when VirtualList unmounts this card.
   // Without this, stale entries with old screen positions remain in the
-  // registry after scrolling, causing findCardAtYVisual to return the wrong
+  // registry after scrolling, causing findItemAtY to return the wrong
   // card during h/l navigation (stickyY intersects stale bounding box).
   useEffect(() => {
     return () => {
-      registry?.unregisterCard(colIndex, cardIndex)
+      registry?.unregister(colIndex, cardIndex)
     }
   }, [registry, colIndex, cardIndex])
 

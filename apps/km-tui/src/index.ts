@@ -20,8 +20,9 @@ export { RepoProvider, useRepo, type Repo } from "./repo-context.tsx"
 // Export UI reducer utilities
 export { createInitialUIState } from "./ui-reducer.ts"
 
-// Export layout registry for card position tracking
-export { createLayoutRegistry } from "./card-positions.ts"
+// Export grid navigator for card position tracking
+export { createGridNavigator } from "@km/board"
+export type { GridNavigator } from "@km/board"
 
 // Export text utilities
 export * from "./text/index.ts"

@@ -21,7 +21,7 @@
  *    (renderRich, getStatusIcon, etc.). Layer 3 uses BoardCore.
  *
  * 3. **Follow testing.ts pattern** — `BoardCore` wrapped in `RepoProvider`, with
- *    mock state from `createInitialUIState` + `createLayoutRegistry`.
+ *    mock state from `createInitialUIState` + `createGridNavigator`.
  *    See `src/testing.ts:169-194`.
  *
  * 4. **Test all modes** — `bun storybook` (inline), `--fullscreen`, `--fullscreen-nonalt`.
@@ -65,7 +65,7 @@ import { CursorStoreProvider } from "../src/cursor-context.tsx"
 import { createCursorStore } from "../src/cursor-store.ts"
 import { createStore } from "zustand/vanilla"
 import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
-import { createLayoutRegistry } from "../src/card-positions.ts"
+import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createFakeRepo } from "@km/storage"
 import type { Toast } from "@km/core"
@@ -1155,7 +1155,7 @@ function makeBoardCoreProps(
     ui,
     derivedSelectionLevel: selectionLevel,
     dimensions: dims,
-    layoutRegistry: createLayoutRegistry(),
+    navigator: createGridNavigator(),
     setUI: () => {},
     dispatch: noopDispatch,
     dialogHandlers: noopDialogHandlers,

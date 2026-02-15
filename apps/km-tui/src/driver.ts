@@ -63,7 +63,7 @@ import { createBoardState } from "./board-types.ts"
 import { Board } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
 import { buildBoardState } from "./state.ts"
-import { createLayoutRegistry, type LayoutRegistry } from "./card-positions.ts"
+import { createGridNavigator, type GridNavigator } from "@km/board"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
@@ -126,7 +126,7 @@ export interface BoardDriver extends AppWithCommands {
   /** The underlying inkx App */
   readonly app: App
   /** Layout registry for position tracking */
-  readonly layoutRegistry: LayoutRegistry
+  readonly navigator: GridNavigator
   /**
    * Direct access to the board app store for reactive state access.
    * Use store.subscribe() for state change notifications.
@@ -177,7 +177,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const initialCursorNodeId = firstCol?.cards[0]?.node.id ?? firstCol?.node.id ?? null
 
   // Create layout registry for position tracking
-  const layoutRegistry = createLayoutRegistry()
+  const navigator = createGridNavigator()
   const toastQueue = createToastQueue()
 
   // Compute initial layout from TUI state
@@ -201,7 +201,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
-    layoutRegistry,
+    navigator,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
       colIndex: 0,
@@ -236,7 +236,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     dimensions: { columns, rows },
     onExit: () => {},
     toastQueue,
-    layoutRegistry,
+    navigator,
   })
   const baseApp = render(
     React.createElement(
@@ -348,7 +348,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     press: driverPress,
     getState: getDriverState,
     app: baseApp,
-    layoutRegistry,
+    navigator,
     store,
   }) as BoardDriver
 }

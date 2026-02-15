@@ -3,7 +3,7 @@
  *
  * Guards against cursor down to non-first card, then h/l always landing on
  * first card in target column instead of matching Y position. Also tests
- * graceful fallback when registry has no headY for current card.
+ * graceful fallback when getItemMidY returns 0 for current card.
  */
 import { testEnv, item } from "./helpers/board-test.ts"
 import { describe, test, expect } from "vitest"
@@ -31,8 +31,8 @@ describe("stickyY reliability", () => {
   })
 
   test("stickyY falls back when registry has no headY for current card", () => {
-    // With lazy capture on h/l, if headY is missing the code gracefully
-    // skips stickyY capture and falls back to first card in target column.
+    // With lazy capture on h/l, if getItemMidY returns 0 (no position data),
+    // the code gracefully skips stickyY capture and falls back to first card in target column.
     const { board, registry } = testEnv(
       () =>
         item(
@@ -49,14 +49,10 @@ describe("stickyY reliability", () => {
     board.press("j").press("j").press("j")
     expect(board.q("[data-cursor]").textContent()).toContain("A4")
 
-    // Simulate race condition: clear current card's headY from registry
-    const cardLayout = registry.getNodeOptional("A4")
-    if (cardLayout) {
-      cardLayout.headY = undefined
-      cardLayout.headHeight = undefined
-    }
+    // Simulate race condition: unregister A4's position so getItemMidY returns 0
+    registry.unregister(0, 3)
 
-    // Press l — lazy capture skips (no headY), falls back to first card in target column
+    // Press l — lazy capture skips (midY=0), falls back to first card in target column
     board.press("l")
     expect(board.q("[data-cursor]").textContent()).toContain("B1")
   })
@@ -81,7 +77,7 @@ describe("stickyY reliability", () => {
     expect(board.q("[data-cursor]").textContent()).toContain("A4")
 
     // Simulate: completely remove A4 from registry
-    registry.unregisterCard(0, 3)
+    registry.unregister(0, 3)
 
     // Press l — lazy capture can't find card → falls back to first card in target column
     board.press("l")

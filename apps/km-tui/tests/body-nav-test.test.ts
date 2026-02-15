@@ -10,7 +10,7 @@ import { describe, it, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { createFakeRepo } from "@km/storage"
 import { createCardsViewNavigation, type NavState } from "../src/view-navigation.ts"
-import { createLayoutRegistry } from "../src/card-positions.ts"
+import { createGridNavigator } from "@km/board"
 import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 
 describe("body content navigation", () => {
@@ -118,7 +118,7 @@ describe("body content navigation", () => {
     const repo = createFakeRepo({ nodes })
 
     const nav = createCardsViewNavigation()
-    const registry = createLayoutRegistry()
+    const registry = createGridNavigator()
 
     const navState: NavState = {
       cursorNodeId: "body text",
@@ -147,7 +147,7 @@ describe("body content navigation", () => {
     const repo = createFakeRepo({ nodes })
 
     const nav = createCardsViewNavigation()
-    const registry = createLayoutRegistry()
+    const registry = createGridNavigator()
 
     // Down from p1 → p2
     expect(nav.navigate("down", { cursorNodeId: "p1", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() }, repo, registry)).toBe("p2")

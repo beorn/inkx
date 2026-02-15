@@ -71,7 +71,7 @@ export const screenshotCommand = new Command("screenshot")
 
     // Import React and Board components
     const React = await import("react")
-    const { BoardCore, RepoProvider, createInitialUIState, createLayoutRegistry } = await import("@km/tui")
+    const { BoardCore, RepoProvider, createInitialUIState, createGridNavigator } = await import("@km/tui")
 
     // Create the BoardCore element with all required props
     const boardCoreElement = React.createElement(BoardCore, {
@@ -80,15 +80,13 @@ export const screenshotCommand = new Command("screenshot")
         columns: state.columns,
         colIndex: 0,
         cardIndex: 0,
-        subPath: [],
         isAtCardLevel: true,
-        isInOutlineMode: false,
       },
       ui: createInitialUIState(viewMode, [], { columns: width, rows: height }),
       derivedSelectionLevel: "card" as const,
       dimensions: { columns: width, rows: height },
-      layoutRegistry: createLayoutRegistry(),
-      dispatch: () => {},
+      navigator: createGridNavigator(),
+      setUI: () => {},
       dialogHandlers: {
         handleProjectSelect: () => {},
         handleProjectCancel: () => {},
@@ -96,7 +94,10 @@ export const screenshotCommand = new Command("screenshot")
         handleNewItemCancel: () => {},
         handleSearchSelect: () => {},
         handleSearchCancel: () => {},
+        handleDatePromptConfirm: () => {},
+        handleDatePromptCancel: () => {},
       },
+      collapsedNodes: new Set<string>(),
       moveMode: false,
       colScrollOffset: 0,
     })
