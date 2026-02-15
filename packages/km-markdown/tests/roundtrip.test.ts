@@ -230,6 +230,22 @@ describe("Round-trip: Tables", () => {
     expect(tableNode!.content).toContain("|")
     expect(tableNode!.content).not.toBe("NameAgeAlice30")
   })
+
+  test("table columns are padded for alignment", () => {
+    const input = `| Name | Role |
+|---|---|
+| Alice | Engineer |
+| Bob | PM |`
+
+    const nodes = parse(input)
+    const tableNode = nodes.find((n) => n.type === "table")
+    expect(tableNode).toBeDefined()
+    const lines = tableNode!.content!.split("\n")
+    // All rows should have same-width columns (padded)
+    expect(lines[0]).toContain("| Name  | Role     |")
+    expect(lines[2]).toContain("| Alice | Engineer |")
+    expect(lines[3]).toContain("| Bob   | PM       |")
+  })
 })
 
 describe("Round-trip: Sections with Content", () => {

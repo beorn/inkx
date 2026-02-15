@@ -412,16 +412,18 @@ function TreeNodeImpl({
   }, [displayNode.id, repo, setUI])
 
   // Memoize rich text rendering - only recalc when content or sigil config changes
-  // In multiline (cards) mode, truncate with ellipsis to fit on single line
+  // Code blocks and tables render verbatim (no markdown formatting applied)
   const styledContent = useMemo(() => {
+    if (node.type === "code" || node.type === "table") {
+      return cleanContent // Verbatim — no renderRich processing
+    }
     const rich = renderRich(cleanContent, {
       excludeSigils: excludedSigils,
       sigilColors,
       resolveSigilColor,
     })
     // Estimate available width for cards (accounting for borders, padding, prefix)
-    // This is approximate - actual width depends on terminal and column layout
-    // Only truncate card titles (oi items) — body content (p, code, quote, etc.)
+    // Only truncate card titles (oi items) — body content (p, quote, etc.)
     // should wrap naturally via inkx's wrap="wrap"
     if (!isOneliner && !isBlock(node.type)) {
       return truncateText(rich, 70) // Default ~70 chars for card title
@@ -558,7 +560,7 @@ function TreeNodeImpl({
                 color={dimUntitled ? "gray" : (style.textColor ?? style.ownColor)}
                 dimColor={style.shouldDim || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
-                wrap={isOneliner ? "truncate" : "wrap"}
+                wrap={isOneliner || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
                 {styledContent}
                 {sigilName && (

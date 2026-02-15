@@ -403,25 +403,42 @@ export function parseHeadingRules(text: string): ParsedHeading {
 }
 
 /**
- * Convert mdast table node to markdown table string.
- * Preserves pipe-delimited structure: | col1 | col2 |
+ * Convert mdast table node to markdown table string with column alignment.
+ * Pads cells so columns line up: | Key      | Value |
  */
 export function tableToMarkdown(node: RootContent): string {
   if (node.type !== "table" || !("children" in node)) return nodeToText(node)
 
   const rows = (node as { children: RootContent[] }).children
+
+  // First pass: extract all cell text and compute column widths
+  const allCells: string[][] = []
+  for (const row of rows) {
+    const r = row as { children?: RootContent[] }
+    if (!r?.children) continue
+    allCells.push(r.children.map((cell) => nodeToText(cell as RootContent)))
+  }
+  if (allCells.length === 0) return nodeToText(node)
+
+  // Max width per column (minimum 3 for separator "---")
+  const colCount = Math.max(...allCells.map((r) => r.length))
+  const colWidths: number[] = Array.from({ length: colCount }, () => 3)
+  for (const cells of allCells) {
+    for (let c = 0; c < cells.length; c++) {
+      colWidths[c] = Math.max(colWidths[c]!, cells[c]!.length)
+    }
+  }
+
+  // Second pass: render with padding
   const lines: string[] = []
+  for (let i = 0; i < allCells.length; i++) {
+    const cells = allCells[i]!
+    const padded = colWidths.map((w, c) => (cells[c] ?? "").padEnd(w))
+    lines.push("| " + padded.join(" | ") + " |")
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i] as { children?: RootContent[] }
-    if (!row?.children) continue
-
-    const cells = row.children.map((cell) => nodeToText(cell as RootContent))
-    lines.push("| " + cells.join(" | ") + " |")
-
-    // Add separator after header row
+    // Separator after header row
     if (i === 0) {
-      lines.push("|" + cells.map(() => "---|").join(""))
+      lines.push("| " + colWidths.map((w) => "-".repeat(w)).join(" | ") + " |")
     }
   }
 

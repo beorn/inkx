@@ -883,6 +883,28 @@ function mockCard(node: KNode, childDefs: Array<{ content: string; status?: stri
   return { node, children }
 }
 
+/** Create a card with merged body content (simulates body nodes like p, code, table, quote) */
+function mockBodyCard(id: string, title: string, bodyDefs: Array<{ type: string; content: string }>): CardState {
+  const titleNode = mockNode(id, title, undefined, "oi", { fstype: "mdsection" })
+  const bodyNodes = bodyDefs.map((def, i) => {
+    const bNode: KNode = {
+      id: `${id}-body-${i}`,
+      type: def.type as KNode["type"],
+      parent_id: id,
+      parent_idx: i,
+      link_to: null,
+      content: def.content,
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "1",
+    }
+    registerNode(bNode)
+    return bNode
+  })
+  return { node: titleNode, children: [], bodyNodes }
+}
+
 // Helper to create mock ColumnState
 function mockColumn(name: string, cards: CardState[]): ColumnState {
   return {
@@ -1028,15 +1050,44 @@ function createMockTUIBoardState(): TUIBoardState {
     mockCard(mockNode("fmt6", "**Bold** and *italic* and `code` together", "wip")),
   ]
 
+  // Column 5 - Markdown body content (p, code, table, quote, etc.)
+  const markdownCards: CardState[] = [
+    // Card with paragraph body
+    mockBodyCard("md-p", "Paragraphs", [
+      { type: "p", content: "This is a paragraph with **bold** and *italic* text." },
+      { type: "p", content: "Second paragraph below the first, separated naturally." },
+    ]),
+    // Card with code block body
+    mockBodyCard("md-code", "Code Block", [
+      { type: "code", content: "const greeting = \"Hello, world!\"\nfunction add(a: number, b: number): number {\n  return a + b\n}" },
+    ]),
+    // Card with table body (pipe-delimited markdown)
+    mockBodyCard("md-table", "Table", [
+      { type: "table", content: "| Name    | Role      | Status |\n| ------- | --------- | ------ |\n| Alice   | Engineer  | Active |\n| Bob     | Designer  | Away   |\n| Charlie | PM        | Active |" },
+    ]),
+    // Card with blockquote body
+    mockBodyCard("md-quote", "Blockquote", [
+      { type: "quote", content: "The best way to predict the future is to invent it. — Alan Kay" },
+    ]),
+    // Card with mixed body content
+    mockBodyCard("md-mixed", "Mixed Content", [
+      { type: "p", content: "A project description with **key points**:" },
+      { type: "code", content: "npm install && npm run build" },
+      { type: "table", content: "| Metric | Value |\n| ------ | ----- |\n| Users  | 1.2k  |\n| DAU    | 340   |" },
+      { type: "quote", content: "Ship early, ship often." },
+    ]),
+  ]
+
   // Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
   return {
     rootId: "board-root",
     rootPath: "/Projects/webapp",
     columns: [
       mockColumn("Active", activeCards),
-      mockColumn("Embedded", embeddedCards), // NEW: Shows parent context
+      mockColumn("Embedded", embeddedCards), // Shows parent context
       mockColumn("Completed", completedCards),
       mockColumn("Formatting", formattingCards),
+      mockColumn("Markdown", markdownCards), // Shows body content types
     ],
     selectedNodes: new Set<string>(),
     visualMode: false,
