@@ -80,14 +80,13 @@ After agents complete:
    Sub-agents must NOT run `bun fix`, `test:fast`, or `test:all` — the parent handles all verification.
 3. Update todos as completed
 
-## Anti-Patterns (NEVER DO)
+## Anti-Patterns
 
-- ❌ Launch agents one at a time, waiting for each
-- ❌ Do research yourself when an Explore agent could do it in background
-- ❌ Edit files one at a time when pattern is clear
-- ❌ Run verification steps sequentially
-- ❌ Skip TodoWrite (user can't see your parallel progress)
-- ❌ Let sub-agents run `bun fix` or `test:all` (parent does this once)
+- Launch agents one at a time, waiting for each
+- Do research yourself when an Explore agent could do it in background
+- Edit files one at a time when pattern is clear
+- Skip TodoWrite (user can't see your parallel progress)
+- Let sub-agents run `bun fix` or `test:all` (parent does this once)
 
 ## Sticky Mode
 
@@ -100,8 +99,4 @@ Once `/max` is invoked or user requests parallelization:
 
 ## Execute Now
 
-1. **Decompose** the user's request into work units
-2. **Create TodoWrite** with all identified work units
-3. **Launch ALL independent Task agents in ONE message**
-4. **Report** the parallel execution plan to the user
-5. **Remember**: Stay in parallel mode for rest of session
+Decompose, create TodoWrite, launch ALL independent agents in ONE message, report plan. Stay in parallel mode for rest of session.

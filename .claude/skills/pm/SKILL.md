@@ -43,6 +43,9 @@ When user says `/pm <action>`, run these commands:
 | `/pm regroup`       | Load [workflows/rebase.md](workflows/rebase.md) (alias)      | ask         |
 | `/pm new <id> "t"`  | `bd create --id <id> --title "t"` (check prefix: `bd list --limit 1`) | action      |
 | `/pm create ...`    | See [beads.md](beads.md) for full create syntax              | action      |
+| `/pm session start <focus>` | Create session bead, print ID (see below)              | action      |
+| `/pm session status` | Show current session bead's description                      | info        |
+| `/pm session end`   | Close session bead with summary                              | action      |
 
 **Review modes**: `status` (health summary), `ready` (actionable work), `groom` (full review)
 
@@ -73,9 +76,9 @@ When user says `/pm work <id>` or `/pm do <id>`:
 
 The user's command IS the confirmation. Never re-ask intent that was already expressed.
 
-## Tracking Epics
+## Scope Epics (Backlogs)
 
-Every bead belongs under a tracking epic via `km-<scope>.<suffix>` dot notation. Tracking epics have "TRACKING:" in their title and serve as live indexes of open work per scope.
+Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Scope epics are `type=epic` and serve as backlogs — their children are the open work for that scope.
 
 | Epic | Scope | Example |
 |------|-------|---------|
@@ -94,13 +97,64 @@ Every bead belongs under a tracking epic via `km-<scope>.<suffix>` dot notation.
 **Creating**: Use `km-<scope>.<suffix>` ID, then `bd update <id> --parent <epic>`.
 **Closing**: The parent-child link is preserved on closed beads automatically.
 
-### Maintaining Tracking Epics
+### Managing Scope Epics
 
-**IMPORTANT**: When you create, close, or reparent beads, update the parent tracking epic's description to reflect the change. Tracking epics list their children by priority — keep this list current so future sessions have an accurate overview.
+Check children and completion status using built-in commands:
 
-To update: `bd update <epic-id> --description "..."` with the revised child list. Check current children with `bd list --parent <epic-id>`.
+```bash
+bd children <epic-id>              # List children
+bd list --parent <epic-id>         # Alternative
+bd epic status                     # Completion % for all epics
+bd epic close-eligible             # Auto-close epics with all children done
+```
 
-**Idle tracking**: When a tracking epic has no open P1-P3 children, add `(idle)` to its title: `TRACKING (idle): ...`. P4 beads don't count — they're "don't do automatically" items. When new P1-P3 children are added, remove `(idle)`: `TRACKING: ...`. This signals at a glance in `bd list` that the tracker is healthy but has no active work — not stale or forgotten.
+No need for `TRACKING:` or `(idle)` title prefixes — `type=epic` and `bd epic status` provide this information. Epic titles should be clean descriptions of the scope (e.g., "TUI app views & interaction").
+
+## Session Tracking
+
+Session beads record what happened during a work session (especially `/explore` or batch bug-fixing). They provide persistent, queryable records with incremental updates.
+
+### `/pm session start <focus>`
+
+```bash
+# Generate date-based ID: km-session.<MMDD><seq> (a, b, c for multiple same-day sessions)
+bd create --id km-session.0215a --type task --title "Session: <focus>"
+bd update km-session.0215a --parent km-tui  # or appropriate epic
+bd update km-session.0215a --claim
+```
+
+Print the session bead ID. This ID is used for all subsequent session updates.
+
+### `/pm session status`
+
+```bash
+bd show <current-session-id>
+```
+
+Shows the session bead's description (status dashboard) and notes (event log).
+
+### `/pm session end`
+
+```bash
+# Update description with final dashboard
+bd update <session-id> --description "<final dashboard>"
+# Close with summary
+bd close <session-id> --reason "Explored <focus>. Found N bugs (M fixed). N tests, M screenshots."
+```
+
+### Linking Bugs to Sessions
+
+When creating a bug during a session, log it in the session bead:
+
+```bash
+bd update <session-id> --append-notes "HH:MM — Found bug: <desc> → created <bead-id> (P2)"
+```
+
+When closing a bug found during a session, reference the session:
+
+```bash
+bd close <bug-id> --reason "Fixed: ... Session: <session-id>"
+```
 
 ## Staleness Check
 
@@ -153,7 +207,7 @@ bd update km-tui.foo --parent km-tui                    # Step 2
 
 **Refactoring beads**: Read [/docs/principles.md](/docs/principles.md) and [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md) first. Phase order: Rebase -> Absorb -> Purge -> Remove -> Fix.
 
-**Renaming beads**: Always `grep -r "km-old-id" .` to find all references across the entire codebase, then update them.
+**Renaming beads**: Use `bd rename <old-id> <new-id>` — automatically updates all references (deps, descriptions, titles, notes, labels, comments, events).
 
 ## Sub-Skills
 

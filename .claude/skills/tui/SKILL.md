@@ -34,6 +34,8 @@ Build and maintain the Ink-based TUI.
 
 ## Common Debug Commands
 
+See [tests/SKILL.md](../tests/SKILL.md) for test commands.
+
 ```bash
 # FIRST: Run with diagnostic mode (catches incremental render bugs)
 INKX_STRICT=1 bun vitest run apps/km-tui/tests/
@@ -43,9 +45,6 @@ INKX_STRICT=1 bun km view /path/to/vault
 bun storybook
 bun storybook --fullscreen       # alternate screen
 bun storybook --fullscreen-nonalt
-
-# Run TUI tests
-bun run test:mock
 ```
 
 **Full design rationale**: [docs/ref/ui.md](../../docs/ref/ui.md)

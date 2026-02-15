@@ -10,6 +10,8 @@ allowed-tools: Bash, Read, Glob, Grep, Task
 
 ## Workflows
 
+All work follows the [test-first protocol](test-first-protocol.md).
+
 ### Coding Iteration (every change)
 
 ```bash

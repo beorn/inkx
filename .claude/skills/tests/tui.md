@@ -117,6 +117,8 @@ board.press("k") // vim-style up
 | `board.expect(selector).toHaveCount(n)` | Assert count |
 | `board.q(selector).boundingBox()` | Get position/size |
 
+<a name="visual-assertions"></a>
+
 ### Visual Assertions (screen buffer)
 
 For rendering bugs (wrong colors, missing borders, bad layout), use the visual toolbelt:

@@ -213,11 +213,7 @@ tui/nav         # Navigation within TUI
 Use existing labels when possible. Check before creating new ones:
 
 ```bash
-# List all labels in use
-sqlite3 .beads/beads.db "SELECT DISTINCT label FROM labels ORDER BY label"
-
-# Count label usage
-sqlite3 .beads/beads.db "SELECT label, COUNT(*) as count FROM labels GROUP BY label ORDER BY count DESC"
+bd count --by-label           # Label usage stats
 ```
 
 ## Query Examples
@@ -245,27 +241,37 @@ bd list --label sync --label phase:testing
 bd list --label storage --type bug --priority-max 1
 ```
 
-### Complex Queries (Direct SQL)
+### Label OR Queries
 
 ```bash
-# Beads with ANY of these labels (OR)
-sqlite3 .beads/beads.db "
-  SELECT DISTINCT i.id, i.title
-  FROM issues i
-  JOIN labels l ON l.issue_id = i.id
-  WHERE l.label IN ('sync', 'watcher', 'parser')
-  AND i.status = 'open'
-"
+# Beads with ANY of these labels (OR) — no SQL needed
+bd list --label-any sync,watcher,parser --status open
+```
 
-# Beads with 3+ labels (well-classified)
-sqlite3 .beads/beads.db "
-  SELECT i.id, i.title, COUNT(l.label) as label_count
-  FROM issues i
-  JOIN labels l ON l.issue_id = i.id
-  WHERE i.status = 'open'
-  GROUP BY i.id
-  HAVING label_count >= 3
-"
+### Label Pattern Matching
+
+```bash
+# Glob pattern on labels
+bd list --label-pattern "phase:*"        # All phase-labeled beads
+bd list --label-pattern "tech-*"         # All tech-* labels
+
+# Regex pattern on labels
+bd list --label-regex "tech-(debt|legacy)"
+```
+
+### Label Statistics
+
+```bash
+# Count beads by label (replaces raw SQL)
+bd count --by-label
+bd count --by-label --status open
+```
+
+### Query Language for Labels
+
+```bash
+# Use bd query for compound label conditions
+bd query "label=sync AND status=open AND priority<=2"
 ```
 
 ## Managing Labels
@@ -288,14 +294,9 @@ bd label remove km-storage-15 watcher
 bd label list km-storage-15
 ```
 
-### Batch Add Labels (Script)
+### Batch Add Labels
 
-```bash
-# Add sync label to all storage beads mentioning "sync" or "watcher"
-for id in $(bd list --all --json | jq -r '.[] | select(.id | startswith("km-storage")) | select(.title | test("sync|watcher"; "i")) | .id'); do
-  bd label add $id sync
-done
-```
+Use `bd update <id> --add-label <labels>` for individual beads.
 
 ## Label Recommendations by Issue Type
 
@@ -367,26 +368,6 @@ bd create --id km-chore-2 \
   --priority 3 \
   --labels test,storage,migration
 ```
-
-## Migration Notes
-
-As of 2026-01-27, labels are severely underutilized (1.4% of beads). Gradually add labels to:
-
-1. **New beads**: Add 2-3 relevant labels at creation time
-2. **Active work**: Add labels when working on a bead
-3. **Batch operations**: Optionally run batch scripts to infer labels from titles/descriptions
-
-**No retroactive mass-labeling required** - labels will accumulate naturally as beads are created and updated.
-
-## Future Enhancements
-
-Potential future label features:
-
-- Label auto-suggestion based on title/description analysis
-- Label templates by issue type
-- Label usage metrics/dashboard
-- Label aliases/synonyms
-- Label hierarchies (auto-apply parent labels)
 
 ## Related
 

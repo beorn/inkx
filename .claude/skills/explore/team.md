@@ -46,6 +46,19 @@ The interactive explorer uses **both** real vault AND synthetic fixtures:
 
 If the real vault doesn't exist, fall back to synthetic only (don't fail).
 
+## Session Bead
+
+Create a session tracking bead **before spawning agents**:
+
+```bash
+# Generate ID: km-session.<MMDD><seq> (e.g., km-session.0215a)
+bd create --id km-session.<date><seq> --type task --title "Session: <focus area>"
+bd update km-session.<date><seq> --parent km-tui  # or appropriate epic
+bd update km-session.<date><seq> --claim
+```
+
+The session bead is the **persistent record** of this exploration session. Its `description` is the live status dashboard (updated periodically), and `notes` is the event log (appended after each significant action).
+
 ## Team Setup
 
 ```
@@ -71,12 +84,16 @@ Spawn all five in a single message (parallel Task calls). `health-check` runs in
 **Coordinate, don't bottleneck.** Explorers send bugs directly to reproducer — you are not a relay.
 
 Your job:
-1. Prime agents with `git log --oneline -20` + open bugs + args context
-2. Spawn all teammates in parallel
-3. Review interactive explorer's findings (screenshots + descriptions) — this is the main output
-4. Handle shutdown, `bun fix`, `bun run test:all`, commit + push
-5. Present visual summary with screenshot paths to user at end
-6. Write the final exploration summary (see [reporting.md](reporting.md))
+1. Create session bead (see [Session Bead](#session-bead) above)
+2. Prime agents with `git log --oneline -20` + open bugs + args context
+3. Spawn all teammates in parallel
+4. Review interactive explorer's findings (screenshots + descriptions) — this is the main output
+5. Update session bead incrementally:
+   - `--append-notes` after each significant event (bug found, fix verified, screenshot taken)
+   - `--description` periodically with current status dashboard (see [reporting.md](reporting.md))
+6. Handle shutdown, `bun fix`, `bun run test:all`, commit + push
+7. Present visual summary with screenshot paths to user at end
+8. Close session bead with summary reason (see [reporting.md](reporting.md))
 
 ### 2. Health Check (`health-check`) — Background
 
@@ -362,6 +379,6 @@ Exploration ends when:
 5. Clean up: rm -rf /tmp/km-explore-tests/
 6. Collect screenshots from `/tmp/explore-screenshots/` — present gallery to user
 7. Run `bun fix && bun run test:all` from lead
-8. Write exploration summary (see [reporting.md](reporting.md))
+8. Update session bead description with final dashboard + close with summary (see [reporting.md](reporting.md))
 9. Commit + push
 10. `TeamDelete()`

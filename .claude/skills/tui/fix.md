@@ -9,12 +9,13 @@ argument-hint: [issue] (describe the visual bug, or "explore" for full check)
 
 ## Rules
 
-1. **Failing test FIRST** — no code analysis, no theorizing until you have a test that fails
-2. **Use withDiagnostics** — it has checkIncremental, checkReplay, checkStability
-3. **Write to /tmp/** — diagnostics are exploratory, promote when stable
-4. **If tests pass but bug is visible** — fix the diagnostic tooling, don't blame terminals
-5. **Search history first** — `bun recall "bug keywords"` before writing tests. Prior sessions may have diagnosed the same area.
-6. **Root cause after fix** — after fixing, analyze: why did this happen? Why didn't tests catch it? What structural change prevents this class of bug? Create a prevention bead if non-trivial.
+Follow the [test-first protocol](../tests/test-first-protocol.md). No code analysis or theorizing until you have a failing test.
+
+1. **Use withDiagnostics** — it has checkIncremental, checkReplay, checkStability
+2. **Write to /tmp/** — diagnostics are exploratory, promote when stable
+3. **If tests pass but bug is visible** — fix the diagnostic tooling, don't blame terminals
+4. **Search history first** — `bun recall "bug keywords"` before writing tests. Prior sessions may have diagnosed the same area.
+5. **Root cause after fix** — after fixing, analyze: why did this happen? Why didn't tests catch it? What structural change prevents this class of bug? Create a prevention bead if non-trivial.
 
 ## Rendering Bugs (Ghost Chars, Stale Pixels, Wrong Content)
 
@@ -102,29 +103,13 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
 
 ## Visual Test Toolbelt
 
-For rendering bugs, use the visual assertions in `testEnv()`:
+Use the [visual assertion API](../tests/tui.md#visual-assertions) for rendering bugs. Key methods: `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()`.
 
 ```typescript
 const { board } = testEnv(() => item("board", item("col", item("task"))))
-
-// Check colors: 0=black, 1=red, 2=green, 3=yellow, 4=blue, 5=magenta, 6=cyan, 7=white
 board.expectNodeColor("task", { fg: 0, bg: 3 }) // black on yellow (selected)
-board.expectCellColor(5, 3, { fg: 0, bg: 3 })   // cell-level color check
-
-// Check borders and characters
-board.expectNodeBorder("task")                     // has │╭╮╯╰ on edges
-board.expectCellChar(0, 3, "│")                    // specific char at position
-
-// Check content
-board.expectScreen("Task text")                    // screen contains text
-board.expectRow(5, "─────")                        // row contains pattern
-
-// Debug helpers
-board.screen.cell(x, y)     // { char, fg, bg, attrs }
-board.screen.nodeBox("task") // { x, y, width, height }
+board.expectNodeBorder("task")                    // has border chars on edges
 ```
-
-See [tests/tui.md](../tests/tui.md) for the full API reference.
 
 ## Definition of Done (Mandatory)
 

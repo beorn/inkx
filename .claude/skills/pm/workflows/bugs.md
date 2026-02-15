@@ -105,10 +105,7 @@ Report to user. DO NOT guess at fixes.
 
 ## Step 3: Write Failing Test (MANDATORY — test-first)
 
-**CRITICAL: The test must fail BEFORE you write any fix code.** This confirms:
-1. You understand the bug (you can reproduce it)
-2. You'll know when it's fixed (the test passes)
-3. It won't regress (the test stays in the suite)
+Follow the [test-first protocol](../../tests/test-first-protocol.md). The test **must fail before** you write any fix code.
 
 **Classify the bug** to choose the right test type:
 
@@ -167,6 +164,8 @@ test("card has left/right borders", () => {
 | `board.expectNodeBorder(id)` | Node has border chars |
 | `board.expectNodeNoBorder(id)` | Node has no border |
 
+Full API reference: [tests/tui.md](../../tests/tui.md#visual-assertions)
+
 Run `bun run test:fast` - verify the test fails for the right reason.
 
 ## Step 4: Implement Minimal Fix
@@ -194,6 +193,8 @@ bun fix              # MUST pass — lint + format clean
 
 **The failing test from Step 3 MUST now pass.** This is non-negotiable — if you can't
 make the test pass, the bug isn't fixed.
+
+<a name="tty-verification"></a>
 
 ### TTY Visual Verification (MANDATORY for rendering/visual bugs)
 
@@ -271,6 +272,18 @@ TTY verification but should have had it, re-open and verify.
 6. The structured Fixed/Test/Verified format
 
 For non-trivial bugs, report to user first and wait for confirmation.
+
+### Session Linking
+
+If this bug was found during a tracked session (session bead exists):
+
+```bash
+# Log to session bead
+bd update <session-id> --append-notes "HH:MM — Fixed <bug-id>: <summary>. Verified: headless + TTY"
+
+# Include session reference in bug close reason
+bd close <bug-id> --reason "Fixed: ... Session: <session-id>"
+```
 
 ## Step 6: Root Cause Analysis
 

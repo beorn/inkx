@@ -58,6 +58,8 @@ bd close <id> --reason "<evidence>"
 - [/docs/principles.md](/docs/principles.md) - Architecture patterns, composability
 - [/docs/lessons/refactoring.md](/docs/lessons/refactoring.md) - Phase order, breaking vs fixing
 
+**Phase order**: Rebase -> Absorb -> Purge -> Remove -> Fix (see docs for details).
+
 **Refactoring:**
 
 ```bash
@@ -70,28 +72,7 @@ bun run test:fast  # Should stay GREEN
 bun fix            # Final cleanup
 ```
 
-**Common refactorings:**
-
-```bash
-# Extract function
-mcp__refactor-typescript__refactoring \
-  operation=extract_function \
-  filePath=<file> line=<line> text="<code>"
-
-# Rename symbol
-mcp__refactor-typescript__refactoring \
-  operation=rename \
-  filePath=<file> line=<line> text="<symbol>" name="<new-name>"
-
-# Move files (auto-updates imports)
-mcp__refactor-typescript__file_operations \
-  operation=move_file \
-  sourcePath=<old> targetFolder=<new>/
-
-# Organize/cleanup
-mcp__refactor-typescript__code_quality \
-  operation=organize_imports filePath=<file>
-```
+Use standard IDE refactoring or manual edits. Run `bun run test:fast` after each change.
 
 **Cross-package refactoring**: Use `/max` to parallelize same refactoring across multiple packages.
 

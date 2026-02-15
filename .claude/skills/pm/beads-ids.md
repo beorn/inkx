@@ -95,7 +95,7 @@ km-inkx.bg-bleed       # Background color bleed subtask
 
 - Subtasks use parent ID + `.` + number
 - Numbers are sequential: 1, 2, 3, ...
-- **`--id` and `--parent` CANNOT be combined** — create first, then `bd update <id> --parent <parent-id>`
+- See [SKILL.md Quick Reference](../SKILL.md#quick-reference-common-flag-mistakes) for the `--id`/`--parent` constraint.
 
 ### Pattern 3: Keyword-Based (For Named Initiatives)
 
@@ -206,8 +206,8 @@ km-inkx.bg-bleed      # Named subtask
 - Subtasks use the parent ID + `.` + number
 - Numbers are sequential: 1, 2, 3, ... (not letters)
 - For 10+ subtasks, continue: 10, 11, 12, ...
-- **`--id` and `--parent` CANNOT be combined** — create first, then `bd update <id> --parent <parent-id>`
 - **Dot notation works with ANY prefix** — not just `km-`
+- See [SKILL.md Quick Reference](../SKILL.md#quick-reference-common-flag-mistakes) for the `--id`/`--parent` constraint.
 
 **Query subtasks:**
 
@@ -344,6 +344,14 @@ bd create --id km-help-crash \
   --type bug \
   --title "CLI crashes on --help" \
   --priority 0
+```
+
+## Renaming IDs
+
+Use `bd rename <old-id> <new-id>` to rename a bead. This automatically updates all references (deps, descriptions, titles, notes, labels, comments, events).
+
+```bash
+bd rename km-w382l km-tui.nav      # Rename opaque ID to descriptive
 ```
 
 ## Migration Strategy

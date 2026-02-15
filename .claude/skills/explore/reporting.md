@@ -1,14 +1,66 @@
 # Exploration Reporting
 
-The lead writes a summary report at the end of every exploration session (team or solo).
+The lead persists the exploration summary to the **session bead** and prints it to the user. The bead is the permanent record; the printed output is for immediate visibility.
+
+## Session Bead Updates
+
+### Incremental Notes (append after each significant event)
+
+```bash
+bd update <session-id> --append-notes "HH:MM — <event description>"
+```
+
+Events to log:
+- Bug found: `"10:02 — Found bug: <desc> → created <bead-id> (P2)"`
+- Bug fixed: `"10:15 — Fixed <bead-id>: <summary>. Verified: headless (N/N pass)"`
+- TTY verified: `"10:20 — TTY verified <bead-id>: /tmp/verify-<id>.png"`
+- Screenshot taken: `"10:05 — Screenshot: /tmp/explore-screenshots/NN-name.png"`
+- Area explored: `"10:30 — Explored fold/unfold on real vault (120x40) — no issues"`
+
+### Status Dashboard (update description periodically)
+
+Update the session bead's `--description` with the current dashboard. Do this after major milestones (not after every action):
+
+```bash
+bd update <session-id> --description "$(cat <<'EOF'
+## Work Items
+
+| # | Bead | Title | Status | Headless | TTY |
+|---|------|-------|--------|----------|-----|
+| 1 | km-tui.body-collapse | Body column collapse error | Fixed | 3/3 pass | screenshot |
+| 2 | km-tui.fold-color | Fold count color wrong | Open | — | — |
+
+## Coverage
+- Interactive TTY: real vault (/tmp/vt), 120x40 + 80x24
+- Targeted headless: N tests across M areas
+- Health check: N pass, M pre-existing failures
+
+## Screenshots
+- /tmp/explore-screenshots/01-startup.png
+- /tmp/explore-screenshots/05-collapse.png
+EOF
+)"
+```
+
+### Close Reason (at shutdown)
+
+```bash
+bd close <session-id> --reason "Explored <focus area>. Found N bugs (M fixed, K open). N headless tests, M TTY screenshots. No regressions."
+```
 
 ## Team Mode Summary
 
-After shutdown, before committing, the lead produces this:
+After shutdown, before committing, the lead:
+1. Updates session bead description with the final dashboard (format above)
+2. Closes session bead with summary reason
+3. Prints the summary to the user
+
+The printed summary matches the bead description plus any additional context:
 
 ```markdown
 # Exploration Summary
 
+**Session**: <session-bead-id>
 **Date**: YYYY-MM-DD
 **Mode**: Team (health-check + explorer-interactive + explorer-targeted + reproducer + fixer)
 
@@ -21,26 +73,6 @@ After shutdown, before committing, the lead produces this:
 | Bugs open | N (beads) |
 | Visual issues spotted | N |
 | Targeted areas covered | N/6 |
-
-## Visual Exploration
-
-### Screenshots
-
-| # | Screenshot | Description |
-|---|-----------|-------------|
-| 1 | `/tmp/explore-screenshots/01-startup.png` | Initial board state at 120x40 |
-| 2 | `/tmp/explore-screenshots/02-fold-gap.png` | Gap after folding nested items |
-| ... | | |
-
-### Visual Findings
-
-- [Description of visual issue, with screenshot reference]
-- [Or "No visual issues found — TUI looks clean"]
-
-### Terminal Sizes Tested
-
-- 120x40: [summary of findings]
-- 80x24: [summary of findings]
 
 ## Beads
 
@@ -56,19 +88,24 @@ After shutdown, before committing, the lead produces this:
 - **Health check**: [pass/fail, seeds tested, total runs]
 - **Real vault**: [tested / not tested, path]
 
+## Screenshots
+
+| # | Screenshot | Description |
+|---|-----------|-------------|
+| 1 | `/tmp/explore-screenshots/01-startup.png` | Initial board state at 120x40 |
+
 ## Files Modified
 - `path/to/file.ts` — [what changed]
 ```
 
-Print this summary to the user, then commit.
-
 ## Solo Mode Summary
 
-For non-team exploration (`/explore --fuzz`, `/explore --path`, `/explore <scenario>`):
+For focused solo exploration (`/explore <scenario>`, `/explore --gui`), you (the lead) create and manage the session bead. Quick modes (`--fuzz`, `--path`) skip session beads — just print results.
 
 ```markdown
 # Exploration: [mode/scenario]
 
+**Session**: <session-bead-id>
 **Bugs found**: N | **Fixed**: N | **Open**: N
 **Actions tested**: ~N
 
@@ -79,6 +116,16 @@ For non-team exploration (`/explore --fuzz`, `/explore --path`, `/explore <scena
 ## Files Modified
 - [list, or "None"]
 ```
+
+## Session Status Check
+
+To check session status mid-session, read the session bead:
+
+```bash
+bd show <session-id>
+```
+
+The description has the current dashboard, notes have the event log.
 
 ## Dedup: Check Before Creating Beads
 
@@ -98,6 +145,8 @@ Match on core symptom, not exact wording. "Blank cards after scroll" and "empty 
 bd create --type=bug --priority=2 --title="TUI: [brief description]"
 bd update <id> --parent km-tui
 bd update <id> --claim
+# If session bead exists:
+bd update <session-id> --append-notes "HH:MM — Found bug: <desc> → created <id> (P2)"
 ```
 
 ### Visual Bug Bead

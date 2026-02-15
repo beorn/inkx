@@ -197,10 +197,8 @@ Agent 4: Check mutation test coverage
 
 1. **Rebuild** — `cd vendor/beorn-flexx && bun run build`
 2. **Benchmark** — Verify no performance regression
-3. **Update src/CLAUDE.md** — Add to "Lessons from Past Sessions" if new pattern
-4. **Write docs/lessons/ entry** — If session took >30 minutes
-5. **Run inkx tests** — Layout changes can cause rendering mismatches: `bun vitest run vendor/beorn-inkx/tests/`
-6. **Update MEMORY.md** — If new reusable pattern discovered
+3. **Run inkx tests** — Layout changes can cause rendering mismatches: `bun vitest run vendor/beorn-inkx/tests/`
+4. **Update docs** — Add to `src/CLAUDE.md` lessons if new pattern discovered
 
 ## Key Files
 

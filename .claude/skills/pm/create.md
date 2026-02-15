@@ -58,20 +58,7 @@ Phase 6: Work Completion (record results, update related)
 - `/pm feat` → type=feature
 - `/pm task` → type=task
 
-**Scope** (from keywords/files mentioned) — determines tracking epic:
-
-| Keywords/area | Tracking epic | ID pattern |
-|---|---|---|
-| inkx, chalkx, render pipeline, ANSI | `km-inkx` | `km-inkx.<suffix>` |
-| flexx, layout engine, flexbox | `km-flexx` | `km-flexx.<suffix>` |
-| TUI, board, views, columns, cards | `km-tui` | `km-tui.<suffix>` |
-| vitestx package, dotz reporter | `km-vitestx` | `km-vitestx.<suffix>` |
-| monorepo, linting, packaging, CI, benchmarks | `km-infra` | `km-infra.<suffix>` |
-| storage, sync, db, queries | `km-storage` | `km-storage.<suffix>` |
-| markdown, parser, serializer | `km-markdown` | `km-markdown.<suffix>` |
-| claude skills, tools, MCP, session | `km-tools` | `km-tools.<suffix>` |
-| code review findings | `km-review` | `km-review.<suffix>` |
-| No clear scope | `km-<keyword>` | (standalone) |
+**Scope** (from keywords/files mentioned) — determines tracking epic. See [SKILL.md Scope Epics](../SKILL.md#scope-epics-backlogs) for scope-to-epic mapping.
 
 **Priority** (from language):
 
@@ -100,11 +87,12 @@ Phase 6: Work Completion (record results, update related)
 ### Run searches
 
 ```bash
-# Keyword search in all beads (open + closed)
+# Text search in all beads (open + closed)
 bd search "<key terms from description>" | head -20
-```
 
-**Note**: We don't have many beads yet, so checking all beads is fast. No need to filter by scope or status.
+# Semantic duplicate detection (slower but catches different wording)
+bd find-duplicates --status open --threshold 0.4
+```
 
 ### Analyze results:
 
@@ -172,7 +160,7 @@ Exact match (open)?
 
 ### Create bead:
 
-**WARNING: `--id` and `--parent` CANNOT be used together.** Always create first, then set parent.
+**WARNING**: `--id` and `--parent` cannot be combined — see [SKILL.md Quick Reference](../SKILL.md#quick-reference-common-flag-mistakes).
 
 ```bash
 # Step 1: Create (NO --parent flag here!)
@@ -190,21 +178,13 @@ bd update <generated-id> --parent <tracking-epic-id>
 **Error handling:**
 
 - If ID conflict → increment sequence, retry (max 3 attempts)
-- `--id` + `--parent` together → **WILL FAIL** — always two-step
 - If create fails → report error with suggestion
 
-**If replacing an existing bead** (new ID for same work):
-
-```bash
-# Search for references to old ID before closing/deleting
-grep -r "km-old-id" .
-```
-
-Update all references to point to the new ID. Never leave dangling references.
+**If replacing an existing bead**: Use `bd rename <old-id> <new-id>` — automatically updates all references.
 
 ### Assign to tracking epic (REQUIRED):
 
-Every new bead **must** be a sub-bead of its tracking epic. Use two-step create + parent:
+Every new bead **must** be a sub-bead of its tracking epic (see [SKILL.md Scope Epics](../SKILL.md#scope-epics-backlogs) for the full list). Use two-step create + parent:
 
 ```bash
 # ID format: km-<scope>.<suffix>
@@ -216,18 +196,6 @@ bd create --id km-tui.emptybody --type bug --title "Empty body rendering" --prio
 # Step 2: Set parent (MUST be separate command)
 bd update km-tui.emptybody --parent km-tui
 ```
-
-| Tracking epic | For |
-|---|---|
-| `km-inkx` | inkx/chalkx rendering engine |
-| `km-flexx` | Flexx layout engine |
-| `km-tui` | TUI app views/interaction |
-| `km-vitestx` | vitestx package (test framework) |
-| `km-infra` | Monorepo infra (CI, benchmarks, packaging, linting) |
-| `km-storage` | Storage layer (sync, queries, DB) |
-| `km-markdown` | Markdown parser/serializer |
-| `km-tools` | Claude Code skills & tooling (beorn-tools) |
-| `km-review` | Code review findings (cross-cutting quality) |
 
 If no tracking epic fits, the bead can be standalone (e.g., `km-<keyword>`).
 
@@ -304,40 +272,12 @@ Update status as work progresses.
 
 ### Record Results
 
-When closing a bead, use `--reason` to capture structured results:
+When closing a bead, use `--reason` to capture structured results.
 
-**For performance work:**
-
-```bash
-bd close <id> --reason "$(cat <<'EOF'
-Before: 45ms layout pass, 12 allocations
-After: 28ms layout pass, 0 allocations
-Impact: 38% faster, eliminated GC pressure
-Next: km-flexx-measure-phase for further gains
-EOF
-)"
-```
-
-**For bug fixes:**
+Use structured close reasons. For bugs, follow the Fixed/Test/Verified format in [bugs.md](workflows/bugs.md#close-reason-template). For features and performance work, include what was implemented, test evidence, and impact metrics.
 
 ```bash
-bd close <id> --reason "$(cat <<'EOF'
-Root cause: Nested percentages resolved against wrong reference
-Fix: Pass parent content size to child layout
-Tests: Added 5 regression tests (nested-containers.test.ts)
-EOF
-)"
-```
-
-**For features:**
-
-```bash
-bd close <id> --reason "$(cat <<'EOF'
-Implemented: New API renderStatic() for one-shot rendering
-Tests: 8 new tests, all passing
-Related: inkx-mig (migration) can now proceed
-EOF
-)"
+bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Impact: <metrics if applicable>."
 ```
 
 ### Update Related Beads

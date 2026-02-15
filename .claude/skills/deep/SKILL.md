@@ -60,12 +60,8 @@ The actual response is in the OUTPUT FILE, not in the task output. Always read t
 ### Anti-patterns (NEVER do these)
 
 ```
-# BAD: --output - was REMOVED — always outputs to file now
-bun llm --deep --output - "topic"
-
 # BAD: Sleep-polling wastes turns and gets killed
 Bash("sleep 30 && wc -c output.txt")  # 5 turns of sleeping = killed
-Bash("sleep 60 && wc -c output.txt")
 
 # BAD: Subagent without skill context — agent won't know the correct pattern
 Task(subagent_type="general-purpose", prompt="run deep research on X")

@@ -42,7 +42,9 @@ Activated by requests about:
 ### `status` - Health Summary
 
 ```bash
-bd list --status open --limit 0 --json   # All open beads for table
+bd count --by-status                     # Quick overview
+bd count --by-priority --status open     # Priority distribution
+bd list --status open --limit 0 --tree   # Hierarchical tree view
 bd list --status in_progress --limit 0 --long
 bd stale --days 14 --limit 0
 ```
@@ -99,13 +101,15 @@ Run these bash commands **in parallel** (single message, multiple Bash tool call
 
 | Command                                         | Purpose                           |
 | ----------------------------------------------- | --------------------------------- |
-| `bd list --status open --limit 0 --long`        | Full backlog with descriptions    |
+| `bd list --status open --limit 0 --tree`        | Full backlog, hierarchical view   |
 | `bd list --status in_progress --limit 0 --long` | Work claimed but possibly stalled |
 | `bd stale --days 14 --limit 0`                  | Issues needing attention          |
-| `bd --no-daemon duplicates --dry-run`           | Exact content matches             |
-| `bd list --type epic --status open --long`      | Epic health                       |
+| `bd find-duplicates --status open`              | Semantic duplicate detection      |
+| `bd epic status`                                | Epic completion status            |
 | `bd blocked`                                    | Blocked issues and blockers       |
 | `bd ready --limit 20`                           | Currently actionable work         |
+| `bd count --by-status`                          | Quick status distribution         |
+| `bd count --by-priority --status open`          | Priority distribution             |
 
 Then run:
 
@@ -177,12 +181,10 @@ This resets the staleness clock for ~1-2 weeks. During grooming, check the `note
 **Consolidation pattern** (for scattered beads sharing a theme):
 
 1. **Identify clusters**: Search for beads by keyword across IDs, titles, descriptions
-2. **Create tracking epic**: `km-<scope>` with title `TRACKING: <description>` (e.g., `km-inkx`, `km-tui`, `km-vitestx`). Mark `TRACKING (idle):` if no open children yet.
-3. **Rename sub-beads**: Use `km-<scope>.<suffix>` dot notation (e.g., `km-inkx.bg-bleed`)
-   - Create new bead with same content → set parent → close old with "Renamed to ..."
+2. **Create tracking epic**: `km-<scope>` with `--type epic` and a clean scope description title (e.g., "inkx & chalkx issues"). Use `bd epic status` to check epic health.
+3. **Rename sub-beads**: Use `bd rename <old-id> <new-id>` to move beads to `km-<scope>.<suffix>` dot notation, then `bd update <new-id> --parent km-<scope>`
 4. **Categorize carefully**: A bead mentioning X isn't always *about* X — check if it's the primary subject
-5. **Update references**: `grep -r "old-id" .` (search entire codebase)
-6. **Verify**: Query `dependencies WHERE type='parent-child' AND depends_on_id='km-scope'`
+5. **Verify**: `bd children <epic-id>` to confirm structure
 
 #### E. Clarify (ask user)
 
@@ -459,7 +461,7 @@ If the grooming revealed gaps in this review process itself, consider updating [
 
 - Example: "Check for issues with no activity in 90+ days (not just 14+)"
 - Example: "Detect issues that changed priority 3+ times (priority thrashing)"
-- Example: "Find epics with no children (orphaned epics) — tracking epics should be marked `(idle)` in title"
+- Example: "Find epics with no children (orphaned epics) — use `bd epic status` to check"
 
 **Severity criteria refinements:**
 

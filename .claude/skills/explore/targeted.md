@@ -105,29 +105,7 @@ test("repro user bug with real vault", async () => {
 
 ## GUI Mode (only when pixel-level verification needed)
 
-```typescript
-const { sessionId } = await mcp__tty__start({
-  command: ["bun", "km", "view", userVaultPath]
-})
-
-// Navigate to the node
-await mcp__tty__press({ sessionId, key: "/" })
-await mcp__tty__type({ sessionId, text: "Justice" })
-await mcp__tty__press({ sessionId, key: "Enter" })
-await mcp__tty__wait({ sessionId, stable: 100 })
-
-// Capture before
-const beforeText = await mcp__tty__text({ sessionId })
-const beforeShot = await mcp__tty__screenshot({ sessionId })
-
-// Execute action
-await mcp__tty__press({ sessionId, key: "j" })
-await mcp__tty__wait({ sessionId, stable: 100 })
-
-// Capture after
-const afterText = await mcp__tty__text({ sessionId })
-const afterShot = await mcp__tty__screenshot({ sessionId })
-```
+See [interactive.md](interactive.md) for TTY tool usage and screenshot conventions.
 
 ---
 

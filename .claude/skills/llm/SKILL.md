@@ -83,7 +83,6 @@ Response is ALWAYS written to a file. The file path is printed on stderr both as
 |------|------|------|
 | `--deep`/`/deep` | OpenAI deep research (web search, citations, thorough) | ~$2-5 |
 | `--ask`/`/ask` | Explicit default mode (syntactic sugar) | ~$0.02 |
-| ~~`--output -`~~ | **REMOVED** — Was deprecated, now removed entirely. Output always goes to file. | — |
 
 ## Context Flags
 
@@ -124,22 +123,6 @@ Deep research and debate take 2-15 minutes. Use `Task(run_in_background=true)` +
 | "What do other models think?" | `bun llm debate -y "question"` |
 
 **Note**: "deep" refers to OpenAI's deep research mode, NOT DeepSeek. DeepSeek queries are not supported.
-
-## Smart Model Selection
-
-- Automatically uses the **best available** model for each mode
-- **Warns** if a better model exists but isn't configured (shows env var to set)
-- For `debate`, selects models from **different providers** for diverse perspectives
-
-## Features
-
-- **File output**: Response written to file, path on stdout (no truncation issues)
-- **Auto-recovery**: Automatically recovers interrupted responses before new queries
-- **Persistence**: Saves progress to disk during streaming (never lose expensive calls)
-- **History check**: Warns if you've researched this before (avoids duplicate spend)
-- **Cost confirmation**: Prompts for `deep` and `debate` (expensive)
-- **Streaming**: Real-time progress to stderr
-- **Provider warnings**: Shows when better models are available
 
 ## Recovery Commands
 

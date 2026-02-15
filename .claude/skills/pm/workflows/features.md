@@ -151,29 +151,12 @@ bun run test:fast  # All pass
 bun fix            # Clean code
 ```
 
-**Visual verification for TUI features (MANDATORY for anything visible on screen):**
-
-Any feature that changes what the user sees — new UI elements, layout changes, color
-changes, new rendering modes — requires **both** headless tests AND TTY visual verification:
-
-1. **Headless test** — acceptance test proves the feature works programmatically
-2. **TTY screenshot** — proves the feature actually looks correct on a real terminal
-
-```bash
-# Use mcp_tty tools or /explore --gui to launch TUI and verify visually
-# Save screenshot: /tmp/verify-<bead-id>.png
-```
-
-Pure logic features (new commands, storage changes, API additions) can be verified with
-headless tests only.
+**Visual verification for TUI features**: Follow the [two-layer verification protocol](bugs.md#tty-visual-verification-mandatory-for-renderingvisual-bugs) — headless regression test + TTY screenshot for anything visible on screen. Pure logic features need headless tests only.
 
 **Close:**
 
 ```bash
-# For visual features:
-bd close <id> --reason "Implemented in <files>. Tests: <names> pass. Verified: headless + TTY screenshot."
-# For logic-only features:
-bd close <id> --reason "Implemented in <files>. Tests: <names> pass. Verified: headless only — no visual component."
+bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Verified: headless + TTY / headless only."
 ```
 
 ---

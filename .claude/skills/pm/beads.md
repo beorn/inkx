@@ -6,7 +6,7 @@ description: Full bd CLI reference
 
 **Keywords**: bd command, bd list, bd create, bd update, bd show
 
-Full reference for the standalone `bd` CLI.
+Full reference for the standalone `bd` CLI (v0.50+).
 
 ## Important: Two bd Commands
 
@@ -23,14 +23,19 @@ A **bead** is an issue/task/bug with these core fields:
 | ------------- | ----------------- | ---------------------------------------------------------------- |
 | `id`          | string (required) | Unique ID - see [beads-ids.md](beads-ids.md) for conventions     |
 | `title`       | string (required) | Short summary (< 80 chars)                                       |
-| `issue_type`  | enum (required)   | `bug`, `feature`, `task`, `epic`, `chore`                        |
+| `issue_type`  | enum (required)   | `bug`, `feature`, `task`, `epic`, `chore`, `decision`            |
 | `status`      | enum              | `open` (default), `in_progress`, `blocked`, `deferred`, `closed` |
 | `priority`    | int (0-4)         | 0=P0 (highest), 4=P4 (lowest), default=2                         |
 | `description` | string            | Full description (markdown supported)                            |
 | `notes`       | string            | Status updates, progress notes                                   |
+| `design`      | string            | Design notes                                                     |
+| `acceptance`  | string            | Acceptance criteria                                              |
 | `assignee`    | string            | Who is responsible (session ID or username)                      |
 | `actor`       | string            | Who performed last action (audit trail)                          |
 | `parent`      | string            | Parent bead ID (for hierarchical tracking)                       |
+| `due_at`      | timestamp         | Due date/time                                                    |
+| `defer_until` | timestamp         | Hidden from `bd ready` until this time                           |
+| `ephemeral`   | bool              | If true, not exported to JSONL (wisp)                            |
 | `created_at`  | timestamp         | When created                                                     |
 | `created_by`  | string            | Who created it                                                   |
 | `updated_at`  | timestamp         | Last update time                                                 |
@@ -55,7 +60,7 @@ open (no assignee)
 ```bash
 bd show km-abc123           # Human-readable
 bd show km-abc123 --json    # JSON for scripting
-bd show km-abc123 --json | jq -r '.[0].status' # or id, title, description, issue_type, created_at/by, updated_at, title
+bd show km-abc123 --json | jq -r '.[0].status'
 ```
 
 ## Listing & Filtering
@@ -72,7 +77,51 @@ bd list --no-assignee       # Unassigned
 bd list --title mdtest      # Search title
 bd list --all               # Include closed
 bd list --limit 0           # Unlimited
+bd list --tree              # Hierarchical tree format
+bd list --long              # Detailed multi-line output
+bd list --parent km-tui     # Children of a parent (replaces grep)
+bd list --ready             # Only ready issues (open, not blocked/deferred)
+bd list --overdue           # Due date in the past
+bd list --deferred          # Deferred issues
+bd list --due-before tomorrow  # Due soon
+bd list --label-any sync,watcher  # OR: has ANY of these labels
+bd list --label sync --label watcher  # AND: has ALL of these labels
+bd list --label-pattern "tech-*"  # Glob pattern match on labels
+bd list --sort updated      # Sort by updated, created, priority, etc.
 bd list --json | jq -r '.[] | "\(.id) \(.title)"'
+```
+
+## Query Language
+
+`bd query` supports compound filters with boolean operators:
+
+```bash
+bd query "status=open AND priority<=2"
+bd query "status=open AND type=bug AND updated>7d"
+bd query "(status=open OR status=blocked) AND priority<2"
+bd query "assignee=none AND type=task"
+bd query "title=authentication AND priority=0"
+bd query "parent=km-tui AND status!=closed"
+```
+
+Supports: `=`, `!=`, `>`, `>=`, `<`, `<=`, `AND`, `OR`, `NOT`, `()` grouping.
+Fields: status, priority, type, assignee, label, title, description, notes, created, updated, closed, id, parent, ephemeral, pinned.
+Dates: `7d` (7 days ago), `2w`, `24h`, `2025-01-15`, `tomorrow`, `next monday`.
+
+## Text Search
+
+`bd search` searches across title, description, and ID:
+
+```bash
+bd search "authentication bug"
+bd search "login" --status open
+bd search "database" --label backend --limit 10
+bd search "bd-5q"                      # Partial ID match
+bd search "security" --priority-min 0 --priority-max 2
+bd search "bug" --created-after 2025-01-01
+bd search "api" --desc-contains "endpoint"
+bd search "cleanup" --no-assignee --no-labels
+bd search "refactor" --sort priority
 ```
 
 ## Creating Beads
@@ -86,9 +135,6 @@ bd list --json | jq -r '.[] | "\(.id) \(.title)"'
 ```bash
 # See what prefix the database uses
 bd list --limit 1
-
-# Or check directly
-sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
 ```
 
 | Location | Prefix |
@@ -100,41 +146,34 @@ sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
 
 **Never assume `km-`** — always verify for the current working directory.
 
-### ID Pattern
-
-```text
-<prefix><scope>-<N>    # Package-specific (recommended)
-<prefix><scope>-<N>.<N> # Subtasks under parent
-<prefix><keyword>      # Cross-cutting/named initiatives
-```
-
-**Scope tokens**: storage, board, tree, tui, cli, markdown, beads, agent
-
-**Examples:**
+### Create Examples
 
 ```bash
-# Find next number for scope
-bd list --all | grep "km-storage-"
+# Full create with metadata
+bd create --id km-storage-15 --type bug --title "Race in file sync" \
+  --description "Files occasionally not written when..." \
+  --priority 0 --labels sync
 
-# Package-specific bug
-bd create --id km-storage-15 --type bug --title "Race in file sync"
+# With inline dependencies
+bd create --id km-tui-8.1 --type task --title "Normal mode navigation" \
+  --deps "blocks:km-tui-8"
 
-# Feature with subtasks
-bd create --id km-tui-8 --type feature --priority 1 \
-  --title "Add vim keybindings" \
-  --description "Full description here"
+# With due date and deferral
+bd create --id km-infra.ci --type task --title "Setup CI" \
+  --due "next monday" --defer "tomorrow"
 
-bd create --id km-tui-8.1 --type task \
-  --title "Normal mode navigation"
+# With acceptance criteria and design notes
+bd create --id km-tui.search --type feature --title "Search bar" \
+  --acceptance "User can search by title" \
+  --design "Use fuzzy matching via fzf algorithm"
+
+# Quick capture (outputs only ID — great for scripting)
+bd q "Quick note about issue"
+bd q "Fix login bug" -t bug -p 1
+ISSUE=$(bd q "New feature")    # Capture ID in variable
 
 # Set parent AFTER creation (--id and --parent cannot be used together)
 bd update km-tui-8.1 --parent km-tui-8
-
-# Cross-cutting initiative (keyword-based)
-bd create --id km-dark-mode --type epic --title "Dark mode support"
-
-# Quick capture (outputs only ID)
-bd q "Quick note about issue"
 ```
 
 ## Updating Beads
@@ -142,9 +181,19 @@ bd q "Quick note about issue"
 ```bash
 bd update km-abc123 --status in_progress
 bd update km-abc123 --notes "Progress: fixed X, still need Y"
+bd update km-abc123 --append-notes "Additional context"  # Appends, doesn't overwrite
 bd update km-abc123 --priority 1
 bd update km-abc123 --title "New title"
-bd update km-abc123 --status in_progress --priority 0 --notes "Starting"
+bd update km-abc123 --description "Updated description"
+bd update km-abc123 --design "New design notes"
+bd update km-abc123 --acceptance "Updated criteria"
+bd update km-abc123 --due "next friday"
+bd update km-abc123 --due ""       # Clear due date
+
+# Label management on update
+bd update km-abc123 --add-label sync,watcher
+bd update km-abc123 --remove-label watcher
+bd update km-abc123 --set-labels sync,parser  # Replace all labels
 ```
 
 ## Claiming & Unclaiming Work
@@ -159,9 +208,6 @@ bd update <id> --claim
 #   1. Sets assignee to $BD_ACTOR or $USER
 #   2. Sets status to in_progress
 #   3. Fails if already claimed by someone else (prevents conflicts)
-
-# Forcibly take over (use for stale claims)
-bd update <id> --claim              # Overwrites existing assignee
 
 # Unclaim / release a bead (return to pool)
 bd update <id> --assignee "" --status open
@@ -187,16 +233,99 @@ bd update <id> --assignee "other-person"
 
 ```bash
 bd close km-abc123 --reason "Fixed in commit abc123"
-bd close km-abc123 --suggest-next
+bd close km-abc123 --suggest-next    # Show newly unblocked issues after closing
+bd close km-abc123 km-def456         # Close multiple at once
+```
+
+## Renaming Beads
+
+```bash
+bd rename km-old-id km-new-id
+```
+
+This updates: the issue's primary ID, all references in other issues (descriptions, titles, notes), dependencies, labels, comments, and events. No need for manual grep + update.
+
+## Deferring Beads
+
+```bash
+bd defer km-abc123                     # Defer (status-based, hidden from bd ready)
+bd defer km-abc123 --until=tomorrow    # Defer until specific time
+bd defer km-abc123 --until="+1w"       # Defer for 1 week
+bd defer km-abc123 km-def456           # Defer multiple
+bd undefer km-abc123                   # Restore to open
+```
+
+Deferred issues don't show in `bd ready` but remain visible in `bd list`.
+
+## Comments
+
+```bash
+bd comments km-abc123                  # List all comments
+bd comments add km-abc123 "This is a comment"
+bd comments add km-abc123 -f notes.txt  # From file
+```
+
+## Deleting Beads
+
+```bash
+bd delete km-abc123 --force            # Delete (preview first without --force)
+bd delete km-abc123 --dry-run          # Preview what would be deleted
+bd delete km-abc123 --cascade --force  # Recursively delete all dependents
+bd delete --from-file deletions.txt --force  # Batch delete from file
+bd delete km-abc123 --reason "Created in error"  # With audit trail
 ```
 
 ## Ready Work
 
 ```bash
 bd ready                    # Open, no blockers
-bd ready --type bug
-bd ready --priority 0
-bd ready --unassigned
+```
+
+## Counting & Statistics
+
+```bash
+bd count                          # Total count
+bd count --status open            # Open issues
+bd count --by-status              # Group by status
+bd count --by-priority            # Group by priority
+bd count --by-type                # Group by issue type
+bd count --by-assignee            # Group by assignee
+bd count --by-label               # Group by label
+bd count --assignee alice --by-status  # Alice's issues by status
+```
+
+## Stale Issues
+
+```bash
+bd stale                    # Issues not updated in 30+ days (default)
+bd stale --days 14          # Not updated in 14+ days
+bd stale --status in_progress  # Only stale in-progress items
+```
+
+## Duplicate Detection
+
+```bash
+bd find-duplicates                       # Mechanical text similarity
+bd find-duplicates --threshold 0.4       # Lower threshold = more results
+bd find-duplicates --method ai           # AI-powered semantic comparison
+bd find-duplicates --status open         # Only check open issues
+```
+
+## Epic Management
+
+```bash
+bd epic status                  # Show epic completion status
+bd epic close-eligible          # Close epics where all children are complete
+bd list --parent km-tui         # List children of an epic
+bd children km-tui              # Alternative: list child beads
+```
+
+## Dependencies
+
+```bash
+bd dep add <issue> <depends-on>     # issue depends on depends-on
+bd blocked                          # Show all blocked issues
+bd graph                            # Display dependency graph
 ```
 
 ## JSON Fields
@@ -209,12 +338,17 @@ bd ready --unassigned
 | `title`       | Short summary                                |
 | `description` | Full description                             |
 | `notes`       | Status updates                               |
+| `design`      | Design notes                                 |
+| `acceptance`  | Acceptance criteria                          |
 | `status`      | open, in_progress, blocked, deferred, closed |
 | `priority`    | 0-4 (P0=highest)                             |
-| `issue_type`  | bug, feature, task, epic, chore              |
+| `issue_type`  | bug, feature, task, epic, chore, decision    |
 | `assignee`    | Session ID or username                       |
 | `parent`      | Parent bead ID                               |
 | `actor`       | Who performed the action (audit trail)       |
+| `due_at`      | Due date/time                                |
+| `defer_until` | Defer until date/time                        |
+| `ephemeral`   | Whether this is a wisp                       |
 
 ## Actor Attribution (Audit Trail)
 
@@ -226,45 +360,17 @@ The `bd` command tracks who performs actions via the `--actor` flag. This is aut
 
 The Claude Code session prehook (in `.claude/settings.json`) automatically exports `BD_ACTOR=claude:<sessionId>` for each agent session, making every Claude instance a distinct actor. All bd commands in that session (update, create, close, etc.) automatically inherit this actor.
 
-**Examples:**
-
-```bash
-# Agent session (BD_ACTOR=claude:abc12345)
-/pm work km-123          # Sets actor=claude:abc12345, assignee=abc12345
-bd create --id km-456 --title "Fix bug"  # Sets actor=claude:abc12345
-bd close km-789          # Sets actor=claude:abc12345
-
-# User shell (BD_ACTOR not set, uses $USER)
-bd update km-123 --claim # Sets actor=beorn, assignee=beorn
-```
-
-**Querying by actor:**
-
-```bash
-# View all beads with actor metadata
-bd list --json | jq '.[] | {id, assignee, actor}'
-
-# Check who claimed/closed a bead
-bd show km-123 --json | jq -r '.[0].actor'
-```
-
 No special handling needed in commands - the actor is set automatically based on your environment.
 
 ## Renaming / Re-IDing Beads
 
-When renaming, re-creating, or changing a bead's ID, **always search for and update references**:
+Use `bd rename <old-id> <new-id>` — this automatically updates all references (deps, descriptions, titles, notes, labels, comments, events).
 
 ```bash
-# Find all references to the old ID across the entire codebase
-grep -r "km-old-id" .
+bd rename km-w382l km-tui.nav      # Rename to descriptive ID
 ```
 
-**Checklist when changing bead IDs:**
-- [ ] `grep -r "old-id" .` — search entire codebase (skills, docs, source, tests, configs)
-- [ ] `bd list --all | grep <old-id>` — check parent/dep relationships in beads DB
-- [ ] Update all found references to new ID
-
-**Never leave dangling references** - they cause confusion and broken links.
+No need to manually grep for references — `bd rename` handles everything.
 
 ---
 
@@ -296,3 +402,65 @@ These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
 
 - `--description` / `-d`: Full issue description (main content)
 - `--notes`: Additional status updates, progress notes
+- `--append-notes`: Append to existing notes (doesn't overwrite)
+- `--design`: Design notes (separate field)
+- `--acceptance`: Acceptance criteria (separate field)
+
+## Advanced Features
+
+### Wisps (Ephemeral Beads)
+
+Wisps are ephemeral beads not exported to JSONL — useful for temporary tracking:
+
+```bash
+bd create --ephemeral --title "Temporary investigation"
+bd promote km-abc123              # Promote wisp to permanent bead
+bd promote km-abc123 --reason "Worth tracking long-term"
+```
+
+### Molecules & Formulas
+
+Work templates for repeatable workflows:
+
+```bash
+bd formula list                   # Available workflow templates
+bd mol pour <formula>             # Instantiate as persistent molecule
+bd mol wisp <formula>             # Instantiate as ephemeral
+bd mol progress <mol-id>          # Show molecule progress
+```
+
+### Swarms
+
+Structured parallel work on epics:
+
+```bash
+bd swarm create <epic-id>         # Create swarm from epic
+bd swarm status <swarm-id>        # Current status
+bd swarm list                     # All swarm molecules
+```
+
+### Agent State (for multi-agent coordination)
+
+```bash
+bd agent state <agent-id> running   # Set agent state
+bd agent heartbeat <agent-id>       # Update activity timestamp
+bd agent show <agent-id>            # Show agent details
+bd slot set <agent-id> hook <bead>  # Attach work to agent's hook
+bd slot clear <agent-id> hook       # Clear agent's hook
+```
+
+### Gates (Async Coordination)
+
+```bash
+bd gate list                      # Show open gates
+bd gate check                     # Evaluate all open gates
+bd gate resolve <id>              # Manually resolve a gate
+```
+
+### Backend & Mode Options
+
+```bash
+bd backend show                   # Current backend (sqlite or dolt)
+bd --no-db list                   # JSONL-only mode (no SQLite)
+bd --readonly list                # Read-only mode (for sandboxes)
+```

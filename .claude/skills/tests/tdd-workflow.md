@@ -12,36 +12,15 @@ description: Test-driven development workflow for km
 
 ## Quick Reference
 
-```bash
-bun run test:fast    # Fast iteration (~11s) - use frequently
-bun run test:all     # Full suite (~2min) - before commit
-bun fix              # Lint + format - must pass before commit
-```
+See [SKILL.md](SKILL.md) for all test commands.
 
-**⚠️ NEVER use bare `bun test`** - picks up archived tests.
+Follow the [test-first protocol](test-first-protocol.md).
 
 ---
 
-## Development Workflow
+## TDD Cycle
 
-**During iteration:**
-
-```bash
-bun vitest run --changed              # Fastest: affected tests only
-bun vitest related src/foo.ts         # Tests for specific source file
-bun vitest run apps/km-tui/tests/     # All tests in a directory
-```
-
-**Before committing:**
-
-```bash
-bun fix              # MUST pass
-bun run test:all     # MUST pass
-```
-
-**TDD cycle:**
-
-1. Write failing test
+1. Write failing test (test-first protocol)
 2. Implement feature
 3. `test:fast` passes
 4. `bun fix` passes

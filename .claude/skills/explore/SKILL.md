@@ -21,6 +21,8 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 | `/explore km view <path>` or `/explore --path <path>` | Test real vault with diagnostics | `TEST_VAULT=<path> bun vitest run apps/km-tui/tests/real-vault.test.ts` |
 | `/explore --peekaboo ...` | Live Ghostty inspection | See [peekaboo.md](peekaboo.md) |
 
+**Session tracking**: Team and solo modes create a session bead (`km-session.<MMDD><seq>`) for persistent tracking. Quick modes (`--fuzz`, `--path`) skip this. See [reporting.md](reporting.md) for conventions.
+
 **Smart routing rule**: If the args describe *what to explore*, include interactive TTY as the main activity. If they describe *a specific bug to reproduce*, lead with headless but verify interactively. If `--fuzz`, tests only.
 
 **Do NOT**: read fuzz test source files, try deprecated scripts, or guess vitest CLI flags. The commands above work as-is.
@@ -132,21 +134,10 @@ driver.cmd.describe() // Human/AI-readable command list
 
 ## Test Sweep — Find and Fix Broken Tests
 
-After multi-agent sessions, tests may be left broken. Run a test sweep to find and fix them.
-
-**How to run:**
+After multi-agent sessions, tests may be left broken. See [tests/SKILL.md](../tests/SKILL.md) for test commands.
 
 ```bash
-# Run the fast suite and look for failures
 cd /Users/beorn/Code/pim/km ; bun run test:fast | head -400
-
-# If output is too long and saved to a file, scan for failures
-grep "FAIL\|Error\|✗\|×" <saved-output-file>
-
-# Run specific package tests for targeted sweep
-bun vitest run apps/km-tui/tests/
-bun vitest run packages/km-storage/tests/
-bun vitest run packages/km-markdown/tests/
 ```
 
 **Triage failures:**
@@ -158,13 +149,6 @@ bun vitest run packages/km-markdown/tests/
 | Test has a genuine bug (regression) | Fix the bug, don't just fix the test |
 | Flaky test (passes on re-run) | Add `.retry(2)` or fix the race condition |
 | Test file left as `*-repro*` or `*-debug*` | Promote to regression test or delete |
-
-**After fixing:**
-
-```bash
-bun run test:fast    # Confirm all green
-bun fix              # Lint + format
-```
 
 Create beads for any genuine regressions found. For test-only fixes (updating assertions after intentional changes), no bead needed.
 

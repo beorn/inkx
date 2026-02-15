@@ -49,28 +49,7 @@ If INKX_STRICT throws `IncrementalRenderMismatchError`, the error output include
 
 ### Step 2: Write a Failing Test
 
-Extract from fuzz seed or construct from user report:
-
-```typescript
-import { createBoardDriver } from "@km/tui/driver.ts"
-import { createFakeRepo } from "@km/storage"
-import { withDiagnostics } from "inkx"
-import { item } from "@km/tui/tests/helpers/board-test.ts"
-
-const nodes = item.root("board",
-  item("Column 1", item("Task A"), item("Task B")),
-  item("Column 2", item("Task C")),
-)
-const driver = withDiagnostics(
-  createBoardDriver(createFakeRepo({ nodes }), "board"),
-  { checkIncremental: true, checkReplay: true, checkStability: true }
-)
-
-// Reproduce the sequence
-await driver.cmd.down()
-await driver.cmd.down()
-// Throws on mismatch with full diagnostic context
-```
+Follow the [test-first protocol](../tests/test-first-protocol.md). Write a failing test before any fix. For inkx bugs, use `withDiagnostics` with `{ checkIncremental: true, checkReplay: true, checkStability: true }`.
 
 ### Step 3: INKX_INSTRUMENT
 
@@ -161,11 +140,9 @@ INKX_STRICT=1 bun km view /path
 
 ## After Fixing
 
-1. **Update pipeline CLAUDE.md** — Add to "Lessons from Past Sessions" if new pattern discovered
-2. **Write docs/lessons/ entry** — If session took >30 minutes
-3. **Update MEMORY.md** — If new reusable pattern discovered
-4. **Promote regression test** — Move from `/tmp/` to `vendor/beorn-inkx/tests/` or `apps/km-tui/tests/`
-5. **Create prevention bead** — If structural change needed to prevent this class of bug
+1. **Promote regression test** — Move from `/tmp/` to `vendor/beorn-inkx/tests/` or `apps/km-tui/tests/`
+2. **Update docs** — Add to pipeline `CLAUDE.md` lessons if new pattern discovered
+3. **Create prevention bead** — If structural change needed to prevent this class of bug
 
 ## Key Files
 

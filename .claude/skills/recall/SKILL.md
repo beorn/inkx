@@ -135,13 +135,6 @@ bun recall index --incremental   # Update new sessions only
 - **File recovery**: `bun recall files --restore path/to/file`
 - **Activity check**: `bun recall status`
 
-## Internal Hook Commands
-
-```bash
-bun recall hook              # UserPromptSubmit — reads stdin JSON, returns additionalContext
-bun recall remember          # SessionEnd — extract lessons from transcript
-```
-
 ## Performance
 
 - FTS5 search: <100ms on 6GB+ data
