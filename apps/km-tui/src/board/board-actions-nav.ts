@@ -110,6 +110,10 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
     }
   }
 
+  // Boundary: clear stickyY so it doesn't pollute the next h/l navigation.
+  // Without this, lazy capture or a prior successful h/l leaves a stale stickyY
+  // that would skip fresh capture on the next h/l press.
+  layoutRegistry.clearStickyY()
   return boundary(dir)
 }
 

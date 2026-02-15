@@ -47,8 +47,8 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
 
     // Check if we're at repo root (parent_id is null)
     if (!currentRoot || currentRoot.parent_id === null) {
-      // Can't zoom out from repo root
-      return boundary("zoom_out", "at repo root")
+      // Can't zoom out from repo root — fall through to cursor-up fallback
+      return handleCursorMove(ctx, "up")
     }
 
     // We have a parent - zoom out to it

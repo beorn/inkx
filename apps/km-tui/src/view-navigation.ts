@@ -11,6 +11,7 @@
 import type { Repo } from "@km/storage"
 import { isOutline } from "@km/core"
 import { createLogger } from "@beorn/logger"
+import { extractBody } from "@km/tree"
 import type { LayoutRegistry } from "./card-positions.ts"
 
 const log = createLogger("km:nav")
@@ -93,14 +94,23 @@ function navigateVertical(
   }
 
   const isAtBoardLevel = cursorNodeId === rootId
-  const isAtColumnLevel = cursorNode.parent_id === rootId && !isAtBoardLevel
+
+  // Detect body content: direct child of root but NOT an outline item.
+  // Body nodes (p, li, code, quote, hr, etc.) that appear before the first oi
+  // child are rendered as cards in the virtual "Description" column by the view
+  // layer (see extractBody). The navigation layer must treat them as card-level,
+  // not column-level, even though their parent_id === rootId.
+  const isDirectChildOfRoot = cursorNode.parent_id === rootId && !isAtBoardLevel
+  const isBodyContent = isDirectChildOfRoot && !isOutline(cursorNode.type)
+
+  const isAtColumnLevel = isDirectChildOfRoot && !isBodyContent
   const isAtCardLevel = !isAtBoardLevel && !isAtColumnLevel
 
   // Resolve sub-card descendants to their card-level ancestor.
   // After indent, cursorNodeId may point to a node nested inside a card.
   // j/k must navigate at card level (column children), not at the descendant's sibling level.
   let cardNodeId = cursorNodeId
-  if (isAtCardLevel) {
+  if (isAtCardLevel && !isBodyContent) {
     const cardAncestor = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
     if (cardAncestor) cardNodeId = cardAncestor
   }
@@ -112,6 +122,21 @@ function navigateVertical(
       const columns = repo.getChildren(rootId)
       const targetIdx = stickyX !== null && stickyX < columns.length ? stickyX : 0
       return columns[targetIdx]?.id ?? null
+    }
+
+    if (isBodyContent) {
+      // Body card → next body sibling.
+      // Body nodes are siblings within root's children, before the first oi.
+      // Use extractBody to get the body nodes in order, then find next.
+      const allChildren = repo.getChildren(rootId)
+      const { body: bodyNodes } = extractBody(allChildren)
+      const bodyIdx = bodyNodes.findIndex((n) => n.id === cursorNodeId)
+      if (bodyIdx >= 0 && bodyIdx < bodyNodes.length - 1) {
+        return bodyNodes[bodyIdx + 1]!.id
+      }
+      // At last body card — boundary (can't go down to column headers,
+      // they're in a different visual column)
+      return null
     }
 
     if (isAtColumnLevel) {
@@ -128,6 +153,18 @@ function navigateVertical(
     }
   } else {
     // k: move up
+    if (isBodyContent) {
+      // Body card → previous body sibling, or board level if at first.
+      const allChildren = repo.getChildren(rootId)
+      const { body: bodyNodes } = extractBody(allChildren)
+      const bodyIdx = bodyNodes.findIndex((n) => n.id === cursorNodeId)
+      if (bodyIdx > 0) {
+        return bodyNodes[bodyIdx - 1]!.id
+      }
+      // At first body card → board level
+      return rootId
+    }
+
     if (isAtCardLevel) {
       // Try previous sibling first (using card-level ancestor)
       const prev = getSibling(cardNodeId, repo, -1)
