@@ -330,6 +330,29 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           </Box>
         )}
 
+        {/* Extra data fields (key:value for anything not already rendered) */}
+        {(() => {
+          const knownKeys = new Set(["tags", "mentions", "projects", "short_id", "props", "block_id"])
+          const data = node.data as Record<string, unknown> | undefined
+          if (!data) return null
+          const extras = Object.entries(data).filter(
+            ([k, v]) => !knownKeys.has(k) && v != null && v !== "",
+          )
+          if (extras.length === 0) return null
+          return (
+            <Box flexDirection="column" marginTop={1}>
+              {extras.map(([k, v]) => (
+                <Box key={k}>
+                  <Text>
+                    <Text dimColor>{k}: </Text>
+                    <Text>{typeof v === "object" ? JSON.stringify(v) : String(v)}</Text>
+                  </Text>
+                </Box>
+              ))}
+            </Box>
+          )
+        })()}
+
         {/* Content section */}
         {displayContent.length > 0 && (
           <Box flexDirection="column" paddingX={1} marginTop={1} width={innerWidth}>
