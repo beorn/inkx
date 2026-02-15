@@ -206,19 +206,9 @@ function createGtdStructure(targetDir: string, force: boolean): void {
  */
 const GTD_NEXT_MD = `# Next Actions color=cyan
 
-## Overdue add="due:past status:todo" add="due:past status:wip" color=red
-
-## Today add="due:today status:todo" add="start:past status:todo" color=yellow
-
-## This Week add="due:week status:todo" add="due:week status:wip"
-
-## Inbox add="./inbox/**" default=true
-
-## Processing
+## Inbox add="./inbox/**" add="due:past status:todo" add="due:past status:wip" add="due:today status:todo" add="due:week status:todo" add="start:past status:todo" default=true
 
 ## Next
-
-## Doing
 
 ## Waiting color=yellow
 

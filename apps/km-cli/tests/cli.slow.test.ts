@@ -522,12 +522,13 @@ describe("km init", () => {
       const { dir } = await initInDir("gtd-next")
       const content = readFileSync(join(dir, "@next.md"), "utf-8")
       expect(content).toContain("# Next Actions")
-      expect(content).toContain('## Inbox add="./inbox/**" default=true')
-      expect(content).toContain("## Processing")
+      expect(content).toContain('## Inbox add="./inbox/**"')
+      expect(content).toContain('add="due:past status:todo"')
+      expect(content).toContain("default=true")
       expect(content).toContain("## Next")
-      expect(content).toContain("## Doing")
       expect(content).toContain("## Waiting")
       expect(content).toContain("## Done collapse=true")
+      expect(content).toContain("## Removed collapse=true removed=true")
     })
 
     test("should create @someday.md with columns", async () => {
