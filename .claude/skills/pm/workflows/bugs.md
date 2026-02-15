@@ -249,7 +249,11 @@ bd update <session-id> --append-notes "HH:MM — Fixed <bug-id>: <summary>. Veri
 bd close <bug-id> --reason "Fixed: ... Session: <session-id>"
 ```
 
-## Step 6: Root Cause Analysis
+## Step 6: Integrate User Feedback
+
+Throughout the bug lifecycle, the user may give feedback. **You MUST follow** the [user feedback protocol](../beads.md#user-feedback) — log feedback verbatim in notes, rewrite the bead description to reflect current understanding, and ask immediately if unclear.
+
+## Step 7: Root Cause Analysis
 
 **After fixing, ask: why did this happen and why didn't tests catch it?**
 

@@ -161,7 +161,11 @@ bun run test:fast  # Tight iteration loop (~8s)
 - No premature optimization
 - No extra features
 
-## Step 5: Verify & Close
+## Step 5: Integrate User Feedback
+
+Throughout implementation, the user may give feedback. **You MUST follow** the [user feedback protocol](../beads.md#user-feedback) — log feedback verbatim in notes, rewrite the bead description to reflect current understanding, and ask immediately if unclear.
+
+## Step 6: Verify & Close
 
 ```bash
 bun run test:fast  # All pass

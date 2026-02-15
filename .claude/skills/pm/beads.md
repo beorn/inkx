@@ -237,6 +237,39 @@ bd close km-abc123 --suggest-next    # Show newly unblocked issues after closing
 bd close km-abc123 km-def456         # Close multiple at once
 ```
 
+<a name="user-feedback"></a>
+
+## User Feedback on Beads
+
+Beads have two layers that serve different purposes:
+
+- **`description`** = current state of truth. Always reflects the latest understanding. Rewritten (not appended) when feedback changes the picture.
+- **`notes`** = chronological log. Append-only record of what was said and when.
+
+Together: the description tells you what the bead IS right now, the notes tell you HOW it got there.
+
+### When the user gives feedback on a bead:
+
+1. **Log the feedback verbatim** in notes with timestamp:
+   ```bash
+   bd update <id> --append-notes "HH:MM — User feedback: <exact feedback as given>"
+   ```
+
+2. **Rewrite/update the bead** to integrate the feedback:
+   - Update `--description` to reflect the current understanding (not append — rewrite the whole thing)
+   - Update `--title` if the feedback changes the scope or framing
+   - Update `--acceptance` if acceptance criteria changed
+
+3. **If you disagree or are unclear**, ask the user **immediately** — don't silently ignore feedback
+   or defer the question. Misunderstandings compound; catch them early.
+
+**Example:**
+```bash
+# User says: "actually the HR should also have padding on both sides"
+bd update km-tui.hr-render --append-notes "16:30 — User feedback: HR should also have padding on both sides"
+bd update km-tui.hr-render --description "HR nodes render as a horizontal line (─) spanning the card width with 1-char padding on each side, aligned with card borders. No border box around HR. In edit mode, show raw content instead."
+```
+
 ## Renaming Beads
 
 ```bash
