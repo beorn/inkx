@@ -12,7 +12,7 @@ import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
 import { generatePathBasedId } from "../../id-utils.ts"
 import type { KNode } from "@km/core"
-import { emitNodeCreated, type Emitter } from "../../emitter.ts"
+import { emitNodeCreated, emitNodeUpdated, type Emitter } from "../../emitter.ts"
 import { getNodeByPath } from "../../db-queries/core-lookup.ts"
 import { addLink } from "../../db-links.ts"
 import type { LinkResolver } from "../../link-resolver.ts"
@@ -175,6 +175,18 @@ function handleMarkdownCreate(
   const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
   for (const link of resolvedLinks) {
     addLink(db, link)
+
+    // Emit link_to update so the in-memory store stays in sync.
+    // addLink sets link_to on the DB node directly (no events),
+    // but the node was already emitted via emitNodeCreated with link_to: null.
+    if (link.embedded && link.target_id) {
+      emitNodeUpdated(emitter, "fs-watch", link.source_id, {
+        type: "link",
+        embed: true,
+        link_to: link.target_id,
+        link_alias: link.alias,
+      })
+    }
   }
 
   // Collect new file for batch link resolution and update resolver map

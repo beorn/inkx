@@ -164,9 +164,22 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   }
   const resolvedLinks = toResolvedLinks(processed, ctx.resolver)
   for (const link of resolvedLinks) {
+    const sourceId = idMap.get(link.source_id) ?? link.source_id
     addLink(db, {
       ...link,
-      source_id: idMap.get(link.source_id) ?? link.source_id,
+      source_id: sourceId,
     })
+
+    // Emit link_to update so the in-memory store stays in sync.
+    // addLink sets link_to on the DB node directly (no events),
+    // but the TUI reads from the in-memory store which needs the event.
+    if (link.embedded && link.target_id) {
+      emitNodeUpdated(emitter, "fs-watch", sourceId, {
+        type: "link",
+        embed: true,
+        link_to: link.target_id,
+        link_alias: link.alias ?? undefined,
+      })
+    }
   }
 }
