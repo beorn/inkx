@@ -260,8 +260,9 @@ Together: the description tells you what the bead IS right now, the notes tell y
    - Update `--title` if the feedback changes the scope or framing
    - Update `--acceptance` if acceptance criteria changed
 
-3. **If you disagree or are unclear**, ask the user **immediately** — don't silently ignore feedback
-   or defer the question. Misunderstandings compound; catch them early.
+3. **If you disagree, are unclear, or have a better idea**, ask the user **immediately** —
+   don't silently ignore feedback, defer the question, or swallow a disagreement.
+   Misunderstandings compound; catch them early. A respectful pushback is always welcome.
 
 **Example:**
 ```bash
