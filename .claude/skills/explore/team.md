@@ -311,7 +311,7 @@ When the reproducer sends a failing test:
 4. Confirm test passes: bun vitest run <test-file>
 5. Check regressions:
    bun vitest run apps/km-tui/tests/ --reporter=verbose 2>&1 | head -300
-6. **For rendering/visual bugs**: **You MUST follow** the [two-layer verification protocol](../tui/fix.md#two-layer-verification) —
+6. **For rendering/visual bugs**: **You MUST follow** the [three-layer verification protocol](../tui/fix.md#three-layer-verification) —
    use mcp_tty tools (ToolSearch "tty" first) for GUI/TTY verification + calibrate the regression test.
    Pure logic bugs can skip GUI/TTY — state "Verified: TUI tests only" in close reason.
 7. Close bead using the [structured close reason format](../pm/workflows/bugs.md#close-reason-template) — **read it for the mandatory format**.

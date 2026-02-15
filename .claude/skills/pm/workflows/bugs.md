@@ -181,9 +181,18 @@ make the test pass, the bug isn't fixed.
 
 <a name="tty-verification"></a>
 
-### GUI/TTY Visual Verification (MANDATORY for rendering/visual bugs)
+### Three-Layer Verification (MANDATORY for visual/rendering bugs)
 
-Any bug affecting what the user sees on screen requires **two-layer verification**: TUI regression test + GUI/TTY screenshot. Pure logic bugs need TUI tests only. **You MUST follow** the [two-layer verification protocol](../../tui/fix.md#two-layer-verification) — read it for the full procedure, calibration steps, and close reason requirements.
+Any bug affecting what the user sees on screen requires **three-layer verification**. Pure logic bugs need TUI tests only. **You MUST follow** the [three-layer verification protocol](../../tui/fix.md#three-layer-verification) — read it for the full procedure.
+
+```
+Fixer confirms fixed (TUI tests pass)
+  → AI confirms fixed (GUI/TTY screenshot)
+    → User confirms fixed (visual check)
+      → Bead closed
+```
+
+The bead is **NOT closed** until the user confirms. Mark as "awaiting user confirmation" after AI verification.
 
 <a name="close-reason-template"></a>
 
@@ -192,19 +201,18 @@ Any bug affecting what the user sees on screen requires **two-layer verification
 ```bash
 bd close <id> --reason "Fixed: <what changed, file:line>
 Test: <test file and test name>
-Verified: <how — TUI test/GUI-TTY/both, what was checked>"
+Verified: TUI test + GUI/TTY screenshot + user confirmed"
 ```
 
-Example (visual bug — requires GUI/TTY verification):
+Example (visual bug — all three layers):
 
 ```bash
 bd close km-tui.xyz --reason "Fixed: CardColumn.tsx:42 — guard against empty children array
 Test: apps/km-tui/tests/card-column.test.tsx 'handles empty children'
-Verified: TUI test (expectNodeBorder passes) + GUI/TTY screenshot (/tmp/verify-km-tui.xyz.png)
-  GUI/TTY: launched with item('board', item('col', item('task'))), pressed c, confirmed border renders correctly"
+Verified: TUI test (expectNodeBorder passes) + GUI/TTY screenshot (/tmp/verify-km-tui.xyz.png) + user confirmed"
 ```
 
-Example (logic bug — no GUI/TTY needed):
+Example (logic bug — no GUI/TTY or user confirmation needed):
 
 ```bash
 bd close km-tui.abc --reason "Fixed: state.ts:128 — reset stickyX on OOB
@@ -213,18 +221,21 @@ Verified: TUI tests only — pure state bug, no visual component"
 ```
 
 **IMPORTANT**: The close reason is the permanent record of what verification was done.
-Future sessions check this to know if GUI/TTY verification was performed. If a bead was closed
-without GUI/TTY verification but should have had it, re-open and verify.
+Future sessions check this to know if all three layers were completed. If a bead was closed
+without user confirmation but should have had it, re-open and verify.
 
-**Do NOT close a bead without:**
+**Do NOT close a visual bead without:**
 1. A **failing test written BEFORE** the fix (test-first is mandatory)
 2. The test now **passes** after the fix
 3. `bun run test:fast` passing (run it, don't assume)
-4. **GUI/TTY visual verification** for any rendering/visual bug (screenshot + visual confirm)
-5. A verification method stated in the close reason (TUI-tests-only OR TUI-test+GUI/TTY)
-6. The structured Fixed/Test/Verified format
+4. **GUI/TTY visual verification** — AI screenshot proves fix looks correct
+5. **User confirmation** — user visually verified the fix
+6. A verification method stated in the close reason
+7. The structured Fixed/Test/Verified format
 
-For non-trivial bugs, report to user first and wait for confirmation.
+### When the User Says "Not Fixed"
+
+If the user rejects a fix, **You MUST follow** the [rejection protocol](../../tui/fix.md#when-the-user-says-not-fixed) — distinguish process failure from iterative refinement, and run a retrospective if it's a process failure.
 
 ### Session Linking
 
@@ -358,7 +369,7 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 - ❌ Guessing at fixes without reproducing bugs
 - ❌ Writing the fix before writing a failing test (test-first is mandatory)
 - ❌ Only using state assertions for rendering bugs (use buffer assertions)
-- ❌ Closing a visual/rendering bug with only TUI test verification (MUST use GUI/TTY screenshot)
+- ❌ Closing a visual/rendering bug without all three verification layers (TUI test + GUI/TTY + user)
 - ❌ Closing bead because "tests pass" without a test that specifically targets the bug
 - ❌ Closing bead before tests pass
 - ❌ Refactoring unrelated code "while I'm here"
@@ -379,10 +390,11 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 - [ ] The specific failing test now passes
 - [ ] `bun run test:fast` passes (no regressions)
 - [ ] `bun fix` passes
-- [ ] **GUI/TTY visual verification for rendering/visual bugs** (screenshot proves it looks right on screen)
+- [ ] **GUI/TTY visual verification for rendering/visual bugs** (AI screenshot proves it looks right)
+- [ ] **User confirmed fixed** for rendering/visual bugs (user visually verified)
 - [ ] Recall searched for prior context
 - [ ] Root cause identified (not just symptom)
 - [ ] Detection gap analyzed (why tests missed it)
 - [ ] Prevention bead created (if non-trivial)
 - [ ] No console.log left
-- [ ] Evidence in close reason (Fixed/Test/Verified format, must state TUI-tests-only OR TUI-test+GUI/TTY)
+- [ ] Evidence in close reason (Fixed/Test/Verified format, must state TUI-tests-only OR TUI-test+GUI/TTY+user)

@@ -168,7 +168,7 @@ bun run test:fast  # All pass
 bun fix            # Clean code
 ```
 
-**Visual verification for TUI features**: **You MUST follow** the [two-layer verification protocol](../../tui/fix.md#two-layer-verification) — TUI regression test + GUI/TTY screenshot for anything visible on screen. Pure logic features need TUI tests only.
+**Visual verification for TUI features**: **You MUST follow** the [three-layer verification protocol](../../tui/fix.md#three-layer-verification) — TUI regression test + GUI/TTY screenshot + user confirmation for anything visible on screen. Pure logic features need TUI tests only.
 
 **Close:**
 
@@ -271,6 +271,7 @@ Task({
 - [ ] Tests pass (`bun run test:fast`)
 - [ ] `bun fix` passes
 - [ ] No console.log left
-- [ ] **GUI/TTY visual verification for UI features** (screenshot proves it looks right on screen)
-- [ ] Evidence in close reason (must state TUI-tests-only OR TUI-test+GUI/TTY)
+- [ ] **GUI/TTY visual verification for UI features** (AI screenshot proves it looks right)
+- [ ] **User confirmed fixed** for UI features (user visually verified)
+- [ ] Evidence in close reason (must state TUI-tests-only OR TUI-test+GUI/TTY+user)
 - [ ] No scope creep

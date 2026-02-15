@@ -121,25 +121,35 @@ Every bug fix MUST satisfy all items before the bead can be closed:
 - [ ] `bun vitest run apps/km-tui/tests/` — no NEW failures introduced
 - [ ] `bun run test:fast` — full suite green
 - [ ] **GUI/TTY visual verification for rendering/visual bugs** — TUI tests alone are NOT sufficient
+- [ ] **User confirmed fixed** — user visually verified the fix on their own terminal
 - [ ] Close reason uses structured format — **read** [bugs.md](../pm/workflows/bugs.md#close-reason-template) for the mandatory format
 
-<a name="two-layer-verification"></a>
+<a name="three-layer-verification"></a>
 
-### Two-Layer Verification (MANDATORY for visual/rendering bugs)
+### Three-Layer Verification (MANDATORY for visual/rendering bugs)
 
 TUI tests check DOM content and computed colors, but they do NOT catch all terminal
 rendering issues (pixel alignment, actual ANSI rendering, layout proportions, border
-continuity). Any bug that affects what the user **sees on screen** requires BOTH:
+continuity). Any bug that affects what the user **sees on screen** requires ALL THREE:
 
 1. **TUI regression test** (fast, runs in CI) — catches the bug programmatically so
    it never regresses. Must be fast enough for `test:fast`. This is the ongoing guard.
-2. **GUI/TTY verification** (manual, not in CI) — a one-time check at fix time that
-   proves the fix actually looks correct on a real terminal.
+2. **GUI/TTY verification by AI** (one-time) — AI launches TUI via TTY MCP, reproduces
+   the scenario, takes a screenshot proving the fix looks correct.
+3. **User confirmation** — the user visually verifies the fix on their own terminal.
+   The bead is NOT closed until the user confirms.
+
+```
+Fixer confirms fixed (TUI tests pass)
+  → AI confirms fixed (GUI/TTY screenshot)
+    → User confirms fixed (visual check)
+      → Bead closed
+```
 
 ```bash
 # Use mcp_tty tools to launch TUI, reproduce scenario, screenshot
 # Save as /tmp/verify-<bead-id>.png
-# Close reason must reference: "Verified: TUI test + GUI/TTY screenshot"
+# Close reason must reference all three layers
 ```
 
 **After GUI/TTY verification, calibrate the regression test:**
@@ -149,11 +159,26 @@ continuity). Any bug that affects what the user **sees on screen** requires BOTH
 - Goal: the TUI test should catch future regressions without needing GUI/TTY verification again.
   GUI/TTY is the calibration step, not the ongoing guard.
 
-**Pure logic bugs** (wrong state, bad cursor position, missing data) can be verified with
-TUI tests only. The close reason should state: `Verified: TUI tests only — no visual component`.
+**Pure logic bugs** (wrong state, bad cursor position, missing data) can skip GUI/TTY and
+user confirmation. The close reason should state: `Verified: TUI tests only — no visual component`.
 
-**Do NOT close a visual bead if GUI/TTY verification is unchecked.** If GUI/TTY tools are unavailable,
-document why and flag for future GUI/TTY verification.
+**Do NOT close a visual bead until the user has confirmed.** If the user hasn't verified yet,
+the bead stays open (mark as "awaiting user confirmation" in notes).
+
+### When the User Says "Not Fixed"
+
+If the user rejects a fix (says it's not actually fixed or not right):
+
+1. **Distinguish**: Is this a **process failure** (AI verified but missed the issue) or
+   **iterative refinement** (user changed their mind / wants something different after seeing it)?
+2. **Process failure** → run a retrospective:
+   - Why did TUI tests pass but the bug is still visible?
+   - Why did AI's GUI/TTY verification miss it?
+   - What buffer assertion or GUI/TTY check would have caught it?
+   - Update tests/assertions/process to prevent this class of miss
+   - Log the retrospective in the bead notes
+3. **Iterative refinement** → normal re-work, no retrospective needed. User is refining
+   requirements based on seeing the result — this is expected and healthy.
 
 ## Quick Start (Synthetic Data)
 
