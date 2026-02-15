@@ -14,7 +14,7 @@ import type { JobRunner } from "@km/core"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback, stripAnsi } from "inkx"
 import type { KNode } from "@km/core"
-import { extractTitleTaskMarker, hasTaskProperties, isBlock } from "@km/core"
+import { extractTitleTaskMarker, isTask, isBlock } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState, getParentContextEx as getParentContextExFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
@@ -41,6 +41,9 @@ import {
   type GetBoardPillsFn,
 } from "./tree-node-helpers.ts"
 import { useLayoutRegistryOptional } from "../layout-context.tsx"
+
+/** Regex to extract target name from ![[target]] or ![[target|alias]] embed syntax. */
+const EMBED_EXTRACT_RE = /^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/
 
 interface TreeNodeProps {
   node: KNode
@@ -224,10 +227,7 @@ function TreeNodeImpl({
     `TreeNode ${sid(node.id)} children=${children.length} childCount=${childCount} content=${displayNode.content?.slice(0, 30) ?? "(empty)"}`,
   )
 
-  // A node is a task if it has task_status set, or has task-related properties
-  // (due_date, priority, scheduled_date, assigned_to, recurrence).
-  // For embeds, check the target node's status/properties.
-  const isTask = displayNode.task_status != null || hasTaskProperties(displayNode)
+  const nodeIsTask = isTask(displayNode)
 
   // Memoize style calculation - only recalc when selection or node status changes
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
@@ -258,7 +258,7 @@ function TreeNodeImpl({
 
   // Compute the bullet icon based on icon style
   const bulletIcon = useMemo((): StatusIcon => {
-    if (isTask && style.taskStatusIcon) return style.taskStatusIcon
+    if (nodeIsTask && style.taskStatusIcon) return style.taskStatusIcon
     if (iconStyle === "workflowy") {
       const bullet = getCircleBullet(hasChildren, hasChildren && (isFolded || depth >= maxDepth))
       return style.ownColor ? { ...bullet, color: style.ownColor } : bullet
@@ -271,7 +271,7 @@ function TreeNodeImpl({
     const bullet = getFoldMarker(hasChildren, isFolded, style.ownColor)
     return bullet
   }, [
-    isTask,
+    nodeIsTask,
     iconStyle,
     displayNode.type,
     hasChildren,
@@ -288,7 +288,7 @@ function TreeNodeImpl({
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
   const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
-  const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
+  const cleanContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
   // Compute sigil for inline display: only if name is a sigil and differs from title
   // Skip sigils that are in the excluded list (e.g., @next on the @next board)
@@ -303,7 +303,7 @@ function TreeNodeImpl({
   // For inline editing, use the actual node content (not display name fallback).
   // This ensures new nodes with empty content show an empty edit field,
   // not the short ID that getNodeDisplayName returns as fallback.
-  const editContent = isTask ? stripTaskMark(displayNode.content ?? "") : (displayNode.content ?? "")
+  const editContent = nodeIsTask ? stripTaskMark(displayNode.content ?? "") : (displayNode.content ?? "")
 
   // Compute body/structural split when editing (for per-block navigation)
   const { bodyChildren, structuralChildren } = useMemo(() => {
@@ -477,7 +477,7 @@ function TreeNodeImpl({
   const rawParentContext =
     parentContextProp !== undefined
       ? parentContextProp
-      : depth === 0 && isTask && isEmbedded
+      : depth === 0 && nodeIsTask && isEmbedded
         ? resolvedGetParentContext(node)
         : null
   // Suppress parent context if it matches an excluded sigil (redundant on that board/column).
@@ -488,7 +488,7 @@ function TreeNodeImpl({
     // Direct match: display name is in excluded sigils
     if (excludedSigils.includes(rawParentContext)) return null
     // Extended check: resolve the parent context source node and compare its name/fs_path
-    if (parentContextProp === undefined && depth === 0 && isTask && isEmbedded) {
+    if (parentContextProp === undefined && depth === 0 && nodeIsTask && isEmbedded) {
       const result = getParentContextExFromState(repo, node)
       if (result) {
         // Check if the source node's name (sigil) is excluded
@@ -502,7 +502,7 @@ function TreeNodeImpl({
       }
     }
     return rawParentContext
-  }, [rawParentContext, excludedSigils, parentContextProp, depth, isTask, isEmbedded, repo, node])
+  }, [rawParentContext, excludedSigils, parentContextProp, depth, nodeIsTask, isEmbedded, repo, node])
 
   // Context suffix (shown inline for oneliner variant only)
   const truncatedContext = isOneliner
@@ -784,12 +784,13 @@ function getDisplayContent(
   }
   if (isEmbedded) {
     // Unresolved embed — extract target name from ![[target]] syntax
-    return node.content?.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1") ?? getNodeDisplayName(repo, node)
+    return node.content?.replace(EMBED_EXTRACT_RE, "$1") ?? getNodeDisplayName(repo, node)
   }
   // Content with embed syntax ![[target]] but link_to not set (unresolved embed)
   // Strip the ![[...]] wrapper so it doesn't render as "!Target" in the TUI
-  if (displayNode.content && /^!\[\[.+\]\]$/.test(displayNode.content.trim())) {
-    return displayNode.content.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1")
+  const trimmed = displayNode.content?.trim()
+  if (trimmed && EMBED_EXTRACT_RE.test(trimmed)) {
+    return trimmed.replace(EMBED_EXTRACT_RE, "$1")
   }
   if (displayNode.type === "oi" && displayNode.fstype === "mdsection") {
     return getNodeDisplayName(repo, displayNode)

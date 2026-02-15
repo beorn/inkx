@@ -302,50 +302,8 @@ export function collapseAncestorsWithTypes(ancestors: KNode[]): CollapsedAncesto
  * @returns The parent context string, or null if at root or no meaningful context
  */
 export function getParentContext(node: KNode, skipParentId?: string | null, getNode?: GetNodeFn): string | null {
-  // Without getNode, we can't traverse
-  if (!getNode) return null
-
-  // For linked nodes (transclusions), follow the link to get original context
-  // This allows board items to show their original location even when displayed on a board
-  let targetNode = node
-  if (node.link_to) {
-    const originalNode = getNode(node.link_to)
-    if (originalNode) {
-      targetNode = originalNode
-    }
-  }
-
-  if (!targetNode.parent_id) return null
-
-  let currentId: string | null = targetNode.parent_id
-
-  // Walk up the parent chain
-  while (currentId) {
-    // Skip the specified parent (e.g., board column)
-    if (skipParentId && currentId === skipParentId) {
-      const parent = getNode(currentId)
-      currentId = parent?.parent_id ?? null
-      continue
-    }
-
-    const parent = getNode(currentId)
-    if (!parent) break
-
-    // If we find a file/mdfile node, return its display name
-    if (parent.type === "oi" && (parent.fstype === "file" || parent.fstype === "mdfile")) {
-      return getNodeDisplayName(parent)
-    }
-
-    // If we find a meaningful section (not a board column), return it
-    // Board columns typically have rules like add=, sync=, default=
-    if (parent.type === "oi" && parent.fstype === "mdsection" && !parent.rules) {
-      return getNodeDisplayName(parent)
-    }
-
-    currentId = parent.parent_id
-  }
-
-  return null
+  const result = findParentContextNode(node, skipParentId, getNode)
+  return result ? getNodeDisplayName(result) : null
 }
 
 /**
@@ -370,8 +328,27 @@ export function getParentContextEx(
   skipParentId?: string | null,
   getNode?: GetNodeFn,
 ): ParentContextResult | null {
+  const parent = findParentContextNode(node, skipParentId, getNode)
+  if (!parent) return null
+  return {
+    displayName: getNodeDisplayName(parent),
+    nodeName: parent.name,
+    fsPath: parent.fs_path,
+  }
+}
+
+/**
+ * Shared traversal logic for getParentContext and getParentContextEx.
+ *
+ * Walks up the parent chain to find meaningful context:
+ * - For linked nodes (transclusions), follows link_to to get original context
+ * - Skips board columns/sections (immediate parent in board view)
+ * - Returns the containing file/section node
+ */
+function findParentContextNode(node: KNode, skipParentId?: string | null, getNode?: GetNodeFn): KNode | null {
   if (!getNode) return null
 
+  // For linked nodes (transclusions), follow the link to get original context
   let targetNode = node
   if (node.link_to) {
     const originalNode = getNode(node.link_to)
@@ -394,20 +371,14 @@ export function getParentContextEx(
     const parent = getNode(currentId)
     if (!parent) break
 
+    // File/mdfile node — meaningful context
     if (parent.type === "oi" && (parent.fstype === "file" || parent.fstype === "mdfile")) {
-      return {
-        displayName: getNodeDisplayName(parent),
-        nodeName: parent.name,
-        fsPath: parent.fs_path,
-      }
+      return parent
     }
 
+    // Meaningful section (not a board column — those have rules)
     if (parent.type === "oi" && parent.fstype === "mdsection" && !parent.rules) {
-      return {
-        displayName: getNodeDisplayName(parent),
-        nodeName: parent.name,
-        fsPath: parent.fs_path,
-      }
+      return parent
     }
 
     currentId = parent.parent_id

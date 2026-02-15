@@ -44,7 +44,7 @@ export type { BuildInfo } from "./build-info.gen.ts"
 export { isOutline, isListItem, isItem, isLink, isBlock } from "./types.ts"
 
 // Task utilities (new names)
-export { getMarkerForStatus, getStatusForMarker, markToMarker, extractTitleTaskMarker, hasTaskProperties } from "./types.ts"
+export { getMarkerForStatus, getStatusForMarker, markToMarker, extractTitleTaskMarker, hasTaskProperties, isTask } from "./types.ts"
 
 // Query language parser (pure parsing, no DB)
 export {

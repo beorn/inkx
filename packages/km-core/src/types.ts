@@ -208,6 +208,14 @@ export function hasTaskProperties(node: Pick<KNode, "due_date" | "priority" | "s
   )
 }
 
+/**
+ * Check if a node is a task (explicit task_status OR implicit task properties).
+ * Single source of truth for task detection — use this instead of inline checks.
+ */
+export function isTask(node: Pick<KNode, "task_status" | "due_date" | "priority" | "scheduled_date" | "assigned_to" | "recurrence">): boolean {
+  return node.task_status != null || hasTaskProperties(node)
+}
+
 // =============================================================================
 // Source Type - Where a node comes from
 // =============================================================================

@@ -4,7 +4,7 @@
  * Pure functions extracted from TreeNode for testability and clarity.
  */
 
-import { extractTitleTaskMarker, hasTaskProperties, type KNode } from "@km/core"
+import { extractTitleTaskMarker, isTask, type KNode } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
@@ -75,15 +75,12 @@ export function getNodeStyle(
   depth: number,
   isInlineEditing = false,
 ): NodeStyleResult {
-  // A node is a task if it has task_status set, or has task-related properties
-  // (due_date, priority, scheduled_date, assigned_to, recurrence)
-  const isExplicitTask = node.task_status != null
-  const isTask = isExplicitTask || hasTaskProperties(node)
+  const nodeIsTask = isTask(node)
   const ownColor = getOwnColor(node)
 
   // Task status icon: prepended to content for tasks
   // For implicit tasks (no explicit status), show the "todo" icon
-  const taskStatusIcon = isTask ? getStatusIcon(node.task_status ?? "todo") : null
+  const taskStatusIcon = nodeIsTask ? getStatusIcon(node.task_status ?? "todo") : null
 
   // Background/text colors
   // Node colors only affect the fold marker icon, NOT the background
@@ -104,7 +101,7 @@ export function getNodeStyle(
 
   // Dim state for done/dropped tasks (no strikethrough per design)
   // Only explicit task statuses trigger dimming — implicit tasks are never dimmed
-  const isDoneOrDropped = isExplicitTask && (node.task_status === "done" || node.task_status === "dropped")
+  const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
   const isInactiveChild = dimInactiveChildren && depth > 0
   const shouldDim = isDoneOrDropped || isInactiveChild
   const shouldStrikethrough = false // Disabled per design decision
@@ -280,11 +277,8 @@ export function formatInfoSuffix(
   excludeBoardIds: Set<string>,
   getBoardPills: GetBoardPillsFn,
 ): string {
-  // A node is a task if it has task_status set, or has task-related properties
-  const isTask = node.task_status != null || hasTaskProperties(node)
-
   // Board pills - show which boards this task is on
-  const boardPills = isTask ? getBoardPills(node, excludeBoardIds) : []
+  const boardPills = isTask(node) ? getBoardPills(node, excludeBoardIds) : []
   const boardPillsStr = formatBoardPills(boardPills, isCompact)
 
   if (!isCompact) {
