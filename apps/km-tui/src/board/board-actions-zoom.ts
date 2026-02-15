@@ -237,8 +237,13 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
   }
 
   // Zoom one level inward toward the cursor node.
-  // Walk up from cursor to find the child of root on the path.
+  // If cursor is a leaf (no children), there's nothing to zoom into.
   const cursorId = card.node.id
+  if (ctx.repo.getChildren(cursorId).length === 0) {
+    return boundary("in", "no children")
+  }
+
+  // Walk up from cursor to find the child of root on the path.
   const rootId = ctx.rootId
 
   // Find the child of current root that is an ancestor of (or is) the cursor
