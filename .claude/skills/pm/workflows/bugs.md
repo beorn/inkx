@@ -103,17 +103,71 @@ bd update <id> --notes "Cannot reproduce. Tried: <steps>. Need more info."
 
 Report to user. DO NOT guess at fixes.
 
-## Step 3: Write Failing Test
+## Step 3: Write Failing Test (MANDATORY — test-first)
+
+**CRITICAL: The test must fail BEFORE you write any fix code.** This confirms:
+1. You understand the bug (you can reproduce it)
+2. You'll know when it's fixed (the test passes)
+3. It won't regress (the test stays in the suite)
+
+**Classify the bug** to choose the right test type:
+
+| Bug Type | Test Approach | Example |
+|----------|--------------|---------|
+| **State bug** (wrong cursor, missing node, bad logic) | DOM assertions: `board.expect("#id").toExist()` | Cursor lands on wrong card |
+| **Visual bug** (wrong color, missing border, bad layout) | Visual assertions: `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` | Selected card text is wrong color |
+| **Mixed** (state + visual symptoms) | Both: DOM + visual assertions | Card exists but border is missing |
+
+### State test example
 
 ```typescript
-test("<bug description>", () => {
-  // Minimal setup
-  const result = buggyFunction()
-  expect(result).toBe(expectedResult)
+test("reproduces <bug>", () => {
+  const { board } = testEnv(() => item("board", item("col", item("task"))))
+  board.press("j")
+  board.expect("#task[data-cursor]").toExist()  // State assertion
 })
 ```
 
-Run `bun run test:fast` - verify fails for right reason.
+### Visual test example (prefer for rendering bugs)
+
+```typescript
+test("selected card renders black-on-yellow", () => {
+  const { board } = testEnv(() => item("board", item("col", item("task"))))
+  // Visual assertion — checks actual rendered colors
+  board.expectNodeColor("task", { fg: 0, bg: 3 })  // 0=black, 3=yellow
+})
+
+test("HR renders as line without border", () => {
+  const { board } = testEnv(() => item("board", item("col", item.hr())))
+  const hrRow = board.screen.findRow("─")
+  expect(hrRow).toBeGreaterThan(-1)
+  board.expectRow(hrRow, "─")
+})
+
+test("card has left/right borders", () => {
+  const { board } = testEnv(() => item("board", item("col", item("task"))))
+  board.expectNodeBorder("task")  // Checks │ on left/right edges
+})
+```
+
+### Visual toolbelt API (apps/km-tui/tests/helpers/board-test.ts)
+
+| Method | What it checks |
+|--------|---------------|
+| `board.screen.cell(x,y)` | Raw cell: `{char, fg, bg, attrs}` |
+| `board.screen.row(n)` | Text of row n |
+| `board.screen.nodePos(id)` | Screen position of a node |
+| `board.screen.nodeBox(id)` | Bounding box of a node |
+| `board.screen.findRow(text)` | Find row containing text |
+| `board.expectScreen(text)` | Screen contains text |
+| `board.expectRow(n, pattern)` | Row contains/matches |
+| `board.expectCellChar(x,y,c)` | Character at position |
+| `board.expectCellColor(x,y,{fg,bg})` | Colors at position |
+| `board.expectNodeColor(id,{fg,bg,attrs})` | Colors on node's text |
+| `board.expectNodeBorder(id)` | Node has border chars |
+| `board.expectNodeNoBorder(id)` | Node has no border |
+
+Run `bun run test:fast` - verify the test fails for the right reason.
 
 ## Step 4: Implement Minimal Fix
 
@@ -138,14 +192,15 @@ bun run test:fast    # MUST pass — no new failures
 bun fix              # MUST pass — lint + format clean
 ```
 
-**For TUI bugs** - visual comparison:
+**The failing test from Step 3 MUST now pass.** This is non-negotiable — if you can't
+make the test pass, the bug isn't fixed.
+
+**For visual bugs** — also verify with TTY if the visual toolbelt can't fully capture
+the issue (e.g., layout alignment across many columns, animation, scroll behavior):
 
 ```bash
-HEADLESS=true bun x playwright screenshot \
-  --viewport-size=1000,700 \
-  http://localhost:7681 /tmp/bug-after.png
-
-open /tmp/bug-before.png /tmp/bug-after.png
+# TTY verification (when headless visual assertions aren't sufficient)
+# Use /explore --gui or mcp_tty tools for screenshot comparison
 ```
 
 <a name="close-reason-template"></a>
@@ -163,13 +218,15 @@ Example:
 ```bash
 bd close km-tui.xyz --reason "Fixed: CardColumn.tsx:42 — guard against empty children array
 Test: apps/km-tui/tests/card-column.test.tsx 'handles empty children'
-Verified: headless — empty column renders placeholder, no blank cards"
+Verified: headless visual — expectNodeBorder('card1') passes, no blank cards"
 ```
 
 **Do NOT close a bead without:**
-1. `bun run test:fast` passing (run it, don't assume)
-2. A verification method stated in the close reason
-3. The structured Fixed/Test/Verified format
+1. A **failing test written BEFORE** the fix (test-first is mandatory)
+2. The test now **passes** after the fix
+3. `bun run test:fast` passing (run it, don't assume)
+4. A verification method stated in the close reason
+5. The structured Fixed/Test/Verified format
 
 For non-trivial bugs, report to user first and wait for confirmation.
 
@@ -291,6 +348,9 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 ## Anti-Patterns
 
 - ❌ Guessing at fixes without reproducing bugs
+- ❌ Writing the fix before writing a failing test (test-first is mandatory)
+- ❌ Only using state assertions for visual bugs (use visual toolbelt)
+- ❌ Closing bead because "tests pass" without a test that specifically targets the bug
 - ❌ Closing bead before tests pass
 - ❌ Refactoring unrelated code "while I'm here"
 - ❌ Forgetting to create/update bead
@@ -303,14 +363,16 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 
 **Before closing:**
 
-- [ ] Bug reproduced (screenshot or test)
-- [ ] Failing test written
+- [ ] Bug reproduced (test or screenshot)
+- [ ] Failing test written BEFORE fix (test-first)
+- [ ] Visual test used for visual bugs (`expectNodeColor`, `expectRow`, `expectCellColor`, etc.)
 - [ ] Fix implements minimal change
-- [ ] Tests pass
-- [ ] bun fix passes
-- [ ] Visual verification (for TUI bugs)
+- [ ] The specific failing test now passes
+- [ ] `bun run test:fast` passes (no regressions)
+- [ ] `bun fix` passes
+- [ ] TTY visual verification (for bugs that can't be fully captured by visual toolbelt)
 - [ ] Recall searched for prior context
 - [ ] Root cause identified (not just symptom)
 - [ ] Detection gap analyzed (why tests missed it)
 - [ ] Prevention bead created (if non-trivial)
-- [ ] Evidence in close reason
+- [ ] Evidence in close reason (Fixed/Test/Verified format)
