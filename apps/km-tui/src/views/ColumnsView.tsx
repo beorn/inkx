@@ -219,13 +219,10 @@ export function ColumnsView({
   state,
   width,
   height,
-  colIndex: _colIndexProp,
-  cardIndex: _cardIndexProp,
   subIndex,
   effectiveScrollOffset,
   effectiveMaxCols,
   effectiveVisibleColumns,
-  selectionLevel: _selectionLevelProp,
 }: ColumnsViewProps): React.ReactElement {
   // Subscribe to colIndex only — ColumnsView doesn't re-render on j/k within column
   const colIndex = useCursorColIndex()

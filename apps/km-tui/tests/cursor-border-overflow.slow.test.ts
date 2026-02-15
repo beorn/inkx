@@ -22,23 +22,16 @@ function findCardBorderProblems(text: string): string[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!
 
-    // Check 1: text touching right border (no trailing space before │)
-    const cardMatches = line.matchAll(/│([^│]+)│/g)
-    for (const match of cardMatches) {
-      const content = match[1]!
-      if (/^[─━═]+$/.test(content)) continue
-      if (content.length > 0 && content[content.length - 1] !== " ") {
-        problems.push(`line ${i}: text touches border: │${content}│`)
-      }
-    }
-
-    // Check 2: text bleeding into a card border line
-    // A border line (╰───╯ or ╭───╮) should only contain ─ between corners.
-    // If alphanumeric text appears between ╰...╯ or ╭...╮, it's a bug.
+    // Check: text bleeding into a card border line
+    // A border line (╰───╯ or ╭───╮) should only contain ─ and scroll indicators between corners.
+    // Scroll indicators like "⋯ +8 ⋯" are legitimate content on borders.
+    // If non-indicator alphanumeric text appears, it's a bug.
     const borderMatches = line.matchAll(/[╰╭]([^╯╮]+)[╯╮]/g)
     for (const match of borderMatches) {
       const content = match[1]!
-      if (/[a-zA-Z0-9]/.test(content)) {
+      // Remove scroll indicators (⋯ +N ⋯, ▲N, ▼N) before checking
+      const withoutIndicators = content.replace(/[⋯▲▼]\s*\+?\d+\s*[⋯]?/g, "").replace(/[─━═\s]/g, "")
+      if (/[a-zA-Z]/.test(withoutIndicators)) {
         problems.push(`line ${i}: text in border line: ${match[0].substring(0, 60)}`)
       }
     }

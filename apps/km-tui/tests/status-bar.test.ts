@@ -99,7 +99,7 @@ describe("StatusBar", () => {
     )
 
     // Message should be truncated with ellipsis
-    expect(app.text).toContain("…")
+    expect(app.text).toContain("⋯")
     // Should not contain the full message
     expect(app.text).not.toContain("A".repeat(100))
     // Message should fit within terminal (approx 40 - 4 for icon/padding)
@@ -123,7 +123,7 @@ describe("StatusBar", () => {
     )
 
     expect(app.text).toContain(message)
-    expect(app.text).not.toContain("…") // No truncation needed
+    expect(app.text).not.toContain("⋯") // No truncation needed
   })
 
   test("truncation boundary - exactly at limit", () => {
@@ -138,7 +138,7 @@ describe("StatusBar", () => {
     )
 
     expect(app.text).toContain(exactMessage)
-    expect(app.text).not.toContain("…")
+    expect(app.text).not.toContain("⋯")
   })
 
   test("truncation boundary - one char over limit", () => {
@@ -152,7 +152,7 @@ describe("StatusBar", () => {
       40,
     )
 
-    expect(app.text).toContain("…")
+    expect(app.text).toContain("⋯")
     expect(app.text).not.toContain("A".repeat(37))
   })
 })

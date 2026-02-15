@@ -64,7 +64,7 @@ describe("renderPath", () => {
     ]
     const result = renderPath(segments, 20)
     // Should truncate board segments before root
-    expect(result.some((s) => s.name.startsWith("…"))).toBe(true)
+    expect(result.some((s) => s.name.startsWith("⋯"))).toBe(true)
   })
 
   it("adds ellipsis when truncating", () => {
@@ -74,7 +74,7 @@ describe("renderPath", () => {
       { id: "3", name: "three", sep: "", isWithinBoard: false, node: null },
     ]
     const result = renderPath(segments, 10)
-    expect(result.some((s) => s.name.includes("…"))).toBe(true)
+    expect(result.some((s) => s.name.includes("⋯"))).toBe(true)
   })
 })
 
@@ -92,13 +92,13 @@ describe("renderParentPath", () => {
 
   it("left-truncates when too long", () => {
     const result = renderParentPath("path/to/file", 8)
-    expect(result).toBe("…to/file")
+    expect(result).toBe("⋯to/file")
     expect(result.length).toBe(8)
   })
 
   it("handles very short width", () => {
     const result = renderParentPath("long/path", 3)
     expect(result.length).toBe(3)
-    expect(result.startsWith("…")).toBe(true)
+    expect(result.startsWith("⋯")).toBe(true)
   })
 })

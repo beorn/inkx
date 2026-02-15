@@ -302,6 +302,23 @@ item.file = (content: string, ...childArrays: KNode[][]): KNode[] =>
 
 item.code = (content: string): KNode[] => makeNodeWithType(content, "code", {})
 
+item.hr = (id?: string): KNode[] => {
+  const nodeId = id ?? "hr-" + Math.random().toString(36).slice(2, 8)
+  const node: KNode = {
+    id: nodeId,
+    type: "hr",
+    content: undefined,
+    data: {},
+    parent_id: null,
+    parent_idx: 0,
+    link_to: null,
+    created_at: Date.now(),
+    updated_at: Date.now(),
+    version: "v1",
+  }
+  return [node]
+}
+
 item.quote = (content: string): KNode[] => makeNodeWithType(content, "quote", {})
 
 item.task = (content: string, status?: string): KNode[] => {

@@ -292,5 +292,5 @@ export function formatInfoSuffix(
  */
 export function truncateContext(context: string | null, maxLen: number): string | null {
   if (!context) return null
-  return context.length > maxLen ? context.slice(0, maxLen - 1) + "…" : context
+  return context.length > maxLen ? context.slice(0, maxLen - 1) + "⋯" : context
 }

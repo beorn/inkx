@@ -12,7 +12,7 @@ describe("truncateText", () => {
 
   it("adds ellipsis when truncating", () => {
     const result = truncateText("hello world", 6)
-    expect(result).toContain("…")
+    expect(result).toContain("⋯")
     expect(displayLength(result)).toBeLessThanOrEqual(6)
   })
 
@@ -24,7 +24,7 @@ describe("truncateText", () => {
   it("handles very short width", () => {
     const result = truncateText("hello", 2)
     expect(displayLength(result)).toBeLessThanOrEqual(2)
-    expect(result).toContain("…")
+    expect(result).toContain("⋯")
   })
 
   it("handles width of 1", () => {

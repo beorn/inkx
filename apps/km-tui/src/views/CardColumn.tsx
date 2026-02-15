@@ -145,6 +145,24 @@ const Card = React.memo(
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
     const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId, 0)))
 
+    // Compute overflow: check if any children are hidden by maxContentLines.
+    // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
+    const repo = useRepo()
+    const { treeConfig } = useTreeRenderContext()
+    const maxChildren = treeConfig.maxContentLines
+    const directHidden = Math.max(0, (card.childCount ?? 0) - maxChildren)
+    const { hasOverflow, hiddenCount } = useMemo(() => {
+      let total = directHidden
+      const visibleChildren = card.children.slice(0, maxChildren)
+      for (const child of visibleChildren) {
+        const grandchildren = repo.getChildren(child.id)
+        if (grandchildren.length > maxChildren) {
+          total += grandchildren.length - maxChildren
+        }
+      }
+      return { hasOverflow: total > 0, hiddenCount: total }
+    }, [directHidden, card.children, maxChildren, repo])
+
     // Virtual body content renders with a very dim border and de-emphasized text
     // This includes: cards in virtual columns OR individual virtual body cards
     if (isVirtualColumn || card.isVirtual) {
@@ -168,6 +186,7 @@ const Card = React.memo(
             dimInactiveChildren={true}
             childCount={card.childCount}
             extraExcludedSigils={extraExcludedSigils}
+            compactContent
           />
         </Box>
       )
@@ -176,6 +195,45 @@ const Card = React.memo(
     // Border: cyan when editing, yellow when selected or multi-selected, gray otherwise
     const borderColor = isEditing ? "cyan" : isSelected || isMultiSelected ? "yellow" : "blackBright"
 
+    // When overflow, suppress the bottom border and render a custom one with the count
+    if (hasOverflow) {
+      // Inner width excludes the 2 border columns (left + right)
+      const innerWidth = Math.max(0, width - 2)
+      const label = ` +${hiddenCount} `
+      const padding = Math.max(0, innerWidth - label.length)
+      const leftPad = Math.floor(padding / 2)
+      const rightPad = padding - leftPad
+
+      return (
+        <Box flexDirection="column" flexShrink={0} width={width}>
+          <Box
+            flexDirection="column"
+            borderStyle="round"
+            borderBottom={false}
+            borderColor={borderColor}
+          >
+            <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
+            <TreeNode
+              node={card.node}
+              depth={0}
+              isSelected={isSelected && selectedSubIndex <= 0}
+              colIndex={colIndex}
+              cardIndex={cardIndex}
+              subIndex={0}
+              dimInactiveChildren={!isSelected && !isMultiSelected}
+              childCount={card.childCount}
+              extraExcludedSigils={extraExcludedSigils}
+            />
+          </Box>
+          <Text color={borderColor} wrap="truncate">
+            <Text color={borderColor}>╰{"─".repeat(leftPad)}</Text>
+            <Text dimColor> +{hiddenCount} </Text>
+            <Text color={borderColor}>{"─".repeat(rightPad)}╯</Text>
+          </Text>
+        </Box>
+      )
+    }
+
     return (
       <Box
         flexDirection="column"
@@ -183,7 +241,6 @@ const Card = React.memo(
         width={width}
         borderStyle="round"
         borderColor={borderColor}
-        paddingRight={1}
       >
         <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
         <TreeNode
@@ -388,6 +445,7 @@ export const Column = React.memo(function Column({
         flexDirection="column"
         width={width}
         height={height}
+        overflow="hidden"
       >
         <Box
           flexDirection="column"
@@ -439,7 +497,7 @@ export const Column = React.memo(function Column({
     >
       {/* Column header row — paddingLeft aligns icon with card content (cards have 1-char border) */}
       <Box height={1} flexShrink={0} width={width - 1} flexDirection="row">
-        <Box flexGrow={1} flexDirection="row" paddingLeft={1} paddingRight={1} backgroundColor={headerStyle.backgroundColor}>
+        <Box flexGrow={1} flexShrink={1} flexDirection="row" paddingLeft={1} paddingRight={1} backgroundColor={headerStyle.backgroundColor}>
           {isInlineEditing ? (
             <Text bold color={headerStyle.color} wrap="truncate">
               <Text color={iconColor}>{icon.char}</Text>{" "}

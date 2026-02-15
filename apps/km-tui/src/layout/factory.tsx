@@ -516,7 +516,7 @@ export function createLayoutComponents(fw: Framework) {
    */
   function TruncatedText({
     children,
-    ellipsis = "…",
+    ellipsis = "⋯",
     maxLines = 1,
     width: widthOverride,
     pad = false,

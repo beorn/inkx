@@ -45,7 +45,7 @@ export function renderPath(segments: PathSegment[], width?: number): PathSegment
     boardSegs.shift()
     const first = boardSegs[0]
     if (first) {
-      boardSegs[0] = { ...first, name: "…" + first.name }
+      boardSegs[0] = { ...first, name: "⋯" + first.name }
     }
     break
   }
@@ -59,7 +59,7 @@ export function renderPath(segments: PathSegment[], width?: number): PathSegment
     }
     const first = combined[0]
     if (first) {
-      combined[0] = { ...first, name: "…" + first.name, sep: "" }
+      combined[0] = { ...first, name: "⋯" + first.name, sep: "" }
     }
   }
 
@@ -71,11 +71,11 @@ export function renderPath(segments: PathSegment[], width?: number): PathSegment
  *
  * @param path - The parent path to render
  * @param width - Maximum width in characters
- * @returns Right-aligned string, truncated from left with "…" if needed
+ * @returns Right-aligned string, truncated from left with "⋯" if needed
  */
 export function renderParentPath(path: string, width: number): string {
   if (path.length <= width) {
     return path.padStart(width)
   }
-  return "…" + path.slice(-(width - 1))
+  return "⋯" + path.slice(-(width - 1))
 }

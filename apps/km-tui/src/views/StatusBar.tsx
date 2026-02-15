@@ -37,7 +37,7 @@ export function StatusBar({ ui, termWidth }: StatusBarProps): React.ReactElement
 
   // Truncate message if too long for terminal width
   const maxMessageLength = termWidth - 4 // Account for icon and padding
-  const displayMessage = message.length > maxMessageLength ? message.slice(0, maxMessageLength - 1) + "…" : message
+  const displayMessage = message.length > maxMessageLength ? message.slice(0, maxMessageLength - 1) + "⋯" : message
 
   return (
     <Box flexDirection="row" gap={1} data-status={level} id="status">

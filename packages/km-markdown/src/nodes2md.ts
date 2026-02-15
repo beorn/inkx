@@ -371,67 +371,18 @@ function serializeLi(
 ): string {
   const indentStr = "  ".repeat(indent)
 
+  // Build the line prefix and content
+  let line: string
   if (node.task_marker) {
-    // Task item
     const marker = statusToMarker(node.task_status, node.task_marker)
-    let content = node.content ?? ""
-
-    // Add task metadata if not already in content
-    const metadata: string[] = []
-
-    if (node.due_date && !content.includes("📅")) {
-      const dueSuffix = node.due_time ? `T${node.due_time}` : ""
-      metadata.push(`📅 ${node.due_date}${dueSuffix}`)
-    }
-
-    if (node.scheduled_date && !content.includes("⏳")) {
-      const schedSuffix = node.scheduled_time ? `T${node.scheduled_time}` : ""
-      metadata.push(`⏳ ${node.scheduled_date}${schedSuffix}`)
-    }
-
-    if (node.priority && !content.match(/[⏫🔼🔽]/)) {
-      if (node.priority === 1) metadata.push("⏫")
-      else if (node.priority === 2) metadata.push("🔼")
-      else if (node.priority === 3) metadata.push("🔽")
-    }
-
-    // Recurrence: use top-level field or data.recurrence
-    const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
-    if (recurrence && !content.includes("🔁")) {
-      metadata.push(`🔁 ${recurrence}`)
-    }
-
-    if (metadata.length > 0 && content) {
-      content += " " + metadata.join(" ")
-    }
-
-    let line = `${indentStr}- ${marker} ${content}`
-    if (node.block_id) {
-      line += ` ^${node.block_id}`
-    }
-    let md = line + "\n"
-
-    // Nested items
-    for (const child of children) {
-      if (child.type === "li") {
-        md += serializeNode(child, ctx, indent + 1)
-      }
-    }
-
-    // Add trailing newline only at top level when requested
-    if (indent === 0 && addTrailingNewline) {
-      md += "\n"
-    }
-
-    return md
+    const content = appendTaskMetadata(node)
+    line = `${indentStr}- ${marker} ${content}`
+  } else {
+    const listMarker = node.list_marker === "1." ? "1." : "-"
+    line = `${indentStr}${listMarker} ${node.content ?? ""}`
   }
 
-  // Plain list item (not a task)
-  const listMarker = node.list_marker === "1." ? "1." : "-"
-  let line = `${indentStr}${listMarker} ${node.content ?? ""}`
-  if (node.block_id) {
-    line += ` ^${node.block_id}`
-  }
+  if (node.block_id) line += ` ^${node.block_id}`
   let md = line + "\n"
 
   // Nested items
@@ -442,11 +393,39 @@ function serializeLi(
   }
 
   // Add trailing newline only at top level when requested
-  if (indent === 0 && addTrailingNewline) {
-    md += "\n"
-  }
+  if (indent === 0 && addTrailingNewline) md += "\n"
 
   return md
+}
+
+/** Append task metadata emojis (due, scheduled, priority, recurrence) to content. */
+function appendTaskMetadata(node: KNode): string {
+  let content = node.content ?? ""
+  const metadata: string[] = []
+
+  if (node.due_date && !content.includes("📅") && !/\bdue:\d{4}-\d{2}-\d{2}\b/.test(content)) {
+    const dueSuffix = node.due_time ? `T${node.due_time}` : ""
+    metadata.push(`📅 ${node.due_date}${dueSuffix}`)
+  }
+
+  if (node.scheduled_date && !content.includes("⏳") && !/\bstart:\d{4}-\d{2}-\d{2}\b/.test(content)) {
+    const schedSuffix = node.scheduled_time ? `T${node.scheduled_time}` : ""
+    metadata.push(`⏳ ${node.scheduled_date}${schedSuffix}`)
+  }
+
+  if (node.priority && !content.match(/[⏫🔼🔽]/)) {
+    if (node.priority === 1) metadata.push("⏫")
+    else if (node.priority === 2) metadata.push("🔼")
+    else if (node.priority === 3) metadata.push("🔽")
+  }
+
+  const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
+  if (recurrence && !content.includes("🔁")) {
+    metadata.push(`🔁 ${recurrence}`)
+  }
+
+  if (metadata.length > 0 && content) content += " " + metadata.join(" ")
+  return content
 }
 
 /**

@@ -12,7 +12,7 @@ import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { JobRunner } from "@km/core"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
+import { Box, ErrorBoundary, Text, useScreenRectCallback, stripAnsi } from "inkx"
 import type { KNode } from "@km/core"
 import { extractTitleTaskMarker, isBlock } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -67,6 +67,8 @@ interface TreeNodeProps {
   extraExcludedSigils?: string[]
   /** Force dim styling on this node (used for virtual body cards) */
   dim?: boolean
+  /** Collapse blank lines in content (used for compact body cards in cards view) */
+  compactContent?: boolean
 }
 
 /**
@@ -101,6 +103,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Visual state
   if (prev.dimInactiveChildren !== next.dimInactiveChildren) return false
   if (prev.dim !== next.dim) return false
+  if (prev.compactContent !== next.compactContent) return false
 
   // Node content that affects display
   if (
@@ -161,6 +164,7 @@ function TreeNodeImpl({
   getBoardPills = () => [],
   extraExcludedSigils,
   dim = false,
+  compactContent = false,
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId } = useTreeRenderContext()
@@ -196,6 +200,8 @@ function TreeNodeImpl({
     return [...rootSigils, ...extraExcludedSigils]
   }, [repo, rootBoardId, extraExcludedSigils])
   const isOneliner = variant === "oneliner"
+  // Children inside cards (depth > 0, multiline) should be single-line truncated
+  const isCardChild = variant === "multiline" && depth > 0
   const isEmbedded = node.link_to != null
 
   // For embedded nodes, resolve the target for display purposes
@@ -273,20 +279,7 @@ function TreeNodeImpl({
 
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
-  // For embeds: use resolved target's display name, never raw "![[target]]" syntax
-  const rawContent =
-    isEmbedded && resolvedNode
-      ? resolvedNode.type === "oi" && resolvedNode.fstype === "folder"
-        ? getNodeDisplayName(repo, resolvedNode) + "/"
-        : resolvedNode.type === "oi" && resolvedNode.fstype === "mdsection"
-          ? getNodeDisplayName(repo, resolvedNode)
-          : resolvedNode.content || getNodeDisplayName(repo, resolvedNode)
-      : isEmbedded && !resolvedNode
-        ? // Unresolved embed — extract target name from ![[target]] syntax
-          (node.content?.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1") ?? getNodeDisplayName(repo, node))
-        : displayNode.type === "oi" && displayNode.fstype === "mdsection"
-          ? getNodeDisplayName(repo, displayNode)
-          : displayNode.content || getNodeDisplayName(repo, displayNode)
+  const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
   const cleanContent = isTask ? stripTaskMark(rawContent) : rawContent
 
   // Compute sigil for inline display: only if name is a sigil and differs from title
@@ -411,13 +404,23 @@ function TreeNodeImpl({
     }
   }, [displayNode.id, repo, setUI])
 
+  // When selected (yellow bg), strip ANSI color codes from styled content
+  // so all text renders as black-on-yellow for readability
+  const isHighlighted = isSelected || isMultiSelected
+
+  // HR detection: node type "hr" from parser, or content matching markdown HR pattern
+  const HR_PATTERN = /^(-{3,}|\*{3,}|_{3,})$/
+  const isHR = node.type === "hr" || (cleanContent != null && HR_PATTERN.test(cleanContent.trim()))
+
   // Memoize rich text rendering - only recalc when content or sigil config changes
   // Code blocks and tables render verbatim (no markdown formatting applied)
   const styledContent = useMemo(() => {
+    // Collapse blank lines for compact body cards (cards view)
+    const content = compactContent ? cleanContent.replace(/\n\s*\n/g, "\n") : cleanContent
     if (node.type === "code" || node.type === "table") {
-      return cleanContent // Verbatim — no renderRich processing
+      return content // Verbatim — no renderRich processing
     }
-    const rich = renderRich(cleanContent, {
+    const rich = renderRich(content, {
       excludeSigils: excludedSigils,
       sigilColors,
       resolveSigilColor,
@@ -429,7 +432,7 @@ function TreeNodeImpl({
       return truncateText(rich, 70) // Default ~70 chars for card title
     }
     return rich
-  }, [cleanContent, excludedSigils, sigilColors, resolveSigilColor, isOneliner, node.type])
+  }, [cleanContent, compactContent, excludedSigils, sigilColors, resolveSigilColor, isOneliner, node.type])
 
   // Memoize info suffix - only recalc when node metadata changes
   // Use displayNode for metadata (assigned_to, board pills)
@@ -500,24 +503,12 @@ function TreeNodeImpl({
   const childrenVisible = hasChildren && !isFolded && depth < maxDepth
   const childrenHidden = hasChildren && !childrenVisible
 
-  // In cards mode (multiline), show a single consolidated "..." at the card root
-  // instead of individual "+N more" at each heading level.
-  const isCardRoot = !isOneliner && depth === 0
-  const suppressChildOverflow = !isOneliner // Suppress "+N more" at all levels in cards mode
-  const hasAnyOverflow = useMemo(() => {
-    if (!isCardRoot || !childrenVisible) return false
-    // Root's own children truncated
-    if (hiddenCount > 0) return true
-    // Check if any visible child has children that would be truncated
-    for (const child of visibleChildren) {
-      const grandchildren = resolvedGetChildren(child.id)
-      if (grandchildren.length > maxChildren) return true
-    }
-    return false
-  }, [isCardRoot, childrenVisible, hiddenCount, visibleChildren, resolvedGetChildren, maxChildren])
+  // In cards mode (multiline), suppress "+N more" at all levels — the Card
+  // component renders a border-based overflow indicator instead.
+  const suppressChildOverflow = !isOneliner
 
   return (
-    <Box flexDirection="column" height={isOneliner ? 1 : undefined} overflow={isOneliner ? "hidden" : undefined}>
+    <Box flexDirection="column" height={isOneliner || isCardChild ? 1 : undefined} overflow={isOneliner || isCardChild ? "hidden" : undefined}>
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
       {!isOneliner && isEmbedded && parentContext && (
@@ -545,7 +536,7 @@ function TreeNodeImpl({
           alignItems="flex-start"
           paddingLeft={Math.max(0, depth - 1)}
           backgroundColor={style.backgroundColor}
-          height={isOneliner ? 1 : undefined}
+          height={isOneliner || isCardChild ? 1 : undefined}
         >
           {/* Fixed-width prefix box (fold marker only - new cards style) */}
           <Box width={prefix.length} flexShrink={0}>
@@ -557,10 +548,10 @@ function TreeNodeImpl({
             </Text>
           </Box>
           {/* Flexible content box */}
-          {/* overflow="hidden" only for oneliner to enable truncation; removed for multiline to allow wrap */}
-          <Box flexGrow={1} flexShrink={1} overflow={isOneliner ? "hidden" : undefined}>
+          {/* overflow="hidden" for oneliner and card children to enable truncation */}
+          <Box flexGrow={1} flexShrink={1} overflow={isOneliner || isCardChild ? "hidden" : undefined}>
             {editingTitle ? (
-              <Text color={style.textColor} wrap={isOneliner ? "truncate" : "wrap"}>
+              <Text color={style.textColor} wrap={isOneliner || isCardChild ? "truncate" : "wrap"}>
                 <InlineEditField
                   initialValue={editContent}
                   onConfirm={handleInlineEditConfirm}
@@ -570,24 +561,32 @@ function TreeNodeImpl({
                   onMergeBackward={handleMergeBackward}
                 />
               </Text>
+            ) : isHR ? (
+              <Text
+                color={style.textColor}
+                dimColor={style.shouldDim || (!isSelected && !isMultiSelected)}
+                wrap="truncate"
+              >
+                {"─".repeat(200)}
+              </Text>
             ) : (
               <Text
                 bold={depth === 0 && hasChildren}
                 color={dimUntitled ? "gray" : (style.textColor ?? style.ownColor)}
                 dimColor={style.shouldDim || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
-                wrap={isOneliner || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
+                wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
-                {styledContent}
+                {isHighlighted ? stripAnsi(styledContent) : styledContent}
                 {sigilName && (
                   <>
                     {" "}
-                    <Text dimColor={!(isSelected || isMultiSelected)}>{sigilName}</Text>
+                    <Text dimColor={!isHighlighted}>{sigilName}</Text>
                   </>
                 )}
-                {!childrenHidden && infoSuffix && <Text dimColor={!(isSelected || isMultiSelected)}>{infoSuffix}</Text>}
+                {!childrenHidden && infoSuffix && <Text dimColor={!isHighlighted}>{isHighlighted ? stripAnsi(infoSuffix) : infoSuffix}</Text>}
                 {!childrenHidden && showInlineContext && (
-                  <Text dimColor={!(isSelected || isMultiSelected)} italic>
+                  <Text dimColor={!isHighlighted} italic>
                     {contextSuffix}
                   </Text>
                 )}
@@ -597,8 +596,8 @@ function TreeNodeImpl({
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
           {dateBadge && (
             <Box flexShrink={0}>
-              <Text dimColor={!(isSelected || isMultiSelected)} wrap="truncate">
-                {" "}{dateBadge}
+              <Text wrap="truncate">
+                {" "}{isHighlighted ? stripAnsi(dateBadge) : dateBadge}
               </Text>
             </Box>
           )}
@@ -699,14 +698,6 @@ function TreeNodeImpl({
         </ErrorBoundary>
       )}
 
-      {/* Consolidated overflow indicator: single "···" at card bottom when any content is truncated */}
-      {isCardRoot && hasAnyOverflow && (
-        <Box flexDirection="column" alignItems="center">
-          <Text dimColor wrap="truncate">
-            {"···"}
-          </Text>
-        </Box>
-      )}
     </Box>
   )
 }
@@ -739,6 +730,37 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
   callbackRef.current = onLayout
   useScreenRectCallback((rect) => callbackRef.current(rect))
   return null
+}
+
+// =============================================================================
+// Display Content Helper
+// =============================================================================
+
+/** Resolve what text to display for a node, handling embeds and section types. */
+function getDisplayContent(
+  repo: { getNode(id: string): KNode | undefined },
+  node: KNode,
+  displayNode: KNode,
+  resolvedNode: KNode | null,
+  isEmbedded: boolean,
+): string {
+  if (isEmbedded && resolvedNode) {
+    if (resolvedNode.type === "oi" && resolvedNode.fstype === "folder") {
+      return getNodeDisplayName(repo, resolvedNode) + "/"
+    }
+    if (resolvedNode.type === "oi" && resolvedNode.fstype === "mdsection") {
+      return getNodeDisplayName(repo, resolvedNode)
+    }
+    return resolvedNode.content || getNodeDisplayName(repo, resolvedNode)
+  }
+  if (isEmbedded) {
+    // Unresolved embed — extract target name from ![[target]] syntax
+    return node.content?.replace(/^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/, "$1") ?? getNodeDisplayName(repo, node)
+  }
+  if (displayNode.type === "oi" && displayNode.fstype === "mdsection") {
+    return getNodeDisplayName(repo, displayNode)
+  }
+  return displayNode.content || getNodeDisplayName(repo, displayNode)
 }
 
 // =============================================================================
