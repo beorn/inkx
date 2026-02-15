@@ -5,7 +5,7 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 
 # TUI Exploration
 
-**Keywords**: explore, fuzz, random, bug hunting, TUI test, visual test, repro, peekaboo, ghostty
+**Keywords**: explore, fuzz, random, bug hunting, TUI test, GUI test, repro, peekaboo, ghostty
 
 ## Decision Tree — Pick ONE, Act Immediately
 

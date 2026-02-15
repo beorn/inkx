@@ -1,12 +1,12 @@
 ---
 description: Test-driven development for km. Use when writing tests, running test suites, fixing test failures, or following TDD workflow.
-argument-hint: [fast|all|visual|chaos]
+argument-hint: [fast|all|buffer|chaos]
 allowed-tools: Bash, Read, Glob, Grep, Task
 ---
 
 # Testing
 
-**Keywords**: test, TDD, bun test, test:fast, test:all, visual testing, chaos, inkx
+**Keywords**: test, TDD, bun test, test:fast, test:all, buffer assertions, chaos, inkx
 
 ## Workflows
 

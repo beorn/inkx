@@ -101,9 +101,9 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
    Never leave `*-repro*`, `*-debug*`, or `*-profile*` test files in the repo.
    Use `.scratch.ts` (not `.test.ts`) for temporary investigation files so they don't run in test suites.
 
-## Visual Test Toolbelt
+## Buffer Assertion Toolbelt
 
-**You MUST read and use** the [visual assertion API](../tests/tui.md#visual-assertions) for rendering bugs — it has the full method list, color codes, and usage guidance.
+**You MUST read and use** the [buffer assertion API](../tests/tui.md#buffer-assertions) for rendering bugs — it has the full method list, color codes, and usage guidance.
 
 ```typescript
 const { board } = testEnv(() => item("board", item("col", item("task"))))
@@ -116,7 +116,7 @@ board.expectNodeBorder("task")                    // has border chars on edges
 Every bug fix MUST satisfy all items before the bead can be closed:
 
 - [ ] Failing test written BEFORE the fix (test-first mandatory)
-- [ ] Visual test used for visual bugs (`expectNodeColor`, `expectRow`, `expectCellColor`, etc.)
+- [ ] Buffer assertions used for rendering bugs (`expectNodeColor`, `expectRow`, `expectCellColor`, etc.)
 - [ ] Test passes after fix
 - [ ] `bun vitest run apps/km-tui/tests/` — no NEW failures introduced
 - [ ] `bun run test:fast` — full suite green
@@ -144,7 +144,7 @@ continuity). Any bug that affects what the user **sees on screen** requires BOTH
 
 **After GUI verification, calibrate the regression test:**
 - If the TUI test passes but GUI still shows the bug, the test is insufficient.
-  Improve it with better visual assertions (`expectNodeColor`, `expectCellColor`,
+  Improve it with better buffer assertions (`expectNodeColor`, `expectCellColor`,
   `expectRow`, `expectNodeBorder`).
 - Goal: the TUI test should catch future regressions without needing GUI verification again.
   GUI is the calibration step, not the ongoing guard.

@@ -112,8 +112,8 @@ Follow the [test-first protocol](../../tests/test-first-protocol.md). The test *
 | Bug Type | Test Approach | Example |
 |----------|--------------|---------|
 | **State bug** (wrong cursor, missing node, bad logic) | DOM assertions: `board.expect("#id").toExist()` | Cursor lands on wrong card |
-| **Visual bug** (wrong color, missing border, bad layout) | Visual assertions: `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` | Selected card text is wrong color |
-| **Mixed** (state + visual symptoms) | Both: DOM + visual assertions | Card exists but border is missing |
+| **Rendering bug** (wrong color, missing border, bad layout) | Buffer assertions: `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` | Selected card text is wrong color |
+| **Mixed** (state + rendering symptoms) | Both: DOM + buffer assertions | Card exists but border is missing |
 
 ### State test example
 
@@ -125,12 +125,12 @@ test("reproduces <bug>", () => {
 })
 ```
 
-### Visual test example (prefer for rendering bugs)
+### Buffer assertion example (prefer for rendering bugs)
 
 ```typescript
 test("selected card renders black-on-yellow", () => {
   const { board } = testEnv(() => item("board", item("col", item("task"))))
-  // Visual assertion — checks actual rendered colors
+  // Buffer assertion — checks render buffer colors
   board.expectNodeColor("task", { fg: 0, bg: 3 })  // 0=black, 3=yellow
 })
 
@@ -147,9 +147,9 @@ test("card has left/right borders", () => {
 })
 ```
 
-### Visual toolbelt API
+### Buffer assertion API
 
-**You MUST use** the [visual assertion API](../../tests/tui.md#visual-assertions) for rendering bugs — read that section for the full method list and color codes. State assertions (`toExist()`) miss rendering issues.
+**You MUST use** the [buffer assertion API](../../tests/tui.md#buffer-assertions) for rendering bugs — read that section for the full method list and color codes. State assertions (`toExist()`) miss rendering issues.
 
 Run `bun run test:fast` - verify the test fails for the right reason.
 
@@ -357,7 +357,7 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 
 - ❌ Guessing at fixes without reproducing bugs
 - ❌ Writing the fix before writing a failing test (test-first is mandatory)
-- ❌ Only using state assertions for visual bugs (use visual toolbelt)
+- ❌ Only using state assertions for rendering bugs (use buffer assertions)
 - ❌ Closing a visual/rendering bug with only TUI test verification (MUST use GUI screenshot)
 - ❌ Closing bead because "tests pass" without a test that specifically targets the bug
 - ❌ Closing bead before tests pass
@@ -374,7 +374,7 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 
 - [ ] Bug reproduced (test or screenshot)
 - [ ] Failing test written BEFORE fix (test-first)
-- [ ] Visual test used for visual bugs (`expectNodeColor`, `expectRow`, `expectCellColor`, etc.)
+- [ ] Buffer assertions used for rendering bugs (`expectNodeColor`, `expectRow`, `expectCellColor`, etc.)
 - [ ] Fix implements minimal change
 - [ ] The specific failing test now passes
 - [ ] `bun run test:fast` passes (no regressions)

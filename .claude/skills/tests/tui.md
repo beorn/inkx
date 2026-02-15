@@ -117,11 +117,11 @@ board.press("k") // vim-style up
 | `board.expect(selector).toHaveCount(n)` | Assert count |
 | `board.q(selector).boundingBox()` | Get position/size |
 
-<a name="visual-assertions"></a>
+<a name="buffer-assertions"></a>
 
-### Visual Assertions (screen buffer)
+### Buffer Assertions
 
-For rendering bugs (wrong colors, missing borders, bad layout), use the visual toolbelt:
+For rendering bugs (wrong colors, missing borders, bad layout), use the buffer assertion toolbelt:
 
 | Method | What it checks |
 |--------|---------------|
@@ -140,7 +140,7 @@ For rendering bugs (wrong colors, missing borders, bad layout), use the visual t
 
 **Color numbers**: 0=black, 1=red, 2=green, 3=yellow, 4=blue, 5=magenta, 6=cyan, 7=white
 
-**When to use visual assertions**: Prefer visual assertions for any bug involving colors, borders, alignment, or layout. State assertions (`board.expect("#id").toExist()`) only verify DOM presence — they pass even when rendering is broken. Visual assertions verify what the user actually sees.
+**When to use buffer assertions**: Prefer buffer assertions for any bug involving colors, borders, alignment, or layout. State assertions (`board.expect("#id").toExist()`) only verify DOM presence — they pass even when rendering is broken. Buffer assertions verify what the render buffer contains.
 
 ---
 
@@ -210,10 +210,10 @@ test("debugging example", () => {
 | Bug Type | Test Approach | Example |
 |----------|--------------|---------|
 | **State bug** (wrong cursor, missing node, bad logic) | DOM assertions: `board.expect("#id").toExist()` | Cursor lands on wrong card |
-| **Visual bug** (wrong color, missing border, bad layout) | Visual assertions: `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` | Selected card text is wrong color |
-| **Mixed** (state + visual symptoms) | Both: DOM + visual assertions | Card exists but border is missing |
+| **Rendering bug** (wrong color, missing border, bad layout) | Buffer assertions: `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` | Selected card text is wrong color |
+| **Mixed** (state + rendering symptoms) | Both: DOM + buffer assertions | Card exists but border is missing |
 
-**CRITICAL**: For visual bugs, state-only assertions (`toExist()`) are insufficient — they pass even when the rendering is broken. Always use visual toolbelt assertions for rendering issues.
+**CRITICAL**: For rendering bugs, state-only assertions (`toExist()`) are insufficient — they pass even when the rendering is broken. Always use buffer assertions for rendering issues.
 
 ## When to Use
 
@@ -221,7 +221,7 @@ test("debugging example", () => {
 |------|-----|
 | TUI interaction/navigation | Acceptance test `.spec.ts` |
 | Component rendering | Component test `.test.ts` |
-| Visual/rendering bugs | Visual toolbelt in `.test.ts` |
+| Rendering bugs | Buffer assertions in `.test.ts` |
 | Pure functions | Unit test `.test.ts` |
 
 ---

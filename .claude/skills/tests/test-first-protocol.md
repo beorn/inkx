@@ -12,7 +12,7 @@ Every bug fix, feature, and refactor follows this protocol:
 4. **Verify the test passes** — run `bun run test:fast`
 5. **Run full suite** — `bun run test:fast` must stay green (no regressions)
 
-For visual/rendering bugs, use **visual assertions** (not just state assertions):
-- `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` — see [tui.md](tui.md#visual-assertions)
+For rendering bugs, use **buffer assertions** (not just state assertions):
+- `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` — see [tui.md](tui.md#buffer-assertions)
 
 **Never**: theorize without a test, skip the failing-test step, guess at fixes, or close a bead without a test that specifically targets the issue.
