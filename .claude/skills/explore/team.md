@@ -294,15 +294,29 @@ When the reproducer sends a failing test:
 4. Confirm test passes: bun vitest run <test-file>
 5. Check regressions:
    bun vitest run apps/km-tui/tests/ --reporter=verbose 2>&1 | head -300
-6. Close bead: bd close <id> --reason "Fixed: [description]"
-7. Notify lead that fix is done, then immediately pick up next bug
+6. **For rendering/visual bugs**: TTY ad-hoc verification is MANDATORY before closing.
+   Use mcp_tty tools (ToolSearch "tty" first) to:
+   - Launch TUI with a test fixture that exercises the bug
+   - Navigate to reproduce the scenario
+   - Take a screenshot to /tmp/verify-<bead-id>.png
+   - Confirm the fix visually looks correct on a real terminal
+   - **Calibrate the regression test**: if TTY shows the bug is fixed but the headless test
+     would NOT have caught it, improve the headless test with better visual assertions
+     (expectNodeColor, expectCellColor, expectRow, expectNodeBorder). The headless test
+     is the ongoing guard; TTY is the one-time calibration.
+   Pure logic bugs (wrong state, bad data) can skip TTY — state "Verified: headless only" in close reason.
+7. Close bead: bd close <id> --reason "Fixed: [description]. Verified: headless + TTY screenshot (/tmp/verify-<id>.png)"
+8. Notify lead that fix is done, then immediately pick up next bug
 
 DO NOT run bun fix or bun run test:all — lead handles that.
 
 Architecture:
-- Board actions: apps/km-tui/src/board/board-actions-edit.ts
+- Board actions: apps/km-tui/src/board/board-actions.ts
+- Board state: apps/km-tui/src/state.ts
 - Keyboard ops: apps/km-tui/src/keyboard/keyboard-card-ops.ts
-- Layout: apps/km-tui/src/views/ColumnsView.tsx
+- Column view: apps/km-tui/src/views/CardColumn.tsx
+- Board view: apps/km-tui/src/views/Board.tsx
+- Layout hooks: apps/km-tui/src/hooks/use-columns.ts
 - Storage sync: packages/km-storage/src/watch/
 ```
 

@@ -195,13 +195,41 @@ bun fix              # MUST pass — lint + format clean
 **The failing test from Step 3 MUST now pass.** This is non-negotiable — if you can't
 make the test pass, the bug isn't fixed.
 
-**For visual bugs** — also verify with TTY if the visual toolbelt can't fully capture
-the issue (e.g., layout alignment across many columns, animation, scroll behavior):
+### TTY Visual Verification (MANDATORY for rendering/visual bugs)
+
+**Any bug that affects what the user sees on screen** — colors, borders, layout, alignment,
+truncation, spacing, cursor rendering, fold/unfold appearance — **MUST be verified with
+TTY screenshot** in addition to headless tests. Headless tests check DOM/text content but
+do NOT catch all terminal rendering issues.
+
+**Two-layer verification:**
+1. **Headless regression test** (fast, runs in CI) — catches the bug programmatically so
+   it never regresses. This is the primary guard. Must be fast enough to run in `test:fast`.
+2. **TTY ad-hoc verification** (manual, not in CI) — proves the fix actually looks correct
+   on a real terminal. This is a one-time check at fix time, not part of the test suite.
 
 ```bash
-# TTY verification (when headless visual assertions aren't sufficient)
-# Use /explore --gui or mcp_tty tools for screenshot comparison
+# TTY verification — use mcp_tty tools or /explore --gui
+# 1. Launch TUI with test data that triggers the scenario
+# 2. Navigate to reproduce the bug's context
+# 3. Take screenshot — save to /tmp/verify-<bead-id>.png
+# 4. Visually confirm the fix looks correct on screen
 ```
+
+**After TTY verification, evaluate the regression test:**
+- Does the headless test actually catch the visual issue? (e.g., wrong color, missing border)
+- If the headless test passes but the TTY screenshot still shows the bug → the regression
+  test is insufficient. Improve it: use `expectNodeColor`, `expectCellColor`, `expectRow`,
+  `expectNodeBorder`, or add new visual assertions to the test toolbelt.
+- Goal: the headless regression test should be good enough that if someone breaks this
+  again, the test fails — the TTY step is a calibration check, not the ongoing guard.
+
+**The close reason MUST state how visual verification was done:**
+- `Verified: headless + TTY screenshot (/tmp/verify-km-tui.xyz.png)`
+- `Verified: headless only — pure logic bug, no visual component`
+
+**If TTY is unavailable**, document why in the close reason and flag for future visual
+verification. Do NOT close a visual bug as "verified" with only headless tests.
 
 <a name="close-reason-template"></a>
 
@@ -225,8 +253,9 @@ Verified: headless visual — expectNodeBorder('card1') passes, no blank cards"
 1. A **failing test written BEFORE** the fix (test-first is mandatory)
 2. The test now **passes** after the fix
 3. `bun run test:fast` passing (run it, don't assume)
-4. A verification method stated in the close reason
-5. The structured Fixed/Test/Verified format
+4. **TTY visual verification** for any rendering/visual bug (screenshot + visual confirm)
+5. A verification method stated in the close reason (headless-only OR headless+TTY)
+6. The structured Fixed/Test/Verified format
 
 For non-trivial bugs, report to user first and wait for confirmation.
 
@@ -350,6 +379,7 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 - ❌ Guessing at fixes without reproducing bugs
 - ❌ Writing the fix before writing a failing test (test-first is mandatory)
 - ❌ Only using state assertions for visual bugs (use visual toolbelt)
+- ❌ Closing a visual/rendering bug with only headless verification (MUST use TTY screenshot)
 - ❌ Closing bead because "tests pass" without a test that specifically targets the bug
 - ❌ Closing bead before tests pass
 - ❌ Refactoring unrelated code "while I'm here"
@@ -370,9 +400,9 @@ bd close <id> --reason "Fixed: <root cause>. Before: Xms, After: Yms (Z% improve
 - [ ] The specific failing test now passes
 - [ ] `bun run test:fast` passes (no regressions)
 - [ ] `bun fix` passes
-- [ ] TTY visual verification (for bugs that can't be fully captured by visual toolbelt)
+- [ ] **TTY visual verification for rendering/visual bugs** (screenshot proves it looks right on screen)
 - [ ] Recall searched for prior context
 - [ ] Root cause identified (not just symptom)
 - [ ] Detection gap analyzed (why tests missed it)
 - [ ] Prevention bead created (if non-trivial)
-- [ ] Evidence in close reason (Fixed/Test/Verified format)
+- [ ] Evidence in close reason (Fixed/Test/Verified format, must state headless-only OR headless+TTY)

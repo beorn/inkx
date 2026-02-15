@@ -135,10 +135,38 @@ Every bug fix MUST satisfy all items before the bead can be closed:
 - [ ] Test passes after fix
 - [ ] `bun vitest run apps/km-tui/tests/` — no NEW failures introduced
 - [ ] `bun run test:fast` — full suite green
-- [ ] Visual verification (describe what was checked; if no TTY, explain headless equivalent)
+- [ ] **TTY visual verification for rendering/visual bugs** — headless tests alone are NOT sufficient
 - [ ] Close reason uses structured format (see [bugs.md](../pm/workflows/bugs.md#close-reason-template))
 
-**Do NOT close a bead if any item is unchecked.** If you cannot complete an item (e.g., no TTY available for visual verification), document why in the close reason.
+### Two-Layer Verification (MANDATORY for visual/rendering bugs)
+
+Headless tests check DOM content and computed colors, but they do NOT catch all terminal
+rendering issues (pixel alignment, actual ANSI rendering, layout proportions, border
+continuity). Any bug that affects what the user **sees on screen** requires BOTH:
+
+1. **Headless regression test** (fast, runs in CI) — catches the bug programmatically so
+   it never regresses. Must be fast enough for `test:fast`. This is the ongoing guard.
+2. **TTY ad-hoc verification** (manual, not in CI) — a one-time check at fix time that
+   proves the fix actually looks correct on a real terminal.
+
+```bash
+# Use mcp_tty tools to launch TUI, reproduce scenario, screenshot
+# Save as /tmp/verify-<bead-id>.png
+# Close reason must reference: "Verified: headless + TTY screenshot"
+```
+
+**After TTY verification, calibrate the regression test:**
+- If the headless test passes but TTY still shows the bug → the test is insufficient.
+  Improve it with better visual assertions (`expectNodeColor`, `expectCellColor`,
+  `expectRow`, `expectNodeBorder`).
+- Goal: the headless test should catch future regressions without needing TTY again.
+  TTY is the calibration step, not the ongoing guard.
+
+**Pure logic bugs** (wrong state, bad cursor position, missing data) can be verified with
+headless tests only. The close reason should state: `Verified: headless only — no visual component`.
+
+**Do NOT close a visual bead if TTY verification is unchecked.** If TTY is unavailable,
+document why and flag for future visual verification.
 
 ## Quick Start (Synthetic Data)
 

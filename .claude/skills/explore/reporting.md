@@ -44,10 +44,10 @@ After shutdown, before committing, the lead produces this:
 
 ## Beads
 
-| ID | Title | Status |
-|----|-------|--------|
-| km-xxx | TUI: [description] | Fixed |
-| km-yyy | TUI: [description] | Open |
+| ID | Title | Status | TTY Verified? |
+|----|-------|--------|---------------|
+| km-xxx | TUI: [description] | Fixed | Yes (screenshot) |
+| km-yyy | TUI: [description] | Open | N/A |
 
 ## Coverage
 

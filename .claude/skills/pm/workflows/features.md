@@ -151,17 +151,29 @@ bun run test:fast  # All pass
 bun fix            # Clean code
 ```
 
-**Visual verification for TUI:**
+**Visual verification for TUI features (MANDATORY for anything visible on screen):**
+
+Any feature that changes what the user sees — new UI elements, layout changes, color
+changes, new rendering modes — requires **both** headless tests AND TTY visual verification:
+
+1. **Headless test** — acceptance test proves the feature works programmatically
+2. **TTY screenshot** — proves the feature actually looks correct on a real terminal
 
 ```bash
-bun km view <test-file>  # Manual check
-# Or headless capture (see bug-workflow.md)
+# Use mcp_tty tools or /explore --gui to launch TUI and verify visually
+# Save screenshot: /tmp/verify-<bead-id>.png
 ```
+
+Pure logic features (new commands, storage changes, API additions) can be verified with
+headless tests only.
 
 **Close:**
 
 ```bash
-bd close <id> --reason "Implemented in <files>. Tests: <names> pass."
+# For visual features:
+bd close <id> --reason "Implemented in <files>. Tests: <names> pass. Verified: headless + TTY screenshot."
+# For logic-only features:
+bd close <id> --reason "Implemented in <files>. Tests: <names> pass. Verified: headless only — no visual component."
 ```
 
 ---
@@ -258,6 +270,6 @@ Task({
 - [ ] Tests pass
 - [ ] bun fix passes
 - [ ] No console.log left
-- [ ] Behavior correct (manual check for UI)
-- [ ] Evidence in close reason
+- [ ] **TTY visual verification for UI features** (screenshot proves it looks right on screen)
+- [ ] Evidence in close reason (must state headless-only OR headless+TTY)
 - [ ] No scope creep
