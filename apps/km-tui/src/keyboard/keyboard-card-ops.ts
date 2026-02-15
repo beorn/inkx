@@ -5,6 +5,7 @@
  */
 
 import { isBlock, isOutline, isItem } from "@km/core"
+import { type ActionResult, boundary, ok } from "@km/commands"
 import type { CardState, SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -89,9 +90,9 @@ function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCa
 // =============================================================================
 
 /** Move card within column (up/down) */
-export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up" | "down"): void {
+export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up" | "down"): ActionResult {
   const col = ctx.layout.columns[ctx.layout.colIndex]
-  if (!col) return
+  if (!col) return boundary(direction)
 
   // Fix duplicate parent_idx before calculating new sort order
   normalizeSortOrders(ctx, col)
@@ -103,7 +104,7 @@ export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up
       : [{ index: ctx.layout.cardIndex, card }]
 
   const validCards = cardsToMove.filter((c): c is { index: number; card: CardState } => c.card !== undefined)
-  if (validCards.length === 0) return
+  if (validCards.length === 0) return boundary(direction)
 
   const sortedCards =
     direction === "up"
@@ -111,9 +112,9 @@ export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up
       : validCards.sort((a: { index: number }, b: { index: number }) => b.index - a.index)
 
   const firstToMove = sortedCards[0]
-  if (!firstToMove) return
+  if (!firstToMove) return boundary(direction)
   const targetIndex = direction === "up" ? firstToMove.index - 1 : firstToMove.index + 1
-  if (targetIndex < 0 || targetIndex >= col.cards.length) return
+  if (targetIndex < 0 || targetIndex >= col.cards.length) return boundary(direction)
 
   for (const { index: currentIndex, card: cardToMove } of sortedCards) {
     const cardTargetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
@@ -131,18 +132,20 @@ export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up
   if (movedCardIds.length > 1) {
     rebuildSelectionForMovedCards(ctx, ctx.layout.colIndex, movedCardIds)
   }
+
+  return ok()
 }
 
 /** Move card to different column (left/right) */
-export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "left" | "right"): void {
+export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "left" | "right"): ActionResult {
   const col = ctx.layout.columns[ctx.layout.colIndex]
-  if (!col) return
+  if (!col) return boundary(direction)
 
   const targetColIndex = direction === "left" ? ctx.layout.colIndex - 1 : ctx.layout.colIndex + 1
-  if (targetColIndex < 0 || targetColIndex >= ctx.layout.columns.length) return
+  if (targetColIndex < 0 || targetColIndex >= ctx.layout.columns.length) return boundary(direction)
 
   const targetCol = ctx.layout.columns[targetColIndex]
-  if (!targetCol) return
+  if (!targetCol) return boundary(direction)
 
   const selectedIndices = getSelectedCardIndices(ctx)
   const cardsToMove: CardState[] =
@@ -150,7 +153,7 @@ export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "le
       ? selectedIndices.map((i: number) => col.cards[i]).filter((c): c is CardState => c !== undefined)
       : [card]
 
-  if (cardsToMove.length === 0) return
+  if (cardsToMove.length === 0) return boundary(direction)
 
   let newSortOrder =
     targetCol.cards.length > 0 ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1 : 0
@@ -169,6 +172,8 @@ export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "le
   })
 
   rebuildSelectionForMovedCards(ctx, targetColIndex, movedCardIds)
+
+  return ok()
 }
 
 // =============================================================================

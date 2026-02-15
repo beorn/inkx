@@ -378,17 +378,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "SHIFT_UP":
-      handleShiftCard(ctx, "up")
-      return ok()
+      return handleShiftCard(ctx, "up")
     case "SHIFT_DOWN":
-      handleShiftCard(ctx, "down")
-      return ok()
+      return handleShiftCard(ctx, "down")
     case "SHIFT_LEFT":
-      handleShiftCard(ctx, "left")
-      return ok()
+      return handleShiftCard(ctx, "left")
     case "SHIFT_RIGHT":
-      handleShiftCard(ctx, "right")
-      return ok()
+      return handleShiftCard(ctx, "right")
 
     // === Selection actions ===
     case "SELECT_NODE_ADD":

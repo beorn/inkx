@@ -442,7 +442,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
  * When cursor is on a card: up/down shifts within column, left/right moves between columns.
  * When cursor is on a column header: left/right reorders columns.
  */
-export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left" | "right"): void {
+export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left" | "right"): ActionResult {
   const { layout } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
@@ -450,15 +450,15 @@ export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left
   if (!card) {
     // At column header level — reorder columns left/right
     if (col && (direction === "left" || direction === "right")) {
-      moveColumn(ctx, col, direction)
+      return moveColumn(ctx, col, direction)
     }
-    return
+    return boundary(direction)
   }
 
   if (direction === "up" || direction === "down") {
-    moveCardInColumn(ctx, card, direction)
+    return moveCardInColumn(ctx, card, direction)
   } else {
-    moveCardToColumn(ctx, card, direction)
+    return moveCardToColumn(ctx, card, direction)
   }
 }
 
@@ -469,13 +469,13 @@ function moveColumn(
   ctx: ActionCtx,
   col: { node: { id: string; parent_idx: number } },
   direction: "left" | "right",
-): void {
+): ActionResult {
   const { layout, repo } = ctx
   const targetIndex = direction === "left" ? layout.colIndex - 1 : layout.colIndex + 1
-  if (targetIndex < 0 || targetIndex >= layout.columns.length) return
+  if (targetIndex < 0 || targetIndex >= layout.columns.length) return boundary(direction)
 
   const targetCol = layout.columns[targetIndex]
-  if (!targetCol) return
+  if (!targetCol) return boundary(direction)
 
   // Normalize column sort orders when duplicates exist (e.g., all default to 0)
   normalizeColumnSortOrders(ctx)
@@ -488,6 +488,7 @@ function moveColumn(
   repo.moveNode(targetCol.node.id, parentId, curOrder)
 
   refreshBoardState(ctx, { colIndex: targetIndex })
+  return ok()
 }
 
 /**

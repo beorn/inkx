@@ -164,9 +164,12 @@ const Card = React.memo(
     }, [directHidden, card.children, maxChildren, repo])
 
     // HR nodes render as borderless centered content (unless being edited,
-    // in which case they fall through to normal bordered card with InlineEditField)
-    if (card.node.type === "hr" && !isEditing) {
-      const hrContent = card.node.content ?? "---"
+    // in which case they fall through to normal bordered card with InlineEditField).
+    // Detection is content-based: editing "---" to "---f" should stop rendering as HR.
+    // Nodes with type="hr" and no content default to "---".
+    const hrContent = (card.node.content ?? (card.node.type === "hr" ? "---" : "")).trim()
+    const isHR = /^(-{3,}|\*{3,}|_{3,})$/.test(hrContent)
+    if (isHR && !isEditing) {
       const padTotal = Math.max(0, width - hrContent.length)
       const padLeft = Math.floor(padTotal / 2)
       const padRight = padTotal - padLeft

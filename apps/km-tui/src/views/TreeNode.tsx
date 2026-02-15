@@ -12,7 +12,7 @@ import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { JobRunner } from "@km/core"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Text, useScreenRectCallback, stripAnsi } from "inkx"
+import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
 import { extractTitleTaskMarker, isTask, isBlock } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -26,6 +26,7 @@ import {
   isSigilName,
   type StatusIcon,
 } from "../text/index.ts"
+import { stripFgColor } from "../text/rich.ts"
 import { truncateText } from "../layout/index.ts"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
@@ -606,14 +607,14 @@ function TreeNodeImpl({
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
-                {isHighlighted ? stripAnsi(styledContent) : styledContent}
+                {isHighlighted ? stripFgColor(styledContent) : styledContent}
                 {sigilName && (
                   <>
                     {" "}
                     <Text dimColor={!isHighlighted}>{sigilName}</Text>
                   </>
                 )}
-                {!childrenHidden && infoSuffix && <Text dimColor={!isHighlighted}>{isHighlighted ? stripAnsi(infoSuffix) : infoSuffix}</Text>}
+                {!childrenHidden && infoSuffix && <Text dimColor={!isHighlighted}>{isHighlighted ? stripFgColor(infoSuffix) : infoSuffix}</Text>}
                 {!childrenHidden && showInlineContext && (
                   <Text dimColor={!isHighlighted} italic>
                     {contextSuffix}
@@ -626,7 +627,7 @@ function TreeNodeImpl({
           {dateBadge && (
             <Box flexShrink={0}>
               <Text color={style.textColor} wrap="truncate">
-                {" "}{isHighlighted ? stripAnsi(dateBadge) : dateBadge}
+                {" "}{isHighlighted ? stripFgColor(dateBadge) : dateBadge}
               </Text>
             </Box>
           )}
