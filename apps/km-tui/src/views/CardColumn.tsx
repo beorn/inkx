@@ -411,7 +411,7 @@ export const Column = React.memo(function Column({
     // Account for border (2 rows) and count line (1 row)
     const verticalChars = name.slice(0, Math.max(0, height - 3)).split("")
     const countStr = String(count)
-    const borderColor = isColumnSelected ? "yellow" : "gray"
+    const borderColor = isColumnSelected ? "yellow" : "black"
     return (
       <Box
         id={column.node.id}
@@ -460,10 +460,6 @@ export const Column = React.memo(function Column({
     )
   }
 
-  // Column title border: subtle black border (like cards but dimmer).
-  // When column is selected, use yellow to match card selection style.
-  const columnBorderColor = isColumnSelected ? "yellow" : "black"
-
   return (
     <Box
       id={column.node.id}
@@ -474,17 +470,12 @@ export const Column = React.memo(function Column({
       {...(isColumnSelected && { "data-cursor": true, "data-card-index": -1 })}
       flexDirection="column"
       width={width}
-      maxHeight={height}
+      height={height}
       overflow="hidden"
     >
-      {/* Column header with border (like cards but dimmer) */}
-      <Box
-        flexShrink={0}
-        width={width - 1}
-        borderStyle="round"
-        borderColor={columnBorderColor}
-        paddingRight={1}
-      >
+      {/* Column header row */}
+      <Box height={1} flexShrink={0} width={width - 1} flexDirection="row">
+        <Box width={1} flexShrink={0} />
         <Box flexGrow={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
           {isInlineEditing ? (
             <Text bold color={headerStyle.color} wrap="truncate">
@@ -542,13 +533,21 @@ export const Column = React.memo(function Column({
         </Box>
       </Box>
 
+      {/* Separator line between header and cards */}
+      <Box height={1} flexShrink={0} width={width - 1}>
+        <Box width={1} flexShrink={0} />
+        <Text color={isColumnSelected ? "yellow" : undefined} dimColor={!isColumnSelected}>
+          {"\u2500".repeat(Math.max(0, width - 3))}
+        </Text>
+      </Box>
+
       {column.cards.length > 0 ? (
         <ScrollTrackingVirtualList
           colIndex={colIndex}
           isSelected={isSelected}
           items={column.cards}
           width={width - 1}
-          height={height - 3}
+          height={height - 2}
           itemHeight={ESTIMATED_CARD_HEIGHT}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_CARDS}

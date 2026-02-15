@@ -14,7 +14,7 @@ import type { JobRunner } from "@km/core"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
-import { extractTitleTaskMarker } from "@km/core"
+import { extractTitleTaskMarker, isBlock } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
@@ -421,11 +421,13 @@ function TreeNodeImpl({
     })
     // Estimate available width for cards (accounting for borders, padding, prefix)
     // This is approximate - actual width depends on terminal and column layout
-    if (!isOneliner) {
+    // Only truncate card titles (oi items) — body content (p, code, quote, etc.)
+    // should wrap naturally via inkx's wrap="wrap"
+    if (!isOneliner && !isBlock(node.type)) {
       return truncateText(rich, 70) // Default ~70 chars for card title
     }
     return rich
-  }, [cleanContent, excludedSigils, sigilColors, resolveSigilColor, isOneliner])
+  }, [cleanContent, excludedSigils, sigilColors, resolveSigilColor, isOneliner, node.type])
 
   // Memoize info suffix - only recalc when node metadata changes
   // Use displayNode for metadata (assigned_to, board pills)
