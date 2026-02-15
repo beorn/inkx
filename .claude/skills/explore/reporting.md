@@ -13,7 +13,7 @@ bd update <session-id> --append-notes "HH:MM — <event description>"
 Events to log:
 - Bug found: `"10:02 — Found bug: <desc> → created <bead-id> (P2)"`
 - Bug fixed: `"10:15 — Fixed <bead-id>: <summary>. Verified: TUI test (N/N pass)"`
-- GUI verified: `"10:20 — GUI verified <bead-id>: /tmp/verify-<id>.png"`
+- GUI/TTY verified: `"10:20 — GUI/TTY verified <bead-id>: /tmp/verify-<id>.png"`
 - Screenshot taken: `"10:05 — Screenshot: /tmp/explore-screenshots/NN-name.png"`
 - Area explored: `"10:30 — Explored fold/unfold on real vault (120x40) — no issues"`
 
@@ -25,13 +25,13 @@ Update the session bead's `--description` with the current dashboard. Do this af
 bd update <session-id> --description "$(cat <<'EOF'
 ## Work Items
 
-| # | Bead | Title | Status | TUI Test | GUI |
+| # | Bead | Title | Status | TUI Test | GUI/TTY |
 |---|------|-------|--------|----------|-----|
 | 1 | km-tui.body-collapse | Body column collapse error | Fixed | 3/3 pass | screenshot |
 | 2 | km-tui.fold-color | Fold count color wrong | Open | — | — |
 
 ## Coverage
-- GUI (interactive TTY): real vault (/tmp/vt), 120x40 + 80x24
+- GUI/TTY: real vault (/tmp/vt), 120x40 + 80x24
 - Targeted TUI tests: N tests across M areas
 - Health check: N pass, M pre-existing failures
 
@@ -45,7 +45,7 @@ EOF
 ### Close Reason (at shutdown)
 
 ```bash
-bd close <session-id> --reason "Explored <focus area>. Found N bugs (M fixed, K open). N TUI tests, M GUI screenshots. No regressions."
+bd close <session-id> --reason "Explored <focus area>. Found N bugs (M fixed, K open). N TUI tests, M GUI/TTY screenshots. No regressions."
 ```
 
 ## Team Mode Summary
@@ -76,7 +76,7 @@ The printed summary matches the bead description plus any additional context:
 
 ## Beads
 
-| ID | Title | Status | GUI Verified? |
+| ID | Title | Status | GUI/TTY Verified? |
 |----|-------|--------|---------------|
 | km-xxx | TUI: [description] | Fixed | Yes (screenshot) |
 | km-yyy | TUI: [description] | Open | N/A |
@@ -168,7 +168,7 @@ bd update <id> --claim
 
 ## Dependencies
 
-**GUI Tests (Interactive TTY):**
+**GUI/TTY Tests (Interactive TTY):**
 - MCP TTY: `mcp__tty__start`, `mcp__tty__press`, `mcp__tty__text`, `mcp__tty__screenshot`, `mcp__tty__stop`, `mcp__tty__wait`
 - Screenshots saved to `/tmp/explore-screenshots/`
 

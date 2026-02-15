@@ -103,7 +103,7 @@ test("repro user bug with real vault", async () => {
 })
 ```
 
-## GUI Mode (only when pixel-level verification needed)
+## GUI/TTY Mode (only when pixel-level verification needed)
 
 See [interactive.md](interactive.md) for TTY tool usage and screenshot conventions.
 

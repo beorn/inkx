@@ -113,7 +113,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 |----------|------|-------|
 | **TUI Tests** | Term buffer (inkx) | [tui.md](tui.md) |
 | **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
-| **GUI Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
+| **GUI/TTY Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
 | **Fuzz (TUI)** | gen/take/test.fuzz (vitestx) | [vitestx CLAUDE.md](../../../vendor/beorn-vitestx/CLAUDE.md) |
 | **Exploration** | Chaos + monkey testing | [chaos.md](chaos.md), `/explore` |
 | **Bench** | Benchmarks | [bench.md](bench.md) |
@@ -211,7 +211,7 @@ See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for detai
 | TDD workflow, test safety    | [tdd-workflow.md](tdd-workflow.md)              |
 | TUI testing (inkx)           | [tui.md](tui.md)                                |
 | CLI testing (mdtest)         | [cli.md](cli.md)                                |
-| GUI testing (ttyd/playwright)| [gui.md](gui.md)                                |
+| GUI/TTY testing (ttyd/playwright)| [gui.md](gui.md)                                |
 | Benchmarks                   | [bench.md](bench.md)                            |
 | Chaos/fuzz testing sync      | [chaos.md](chaos.md)                            |
 | Test quality review          | [review-tests.md](review-tests.md) (infrequent) |

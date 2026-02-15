@@ -10,7 +10,7 @@
 
 The lead interprets `/explore` args to decide what to emphasize:
 
-| Args | GUI (interactive TTY)? | TUI tests? | Example |
+| Args | GUI/TTY? | TUI tests? | Example |
 |------|----------------------|------------|---------|
 | No args | Yes (main) | Background health check | `/explore` |
 | Broad description | Yes (focused) | Background health check | `/explore recent batch ops` |
@@ -312,8 +312,8 @@ When the reproducer sends a failing test:
 5. Check regressions:
    bun vitest run apps/km-tui/tests/ --reporter=verbose 2>&1 | head -300
 6. **For rendering/visual bugs**: **You MUST follow** the [two-layer verification protocol](../tui/fix.md#two-layer-verification) —
-   use mcp_tty tools (ToolSearch "tty" first) for GUI verification + calibrate the regression test.
-   Pure logic bugs can skip GUI — state "Verified: TUI tests only" in close reason.
+   use mcp_tty tools (ToolSearch "tty" first) for GUI/TTY verification + calibrate the regression test.
+   Pure logic bugs can skip GUI/TTY — state "Verified: TUI tests only" in close reason.
 7. Close bead using the [structured close reason format](../pm/workflows/bugs.md#close-reason-template) — **read it for the mandatory format**.
 8. Notify lead that fix is done, then immediately pick up next bug
 

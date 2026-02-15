@@ -5,7 +5,7 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 
 # TUI Exploration
 
-**Keywords**: explore, fuzz, random, bug hunting, TUI test, GUI test, repro, peekaboo, ghostty
+**Keywords**: explore, fuzz, random, bug hunting, TUI test, GUI/TTY test, repro, peekaboo, ghostty
 
 ## Decision Tree — Pick ONE, Act Immediately
 
@@ -15,7 +15,7 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 |-----------|--------|---------|
 | `/explore` (no args) | **Team exploration** — interactive TTY + background health check | See [team.md](team.md) |
 | `/explore <broad description>` | **Team exploration** — focused interactive + health check | See [team.md](team.md) |
-| `/explore <specific bug repro>` | Targeted bug repro — TUI tests primary, GUI verify | See [targeted.md](targeted.md) + [team.md](team.md) |
+| `/explore <specific bug repro>` | Targeted bug repro — TUI tests primary, GUI/TTY verify | See [targeted.md](targeted.md) + [team.md](team.md) |
 | `/explore --fuzz` | Run fuzz suite only (no team, no TTY) | `bun test:fuzz` |
 | `/explore --gui` or `/explore --gui <path>` | Visual TTY mode (manual, no team) | See [TTY section](#gui-mode) below |
 | `/explore km view <path>` or `/explore --path <path>` | Test real vault with diagnostics | `TEST_VAULT=<path> bun vitest run apps/km-tui/tests/real-vault.test.ts` |
@@ -32,7 +32,7 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 ```
 /explore                            # Team: interactive TTY + health check
 /explore recent batch ops           # Team: focused on batch operations area
-/explore cursor jumps after indent  # Targeted: TUI test repro + GUI verify
+/explore cursor jumps after indent  # Targeted: TUI test repro + GUI/TTY verify
 /explore --fuzz                     # Fuzz suite only (bun test:fuzz)
 /explore --gui                      # Manual visual mode with screenshots
 /explore --peekaboo                 # Inspect your live Ghostty terminal

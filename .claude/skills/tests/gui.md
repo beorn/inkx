@@ -1,12 +1,12 @@
 ---
-description: GUI testing with TTY MCP - pixel-level screenshot verification
+description: GUI/TTY testing with TTY MCP - pixel-level screenshot verification
 ---
 
-# GUI Tests (TTY MCP)
+# GUI/TTY Tests (TTY MCP)
 
 Pixel-level screenshot verification for regression testing using the `tty` MCP server.
 
-**Keywords**: GUI test, pixel-level, screenshot, playwright, visual
+**Keywords**: GUI/TTY test, pixel-level, screenshot, playwright, visual
 
 ---
 

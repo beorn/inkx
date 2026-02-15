@@ -120,7 +120,7 @@ Every bug fix MUST satisfy all items before the bead can be closed:
 - [ ] Test passes after fix
 - [ ] `bun vitest run apps/km-tui/tests/` — no NEW failures introduced
 - [ ] `bun run test:fast` — full suite green
-- [ ] **GUI visual verification for rendering/visual bugs** — TUI tests alone are NOT sufficient
+- [ ] **GUI/TTY visual verification for rendering/visual bugs** — TUI tests alone are NOT sufficient
 - [ ] Close reason uses structured format — **read** [bugs.md](../pm/workflows/bugs.md#close-reason-template) for the mandatory format
 
 <a name="two-layer-verification"></a>
@@ -133,27 +133,27 @@ continuity). Any bug that affects what the user **sees on screen** requires BOTH
 
 1. **TUI regression test** (fast, runs in CI) — catches the bug programmatically so
    it never regresses. Must be fast enough for `test:fast`. This is the ongoing guard.
-2. **GUI verification** (manual, not in CI) — a one-time check at fix time that
+2. **GUI/TTY verification** (manual, not in CI) — a one-time check at fix time that
    proves the fix actually looks correct on a real terminal.
 
 ```bash
 # Use mcp_tty tools to launch TUI, reproduce scenario, screenshot
 # Save as /tmp/verify-<bead-id>.png
-# Close reason must reference: "Verified: TUI test + GUI screenshot"
+# Close reason must reference: "Verified: TUI test + GUI/TTY screenshot"
 ```
 
-**After GUI verification, calibrate the regression test:**
-- If the TUI test passes but GUI still shows the bug, the test is insufficient.
+**After GUI/TTY verification, calibrate the regression test:**
+- If the TUI test passes but GUI/TTY still shows the bug, the test is insufficient.
   Improve it with better buffer assertions (`expectNodeColor`, `expectCellColor`,
   `expectRow`, `expectNodeBorder`).
-- Goal: the TUI test should catch future regressions without needing GUI verification again.
-  GUI is the calibration step, not the ongoing guard.
+- Goal: the TUI test should catch future regressions without needing GUI/TTY verification again.
+  GUI/TTY is the calibration step, not the ongoing guard.
 
 **Pure logic bugs** (wrong state, bad cursor position, missing data) can be verified with
 TUI tests only. The close reason should state: `Verified: TUI tests only — no visual component`.
 
-**Do NOT close a visual bead if GUI verification is unchecked.** If GUI tools are unavailable,
-document why and flag for future GUI verification.
+**Do NOT close a visual bead if GUI/TTY verification is unchecked.** If GUI/TTY tools are unavailable,
+document why and flag for future GUI/TTY verification.
 
 ## Quick Start (Synthetic Data)
 

@@ -168,12 +168,12 @@ bun run test:fast  # All pass
 bun fix            # Clean code
 ```
 
-**Visual verification for TUI features**: **You MUST follow** the [two-layer verification protocol](../../tui/fix.md#two-layer-verification) — TUI regression test + GUI screenshot for anything visible on screen. Pure logic features need TUI tests only.
+**Visual verification for TUI features**: **You MUST follow** the [two-layer verification protocol](../../tui/fix.md#two-layer-verification) — TUI regression test + GUI/TTY screenshot for anything visible on screen. Pure logic features need TUI tests only.
 
 **Close:**
 
 ```bash
-bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Verified: TUI test + GUI / TUI tests only."
+bd close <id> --reason "Implemented: <what, where>. Tests: <names>. Verified: TUI test + GUI/TTY / TUI tests only."
 ```
 
 ---
@@ -271,6 +271,6 @@ Task({
 - [ ] Tests pass (`bun run test:fast`)
 - [ ] `bun fix` passes
 - [ ] No console.log left
-- [ ] **GUI visual verification for UI features** (screenshot proves it looks right on screen)
-- [ ] Evidence in close reason (must state TUI-tests-only OR TUI-test+GUI)
+- [ ] **GUI/TTY visual verification for UI features** (screenshot proves it looks right on screen)
+- [ ] Evidence in close reason (must state TUI-tests-only OR TUI-test+GUI/TTY)
 - [ ] No scope creep
