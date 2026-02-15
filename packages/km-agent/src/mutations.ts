@@ -20,7 +20,7 @@ export function createAgentNode(name: string, options: CreateAgentOptions = {}):
 
   const node: KNode = {
     id,
-    type: "agent",
+    type: "oi",
     name,
     content: name,
     parent_id: null,
@@ -30,6 +30,7 @@ export function createAgentNode(name: string, options: CreateAgentOptions = {}):
     created_at: now,
     updated_at: now,
     data: {
+      kind: "agent",
       short_id: shortId,
       model: options.model ?? "claude-sonnet-4",
       harness: options.harness ?? "general",

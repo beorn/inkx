@@ -15,13 +15,13 @@ function createAgent(name: string, data: Record<string, unknown>, parentIdx = 0)
   const now = Date.now()
   return {
     id: ulid(),
-    type: "agent",
+    type: "oi",
     name,
     content: name,
     parent_id: null,
     parent_idx: parentIdx,
     link_to: null,
-    data,
+    data: { kind: "agent", ...data },
     created_at: now,
     updated_at: now,
     version: "test-0",
@@ -31,7 +31,7 @@ function createAgent(name: string, data: Record<string, unknown>, parentIdx = 0)
 describe("nodeToAgent", () => {
   const baseNode: KNode = {
     id: "01ABCDEFGHIJKL",
-    type: "agent",
+    type: "oi",
     name: "Test Agent",
     content: "Test Agent",
     parent_id: null,
@@ -40,7 +40,7 @@ describe("nodeToAgent", () => {
     version: "01ABCDEFGHIJKL",
     created_at: Date.now(),
     updated_at: Date.now(),
-    data: {},
+    data: { kind: "agent" },
   }
 
   test("converts node to agent with defaults", () => {

@@ -56,26 +56,3 @@ export function extractBody<T extends { type: string }>(children: T[]): BodyExtr
   }
 }
 
-/**
- * Check if children array has body content (non-outline before outline items).
- */
-export function hasBody<T extends { type: string }>(children: T[]): boolean {
-  const first = children[0]
-  if (!first) return false
-  // Has body if first child is not an outline item
-  return !isOutline(first.type)
-}
-
-/**
- * Check if a node type is structural/outline (oi — creates hierarchy).
- */
-export function isStructuralType(type: string): boolean {
-  return isOutline(type)
-}
-
-/**
- * Check if a node type is body content (not an outline item).
- */
-export function isBodyType(type: string): boolean {
-  return !isOutline(type)
-}

@@ -31,33 +31,34 @@ Nodes form a tree representing your markdown files and their content:
 
 ```
 repo/
-├── folder          # Directory
-├── file            # .md file (merged with H1 if names match)
-│   ├── section     # ## Heading (H2+)
-│   └── task        # - [ ] checkbox
-└── ...             # paragraph, quote, code, etc.
+├── oi (folder)     # Directory
+├── oi (file)       # .md file (merged with H1 if names match)
+│   ├── oi (section)    # ## Heading (H2+)
+│   └── li (task)       # - [ ] checkbox
+└── ...                 # p, code, quote, etc.
 ```
 
-**A node is a task if it has a status property.**
+**A node is a task if it has a `task_marker` property** (e.g. `[ ]`, `[x]`, `[/]`, `[!]`, `[-]`).
 
-### Node Types
+### Node Types (km-ast)
+
+11 types in 3 categories:
 
 ````
-node
-├── structural
-│   ├── folder          # Directory
-│   ├── file            # .md file (merged with H1 if names match)
-│   └── section         # Heading (H2+ when H1 merged)
-└── content
-    ├── task            # - [ ] checkbox
-    ├── paragraph       # Text block
-    ├── ul / ol         # List items
-    ├── quote           # > blockquote
-    ├── code            # ```code```
-    └── ...             # table, hr, html
+Block (8)  — content blocks
+  p, h, code, quote, table, hr, html, math
+
+Item (2)   — tree structure
+  oi       — outline item (folder, file, section via fstype)
+  li       — list item (bullets, numbered, tasks via markers)
+
+Link (1)   — references
+  link     — wiki links, embeds, sigil links
 ````
 
-> **Planned: km-ast** — The above 14-type enum is being replaced by an 11-type model with 3 categories: Block (p, h, code, quote, table, hr, html, math), Item (oi, li), and Link (link). folder/file/section unify into `oi` with `fstype`; ul/ol/task unify into `li` with markers. See [design/km-ast/model.md](design/km-ast/model.md).
+- **`oi`** (outline item) creates hierarchy. `fstype` distinguishes: `folder`, `file`, `mdfile`, `mdsection`.
+- **`li`** (list item) holds content. `list_marker` for bullet style, `task_marker` for task status.
+- **Blocks** are leaf content that doesn't create hierarchy.
 
 ---
 

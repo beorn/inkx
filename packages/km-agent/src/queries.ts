@@ -12,7 +12,8 @@ import type { Agent, AgentFilter } from "./types.ts"
  * Query all agents, optionally filtered.
  */
 export function queryAgents(repo: Repo, filter?: AgentFilter): Agent[] {
-  const nodes = repo.query("type:agent")
+  // Agents are oi nodes with data.kind === "agent"
+  const nodes = repo.query("type:oi").filter((n) => n.data?.kind === "agent")
   let agents = nodes.map(nodeToAgent)
 
   if (filter?.status) {

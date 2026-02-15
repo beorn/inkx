@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { extractBody, hasBody, isStructuralType, isBodyType } from "../src/body.ts"
+import { extractBody } from "../src/body.ts"
 
 // Minimal node-like objects for testing (km-ast types)
 const paragraph = { type: "p", id: "p1" }
@@ -72,76 +72,5 @@ describe("extractBody", () => {
     const result = extractBody(children)
     expect(result.body).toEqual([quote])
     expect(result.items).toEqual([section1, file, folder])
-  })
-})
-
-describe("hasBody", () => {
-  test("empty children has no body", () => {
-    expect(hasBody([])).toBe(false)
-  })
-
-  test("starting with paragraph has body", () => {
-    expect(hasBody([paragraph, section1])).toBe(true)
-  })
-
-  test("starting with section has no body", () => {
-    expect(hasBody([section1, paragraph])).toBe(false)
-  })
-
-  test("starting with file has no body", () => {
-    expect(hasBody([file])).toBe(false)
-  })
-
-  test("starting with list item has body", () => {
-    expect(hasBody([listItem, section1])).toBe(true)
-  })
-
-  test("all body content has body", () => {
-    expect(hasBody([paragraph, code, quote])).toBe(true)
-  })
-})
-
-describe("isStructuralType", () => {
-  test("oi is structural", () => {
-    expect(isStructuralType("oi")).toBe(true)
-  })
-
-  test("p is not structural", () => {
-    expect(isStructuralType("p")).toBe(false)
-  })
-
-  test("li is not structural", () => {
-    expect(isStructuralType("li")).toBe(false)
-  })
-
-  test("code is not structural", () => {
-    expect(isStructuralType("code")).toBe(false)
-  })
-})
-
-describe("isBodyType", () => {
-  test("p is body type", () => {
-    expect(isBodyType("p")).toBe(true)
-  })
-
-  test("code is body type", () => {
-    expect(isBodyType("code")).toBe(true)
-  })
-
-  test("quote is body type", () => {
-    expect(isBodyType("quote")).toBe(true)
-  })
-
-  test("li is body type", () => {
-    expect(isBodyType("li")).toBe(true)
-  })
-
-  test("oi is not body type", () => {
-    expect(isBodyType("oi")).toBe(false)
-  })
-
-  test("link is not body type (it's not outline either, but not a block)", () => {
-    // link is neither oi nor block, but isBodyType checks !isOutline
-    expect(isBodyType("link")).toBe(true)
   })
 })
