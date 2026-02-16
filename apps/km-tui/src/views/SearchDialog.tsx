@@ -278,6 +278,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
           afterCursor={lineEdit.afterCursor}
           prompt={scopePrompt}
           promptColor={scopePromptColor}
+          focusRing
         />
       </Box>
 

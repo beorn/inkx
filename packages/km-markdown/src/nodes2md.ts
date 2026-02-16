@@ -193,7 +193,7 @@ function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTr
       return serializeCode(node)
 
     case "hr":
-      return "---\n\n"
+      return (node.content || "---") + "\n\n"
 
     case "table":
       return (node.content ?? "") + "\n\n"

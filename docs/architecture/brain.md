@@ -4,6 +4,10 @@ A knowledge base is a folder. `km init` turns any directory into one — a headl
 
 "Plain" does triple duty: **plain text** (markdown, JSONL — no proprietary formats), **plain files** (one folder, git-pushable, editor-agnostic), **plain to see** (transparent, inspectable, no hidden state).
 
+A knowledge base is **personal** — designed for one user, not collaborative editing. Multiple interfaces connect simultaneously, but they serve one person's knowledge.
+
+The design combines the transparency of plain-file PKM tools (Obsidian, Logseq — user control, git-versioned, editor-agnostic) with the structured memory of AI agent systems (ENGRAM, Hindsight — queryable triples, confidence scoring, per-category retrieval). Markdown is a view of the data, not the source of truth. The critical path is deterministic — LLM inference is background-only.
+
 > **Relationship to [architecture.md](../architecture.md)**: That document describes km's five-layer system (App → Board → Tree → Storage → FS). The items described here are implemented by that five-layer system — items and blocks map to `KNode` records, queries and mutations flow through the same `emit()` pipeline described in [storage.md](../storage.md). This document describes the **knowledge base layer** — logs, statements, and the transformations that connect them.
 >
 > **Status**: Under active development. See [Current State](#current-state) for what's implemented vs planned.
@@ -39,7 +43,7 @@ The knowledge base has three layers:
 | **Statements** | Structured knowledge (SPO triples) | SQLite (derived, rebuildable) | Rebuildable |
 | **Knowledge tree** | Items organized hierarchically | `KNode` records (rendered as markdown, TUI, etc.) | Yes (markdown) |
 
-The S and O in SPO both reference items — a contact is a subject in `(contact:alice, birthday, 12-24)` and an object in `(company:acme, employs, contact:alice)`. Items are what statements describe and connect. Some items are shaped into **entities** — the typed, collection-oriented subset (all contacts, all tasks) that participates in external sync.
+The S and O in SPO can both reference items — a contact is a subject in `(contact:alice, birthday, 12-24)` and an object in `(company:acme, employs, contact:alice)`. Items are what statements describe and connect. Some items are shaped into **entities** — the typed, collection-oriented subset (all contacts, all tasks) that participates in external sync.
 
 Statements are always rebuildable from logs. Delete state.db, replay logs, get identical state.
 
@@ -71,7 +75,7 @@ All interaction with the knowledge base is modeled as **logs** — bounded seque
 
 A raw file edit on disk is just bytes changing — meaningless until km turns it into an event: who made the edit, when, what specifically changed. The log is where meaning lives.
 
-Agent chat logs are the purest event source: the transcript IS the event stream. Edit logs require km to observe changes and produce events from them.
+Agent chat logs are the purest event source: the transcript IS the event stream. Edit logs capture the resulting mutations — file diffs, statement insertions, retractions. A single agent action like `remember()` appears in both: the tool call in the chat log, the statement creation in the edit log.
 
 **Source distinction matters.** Agent chat logs contain natural language that can be re-extracted if prompts or models improve — their statements are always rebuildable. Sync chat logs contain authoritative structured data (a contact's phone number from CardDAV is ground truth, not an extraction). This affects confidence scoring and retry strategy.
 
@@ -94,7 +98,7 @@ Agent chat log events (session lifecycle, messages, tool calls) are defined in [
 
 All log events flow through storage.md's [4-path multiplexer](../storage.md#the-4-path-multiplexer) (`emit()` → persist, project, broadcast, sync).
 
-### Quality Gradient
+### Memory Quality Gradient
 
 Event quality depends on the source:
 
@@ -109,7 +113,7 @@ The more the knowledge base is "awake" (km running), the better its memory.
 
 ## Statements
 
-Statements are SPO (subject-predicate-object) triples — the single source of truth for structured knowledge. Everything the knowledge base "knows" is a statement.
+Statements are SPO (subject-predicate-object) triples. Everything the knowledge base "knows" is a statement.
 
 ### Cognitive Types (ENGRAM)
 
@@ -195,6 +199,12 @@ Items are built from statements. An item exists in the knowledge tree because st
 Markdown is the primary human-facing view — the one that gets committed to git — but it's not the only way to see items.
 
 A random note is an item in the knowledge tree. A contact with `birthday:: 12-24` is also an item — but additionally an entity (see next section). The knowledge tree contains everything; entities are the typed subset.
+
+### Item Identifiers
+
+Items are referenced in statements by a `type:slug` identifier — `contact:alice`, `project:km`, `note:meeting-2026-02-16`. The type prefix enables efficient querying ("all contacts") and is used by shaping to match type signatures. Slugs are human-readable, derived from the item's title or filename. Internally, each `KNode` has a ULID for stable cross-referencing, but the `type:slug` form is what appears in statements and user-facing output.
+
+Items without an explicit type prefix are plain items — `note:weeklog` or just a path-based ID like `projects/km/design`. The type prefix is optional; shaping can infer types from statement patterns regardless.
 
 ## Entity Schemas & Shaping
 
@@ -328,7 +338,7 @@ my-knowledge-base/
 └── .git/                        # History
 ```
 
-Three tiers of content:
+Four tiers of content:
 
 | Tier | Format | Git? | Rebuildable? |
 |---|---|---|---|
@@ -372,6 +382,17 @@ Multiple can connect simultaneously:
 No dual-store divergence risk — the pipeline is unidirectional. Statements are the single source of truth; the knowledge tree and entities are derived projections.
 
 Memory hygiene built in from day one: TTL for ephemeral statements, agent statements persist until retracted, periodic summarization of old events.
+
+### Scalability
+
+A personal knowledge base is bounded — one person generates ~10K statements/year from active use. SQLite handles millions of rows trivially. The design choices that keep things fast:
+
+- **FTS5** for keyword search — native SQLite, no external service
+- **Compaction** (see below) — snapshot + recent logs keeps rebuild time bounded
+- **Derived state** — state.db is a cache, not a source of truth. If queries get slow, add indexes or rebuild
+- **Shaping is incremental** — only re-run on changed items, not the full tree
+
+If the knowledge base ever outgrows SQLite (unlikely for personal use), the log-based architecture means you can swap the statement store without losing data — replay logs into a different backend.
 
 ## Compaction
 
@@ -442,6 +463,11 @@ Multi-source corroboration, contradiction handling, confidence decay.
 Semantic search for retrieval mismatch. `repo.query()` + statement store merged via reciprocal rank fusion (RRF).
 
 **Success**: Searching "birthday" finds statements stored as "date of birth". **Depends on**: Phase 1.
+
+### Phase 8: Reflection
+Periodic automated synthesis — summarize clusters of event statements into higher-level fact statements, surface contradictions, decay low-confidence orphans. Inspired by Hindsight's reflection layer, which showed that automated reasoning over accumulated memory significantly improves long-horizon recall.
+
+**Success**: After 50 agent sessions about a project, a summary statement captures the key decisions without querying all 50 transcripts. **Depends on**: Phase 5, Phase 6.
 
 ## Appendix: PIM Lineage
 

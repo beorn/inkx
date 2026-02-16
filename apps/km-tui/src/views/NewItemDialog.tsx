@@ -201,7 +201,7 @@ export function NewItemDialog({
       footer="Enter create  Esc cancel"
     >
       {/* Input field */}
-      <Box flexGrow={1}>
+      <Box borderStyle="round" borderColor="cyan" flexShrink={0}>
         <Text>
           <Text color="green">{isTask ? "[ ] " : "• "}</Text>
           <Text>{content}</Text>

@@ -163,7 +163,7 @@ describe("HR editing", () => {
         if (cell && cell.bg && cell.bg !== 0) {
           coloredCells++
         }
-        if (cell && (cell.attrs as Record<string, unknown>)?.inverse) {
+        if ((cell.attrs as Record<string, unknown>)?.inverse) {
           inverseCells++
         }
       }

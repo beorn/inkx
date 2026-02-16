@@ -57,6 +57,7 @@
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
 import { createRenderer, keyToAnsi, type App, type AutoLocator } from "inkx/testing"
+import { compareBuffers, formatMismatch } from "inkx/toolbelt"
 import { StoreContext } from "inkx/runtime"
 import { parseKey } from "inkx/runtime"
 import { expect } from "vitest"
@@ -396,9 +397,7 @@ export function testEnv(
     columns: initialState.columns,
     colIndex: initialColIndex,
     cardIndex: selectedCard ? 0 : -1,
-    subPath: [] as string[],
     isAtCardLevel: selectedCard != null,
-    isInOutlineMode: false,
   }
 
   const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
@@ -821,6 +820,366 @@ export function testEnv(
       console.log(`node "${nodeId}": box=${JSON.stringify(box)}, cell(${box.x},${box.y})=${JSON.stringify({ char: cell.char, fg: cell.fg, bg: cell.bg, attrs: cell.attrs })}`)
       return { box, cell }
     },
+
+    // =========================================================================
+    // Visual Invariant Assertions
+    // =========================================================================
+
+    /**
+     * Assert that all 4 sides of a node's border box are continuous (no gaps).
+     * Checks top/bottom rows for horizontal border chars and left/right columns
+     * for vertical border chars.
+     *
+     * @example
+     * ```typescript
+     * board.expectBorderContinuous("task1")
+     * ```
+     */
+    expectBorderContinuous(nodeId: string) {
+      const HORIZONTAL = new Set("─═┌┐└┘╭╮╰╯┬┴╔╗╚╝")
+      const VERTICAL = new Set("│║┌┐└┘╭╮╰╯├┤╔╗╚╝")
+
+      const loc = result.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return board
+
+      // The nodeBox is the content area; borders are 1 cell outside
+      const bLeft = box.x - 1
+      const bRight = box.x + box.width
+      const bTop = box.y - 1
+      const bBottom = box.y + box.height
+
+      // Check top row
+      if (bTop >= 0) {
+        for (let x = bLeft; x <= bRight && x < columns; x++) {
+          if (x < 0) continue
+          const ch = result.term.cell(x, bTop).char
+          expect(
+            HORIZONTAL.has(ch) || VERTICAL.has(ch),
+            `node "${nodeId}" top border at (${x},${bTop}): expected border char, got "${ch}"`,
+          ).toBe(true)
+        }
+      }
+
+      // Check bottom row
+      if (bBottom < rows) {
+        for (let x = bLeft; x <= bRight && x < columns; x++) {
+          if (x < 0) continue
+          const ch = result.term.cell(x, bBottom).char
+          expect(
+            HORIZONTAL.has(ch) || VERTICAL.has(ch),
+            `node "${nodeId}" bottom border at (${x},${bBottom}): expected border char, got "${ch}"`,
+          ).toBe(true)
+        }
+      }
+
+      // Check left column
+      if (bLeft >= 0) {
+        for (let y = bTop; y <= bBottom && y < rows; y++) {
+          if (y < 0) continue
+          const ch = result.term.cell(bLeft, y).char
+          expect(
+            VERTICAL.has(ch) || HORIZONTAL.has(ch),
+            `node "${nodeId}" left border at (${bLeft},${y}): expected border char, got "${ch}"`,
+          ).toBe(true)
+        }
+      }
+
+      // Check right column
+      if (bRight < columns) {
+        for (let y = bTop; y <= bBottom && y < rows; y++) {
+          if (y < 0) continue
+          const ch = result.term.cell(bRight, y).char
+          expect(
+            VERTICAL.has(ch) || HORIZONTAL.has(ch),
+            `node "${nodeId}" right border at (${bRight},${y}): expected border char, got "${ch}"`,
+          ).toBe(true)
+        }
+      }
+
+      return board
+    },
+
+    /**
+     * Assert that a specific horizontal border exists for a node.
+     * Checks the row above (top) or below (bottom) the node content area
+     * for horizontal border characters.
+     *
+     * @example
+     * ```typescript
+     * board.expectHorizontalBorder("task1", "top")
+     * board.expectHorizontalBorder("task1", "bottom")
+     * ```
+     */
+    expectHorizontalBorder(nodeId: string, side: "top" | "bottom") {
+      const BORDER_CHARS = new Set("─═┌┐└┘╭╮╰╯┬┴╔╗╚╝")
+
+      const loc = result.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return board
+
+      const borderY = side === "top" ? box.y - 1 : box.y + box.height
+      expect(
+        borderY >= 0 && borderY < rows,
+        `node "${nodeId}" ${side} border row ${borderY} is within screen bounds`,
+      ).toBe(true)
+      if (borderY < 0 || borderY >= rows) return board
+
+      // Check that at least some cells in the border row contain border chars
+      let foundBorder = false
+      const cellChars: string[] = []
+      for (let x = box.x - 1; x <= box.x + box.width && x < columns; x++) {
+        if (x < 0) continue
+        const ch = result.term.cell(x, borderY).char
+        cellChars.push(ch)
+        if (BORDER_CHARS.has(ch)) foundBorder = true
+      }
+
+      expect(
+        foundBorder,
+        `node "${nodeId}" ${side} border at row ${borderY}: no border chars found in [${cellChars.map((c) => `"${c}"`).join(", ")}]`,
+      ).toBe(true)
+
+      return board
+    },
+
+    /**
+     * Assert that the node AND its neighbors all have intact borders.
+     * Checks the rows above and below the node's bounding box for border
+     * characters. Catches the fold-border-blank bug where folding destroys
+     * the card below's border.
+     *
+     * @example
+     * ```typescript
+     * board.press("z").expectAdjacentBorders("task1")
+     * ```
+     */
+    expectAdjacentBorders(nodeId: string) {
+      const BORDER_CHARS = new Set("─═┌┐└┘╭╮╰╯┬┴├┤│║╔╗╚╝")
+
+      const loc = result.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return board
+
+      const bTop = box.y - 1
+      const bBottom = box.y + box.height
+
+      // Check row above the node (should be top border or bottom border of card above)
+      if (bTop >= 0) {
+        let foundBorder = false
+        const cellChars: string[] = []
+        for (let x = box.x - 1; x <= box.x + box.width && x < columns; x++) {
+          if (x < 0) continue
+          const ch = result.term.cell(x, bTop).char
+          cellChars.push(ch)
+          if (BORDER_CHARS.has(ch)) foundBorder = true
+        }
+        expect(
+          foundBorder,
+          `node "${nodeId}" row above (${bTop}): no border chars found in [${cellChars.map((c) => `"${c}"`).join(", ")}]`,
+        ).toBe(true)
+      }
+
+      // Check row below the node (should be bottom border or top border of card below)
+      if (bBottom < rows) {
+        let foundBorder = false
+        const cellChars: string[] = []
+        for (let x = box.x - 1; x <= box.x + box.width && x < columns; x++) {
+          if (x < 0) continue
+          const ch = result.term.cell(x, bBottom).char
+          cellChars.push(ch)
+          if (BORDER_CHARS.has(ch)) foundBorder = true
+        }
+        expect(
+          foundBorder,
+          `node "${nodeId}" row below (${bBottom}): no border chars found in [${cellChars.map((c) => `"${c}"`).join(", ")}]`,
+        ).toBe(true)
+      }
+
+      return board
+    },
+
+    /**
+     * Scan a region (or full screen) for likely rendering artifacts:
+     * NUL bytes, stray control characters, "[object Object]", "undefined", "NaN".
+     *
+     * @example
+     * ```typescript
+     * board.expectNoGhostChars()  // full screen
+     * board.expectNoGhostChars({ x: 0, y: 0, width: 40, height: 12 })  // region
+     * ```
+     */
+    expectNoGhostChars(region?: { x: number; y: number; width: number; height: number }) {
+      const x0 = region?.x ?? 0
+      const y0 = region?.y ?? 0
+      const w = region?.width ?? columns
+      const h = region?.height ?? rows
+
+      // Check for control characters and NUL bytes cell-by-cell
+      for (let y = y0; y < y0 + h && y < rows; y++) {
+        for (let x = x0; x < x0 + w && x < columns; x++) {
+          const ch = result.term.cell(x, y).char
+          if (ch.length === 1) {
+            const code = ch.charCodeAt(0)
+            // NUL byte
+            expect(
+              code !== 0,
+              `ghost char: NUL byte at (${x},${y})`,
+            ).toBe(true)
+            // Control characters (1-31) excluding tab(9), newline(10), carriage return(13)
+            if (code >= 1 && code <= 31 && code !== 9 && code !== 10 && code !== 13) {
+              expect(
+                false,
+                `ghost char: control char 0x${code.toString(16).padStart(2, "0")} at (${x},${y})`,
+              ).toBe(true)
+            }
+          }
+        }
+      }
+
+      // Check for artifact strings in the text
+      const screenText = result.text
+      const artifactPatterns = ["[object Object]", "undefined", "NaN"]
+      for (const pattern of artifactPatterns) {
+        expect(
+          !screenText.includes(pattern),
+          `ghost char: found "${pattern}" in screen text`,
+        ).toBe(true)
+      }
+
+      return board
+    },
+
+    /**
+     * Assert that a rectangular region contains only spaces.
+     * Fails with the first non-space character found and its position.
+     *
+     * @example
+     * ```typescript
+     * board.expectBlankRegion(0, 10, 80, 5)
+     * ```
+     */
+    expectBlankRegion(x: number, y: number, width: number, height: number) {
+      for (let cy = y; cy < y + height && cy < rows; cy++) {
+        for (let cx = x; cx < x + width && cx < columns; cx++) {
+          const ch = result.term.cell(cx, cy).char
+          expect(
+            ch === " " || ch === "",
+            `expected blank at (${cx},${cy}), got "${ch}"`,
+          ).toBe(true)
+        }
+      }
+      return board
+    },
+
+    /**
+     * Assert no completely blank rows exist in a range (default: full screen).
+     * A "blank line" = every cell in the row is a space character.
+     * Useful for detecting missing borders or content gaps.
+     *
+     * @example
+     * ```typescript
+     * board.expectNoBlankLine()           // full screen
+     * board.expectNoBlankLine(2, 20)      // rows 2-20
+     * ```
+     */
+    expectNoBlankLine(fromRow?: number, toRow?: number) {
+      const start = fromRow ?? 0
+      const end = toRow ?? rows
+
+      for (let y = start; y < end && y < rows; y++) {
+        let allBlank = true
+        for (let x = 0; x < columns; x++) {
+          const ch = result.term.cell(x, y).char
+          if (ch !== " " && ch !== "") {
+            allBlank = false
+            break
+          }
+        }
+        expect(
+          !allBlank,
+          `unexpected blank line at row ${y}`,
+        ).toBe(true)
+      }
+      return board
+    },
+
+    /**
+     * Assert that a cursor element exists and is within the visible screen bounds.
+     * Finds the element with `[data-cursor]` attribute and checks its bounding
+     * box is within screen bounds (0 <= x < cols, 0 <= y < rows).
+     *
+     * @example
+     * ```typescript
+     * board.press("j").expectCursorVisible()
+     * ```
+     */
+    expectCursorVisible() {
+      const loc = result.locator("[data-cursor]")
+      expect(loc.count(), "cursor element ([data-cursor]) exists").toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, "cursor element has boundingBox").not.toBeNull()
+      if (!box) return board
+
+      expect(
+        box.x >= 0 && box.x < columns,
+        `cursor x=${box.x} is within screen bounds [0, ${columns})`,
+      ).toBe(true)
+      expect(
+        box.y >= 0 && box.y < rows,
+        `cursor y=${box.y} is within screen bounds [0, ${rows})`,
+      ).toBe(true)
+
+      return board
+    },
+
+    /**
+     * Compare current incremental render buffer against a fresh render.
+     * For each mismatch, reports position, incremental cell, and fresh cell.
+     *
+     * Only meaningful when `incremental: true` was passed to testEnv (which is
+     * the default). Delegates to inkx's `compareBuffers` + `formatMismatch`.
+     *
+     * @example
+     * ```typescript
+     * board.press("j").press("z").expectIncrementalMatchesFresh()
+     * ```
+     */
+    expectIncrementalMatchesFresh() {
+      const incremental = result.lastBuffer()
+      expect(incremental, "incremental buffer exists (lastBuffer)").toBeDefined()
+      if (!incremental) return board
+
+      let fresh: ReturnType<typeof result.freshRender> | undefined
+      try {
+        fresh = result.freshRender()
+      } catch {
+        // freshRender() may not be available in non-test renderers
+        return board
+      }
+      expect(fresh, "fresh buffer exists (freshRender)").toBeDefined()
+      if (!fresh) return board
+
+      const mismatch = compareBuffers(incremental, fresh)
+      if (mismatch) {
+        const incrementalText = result.text
+        const freshText = Array.from({ length: fresh.height }, (_, y) =>
+          Array.from({ length: fresh.width }, (_, x) => fresh!.getCellChar(x, y)).join(""),
+        ).join("\n")
+
+        expect.fail(
+          `Incremental/fresh buffer mismatch:\n${formatMismatch(mismatch, { incrementalText, freshText })}`,
+        )
+      }
+
+      return board
+    },
   }
   return { board, repo, registry, toastQueue }
 }
@@ -872,9 +1231,7 @@ export function testEnvWithRepo(
     columns: initialState.columns,
     colIndex: initialColIndex,
     cardIndex: selectedCard ? 0 : -1,
-    subPath: [] as string[],
     isAtCardLevel: selectedCard != null,
-    isInOutlineMode: false,
   }
 
   const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
@@ -927,14 +1284,23 @@ export function testEnvWithRepo(
   // Override press to route through handleKey (same path as driver/production)
   const originalPress = result.press.bind(result)
   const pressKey = (key: string) => {
-    const [input, parsedKey] = parseKey(key)
+    const ansi = keyToAnsi(key)
+    const [input, parsedKey] = parseKey(ansi)
     act(() => {
       handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
+      // Trigger a no-op Zustand store update to ensure any pending
+      // useSyncExternalStore updates (from repo mutations done outside
+      // of press) get flushed during this act() cycle. Without this,
+      // external store changes aren't reflected until the next
+      // state-changing keypress.
+      store.setState((s) => s)
     })
     // Flush remaining React effects via originalPress.
     // IMPORTANT: Do NOT wrap in act() — sendInput + doRender have their own
-    // act() calls internally. Wrapping in an outer act() prevents React from
-    // flushing between pipeline iterations (breaks deferred resolve pattern).
+    // act() calls internally. Wrapping in an outer act() makes doRender's
+    // inner act() a nested no-op, preventing React from flushing between
+    // pipeline iterations. This breaks the deferred resolve pattern (Phase 2.7
+    // cursor Y-correction) which needs React to commit between iterations.
     void originalPress(key)
   }
 
@@ -1649,9 +2015,7 @@ export function renderBoardWithStore(
     columns: initialState.columns,
     colIndex: initialColIndex,
     cardIndex: selectedCard ? 0 : -1,
-    subPath: [] as string[],
     isAtCardLevel: selectedCard != null,
-    isInOutlineMode: false,
   }
 
   const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null

@@ -26,7 +26,7 @@ test("neighboring cards still have borders", () => {
   }
 })
 
-test("HR renders horizontal line chars spanning card width", () => {
+test("HR renders centered content (---) within card width", () => {
   const { board } = testEnv(() =>
     item("board", item("col", item.hr("my-hr")))
   )
@@ -34,8 +34,12 @@ test("HR renders horizontal line chars spanning card width", () => {
   const hrBox = board.screen.nodeBox("my-hr")
   expect(hrBox, "HR node should be visible").not.toBeNull()
   if (hrBox) {
-    const cell = board.screen.cell(hrBox.x, hrBox.y)
-    expect(cell.char).toBe("─")
+    // HR content "---" is centered with spaces — find it in the row
+    let rowText = ""
+    for (let x = hrBox.x; x < hrBox.x + hrBox.width; x++) {
+      rowText += board.screen.cell(x, hrBox.y).char
+    }
+    expect(rowText).toContain("---")
   }
 })
 
@@ -47,8 +51,13 @@ test("selected HR is yellow", () => {
   const hrBox = board.screen.nodeBox("my-hr")
   expect(hrBox, "HR node should be visible").not.toBeNull()
   if (hrBox) {
-    const cell = board.screen.cell(hrBox.x, hrBox.y)
-    expect(cell.char).toBe("─")
+    // Find the "---" content within the centered row
+    let dashX = -1
+    for (let x = hrBox.x; x < hrBox.x + hrBox.width; x++) {
+      if (board.screen.cell(x, hrBox.y).char === "-") { dashX = x; break }
+    }
+    expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
+    const cell = board.screen.cell(dashX, hrBox.y)
     // Should be yellow (color 3) when selected
     expect(cell.fg, "selected HR should be yellow").toBe(3)
     expect(cell.attrs.dim, "selected HR should not be dim").toBeFalsy()
@@ -63,8 +72,13 @@ test("unselected HR is dimmed", () => {
   const hrBox = board.screen.nodeBox("my-hr")
   expect(hrBox, "HR node should be visible").not.toBeNull()
   if (hrBox) {
-    const cell = board.screen.cell(hrBox.x, hrBox.y)
-    expect(cell.char).toBe("─")
+    // Find the "---" content within the centered row
+    let dashX = -1
+    for (let x = hrBox.x; x < hrBox.x + hrBox.width; x++) {
+      if (board.screen.cell(x, hrBox.y).char === "-") { dashX = x; break }
+    }
+    expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
+    const cell = board.screen.cell(dashX, hrBox.y)
     expect(cell.attrs.dim, "unselected HR should be dim").toBe(true)
   }
 })

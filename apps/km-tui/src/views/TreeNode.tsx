@@ -375,6 +375,16 @@ function TreeNodeImpl({
         repo.updateNode(displayNode.id, { content: newContent })
       }
 
+      // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
+      const trimmed = newContent.trim()
+      const isHRContent = /^[-*_]{3,}$/.test(trimmed)
+      const currentType = displayNode.type
+      if (isHRContent && (currentType === "p" || currentType === "li")) {
+        repo.updateNode(displayNode.id, { type: "hr" })
+      } else if (!isHRContent && currentType === "hr") {
+        repo.updateNode(displayNode.id, { type: "p" })
+      }
+
       setUI({ inlineEditBlock: null })
     },
     [displayNode.id, displayNode.content, repo, setUI, jobRunner, undoHandle],

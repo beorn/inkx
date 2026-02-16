@@ -127,10 +127,10 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
         marginTop={Math.max(0, Math.floor((height - 3) / 2))}
         flexDirection="column"
         borderStyle="single"
-        borderColor="cyan"
+        borderColor="white"
         data-dialog="help"
       >
-        <Text color="cyan">Terminal too small</Text>
+        <Text color="white">Terminal too small</Text>
         <Text dimColor>Press ? or Esc</Text>
       </Box>
     )
@@ -153,7 +153,7 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
 
   return (
     <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop} data-dialog="help">
-      <ModalDialog borderColor="cyan" width={boxWidth} title="Keyboard Shortcuts" footer="Press ? or Esc to close">
+      <ModalDialog width={boxWidth} title="Keyboard Shortcuts" footer="Press ? or Esc to close">
         {shortcuts.map((category) => (
           <Box key={category.category} flexDirection="column">
             <Text bold color="white">

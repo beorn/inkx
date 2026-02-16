@@ -266,7 +266,7 @@ export const MemoizedColumnHeader = React.memo(
 // =============================================================================
 
 export interface ModalDialogProps {
-  /** Border color (default: cyan) */
+  /** Border color (default: white). Cyan is reserved for text input focus rings. */
   borderColor?: string
   /** Dialog title (rendered bold in borderColor) */
   title?: string
@@ -289,13 +289,13 @@ export interface ModalDialogProps {
  *
  * Features:
  * - Solid black background (covers board content)
- * - Double border in cyan (configurable)
+ * - Double border in white (configurable). Cyan reserved for focus rings.
  * - Horizontal padding (2), vertical padding (1)
  * - Title: bold, colored, with spacer below
  * - Footer: centered, dimColor, with spacer above
  */
 export function ModalDialog({
-  borderColor = "cyan",
+  borderColor = "white",
   title,
   titleAlign = "center",
   width,
@@ -357,6 +357,8 @@ export interface InputBoxProps {
   promptColor?: string
   /** Whether to show cursor */
   showCursor?: boolean
+  /** Show cyan focus ring border around input */
+  focusRing?: boolean
 }
 
 /**
@@ -375,11 +377,12 @@ export function InputBox({
   placeholder = "",
   promptColor = "yellow",
   showCursor = true,
+  focusRing = false,
 }: InputBoxProps): React.ReactElement {
   const value = beforeCursor + afterCursor
   const showPlaceholder = !value && placeholder
 
-  return (
+  const content = (
     <Box flexDirection="column">
       <Text>
         {prompt && <Text color={promptColor}>{prompt}</Text>}
@@ -394,10 +397,19 @@ export function InputBox({
         )}
         {showPlaceholder && showCursor && <Text inverse> </Text>}
       </Text>
-      {/* Underline indicator */}
-      <Text dimColor>{"─".repeat(40)}</Text>
+      {!focusRing && <Text dimColor>{"─".repeat(40)}</Text>}
     </Box>
   )
+
+  if (focusRing) {
+    return (
+      <Box borderStyle="round" borderColor="cyan">
+        {content}
+      </Box>
+    )
+  }
+
+  return content
 }
 
 // =============================================================================

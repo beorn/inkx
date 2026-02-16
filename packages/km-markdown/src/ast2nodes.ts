@@ -266,7 +266,7 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
     }
 
     // Handle other block types
-    const blockNode = convertBlock(child, currentParent, sortOrder++)
+    const blockNode = convertBlock(child, currentParent, sortOrder++, sourceText)
     if (blockNode) {
       nodes.push(blockNode)
     }
@@ -395,7 +395,7 @@ function getEmbeddingText(text: string): string | null {
 /**
  * Convert a block element to a node
  */
-function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNode | null {
+function convertBlock(block: RootContent, parent: KNode, sortOrder: number, sourceText: string = ""): KNode | null {
   const now = Date.now()
 
   let type: NodeType
@@ -445,6 +445,11 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNo
 
     case "thematicBreak":
       type = "hr"
+      // Extract raw HR source text to preserve the original marker style (---, ***, ___)
+      if (block.position) {
+        const raw = sourceText.slice(block.position.start.offset, block.position.end.offset).trim()
+        if (raw) content = raw
+      }
       break
 
     case "table":

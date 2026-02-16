@@ -68,7 +68,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
       width={width}
       height={height}
       borderStyle="single"
-      borderColor="cyan"
+      borderColor="white"
       backgroundColor="black"
       paddingX={1}
     >
@@ -211,7 +211,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
       width={width}
       height={height}
       borderStyle="single"
-      borderColor="cyan"
+      borderColor="white"
       backgroundColor="black"
       paddingX={1}
     >

@@ -138,16 +138,15 @@ export function DatePromptDialog({
 
   return (
     <ModalDialog
-      borderColor="cyan"
       title={title}
       width={width}
       height={Math.min(height, 12)}
       footer="Enter confirm  Esc cancel"
     >
       {/* Input field */}
-      <Box flexGrow={1}>
+      <Box borderStyle="round" borderColor="cyan" flexShrink={0}>
         <Text>
-          <Text color="cyan">{"> "}</Text>
+          <Text color="white">{"> "}</Text>
           <Text>{content}</Text>
           <Text inverse> </Text>
         </Text>

@@ -5,6 +5,10 @@
  * correctly across various scenarios: scrolling, narrow terminals,
  * overflow indicators, multi-column layouts, and collapsed columns.
  *
+ * Two card styles:
+ * - Structural cards (oi/sections): always have borders
+ * - Virtual body cards (li/p/hr): borderless by default, yellow border when selected
+ *
  * NOTE: board.screen.nodeBox("id") returns the TreeNode content area
  * INSIDE the Card's border. The Card border is 1 cell outside:
  * - Left border: box.x - 1
@@ -53,20 +57,71 @@ function expectCardBorder(
   }
 }
 
-describe("card border: basic", () => {
-  test("all cards in single column have borders", () => {
+/**
+ * Find the border cell for a body card by scanning left from the nodeBox.
+ * Body cards always render a border (for layout stability), so the border
+ * char may be at box.x - 1 or box.x - 2 depending on internal padding.
+ */
+function findBorderCell(
+  board: ReturnType<typeof testEnv>["board"],
+  nodeId: string,
+): { char: string; fg: string | null } | null {
+  const box = board.screen.nodeBox(nodeId)
+  if (!box) return null
+  for (let x = box.x - 1; x >= 0; x--) {
+    const cell = board.screen.cell(x, box.y)
+    if (isBorderChar(cell.char)) return { char: cell.char, fg: cell.fg }
+  }
+  return null
+}
+
+// ANSI color numbers used by inkx buffer
+const ANSI_BLACK = 0
+const ANSI_YELLOW = 3
+
+/**
+ * Assert that a virtual body card has a transparent (black) border when unselected.
+ * Body cards always have borders for layout stability; the border color indicates state.
+ */
+function expectTransparentBorder(
+  board: ReturnType<typeof testEnv>["board"],
+  nodeId: string,
+) {
+  const cell = findBorderCell(board, nodeId)
+  expect(cell, `node "${nodeId}" should have a border`).not.toBeNull()
+  if (!cell) return
+  expect(
+    cell.fg,
+    `node "${nodeId}" border should be transparent (black/0), got fg=${cell.fg}`,
+  ).toBe(ANSI_BLACK)
+}
+
+describe("card border: structural cards (sections)", () => {
+  test("structural cards always have borders", () => {
     const { board } = testEnv(
-      () => item("board", item("col", item("1a"), item("1b"), item("1c"))),
+      () =>
+        item(
+          "board",
+          item("col", item.section("1a", item("1a-child")), item.section("1b", item("1b-child"))),
+        ),
       { columns: 80, rows: 24 },
     )
     expectCardBorder(board, "1a", 80)
     expectCardBorder(board, "1b", 80)
-    expectCardBorder(board, "1c", 80)
   })
 
   test("borders persist after cursor navigation", () => {
     const { board } = testEnv(
-      () => item("board", item("col", item("1a"), item("1b"), item("1c"))),
+      () =>
+        item(
+          "board",
+          item(
+            "col",
+            item.section("1a", item("1a-child")),
+            item.section("1b", item("1b-child")),
+            item.section("1c", item("1c-child")),
+          ),
+        ),
       { columns: 80, rows: 24 },
     )
     board.press("j")
@@ -76,9 +131,35 @@ describe("card border: basic", () => {
   })
 })
 
+describe("card border: virtual body cards (transparent border)", () => {
+  test("unselected body cards have transparent (black) border", () => {
+    const { board } = testEnv(
+      () => item("board", item("col", item("1a"), item("1b"), item("1c"))),
+      { columns: 80, rows: 24 },
+    )
+    // First card is selected (yellow border), others should have transparent border
+    expectTransparentBorder(board, "1b")
+    expectTransparentBorder(board, "1c")
+  })
+
+  test("selected body card gets yellow border", () => {
+    const { board } = testEnv(
+      () => item("board", item("col", item("1a"), item("1b"), item("1c"))),
+      { columns: 80, rows: 24 },
+    )
+    // Navigate to 1b — it should now have a yellow border
+    board.press("j")
+    const cell = findBorderCell(board, "1b")
+    expect(cell, "1b should have a border").not.toBeNull()
+    expect(cell!.fg, "selected body card should have yellow border").toBe(ANSI_YELLOW)
+    // Unselected card should have transparent border
+    expectTransparentBorder(board, "1c")
+  })
+})
+
 describe("card border: scrolling", () => {
-  test("borders present after scrolling down", () => {
-    const cards = Array.from({ length: 15 }, (_, i) => item(`card-${i}`))
+  test("borders present after scrolling down (structural)", () => {
+    const cards = Array.from({ length: 15 }, (_, i) => item.section(`card-${i}`, item(`card-${i}-child`)))
     const { board } = testEnv(() => item("board", item("col", ...cards)), { rows: 20 })
 
     for (let i = 0; i < 10; i++) board.press("j")
@@ -87,8 +168,8 @@ describe("card border: scrolling", () => {
     if (box) expectCardBorder(board, "card-10", 80)
   })
 
-  test("borders present after scrolling back up", () => {
-    const cards = Array.from({ length: 20 }, (_, i) => item(`card-${i}`))
+  test("borders present after scrolling back up (structural)", () => {
+    const cards = Array.from({ length: 20 }, (_, i) => item.section(`card-${i}`, item(`card-${i}-child`)))
     const { board } = testEnv(() => item("board", item("col", ...cards)), { rows: 20 })
 
     for (let i = 0; i < 15; i++) board.press("j")
@@ -102,17 +183,20 @@ describe("card border: scrolling", () => {
 describe("card border: terminal widths", () => {
   test("narrow terminal (30 cols)", () => {
     const { board } = testEnv(
-      () => item("board", item("col1", item("1a"))),
+      () => item("board", item("col1", item.section("1a", item("1a-child")))),
       { columns: 30 },
     )
     expectCardBorder(board, "1a", 30)
   })
 
   test("narrow terminal with two columns (80 cols)", () => {
-    // At 80 cols, both columns fit side-by-side (maxExpandedCols=2).
-    // Verifies card borders render correctly in a multi-column narrow layout.
     const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
+      () =>
+        item(
+          "board",
+          item("col1", item.section("1a", item("1a-child"))),
+          item("col2", item.section("2a", item("2a-child"))),
+        ),
       { columns: 80 },
     )
     expectCardBorder(board, "1a", 80)
@@ -122,7 +206,7 @@ describe("card border: terminal widths", () => {
 
   test("wide terminal (200 cols)", () => {
     const { board } = testEnv(
-      () => item("board", item("col1", item("1a"))),
+      () => item("board", item("col1", item.section("1a", item("1a-child")))),
       { columns: 200 },
     )
     expectCardBorder(board, "1a", 200)
@@ -133,7 +217,7 @@ describe("card border: overflow indicator", () => {
   test("card with overflow still has left/right borders", () => {
     const children = Array.from({ length: 10 }, (_, i) => item(`c${i}`))
     const { board } = testEnv(
-      () => item("board", item("col", item("parent", ...children))),
+      () => item("board", item("col", item.section("parent", ...children))),
       { columns: 80, rows: 30 },
     )
 
@@ -153,15 +237,15 @@ describe("card border: overflow indicator", () => {
 })
 
 describe("card border: multi-column", () => {
-  test("borders in all columns of 3-column layout", () => {
+  test("borders in all columns of 3-column layout (structural)", () => {
     const cols = 120
     const { board } = testEnv(
       () =>
         item(
           "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a"), item("2b")),
-          item("col3", item("3a"), item("3b")),
+          item("col1", item.section("1a", item("1a-c")), item.section("1b", item("1b-c"))),
+          item("col2", item.section("2a", item("2a-c")), item.section("2b", item("2b-c"))),
+          item("col3", item.section("3a", item("3a-c")), item.section("3b", item("3b-c"))),
         ),
       { columns: cols },
     )
@@ -177,9 +261,9 @@ describe("card border: multi-column", () => {
       () =>
         item(
           "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
+          item("col1", item.section("1a", item("1a-c"))),
+          item("col2", item.section("2a", item("2a-c"))),
+          item("col3", item.section("3a", item("3a-c"))),
         ),
       { columns: cols },
     )
@@ -200,11 +284,11 @@ describe("card border: edge cases", () => {
       () =>
         item(
           "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-          item("col4", item("4a")),
-          item("col5", item("5a")),
+          item("col1", item.section("1a", item("1a-c"))),
+          item("col2", item.section("2a", item("2a-c"))),
+          item("col3", item.section("3a", item("3a-c"))),
+          item("col4", item.section("4a", item("4a-c"))),
+          item("col5", item.section("5a", item("5a-c"))),
         ),
       { columns: cols },
     )
@@ -219,8 +303,8 @@ describe("card border: edge cases", () => {
       () =>
         item(
           "board",
-          item("col1 collapse=true", item("1a")),
-          item("col2", item("2a"), item("2b")),
+          item("col1 collapse=true", item.section("1a", item("1a-c"))),
+          item("col2", item.section("2a", item("2a-c")), item.section("2b", item("2b-c"))),
         ),
       { columns: cols },
     )
@@ -228,9 +312,9 @@ describe("card border: edge cases", () => {
     expectCardBorder(board, "2a", cols)
   })
 
-  test("full border verification: corners and all sides", () => {
+  test("full border verification: corners and all sides (structural card)", () => {
     const { board } = testEnv(
-      () => item("board", item("col", item("task1"))),
+      () => item("board", item("col", item.section("task1", item("task1-c")))),
       { columns: 80, rows: 24 },
     )
 

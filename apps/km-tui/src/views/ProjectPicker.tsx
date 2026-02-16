@@ -303,12 +303,13 @@ export function ProjectPicker({
   return (
     <ModalDialog title="Move to project" width={width} height={height} footer={footerContent}>
       {/* Search input */}
-      <Text>
-        <Text color="yellow">{"/ "}</Text>
-        <Text>{query}</Text>
-        <Text inverse> </Text>
-      </Text>
-      <Text> </Text>
+      <Box borderStyle="round" borderColor="cyan" flexShrink={0}>
+        <Text>
+          <Text color="yellow">{"/ "}</Text>
+          <Text>{query}</Text>
+          <Text inverse> </Text>
+        </Text>
+      </Box>
 
       {/* Options list */}
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
