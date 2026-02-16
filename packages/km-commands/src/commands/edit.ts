@@ -137,6 +137,33 @@ const duplicateNode = {
   },
 } satisfies CommandDef
 
+const clipboardCopy = {
+  id: "clipboard_copy",
+  name: "Copy",
+  description: "Copy selected node(s) to clipboard",
+  category: "Edit",
+  shortcuts: ["Ctrl+C"],
+  execute: () => ({ type: "CLIPBOARD_COPY" }),
+} satisfies CommandDef
+
+const clipboardCut = {
+  id: "clipboard_cut",
+  name: "Cut",
+  description: "Cut selected node(s) to clipboard",
+  category: "Edit",
+  shortcuts: ["Ctrl+X"],
+  execute: () => ({ type: "CLIPBOARD_CUT" }),
+} satisfies CommandDef
+
+const clipboardPaste = {
+  id: "clipboard_paste",
+  name: "Paste",
+  description: "Paste node(s) from clipboard",
+  category: "Edit",
+  shortcuts: ["Ctrl+V"],
+  execute: () => ({ type: "CLIPBOARD_PASTE" }),
+} satisfies CommandDef
+
 export const editCommands: CommandDef[] = [
   enterMoveMode,
   confirmMove,
@@ -152,4 +179,7 @@ export const editCommands: CommandDef[] = [
   insertAbove,
   insertBelow,
   duplicateNode,
+  clipboardCopy,
+  clipboardCut,
+  clipboardPaste,
 ]

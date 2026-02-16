@@ -434,6 +434,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Tab indents (structural: reparent under prev sibling), Shift+Tab outdents
       { key: "Tab", commandId: "indent_node" },
       { key: "Tab", shift: true, commandId: "outdent" },
+
+      // Clipboard
+      { key: "c", ctrl: true, commandId: "clipboard_copy", when: not(textInputFocused) },
+      { key: "x", ctrl: true, commandId: "clipboard_cut", when: not(textInputFocused) },
+      { key: "v", ctrl: true, commandId: "clipboard_paste", when: not(textInputFocused) },
     ],
   },
 

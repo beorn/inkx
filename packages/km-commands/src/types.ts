@@ -408,6 +408,19 @@ interface CancelMoveAction {
 
 type MoveAction = EnterMoveModeAction | ConfirmMoveAction | CancelMoveAction
 
+// Clipboard actions
+interface ClipboardCopyAction {
+  type: "CLIPBOARD_COPY"
+}
+
+interface ClipboardCutAction {
+  type: "CLIPBOARD_CUT"
+}
+
+interface ClipboardPasteAction {
+  type: "CLIPBOARD_PASTE"
+}
+
 interface ShiftUpAction {
   type: "SHIFT_UP"
 }
@@ -476,6 +489,9 @@ export type TUIAction =
   | SetAssigneeAction
   | DatePromptConfirmAction
   | DatePromptCancelAction
+  | ClipboardCopyAction
+  | ClipboardCutAction
+  | ClipboardPasteAction
 
 export type UIAction =
   | ZoomOutwardsAction

@@ -104,6 +104,12 @@ export interface UIState {
     hasMetadata?: boolean
   } | null
 
+  // Clipboard state (in-memory, not system clipboard)
+  clipboard: {
+    nodeIds: string[] // Source node IDs (for resolving content at paste time)
+    mode: "copy" | "cut"
+  } | null
+
   // Bell state - set when action hits boundary, cleared on next keypress
   bellState: string | null
 
@@ -175,6 +181,8 @@ export function createInitialUIState(
     inlineEditBlock: null,
 
     datePrompt: null,
+
+    clipboard: null,
 
     deleteConfirm: null,
 

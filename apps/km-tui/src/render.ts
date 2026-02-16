@@ -255,6 +255,11 @@ ${style.yellow("Card Movement")}
   K               Move card up in column
   J               Move card down in column
 
+${style.yellow("Clipboard")}
+  Ctrl+C          Copy selected node(s)
+  Ctrl+X          Cut selected node(s)
+  Ctrl+V          Paste node(s)
+
 ${style.yellow("Other")}
   /               Search
   ?               This help

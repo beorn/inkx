@@ -455,9 +455,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === Property actions ===
     case "SET_DUE_DATE":
-      return handleSetDatePrompt(ctx, "due_date")
+      return handleSetDatePrompt(ctx, "due_at")
     case "SET_START_DATE":
-      return handleSetDatePrompt(ctx, "scheduled_date")
+      return handleSetDatePrompt(ctx, "start_at")
     case "SET_RECURRING":
       return handleSetDatePrompt(ctx, "recurrence")
     case "SET_PRIORITY":
@@ -467,6 +467,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "DATE_PROMPT_CANCEL":
       ctx.setUI({ datePrompt: null })
       return ok()
+
+    // === Clipboard operations ===
+    case "CLIPBOARD_COPY":
+      return handleClipboardCopy(ctx, "copy")
+    case "CLIPBOARD_CUT":
+      return handleClipboardCopy(ctx, "cut")
+    case "CLIPBOARD_PASTE":
+      return handleClipboardPaste(ctx)
 
     // === Property stubs (future features) ===
     case "SET_LABEL":
@@ -914,7 +922,7 @@ function getSelectedCardNodeIds(ctx: ActionCtx): string[] {
 }
 
 /** Open the date prompt dialog for a given field. */
-function handleSetDatePrompt(ctx: ActionCtx, field: "due_date" | "scheduled_date" | "recurrence"): ActionResult {
+function handleSetDatePrompt(ctx: ActionCtx, field: "due_at" | "start_at" | "recurrence"): ActionResult {
   const nodeIds = getSelectedCardNodeIds(ctx)
   if (nodeIds.length === 0) return boundary(field, "No card selected")
   const firstNodeId = nodeIds[0]
@@ -1031,7 +1039,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
     }
     ctx.toastQueue.info(rrule ? `Recurrence: ${trimmed}` : "Recurrence cleared")
   } else {
-    // Date field: resolve NL → date + time, or clear
+    // Date field: resolve NL → ISO 8601 due_at/start_at, or clear
     if (trimmed) {
       const resolved = resolveDate(trimmed)
       if (!resolved) {
@@ -1039,25 +1047,20 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
         ctx.toastQueue.error("Invalid date: " + trimmed)
         return ok()
       }
-      const dateField = field // "due_date" | "scheduled_date"
-      const timeField = field === "due_date" ? "due_time" : "scheduled_time"
+      // Compose ISO 8601 value: "2026-02-20" or "2026-02-20T14:00"
+      const isoValue = resolved.time ? `${resolved.date}T${resolved.time}` : resolved.date
       for (const nodeId of nodeIds) {
-        const update: Record<string, unknown> = { [dateField]: resolved.date }
-        if (resolved.time) update[timeField] = resolved.time
-        else update[timeField] = null
-        ctx.repo.updateNode(nodeId, update)
+        ctx.repo.updateNode(nodeId, { [field]: isoValue })
       }
       const display = resolved.time ? `${resolved.date} ${resolved.time}` : resolved.date
-      const label = field === "due_date" ? "Due" : "Start"
+      const label = field === "due_at" ? "Due" : "Start"
       ctx.toastQueue.info(`${label}: ${display}`)
     } else {
       // Clear the field
-      const dateField = field
-      const timeField = field === "due_date" ? "due_time" : "scheduled_time"
       for (const nodeId of nodeIds) {
-        ctx.repo.updateNode(nodeId, { [dateField]: null, [timeField]: null })
+        ctx.repo.updateNode(nodeId, { [field]: null })
       }
-      const label = field === "due_date" ? "Due date" : "Start date"
+      const label = field === "due_at" ? "Due date" : "Start date"
       ctx.toastQueue.info(`${label} cleared`)
     }
   }
@@ -1066,5 +1069,108 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
 
   ctx.setUI({ datePrompt: null })
   refreshBoardState(ctx)
+  return ok()
+}
+
+// =============================================================================
+// Clipboard Operations
+// =============================================================================
+
+/** Copy or cut selected nodes to clipboard. */
+function handleClipboardCopy(ctx: ActionCtx, mode: "copy" | "cut"): ActionResult {
+  const cards = getSelectedCards(ctx)
+  if (cards.length === 0) return boundary("clipboard", "No card to copy")
+
+  const nodeIds = cards.map((c) => c.node.id)
+  ctx.setUI({
+    clipboard: { nodeIds, mode },
+  })
+
+  const label = mode === "cut" ? "Cut" : "Copied"
+  ctx.toastQueue.info(`${label} ${nodeIds.length} node${nodeIds.length > 1 ? "s" : ""}`)
+  return ok()
+}
+
+/** Paste nodes from clipboard as siblings after cursor. */
+function handleClipboardPaste(ctx: ActionCtx): ActionResult {
+  const clipboard = ctx.ui.clipboard
+  if (!clipboard) return boundary("clipboard", "Nothing to paste")
+
+  const { layout, repo } = ctx
+  const col = layout.columns[layout.colIndex]
+  if (!col) return boundary("clipboard", "No column")
+
+  // Find current position in siblings
+  const siblings = repo.getChildren(col.node.id)
+  const currentSibIdx = siblings.findIndex((s) => s.id === ctx.cursorNodeId)
+  const currentNode = siblings[currentSibIdx]
+
+  // Calculate sort order: after current node
+  let baseSortOrder: number
+  if (currentNode) {
+    const currentIdx = currentNode.parent_idx ?? 0
+    const nextSibling = siblings[currentSibIdx + 1]
+    const nextIdx = nextSibling?.parent_idx ?? currentIdx + 1
+    // Space out evenly between current and next
+    const gap = (nextIdx - currentIdx) / (clipboard.nodeIds.length + 1)
+    baseSortOrder = currentIdx + gap
+  } else {
+    // No cursor — append at end
+    const lastSibling = siblings[siblings.length - 1]
+    baseSortOrder = (lastSibling?.parent_idx ?? 0) + 1
+  }
+
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch(clipboard.mode === "cut" ? "Cut & Paste" : "Paste")
+
+  let pastedCount = 0
+  for (let i = 0; i < clipboard.nodeIds.length; i++) {
+    const sourceId = clipboard.nodeIds[i]!
+    const sourceNode = repo.getNode(sourceId)
+    if (!sourceNode) continue
+
+    if (clipboard.mode === "cut") {
+      // Move the node to the new position
+      const sortOrder = baseSortOrder + i * 0.001
+      repo.moveNode(sourceId, col.node.id, sortOrder)
+    } else {
+      // Copy: create a new node with same properties
+      const newNode: Record<string, unknown> = {
+        type: sourceNode.type,
+        content: sourceNode.content,
+        parent_idx: baseSortOrder + i * 0.001,
+        data: sourceNode.data ? { ...sourceNode.data } : undefined,
+      }
+      if (sourceNode.task_status) {
+        newNode.task_status = sourceNode.task_status
+        newNode.task_marker = sourceNode.task_marker
+      }
+      if (sourceNode.list_marker) {
+        newNode.list_marker = sourceNode.list_marker
+      }
+      if (sourceNode.fstype) {
+        newNode.fstype = sourceNode.fstype
+      }
+      repo.addNode(col.node.id, newNode)
+    }
+    pastedCount++
+  }
+
+  ctx.undoHandle.endBatch()
+
+  // After cut, clear clipboard (one-time paste)
+  if (clipboard.mode === "cut") {
+    ctx.setUI({ clipboard: null })
+  }
+
+  clearSelection(ctx)
+
+  ctx.toastQueue.info(`Pasted ${pastedCount} node${pastedCount > 1 ? "s" : ""}`)
+
+  refreshBoardState(ctx, {
+    cardIndex: currentSibIdx + pastedCount,
+    usePositionHints: true,
+  })
+
   return ok()
 }
