@@ -162,6 +162,19 @@ export const viewCommand = new Command("view")
               await storageModule!.resolveLinksAsync(createdRepo.database, pendingLinks)
             debug.debug?.(`background link resolution complete: ${resolved} resolved`)
           }
+
+          if (aborted) return
+
+          // km-tui.dated-items-inbox: Evaluate add= rules after background parsing.
+          // discoverOnly skips rule evaluation for instant render. Without this,
+          // @next.md's Inbox add= rules never materialize dated tasks as embeds.
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const ruleCtx = storageModule!.createRuleContext()
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          for (const _ of storageModule!.evaluateAllRules(createdRepo.database, ruleCtx)) {
+            /* exhaust generator */
+          }
+          debug.debug?.("background rule evaluation complete")
         } catch (err) {
           if (!aborted) {
             debug.debug?.(`background parsing/resolution failed: ${String(err)}`)

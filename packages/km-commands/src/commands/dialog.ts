@@ -36,4 +36,11 @@ export const dialogCommands: CommandDef[] = [
     category: "Navigation",
     execute: (): CommandAction => ({ type: "DIALOG_CANCEL" }),
   },
+  {
+    id: "dialog.toggle_search_scope",
+    name: "Toggle Search Scope",
+    description: "Toggle search scope between All and Selected",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "TOGGLE_SEARCH_SCOPE" }),
+  },
 ]

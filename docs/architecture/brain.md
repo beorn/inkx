@@ -1,6 +1,6 @@
 # The Plain Brain
 
-km is an **externalized brain** for humans and AI agents. A headless knowledge engine that turns plain markdown files into a structured, queryable, history-aware knowledge system. Agents and humans operate on the same brain through different **bodies**.
+km is an **externalized brain** for humans and AI agents. A headless knowledge engine that turns plain markdown files into a structured, queryable, history-aware knowledge system. Multiple interfaces — TUI, CLI, AI agents, Obsidian — connect to the same brain simultaneously.
 
 The brain layer adds **structured memory** (SPO triples), **entity modeling** (contacts, events, tasks), and **multi-source event processing** (session transcripts, CalDAV sync, git history) to km's existing node tree. Your data stays in plain markdown — the brain layer derives queryable indexes from it, the same way km already derives backlinks from wikilinks.
 
@@ -8,10 +8,10 @@ The brain layer adds **structured memory** (SPO triples), **entity modeling** (c
 >
 > **Status**: The brain layer is under active development. See [Current State](#current-state) for what's implemented vs planned.
 
-## Brain / Body Architecture
+## Architecture
 
 ```
-Bodies (interfaces):
+Interfaces:
 
 ┌──────────┐  ┌───────────┐  ┌───────────┐  ┌──────────┐
 │ TUI/CLI  │  │Claude Code│  │   pam     │  │ Obsidian │
@@ -45,24 +45,13 @@ Brain (km):     │
 - Queryable indexes (SQLite, FTS5, SPO triples, backlinks)
 - Self-describing (contains agent configs: CLAUDE.md, skills, agent definitions)
 
-**Bodies**: Interfaces that connect to the brain. Multiple simultaneous:
+**Interfaces** (multiple can connect simultaneously):
 - **TUI/CLI** (km-tui, km-cli) — km's native interfaces
 - **Claude Code** — AI agent via .claude/ configs + km CLI + memory tools
 - **pam** (Personal Assistant Machine) — multi-channel AI harness (WhatsApp, email, Telegram)
 - **Obsidian** — human GUI editor (reads/writes same markdown)
 - **Future: web boardliner** — browser interface
 - **Future: MCP server** — tools for any AI agent
-
-## PIM Consolidation
-
-km absorbs features from **kimmi** (a separate contacts/calendar CRDT sync project) and **cloudi** (an experimental AI memory system). The PIM ecosystem simplifies to two things:
-
-| | **km** (brain) | **pam** (body) |
-|---|---|---|
-| **Purpose** | Knowledge engine | Multi-channel AI assistant |
-| **Absorbs** | kimmi (sync), cloudi (memory) | cloudi (channels) |
-| **Contains** | Nodes, SPO memory, entity sync, search | Channel adapters, security harness, conversation state |
-| **Interface** | Library, CLI, MCP, TUI | WhatsApp, email, Telegram, web |
 
 ## Event Source Architecture
 
@@ -110,7 +99,7 @@ New sources are pluggable — implement the EventSource interface, register it.
 
 ## SPO Memory Layer
 
-The SPO (Subject-Predicate-Object) triple store is the agent's structured memory and km's entity modeling layer. It follows the [Cloudi ADR01 specification](../../../cloudi/specs/active/ADR01/).
+The SPO (Subject-Predicate-Object) triple store is the agent's structured memory and km's entity modeling layer. The design builds on the Cloudi ADR01 specification (see [Appendix: PIM Lineage](#appendix-pim-lineage)).
 
 ### What SPOs Provide
 
@@ -305,9 +294,24 @@ SPO → markdown nodes (manual + automatic)
 ### Phase 8: Unified Query
 repo.query() + SPO store merged via RRF
 
+## Appendix: PIM Lineage
+
+km's brain layer absorbs designs from two earlier projects in the PIM monorepo:
+
+- **kimmi** — a contacts/calendar CRDT sync project. km absorbs its sync adapters (CardDAV, CalDAV) as event sources and entity schemas.
+- **cloudi** — an experimental AI memory system. km absorbs its SPO triple store design, cognitive type separation, and confidence accumulation. The full specification lives in Cloudi ADR01 (`~/Code/pim/cloudi/specs/active/ADR01/`; internal, requires cloudi repo checkout).
+
+The PIM ecosystem simplifies to two things:
+
+| | **km** (brain) | **pam** (channels) |
+|---|---|---|
+| **Purpose** | Knowledge engine | Multi-channel AI assistant |
+| **Absorbs** | kimmi (sync), cloudi (memory) | cloudi (channels) |
+| **Contains** | Nodes, SPO memory, entity sync, search | Channel adapters, security harness, conversation state |
+| **Interface** | Library, CLI, MCP, TUI | WhatsApp, email, Telegram, web |
+
 ## References
 
-- Cloudi ADR01 specs (`~/Code/pim/cloudi/specs/active/ADR01/`) — full SPO schema, extraction pipeline, entity shaping, confidence accumulation *(internal reference; requires cloudi repo checkout)*
 - [memory-systems-analysis.md](../explorations/memory-systems-analysis.md) — ENGRAM/AutoMem/Hindsight research evaluation
 - [ENGRAM paper](https://openreview.net/forum?id=D7WqEZzwRR) (ICLR 2026) — cognitive type separation, +31% accuracy
 - [Letta benchmark](https://www.letta.com/blog/benchmarking-ai-agent-memory) — filesystem memory (74% LoCoMo) > Mem0 graph (68.5%)

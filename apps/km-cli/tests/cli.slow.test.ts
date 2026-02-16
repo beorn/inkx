@@ -297,7 +297,7 @@ describe("CLI Integration", () => {
 
     test("should mark task as done by ID prefix", async () => {
       const task = await getTaskByContent("Task to complete")
-      const doneResult = await km(["tasks", "--done", task.id.slice(0, 8)])
+      const doneResult = await km(["tasks", "--done", task.id])
       expectSuccess(doneResult, "Marked as done")
 
       const allTasks = await getAllTasks()
@@ -362,7 +362,7 @@ Some content here.
     test("should show node by ID prefix", async () => {
       const tasks = await getTasks()
       expect(tasks.length).toBeGreaterThan(0)
-      const result = await km(["show", tasks[0]!.id.slice(0, 8)])
+      const result = await km(["show", tasks[0]!.id])
       expect(result.exitCode).toBe(0)
     })
   })
@@ -443,7 +443,7 @@ describe("km task status", () => {
 
   test("should set task status to blocked", async () => {
     const task = await getTaskByContent("Task to toggle")
-    const statusResult = await km(["tasks", "status", task.id.slice(0, 8), "blocked"])
+    const statusResult = await km(["tasks", "status", task.id, "blocked"])
     expectSuccess(statusResult, "blocked")
 
     const afterTasks = await getAllTasks()
@@ -453,7 +453,7 @@ describe("km task status", () => {
 
   test("should set task status to done", async () => {
     const task = await getTaskByContent("Task to toggle")
-    const statusResult = await km(["tasks", "status", task.id.slice(0, 8), "done"])
+    const statusResult = await km(["tasks", "status", task.id, "done"])
     expectSuccess(statusResult, "done")
   })
 
@@ -523,7 +523,7 @@ describe("km init", () => {
       const content = readFileSync(join(dir, "@next.md"), "utf-8")
       expect(content).toContain("# Next Actions")
       expect(content).toContain('## Inbox add="./inbox/**"')
-      expect(content).toContain('add="due:past status:todo"')
+      expect(content).toContain('add="due:past -status:done -status:dropped"')
       expect(content).toContain("default=true")
       expect(content).toContain("## Next")
       expect(content).toContain("## Waiting")
@@ -729,7 +729,7 @@ describe("km done", () => {
 
   test("should mark task as done by ID prefix", async () => {
     const task = await getTaskByContent("Task to mark done")
-    const doneResult = await km(["status", task.id.slice(0, 8), "done"])
+    const doneResult = await km(["status", task.id, "done"])
     expectSuccess(doneResult, "done")
 
     const allTasks = await getAllTasks()

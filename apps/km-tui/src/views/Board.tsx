@@ -394,6 +394,8 @@ export function BoardCore({
                 maxHeight={Math.floor((contentHeight * 2) / 3)}
                 initialInput={ui.searchDialogInitialInput}
                 onConsumeInitialInput={() => setUI({ searchDialogInitialInput: "" })}
+                scope={ui.searchScope}
+                scopeNodeIds={ui.searchScopeNodeIds}
               />
             </DialogBox>
           )}

@@ -11,8 +11,7 @@ AI agent memory landscape. Not a committed vision — a thinking-out-loud docume
 
 km as a **plain brain** — a headless knowledge engine that turns a folder of markdown files
 into a structured, queryable, history-aware knowledge tree. The intelligence layer that sits
-beneath human interfaces and above the filesystem. Agents and humans operate on the same
-brain through different **bodies**.
+beneath human interfaces and above the filesystem. Multiple interfaces — human and AI — connect to the same brain simultaneously.
 
 "Plain" does triple duty:
 - **Plain text** — markdown, no proprietary formats
@@ -35,7 +34,7 @@ Every command sends a message to the renderer. Requires Obsidian to be open (3-5
 km is headless. No GUI dependency. 200ms startup. Embeddable as a TypeScript library.
 Multiple repos simultaneously. Testable with `createBoardDriver()`.
 
-## Brain/Body Architecture
+## Brain Architecture
 
 ```
            ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐
@@ -66,7 +65,7 @@ Multiple repos simultaneously. Testable with `createBoardDriver()`.
 - Queryable indexes (SQLite, FTS5 search)
 - Self-describing (contains agent configs: CLAUDE.md, skills, agent definitions)
 
-**Body**: Interface that connects to the brain. Multiple simultaneous:
+**Interfaces** connect to the brain. Multiple simultaneous:
 - **Obsidian** — human GUI editor (reads/writes same markdown, never knows km exists)
 - **Boardliner TUI** — km's native terminal interface
 - **Boardliner Web** — future browser interface (same board model)
@@ -75,7 +74,7 @@ Multiple repos simultaneously. Testable with `createBoardDriver()`.
 
 ### Already happening today
 
-| Body | Connection |
+| Interface | Connection |
 |---|---|
 | TUI (km-tui) | `import { openRepo }` — direct library |
 | CLI (km-cli) | Wraps library in shell commands |
@@ -90,11 +89,11 @@ The brain contains its own operating manual:
 
 ```
 my-vault/
-├── .obsidian/              # Obsidian body config (ignored by km)
+├── .obsidian/              # Obsidian config (ignored by km)
 ├── .km/                    # Brain state
 │   ├── state.db            # Queryable index
 │   └── events.jsonl        # Full history
-├── .claude/                # Claude Code body config
+├── .claude/                # Claude Code config
 │   ├── CLAUDE.md           # Agent instructions
 │   └── skills/             # Agent capabilities
 ├── inbox/                  # Unprocessed inputs
@@ -103,11 +102,11 @@ my-vault/
 └── archive/                # Completed work
 ```
 
-A new body connects, reads the brain's config, and immediately knows how to work with it.
+A new interface connects, reads the brain's config, and immediately knows how to work with it.
 
 ## Brain Protocol
 
-The interface between brain and any body:
+The interface between the brain and any client:
 
 | Category | Operations | Metaphor |
 |---|---|---|
@@ -171,12 +170,12 @@ Khoj (https://github.com/khoj-ai/khoj) is the closest existing project. It's an 
 assistant that connects to Obsidian vaults — semantic search, custom agents, multi-channel.
 
 **Key difference**: Khoj adds AI **on top** (assistant layer). km adds intelligence
-**underneath** (engine layer). Khoj is a body; km is a brain.
+**underneath** (engine layer). Khoj is an interface; km is the brain.
 
 ### vs Letta/MemGPT
 
 Letta (https://github.com/letta-ai/letta) is the closest architectural precedent for the
-brain/body split. Their tiered memory model:
+brain/interface split. Their tiered memory model:
 - Core memory (in-context) ≈ km's active board state
 - Archival memory (vector DB) ≈ km's SQLite
 - Recall memory (conversation history) ≈ km's event log
@@ -213,7 +212,7 @@ km already has all three: markdown (simple) + ordered tree (structure) + SQLite 
 
 ## pam on km
 
-pam (Personal Assistant Machine) as an AI body layer on top of the km brain:
+pam (Personal Assistant Machine) as an AI interface layer on top of the km brain:
 
 **km provides**: All persistent knowledge (notes, tasks, contacts, events), structured tree,
 full history, query interface, file-system materialization.

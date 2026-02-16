@@ -125,6 +125,209 @@ describe("collapsed column border symmetry", () => {
   })
 })
 
+describe("collapsed column after shift", () => {
+  test("collapsed column borders intact after Meta+l shift right", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("Todo", item("1a"), item("1b")),
+          item("Done", item("2a")),
+          item("Later", item("3a")),
+        ),
+      { columns: 80, rows: 20 },
+    )
+
+    // Navigate to column header level, collapse Todo
+    board.press("k")
+    board.expect("#Todo[data-cursor]").toExist()
+    board.press("c")
+    board.expect("[data-collapsed]").toExist()
+
+    // Shift collapsed Todo column right (swap with Done)
+    board.press("Meta+l")
+    board.expect("#Todo[data-cursor]").toExist()
+
+    // Find the collapsed column box after shift
+    const box = board.screen.nodeBox("Todo")
+    expect(box).not.toBeNull()
+    if (!box) return
+
+    const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
+
+    // Verify borders on all rows — the bug is that left border is shifted right
+    // (too much left margin) and right border is cut off
+    for (let y = box.y; y < box.y + box.height; y++) {
+      const leftCell = board.screen.cell(box.x, y)
+      const rightCell = board.screen.cell(box.x + box.width - 1, y)
+      expect(
+        isBorderChar(leftCell.char),
+        `Row y=${y}: left border at x=${box.x} should be border char but got '${leftCell.char}'`,
+      ).toBe(true)
+      expect(
+        isBorderChar(rightCell.char),
+        `Row y=${y}: right border at x=${box.x + box.width - 1} should be border char but got '${rightCell.char}'`,
+      ).toBe(true)
+    }
+  })
+
+  test("collapsed column width stays narrow after Meta+l shift", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("Todo", item("1a"), item("1b")),
+          item("Done", item("2a")),
+          item("Later", item("3a")),
+        ),
+      { columns: 80, rows: 20 },
+    )
+
+    // Collapse Todo and shift right
+    board.press("k")
+    board.press("c")
+    board.press("Meta+l")
+
+    // The collapsed column should still be narrow (COLLAPSED_WIDTH = 3)
+    const collapsed = board.q("[data-collapsed]")
+    expect(collapsed.count()).toBe(1)
+    const bbox = collapsed.boundingBox()
+    expect(bbox).not.toBeNull()
+    expect(bbox!.width).toBeLessThanOrEqual(5)
+  })
+
+  test("collapsed column has no extra left margin after shift", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("Todo", item("1a"), item("1b")),
+          item("Done", item("2a")),
+          item("Later", item("3a")),
+        ),
+      { columns: 80, rows: 20 },
+    )
+
+    // Collapse Todo and shift right
+    board.press("k")
+    board.press("c")
+    board.press("Meta+l")
+
+    const box = board.screen.nodeBox("Todo")
+    expect(box).not.toBeNull()
+    if (!box) return
+
+    const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
+
+    // Scan the top row: first border char should be at box.x (no left margin)
+    let firstBorderX = -1
+    for (let x = box.x; x < box.x + box.width; x++) {
+      const cell = board.screen.cell(x, box.y)
+      if (isBorderChar(cell.char)) {
+        firstBorderX = x
+        break
+      }
+    }
+    expect(
+      firstBorderX,
+      `First border char should be at box.x=${box.x}, got ${firstBorderX}`,
+    ).toBe(box.x)
+  })
+
+  test("incremental render matches fresh after collapse + shift", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("Todo", item("1a"), item("1b")),
+          item("Done", item("2a")),
+          item("Later", item("3a")),
+        ),
+      { columns: 80, rows: 20, incremental: true },
+    )
+
+    // Collapse Todo and shift right
+    board.press("k")
+    board.press("c")
+    board.press("Meta+l")
+
+    const incBuffer = board._result.lastBuffer()!
+    const freshBuffer = board._result.freshRender()
+
+    // Compare buffers cell-by-cell
+    for (let y = 0; y < incBuffer.height; y++) {
+      for (let x = 0; x < incBuffer.width; x++) {
+        const a = incBuffer.getCell(x, y)
+        const b = freshBuffer.getCell(x, y)
+        if (a.char !== b.char || JSON.stringify(a.fg) !== JSON.stringify(b.fg) || JSON.stringify(a.bg) !== JSON.stringify(b.bg) || JSON.stringify(a.attrs) !== JSON.stringify(b.attrs)) {
+          expect.fail(
+            `Cell mismatch at (${x},${y}): ` +
+              `inc={char:${JSON.stringify(a.char)} fg:${JSON.stringify(a.fg)} bg:${JSON.stringify(a.bg)} attrs:${JSON.stringify(a.attrs)}} ` +
+              `fresh={char:${JSON.stringify(b.char)} fg:${JSON.stringify(b.fg)} bg:${JSON.stringify(b.bg)} attrs:${JSON.stringify(b.attrs)}}`,
+          )
+        }
+      }
+    }
+  })
+
+  test("collapsed column at different positions renders correctly", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("Alpha", item("a1")),
+          item("Beta", item("b1")),
+          item("Gamma", item("c1")),
+          item("Delta", item("d1")),
+        ),
+      { columns: 120, rows: 20 },
+    )
+
+    // Navigate to Beta, collapse it
+    board.press("l").press("k")
+    board.expect("#Beta[data-cursor]").toExist()
+    board.press("c")
+
+    // Shift collapsed Beta right (past Gamma)
+    board.press("Meta+l")
+    board.expect("#Beta[data-cursor]").toExist()
+
+    // Verify Beta is still narrow and has proper borders
+    const betaBox = board.screen.nodeBox("Beta")
+    expect(betaBox).not.toBeNull()
+    if (!betaBox) return
+
+    expect(betaBox.width).toBeLessThanOrEqual(5)
+
+    const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
+    for (let y = betaBox.y; y < betaBox.y + betaBox.height; y++) {
+      const leftCell = board.screen.cell(betaBox.x, y)
+      const rightCell = board.screen.cell(betaBox.x + betaBox.width - 1, y)
+      expect(
+        isBorderChar(leftCell.char),
+        `Row y=${y}: left at x=${betaBox.x} got '${leftCell.char}'`,
+      ).toBe(true)
+      expect(
+        isBorderChar(rightCell.char),
+        `Row y=${y}: right at x=${betaBox.x + betaBox.width - 1} got '${rightCell.char}'`,
+      ).toBe(true)
+    }
+
+    // Also check visual order: Alpha, Gamma, Beta(collapsed), Delta
+    const alphaBox = board.screen.nodeBox("Alpha")
+    const gammaBox = board.screen.nodeBox("Gamma")
+    const deltaBox = board.screen.nodeBox("Delta")
+    expect(alphaBox).not.toBeNull()
+    expect(gammaBox).not.toBeNull()
+    expect(deltaBox).not.toBeNull()
+    if (alphaBox && gammaBox && deltaBox) {
+      expect(alphaBox.x).toBeLessThan(gammaBox.x)
+      expect(gammaBox.x).toBeLessThan(betaBox.x)
+      expect(betaBox.x).toBeLessThan(deltaBox.x)
+    }
+  })
+})
+
 // =============================================================================
 // Bug 2: After uncollapsing, header doesn't show
 // =============================================================================

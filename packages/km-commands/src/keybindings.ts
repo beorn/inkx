@@ -291,6 +291,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "ArrowDown", commandId: "dialog.nav_down", when: anyDialogOpen },
       { key: "p", ctrl: true, commandId: "dialog.nav_up", when: anyDialogOpen },
       { key: "n", ctrl: true, commandId: "dialog.nav_down", when: anyDialogOpen },
+      { key: "Tab", commandId: "dialog.toggle_search_scope", when: searchDialogOpen },
     ],
   },
 

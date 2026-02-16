@@ -31,9 +31,24 @@ interface SearchResult {
 /**
  * Search using storage-level FTS and enrich results with display info.
  * FTS5 handles ranking internally (ORDER BY rank), so no client-side scoring needed.
+ *
+ * When scopeNodeIds is provided, results are filtered to only include nodes
+ * that are descendants of the scope nodes (or the scope nodes themselves).
  */
-function searchNodes(repo: Repo, query: string): SearchResult[] {
+function searchNodes(repo: Repo, query: string, scopeNodeIds?: string[]): SearchResult[] {
   const nodes = repo.search(query)
+
+  // Build scope set: all descendants of scope nodes (for "selected" scope)
+  let scopeSet: Set<string> | null = null
+  if (scopeNodeIds && scopeNodeIds.length > 0) {
+    scopeSet = new Set<string>()
+    for (const nodeId of scopeNodeIds) {
+      const subtree = repo.getSubtree(nodeId)
+      for (const n of subtree) {
+        scopeSet.add(n.id)
+      }
+    }
+  }
 
   const results: SearchResult[] = []
   for (const node of nodes) {
@@ -41,6 +56,8 @@ function searchNodes(repo: Repo, query: string): SearchResult[] {
     if (node.type === "oi" && node.fstype === "folder") continue
     // Skip links (search target instead)
     if (node.link_to) continue
+    // Skip nodes outside scope
+    if (scopeSet && !scopeSet.has(node.id)) continue
 
     const title = getNodeDisplayName(repo, node)
     const parentContext = getParentName(node, repo.getNode.bind(repo), (n) => getNodeDisplayName(repo, n))
@@ -109,6 +126,10 @@ interface SearchDialogProps {
   initialInput?: string
   /** Callback to clear the buffer after consuming it */
   onConsumeInitialInput?: () => void
+  /** Search scope: "all" = entire repo, "selected" = cursor node & descendants */
+  scope?: "all" | "selected"
+  /** Node IDs defining scope when scope is "selected" */
+  scopeNodeIds?: string[]
 }
 
 interface SearchDialogHandle {
@@ -117,7 +138,7 @@ interface SearchDialogHandle {
 }
 
 export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogProps>(function SearchDialog(
-  { onSelect, onCancel, width, maxHeight, initialInput, onConsumeInitialInput },
+  { onSelect, onCancel, width, maxHeight, initialInput, onConsumeInitialInput, scope = "all", scopeNodeIds },
   ref,
 ): React.ReactElement {
   const repo = useRepo()
@@ -136,12 +157,19 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
     }
   }, []) // Only on mount
 
+  // Reset selection when scope changes
+  React.useEffect(() => {
+    setSelectedIndex(0)
+  }, [scope])
+
   const trimmedQuery = lineEdit.value.trim()
 
   // Run FTS query on each query change (FTS5 queries are fast, typically <1ms)
+  // When scope is "selected", filter results to cursor subtree
+  const effectiveScopeNodeIds = scope === "selected" ? scopeNodeIds : undefined
   const results = React.useMemo(
-    () => (trimmedQuery.length >= MIN_QUERY_LENGTH ? searchNodes(repo, trimmedQuery) : []),
-    [repo, trimmedQuery],
+    () => (trimmedQuery.length >= MIN_QUERY_LENGTH ? searchNodes(repo, trimmedQuery, effectiveScopeNodeIds) : []),
+    [repo, trimmedQuery, effectiveScopeNodeIds],
   )
 
   React.useImperativeHandle(ref, () => ({
@@ -206,16 +234,22 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
       : Math.min(resultCount || 1, maxVisible) // results or "No matching items"
   const dialogHeight = Math.min(DIALOG_CHROME + contentRows, maxHeight)
 
+  const scopeLabel = scope === "all" ? "All" : "Selected"
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>↑↓ nav Enter go Esc cancel</Text>
-      {resultCount > maxVisible && (
-        <Text dimColor>
-          {scrollOffset > 0 ? "↑" : " "}
-          {` ${selectedIndex + 1}/${resultCount} `}
-          {scrollOffset + maxVisible < resultCount ? "↓" : " "}
+      <Text dimColor>↑↓ nav Enter go Tab scope Esc cancel</Text>
+      <Box flexDirection="row" gap={1}>
+        <Text dimColor={scope === "all"} color={scope === "selected" ? "cyan" : undefined}>
+          [{scopeLabel}]
         </Text>
-      )}
+        {resultCount > maxVisible && (
+          <Text dimColor>
+            {scrollOffset > 0 ? "↑" : " "}
+            {` ${selectedIndex + 1}/${resultCount} `}
+            {scrollOffset + maxVisible < resultCount ? "↓" : " "}
+          </Text>
+        )}
+      </Box>
     </Box>
   )
 

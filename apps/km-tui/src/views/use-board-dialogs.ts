@@ -180,13 +180,13 @@ export function useBoardDialogs({
         const errMsg = `search: node not found in repo: ${targetNode.id}`
         log.error?.(errMsg)
         console.error(errMsg)
-        setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
+        setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
         return
       }
 
       // If target IS the current root, just close dialog (already viewing it)
       if (target.id === rootId) {
-        setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
+        setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
         return
       }
 
@@ -207,7 +207,7 @@ export function useBoardDialogs({
           // Select current (the card), not the deeply nested target
           log.debug?.(`search: SELECT card at depth ${depth}: ${current.id.slice(-8)}`)
           dispatchBoard({ type: "SELECT", nodeId: current.id })
-          setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
+          setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
           return
         }
         if (parentId === rootId) {
@@ -233,13 +233,13 @@ export function useBoardDialogs({
         cursorNodeId: cursorTarget.id,
       })
 
-      setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
+      setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
     },
     [repo, setUI, dispatchBoard, rootId],
   )
 
   const handleSearchCancel = useCallback(() => {
-    setUI({ showSearchDialog: false, searchDialogInitialInput: "" })
+    setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
   }, [setUI])
 
   // Date prompt: confirm handler reads input from blockEditTargetRef and resolves dates

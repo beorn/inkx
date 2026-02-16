@@ -306,7 +306,9 @@ function TreeNodeImpl({
   // For inline editing, use the actual node content (not display name fallback).
   // This ensures new nodes with empty content show an empty edit field,
   // not the short ID that getNodeDisplayName returns as fallback.
-  const editContent = nodeIsTask ? stripTaskMark(displayNode.content ?? "") : (displayNode.content ?? "")
+  // HR nodes with no content default to "---" (their canonical representation).
+  const rawEditContent = displayNode.content ?? (displayNode.type === "hr" ? "---" : "")
+  const editContent = nodeIsTask ? stripTaskMark(rawEditContent) : rawEditContent
 
   // Compute body/structural split when editing (for per-block navigation)
   const { bodyChildren, structuralChildren } = useMemo(() => {
@@ -647,11 +649,11 @@ function TreeNodeImpl({
               </Text>
             </Box>
           )}
-          {/* Right-aligned: child count — NEVER dimmed, always readable gray */}
+          {/* Right-aligned: child count — gray normally, black when selected */}
           {/* Bold when children are hidden (folded) to signal "N items hidden". */}
           {hasChildren && (
             <Box flexShrink={0}>
-              <Text bold={childrenHidden} color="gray">
+              <Text bold={childrenHidden} color={isHighlighted ? style.textColor : "gray"}>
                 {` ${childCount}`}
               </Text>
             </Box>

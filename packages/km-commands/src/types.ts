@@ -250,6 +250,10 @@ interface DeleteConfirmCancelAction {
   type: "DELETE_CONFIRM_CANCEL"
 }
 
+interface ToggleSearchScopeAction {
+  type: "TOGGLE_SEARCH_SCOPE"
+}
+
 interface ToastDismissAction {
   type: "TOAST_DISMISS"
 }
@@ -464,6 +468,7 @@ export type TUIAction =
   | DialogNavDownAction
   | DialogConfirmAction
   | DialogCancelAction
+  | ToggleSearchScopeAction
   | ConsoleToggleAction
   | ConsoleCloseAction
   | DeleteConfirmExecuteAction

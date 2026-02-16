@@ -116,6 +116,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.setUI({
         showSearchDialog: true,
         searchDialogInitialInput: "",
+        searchScope: "all",
+        searchScopeNodeIds: ctx.cursorNodeId ? [ctx.cursorNodeId] : [],
         inOutlineMode: false,
         subIndex: 0,
         showDetailPane: false,
@@ -606,6 +608,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "DIALOG_CANCEL":
       dialogTargetRef.current?.cancel()
+      return ok()
+
+    case "TOGGLE_SEARCH_SCOPE":
+      ctx.setUI((prev) => ({
+        searchScope: prev.searchScope === "all" ? "selected" : "all",
+      }))
       return ok()
 
     // === Modal commands (routed through command system via when predicates) ===

@@ -32,6 +32,10 @@ export interface UIState {
   showNewItemDialog: boolean
   showSearchDialog: boolean
   searchDialogInitialInput: string // Buffer for keypresses during dialog open transition
+  /** Search scope: "all" = entire repo, "selected" = cursor node & descendants */
+  searchScope: "all" | "selected"
+  /** Node IDs that define the search scope when searchScope is "selected" */
+  searchScopeNodeIds: string[]
   showConsole: boolean
 
   // Selection state (selectionLevel is now derived from cursor depth in Board.tsx)
@@ -144,6 +148,8 @@ export function createInitialUIState(
     showNewItemDialog: false,
     showSearchDialog: false,
     searchDialogInitialInput: "",
+    searchScope: "all",
+    searchScopeNodeIds: [],
     showConsole: false,
 
     subIndex: 0,
