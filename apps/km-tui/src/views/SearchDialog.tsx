@@ -234,27 +234,22 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
       : Math.min(resultCount || 1, maxVisible) // results or "No matching items"
   const dialogHeight = Math.min(DIALOG_CHROME + contentRows, maxHeight)
 
-  const scopeLabel = scope === "all" ? "All" : "Selected"
+  const scopeLabel = scope === "all" ? "All" : "Subtree"
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>↑↓ nav Enter go Tab scope Esc cancel</Text>
-      <Box flexDirection="row" gap={1}>
-        <Text dimColor={scope === "all"} color={scope === "selected" ? "cyan" : undefined}>
-          [{scopeLabel}]
+      <Text dimColor>↑↓ nav  Enter go  Tab ↔ scope  Esc cancel</Text>
+      {resultCount > maxVisible && (
+        <Text dimColor>
+          {scrollOffset > 0 ? "↑" : " "}
+          {` ${selectedIndex + 1}/${resultCount} `}
+          {scrollOffset + maxVisible < resultCount ? "↓" : " "}
         </Text>
-        {resultCount > maxVisible && (
-          <Text dimColor>
-            {scrollOffset > 0 ? "↑" : " "}
-            {` ${selectedIndex + 1}/${resultCount} `}
-            {scrollOffset + maxVisible < resultCount ? "↓" : " "}
-          </Text>
-        )}
-      </Box>
+      )}
     </Box>
   )
 
   return (
-    <ModalDialog title="Search" width={width} height={dialogHeight} footer={footerContent}>
+    <ModalDialog title={`Search (${scopeLabel})`} width={width} height={dialogHeight} footer={footerContent}>
       {/* Search input with readline editing - flexShrink=0 prevents being pushed out */}
       <Box flexShrink={0}>
         <InputBox beforeCursor={lineEdit.beforeCursor} afterCursor={lineEdit.afterCursor} />

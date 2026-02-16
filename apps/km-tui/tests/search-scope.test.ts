@@ -36,27 +36,27 @@ describe("Search scope: UI toggle", () => {
     const { board } = makeBoard()
     board.press("/")
     const text = dialogText(board)
-    expect(text).toContain("All")
-    expect(text).toContain("Tab scope")
+    expect(text).toContain("Search (All)")
+    expect(text).toContain("Tab ↔ scope")
   })
 
-  test("Tab toggles scope to 'Selected' and back to 'All'", () => {
+  test("Tab toggles scope to 'Subtree' and back to 'All'", () => {
     const { board } = makeBoard()
     board.press("/")
 
     // Initially "All"
     let text = dialogText(board)
-    expect(text).toContain("[All]")
+    expect(text).toContain("Search (All)")
 
-    // Tab switches to "Selected"
+    // Tab switches to "Subtree"
     board.press("Tab")
     text = dialogText(board)
-    expect(text).toContain("[Selected]")
+    expect(text).toContain("Search (Subtree)")
 
     // Tab switches back to "All"
     board.press("Tab")
     text = dialogText(board)
-    expect(text).toContain("[All]")
+    expect(text).toContain("Search (All)")
   })
 })
 
@@ -77,13 +77,13 @@ describe("Search scope: result filtering", () => {
     expect(text).toContain("Delta")
   })
 
-  test("'Selected' scope restricts results to cursor node descendants", () => {
+  test("'Subtree' scope restricts results to cursor node descendants", () => {
     const { board } = makeBoard()
 
     // Cursor starts on first card ("Alpha project" which has children)
-    // Open search, switch to Selected scope
+    // Open search, switch to Subtree scope
     board.press("/")
-    board.press("Tab") // Switch to "Selected" scope
+    board.press("Tab") // Switch to "Subtree" scope
 
     // Search for "subtask" — only Alpha project descendants should match
     board.press("s").press("u").press("b")
@@ -97,12 +97,12 @@ describe("Search scope: result filtering", () => {
     expect(text).not.toContain("Delta")
   })
 
-  test("'Selected' scope with query matching nothing in subtree shows no results", () => {
+  test("'Subtree' scope with query matching nothing in subtree shows no results", () => {
     const { board } = makeBoard()
 
     // Cursor starts on "Alpha project"
     board.press("/")
-    board.press("Tab") // Selected scope
+    board.press("Tab") // Subtree scope
 
     // Search for "Delta" — not a descendant of Alpha
     board.press("D").press("e").press("l")
@@ -123,7 +123,7 @@ describe("Search scope: result filtering", () => {
     expect(text).toContain("Gamma")
     expect(text).toContain("Delta")
 
-    // Switch to Selected scope (cursor is on Alpha project)
+    // Switch to Subtree scope (cursor is on Alpha project)
     // Alpha project descendants include Alpha subtask one/two but they don't match "proj"
     // Alpha project itself is a folder (skipped). So only Alpha's leaf descendants matching "proj" would show.
     board.press("Tab")
@@ -142,7 +142,7 @@ describe("Search scope: scope node capture", () => {
     // Move cursor to second card (Beta project)
     board.press("j")
 
-    // Open search with Selected scope
+    // Open search with Subtree scope
     board.press("/")
     board.press("Tab")
 

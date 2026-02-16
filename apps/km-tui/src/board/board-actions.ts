@@ -19,7 +19,7 @@ import type { CommandAction } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createLogger } from "@beorn/logger"
 import * as chrono from "chrono-node"
-import { naturalToRRule } from "@km/storage"
+import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
 import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
 import { assertNever } from "../action-handlers.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
@@ -1074,6 +1074,14 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
   }
 
   if (useBatch) ctx.undoHandle.endBatch()
+
+  // Re-evaluate add= rules so @next Inbox picks up newly-dated tasks
+  if (ctx.repo.database) {
+    const ruleCtx = createRuleContext()
+    for (const nodeId of nodeIds) {
+      onNodeChanged(ctx.repo.database, nodeId, ruleCtx)
+    }
+  }
 
   ctx.setUI({ datePrompt: null })
   refreshBoardState(ctx)

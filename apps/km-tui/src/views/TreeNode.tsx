@@ -583,7 +583,7 @@ function TreeNodeImpl({
           flexDirection="row"
           alignItems="flex-start"
           paddingLeft={Math.max(0, depth - 1)}
-          backgroundColor={style.backgroundColor}
+          backgroundColor={isInlineEditing && isHR ? "yellow" : style.backgroundColor}
           height={isOneliner || isCardChild ? 1 : undefined}
         >
           {/* Fixed-width prefix box (fold marker only - new cards style) */}
@@ -599,7 +599,7 @@ function TreeNodeImpl({
           {/* overflow="hidden" for oneliner and card children to enable truncation */}
           <Box flexGrow={1} flexShrink={1} overflow={isOneliner || isCardChild ? "hidden" : undefined}>
             {editingTitle ? (
-              <Text color={style.textColor} wrap={isOneliner || isCardChild ? "truncate" : "wrap"}>
+              <Text color={isHR ? "black" : style.textColor} wrap={isOneliner || isCardChild ? "truncate" : "wrap"}>
                 <InlineEditField
                   initialValue={editContent}
                   onConfirm={handleInlineEditConfirm}
