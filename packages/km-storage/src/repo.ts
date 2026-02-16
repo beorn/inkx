@@ -47,7 +47,7 @@ import { createDiskFileTree } from "./file-tree.ts"
 import { executeQuery, parseQuery } from "./query.ts"
 import { type MutationContext, type RepoHooks } from "./repo-hooks.ts"
 import { loadRepo, type DeferredFile, type LoadError, type StepYield } from "./repo-loader.ts"
-import { SCHEMA } from "./schema.ts"
+import { SCHEMA, migrateSchema } from "./schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 import { FsWriter } from "./watch/fs-writer.ts"
 
@@ -945,6 +945,7 @@ function* initWithFileLoading(
     }
     const dbPath = join(kmDir, "state.db")
     db = new Database(dbPath)
+    migrateSchema(db)
     db.run(SCHEMA)
   } else {
     db = new Database(":memory:")
@@ -1033,6 +1034,7 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
 
     const dbPath = join(kmDir, "state.db")
     db = new Database(dbPath)
+    migrateSchema(db)
     db.run(SCHEMA)
     dataStore = createDBDataStore(db, { emitter })
   } else {

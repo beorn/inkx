@@ -7,7 +7,7 @@
 import { createLogger } from "@beorn/logger"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode, TaskStatus } from "@km/core"
-import { getMarkerForStatus } from "@km/core"
+import { getMarkerForStatus, decomposeDatetime } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 
 const log = createLogger("km:markdown:nodes2md")
@@ -403,14 +403,18 @@ function appendTaskMetadata(node: KNode): string {
   let content = node.content ?? ""
   const metadata: string[] = []
 
-  if (node.due_date && !content.includes("📅") && !/\bdue:\d{4}-\d{2}-\d{2}\b/.test(content)) {
-    const dueSuffix = node.due_time ? `T${node.due_time}` : ""
-    metadata.push(`📅 ${node.due_date}${dueSuffix}`)
+  // Use due_at/start_at (preferred) with fallback to legacy fields
+  const dueParts = decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)
+  const startParts = decomposeDatetime(node.start_at) ?? (node.scheduled_date ? { date: node.scheduled_date, time: node.scheduled_time } : undefined)
+
+  if (dueParts?.date && !content.includes("📅") && !/\bdue:\d{4}-\d{2}-\d{2}\b/.test(content)) {
+    const dueSuffix = dueParts.time ? `T${dueParts.time}` : ""
+    metadata.push(`📅 ${dueParts.date}${dueSuffix}`)
   }
 
-  if (node.scheduled_date && !content.includes("⏳") && !/\bstart:\d{4}-\d{2}-\d{2}\b/.test(content)) {
-    const schedSuffix = node.scheduled_time ? `T${node.scheduled_time}` : ""
-    metadata.push(`⏳ ${node.scheduled_date}${schedSuffix}`)
+  if (startParts?.date && !content.includes("⏳") && !/\bstart:\d{4}-\d{2}-\d{2}\b/.test(content)) {
+    const schedSuffix = startParts.time ? `T${startParts.time}` : ""
+    metadata.push(`⏳ ${startParts.date}${schedSuffix}`)
   }
 
   if (node.priority && !content.match(/[⏫🔼🔽]/)) {

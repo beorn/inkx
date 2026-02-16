@@ -175,10 +175,10 @@ export async function* applyNodes(
     INSERT INTO nodes (
       id, type, fstype, parent_id, link_to, link_alias, parent_idx,
       fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
-      list_marker, task_marker, task_status, assigned_to, due_date, scheduled_date, priority,
+      list_marker, task_marker, task_status, assigned_to, due_at, start_at, due_date, scheduled_date, priority,
       content, content_hash, data,
       created_at, updated_at, version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const now = Date.now()
@@ -430,6 +430,8 @@ function insertFileNodes(
       node.task_marker ?? null,
       node.task_status ?? null,
       node.assigned_to ?? null,
+      node.due_at ?? null,
+      node.start_at ?? null,
       node.due_date ?? null,
       node.scheduled_date ?? null,
       node.priority ?? null,

@@ -9,6 +9,7 @@
 import React from "react"
 import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
+import { decomposeDatetime } from "@km/core"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderRich, renderPlain, getNodeIcon } from "../text/index.ts"
@@ -131,9 +132,11 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
   const innerWidth = Math.max(10, width - 6) // Account for border + paddingX(1)
   const title = getNodeDisplayName(repo, node)
 
-  // Get fields
+  // Get fields — use due_at/start_at (preferred), fall back to legacy
   const statusInfo = getStatusDisplay(node.task_status)
-  const dueDate = formatDate(node.due_date)
+  const dueParts = decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)
+  const startParts = decomposeDatetime(node.start_at) ?? (node.scheduled_date ? { date: node.scheduled_date, time: node.scheduled_time } : undefined)
+  const dueDate = formatDate(dueParts?.date)
   const assignedTo = node.assigned_to
 
   // Get project path
@@ -261,17 +264,17 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
               >
                 {dueDate.text}
               </Text>
-              {node.due_time && <Text dimColor> {node.due_time}</Text>}
+              {dueParts?.time && <Text dimColor> {dueParts.time}</Text>}
             </Text>
           </Box>
         )}
 
-        {node.scheduled_date && (
+        {startParts?.date && (
           <Box>
             <Text>
               <Text dimColor>Start: </Text>
-              <Text>{formatDate(node.scheduled_date).text}</Text>
-              {node.scheduled_time && <Text dimColor> {node.scheduled_time}</Text>}
+              <Text>{formatDate(startParts.date).text}</Text>
+              {startParts.time && <Text dimColor> {startParts.time}</Text>}
             </Text>
           </Box>
         )}

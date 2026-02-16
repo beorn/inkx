@@ -400,8 +400,9 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus
 
     // Recurrence: when a recurring task transitions to "done", clone it with next due date
-    if (nextStatus === "done" && targetNode?.recurrence && targetNode.due_date) {
-      const nextDue = getNextOccurrence(targetNode.recurrence, targetNode.due_date)
+    const dueDate = targetNode?.due_date
+    if (nextStatus === "done" && targetNode?.recurrence && dueDate) {
+      const nextDue = getNextOccurrence(targetNode.recurrence, dueDate)
       // Mark current task done with completion timestamp
       ctx.repo.updateNode(targetId, {
         task_status: "done",
@@ -410,6 +411,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
       })
       if (nextDue) {
         // Clone task with next due date, reset to todo
+        // Compose due_at from the next due date + existing time
+        const nextDueAt = targetNode.due_time ? `${nextDue}T${targetNode.due_time}` : nextDue
         const parentId = targetNode.parent_id
         if (parentId) {
           ctx.repo.addNode(parentId, {
@@ -418,10 +421,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
             task_status: "todo",
             task_marker: "[ ]",
             list_marker: targetNode.list_marker,
-            due_date: nextDue,
-            due_time: targetNode.due_time,
-            scheduled_date: targetNode.scheduled_date,
-            scheduled_time: targetNode.scheduled_time,
+            due_at: nextDueAt,
+            start_at: targetNode.start_at,
             recurrence: targetNode.recurrence,
             priority: targetNode.priority,
             assigned_to: targetNode.assigned_to,

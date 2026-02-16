@@ -44,14 +44,14 @@ function getPreview(field: string, input: string): { text: string; color: string
 }
 
 const FIELD_TITLES: Record<string, string> = {
-  due_date: "Set Due Date",
-  scheduled_date: "Set Start Date",
+  due_at: "Set Due Date",
+  start_at: "Set Start Date",
   recurrence: "Set Recurrence",
 }
 
 const FIELD_HINTS: Record<string, string> = {
-  due_date: "today, fri, +3d, jan 15, next tue 3pm, 2026-03-01",
-  scheduled_date: "today, fri, +3d, jan 15, next tue 3pm, 2026-03-01",
+  due_at: "today, fri, +3d, jan 15, next tue 3pm, 2026-03-01",
+  start_at: "today, fri, +3d, jan 15, next tue 3pm, 2026-03-01",
   recurrence: "daily, every week, every mon, every 2 weeks, monthly",
 }
 

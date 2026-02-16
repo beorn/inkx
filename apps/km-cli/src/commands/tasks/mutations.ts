@@ -45,8 +45,8 @@ export async function createTask(
     task_marker: "[ ]",
     content: content,
     task_status: "todo" as TaskStatus,
-    due_date: metadata.dueDate,
-    scheduled_date: metadata.scheduledDate,
+    due_at: metadata.dueDate,
+    start_at: metadata.scheduledDate,
     priority: metadata.priority,
     data: tags.length > 0 ? { tags } : {},
   })

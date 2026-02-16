@@ -72,7 +72,7 @@ function handleRecurringTask(repo: Repo, node: KNode, options: { json?: boolean 
 
   // Clone the task with new due date
   const newId = repo.cloneTask(node.id, {
-    due_date: nextDue,
+    due_at: nextDue,
     task_status: "todo",
     task_marker: "[ ]",
   })

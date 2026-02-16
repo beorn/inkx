@@ -38,8 +38,10 @@ CREATE TABLE IF NOT EXISTS nodes (
   -- Task
   task_status TEXT,
   assigned_to TEXT,
-  due_date TEXT,
-  scheduled_date TEXT,
+  due_at TEXT,       -- ISO 8601: "2026-02-20" or "2026-02-20T14:00"
+  start_at TEXT,     -- ISO 8601: same format as due_at
+  due_date TEXT,     -- Legacy: YYYY-MM-DD (kept for backward compat, derived from due_at)
+  scheduled_date TEXT, -- Legacy: YYYY-MM-DD (kept for backward compat, derived from start_at)
   priority INTEGER,
 
   -- Content
@@ -61,6 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_nodes_fs_ino ON nodes(fs_ino);
 CREATE INDEX IF NOT EXISTS idx_nodes_fstype ON nodes(fstype);
 CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
 CREATE INDEX IF NOT EXISTS idx_nodes_assigned ON nodes(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_nodes_due_at ON nodes(due_at);
 CREATE INDEX IF NOT EXISTS idx_nodes_due ON nodes(due_date);
 CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
 CREATE INDEX IF NOT EXISTS idx_nodes_block_id ON nodes(block_id);
@@ -113,6 +116,26 @@ CREATE INDEX IF NOT EXISTS idx_links_target_id ON links(target_id);
 `
 
 /**
+ * Migrate existing databases to add new columns.
+ * Safe to run multiple times — uses IF NOT EXISTS / try-catch for idempotency.
+ */
+export function migrateSchema(db: import("bun:sqlite").Database): void {
+  // Skip if nodes table doesn't exist yet (fresh database)
+  const columns = db.query("PRAGMA table_info(nodes)").all() as { name: string }[]
+  if (columns.length === 0) return
+
+  const columnNames = new Set(columns.map((c) => c.name))
+
+  // Add due_at and start_at columns (date-collapse migration)
+  if (!columnNames.has("due_at")) {
+    db.run("ALTER TABLE nodes ADD COLUMN due_at TEXT")
+  }
+  if (!columnNames.has("start_at")) {
+    db.run("ALTER TABLE nodes ADD COLUMN start_at TEXT")
+  }
+}
+
+/**
  * Set of actual SQL column names on the nodes table.
  * Used to route non-column KNode fields (due_time, scheduled_time, etc.) to the data blob.
  */
@@ -122,7 +145,7 @@ export const NODE_COLUMNS = new Set([
   "name", "block_id", "title",
   "md_pos", "md_line",
   "list_marker", "task_marker",
-  "task_status", "assigned_to", "due_date", "scheduled_date", "priority",
+  "task_status", "assigned_to", "due_at", "start_at", "due_date", "scheduled_date", "priority",
   "content", "content_hash",
   "data", "created_at", "updated_at", "version",
 ])

@@ -192,16 +192,18 @@ export function extractTitleTaskMarker(text: string): {
  * Check if a node has task-related properties set, indicating it should be
  * treated as an implicit task even without an explicit task_status.
  *
- * Properties checked: due_date, priority (1-4), scheduled_date, assigned_to, recurrence.
+ * Properties checked: due_at, due_date, priority (1-4), start_at, scheduled_date, assigned_to, recurrence.
  *
- * @example hasTaskProperties({ due_date: "2026-02-20" } as KNode) // true
+ * @example hasTaskProperties({ due_at: "2026-02-20" } as KNode) // true
  * @example hasTaskProperties({ priority: 2 } as KNode) // true
  * @example hasTaskProperties({} as KNode) // false
  */
-export function hasTaskProperties(node: Pick<KNode, "due_date" | "priority" | "scheduled_date" | "assigned_to" | "recurrence">): boolean {
+export function hasTaskProperties(node: Pick<KNode, "due_at" | "due_date" | "priority" | "start_at" | "scheduled_date" | "assigned_to" | "recurrence">): boolean {
   return !!(
+    node.due_at ||
     node.due_date ||
     (node.priority && node.priority >= 1 && node.priority <= 4) ||
+    node.start_at ||
     node.scheduled_date ||
     node.assigned_to ||
     node.recurrence
@@ -212,7 +214,7 @@ export function hasTaskProperties(node: Pick<KNode, "due_date" | "priority" | "s
  * Check if a node is a task (explicit task_status OR implicit task properties).
  * Single source of truth for task detection — use this instead of inline checks.
  */
-export function isTask(node: Pick<KNode, "task_status" | "due_date" | "priority" | "scheduled_date" | "assigned_to" | "recurrence">): boolean {
+export function isTask(node: Pick<KNode, "task_status" | "due_at" | "due_date" | "priority" | "start_at" | "scheduled_date" | "assigned_to" | "recurrence">): boolean {
   return node.task_status != null || hasTaskProperties(node)
 }
 
@@ -305,12 +307,20 @@ export interface KNode {
   // Task properties (set on items with task_marker)
   task_status?: TaskStatus // Derived from task_marker
   assigned_to?: string
+  due_at?: string // ISO 8601: "2026-02-20" or "2026-02-20T14:00:00-08:00"
+  start_at?: string // ISO 8601: same format as due_at
+  /** @deprecated Use due_at instead */
   due_date?: string // YYYY-MM-DD
-  due_time?: string // HH:MM (stored in data blob, no schema change)
-  due_tz?: string // IANA timezone (stored in data blob)
+  /** @deprecated Use due_at instead — stored in data blob */
+  due_time?: string // HH:MM
+  /** @deprecated Use due_at instead — stored in data blob */
+  due_tz?: string // IANA timezone
+  /** @deprecated Use start_at instead */
   scheduled_date?: string
-  scheduled_time?: string // HH:MM (stored in data blob)
-  scheduled_tz?: string // IANA timezone (stored in data blob)
+  /** @deprecated Use start_at instead — stored in data blob */
+  scheduled_time?: string // HH:MM
+  /** @deprecated Use start_at instead — stored in data blob */
+  scheduled_tz?: string // IANA timezone
   priority?: number // 1-4 (P1=critical, P4=backlog)
   recurrence?: string // iCal RRULE format
   recur_prev?: string // Previous recurrence instance ID
@@ -411,6 +421,8 @@ export interface NodeCreatedData {
   md_line?: number
   task_status?: TaskStatus
   assigned_to?: string
+  due_at?: string
+  start_at?: string
   due_date?: string
   scheduled_date?: string
   priority?: number

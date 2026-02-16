@@ -177,6 +177,8 @@ const CHILD_DIFF_FIELDS = [
   "task_status",
   "task_marker",
   "md_pos",
+  "due_at",
+  "start_at",
   "due_date",
   "scheduled_date",
   "priority",

@@ -4,7 +4,7 @@
  * Pure functions extracted from TreeNode for testability and clarity.
  */
 
-import { extractTitleTaskMarker, isTask, type KNode } from "@km/core"
+import { extractTitleTaskMarker, isTask, decomposeDatetime, type KNode } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
@@ -238,19 +238,23 @@ export function formatDateBadge(node: KNode): string {
     parts.push(`${color}P${node.priority}\x1b[0m`)
   }
 
+  // Use due_at/start_at (preferred) with fallback to legacy fields
+  const dueDate = decomposeDatetime(node.due_at)?.date ?? node.due_date
+  const startDate = decomposeDatetime(node.start_at)?.date ?? node.scheduled_date
+
   // Start date → due date (or just one)
   // Hide past start dates for WIP tasks (already started, not useful info)
-  const hasStart = !!node.scheduled_date
-  const startInPast = hasStart && daysFromToday(node.scheduled_date!) < 0
+  const hasStart = !!startDate
+  const startInPast = hasStart && daysFromToday(startDate!) < 0
   const showStart = hasStart && !(startInPast && node.task_status === "wip")
-  const hasDue = !!node.due_date
+  const hasDue = !!dueDate
 
   if (showStart && hasDue) {
-    parts.push(`${formatScheduledDisplay(node.scheduled_date!)} → ${formatDueDisplay(node.due_date!)}`)
+    parts.push(`${formatScheduledDisplay(startDate!)} → ${formatDueDisplay(dueDate!)}`)
   } else if (showStart) {
-    parts.push(`${formatScheduledDisplay(node.scheduled_date!)} →`)
+    parts.push(`${formatScheduledDisplay(startDate!)} →`)
   } else if (hasDue) {
-    parts.push(formatDueDisplay(node.due_date!))
+    parts.push(formatDueDisplay(dueDate!))
   }
 
   // Recurrence

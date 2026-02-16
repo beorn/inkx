@@ -52,12 +52,14 @@ export function createSetCommand() {
         switch (key) {
           case "due":
           case "due_date":
-            updates.due_date = value || null
+          case "due_at":
+            updates.due_at = value || null
             break
           case "start":
           case "scheduled":
           case "scheduled_date":
-            updates.scheduled_date = value || null
+          case "start_at":
+            updates.start_at = value || null
             break
           case "p":
           case "priority":
@@ -124,12 +126,14 @@ export function createClearCommand() {
         switch (key) {
           case "due":
           case "due_date":
-            updates.due_date = null
+          case "due_at":
+            updates.due_at = null
             break
           case "start":
           case "scheduled":
           case "scheduled_date":
-            updates.scheduled_date = null
+          case "start_at":
+            updates.start_at = null
             break
           case "p":
           case "priority":

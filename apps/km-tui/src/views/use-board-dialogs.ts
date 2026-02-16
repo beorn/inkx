@@ -269,19 +269,20 @@ export function useBoardDialogs({
           repo.updateNode(nodeId, { recurrence: rrule })
         }
       } else {
-        const timeField = field === "due_date" ? "due_time" : "scheduled_time"
+        // Date field: resolve NL → ISO 8601 due_at/start_at
         if (trimmed) {
           const resolved = resolveRelativeDate(trimmed)
           if (!resolved) {
             if (useBatch) undoHandle.endBatch()
             return { datePrompt: null }
           }
+          const isoValue = resolved.time ? `${resolved.date}T${resolved.time}` : resolved.date
           for (const nodeId of nodeIds) {
-            repo.updateNode(nodeId, { [field]: resolved.date, [timeField]: resolved.time ?? null })
+            repo.updateNode(nodeId, { [field]: isoValue })
           }
         } else {
           for (const nodeId of nodeIds) {
-            repo.updateNode(nodeId, { [field]: null, [timeField]: null })
+            repo.updateNode(nodeId, { [field]: null })
           }
         }
       }

@@ -46,6 +46,10 @@ export { isOutline, isListItem, isItem, isLink, isBlock } from "./types.ts"
 // Task utilities (new names)
 export { getMarkerForStatus, getStatusForMarker, markToMarker, extractTitleTaskMarker, hasTaskProperties, isTask } from "./types.ts"
 
+// Date utilities (due_at / start_at ↔ date/time/tz)
+export { composeDatetime, decomposeDatetime, dateOnly, timeOnly } from "./date-utils.ts"
+export type { DateParts } from "./date-utils.ts"
+
 // Query language parser (pure parsing, no DB)
 export {
   parseQuery,
