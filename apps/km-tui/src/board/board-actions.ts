@@ -31,6 +31,8 @@ import {
   mergeWithPrevious,
   detectPrefixConversion,
   backspaceDegradation,
+  getNextSibling,
+  getNodeText,
   setNodeText,
 } from "@km/tree"
 import {
@@ -633,8 +635,33 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           ctx.setUI({ inlineEditBlock: null })
           executeDelete(ctx, nodeId)
         } else if (cursor >= content.length) {
-          // At end of content: merge with next sibling
+          // At end of content: degrade next sibling's traits before merging
           const nodeId = ctx.ui.inlineEditBlock.nodeId
+          const nextNode = getNextSibling(ctx.repo, nodeId)
+          if (nextNode) {
+            const degradation = backspaceDegradation(nextNode)
+            if (degradation) {
+              // Strip next node's traits progressively (task → type → merge)
+              ctx.undoHandle.setCursor(ctx.cursorNodeId)
+              // When stripping task marker, reformat content to plain text
+              if (nextNode.task_marker && degradation.task_marker === undefined) {
+                degradation.content = getNodeText(nextNode)
+              }
+              // When converting oi → p, move name to content
+              if (degradation.type === "p" && nextNode.type === "oi") {
+                degradation.content = getNodeText(nextNode)
+                degradation.name = undefined
+              }
+              // When converting li → p, ensure content is plain text
+              if (degradation.type === "p" && nextNode.type === "li") {
+                degradation.content = getNodeText(nextNode)
+              }
+              ctx.repo.updateNode(nextNode.id, degradation)
+              refreshBoardState(ctx)
+              return ok()
+            }
+          }
+          // No next sibling or next is already plain p → merge
           fwdTarget.save()
           ctx.undoHandle.setCursor(ctx.cursorNodeId)
           ctx.undoHandle.startBatch("Merge forward")
