@@ -35,3 +35,7 @@ export { getNodeAtPath, getSiblingCount } from "@km/tree"
 
 // ===== Board Reducer =====
 export { boardReducer, createBoardState } from "./board-reducer.ts"
+
+// ===== Grid Navigator =====
+export { createGridNavigator } from "./grid-navigator.ts"
+export type { GridNavigator, CrossAxisResult } from "./grid-navigator.ts"

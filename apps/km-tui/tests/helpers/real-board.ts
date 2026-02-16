@@ -33,7 +33,7 @@ import { runGenerator, createToastQueue } from "@km/core"
 
 import { Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
-import { createLayoutRegistry } from "../../src/card-positions.ts"
+import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
 import {
@@ -126,7 +126,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   }
 
   // Set up store (same pattern as driver/testEnv)
-  const registry = createLayoutRegistry()
+  const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
   const initialLayout = {
@@ -150,7 +150,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
-    layoutRegistry: registry,
+    navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
       colIndex: 0,
@@ -181,7 +181,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     dimensions: { columns, rows },
     onExit: () => {},
     toastQueue,
-    layoutRegistry: registry,
+    navigator: registry,
   })
   const result = render(
     React.createElement(

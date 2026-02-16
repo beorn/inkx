@@ -6,7 +6,7 @@
  *   Error: [nav] card index 2 out of bounds (2 cards)
  *
  * Root cause: After operations that change column sizes, the cardIndex from
- * layoutRegistry.findCardAtYVisual() can exceed the target column's actual
+ * GridNavigator.findItemAtY() can exceed the target column's actual
  * card count. The returned index is not clamped to targetCards.length - 1
  * in navigateHorizontal() (view-navigation.ts lines 238-239).
  *

@@ -13,7 +13,7 @@ import type { Repo } from "./repo-context.tsx"
 import type { BoardAction, NavHistoryEntry } from "./board-types.ts"
 import type { ColumnsLayout, ColumnState, CardState } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
-import type { LayoutRegistry } from "./card-positions.ts"
+import type { GridNavigator } from "@km/board"
 import type { ViewNavigation } from "./view-navigation.ts"
 import type { UndoStack } from "./undo-stack.ts"
 import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
@@ -48,7 +48,7 @@ export interface ActionCtx {
   // === State (from store) ===
   ui: UIState
   layout: ColumnsLayout
-  layoutRegistry: LayoutRegistry
+  navigator: GridNavigator
   viewNavigation: ViewNavigation
   toastQueue: ToastQueue
 

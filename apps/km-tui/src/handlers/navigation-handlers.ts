@@ -3,7 +3,7 @@
  *
  * Pure navigation functions that compute the next cursor position.
  * Tree navigation uses Repo for tree structure.
- * Visual navigation uses LayoutRegistry for screen positions.
+ * Visual navigation uses GridNavigator for screen positions.
  *
  * These handlers return the new cursorNodeId or null if movement not possible.
  * The caller dispatches SELECT actions with the returned nodeId.

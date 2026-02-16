@@ -57,7 +57,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     navHistoryIndex: s.navHistoryIndex,
     ui: s.ui,
     layout: s.layout,
-    layoutRegistry: s.layoutRegistry,
+    navigator: s.navigator,
     viewNavigation: cardsViewNavigation,
     toastQueue: s.toastQueue,
     undoStack: s.undoStack,

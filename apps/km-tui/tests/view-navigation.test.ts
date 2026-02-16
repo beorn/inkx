@@ -2,14 +2,14 @@
  * ViewNavigation Tests
  *
  * Tests the cards view navigation policy — the core of the navigation refactor.
- * Uses createFakeRepo + a mock LayoutRegistry.
+ * Uses createFakeRepo + a mock GridNavigator.
  */
 
 import { describe, it, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
 import { createCardsViewNavigation, type NavState } from "../src/view-navigation.ts"
-import { createLayoutRegistry } from "../src/card-positions.ts"
+import { createGridNavigator } from "@km/board"
 
 function makeState(cursorNodeId: string, rootId: string | null = "board"): NavState {
   return {
@@ -26,7 +26,7 @@ describe("CardsViewNavigation", () => {
   describe("vertical navigation (j/k)", () => {
     const nodes = item("board", item("col0", item("c0"), item("c1"), item("c2")), item("col1", item("c3")))
     const repo = createFakeRepo({ nodes })
-    const registry = createLayoutRegistry()
+    const registry = createGridNavigator()
 
     it("j from board → first column", () => {
       const target = nav.navigate("down", makeState("board"), repo, registry)
@@ -92,7 +92,7 @@ describe("CardsViewNavigation", () => {
       item("col2", item("d0")),
     )
     const repo = createFakeRepo({ nodes })
-    const registry = createLayoutRegistry()
+    const registry = createGridNavigator()
 
     it("l from card → first card in next column (no positions)", () => {
       // stickyY must be set before horizontal nav (set by handleHorizontalNav in production)

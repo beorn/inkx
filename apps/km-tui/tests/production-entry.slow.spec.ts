@@ -16,7 +16,7 @@ import { item } from "./helpers/board-test.ts"
 import { createBoardApp, handleKey } from "../src/board-app.ts"
 import { type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
-import { createLayoutRegistry } from "../src/card-positions.ts"
+import { createGridNavigator } from "@km/board"
 import { buildBoardState } from "../src/state.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
@@ -72,7 +72,7 @@ function buildStoreParams(
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
-    layoutRegistry: createLayoutRegistry(),
+    navigator: createGridNavigator(),
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
       colIndex: 0,

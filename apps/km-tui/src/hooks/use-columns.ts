@@ -335,8 +335,9 @@ export function applyStructuralSharing(prev: ColumnState[], next: ColumnState[])
     }
   }
 
-  // If nothing changed, same length, AND same order, reuse the entire array.
-  // Reordering (e.g., column shift) must return `result` even when content is unchanged.
+  // If nothing changed and same length, check if order also matches.
+  // Column shift (Meta+l/Meta+h) swaps sort orders without changing content —
+  // without this order check, the old array is reused and columns don't reorder.
   if (!anyColumnChanged && prev.length === next.length) {
     let sameOrder = true
     for (let i = 0; i < prev.length; i++) {

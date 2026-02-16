@@ -1,43 +1,19 @@
 /**
  * Horizontal scroll indicator test
  *
- * Verifies that ◀/▶ indicators appear when columns overflow horizontally.
+ * Verifies that ◂/▸ indicators appear when columns overflow horizontally.
  * Uses createBoardDriver (full Board component) to test scroll offset logic.
+ * HorizontalVirtualList handles scroll offset and overflow detection internally.
  *
  * Bug: km-tui.horiz-overflow
  */
 
 import { describe, test, expect } from "vitest"
 import { createBoardDriver } from "../src/driver.ts"
-import { calcColumnWidths } from "../src/views/board-layout.ts"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
 
 describe("Horizontal scroll indicators", () => {
-  test("calcColumnWidths reports hasRightIndicator for overflow", () => {
-    const result = calcColumnWidths({
-      boardWidth: 80,
-      visibleColumnCount: 2,
-      maxCols: 2,
-      scrollOffset: 0,
-      totalColumns: 6,
-    })
-    expect(result.hasRightIndicator).toBe(true)
-    expect(result.hasLeftIndicator).toBe(false)
-  })
-
-  test("calcColumnWidths reports hasLeftIndicator when scrolled", () => {
-    const result = calcColumnWidths({
-      boardWidth: 80,
-      visibleColumnCount: 2,
-      maxCols: 2,
-      scrollOffset: 2,
-      totalColumns: 6,
-    })
-    expect(result.hasLeftIndicator).toBe(true)
-    expect(result.hasRightIndicator).toBe(true)
-  })
-
   test("shows right scroll indicator when more columns exist to the right", () => {
     const nodes = item.root(
       "board",
@@ -57,14 +33,10 @@ describe("Horizontal scroll indicators", () => {
     const rightIndicator = driver.locator('[data-scroll-indicator="right"]')
     expect(rightIndicator.count()).toBe(1)
     // Check that the arrow character appears somewhere
-    const text = driver.text
-    const ansi = driver.ansi
-    // If character is not in text output, it might be getting clipped by width=1
-    // The important thing is the component exists in the DOM
     expect(rightIndicator.textContent()).toContain("▸")
   })
 
-  test("shows ◀ after scrolling right", async () => {
+  test("shows ◂ after scrolling right", async () => {
     const nodes = item.root(
       "board",
       item("col1", item("t1")),

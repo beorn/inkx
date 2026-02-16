@@ -506,7 +506,7 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
     board.expect("#p3[data-cursor]").toExist()
 
     // Check stickyY state before press l
-    const stickyYBefore = registry.getStickyY()
+    const stickyYBefore = registry.stickyY
 
     // Press l to navigate right to the structural column.
     // stickyY should be captured from p3's Y position and used to find
@@ -514,7 +514,7 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
     board.press("l")
 
     // Verify stickyY was set (should have been lazy-captured from p3)
-    const stickyYAfter = registry.getStickyY()
+    const stickyYAfter = registry.stickyY
 
     // p3 is the third card from the top. In col1, the card at approximately
     // the same Y position should be around 1c (third card).

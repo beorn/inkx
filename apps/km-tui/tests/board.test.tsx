@@ -16,7 +16,7 @@ import { createStore, type StoreApi } from "zustand"
 import type { CardState } from "../src/types.ts"
 import { BoardCore } from "../src/views/Board.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
-import { createLayoutRegistry } from "../src/card-positions.ts"
+import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
 import type { TUIBoardState } from "../src/types.ts"
@@ -37,7 +37,7 @@ function renderBoardCore(state: TUIBoardState, repo: Repo, options: { width?: nu
     ui: createInitialUIState("cards", [], { columns: width, rows: height }),
     derivedSelectionLevel: "card" as const,
     dimensions: { columns: width, rows: height },
-    layoutRegistry: createLayoutRegistry(),
+    navigator: createGridNavigator(),
     setUI: () => {},
     dialogHandlers: {
       handleProjectSelect: () => {},
@@ -49,7 +49,6 @@ function renderBoardCore(state: TUIBoardState, repo: Repo, options: { width?: nu
     },
     collapsedNodes: new Set<string>(),
     moveMode: false,
-    colScrollOffset: 0,
   })
   // Wrap in StoreContext + TreeRenderProvider so TreeNode's hooks work
   const initialUI = createInitialUIState("cards", [], {
@@ -59,7 +58,7 @@ function renderBoardCore(state: TUIBoardState, repo: Repo, options: { width?: nu
   const store = createStore(() => ({
     foldedNodes: new Set<string>(),
     ui: initialUI,
-    layoutRegistry: null,
+    navigator: null,
     setUI: () => {},
   }))
   const treeConfig = deriveTreeConfig(initialUI)

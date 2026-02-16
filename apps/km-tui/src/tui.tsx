@@ -18,7 +18,7 @@ import { SyncManager } from "@km/storage"
 import { createBoardApp } from "./board-app.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
-import { createLayoutRegistry } from "./card-positions.ts"
+import { createGridNavigator } from "@km/board"
 import { createCursorStore } from "./cursor-store.ts"
 
 const log = createLogger("km:tui")
@@ -223,7 +223,7 @@ export async function runBoard(state: TUIBoardState | null, options?: TuiOptions
     const storeParams: CreateBoardAppStoreParams = {
       repo: options.repo,
       toastQueue,
-      layoutRegistry: createLayoutRegistry(),
+      navigator: createGridNavigator(),
       cursorStore: createCursorStore({
         cursorNodeId: initialCursorNodeId,
         colIndex: 0,

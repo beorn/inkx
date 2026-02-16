@@ -10,7 +10,7 @@
  * in board-app.ts. Board is a pure view that reads state and pushes derived layout.
  */
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { Box, Text, useApp, ErrorBoundary, type PatchedConsole } from "inkx"
+import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, type PatchedConsole } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
 import { createLogger } from "@beorn/logger"
 
@@ -32,7 +32,7 @@ import { ConfirmDialog } from "./shared-components.tsx"
 import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { renderPath } from "../layout/index.ts"
-import { type LayoutRegistry } from "../card-positions.ts"
+import type { GridNavigator } from "@km/board"
 import type { UIState } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
@@ -53,9 +53,6 @@ import type { BoardAppStore } from "../board-app-store.ts"
 import {
   TOP_BAR_HEIGHT,
   BOTTOM_BAR_HEIGHT,
-  calcEdgeBasedColumnScrollOffset,
-  calcColumnWidths,
-  getColumnWidth,
 } from "./board-layout.ts"
 import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
@@ -87,7 +84,7 @@ export interface BoardCoreProps {
   /** Terminal dimensions */
   dimensions: { columns: number; rows: number }
   /** Layout registry for card position tracking */
-  layoutRegistry: LayoutRegistry
+  navigator: GridNavigator
   /** Direct UI state setter */
   setUI: BoardAppStore["setUI"]
   /** Dialog handlers (types match ProjectPicker, NewItemDialog, and SearchDialog props) */
@@ -107,8 +104,6 @@ export interface BoardCoreProps {
   moveMode: boolean
   /** Console stats for bottom bar indicator */
   consoleStats?: { total: number; errors: number; warnings: number }
-  /** Column scroll offset (edge-based, from parent) */
-  colScrollOffset: number
   /** Toast queue instance (injected, not global). Optional for static render tests. */
   toastQueue?: ToastQueue
 }
@@ -210,20 +205,17 @@ export function BoardCore({
   ui,
   derivedSelectionLevel,
   dimensions,
-  layoutRegistry,
+  navigator,
   setUI,
   dialogHandlers,
   collapsedNodes,
   moveMode,
   consoleStats,
-  colScrollOffset,
   toastQueue,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
   const termWidth = dimensions.columns
   const termHeight = dimensions.rows
-
-  const maxCols = Math.min(state.columns.length, Math.max(2, Math.floor(termWidth / 35)))
 
   const isBoardSelected = derivedSelectionLevel === "board"
 
@@ -234,14 +226,20 @@ export function BoardCore({
   // Calculate content area height - space between top and bottom bars
   const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT
 
-  // Recalculate columns when detail pane is shown (narrower view)
-  const effectiveMaxCols = ui.showDetailPane
-    ? Math.min(state.columns.length, Math.max(1, Math.floor(boardWidth / 35)))
-    : maxCols
-  const effectiveScrollOffset = ui.showDetailPane
-    ? calcEdgeBasedColumnScrollOffset(layout.colIndex, colScrollOffset, effectiveMaxCols, state.columns.length)
-    : colScrollOffset
-  const effectiveVisibleColumns = state.columns.slice(effectiveScrollOffset, effectiveScrollOffset + effectiveMaxCols)
+  // Column width calculation — uniform expanded width with space reserved for separators
+  const COLLAPSED_WIDTH = 3
+  // Count collapsed columns — they take much less space, so more total columns can fit
+  const totalCollapsed = state.columns.reduce(
+    (n, col) => n + (collapsedNodes.has(col.node.id) ? 1 : 0), 0,
+  )
+  // Max expanded columns that fit at ~35 char minimum width, accounting for collapsed columns' space
+  const maxExpandedCols = Math.max(1, Math.floor((boardWidth - totalCollapsed * (COLLAPSED_WIDTH + 1)) / 35))
+  const effectiveColCount = Math.min(state.columns.length, maxExpandedCols + totalCollapsed)
+  const visibleCollapsed = Math.min(totalCollapsed, effectiveColCount)
+  const visibleExpanded = Math.max(1, effectiveColCount - visibleCollapsed)
+  const collapsedSpace = visibleCollapsed * COLLAPSED_WIDTH
+  const separators = Math.max(0, effectiveColCount - 1)
+  const expandedWidth = Math.max(20, Math.floor((boardWidth - separators - collapsedSpace) / visibleExpanded))
 
   // Render loading skeleton until terminal is ready
   if (!ui.isReady) {
@@ -259,7 +257,6 @@ export function BoardCore({
         id={state.rootId ?? undefined}
         data-view="board"
         data-board={true}
-        data-scroll-offset={colScrollOffset}
         data-col-index={layout.colIndex}
         data-card-index={layout.cardIndex}
         {...(isBoardSelected && { "data-cursor": true })}
@@ -277,71 +274,36 @@ export function BoardCore({
           {/* Cards, Columns, or List view */}
           {ui.viewMode === "cards" ? (
             <ErrorBoundary fallback={<Text color="red">Error loading cards view</Text>}>
-              <Box flexDirection="row" width={boardWidth} height={contentHeight}>
-                {state.columns.length === 0 ? (
-                  <Box flexDirection="column" padding={1}>
-                    <Text dimColor>Empty board</Text>
-                  </Box>
-                ) : (
-                  <>
-                    {/* Calculate column widths — collapsed columns get thin strip */}
-                    {(() => {
-                      const COLLAPSED_WIDTH = 3
-                      // Count collapsed among visible columns
-                      const collapsedCount = effectiveVisibleColumns.filter(
-                        (col) => collapsedNodes.has(col.node.id),
-                      ).length
-                      const expandedCount = effectiveVisibleColumns.length - collapsedCount
-
-                      // Separators rendered: effectiveVisibleColumns.length - 1
-                      // Separators accounted for by calcColumnWidths: expandedCount - 1
-                      // Unaccounted separators (between collapsed/expanded pairs): collapsedCount
-                      const totalSeparators = effectiveVisibleColumns.length - 1
-                      const expandedSeparators = Math.max(0, expandedCount - 1)
-                      const extraSeparators = totalSeparators - expandedSeparators
-
-                      const widths = calcColumnWidths({
-                        boardWidth: boardWidth - collapsedCount * COLLAPSED_WIDTH - extraSeparators,
-                        visibleColumnCount: expandedCount,
-                        maxCols: Math.max(1, effectiveMaxCols - collapsedCount),
-                        scrollOffset: effectiveScrollOffset,
-                        totalColumns: state.columns.length,
-                      })
-                      let expandedIdx = 0
-                      return (
-                        <>
-                          {/* Left scroll indicator - full height filled bar */}
-                          {widths.hasLeftIndicator && <VerticalScrollIndicator direction="left" />}
-                          {effectiveVisibleColumns.map((col, i) => {
-                            const actualColIndex = effectiveScrollOffset + i
-                            const isLastCol = i === effectiveVisibleColumns.length - 1
-                            const isColCollapsed = collapsedNodes.has(col.node.id)
-                            const adjustedColWidth = isColCollapsed
-                              ? COLLAPSED_WIDTH
-                              : getColumnWidth(expandedIdx++, widths.baseColWidth, widths.remainder)
-                            return (
-                              <React.Fragment key={`${col.node.id}${isColCollapsed ? "-c" : ""}`}>
-                                <Column
-                                  column={col}
-                                  colIndex={actualColIndex}
-                                  isCollapsed={isColCollapsed}
-                                  selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
-                                  width={adjustedColWidth}
-                                  height={contentHeight}
-                                />
-                                {/* Separator line between columns */}
-                                {!isLastCol && <ColumnSeparator />}
-                              </React.Fragment>
-                            )
-                          })}
-                          {/* Right scroll indicator - full height filled bar */}
-                          {widths.hasRightIndicator && <VerticalScrollIndicator direction="right" />}
-                        </>
-                      )
-                    })()}
-                  </>
-                )}
-              </Box>
+              {state.columns.length === 0 ? (
+                <Box flexDirection="column" padding={1} width={boardWidth} height={contentHeight}>
+                  <Text dimColor>Empty board</Text>
+                </Box>
+              ) : (
+                <HorizontalVirtualList
+                  items={state.columns}
+                  width={boardWidth}
+                  height={contentHeight}
+                  itemWidth={(col) => collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth}
+                  gap={1}
+                  scrollTo={isBoardSelected ? undefined : layout.colIndex}
+                  renderItem={(col, index) => (
+                    <Column
+                      column={col}
+                      colIndex={index}
+                      isCollapsed={collapsedNodes.has(col.node.id)}
+                      selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
+                      width={collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth}
+                      height={contentHeight}
+                    />
+                  )}
+                  renderOverflowIndicator={(dir) => (
+                    <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />
+                  )}
+                  overflowIndicatorWidth={1}
+                  renderSeparator={() => <ColumnSeparator />}
+                  keyExtractor={(col) => `${col.node.id}${collapsedNodes.has(col.node.id) ? "-c" : ""}`}
+                />
+              )}
             </ErrorBoundary>
           ) : ui.viewMode === "columns" ? (
             <ErrorBoundary fallback={<Text color="red">Error loading columns view</Text>}>
@@ -349,13 +311,7 @@ export function BoardCore({
                 state={state}
                 width={boardWidth}
                 height={contentHeight}
-                colIndex={layout.colIndex}
-                cardIndex={layout.cardIndex}
                 subIndex={ui.subIndex}
-                effectiveScrollOffset={effectiveScrollOffset}
-                effectiveMaxCols={effectiveMaxCols}
-                effectiveVisibleColumns={effectiveVisibleColumns}
-                selectionLevel={derivedSelectionLevel}
               />
             </ErrorBoundary>
           ) : ui.viewMode === "list" ? (
@@ -509,7 +465,7 @@ export interface BoardProps {
   /** Toast queue instance (injected, not global) */
   toastQueue?: ToastQueue
   /** Optional layout registry for card position tracking (for testing) */
-  layoutRegistry?: LayoutRegistry
+  navigator?: GridNavigator
   /** Patched console for debug output modal */
   patchedConsole?: PatchedConsole | null
 }
@@ -540,7 +496,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const collapsedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.collapsedNodes)
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.moveMode)
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
-  const layoutRegistry = useAppStore<BoardAppStore, LayoutRegistry>((s) => s.layoutRegistry)
+  const navigator = useAppStore<BoardAppStore, GridNavigator>((s) => s.navigator)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const updateLayout = useAppStore<BoardAppStore, BoardAppStore["updateLayout"]>((s) => s.updateLayout)
@@ -587,9 +543,6 @@ export function Board({ patchedConsole }: BoardProps) {
       onResumeRender()
     }
   }, [ui.showConsole, onPauseRender, onResumeRender, patchedConsole])
-
-  // Ref for edge-based horizontal scroll tracking
-  const colScrollOffsetRef = useRef(0)
 
   // Derive columns from repo (reactive to repo mutations via useSyncExternalStore)
   const columns = useColumns(repo, rootId, foldedNodes)
@@ -743,17 +696,6 @@ export function Board({ patchedConsole }: BoardProps) {
     undoHandle,
   })
 
-  // Scroll offset — use visibleColIndex for rendering (scrolls through visible columns only)
-  const termWidth = ui.dimensions.columns
-  const maxCols = Math.min(tuiBoardState.columns.length, Math.max(2, Math.floor(termWidth / 35)))
-  const colScrollOffset = calcEdgeBasedColumnScrollOffset(
-    visibleColIndex,
-    colScrollOffsetRef.current,
-    maxCols,
-    tuiBoardState.columns.length,
-  )
-  colScrollOffsetRef.current = colScrollOffset
-
   // Initialize command system
   useEffect(() => {
     ensureCommandSystemInitialized()
@@ -793,13 +735,12 @@ export function Board({ patchedConsole }: BoardProps) {
           ui={ui}
           derivedSelectionLevel={derivedSelectionLevel}
           dimensions={ui.dimensions}
-          layoutRegistry={layoutRegistry}
+          navigator={navigator}
           setUI={setUI}
           dialogHandlers={dialogHandlers}
           collapsedNodes={collapsedNodes}
           moveMode={moveMode}
           consoleStats={consoleStats}
-          colScrollOffset={colScrollOffset}
           toastQueue={toastQueue}
         />
       </TreeRenderProvider>
@@ -819,7 +760,7 @@ export interface BoardAppProps {
   /** Toast queue instance (injected from runBoard) */
   toastQueue?: ToastQueue
   /** Optional layout registry for card position tracking (for testing) */
-  layoutRegistry?: LayoutRegistry
+  navigator?: GridNavigator
   /** Patched console for capturing console output (optional) */
   patchedConsole?: PatchedConsole | null
 }
@@ -832,7 +773,7 @@ export function BoardApp({
   initialState,
   initialViewMode = "cards",
   toastQueue,
-  layoutRegistry,
+  navigator,
   patchedConsole,
 }: BoardAppProps) {
   const { exit } = useApp()
@@ -849,7 +790,7 @@ export function BoardApp({
         dimensions={storeDimensions}
         onExit={exit}
         toastQueue={toastQueue}
-        layoutRegistry={layoutRegistry}
+        navigator={navigator}
         patchedConsole={patchedConsole}
       />
     </Box>

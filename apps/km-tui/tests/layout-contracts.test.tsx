@@ -13,35 +13,37 @@
  * @see docs/ref/ui.md#curswanty-cross-column-navigation-hl
  */
 import { describe, test, expect } from "vitest"
-import { testEnv, item, getCardMidY } from "./helpers/board-test.ts"
+import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Layout measurement contracts", () => {
   test("card with children: headHeight = 1 (title row), cardHeight > 1 (total)", () => {
     // This is THE critical contract that caught the curswantY bug
     const { registry } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
 
-    const layout = registry.getNodeOptional("parent")
-    expect(layout).toBeDefined()
+    const pos = registry.getPosition(0, 0)
+    const head = registry.getHead(0, 0)
+    expect(pos).toBeDefined()
 
     // headHeight must always be 1 (single title row)
-    expect(layout!.headHeight).toBe(1)
+    expect(head?.height).toBe(1)
     // cardHeight includes children, so > 1
-    expect(layout!.cardHeight).toBeGreaterThan(1)
+    expect(pos!.height).toBeGreaterThan(1)
     // They must NOT be equal (this was the bug)
-    expect(layout!.headHeight).not.toBe(layout!.cardHeight)
+    expect(head?.height).not.toBe(pos!.height)
   })
 
   test("leaf card (no children): headHeight = 1, cardHeight small", () => {
     const { registry } = testEnv(() => item("board", item("col", item("leaf-task"))))
 
-    const layout = registry.getNodeOptional("leaf-task")
-    expect(layout).toBeDefined()
+    const pos = registry.getPosition(0, 0)
+    const head = registry.getHead(0, 0)
+    expect(pos).toBeDefined()
 
     // headHeight is always 1 (title row)
-    expect(layout!.headHeight).toBe(1)
+    expect(head?.height).toBe(1)
     // Leaf cards have minimal height (just title, possibly borders)
     // Should be much smaller than a card with children
-    expect(layout!.cardHeight).toBeLessThanOrEqual(3)
+    expect(pos!.height).toBeLessThanOrEqual(3)
   })
 
   test("curswantY is title midpoint, not card midpoint", () => {
@@ -52,14 +54,14 @@ describe("Layout measurement contracts", () => {
       { rows: 40 },
     )
 
-    const layout = registry.getNode("tall")
-    const curswantY = getCardMidY(layout)
+    const pos = registry.getPosition(0, 0)!
+    const curswantY = registry.getItemMidY(0, 0)
 
     // Title midpoint should be near the top of the screen
     expect(curswantY).toBeLessThan(10)
 
-    // Should NOT be at card center (which would be y + cardHeight/2)
-    const cardCenterY = layout.y + layout.cardHeight / 2
+    // Should NOT be at card center (which would be y + height/2)
+    const cardCenterY = pos.y + pos.height / 2
     expect(curswantY).not.toBe(cardCenterY)
   })
 
@@ -69,14 +71,14 @@ describe("Layout measurement contracts", () => {
       item("board", item("col1", item("card1a"), item("card1b")), item("col2", item("card2a"), item("card2b"))),
     )
 
-    const layout1 = registry.getNode("card1a")
-    const layout2 = registry.getNode("card2a")
+    const head1 = registry.getHead(0, 0)
+    const head2 = registry.getHead(1, 0)
 
     // All first cards should have similar headY (within 1 row)
-    expect(layout1.headY).toBeDefined()
-    expect(layout2.headY).toBeDefined()
+    expect(head1?.y).toBeDefined()
+    expect(head2?.y).toBeDefined()
 
-    expect(Math.abs(layout1.headY! - layout2.headY!)).toBeLessThan(2)
+    expect(Math.abs(head1!.y - head2!.y)).toBeLessThan(2)
   })
 
   test("nested children increase cardHeight but not headHeight", () => {
@@ -89,18 +91,21 @@ describe("Layout measurement contracts", () => {
       item("board", item("col", item("card", item("c1"), item("c2"), item("c3")))),
     )
 
-    const h1 = reg1.getNode("card")
-    const h2 = reg2.getNode("card")
-    const h3 = reg3.getNode("card")
+    const h1head = reg1.getHead(0, 0)
+    const h2head = reg2.getHead(0, 0)
+    const h3head = reg3.getHead(0, 0)
+    const h1pos = reg1.getPosition(0, 0)!
+    const h2pos = reg2.getPosition(0, 0)!
+    const h3pos = reg3.getPosition(0, 0)!
 
     // headHeight stays constant at 1
-    expect(h1.headHeight).toBe(1)
-    expect(h2.headHeight).toBe(1)
-    expect(h3.headHeight).toBe(1)
+    expect(h1head?.height).toBe(1)
+    expect(h2head?.height).toBe(1)
+    expect(h3head?.height).toBe(1)
 
     // cardHeight increases with more children
-    expect(h2.cardHeight).toBeGreaterThan(h1.cardHeight)
-    expect(h3.cardHeight).toBeGreaterThan(h2.cardHeight)
+    expect(h2pos.height).toBeGreaterThan(h1pos.height)
+    expect(h3pos.height).toBeGreaterThan(h2pos.height)
   })
 })
 
@@ -116,11 +121,10 @@ describe("Visual navigation with measured layouts", () => {
       ),
     )
 
-    const sourceLayout = registry.getNode("card0a")
-    const curswantY = getCardMidY(sourceLayout)
+    const curswantY = registry.getItemMidY(0, 0)
 
     // Find target card in column 1 at this curswantY
-    const targetIdx = registry.findCardAtYVisual(1, curswantY)
+    const targetIdx = registry.findItemAtY(1, curswantY)
 
     // Should land on first card (index 0)
     expect(targetIdx).toBe(0)
@@ -139,23 +143,22 @@ describe("Visual navigation with measured layouts", () => {
       { rows: 40 },
     )
 
-    const tallLayout = registry.getNode("tall")
-    const curswantY = getCardMidY(tallLayout)
+    const curswantY = registry.getItemMidY(0, 0)
 
     // curswantY should be near top (title midpoint)
     expect(curswantY).toBeLessThan(10)
 
     // Navigation should land on first card, not middle card
-    const targetIdx = registry.findCardAtYVisual(1, curswantY)
+    const targetIdx = registry.findItemAtY(1, curswantY)
     expect(targetIdx).toBe(0)
   })
 
-  test("findCardAtYVisual returns -1 for empty columns", () => {
+  test("findItemAtY returns -1 for empty columns", () => {
     const { registry } = testEnv(
       () => item("board", item("col0", item("card")), item("col1")), // empty column
     )
 
-    const result = registry.findCardAtYVisual(1, 10)
+    const result = registry.findItemAtY(1, 10)
     expect(result).toBe(-1)
   })
 })
@@ -167,37 +170,37 @@ describe("Registry state after rendering", () => {
     )
 
     // Column 0 should have 2 cards
-    expect(registry.getCardCount(0)).toBe(2)
-    expect(registry.hasCardsInColumn(0)).toBe(true)
+    expect(registry.getItemCount(0)).toBe(2)
+    expect(registry.hasSection(0)).toBe(true)
 
     // Column 1 should have 3 cards
-    expect(registry.getCardCount(1)).toBe(3)
-    expect(registry.hasCardsInColumn(1)).toBe(true)
+    expect(registry.getItemCount(1)).toBe(3)
+    expect(registry.hasSection(1)).toBe(true)
 
-    // All cards should be retrievable by nodeId
-    expect(registry.getNodeOptional("a")).toBeDefined()
-    expect(registry.getNodeOptional("b")).toBeDefined()
-    expect(registry.getNodeOptional("c")).toBeDefined()
-    expect(registry.getNodeOptional("d")).toBeDefined()
-    expect(registry.getNodeOptional("e")).toBeDefined()
+    // All cards should be retrievable by section+item index
+    expect(registry.getPosition(0, 0)).toBeDefined()
+    expect(registry.getPosition(0, 1)).toBeDefined()
+    expect(registry.getPosition(1, 0)).toBeDefined()
+    expect(registry.getPosition(1, 1)).toBeDefined()
+    expect(registry.getPosition(1, 2)).toBeDefined()
   })
 
   test("headY and headHeight are populated for all cards", () => {
     const { registry } = testEnv(() => item("board", item("col", item("parent", item("child")), item("leaf"))))
 
-    const parentLayout = registry.getNode("parent")
-    const leafLayout = registry.getNode("leaf")
+    const parentHead = registry.getHead(0, 0)
+    const leafHead = registry.getHead(0, 1)
 
     // Both should have head measurements
-    expect(parentLayout.headY).toBeDefined()
-    expect(parentLayout.headHeight).toBe(1)
+    expect(parentHead?.y).toBeDefined()
+    expect(parentHead?.height).toBe(1)
 
-    expect(leafLayout.headY).toBeDefined()
-    expect(leafLayout.headHeight).toBe(1)
+    expect(leafHead?.y).toBeDefined()
+    expect(leafHead?.height).toBe(1)
 
-    // getCardMidY should work without throwing
-    expect(() => getCardMidY(parentLayout)).not.toThrow()
-    expect(() => getCardMidY(leafLayout)).not.toThrow()
+    // getItemMidY should work without throwing
+    expect(() => registry.getItemMidY(0, 0)).not.toThrow()
+    expect(() => registry.getItemMidY(0, 1)).not.toThrow()
   })
 })
 
@@ -208,15 +211,15 @@ describe("Sticky Y behavior (curswantY)", () => {
     )
 
     // Initially no stickyY
-    expect(registry.getStickyY()).toBeNull()
+    expect(registry.stickyY).toBeNull()
 
     // Move down to card[1] — j/k clears stickyY (lazy capture semantics)
     board.press("j")
-    expect(registry.getStickyY()).toBeNull()
+    expect(registry.stickyY).toBeNull()
 
     // Move right — h/l captures stickyY from current card, then uses it
     board.press("l")
-    expect(registry.getStickyY()).not.toBeNull()
+    expect(registry.stickyY).not.toBeNull()
   })
 
   test("stickyY is preserved across multiple h/l moves", () => {
@@ -233,20 +236,20 @@ describe("Sticky Y behavior (curswantY)", () => {
     board.press("j")
     board.press("l")
 
-    const firstStickyY = registry.getStickyY()
+    const firstStickyY = registry.stickyY
     expect(firstStickyY).not.toBeNull()
 
     // Move right again
     board.press("l")
 
     // stickyY should be preserved
-    expect(registry.getStickyY()).toBe(firstStickyY)
+    expect(registry.stickyY).toBe(firstStickyY)
 
     // Move left
     board.press("h")
 
     // Still preserved
-    expect(registry.getStickyY()).toBe(firstStickyY)
+    expect(registry.stickyY).toBe(firstStickyY)
   })
 
   test("stickyY is cleared on j/k navigation", () => {
@@ -257,11 +260,11 @@ describe("Sticky Y behavior (curswantY)", () => {
     // Set up stickyY via h/l
     board.press("j")
     board.press("l")
-    expect(registry.getStickyY()).not.toBeNull()
+    expect(registry.stickyY).not.toBeNull()
 
     // Move down — stickyY should be cleared (lazy capture: j/k always clears)
     board.press("j")
-    expect(registry.getStickyY()).toBeNull()
+    expect(registry.stickyY).toBeNull()
   })
 
   test("h/l from mid-column lands on visually-aligned card", () => {
@@ -278,18 +281,17 @@ describe("Sticky Y behavior (curswantY)", () => {
     // Navigate to card[2] (third card) in column 0
     board.press("j").press("j")
 
-    // Get curswantY from card[2]
-    const sourceLayout = registry.getNode("c")
-    const expectedY = getCardMidY(sourceLayout)
+    // Get curswantY from card[2] in column 0
+    const expectedY = registry.getItemMidY(0, 2)
 
     // Navigate right
     board.press("l")
 
     // Check that stickyY matches source card's title midpoint
-    expect(registry.getStickyY()).toBe(expectedY)
+    expect(registry.stickyY).toBe(expectedY)
 
     // The target card should be at a similar Y position
-    const targetIdx = registry.findCardAtYVisual(1, expectedY)
+    const targetIdx = registry.findItemAtY(1, expectedY)
     expect(targetIdx).toBe(2) // Should land on third card in column 1
   })
 })

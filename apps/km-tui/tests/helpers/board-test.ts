@@ -67,7 +67,7 @@ import { createToastQueue, type KNode, type NodeRules, type NodeType } from "@km
 import { BoardCore, Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
 import { createInitialUIState } from "../../src/ui-reducer.ts"
-import { createLayoutRegistry } from "../../src/card-positions.ts"
+import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
 import { TreeRenderProvider, deriveTreeConfig } from "../../src/ui-context.tsx"
@@ -387,7 +387,7 @@ export function testEnv(
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
-  const registry = createLayoutRegistry()
+  const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
   const { cursorNodeId: initialCursorNodeId, colIndex: initialColIndex, selectedCard, selectedCol, selectionLevel: initialSelectionLevel } = computeInitialCursor(initialState)
@@ -406,7 +406,7 @@ export function testEnv(
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
-    layoutRegistry: registry,
+    navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
       colIndex: initialColIndex,
@@ -437,7 +437,7 @@ export function testEnv(
     dimensions: { columns, rows },
     onExit: () => {},
     toastQueue,
-    layoutRegistry: registry,
+    navigator: registry,
   })
   const result = render(
     React.createElement(
@@ -863,7 +863,7 @@ export function testEnvWithRepo(
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
-  const registry = createLayoutRegistry()
+  const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
   const { cursorNodeId: initialCursorNodeId, colIndex: initialColIndex, selectedCard, selectedCol, selectionLevel: initialSelectionLevel } = computeInitialCursor(initialState)
@@ -882,7 +882,7 @@ export function testEnvWithRepo(
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
-    layoutRegistry: registry,
+    navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
       colIndex: initialColIndex,
@@ -913,7 +913,7 @@ export function testEnvWithRepo(
     dimensions: { columns, rows },
     onExit: () => {},
     toastQueue,
-    layoutRegistry: registry,
+    navigator: registry,
   })
   const result = render(
     React.createElement(
@@ -1579,7 +1579,7 @@ export function renderBoard(state: TUIBoardState, options: BoardTestOptions = {}
     ui: createInitialUIState("cards", [], { columns, rows }),
     derivedSelectionLevel: "card",
     dimensions: { columns, rows },
-    layoutRegistry: createLayoutRegistry(),
+    navigator: createGridNavigator(),
     setUI: () => {},
     dialogHandlers: {
       handleProjectSelect: () => {},
@@ -1591,14 +1591,13 @@ export function renderBoard(state: TUIBoardState, options: BoardTestOptions = {}
     },
     collapsedNodes: new Set<string>(),
     moveMode: false,
-    colScrollOffset: 0,
   })
   // Wrap in StoreContext + TreeRenderProvider so TreeNode's hooks work
   const initialUI = createInitialUIState("cards", [], { columns, rows })
   const store = createStore(() => ({
     foldedNodes: new Set<string>(),
     ui: initialUI,
-    layoutRegistry: null,
+    navigator: null,
     setUI: () => {},
   }))
   const treeConfig = deriveTreeConfig(initialUI)
@@ -1631,14 +1630,14 @@ export function renderBoardWithStore(
     columns?: number
     rows?: number
     viewMode?: "cards" | "columns" | "list" | "tabs"
-    layoutRegistry?: ReturnType<typeof createLayoutRegistry>
+    navigator?: ReturnType<typeof createGridNavigator>
     render?: ReturnType<typeof createRenderer>
   } = {},
 ) {
   const columns = options.columns ?? 80
   const rows = options.rows ?? 24
   const viewMode = options.viewMode ?? "cards"
-  const registry = options.layoutRegistry ?? createLayoutRegistry()
+  const registry = options.navigator ?? createGridNavigator()
   const toastQueue = createToastQueue()
   const initialState = buildBoardState(repo, rootId)
 
@@ -1660,7 +1659,7 @@ export function renderBoardWithStore(
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
-    layoutRegistry: registry,
+    navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
       colIndex: initialColIndex,
@@ -1690,7 +1689,7 @@ export function renderBoardWithStore(
     dimensions: { columns, rows },
     onExit: () => {},
     toastQueue,
-    layoutRegistry: registry,
+    navigator: registry,
   })
 
   return renderFn(
@@ -1792,5 +1791,16 @@ const LONG_BOARD = board({
 
 export type { BoardTest, BoardTestOptions }
 
-// Re-export layout helpers for integration tests
-export { getCardMidY } from "../../src/card-positions.ts"
+// =============================================================================
+// Layout Helpers
+// =============================================================================
+
+/** Test helper: compute card head midpoint Y */
+export function getCardMidY(layout: { headY?: number; headHeight?: number; y: number; cardHeight?: number; height?: number }): number {
+  if (layout.headY !== undefined && layout.headHeight !== undefined) {
+    return layout.headY + layout.headHeight / 2
+  }
+  const h = layout.cardHeight ?? layout.height ?? 0
+  return layout.y + h / 2
+}
+

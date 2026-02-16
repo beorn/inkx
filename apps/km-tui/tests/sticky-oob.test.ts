@@ -27,7 +27,7 @@ describe("sticky out-of-bounds behavior", () => {
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
     // stickyY should be set from the deep card position
-    expect(registry.getStickyY()).not.toBeNull()
+    expect(registry.stickyY).not.toBeNull()
 
     // Press 'h' — should go back to col1 at card 1e (stickyY preserved)
     board.press("h")
@@ -53,7 +53,7 @@ describe("sticky out-of-bounds behavior", () => {
     // Navigate UP within col2 (j/k clears stickyY)
     board.press("k")
     board.expect("#2a[data-cursor]").toExist()
-    expect(registry.getStickyY()).toBeNull() // cleared by vertical nav
+    expect(registry.stickyY).toBeNull() // cleared by vertical nav
 
     // Press 'h' — no stickyY, should land on first card in col1
     board.press("h")
@@ -79,7 +79,7 @@ describe("sticky out-of-bounds behavior", () => {
     board.press("j") // col2 -> c0
     board.press("k") // c0 -> col2 header
     board.press("k") // col2 header -> board (sets stickyX=2)
-    expect(registry.getStickyX()).toBe(2)
+    expect(registry.stickyX).toBe(2)
 
     // j from board should go to col2 (via stickyX)
     board.press("j")

@@ -15,7 +15,7 @@ import { TreeNode } from "./TreeNode.tsx"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts"
 import { getNodeIcon, getColumnHeaderIcon, isSigilName, renderPlain, renderRich } from "../text/index.ts"
-import { useLayoutRegistryOptional } from "../layout-context.tsx"
+import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useTreeRenderContext } from "../ui-context.tsx"
 import { useIsCursorAtCard } from "../cursor-context.tsx"
@@ -117,7 +117,7 @@ function CardLayoutTracker({
   isSelected: _isSelected,
   children,
 }: CardLayoutTrackerProps): React.ReactElement {
-  const registry = useLayoutRegistryOptional()
+  const registry = useNavigator()
 
   // Register measured position after layout - no re-renders
   const handleLayout = useCallback(
@@ -125,12 +125,7 @@ function CardLayoutTracker({
       if (!registry) return
 
       // Use measured dimensions directly from inkx layout
-      registry.registerCard(colIndex, cardIndex, nodeId, {
-        x: computed.x,
-        y: computed.y,
-        cardWidth: computed.width,
-        cardHeight: computed.height,
-      })
+      registry.register(colIndex, cardIndex, { x: computed.x, y: computed.y, width: computed.width, height: computed.height })
       log.debug?.(
         `registered: col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${computed.y} h=${computed.height}`,
       )
