@@ -647,16 +647,11 @@ function TreeNodeImpl({
               </Text>
             </Box>
           )}
-          {/* Right-aligned: child count (always visible when has children) */}
+          {/* Right-aligned: child count — NEVER dimmed, always readable gray */}
           {/* Bold when children are hidden (folded) to signal "N items hidden". */}
-          {/* Gray (not dim) when children are visible — readable but unobtrusive. */}
           {hasChildren && (
             <Box flexShrink={0}>
-              <Text
-                bold={childrenHidden}
-                dimColor={style.shouldDim || dimUntitled}
-                color={dimUntitled ? "gray" : (style.textColor ?? "gray")}
-              >
+              <Text bold={childrenHidden} color="gray">
                 {` ${childCount}`}
               </Text>
             </Box>
