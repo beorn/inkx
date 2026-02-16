@@ -1201,6 +1201,7 @@ export function* createRepo(
       return state.version
     },
     touch() {
+      childrenCache.clear()
       state.version++
       state.notify()
     },
@@ -1418,6 +1419,7 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
       return state.version
     },
     touch() {
+      childrenCache.clear()
       state.version++
       state.notify()
     },

@@ -578,7 +578,7 @@ export const Column = React.memo(function Column({
                   {wipExceeded ? (
                     <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
                   ) : (
-                    <Text color={isColumnSelected ? headerStyle.color : ownColor} dimColor={headerStyle.dimColor}>
+                    <Text color={isColumnSelected ? headerStyle.color : "gray"}>
                       {` ${countDisplay}`}
                     </Text>
                   )}

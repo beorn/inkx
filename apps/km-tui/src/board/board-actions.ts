@@ -1075,12 +1075,15 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
 
   if (useBatch) ctx.undoHandle.endBatch()
 
-  // Re-evaluate add= rules so @next Inbox picks up newly-dated tasks
+  // Re-evaluate add= rules so @next Inbox picks up newly-dated tasks.
+  // onNodeChanged writes embeds directly to DB (bypassing repo mutation API),
+  // so touch() is needed to clear stale children cache and notify subscribers.
   if (ctx.repo.database) {
     const ruleCtx = createRuleContext()
     for (const nodeId of nodeIds) {
       onNodeChanged(ctx.repo.database, nodeId, ruleCtx)
     }
+    ctx.repo.touch()
   }
 
   ctx.setUI({ datePrompt: null })

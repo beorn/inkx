@@ -182,8 +182,9 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
     },
   }))
 
-  // Dialog chrome overhead: border(2) + paddingY(2) + title+spacer(2) + input(2) + spacer(1) + footer(2) = 11
-  const DIALOG_CHROME = 11
+  // Dialog chrome overhead: border(2) + paddingY(2) + title+spacer(2) + input(2) + footer(2) = 10
+  // (No separate scope line — scope is shown as InputBox prompt prefix)
+  const DIALOG_CHROME = 10
   const maxVisible = Math.max(1, maxHeight - DIALOG_CHROME)
 
   // Register dialog target for command system navigation
@@ -241,9 +242,23 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
     return node ? getNodeDisplayName(repo, node) : null
   }, [scope, scopeNodeIds, repo])
 
+  // Scope prompt prefix for the InputBox (e.g., "[All] " or "[in Alpha] ")
+  const scopePrompt =
+    scope === "all" ? "All ▸ " : `in ${scopeNodeName ?? "selection"} ▸ `
+  const scopePromptColor = scope === "all" ? "white" : "cyan"
+
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>↑↓ nav  Enter go  Tab scope  Esc cancel</Text>
+      <Text dimColor>
+        {"↑↓ nav  Enter go  "}
+        <Text>Tab</Text>
+        {scope === "all" && scopeNodeName
+          ? ` narrow to ${scopeNodeName}`
+          : scope === "all"
+            ? " narrow scope"
+            : " search all"}
+        {"  Esc cancel"}
+      </Text>
       {resultCount > maxVisible && (
         <Text dimColor>
           {scrollOffset > 0 ? "↑" : " "}
@@ -256,26 +271,14 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
 
   return (
     <ModalDialog title="Search" width={width} height={dialogHeight} footer={footerContent}>
-      {/* Search input with readline editing - flexShrink=0 prevents being pushed out */}
+      {/* Search input with scope prefix and readline editing */}
       <Box flexShrink={0}>
-        <InputBox beforeCursor={lineEdit.beforeCursor} afterCursor={lineEdit.afterCursor} />
-      </Box>
-
-      {/* Scope indicator line */}
-      <Box flexShrink={0} height={1}>
-        <Text dimColor>
-          {scope === "all" ? (
-            <>
-              <Text bold color="white">All</Text>
-              {scopeNodeName ? <Text> · Tab to narrow to {scopeNodeName}</Text> : <Text> · Tab to narrow</Text>}
-            </>
-          ) : (
-            <>
-              <Text bold color="cyan">in {scopeNodeName ?? "selection"}</Text>
-              <Text> · Tab for all</Text>
-            </>
-          )}
-        </Text>
+        <InputBox
+          beforeCursor={lineEdit.beforeCursor}
+          afterCursor={lineEdit.afterCursor}
+          prompt={scopePrompt}
+          promptColor={scopePromptColor}
+        />
       </Box>
 
       {/* Results list — flexGrow fills available height */}

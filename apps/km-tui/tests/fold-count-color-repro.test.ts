@@ -112,4 +112,46 @@ describe("fold count color", () => {
       expect(cell2!.attrs.bold, "not bold at depth 2").toBeFalsy()
     })
   })
+
+  describe("column header count with ownColor", () => {
+    function createColorBoard() {
+      // Two columns: col-colored (cyan) and col-other.
+      // Navigate cursor to col-other so col-colored is unselected.
+      const nodes = item(
+        "board",
+        item("col-colored", item("c1"), item("c2"), item("c3")),
+        item("col-other", item("other-task")),
+      )
+      // Set color on the column node
+      nodes.find((n) => n.id === "col-colored")!.rules = { color: "cyan" } as any
+      return testEnv(() => nodes, { columns: 80, rows: 24 })
+    }
+
+    test("column header count is gray, not ownColor, when column unselected", () => {
+      const { board } = createColorBoard()
+
+      // Move cursor to col-other so col-colored is unselected
+      board.press("l")
+
+      // Find the header row containing "col-colored"
+      const headerRow = board.screen.findRow("col-colored")
+      expect(headerRow, "header row found").toBeGreaterThanOrEqual(0)
+
+      // Find the "3" count in the first column (left half of screen).
+      // With 80 cols and 2 columns, col-colored is in the first ~40 chars.
+      const rowText = board.screen.row(headerRow)
+      const halfWidth = Math.floor(80 / 2)
+      const leftHalf = rowText.slice(0, halfWidth)
+      const countMatch = leftHalf.match(/(\d+)\s*$/)
+      expect(countMatch, "count digit found in col-colored header").not.toBeNull()
+      const countX = countMatch!.index!
+
+      const cell = board.screen.cell(countX, headerRow)
+      expect(cell.char).toBe("3")
+
+      // Count should be gray (fg=8), not cyan (ownColor)
+      expect(cell.fg, "fg=8 (gray), not ownColor").toBe(8)
+      expect(cell.attrs.dim, "not dim").toBeFalsy()
+    })
+  })
 })

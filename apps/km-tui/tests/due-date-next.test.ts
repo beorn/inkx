@@ -7,18 +7,28 @@
  * The @next template's Inbox column uses add= rules to pull in tasks
  * with due dates (past, today, this week) and past start dates.
  *
- * Root cause: In interactive mode, loadRepo uses discoverOnly=true for instant
- * render, then parseDeferredAsync runs in background. But evaluateAllRules was
- * never called after background parsing, so add= rules never materialized
- * embed nodes for dated tasks.
+ * Root cause 1 (background): loadRepo uses discoverOnly=true for instant render,
+ * then parseDeferredAsync runs in background. evaluateAllRules was never called
+ * after background parsing. Fix: Call evaluateAllRules after background ops in view.ts.
  *
- * Fix: Call evaluateAllRules after background parsing + link resolution in view.ts.
+ * Root cause 2 (interactive td): onNodeChanged writes embeds directly to DB via
+ * db.run(), bypassing the repo's children cache. Without touch() to clear the cache,
+ * subsequent repo.getChildren() returns stale results without the new embeds.
+ * Fix: Call repo.touch() after onNodeChanged (clears cache + bumps version).
  */
 import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
-import { MemoryStore, queryTasks, evaluateAllRules, createRuleContext, getChildren } from "@km/storage"
+import {
+  MemoryStore,
+  queryTasks,
+  evaluateAllRules,
+  createRuleContext,
+  getChildren,
+  onNodeChanged,
+  createBareRepo,
+} from "@km/storage"
 import type { Database } from "bun:sqlite"
 import { formatDate } from "@km/core"
 
@@ -159,6 +169,73 @@ describe("due date queries for @next board", () => {
         const children = getChildren(db, inbox!.id)
         const embeds = children.filter((c) => c.type === "link" && c.embed)
         expect(embeds.length).toBe(3)
+      },
+    )
+  })
+
+  test("interactive td: onNodeChanged creates embeds after setting due date", () => {
+    // Reproduces the interactive flow: user sets due date on an item,
+    // onNodeChanged creates embeds in DB, touch() clears children cache.
+    withTestRepo(
+      (dir) => {
+        writeFileSync(
+          join(dir, "tasks.md"),
+          `# Tasks
+
+- [ ] My task
+`,
+        )
+        writeFileSync(
+          join(dir, "@next.md"),
+          `# Next Actions
+
+## Inbox add="due:past -status:done -status:dropped" add="due:today -status:done -status:dropped"
+
+## Next
+`,
+        )
+      },
+      (store) => {
+        const db = store.getDatabase()
+
+        // First, run evaluateAllRules so rules are materialized (simulates initial load)
+        const initCtx = createRuleContext()
+        for (const _ of evaluateAllRules(db, initCtx)) {
+          /* exhaust */
+        }
+
+        const inbox = findInboxSection(db)
+        expect(inbox).toBeDefined()
+
+        // No embeds yet (task has no due date)
+        const childrenBefore = getChildren(db, inbox!.id)
+        const embedsBefore = childrenBefore.filter((c) => c.type === "link" && c.embed)
+        expect(embedsBefore.length).toBe(0)
+
+        // Find the task node
+        const taskNode = db
+          .query("SELECT * FROM nodes WHERE content LIKE '%My task%' AND task_status IS NOT NULL")
+          .get() as Record<string, unknown> | null
+        expect(taskNode).not.toBeNull()
+
+        // Simulate interactive "td" — set due_at to yesterday (matches due:past rule)
+        const yest = yesterday()
+        db.run("UPDATE nodes SET due_at = ?, due_date = ?, updated_at = ? WHERE id = ?", [
+          yest,
+          yest,
+          Date.now(),
+          taskNode!.id,
+        ])
+
+        // Call onNodeChanged (same as handleDatePromptConfirm does)
+        const ruleCtx = createRuleContext()
+        onNodeChanged(db, taskNode!.id as string, ruleCtx)
+
+        // Verify embeds were created in DB
+        const childrenAfter = getChildren(db, inbox!.id)
+        const embedsAfter = childrenAfter.filter((c) => c.type === "link" && c.embed)
+        expect(embedsAfter.length).toBe(1)
+        expect(embedsAfter[0]!.link_to).toBe(taskNode!.id)
       },
     )
   })

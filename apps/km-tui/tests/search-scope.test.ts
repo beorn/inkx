@@ -5,7 +5,8 @@
  * 1. "all" — search entire repo (current default behavior)
  * 2. "selected" — search only cursor node and its descendants
  *
- * Tab toggles between scopes. The scope indicator appears in the dialog footer.
+ * Tab toggles between scopes. The scope is shown as the InputBox prompt prefix
+ * (e.g., "All ▸ " or "in Alpha project ▸ ") with a Tab hint in the footer.
  */
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
@@ -36,7 +37,9 @@ describe("Search scope: UI toggle", () => {
     const { board } = makeBoard()
     board.press("/")
     const text = dialogText(board)
+    // Scope prompt: "All ▸ "
     expect(text).toContain("All")
+    // Footer has Tab hint
     expect(text).toContain("Tab")
   })
 
@@ -44,22 +47,21 @@ describe("Search scope: UI toggle", () => {
     const { board } = makeBoard()
     board.press("/")
 
-    // Initially "All"
+    // Initially "All ▸ " prompt
     let text = dialogText(board)
     expect(text).toContain("All")
-    expect(text).not.toContain("in ")
 
-    // Tab switches to scoped (shows "in <node name>")
+    // Tab switches to scoped — prompt shows "in <node name> ▸ "
     board.press("Tab")
     text = dialogText(board)
     expect(text).toContain("in ")
-    expect(text).toContain("Tab for all")
+    expect(text).toContain("search all") // Footer: "Tab search all"
 
-    // Tab switches back to "All"
+    // Tab switches back to "All ▸ "
     board.press("Tab")
     text = dialogText(board)
     expect(text).toContain("All")
-    expect(text).toContain("Tab to narrow")
+    expect(text).toContain("narrow") // Footer: "Tab narrow ..."
   })
 })
 
