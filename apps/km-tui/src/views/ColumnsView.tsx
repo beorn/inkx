@@ -101,8 +101,10 @@ const ColumnTree = React.memo(function ColumnTree({
   const renderCard = useCallback(
     (card: CardState, actualIndex: number) => {
       log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`)
+      // Body blocks (isVirtual) get extra spacing via marginBottom
+      const isBody = card.isVirtual
       return (
-        <Box key={card.node.id} paddingLeft={1}>
+        <Box key={card.node.id} paddingLeft={1} marginBottom={isBody ? 1 : 0}>
           <MemoizedTreeCard
             card={card}
             colIndex={colIndex}
@@ -179,7 +181,7 @@ const ColumnTree = React.memo(function ColumnTree({
           isSelected={isSelected}
           items={column.cards}
           height={height - 2}
-          itemHeight={1}
+          itemHeight={(card) => (card.isVirtual ? 2 : 1)}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_ITEMS}
           keyExtractor={(card) => card.node.id}

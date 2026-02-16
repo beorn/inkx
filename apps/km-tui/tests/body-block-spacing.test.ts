@@ -11,6 +11,8 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("Body block spacing", () => {
   // Helper to create a board with body content (paragraphs before sections)
+  // Uses section nodes (oi type) for structural items so extractBody
+  // correctly classifies paragraphs as body and sections as structural.
   function boardWithBodyContent() {
     return item(
       "board",
@@ -18,8 +20,8 @@ describe("Body block spacing", () => {
         "col1",
         item.paragraph("body paragraph one"),
         item.paragraph("body paragraph two"),
-        item("task-a"),
-        item("task-b"),
+        item.section("task-a", item("task-a-child")),
+        item.section("task-b", item("task-b-child")),
       ),
     )
   }
@@ -70,8 +72,7 @@ describe("Body block spacing", () => {
   })
 
   describe("columns view", () => {
-    // TODO: implement inter-block spacing in columns view (km-tui.body-block-spacing)
-    test.skip("body blocks have one blank line between them", () => {
+    test("body blocks have one blank line between them", () => {
       const { board } = testEnv(boardWithBodyContent, { viewMode: "columns" })
 
       const screenshot = board.screenshot()
@@ -116,8 +117,7 @@ describe("Body block spacing", () => {
       }
     })
 
-    // TODO: implement inter-block spacing in columns view (km-tui.body-block-spacing)
-    test.skip("body blocks have more spacing than structural items", () => {
+    test("body blocks have more spacing than structural items", () => {
       const { board } = testEnv(boardWithBodyContent, { viewMode: "columns" })
 
       const screenshot = board.screenshot()
