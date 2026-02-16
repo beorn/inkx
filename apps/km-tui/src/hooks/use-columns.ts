@@ -181,11 +181,15 @@ function kNodeToColumnState(
 
   // Body nodes: each becomes its own navigable card.
   // Embed links (link_to) are discrete items — not virtual.
+  // Children are fetched so buildNodeIndex can map descendants for cursor resolution
+  // (e.g., after indent, a child may be reparented under a body node).
   for (const child of bodyNodes) {
+    const childChildren = repo.getChildren(child.id)
+    const isFolded = foldedNodes.has(child.id)
     cards.push({
       node: child,
-      children: [],
-      childCount: 0,
+      children: isFolded ? [] : childChildren,
+      childCount: childChildren.length,
       ...(child.link_to ? {} : { isVirtual: true }),
     })
   }
@@ -242,6 +246,7 @@ function createVirtualBodyNode(parentId: string | null): KNode {
 function nodesEqual(a: KNode, b: KNode): boolean {
   return (
     a.id === b.id &&
+    a.type === b.type &&
     a.content === b.content &&
     a.task_status === b.task_status &&
     a.due_date === b.due_date &&
@@ -330,9 +335,17 @@ export function applyStructuralSharing(prev: ColumnState[], next: ColumnState[])
     }
   }
 
-  // If nothing changed and same length, reuse the entire array
+  // If nothing changed, same length, AND same order, reuse the entire array.
+  // Reordering (e.g., column shift) must return `result` even when content is unchanged.
   if (!anyColumnChanged && prev.length === next.length) {
-    return prev
+    let sameOrder = true
+    for (let i = 0; i < prev.length; i++) {
+      if (prev[i]!.node.id !== next[i]!.node.id) {
+        sameOrder = false
+        break
+      }
+    }
+    if (sameOrder) return prev
   }
 
   return result
