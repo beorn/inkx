@@ -76,5 +76,6 @@ connectors:
 
 ## See Also
 
+- [../architecture/brain.md](../architecture/brain.md) — Brain architecture (sync adapters are Phase 5 of the roadmap)
 - [../storage.md](../storage.md) — Events and sync model
 - [agents.md](agents.md) — Agent connectors

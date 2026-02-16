@@ -91,7 +91,7 @@ AutoMem's graph storage and Hindsight's entity extraction are powerful but requi
 - LLM extraction pipeline during indexing (expensive, slow)
 - Entity resolution logic (deduplication, merging)
 
-These are better suited for cloudi/pam's full memory system where the infrastructure investment is justified. km recall's 30-day window and session-focused queries don't benefit enough to justify the complexity.
+> **Update**: km now absorbs Cloudi's memory system (see [brain architecture](../architecture/brain.md)). Entity extraction will be implemented in km via SPO triples and entity schemas — but as later phases of the roadmap, not in the initial recall improvements.
 
 ### Skip: Embedding-Based Search
 
@@ -112,7 +112,7 @@ km recall's FTS5 architecture is fundamentally sound. The cloudi research (ADR01
 
 Total estimated effort for meaningful improvement: ~10 hours across 3 phases. No external infrastructure needed — all SQLite-native.
 
-The full AutoMem/Hindsight architectures with graph storage and embeddings are better pursued in cloudi/pam where the memory system is the core product, not a supporting tool.
+> **Update**: The full AutoMem/Hindsight architectures (entity extraction, graph storage, embeddings) are now part of km's roadmap via the [brain architecture](../architecture/brain.md) — km absorbs Cloudi's memory system. The phased approach above remains correct: recall ranking improvements first, SPO memory and entity schemas in later phases.
 
 ## References
 

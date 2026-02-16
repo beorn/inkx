@@ -2,6 +2,8 @@
 
 km is an **externalized brain** for humans and AI agents. A headless knowledge engine that turns plain markdown files into a structured, queryable, history-aware knowledge system. Agents and humans operate on the same brain through different **bodies**.
 
+> **Relationship to [architecture.md](../architecture.md)**: The main architecture doc describes km's current five-layer system (App → Board → Tree → Storage → FS). This document extends that with the **brain layer** — event sources, SPO memory, entity modeling — which sits alongside Storage as a new capability. The five-layer stack handles nodes and navigation; the brain layer handles knowledge, memory, and external sync.
+
 ## Brain / Body Architecture
 
 ```
@@ -84,7 +86,7 @@ interface EventSource {
 }
 ```
 
-### Source Types (from Cloudi ADR01)
+### Source Types
 
 | Type | What | Rebuildable? | Examples |
 |------|------|-------------|----------|
@@ -239,7 +241,7 @@ Promotion creates an event → normal km flow → markdown file.
 
 ## Failure Modes
 
-Production agent memory systems encounter these issues (from deep research, 2026-02-15):
+Production agent memory systems encounter these failure modes:
 
 | Failure Mode | Mitigation |
 |-------------|------------|
@@ -251,13 +253,27 @@ Production agent memory systems encounter these issues (from deep research, 2026
 
 Memory hygiene built in from day one: TTL for ephemeral triples, agent triples persist until retracted, periodic summarization of old events.
 
+## Current State
+
+What exists today:
+- **Nodes, storage, sync** — the five-layer architecture is implemented ([architecture.md](../architecture.md))
+- **CalDAV/CardDAV client** — `@km/connector-caldav` package with vCard/iCal parsing
+- **Agent runtime** — `@km/agent` package with harnesses, sessions, work queues
+- **Session recall** — FTS5-indexed search across Claude Code session history (`bun recall`)
+
+What this document describes (planned):
+- SPO memory layer (`packages/km-memory/` — not yet created)
+- Event source abstraction (node edits work today; session/git/sync sources are planned)
+- Entity schemas and shaping
+- Promotion (SPO → markdown nodes)
+
 ## Implementation Roadmap
 
 ### Prototype (validate core assumption)
 - SPO table + recall/remember/retract CLI commands
 - ENGRAM per-category retrieval
 - Test with real Claude Code sessions
-- Success: agent produces useful triples, recall beats current FTS5
+- Success metric: agent produces useful triples, recall beats current FTS5-only approach
 
 ### Phase 1: Statements + Agent Tools
 Core SPO schema, StatementStore, agent tools, keyword search
@@ -272,7 +288,7 @@ Deterministic projection: statements → typed entities (Contact, Event, Task)
 Multi-source corroboration, contradiction handling
 
 ### Phase 5: Sync Adapters
-CardDAV, CalDAV, Google (builds on entity shaping)
+CardDAV, CalDAV, Google (builds on entity shaping + existing `@km/connector-caldav`)
 
 ### Phase 6: Node Derivation
 Markdown → SPO triples (structured extraction from frontmatter/links/tags)
@@ -282,10 +298,6 @@ SPO → markdown nodes (manual + automatic)
 
 ### Phase 8: Unified Query
 repo.query() + SPO store merged via RRF
-
-## Package
-
-`packages/km-memory/` — shared by km and pam.
 
 ## References
 

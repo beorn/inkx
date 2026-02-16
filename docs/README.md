@@ -13,8 +13,8 @@ km transforms a directory of markdown files into a **unified node tree** that ca
 - Edited (changes sync bidirectionally to files)
 - Extended (custom content types via frontmatter)
 
-**Currently implements:** Task management with GTD workflow
-**Planned:** Notes, contacts, calendar events, custom content types
+**Currently implements:** Task management with GTD workflow, CalDAV/CardDAV client, agent runtime
+**Committed vision:** SPO memory (agent knowledge), contacts/calendar sync, notes, custom content types — see [architecture/brain.md](architecture/brain.md)
 
 ### Core Insight
 
@@ -52,6 +52,7 @@ km init                    # Enable persistence (stable IDs, history)
 | [principles.md](principles.md)     | **Start here.** How km works: composability, fast feedback, code for humans, governance, and AI agents |
 | [concepts.md](concepts.md)         | Core concepts: nodes, modes, status, glossary                                                          |
 | [architecture.md](architecture.md) | System layers, data flow, command system, event system                                                 |
+| [architecture/brain.md](architecture/brain.md) | Brain layer: event sources, SPO memory, entity schemas, agent tools                           |
 | [storage.md](storage.md)           | SQLite schema, two modes, sync                                                                         |
 
 ### User Guides
@@ -90,12 +91,6 @@ km init                    # Enable persistence (stable IDs, history)
 | [dev/debugging.md](dev/debugging.md)       | Debugging TUI, storage, sync, tests |
 | [dev/ink-patterns.md](dev/ink-patterns.md) | Ink TUI framework patterns          |
 | [dev/releasing.md](dev/releasing.md)       | Versioning and releases             |
-
-### Architecture
-
-| Doc                                                        | Description                                              |
-| ---------------------------------------------------------- | -------------------------------------------------------- |
-| [architecture/brain.md](architecture/brain.md)             | Plain brain: event sources, SPO memory, entity schemas   |
 
 ### Future
 

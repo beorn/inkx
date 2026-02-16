@@ -1,6 +1,6 @@
 # Architecture
 
-km is a **PIM/PKM engine** that turns markdown files into a semantic tree. This document covers the system architecture: layers, data flow, domain objects, and packages.
+km is an **externalized brain** for humans and AI agents — a headless knowledge engine that turns plain markdown files into a structured, queryable, history-aware knowledge system. This document covers the system architecture: layers, data flow, domain objects, and packages.
 
 > **For the "why" behind these choices**, see [principles.md](principles.md).
 
@@ -263,11 +263,15 @@ See [storage.md](storage.md) for details on how @km/storage implements bidirecti
 
 ```
 packages/
-  @km/core       - KNode, TNode, shared types
-  @km/storage    - SQLite, events, sync
-  @km/markdown   - Parser (markdown ↔ KNode)
-  @km/tree       - Tree queries, display names
-  @km/board      - BoardState, cursor, selection, fold
+  @km/core              - KNode, TNode, shared types
+  @km/storage           - SQLite, events, sync
+  @km/markdown          - Parser (markdown ↔ KNode)
+  @km/tree              - Tree queries, display names
+  @km/board             - BoardState, cursor, selection, fold
+  @km/commands          - Command system, keybindings, context
+  @km/beads             - Issue tracking queries (bd integration)
+  @km/agent             - Agent runtime, harnesses, sessions
+  @km/connector-caldav  - CalDAV/CardDAV client
 
 apps/
   km-cli/        → @km/cli-app     CLI commands

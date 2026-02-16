@@ -221,8 +221,7 @@ full history, query interface, file-system materialization.
 **pam provides**: Channel adapters, security harness (8 layers), conversation state
 (ephemeral), tool execution (WASM sandbox), escalation chain, anomaly detection.
 
-**The gray zone**: ENGRAM memory (SPO triples) — persistent agent knowledge. Best stored
-as natural markdown with inline properties, potentially Dataview-compatible (`key:: value`).
+**The gray zone**: ~~ENGRAM memory (SPO triples) — persistent agent knowledge.~~ **Resolved**: SPO triples live in km as `spo_triples` table in SQLite, with entity schemas for contacts/events/tasks. See [brain architecture](../architecture/brain.md).
 
 **Coupling**: Start tight (pam imports @km/storage directly, same monorepo), extract
 protocol once it stabilizes.
@@ -262,7 +261,7 @@ Publishing (use git + SSG), plugins (use vendor packages), themes (TUI is simple
 - How does multi-brain work? (Personal brain + work brain + project brain)
 - Where does the boardliner web interface fit in the priority stack?
 - What's the minimum Obsidian compatibility needed? (wikilinks, .obsidian/ ignore, what else?)
-- Should km parse Dataview inline properties (`key:: value`) for graph extraction?
+- ~~Should km parse Dataview inline properties (`key:: value`) for graph extraction?~~ **Yes** — entity schemas use `key:: value` format. See [brain.md](../architecture/brain.md#entity-schemas).
 
 ## References
 
