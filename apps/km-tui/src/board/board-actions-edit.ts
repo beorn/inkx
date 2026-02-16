@@ -460,7 +460,8 @@ export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left
 
   if (!card) {
     // At column header level — reorder columns left/right
-    if (col && (direction === "left" || direction === "right")) {
+    // Virtual columns (body column) can't be moved
+    if (col && !col.isVirtual && (direction === "left" || direction === "right")) {
       return moveColumn(ctx, col, direction)
     }
     return boundary(direction)
@@ -487,6 +488,9 @@ function moveColumn(
 
   const targetCol = layout.columns[targetIndex]
   if (!targetCol) return boundary(direction)
+
+  // Virtual columns (e.g., __body__) are synthetic — can't be moved in the repo
+  if (targetCol.isVirtual) return boundary(direction)
 
   // Batch all moves (normalize + swap) into a single undo entry
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
@@ -529,7 +533,7 @@ function normalizeColumnSortOrders(ctx: ActionCtx): void {
   const parentId = ctx.rootId
   for (let i = 0; i < layout.columns.length; i++) {
     const c = layout.columns[i]
-    if (c && c.node.parent_idx !== i) {
+    if (c && !c.isVirtual && c.node.parent_idx !== i) {
       repo.moveNode(c.node.id, parentId, i)
       c.node.parent_idx = i
     }

@@ -36,17 +36,24 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     const bottomBorders = rows.filter((r) => r.includes("\u2570") && r.includes("\u256f"))
     expect(bottomBorders.length, `${label}: bottom borders should match top borders`).toBe(topBorders.length)
 
-    // Check that each bottom border has continuous horizontal dashes (not spaces)
+    // Check that each bottom border has continuous horizontal dashes (not spaces).
+    // Overflow cards have a custom bottom border with a "+N" label, e.g.:
+    //   ╰───────── +1 ──────────╯
+    // The "+N" label is allowed; stale blank spaces are not.
     for (const row of bottomBorders) {
       const leftIdx = row.indexOf("\u2570")
       const rightIdx = row.lastIndexOf("\u256f")
       if (leftIdx >= 0 && rightIdx > leftIdx + 1) {
         const between = row.slice(leftIdx + 1, rightIdx)
-        for (let i = 0; i < between.length; i++) {
-          expect(
-            between[i],
-            `${label}: bottom border at col ${leftIdx + 1 + i} should be \u2500 but got "${between[i]}"`,
-          ).toBe("\u2500")
+        // Allow overflow label pattern: dashes + " +N " + dashes
+        const isOverflowBorder = /^\u2500*\s\+\d+\s\u2500*$/.test(between)
+        if (!isOverflowBorder) {
+          for (let i = 0; i < between.length; i++) {
+            expect(
+              between[i],
+              `${label}: bottom border at col ${leftIdx + 1 + i} should be \u2500 but got "${between[i]}"`,
+            ).toBe("\u2500")
+          }
         }
       }
     }

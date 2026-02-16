@@ -234,6 +234,7 @@ const Card = React.memo(
         <Box flexDirection="column" flexShrink={0} width={width}>
           <Box
             flexDirection="column"
+            width={width}
             borderStyle="round"
             borderBottom={false}
             borderColor={borderColor}
@@ -251,11 +252,13 @@ const Card = React.memo(
               extraExcludedSigils={extraExcludedSigils}
             />
           </Box>
-          <Text color={borderColor} wrap="truncate">
-            <Text color={borderColor}>╰{"─".repeat(leftPad)}</Text>
-            <Text dimColor> +{hiddenCount} </Text>
-            <Text color={borderColor}>{"─".repeat(rightPad)}╯</Text>
-          </Text>
+          <Box width={width} height={1} flexShrink={0}>
+            <Text color={borderColor} wrap="truncate">
+              <Text color={borderColor}>╰{"─".repeat(leftPad)}</Text>
+              <Text dimColor> +{hiddenCount} </Text>
+              <Text color={borderColor}>{"─".repeat(rightPad)}╯</Text>
+            </Text>
+          </Box>
         </Box>
       )
     }

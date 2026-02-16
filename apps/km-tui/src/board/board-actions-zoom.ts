@@ -7,7 +7,6 @@
 import type { ActionResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
 import { isOutline, type KNode } from "@km/core"
-import { handleCursorMove } from "./board-actions-nav.ts"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
@@ -65,8 +64,8 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
 
     // Check if we're at repo root (parent_id is null)
     if (!currentRoot || currentRoot.parent_id === null) {
-      // Can't zoom out from repo root — fall through to cursor-up fallback
-      return handleCursorMove(ctx, "up")
+      // Can't zoom out from repo root — navigate to cursor's PARENT (not previous sibling)
+      return navigateToParent(ctx)
     }
 
     // We have a parent - zoom out to it
@@ -85,9 +84,33 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
     }
   }
 
-  // Can't zoom out - delegate to cursor up for card→column→board navigation
-  // This ensures 'u' and 'k' use the same boundary checking logic
-  return handleCursorMove(ctx, "up")
+  // Can't zoom out — navigate to cursor's PARENT (not previous sibling)
+  return navigateToParent(ctx)
+}
+
+/**
+ * Navigate cursor to its tree parent within the current board.
+ * Card → column header → board root → boundary.
+ */
+function navigateToParent(ctx: ActionCtx): ActionResult {
+  const cursorNode = ctx.repo.getNode(ctx.cursorNodeId)
+  if (!cursorNode?.parent_id) return boundary("up")
+
+  // If cursor IS the root, we're at the top — boundary
+  if (ctx.cursorNodeId === ctx.rootId) return boundary("up")
+
+  // If cursor's parent is the root, navigate to board level
+  if (cursorNode.parent_id === ctx.rootId) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.rootId })
+    return ok()
+  }
+
+  // Navigate to parent node (e.g., card → column header)
+  const parentNode = ctx.repo.getNode(cursorNode.parent_id)
+  if (!parentNode) return boundary("up")
+
+  ctx.dispatchBoard({ type: "SELECT", nodeId: parentNode.id })
+  return ok()
 }
 
 /**

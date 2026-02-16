@@ -68,7 +68,7 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
     expect(board.bell).toBe(true)
   })
 
-  it("moves cursor up through cards to column to board", () => {
+  it("moves cursor to parent: card → column → board", () => {
     const { board } = testEnv(() =>
       item.root(
         "board",
@@ -80,14 +80,8 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
     board.press("j").press("j")
     board.expect("#c[data-cursor]").toExist()
 
-    // u acts like cursor-up when can't zoom: c → b → a → col header → board
+    // u goes to PARENT (not prev sibling): c → col1 → board
     board.press("u")
-    board.expect("#b[data-cursor]").toExist()
-
-    board.press("u")
-    board.expect("#a[data-cursor]").toExist()
-
-    board.press("u") // first card → column header
     board.expect("#col1[data-cursor]").toExist()
 
     board.press("u") // column header → board
