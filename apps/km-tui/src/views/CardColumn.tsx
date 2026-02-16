@@ -10,6 +10,7 @@ import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback } from "inkx"
 import { styledUnderline } from "chalkx"
 import type { JobRunner } from "@km/core"
+import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { CardState, ColumnState } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
@@ -343,6 +344,7 @@ export const Column = React.memo(function Column({
     treeConfig: { iconStyle },
   } = useTreeRenderContext()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
+  const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
   const nodeId = column.node.id
 
   // Subscribe to column selection only (stable on j/k within same column).
@@ -386,17 +388,21 @@ export const Column = React.memo(function Column({
           impact: impact.backlinks.length > 0 ? `${impact.backlinks.length} backlink${s} will be updated` : "",
           countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
           execute: (onProgress) => {
+            undoHandle.setCursor(nodeId)
+            undoHandle.startBatch("Rename")
             repo.renameNode(nodeId, newValue, (info) => onProgress(info.updated, info.total))
+            undoHandle.endBatch()
           },
         })
       } else {
         // Name and content diverged — just update content, don't rename
+        undoHandle.setCursor(nodeId)
         repo.updateNode(nodeId, { content: newValue })
       }
 
       setUI({ inlineEditBlock: null })
     },
-    [nodeId, repo, setUI, jobRunner],
+    [nodeId, repo, setUI, jobRunner, undoHandle],
   )
 
   const handleInlineEditCancel = useCallback(() => {

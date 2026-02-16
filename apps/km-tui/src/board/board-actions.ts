@@ -288,6 +288,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // and cannot be collapsed — return boundary to ring the bell.
       if (collapseNodeId.startsWith("__body__")) return boundary("collapse", "Body column cannot be collapsed")
       const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
+      // Record cursor for undo
+      ctx.undoHandle.setCursor(ctx.cursorNodeId)
       // Persist collapsed state to node.data so it survives across sessions
       const colNode = ctx.repo.getNode(collapseNodeId)
       if (colNode) {

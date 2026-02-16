@@ -5,8 +5,11 @@
  * Uses context from the cursor item for defaults.
  */
 import React, { useState } from "react"
+import { useApp as useAppStore } from "inkx/runtime"
 import { Box, Text } from "inkx"
 import { isOutline, type KNode } from "@km/core"
+import type { BoardAppStore } from "../board-app-store.ts"
+import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
@@ -94,6 +97,7 @@ export function NewItemDialog({
   height,
 }: NewItemDialogProps): React.ReactElement {
   const repo = useRepo()
+  const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
   const [content, setContent] = useState("")
 
   // Determine insert location
@@ -122,6 +126,7 @@ export function NewItemDialog({
         onCancelRef.current()
         return
       }
+      undoHandle.setCursor(cursorNode?.id ?? null)
       const nodeId = repo.addNode(parentId, {
         type: isTask ? "li" : "p",
         content: contentRef.current.trim(),

@@ -556,6 +556,9 @@ export function handleIndentColumn(ctx: ActionCtx, col: ColumnState): ActionResu
   const lastCard = targetCards[targetCards.length - 1]
   const newSortOrder = lastCard ? lastCard.parent_idx + 1 : 0
 
+  // Record cursor for undo
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+
   // Move the column node under the previous column
   repo.moveNode(col.node.id, prevCol.node.id, newSortOrder)
 

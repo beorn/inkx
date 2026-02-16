@@ -9,6 +9,7 @@ import { type KNode, resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import type { BoardAction } from "../board-types.ts"
 import type { Repo } from "../repo-context.tsx"
+import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { TUIBoardState } from "../types.ts"
 import type { UIState } from "../ui-reducer.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
@@ -76,6 +77,8 @@ interface UseBoardDialogsParams {
   cursorNodeId: string | null
   /** Current root node ID (from board state) */
   rootId: string | null
+  /** Undo handle for cursor recording and batching */
+  undoHandle: UndoableRepoHandle
 }
 
 interface BoardDialogHandlers {
@@ -104,6 +107,7 @@ export function useBoardDialogs({
   dispatchBoard,
   cursorNodeId,
   rootId,
+  undoHandle,
 }: UseBoardDialogsParams): BoardDialogHandlers {
   // Handle project picker selection
   // For linked nodes (transclusions), re-parent the TARGET node, not the link
@@ -129,6 +133,9 @@ export function useBoardDialogs({
       const lastChild = targetChildren[targetChildren.length - 1]
       const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0
 
+      // Record cursor for undo
+      undoHandle.setCursor(cursorNodeId)
+
       // Update database via repo (handles memory/disk mode)
       repo.moveNode(nodeToMove, targetNode.id, newSortOrder)
 
@@ -138,7 +145,7 @@ export function useBoardDialogs({
         showProjectPicker: false,
       }))
     },
-    [repo, cursorNodeId, setUI],
+    [repo, cursorNodeId, setUI, undoHandle],
   )
 
   const handleProjectCancel = useCallback(() => {
@@ -245,11 +252,17 @@ export function useBoardDialogs({
       if (!prompt) return { datePrompt: null }
 
       const { field, nodeIds } = prompt
+      const useBatch = nodeIds.length > 1
+
+      // Record cursor and batch for multi-node operations
+      undoHandle.setCursor(cursorNodeId)
+      if (useBatch) undoHandle.startBatch(`Set ${field}`)
 
       if (field === "recurrence") {
         const rrule = trimmed ? naturalToRRule(trimmed) : null
         if (trimmed && !rrule) {
           // Can't show toast here without toastQueue — just close
+          if (useBatch) undoHandle.endBatch()
           return { datePrompt: null }
         }
         for (const nodeId of nodeIds) {
@@ -260,6 +273,7 @@ export function useBoardDialogs({
         if (trimmed) {
           const resolved = resolveRelativeDate(trimmed)
           if (!resolved) {
+            if (useBatch) undoHandle.endBatch()
             return { datePrompt: null }
           }
           for (const nodeId of nodeIds) {
@@ -272,9 +286,10 @@ export function useBoardDialogs({
         }
       }
 
+      if (useBatch) undoHandle.endBatch()
       return { datePrompt: null }
     })
-  }, [repo, setUI])
+  }, [repo, setUI, undoHandle, cursorNodeId])
 
   const handleDatePromptCancel = useCallback(() => {
     setUI({ datePrompt: null })

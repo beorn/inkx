@@ -732,6 +732,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Dialog handlers — read cursorNodeId from Zustand (silently mutated by SELECT)
   const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.cursorNodeId)
+  const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>((s) => s.undoHandle)
   const dialogHandlers = useBoardDialogs({
     repo,
     state: tuiBoardState,
@@ -739,6 +740,7 @@ export function Board({ patchedConsole }: BoardProps) {
     dispatchBoard,
     cursorNodeId: dialogCursorNodeId,
     rootId,
+    undoHandle,
   })
 
   // Scroll offset — use visibleColIndex for rendering (scrolls through visible columns only)

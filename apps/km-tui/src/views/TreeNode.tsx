@@ -11,6 +11,7 @@ import React, { useCallback, useMemo } from "react"
 import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { JobRunner } from "@km/core"
+import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
@@ -199,6 +200,7 @@ function TreeNodeImpl({
 
   const repo = useRepo()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
+  const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
   const excludedSigils = useMemo(() => {
     const rootSigils = deriveExcludedSigils(repo, rootBoardId)
     if (!extraExcludedSigils?.length) return rootSigils
@@ -322,9 +324,10 @@ function TreeNodeImpl({
       const originalContent = displayNode.content ?? ""
       const { marker } = extractTitleTaskMarker(originalContent)
       const newContent = marker != null ? `${marker} ${newValue}` : newValue
+      undoHandle.setCursor(displayNode.id)
       repo.updateNode(displayNode.id, { content: newContent })
     },
-    [displayNode.id, displayNode.content, repo],
+    [displayNode.id, displayNode.content, repo, undoHandle],
   )
 
   // Inline edit callbacks — uses renameNode for backlink-safe renames
@@ -358,17 +361,21 @@ function TreeNodeImpl({
           impact: impact.backlinks.length > 0 ? `${impact.backlinks.length} backlink${s} will be updated` : "",
           countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
           execute: (onProgress) => {
+            undoHandle.setCursor(displayNode.id)
+            undoHandle.startBatch("Rename")
             repo.renameNode(displayNode.id, newContent, (info) => onProgress(info.updated, info.total))
+            undoHandle.endBatch()
           },
         })
       } else {
         // Name and content diverged — just update content, don't rename
+        undoHandle.setCursor(displayNode.id)
         repo.updateNode(displayNode.id, { content: newContent })
       }
 
       setUI({ inlineEditBlock: null })
     },
-    [displayNode.id, displayNode.content, repo, setUI, jobRunner],
+    [displayNode.id, displayNode.content, repo, setUI, jobRunner, undoHandle],
   )
 
   const handleInlineEditCancel = useCallback(() => {
@@ -378,40 +385,49 @@ function TreeNodeImpl({
   // Body block save callback (persists content for a body child)
   const handleBlockSave = useCallback(
     (childId: string, newValue: string) => {
+      undoHandle.setCursor(displayNode.id)
       repo.updateNode(childId, { content: newValue })
     },
-    [repo],
+    [repo, undoHandle, displayNode.id],
   )
 
   // Split at boundary: Enter in title creates a new sibling node
   const handleSplitAtBoundary = useCallback(
     (offset: number) => {
       try {
+        undoHandle.setCursor(displayNode.id)
+        undoHandle.startBatch("Split node")
         const result = splitNode(repo, displayNode.id, offset)
+        undoHandle.endBatch()
         // Focus the new node (text after cursor) in edit mode
         setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
       } catch {
+        undoHandle.endBatch()
         // Split failed (e.g., root node) — visual bell
         setUI({ bellState: "split-failed" })
       }
     },
-    [displayNode.id, repo, setUI],
+    [displayNode.id, repo, setUI, undoHandle],
   )
 
   // Merge backward: Backspace at start of title merges with previous sibling
   const handleMergeBackward = useCallback(() => {
     try {
+      undoHandle.setCursor(displayNode.id)
+      undoHandle.startBatch("Merge nodes")
       const result = mergeWithPrevious(repo, displayNode.id)
+      undoHandle.endBatch()
       if (result) {
         // Focus the survivor with cursor at the merge point
         setUI({ inlineEditBlock: { nodeId: result.survivorId, blockIndex: 0 } })
         // TODO: set cursor offset to result.cursorOffset via BlockEditTarget after render
       }
     } catch {
+      undoHandle.endBatch()
       // Merge failed — visual bell
       setUI({ bellState: "merge-failed" })
     }
-  }, [displayNode.id, repo, setUI])
+  }, [displayNode.id, repo, setUI, undoHandle])
 
   // When selected (yellow bg), strip ANSI color codes from styled content
   // so all text renders as black-on-yellow for readability
@@ -666,7 +682,10 @@ function TreeNodeImpl({
                   onSave={(v) => handleBlockSave(child.id, v)}
                   onSplitAtBoundary={(offset) => {
                     try {
+                      undoHandle.setCursor(displayNode.id)
+                      undoHandle.startBatch("Split block")
                       const result = splitNode(repo, child.id, offset)
+                      undoHandle.endBatch()
                       setUI({
                         inlineEditBlock: {
                           nodeId: result.afterId,
@@ -674,12 +693,16 @@ function TreeNodeImpl({
                         },
                       })
                     } catch {
+                      undoHandle.endBatch()
                       setUI({ bellState: "split-failed" })
                     }
                   }}
                   onMergeBackward={() => {
                     try {
+                      undoHandle.setCursor(displayNode.id)
+                      undoHandle.startBatch("Merge blocks")
                       const result = mergeWithPrevious(repo, child.id)
+                      undoHandle.endBatch()
                       if (result) {
                         setUI({
                           inlineEditBlock: {
@@ -689,6 +712,7 @@ function TreeNodeImpl({
                         })
                       }
                     } catch {
+                      undoHandle.endBatch()
                       setUI({ bellState: "merge-failed" })
                     }
                   }}
