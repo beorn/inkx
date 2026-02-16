@@ -30,4 +30,6 @@ export { fetchClaudeProfile, type ClaudeProfile } from "./providers/claude-oauth
 
 export { checkAccountQuota, checkAllQuotas, findBestAccount } from "./quota.ts"
 
+export { discoverAccounts, getCredentialForAccount, type DiscoveredAccount } from "./discover.ts"
+
 export { switchAccount } from "./switcher.ts"

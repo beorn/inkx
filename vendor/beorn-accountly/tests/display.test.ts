@@ -86,6 +86,38 @@ describe("display formatting", () => {
     expect(output).toContain("No accounts configured")
   })
 
+  test("formatAccountLine shows key valid for providers without quota windows", () => {
+    const quota: QuotaInfo = {
+      accountName: "openai-main",
+      provider: "openai",
+      available: true,
+      windows: [],
+      checkedAt: Date.now(),
+    }
+
+    // When windowNames is empty (all accounts in group have no windows), show "key valid"
+    const line = formatAccountLine(quota, false, 20, [])
+    expect(line).toContain("openai-main")
+    expect(line).toContain("key valid")
+  })
+
+  test("formatStatus shows all provider types", () => {
+    const quotas: QuotaInfo[] = [
+      { accountName: "claude", provider: "claude-oauth", available: true, windows: [], checkedAt: Date.now() },
+      { accountName: "openai", provider: "openai", available: true, windows: [], checkedAt: Date.now() },
+      { accountName: "grok", provider: "xai", available: true, windows: [], checkedAt: Date.now() },
+      { accountName: "gemini", provider: "google", available: true, windows: [], checkedAt: Date.now() },
+      { accountName: "router", provider: "openrouter", available: true, windows: [], checkedAt: Date.now() },
+    ]
+
+    const output = formatStatus(quotas, undefined)
+    expect(output).toContain("Claude Code (OAuth)")
+    expect(output).toContain("OpenAI")
+    expect(output).toContain("xAI (Grok)")
+    expect(output).toContain("Google (Gemini)")
+    expect(output).toContain("OpenRouter")
+  })
+
   test("formatStatus aligns columns across accounts", () => {
     const quotas: QuotaInfo[] = [
       {

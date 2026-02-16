@@ -1,30 +1,18 @@
-import type { AccountConfig, QuotaInfo } from "./types.ts"
-import { readCredential } from "./credentials.ts"
+import type { QuotaInfo } from "./types.ts"
+import type { DiscoveredAccount } from "./discover.ts"
 import { getProvider } from "./providers/index.ts"
 
-/** Check quota for a single account */
-export async function checkAccountQuota(account: AccountConfig): Promise<QuotaInfo> {
-  const credential = readCredential(account.name)
-  if (!credential) {
-    return {
-      accountName: account.name,
-      provider: account.provider,
-      available: false,
-      windows: [],
-      error: "No credentials found",
-      checkedAt: Date.now(),
-    }
-  }
-
-  const provider = getProvider(account.provider)
-  const result = await provider.checkQuota(credential)
-  result.accountName = account.name
+/** Check quota for a single discovered account */
+export async function checkAccountQuota(discovered: DiscoveredAccount): Promise<QuotaInfo> {
+  const provider = getProvider(discovered.config.provider)
+  const result = await provider.checkQuota(discovered.credential)
+  result.accountName = discovered.config.name
   return result
 }
 
-/** Check quota for all accounts in parallel */
-export async function checkAllQuotas(accounts: AccountConfig[]): Promise<QuotaInfo[]> {
-  const enabled = accounts.filter((a) => !a.disabled)
+/** Check quota for all discovered accounts in parallel */
+export async function checkAllQuotas(accounts: DiscoveredAccount[]): Promise<QuotaInfo[]> {
+  const enabled = accounts.filter((a) => !a.config.disabled)
   return Promise.all(enabled.map(checkAccountQuota))
 }
 

@@ -1,13 +1,13 @@
 import type { Credential, QuotaInfo, QuotaProvider, QuotaWindow } from "../types.ts"
 
-const COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
+const COMPLETIONS_URL = "https://api.x.ai/v1/chat/completions"
 
 function extractApiKey(credential: Credential): string | undefined {
   const key = credential.apiKey as string | undefined
   return key && key.length > 0 ? key : undefined
 }
 
-/** Parse rate limit windows from OpenAI response headers */
+/** Parse rate limit windows from xAI response headers (OpenAI-compatible) */
 function parseRateLimitHeaders(headers: Headers): QuotaWindow[] {
   const windows: QuotaWindow[] = []
 
@@ -42,10 +42,10 @@ function parseRateLimitHeaders(headers: Headers): QuotaWindow[] {
   return windows
 }
 
-/** OpenAI provider — uses minimal chat completion to get rate limit headers */
-export function createOpenAIProvider(): QuotaProvider {
+/** xAI/Grok provider — uses minimal chat completion to get rate limit headers */
+export function createXaiProvider(): QuotaProvider {
   return {
-    providerType: "openai",
+    providerType: "xai",
 
     validateCredential(credential: Credential): boolean {
       return extractApiKey(credential) !== undefined
@@ -54,7 +54,7 @@ export function createOpenAIProvider(): QuotaProvider {
     async checkQuota(credential: Credential): Promise<QuotaInfo> {
       const base: Pick<QuotaInfo, "accountName" | "provider" | "checkedAt"> = {
         accountName: "",
-        provider: "openai",
+        provider: "xai",
         checkedAt: Date.now(),
       }
 
@@ -71,7 +71,7 @@ export function createOpenAIProvider(): QuotaProvider {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "grok-3-mini-fast",
             max_tokens: 1,
             messages: [{ role: "user", content: "." }],
           }),

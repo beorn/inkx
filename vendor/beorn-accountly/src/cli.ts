@@ -14,6 +14,7 @@ import {
 import { readCredential, writeCredential, deleteCredential, renameCredential } from "./credentials.ts"
 import { readKeychainCredential } from "./keychain.ts"
 import { checkAllQuotas, findBestAccount } from "./quota.ts"
+import { discoverAccounts } from "./discover.ts"
 import { switchAccount } from "./switcher.ts"
 import { formatStatus } from "./display.ts"
 import { fetchClaudeProfile } from "./providers/claude-oauth.ts"
@@ -23,21 +24,54 @@ const program = new Command()
 
 program.name("accountly").description("Multi-account manager for Claude Code and other AI providers").version("0.1.0")
 
+// ── default (no subcommand) ─────────────────────────────────────────────
+program.action(async () => {
+  const discovered = discoverAccounts()
+
+  if (discovered.length === 0) {
+    console.log(pc.bold("accountly") + " — Multi-account manager for Claude Code\n")
+    console.log("No accounts found. Accountly auto-discovers from:\n")
+    console.log("  Claude Code    macOS Keychain (run accountly import after /login)")
+    console.log("  Anthropic      ANTHROPIC_API_KEY")
+    console.log("  OpenAI         OPENAI_API_KEY")
+    console.log("  xAI (Grok)     XAI_API_KEY")
+    console.log("  Gemini         GEMINI_API_KEY or GOOGLE_API_KEY")
+    console.log("  OpenRouter     OPENROUTER_API_KEY\n")
+    console.log(pc.dim("Run accountly --help for all commands."))
+    return
+  }
+
+  const active = getActiveAccount()
+  const quotas = await checkAllQuotas(discovered)
+  const accounts = discovered.map((d) => d.config)
+  console.log(formatStatus(quotas, active, accounts))
+
+  const claudeCount = discovered.filter((d) => d.config.provider === "claude-oauth").length
+  if (claudeCount <= 1) {
+    console.log(
+      `\n${pc.dim("Tip: Log in to another Claude Code account (/login), then run")} ${pc.cyan("accountly import")} ${pc.dim("to add it.")}`,
+    )
+  }
+
+  console.log(pc.dim(`\nRun accountly --help for all commands.`))
+})
+
 // ── status ──────────────────────────────────────────────────────────────
 program
   .command("status")
   .description("Show all accounts with quota usage")
   .action(async () => {
-    const accounts = getAccounts()
+    const discovered = discoverAccounts()
     const active = getActiveAccount()
-    const quotas = await checkAllQuotas(accounts)
+    const quotas = await checkAllQuotas(discovered)
+    const accounts = discovered.map((d) => d.config)
     console.log(formatStatus(quotas, active, accounts))
   })
 
 // ── import ──────────────────────────────────────────────────────────────
 program
   .command("import")
-  .description("Import current Claude Code credentials (uses email as account name)")
+  .description("Import current Claude Code credentials from Keychain (for multi-account switching)")
   .action(async () => {
     const credential = readKeychainCredential()
     if (!credential) {
@@ -64,7 +98,7 @@ program
     const existing = getAccount(accountName)
     writeCredential(accountName, credential)
     upsertAccount({ name: accountName, provider: "claude-oauth", metadata })
-    setActiveAccount(accountName)
+    if (!getActiveAccount()) setActiveAccount(accountName)
 
     if (existing) {
       console.log(pc.green(`Refreshed credentials for ${accountName}`))
@@ -72,7 +106,6 @@ program
       console.log(pc.green(`Imported ${accountName}`))
       if (profile.orgName) console.log(pc.dim(`  Org: ${profile.orgName} (${profile.plan})`))
     }
-    console.log(pc.dim(`Active account: ${accountName}`))
   })
 
 // ── switch ──────────────────────────────────────────────────────────────
@@ -94,19 +127,20 @@ program
   .command("auto")
   .description("Auto-switch to account with most remaining quota")
   .action(async () => {
-    const accounts = getAccounts().filter((a) => a.provider === "claude-oauth" && !a.disabled)
-    if (accounts.length === 0) {
+    const discovered = discoverAccounts().filter(
+      (d) => d.config.provider === "claude-oauth" && !d.config.disabled,
+    )
+    if (discovered.length === 0) {
       console.error(pc.red("No Claude OAuth accounts configured."))
       process.exit(1)
     }
 
     console.log(pc.dim("Checking quotas..."))
-    const quotas = await checkAllQuotas(accounts)
+    const quotas = await checkAllQuotas(discovered)
     const best = findBestAccount(quotas)
 
     if (!best) {
       console.error(pc.red("No accounts with available quota."))
-      // Show what we found
       for (const q of quotas) {
         if (q.error) {
           console.error(pc.dim(`  ${q.accountName}: ${q.error}`))
@@ -136,7 +170,10 @@ program
 program
   .command("add <name>")
   .description("Add an account manually")
-  .requiredOption("-p, --provider <provider>", "Provider type (claude-oauth, anthropic-api, openai, google)")
+  .requiredOption(
+    "-p, --provider <provider>",
+    "Provider type (claude-oauth, anthropic-api, openai, xai, google, openrouter)",
+  )
   .option("--key", "Prompt for API key")
   .option("--env <var>", "Environment variable containing the API key")
   .action((name: string, opts: { provider: string; key?: boolean; env?: string }) => {
@@ -151,7 +188,6 @@ program
       }
       writeCredential(name, { apiKey })
     } else if (opts.key) {
-      // Read from stdin
       console.log("Enter API key (paste, then press Enter):")
       const key = readlineSync()
       if (key) {
@@ -235,7 +271,6 @@ program
       process.exit(1)
     }
 
-    // Output just the token, no newline formatting
     process.stdout.write(token)
   })
 

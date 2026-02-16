@@ -1,5 +1,5 @@
 /** Supported account provider types */
-export type AccountProvider = "claude-oauth" | "anthropic-api" | "openai" | "google"
+export type AccountProvider = "claude-oauth" | "anthropic-api" | "openai" | "xai" | "google" | "openrouter"
 
 /** Account configuration (no secrets — stored in accounts.json) */
 export interface AccountConfig {

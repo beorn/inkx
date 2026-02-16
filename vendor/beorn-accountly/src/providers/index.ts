@@ -2,7 +2,9 @@ import type { AccountProvider, QuotaProvider } from "../types.ts"
 import { createClaudeOAuthProvider } from "./claude-oauth.ts"
 import { createAnthropicApiProvider } from "./anthropic-api.ts"
 import { createOpenAIProvider } from "./openai.ts"
+import { createXaiProvider } from "./xai.ts"
 import { createGoogleProvider } from "./google.ts"
+import { createOpenRouterProvider } from "./openrouter.ts"
 
 const providers = new Map<AccountProvider, QuotaProvider>()
 
@@ -12,7 +14,9 @@ function ensureProviders(): void {
     createClaudeOAuthProvider(),
     createAnthropicApiProvider(),
     createOpenAIProvider(),
+    createXaiProvider(),
     createGoogleProvider(),
+    createOpenRouterProvider(),
   ]
   for (const p of all) {
     providers.set(p.providerType, p)

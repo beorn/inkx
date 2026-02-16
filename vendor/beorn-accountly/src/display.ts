@@ -15,9 +15,30 @@ function formatBar(utilization: number, width = 10): string {
 /** Format time until reset: "2h14m", "0h52m", "4d" */
 function formatResetTime(resetsAt: string | undefined): string {
   if (!resetsAt) return ""
-  const ms = new Date(resetsAt).getTime() - Date.now()
-  if (ms <= 0) return "now"
 
+  // Try ISO 8601 date (absolute timestamp)
+  const date = new Date(resetsAt)
+  if (!isNaN(date.getTime())) {
+    const ms = date.getTime() - Date.now()
+    if (ms <= 5_000) return "" // < 5s = rolling window, don't show
+    return formatDuration(ms)
+  }
+
+  // Try OpenAI-style duration: "6m0s", "1m30.5s", "30s"
+  const match = resetsAt.match(/(?:(\d+)m)?(?:(\d+(?:\.\d+)?)s)?/)
+  if (match && (match[1] || match[2])) {
+    const mins = Number(match[1] ?? 0)
+    const secs = Number(match[2] ?? 0)
+    const ms = (mins * 60 + secs) * 1000
+    if (ms <= 5_000) return ""
+    return formatDuration(ms)
+  }
+
+  return ""
+}
+
+function formatDuration(ms: number): string {
+  if (ms <= 0) return ""
   const hours = Math.floor(ms / 3_600_000)
   const minutes = Math.floor((ms % 3_600_000) / 60_000)
 
@@ -25,7 +46,8 @@ function formatResetTime(resetsAt: string | undefined): string {
     const days = Math.floor(hours / 24)
     return `${days}d`
   }
-  return `${hours}h${String(minutes).padStart(2, "0")}m`
+  if (hours > 0) return `${hours}h${String(minutes).padStart(2, "0")}m`
+  return `${minutes}m`
 }
 
 /** Collect the union of window names across all quotas, in consistent order */
@@ -70,7 +92,11 @@ export function formatAccountLine(
     return `${marker} ${name}  ${planCol}  ${pc.red(quota.error)}`
   }
 
-  if (quota.windows.length === 0) {
+  if (quota.windows.length === 0 && windowNames.length === 0) {
+    return `${marker} ${name}  ${planCol}  ${pc.green("\u2713 key valid")}`
+  }
+
+  if (quota.windows.length === 0 && windowNames.length > 0) {
     return `${marker} ${name}  ${planCol}  ${pc.dim("no quota data")}`
   }
 
@@ -130,7 +156,9 @@ function providerLabel(provider: string): string {
     "claude-oauth": "Claude Code (OAuth)",
     "anthropic-api": "Anthropic (API Key)",
     openai: "OpenAI",
+    xai: "xAI (Grok)",
     google: "Google (Gemini)",
+    openrouter: "OpenRouter",
   }
   return labels[provider] ?? provider
 }
