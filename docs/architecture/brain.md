@@ -2,7 +2,11 @@
 
 km is an **externalized brain** for humans and AI agents. A headless knowledge engine that turns plain markdown files into a structured, queryable, history-aware knowledge system. Agents and humans operate on the same brain through different **bodies**.
 
+The brain layer adds **structured memory** (SPO triples), **entity modeling** (contacts, events, tasks), and **multi-source event processing** (session transcripts, CalDAV sync, git history) to km's existing node tree. Your data stays in plain markdown — the brain layer derives queryable indexes from it, the same way km already derives backlinks from wikilinks.
+
 > **Relationship to [architecture.md](../architecture.md)**: The main architecture doc describes km's current five-layer system (App → Board → Tree → Storage → FS). This document extends that with the **brain layer** — event sources, SPO memory, entity modeling — which sits alongside Storage as a new capability. The five-layer stack handles nodes and navigation; the brain layer handles knowledge, memory, and external sync.
+>
+> **Status**: The brain layer is under active development. See [Current State](#current-state) for what's implemented vs planned.
 
 ## Brain / Body Architecture
 
@@ -44,14 +48,14 @@ Brain (km):     │
 **Bodies**: Interfaces that connect to the brain. Multiple simultaneous:
 - **TUI/CLI** (km-tui, km-cli) — km's native interfaces
 - **Claude Code** — AI agent via .claude/ configs + km CLI + memory tools
-- **pam** — multi-channel AI harness (WhatsApp, email, Telegram)
+- **pam** (Personal Assistant Machine) — multi-channel AI harness (WhatsApp, email, Telegram)
 - **Obsidian** — human GUI editor (reads/writes same markdown)
 - **Future: web boardliner** — browser interface
 - **Future: MCP server** — tools for any AI agent
 
 ## PIM Consolidation
 
-km absorbs features from kimmi (contacts/calendar sync) and cloudi (memory system). The PIM ecosystem simplifies to two things:
+km absorbs features from **kimmi** (a separate contacts/calendar CRDT sync project) and **cloudi** (an experimental AI memory system). The PIM ecosystem simplifies to two things:
 
 | | **km** (brain) | **pam** (body) |
 |---|---|---|
@@ -239,6 +243,8 @@ Triples live in SQLite by default. Promotion creates a markdown file when knowle
 
 Promotion creates an event → normal km flow → markdown file.
 
+The reverse direction — editing a promoted markdown node and syncing changes back to the triple store — is handled by **Phase 6: Node Derivation**. This closes the loop: triples can become nodes (promotion), and node edits can update triples (derivation).
+
 ## Failure Modes
 
 Production agent memory systems encounter these failure modes:
@@ -255,15 +261,15 @@ Memory hygiene built in from day one: TTL for ephemeral triples, agent triples p
 
 ## Current State
 
-What exists today:
-- **Nodes, storage, sync** — the five-layer architecture is implemented ([architecture.md](../architecture.md))
-- **CalDAV/CardDAV client** — `@km/connector-caldav` package with vCard/iCal parsing
-- **Agent runtime** — `@km/agent` package with harnesses, sessions, work queues
+**Implemented:**
+- **Nodes, storage, sync** — the five-layer architecture ([architecture.md](../architecture.md))
+- **CalDAV/CardDAV client** — `@km/connector-caldav` package with vCard/iCal parsing ([services.md](../future/services.md))
+- **Agent runtime** — `@km/agent` package with harnesses, sessions, work queues ([agents.md](../future/agents.md))
 - **Session recall** — FTS5-indexed search across Claude Code session history (`bun recall`)
 
-What this document describes (planned):
+**Planned** (described in this document):
 - SPO memory layer (`packages/km-memory/` — not yet created)
-- Event source abstraction (node edits work today; session/git/sync sources are planned)
+- Event source abstraction (node edits work; session/git/sync sources are planned)
 - Entity schemas and shaping
 - Promotion (SPO → markdown nodes)
 
@@ -301,7 +307,7 @@ repo.query() + SPO store merged via RRF
 
 ## References
 
-- [Cloudi ADR01 specs](../../../cloudi/specs/active/ADR01/) — full SPO schema, extraction pipeline, entity shaping, confidence accumulation
+- Cloudi ADR01 specs (`~/Code/pim/cloudi/specs/active/ADR01/`) — full SPO schema, extraction pipeline, entity shaping, confidence accumulation *(internal reference; requires cloudi repo checkout)*
 - [memory-systems-analysis.md](../explorations/memory-systems-analysis.md) — ENGRAM/AutoMem/Hindsight research evaluation
 - [ENGRAM paper](https://openreview.net/forum?id=D7WqEZzwRR) (ICLR 2026) — cognitive type separation, +31% accuracy
 - [Letta benchmark](https://www.letta.com/blog/benchmarking-ai-agent-memory) — filesystem memory (74% LoCoMo) > Mem0 graph (68.5%)

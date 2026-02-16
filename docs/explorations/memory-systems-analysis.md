@@ -52,7 +52,7 @@ Key innovation: each network prevents memory type conflicts. Observations are LL
 | Multi-pathway retrieval | Hindsight | Medium | High | Do third |
 | Entity extraction | AutoMem/Hindsight | High | Medium | Defer |
 | Graph storage | AutoMem | High | Medium | Skip |
-| Embedding-based search | All three | Medium | Medium | Defer |
+| Embedding-based search | All three | Medium | Medium | Phase 2 (brain roadmap) |
 
 ### Phase 1: Cognitive Type Tags (Low effort, high impact)
 
@@ -93,14 +93,14 @@ AutoMem's graph storage and Hindsight's entity extraction are powerful but requi
 
 > **Update**: km now absorbs Cloudi's memory system (see [brain architecture](../architecture/brain.md)). Entity extraction will be implemented in km via SPO triples and entity schemas — but as later phases of the roadmap, not in the initial recall improvements.
 
-### Skip: Embedding-Based Search
+### Later: Embedding-Based Search
 
 Vector search (semantic similarity) requires:
 - Embedding model integration (API calls during indexing + query)
 - Vector storage (SQLite doesn't natively support ANN search)
 - Significant latency increase
 
-FTS5 with cognitive type separation captures most of the value. The marginal gain from embeddings doesn't justify the infrastructure for km's use case (developer session recall with specific technical terms).
+FTS5 with cognitive type separation captures most of the value for session recall. Embeddings are planned as Phase 2 of the [brain architecture roadmap](../architecture/brain.md#implementation-roadmap) to handle query/storage phrasing mismatch in SPO retrieval.
 
 ## Conclusion
 
@@ -116,7 +116,7 @@ Total estimated effort for meaningful improvement: ~10 hours across 3 phases. No
 
 ## References
 
-- cloudi ADR01: `~/Code/pim/cloudi/specs/active/ADR01/ADR01-memory-system.md`
-- cloudi REF01: `~/Code/pim/cloudi/specs/active/ADR01/REF01-memory-research.md`
-- km plain-brain exploration: `docs/explorations/plain-brain.md`
+- [Brain architecture](../architecture/brain.md) — committed design incorporating these findings
+- Cloudi ADR01 memory system spec *(internal: `~/Code/pim/cloudi/specs/active/ADR01/`)*
+- [Plain-brain exploration](plain-brain.md) — original exploration (graduated to brain.md)
 - km recall implementation: `vendor/beorn-tools/tools/recall.ts`, `recall/search.ts`
