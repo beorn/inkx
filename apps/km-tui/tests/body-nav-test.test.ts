@@ -53,7 +53,7 @@ describe("body content navigation", () => {
     board.expect("#para1[data-cursor]").toExist()
   })
 
-  it("k from first body card goes to board level", () => {
+  it("k from first body card goes to body column header, then board level", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -66,7 +66,11 @@ describe("body content navigation", () => {
     // Start on para1
     board.expect("#para1[data-cursor]").toExist()
 
-    // k should go to board level
+    // k should go to body column header (__body__board)
+    board.press("k")
+    board.expect('[id="__body__board"][data-cursor]').toExist()
+
+    // k again should go to board level
     board.press("k")
     board.expect("#board[data-cursor]").toExist()
   })
@@ -131,9 +135,9 @@ describe("body content navigation", () => {
     const downTarget = nav.navigate("down", navState, repo, registry)
     expect(downTarget).toBeNull()
 
-    // Up from body card should go to board level
+    // Up from body card should go to body column header
     const upTarget = nav.navigate("up", navState, repo, registry)
-    expect(upTarget).toBe("board")
+    expect(upTarget).toBe("__body__board")
   })
 
   it("navigation layer handles multiple body nodes", () => {
@@ -161,7 +165,71 @@ describe("body content navigation", () => {
     // Up from p3 → p2
     expect(nav.navigate("up", { cursorNodeId: "p3", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() }, repo, registry)).toBe("p2")
 
-    // Up from p1 → board
-    expect(nav.navigate("up", { cursorNodeId: "p1", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() }, repo, registry)).toBe("board")
+    // Up from p1 → body column header
+    expect(nav.navigate("up", { cursorNodeId: "p1", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() }, repo, registry)).toBe("__body__board")
+  })
+})
+
+// =============================================================================
+// Body column navigation after zoom (km-nyxsp)
+// =============================================================================
+
+describe("body column navigation after zoom", () => {
+  it("l from body column header after zoom goes to structural column", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("root-section",
+            item.paragraph("body-text"),
+            item("sub1", item("t1")),
+            item("sub2", item("t2")),
+          ),
+        ),
+    )
+
+    // Navigate to column header and zoom in to root-section
+    board.press("k") // body-text → root-section column header
+    board.press("e") // zoom into root-section
+
+    // After zoom, cursor on first body card
+    board.expect("#body-text[data-cursor]").toExist()
+
+    // k to body column header
+    board.press("k")
+    board.expect('[id="__body__root-section"][data-cursor]').toExist()
+
+    // l should go to sub1 column (first structural column)
+    board.press("l")
+
+    const cursorId = board.q("[data-cursor]").getAttribute("id")
+    expect(cursorId).toBe("sub1")
+  })
+
+  it("l from body card after zoom goes to structural column", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("root4",
+            item.paragraph("body-p"),
+            item("sec-x", item("tx1")),
+            item("sec-y", item("ty1")),
+          ),
+        ),
+    )
+
+    // Navigate to column header and zoom
+    board.press("k") // body-p → root4 column header
+    board.press("e") // zoom into root4
+
+    board.expect("#body-p[data-cursor]").toExist()
+
+    // l directly from body card — should go to sec-x's first card
+    board.press("l")
+
+    const cursorId = board.q("[data-cursor]").getAttribute("id")
+    expect(cursorId).not.toBe("body-p")
+    expect(cursorId).not.toBe("root4")
   })
 })

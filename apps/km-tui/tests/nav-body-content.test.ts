@@ -59,7 +59,7 @@ describe("Body content: vertical navigation (j/k)", () => {
     expect(board.bell).toBe(true)
   })
 
-  test("k at first body card moves to board level", () => {
+  test("k at first body card moves to body column header, then board level", () => {
     const { board } = testEnv(() =>
       item.file("doc",
         item.paragraph("intro"),
@@ -70,7 +70,11 @@ describe("Body content: vertical navigation (j/k)", () => {
     // Start at body card
     board.expect(cursor("intro")).toExist()
 
-    // k moves to board (root)
+    // k moves to body column header
+    board.press("k")
+    board.expect('[id="__body__doc"][data-cursor]').toExist()
+
+    // k again moves to board (root)
     board.press("k")
     board.expect(cursor("doc")).toExist()
   })
@@ -96,7 +100,11 @@ describe("Body content: vertical navigation (j/k)", () => {
     board.press("k")
     board.expect(cursor("p1")).toExist()
 
-    // k from first body card to board
+    // k from first body card to body column header
+    board.press("k")
+    board.expect('[id="__body__doc"][data-cursor]').toExist()
+
+    // k from body column header to board
     board.press("k")
     board.expect(cursor("doc")).toExist()
   })
@@ -298,8 +306,9 @@ describe("Board-level j/k with body content", () => {
       ),
     )
 
-    // Navigate to board level
-    board.press("k") // first body card -> board
+    // Navigate to board level (k → body column header, k → board)
+    board.press("k") // first body card -> body column header
+    board.press("k") // body column header -> board
     board.expect(cursor("doc")).toExist()
 
     // j from board level — stickyX not set, defaults to index 0
@@ -352,10 +361,11 @@ describe("Board-level j/k with body content", () => {
     board.press("j")
     board.expect(cursor("detail")).toExist()
 
-    // k twice to go to first body card then board
+    // k three times: second body card → first body card → body column header → board
     board.press("k")
     board.expect(cursor("intro")).toExist()
-    board.press("k")
+    board.press("k") // body column header
+    board.press("k") // board
     board.expect(cursor("doc")).toExist()
 
     // j from board — stickyX not set (body cards don't save stickyX)

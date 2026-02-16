@@ -179,7 +179,7 @@ function navigateVertical(
   } else {
     // k: move up
     if (isBodyContent) {
-      // Body card → previous meaningful body sibling, or board level if at first.
+      // Body card → previous meaningful body sibling, or body column header if at first.
       // Use filterMeaningfulBody to skip HR/empty nodes that the view doesn't render.
       const allChildren = repo.getChildren(rootId)
       const { body: rawBody } = extractBody(allChildren)
@@ -188,8 +188,8 @@ function navigateVertical(
       if (bodyIdx > 0) {
         return bodyNodes[bodyIdx - 1]!.id
       }
-      // At first body card → board level
-      return rootId
+      // At first body card → body column header (virtual node)
+      return `__body__${rootId ?? "root"}`
     }
 
     if (isAtCardLevel) {
@@ -266,13 +266,14 @@ function navigateHorizontal(
   const { cursorNodeId, rootId } = state
 
   // Virtual body column header (__body__<rootId>) — synthetic node not in repo.
-  // Treat as body column header: l → first structural column, h → boundary.
+  // Treat as body column header: l → first structural column header, h → boundary.
   if (cursorNodeId.startsWith("__body__")) {
     if (dir === "left") return null // Body column is leftmost
     const allChildren = repo.getChildren(rootId)
     const { structuralCols } = splitBodyAndColumns(allChildren)
     if (structuralCols.length === 0) return null
-    return navigateToStructuralCol(0, structuralCols, state, layoutRegistry, repo, true)
+    // Navigate to structural column header (column-to-column navigation)
+    return structuralCols[0]!.id
   }
 
   const cursorNode = repo.getNode(cursorNodeId)
