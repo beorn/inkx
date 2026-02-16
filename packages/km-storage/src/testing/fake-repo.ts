@@ -142,6 +142,10 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     getSnapshot() {
       return mutationVersion
     },
+    touch() {
+      mutationVersion++
+      for (const cb of listeners) cb()
+    },
 
     get stats() {
       return { ...stats, nodeCount: nodes.size }

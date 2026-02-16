@@ -183,7 +183,10 @@ export function handleFollowLink(ctx: ActionCtx): ActionResult {
   const { layout, dispatchBoard } = ctx
   const col = layout.columns[layout.colIndex]
   const card = col?.cards[layout.cardIndex]
-  const linkTo = card?.node.link_to
+  // Read link_to fresh from the repo — the cached layout may have stale null
+  // values if background link resolution completed after layout was derived.
+  const freshNode = card ? ctx.repo.getNode(card.node.id) : null
+  const linkTo = freshNode?.link_to ?? card?.node.link_to
   if (!linkTo) return boundary("follow_link", "not an embed")
 
   const target = ctx.repo.getNode(linkTo)

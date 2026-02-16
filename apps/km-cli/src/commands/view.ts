@@ -175,6 +175,11 @@ export const viewCommand = new Command("view")
             /* exhaust generator */
           }
           debug.debug?.("background rule evaluation complete")
+
+          // Bump repo version so TUI re-derives layout from fresh DB data.
+          // Background ops write directly to SQLite bypassing repo mutation API,
+          // so subscribers aren't notified without this explicit touch().
+          createdRepo.touch()
         } catch (err) {
           if (!aborted) {
             debug.debug?.(`background parsing/resolution failed: ${String(err)}`)

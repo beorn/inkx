@@ -635,6 +635,10 @@ export interface Repo extends Disposable {
   /** Returns current version — stable reference for useSyncExternalStore. */
   getSnapshot(): number
 
+  /** Bump version and notify subscribers. Use after bulk DB writes that bypass
+   *  the mutation API (e.g., background link resolution, rule evaluation). */
+  touch(): void
+
   /** Files pending deferred parsing (for discoverOnly mode) */
   readonly deferredFiles: DeferredFile[]
 
@@ -1196,6 +1200,10 @@ export function* createRepo(
     getSnapshot() {
       return state.version
     },
+    touch() {
+      state.version++
+      state.notify()
+    },
     get data() {
       ensureOpen()
       return dataStore
@@ -1408,6 +1416,10 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     },
     getSnapshot() {
       return state.version
+    },
+    touch() {
+      state.version++
+      state.notify()
     },
     get data() {
       ensureOpen()
