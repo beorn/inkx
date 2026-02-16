@@ -36,27 +36,30 @@ describe("Search scope: UI toggle", () => {
     const { board } = makeBoard()
     board.press("/")
     const text = dialogText(board)
-    expect(text).toContain("Search (All)")
-    expect(text).toContain("Tab ↔ scope")
+    expect(text).toContain("All")
+    expect(text).toContain("Tab")
   })
 
-  test("Tab toggles scope to 'Subtree' and back to 'All'", () => {
+  test("Tab toggles scope between All and scoped, back to All", () => {
     const { board } = makeBoard()
     board.press("/")
 
     // Initially "All"
     let text = dialogText(board)
-    expect(text).toContain("Search (All)")
+    expect(text).toContain("All")
+    expect(text).not.toContain("in ")
 
-    // Tab switches to "Subtree"
+    // Tab switches to scoped (shows "in <node name>")
     board.press("Tab")
     text = dialogText(board)
-    expect(text).toContain("Search (Subtree)")
+    expect(text).toContain("in ")
+    expect(text).toContain("Tab for all")
 
     // Tab switches back to "All"
     board.press("Tab")
     text = dialogText(board)
-    expect(text).toContain("Search (All)")
+    expect(text).toContain("All")
+    expect(text).toContain("Tab to narrow")
   })
 })
 

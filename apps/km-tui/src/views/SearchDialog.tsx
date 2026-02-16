@@ -234,10 +234,16 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
       : Math.min(resultCount || 1, maxVisible) // results or "No matching items"
   const dialogHeight = Math.min(DIALOG_CHROME + contentRows, maxHeight)
 
-  const scopeLabel = scope === "all" ? "All" : "Subtree"
+  // Scope label: "All" or the scoped node's name (e.g., "in Inbox")
+  const scopeNodeName = React.useMemo(() => {
+    if (scope !== "selected" || !scopeNodeIds?.length) return null
+    const node = repo.getNode(scopeNodeIds[0]!)
+    return node ? getNodeDisplayName(repo, node) : null
+  }, [scope, scopeNodeIds, repo])
+
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>↑↓ nav  Enter go  Tab ↔ scope  Esc cancel</Text>
+      <Text dimColor>↑↓ nav  Enter go  Tab scope  Esc cancel</Text>
       {resultCount > maxVisible && (
         <Text dimColor>
           {scrollOffset > 0 ? "↑" : " "}
@@ -249,15 +255,27 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
   )
 
   return (
-    <ModalDialog title={`Search (${scopeLabel})`} width={width} height={dialogHeight} footer={footerContent}>
+    <ModalDialog title="Search" width={width} height={dialogHeight} footer={footerContent}>
       {/* Search input with readline editing - flexShrink=0 prevents being pushed out */}
       <Box flexShrink={0}>
         <InputBox beforeCursor={lineEdit.beforeCursor} afterCursor={lineEdit.afterCursor} />
       </Box>
 
-      {/* Spacer before results - flexShrink=0 to maintain spacing */}
+      {/* Scope indicator line */}
       <Box flexShrink={0} height={1}>
-        <Text> </Text>
+        <Text dimColor>
+          {scope === "all" ? (
+            <>
+              <Text bold color="white">All</Text>
+              {scopeNodeName ? <Text> · Tab to narrow to {scopeNodeName}</Text> : <Text> · Tab to narrow</Text>}
+            </>
+          ) : (
+            <>
+              <Text bold color="cyan">in {scopeNodeName ?? "selection"}</Text>
+              <Text> · Tab for all</Text>
+            </>
+          )}
+        </Text>
       </Box>
 
       {/* Results list — flexGrow fills available height */}
