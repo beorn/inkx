@@ -501,8 +501,11 @@ function moveColumn(
 
   // Swap sort orders by moving each column to the other's position
   const parentId = ctx.rootId
-  const curOrder = col.node.parent_idx
-  const targetOrder = targetCol.node.parent_idx
+  // Read parent_idx from repo (not layout) to avoid stale references
+  const curNode = repo.getNode(col.node.id)
+  const targetNode = repo.getNode(targetCol.node.id)
+  const curOrder = curNode?.parent_idx ?? col.node.parent_idx
+  const targetOrder = targetNode?.parent_idx ?? targetCol.node.parent_idx
   repo.moveNode(col.node.id, parentId, targetOrder)
   repo.moveNode(targetCol.node.id, parentId, curOrder)
 

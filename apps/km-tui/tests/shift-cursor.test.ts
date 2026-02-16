@@ -218,6 +218,53 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#1a[data-cursor]").toExist()
   })
 
+  test("shift right then left returns column to original position", () => {
+    const { board } = testEnv(
+      () =>
+        item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
+      { columns: 160, rows: 24 },
+    )
+    board.press("k")
+    board.expect("#col1[data-cursor]").toExist()
+
+    const c1Before = board.q("#col1").boundingBox()!.x
+    const c2Before = board.q("#col2").boundingBox()!.x
+
+    // Shift right (col1 moves to position 1)
+    board.press("Meta+l")
+    board.expect("#col1[data-cursor]").toExist()
+    expect(board.q("#col1").boundingBox()!.x, "col1 moved right").toBeGreaterThan(c1Before)
+
+    // Shift left (col1 returns to position 0)
+    board.press("Meta+h")
+    board.expect("#col1[data-cursor]").toExist()
+    expect(board.q("#col1").boundingBox()!.x, "col1 returned to original").toBe(c1Before)
+    expect(board.q("#col2").boundingBox()!.x, "col2 returned to original").toBe(c2Before)
+  })
+
+  test("shift right twice then left once — column ends in middle", () => {
+    const { board } = testEnv(
+      () =>
+        item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
+      { columns: 160, rows: 24 },
+    )
+    board.press("k")
+
+    board.press("Meta+l") // col1: pos 0 → 1
+    board.press("Meta+l") // col1: pos 1 → 2
+    board.expect("#col1[data-cursor]").toExist()
+
+    board.press("Meta+h") // col1: pos 2 → 1
+    board.expect("#col1[data-cursor]").toExist()
+
+    // Order should be: col2, col1, col3
+    const c1x = board.q("#col1").boundingBox()!.x
+    const c2x = board.q("#col2").boundingBox()!.x
+    const c3x = board.q("#col3").boundingBox()!.x
+    expect(c2x).toBeLessThan(c1x)
+    expect(c1x).toBeLessThan(c3x)
+  })
+
   test("shift column with narrow viewport scrolls cursor into view", () => {
     // 80-wide viewport with 3 columns: maxCols = floor(80/35) = 2
     // So only 2 columns visible at once — scroll is active
