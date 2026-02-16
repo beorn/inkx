@@ -1,5 +1,7 @@
 # Memory Systems Analysis: ENGRAM/AutoMem/Hindsight for km recall
 
+> **See also**: [brain architecture doc](../architecture/brain.md) — the committed design that incorporates these findings (SPO memory with ENGRAM cognitive types, event source abstraction, entity schemas).
+
 Evaluates whether advanced memory system designs could improve km's recall architecture.
 Compares current FTS5-based retrieval with three research systems, estimates effort vs accuracy gain.
 

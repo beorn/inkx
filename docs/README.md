@@ -1,6 +1,6 @@
 # km Documentation
 
-**km** is a PIM/PKM engine that turns markdown files into a semantic tree.
+**km** is an externalized brain for humans and AI agents — a PIM/PKM engine that turns markdown files into a structured, queryable knowledge system.
 
 ---
 
@@ -51,7 +51,7 @@ km init                    # Enable persistence (stable IDs, history)
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | [principles.md](principles.md)     | **Start here.** How km works: composability, fast feedback, code for humans, governance, and AI agents |
 | [concepts.md](concepts.md)         | Core concepts: nodes, modes, status, glossary                                                          |
-| [architecture.md](architecture.md) | System layers, data flow, event system                                                                 |
+| [architecture.md](architecture.md) | System layers, data flow, command system, event system                                                 |
 | [storage.md](storage.md)           | SQLite schema, two modes, sync                                                                         |
 
 ### User Guides
@@ -90,6 +90,12 @@ km init                    # Enable persistence (stable IDs, history)
 | [dev/debugging.md](dev/debugging.md)       | Debugging TUI, storage, sync, tests |
 | [dev/ink-patterns.md](dev/ink-patterns.md) | Ink TUI framework patterns          |
 | [dev/releasing.md](dev/releasing.md)       | Versioning and releases             |
+
+### Architecture
+
+| Doc                                                        | Description                                              |
+| ---------------------------------------------------------- | -------------------------------------------------------- |
+| [architecture/brain.md](architecture/brain.md)             | Plain brain: event sources, SPO memory, entity schemas   |
 
 ### Future
 

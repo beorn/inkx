@@ -1,5 +1,7 @@
 # The Plain Brain: An Exploration
 
+> **Graduated**: This exploration led to the [brain architecture doc](../architecture/brain.md), which captures the committed design including SPO memory, event sources, entity schemas, and the PIM consolidation (kimmi/cloudi absorbed into km/pam).
+
 *Feb 10, 2026 — triggered by Obsidian 1.12 CLI release*
 
 This is an exploration of how km could position itself relative to Obsidian and the broader

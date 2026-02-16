@@ -516,6 +516,7 @@ Events are **synchronous** (emit → handlers run immediately → emit returns).
 
 ## See Also
 
+- [architecture/brain.md](architecture/brain.md) — Plain brain: event sources, SPO memory, entities, agent memory
 - [principles.md](principles.md) — Architectural principles and philosophy
 - [concepts.md](concepts.md) — Core concepts
 - [storage.md](storage.md) — Storage layer, modes, sync details
