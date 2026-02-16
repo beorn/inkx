@@ -157,14 +157,20 @@ describe("HR editing", () => {
       // Check cells on the edit row (first row inside the border = box.y)
       // After the "---" text + cursor, remaining cells should have no background color
       let coloredCells = 0
+      let inverseCells = 0
       for (let x = box.x; x < box.x + box.width; x++) {
         const cell = screen.cell(x, box.y)
         if (cell && cell.bg && cell.bg !== 0) {
           coloredCells++
         }
+        if (cell && (cell.attrs as Record<string, unknown>)?.inverse) {
+          inverseCells++
+        }
       }
       // Allow a few cells for the cursor (inverse) and prefix, but not the whole row
       expect(coloredCells).toBeLessThan(box.width / 2)
+      // Only the cursor char should be inverse, not the whole row
+      expect(inverseCells, "only cursor char inverse").toBeLessThanOrEqual(1)
     }
   })
 })
