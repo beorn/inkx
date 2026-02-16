@@ -49,7 +49,6 @@ function renderBoardCore(state: TUIBoardState, repo: Repo, options: { width?: nu
     },
     collapsedNodes: new Set<string>(),
     moveMode: false,
-    colScrollOffset: 0,
   })
   // Wrap in StoreContext + TreeRenderProvider so TreeNode's hooks work
   const initialUI = createInitialUIState("cards", [], {

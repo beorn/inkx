@@ -137,7 +137,7 @@ describe("Text Rendering", () => {
     const longTitle = "A".repeat(200)
     const { board } = testEnv(() => item("board", item("col", item(longTitle))))
     const output = board.screenshot()
-    expect(output).toContain("⋯") // Ellipsis for truncation
+    expect(output).toContain("\u2026") // U+2026 horizontal ellipsis (from inkx truncateText)
   })
 
   test("special characters render correctly", () => {

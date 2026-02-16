@@ -127,6 +127,12 @@ export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: u
  *   cursor position using existing columns. Used for SELECT and SET_CURSWANT
  *   actions where only cursorNodeId changes.
  */
+// Repo version at the time layout was last computed. When repo is mutated
+// (moveNode/addNode/deleteNode), this becomes stale. The SELECT fast path
+// checks this to decide whether it can use the existing nodeIndex or must
+// fall through to a full recompute.
+let _layoutRepoVersion = -1
+
 function recomputeLayout(get: () => BoardAppStore): void {
   const s = get()
   const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
@@ -149,6 +155,7 @@ function recomputeLayout(get: () => BoardAppStore): void {
   s.layout = layout
   s.selectedNode = selectedNode
   s.selectionLevel = cursor.selectionLevel
+  _layoutRepoVersion = s.repo.getSnapshot()
 
   // Sync cursor position to CursorStore so cursor-aware components update
   s.cursorStore.setState({
@@ -248,6 +255,14 @@ export function createBoardAppStoreState(
         s.cursorNodeId = action.nodeId
         s.curswantX = null
         s.curswantY = null
+
+        // If repo has been mutated since last layout computation, the nodeIndex
+        // and columns are stale. Fall through to full recompute which re-derives
+        // columns, builds a fresh nodeIndex, and resolves cursor position.
+        if (s.repo.getSnapshot() !== _layoutRepoVersion) {
+          recomputeLayout(_get)
+          return
+        }
 
         // Use position hints if provided (from refreshBoardState's fresh repo query),
         // otherwise fall back to O(1) nodeIndex lookup

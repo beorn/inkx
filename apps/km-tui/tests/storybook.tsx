@@ -1161,7 +1161,6 @@ function makeBoardCoreProps(
     dialogHandlers: noopDialogHandlers,
     collapsedNodes: new Set<string>(),
     moveMode: false,
-    colScrollOffset: 0,
   }
 }
 

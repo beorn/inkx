@@ -4,11 +4,12 @@
  * Tree/outline view within each column - combines the columnar structure
  * with hierarchical display of cards and their children.
  *
- * Uses inkx VirtualList for React-level virtualization of large card lists.
+ * Uses inkx HorizontalVirtualList for horizontal column windowing and
+ * VirtualList for React-level virtualization of large card lists.
  */
 import React, { useCallback, useMemo } from "react"
 import { useRepo } from "../repo-context.tsx"
-import { Box, Text } from "inkx"
+import { Box, Text, HorizontalVirtualList } from "inkx"
 import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:columns")
@@ -18,7 +19,6 @@ import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { getColumnHeaderIcon, isSigilName, renderPlain } from "../text/index.ts"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
-import { calcColumnWidths, getColumnWidth } from "./board-layout.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { useIsColumnSelected, useCursorColIndex } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
@@ -203,13 +203,7 @@ interface ColumnsViewProps {
   state: TUIBoardState
   width: number
   height: number
-  colIndex: number
-  cardIndex: number
   subIndex: number
-  effectiveScrollOffset: number
-  effectiveMaxCols: number
-  effectiveVisibleColumns: ColumnState[]
-  selectionLevel: "board" | "column" | "card"
 }
 
 // Maximum column width for columns view (tighter than cards view)
@@ -220,57 +214,52 @@ export function ColumnsView({
   width,
   height,
   subIndex,
-  effectiveScrollOffset,
-  effectiveMaxCols,
-  effectiveVisibleColumns,
 }: ColumnsViewProps): React.ReactElement {
   // Subscribe to colIndex only — ColumnsView doesn't re-render on j/k within column
   const colIndex = useCursorColIndex()
-  // Calculate column widths using shared utility
-  const widths = calcColumnWidths({
-    boardWidth: width,
-    visibleColumnCount: effectiveVisibleColumns.length,
-    maxCols: effectiveMaxCols,
-    scrollOffset: effectiveScrollOffset,
-    totalColumns: state.columns.length,
-  })
+
+  // Column width — uniform width capped at COLUMNS_VIEW_MAX_WIDTH
+  const maxCols = Math.max(1, Math.floor(width / 35))
+  const effectiveColCount = Math.min(state.columns.length, maxCols)
+  const separators = Math.max(0, effectiveColCount - 1)
+  const expandedWidth = Math.min(COLUMNS_VIEW_MAX_WIDTH, Math.max(20, Math.floor((width - separators) / effectiveColCount)))
+  const columnHeight = height - 1
 
   return (
     <Box flexDirection="column" width={width} height={height}>
       {/* Blank line between top bar and column headers */}
       <Box height={1} flexShrink={0} />
 
-      {/* Columns row */}
-      <Box flexDirection="row" flexGrow={1}>
-        {/* Left scroll indicator */}
-        {widths.hasLeftIndicator && <VerticalScrollIndicator direction="left" />}
-
-        {/* Columns with tree view inside */}
-        {effectiveVisibleColumns.map((col, i) => {
-          const actualColIndex = effectiveScrollOffset + i
-          const isLastCol = i === effectiveVisibleColumns.length - 1
-          const colWidth = getColumnWidth(i, widths.baseColWidth, widths.remainder, COLUMNS_VIEW_MAX_WIDTH)
-          log.debug?.(`ColumnsView map: i=${i} actualColIdx=${actualColIndex} colIndex=${colIndex}`)
-          return (
-            <React.Fragment key={col.node.id}>
-              <ColumnTree
-                column={col}
-                colIndex={actualColIndex}
-                selectedSubIndex={subIndex}
-                width={colWidth}
-                height={height - 1}
-              />
-              {/* Separator line between columns */}
-              {!isLastCol && <ColumnSeparator />}
-            </React.Fragment>
-          )
-        })}
-
-        {/* Right scroll indicator */}
-        {widths.hasRightIndicator && <VerticalScrollIndicator direction="right" />}
-
-        {state.columns.length === 0 && <Text dimColor>Empty board</Text>}
-      </Box>
+      {/* Columns row — HVL handles horizontal windowing and scroll indicators */}
+      {state.columns.length === 0 ? (
+        <Box flexDirection="row" flexGrow={1}>
+          <Text dimColor>Empty board</Text>
+        </Box>
+      ) : (
+        <HorizontalVirtualList
+          items={state.columns}
+          width={width}
+          height={columnHeight}
+          itemWidth={expandedWidth}
+          gap={1}
+          scrollTo={colIndex}
+          renderItem={(col, index) => (
+            <ColumnTree
+              column={col}
+              colIndex={index}
+              selectedSubIndex={subIndex}
+              width={expandedWidth}
+              height={columnHeight}
+            />
+          )}
+          renderOverflowIndicator={(dir) => (
+            <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />
+          )}
+          overflowIndicatorWidth={1}
+          renderSeparator={() => <ColumnSeparator />}
+          keyExtractor={(col) => col.node.id}
+        />
+      )}
     </Box>
   )
 }

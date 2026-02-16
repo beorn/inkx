@@ -1591,7 +1591,6 @@ export function renderBoard(state: TUIBoardState, options: BoardTestOptions = {}
     },
     collapsedNodes: new Set<string>(),
     moveMode: false,
-    colScrollOffset: 0,
   })
   // Wrap in StoreContext + TreeRenderProvider so TreeNode's hooks work
   const initialUI = createInitialUIState("cards", [], { columns, rows })

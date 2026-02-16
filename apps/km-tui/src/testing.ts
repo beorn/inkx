@@ -187,7 +187,6 @@ export async function createBoardTest(
     },
     collapsedNodes: new Set<string>(),
     moveMode: false,
-    colScrollOffset: 0,
   })
 
   const cursorStore = createCursorStore({
