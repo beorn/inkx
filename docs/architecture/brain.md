@@ -1,148 +1,78 @@
 # The Plain Brain
 
-km is an **externalized brain** for humans and AI agents. A headless knowledge engine that turns plain markdown files into a structured, queryable, history-aware knowledge system. Multiple interfaces — TUI, CLI, AI agents, Obsidian — connect to the same brain simultaneously.
+A brain is a folder. `km init` turns any directory into a brain — a headless knowledge engine that processes chats into structured, queryable knowledge. Multiple interfaces (TUI, CLI, AI agents, Obsidian) connect to the same brain simultaneously.
 
-The brain layer adds **structured memory** (SPO triples), **entity modeling** (contacts, events, tasks), and **multi-source event processing** (session transcripts, CalDAV sync, git history) to km's existing node tree. Your data stays in plain markdown — the brain layer derives queryable indexes from it, the same way km already derives backlinks from wikilinks.
+"Plain" does triple duty: **plain text** (markdown, JSONL — no proprietary formats), **plain files** (one folder, git-pushable, editor-agnostic), **plain to see** (transparent, inspectable, no hidden state).
 
-> **Relationship to [architecture.md](../architecture.md)**: The main architecture doc describes km's current five-layer system (App → Board → Tree → Storage → FS). This document extends that with the **brain layer** — event sources, SPO memory, entity modeling — which sits alongside Storage as a new capability. The five-layer stack handles nodes and navigation; the brain layer handles knowledge, memory, and external sync.
+> **Relationship to [architecture.md](../architecture.md)**: That document describes km's five-layer system (App → Board → Tree → Storage → FS). This document describes the **brain layer** — chats, memory, solidification — which sits alongside Storage as a new capability.
 >
-> **Status**: The brain layer is under active development. See [Current State](#current-state) for what's implemented vs planned.
+> **Status**: Under active development. See [Current State](#current-state) for what's implemented vs planned.
 
-## Architecture
-
-```
-Interfaces:
-
-┌──────────┐  ┌───────────┐  ┌───────────┐  ┌──────────┐
-│ TUI/CLI  │  │Claude Code│  │   pam     │  │ Obsidian │
-│ (human)  │  │  (agent)  │  │ channels  │  │ (human)  │
-└────┬─────┘  └─────┬─────┘  └─────┬─────┘  └────┬─────┘
-     └──────────┬───┴──────────────┴──────────────┘
-                │
-Brain (km):     │
-     ┌──────────▼──────────────────────────────────┐
-     │                                              │
-     │  Event Sources ──→ Processing ──→ Indexes    │
-     │                                              │
-     │  ┌──────────┐  ┌──────────┐  ┌───────────┐  │
-     │  │  Nodes   │  │  Memory  │  │   Sync    │  │
-     │  │(markdown)│  │  (SPO    │  │ (CardDAV, │  │
-     │  │          │  │  triples)│  │  CalDAV)  │  │
-     │  └──────────┘  └──────────┘  └───────────┘  │
-     │                                              │
-     └──────────────────────────────────────────────┘
-                │
-                ↕ bidirectional sync
-     ┌──────────────────────────────────────────────┐
-     │  Plain markdown files (source of truth)       │
-     └──────────────────────────────────────────────┘
-```
-
-**Brain (km)**: Portable knowledge engine. One folder = one brain. Git-pushable.
-- Structured node tree with typed nodes, parent/child, metadata, ordering
-- Full event history (every mutation recorded, auditable, replayable)
-- SPO memory layer (agent memory, entity modeling, cognitive type separation)
-- Queryable indexes (SQLite, FTS5, SPO triples, backlinks)
-- Self-describing (contains agent configs: CLAUDE.md, skills, agent definitions)
-
-**Interfaces** (multiple can connect simultaneously):
-- **TUI/CLI** (km-tui, km-cli) — km's native interfaces
-- **Claude Code** — AI agent via .claude/ configs + km CLI + memory tools
-- **pam** (Personal Assistant Machine) — multi-channel AI harness (WhatsApp, email, Telegram)
-- **Obsidian** — human GUI editor (reads/writes same markdown)
-- **Future: web boardliner** — browser interface
-- **Future: MCP server** — tools for any AI agent
-
-## Event Source Architecture
-
-km processes data from multiple sources through a unified pipeline. All sources produce events; all events flow through the same processing pipeline to update derived indexes.
-
-### Event Sources
+## Core Model
 
 ```
-Event Sources:                           Derived Indexes:
-
-  Node edits ──────→ events.jsonl ──┐    ┌→ nodes table
-  Session transcripts ──────────────├──→─┤→ links table (backlinks)
-  Git log ──────────────────────────┤    ├→ spo_triples table
-  CardDAV/CalDAV sync ─────────────┤    ├→ FTS5 index
-  pam channel messages ─────────────┘    └→ (future: embeddings)
+                          ┌→ knowledge tree (markdown files)
+chats (events) ──→ brain ─┤
+                          └→ memory graph (SPO triples in state.db)
 ```
 
-Each source implements a common interface:
+**Chats are the source of truth.** Everything that happens — agent conversations, human edits, calendar sync — is recorded as a chat. The knowledge tree and memory graph are both derived from chats.
 
-```typescript
-interface EventSource {
-  id: string                       // "node-edits", "sessions", "carddav", "git"
-  type: "transcript" | "operation" // rebuildable NL vs authoritative structured
-  poll(): AsyncIterable<Event>     // or watch() for live sources
-}
-```
+The brain has three parts:
 
-### Source Types
+| Part | What | Format | Git-friendly? |
+|---|---|---|---|
+| **Chats** | Everything that happened | JSONL (one file per chat) | Yes |
+| **Knowledge tree** | Human-visible content | Markdown files | Yes |
+| **Memory graph** | Agent-visible knowledge | SQLite (derived, gitignored) | Rebuildable |
 
-| Type | What | Rebuildable? | Examples |
-|------|------|-------------|----------|
-| **Transcript** | Natural language needing interpretation | Yes (re-extract if prompts improve) | Session transcripts, chat messages |
-| **Operation** | Structured system input | No (authoritative) | CardDAV sync, git commits, node edits |
+The memory graph is always rebuildable from chats. Delete state.db, replay chats, get identical state.
 
-### Processing Pipeline
+### Terminology
 
-Each event source feeds the same processing pipeline:
+| Term | What |
+|---|---|
+| **brain** | The engine — a folder enhanced with chat processing |
+| **chat** | A bounded sequence of events from one source |
+| **knowledge tree** | Human-visible content (markdown files in a tree) |
+| **memory graph** | Agent-visible knowledge (SPO triples, derived from chats) |
+| **item** | A meaningful unit in the knowledge tree (note, task, contact, section) |
+| **block** | Content within an item (paragraph, code block, quote) |
+| **node** | Implementation term for both items and blocks (used in code: `KNode`, `createNode`) |
+| **triple** | A fact in the memory graph (subject-predicate-object) |
+| **solidification** | Memory graph → markdown file (knowledge becomes permanent and visible) |
+| **extraction** | Markdown edit → memory graph update (parsing structured properties + NL processing) |
 
-1. **Node events** → update nodes table → extract backlinks → extract SPO triples → update FTS5
-2. **Session events** → LLM extraction → SPO triples (optionally promote to nodes)
-3. **Sync events** → create/update entity nodes → extract SPO triples
-4. **Channel events** → LLM extraction → SPO triples (optionally promote to nodes)
+## Everything is a Chat
 
-New sources are pluggable — implement the EventSource interface, register it.
+All interaction with the brain is modeled as **chats** — bounded sequences of related events from a single source, with attribution and temporal context.
 
-## SPO Memory Layer
+| Chat type | What generates it | Content |
+|---|---|---|
+| **Agent chat** | AI conversation (Claude, etc.) | Full transcript — turns, tool calls, reasoning |
+| **Edit chat** | Human editing session | File watcher output — who, when, what changed |
+| **Sync chat** | External sync (CardDAV, CalDAV) | Sync adapter output — what was fetched/diffed |
 
-The SPO (Subject-Predicate-Object) triple store is the agent's structured memory and km's entity modeling layer. The design builds on the Cloudi ADR01 specification (see [Appendix: PIM Lineage](#appendix-pim-lineage)).
+A raw file edit on disk is just bytes changing — meaningless until km turns it into an event: who made the edit, when, what specifically changed. The chat is where meaning lives.
 
-### What SPOs Provide
+Agent chats are the purest event source: the transcript IS the event stream. Edit and sync chats require km to observe changes and produce events from them.
 
-- **Agent memory**: recall/remember/retract across sessions
-- **Entity modeling**: Contacts, Events, Tasks as schema'd entities
-- **External sync**: CardDAV, CalDAV via entity shaping (Phase 3)
-- **Cognitive type separation**: ENGRAM fact/event/instruction/decision for retrieval
-- **Human visibility**: Important triples promoted to markdown nodes
+### Memory Quality Gradient
 
-### SPO as Derived Index
+Event quality depends on the source:
 
-SPO triples are a derived layer — same pattern as backlinks:
+| Source | Attribution | Context | Why |
+|---|---|---|---|
+| Agent chat | Full | Full reasoning, tool calls | Embedded in transcript |
+| km CLI/TUI | High | Command + arguments | Available |
+| Obsidian (km running) | Medium | What changed, when | No "why" |
+| Obsidian (km stopped) | Low | Diff on next startup | No who, no why |
 
-```
-Markdown nodes (source of truth)
-    ↓ parse/extract
-SQLite state.db:
-  nodes table        ← node data (existing)
-  links table        ← backlinks from wikilinks (existing)
-  spo_triples table  ← SPO triples from all sources (new)
-  nodes_fts          ← full-text search (existing)
-```
+The more the brain is "awake" (km running), the better its memory.
 
-Triples don't get markdown files by default. They live in SQLite only (like backlinks). **Promotion** is the bridge: when a triple (or cluster of triples about an entity) is important enough to be human-visible, it becomes a markdown node.
+## Memory Graph
 
-### Schema
-
-```sql
-CREATE TABLE spo_triples (
-  id TEXT PRIMARY KEY,            -- ULID
-  subject TEXT NOT NULL,          -- entity or node reference
-  predicate TEXT NOT NULL,        -- property or relationship
-  object TEXT NOT NULL,           -- literal value or entity reference
-  category TEXT NOT NULL,         -- fact|event|instruction|decision
-  confidence REAL DEFAULT 0.9,   -- 0-1
-  source_type TEXT NOT NULL,      -- agent|session|node|git|sync|channel
-  source_ref TEXT,                -- session ID, node ID, etc.
-  speaker TEXT,                   -- who stated this (for corroboration)
-  timestamp INTEGER NOT NULL,    -- Unix ms
-  validity TEXT,                  -- JSON [from, to] bi-temporal
-  superseded_by TEXT              -- FK to newer triple (retraction)
-);
-```
+The memory graph stores structured knowledge as SPO (subject-predicate-object) triples. It's the brain's understanding — derived from chats, queryable by agents.
 
 ### Cognitive Types (ENGRAM)
 
@@ -154,6 +84,25 @@ Every triple is categorized by cognitive type. Per-category retrieval (top-K per
 | **event** | Something that happened | "Fixed auth bug in auth.ts:42" |
 | **instruction** | How to behave | "Always run bun fix before committing" |
 | **decision** | A choice made | "Chose JWT over session cookies" |
+
+### Schema
+
+```sql
+CREATE TABLE spo_triples (
+  id TEXT PRIMARY KEY,            -- ULID
+  subject TEXT NOT NULL,          -- entity or node reference
+  predicate TEXT NOT NULL,        -- property or relationship
+  object TEXT NOT NULL,           -- literal value or entity reference
+  category TEXT NOT NULL,         -- fact|event|instruction|decision
+  confidence REAL DEFAULT 0.9,   -- 0-1
+  source_type TEXT NOT NULL,      -- agent|chat|node|git|sync
+  source_ref TEXT,                -- chat ID, node ID, etc.
+  speaker TEXT,                   -- who stated this (for corroboration)
+  timestamp INTEGER NOT NULL,    -- Unix ms
+  validity TEXT,                  -- JSON [from, to] bi-temporal
+  superseded_by TEXT              -- FK to newer triple (retraction)
+);
+```
 
 ### Agent Tools
 
@@ -183,7 +132,7 @@ recall(query, categories?):
 
 ```
 ## Known Facts
-- jwt-refresh bug_cause: "checks exp not iat" (conf:1.0, session 2/14)
+- jwt-refresh bug_cause: "checks exp not iat" (conf:1.0, chat 2/14)
 - auth.ts uses JWT, not session cookies (conf:0.9, node: auth-design.md)
 
 ## Recent Events
@@ -196,9 +145,25 @@ recall(query, categories?):
 - Always run bun fix before committing (conf:1.0)
 ```
 
-## Entity Schemas
+## Knowledge Tree
 
-Entities are typed objects projected from SPO triples. Entity shaping is deterministic (no LLM) — aggregate statements by subject, resolve values by predicate.
+The knowledge tree is the human-visible content — markdown files organized in a tree with items (notes, tasks, contacts, sections) containing blocks (paragraphs, code, quotes).
+
+Humans edit the knowledge tree directly. These edits generate events (via edit chats) which update the memory graph. The knowledge tree is also populated by **solidification** — when knowledge in the memory graph is important enough to become a visible markdown file.
+
+### Solidification
+
+Solidification creates a markdown file from memory graph knowledge:
+
+- **Manual**: `km solidify <subject>` creates a markdown file from all triples about that subject
+- **Automatic**: High-confidence entities (e.g., contacts from CardDAV sync) auto-solidify
+- **Agent-initiated**: Agent decides knowledge is worth a file
+
+Solidification is just an event — a `node_created` event whose source is the memory graph, flowing through the same pipeline as any other event.
+
+### Entity Schemas
+
+Entities are typed objects projected from SPO triples. Entity shaping is deterministic (no LLM) — aggregate triples by subject, resolve values by predicate.
 
 | Entity | Fields | Sync Target |
 |--------|--------|-------------|
@@ -208,7 +173,7 @@ Entities are typed objects projected from SPO triples. Entity shaping is determi
 | **Project** | title, status, members | (internal) |
 | **Code** | file, function, pattern | (internal) |
 
-Contact nodes in km as schema'd markdown:
+Contact items in km as schema'd markdown:
 
 ```markdown
 ## Alice Smith
@@ -220,64 +185,108 @@ company:: Acme Corp
 role:: Engineering Lead
 ```
 
-Structured extraction from frontmatter/properties into SPO triples is free (parsing, no LLM). NL extraction from prose requires LLM (~$0.04/session).
+Structured extraction from frontmatter/properties into triples is free (parsing, no LLM). NL extraction from prose requires LLM (~$0.04/chat).
 
-## Promotion: SPO → Markdown Node
+## Disk Layout
 
-Triples live in SQLite by default. Promotion creates a markdown file when knowledge should be human-visible:
+```
+my-brain/
+├── **/*.md                      # Knowledge tree (plain markdown)
+├── .km/
+│   ├── chats/                   # All chats (one JSONL file per thread)
+│   │   ├── 2026-02-16-abc.jsonl #   Agent chat
+│   │   ├── 2026-02-16-edit-1.jsonl # Edit chat (human session)
+│   │   └── 2026-02-16-sync-1.jsonl # Sync chat (CardDAV)
+│   ├── blobs/                   # CAS — large content + binaries (SHA-256, prefix-sharded)
+│   ├── snapshots/               # Periodic memory graph checkpoints (for compaction)
+│   └── state.db                 # Derived indexes (gitignored, rebuildable)
+└── .git/                        # History
+```
 
-- **Manual**: `km memory promote <subject>` creates a markdown node from all triples about that subject
-- **Automatic**: High-confidence entities (e.g., contacts from CardDAV sync) auto-promote to markdown
-- **Agent-initiated**: Agent decides "this is worth a note" and creates a node
+Three tiers of content:
 
-Promotion creates an event → normal km flow → markdown file.
+| Tier | Format | Git? | Rebuildable? |
+|---|---|---|---|
+| Markdown files | Plain .md | Yes | From chats (via solidification) |
+| Chats | Plain .jsonl | Yes | No (source of truth) |
+| Blobs | CAS (hash-addressed) | git-lfs | No (source of truth) |
+| state.db | SQLite | Gitignored | Yes (from chats + markdown) |
 
-The reverse direction — editing a promoted markdown node and syncing changes back to the triple store — is handled by **Phase 6: Node Derivation**. This closes the loop: triples can become nodes (promotion), and node edits can update triples (derivation).
+### What state.db Contains (All Derived)
+
+| Index | Derived from |
+|---|---|
+| nodes table | Markdown files (knowledge tree) |
+| links table (backlinks) | Wikilinks in markdown |
+| spo_triples | Chats (extraction events) |
+| fts5 (full-text search) | Markdown + triples |
+| entities (contacts, events, tasks) | SPO triples (deterministic shaping) |
+
+## Interfaces
+
+Multiple can connect simultaneously:
+
+- **TUI/CLI** (km-tui, km-cli) — km's native interfaces
+- **Claude Code** — AI agent via .claude/ configs + km CLI + memory tools
+- **pam** — multi-channel AI harness (WhatsApp, email, Telegram)
+- **Obsidian** — human GUI editor (reads/writes same markdown)
+- **Future: MCP server** — tools for any AI agent
 
 ## Failure Modes
-
-Production agent memory systems encounter these failure modes:
 
 | Failure Mode | Mitigation |
 |-------------|------------|
 | **Stale facts** | `superseded_by` field + recency preference in ranking |
 | **Context clash** (conflicting triples) | Bi-temporal validity, conflict detection |
 | **Category drift** | Hybrid heuristic+LLM categorization, validation rules |
-| **Over-remembering** | TTL on session-sourced triples (30 days), periodic pruning |
+| **Over-remembering** | TTL on chat-sourced triples (30 days), periodic pruning |
 | **Retrieval mismatch** | Embeddings (Phase 2) for semantic matching |
 
 Memory hygiene built in from day one: TTL for ephemeral triples, agent triples persist until retracted, periodic summarization of old events.
 
+## Compaction
+
+Chats accumulate over time. Compaction keeps the brain manageable:
+
+- **Recent chats** (e.g., 6 months) — kept in full in `.km/chats/`
+- **Checkpoint**: periodically snapshot the memory graph state to `.km/snapshots/`
+- **Archive old chats** — compress to `.km/archive/`
+- **Rebuild**: snapshot + recent chats = full state.db
+
+Like a database WAL + checkpointing — the snapshot is the baseline, recent chats are the delta.
+
 ## Current State
 
 **Implemented:**
-- **Nodes, storage, sync** — the five-layer architecture ([architecture.md](../architecture.md))
+- **Knowledge tree** — the five-layer architecture for items and blocks ([architecture.md](../architecture.md))
 - **CalDAV/CardDAV client** — `@km/connector-caldav` package with vCard/iCal parsing ([services.md](../future/services.md))
-- **Agent runtime** — `@km/agent` package with harnesses, sessions, work queues ([agents.md](../future/agents.md))
-- **Session recall** — FTS5-indexed search across Claude Code session history (`bun recall`)
+- **Agent runtime** — `@km/agent` package with harnesses, work queues ([agents.md](../future/agents.md))
+- **Chat recall** — FTS5-indexed search across Claude Code chat history (`bun recall`)
+- **CAS** — Content-addressable store for large content and binaries (`@km/storage`)
 
 **Planned** (described in this document):
-- SPO memory layer (`packages/km-memory/` — not yet created)
-- Event source abstraction (node edits work; session/git/sync sources are planned)
-- Entity schemas and shaping
-- Promotion (SPO → markdown nodes)
+- Chat-based event architecture (currently: events.jsonl, planned: per-chat JSONL files)
+- Memory graph (`packages/km-memory/` — not yet created)
+- Solidification (memory graph → markdown)
+- Extraction (markdown → memory graph triples)
+- Compaction and archiving
 
 ## Implementation Roadmap
 
 ### Prototype (validate core assumption)
 - SPO table + recall/remember/retract CLI commands
 - ENGRAM per-category retrieval
-- Test with real Claude Code sessions
+- Test with real Claude Code chats
 - Success metric: agent produces useful triples, recall beats current FTS5-only approach
 
-### Phase 1: Statements + Agent Tools
+### Phase 1: Memory Graph + Agent Tools
 Core SPO schema, StatementStore, agent tools, keyword search
 
 ### Phase 2: Embeddings
 Semantic search, handles query/storage phrasing mismatch
 
 ### Phase 3: Entity Shaping
-Deterministic projection: statements → typed entities (Contact, Event, Task)
+Deterministic projection: triples → typed entities (Contact, Event, Task)
 
 ### Phase 4: Confidence Accumulation
 Multi-source corroboration, contradiction handling
@@ -285,14 +294,14 @@ Multi-source corroboration, contradiction handling
 ### Phase 5: Sync Adapters
 CardDAV, CalDAV, Google (builds on entity shaping + existing `@km/connector-caldav`)
 
-### Phase 6: Node Derivation
-Markdown → SPO triples (structured extraction from frontmatter/links/tags)
+### Phase 6: Extraction
+Markdown → triples (structured extraction from frontmatter/links/tags)
 
-### Phase 7: Promotion
-SPO → markdown nodes (manual + automatic)
+### Phase 7: Solidification
+Memory graph → markdown files (manual + automatic)
 
 ### Phase 8: Unified Query
-repo.query() + SPO store merged via RRF
+repo.query() + memory graph merged via RRF
 
 ## Appendix: PIM Lineage
 
@@ -307,7 +316,7 @@ The PIM ecosystem simplifies to two things:
 |---|---|---|
 | **Purpose** | Knowledge engine | Multi-channel AI assistant |
 | **Absorbs** | kimmi (sync), cloudi (memory) | cloudi (channels) |
-| **Contains** | Nodes, SPO memory, entity sync, search | Channel adapters, security harness, conversation state |
+| **Contains** | Knowledge tree, memory graph, entity sync, search | Channel adapters, security harness, conversation state |
 | **Interface** | Library, CLI, MCP, TUI | WhatsApp, email, Telegram, web |
 
 ## References
@@ -320,5 +329,7 @@ The PIM ecosystem simplifies to two things:
 ## See Also
 
 - [../architecture.md](../architecture.md) — km system architecture (layers, data flow, events)
+- [../storage.md](../storage.md) — Storage modes, KNode schema, bidirectional sync
 - [../future/services.md](../future/services.md) — CalDAV/CardDAV connectors
+- [../future/agents.md](../future/agents.md) — Agent runtime, harnesses, chats
 - [../explorations/plain-brain.md](../explorations/plain-brain.md) — original exploration (graduated to this doc)

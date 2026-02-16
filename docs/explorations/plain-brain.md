@@ -1,6 +1,6 @@
 # The Plain Brain: An Exploration
 
-> **Graduated**: This exploration led to the [brain architecture doc](../architecture/brain.md), which captures the committed design including SPO memory, event sources, entity schemas, and the PIM consolidation (kimmi/cloudi absorbed into km/pam).
+> **Graduated**: This exploration led to the [brain architecture doc](../architecture/brain.md), which captures the committed design: chats as event source, memory graph (SPO triples), knowledge tree, solidification, entity schemas, and the PIM consolidation (kimmi/cloudi absorbed into km/pam).
 
 *Feb 10, 2026 — triggered by Obsidian 1.12 CLI release*
 

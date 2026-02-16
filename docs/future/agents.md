@@ -397,7 +397,7 @@ km hub status               # Show status
 
 ## See Also
 
-- [../architecture/brain.md](../architecture/brain.md) — Brain architecture (SPO memory, agent knowledge, event sources)
+- [../architecture/brain.md](../architecture/brain.md) — Brain layer: chats, memory graph, knowledge tree, solidification
 - [../storage.md](../storage.md) — Events and storage model
 - [../guides/tasks.md](../guides/tasks.md) — Task management
 - [../guides/cli.md](../guides/cli.md) — CLI commands

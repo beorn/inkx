@@ -344,6 +344,14 @@ See [storage.md](storage.md) for detailed resolution behavior.
 | **cursoring**   | Moving to adjacent block (hjkl).                                        |
 | **navigating**  | Changing board root via zoom (u/Enter).                                 |
 | **shifting**    | Moving selected nodes in direction (opt+hjkl).                          |
+| **brain**       | The engine — a folder enhanced with chat processing. See [brain.md](architecture/brain.md). |
+| **chat**        | A bounded sequence of events from one source (agent, edit session, sync). |
+| **knowledge tree** | Human-visible content — markdown files in the node tree.             |
+| **memory graph** | Agent-visible structured knowledge — SPO triples derived from chats.  |
+| **item**        | A meaningful unit in the knowledge tree (note, task, contact, section). |
+| **block**       | Content within an item (paragraph, code block, quote).                  |
+| **solidification** | Memory graph → markdown file (knowledge becomes permanent/visible).  |
+| **extraction**  | Markdown edit → memory graph update (parsing properties + NL processing). |
 
 ---
 
@@ -520,7 +528,7 @@ Events are **synchronous** (emit → handlers run immediately → emit returns).
 
 ## See Also
 
-- [architecture/brain.md](architecture/brain.md) — Plain brain: event sources, SPO memory, entities, agent memory
+- [architecture/brain.md](architecture/brain.md) — Brain layer: chats, memory graph, knowledge tree, solidification
 - [principles.md](principles.md) — Architectural principles and philosophy
 - [concepts.md](concepts.md) — Core concepts
 - [storage.md](storage.md) — Storage layer, modes, sync details

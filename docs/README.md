@@ -1,6 +1,6 @@
 # km Documentation
 
-**km** is an externalized brain for humans and AI agents — a PIM/PKM engine that turns markdown files into a structured, queryable knowledge system.
+**km** is a plain brain — a headless knowledge engine that turns markdown files into a structured, queryable knowledge system for humans and AI agents.
 
 ---
 
@@ -13,8 +13,8 @@ km transforms a directory of markdown files into a **unified node tree** that ca
 - Edited (changes sync bidirectionally to files)
 - Extended (custom content types via frontmatter)
 
-**Currently implements:** Task management with GTD workflow, CalDAV/CardDAV client, agent runtime
-**Committed vision:** SPO memory (agent knowledge), contacts/calendar sync, notes, custom content types — see [architecture/brain.md](architecture/brain.md)
+**Currently implements:** Knowledge tree (task management with GTD workflow), CalDAV/CardDAV client, agent runtime
+**Committed vision:** Memory graph (SPO triples), chats as event source, solidification, entity sync — see [architecture/brain.md](architecture/brain.md)
 
 ### Core Insight
 
@@ -52,7 +52,7 @@ km init                    # Enable persistence (stable IDs, history)
 | [principles.md](principles.md)     | **Start here.** How km works: composability, fast feedback, code for humans, governance, and AI agents |
 | [concepts.md](concepts.md)         | Core concepts: nodes, modes, status, glossary                                                          |
 | [architecture.md](architecture.md) | System layers, data flow, command system, event system                                                 |
-| [architecture/brain.md](architecture/brain.md) | Brain layer: event sources, SPO memory, entity schemas, agent tools                           |
+| [architecture/brain.md](architecture/brain.md) | Brain layer: chats, memory graph, knowledge tree, solidification                              |
 | [storage.md](storage.md)           | SQLite schema, two modes, sync                                                                         |
 
 ### User Guides

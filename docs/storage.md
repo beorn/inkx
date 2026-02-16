@@ -519,6 +519,8 @@ Used for tracking event replay cursor and other internal state.
 
 Events are append-only records in `.km/events.jsonl`. The `emit()` function is the central mutation path in @km/storage.
 
+> **Planned**: The [brain architecture](architecture/brain.md) evolves events.jsonl into per-chat JSONL files (`.km/chats/`), where all interactions — agent conversations, edit sessions, sync operations — are modeled as chats. The emit() pipeline and event types below remain the foundation.
+
 ### The 4-Path Multiplexer
 
 Every mutation flows through `emit()`, which triggers four parallel operations:
@@ -928,6 +930,7 @@ km doctor reset       # Reset from worktree only (trust filesystem)
 
 ## See Also
 
+- [architecture/brain.md](architecture/brain.md) — Brain layer: chats, memory graph, solidification
 - [concepts.md](concepts.md) — Core concepts, two modes overview
 - [architecture.md](architecture.md) — Event system, data flow
 - [ref/markdown.md](ref/markdown.md) — Parsing .md to nodes
