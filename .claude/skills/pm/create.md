@@ -162,13 +162,15 @@ Exact match (open)?
 
 **WARNING**: `--id` and `--parent` cannot be combined — see [SKILL.md Quick Reference](../SKILL.md#quick-reference-common-flag-mistakes).
 
+**Include acceptance criteria** in the description — explicit "done when" conditions help future sessions know when the bead is truly complete. Anchor to design docs or skill files where relevant (e.g., "See docs/architecture/X.md for context").
+
 ```bash
 # Step 1: Create (NO --parent flag here!)
 bd create \
   --id <generated-id> \
   --type <type> \
   --title "<concise title from description>" \
-  --description "<expanded description with context>" \
+  --description "<expanded description with context and acceptance criteria>" \
   --priority <inferred-priority>
 
 # Step 2: Set parent AFTER creation

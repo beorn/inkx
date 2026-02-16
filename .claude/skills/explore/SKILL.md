@@ -25,6 +25,8 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 
 **Smart routing rule**: If the args describe *what to explore*, include interactive TTY as the main activity. If they describe *a specific bug to reproduce*, lead with TUI tests but verify interactively. If `--fuzz`, tests only.
 
+**Real-vault first**: Before running fuzz exploration, run a real-vault pass (`/explore --path <vault>`) to catch environment-specific issues that fuzz tests with synthetic data won't find. Real vaults exercise file I/O, encoding edge cases, and large-node rendering that synthetic fixtures miss.
+
 **Do NOT**: read fuzz test source files, try deprecated scripts, or guess vitest CLI flags. The commands above work as-is.
 
 ## Examples

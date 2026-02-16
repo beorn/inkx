@@ -232,6 +232,8 @@ This enables queries like "Show all sessions for issue km-a1b2".
 
 ## Session Events
 
+> **Terminology bridge**: Agent sessions in this document correspond to **agent chats** in [brain.md](../architecture/brain.md). Each session produces a chat file (`.km/chats/`) containing the events below. The brain processes these chats to extract knowledge into the memory graph.
+
 ### Session Lifecycle
 
 ```typescript
