@@ -89,9 +89,9 @@ export function getNodeStyle(
   let textColor: string | undefined
 
   if (isInlineEditing) {
-    // Edit mode: blue background spans full row via parent Box
-    backgroundColor = "blueBright"
-    textColor = "white"
+    // Edit mode: no background fill — cyan border (CardColumn) + inverse cursor indicate editing
+    backgroundColor = undefined
+    textColor = undefined
   } else if (isSelected || isMultiSelected) {
     // Design system: yellow background, black foreground for selection
     backgroundColor = "yellow"
