@@ -232,7 +232,7 @@ This enables queries like "Show all sessions for issue km-a1b2".
 
 ## Session Events
 
-> **Terminology bridge**: Agent sessions in this document correspond to **agent chats** in [brain.md](../architecture/brain.md). Each session produces a chat file (`.km/chats/`) containing the events below. The brain processes these chats to extract knowledge into the memory graph.
+> **Terminology bridge**: Agent sessions in this document correspond to **chat logs** in [brain.md](../architecture/brain.md). Each session produces a chat log file (`.km/chats/`) containing the events below.
 
 ### Session Lifecycle
 
@@ -399,7 +399,7 @@ km hub status               # Show status
 
 ## See Also
 
-- [../architecture/brain.md](../architecture/brain.md) — Brain layer: chats, memory graph, knowledge tree, solidification
+- [../architecture/brain.md](../architecture/brain.md) — Knowledge base: logs, statements, items, views
 - [../storage.md](../storage.md) — Events and storage model
 - [../guides/tasks.md](../guides/tasks.md) — Task management
 - [../guides/cli.md](../guides/cli.md) — CLI commands

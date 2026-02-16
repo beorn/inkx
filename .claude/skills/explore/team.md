@@ -83,17 +83,26 @@ Spawn all five in a single message (parallel Task calls). `health-check` runs in
 
 **Coordinate, don't bottleneck.** Explorers send bugs directly to reproducer — you are not a relay.
 
+**Hard rules:**
+- Lead NEVER writes code, NEVER fixes bugs, NEVER runs tests beyond the final `bun fix && bun run test:all`. Lead is a pure dispatcher.
+- When user sends `/pm` or reports a bug mid-session, create the bead AND dispatch to the fixer/reproducer within the same turn. Never defer. Never say "I'll get to that later."
+- If all agents are busy: wait or spawn a new fixer. Do NOT do the work yourself.
+
 Your job:
 1. Create session bead (see [Session Bead](#session-bead) above)
 2. Prime agents with `git log --oneline -20` + open bugs + args context
 3. Spawn all teammates in parallel
 4. Review interactive explorer's findings (screenshots + descriptions) — this is the main output
-5. Update session bead incrementally:
+5. Monitor for user messages and route immediately — never let a user request wait
+6. Update session bead incrementally:
    - `--append-notes` after each significant event (bug found, fix verified, screenshot taken)
-   - `--description` periodically with current status dashboard (see [reporting.md](reporting.md))
-6. Handle shutdown, `bun fix`, `bun run test:all`, commit + push
-7. Present visual summary with screenshot paths to user at end
-8. Close session bead with summary reason (see [reporting.md](reporting.md))
+   - `--description` after EVERY bug state transition with current status dashboard (see [reporting.md](reporting.md))
+   - The dashboard is the user's only reliable window — context compression can hide everything else
+7. Handle shutdown, `bun fix`, `bun run test:all`, commit + push
+8. Present visual summary with screenshot paths to user at end
+9. Close session bead with summary reason (see [reporting.md](reporting.md))
+
+**Communication**: Use session shorthand numbers (#1, #2) when talking to the user. Example: `"#3 (km-tui.fold-border-blank): fix committed, awaiting TTY"`
 
 ### 2. Health Check (`health-check`) — Background
 
@@ -317,6 +326,19 @@ When the reproducer sends a failing test:
 7. Close bead using the [structured close reason format](../pm/workflows/bugs.md#close-reason-template) — **read it for the mandatory format**.
 8. Notify lead that fix is done, then immediately pick up next bug
 
+HARD GATE: Never call `bd close` on a visual/rendering bug.
+After TUI test passes + GUI/TTY verification:
+  bd update <id> --append-notes "Layer 1+2 done. Awaiting user confirmation."
+Message the lead: "#N (<bead-id>) ready for user verification."
+Only the LEAD closes visual bugs, and only after user confirms.
+
+TUI TEST ACCURACY: For every visual bug fix, use withDiagnostics with
+checkReplay: true and checkIncremental: true. Test with realistic data
+(5+ columns, long content, mixed node types), not minimal 2-column fixtures.
+Test multi-step sequences (7+ operations), not single actions. These catches
+make Layer 1 (TUI test) reliable enough that Layer 2 (TTY) becomes a
+spot-check, not a crutch.
+
 DO NOT run bun fix or bun run test:all — lead handles that.
 
 Architecture:
@@ -344,6 +366,17 @@ lead (reviews screenshots, coordinates)                                   │
 
 All agents run concurrently from the start. Explorers send bugs directly to reproducer. Reproducer deduplicates before creating beads. Health check runs in background — reports only failures.
 
+## TTY MCP Failure Protocol
+
+If ANY agent reports TTY MCP tools unavailable/hanging/erroring:
+
+1. Lead STOPS ALL WORK immediately.
+2. Lead broadcasts: "TTY tools unavailable. All work paused."
+3. Lead messages user: "TTY MCP tools not working. Cannot do visual verification. Please run `/mcp` to reconnect, then tell me to resume."
+4. NO bugs fixed, closed, or verified while TTY is down. Pipeline frozen.
+
+**Rationale**: Without Layer 2 (GUI/TTY), every visual fix is unverifiable. Continuing produces beads that will be reopened.
+
 ## Bounds
 
 Explorers stop when they've **exhausted their ability to find new bugs**, not after a fixed scope:
@@ -355,10 +388,17 @@ Explorers stop when they've **exhausted their ability to find new bugs**, not af
 
 ## Stopping Criteria
 
+**Precondition**: Before initiating shutdown, check: are there bugs in `Awaiting user`, `Fix in progress`, or `Investigating` state? If yes, do NOT shut down. Continue the pipeline.
+
+The session is complete when ALL discovered bugs are in a terminal state: `Fixed` (user confirmed), `Deferred` (user said don't fix), or `Blocked` (documented why).
+
+If running low on context/tokens: checkpoint the session bead with full status, tell the user "I need a fresh session to continue. Here is the current state. Run /explore to resume." Do NOT close bugs that aren't finished.
+
 Exploration ends when:
 - Both explorers report convergence (minimums met + 100+ interactions without a new bug)
 - Reproducer and fixer have processed all queued bugs
-- OR lead decides to stop early (e.g., enough bugs found, time constraints)
+- All bugs are in a terminal state (Fixed/Deferred/Blocked)
+- OR lead decides to stop early (e.g., enough bugs found, time constraints) — but still checkpoints incomplete work
 
 **If zero bugs are found**: That's a good result. Lead writes a summary of what was tested (areas, screenshots, interactions) and shuts down. No beads needed.
 
@@ -371,6 +411,12 @@ Exploration ends when:
 5. Clean up: rm -rf /tmp/km-explore-tests/
 6. Collect screenshots from `/tmp/explore-screenshots/` — present gallery to user
 7. Run `bun fix && bun run test:all` from lead
-8. Update session bead description with final dashboard + close with summary (see [reporting.md](reporting.md))
-9. Commit + push
-10. `TeamDelete()`
+7.5. Write the mandatory retrospective (see [reporting.md](reporting.md) § Session Retrospective).
+     Use `bun recall` and `bd search` to find prior mentions of each bug.
+     Append to session bead notes with `bd update <session-id> --append-notes`.
+8. Verify every row in the dashboard table is in a terminal state. If any bug is mid-pipeline, the session is not done.
+9. Update session bead description with final dashboard + close with summary (see [reporting.md](reporting.md))
+   Close reason must enumerate incomplete work:
+   `"Session complete. N fixed, M deferred. Remaining: #3 (km-tui.X) awaiting user verification, #7 (km-tui.Y) root cause found but fix not landed."`
+10. Commit + push
+11. `TeamDelete()`

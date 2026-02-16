@@ -165,6 +165,30 @@ user confirmation. The close reason should state: `Verified: TUI tests only — 
 **Do NOT close a visual bead until the user has confirmed.** If the user hasn't verified yet,
 the bead stays open (mark as "awaiting user confirmation" in notes).
 
+#### Status Flow for Visual Bugs
+
+```
+1. in_progress — working on fix
+2. in_progress + note "TUI test passes" — Layer 1 done
+3. in_progress + note "GUI/TTY verified: /tmp/verify-X.png" — Layer 2 done
+4. in_progress + note "Awaiting user confirmation" — waiting for Layer 3
+5. closed — ONLY after user says fixed
+```
+
+#### Anti-Patterns: Case Studies from Session 0215b
+
+These bugs were all closed prematurely — learn from them:
+
+| Bug | What happened | Root cause of premature closure |
+|-----|---------------|-------------------------------|
+| **virtual-nav** | TTY showed "no scrolling" — closed anyway | state-only test (cursor text, not visual movement); layer-2-skipped (TTY evidence contradicted closure) |
+| **col-shift** | Failing tests (1/8, 4/24) documented in bead — closed anyway | single-operation test (1 shift, bug needs 7+); tests-insufficient |
+| **card-border-missing** | User reported still broken after close | synthetic-data (2-col layout, real vault has wide columns); layer-3-skipped |
+| **hr-edit** | Close reason says "awaiting user confirmation" but marked CLOSED | "Awaiting" = not done = not closable. Contradiction in close reason. |
+| **fold-border-blank** | Tests check dash continuity but not adjacent card integrity | tests-insufficient — checks mutated element but not neighboring elements |
+
+**Rule**: If your close reason contains "awaiting" anything, the bead is NOT closable.
+
 ### When the User Says "Not Fixed"
 
 If the user rejects a fix (says it's not actually fixed or not right):
@@ -267,3 +291,24 @@ See `vendor/beorn-flexx/docs/incremental-layout-bugs.md` for full details, indus
 - [explore/random.md](../explore/random.md) — Fuzz testing
 - `docs/lessons/layout-caching.md` — Layout caching bugs lesson
 - `vendor/beorn-flexx/docs/testing.md` — Flexx test infrastructure
+
+## TUI Test Accuracy
+
+TUI tests check DOM content and computed colors (Phase 3), but bugs often live in Phase 4 (ANSI diff) and Phase 5 (terminal rendering). Two mechanisms make tests catch what users see:
+
+- `withDiagnostics(..., { checkReplay: true })` — replays ANSI output through a virtual terminal and compares to buffer. Catches diff algorithm bugs.
+- `INKX_STRICT=1` / `checkIncremental: true` — runs BOTH incremental and fresh renders, compares cell-by-cell. Catches stale-pixel bugs.
+
+### Guidelines for Visual Bug Tests
+
+1. **Enable `checkReplay` on all visual bug regression tests** — add `withDiagnostics(driver, { checkReplay: true })` to any test for a rendering/visual bug. This catches ANSI diff algorithm bugs that buffer inspection alone misses.
+
+2. **Enable `checkIncremental` on navigation/fold/scroll tests** — catches stale pixels where incremental render diverges from fresh render.
+
+3. **Test with realistic data, not minimal fixtures** — use 5+ columns, long content, mixed node types. Minimal 2-column fixtures miss real-world layout bugs.
+
+4. **Test exhaustive sequences, not single operations** — bugs like col-shift only appear after 7+ consecutive shifts. Add loop/stress variants for operations that accumulate state (shift, scroll, fold sequences).
+
+5. **Verify edit mode component lifecycle** — for edit/input bugs, assert that the input component is mounted and focused, not just that final rendered text is correct.
+
+6. **Check adjacent element integrity** — fold-border-blank was about the card *below* the folded card losing its border. Tests should verify neighboring elements after mutations, not just the mutated element.

@@ -233,6 +233,23 @@ without user confirmation but should have had it, re-open and verify.
 6. A verification method stated in the close reason
 7. The structured Fixed/Test/Verified format
 
+### Hard Gate: Visual Bug Closure Requires All Three Layers
+
+```
+HARD GATE: A visual bug bead CANNOT be closed (bd close) unless the
+close reason contains ALL THREE:
+1. Test file path (Layer 1)
+2. GUI/TTY screenshot path (Layer 2)
+3. "user confirmed" (Layer 3)
+
+If any layer is missing, use:
+  bd update <id> --append-notes "Awaiting <layer>"
+Do NOT call bd close.
+
+Anti-pattern: "Awaiting user confirmation" in the close reason of a
+CLOSED bead. "Awaiting" = not done = not closable.
+```
+
 ### When the User Says "Not Fixed"
 
 If the user rejects a fix, **You MUST follow** the [rejection protocol](../../tui/fix.md#when-the-user-says-not-fixed) — distinguish process failure from iterative refinement, and run a retrospective if it's a process failure.
