@@ -42,6 +42,7 @@ The memory graph is always rebuildable from chats. Delete state.db, replay chats
 | **triple** | A fact in the memory graph (subject-predicate-object) |
 | **solidification** | Memory graph → markdown file (knowledge becomes permanent and visible) |
 | **extraction** | Markdown edit → memory graph update (parsing structured properties + NL processing) |
+| **shaping** | Triples → typed entity (deterministic projection, no LLM). E.g. triples about Alice → Contact object |
 
 ## Everything is a Chat
 
@@ -308,7 +309,14 @@ repo.query() + memory graph merged via RRF
 km's brain layer absorbs designs from two earlier projects in the PIM monorepo:
 
 - **kimmi** — a contacts/calendar CRDT sync project. km absorbs its sync adapters (CardDAV, CalDAV) as event sources and entity schemas.
-- **cloudi** — an experimental AI memory system. km absorbs its SPO triple store design, cognitive type separation, and confidence accumulation. The full specification lives in Cloudi ADR01 (`~/Code/pim/cloudi/specs/active/ADR01/`; internal, requires cloudi repo checkout).
+- **cloudi** — an experimental AI memory system. The full specification lives in Cloudi ADR01 (`~/Code/pim/cloudi/specs/active/ADR01/`; internal, requires cloudi repo checkout). Key designs km absorbs:
+  - **SPO triple store** with simple subject-predicate-object schema (Cypher-compatible)
+  - **ENGRAM cognitive types** — per-category retrieval prevents cross-type interference (+31% accuracy)
+  - **Bi-temporal model** — transaction time (when recorded) + valid time (when fact was true)
+  - **Source distinction** — NL transcripts (rebuildable via re-extraction) vs structured operations (authoritative)
+  - **Shaping** — deterministic projection from triples → typed entities (Contact, Event, Task)
+  - **Confidence accumulation** — multi-source corroboration scoring
+  - **Retraction as statements-about-statements** — immutable append-only, never delete
 
 The PIM ecosystem simplifies to two things:
 

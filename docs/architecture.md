@@ -352,6 +352,7 @@ See [storage.md](storage.md) for detailed resolution behavior.
 | **block**       | Content within an item (paragraph, code block, quote).                  |
 | **solidification** | Memory graph → markdown file (knowledge becomes permanent/visible).  |
 | **extraction**  | Markdown edit → memory graph update (parsing properties + NL processing). |
+| **shaping**     | Triples → typed entity (deterministic projection, no LLM).               |
 
 ---
 
