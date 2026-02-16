@@ -162,9 +162,9 @@ const Card = React.memo(
     const hrContent = (card.node.content ?? (card.node.type === "hr" ? "---" : "")).trim()
     const isHR = /^(-{3,}|\*{3,}|_{3,})$/.test(hrContent)
     if (isHR && !isEditing) {
+      // Center HR content with spaces — no decorative line
       const padTotal = Math.max(0, width - hrContent.length)
       const padLeft = Math.floor(padTotal / 2)
-      const padRight = padTotal - padLeft
       return (
         <Box flexDirection="column" flexShrink={0} width={width} height={1}>
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
@@ -182,23 +182,26 @@ const Card = React.memo(
               dimColor={!isSelected && !isMultiSelected}
               wrap="truncate"
             >
-              {"─".repeat(padLeft)}{hrContent}{"─".repeat(padRight)}
+              {" ".repeat(padLeft)}{hrContent}
             </Text>
           </Box>
         </Box>
       )
     }
 
-    // Virtual body content renders with a very dim border and de-emphasized text
-    // This includes: cards in virtual columns OR individual virtual body cards
+    // Virtual body content always has a border to keep layout stable.
+    // Border color: cyan when editing, yellow when selected, transparent ("black") otherwise.
+    // Always rendering the border avoids size changes when cursor passes over.
     if (isVirtualColumn || card.isVirtual) {
+      const virtualBorderColor = isEditing ? "cyan" : isSelected || isMultiSelected ? "yellow" : "black"
       return (
         <Box
           flexDirection="column"
           flexShrink={0}
           width={width}
           borderStyle="round"
-          borderColor={isSelected ? "yellow" : "black"}
+          borderColor={virtualBorderColor}
+          minHeight={3}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
@@ -416,8 +419,8 @@ export const Column = React.memo(function Column({
   const isColumnSelected = isSelected && selectionLevel === "column"
   const headerStyle = isInlineEditing
     ? {
-        color: "white",
-        backgroundColor: "blueBright" as string | undefined,
+        color: "cyan",
+        backgroundColor: undefined as string | undefined,
         dimColor: false,
       }
     : getHeaderStyle(ownColor, isSelected, isColumnSelected)
