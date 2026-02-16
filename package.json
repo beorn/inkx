@@ -29,6 +29,7 @@
     "km:strict": "INKX_STRICT=true bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
     "worktree": "bun vendor/beorn-tools/tools/worktree.ts",
+    "accountly": "bun vendor/beorn-accountly/src/cli.ts",
     "recall": "bun vendor/beorn-tools/tools/recall.ts",
     "llm": "bun vendor/beorn-tools/tools/llm.ts",
     "refactor": "bun vendor/beorn-tools/tools/refactor.ts",

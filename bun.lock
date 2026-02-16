@@ -210,6 +210,17 @@
         "@km/core": "workspace:*",
       },
     },
+    "vendor/beorn-accountly": {
+      "name": "@beorn/accountly",
+      "version": "0.1.0",
+      "bin": {
+        "accountly": "./src/cli.ts",
+      },
+      "dependencies": {
+        "commander": "^14.0.0",
+        "picocolors": "^1.1.1",
+      },
+    },
     "vendor/beorn-chalkx": {
       "name": "chalkx",
       "version": "0.1.0",
@@ -464,6 +475,8 @@
     "@babel/parser": ["@babel/parser@7.28.6", "", { "dependencies": { "@babel/types": "^7.28.6" }, "bin": "./bin/babel-parser.js" }, "sha512-TeR9zWR18BvbfPmGbLampPMW+uW1NZnJlRuuHso8i87QZNq2JRF9i6RgxRqtEq+wQGsS19NNTWr2duhnE49mfQ=="],
 
     "@babel/types": ["@babel/types@7.28.6", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.28.5" } }, "sha512-0ZrskXVEHSWIqZM/sQZ4EV3jZJXRkio/WCxaqKZP1g//CEWEPSfeZFcms4XeKBCHU0ZKnIkdJeU/kF+eRp5lBg=="],
+
+    "@beorn/accountly": ["@beorn/accountly@workspace:vendor/beorn-accountly"],
 
     "@beorn/flexx": ["@beorn/flexx@workspace:vendor/beorn-flexx"],
 

@@ -1,0 +1,25 @@
+{
+  "name": "@beorn/accountly",
+  "version": "0.1.0",
+  "description": "Multi-account manager for Claude Code and other AI providers",
+  "bin": {
+    "accountly": "./src/cli.ts"
+  },
+  "type": "module",
+  "module": "src/index.ts",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "picocolors": "^1.1.1"
+  }
+}
