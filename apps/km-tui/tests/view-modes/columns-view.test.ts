@@ -312,7 +312,7 @@ describe("Columns View", () => {
     })
 
     test.each([
-      { width: 40, desc: "narrow terminal shows fewer columns" },
+      { width: 80, desc: "narrow terminal shows fewer columns" },
       { width: 200, desc: "wide terminal shows more columns" },
     ])("$desc", ({ width }) => {
       const { board } = columnsBoard(

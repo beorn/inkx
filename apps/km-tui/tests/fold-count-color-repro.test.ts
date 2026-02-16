@@ -5,9 +5,9 @@
  * changes inconsistently. At one depth the count is dim+gray (nearly
  * invisible), at another it's bold+white (very prominent).
  *
- * Fix: The count is now always gray (never dimmed). Bold when children
- * are hidden to signal folded items, non-bold when children are visible.
- * This gives a consistent, readable appearance.
+ * Fix: The count is now always gray, never dimmed, never bold.
+ * Bold gray renders as bright/white on real terminals (ANSI bold brightens
+ * colors), so bold must be avoided for consistent color.
  */
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
@@ -66,7 +66,7 @@ describe("fold count color", () => {
       expect(countCell!.attrs.bold, "not bold when children visible").toBeFalsy()
     })
 
-    test("count is gray + bold when children hidden (outline depth 1)", () => {
+    test("count is gray, not bold, when children hidden (outline depth 1)", () => {
       const { board } = createBoard()
       board.press("<") // decrease to depth 1
 
@@ -79,10 +79,10 @@ describe("fold count color", () => {
       expect(countCell, "count cell found").not.toBeNull()
       expect(countCell!.char).toBe("3")
 
-      // Count should be gray (fg=8), NOT dim, bold
+      // Count should be gray (fg=8), NOT dim, NOT bold (bold gray = white)
       expect(countCell!.fg, "fg=8 (gray)").toBe(8)
       expect(countCell!.attrs.dim, "not dim").toBeFalsy()
-      expect(countCell!.attrs.bold, "bold when children hidden").toBe(true)
+      expect(countCell!.attrs.bold, "not bold (bold gray = white)").toBeFalsy()
     })
 
     test("count is never dimmed regardless of outline depth", () => {
@@ -107,8 +107,8 @@ describe("fold count color", () => {
       expect(cell1!.fg, "gray at depth 1").toBe(8)
       expect(cell2!.fg, "gray at depth 2").toBe(8)
 
-      // Bold only when children hidden (depth 1)
-      expect(cell1!.attrs.bold, "bold at depth 1").toBe(true)
+      // Never bold (bold gray = bright white on terminals)
+      expect(cell1!.attrs.bold, "not bold at depth 1").toBeFalsy()
       expect(cell2!.attrs.bold, "not bold at depth 2").toBeFalsy()
     })
   })

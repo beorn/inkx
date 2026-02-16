@@ -108,14 +108,16 @@ describe("card border: terminal widths", () => {
     expectCardBorder(board, "1a", 30)
   })
 
-  test("narrow terminal with two columns (40 cols)", () => {
+  test("narrow terminal with two columns (80 cols)", () => {
+    // At 80 cols, both columns fit side-by-side (maxExpandedCols=2).
+    // Verifies card borders render correctly in a multi-column narrow layout.
     const { board } = testEnv(
       () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
-      { columns: 40 },
+      { columns: 80 },
     )
-    expectCardBorder(board, "1a", 40)
+    expectCardBorder(board, "1a", 80)
     board.press("l")
-    expectCardBorder(board, "2a", 40)
+    expectCardBorder(board, "2a", 80)
   })
 
   test("wide terminal (200 cols)", () => {

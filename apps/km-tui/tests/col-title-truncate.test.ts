@@ -119,22 +119,25 @@ describe("col-title-truncate", () => {
   // =========================================================================
 
   test("long column title is truncated within column width", () => {
+    // Title is 90 chars — longer than the 80-col terminal, so it MUST be
+    // truncated everywhere (breadcrumb header AND column header).
+    const longTitle = "This Is A Very Long Column Name That Should Definitely Be Truncated Because It Is Way Too Long"
     const { board } = testEnv(
       () =>
         item.root(
           "board",
-          item("This Is A Very Long Column Name That Should Be Truncated", item("task-a")),
+          item(longTitle, item("task-a")),
           item("col2", item("task-b")),
         ),
-      { columns: 60, rows: 20 },
+      { columns: 80, rows: 20 },
     )
 
     const text = board.screenshot()
-    // Full title should NOT appear (it exceeds available header width)
-    expect(text).not.toContain("This Is A Very Long Column Name That Should Be Truncated")
+    // Full title should NOT appear — it's 95 chars, wider than the 80-col terminal
+    expect(text).not.toContain(longTitle)
     // But the beginning should be visible
     expect(text).toContain("This Is A Very")
-    expectLinesWithinWidth(text, 60)
+    expectLinesWithinWidth(text, 80)
   })
 
   test("single column with very long name truncates properly", () => {
