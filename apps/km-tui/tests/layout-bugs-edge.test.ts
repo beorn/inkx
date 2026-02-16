@@ -10,7 +10,7 @@ import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("uncollapse header edge cases", () => {
-  test.todo("incremental render matches fresh render after collapse/uncollapse — km-tui.uncollapse-header", () => {
+  test("incremental render matches fresh render after collapse/uncollapse — km-tui.uncollapse-header", () => {
     const { board: incBoard } = testEnv(
       () =>
         item(
@@ -85,7 +85,7 @@ describe("uncollapse header edge cases", () => {
     board.expectScreen("PreCollapsed")
   })
 
-  test.todo("uncollapse incremental buffer matches fresh after collapse/uncollapse — km-tui.uncollapse-header", () => {
+  test("uncollapse incremental buffer matches fresh after collapse/uncollapse — km-tui.uncollapse-header", () => {
     const { board } = testEnv(
       () =>
         item(
