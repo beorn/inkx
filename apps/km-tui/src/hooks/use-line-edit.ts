@@ -183,6 +183,11 @@ export function useLineEdit({
       getContent() {
         return stateRef.current.value
       },
+      replaceContent(content: string, cursor: number) {
+        updateValueRef.current(content, cursor)
+        // Update initialValue so auto-save on unmount doesn't re-save the old value
+        initialValueRef.current = content
+      },
     }),
     [],
   )

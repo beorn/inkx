@@ -34,6 +34,8 @@ export interface BlockEditTarget {
   getContent(): string
   /** Split node at cursor — returns true if a split happened (caller should not exit edit) */
   insertBreak?(): boolean
+  /** Replace entire content and cursor position (used by prefix conversion) */
+  replaceContent?(content: string, cursor: number): void
 }
 
 /**

@@ -51,11 +51,15 @@ export { extractBody, type BodyExtraction } from "./body.ts"
 export {
   splitNode,
   mergeWithPrevious,
+  mergeWithNext,
   getNodeText,
   setNodeText,
   getPreviousSibling,
   getNextSibling,
+  detectPrefixConversion,
+  backspaceDegradation,
   type TreeMutator,
   type SplitResult,
   type MergeResult,
+  type PrefixConversion,
 } from "./block-ops.ts"

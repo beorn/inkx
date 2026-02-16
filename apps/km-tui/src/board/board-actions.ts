@@ -25,7 +25,14 @@ import { assertNever } from "../action-handlers.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
-import { extractBody } from "@km/tree"
+import {
+  extractBody,
+  mergeWithNext,
+  mergeWithPrevious,
+  detectPrefixConversion,
+  backspaceDegradation,
+  setNodeText,
+} from "@km/tree"
 import {
   clearSelection,
   getSelectedCards,
@@ -521,24 +528,131 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === Text editing actions (dispatched to TextEditTarget) ===
     // Read from shared ref directly (not ActionCtx snapshot) because
     // the target is set by useEffect after render.
-    case "TEXT_INSERT":
-      blockEditTargetRef.current?.insertChar(action.char)
-      return ok()
-    case "TEXT_DELETE_BACKWARD": {
-      const target = blockEditTargetRef.current
-      // Smart delete: at position 0 of empty node, delete the node itself
-      if (target && ctx.ui.inlineEditBlock && target.getCursorOffset() === 0 && target.getContent() === "") {
-        const nodeId = ctx.ui.inlineEditBlock.nodeId
-        ctx.setUI({ inlineEditBlock: null })
-        executeDelete(ctx, nodeId)
-        return ok()
+    case "TEXT_INSERT": {
+      const insertTarget = blockEditTargetRef.current
+      insertTarget?.insertChar(action.char)
+      // Prefix conversion: after typing space, check if content matches a markdown prefix
+      if (action.char === " " && insertTarget && ctx.ui.inlineEditBlock) {
+        const content = insertTarget.getContent()
+        const conversion = detectPrefixConversion(content)
+        if (conversion) {
+          const nodeId = ctx.ui.inlineEditBlock.nodeId
+          const node = ctx.repo.getNode(nodeId)
+          if (node) {
+            const remainingText = content.slice(conversion.prefixLength)
+            ctx.undoHandle.setCursor(ctx.cursorNodeId)
+            // Build repo update with type change + correctly formatted content
+            const changes: Partial<typeof node> = { ...conversion.nodeChanges }
+            // Set content formatted for the new type
+            if (changes.type === "oi") {
+              changes.name = remainingText
+              changes.content = remainingText
+            } else if (changes.task_marker) {
+              // Task: format content with checkbox prefix
+              const fakeNode = { ...node, ...changes } as typeof node
+              changes.content = setNodeText(fakeNode, remainingText)
+              // Ensure type is li for tasks
+              if (!changes.type) changes.type = "li"
+            } else {
+              changes.content = remainingText
+            }
+            // Clear fields that don't apply to the new type
+            if (changes.type && changes.type !== "oi" && node.type === "oi") {
+              changes.name = undefined
+              changes.fstype = undefined
+            }
+            if (changes.type && changes.type !== "li" && node.type === "li") {
+              changes.list_marker = undefined
+            }
+            ctx.repo.updateNode(nodeId, changes)
+            // Update edit field to show remaining text (prefix stripped)
+            insertTarget.replaceContent?.(remainingText, remainingText.length)
+          }
+        }
       }
-      target?.deleteBackward()
       return ok()
     }
-    case "TEXT_DELETE_FORWARD":
-      blockEditTargetRef.current?.deleteForward()
+    case "TEXT_DELETE_BACKWARD": {
+      const bsTarget = blockEditTargetRef.current
+      if (bsTarget && ctx.ui.inlineEditBlock && bsTarget.getCursorOffset() === 0) {
+        const nodeId = ctx.ui.inlineEditBlock.nodeId
+        const content = bsTarget.getContent()
+        if (content === "") {
+          // Empty node: delete it
+          ctx.setUI({ inlineEditBlock: null })
+          executeDelete(ctx, nodeId)
+          return ok()
+        }
+        // Backspace degradation: strip traits/type before merging
+        const node = ctx.repo.getNode(nodeId)
+        if (node) {
+          const degradation = backspaceDegradation(node)
+          if (degradation) {
+            ctx.undoHandle.setCursor(ctx.cursorNodeId)
+            // When stripping task marker, reformat content to plain text
+            if (node.task_marker && degradation.task_marker === undefined) {
+              degradation.content = content // content from edit field is already stripped
+            }
+            // When converting oi → p, move name to content
+            if (degradation.type === "p" && node.type === "oi") {
+              degradation.content = content
+              degradation.name = undefined
+            }
+            // When converting li → p, ensure content is plain text
+            if (degradation.type === "p" && node.type === "li") {
+              degradation.content = content
+            }
+            ctx.repo.updateNode(nodeId, degradation)
+            refreshBoardState(ctx)
+            return ok()
+          }
+          // No degradation possible (plain p) → merge with previous
+          bsTarget.save()
+          ctx.undoHandle.setCursor(ctx.cursorNodeId)
+          ctx.undoHandle.startBatch("Merge backward")
+          const result = mergeWithPrevious(ctx.repo, nodeId)
+          ctx.undoHandle.endBatch()
+          if (result) {
+            ctx.setUI({ inlineEditBlock: null })
+            refreshBoardState(ctx)
+          }
+          return ok()
+        }
+      }
+      bsTarget?.deleteBackward()
       return ok()
+    }
+    case "TEXT_DELETE_FORWARD": {
+      const fwdTarget = blockEditTargetRef.current
+      if (fwdTarget && ctx.ui.inlineEditBlock) {
+        const content = fwdTarget.getContent()
+        const cursor = fwdTarget.getCursorOffset()
+        if (content === "" && cursor === 0) {
+          // Empty node: delete it (same as backspace-on-empty)
+          const nodeId = ctx.ui.inlineEditBlock.nodeId
+          ctx.setUI({ inlineEditBlock: null })
+          executeDelete(ctx, nodeId)
+        } else if (cursor >= content.length) {
+          // At end of content: merge with next sibling
+          const nodeId = ctx.ui.inlineEditBlock.nodeId
+          fwdTarget.save()
+          ctx.undoHandle.setCursor(ctx.cursorNodeId)
+          ctx.undoHandle.startBatch("Merge forward")
+          const result = mergeWithNext(ctx.repo, nodeId)
+          ctx.undoHandle.endBatch()
+          if (result) {
+            // Exit edit mode — the merged content is visible on the card.
+            // Staying in edit mode would require remounting InlineEditField
+            // since the content changed but the nodeId didn't.
+            ctx.setUI({ inlineEditBlock: null })
+            refreshBoardState(ctx)
+          }
+        } else {
+          fwdTarget.deleteForward()
+        }
+      }
+      return ok()
+    }
     case "TEXT_CURSOR_LEFT":
       blockEditTargetRef.current?.cursorLeft()
       return ok()
