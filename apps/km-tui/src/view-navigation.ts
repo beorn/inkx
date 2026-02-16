@@ -85,6 +85,18 @@ function navigateVertical(
 ): string | null {
   const { cursorNodeId, rootId } = state
 
+  // Virtual body column header (__body__<rootId>) — synthetic node not in repo.
+  // Treat as a column header for the body column: j → first body card, k → board.
+  if (cursorNodeId.startsWith("__body__")) {
+    if (dir === "down") {
+      const allChildren = repo.getChildren(rootId)
+      const { bodyNodes } = splitBodyAndColumns(allChildren)
+      return bodyNodes[0]?.id ?? null
+    }
+    // k from body column header → board level
+    return rootId
+  }
+
   const cursorNode = repo.getNode(cursorNodeId)
   if (!cursorNode) {
     // Cursor node was deleted (e.g., by file watcher re-parse during sync).
@@ -252,6 +264,16 @@ function navigateHorizontal(
   layoutRegistry: LayoutRegistry,
 ): string | null {
   const { cursorNodeId, rootId } = state
+
+  // Virtual body column header (__body__<rootId>) — synthetic node not in repo.
+  // Treat as body column header: l → first structural column, h → boundary.
+  if (cursorNodeId.startsWith("__body__")) {
+    if (dir === "left") return null // Body column is leftmost
+    const allChildren = repo.getChildren(rootId)
+    const { structuralCols } = splitBodyAndColumns(allChildren)
+    if (structuralCols.length === 0) return null
+    return navigateToStructuralCol(0, structuralCols, state, layoutRegistry, repo, true)
+  }
 
   const cursorNode = repo.getNode(cursorNodeId)
   if (!cursorNode) {

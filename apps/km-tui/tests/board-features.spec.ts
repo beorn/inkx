@@ -137,7 +137,7 @@ describe("Text Rendering", () => {
     const longTitle = "A".repeat(200)
     const { board } = testEnv(() => item("board", item("col", item(longTitle))))
     const output = board.screenshot()
-    expect(output).toContain("⋯") // Ellipsis for truncation
+    expect(output).toContain("…") // Ellipsis for truncation
   })
 
   test("special characters render correctly", () => {
