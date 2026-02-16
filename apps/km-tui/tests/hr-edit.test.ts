@@ -133,4 +133,38 @@ describe("HR editing", () => {
     // During edit: HR should show as bordered card
     board.expectNodeBorder("my-hr")
   })
+
+  test("HR edit mode: no colored background fills the row", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item.hr("my-hr"), item("task-below")),
+        ),
+      { columns: 40, rows: 12 },
+    )
+
+    board.press("Enter") // Enter edit mode
+
+    // Check that the edit row doesn't have a colored background flooding the card.
+    // The cursor should be a single inverse cell, not a row-wide colored fill.
+    const screen = board.screen
+    const hrNode = board.q("#my-hr")
+    const box = hrNode.boundingBox()
+    expect(box).not.toBeNull()
+
+    if (box) {
+      // Check cells on the edit row (first row inside the border = box.y)
+      // After the "---" text + cursor, remaining cells should have no background color
+      let coloredCells = 0
+      for (let x = box.x; x < box.x + box.width; x++) {
+        const cell = screen.cell(x, box.y)
+        if (cell && cell.bg && cell.bg !== 0) {
+          coloredCells++
+        }
+      }
+      // Allow a few cells for the cursor (inverse) and prefix, but not the whole row
+      expect(coloredCells).toBeLessThan(box.width / 2)
+    }
+  })
 })
