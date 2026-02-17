@@ -11,7 +11,7 @@
 
 import { useState, useCallback, useLayoutEffect, useMemo, useRef } from "react"
 import { Editor, Transforms } from "slate"
-import stringWidth from "string-width"
+import { cursorMoveUp, cursorMoveDown, cursorToRowCol, countVisualLines } from "inkx"
 import type { BlockEditTarget } from "../block-edit-target.ts"
 import { blockEditTargetRef } from "../block-edit-target.ts"
 import { textToDescendants } from "./schema.ts"
@@ -35,6 +35,8 @@ export interface UseSlateEditOptions {
   onMergeBackward?: () => void
   /** Available width for visual line wrapping (cursor up/down navigation) */
   lineWidth?: number
+  /** Initial cursor position when entering edit mode via block navigation */
+  initialCursorPos?: "start" | "end"
 }
 
 export interface UseSlateEditResult {
@@ -75,6 +77,7 @@ export function useSlateEdit({
   onSplitAtBoundary,
   onMergeBackward,
   lineWidth,
+  initialCursorPos,
 }: UseSlateEditOptions = {}): UseSlateEditResult {
   // Stable refs for callbacks (avoid stale closures)
   const onChangeRef = useRef(onChange)
@@ -95,7 +98,13 @@ export function useSlateEdit({
       onSplitAtBoundary,
       onMergeBackward,
     }
-    return createKmEditor(editorOptions)
+    const ed = createKmEditor(editorOptions)
+    // Honor initialCursorPos: place cursor at start or end of content
+    if (initialCursorPos === "start") {
+      Transforms.select(ed, Editor.start(ed, []))
+    }
+    // Default: cursor at end (Slate's normalize puts it there)
+    return ed
   }, []) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally stable
 
   // Track render state (Slate is the source of truth, React state triggers re-render)
@@ -160,11 +169,12 @@ export function useSlateEdit({
         const offset = getCursorOffset(editor)
         const w = lineWidthRef.current
         if (w === Infinity || w <= 0) return offset > 0 ? (Transforms.select(editor, Editor.start(editor, [])), forceRender(), true) : false
-        const { line, col } = offsetToVisualPos(text, offset, w)
-        if (line === 0) return false // at first visual line — boundary
+        // Use stickyX for consistent column during vertical movement
+        const { col } = cursorToRowCol(text, offset, w)
         const targetX = stickyXRef.current ?? col
         stickyXRef.current = targetX
-        const newOffset = visualPosToOffset(text, line - 1, targetX, w)
+        const newOffset = cursorMoveUp(text, offset, w, targetX)
+        if (newOffset === null) return false // at first visual line — boundary
         setCursorOffset(editor, newOffset)
         forceRender()
         return true
@@ -174,11 +184,12 @@ export function useSlateEdit({
         const offset = getCursorOffset(editor)
         const w = lineWidthRef.current
         if (w === Infinity || w <= 0) return offset < text.length ? (Transforms.select(editor, Editor.end(editor, [])), forceRender(), true) : false
-        const { line, col, totalLines } = offsetToVisualPos(text, offset, w)
-        if (line >= totalLines - 1) return false // at last visual line — boundary
+        // Use stickyX for consistent column during vertical movement
+        const { col } = cursorToRowCol(text, offset, w)
         const targetX = stickyXRef.current ?? col
         stickyXRef.current = targetX
-        const newOffset = visualPosToOffset(text, line + 1, targetX, w)
+        const newOffset = cursorMoveDown(text, offset, w, targetX)
+        if (newOffset === null) return false // at last visual line — boundary
         setCursorOffset(editor, newOffset)
         forceRender()
         return true
@@ -290,95 +301,3 @@ export function useSlateEdit({
   }
 }
 
-// =============================================================================
-// Visual line calculation for cursor up/down
-// =============================================================================
-
-interface VisualPos {
-  line: number
-  col: number
-  totalLines: number
-}
-
-/** Map a character offset to a visual line and column, given a line width. */
-function offsetToVisualPos(text: string, offset: number, lineWidth: number): VisualPos {
-  let line = 0
-  let consumed = 0
-
-  const segments = text.split("\n")
-  for (let sIdx = 0; sIdx < segments.length; sIdx++) {
-    const lines = wrapSegment(segments[sIdx]!, lineWidth)
-    for (let i = 0; i < lines.length; i++) {
-      const lineLen = lines[i]!.length
-      const lineEnd = consumed + lineLen
-      // For non-last wrapped lines within a paragraph, offset at boundary
-      // belongs to the NEXT visual line (start of next wrapped segment).
-      // For the last wrapped line of a paragraph, offset at boundary is end-of-line.
-      const isLastWrappedLine = i === lines.length - 1
-      if (isLastWrappedLine ? offset <= lineEnd : offset < lineEnd) {
-        return { line, col: offset - consumed, totalLines: countTotalLines(text, lineWidth) }
-      }
-      consumed = lineEnd
-      line++
-    }
-    consumed++ // newline character
-  }
-
-  // Past end — return last position
-  const total = countTotalLines(text, lineWidth)
-  return { line: total - 1, col: 0, totalLines: total }
-}
-
-/** Map a visual line and column to a character offset. */
-function visualPosToOffset(text: string, targetLine: number, targetCol: number, lineWidth: number): number {
-  let line = 0
-  let consumed = 0
-
-  for (const segment of text.split("\n")) {
-    const lines = wrapSegment(segment, lineWidth)
-    for (let i = 0; i < lines.length; i++) {
-      if (line === targetLine) {
-        const lineLen = lines[i]!.length
-        return consumed + Math.min(targetCol, lineLen)
-      }
-      consumed += lines[i]!.length
-      line++
-    }
-    consumed++ // newline character
-  }
-
-  // Past total lines — return end
-  return text.length
-}
-
-/** Count total visual lines. */
-function countTotalLines(text: string, lineWidth: number): number {
-  let total = 0
-  for (const segment of text.split("\n")) {
-    total += wrapSegment(segment, lineWidth).length
-  }
-  return total
-}
-
-/** Wrap a single paragraph into visual lines based on character width. */
-function wrapSegment(text: string, lineWidth: number): string[] {
-  if (lineWidth <= 0) return [text]
-  if (stringWidth(text) <= lineWidth) return [text]
-
-  const lines: string[] = []
-  let remaining = text
-  while (remaining.length > 0) {
-    // Find the longest prefix that fits within lineWidth
-    let end = 0
-    let width = 0
-    for (const char of remaining) {
-      const charW = stringWidth(char)
-      if (width + charW > lineWidth && end > 0) break
-      width += charW
-      end += char.length
-    }
-    lines.push(remaining.slice(0, end))
-    remaining = remaining.slice(end)
-  }
-  return lines.length > 0 ? lines : [""]
-}

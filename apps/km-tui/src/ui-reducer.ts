@@ -90,7 +90,8 @@ export interface UIState {
 
   // Inline edit state - which block is being edited (null = not editing)
   // blockIndex 0 = title, 1+ = body children (1-indexed into extractBody result)
-  inlineEditBlock: { nodeId: string; blockIndex: number } | null
+  // initialCursorPos: where to place cursor when entering edit mode via block navigation
+  inlineEditBlock: { nodeId: string; blockIndex: number; initialCursorPos?: "start" | "end" } | null
 
   // Date/recurrence prompt dialog
   datePrompt: {

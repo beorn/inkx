@@ -829,23 +829,55 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 // =============================================================================
 
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
-  const { ui } = ctx
+  const { ui, layout } = ctx
   const edit = ui.inlineEditBlock
   if (!edit) return ok()
 
   const blockCount = 1 + extractBody(ctx.repo.getChildren(edit.nodeId)).body.length
   const nextIndex = edit.blockIndex + (direction === "down" ? 1 : -1)
 
-  if (nextIndex < 0 || nextIndex >= blockCount) {
-    // Past edges → confirm (save + exit edit mode) and navigate to adjacent card
-    blockEditTargetRef.current?.confirm()
-    return handleCursorMove(ctx, direction === "down" ? "down" : "up")
-  } else {
+  if (nextIndex >= 0 && nextIndex < blockCount) {
     // Moving between blocks within same node → save current block, change index
     blockEditTargetRef.current?.save()
-    ctx.setUI({ inlineEditBlock: { ...edit, blockIndex: nextIndex } })
+    ctx.setUI({
+      inlineEditBlock: {
+        ...edit,
+        blockIndex: nextIndex,
+        initialCursorPos: direction === "down" ? "start" : "end",
+      },
+    })
+    return ok()
   }
-  return ok()
+
+  // Past edges → save current content and try to enter edit on adjacent card
+  blockEditTargetRef.current?.save()
+
+  // Find adjacent card in the current column
+  const col = layout.columns[layout.colIndex]
+  const currentCardIndex = layout.cardIndex
+  const adjacentIndex = direction === "down" ? currentCardIndex + 1 : currentCardIndex - 1
+  const adjacentCard = col?.cards[adjacentIndex]
+
+  if (adjacentCard) {
+    // Navigate to adjacent card and enter edit mode on it
+    ctx.dispatchBoard({ type: "SELECT", nodeId: adjacentCard.node.id })
+
+    // Determine which block to edit (first or last)
+    const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentCard.node.id)).body.length
+    const adjBlockIndex = direction === "down" ? 0 : adjBodyCount // title (0) when going down, last body block when going up
+    ctx.setUI({
+      inlineEditBlock: {
+        nodeId: adjacentCard.node.id,
+        blockIndex: adjBlockIndex,
+        initialCursorPos: direction === "down" ? "start" : "end",
+      },
+    })
+    return ok()
+  }
+
+  // No adjacent card — exit edit mode entirely
+  ctx.setUI({ inlineEditBlock: null })
+  return handleCursorMove(ctx, direction === "down" ? "down" : "up")
 }
 
 function handleToggleFold(ctx: ActionCtx): ActionResult {

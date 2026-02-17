@@ -242,7 +242,7 @@ const Card = React.memo(
             childCount={card.childCount}
             extraExcludedSigils={extraExcludedSigils}
             compactContent
-            editLineWidth={width - 4}
+
           />
         </Box>
       )

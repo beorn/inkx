@@ -4,10 +4,14 @@
  * Uses useSlateEdit which registers a BlockEditTarget.
  * All key handling is done by the command system via when: textInputFocused.
  * No component-level useInputLayer needed.
+ *
+ * Width is auto-detected via useContentRect() — the nearest Box ancestor's
+ * content width is used for visual line wrapping. This guarantees cursor
+ * positions match inkx's rendered line breaks.
  */
 
 import React from "react"
-import { Text } from "inkx"
+import { Text, useContentRect } from "inkx"
 import { useSlateEdit } from "../editor/index.ts"
 
 interface InlineEditFieldProps {
@@ -20,8 +24,8 @@ interface InlineEditFieldProps {
   onSplitAtBoundary?: (offset: number) => void
   /** Called when Backspace at start needs a tree merge */
   onMergeBackward?: () => void
-  /** Available width for visual line wrapping (for cursor up/down) */
-  lineWidth?: number
+  /** Initial cursor position when entering edit mode via block navigation */
+  initialCursorPos?: "start" | "end"
 }
 
 export function InlineEditField({
@@ -31,8 +35,13 @@ export function InlineEditField({
   onSave,
   onSplitAtBoundary,
   onMergeBackward,
-  lineWidth,
+  initialCursorPos,
 }: InlineEditFieldProps): React.ReactElement {
+  // Auto-detect width from nearest Box ancestor's content area.
+  // This is the same width inkx's renderer uses for word wrapping,
+  // ensuring cursor positions match displayed line breaks.
+  const { width } = useContentRect()
+
   const { beforeCursor, afterCursor } = useSlateEdit({
     initialValue,
     onConfirm,
@@ -40,7 +49,8 @@ export function InlineEditField({
     onSave,
     onSplitAtBoundary,
     onMergeBackward,
-    lineWidth,
+    lineWidth: width > 0 ? width : undefined,
+    initialCursorPos,
   })
 
   // Cursor character: show inverse block at cursor position
