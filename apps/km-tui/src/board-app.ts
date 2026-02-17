@@ -144,7 +144,8 @@ function routeThroughCommandSystem(
   }
 
   // When a dialog is open, unhandled keys are expected (limited key set)
-  const dialogOpen = ctx.ui.showSearchDialog || ctx.ui.showNewItemDialog || ctx.ui.showProjectPicker
+  const dialogOpen =
+    ctx.ui.showSearchDialog || ctx.ui.showNewItemDialog || ctx.ui.showProjectPicker || !!ctx.ui.datePrompt
 
   // Chord pending: show status indicator and start timeout
   if (result.pending) {

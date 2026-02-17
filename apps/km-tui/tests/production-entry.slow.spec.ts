@@ -864,3 +864,149 @@ describe("perf: processEvent render count", () => {
     handle.unmount()
   })
 })
+
+describe("production smoke: date dialog (km-qaco9)", () => {
+  test("td chord opens date dialog, Enter confirms and closes it", async () => {
+    // Bug: in real terminal, Enter/Escape don't close the date dialog.
+    // This test exercises the production code path (createBoardApp + handle.press)
+    // to check if the issue is in event batching/timing.
+    const nodes = item("board", item("col1", item.task("Buy groceries")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Navigate to card level
+    await handle.press("j")
+    expect(handle.store.getState().cursorNodeId).not.toBeNull()
+
+    // Open date dialog via td chord
+    await handle.press("t")
+    await handle.press("d")
+
+    // Dialog should be open
+    expect(handle.store.getState().ui.datePrompt).not.toBeNull()
+    expect(handle.text).toContain("Set Due Date")
+
+    // Type "tomorrow"
+    for (const ch of "tomorrow") await handle.press(ch)
+
+    // Press Enter to confirm
+    await handle.press("Enter")
+
+    // Dialog should be closed
+    expect(handle.store.getState().ui.datePrompt).toBeNull()
+    expect(handle.text).not.toContain("Set Due Date")
+
+    // Node should have due_at set
+    const col = repo.getChildren("board")[0]!
+    const task = repo.getChildren(col.id)[0]!
+    expect(task.due_at).toBeTruthy()
+
+    handle.unmount()
+  })
+
+  test("td chord opens date dialog, Escape cancels and closes it", async () => {
+    const nodes = item("board", item("col1", item.task("Buy groceries")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    await handle.press("j")
+
+    // Open date dialog
+    await handle.press("t")
+    await handle.press("d")
+    expect(handle.store.getState().ui.datePrompt).not.toBeNull()
+
+    // Type something
+    for (const ch of "fri") await handle.press(ch)
+
+    // Press Escape to cancel
+    await handle.press("Escape")
+
+    // Dialog should be closed
+    expect(handle.store.getState().ui.datePrompt).toBeNull()
+    expect(handle.text).not.toContain("Set Due Date")
+
+    // Node should NOT have due_at set (cancelled)
+    const col = repo.getChildren("board")[0]!
+    const task = repo.getChildren(col.id)[0]!
+    expect(task.due_at).toBeFalsy()
+
+    handle.unmount()
+  })
+
+  test("td from inline edit mode: Enter closes dialog (not create sibling)", async () => {
+    // Edge case: what if inline edit is active when td chord fires?
+    // The chord should close the inline edit and open the dialog.
+    const nodes = item("board", item("col1", item.task("Buy groceries"), item.task("Write report")))
+    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const app = createBoardApp(storeParams)
+
+    const element = React.createElement(
+      RepoProvider,
+      { repo },
+      React.createElement(
+        InputLayerProvider,
+        null,
+        React.createElement(BoardApp, {
+          initialState,
+          initialViewMode: "cards",
+          toastQueue: storeParams.toastQueue,
+        }),
+      ),
+    )
+
+    const handle = await app.run(element, { cols: 80, rows: 24 })
+
+    // Navigate to card and start inline edit
+    await handle.press("j")
+    await handle.press("Enter")
+    expect(handle.store.getState().ui.inlineEditBlock).not.toBeNull()
+
+    // Press Escape to exit inline edit first
+    await handle.press("Escape")
+    expect(handle.store.getState().ui.inlineEditBlock).toBeNull()
+
+    // Now open date dialog
+    await handle.press("t")
+    await handle.press("d")
+    expect(handle.store.getState().ui.datePrompt).not.toBeNull()
+
+    // Enter should close dialog
+    await handle.press("Enter")
+    expect(handle.store.getState().ui.datePrompt).toBeNull()
+
+    handle.unmount()
+  })
+})
