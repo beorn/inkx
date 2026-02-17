@@ -442,6 +442,27 @@ describe("date prompt (td)", () => {
     expect(screen).toContain("fri")
   })
 
+  test("navigation keys are filtered when date dialog is open", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))),
+    )
+
+    board.press("j") // Navigate to card level
+
+    // Open date dialog
+    board.press("t")
+    board.press("d")
+    expect(board.screenshot()).toContain("Set Due Date")
+
+    // Press 'j' (normally moves cursor down) — should be filtered, not move cursor
+    board.press("j")
+
+    // Dialog should still be open (j was consumed as text input or filtered)
+    expect(board.screenshot()).toContain("Set Due Date")
+    // 'j' should appear in the dialog input, not cause navigation
+    expect(board.screenshot()).toContain("j")
+  })
+
   test("Enter confirms date and updates node field", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
 
