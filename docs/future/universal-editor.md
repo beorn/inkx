@@ -16,241 +16,176 @@ A clean platform-agnostic editor core could become a foundation that other tools
 
 ---
 
-## Architecture: Five Layers
+## Architecture: Five Packages, Two Systems
+
+The architecture is organized as **five independent packages** forming **two parallel systems** plus a shared runtime:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  5. View Layer            Board, Outline, List, Calendar    │
-│     Same layout logic, platform-specific components         │
-├─────────────────────────────────────────────────────────────┤
-│  4. Document Editor       @km/editor (pure TypeScript)      │
-│     Tree cursor, commands, selection, undo/redo, lazy load  │
-│     ZERO platform dependencies — this is the shared core    │
-├─────────────────────────────────────────────────────────────┤
-│  3. Edit Context          Per-block text editing bridge      │
-│     Swappable: TerminalEditContext / browser EditContext     │
-│     / Slate+contentEditable fallback                        │
-├─────────────────────────────────────────────────────────────┤
-│  2. Rendering Adapter     How the document appears           │
-│     Swappable: inkx (ANSI) / React DOM / native views       │
-├─────────────────────────────────────────────────────────────┤
-│  1. Input Adapter         How user intent arrives            │
-│     Swappable: terminal stdin / browser events / native      │
-└─────────────────────────────────────────────────────────────┘
+                    ┌─────────────────────────────────┐
+                    │           km app                 │
+                    │  (views, node types, keybinds)   │
+                    └───────┬─────────────┬───────────┘
+                            │             │
+              ┌─────────────┘             └──────────────┐
+              │                                          │
+    ┌─────────▼──────────┐                 ┌─────────────▼──────────┐
+    │  System 1:         │                 │  System 2:             │
+    │  Terminal Rendering │                 │  Editing Framework     │
+    │                    │                 │                        │
+    │  ┌──────────────┐  │                 │  ┌──────────────────┐  │
+    │  │   termily    │  │                 │  │     docily       │  │
+    │  │  React term  │  │                 │  │  app foundation  │  │
+    │  │  renderer +  │  │                 │  │  commands, undo  │  │
+    │  │  components  │  │                 │  │  plugins, tree   │  │
+    │  └──────┬───────┘  │                 │  └────────┬─────────┘  │
+    │         │          │                 │           │            │
+    │  ┌──────▼───────┐  │                 │  ┌────────▼─────────┐  │
+    │  │   flexily    │  │                 │  │    textily       │  │
+    │  │  standalone  │  │                 │  │  rich text model │  │
+    │  │  flexbox     │  │                 │  │  zero deps       │  │
+    │  └──────────────┘  │                 │  └──────────────────┘  │
+    └────────────────────┘                 └────────────────────────┘
+              │                                          │
+              └──────────────┬───────────────────────────┘
+                             │
+                    ┌────────▼─────────┐
+                    │      runly       │
+                    │  Elm runtime     │
+                    │  (shared by      │
+                    │   both systems)  │
+                    └──────────────────┘
 ```
+
+### The Five Packages
+
+| Package | Role | Dependencies | Platform-specific? |
+|---------|------|-------------|-------------------|
+| **runly** | Elm-style functional reactive runtime | None | No — shared |
+| **docily** | App foundation: document model, command system, undo/CRDT, plugin composition | runly | No — shared |
+| **textily** | Rich text model: cursor, selection, formatting | None (zero deps) | No — shared |
+| **termily** | Terminal: React renderer + components + cell buffer + ANSI diff | runly, flexily | Yes — terminal only |
+| **flexily** | Standalone flexbox layout engine | None | No — but only terminal needs it |
+
+### Two Independent Systems
+
+**System 1: Terminal Rendering** (termily + flexily)
+Everything needed to put pixels on a terminal screen. React reconciler, Box/Text/VirtualList components, cell buffer, dirty tracking, ANSI diff output, stdin input parsing, terminal detection. Flexily provides the layout algorithm since terminals have no native layout engine.
+
+**System 2: Editing Framework** (docily + textily)
+Everything needed to build a rich keyboard-driven application on any platform. Document tree with operations, command system with keybindings, undo/redo, plugin composition, CRDT-ready mutations. Textily handles the text model (cursor, selection, wrap-aware navigation) with zero dependencies.
+
+**runly** bridges both — it's the Elm-style runtime that powers both docily's event processing and termily's render loop.
 
 ### Platform Composition
 
-| Layer | Terminal | Browser (modern) | Browser (legacy) | Native (future) |
-|-------|----------|-------------------|-------------------|-----------------|
-| **5. View** | inkx (Box, Text, VirtualList) | React DOM (div, span, virtual scroll) | React DOM | SwiftUI / Compose |
-| **4. Editor** | `@km/editor` | `@km/editor` | `@km/editor` | `@km/editor` |
-| **3. EditContext** | `TerminalEditContext` (ours) | Chrome native `EditContext` | Slate + `contentEditable` | Platform IME |
-| **2. Renderer** | inkx → ANSI buffer → terminal | React DOM → browser DOM | React DOM | Platform views |
-| **1. Input** | stdin raw mode / kitty protocol | `KeyboardEvent` + mouse + touch | `KeyboardEvent` | Platform events |
+| Platform | Rendering | Editing | Runtime |
+|----------|-----------|---------|---------|
+| **Terminal** | termily + flexily | docily + textily | runly |
+| **Browser** | react-dom + CSS | docily + textily | runly |
+| **Native** | SwiftUI / Compose | docily + textily | runly (or native equivalent) |
 
-Layer 4 is **identical everywhere**. Layers 1-3 and 5 are platform adapters.
+The swap is clean: replace **termily** with **react-dom + CSS**. Everything else — runly, docily, textily — is shared across platforms. The browser doesn't need flexily because CSS handles layout natively.
 
 ---
 
-## Layer 1: Input Adapter
+## What's Portable in inkx
 
-**Purpose**: Translate platform-specific input into universal events.
+Analysis of the current inkx codebase reveals a **60/40 split** between portable and terminal-specific code:
 
-```typescript
-// @km/editor — universal input event (platform-agnostic)
-interface EditorInputEvent {
-  key: string              // "j", "ArrowDown", "Enter", "Backspace"
-  text?: string            // printable text (undefined for control keys)
-  shift: boolean
-  ctrl: boolean
-  alt: boolean
-  meta: boolean
-  pointer?: { x: number; y: number; button: number; type: "down" | "up" | "move" }
-}
+### Portable (~60%) → runly + docily
 
-interface InputAdapter {
-  subscribe(handler: (event: EditorInputEvent) => boolean): Disposable
-  capabilities: {
-    mouse: boolean
-    touch: boolean
-    clipboard: boolean
-    ime: boolean
-    kittyProtocol: boolean
-  }
-}
-```
+| Module | What it does | Destination |
+|--------|-------------|-------------|
+| Elm runtime | Functional reactive: init/update/view cycle | runly |
+| React reconciler | Fiber-based custom renderer | runly (abstract) or termily |
+| Command system | Registry, keybindings, executor, chord state | docily |
+| Plugin composition | withCommands, withScroll, withHistory | docily |
+| Event streams | AsyncIterable event processing | runly |
+| Unicode handling | grapheme segmentation, East Asian width | textily or shared util |
+| Virtual scroll | Viewport-aware lazy rendering | docily (logic) + termily (impl) |
 
-**Swappability**: The command system already takes `(input: string, key: Key)`. The InputAdapter standardizes this so the same keybindings work on every platform. Platform-specific capabilities are feature-detected, not assumed.
+### Terminal-specific (~40%) → termily
 
-### Terminal Input
-- Raw stdin → ANSI sequence parser → `EditorInputEvent`
-- Kitty keyboard protocol for disambiguated keys (Ctrl+i vs Tab)
-- Mouse: SGR mouse reporting (clicks, scroll, drag)
-- No IME composition (terminal emulator handles it)
+| Module | What it does | Why not portable |
+|--------|-------------|-----------------|
+| Cell buffer | 2D grid of styled characters | Terminal concept — browsers use DOM |
+| ANSI diff | Compute minimal escape sequences | Terminal output format |
+| Dirty flag system | Track which cells changed | Terminal optimization |
+| Stdin parser | Raw mode + ANSI sequence parsing | Terminal input format |
+| Terminal detection | Capabilities, color depth, size | Terminal-specific queries |
+| Scroll tiers | Container-aware scroll regions | Terminal rendering strategy |
+| Sticky children | Position:sticky for cell buffers | Terminal layout extension |
 
-### Browser Input
-- `KeyboardEvent` → `EditorInputEvent` (almost 1:1 mapping)
-- `PointerEvent` for mouse/touch (unified)
-- `CompositionEvent` forwarded to EditContext
-- Clipboard via `navigator.clipboard` API
+### Key insight
+
+The cell buffer, diff algorithm, and dirty tracking are **terminal-specific**, not core. On web, the browser handles layout, painting, and diffing. The core is the component model + event system + command dispatch + virtual scroll logic.
 
 ---
 
-## Layer 2: Rendering Adapter
+## The Elm Runtime (runly)
 
-**Purpose**: Map document structure to platform-specific visual elements.
+The Elm architecture is valuable beyond terminals — it's the right model for any event-driven application with predictable state management.
 
-NOT a virtual DOM or cross-platform UI framework. Each platform uses its native component system. The adapter is an **interface contract** that views program against:
+### Three Layers
 
 ```typescript
-interface RenderingCapabilities {
-  getContentRect(element: PlatformElement): Rect
-  getScreenRect(element: PlatformElement): Rect
-  onLayoutChange(element: PlatformElement, callback: (rect: Rect) => void): Disposable
-  createVirtualList(props: VirtualListProps): PlatformElement
-  measureText(text: string, style: TextStyle): { width: number; height: number }
-  getWrapWidth(element: PlatformElement): number
-  viewport: { width: number; height: number }
-  colorDepth: number  // 1 (mono), 8 (256-color), 24 (true color), Infinity (web)
+// Layer 1: Elm — pure functional, event-sourced
+interface ElmApp<Model, Msg> {
+  init: () => [Model, Cmd<Msg>]
+  update: (msg: Msg, model: Model) => [Model, Cmd<Msg>]
+  view: (model: Model) => View
+  subscriptions: (model: Model) => Sub<Msg>
 }
+
+// Layer 2: React — component rendering (pluggable)
+// termily: custom fiber reconciler → cell buffer
+// browser: react-dom → DOM
+// test: virtual buffer → assertions
+
+// Layer 3: Zustand — mutable store for performance-critical paths
+// Layout cache, scroll position, cursor blink state
+// Derived from Elm model, but mutable for 60fps
 ```
 
-### Terminal Rendering (inkx)
-- Components: `Box`, `Text`, `VirtualList`
-- Layout: Flexx (zero-allocation flexbox)
-- Output: ANSI escape sequences to terminal buffer
-- Incremental updates: dirty flag system, diff & patch
+### Run Modes
 
-### Browser Rendering (React DOM)
-- Standard DOM elements with CSS flexbox/grid
-- Browser layout engine
-- DOM mutations
-- Virtual scroll: intersection observer or custom
+runly supports multiple execution contexts:
 
-### Hybrid: Terminal-in-Browser
-- xterm.js as rendering surface
-- inkx renders to xterm.js buffer instead of stdout
-- Zero changes to app code — just a different terminal backend
+| Mode | Rendering | Use case |
+|------|-----------|----------|
+| **Terminal** | termily → stdout | Production CLI app |
+| **Headless** | Virtual buffer | Testing, CI |
+| **Browser** | react-dom → DOM | Web app (future) |
+| **Worker** | No rendering | Background processing |
+
+The same Elm app definition works in all modes — only the renderer changes.
+
+### Why Elm on the Web Too
+
+The Elm runtime isn't just for terminal apps that happen to also run in browsers. It's fundamentally better for keyboard-driven applications:
+
+- **Predictable state**: Every state transition is a pure function. No hidden mutations, no race conditions.
+- **Time-travel debugging**: The message log IS the debug history. Replay any sequence.
+- **Command system integration**: Commands dispatch messages. Keybindings map to messages. The entire input→state→view pipeline is explicit.
+- **Testability**: Pure functions are trivially testable. No mocking, no setup.
 
 ---
 
-## Layer 3: Edit Context
+## docily: App Foundation
 
-**Purpose**: Bridge text editing between the document editor and the platform's text input system.
+docily is more than a "document editor" — it's the **foundation for rich keyboard-driven applications**. Any app with a tree of editable items, a command palette, keybindings, and undo/redo can build on docily.
 
-Implements the W3C EditContext API for terminals, uses it natively on Chrome, falls back to Slate+contentEditable elsewhere. **One interface, three implementations.**
+### What docily provides
 
-### The EditContext Interface (W3C-aligned)
-
-```typescript
-interface EditContextLike extends EventTarget {
-  // Text model
-  readonly text: string
-  readonly selectionStart: number
-  readonly selectionEnd: number
-
-  // App → platform
-  updateText(rangeStart: number, rangeEnd: number, newText: string): void
-  updateSelection(start: number, end?: number): void
-  updateControlBounds(rect: Rect): void
-  updateSelectionBounds(rect: Rect): void
-  updateCharacterBounds(rangeStart: number, bounds: Rect[]): void
-  readonly characterBoundsRangeStart: number
-
-  // Platform → app (events)
-  // "textupdate"              — text content changed
-  // "selectionchange"         — selection changed
-  // "characterboundsupdate"   — platform needs character positions
-  // "textformatupdate"        — IME formatting request
-  // "compositionstart/end"    — IME composition lifecycle
-}
-```
-
-### 3a. TerminalEditContext (inkx — our implementation)
-
-```typescript
-class TerminalEditContext extends EventTarget implements EditContextLike {
-  // Uses text-cursor.ts for cursor ↔ visual position math
-  // wrapText() guarantees cursor positions match rendered line breaks
-
-  // Terminal-specific extensions:
-  readonly wrapWidth: number
-  readonly stickyX: number | null
-  moveCursor(direction: "up" | "down" | "left" | "right"): boolean
-  atBoundary(direction: "up" | "down"): boolean
-}
-
-// Association with inkx DOM element
-inkxElement.editContext = new TerminalEditContext({ text, selectionStart: 0, selectionEnd: 0 })
-```
-
-**Input flow**: Terminal keystroke → InputAdapter → if EditContext is active, route to it → EditContext fires `textupdate` → Document Editor handles it.
-
-### 3b. Browser Native EditContext (Chrome/Edge 121+)
-
-```typescript
-// Direct browser API — no wrapper needed
-const ctx = new EditContext({ text, selectionStart, selectionEnd })
-canvasOrDiv.editContext = ctx
-ctx.addEventListener("textupdate", (e) => {
-  documentEditor.handleTextUpdate(e.updateRangeStart, e.updateRangeEnd, e.text)
-})
-```
-
-### 3c. Slate + contentEditable Fallback (Firefox/Safari)
-
-```typescript
-class SlateEditContextAdapter extends EventTarget implements EditContextLike {
-  private editor: BaseEditor
-  private element: HTMLElement  // contentEditable div
-
-  constructor(options: EditContextInit) {
-    this.editor = createEditor()
-    this.element = document.createElement("div")
-    this.element.contentEditable = "true"
-  }
-
-  get text() { return Editor.string(this.editor, []) }
-  get selectionStart() { return getCursorOffset(this.editor) }
-  updateText(...) { /* Slate transforms + fire textupdate */ }
-  updateSelection(...) { /* Slate selection */ }
-}
-```
-
-### EditContext Factory
-
-```typescript
-function createEditContext(options: EditContextInit): EditContextLike {
-  if (typeof window !== "undefined" && "EditContext" in window) {
-    return new window.EditContext(options)           // Chrome/Edge native
-  }
-  if (typeof window !== "undefined") {
-    return new SlateEditContextAdapter(options)      // Firefox/Safari fallback
-  }
-  return new TerminalEditContext(options)             // Terminal
-}
-```
-
----
-
-## Layer 4: Document Editor (`@km/editor`)
-
-**Purpose**: The platform-agnostic heart. Pure TypeScript, zero dependencies on DOM/terminal/native.
-
-### The Board IS the Editor
-
-A kanban board is a structured document. Columns are sections, cards are items. Navigation, editing, and structural manipulation are all operations on a tree. The "board" isn't a separate concept from the "editor" — it's a view of the editor.
-
-`@km/editor` handles:
+- **Document model**: ID-based tree with typed nodes, lazy loading, dual paths (id + name)
+- **Command system**: Registry, keybindings, chord state, command palette
+- **Plugin composition**: `withCommands()`, `withScroll()`, `withHistory()` — composable behaviors
+- **Undo/redo**: Operations-based, invertible, CRDT-compatible
 - **Tree operations**: move, indent, outdent, fold, delete, reparent
-- **Text editing**: delegates to EditContext per block
-- **Cursor navigation**: tree-aware, cross-block, cross-node
-- **Selection**: single node, multi-node, range
-- **Undo/redo**: spans both text and structural operations
-- **Lazy loading**: only fetches what's visible + buffer
+- **Cross-block navigation**: Tree-aware cursor movement across nodes
+- **Selection model**: Single node, multi-node, range — all ID-based
 
-### 4a. Document Model — ID-Based, Lazy-Loaded, Dual Paths
+### Document Model — ID-Based, Lazy-Loaded, Dual Paths
 
 ```typescript
 interface DocNode {
@@ -298,7 +233,7 @@ interface DocumentStore {
 | Native | Platform wrapper | CloudKit / Room / Core Data |
 | Collaborative | CRDT adapter | Automerge / Yjs |
 
-### 4b. Cursor & Selection
+### Cursor & Selection
 
 ```typescript
 interface DocCursor {
@@ -317,7 +252,7 @@ interface DocSelection {
 
 **ID-based paths**: Slate uses `[0, 2, 1]` (fragile — changes on insert). We use `nodeId` (stable). This makes collaboration trivial — remote operations don't invalidate local cursors.
 
-### 4c. Undo/Redo — Operations All The Way Down
+### Undo/Redo — Operations All The Way Down
 
 **No snapshots.** The document model can represent an entire drive — millions of nodes, gigabytes of content. Snapshots don't scale. Instead: **operations at every level**, designed for CRDT compatibility from day one.
 
@@ -352,8 +287,6 @@ interface UndoManager {
 
 **Undo grouping**: Consecutive `text.insert` operations merge into a single undo step (time-based: >500ms gap or non-text command breaks the group). Structural operations are always separate undo steps. `batch()` groups multiple operations.
 
-**EditContext integration**: When typing in a block, each keystroke produces a `text.insert` or `text.delete` operation that goes directly into the undo manager. No separate "text-level undo" — all one log.
-
 **CRDT readiness**: These operations map naturally to CRDT operations:
 - `text.insert/delete` → Yjs Y.Text or Automerge.Text operations
 - `node.insert/delete/move` → tree CRDT operations (Automerge nested maps)
@@ -362,7 +295,7 @@ interface UndoManager {
 
 **Scale**: For a drive with 1M nodes, undo only stores the operations performed this session. Old operations can be compacted/pruned — the document store is the source of truth.
 
-### 4d. Cross-Block & Cross-Node Navigation
+### Cross-Block & Cross-Node Navigation
 
 ```typescript
 class DocumentEditor {
@@ -401,9 +334,136 @@ class DocumentEditor {
 
 ---
 
-## Layer 5: View Layer
+## textily: Rich Text Model
 
-**Purpose**: Platform-specific visual representation. Thin — reads editor state, renders, dispatches commands.
+textily handles everything about text within a single block — cursor position, selection, visual line wrapping, formatting. It has **zero dependencies** and is completely standalone.
+
+### What textily provides
+
+- **Cursor math**: offset ↔ row/col conversion, visual line awareness
+- **Selection**: single cursor, range selection, word/line selection
+- **Wrap-aware navigation**: up/down moves between visual lines, not logical lines
+- **Sticky X**: cursor remembers horizontal position across vertical moves
+- **Text operations**: insert, delete, replace — all invertible
+- **EditContext implementations**: Terminal (our TerminalEditContext) and browser (W3C EditContext wrapper)
+
+### EditContext Bridge
+
+textily implements the W3C EditContext API pattern for both terminal and browser:
+
+```typescript
+// Terminal — our implementation using text-cursor math
+const ctx = new TerminalEditContext({ text, selectionStart: 0, selectionEnd: 0 })
+terminalElement.editContext = ctx
+
+// Browser — wraps the native W3C EditContext
+const ctx = new BrowserEditContext({ text, selectionStart, selectionEnd })
+canvasOrDiv.editContext = ctx
+
+// Factory — picks the right one
+function createEditContext(options: EditContextInit): EditContextLike {
+  if (typeof window !== "undefined" && "EditContext" in window) {
+    return new BrowserEditContext(options)       // Chrome/Edge native
+  }
+  if (typeof window !== "undefined") {
+    return new SlateEditContextAdapter(options)  // Firefox/Safari fallback
+  }
+  return new TerminalEditContext(options)         // Terminal
+}
+```
+
+**Boundary**: textily knows about text, cursor, selection, visual lines. It does NOT know about documents, trees, nodes, or navigation between blocks. That's docily's job.
+
+---
+
+## termily: Terminal Rendering
+
+termily is the complete terminal platform — everything needed to render a React component tree to a terminal. It's what inkx becomes after the portable parts (runtime, commands, plugins) move to runly and docily.
+
+### What termily contains
+
+- **React reconciler**: Custom fiber renderer targeting cell buffers (not DOM)
+- **Components**: Box, Text, VirtualList, ScrollView, TextArea
+- **Cell buffer**: 2D grid of styled Unicode characters
+- **ANSI diff**: Compute minimal escape sequence to update the screen
+- **Dirty tracking**: Only re-render what changed
+- **Stdin parser**: Raw mode, ANSI sequences, Kitty keyboard protocol
+- **Terminal detection**: Capabilities, color depth, size, mouse support
+- **Scroll tiers**: Container-aware nested scroll regions
+- **Sticky children**: position:sticky equivalent for cell buffers
+
+### StyleSheet pattern (like React Native)
+
+```typescript
+// termily components mirror React Native patterns:
+import { Box, Text, ScrollView, StyleSheet } from "termily"
+
+const styles = StyleSheet.create({
+  container: { flexDirection: "row", padding: 1 },
+  title: { bold: true, color: "cyan" },
+})
+
+function Card({ title, children }) {
+  return (
+    <Box style={styles.container}>
+      <Text style={styles.title}>{title}</Text>
+      {children}
+    </Box>
+  )
+}
+```
+
+termily is to the terminal what `react-dom` + `react-native` is to their respective platforms — a host renderer with platform-specific components.
+
+---
+
+## flexily: Standalone Flexbox
+
+flexily is a pure JavaScript flexbox layout engine. It already exists as beorn-flexx. Independent of all other packages — useful anywhere you need flexbox math without a browser.
+
+- Zero-allocation layout algorithm
+- W3C Flexbox spec compliance
+- Used by termily for terminal layout
+- Not needed on web (CSS handles it) or native (platform layout engines)
+
+---
+
+## The Web Story
+
+The web platform story is clean: **share runly + docily + textily, swap termily for react-dom + CSS**.
+
+```
+Terminal app                          Web app
+─────────────────                     ─────────────────
+km-tui                                km-web
+├── termily (React → cells → ANSI)    ├── react-dom (React → DOM)
+│   └── flexily (layout)              │   └── CSS (layout)
+├── docily (commands, tree, undo)     ├── docily ← SAME
+├── textily (cursor, selection)       ├── textily ← SAME
+└── runly (Elm runtime)               └── runly ← SAME
+```
+
+What changes:
+- **Rendering**: termily → react-dom. Box → div, Text → span. CSS handles layout, painting, diffing.
+- **Input**: termily's stdin parser → browser's KeyboardEvent + PointerEvent.
+- **EditContext**: termily's TerminalEditContext → Chrome's native EditContext (or Slate+contentEditable fallback).
+
+What stays the same:
+- **Document model** (docily): Same tree, same operations, same undo.
+- **Command system** (docily): Same keybindings, same command palette.
+- **Text model** (textily): Same cursor math, same selection logic.
+- **Runtime** (runly): Same Elm architecture, same event processing.
+- **Views**: Board, Outline, List — same layout logic, different platform components.
+
+### Terminal-in-Browser (hybrid)
+
+xterm.js as rendering surface. termily renders to xterm.js buffer instead of stdout. Zero app code changes — just a different terminal backend. Useful for web-based terminal access, demos, embedding.
+
+---
+
+## View Layer
+
+Platform-specific visual representation. Thin — reads editor state, renders, dispatches commands.
 
 | View | What it shows | How it maps to the document tree |
 |------|--------------|----------------------------------|
@@ -413,106 +473,32 @@ class DocumentEditor {
 | **Calendar** | Time-based layout | Nodes with date fields |
 | **Table** | Spreadsheet grid | Nodes as rows, metadata fields as columns |
 
-**Views share the same DocumentEditor instance.** Switching views changes rendering, not state. Cursor, selection, and undo history persist across view switches.
-
-### Column Derivation (Board View)
-
-Currently in `use-columns.ts`, eagerly loading all children. Future: lazy derivation:
-
-```typescript
-function deriveColumns(editor: DocumentEditor, viewport: Rect): ColumnLayout {
-  const rootChildren = editor.store.getChildren(editor.rootId)
-  const { body, items: columnNodes } = extractBody(rootChildren)
-  return columnNodes.map(colNode => ({
-    node: colNode,
-    cards: editor.getVisibleChildren(colNode.id, viewport),
-    totalCardCount: editor.store.getChildCount(colNode.id),
-  }))
-}
-```
+**Views share the same docily DocumentEditor instance.** Switching views changes rendering, not state. Cursor, selection, and undo history persist across view switches.
 
 ---
 
-## Package Boundaries: Reusable vs km-Specific
-
-Three distinct editor levels, each a `vendor/beorn-*` package. km-specific code stays in `apps/km-tui` and `packages/km-*`.
+## Package Boundaries: Dependency Graph
 
 ```
-vendor/beorn-inkx           ← exists: rendering, layout, components
-vendor/beorn-editx          ← NEW: text editing (EditContext + text-cursor)
-vendor/beorn-docx           ← NEW: structured document editor (tree + ops + undo)
-apps/km-tui                 ← km-specific: board view, km node types, km commands
-packages/km-storage         ← exists: SQLite + markdown DocumentStore adapter
+km-tui ──→ termily ──→ flexily
+  │            │
+  │            └──→ runly
+  │
+  ├──→ docily ──→ runly
+  │
+  └──→ textily (zero deps)
+
+km-storage ──→ docily (implements DocumentStore)
+km-web (future) ──→ react-dom + docily + textily + runly
 ```
 
-### Level 1: `beorn-editx` — Single-Block Text Editor (reusable)
+**Key constraints:**
+- textily has **zero dependencies** — standalone, usable anywhere
+- docily depends on runly but NOT on termily — platform-agnostic
+- termily depends on runly and flexily but NOT on docily — rendering is independent of editing
+- The app (km-tui, km-web) wires the two systems together
 
-**What**: EditContext implementation + text cursor math + text operations. A single block of editable text with cursor, selection, wrap-aware navigation, IME support.
-
-**Who uses it**: Anyone building text inputs in inkx or browser. Like a better `<textarea>` that works in terminals.
-
-```typescript
-import { TerminalEditContext } from "beorn-editx"
-import { createEditContext } from "beorn-editx"
-import { cursorToRowCol, cursorMoveUp } from "beorn-editx"
-import { useEditContext } from "beorn-editx/react"
-import type { TextOp } from "beorn-editx"
-```
-
-**Boundary**: Knows about text, cursor, selection, visual lines. Does NOT know about documents, trees, nodes, or navigation between blocks.
-
-### Level 2: `beorn-docx` — Structured Document Editor (reusable)
-
-**What**: Tree of typed nodes with operations, undo/redo, cross-block navigation, selection, lazy loading. Pure TypeScript, zero platform deps. The "ProseMirror for any platform."
-
-**Who uses it**: Anyone building structured editors — outliners, wikis, notebooks, kanban boards.
-
-```typescript
-import { DocumentEditor, DocumentStore, UndoManager } from "beorn-docx"
-import type { DocNode, DocCursor, DocSelection, DocOperation } from "beorn-docx"
-
-const editor = new DocumentEditor(store)
-editor.moveDown()
-editor.indent(["node-123"])
-editor.undo()
-
-editor.registerNodeType("heading", { ... })
-editor.registerNodeType("list-item", { ... })
-```
-
-**Boundary**: Knows about nodes, tree structure, operations, cursors, selection, undo. Does NOT know about boards, columns, kanban semantics, or rendering.
-
-### Level 3: `km-*` — km-Specific (not reusable)
-
-Board/outline/list views, km node types (oi, li, h, p, code, etc.), km keybindings, km-specific commands, km storage adapter, km markdown sync.
-
-```typescript
-import { DocumentEditor } from "beorn-docx"
-import { TerminalEditContext } from "beorn-editx"
-
-editor.registerNodeType("oi", { isContainer: true, defaultChildType: "li" })
-editor.registerNodeType("li", { isContainer: true })
-
-function BoardView({ editor }) {
-  const columns = deriveColumns(editor)
-  return <Board columns={columns} editor={editor} />
-}
-```
-
-**The rule**: If another app could use it, it goes in `vendor/beorn-*`. If it's km-specific, it stays in `km-*`.
-
-### Dependency Graph
-
-```
-km-tui → beorn-docx → beorn-editx → beorn-inkx
-                    ↘ (pure TS, no inkx dep for browser use)
-                     ↘ beorn-editx (text ops only, platform-agnostic)
-
-km-storage → beorn-docx (implements DocumentStore)
-km-web (future) → beorn-docx → beorn-editx (browser EditContext)
-```
-
-`beorn-docx` depends on `beorn-editx` for text operations but NOT on `beorn-inkx`. The inkx dependency is only in `beorn-editx`'s terminal implementation (TerminalEditContext), behind a factory.
+**The rule**: If another app could use it, it goes in a named package. If it's km-specific, it stays in `km-*`.
 
 ---
 
@@ -551,11 +537,12 @@ The unique combination: ID-based model (like Notion's blocks) + EditContext alig
 |-----------|-----|
 | **Terminal-first** | No alternative supports terminal as first-class. Flutter/RN/Electron can't render to ANSI. |
 | **Truly native per platform** | Each platform uses its actual UI system. No uncanny valley. |
-| **Lightweight core** | `beorn-docx` is pure TS with zero deps. No Chromium (300MB), no Skia (30MB). Core is ~10KB. |
+| **Lightweight core** | docily + textily are pure TS with zero heavy deps. No Chromium (300MB), no Skia (30MB). |
 | **Text editing done right** | EditContext alignment means native input system per platform. |
 | **CRDT-native** | Operations-based model means collaboration is built in, not bolted on. |
 | **Lazy loading at core** | ID + parentId model with lazy DocumentStore. Handles drive-scale. |
-| **Incremental adoption** | Each `beorn-*` package independently useful. Mix and match. |
+| **Incremental adoption** | Each package independently useful. Mix and match. |
+| **Elm runtime on web too** | Functional reactive programming benefits aren't terminal-specific. |
 
 ### Cons
 
@@ -588,59 +575,30 @@ The unique combination: ID-based model (like Notion's blocks) + EditContext alig
 
 ---
 
-## The Swap Matrix
-
-Each boundary is an interface. Replace any piece independently:
-
-```
-              @km/editor (pure logic — identical everywhere)
-                    │
-         ┌─────────┼──────────┐
-         │         │          │
-    DocumentStore  EditContext  Commands
-         │         │          │
-    ┌────┴───┐  ┌──┴──────────┴──────────────┐
-    │SQLite  │  │TerminalEditContext (inkx)    │
-    │IndexedDB│ │Chrome EditContext (native)   │
-    │CloudKit │  │Slate+contentEditable (shim) │
-    └────────┘  └─────────────────────────────┘
-                          │
-                   RenderingAdapter
-                          │
-              ┌───────────┼───────────┐
-              │           │           │
-         inkx (ANSI)  React DOM   Native Views
-```
-
----
-
 ## Current Codebase: What Exists
 
 ### Already Built (extraction candidates)
 
-| Component | Location | Lines | Status |
-|-----------|----------|-------|--------|
-| `text-cursor.ts` | `vendor/beorn-inkx/src/text-cursor.ts` | 196 | Layer 0, pure functions, ready to extract |
-| `TextArea` | `vendor/beorn-inkx/src/components/TextArea.tsx` | 412 | Multi-line input with word wrapping |
-| `KNode` | `packages/km-core/src/types.ts` | 474 | 11 node types, ID+parentId model |
-| `Repo` | `packages/km-storage/src/` | 40+ files | Event-sourced, filesystem-synced |
-| Command system | `packages/km-commands/src/` | ~22K | Registry, keybindings, executor, chord state |
-| `board-actions.ts` | `apps/km-tui/src/board/board-actions.ts` | 1,380 | 111-case dispatch, delegates to specialized handlers |
-| Board actions (edit) | `apps/km-tui/src/board/board-actions-edit.ts` | 580 | Node CRUD, status, shifting |
-| Board actions (nav) | `apps/km-tui/src/board/board-actions-nav.ts` | 285 | Cursor movement, history |
-| Board actions (selection) | `apps/km-tui/src/board/board-actions-selection.ts` | 142 | Multi-select |
-| Board actions (zoom) | `apps/km-tui/src/board/board-actions-zoom.ts` | 325 | Zoom, follow links, drill-down |
+| Component | Location | Lines | Destination |
+|-----------|----------|-------|-------------|
+| `text-cursor.ts` | `vendor/beorn-inkx/src/text-cursor.ts` | 196 | textily (pure functions) |
+| `TextArea` | `vendor/beorn-inkx/src/components/TextArea.tsx` | 412 | textily + termily |
+| Elm runtime | `vendor/beorn-inkx/src/runtime/` | ~1500 | runly |
+| React reconciler | `vendor/beorn-inkx/src/reconciler/` | ~2000 | termily |
+| Cell buffer + diff | `vendor/beorn-inkx/src/output/` | ~1200 | termily |
+| Command system | `packages/km-commands/src/` | ~22K | docily |
+| `KNode` | `packages/km-core/src/types.ts` | 474 | docily (11 node types, ID+parentId) |
+| `Repo` | `packages/km-storage/src/` | 40+ files | km-storage (DocumentStore adapter) |
+| `board-actions.ts` | `apps/km-tui/src/board/board-actions.ts` | 1,380 | docily (111-case dispatch) |
+| Board actions (edit) | `apps/km-tui/src/board/board-actions-edit.ts` | 580 | docily |
+| Board actions (nav) | `apps/km-tui/src/board/board-actions-nav.ts` | 285 | docily |
+| Board actions (selection) | `apps/km-tui/src/board/board-actions-selection.ts` | 142 | docily |
+| Board actions (zoom) | `apps/km-tui/src/board/board-actions-zoom.ts` | 325 | docily |
+| Flexx layout | `vendor/beorn-flexx/` | ~3000 | flexily (standalone) |
 
 ### Key Finding: No Slate.js
 
 The codebase has **no Slate.js dependency**. Text editing is entirely custom via the command-dispatch pattern and `blockEditTargetRef`. This simplifies the extraction — there's no Slate to remove.
-
-### What Needs Creating
-
-| Package | Purpose | Key types |
-|---------|---------|-----------|
-| `beorn-editx` | Single-block text editing | `EditContextLike`, `TerminalEditContext`, `TextOp`, `useEditContext` |
-| `beorn-docx` | Structured document editor | `DocNode`, `DocumentStore`, `DocCursor`, `DocSelection`, `DocOperation`, `UndoManager`, `DocumentEditor` |
 
 ---
 
@@ -648,12 +606,13 @@ The codebase has **no Slate.js dependency**. Text editing is entirely custom via
 
 | Current | Future | Why better |
 |---------|--------|-----------|
-| Custom text editing (blockEditTargetRef) | `EditContext` + `useEditContext` hook | W3C-aligned, swappable implementations |
-| `KNode.children[]` arrays (in-memory tree) | ID + `parentId/parentIdx` queries | Lazy loading, CRDT-friendly, matches storage |
-| `board-actions.ts` (1,380-line switch) | `DocumentEditor` class | Pure logic, testable without rendering |
-| inkx-only rendering | Rendering adapter interface | Same app on terminal + web + native |
-| Custom `wrapSegment` etc. | `text-cursor.ts` in inkx (done!) | Layer 0 already built and tested |
-| Eager tree loading | `DocumentStore` lazy queries | Handles 100K+ node vaults |
+| Custom text editing (blockEditTargetRef) | textily EditContext + factory | W3C-aligned, swappable implementations |
+| `KNode.children[]` arrays (in-memory tree) | docily ID + `parentId/parentIdx` queries | Lazy loading, CRDT-friendly, matches storage |
+| `board-actions.ts` (1,380-line switch) | docily DocumentEditor | Pure logic, testable without rendering |
+| inkx monolith (runtime + rendering + commands) | runly + termily + docily | Clean separation, web-portable |
+| inkx-only rendering | termily (terminal) or react-dom (web) | Same app on terminal + web + native |
+| Custom `wrapSegment` etc. | textily text-cursor (done!) | Standalone, tested, reusable |
+| Eager tree loading | docily DocumentStore lazy queries | Handles 100K+ node vaults |
 
 ---
 
@@ -664,18 +623,19 @@ The codebase has **no Slate.js dependency**. Text editing is entirely custom via
 - This is km today, progressively refactored
 - Operations-based undo via event log
 
-### Phase B — Extract `@km/editor`
-- Separate pure editor logic from km-tui into reusable packages
-- Define DocumentStore/EditContext/InputAdapter interfaces
-- Operation log as the single source of mutation history
-- Make km-tui import from beorn-docx/beorn-editx instead of inline logic
+### Phase B — Extract packages
+- Split inkx into runly (runtime) + termily (terminal rendering)
+- Extract command system and document logic into docily
+- Extract text-cursor and EditContext into textily
+- Flexx → flexily (rename, already standalone)
+- Make km-tui import from the new packages instead of inline logic
 - **CRDT-ready from day one**: DocOperations as invertible ops mapping to Automerge/Yjs
 
 ### Phase C — Browser Proof-of-Concept
-- React DOM rendering of Board view
-- Native EditContext (Chrome) + Slate fallback (Firefox/Safari)
+- React DOM rendering of Board view using docily
+- textily with browser EditContext (Chrome) or Slate+contentEditable fallback
 - IndexedDB storage via DocumentStore adapter
-- Same `@km/editor`, different platform adapters
+- Same docily + textily + runly, different rendering
 
 ### Phase D — Collaboration (enabled by ops model)
 - CRDT-backed DocumentStore (Automerge/Yjs)
@@ -685,45 +645,62 @@ The codebase has **no Slate.js dependency**. Text editing is entirely custom via
 - Real-time multiplayer editing
 
 ### Phase E — Terminal in Browser
-- inkx rendering to xterm.js canvas (not stdout)
+- termily rendering to xterm.js canvas (not stdout)
 - Terminal version runs in browser with zero app code changes
 - Useful for web-based terminal access, demos, embedding
 
 ### Phase F — Native
 - SwiftUI (macOS/iOS) + Jetpack Compose (Android)
-- Same beorn-docx, native rendering and input
+- Same docily + textily, native rendering and input
 - Platform storage (CloudKit, Room)
 
 ---
 
 ## MVP Steps (when implementing)
 
-### MVP-1: `beorn-editx` — Text Editing Package
-- Extract `text-cursor.ts` from inkx into `beorn-editx` (or re-export)
+### MVP-1: textily — Rich Text Package
+- Extract `text-cursor.ts` from inkx into textily (or re-export)
 - Implement `TerminalEditContext` class using text-cursor.ts
 - Implement `TextOp` (insert/delete/replace) with `invertOp()`
-- Wire into inkx DOM: `element.editContext = ctx`
+- Wire into termily DOM: `element.editContext = ctx`
 - Hook: `useEditContext()` for React components
 - Refactor TextArea to use EditContext internally
 - Tests: 50+ covering EditContext methods + events + text operations
 
-### MVP-2: `beorn-docx` — Document Editor Package
+### MVP-2: runly — Elm Runtime Package
+- Extract Elm runtime (init/update/view cycle) from inkx
+- Extract AsyncIterable event stream processing
+- Define run modes: terminal, headless, browser, worker
+- Extract React reconciler abstraction (renderer-agnostic parts)
+- Tests: Elm cycle, event streams, run modes
+
+### MVP-3: docily — App Foundation Package
+- Extract command system from km-commands into docily
 - Define `DocNode`, `DocumentStore`, `DocCursor`, `DocSelection` interfaces
 - Implement `DocOperation` types with invertibility
 - Implement `UndoManager` (operation-based, merge consecutive typing)
 - Implement `DocumentEditor` class (cursor, navigation, structural ops)
+- Extract plugin composition (withCommands, withScroll, withHistory)
 - Adapter: `DocumentStore` over existing km `Repo`
-- Tests: Full CRUD + undo/redo + cross-block navigation, all without rendering
+- Tests: Full CRUD + undo/redo + cross-block navigation + commands, all without rendering
 
-### MVP-3: Wire km-tui to beorn-docx
-- Replace `board-actions.ts` switch with `DocumentEditor` commands
-- Replace blockEditTargetRef with `useEditContext` + `beorn-editx`
+### MVP-4: termily — Terminal Rendering Package
+- Everything that remains in inkx after extracting runly/docily/textily
+- Cell buffer, ANSI diff, dirty tracking, stdin parser, terminal detection
+- Components: Box, Text, VirtualList, ScrollView
+- flexily integration for layout
+- Tests: Existing inkx rendering tests
+
+### MVP-5: Wire km-tui to new packages
+- Replace inkx imports with termily/docily/textily/runly
+- Replace `board-actions.ts` switch with docily DocumentEditor commands
+- Replace blockEditTargetRef with textily `useEditContext`
 - Keep view-specific code (Board, Outline) in km-tui
 - Tests: Existing km-tui tests pass with new engine
 
-### MVP-4: Browser POC
-- React DOM rendering of Board view using `beorn-docx`
-- `beorn-editx` with browser EditContext (Chrome) or Slate+contentEditable fallback
+### MVP-6: Browser POC
+- React DOM rendering of Board view using docily
+- textily with browser EditContext (Chrome) or Slate+contentEditable fallback
 - IndexedDB `DocumentStore` adapter
 - Milestone: Same document, same commands, two platforms
 
@@ -750,3 +727,6 @@ Targets **drive-scale** datasets — 100K+ nodes, GB+ of content:
 4. **Extension model**: How do plugins extend the document editor across platforms?
 5. **Operation compaction**: How aggressively to compact the operation log?
 6. **Conflict resolution UI**: When CRDT operations conflict, auto-merge vs manual?
+7. **runly abstraction boundary**: How much of the React reconciler is shared vs platform-specific? The fiber tree is universal but the host config is per-platform.
+8. **docily vs km-commands**: How much of the existing command system is reusable vs km-specific? Keybindings are reusable, but command implementations may reference km types.
+9. **Package naming finality**: runly/docily/textily/termily/flexily are tentative — all available on npm. Final decision tracked in `km-infra.vendor-rename`.
