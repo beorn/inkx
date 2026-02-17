@@ -13,6 +13,7 @@
  */
 
 import { describe, test, expect } from "vitest"
+import type { KNode } from "@km/core"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("Inline Editing", () => {
@@ -417,5 +418,501 @@ describe("Inline Edit — Edge Cases", () => {
     board.press("Enter") // save orig12 + create another sibling
     expect(repo.getNode("orig")?.content).toBe("orig12")
     expect(board.screenshot()).toContain("orig12")
+  })
+})
+
+// =============================================================================
+// Outliner Enter — save + new sibling
+// =============================================================================
+
+/** Select all item nodes inside a column (in render order) */
+const colItems = (col: string) => `#${col} [data-view='item']`
+
+describe("Outliner Enter — save + new sibling", () => {
+  test("Enter saves content and creates new sibling", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+
+    board.press("Enter") // enter edit mode on 1a
+    board.press("X") // type "X" → content should be "1aX"
+    board.press("Enter") // save + create new sibling
+
+    // DOM: 3 items in column (was 2)
+    board.expect(colItems("col1")).toHaveCount(3)
+    // Data: content saved
+    expect(repo.getNode("1a")?.content).toBe("1aX")
+  })
+
+  test("Enter with no changes still creates new sibling", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+
+    board.expect(colItems("col1")).toHaveCount(2)
+
+    board.press("Enter") // enter edit mode
+    board.press("Enter") // save (no changes) + create sibling
+
+    // DOM: sibling added
+    board.expect(colItems("col1")).toHaveCount(3)
+    // Data: content unchanged
+    expect(repo.getNode("1a")?.content).toBe("1a")
+  })
+
+  test("Multiple Enters create chain of siblings", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+
+    board.expect(colItems("col1")).toHaveCount(1)
+
+    board.press("Enter") // edit 1a
+    board.press("Enter") // save + create sibling1 + edit sibling1
+    board.press("Enter") // save sibling1 + create sibling2 + edit sibling2
+    board.press("Enter") // save sibling2 + create sibling3 + edit sibling3
+
+    // DOM: 1 original + 3 new siblings
+    board.expect(colItems("col1")).toHaveCount(4)
+  })
+
+  test("After Enter, user is editing new sibling (can type into it)", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+
+    board.press("Enter") // edit 1a
+    board.press("Enter") // save + create sibling in edit mode
+
+    // User is now editing the new sibling — typing goes there
+    board.press("H")
+    board.press("i")
+    board.press("Escape") // cancel (discard typed content on new sibling)
+
+    // DOM: 3 items in column
+    board.expect(colItems("col1")).toHaveCount(3)
+    // Data: original content preserved
+    expect(repo.getNode("1a")?.content).toBe("1a")
+  })
+
+  test("Escape exits edit without creating sibling", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+
+    board.expect(colItems("col1")).toHaveCount(2)
+
+    board.press("Enter") // edit 1a
+    board.press("X") // type
+    board.press("Escape") // cancel
+
+    // DOM: no new items
+    board.expect(colItems("col1")).toHaveCount(2)
+
+    // Data: content unchanged (cancelled)
+    expect(repo.getNode("1a")?.content).toBe("1a")
+
+    // DOM: cursor navigates normally (back in normal mode)
+    board.press("j")
+    board.expect("#1b[data-cursor]").toExist()
+  })
+
+  test("new sibling inherits data.depth from current card", () => {
+    const { board, repo } = testEnv(() => {
+      const nodes = item("board", item("col1", item("1a"), item("1b")))
+      // Set depth=2 on the cards (simulates H2 sections parsed from markdown)
+      for (const n of nodes) {
+        if (n.id === "1a" || n.id === "1b") {
+          n.data = { ...n.data, depth: 2 }
+        }
+      }
+      return nodes
+    })
+
+    board.press("Enter") // edit 1a
+    board.press("Enter") // save + create sibling
+
+    // DOM: 3 items in column
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(3)
+
+    // DOM: new sibling is at position 1 (between 1a and 1b)
+    const newNodeId = items.nth(1).getAttribute("id")
+    expect(newNodeId).toBeDefined()
+    expect(newNodeId).not.toBe("1a")
+    expect(newNodeId).not.toBe("1b")
+
+    // Data: new sibling inherited depth=2
+    expect(repo.getNode(newNodeId!)?.data?.depth).toBe(2)
+  })
+
+  test("new sibling is inserted AFTER current card, not before", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+
+    // Cursor on 1a, Enter → edit, Enter → save + new sibling
+    board.press("Enter")
+    board.press("Enter")
+    board.press("Escape") // exit edit on new sibling
+
+    // DOM: 4 items, ordered: 1a, NEW, 1b, 1c
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(4)
+    expect(items.nth(0).getAttribute("id")).toBe("1a")
+    expect(items.nth(1).getAttribute("id")).toMatch(/^fake-/) // new node
+    expect(items.nth(2).getAttribute("id")).toBe("1b")
+    expect(items.nth(3).getAttribute("id")).toBe("1c")
+  })
+
+  test("new sibling after LAST card is appended at end", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+
+    // Navigate to last card (1b)
+    board.press("j")
+    board.press("Enter") // edit 1b
+    board.press("Enter") // save + new sibling after 1b
+    board.press("Escape")
+
+    // DOM: 3 items, ordered: 1a, 1b, NEW
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(3)
+    expect(items.nth(0).getAttribute("id")).toBe("1a")
+    expect(items.nth(1).getAttribute("id")).toBe("1b")
+    expect(items.nth(2).getAttribute("id")).toMatch(/^fake-/) // new at end
+  })
+
+  test("new sibling after MIDDLE card goes between neighbors", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+
+    // Navigate to middle card (1b)
+    board.press("j")
+    board.press("Enter") // edit 1b
+    board.press("Enter") // save + new sibling after 1b
+    board.press("Escape")
+
+    // DOM: 4 items, ordered: 1a, 1b, NEW, 1c
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(4)
+    expect(items.nth(0).getAttribute("id")).toBe("1a")
+    expect(items.nth(1).getAttribute("id")).toBe("1b")
+    expect(items.nth(2).getAttribute("id")).toMatch(/^fake-/) // new between 1b and 1c
+    expect(items.nth(3).getAttribute("id")).toBe("1c")
+  })
+})
+
+// =============================================================================
+// Enter on link_to (transclusion) nodes — mimics @next board
+// =============================================================================
+
+describe("Outliner Enter — link_to nodes (transclusion)", () => {
+  /** Build a board with a column containing link_to nodes, like @next */
+  function linkBoard() {
+    const nodes = item("board", item("col1", item("link-a"), item("link-b"), item("link-c")))
+    // Create target nodes that the links point to
+    const targetA: KNode = {
+      id: "target-a",
+      type: "li",
+      list_marker: "-",
+      content: "Target task A",
+      parent_id: "other-file",
+      parent_idx: 0,
+      link_to: null,
+      task_status: "todo",
+      task_marker: "[ ]",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const targetB: KNode = { ...targetA, id: "target-b", content: "Target task B", parent_idx: 1 }
+    const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
+    const otherFile: KNode = {
+      id: "other-file",
+      type: "oi",
+      fstype: "folder",
+      content: undefined,
+      data: { name: "Other File" },
+      parent_id: ".",
+      parent_idx: 100,
+      link_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+
+    // Make the card nodes into links
+    for (const n of nodes) {
+      if (n.id === "link-a") {
+        n.link_to = "target-a"
+        n.content = "Target task A"
+        n.task_status = "todo"
+        n.task_marker = "[ ]"
+      }
+      if (n.id === "link-b") {
+        n.link_to = "target-b"
+        n.content = "Target task B"
+        n.task_status = "todo"
+        n.task_marker = "[ ]"
+      }
+      if (n.id === "link-c") {
+        n.link_to = "target-c"
+        n.content = "Target task C"
+        n.task_status = "todo"
+        n.task_marker = "[ ]"
+      }
+    }
+
+    return [...nodes, otherFile, targetA, targetB, targetC]
+  }
+
+  test("Enter on link_to card creates new sibling and shows it", () => {
+    const { board, repo } = testEnv(linkBoard)
+
+    board.expect(colItems("col1")).toHaveCount(3)
+
+    board.press("Enter") // edit link-a (shows Target task A)
+    board.press("Enter") // save + create sibling
+
+    // DOM: 4 items in column (was 3)
+    board.expect(colItems("col1")).toHaveCount(4)
+  })
+
+  test("Enter on link_to card: new sibling is a regular node, not a link", () => {
+    const { board, repo } = testEnv(linkBoard)
+
+    board.press("Enter") // edit
+    board.press("Enter") // save + create sibling
+    board.press("Escape") // exit edit on new sibling
+
+    const items = board.q(colItems("col1"))
+    expect(items.count()).toBe(4)
+
+    // New sibling (at position 1) should NOT be a link
+    const newNodeId = items.nth(1).getAttribute("id")!
+    const newNode = repo.getNode(newNodeId)
+    expect(newNode).toBeTruthy()
+    expect(newNode!.link_to).toBeNull()
+    expect(newNode!.content).toBe("") // empty new node
+  })
+
+  test("Multiple Enters on link_to board create chain of siblings", () => {
+    const { board } = testEnv(linkBoard)
+
+    board.expect(colItems("col1")).toHaveCount(3)
+
+    board.press("Enter") // edit link-a
+    board.press("Enter") // save + sibling1
+    board.press("Enter") // save sibling1 + sibling2
+    board.press("Enter") // save sibling2 + sibling3
+
+    // DOM: 3 original links + 3 new siblings
+    board.expect(colItems("col1")).toHaveCount(6)
+  })
+
+  test("keybindings work after Enter on link_to node", () => {
+    const { board } = testEnv(linkBoard)
+
+    board.press("Enter") // edit
+    board.press("Enter") // save + create sibling (now editing new node)
+    board.press("Escape") // exit edit
+
+    // Should be able to navigate normally after
+    board.press("j") // move down
+    board.expect("[data-cursor]").toExist()
+  })
+})
+
+// =============================================================================
+// Enter on paragraph-type embeds — real vault scenario
+// =============================================================================
+
+describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
+  /**
+   * Build a board that mimics a real @next vault:
+   * - Embed nodes have type "paragraph" (from markdown parser)
+   * - link_to points to resolved target
+   * - Content is the ![[...]] syntax
+   */
+  function paragraphLinkBoard() {
+    const nodes = item("board", item("col1", item("link-a"), item("link-b"), item("link-c")))
+    // Create target nodes that the links point to
+    const targetA: KNode = {
+      id: "target-a",
+      type: "li",
+      list_marker: "-",
+      content: "Target task A",
+      parent_id: "other-file",
+      parent_idx: 0,
+      link_to: null,
+      task_status: "todo",
+      task_marker: "[ ]",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const targetB: KNode = { ...targetA, id: "target-b", content: "Target task B", parent_idx: 1 }
+    const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
+    const otherFile: KNode = {
+      id: "other-file",
+      type: "oi",
+      fstype: "folder",
+      content: undefined,
+      data: { name: "Other File" },
+      parent_id: ".",
+      parent_idx: 100,
+      link_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+
+    // Make the card nodes into paragraph-type embeds (matching real vault)
+    for (const n of nodes) {
+      if (n.id === "link-a") {
+        n.type = "p"
+        n.link_to = "target-a"
+        n.content = "![[Other File#^a1]]"
+      }
+      if (n.id === "link-b") {
+        n.type = "p"
+        n.link_to = "target-b"
+        n.content = "![[Other File#^b2]]"
+      }
+      if (n.id === "link-c") {
+        n.type = "p"
+        n.link_to = "target-c"
+        n.content = "![[Other File#^c3]]"
+      }
+    }
+
+    return [...nodes, otherFile, targetA, targetB, targetC]
+  }
+
+  test("Enter on paragraph embed creates new sibling and shows it", () => {
+    const { board } = testEnv(paragraphLinkBoard)
+
+    board.expect(colItems("col1")).toHaveCount(3)
+
+    board.press("Enter") // edit link-a (shows Target task A)
+    board.press("Enter") // save + create sibling
+
+    // DOM: 4 items in column (was 3)
+    board.expect(colItems("col1")).toHaveCount(4)
+  })
+
+  test("Multiple Enters on paragraph embeds create chain of siblings", () => {
+    const { board } = testEnv(paragraphLinkBoard)
+
+    board.expect(colItems("col1")).toHaveCount(3)
+
+    board.press("Enter") // edit link-a
+    board.press("Enter") // save + sibling1
+    board.press("Enter") // save sibling1 + sibling2
+    board.press("Enter") // save sibling2 + sibling3
+
+    // DOM: 3 original links + 3 new siblings
+    board.expect(colItems("col1")).toHaveCount(6)
+  })
+
+  test("keybindings work after Enter on paragraph embed", () => {
+    const { board } = testEnv(paragraphLinkBoard)
+
+    board.press("Enter") // edit
+    board.press("Enter") // save + create sibling (now editing new node)
+    board.press("Escape") // exit edit
+
+    // Should be able to navigate normally after
+    board.press("j") // move down
+    board.expect("[data-cursor]").toExist()
+  })
+})
+
+// =============================================================================
+// Edit Focus Ring — visual indicators for inline edit mode
+// =============================================================================
+
+/**
+ * Find the row containing text that appears INSIDE the card content area
+ * (skipping the breadcrumb header at row 0 and column header).
+ * Starts scanning from row 4 to skip breadcrumb, blank line, header, separator.
+ */
+function findContentRow(board: ReturnType<typeof testEnv>["board"], text: string): number {
+  const rows = board.screen.rows
+  for (let y = 4; y < rows.length; y++) {
+    if (rows[y]?.includes(text)) return y
+  }
+  return -1
+}
+
+/**
+ * Find the first cell matching "bo" pattern on a row and return its color info.
+ */
+function findBoCell(board: ReturnType<typeof testEnv>["board"], row: number) {
+  for (let x = 0; x < board.screen.width; x++) {
+    const cell = board.screen.cell(x, row)
+    if (cell.char === "b" && board.screen.cell(x + 1, row).char === "o") {
+      return { x, fg: cell.fg, bg: cell.bg, attrs: cell.attrs }
+    }
+  }
+  return null
+}
+
+describe("edit focus ring", () => {
+  test("inline edit mode does not fill row with blue background", () => {
+    const { board } = testEnv(() => item("board", item("col", item("task1"))))
+
+    // Enter inline edit mode with Enter key
+    board.press("Enter")
+
+    // The title row should NOT have a filled background — editing is
+    // indicated by the cyan card border + inverse cursor, not bg fill
+    const box = board.screen.nodeBox("task1")
+    expect(box).not.toBeNull()
+    if (!box) return
+
+    let foundBlueBg = false
+    for (let x = box.x; x < box.x + box.width; x++) {
+      const cell = board.screen.cell(x, box.y)
+      if (cell.char.trim() !== "") {
+        if (cell.bg === 12) foundBlueBg = true
+        break
+      }
+    }
+    expect(foundBlueBg, "title should NOT have blueBright background during edit").toBe(false)
+  })
+
+  test("non-active body blocks show cyan text during inline edit mode", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col", item("task1", item.paragraph("body line 1"), item.paragraph("body line 2"))),
+      ),
+    )
+
+    // Enter inline edit mode
+    board.press("Enter")
+
+    // Find the body text in the card content area (skip breadcrumb header)
+    const bodyRow = findContentRow(board, "body line 1")
+    expect(bodyRow, "body line 1 should be visible in card content area").toBeGreaterThanOrEqual(0)
+
+    // Non-active body text should have cyan fg (6)
+    const boCell = findBoCell(board, bodyRow)
+    expect(boCell, "should find 'body' text on the row").not.toBeNull()
+    expect(boCell!.fg, "non-active body text should have cyan fg (6)").toBe(6)
+  })
+
+  test("navigating to body block does not add blue background", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col", item("task1", item.paragraph("body text"), item.paragraph("more text"))),
+      ),
+    )
+
+    // Enter inline edit mode on title
+    board.press("Enter")
+
+    // Navigate to next block — ArrowDown moves to next body block during editing
+    board.press("ArrowDown")
+
+    // "body text" should be the active block — no filled background
+    const bodyRow = findContentRow(board, "body text")
+    expect(bodyRow, "body text row should be visible in card content").toBeGreaterThanOrEqual(0)
+
+    const boCell = findBoCell(board, bodyRow)
+    expect(boCell, "should find 'body' text on the row").not.toBeNull()
+    // Active body block should NOT have blueBright bg — cyan border only
+    expect(boCell!.bg, "active body block should NOT have blueBright bg").not.toBe(12)
   })
 })

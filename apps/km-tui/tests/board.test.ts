@@ -1,8 +1,34 @@
 /**
- * Tests for the board.app() ergonomic API
+ * Board State & App API Tests
+ *
+ * Consolidated from:
+ * - board-state.test.ts (pure state/logic tests)
+ * - board-app.spec.ts (board.app() ergonomic API)
  */
-import { test, expect, describe } from "vitest"
+
+import { describe, test, expect } from "vitest"
+import { createEmptyState } from "../src/state.ts"
 import { board } from "./helpers/board-app.ts"
+
+// =============================================================================
+// Empty State
+// =============================================================================
+
+describe("createEmptyState", () => {
+  test("returns valid empty state", () => {
+    const state = createEmptyState()
+    expect(state.rootId).toBeNull()
+    expect(state.columns).toHaveLength(0)
+    expect(state.selectedNodes.size).toBe(0)
+    expect(state.visualMode).toBe(false)
+    expect(state.searchMode).toBe(false)
+    expect(state.helpMode).toBe(false)
+  })
+})
+
+// =============================================================================
+// board.app() API
+// =============================================================================
 
 describe("board.app() API", () => {
   test("string DSL creates proper hierarchy", () => {

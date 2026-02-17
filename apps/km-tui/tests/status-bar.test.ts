@@ -10,6 +10,7 @@ import { createRenderer } from "inkx/testing"
 import { StatusBar } from "../src/views/StatusBar.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import type { UIState } from "../src/ui-reducer.ts"
+import { testEnv, item } from "./helpers/board-test.ts"
 
 // Module-level renderers (created once, reused across tests)
 const render80 = createRenderer({ cols: 80, rows: 24 })
@@ -154,5 +155,31 @@ describe("StatusBar", () => {
 
     expect(app.text).toContain("⋯")
     expect(app.text).not.toContain("A".repeat(37))
+  })
+})
+
+// =============================================================================
+// Bottom bar VIEW indicator
+// =============================================================================
+
+describe("Bottom bar VIEW indicator", () => {
+  test("shows CARDS VIEW on startup", () => {
+    const env = testEnv(() => item.root("board", item("Inbox", item("Task 1"))), {
+      rows: 24,
+      columns: 80,
+    })
+    const text = env.board.screenshot()
+    expect(text).toContain("CARDS VIEW")
+  })
+
+  test("shows other VIEW after pressing v", () => {
+    const env = testEnv(() => item.root("board", item("Inbox", item("Task 1"))), {
+      rows: 24,
+      columns: 80,
+    })
+    env.board.press("v") // Switch view mode
+    const text = env.board.screenshot()
+    // Could be LIST, COLUMNS, or TABS
+    expect(text).toMatch(/(LIST|COLUMNS|TABS) VIEW/)
   })
 })

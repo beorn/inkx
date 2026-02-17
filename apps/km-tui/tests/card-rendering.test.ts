@@ -1,9 +1,9 @@
 /**
- * Card border rendering tests.
+ * Card rendering tests.
  *
- * Verifies that Card borders (│ on left/right, ╭╮╰╯ corners) render
- * correctly across various scenarios: scrolling, narrow terminals,
- * overflow indicators, multi-column layouts, and collapsed columns.
+ * Covers card borders (structural and body cards), overflow indicators,
+ * line truncation, and layout stability across various scenarios:
+ * scrolling, narrow terminals, multi-column layouts, and collapsed columns.
  *
  * Two card styles:
  * - Structural cards (oi/sections): always have borders
@@ -17,6 +17,8 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+
+// ─── Card Border Helpers ─────────────────────────────────────────────────────
 
 /** Check if a character is a box-drawing border character. */
 function isBorderChar(c: string): boolean {
@@ -94,6 +96,8 @@ function expectNoBorder(
   ).toBeNull()
 }
 
+// ─── Card Border: Structural Cards ───────────────────────────────────────────
+
 describe("card border: structural cards (sections)", () => {
   test("structural cards always have borders", () => {
     const { board } = testEnv(
@@ -129,6 +133,8 @@ describe("card border: structural cards (sections)", () => {
   })
 })
 
+// ─── Card Border: Virtual Body Cards ─────────────────────────────────────────
+
 describe("card border: virtual body cards", () => {
   test("unselected body cards have no border", () => {
     const { board } = testEnv(
@@ -154,6 +160,8 @@ describe("card border: virtual body cards", () => {
   })
 })
 
+// ─── Card Border: Scrolling ─────────────────────────────────────────────────
+
 describe("card border: scrolling", () => {
   test("borders present after scrolling down (structural)", () => {
     const cards = Array.from({ length: 15 }, (_, i) => item.section(`card-${i}`, item(`card-${i}-child`)))
@@ -176,6 +184,8 @@ describe("card border: scrolling", () => {
     expectCardBorder(board, "card-1", 80)
   })
 })
+
+// ─── Card Border: Terminal Widths ────────────────────────────────────────────
 
 describe("card border: terminal widths", () => {
   test("narrow terminal (30 cols)", () => {
@@ -210,6 +220,8 @@ describe("card border: terminal widths", () => {
   })
 })
 
+// ─── Card Border: Overflow Indicator ─────────────────────────────────────────
+
 describe("card border: overflow indicator", () => {
   test("card with overflow still has left/right borders", () => {
     const children = Array.from({ length: 10 }, (_, i) => item(`c${i}`))
@@ -232,6 +244,8 @@ describe("card border: overflow indicator", () => {
     expect(failures).toBe(0)
   })
 })
+
+// ─── Card Border: Multi-Column ───────────────────────────────────────────────
 
 describe("card border: multi-column", () => {
   test("borders in all columns of 3-column layout (structural)", () => {
@@ -273,6 +287,8 @@ describe("card border: multi-column", () => {
     expectCardBorder(board, "1a", cols)
   })
 })
+
+// ─── Card Border: Edge Cases ─────────────────────────────────────────────────
 
 describe("card border: edge cases", () => {
   test("many columns with narrow cards", () => {
@@ -349,6 +365,8 @@ describe("card border: edge cases", () => {
     }
   })
 })
+
+// ─── Layout Stability: Body Blocks ───────────────────────────────────────────
 
 describe("layout stability invariant: body blocks", () => {
   /**
@@ -548,5 +566,231 @@ describe("layout stability invariant: body blocks", () => {
     assertStableYs(board, ids, initialYs, "cursor on sec")
     board.press("k").press("k").press("k") // back to a
     assertStableYs(board, ids, initialYs, "back on a")
+  })
+})
+
+// ─── Card Overflow Dots ──────────────────────────────────────────────────────
+
+describe("card-overflow-dots", () => {
+  test("card with overflow shows border indicator with count", () => {
+    // Create a card with a heading that has more children than maxContentLines (default 3)
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "heading1",
+              item("child1"),
+              item("child2"),
+              item("child3"),
+              item("child4"),
+              item("child5"),
+            ),
+          ),
+        ),
+      { rows: 30, columns: 80, viewMode: "cards" },
+    )
+
+    const text = board.screenshot()
+    // Should show a border-based overflow indicator like "╰─── +2 ───╯"
+    expect(text).toMatch(/╰─+ \+2 ─+╯/)
+    // Should NOT show "+N more" (suppressed in cards mode)
+    expect(text).not.toContain("more")
+  })
+
+  test("card without overflow does not show overflow border", () => {
+    // Create a card with few enough children to not overflow
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("heading1", item("child1"), item("child2")),
+          ),
+        ),
+      { rows: 30, columns: 80, viewMode: "cards" },
+    )
+
+    const text = board.screenshot()
+    // No overflow border indicator (no +N in bottom border)
+    expect(text).not.toMatch(/\+\d+/)
+    expect(text).not.toContain("more")
+  })
+
+  test("multiple headings with overflow show only one border indicator", () => {
+    // Create a card with two headings, each with many children
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "parent-card",
+              item(
+                "heading-A",
+                item("A1"),
+                item("A2"),
+                item("A3"),
+                item("A4"),
+                item("A5"),
+              ),
+              item(
+                "heading-B",
+                item("B1"),
+                item("B2"),
+                item("B3"),
+                item("B4"),
+                item("B5"),
+              ),
+            ),
+          ),
+        ),
+      { rows: 30, columns: 80, viewMode: "cards" },
+    )
+
+    const text = board.screenshot()
+    // Should show a single overflow border line (one per card, not per heading)
+    const overflowBorders = text.match(/\+\d+/g) ?? []
+    expect(overflowBorders).toHaveLength(1)
+    expect(text).not.toContain("more")
+  })
+
+  test("columns view does not show overflow border", () => {
+    // In columns view (oneliner variant), no border overflow indicator
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "heading1",
+              item("child1"),
+              item("child2"),
+              item("child3"),
+              item("child4"),
+              item("child5"),
+              item("child6"),
+              item("child7"),
+              item("child8"),
+              item("child9"),
+              item("child10"),
+              item("child11"),
+              item("child12"),
+              item("child13"),
+              item("child14"),
+              item("child15"),
+              item("child16"),
+              item("child17"),
+              item("child18"),
+              item("child19"),
+              item("child20"),
+              item("child21"),
+            ),
+          ),
+        ),
+      { rows: 30, columns: 80, viewMode: "columns" },
+    )
+
+    const text = board.screenshot()
+    // Columns view should NOT show overflow border pattern (that's cards-only)
+    expect(text).not.toMatch(/╰─+ \+\d+ ─+╯/)
+  })
+
+  test("overflow count reflects hidden children across levels", () => {
+    // parent-card has 2 direct children (heading-A, heading-B) — fits in maxContentLines=3
+    // Each heading has 5 children but only 3 are shown (maxContentLines=3)
+    // Total hidden: 0 direct + 2 from heading-A + 2 from heading-B = 4
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "parent-card",
+              item("heading-A", item("A1"), item("A2"), item("A3"), item("A4"), item("A5")),
+              item("heading-B", item("B1"), item("B2"), item("B3"), item("B4"), item("B5")),
+            ),
+          ),
+        ),
+      { rows: 30, columns: 80, viewMode: "cards" },
+    )
+
+    const text = board.screenshot()
+    // Total hidden: 2 + 2 = 4
+    expect(text).toMatch(/\+4/)
+  })
+})
+
+// ─── Card Child Line Truncation ──────────────────────────────────────────────
+
+describe("card child line truncation", () => {
+  test("long child items render on exactly one line in cards view", () => {
+    // Use item() with a simple ID but make the content long via the node
+    // item() uses content as ID, so we need a simple ID
+    const { board, repo } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("card1", item("long-child"))),
+        ),
+      { columns: 40, rows: 20 },
+    )
+
+    // Override the content to be very long (the ID stays "long-child")
+    repo.updateNode("long-child", {
+      content: "Accessible at /Library/Mobile Documents/comapple~CloudDocs/very-long-path-name-here",
+    })
+
+    // Re-render to pick up the content change
+    board.press("j").press("k")
+
+    // The child node should exist
+    const childNode = board.q("#long-child")
+    expect(childNode.count()).toBe(1)
+
+    // The child node's root Box should be exactly 1 row tall (truncated)
+    const rect = childNode.boundingBox()
+    expect(rect.height).toBe(1)
+  })
+
+  test("card root (depth 0) remains multiline while children truncate", () => {
+    const { board, repo } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("card1", item("child1"), item("child2"))),
+        ),
+      { columns: 40, rows: 20 },
+    )
+
+    // Override content to be very long
+    repo.updateNode("child1", {
+      content: "First child with a very long description that should be truncated at column boundary",
+    })
+    repo.updateNode("child2", {
+      content: "Second child also with extremely long text that exceeds the available width easily",
+    })
+
+    // Re-render
+    board.press("j").press("k")
+
+    // Both children should exist
+    board.expect("#child1").toExist()
+    board.expect("#child2").toExist()
+
+    // Each child should be exactly 1 row tall (truncated, not wrapped)
+    const child1Rect = board.q("#child1").boundingBox()
+    const child2Rect = board.q("#child2").boundingBox()
+    expect(child1Rect.height).toBe(1)
+    expect(child2Rect.height).toBe(1)
+
+    // Children should be on consecutive lines (not taking multiple lines each)
+    expect(child2Rect.y).toBe(child1Rect.y + 1)
   })
 })
