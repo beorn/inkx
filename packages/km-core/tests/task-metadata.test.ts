@@ -2,10 +2,11 @@
  * Tests for task metadata — shared extraction, stringify, and parse.
  *
  * Covers:
- * - extractTaskMetadata: text → { dueDate, priority, ... } (shared by parser + editor)
- * - stringifyTaskMetadata: node fields → appended text metadata
+ * - extractTaskMetadata: text → { dueDate, priority, ... } (reads all 3 formats)
+ * - stringifyTaskMetadata: node fields → appended key:: value metadata
  * - parseTaskMetadataFromText: edited text → { cleanContent, fields }
  * - Round-trip: stringify → parse recovers original fields
+ * - Format migration: old key:value and emoji → key:: value on save
  */
 import { describe, test, expect } from "vitest"
 import { extractTaskMetadata, stringifyTaskMetadata, parseTaskMetadataFromText } from "../src/task-metadata.ts"
@@ -25,100 +26,115 @@ function makeNode(overrides: Partial<KNode> = {}): KNode {
 
 describe("stringifyTaskMetadata", () => {
   describe("due date", () => {
-    test("appends due: from due_at field", () => {
+    test("appends due:: from due_at field", () => {
       const node = makeNode({ content: "Task", due_at: "2025-03-15" })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task due:2025-03-15")
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task due:: 2025-03-15")
     })
 
-    test("appends due: with time from due_at", () => {
+    test("appends due:: with time from due_at", () => {
       const node = makeNode({ content: "Meeting", due_at: "2025-03-15T14:30" })
-      expect(stringifyTaskMetadata("Meeting", node)).toBe("Meeting due:2025-03-15T14:30")
+      expect(stringifyTaskMetadata("Meeting", node)).toBe("Meeting due:: 2025-03-15T14:30")
     })
 
-    test("appends due: from legacy due_date field", () => {
+    test("appends due:: from legacy due_date field", () => {
       const node = makeNode({ content: "Task", due_date: "2025-01-20" })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task due:2025-01-20")
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task due:: 2025-01-20")
     })
 
-    test("does not duplicate if due: already in content", () => {
+    test("does not duplicate if due:: already in content", () => {
+      const node = makeNode({ content: "Task due:: 2025-03-15", due_at: "2025-03-15" })
+      expect(stringifyTaskMetadata("Task due:: 2025-03-15", node)).toBe("Task due:: 2025-03-15")
+    })
+
+    test("preserves old due:value format when values match", () => {
       const node = makeNode({ content: "Task due:2025-03-15", due_at: "2025-03-15" })
       expect(stringifyTaskMetadata("Task due:2025-03-15", node)).toBe("Task due:2025-03-15")
     })
 
-    test("does not duplicate if emoji 📅 already in content", () => {
+    test("preserves emoji 📅 format when values match", () => {
       const node = makeNode({ content: "Task 📅 2025-03-15", due_at: "2025-03-15" })
       expect(stringifyTaskMetadata("Task 📅 2025-03-15", node)).toBe("Task 📅 2025-03-15")
+    })
+
+    test("rewrites to key:: value when due date changes", () => {
+      const node = makeNode({ content: "Task due:2025-03-15", due_at: "2025-04-01" })
+      expect(stringifyTaskMetadata("Task due:2025-03-15", node)).toBe("Task due:: 2025-04-01")
     })
   })
 
   describe("start/scheduled date", () => {
-    test("appends start: from start_at field", () => {
+    test("appends start:: from start_at field", () => {
       const node = makeNode({ content: "Task", start_at: "2025-03-10" })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task start:2025-03-10")
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task start:: 2025-03-10")
     })
 
-    test("appends start: with time", () => {
+    test("appends start:: with time", () => {
       const node = makeNode({ content: "Task", start_at: "2025-03-10T09:00" })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task start:2025-03-10T09:00")
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task start:: 2025-03-10T09:00")
     })
 
-    test("does not duplicate if start: already in content", () => {
+    test("preserves old start:value format when values match", () => {
       const node = makeNode({ content: "Task start:2025-03-10", start_at: "2025-03-10" })
       expect(stringifyTaskMetadata("Task start:2025-03-10", node)).toBe("Task start:2025-03-10")
     })
 
-    test("does not duplicate if emoji ⏳ already in content", () => {
+    test("preserves emoji ⏳ format when values match", () => {
       const node = makeNode({ content: "Task ⏳ 2025-03-10", start_at: "2025-03-10" })
       expect(stringifyTaskMetadata("Task ⏳ 2025-03-10", node)).toBe("Task ⏳ 2025-03-10")
     })
   })
 
   describe("priority", () => {
-    test("appends p:1 for priority 1", () => {
+    test("appends p:: 1 for priority 1", () => {
       const node = makeNode({ content: "Task", priority: 1 })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task p:1")
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task p:: 1")
     })
 
-    test("appends p:2 for priority 2", () => {
+    test("appends p:: 2 for priority 2", () => {
       const node = makeNode({ content: "Task", priority: 2 })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task p:2")
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task p:: 2")
     })
 
-    test("appends p:3 for priority 3", () => {
+    test("appends p:: 3 for priority 3", () => {
       const node = makeNode({ content: "Task", priority: 3 })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task p:3")
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task p:: 3")
     })
 
-    test("does not duplicate if p:N already in content", () => {
+    test("preserves old p:N format when values match", () => {
       const node = makeNode({ content: "Task p:1", priority: 1 })
       expect(stringifyTaskMetadata("Task p:1", node)).toBe("Task p:1")
     })
 
-    test("does not duplicate if emoji ⏫ already in content", () => {
+    test("preserves emoji ⏫ format when values match", () => {
       const node = makeNode({ content: "Task ⏫", priority: 1 })
       expect(stringifyTaskMetadata("Task ⏫", node)).toBe("Task ⏫")
     })
   })
 
   describe("recurrence", () => {
-    test("appends recur: from recurrence field", () => {
+    test("appends recur:: from recurrence field", () => {
       const node = makeNode({ content: "Review", recurrence: "FREQ=WEEKLY" })
-      expect(stringifyTaskMetadata("Review", node)).toBe("Review recur:FREQ=WEEKLY")
+      expect(stringifyTaskMetadata("Review", node)).toBe("Review recur:: FREQ=WEEKLY")
     })
 
-    test("appends recur: from data.recurrence", () => {
+    test("appends recur:: from data.recurrence", () => {
       const node = makeNode({ content: "Review", data: { recurrence: "every week" } })
-      expect(stringifyTaskMetadata("Review", node)).toBe("Review recur:every week")
+      expect(stringifyTaskMetadata("Review", node)).toBe('Review recur:: "every week"')
     })
 
-    test("does not duplicate if recur: already in content", () => {
+    test("preserves old recur:value format when values match", () => {
       const node = makeNode({ content: "Review recur:FREQ=WEEKLY", recurrence: "FREQ=WEEKLY" })
       expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:FREQ=WEEKLY")
     })
 
-    test("does not duplicate if emoji 🔁 already in content", () => {
+    test("preserves emoji 🔁 format when values match", () => {
       const node = makeNode({ content: "Review 🔁 every week", recurrence: "every week" })
       expect(stringifyTaskMetadata("Review 🔁 every week", node)).toBe("Review 🔁 every week")
+    })
+
+    test("rewrites to key:: value when recurrence changes", () => {
+      const node = makeNode({ content: "Review recur:FREQ=WEEKLY", recurrence: "FREQ=DAILY" })
+      expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:: FREQ=DAILY")
     })
   })
 
@@ -149,12 +165,12 @@ describe("stringifyTaskMetadata", () => {
         recurrence: "FREQ=MONTHLY",
       })
       expect(stringifyTaskMetadata("Big task", node)).toBe(
-        "Big task due:2025-06-01 start:2025-05-15 p:2 recur:FREQ=MONTHLY",
+        "Big task due:: 2025-06-01 start:: 2025-05-15 p:: 2 recur:: FREQ=MONTHLY",
       )
     })
 
-    test("only appends metadata not already present (mixed formats)", () => {
-      // Content has emoji due date and text priority — only start and recurrence should be appended
+    test("migrates mixed old formats to new format", () => {
+      // Content has emoji due date and text priority — both get migrated
       const node = makeNode({
         content: "Task 📅 2025-06-01 p:2",
         due_at: "2025-06-01",
@@ -163,7 +179,7 @@ describe("stringifyTaskMetadata", () => {
         recurrence: "FREQ=WEEKLY",
       })
       expect(stringifyTaskMetadata("Task 📅 2025-06-01 p:2", node)).toBe(
-        "Task 📅 2025-06-01 p:2 start:2025-05-15 recur:FREQ=WEEKLY",
+        "Task due:: 2025-06-01 start:: 2025-05-15 p:: 2 recur:: FREQ=WEEKLY",
       )
     })
   })
@@ -177,49 +193,127 @@ describe("stringifyTaskMetadata", () => {
 })
 
 describe("parseTaskMetadataFromText", () => {
-  test("strips due date and returns clean content", () => {
-    const result = parseTaskMetadataFromText("Ideas due:2026-02-15")
-    expect(result.cleanContent).toBe("Ideas")
-    expect(result.due_at).toBe("2026-02-15")
+  describe("new format (key:: value)", () => {
+    test("strips due:: and returns clean content", () => {
+      const result = parseTaskMetadataFromText("Ideas due:: 2026-02-15")
+      expect(result.cleanContent).toBe("Ideas")
+      expect(result.due_at).toBe("2026-02-15")
+    })
+
+    test("strips due:: with time", () => {
+      const result = parseTaskMetadataFromText("Meeting due:: 2026-02-15T14:30")
+      expect(result.cleanContent).toBe("Meeting")
+      expect(result.due_at).toBe("2026-02-15T14:30")
+    })
+
+    test("strips start::", () => {
+      const result = parseTaskMetadataFromText("Task start:: 2026-03-10")
+      expect(result.cleanContent).toBe("Task")
+      expect(result.start_at).toBe("2026-03-10")
+    })
+
+    test("strips p::", () => {
+      const result = parseTaskMetadataFromText("Task p:: 2")
+      expect(result.cleanContent).toBe("Task")
+      expect(result.priority).toBe(2)
+    })
+
+    test("strips recur::", () => {
+      const result = parseTaskMetadataFromText("Review recur:: FREQ=WEEKLY")
+      expect(result.cleanContent).toBe("Review")
+      expect(result.recurrence).toBe("FREQ=WEEKLY")
+    })
+
+    test("strips all new-format metadata", () => {
+      const result = parseTaskMetadataFromText(
+        "Big task due:: 2026-06-01 start:: 2026-05-15 p:: 2 recur:: FREQ=MONTHLY",
+      )
+      expect(result.cleanContent).toBe("Big task")
+      expect(result.due_at).toBe("2026-06-01")
+      expect(result.start_at).toBe("2026-05-15")
+      expect(result.priority).toBe(2)
+      expect(result.recurrence).toBe("FREQ=MONTHLY")
+    })
   })
 
-  test("strips due date with time", () => {
-    const result = parseTaskMetadataFromText("Meeting due:2026-02-15T14:30")
-    expect(result.cleanContent).toBe("Meeting")
-    expect(result.due_at).toBe("2026-02-15T14:30")
+  describe("legacy format (key:value) — backward compat", () => {
+    test("strips due:value", () => {
+      const result = parseTaskMetadataFromText("Ideas due:2026-02-15")
+      expect(result.cleanContent).toBe("Ideas")
+      expect(result.due_at).toBe("2026-02-15")
+    })
+
+    test("strips due:value with time", () => {
+      const result = parseTaskMetadataFromText("Meeting due:2026-02-15T14:30")
+      expect(result.cleanContent).toBe("Meeting")
+      expect(result.due_at).toBe("2026-02-15T14:30")
+    })
+
+    test("strips start:value", () => {
+      const result = parseTaskMetadataFromText("Task start:2026-03-10")
+      expect(result.cleanContent).toBe("Task")
+      expect(result.start_at).toBe("2026-03-10")
+    })
+
+    test("strips start:value with time", () => {
+      const result = parseTaskMetadataFromText("Task start:2026-03-10T09:00")
+      expect(result.cleanContent).toBe("Task")
+      expect(result.start_at).toBe("2026-03-10T09:00")
+    })
+
+    test("strips p:N", () => {
+      const result = parseTaskMetadataFromText("Task p:2")
+      expect(result.cleanContent).toBe("Task")
+      expect(result.priority).toBe(2)
+    })
+
+    test("strips recur:value", () => {
+      const result = parseTaskMetadataFromText("Review recur:FREQ=WEEKLY")
+      expect(result.cleanContent).toBe("Review")
+      expect(result.recurrence).toBe("FREQ=WEEKLY")
+    })
+
+    test("strips all legacy metadata", () => {
+      const result = parseTaskMetadataFromText("Big task due:2026-06-01 start:2026-05-15 p:2 recur:FREQ=MONTHLY")
+      expect(result.cleanContent).toBe("Big task")
+      expect(result.due_at).toBe("2026-06-01")
+      expect(result.start_at).toBe("2026-05-15")
+      expect(result.priority).toBe(2)
+      expect(result.recurrence).toBe("FREQ=MONTHLY")
+    })
   })
 
-  test("strips start date", () => {
-    const result = parseTaskMetadataFromText("Task start:2026-03-10")
-    expect(result.cleanContent).toBe("Task")
-    expect(result.start_at).toBe("2026-03-10")
-  })
+  describe("round-trip", () => {
+    test("stringify then parse recovers fields (new format)", () => {
+      const node = makeNode({
+        content: "Task",
+        due_at: "2026-01-15",
+        start_at: "2026-01-10",
+        priority: 1,
+        recurrence: "FREQ=DAILY",
+      })
+      const stringified = stringifyTaskMetadata("Task", node)
+      expect(stringified).toBe("Task due:: 2026-01-15 start:: 2026-01-10 p:: 1 recur:: FREQ=DAILY")
 
-  test("strips start date with time", () => {
-    const result = parseTaskMetadataFromText("Task start:2026-03-10T09:00")
-    expect(result.cleanContent).toBe("Task")
-    expect(result.start_at).toBe("2026-03-10T09:00")
-  })
+      const parsed = parseTaskMetadataFromText(stringified)
+      expect(parsed.cleanContent).toBe("Task")
+      expect(parsed.due_at).toBe("2026-01-15")
+      expect(parsed.start_at).toBe("2026-01-10")
+      expect(parsed.priority).toBe(1)
+      expect(parsed.recurrence).toBe("FREQ=DAILY")
+    })
 
-  test("strips priority", () => {
-    const result = parseTaskMetadataFromText("Task p:2")
-    expect(result.cleanContent).toBe("Task")
-    expect(result.priority).toBe(2)
-  })
+    test("handles user-edited date (new format)", () => {
+      const result = parseTaskMetadataFromText("Ideas due:: 2026-03-01")
+      expect(result.cleanContent).toBe("Ideas")
+      expect(result.due_at).toBe("2026-03-01")
+    })
 
-  test("strips recurrence", () => {
-    const result = parseTaskMetadataFromText("Review recur:FREQ=WEEKLY")
-    expect(result.cleanContent).toBe("Review")
-    expect(result.recurrence).toBe("FREQ=WEEKLY")
-  })
-
-  test("strips multiple metadata", () => {
-    const result = parseTaskMetadataFromText("Big task due:2026-06-01 start:2026-05-15 p:2 recur:FREQ=MONTHLY")
-    expect(result.cleanContent).toBe("Big task")
-    expect(result.due_at).toBe("2026-06-01")
-    expect(result.start_at).toBe("2026-05-15")
-    expect(result.priority).toBe(2)
-    expect(result.recurrence).toBe("FREQ=MONTHLY")
+    test("handles user-edited date (legacy format)", () => {
+      const result = parseTaskMetadataFromText("Ideas due:2026-03-01")
+      expect(result.cleanContent).toBe("Ideas")
+      expect(result.due_at).toBe("2026-03-01")
+    })
   })
 
   test("returns plain text when no metadata", () => {
@@ -229,32 +323,6 @@ describe("parseTaskMetadataFromText", () => {
     expect(result.start_at).toBeUndefined()
     expect(result.priority).toBeUndefined()
     expect(result.recurrence).toBeUndefined()
-  })
-
-  test("round-trip: stringify then parse recovers fields", () => {
-    const node = makeNode({
-      content: "Task",
-      due_at: "2026-01-15",
-      start_at: "2026-01-10",
-      priority: 1,
-      recurrence: "FREQ=DAILY",
-    })
-    const stringified = stringifyTaskMetadata("Task", node)
-    expect(stringified).toBe("Task due:2026-01-15 start:2026-01-10 p:1 recur:FREQ=DAILY")
-
-    const parsed = parseTaskMetadataFromText(stringified)
-    expect(parsed.cleanContent).toBe("Task")
-    expect(parsed.due_at).toBe("2026-01-15")
-    expect(parsed.start_at).toBe("2026-01-10")
-    expect(parsed.priority).toBe(1)
-    expect(parsed.recurrence).toBe("FREQ=DAILY")
-  })
-
-  test("handles user-edited date (changed from original)", () => {
-    // User edits "Ideas due:2026-02-15" → "Ideas due:2026-03-01"
-    const result = parseTaskMetadataFromText("Ideas due:2026-03-01")
-    expect(result.cleanContent).toBe("Ideas")
-    expect(result.due_at).toBe("2026-03-01")
   })
 
   test("handles empty string", () => {
@@ -268,7 +336,35 @@ describe("parseTaskMetadataFromText", () => {
 // ---------------------------------------------------------------------------
 
 describe("extractTaskMetadata", () => {
-  describe("text format (key:value)", () => {
+  describe("new format (key:: value)", () => {
+    test("extracts due:: date", () => {
+      const result = extractTaskMetadata("Task due:: 2026-03-15")
+      expect(result.dueDate).toBe("2026-03-15")
+    })
+
+    test("extracts due:: date with time", () => {
+      const result = extractTaskMetadata("Meeting due:: 2026-03-15T14:30")
+      expect(result.dueDate).toBe("2026-03-15")
+      expect(result.dueTime).toBe("14:30")
+    })
+
+    test("extracts start:: date", () => {
+      const result = extractTaskMetadata("Task start:: 2026-01-10")
+      expect(result.startDate).toBe("2026-01-10")
+    })
+
+    test("extracts p:: priority", () => {
+      const result = extractTaskMetadata("Task p:: 2")
+      expect(result.priority).toBe(2)
+    })
+
+    test("extracts recur::", () => {
+      const result = extractTaskMetadata("Review recur:: FREQ=WEEKLY")
+      expect(result.recurrence).toBe("FREQ=WEEKLY")
+    })
+  })
+
+  describe("legacy format (key:value)", () => {
     test("extracts due date", () => {
       const result = extractTaskMetadata("Task due:2026-03-15")
       expect(result.dueDate).toBe("2026-03-15")
@@ -348,13 +444,18 @@ describe("extractTaskMetadata", () => {
     })
   })
 
-  describe("text format takes precedence over emoji", () => {
-    test("due: overrides 📅", () => {
+  describe("format precedence: new > legacy > emoji", () => {
+    test("key:: value overrides key:value", () => {
+      const result = extractTaskMetadata("Task due:: 2026-04-01 due:2026-03-15")
+      expect(result.dueDate).toBe("2026-04-01")
+    })
+
+    test("key:value overrides emoji", () => {
       const result = extractTaskMetadata("Task due:2026-04-01 📅 2026-03-15")
       expect(result.dueDate).toBe("2026-04-01")
     })
 
-    test("p: overrides ⏫", () => {
+    test("p:N overrides ⏫", () => {
       const result = extractTaskMetadata("Task p:3 ⏫")
       expect(result.priority).toBe(3)
     })

@@ -58,6 +58,10 @@ export {
 } from "./task-metadata.ts"
 export type { ExtractedTaskMetadata } from "./task-metadata.ts"
 
+// Unified inline metadata (key:: value format)
+export { extractMetadata, stringifyMetadata, splitMultiValue } from "./metadata.ts"
+export type { MetadataEntries, ExtractedMetadata } from "./metadata.ts"
+
 // Query language parser (pure parsing, no DB)
 export {
   parseQuery,

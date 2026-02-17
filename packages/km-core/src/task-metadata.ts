@@ -4,59 +4,63 @@
  * Single source of truth for task metadata parsing and formatting.
  * Used by the markdown parser, serializer, and TUI editor.
  *
- * Canonical output format (todo.txt-style key:value):
- *   due:2024-01-15  start:2024-01-10  p:1  recur:FREQ=WEEKLY
+ * Canonical output format (key:: value — Dataview-compatible):
+ *   due:: 2024-01-15  start:: 2024-01-10  p:: 1  recur:: FREQ=WEEKLY
  *
- * Emoji formats (📅 ⏳ ⏫🔼🔽 🔁) are accepted on input but never written.
+ * Reads three formats (backward compat):
+ * 1. New: key:: value (canonical, always written)
+ * 2. Legacy: key:value (todo.txt-style, read-only)
+ * 3. Emoji: 📅 ⏳ ⏫🔼🔽 🔁 (Obsidian Tasks, read-only)
+ *
+ * On save, old formats are migrated to key:: value automatically.
  */
 
 import type { KNode } from "./types.ts"
 import { decomposeDatetime } from "./date-utils.ts"
+import { extractMetadata, stringifyMetadata, type MetadataEntries } from "./metadata.ts"
 
 // =============================================================================
-// Shared extraction regexes — text-based key:value format
+// Legacy extraction regexes — key:value format (read-only backward compat)
 // =============================================================================
 
 /** Matches due:YYYY-MM-DD or due:YYYY-MM-DDTHH:MM */
-const DUE_TEXT_REGEX = /\bdue:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
+const DUE_LEGACY_REGEX = /\bdue:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
 
 /** Matches start:YYYY-MM-DD or start:YYYY-MM-DDTHH:MM */
-const START_TEXT_REGEX = /\bstart:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
+const START_LEGACY_REGEX = /\bstart:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
 
 /** Matches p:N (1-9) */
-const PRIORITY_TEXT_REGEX = /\bp:([1-9])\b/
+const PRIORITY_LEGACY_REGEX = /\bp:([1-9])\b/
 
 /** Matches recur:VALUE (non-whitespace) */
-const RECURRENCE_TEXT_REGEX = /\brecur:(\S+)/
+const RECURRENCE_LEGACY_REGEX = /\brecur:(\S+)/
 
 // =============================================================================
-// Shared extraction regexes — emoji format (input-only, backward compat)
+// Emoji extraction regexes (read-only backward compat)
 // =============================================================================
 
-/** Matches 📅 YYYY-MM-DD or 📅 YYYY-MM-DDTHH:MM */
 const DUE_EMOJI_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
-
-/** Matches ⏳ YYYY-MM-DD or ⏳ YYYY-MM-DDTHH:MM */
 const START_EMOJI_REGEX = /⏳\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
-
-/** Matches recurrence emoji: 🔁 text (until next emoji or end) */
-const RECURRENCE_EMOJI_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/
+const RECURRENCE_EMOJI_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/u
 
 // =============================================================================
-// Detection regexes — check if metadata is already present (text OR emoji)
+// Stripping regexes — remove metadata from text (all formats)
 // =============================================================================
 
-/** Matches due date in either text or emoji form */
-const HAS_DUE = /\bdue:\d{4}-\d{2}-\d{2}\b|📅/
+/** Strip new key:: value format (handled by extractMetadata) */
+// extractMetadata handles this
 
-/** Matches start/scheduled date in either text or emoji form */
-const HAS_START = /\bstart:\d{4}-\d{2}-\d{2}\b|⏳/
+/** Strip legacy key:value format */
+const STRIP_LEGACY_DUE = /\s*\bdue:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
+const STRIP_LEGACY_START = /\s*\bstart:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
+const STRIP_LEGACY_PRIORITY = /\s*\bp:([1-9])\b/
+const STRIP_LEGACY_RECURRENCE = /\s*\brecur:(\S+)/
 
-/** Matches priority in either text or emoji form */
-const HAS_PRIORITY = /\bp:[1-9]\b|[⏫🔼🔽]/
-
-/** Matches recurrence in either text or emoji form */
-const HAS_RECURRENCE = /\brecur:\S|🔁/
+/** Strip emoji format */
+const STRIP_EMOJI_DUE = /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
+const STRIP_EMOJI_START = /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
+const STRIP_EMOJI_PRIORITY = /\s*[⏫🔼🔽]/u
+const STRIP_EMOJI_RECURRENCE = /\s*🔁\s*.+?(?=\s*[📅⏳⏫🔼🔽]|$)/u
 
 // =============================================================================
 // extractTaskMetadata — shared extraction used by parser and editor
@@ -73,149 +77,192 @@ export interface ExtractedTaskMetadata {
 }
 
 /**
- * Extract task metadata from text content. Handles both text-based (key:value)
- * and emoji formats. Text format takes precedence over emoji format.
+ * Extract task metadata from text content.
+ * Tries formats in priority order: new (key:: value) > legacy (key:value) > emoji.
  *
  * Used by:
  * - km-markdown parser (parseTaskMetadata wrapper)
  * - km-core parseTaskMetadataFromText (for stripping)
- *
- * @param text - Raw text content that may contain metadata
- * @returns Extracted metadata fields (empty object if none found)
  */
 export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
   const result: ExtractedTaskMetadata = {}
 
-  // Due date: text format first, then emoji fallback
-  const dueTextMatch = text.match(DUE_TEXT_REGEX)
-  if (dueTextMatch) {
-    result.dueDate = dueTextMatch[1]
-    if (dueTextMatch[2]) result.dueTime = dueTextMatch[2]
-  } else {
-    const dueEmojiMatch = text.match(DUE_EMOJI_REGEX)
-    if (dueEmojiMatch) {
-      result.dueDate = dueEmojiMatch[1]
-      if (dueEmojiMatch[2]) result.dueTime = dueEmojiMatch[2]
+  // Pass 1: Extract new key:: value format
+  const { entries } = extractMetadata(text)
+
+  // Map new-format entries to typed fields
+  if (entries.due) {
+    const parsed = parseDatetimeValue(entries.due)
+    if (parsed) {
+      result.dueDate = parsed.date
+      if (parsed.time) result.dueTime = parsed.time
     }
   }
-
-  // Start/scheduled date: text format first, then emoji fallback
-  const startTextMatch = text.match(START_TEXT_REGEX)
-  if (startTextMatch) {
-    result.startDate = startTextMatch[1]
-    if (startTextMatch[2]) result.startTime = startTextMatch[2]
-  } else {
-    const startEmojiMatch = text.match(START_EMOJI_REGEX)
-    if (startEmojiMatch) {
-      result.startDate = startEmojiMatch[1]
-      if (startEmojiMatch[2]) result.startTime = startEmojiMatch[2]
+  if (entries.start) {
+    const parsed = parseDatetimeValue(entries.start)
+    if (parsed) {
+      result.startDate = parsed.date
+      if (parsed.time) result.startTime = parsed.time
     }
   }
-
-  // Priority: text format first, then emoji fallback
-  const prioTextMatch = text.match(PRIORITY_TEXT_REGEX)
-  if (prioTextMatch?.[1]) {
-    result.priority = parseInt(prioTextMatch[1], 10)
-  } else if (text.includes("⏫")) {
-    result.priority = 1
-  } else if (text.includes("🔼")) {
-    result.priority = 2
-  } else if (text.includes("🔽")) {
-    result.priority = 3
+  if (entries.p) {
+    const n = parseInt(entries.p, 10)
+    if (n >= 1 && n <= 9) result.priority = n
+  }
+  if (entries.recur) {
+    result.recurrence = entries.recur
   }
 
-  // Recurrence: text format first, then emoji fallback
-  const recurTextMatch = text.match(RECURRENCE_TEXT_REGEX)
-  if (recurTextMatch?.[1]) {
-    result.recurrence = recurTextMatch[1]
-  } else {
-    const recurEmojiMatch = text.match(RECURRENCE_EMOJI_REGEX)
-    if (recurEmojiMatch?.[1]) {
-      result.recurrence = recurEmojiMatch[1].trim()
+  // Pass 2: Fall back to legacy key:value format for missing fields
+  if (!result.dueDate) {
+    const match = text.match(DUE_LEGACY_REGEX)
+    if (match) {
+      result.dueDate = match[1]
+      if (match[2]) result.dueTime = match[2]
     }
+  }
+  if (!result.startDate) {
+    const match = text.match(START_LEGACY_REGEX)
+    if (match) {
+      result.startDate = match[1]
+      if (match[2]) result.startTime = match[2]
+    }
+  }
+  if (result.priority === undefined) {
+    const match = text.match(PRIORITY_LEGACY_REGEX)
+    if (match?.[1]) result.priority = parseInt(match[1], 10)
+  }
+  if (!result.recurrence) {
+    const match = text.match(RECURRENCE_LEGACY_REGEX)
+    if (match?.[1]) result.recurrence = match[1]
+  }
+
+  // Pass 3: Fall back to emoji format for any still-missing fields
+  if (!result.dueDate) {
+    const match = text.match(DUE_EMOJI_REGEX)
+    if (match) {
+      result.dueDate = match[1]
+      if (match[2]) result.dueTime = match[2]
+    }
+  }
+  if (!result.startDate) {
+    const match = text.match(START_EMOJI_REGEX)
+    if (match) {
+      result.startDate = match[1]
+      if (match[2]) result.startTime = match[2]
+    }
+  }
+  if (result.priority === undefined) {
+    if (text.includes("⏫")) result.priority = 1
+    else if (text.includes("🔼")) result.priority = 2
+    else if (text.includes("🔽")) result.priority = 3
+  }
+  if (!result.recurrence) {
+    const match = text.match(RECURRENCE_EMOJI_REGEX)
+    if (match?.[1]) result.recurrence = match[1].trim()
   }
 
   return result
 }
 
 // =============================================================================
-// stringifyTaskMetadata — append field-only metadata as text key:value tags
+// stringifyTaskMetadata — append metadata in new key:: value format
 // =============================================================================
 
 /**
- * Append task metadata from node fields to content string, using text-based
- * key:value format. Only appends metadata that isn't already present in the
- * content (in either text or emoji form).
+ * Append task metadata from node fields to content string.
+ *
+ * Behavior:
+ * - If node fields match what's already in content (any format), preserve original format
+ * - If any field changed/added/removed, strip task metadata and rewrite in key:: value
+ * - Non-task properties (blocks::, author::, etc.) are always preserved
  *
  * Used by:
- * - nodes2md.ts serializer (appendTaskMetadata)
- * - TreeNode.tsx TUI editor (composeRawEditContent)
- *
- * @param content - The node's raw content string
- * @param node - The node to extract metadata fields from
- * @param options.includeAssignedTo - Also append @assigned_to if missing (TUI editor only)
- * @returns Content with metadata appended
+ * - nodes2md.ts serializer (appendTaskMetadata) — roundtrip preserves format
+ * - TreeNode.tsx TUI editor (composeRawEditContent) — edits trigger key:: value rewrite
  */
 export function stringifyTaskMetadata(
   content: string,
   node: KNode,
   options?: { includeAssignedTo?: boolean },
 ): string {
-  const metadata: string[] = []
-
-  // Due date: due:2024-01-15 or due:2024-01-15T14:30
+  // Extract current node field values
   const dueParts =
     decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)
-  if (dueParts?.date && !HAS_DUE.test(content)) {
-    const timeSuffix = dueParts.time ? `T${dueParts.time}` : ""
-    metadata.push(`due:${dueParts.date}${timeSuffix}`)
-  }
-
-  // Start/scheduled date: start:2024-01-10 or start:2024-01-10T09:00
   const startParts =
     decomposeDatetime(node.start_at) ??
     (node.scheduled_date ? { date: node.scheduled_date, time: node.scheduled_time } : undefined)
-  if (startParts?.date && !HAS_START.test(content)) {
-    const timeSuffix = startParts.time ? `T${startParts.time}` : ""
-    metadata.push(`start:${startParts.date}${timeSuffix}`)
-  }
-
-  // Priority: p:1, p:2, p:3
-  if (node.priority && !HAS_PRIORITY.test(content)) {
-    metadata.push(`p:${node.priority}`)
-  }
-
-  // Recurrence: recur:FREQ=WEEKLY
   const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
-  if (recurrence && !HAS_RECURRENCE.test(content)) {
-    metadata.push(`recur:${recurrence}`)
+
+  // Extract what's already in the content (any format)
+  const existing = extractTaskMetadata(content)
+
+  // Compare node fields to content — if they match, preserve original format
+  const dueVal = dueParts?.date ? (dueParts.time ? `${dueParts.date}T${dueParts.time}` : dueParts.date) : undefined
+  const existingDueVal = existing.dueDate
+    ? existing.dueTime
+      ? `${existing.dueDate}T${existing.dueTime}`
+      : existing.dueDate
+    : undefined
+  const startVal = startParts?.date
+    ? startParts.time
+      ? `${startParts.date}T${startParts.time}`
+      : startParts.date
+    : undefined
+  const existingStartVal = existing.startDate
+    ? existing.startTime
+      ? `${existing.startDate}T${existing.startTime}`
+      : existing.startDate
+    : undefined
+
+  const fieldsMatch =
+    dueVal === existingDueVal &&
+    startVal === existingStartVal &&
+    (node.priority ?? undefined) === existing.priority &&
+    (recurrence ?? undefined) === existing.recurrence
+
+  if (fieldsMatch) {
+    // Preserve original format — just handle assigned_to
+    let result = content
+    if (options?.includeAssignedTo && node.assigned_to && !result.includes(`@${node.assigned_to}`)) {
+      result += ` @${node.assigned_to}`
+    }
+    return result
   }
 
-  // Assigned to (TUI editor only): @person
-  if (options?.includeAssignedTo && node.assigned_to && !content.includes(`@${node.assigned_to}`)) {
-    metadata.push(`@${node.assigned_to}`)
+  // Fields changed — strip task metadata and rewrite in key:: value
+  let cleanContent = stripTaskMetadataFormats(content)
+
+  const entries: MetadataEntries = {}
+  if (dueParts?.date) {
+    entries.due = dueParts.time ? `${dueParts.date}T${dueParts.time}` : dueParts.date
+  }
+  if (startParts?.date) {
+    entries.start = startParts.time ? `${startParts.date}T${startParts.time}` : startParts.date
+  }
+  if (node.priority) {
+    entries.p = String(node.priority)
+  }
+  if (recurrence) {
+    entries.recur = recurrence
   }
 
-  if (metadata.length > 0 && content) content += " " + metadata.join(" ")
-  return content
+  let result = stringifyMetadata(cleanContent, entries)
+
+  if (options?.includeAssignedTo && node.assigned_to && !result.includes(`@${node.assigned_to}`)) {
+    result += ` @${node.assigned_to}`
+  }
+
+  return result
 }
-
-// =============================================================================
-// Stripping regexes — for parseTaskMetadataFromText (include leading whitespace)
-// =============================================================================
-
-const STRIP_DUE = /\s*\bdue:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
-const STRIP_START = /\s*\bstart:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
-const STRIP_PRIORITY = /\s*\bp:([1-9])\b/
-const STRIP_RECURRENCE = /\s*\brecur:(\S+)/
 
 // =============================================================================
 // parseTaskMetadataFromText — inverse of stringify, for save handlers
 // =============================================================================
 
 /**
- * Parse metadata tags from edited text and return clean content + field values.
- * Inverse of stringifyTaskMetadata: strips due:, start:, p:, recur: from text.
+ * Parse metadata from edited text and return clean content + field values.
+ * Handles all three formats (key:: value, key:value, emoji).
  *
  * Used by TUI save handlers to restore structured fields from inline-edited text.
  */
@@ -226,44 +273,70 @@ export function parseTaskMetadataFromText(text: string): {
   priority?: number
   recurrence?: string
 } {
-  let clean = text
+  // Extract metadata from all formats
+  const extracted = extractTaskMetadata(text)
+
+  // Strip task-specific metadata from text to get clean content (preserves non-task properties)
+  let clean = stripTaskMetadataFormats(text)
+
+  // Map extracted fields to node-field format
   let due_at: string | undefined
+  if (extracted.dueDate) {
+    due_at = extracted.dueTime ? `${extracted.dueDate}T${extracted.dueTime}` : extracted.dueDate
+  }
+
   let start_at: string | undefined
-  let priority: number | undefined
-  let recurrence: string | undefined
-
-  const dueMatch = clean.match(STRIP_DUE)
-  if (dueMatch) {
-    due_at = dueMatch[2] ? `${dueMatch[1]}T${dueMatch[2]}` : dueMatch[1]
-    clean = clean.replace(STRIP_DUE, "")
+  if (extracted.startDate) {
+    start_at = extracted.startTime ? `${extracted.startDate}T${extracted.startTime}` : extracted.startDate
   }
-
-  const startMatch = clean.match(STRIP_START)
-  if (startMatch) {
-    start_at = startMatch[2] ? `${startMatch[1]}T${startMatch[2]}` : startMatch[1]
-    clean = clean.replace(STRIP_START, "")
-  }
-
-  const prioMatch = clean.match(STRIP_PRIORITY)
-  if (prioMatch) {
-    priority = parseInt(prioMatch[1]!, 10)
-    clean = clean.replace(STRIP_PRIORITY, "")
-  }
-
-  const recurMatch = clean.match(STRIP_RECURRENCE)
-  if (recurMatch) {
-    recurrence = recurMatch[1]
-    clean = clean.replace(STRIP_RECURRENCE, "")
-  }
-
-  // Normalize whitespace after stripping
-  clean = clean.replace(/\s{2,}/g, " ").trim()
 
   return {
     cleanContent: clean,
     ...(due_at !== undefined && { due_at }),
     ...(start_at !== undefined && { start_at }),
-    ...(priority !== undefined && { priority }),
-    ...(recurrence !== undefined && { recurrence }),
+    ...(extracted.priority !== undefined && { priority: extracted.priority }),
+    ...(extracted.recurrence !== undefined && { recurrence: extracted.recurrence }),
   }
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/** Parse a datetime string like "2026-02-15" or "2026-02-15T14:30" */
+function parseDatetimeValue(value: string): { date: string; time?: string } | null {
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?$/)
+  if (!match?.[1]) return null
+  return { date: match[1], time: match[2] }
+}
+
+/** Task-specific keys that stringifyTaskMetadata manages */
+const TASK_METADATA_KEYS = ["due", "start", "p", "recur"]
+
+/** Strip task-specific metadata from all formats (new key:: value + legacy + emoji) */
+function stripTaskMetadataFormats(text: string): string {
+  let clean = text
+  // Strip only task-specific key:: value pairs (preserve other properties like blocks::, author::)
+  for (const key of TASK_METADATA_KEYS) {
+    clean = clean.replace(new RegExp(`\\s*\\b${key}:: (?:"(?:[^"\\\\]|\\\\.)*"|\\S+)`, "g"), "")
+  }
+  return stripLegacyAndEmojiMetadata(clean)
+}
+
+/** Strip legacy key:value and emoji metadata from text */
+function stripLegacyAndEmojiMetadata(text: string): string {
+  let clean = text
+  // Legacy key:value
+  clean = clean.replace(STRIP_LEGACY_DUE, "")
+  clean = clean.replace(STRIP_LEGACY_START, "")
+  clean = clean.replace(STRIP_LEGACY_PRIORITY, "")
+  clean = clean.replace(STRIP_LEGACY_RECURRENCE, "")
+  // Emoji
+  clean = clean.replace(STRIP_EMOJI_DUE, "")
+  clean = clean.replace(STRIP_EMOJI_START, "")
+  clean = clean.replace(STRIP_EMOJI_PRIORITY, "")
+  clean = clean.replace(STRIP_EMOJI_RECURRENCE, "")
+  // Normalize whitespace
+  clean = clean.replace(/\s{2,}/g, " ").trim()
+  return clean
 }
