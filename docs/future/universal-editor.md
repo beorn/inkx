@@ -63,11 +63,15 @@ The bulk of the application — state management, hooks, business logic, data tr
 
 ### Two Independent Systems
 
+These are genuinely independent — not just separately publishable, but **separately usable**. Each is a complete system that makes sense on its own:
+
 **System 1: Terminal Rendering** (termily + flexily)
-Everything needed to put pixels on a terminal screen. React reconciler, Box/Text/VirtualList components, cell buffer, dirty tracking, ANSI diff output, stdin input parsing, terminal detection. Flexily provides the layout algorithm since terminals have no native layout engine.
+Everything needed to put pixels on a terminal screen. React reconciler, Box/Text/VirtualList components, cell buffer, dirty tracking, ANSI diff output, stdin input parsing, terminal detection. Flexily provides the layout algorithm since terminals have no native layout engine. *Any* terminal app can use termily — a dashboard, a game, a monitoring tool — with no editing concepts involved.
 
 **System 2: Editing Framework** (docily + textily)
-Everything needed to build a rich interactive application on any platform. Document tree with operations, command system (keyboard, mouse, touch, programmatic), undo/redo, plugin composition, CRDT-ready mutations. Textily handles the text model (cursor, selection, wrap-aware navigation) with zero dependencies.
+Everything needed to build a rich interactive application on any platform. Document tree with operations, command system (keyboard, mouse, touch, programmatic), undo/redo, plugin composition, CRDT-ready mutations. Textily handles the text model (cursor, selection, wrap-aware navigation) with zero dependencies. docily can sit on top of react-dom, a native UI toolkit, or termily — it doesn't know or care about the renderer.
+
+This independence is a feature, not an accident. It reduces cognitive load: you can reason about rendering without thinking about editing, and vice versa. It firewalls concerns — a bug in the cell buffer can't affect document operations, and a change to the undo system can't break ANSI diff.
 
 **runly** bridges both — it powers both docily's event processing and termily's render loop. **km-app** sits above both systems, using the editing framework for state/logic and the platform renderer for display.
 
@@ -451,46 +455,7 @@ The unique combination: ID-based model (like Notion's blocks) + EditContext alig
 
 For detailed comparisons of browser-only editors, see [Lexical vs Slate vs ProseMirror: Architecture](https://jkrsp.com/blog/lexical-vs-slate-vs-prosemirror-architecture/).
 
-### Platform Strategies
-
-| Approach | Examples | How it works |
-|----------|----------|--------------|
-| **Shared rendering engine** | Flutter, Qt | Custom rendering engine draws identical pixels everywhere |
-| **Bridge to native views** | React Native, KMP | Shared logic, native UI widgets via bridge |
-| **Web in a shell** | Electron, Tauri | Web app running in native browser shell |
-| **Terminal emulation** | SSH, tmux, xterm.js | Terminal app embedded in browser/native |
-| **Ours: shared core + native adapters** | — | Pure TS editor core + shared app layer, platform-specific rendering |
-
-**Why not React Native?** No terminal support; text editing is RN's weakest point; RN is rendering-centric while we share editing logic; RN assumes eager loading; RN is heavy (Metro, bridge, Hermes).
-
-**Why not Electron/Tauri?** No terminal; Electron ships a 300MB browser; still uses contentEditable.
-
-### The Trade-Off
-
-**React Native/Flutter**: Ship to many platforms quickly with acceptable quality. Great for UI-centric apps.
-
-**Our approach**: Build a rich TUI app and a rich web app on the same editing engine. Terminal-first because it proves the engine works under the tightest constraints, then web at creative-tools polish level. We're building ProseMirror-for-any-platform, not Instagram-for-any-platform.
-
-### Pros & Cons
-
-| Advantage | Why |
-|-----------|-----|
-| **Terminal-first** | No alternative supports terminal as first-class. Flutter/RN/Electron can't render to ANSI. |
-| **Truly native per platform** | Each platform uses its actual UI system. No uncanny valley. |
-| **Maximal code sharing** | State, hooks, business logic, views, and navigation shared across platforms. Components have thin platform-specific rendering layers. |
-| **Lightweight core** | docily + textily are pure TS with zero heavy deps. No Chromium (300MB), no Skia (30MB). |
-| **Text editing done right** | EditContext alignment means native input system per platform. |
-| **CRDT-native** | Operations-based model means collaboration is built in, not bolted on. |
-| **Lazy loading at core** | ID + parentId model with lazy DocumentStore. Handles drive-scale. |
-| **Incremental adoption** | Each package independently useful. Mix and match. |
-| **Pure-functional testing** | runly's Elm-style mode enables deterministic replay and time-travel debugging — opt in where it helps. |
-
-| Disadvantage | Mitigation |
-|--------------|------------|
-| **N adapters to build** | Start with terminal (done) + browser (Phase C). Only native when demanded. |
-| **Component rendering boundary** | Start with shared logic + platform-specific rendering. Converge toward shared components where duplication emerges. |
-| **More upfront work** | Clean interfaces pay for themselves in testability and flexibility. Extraction, not creation. |
-| **Rendering inconsistency** | Feature, not bug — each platform looks native. Requires per-platform testing. |
+See [Appendix: Platform Strategies](#platform-strategies) for comparison with React Native, Flutter, Electron, etc.
 
 ---
 
@@ -603,6 +568,22 @@ Extracting packages from an ~80K-line monolith and building a shared app layer h
 ---
 
 ## Appendix
+
+### Platform Strategies
+
+| Approach | Examples | How it works |
+|----------|----------|--------------|
+| **Shared rendering engine** | Flutter, Qt | Custom rendering engine draws identical pixels everywhere |
+| **Bridge to native views** | React Native, KMP | Shared logic, native UI widgets via bridge |
+| **Web in a shell** | Electron, Tauri | Web app running in native browser shell |
+| **Terminal emulation** | SSH, tmux, xterm.js | Terminal app embedded in browser/native |
+| **Ours: shared core + native adapters** | — | Pure TS editor core + shared app layer, platform-specific rendering |
+
+**React Native**: No terminal support; text editing is RN's weakest point; RN is rendering-centric while we share editing logic; assumes eager loading; heavy runtime (Metro, bridge, Hermes).
+
+**Electron/Tauri**: Electron is still a viable option for desktop — our editing engine (docily + textily) and shared app layer (km-app) work with any renderer, including a browser in Electron. The key advantage of our architecture is that Electron becomes one more platform shell, not the *only* platform. We get terminal + web + desktop (Electron) from the same shared code, rather than being locked into Electron for everything.
+
+**The trade-off**: React Native/Flutter ship to many platforms quickly with acceptable quality — great for UI-centric apps. Our approach builds a rich TUI and a rich web app on the same editing engine. Terminal-first proves the engine works under the tightest constraints; web at creative-tools polish. We're building ProseMirror-for-any-platform, not Instagram-for-any-platform.
 
 ### The Elm Runtime
 
