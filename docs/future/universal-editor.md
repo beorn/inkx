@@ -28,19 +28,25 @@ The terminal app proves the engine works under the tightest constraints (fixed-w
 The architecture is organized as **five independent packages** forming **two parallel systems** plus a shared runtime:
 
 ```
-                           ┌──────────┐       ┌──────────┐
-                           │  km-tui  │       │  km-web  │
-                           └──┬────┬──┘       └──┬────┬──┘
-                              │    │              │    │
-                ┌─────────────▼┐  ┌▼──────────────▼┐  ┌▼─────────────┐
-                │   termily    │  │ Shared Engine   │  │  react-dom   │
-                │   + flexily  │  │                 │  │  + CSS       │
-                │              │  │ docily  textily │  │              │
-                │  (terminal)  │  │ runly           │  │  (browser)   │
-                └──────────────┘  └─────────────────┘  └──────────────┘
+              ┌──────────┐                     ┌──────────┐
+              │  km-tui  │                     │  km-web  │
+              │  (shell) │                     │  (shell) │
+              └────┬─────┘                     └────┬─────┘
+                   │                                │
+              ┌────▼────────────────────────────────▼────┐
+              │              km-app (shared)              │
+              │    views, components, state, hooks        │
+              └──┬──────────────┬──────────────────┬─────┘
+                 │              │                   │
+   ┌─────────────▼┐  ┌─────────▼─────────┐  ┌─────▼──────────┐
+   │   termily    │  │  Shared Engine     │  │  react-dom     │
+   │   + flexily  │  │                    │  │  + CSS         │
+   │              │  │  docily   textily  │  │                │
+   │  (terminal)  │  │  runly             │  │  (browser)     │
+   └──────────────┘  └───────────────────┘  └────────────────┘
 ```
 
-Each app composes its platform renderer (left or right) with the shared engine (center). The renderers are **alternatives** — terminal swaps for web by replacing the left column with the right.
+The bulk of the application — views (Board, Outline, List), components (Card, Column, Dialog), state management, hooks — lives in a **shared app layer** (km-app). The platform shells (km-tui, km-web) are thin: entry point, platform-specific setup, and concrete rendering primitives. The renderers are **alternatives** — terminal swaps for web by replacing the left column with the right.
 
 ### The Five Packages
 
@@ -64,13 +70,13 @@ Everything needed to build a rich interactive application on any platform. Docum
 
 ### Platform Composition
 
-| Platform | Rendering | Editing | Runtime |
-|----------|-----------|---------|---------|
-| **Terminal** | termily + flexily | docily + textily | runly |
-| **Browser** | react-dom + CSS | docily + textily | runly |
-| **Native** | SwiftUI / Compose | docily + textily | runly (or native equivalent) |
+| Platform | App layer | Editing | Runtime | Rendering |
+|----------|-----------|---------|---------|-----------|
+| **Terminal** | km-app (shared) | docily + textily | runly | termily + flexily |
+| **Browser** | km-app (shared) | docily + textily | runly | react-dom + CSS |
+| **Native** | km-app (shared) | docily + textily | runly | SwiftUI / Compose |
 
-The swap is clean: replace **termily** with **react-dom + CSS**. Everything else — runly, docily, textily — is shared across platforms. The browser doesn't need flexily because CSS handles layout natively.
+The swap is clean: replace **termily** with **react-dom + CSS**. Everything else — km-app, runly, docily, textily — is shared across platforms. The browser doesn't need flexily because CSS handles layout natively.
 
 ---
 
@@ -426,30 +432,32 @@ flexily is a pure JavaScript flexbox layout engine. It already exists as beorn-f
 
 The web app is not a port of the terminal app — it's a **first-class creative tool** that happens to share the same editing engine. It should feel like Keynote or Figma in terms of interaction polish, not like a terminal emulator in a browser.
 
-The platform story is clean: **share runly + docily + textily, swap termily for react-dom + CSS**.
+The platform story: **share the app layer + engine, swap the renderer**.
 
 ```
-Terminal app                          Web app
-─────────────────                     ─────────────────
-km-tui                                km-web
-├── termily (React → cells → ANSI)    ├── react-dom (React → DOM)
-│   └── flexily (layout)              │   └── CSS (layout)
-├── docily (commands, tree, undo)     ├── docily ← SAME
-├── textily (cursor, selection)       ├── textily ← SAME
-└── runly (Elm runtime)               └── runly ← SAME
+                      Shared                  Platform-specific
+                      ──────                  ─────────────────
+km-app layer          views, components,      (none — fully shared)
+                      state, hooks
+
+Engine                docily, textily,        (none — fully shared)
+                      runly
+
+Rendering             (none)                  termily + flexily (terminal)
+                                              react-dom + CSS (browser)
 ```
 
-What changes:
-- **Rendering**: termily → react-dom. Box → div, Text → span. CSS handles layout, painting, diffing.
-- **Input**: termily's stdin parser → browser's KeyboardEvent + PointerEvent.
-- **EditContext**: termily's TerminalEditContext → Chrome's native EditContext (or Slate+contentEditable fallback).
-
-What stays the same:
-- **Document model** (docily): Same tree, same operations, same undo.
-- **Command system** (docily): Same keybindings, same command palette.
+What's shared (most of the code):
+- **App layer** (km-app): Views (Board, Outline, List), components (Card, Column, Dialog), state management, hooks, navigation logic. All platform-agnostic.
+- **Document model** (docily): Same tree, same operations, same undo, same command system.
 - **Text model** (textily): Same cursor math, same selection logic.
 - **Runtime** (runly): Same Elm architecture, same event processing.
-- **Views**: Board, Outline, List — same layout logic, different platform components.
+
+What changes per platform (thin shell):
+- **Rendering primitives**: termily's Box/Text → react-dom's div/span. CSS replaces flexily.
+- **Input**: termily's stdin parser → browser's KeyboardEvent + PointerEvent.
+- **EditContext**: termily's TerminalEditContext → Chrome's native EditContext (or Slate+contentEditable fallback).
+- **Entry point**: Terminal setup (raw mode, stdout) vs browser setup (DOM mount, CSS).
 
 ### Web-Specific Challenges
 
@@ -488,9 +496,9 @@ xterm.js as rendering surface. termily renders to xterm.js buffer instead of std
 
 ---
 
-## View Layer
+## View Layer (km-app, shared)
 
-Platform-specific visual representation. Thin — reads editor state, renders, dispatches commands.
+Views live in the shared app layer — they define **what** to render (structure, state, logic), while platform shells provide **how** (rendering primitives). A `<Card>` component's logic (title + body + badges + fold state) is shared; only the leaf rendering (Box vs div) differs per platform.
 
 | View | What it shows | How it maps to the document tree |
 |------|--------------|----------------------------------|
@@ -507,23 +515,27 @@ Platform-specific visual representation. Thin — reads editor state, renders, d
 ## Package Boundaries: Dependency Graph
 
 ```
-km-tui ──→ termily ──→ flexily
-  │            │
-  │            └──→ runly
+km-tui ──→ km-app ──→ docily ──→ runly
+  │           │
+  │           ├──→ textily (zero deps)
+  │           │
+  └──→ termily ──→ flexily
+           │
+           └──→ runly
+
+km-web ──→ km-app ──→ (same as above)
   │
-  ├──→ docily ──→ runly
-  │
-  └──→ textily (zero deps)
+  └──→ react-dom + CSS
 
 km-storage ──→ docily (implements DocumentStore)
-km-web (future) ──→ react-dom + docily + textily + runly
 ```
 
 **Key constraints:**
+- **km-app** is the shared application layer — views, components, state, hooks. Both shells depend on it.
 - textily has **zero dependencies** — standalone, usable anywhere
 - docily depends on runly but NOT on termily — platform-agnostic
 - termily depends on runly and flexily but NOT on docily — rendering is independent of editing
-- The app (km-tui, km-web) wires the two systems together
+- The thin shells (km-tui, km-web) wire km-app to their platform renderer
 
 **The rule**: If another app could use it, it goes in a named package. If it's km-specific, it stays in `km-*`.
 
@@ -570,6 +582,7 @@ For detailed comparisons of browser-only editors, see [Lexical vs Slate vs Prose
 | **Text editing done right** | EditContext alignment means native input system per platform. |
 | **CRDT-native** | Operations-based model means collaboration is built in, not bolted on. |
 | **Lazy loading at core** | ID + parentId model with lazy DocumentStore. Handles drive-scale. |
+| **Maximal code sharing** | Views, components, state, and hooks are shared across platforms. Only rendering primitives differ. |
 | **Incremental adoption** | Each package independently useful. Mix and match. |
 | **Pure-functional testing** | Elm-style runtime enables deterministic replay and time-travel debugging on any platform — opt in where it helps. |
 
