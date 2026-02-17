@@ -25,7 +25,7 @@ The terminal app proves the engine works under the tightest constraints (fixed-w
 
 ## Architecture
 
-The architecture has three layers: **thin platform shells** at the top, a **shared app layer** in the middle, and **five engine packages** at the bottom — organized as two parallel systems (terminal rendering + editing framework) bridged by a shared Elm-style runtime (pure-functional state management where all transitions are explicit functions of `(state, event) → newState`).
+The architecture has three layers: **thin platform shells** at the top, a **shared app layer** in the middle, and **five engine packages** at the bottom — organized as two parallel systems (terminal rendering + editing framework) bridged by a shared runtime.
 
 ```
    ┌──────────┐                                    ┌──────────┐
@@ -53,7 +53,7 @@ The bulk of the application — state management, hooks, business logic, data tr
 
 | Package | Role | Dependencies | Platform-specific? |
 |---------|------|-------------|-------------------|
-| **runly** | Elm-style functional reactive runtime | None | No — shared |
+| **runly** | Shared runtime: event loop, state management, run modes | None | No — shared |
 | **docily** | App foundation: document model, command system, undo/CRDT¹, plugin composition | runly | No — shared |
 | **textily** | Rich text model: cursor, selection, formatting | None (zero deps) | No — shared |
 | **termily** | Terminal: React renderer + components + cell buffer + ANSI diff | runly, flexily | Yes — terminal only |
@@ -69,7 +69,7 @@ Everything needed to put pixels on a terminal screen. React reconciler, Box/Text
 **System 2: Editing Framework** (docily + textily)
 Everything needed to build a rich interactive application on any platform. Document tree with operations, command system (keyboard, mouse, touch, programmatic), undo/redo, plugin composition, CRDT-ready mutations. Textily handles the text model (cursor, selection, wrap-aware navigation) with zero dependencies.
 
-**runly** bridges both — it's the Elm-style runtime that powers both docily's event processing and termily's render loop. **km-app** sits above both systems, using the editing framework for state/logic and the platform renderer for display.
+**runly** bridges both — it powers both docily's event processing and termily's render loop. **km-app** sits above both systems, using the editing framework for state/logic and the platform renderer for display.
 
 ---
 
@@ -83,7 +83,7 @@ The web app is not a port of the terminal app — it's a **first-class creative 
 |-------|----------|-----|---------|
 | **App** — state, hooks, logic, views | km-app | km-app | **Yes — identical** |
 | **Editing** — document model, commands, undo | docily + textily | docily + textily | **Yes — identical** |
-| **Runtime** — event loop, state management | runly | runly | **Yes — identical** |
+| **Runtime** — event loop, run modes | runly | runly | **Yes — identical** |
 | **Rendering** — primitives, layout, output | termily + flexily | react-dom + CSS | No — swapped |
 | **Input** — event parsing | stdin/ANSI | KeyboardEvent/PointerEvent | No — swapped |
 | **Shell** — entry point, platform setup | km-tui | km-web | No — thin, per-platform |
@@ -137,43 +137,11 @@ The interaction *logic* (what drag-and-drop means, what reordering does to the d
 
 ## Package Details
 
-### runly: Elm Runtime
+### runly: Shared Runtime
 
-runly provides an Elm-style functional reactive runtime: init/update/view cycle, event streams (using JavaScript's `AsyncIterable` protocol — events are processed as async sequences), and multiple run modes. It's not an all-or-nothing commitment — **an app chooses its primary runtime style** and can **drop into Elm-style for specific subsystems or tests**.
+runly is the event loop and state management layer shared by both systems. It provides event stream processing (using JavaScript's `AsyncIterable` protocol), multiple run modes (terminal, browser, headless for testing, worker), and an optional Elm-style pure-functional state management pattern. It's not an all-or-nothing commitment — an app can drop into Elm-style for specific subsystems or tests.
 
-**Three conceptual layers:**
-
-```typescript
-// Layer 1: Elm — pure functional, event-sourced
-interface ElmApp<Model, Msg> {
-  init: () => [Model, Cmd<Msg>]
-  update: (msg: Msg, model: Model) => [Model, Cmd<Msg>]
-  view: (model: Model) => View
-  subscriptions: (model: Model) => Sub<Msg>
-}
-
-// Layer 2: React — component rendering (pluggable)
-// termily: custom fiber reconciler → cell buffer
-// browser: react-dom → DOM
-// test: virtual buffer → assertions
-
-// Layer 3: Zustand — mutable store for performance-critical paths
-// Layout cache, scroll position, cursor blink state
-// Derived from Elm model, but mutable for 60fps
-```
-
-**Zustand boundary rule**: The mutable store is strictly for **read-only derived caches** (layout measurements, scroll position, cursor blink) that don't initiate logic. All state transitions flow through Elm's update function. If Zustand state starts driving logic, the architecture's predictability guarantees erode.
-
-**Run modes:** Terminal (termily → stdout), Headless (virtual buffer for testing), Browser (react-dom → DOM), Worker (no rendering).
-
-**Why Elm-style matters** — valuable for any event-driven application with complex state:
-
-- **Predictable state**: Every state transition is a pure function. No hidden mutations, no race conditions.
-- **Time-travel debugging**: The message log IS the debug history. Replay any sequence.
-- **Explicit data flow**: All events — keyboard, mouse, network, timers — funnel through the same update pipeline.
-- **Testability**: Pure functions need no mocking or setup. An app that primarily uses React can still use Elm-style for testing.
-
-These benefits apply equally to a terminal TUI, a web SPA, a collaboration server, or a background processor. The Elm runtime is not tied to any UI paradigm.
+See [Appendix: The Elm Runtime](#the-elm-runtime) for the detailed Elm architecture (init/update/view cycle, Zustand boundary rule, why it matters).
 
 ### docily: App Foundation
 
@@ -515,7 +483,7 @@ For detailed comparisons of browser-only editors, see [Lexical vs Slate vs Prose
 | **CRDT-native** | Operations-based model means collaboration is built in, not bolted on. |
 | **Lazy loading at core** | ID + parentId model with lazy DocumentStore. Handles drive-scale. |
 | **Incremental adoption** | Each package independently useful. Mix and match. |
-| **Pure-functional testing** | Elm-style runtime enables deterministic replay and time-travel debugging — opt in where it helps. |
+| **Pure-functional testing** | runly's Elm-style mode enables deterministic replay and time-travel debugging — opt in where it helps. |
 
 | Disadvantage | Mitigation |
 |--------------|------------|
@@ -535,7 +503,7 @@ For detailed comparisons of browser-only editors, see [Lexical vs Slate vs Prose
 
 ### Phase B — Extract packages
 1. **textily**: Extract `text-cursor.ts` from inkx. Implement `TerminalEditContext`, `TextOp` with `invertOp()`, `useEditContext()` hook. Refactor TextArea to use EditContext internally. Tests: 50+ covering EditContext methods + events + text operations.
-2. **runly**: Extract Elm runtime (init/update/view), AsyncIterable event streams, run modes. Extract React reconciler abstraction (renderer-agnostic parts). Tests: Elm cycle, event streams, run modes.
+2. **runly**: Extract runtime (event loop, state management), event streams, run modes. Extract React reconciler abstraction (renderer-agnostic parts). Tests: event streams, run modes, state cycle.
 3. **docily**: Extract command system from km-commands. Define `DocNode`, `DocumentStore`, `DocCursor`, `DocSelection` interfaces. Implement `DocOperation` types with invertibility, `UndoManager`, `DocumentEditor`. Extract plugin composition. Adapter: `DocumentStore` over existing km `Repo`. Tests: Full CRUD + undo/redo + cross-block navigation + commands, all without rendering.
 4. **termily**: Everything remaining in inkx — cell buffer, ANSI diff, dirty tracking, stdin parser, terminal detection. Components: Box, Text, VirtualList, ScrollView. flexily integration. Tests: Existing inkx rendering tests.
 5. **flexily**: Rename beorn-flexx (already standalone).
@@ -629,13 +597,50 @@ Extracting packages from an ~80K-line monolith and building a shared app layer h
 - [Lexical vs Slate vs ProseMirror: Architecture](https://jkrsp.com/blog/lexical-vs-slate-vs-prosemirror-architecture/) — detailed comparison of browser-only editor architectures, plugin systems, and React integration
 - [Lexical design discussion (Hacker News)](https://news.ycombinator.com/item?id=31018746) — DOM reconciliation, selection management, accessibility
 - [Why developers give up on CRDT (Velt)](https://velt.dev/blog/implementing-crdts-why-developers-give-up-real-time-editing) — tombstone bloat, sequence identifiers, cursor syncing
-- [The Elm Architecture: strengths and pitfalls](https://gist.github.com/chexxor/23ccf35add7dbdd33ecdd26888663140) — pure update/view benefits and DOM input issues
 - [W3C EditContext API](https://developer.mozilla.org/en-US/docs/Web/API/EditContext) — custom text editing surfaces without contentEditable
 - [Ink: React for CLI](https://github.com/vadimdemedes/ink) — React-style components and flex layout in terminals (termily's spiritual ancestor)
 
 ---
 
-## Appendix: Current State & Extraction
+## Appendix
+
+### The Elm Runtime
+
+runly internally uses an [Elm-style architecture](https://gist.github.com/chexxor/23ccf35add7dbdd33ecdd26888663140) — pure-functional state management where all transitions are explicit functions of `(state, event) → newState`.
+
+**Three conceptual layers:**
+
+```typescript
+// Layer 1: Elm — pure functional, event-sourced
+interface ElmApp<Model, Msg> {
+  init: () => [Model, Cmd<Msg>]
+  update: (msg: Msg, model: Model) => [Model, Cmd<Msg>]
+  view: (model: Model) => View
+  subscriptions: (model: Model) => Sub<Msg>
+}
+
+// Layer 2: React — component rendering (pluggable)
+// termily: custom fiber reconciler → cell buffer
+// browser: react-dom → DOM
+// test: virtual buffer → assertions
+
+// Layer 3: Zustand — mutable store for performance-critical paths
+// Layout cache, scroll position, cursor blink state
+// Derived from Elm model, but mutable for 60fps
+```
+
+**Zustand boundary rule**: The mutable store is strictly for **read-only derived caches** (layout measurements, scroll position, cursor blink) that don't initiate logic. All state transitions flow through Elm's update function. If Zustand state starts driving logic, the architecture's predictability guarantees erode.
+
+**Why Elm-style matters** — valuable for any event-driven application with complex state:
+
+- **Predictable state**: Every state transition is a pure function. No hidden mutations, no race conditions.
+- **Time-travel debugging**: The message log IS the debug history. Replay any sequence.
+- **Explicit data flow**: All events — keyboard, mouse, network, timers — funnel through the same update pipeline.
+- **Testability**: Pure functions need no mocking or setup. An app that primarily uses React can still use Elm-style for testing.
+
+These benefits apply equally to a terminal TUI, a web SPA, a collaboration server, or a background processor.
+
+### Current State & Extraction
 
 km-specific details for the package extraction. These reference the current codebase and will be outdated once the extraction is complete.
 
