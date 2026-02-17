@@ -1203,7 +1203,7 @@ export function testEnv(
       return board
     },
   }
-  return { board, repo, registry, toastQueue }
+  return { board, repo, registry, toastQueue, store }
 }
 
 /**
