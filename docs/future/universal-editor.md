@@ -161,6 +161,7 @@ docily is more than a "document editor" — it's the **foundation for rich inter
 - **Schema validation** (optional plugin): Rules for valid parent/child relationships. Not baked into core — apps opt in. Especially valuable for collaborative editing where remote ops could create inconsistent structures.
 - **Cross-block navigation**: Tree-aware cursor movement across nodes
 - **Selection model**: Single node, multi-node, range — all ID-based
+- **Clipboard**: Serialize/deserialize selections for copy-paste. docily provides the data (selected nodes as structured data + plain text); the platform shell handles the actual clipboard API (web: Clipboard API with rich payloads; terminal: bracketed paste mode for input, OSC 52 for output)
 
 #### Document Model — ID-Based, Lazy-Loaded, Dual Paths
 
@@ -201,14 +202,16 @@ interface DocumentStore {
 }
 ```
 
-**Platform storage implementations:**
+**DocumentStore is a swappable interface** — the backing store is an implementation detail. Different platforms and use cases plug in different backends:
 
-| Platform | Implementation | Backing store |
-|----------|---------------|---------------|
-| Terminal | Adapter over `Repo` (existing) | SQLite + markdown files |
-| Browser | IndexedDB wrapper | IndexedDB / OPFS |
-| Native | Platform wrapper | CloudKit / Room / Core Data |
-| Collaborative | CRDT adapter | Automerge / Yjs |
+| Implementation | Backing store | Sync/async |
+|---------------|---------------|------------|
+| Adapter over `Repo` (existing) | SQLite + markdown files | Sync |
+| IndexedDB wrapper | IndexedDB / OPFS | Async (or sync via WASM SQLite in worker) |
+| CRDT adapter | Automerge / Yjs + CAS + search index | Async |
+| Platform wrapper | CloudKit / Room / Core Data | Async |
+
+Some backends are inherently async (IndexedDB, network-backed CRDTs). The interface returns synchronous values, which means async implementations must either pre-load data into memory or use a synchronous bridge (e.g., WASM SQLite with OPFS). The app layer should be designed so that navigating to an unloaded subtree triggers a load + re-render, not a blocking call.
 
 #### Cursor & Selection
 
@@ -270,6 +273,10 @@ interface UndoManager {
 CRDT is **easy but not required**. The DocumentStore interface has a CRDT-backed implementation as one option alongside SQLite, IndexedDB, etc. Apps that don't need collaboration never import the CRDT adapter.
 
 **Important**: The ops as defined above lack the unique identifiers and timestamps needed for multi-user conflict resolution. The CRDT library (Yjs/Automerge) provides those — our ops translate to CRDT ops at the adapter boundary, not the other way around. See [Velt's analysis](https://velt.dev/blog/implementing-crdts-why-developers-give-up-real-time-editing) for why rolling your own is inadvisable.
+
+**Collaborative undo**: When backed by a CRDT, undo delegates to the CRDT system's undo mechanism (e.g., Yjs's `UndoManager` with per-user origin scoping, or Slate.js-style delegation). Our local UndoManager handles single-user mode; the CRDT adapter replaces it with the CRDT's own undo when collaboration is active. This keeps the complexity in the CRDT library where it belongs.
+
+**Concurrent tree moves**: If two users move the same node to different parents simultaneously, the CRDT must resolve this deterministically. Yjs and Automerge handle this at the sequence level, but tree moves (delete from one parent's children + insert into another's) need to be treated as atomic to avoid node duplication. The CRDT adapter must ensure `node.move` translates to an atomic CRDT operation, not two independent ops.
 
 **Scale**: For a drive with 1M nodes, undo only stores the operations performed this session. Old operations can be compacted/pruned — the document store is the source of truth.
 
@@ -554,6 +561,10 @@ Extracting packages from an ~80K-line monolith and building a shared app layer h
 10. **docily vs km-commands**: How much of the existing command system is reusable vs km-specific? Keybindings are reusable, but command implementations may reference km types.
 11. **Schema validation scope**: Minimal (parent/child type rules) or rich (ProseMirror-style content expressions)? Plugin or core?
 12. **Package naming finality**: runly/docily/textily/termily/flexily are tentative — all available on npm. Final decision tracked in `km-infra.vendor-rename`.
+13. **DocumentStore async strategy**: Some backends (IndexedDB, CRDT) are inherently async. How does the app layer handle navigating to an unloaded subtree? Pre-load into memory? Suspense-style loading boundaries? WASM SQLite in a worker for sync access?
+14. **Clipboard format**: What structured format for clipboard data? JSON representation of node subtrees? How to handle paste from external sources (HTML, markdown, plain text)? Conversion pipeline?
+15. **Concurrent tree moves in CRDT**: `node.move` must be atomic at the CRDT level to avoid node duplication. Does the chosen CRDT library support move as a primitive, or do we need a higher-level protocol?
+16. **Data migration**: Existing SQLite schema may need changes during extraction. Migration plan for existing users' data?
 
 ---
 
