@@ -1,4 +1,4 @@
-# Universal Structured Document Editor - Spec
+# Universal Editing Platform - Spec
 
 **Status:** Design
 **Bead:** km-all.universal-editor
@@ -6,13 +6,20 @@
 
 ## Vision
 
-A platform-agnostic structured document editor where the editing logic, document model, and command system are pure TypeScript with zero platform dependencies. Rendering, input, and text editing surfaces are swappable adapters. The same app runs in a terminal, a browser, or a native app — not by emulating one in another, but by sharing the core and swapping the platform layer.
+We're building two things:
+
+1. **A rich TUI app** — a fast, keyboard-driven workspace for knowledge workers in the terminal
+2. **A rich web app** — at creative-tools polish level (think Keynote, not "web port"), with the visual quality and interaction design that implies
+
+Both are first-class targets. The shared foundation is a **great text + node editing engine** that works across platforms — the same document model, commands, undo, and text editing logic powering both apps. Not by emulating one platform in another, but by sharing the core and using each platform's native rendering.
 
 km already has the seed: an id-based tree model, a command system decoupled from rendering, lazy-loadable SQLite storage, and multiple views (board, outline, list). The gap is that these layers aren't cleanly separated — editing is coupled to inkx (terminal), and the board logic is tangled with view code. This design untangles them.
 
 ### Why This Matters Beyond km
 
-A clean platform-agnostic editor core could become a foundation that other tools build on. Think of how ProseMirror became the basis for Notion, Atlassian, and dozens of other editors — but ProseMirror is browser-only. A truly platform-agnostic equivalent doesn't exist yet. The W3C EditContext API is the attempt to decouple text editing from the browser DOM; we extend that idea to decouple the *entire* structured editing stack from any platform.
+A clean platform-agnostic editing engine could become a foundation that other tools build on. Think of how ProseMirror became the basis for Notion, Atlassian, and dozens of other editors — but ProseMirror is browser-only. A truly platform-agnostic equivalent doesn't exist yet. The W3C EditContext API decouples text editing from the browser DOM; we extend that idea to decouple the *entire* structured editing stack from any platform.
+
+The terminal app proves the engine works under the tightest constraints (fixed-width grid, no mouse, no layout engine). The web app proves it scales to rich, visual, creative-tools-quality experiences. If the same engine powers both, it's robust enough for anything in between.
 
 ---
 
@@ -21,40 +28,19 @@ A clean platform-agnostic editor core could become a foundation that other tools
 The architecture is organized as **five independent packages** forming **two parallel systems** plus a shared runtime:
 
 ```
-                    ┌─────────────────────────────────┐
-                    │           km app                 │
-                    │  (views, node types, keybinds)   │
-                    └───────┬─────────────┬───────────┘
-                            │             │
-              ┌─────────────┘             └──────────────┐
-              │                                          │
-    ┌─────────▼──────────┐                 ┌─────────────▼──────────┐
-    │  System 1:         │                 │  System 2:             │
-    │  Terminal Rendering │                 │  Editing Framework     │
-    │                    │                 │                        │
-    │  ┌──────────────┐  │                 │  ┌──────────────────┐  │
-    │  │   termily    │  │                 │  │     docily       │  │
-    │  │  React term  │  │                 │  │  app foundation  │  │
-    │  │  renderer +  │  │                 │  │  commands, undo  │  │
-    │  │  components  │  │                 │  │  plugins, tree   │  │
-    │  └──────┬───────┘  │                 │  └────────┬─────────┘  │
-    │         │          │                 │           │            │
-    │  ┌──────▼───────┐  │                 │  ┌────────▼─────────┐  │
-    │  │   flexily    │  │                 │  │    textily       │  │
-    │  │  standalone  │  │                 │  │  rich text model │  │
-    │  │  flexbox     │  │                 │  │  zero deps       │  │
-    │  └──────────────┘  │                 │  └──────────────────┘  │
-    └────────────────────┘                 └────────────────────────┘
-              │                                          │
-              └──────────────┬───────────────────────────┘
-                             │
-                    ┌────────▼─────────┐
-                    │      runly       │
-                    │  Elm runtime     │
-                    │  (shared by      │
-                    │   both systems)  │
-                    └──────────────────┘
+                           ┌──────────┐       ┌──────────┐
+                           │  km-tui  │       │  km-web  │
+                           └──┬────┬──┘       └──┬────┬──┘
+                              │    │              │    │
+                ┌─────────────▼┐  ┌▼──────────────▼┐  ┌▼─────────────┐
+                │   termily    │  │ Shared Engine   │  │  react-dom   │
+                │   + flexily  │  │                 │  │  + CSS       │
+                │              │  │ docily  textily │  │              │
+                │  (terminal)  │  │ runly           │  │  (browser)   │
+                └──────────────┘  └─────────────────┘  └──────────────┘
 ```
+
+Each app composes its platform renderer (left or right) with the shared engine (center). The renderers are **alternatives** — terminal swaps for web by replacing the left column with the right.
 
 ### The Five Packages
 
@@ -72,7 +58,7 @@ The architecture is organized as **five independent packages** forming **two par
 Everything needed to put pixels on a terminal screen. React reconciler, Box/Text/VirtualList components, cell buffer, dirty tracking, ANSI diff output, stdin input parsing, terminal detection. Flexily provides the layout algorithm since terminals have no native layout engine.
 
 **System 2: Editing Framework** (docily + textily)
-Everything needed to build a rich keyboard-driven application on any platform. Document tree with operations, command system with keybindings, undo/redo, plugin composition, CRDT-ready mutations. Textily handles the text model (cursor, selection, wrap-aware navigation) with zero dependencies.
+Everything needed to build a rich interactive application on any platform. Document tree with operations, command system (keyboard, mouse, touch, programmatic), undo/redo, plugin composition, CRDT-ready mutations. Textily handles the text model (cursor, selection, wrap-aware navigation) with zero dependencies.
 
 **runly** bridges both — it's the Elm-style runtime that powers both docily's event processing and termily's render loop.
 
@@ -177,7 +163,7 @@ These benefits apply equally to a terminal TUI, a web SPA, a real-time collabora
 
 ## docily: App Foundation
 
-docily is more than a "document editor" — it's the **foundation for rich keyboard-driven applications**. Any app with a tree of editable items, a command palette, keybindings, and undo/redo can build on docily.
+docily is more than a "document editor" — it's the **foundation for rich interactive applications**. Any app with a tree of editable items, a command palette, keybindings, and undo/redo can build on docily.
 
 ### What docily provides
 
@@ -438,7 +424,9 @@ flexily is a pure JavaScript flexbox layout engine. It already exists as beorn-f
 
 ## The Web Story
 
-The web platform story is clean: **share runly + docily + textily, swap termily for react-dom + CSS**.
+The web app is not a port of the terminal app — it's a **first-class creative tool** that happens to share the same editing engine. It should feel like Keynote or Figma in terms of interaction polish, not like a terminal emulator in a browser.
+
+The platform story is clean: **share runly + docily + textily, swap termily for react-dom + CSS**.
 
 ```
 Terminal app                          Web app
@@ -480,6 +468,19 @@ What stays the same:
 - **Virtual scroll on web**: Terminal viewport is fixed-height (terminal rows). Web viewport is variable-height with proportional fonts. Measuring element heights requires DOM access. The virtual scroll plugin needs a platform-specific measurement strategy — termily can compute wrap from column width, web must measure via `getBoundingClientRect`.
 
 - **runly ↔ React DOM integration**: How does runly's event loop coexist with React's scheduler? Options: (a) runly drives everything, calling `ReactDOM.render` on each view cycle; (b) React drives rendering, runly is a state store subscribed to via hooks; (c) hybrid. Needs prototyping to find the right integration point.
+
+### Web-Specific Opportunities
+
+Creative-tools-level polish means the web app can go far beyond what the terminal offers:
+
+- **Rich typography**: Variable fonts, sizes, weights. Headings that look like headings. Inline formatting with visual fidelity.
+- **Animations and transitions**: Smooth card reordering, view transitions, expand/collapse. CSS transitions and the Web Animations API.
+- **Drag-and-drop**: Reorder cards, move between columns, drag files in. The Drag and Drop API plus pointer events for custom interactions.
+- **Rich media**: Embedded images, videos, code blocks with syntax highlighting, LaTeX rendering. Nodes can render arbitrary web content.
+- **Spatial layout**: Board view with variable-width columns, zoom levels, minimap. The browser's 2D rendering capabilities far exceed a character grid.
+- **Collaboration UI**: Presence indicators, remote cursors with names/colors, conflict resolution dialogs. All visual chrome that doesn't exist in terminal.
+
+These are km-web concerns, not docily concerns — they live in the app layer. docily provides the data model and operations; the web app provides the visual richness.
 
 ### Terminal-in-Browser (hybrid)
 
@@ -539,9 +540,9 @@ km-web (future) ──→ react-dom + docily + textily + runly
 | **Notion** | ID-based blocks | Browser only (Electron) | No | Yes (API-loaded) | Custom OT |
 | **Obsidian** | File-based | Browser (Electron) | No | Partial | No |
 | **Automerge** | CRDT document | Any | No | No | **Yes** |
-| **Ours** | **ID-based, parentId/idx** | **Terminal + Browser + Native** | **Yes (aligned)** | **Yes (DocumentStore)** | **Yes (ops = CRDT ops)** |
+| **Ours** | **ID-based, parentId/idx** | **Terminal + Browser + Native** | **Yes (aligned)** | **Yes (DocumentStore)** | **Yes (via Yjs/Automerge)** |
 
-The unique combination: ID-based model (like Notion's blocks) + EditContext alignment (like the W3C standard) + platform agnostic (no one else) + lazy loading + operations that are CRDT operations from day one.
+The unique combination: ID-based model (like Notion's blocks) + EditContext alignment (like the W3C standard) + truly platform agnostic (terminal AND creative-tools-level web) + lazy loading + CRDT integration via Yjs/Automerge. No existing editing framework targets both a terminal TUI and a rich web app.
 
 For detailed comparisons of browser-only editors, see [Lexical vs Slate vs ProseMirror: Architecture](https://jkrsp.com/blog/lexical-vs-slate-vs-prosemirror-architecture/) — all three are tightly coupled to the browser DOM, which is exactly what this architecture avoids.
 
@@ -570,7 +571,7 @@ For detailed comparisons of browser-only editors, see [Lexical vs Slate vs Prose
 | **CRDT-native** | Operations-based model means collaboration is built in, not bolted on. |
 | **Lazy loading at core** | ID + parentId model with lazy DocumentStore. Handles drive-scale. |
 | **Incremental adoption** | Each package independently useful. Mix and match. |
-| **Elm runtime on web too** | Functional reactive programming benefits aren't terminal-specific. |
+| **Pure-functional testing** | Elm-style runtime enables deterministic replay and time-travel debugging on any platform — opt in where it helps. |
 
 ### Cons
 
@@ -599,48 +600,7 @@ For detailed comparisons of browser-only editors, see [Lexical vs Slate vs Prose
 
 **React Native/Flutter**: Ship to many platforms quickly with acceptable quality. Great for UI-centric apps.
 
-**Our approach**: Ship to terminal first with excellent quality, then expand. Great for apps where the *editing engine* is the product. We're building ProseMirror-for-any-platform, not Instagram-for-any-platform.
-
----
-
-## Current Codebase: What Exists
-
-### Already Built (extraction candidates)
-
-| Component | Location | Lines | Destination |
-|-----------|----------|-------|-------------|
-| `text-cursor.ts` | `vendor/beorn-inkx/src/text-cursor.ts` | 196 | textily (pure functions) |
-| `TextArea` | `vendor/beorn-inkx/src/components/TextArea.tsx` | 412 | textily + termily |
-| Elm runtime | `vendor/beorn-inkx/src/runtime/` | ~1500 | runly |
-| React reconciler | `vendor/beorn-inkx/src/reconciler/` | ~2000 | termily |
-| Cell buffer + diff | `vendor/beorn-inkx/src/output/` | ~1200 | termily |
-| Command system | `packages/km-commands/src/` | ~22K | docily |
-| `KNode` | `packages/km-core/src/types.ts` | 474 | docily (11 node types, ID+parentId) |
-| `Repo` | `packages/km-storage/src/` | 40+ files | km-storage (DocumentStore adapter) |
-| `board-actions.ts` | `apps/km-tui/src/board/board-actions.ts` | 1,380 | docily (111-case dispatch) |
-| Board actions (edit) | `apps/km-tui/src/board/board-actions-edit.ts` | 580 | docily |
-| Board actions (nav) | `apps/km-tui/src/board/board-actions-nav.ts` | 285 | docily |
-| Board actions (selection) | `apps/km-tui/src/board/board-actions-selection.ts` | 142 | docily |
-| Board actions (zoom) | `apps/km-tui/src/board/board-actions-zoom.ts` | 325 | docily |
-| Flexx layout | `vendor/beorn-flexx/` | ~3000 | flexily (standalone) |
-
-### Key Finding: No Slate.js
-
-The codebase has **no Slate.js dependency**. Text editing is entirely custom via the command-dispatch pattern and `blockEditTargetRef`. This simplifies the extraction — there's no Slate to remove.
-
----
-
-## What This Replaces
-
-| Current | Future | Why better |
-|---------|--------|-----------|
-| Custom text editing (blockEditTargetRef) | textily EditContext + factory | W3C-aligned, swappable implementations |
-| `KNode.children[]` arrays (in-memory tree) | docily ID + `parentId/parentIdx` queries | Lazy loading, CRDT-friendly, matches storage |
-| `board-actions.ts` (1,380-line switch) | docily DocumentEditor | Pure logic, testable without rendering |
-| inkx monolith (runtime + rendering + commands) | runly + termily + docily | Clean separation, web-portable |
-| inkx-only rendering | termily (terminal) or react-dom (web) | Same app on terminal + web + native |
-| Custom `wrapSegment` etc. | textily text-cursor (done!) | Standalone, tested, reusable |
-| Eager tree loading | docily DocumentStore lazy queries | Handles 100K+ node vaults |
+**Our approach**: Build a rich TUI app and a rich web app on the same editing engine. Terminal-first because it proves the engine works under the tightest constraints, then web at creative-tools polish level. We're building ProseMirror-for-any-platform, not Instagram-for-any-platform.
 
 ---
 
@@ -659,11 +619,12 @@ The codebase has **no Slate.js dependency**. Text editing is entirely custom via
 - Make km-tui import from the new packages instead of inline logic
 - **CRDT-ready from day one**: DocOperations as invertible ops mapping to Automerge/Yjs
 
-### Phase C — Browser Proof-of-Concept
+### Phase C — Web App
 - React DOM rendering of Board view using docily
 - textily with browser EditContext (Chrome) or Slate+contentEditable fallback
 - IndexedDB storage via DocumentStore adapter
 - Same docily + textily + runly, different rendering
+- Target: creative-tools-level polish — smooth interactions, rich visual design, mouse+keyboard
 
 ### Phase D — Collaboration (enabled by ops model)
 - CRDT-backed DocumentStore (Automerge/Yjs)
@@ -726,17 +687,18 @@ The codebase has **no Slate.js dependency**. Text editing is entirely custom via
 - Keep view-specific code (Board, Outline) in km-tui
 - Tests: Existing km-tui tests pass with new engine
 
-### MVP-6: Browser POC
+### MVP-6: Web App
 - React DOM rendering of Board view using docily
 - textily with browser EditContext (Chrome) or Slate+contentEditable fallback
 - IndexedDB `DocumentStore` adapter
-- Milestone: Same document, same commands, two platforms
+- Mouse/touch input, accessibility (ARIA), focus management
+- Milestone: Same document, same commands, creative-tools-level web experience
 
 ---
 
 ## Scale Considerations
 
-Targets **drive-scale** datasets — 100K+ nodes, GB+ of content:
+### Data scale — 100K+ nodes, GB+ of content
 
 - **No full-document snapshots**: Operations-only undo
 - **No eager loading**: DocumentStore queries always lazy
@@ -744,6 +706,13 @@ Targets **drive-scale** datasets — 100K+ nodes, GB+ of content:
 - **Streaming operations**: Append-only log, old operations pruned
 - **Content-addressable storage**: Large content stored by hash
 - **Partial sync**: CRDT sync is subtree-scoped
+
+### Visual scale — rich web app with many elements
+
+- **Virtual rendering**: Only render visible nodes (terminal: screen rows; web: viewport intersection)
+- **DOM budget**: Thousands of nodes visible simultaneously in board/outline views — need efficient reconciliation
+- **Animation performance**: CSS transitions and Web Animations API for card reordering, view switches — must not block the main thread
+- **Drag interactions**: Real-time pointer tracking during drag-and-drop at 60fps
 
 ---
 
@@ -788,3 +757,42 @@ Extracting five packages from an ~80K-line monolith has specific risks beyond no
 10. **Focus abstraction**: termily needs a focus management system (focusable elements, tab order, focus/blur events) that mirrors the browser's DOM focus model, so docily and views can use a unified focus API across platforms.
 11. **Schema validation scope**: How much structure to enforce? Minimal (parent/child type rules) or rich (ProseMirror-style content expressions)? Plugin or core?
 12. **Package naming finality**: runly/docily/textily/termily/flexily are tentative — all available on npm. Final decision tracked in `km-infra.vendor-rename`.
+
+---
+
+## Appendix: km Extraction Map
+
+km-specific details for the package extraction. These reference the current codebase and will be outdated once the extraction is complete.
+
+### Already Built (extraction candidates)
+
+| Component | Location | Lines | Destination |
+|-----------|----------|-------|-------------|
+| `text-cursor.ts` | `vendor/beorn-inkx/src/text-cursor.ts` | 196 | textily (pure functions) |
+| `TextArea` | `vendor/beorn-inkx/src/components/TextArea.tsx` | 412 | textily + termily |
+| Elm runtime | `vendor/beorn-inkx/src/runtime/` | ~1500 | runly |
+| React reconciler | `vendor/beorn-inkx/src/reconciler/` | ~2000 | termily |
+| Cell buffer + diff | `vendor/beorn-inkx/src/output/` | ~1200 | termily |
+| Command system | `packages/km-commands/src/` | ~22K | docily |
+| `KNode` | `packages/km-core/src/types.ts` | 474 | docily (11 node types, ID+parentId) |
+| `Repo` | `packages/km-storage/src/` | 40+ files | km-storage (DocumentStore adapter) |
+| `board-actions.ts` | `apps/km-tui/src/board/board-actions.ts` | 1,380 | docily (111-case dispatch) |
+| Board actions (edit) | `apps/km-tui/src/board/board-actions-edit.ts` | 580 | docily |
+| Board actions (nav) | `apps/km-tui/src/board/board-actions-nav.ts` | 285 | docily |
+| Board actions (selection) | `apps/km-tui/src/board/board-actions-selection.ts` | 142 | docily |
+| Board actions (zoom) | `apps/km-tui/src/board/board-actions-zoom.ts` | 325 | docily |
+| Flexx layout | `vendor/beorn-flexx/` | ~3000 | flexily (standalone) |
+
+**Key finding**: No Slate.js dependency. Text editing is entirely custom via the command-dispatch pattern and `blockEditTargetRef`. No Slate to remove.
+
+### What This Replaces
+
+| Current | Future | Why better |
+|---------|--------|-----------|
+| Custom text editing (blockEditTargetRef) | textily EditContext + factory | W3C-aligned, swappable implementations |
+| `KNode.children[]` arrays (in-memory tree) | docily ID + `parentId/parentIdx` queries | Lazy loading, CRDT-friendly, matches storage |
+| `board-actions.ts` (1,380-line switch) | docily DocumentEditor | Pure logic, testable without rendering |
+| inkx monolith (runtime + rendering + commands) | runly + termily + docily | Clean separation, web-portable |
+| inkx-only rendering | termily (terminal) or react-dom (web) | Same editing engine, native rendering per platform |
+| Custom `wrapSegment` etc. | textily text-cursor (done!) | Standalone, tested, reusable |
+| Eager tree loading | docily DocumentStore lazy queries | Handles 100K+ node vaults |
