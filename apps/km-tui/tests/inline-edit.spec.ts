@@ -916,3 +916,113 @@ describe("edit focus ring", () => {
     expect(boCell!.bg, "active body block should NOT have blueBright bg").not.toBe(12)
   })
 })
+
+// =============================================================================
+// Body Block Edit Display — P1 bug km-tui.edit-display
+// =============================================================================
+
+describe("body block edit display (km-tui.edit-display)", () => {
+  /**
+   * Regression: text typed during inline body block editing doesn't display.
+   * Characters ARE captured (saved to repo on confirm) but the rendered
+   * screen doesn't update to show them. Root cause: incremental rendering
+   * misses the update (0-byte diff patch).
+   */
+  test("typing in a body block card shows typed text on screen", () => {
+    const { board, repo } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.paragraph("See instructions."),
+            item("section1", item("task1")),
+          ),
+        ),
+      { columns: 60, rows: 20 },
+    )
+
+    // Body block should be the first card (virtual body card)
+    const screenshot0 = board.screenshot()
+    expect(screenshot0).toContain("See instructions.")
+
+    // Enter edit mode on the body block
+    board.press("Enter")
+
+    // Type characters — these go through the full pipeline:
+    // press → handleKey → command system → insertChar → forceRender → doRender
+    board.press("x")
+
+    // The typed text MUST appear on screen (not just in repo)
+    const screenshot1 = board.screenshot()
+    expect(screenshot1).toContain("See instructions.x")
+
+    // Type more characters
+    board.press("y")
+    board.press("z")
+
+    const screenshot2 = board.screenshot()
+    expect(screenshot2).toContain("See instructions.xyz")
+  })
+
+  test("typing in body block with incremental rendering matches fresh render", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.paragraph("Hello world"),
+            item("section1", item("task1")),
+          ),
+        ),
+      { columns: 60, rows: 20 },
+    )
+
+    // Enter edit mode on body block
+    board.press("Enter")
+
+    // Type a character
+    board.press("!")
+
+    // Verify incremental render matches a fresh render
+    board.expectIncrementalMatchesFresh()
+
+    // Type more
+    board.press("!")
+    board.expectIncrementalMatchesFresh()
+  })
+
+  test("typing in body block within a column (not root body) shows text", () => {
+    // This tests body blocks that appear inside a column's card list,
+    // not just at the root level virtual body column
+    const { board, repo } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.paragraph("Body content here"),
+            item("section1", item("task1")),
+          ),
+        ),
+      { columns: 60, rows: 20 },
+    )
+
+    // Navigate to body block and edit
+    board.press("Enter")
+
+    // Type and confirm
+    for (const c of "-ok") board.press(c)
+
+    // Confirm with Enter
+    board.press("Enter")
+
+    // Verify repo saved correctly
+    const node = repo.getNode("Body content here")
+    expect(node?.content).toContain("Body content here-ok")
+
+    // Verify screen shows the updated text
+    expect(board.screenshot()).toContain("Body content here-ok")
+  })
+})
