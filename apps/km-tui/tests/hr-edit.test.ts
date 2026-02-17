@@ -124,10 +124,12 @@ describe("HR editing", () => {
       { columns: 60, rows: 20 },
     )
 
-    // Before edit: HR should be borderless
+    // Move cursor away, then check HR is borderless when unselected
+    board.press("j")
     board.expectNodeNoBorder("my-hr")
 
-    // Enter edit mode
+    // Move back and enter edit mode
+    board.press("k")
     board.press("Enter")
 
     // During edit: HR should show as bordered card

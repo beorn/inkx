@@ -29,73 +29,44 @@ function hrWithContent(id: string, content: string): KNode[] {
 }
 
 describe("HR content-based detection", () => {
+  const hrContents = ["---", "***", "___", "-----"] as const
+
+  for (const content of hrContents) {
+    test(`HR content '${content}' renders as line, no border when unselected`, () => {
+      const { board } = testEnv(
+        () => item("board", item("Col", hrWithContent("hr-node", content), item("other"))),
+        { columns: 60, rows: 20 },
+      )
+      board.expectScreen("─")
+      board.press("j")
+      board.expectNodeNoBorder("hr-node")
+    })
+  }
+
   test("standard HR (type=hr, no content) renders as line", () => {
     const { board } = testEnv(
-      () => item("board", item("Col", item.hr("my-hr"))),
+      () => item("board", item("Col", item.hr("my-hr"), item("other"))),
       { columns: 60, rows: 20 },
     )
-    // HR should render with ─ characters
     board.expectScreen("─")
-    // HR should not have a card border
+    board.press("j")
     board.expectNodeNoBorder("my-hr")
   })
 
-  test("modified HR content '---f' does not render as HR line", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", hrWithContent("edited-hr", "---f"))),
-      { columns: 60, rows: 20 },
-    )
-    // With "---f" content (type="hr" from parse time), it should NOT render
-    // as an HR line — it should render as a normal bordered card
-    const text = stripAnsi(board.screenshot())
-    expect(text).toContain("---f")
-    // Should have a card border since it's not rendering as HR
-    board.expectNodeBorder("edited-hr")
-  })
+  const nonHrContents = [
+    { content: "---f", label: "modified HR" },
+    { content: "--- some text", label: "HR with trailing text" },
+  ] as const
 
-  test("three dashes content renders as HR", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", hrWithContent("hr-dashes", "---"))),
-      { columns: 60, rows: 20 },
-    )
-    board.expectScreen("─")
-    board.expectNodeNoBorder("hr-dashes")
-  })
-
-  test("asterisk HR (***) content renders as HR line", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", hrWithContent("hr-stars", "***"))),
-      { columns: 60, rows: 20 },
-    )
-    board.expectScreen("─")
-    board.expectNodeNoBorder("hr-stars")
-  })
-
-  test("underscore HR (___) content renders as HR line", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", hrWithContent("hr-under", "___"))),
-      { columns: 60, rows: 20 },
-    )
-    board.expectScreen("─")
-    board.expectNodeNoBorder("hr-under")
-  })
-
-  test("extended dashes (-----) still renders as HR", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", hrWithContent("hr-long", "-----"))),
-      { columns: 60, rows: 20 },
-    )
-    board.expectScreen("─")
-    board.expectNodeNoBorder("hr-long")
-  })
-
-  test("HR with trailing text does not render as line", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", hrWithContent("hr-text", "--- some text"))),
-      { columns: 60, rows: 20 },
-    )
-    const text = stripAnsi(board.screenshot())
-    expect(text).toContain("--- some text")
-    board.expectNodeBorder("hr-text")
-  })
+  for (const { content, label } of nonHrContents) {
+    test(`${label} '${content}' does not render as HR line`, () => {
+      const { board } = testEnv(
+        () => item("board", item("Col", hrWithContent("edited-hr", content), item("other"))),
+        { columns: 60, rows: 20 },
+      )
+      const text = stripAnsi(board.screenshot())
+      expect(text).toContain(content)
+      board.expectNodeBorder("edited-hr")
+    })
+  }
 })

@@ -59,6 +59,10 @@ interface CardProps {
   cardIndex: number
   /** True if this card is in a virtual body column (renders borderless) */
   isVirtualColumn?: boolean
+  /** True if the previous card is also a body block (for yield logic) */
+  isPrevBodyBlock?: boolean
+  /** True if this is the last body block before a structural card or end of column */
+  isLastBodyBlock?: boolean
   /** Additional sigils to exclude from card content (e.g., column-level sigils) */
   extraExcludedSigils?: string[]
 }
@@ -123,6 +127,8 @@ const Card = React.memo(
     colIndex,
     cardIndex,
     isVirtualColumn,
+    isPrevBodyBlock,
+    isLastBodyBlock,
     extraExcludedSigils,
   }: CardProps): React.ReactElement {
     const nodeId = card.node.id
@@ -130,6 +136,12 @@ const Card = React.memo(
     // Get selection state exclusively from CursorStore (self-subscription).
     // Only this card and the previously-selected card re-render on j/k.
     const isSelected = useIsCursorAtCard(colIndex, cardIndex)
+
+    // Check if the card ABOVE is at cursor position. Used by body blocks:
+    // yield paddingTop only when prev is a BODY block at cursor (not structural).
+    // Structural cards always have borders — their borderBottom doesn't change
+    // with cursor, so body blocks after them keep constant paddingTop=1.
+    const isPrevAtCursor = useIsCursorAtCard(colIndex, cardIndex - 1)
 
     // Check if this card is in inline edit mode (for border color)
     const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
@@ -162,11 +174,27 @@ const Card = React.memo(
     const hrContent = (card.node.content ?? (card.node.type === "hr" ? "---" : "")).trim()
     const isHR = /^(-{3,}|\*{3,}|_{3,})$/.test(hrContent)
     if (isHR && !isEditing) {
-      // Center HR content with spaces — no decorative line
-      const padTotal = Math.max(0, width - hrContent.length)
+      // HR uses the same layout system as body blocks for stability.
+      const showBorder = isSelected // only cursor block gets border
+      const yieldTop = isPrevBodyBlock && isPrevAtCursor
+      const innerWidth = width - 2 // border or padding L+R both consume 2
+      const padTotal = Math.max(0, innerWidth - hrContent.length)
       const padLeft = Math.floor(padTotal / 2)
       return (
-        <Box flexDirection="column" flexShrink={0} width={width} height={1}>
+        <Box
+          flexDirection="column"
+          flexShrink={0}
+          width={width}
+          {...(showBorder
+            ? { borderStyle: "round" as const, borderColor: "yellow" }
+            : {
+                paddingLeft: 1,
+                paddingRight: 1,
+                paddingTop: yieldTop ? 0 : 1,
+                paddingBottom: isLastBodyBlock ? 1 : 0,
+                ...(isMultiSelected ? { backgroundColor: "yellow" } : {}),
+              })}
+        >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
             id={nodeId}
@@ -189,14 +217,27 @@ const Card = React.memo(
       )
     }
 
-    // Body cards: full border when selected/editing, padding otherwise.
-    // paddingTop on unselected = 1 row of breathing room above content.
-    // borderTop replaces paddingTop when selected → content stays at same Y.
-    // borderBottom adds 1 row below (visual selection indicator).
-    // Gap between blocks = paddingTop of next block = exactly 1 line.
+    // Body cards: border when cursor/editing, padding otherwise.
+    // Layout stability invariant: cursoring must NOT shift content.
+    //
+    // How it works:
+    // - Middle body blocks: paddingTop=1, paddingBottom=0 → H+1
+    // - Last body block (before structural/end): paddingTop=1, paddingBottom=1 → H+2
+    // - Selected: border top+bottom → H+2
+    //
+    // When a middle block is selected (H+1 → H+2, +1), the next block
+    // yields its paddingTop (1→0, -1). Net: 0 shift.
+    // When the last body block is selected (H+2 → H+2). Net: 0 shift.
+    //
+    // Key: only yield paddingTop when prev is a BODY block at cursor.
+    // Structural cards always have borders, so their borderBottom is constant
+    // and body blocks after them keep paddingTop=1 regardless of cursor.
     if (isVirtualColumn || card.isVirtual) {
-      const showBorder = isSelected || isMultiSelected || isEditing
+      // Only the cursor block gets a border; multi-selected gets padding + yellow bg
+      const showBorder = isSelected || isEditing
       const bodyBorderColor = isEditing ? "cyan" : "yellow"
+      // Yield paddingTop only when prev is a body block at cursor (not structural)
+      const yieldTop = isPrevBodyBlock && isPrevAtCursor
       return (
         <Box
           flexDirection="column"
@@ -204,7 +245,13 @@ const Card = React.memo(
           width={width}
           {...(showBorder
             ? { borderStyle: "round" as const, borderColor: bodyBorderColor }
-            : { paddingLeft: 1, paddingRight: 1, paddingTop: 1 })}
+            : {
+                paddingLeft: 1,
+                paddingRight: 1,
+                paddingTop: yieldTop ? 0 : 1,
+                paddingBottom: isLastBodyBlock ? 1 : 0,
+                ...(isMultiSelected ? { backgroundColor: "yellow" } : {}),
+              })}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
@@ -303,6 +350,8 @@ const Card = React.memo(
       prev.width === next.width &&
       prev.colIndex === next.colIndex &&
       prev.cardIndex === next.cardIndex &&
+      prev.isPrevBodyBlock === next.isPrevBodyBlock &&
+      prev.isLastBodyBlock === next.isLastBodyBlock &&
       prev.extraExcludedSigils === next.extraExcludedSigils
     )
   },
@@ -439,11 +488,20 @@ export const Column = React.memo(function Column({
 
   // Stable renderItem callback — doesn't depend on cardIndex.
   // Cards get selection state from CursorStore self-subscription.
+  const cards = column.cards
   const renderItem = useCallback(
     (card: CardState, actualIndex: number) => {
       layoutLog.trace?.(
         `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
       )
+      // For body blocks: compute neighbor info for layout stability.
+      // Only yield paddingTop when prev is also a body block (not structural).
+      // Last body block before a structural card gets paddingBottom=1.
+      const isBody = isVirtual || card.isVirtual
+      const prevCard = actualIndex > 0 ? cards[actualIndex - 1] : undefined
+      const nextCard = actualIndex < cards.length - 1 ? cards[actualIndex + 1] : undefined
+      const isPrevBody = isVirtual || (prevCard?.isVirtual ?? false)
+      const isLastBody = isBody && (!nextCard || !(isVirtual || nextCard.isVirtual))
       return (
         <Card
           key={card.node.id}
@@ -453,11 +511,13 @@ export const Column = React.memo(function Column({
           colIndex={colIndex}
           cardIndex={actualIndex}
           isVirtualColumn={isVirtual}
+          isPrevBodyBlock={isPrevBody}
+          isLastBodyBlock={isLastBody}
           extraExcludedSigils={extraExcludedSigils}
         />
       )
     },
-    [colIndex, selectedSubIndex, width, isVirtual, extraExcludedSigils],
+    [colIndex, selectedSubIndex, width, isVirtual, cards, extraExcludedSigils],
   )
 
   const keyExtractor = useCallback((card: CardState) => card.node.id, [])

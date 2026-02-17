@@ -24,7 +24,7 @@ bd sync               # Sync with git
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
+   bd sync due:2026-02-16
    git push
    git status  # MUST show "up to date with origin"
    ```

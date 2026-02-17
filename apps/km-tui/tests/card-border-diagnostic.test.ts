@@ -349,3 +349,204 @@ describe("card border: edge cases", () => {
     }
   })
 })
+
+describe("layout stability invariant: body blocks", () => {
+  /**
+   * Helper: verify all content Y positions stay the same after navigating.
+   * Every body block occupies H+2 rows (padding=1+1 or border top+bottom),
+   * so cursoring never shifts content.
+   */
+  function assertStableYs(
+    board: ReturnType<typeof testEnv>["board"],
+    ids: string[],
+    initialYs: Record<string, number | null>,
+    label: string,
+  ) {
+    for (const id of ids) {
+      const box = board.screen.nodeBox(id)
+      const y = box ? box.y : null
+      if (initialYs[id] !== null && y !== null) {
+        expect(y, `${id} content Y should be stable ${label}`).toBe(initialYs[id])
+      }
+    }
+  }
+
+  function getYs(board: ReturnType<typeof testEnv>["board"], ids: string[]): Record<string, number | null> {
+    const ys: Record<string, number | null> = {}
+    for (const id of ids) {
+      const box = board.screen.nodeBox(id)
+      ys[id] = box ? box.y : null
+    }
+    return ys
+  }
+
+  test("content Y positions stable: pure body blocks", () => {
+    const ids = ["a", "b", "c", "d"]
+    const { board } = testEnv(
+      () => item("board", item("col", item("a"), item("b"), item("c"), item("d"))),
+      { columns: 80, rows: 40 },
+    )
+
+    const initialYs = getYs(board, ids)
+
+    // Navigate through all body blocks and back
+    for (let i = 0; i < 3; i++) {
+      board.press("j")
+      assertStableYs(board, ids, initialYs, `after ${i + 1}x j`)
+    }
+    for (let i = 0; i < 3; i++) {
+      board.press("k")
+      assertStableYs(board, ids, initialYs, `after ${i + 1}x k`)
+    }
+  })
+
+  test("content Y positions stable: body blocks followed by structural", () => {
+    // Body blocks come BEFORE structural (extractBody puts body first)
+    const ids = ["a", "b", "c", "s1"]
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col", item("a"), item("b"), item("c"), item.section("sec", item("s1"))),
+        ),
+      { columns: 80, rows: 40 },
+    )
+
+    const initialYs = getYs(board, ids)
+
+    // Navigate through body blocks into structural
+    board.press("j") // cursor on b
+    assertStableYs(board, ids, initialYs, "cursor on b")
+    board.press("j") // cursor on c
+    assertStableYs(board, ids, initialYs, "cursor on c")
+    board.press("j") // cursor on sec
+    assertStableYs(board, ids, initialYs, "cursor on sec")
+    board.press("k").press("k").press("k") // back to a
+    assertStableYs(board, ids, initialYs, "back on a")
+  })
+
+  test("total column height is constant across cursor moves", () => {
+    const ids = ["a", "b", "c", "d", "e"]
+    const { board } = testEnv(
+      () => item("board", item("col", item("a"), item("b"), item("c"), item("d"), item("e"))),
+      { columns: 80, rows: 50 },
+    )
+
+    function getLastBoxBottom(): number {
+      for (const id of [...ids].reverse()) {
+        const box = board.screen.nodeBox(id)
+        if (box) return box.y + box.height
+      }
+      return 0
+    }
+
+    const initialBottom = getLastBoxBottom()
+    expect(initialBottom, "should have visible content").toBeGreaterThan(0)
+
+    for (let i = 0; i < 4; i++) {
+      board.press("j")
+      expect(getLastBoxBottom(), `column bottom should be constant at cursor ${i + 1}`).toBe(initialBottom)
+    }
+    for (let i = 0; i < 4; i++) {
+      board.press("k")
+      expect(getLastBoxBottom(), `column bottom should be constant going back ${3 - i}`).toBe(initialBottom)
+    }
+  })
+
+  test("total height stable: body blocks then structural", () => {
+    // Realistic: body content (description, HR) followed by sections
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col", item("b1"), item("b2"), item("b3"), item.section("sec", item("s1"))),
+        ),
+      { columns: 80, rows: 50 },
+    )
+
+    function getLastBoxBottom(): number {
+      for (const id of ["s1", "b3", "b2", "b1"]) {
+        const box = board.screen.nodeBox(id)
+        if (box) return box.y + box.height
+      }
+      return 0
+    }
+
+    const initialBottom = getLastBoxBottom()
+    expect(initialBottom, "should have visible content").toBeGreaterThan(0)
+
+    for (let i = 0; i < 3; i++) {
+      board.press("j")
+      expect(getLastBoxBottom(), `height stable at cursor ${i + 1}`).toBe(initialBottom)
+    }
+    for (let i = 0; i < 3; i++) {
+      board.press("k")
+      expect(getLastBoxBottom(), `height stable going back ${2 - i}`).toBe(initialBottom)
+    }
+  })
+
+  test("content Y positions stable: body blocks with HR", () => {
+    const ids = ["a", "b", "c"]
+    const { board } = testEnv(
+      () => item("board", item("col", item("a"), item.hr("hr1"), item("b"), item.hr("hr2"), item("c"))),
+      { columns: 80, rows: 40 },
+    )
+
+    const initialYs = getYs(board, ids)
+
+    // Navigate through all cards including HRs
+    for (let i = 0; i < 4; i++) {
+      board.press("j")
+      assertStableYs(board, ids, initialYs, `after ${i + 1}x j`)
+    }
+    for (let i = 0; i < 4; i++) {
+      board.press("k")
+      assertStableYs(board, ids, initialYs, `after ${i + 1}x k`)
+    }
+  })
+
+  test("content Y positions stable: body blocks with HR (pure body column)", () => {
+    // Pure virtual column — all body blocks including HR
+    const ids = ["a", "b"]
+    const { board } = testEnv(
+      () => item("board", item("col", item("a"), item.hr("hr1"), item("b"))),
+      { columns: 80, rows: 40 },
+    )
+
+    const initialYs = getYs(board, ids)
+
+    board.press("j") // cursor on hr1
+    assertStableYs(board, ids, initialYs, "cursor on hr1")
+    board.press("j") // cursor on b
+    assertStableYs(board, ids, initialYs, "cursor on b")
+    board.press("k").press("k") // back to a
+    assertStableYs(board, ids, initialYs, "back on a")
+  })
+
+  test("content Y positions stable: body blocks before structural", () => {
+    // extractBody: body nodes BEFORE the first oi become body cards.
+    // Body nodes AFTER the first oi are treated as structural.
+    // This test verifies body blocks + structural in the same column.
+    const ids = ["a", "b", "s1"]
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col", item("a"), item.hr("hr1"), item("b"), item.section("sec", item("s1"))),
+        ),
+      { columns: 80, rows: 40 },
+    )
+
+    const initialYs = getYs(board, ids)
+
+    // Navigate through body blocks and into structural
+    board.press("j") // cursor on hr1
+    assertStableYs(board, ids, initialYs, "cursor on hr1")
+    board.press("j") // cursor on b
+    assertStableYs(board, ids, initialYs, "cursor on b")
+    board.press("j") // cursor on sec
+    assertStableYs(board, ids, initialYs, "cursor on sec")
+    board.press("k").press("k").press("k") // back to a
+    assertStableYs(board, ids, initialYs, "back on a")
+  })
+})

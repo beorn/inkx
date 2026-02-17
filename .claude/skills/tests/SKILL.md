@@ -129,11 +129,15 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | --------------- | ------------------------------- |
 | `.test.ts`      | Unit/component - core logic     |
 | `.spec.ts`      | TUI acceptance - user behavior  |
-| `.slow.test.ts` | Heavy integration - sync        |
+| `.slow.test.ts` | Heavy integration - sync, real vault |
+| `.bench.ts`     | Performance measurement (vitest bench) |
 | `.fuzz.ts`      | Fuzz + chaos tests (excluded from test:all) |
 | `.test.md`      | CLI commands via mdtest         |
 
-**Rule**: Tests taking >1s should be `.slow.test.ts`
+**Rules**:
+- Tests taking >5s should be `.slow.test.ts`
+- **Stress tests, large fixtures (100+ nodes), high iteration counts (100+), and performance measurements MUST be `.bench.ts`** — never `.test.ts` or `.slow.test.ts`. They run via `bun run bench`, not `test:all`.
+- Ad-hoc debugging tests that aren't evergreen regression guards should be deleted, not committed
 
 ---
 
