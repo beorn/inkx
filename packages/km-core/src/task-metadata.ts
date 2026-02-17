@@ -90,3 +90,75 @@ export function stringifyTaskMetadata(
   if (metadata.length > 0 && content) content += " " + metadata.join(" ")
   return content
 }
+
+// =============================================================================
+// Stripping regexes — match and remove metadata from text
+// =============================================================================
+
+/** Matches due:YYYY-MM-DD or due:YYYY-MM-DDTHH:MM */
+const STRIP_DUE = /\s*\bdue:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
+/** Matches start:YYYY-MM-DD or start:YYYY-MM-DDTHH:MM */
+const STRIP_START = /\s*\bstart:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
+/** Matches p:N (1-9) */
+const STRIP_PRIORITY = /\s*\bp:([1-9])\b/
+/** Matches recur:... (non-whitespace value) */
+const STRIP_RECURRENCE = /\s*\brecur:(\S+)/
+
+// =============================================================================
+// parseTaskMetadataFromText — inverse of stringify, for save handlers
+// =============================================================================
+
+/**
+ * Parse metadata tags from edited text and return clean content + field values.
+ * Inverse of stringifyTaskMetadata: strips due:, start:, p:, recur: from text.
+ *
+ * Used by TUI save handlers to restore structured fields from inline-edited text.
+ */
+export function parseTaskMetadataFromText(text: string): {
+  cleanContent: string
+  due_at?: string
+  start_at?: string
+  priority?: number
+  recurrence?: string
+} {
+  let clean = text
+  let due_at: string | undefined
+  let start_at: string | undefined
+  let priority: number | undefined
+  let recurrence: string | undefined
+
+  const dueMatch = clean.match(STRIP_DUE)
+  if (dueMatch) {
+    due_at = dueMatch[2] ? `${dueMatch[1]}T${dueMatch[2]}` : dueMatch[1]
+    clean = clean.replace(STRIP_DUE, "")
+  }
+
+  const startMatch = clean.match(STRIP_START)
+  if (startMatch) {
+    start_at = startMatch[2] ? `${startMatch[1]}T${startMatch[2]}` : startMatch[1]
+    clean = clean.replace(STRIP_START, "")
+  }
+
+  const prioMatch = clean.match(STRIP_PRIORITY)
+  if (prioMatch) {
+    priority = parseInt(prioMatch[1]!, 10)
+    clean = clean.replace(STRIP_PRIORITY, "")
+  }
+
+  const recurMatch = clean.match(STRIP_RECURRENCE)
+  if (recurMatch) {
+    recurrence = recurMatch[1]
+    clean = clean.replace(STRIP_RECURRENCE, "")
+  }
+
+  // Normalize whitespace after stripping
+  clean = clean.replace(/\s{2,}/g, " ").trim()
+
+  return {
+    cleanContent: clean,
+    ...(due_at !== undefined && { due_at }),
+    ...(start_at !== undefined && { start_at }),
+    ...(priority !== undefined && { priority }),
+    ...(recurrence !== undefined && { recurrence }),
+  }
+}

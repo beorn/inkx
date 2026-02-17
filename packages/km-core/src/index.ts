@@ -51,7 +51,7 @@ export { composeDatetime, decomposeDatetime, dateOnly, timeOnly } from "./date-u
 export type { DateParts } from "./date-utils.ts"
 
 // Task metadata stringify (shared between serializer and TUI editor)
-export { stringifyTaskMetadata } from "./task-metadata.ts"
+export { stringifyTaskMetadata, parseTaskMetadataFromText } from "./task-metadata.ts"
 
 // Query language parser (pure parsing, no DB)
 export {

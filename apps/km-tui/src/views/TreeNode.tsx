@@ -15,7 +15,7 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
-import { extractTitleTaskMarker, isTask, isBlock, stringifyTaskMetadata } from "@km/core"
+import { extractTitleTaskMarker, isTask, isBlock, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState, getParentContextEx as getParentContextExFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
@@ -323,28 +323,40 @@ function TreeNodeImpl({
   }, [isInlineEditing, childrenSourceId, resolvedGetChildren])
 
   // Title save callback (persists without exiting edit mode)
+  // Strips inline metadata (due:, start:, p:, recur:) from edited text and
+  // restores them as structured fields on the node.
   const handleTitleSave = useCallback(
     (newValue: string) => {
       const originalContent = displayNode.content ?? ""
       const { marker } = extractTitleTaskMarker(originalContent)
-      const newContent = marker != null ? `${marker} ${newValue}` : newValue
+      const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
+      const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
       undoHandle.setCursor(displayNode.id)
-      repo.updateNode(displayNode.id, { content: newContent })
+      repo.updateNode(displayNode.id, { content: newContent, ...metaFields })
     },
     [displayNode.id, displayNode.content, repo, undoHandle],
   )
 
-  // Inline edit callbacks — uses renameNode for backlink-safe renames
+  // Inline edit callbacks — uses renameNode for backlink-safe renames.
+  // Strips inline metadata (due:, start:, p:, recur:) from edited text and
+  // restores them as structured fields on the node.
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
       const originalContent = displayNode.content ?? ""
       const { marker } = extractTitleTaskMarker(originalContent)
-      const newContent = marker != null ? `${marker} ${newValue}` : newValue
+      const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
+      const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
+      const hasMetaUpdates = Object.keys(metaFields).length > 0
 
-      // No-op: value didn't change
-      if (newContent === originalContent) {
+      // No-op: value didn't change and no metadata to update
+      if (newContent === originalContent && !hasMetaUpdates) {
         setUI({ inlineEditBlock: null })
         return
+      }
+
+      // Update metadata fields if any were parsed from the edited text
+      if (hasMetaUpdates) {
+        repo.updateNode(displayNode.id, metaFields)
       }
 
       // Only do a full rename if name was already in sync with content (or unset).
@@ -356,12 +368,12 @@ function TreeNodeImpl({
       const oldContentName = originalContent.replace(/^- \[.\]\s*/, "")
       const nameMatchedContent = !oldName || oldName === oldContentName
 
-      if (nameMatchedContent) {
+      if (newContent !== originalContent && nameMatchedContent) {
         const impact = repo.getRenameImpact(displayNode.id)
         const s = impact.backlinks.length === 1 ? "" : "s"
 
         jobRunner.submit({
-          description: `Renaming '${oldName}' → '${newValue}'`,
+          description: `Renaming '${oldName}' → '${cleanContent}'`,
           impact: impact.backlinks.length > 0 ? `${impact.backlinks.length} backlink${s} will be updated` : "",
           countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
           execute: (onProgress) => {
@@ -371,7 +383,7 @@ function TreeNodeImpl({
             undoHandle.endBatch()
           },
         })
-      } else {
+      } else if (newContent !== originalContent) {
         // Name and content diverged — just update content, don't rename
         undoHandle.setCursor(displayNode.id)
         repo.updateNode(displayNode.id, { content: newContent })

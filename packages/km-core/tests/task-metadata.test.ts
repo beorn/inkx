@@ -5,7 +5,7 @@
  * metadata (both text and emoji forms) to avoid duplication.
  */
 import { describe, test, expect } from "vitest"
-import { stringifyTaskMetadata } from "../src/task-metadata.ts"
+import { stringifyTaskMetadata, parseTaskMetadataFromText } from "../src/task-metadata.ts"
 import type { KNode } from "../src/types.ts"
 
 function makeNode(overrides: Partial<KNode> = {}): KNode {
@@ -170,5 +170,92 @@ describe("stringifyTaskMetadata", () => {
       const node = makeNode({ content: "", due_at: "2025-03-15" })
       expect(stringifyTaskMetadata("", node)).toBe("")
     })
+  })
+})
+
+describe("parseTaskMetadataFromText", () => {
+  test("strips due date and returns clean content", () => {
+    const result = parseTaskMetadataFromText("Ideas due:2026-02-15")
+    expect(result.cleanContent).toBe("Ideas")
+    expect(result.due_at).toBe("2026-02-15")
+  })
+
+  test("strips due date with time", () => {
+    const result = parseTaskMetadataFromText("Meeting due:2026-02-15T14:30")
+    expect(result.cleanContent).toBe("Meeting")
+    expect(result.due_at).toBe("2026-02-15T14:30")
+  })
+
+  test("strips start date", () => {
+    const result = parseTaskMetadataFromText("Task start:2026-03-10")
+    expect(result.cleanContent).toBe("Task")
+    expect(result.start_at).toBe("2026-03-10")
+  })
+
+  test("strips start date with time", () => {
+    const result = parseTaskMetadataFromText("Task start:2026-03-10T09:00")
+    expect(result.cleanContent).toBe("Task")
+    expect(result.start_at).toBe("2026-03-10T09:00")
+  })
+
+  test("strips priority", () => {
+    const result = parseTaskMetadataFromText("Task p:2")
+    expect(result.cleanContent).toBe("Task")
+    expect(result.priority).toBe(2)
+  })
+
+  test("strips recurrence", () => {
+    const result = parseTaskMetadataFromText("Review recur:FREQ=WEEKLY")
+    expect(result.cleanContent).toBe("Review")
+    expect(result.recurrence).toBe("FREQ=WEEKLY")
+  })
+
+  test("strips multiple metadata", () => {
+    const result = parseTaskMetadataFromText("Big task due:2026-06-01 start:2026-05-15 p:2 recur:FREQ=MONTHLY")
+    expect(result.cleanContent).toBe("Big task")
+    expect(result.due_at).toBe("2026-06-01")
+    expect(result.start_at).toBe("2026-05-15")
+    expect(result.priority).toBe(2)
+    expect(result.recurrence).toBe("FREQ=MONTHLY")
+  })
+
+  test("returns plain text when no metadata", () => {
+    const result = parseTaskMetadataFromText("Just a normal task")
+    expect(result.cleanContent).toBe("Just a normal task")
+    expect(result.due_at).toBeUndefined()
+    expect(result.start_at).toBeUndefined()
+    expect(result.priority).toBeUndefined()
+    expect(result.recurrence).toBeUndefined()
+  })
+
+  test("round-trip: stringify then parse recovers fields", () => {
+    const node = makeNode({
+      content: "Task",
+      due_at: "2026-01-15",
+      start_at: "2026-01-10",
+      priority: 1,
+      recurrence: "FREQ=DAILY",
+    })
+    const stringified = stringifyTaskMetadata("Task", node)
+    expect(stringified).toBe("Task due:2026-01-15 start:2026-01-10 p:1 recur:FREQ=DAILY")
+
+    const parsed = parseTaskMetadataFromText(stringified)
+    expect(parsed.cleanContent).toBe("Task")
+    expect(parsed.due_at).toBe("2026-01-15")
+    expect(parsed.start_at).toBe("2026-01-10")
+    expect(parsed.priority).toBe(1)
+    expect(parsed.recurrence).toBe("FREQ=DAILY")
+  })
+
+  test("handles user-edited date (changed from original)", () => {
+    // User edits "Ideas due:2026-02-15" → "Ideas due:2026-03-01"
+    const result = parseTaskMetadataFromText("Ideas due:2026-03-01")
+    expect(result.cleanContent).toBe("Ideas")
+    expect(result.due_at).toBe("2026-03-01")
+  })
+
+  test("handles empty string", () => {
+    const result = parseTaskMetadataFromText("")
+    expect(result.cleanContent).toBe("")
   })
 })
