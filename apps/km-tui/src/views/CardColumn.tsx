@@ -23,6 +23,7 @@ import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderConte
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useIsColumnSelected, useIsCursorAtCard } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
+import { isHRContent } from "./tree-node-helpers.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -172,11 +173,21 @@ const Card = React.memo(
     // Detection is content-based: editing "---" to "---f" should stop rendering as HR.
     // Nodes with type="hr" and no content default to "---".
     const hrContent = (card.node.content ?? (card.node.type === "hr" ? "---" : "")).trim()
-    const isHR = /^(-{3,}|\*{3,}|_{3,})$/.test(hrContent)
+    const isHR = isHRContent(hrContent)
+    // Body block layout props: border when focused, padding otherwise.
+    // Layout stability invariant: cursoring must NOT shift content.
+    //
+    // How it works:
+    // - Middle body blocks: paddingTop=1, paddingBottom=0 → H+1
+    // - Last body block (before structural/end): paddingTop=1, paddingBottom=1 → H+2
+    // - Selected: border top+bottom → H+2
+    //
+    // When a middle block is selected (H+1 → H+2, +1), the next block
+    // yields its paddingTop (1→0, -1). Net: 0 shift.
+    // When the last body block is selected (H+2 → H+2). Net: 0 shift.
+    const yieldTop = isPrevBodyBlock && isPrevAtCursor
+
     if (isHR && !isEditing) {
-      // HR uses the same layout system as body blocks for stability.
-      const showBorder = isSelected // only cursor block gets border
-      const yieldTop = isPrevBodyBlock && isPrevAtCursor
       const innerWidth = width - 2 // border or padding L+R both consume 2
       const padTotal = Math.max(0, innerWidth - hrContent.length)
       const padLeft = Math.floor(padTotal / 2)
@@ -185,15 +196,7 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
-          {...(showBorder
-            ? { borderStyle: "round" as const, borderColor: "yellow" }
-            : {
-                paddingLeft: 1,
-                paddingRight: 1,
-                paddingTop: yieldTop ? 0 : 1,
-                paddingBottom: isLastBodyBlock ? 1 : 0,
-                ...(isMultiSelected ? { backgroundColor: "yellow" } : {}),
-              })}
+          {...bodyBlockLayoutProps(isSelected, "yellow", yieldTop, isLastBodyBlock, isMultiSelected)}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -217,41 +220,14 @@ const Card = React.memo(
       )
     }
 
-    // Body cards: border when cursor/editing, padding otherwise.
-    // Layout stability invariant: cursoring must NOT shift content.
-    //
-    // How it works:
-    // - Middle body blocks: paddingTop=1, paddingBottom=0 → H+1
-    // - Last body block (before structural/end): paddingTop=1, paddingBottom=1 → H+2
-    // - Selected: border top+bottom → H+2
-    //
-    // When a middle block is selected (H+1 → H+2, +1), the next block
-    // yields its paddingTop (1→0, -1). Net: 0 shift.
-    // When the last body block is selected (H+2 → H+2). Net: 0 shift.
-    //
-    // Key: only yield paddingTop when prev is a BODY block at cursor.
-    // Structural cards always have borders, so their borderBottom is constant
-    // and body blocks after them keep paddingTop=1 regardless of cursor.
     if (isVirtualColumn || card.isVirtual) {
-      // Only the cursor block gets a border; multi-selected gets padding + yellow bg
-      const showBorder = isSelected || isEditing
       const bodyBorderColor = isEditing ? "cyan" : "yellow"
-      // Yield paddingTop only when prev is a body block at cursor (not structural)
-      const yieldTop = isPrevBodyBlock && isPrevAtCursor
       return (
         <Box
           flexDirection="column"
           flexShrink={0}
           width={width}
-          {...(showBorder
-            ? { borderStyle: "round" as const, borderColor: bodyBorderColor }
-            : {
-                paddingLeft: 1,
-                paddingRight: 1,
-                paddingTop: yieldTop ? 0 : 1,
-                paddingBottom: isLastBodyBlock ? 1 : 0,
-                ...(isMultiSelected ? { backgroundColor: "yellow" } : {}),
-              })}
+          {...bodyBlockLayoutProps(isSelected || isEditing, bodyBorderColor, yieldTop, isLastBodyBlock, isMultiSelected)}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
@@ -356,6 +332,29 @@ const Card = React.memo(
     )
   },
 )
+
+// =============================================================================
+// Body Block Layout
+// =============================================================================
+
+/** Shared layout props for body blocks (virtual cards and HRs).
+ * Returns border props when focused, padding props otherwise. */
+function bodyBlockLayoutProps(
+  showBorder: boolean,
+  borderColor: string,
+  yieldTop: boolean,
+  isLastBodyBlock: boolean,
+  isMultiSelected: boolean,
+) {
+  if (showBorder) return { borderStyle: "round" as const, borderColor }
+  return {
+    paddingLeft: 1,
+    paddingRight: 1,
+    paddingTop: yieldTop ? 0 : 1,
+    paddingBottom: isLastBodyBlock ? 1 : 0,
+    ...(isMultiSelected ? { backgroundColor: "yellow" } : {}),
+  }
+}
 
 // =============================================================================
 // Column Component

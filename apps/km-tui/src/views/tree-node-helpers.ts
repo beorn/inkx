@@ -9,6 +9,18 @@ import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
 // =============================================================================
+// HR Detection
+// =============================================================================
+
+/** Matches markdown thematic breaks: 3+ of the same character (---, ***, ___) */
+export const HR_PATTERN = /^(-{3,}|\*{3,}|_{3,})$/
+
+/** Test whether trimmed content is a horizontal rule */
+export function isHRContent(content: string): boolean {
+  return HR_PATTERN.test(content.trim())
+}
+
+// =============================================================================
 // Content Helpers
 // =============================================================================
 

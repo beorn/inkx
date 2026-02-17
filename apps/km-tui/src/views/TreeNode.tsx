@@ -39,6 +39,7 @@ import {
   formatDateBadge,
   truncateContext,
   stripTaskMark,
+  isHRContent,
   VARIANT_CONFIG,
   type GetBoardPillsFn,
 } from "./tree-node-helpers.ts"
@@ -376,12 +377,11 @@ function TreeNodeImpl({
       }
 
       // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
-      const trimmed = newContent.trim()
-      const isHRContent = /^[-*_]{3,}$/.test(trimmed)
+      const hrMatch = isHRContent(newContent)
       const currentType = displayNode.type
-      if (isHRContent && (currentType === "p" || currentType === "li")) {
+      if (hrMatch && (currentType === "p" || currentType === "li")) {
         repo.updateNode(displayNode.id, { type: "hr" })
-      } else if (!isHRContent && currentType === "hr") {
+      } else if (!hrMatch && currentType === "hr") {
         repo.updateNode(displayNode.id, { type: "p" })
       }
 
@@ -446,8 +446,7 @@ function TreeNodeImpl({
   const isHighlighted = isSelected || isMultiSelected
 
   // HR detection: node type "hr" from parser, or content matching markdown HR pattern
-  const HR_PATTERN = /^(-{3,}|\*{3,}|_{3,})$/
-  const isHR = node.type === "hr" || (cleanContent != null && HR_PATTERN.test(cleanContent.trim()))
+  const isHR = node.type === "hr" || (cleanContent != null && isHRContent(cleanContent))
 
   // Memoize rich text rendering - only recalc when content or sigil config changes
   // Code blocks and tables render verbatim (no markdown formatting applied)
