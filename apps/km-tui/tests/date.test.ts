@@ -400,6 +400,69 @@ describe("date prompt (td)", () => {
     // Dialog should be closed
     expect(board.screenshot()).not.toContain("Set Due Date")
   })
+
+  test("Enter in date dialog does NOT create new nodes", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+
+    board.press("j")
+
+    // Count nodes before
+    const nodesBefore = repo.getChildren(repo.getChildren("board")[0]!.id).length
+
+    // Open date dialog
+    board.press("t")
+    board.press("d")
+    expect(board.screenshot()).toContain("Set Due Date")
+
+    // Press Enter — should confirm dialog, NOT create a new node
+    board.press("Enter")
+
+    // Dialog should be closed
+    expect(board.screenshot()).not.toContain("Set Due Date")
+
+    // Node count should be unchanged (no new nodes created)
+    const nodesAfter = repo.getChildren(repo.getChildren("board")[0]!.id).length
+    expect(nodesAfter).toBe(nodesBefore)
+  })
+
+  test("typing in date dialog reaches the text input", () => {
+    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+
+    board.press("j")
+    board.press("t")
+    board.press("d")
+
+    // Type a date
+    board.press("f")
+    board.press("r")
+    board.press("i")
+
+    // The input should show "fri" and the preview should resolve it
+    const screen = board.screenshot()
+    expect(screen).toContain("fri")
+  })
+
+  test("Enter confirms date and updates node field", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+
+    board.press("j")
+    board.press("t")
+    board.press("d")
+
+    // Type "tomorrow"
+    for (const ch of "tomorrow") board.press(ch)
+
+    // Press Enter to confirm
+    board.press("Enter")
+
+    // Dialog should be closed
+    expect(board.screenshot()).not.toContain("Set Due Date")
+
+    // Node should have a due_at field set
+    const col = repo.getChildren("board")[0]!
+    const task = repo.getChildren(col.id)[0]!
+    expect(task.due_at).toBeTruthy()
+  })
 })
 
 // ---------------------------------------------------------------------------

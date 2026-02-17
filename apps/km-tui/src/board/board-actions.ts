@@ -721,11 +721,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // vulnerability where batched events or sync I/O can leave the ref null.
       const target = activeEditTargetRef.current
       if (target) {
-        target.insertBreak?.()
         target.save()
-        // handleAddNodeAfter sets inlineEditBlock to newId directly —
-        // no intermediate null state that could be caught by batched events
-        handleAddNodeAfter(ctx)
+        // Only create new sibling when inline editing (not for dialog text inputs
+        // like the date prompt, which also use activeEditTargetRef)
+        if (ctx.ui.inlineEditBlock) {
+          target.insertBreak?.()
+          handleAddNodeAfter(ctx)
+        }
       } else if (ctx.ui.inlineEditBlock) {
         // Batched Enter: inlineEditBlock is set but React hasn't rendered the
         // InlineEditField yet (no ref). This happens when events arrive faster
@@ -736,9 +738,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "TEXT_EXIT_EDIT":
-      // Save current content and exit edit mode (Esc = save + switch to node mode)
-      activeEditTargetRef.current?.save()
-      ctx.setUI({ inlineEditBlock: null })
+      if (ctx.ui.inlineEditBlock) {
+        // Inline edit mode: save current content and exit edit mode
+        activeEditTargetRef.current?.save()
+        ctx.setUI({ inlineEditBlock: null })
+      } else {
+        // Dialog text input (date prompt, etc.): cancel the dialog
+        activeEditTargetRef.current?.cancel()
+      }
       return ok()
     case "TEXT_YANK":
       // Stub: yank (paste kill ring) — not yet implemented

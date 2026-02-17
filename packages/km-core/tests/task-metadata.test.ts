@@ -1,11 +1,14 @@
 /**
- * Tests for stringifyTaskMetadata — shared metadata composition.
+ * Tests for task metadata — shared extraction, stringify, and parse.
  *
- * Verifies text-based key:value output and detection of existing
- * metadata (both text and emoji forms) to avoid duplication.
+ * Covers:
+ * - extractTaskMetadata: text → { dueDate, priority, ... } (shared by parser + editor)
+ * - stringifyTaskMetadata: node fields → appended text metadata
+ * - parseTaskMetadataFromText: edited text → { cleanContent, fields }
+ * - Round-trip: stringify → parse recovers original fields
  */
 import { describe, test, expect } from "vitest"
-import { stringifyTaskMetadata, parseTaskMetadataFromText } from "../src/task-metadata.ts"
+import { extractTaskMetadata, stringifyTaskMetadata, parseTaskMetadataFromText } from "../src/task-metadata.ts"
 import type { KNode } from "../src/types.ts"
 
 function makeNode(overrides: Partial<KNode> = {}): KNode {
@@ -257,5 +260,113 @@ describe("parseTaskMetadataFromText", () => {
   test("handles empty string", () => {
     const result = parseTaskMetadataFromText("")
     expect(result.cleanContent).toBe("")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// extractTaskMetadata — shared extraction (used by parser + editor)
+// ---------------------------------------------------------------------------
+
+describe("extractTaskMetadata", () => {
+  describe("text format (key:value)", () => {
+    test("extracts due date", () => {
+      const result = extractTaskMetadata("Task due:2026-03-15")
+      expect(result.dueDate).toBe("2026-03-15")
+    })
+
+    test("extracts due date with time", () => {
+      const result = extractTaskMetadata("Meeting due:2026-03-15T14:30")
+      expect(result.dueDate).toBe("2026-03-15")
+      expect(result.dueTime).toBe("14:30")
+    })
+
+    test("extracts start date", () => {
+      const result = extractTaskMetadata("Task start:2026-01-10")
+      expect(result.startDate).toBe("2026-01-10")
+    })
+
+    test("extracts start date with time", () => {
+      const result = extractTaskMetadata("Task start:2026-01-10T09:00")
+      expect(result.startDate).toBe("2026-01-10")
+      expect(result.startTime).toBe("09:00")
+    })
+
+    test("extracts priority", () => {
+      const result = extractTaskMetadata("Task p:2")
+      expect(result.priority).toBe(2)
+    })
+
+    test("extracts recurrence", () => {
+      const result = extractTaskMetadata("Review recur:FREQ=WEEKLY")
+      expect(result.recurrence).toBe("FREQ=WEEKLY")
+    })
+
+    test("extracts all metadata", () => {
+      const result = extractTaskMetadata("Big task due:2026-06-01 start:2026-05-15 p:2 recur:FREQ=MONTHLY")
+      expect(result.dueDate).toBe("2026-06-01")
+      expect(result.startDate).toBe("2026-05-15")
+      expect(result.priority).toBe(2)
+      expect(result.recurrence).toBe("FREQ=MONTHLY")
+    })
+  })
+
+  describe("emoji format", () => {
+    test("extracts due date from 📅", () => {
+      const result = extractTaskMetadata("Task 📅 2026-03-15")
+      expect(result.dueDate).toBe("2026-03-15")
+    })
+
+    test("extracts due date with time from 📅", () => {
+      const result = extractTaskMetadata("Task 📅 2026-03-15T14:30")
+      expect(result.dueDate).toBe("2026-03-15")
+      expect(result.dueTime).toBe("14:30")
+    })
+
+    test("extracts start date from ⏳", () => {
+      const result = extractTaskMetadata("Task ⏳ 2026-01-10")
+      expect(result.startDate).toBe("2026-01-10")
+    })
+
+    test("extracts priority ⏫ as 1", () => {
+      const result = extractTaskMetadata("Task ⏫")
+      expect(result.priority).toBe(1)
+    })
+
+    test("extracts priority 🔼 as 2", () => {
+      const result = extractTaskMetadata("Task 🔼")
+      expect(result.priority).toBe(2)
+    })
+
+    test("extracts priority 🔽 as 3", () => {
+      const result = extractTaskMetadata("Task 🔽")
+      expect(result.priority).toBe(3)
+    })
+
+    test("extracts recurrence from 🔁", () => {
+      const result = extractTaskMetadata("Task 🔁 every week")
+      expect(result.recurrence).toBe("every week")
+    })
+  })
+
+  describe("text format takes precedence over emoji", () => {
+    test("due: overrides 📅", () => {
+      const result = extractTaskMetadata("Task due:2026-04-01 📅 2026-03-15")
+      expect(result.dueDate).toBe("2026-04-01")
+    })
+
+    test("p: overrides ⏫", () => {
+      const result = extractTaskMetadata("Task p:3 ⏫")
+      expect(result.priority).toBe(3)
+    })
+  })
+
+  describe("no metadata", () => {
+    test("returns empty for plain text", () => {
+      const result = extractTaskMetadata("Just a normal task")
+      expect(result.dueDate).toBeUndefined()
+      expect(result.startDate).toBeUndefined()
+      expect(result.priority).toBeUndefined()
+      expect(result.recurrence).toBeUndefined()
+    })
   })
 })

@@ -1,8 +1,8 @@
 /**
- * Task Metadata — Shared stringify/parse helpers
+ * Task Metadata — Shared stringify/parse/extract helpers
  *
- * Used by both the markdown serializer (nodes2md.ts) and the TUI editor
- * (TreeNode.tsx) to ensure consistent text-based metadata format.
+ * Single source of truth for task metadata parsing and formatting.
+ * Used by the markdown parser, serializer, and TUI editor.
  *
  * Canonical output format (todo.txt-style key:value):
  *   due:2024-01-15  start:2024-01-10  p:1  recur:FREQ=WEEKLY
@@ -14,20 +14,129 @@ import type { KNode } from "./types.ts"
 import { decomposeDatetime } from "./date-utils.ts"
 
 // =============================================================================
-// Detection regexes — check if metadata is already present in content
+// Shared extraction regexes — text-based key:value format
+// =============================================================================
+
+/** Matches due:YYYY-MM-DD or due:YYYY-MM-DDTHH:MM */
+const DUE_TEXT_REGEX = /\bdue:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
+
+/** Matches start:YYYY-MM-DD or start:YYYY-MM-DDTHH:MM */
+const START_TEXT_REGEX = /\bstart:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
+
+/** Matches p:N (1-9) */
+const PRIORITY_TEXT_REGEX = /\bp:([1-9])\b/
+
+/** Matches recur:VALUE (non-whitespace) */
+const RECURRENCE_TEXT_REGEX = /\brecur:(\S+)/
+
+// =============================================================================
+// Shared extraction regexes — emoji format (input-only, backward compat)
+// =============================================================================
+
+/** Matches 📅 YYYY-MM-DD or 📅 YYYY-MM-DDTHH:MM */
+const DUE_EMOJI_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
+
+/** Matches ⏳ YYYY-MM-DD or ⏳ YYYY-MM-DDTHH:MM */
+const START_EMOJI_REGEX = /⏳\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
+
+/** Matches recurrence emoji: 🔁 text (until next emoji or end) */
+const RECURRENCE_EMOJI_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/
+
+// =============================================================================
+// Detection regexes — check if metadata is already present (text OR emoji)
 // =============================================================================
 
 /** Matches due date in either text or emoji form */
-const HAS_DUE = /\bdue:(\d{4}-\d{2}-\d{2})\b|📅/
+const HAS_DUE = /\bdue:\d{4}-\d{2}-\d{2}\b|📅/
 
 /** Matches start/scheduled date in either text or emoji form */
-const HAS_START = /\bstart:(\d{4}-\d{2}-\d{2})\b|⏳/
+const HAS_START = /\bstart:\d{4}-\d{2}-\d{2}\b|⏳/
 
 /** Matches priority in either text or emoji form */
 const HAS_PRIORITY = /\bp:[1-9]\b|[⏫🔼🔽]/
 
 /** Matches recurrence in either text or emoji form */
 const HAS_RECURRENCE = /\brecur:\S|🔁/
+
+// =============================================================================
+// extractTaskMetadata — shared extraction used by parser and editor
+// =============================================================================
+
+/** Result of extracting task metadata from text */
+export interface ExtractedTaskMetadata {
+  dueDate?: string
+  dueTime?: string
+  startDate?: string
+  startTime?: string
+  priority?: number
+  recurrence?: string
+}
+
+/**
+ * Extract task metadata from text content. Handles both text-based (key:value)
+ * and emoji formats. Text format takes precedence over emoji format.
+ *
+ * Used by:
+ * - km-markdown parser (parseTaskMetadata wrapper)
+ * - km-core parseTaskMetadataFromText (for stripping)
+ *
+ * @param text - Raw text content that may contain metadata
+ * @returns Extracted metadata fields (empty object if none found)
+ */
+export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
+  const result: ExtractedTaskMetadata = {}
+
+  // Due date: text format first, then emoji fallback
+  const dueTextMatch = text.match(DUE_TEXT_REGEX)
+  if (dueTextMatch) {
+    result.dueDate = dueTextMatch[1]
+    if (dueTextMatch[2]) result.dueTime = dueTextMatch[2]
+  } else {
+    const dueEmojiMatch = text.match(DUE_EMOJI_REGEX)
+    if (dueEmojiMatch) {
+      result.dueDate = dueEmojiMatch[1]
+      if (dueEmojiMatch[2]) result.dueTime = dueEmojiMatch[2]
+    }
+  }
+
+  // Start/scheduled date: text format first, then emoji fallback
+  const startTextMatch = text.match(START_TEXT_REGEX)
+  if (startTextMatch) {
+    result.startDate = startTextMatch[1]
+    if (startTextMatch[2]) result.startTime = startTextMatch[2]
+  } else {
+    const startEmojiMatch = text.match(START_EMOJI_REGEX)
+    if (startEmojiMatch) {
+      result.startDate = startEmojiMatch[1]
+      if (startEmojiMatch[2]) result.startTime = startEmojiMatch[2]
+    }
+  }
+
+  // Priority: text format first, then emoji fallback
+  const prioTextMatch = text.match(PRIORITY_TEXT_REGEX)
+  if (prioTextMatch?.[1]) {
+    result.priority = parseInt(prioTextMatch[1], 10)
+  } else if (text.includes("⏫")) {
+    result.priority = 1
+  } else if (text.includes("🔼")) {
+    result.priority = 2
+  } else if (text.includes("🔽")) {
+    result.priority = 3
+  }
+
+  // Recurrence: text format first, then emoji fallback
+  const recurTextMatch = text.match(RECURRENCE_TEXT_REGEX)
+  if (recurTextMatch?.[1]) {
+    result.recurrence = recurTextMatch[1]
+  } else {
+    const recurEmojiMatch = text.match(RECURRENCE_EMOJI_REGEX)
+    if (recurEmojiMatch?.[1]) {
+      result.recurrence = recurEmojiMatch[1].trim()
+    }
+  }
+
+  return result
+}
 
 // =============================================================================
 // stringifyTaskMetadata — append field-only metadata as text key:value tags
@@ -92,16 +201,12 @@ export function stringifyTaskMetadata(
 }
 
 // =============================================================================
-// Stripping regexes — match and remove metadata from text
+// Stripping regexes — for parseTaskMetadataFromText (include leading whitespace)
 // =============================================================================
 
-/** Matches due:YYYY-MM-DD or due:YYYY-MM-DDTHH:MM */
 const STRIP_DUE = /\s*\bdue:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
-/** Matches start:YYYY-MM-DD or start:YYYY-MM-DDTHH:MM */
 const STRIP_START = /\s*\bstart:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
-/** Matches p:N (1-9) */
 const STRIP_PRIORITY = /\s*\bp:([1-9])\b/
-/** Matches recur:... (non-whitespace value) */
 const STRIP_RECURRENCE = /\s*\brecur:(\S+)/
 
 // =============================================================================

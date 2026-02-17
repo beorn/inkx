@@ -209,9 +209,9 @@ tags: [a, b, c]
       expect(result.priority).toBe(1)
     })
 
-    test("emoji format takes precedence over inline fields", () => {
+    test("text format takes precedence over emoji (canonical format)", () => {
       const result = parseTaskMetadata("Task 📅 2025-03-15 due:2026-01-20")
-      expect(result.dueDate).toBe("2025-03-15") // Emoji takes precedence
+      expect(result.dueDate).toBe("2026-01-20") // Text format is canonical
     })
 
     test("parses due date with time", () => {

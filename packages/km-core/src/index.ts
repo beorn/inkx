@@ -50,8 +50,13 @@ export { getMarkerForStatus, getStatusForMarker, markToMarker, extractTitleTaskM
 export { composeDatetime, decomposeDatetime, dateOnly, timeOnly } from "./date-utils.ts"
 export type { DateParts } from "./date-utils.ts"
 
-// Task metadata stringify (shared between serializer and TUI editor)
-export { stringifyTaskMetadata, parseTaskMetadataFromText } from "./task-metadata.ts"
+// Task metadata (shared between parser, serializer, and TUI editor)
+export {
+  extractTaskMetadata,
+  stringifyTaskMetadata,
+  parseTaskMetadataFromText,
+} from "./task-metadata.ts"
+export type { ExtractedTaskMetadata } from "./task-metadata.ts"
 
 // Query language parser (pure parsing, no DB)
 export {

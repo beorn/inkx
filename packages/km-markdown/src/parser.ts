@@ -25,7 +25,7 @@ import { fromMarkdown } from "mdast-util-from-markdown"
 import { gfmFromMarkdown } from "mdast-util-gfm"
 import { gfm } from "micromark-extension-gfm"
 import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdast"
-import { TASK_MARK_REGEX_CLASS, extractTitleTaskMarker } from "@km/core"
+import { TASK_MARK_REGEX_CLASS, extractTitleTaskMarker, extractTaskMetadata } from "@km/core"
 
 // Re-export types
 export type { Root, RootContent, ListItem, Heading, Paragraph, List }
@@ -48,15 +48,8 @@ const COMBINED_REFS_REGEX = /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-
 /** Fast wikilink presence check (avoid full regex if no wikilinks) */
 const HAS_WIKILINK = /\[\[/
 
-// km-fast-md.3: Individual task metadata regexes compiled at module level
-// (Combined regex was consuming whitespace between patterns, causing misses)
-const DUE_EMOJI_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
-const DUE_INLINE_REGEX = /\bdue:(\d{4}-\d{2}-\d{2})\b/
-const SCHED_EMOJI_REGEX = /⏳\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
-const SCHED_INLINE_REGEX = /\bstart:(\d{4}-\d{2}-\d{2})\b/
-const RECURRENCE_EMOJI_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/
-const RECURRENCE_INLINE_REGEX = /\brecur:(\S+)/
-const PRIORITY_INLINE_REGEX = /\bp:([1-9])\b/
+// km-fast-md.3: Task metadata regexes moved to @km/core (extractTaskMetadata)
+// Kept only for local use in parseInlineProperties
 
 // Generic key=value regex for heading rules
 // Matches: key="value with spaces", key='value', key=simple_value, `key="value"`
@@ -242,62 +235,16 @@ export function parseTaskMetadata(text: string): {
   priority?: number
   recurrence?: string
 } {
-  const result: {
-    dueDate?: string
-    dueTime?: string
-    scheduledDate?: string
-    scheduledTime?: string
-    priority?: number
-    recurrence?: string
-  } = {}
-
-  // km-fast-md.3: Use module-level compiled regexes
-  // Due date: 📅 2024-01-15 or 📅 2024-01-15T14:30 OR due:2024-01-15
-  const dueMatch = text.match(DUE_EMOJI_REGEX)
-  if (dueMatch) {
-    result.dueDate = dueMatch[1]
-    if (dueMatch[2]) result.dueTime = dueMatch[2]
+  // Delegate to shared extraction in @km/core (DRY: same regexes for parser and editor)
+  const extracted = extractTaskMetadata(text)
+  return {
+    ...(extracted.dueDate && { dueDate: extracted.dueDate }),
+    ...(extracted.dueTime && { dueTime: extracted.dueTime }),
+    ...(extracted.startDate && { scheduledDate: extracted.startDate }),
+    ...(extracted.startTime && { scheduledTime: extracted.startTime }),
+    ...(extracted.priority !== undefined && { priority: extracted.priority }),
+    ...(extracted.recurrence && { recurrence: extracted.recurrence }),
   }
-  const dueInlineMatch = text.match(DUE_INLINE_REGEX)
-  if (dueInlineMatch && !result.dueDate) {
-    result.dueDate = dueInlineMatch[1]
-  }
-
-  // Scheduled date: ⏳ 2024-01-10 or ⏳ 2024-01-10T09:00 OR start:2024-01-10
-  const scheduledMatch = text.match(SCHED_EMOJI_REGEX)
-  if (scheduledMatch) {
-    result.scheduledDate = scheduledMatch[1]
-    if (scheduledMatch[2]) result.scheduledTime = scheduledMatch[2]
-  }
-  const startInlineMatch = text.match(SCHED_INLINE_REGEX)
-  if (startInlineMatch && !result.scheduledDate) {
-    result.scheduledDate = startInlineMatch[1]
-  }
-
-  // Priority: ⏫ (high=1), 🔼 (medium=2), 🔽 (low=3) OR p:1, p:2, p:3
-  if (text.includes("⏫")) {
-    result.priority = 1
-  } else if (text.includes("🔼")) {
-    result.priority = 2
-  } else if (text.includes("🔽")) {
-    result.priority = 3
-  }
-  const priorityInlineMatch = text.match(PRIORITY_INLINE_REGEX)
-  if (priorityInlineMatch?.[1] && !result.priority) {
-    result.priority = parseInt(priorityInlineMatch[1], 10)
-  }
-
-  // Recurrence: 🔁 every week OR recur:FREQ=WEEKLY
-  const recurrenceEmojiMatch = text.match(RECURRENCE_EMOJI_REGEX)
-  if (recurrenceEmojiMatch?.[1]) {
-    result.recurrence = recurrenceEmojiMatch[1].trim()
-  }
-  const recurrenceInlineMatch = text.match(RECURRENCE_INLINE_REGEX)
-  if (recurrenceInlineMatch?.[1] && !result.recurrence) {
-    result.recurrence = recurrenceInlineMatch[1]
-  }
-
-  return result
 }
 
 /**
