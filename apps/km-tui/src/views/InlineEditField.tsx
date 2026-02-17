@@ -1,7 +1,7 @@
 /**
  * InlineEditField — inline text editor for node titles and body blocks.
  *
- * Uses useSlateEdit which registers a BlockEditTarget.
+ * Uses useEditContext (inkx EditContext) which registers an EditTarget.
  * All key handling is done by the command system via when: textInputFocused.
  * No component-level useInputLayer needed.
  *
@@ -11,8 +11,7 @@
  */
 
 import React from "react"
-import { Text, useContentRect } from "inkx"
-import { useSlateEdit } from "../editor/index.ts"
+import { Text, useContentRect, useEditContext } from "inkx"
 
 interface InlineEditFieldProps {
   initialValue: string
@@ -42,14 +41,14 @@ export function InlineEditField({
   // ensuring cursor positions match displayed line breaks.
   const { width } = useContentRect()
 
-  const { beforeCursor, afterCursor } = useSlateEdit({
+  const { beforeCursor, afterCursor } = useEditContext({
     initialValue,
     onConfirm,
     onCancel,
     onSave,
     onSplitAtBoundary,
     onMergeBackward,
-    lineWidth: width > 0 ? width : undefined,
+    wrapWidth: width > 0 ? width : undefined,
     initialCursorPos,
   })
 

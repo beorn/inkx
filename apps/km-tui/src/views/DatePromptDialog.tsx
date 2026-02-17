@@ -2,15 +2,14 @@
  * Date Prompt Dialog Component
  *
  * Inline dialog for entering dates, start dates, or recurrence rules.
- * Uses the same dialogTargetRef + blockEditTargetRef pattern as NewItemDialog.
+ * Uses useEditContext for text input and dialogTargetRef for Enter/Escape.
  */
-import React, { useState } from "react"
-import { Box, Text } from "inkx"
-import { formatDate, formatTime, resolveRelativeDate } from "@km/core"
+import React from "react"
+import { Box, Text, useEditContext } from "inkx"
+import { resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import { ModalDialog } from "./shared-components.tsx"
 import { dialogTargetRef } from "../dialog-target.ts"
-import { blockEditTargetRef, type BlockEditTarget } from "../block-edit-target.ts"
 
 export interface DatePromptDialogProps {
   field: "due_date" | "scheduled_date" | "recurrence"
@@ -63,16 +62,19 @@ export function DatePromptDialog({
   width,
   height,
 }: DatePromptDialogProps): React.ReactElement {
-  const [content, setContent] = useState(currentValue)
+  // EditContext-based text editing
+  const editCtx = useEditContext({
+    initialValue: currentValue,
+    onConfirm: () => onConfirm(),
+    onCancel: () => onCancel(),
+  })
 
-  const contentRef = React.useRef(content)
-  contentRef.current = content
+  // Register dialog target for Enter/Escape
   const onConfirmRef = React.useRef(onConfirm)
   onConfirmRef.current = onConfirm
   const onCancelRef = React.useRef(onCancel)
   onCancelRef.current = onCancel
 
-  // Register dialog target and block edit target
   React.useLayoutEffect(() => {
     dialogTargetRef.current = {
       navUp() {},
@@ -84,57 +86,14 @@ export function DatePromptDialog({
         onCancelRef.current()
       },
     }
-
-    const textTarget: BlockEditTarget = {
-      insertChar(char: string) {
-        setContent((c) => c + char)
-      },
-      deleteBackward() {
-        setContent((c) => c.slice(0, -1))
-      },
-      deleteForward() {},
-      cursorLeft() {},
-      cursorRight() {},
-      cursorStart() {},
-      cursorEnd() {},
-      deleteWord() {
-        setContent((c) => {
-          const trimmed = c.trimEnd()
-          const lastSpace = trimmed.lastIndexOf(" ")
-          return lastSpace === -1 ? "" : trimmed.slice(0, lastSpace)
-        })
-      },
-      deleteToStart() {
-        setContent("")
-      },
-      deleteToEnd() {},
-      confirm() {
-        onConfirmRef.current()
-      },
-      cancel() {
-        onCancelRef.current()
-      },
-      save() {},
-      getCursorOffset() {
-        return contentRef.current.length
-      },
-      getContent() {
-        return contentRef.current
-      },
-    }
-    blockEditTargetRef.current = textTarget
-
     return () => {
       dialogTargetRef.current = null
-      if (blockEditTargetRef.current === textTarget) {
-        blockEditTargetRef.current = null
-      }
     }
   }, [])
 
   const title = FIELD_TITLES[field] ?? "Set Value"
   const hint = FIELD_HINTS[field] ?? ""
-  const preview = getPreview(field, content)
+  const preview = getPreview(field, editCtx.value)
 
   return (
     <ModalDialog
@@ -147,8 +106,9 @@ export function DatePromptDialog({
       <Box borderStyle="round" borderColor="cyan" flexShrink={0}>
         <Text>
           <Text color="white">{"> "}</Text>
-          <Text>{content}</Text>
-          <Text inverse> </Text>
+          {editCtx.beforeCursor}
+          <Text inverse>{editCtx.afterCursor.length > 0 ? editCtx.afterCursor[0] : " "}</Text>
+          {editCtx.afterCursor.length > 1 ? editCtx.afterCursor.slice(1) : ""}
         </Text>
       </Box>
 

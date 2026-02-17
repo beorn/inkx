@@ -12,7 +12,7 @@ import type { Repo } from "../repo-context.tsx"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { TUIBoardState } from "../types.ts"
 import type { UIState } from "../ui-reducer.ts"
-import { blockEditTargetRef } from "../block-edit-target.ts"
+import { activeEditTargetRef } from "inkx"
 import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:dialogs")
@@ -242,9 +242,9 @@ export function useBoardDialogs({
     setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
   }, [setUI])
 
-  // Date prompt: confirm handler reads input from blockEditTargetRef and resolves dates
+  // Date prompt: confirm handler reads input from activeEditTargetRef and resolves dates
   const handleDatePromptConfirm = useCallback(() => {
-    const input = blockEditTargetRef.current?.getContent() ?? ""
+    const input = activeEditTargetRef.current?.getContent() ?? ""
     const trimmed = input.trim()
 
     setUI((prev) => {

@@ -5,14 +5,13 @@
  * Press 'p' on a task to open, search to filter, Enter to move.
  */
 import React from "react"
-import { Box, Text } from "inkx"
+import { Box, Text, useEditContext } from "inkx"
 import { isOutline, type KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, NodeLine } from "./shared-components.tsx"
-import { fuzzyMatch, fuzzyScore, getParentName } from "./search-utils.ts"
+import { fuzzyScore, getParentName } from "./search-utils.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
-import { blockEditTargetRef, type BlockEditTarget } from "../block-edit-target.ts"
 import { createSuspenseLoader, type SuspenseLoader } from "../hooks/use-suspense-loader.ts"
 
 /**
@@ -176,8 +175,13 @@ export function ProjectPicker({
   recentProjectIds = [],
 }: ProjectPickerProps): React.ReactElement {
   const repo = useRepo()
-  const [query, setQuery] = React.useState("")
   const [selectedIndex, setSelectedIndex] = React.useState(0)
+
+  // EditContext-based text editing for query input
+  const editCtx = useEditContext({
+    initialValue: "",
+    onChange: () => setSelectedIndex(0),
+  })
 
   // Create loader on mount (loads in background via Suspense)
   const loaderRef = React.useRef<SuspenseLoader<ProjectOption[]> | null>(null)
@@ -192,7 +196,7 @@ export function ProjectPicker({
   let scrollOffset = 0
   let filteredCount = 0
   if (loaderRef.current?.status === "resolved") {
-    const filtered = filterOptions(loaderRef.current.read(), query)
+    const filtered = filterOptions(loaderRef.current.read(), editCtx.value)
     filteredCount = filtered.length
     scrollOffset = Math.max(
       0,
@@ -203,15 +207,12 @@ export function ProjectPicker({
   // Use refs to avoid stale closure issues with the handler
   const selectedIndexRef = React.useRef(selectedIndex)
   selectedIndexRef.current = selectedIndex
-  const queryRef = React.useRef(query)
-  queryRef.current = query
   const onCancelRef = React.useRef(onCancel)
   onCancelRef.current = onCancel
   const onSelectRef = React.useRef(onSelect)
   onSelectRef.current = onSelect
 
   // Register dialog target for command system navigation
-  // and block edit target for text input
   React.useLayoutEffect(() => {
     dialogTargetRef.current = {
       navUp() {
@@ -223,7 +224,7 @@ export function ProjectPicker({
       confirm() {
         if (loaderRef.current?.status === "resolved") {
           const allOptions = loaderRef.current.read()
-          const filtered = filterOptions(allOptions, queryRef.current)
+          const filtered = filterOptions(allOptions, editCtx.target.getContent())
           const selected = filtered[selectedIndexRef.current]
           if (selected) {
             onSelectRef.current(selected.node)
@@ -235,57 +236,10 @@ export function ProjectPicker({
       },
     }
 
-    // Simple text edit target for query input
-    const textTarget: BlockEditTarget = {
-      insertChar(char: string) {
-        setQuery((q) => q + char)
-        setSelectedIndex(0)
-      },
-      deleteBackward() {
-        setQuery((q) => q.slice(0, -1))
-        setSelectedIndex(0)
-      },
-      deleteForward() {},
-      cursorLeft() {},
-      cursorRight() {},
-      cursorStart() {},
-      cursorEnd() {},
-      deleteWord() {
-        setQuery((q) => {
-          const trimmed = q.trimEnd()
-          const lastSpace = trimmed.lastIndexOf(" ")
-          return lastSpace === -1 ? "" : trimmed.slice(0, lastSpace)
-        })
-        setSelectedIndex(0)
-      },
-      deleteToStart() {
-        setQuery("")
-        setSelectedIndex(0)
-      },
-      deleteToEnd() {},
-      confirm() {
-        dialogTargetRef.current?.confirm()
-      },
-      cancel() {
-        onCancelRef.current()
-      },
-      save() {},
-      getCursorOffset() {
-        return queryRef.current.length
-      },
-      getContent() {
-        return queryRef.current
-      },
-    }
-    blockEditTargetRef.current = textTarget
-
     return () => {
       dialogTargetRef.current = null
-      if (blockEditTargetRef.current === textTarget) {
-        blockEditTargetRef.current = null
-      }
     }
-  }, [])
+  }, [editCtx.target])
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
@@ -306,8 +260,9 @@ export function ProjectPicker({
       <Box borderStyle="round" borderColor="cyan" flexShrink={0}>
         <Text>
           <Text color="yellow">{"/ "}</Text>
-          <Text>{query}</Text>
-          <Text inverse> </Text>
+          {editCtx.beforeCursor}
+          <Text inverse>{editCtx.afterCursor.length > 0 ? editCtx.afterCursor[0] : " "}</Text>
+          {editCtx.afterCursor.length > 1 ? editCtx.afterCursor.slice(1) : ""}
         </Text>
       </Box>
 
@@ -317,7 +272,7 @@ export function ProjectPicker({
           <React.Suspense fallback={<Text dimColor> Loading...</Text>}>
             <ProjectOptions
               loader={loaderRef.current}
-              query={query}
+              query={editCtx.value}
               selectedIndex={selectedIndex}
               scrollOffset={scrollOffset}
               maxVisible={maxVisible}

@@ -16,7 +16,7 @@ import type { BoardAction, BoardState, NavHistoryEntry } from "./board-types.ts"
 import type { TUIBoardState, ColumnsLayout } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
-import type { BlockEditTarget } from "./block-edit-target.ts"
+import type { EditTarget } from "inkx"
 import type { CursorStore } from "./cursor-store.ts"
 import { deriveColumnsFromRepo, buildNodeIndex } from "./hooks/use-columns.ts"
 import { deriveCursorPosition } from "./hooks/use-cursor-position.ts"
@@ -70,7 +70,7 @@ export interface BoardAppState {
   navigator: GridNavigator
 
   // --- Text input target ---
-  textEditTarget: BlockEditTarget | null
+  textEditTarget: EditTarget | null
 
   // --- Dimensions ---
   dimensions: { columns: number; rows: number }
@@ -97,7 +97,7 @@ export interface BoardAppActions {
   setFoldedNodes(nodes: Set<string>): void
 
   // Direct setters
-  setTextEditTarget(target: BlockEditTarget | null): void
+  setTextEditTarget(target: EditTarget | null): void
   setDimensions(dims: { columns: number; rows: number }): void
 
   // Layout update (called after columns/cursor recompute)
@@ -481,7 +481,7 @@ export function createBoardAppStoreState(
       recomputeLayout(_get)
     },
 
-    setTextEditTarget(target: BlockEditTarget | null) {
+    setTextEditTarget(target: EditTarget | null) {
       set({ textEditTarget: target })
     },
 

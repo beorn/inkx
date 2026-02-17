@@ -4,7 +4,7 @@
  * Shared ref that active dialogs register with to receive
  * navigation/confirm/cancel actions from the command system.
  *
- * Similar to blockEditTargetRef for text editing, but for dialog operations.
+ * Similar to activeEditTargetRef for text editing, but for dialog operations.
  * Only one dialog can be active at a time.
  */
 

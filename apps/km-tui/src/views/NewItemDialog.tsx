@@ -4,9 +4,9 @@
  * Quick capture dialog for creating new items in the board.
  * Uses context from the cursor item for defaults.
  */
-import React, { useState } from "react"
+import React from "react"
 import { useApp as useAppStore } from "inkx/runtime"
-import { Box, Text } from "inkx"
+import { Box, Text, useEditContext } from "inkx"
 import { isOutline, type KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
@@ -14,7 +14,6 @@ import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
 import { dialogTargetRef } from "../dialog-target.ts"
-import { blockEditTargetRef, type BlockEditTarget } from "../block-edit-target.ts"
 
 export interface NewItemDialogProps {
   /** The currently selected node (for context/defaults) */
@@ -98,7 +97,6 @@ export function NewItemDialog({
 }: NewItemDialogProps): React.ReactElement {
   const repo = useRepo()
   const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
-  const [content, setContent] = useState("")
 
   // Determine insert location
   const parentId = getInsertParentId(cursorNode)
@@ -110,26 +108,29 @@ export function NewItemDialog({
   // Determine if cursor is a task (new item will also be a task)
   const isTask = cursorNode?.task_marker != null || cursorNode === null
 
+  // EditContext-based text editing
+  const editCtx = useEditContext({
+    initialValue: "",
+  })
+
   // Use refs to avoid stale closure issues with the handler
-  const contentRef = React.useRef(content)
-  contentRef.current = content
   const onCancelRef = React.useRef(onCancel)
   onCancelRef.current = onCancel
   const onCreateRef = React.useRef(onCreate)
   onCreateRef.current = onCreate
 
   // Register dialog target for command system navigation (Enter/Escape)
-  // and block edit target for text input (char insert, backspace, etc.)
   React.useLayoutEffect(() => {
     const doCreate = () => {
-      if (!contentRef.current.trim()) {
+      const content = editCtx.target.getContent()
+      if (!content.trim()) {
         onCancelRef.current()
         return
       }
       undoHandle.setCursor(cursorNode?.id ?? null)
       const nodeId = repo.addNode(parentId, {
         type: isTask ? "li" : "p",
-        content: contentRef.current.trim(),
+        content: content.trim(),
         task_status: isTask ? "todo" : undefined,
         task_marker: isTask ? "[ ]" : undefined,
         list_marker: isTask ? "-" : undefined,
@@ -146,51 +147,10 @@ export function NewItemDialog({
       },
     }
 
-    // Simple text edit target for character input
-    const textTarget: BlockEditTarget = {
-      insertChar(char: string) {
-        setContent((c) => c + char)
-      },
-      deleteBackward() {
-        setContent((c) => c.slice(0, -1))
-      },
-      deleteForward() {},
-      cursorLeft() {},
-      cursorRight() {},
-      cursorStart() {},
-      cursorEnd() {},
-      deleteWord() {
-        setContent((c) => {
-          const trimmed = c.trimEnd()
-          const lastSpace = trimmed.lastIndexOf(" ")
-          return lastSpace === -1 ? "" : trimmed.slice(0, lastSpace)
-        })
-      },
-      deleteToStart() {
-        setContent("")
-      },
-      deleteToEnd() {},
-      confirm: doCreate,
-      cancel() {
-        onCancelRef.current()
-      },
-      save() {},
-      getCursorOffset() {
-        return contentRef.current.length
-      },
-      getContent() {
-        return contentRef.current
-      },
-    }
-    blockEditTargetRef.current = textTarget
-
     return () => {
       dialogTargetRef.current = null
-      if (blockEditTargetRef.current === textTarget) {
-        blockEditTargetRef.current = null
-      }
     }
-  }, [repo, parentId, isTask])
+  }, [repo, parentId, isTask, editCtx.target])
 
   return (
     <ModalDialog
@@ -204,8 +164,9 @@ export function NewItemDialog({
       <Box borderStyle="round" borderColor="cyan" flexShrink={0}>
         <Text>
           <Text color="green">{isTask ? "[ ] " : "• "}</Text>
-          <Text>{content}</Text>
-          <Text inverse> </Text>
+          {editCtx.beforeCursor}
+          <Text inverse>{editCtx.afterCursor.length > 0 ? editCtx.afterCursor[0] : " "}</Text>
+          {editCtx.afterCursor.length > 1 ? editCtx.afterCursor.slice(1) : ""}
         </Text>
       </Box>
     </ModalDialog>

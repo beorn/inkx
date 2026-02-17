@@ -5,14 +5,13 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React from "react"
-import { Box, Text, ErrorBoundary } from "inkx"
+import { Box, Text, ErrorBoundary, useEditContext } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
 import { getParentName, extractTags } from "./search-utils.ts"
-import { useLineEdit } from "../hooks/use-line-edit.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
 
 // Minimum query length before searching (prevents heavy queries on single chars)
@@ -144,8 +143,8 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
   const repo = useRepo()
   const [selectedIndex, setSelectedIndex] = React.useState(0)
 
-  // Readline-style line editing for search input
-  const lineEdit = useLineEdit({
+  // EditContext-based line editing for search input
+  const editCtx = useEditContext({
     initialValue: initialInput ?? "",
     onChange: () => setSelectedIndex(0), // Reset selection when query changes
   })
@@ -162,7 +161,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
     setSelectedIndex(0)
   }, [scope])
 
-  const trimmedQuery = lineEdit.value.trim()
+  const trimmedQuery = editCtx.value.trim()
 
   // Run FTS query on each query change (FTS5 queries are fast, typically <1ms)
   // When scope is "selected", filter results to cursor subtree
@@ -177,7 +176,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
       // No-op for now - TUI doesn't have native focus
     },
     clearQuery() {
-      lineEdit.clear()
+      editCtx.clear()
       setSelectedIndex(0)
     },
   }))
@@ -274,8 +273,8 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
       {/* Search input with scope prefix and readline editing */}
       <Box flexShrink={0}>
         <InputBox
-          beforeCursor={lineEdit.beforeCursor}
-          afterCursor={lineEdit.afterCursor}
+          beforeCursor={editCtx.beforeCursor}
+          afterCursor={editCtx.afterCursor}
           prompt={scopePrompt}
           promptColor={scopePromptColor}
           focusRing

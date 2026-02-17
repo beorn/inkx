@@ -23,7 +23,7 @@ import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
 import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
 import { assertNever } from "../action-handlers.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
-import { blockEditTargetRef } from "../block-edit-target.ts"
+import { activeEditTargetRef } from "inkx"
 import { dialogTargetRef } from "../dialog-target.ts"
 import {
   extractBody,
@@ -271,8 +271,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // Calling confirm() saves the value and exits inline edit mode.
       // This fires synchronously before navigation so React picks up
       // both the repo mutation and cursor change in the same render.
-      if (ctx.ui.inlineEditBlock && blockEditTargetRef.current) {
-        blockEditTargetRef.current.confirm()
+      if (ctx.ui.inlineEditBlock && activeEditTargetRef.current) {
+        activeEditTargetRef.current.confirm()
       }
       return handleCursorMove(ctx, action.dir)
     case "TOGGLE_FOLD":
@@ -527,11 +527,11 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.dispatchBoard(action)
       return ok()
 
-    // === Text editing actions (dispatched to TextEditTarget) ===
+    // === Text editing actions (dispatched to EditTarget via activeEditTargetRef) ===
     // Read from shared ref directly (not ActionCtx snapshot) because
     // the target is set by useEffect after render.
     case "TEXT_INSERT": {
-      const insertTarget = blockEditTargetRef.current
+      const insertTarget = activeEditTargetRef.current
       insertTarget?.insertChar(action.char)
       // Prefix conversion: after typing space, check if content matches a markdown prefix
       if (action.char === " " && insertTarget && ctx.ui.inlineEditBlock) {
@@ -575,7 +575,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "TEXT_DELETE_BACKWARD": {
-      const bsTarget = blockEditTargetRef.current
+      const bsTarget = activeEditTargetRef.current
       if (bsTarget && ctx.ui.inlineEditBlock && bsTarget.getCursorOffset() === 0) {
         const nodeId = ctx.ui.inlineEditBlock.nodeId
         const content = bsTarget.getContent()
@@ -625,7 +625,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "TEXT_DELETE_FORWARD": {
-      const fwdTarget = blockEditTargetRef.current
+      const fwdTarget = activeEditTargetRef.current
       if (fwdTarget && ctx.ui.inlineEditBlock) {
         const content = fwdTarget.getContent()
         const cursor = fwdTarget.getCursorOffset()
@@ -681,37 +681,37 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "TEXT_CURSOR_LEFT":
-      blockEditTargetRef.current?.cursorLeft()
+      activeEditTargetRef.current?.cursorLeft()
       return ok()
     case "TEXT_CURSOR_RIGHT":
-      blockEditTargetRef.current?.cursorRight()
+      activeEditTargetRef.current?.cursorRight()
       return ok()
     case "TEXT_CURSOR_UP":
       // Try text cursor up within the block first; if at boundary, navigate to previous block
-      if (!blockEditTargetRef.current?.cursorUp()) {
+      if (!activeEditTargetRef.current?.cursorUp()) {
         return handleEditBlockNavigate(ctx, "up")
       }
       return ok()
     case "TEXT_CURSOR_DOWN":
       // Try text cursor down within the block first; if at boundary, navigate to next block
-      if (!blockEditTargetRef.current?.cursorDown()) {
+      if (!activeEditTargetRef.current?.cursorDown()) {
         return handleEditBlockNavigate(ctx, "down")
       }
       return ok()
     case "TEXT_CURSOR_START":
-      blockEditTargetRef.current?.cursorStart()
+      activeEditTargetRef.current?.cursorStart()
       return ok()
     case "TEXT_CURSOR_END":
-      blockEditTargetRef.current?.cursorEnd()
+      activeEditTargetRef.current?.cursorEnd()
       return ok()
     case "TEXT_DELETE_WORD":
-      blockEditTargetRef.current?.deleteWord()
+      activeEditTargetRef.current?.deleteWord()
       return ok()
     case "TEXT_DELETE_TO_START":
-      blockEditTargetRef.current?.deleteToStart()
+      activeEditTargetRef.current?.deleteToStart()
       return ok()
     case "TEXT_DELETE_TO_END":
-      blockEditTargetRef.current?.deleteToEnd()
+      activeEditTargetRef.current?.deleteToEnd()
       return ok()
     case "TEXT_CONFIRM": {
       // Outliner-style Enter: save current + create new sibling + edit it.
@@ -719,7 +719,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // Go directly from old edit → new edit. React handles unmount/mount via
       // key change (different nodeId). The intermediate null creates a timing
       // vulnerability where batched events or sync I/O can leave the ref null.
-      const target = blockEditTargetRef.current
+      const target = activeEditTargetRef.current
       if (target) {
         target.insertBreak?.()
         target.save()
@@ -737,7 +737,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     }
     case "TEXT_EXIT_EDIT":
       // Save current content and exit edit mode (Esc = save + switch to node mode)
-      blockEditTargetRef.current?.save()
+      activeEditTargetRef.current?.save()
       ctx.setUI({ inlineEditBlock: null })
       return ok()
     case "TEXT_YANK":
@@ -838,7 +838,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
 
   if (nextIndex >= 0 && nextIndex < blockCount) {
     // Moving between blocks within same node → save current block, change index
-    blockEditTargetRef.current?.save()
+    activeEditTargetRef.current?.save()
     ctx.setUI({
       inlineEditBlock: {
         ...edit,
@@ -850,7 +850,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
   }
 
   // Past edges → save current content and try to enter edit on adjacent card
-  blockEditTargetRef.current?.save()
+  activeEditTargetRef.current?.save()
 
   // Find adjacent card in the current column
   const col = layout.columns[layout.colIndex]
@@ -943,7 +943,7 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
 
   // Cancel inline edit (must call cancel() so auto-save on unmount is suppressed)
   if (ui.inlineEditBlock) {
-    blockEditTargetRef.current?.cancel()
+    activeEditTargetRef.current?.cancel()
     return ok()
   }
 
@@ -1209,7 +1209,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
   if (!prompt) return ok()
 
   // Read the current input from the block edit target (set by DatePromptDialog)
-  const input = blockEditTargetRef.current?.getContent() ?? ""
+  const input = activeEditTargetRef.current?.getContent() ?? ""
   const trimmed = input.trim()
 
   const { field, nodeIds } = prompt
