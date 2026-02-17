@@ -188,12 +188,14 @@ function TreeNodeImpl({
       isFolded: boolean
       editBlockIndex: number | null
       editInitialCursorPos: "start" | "end" | undefined
+      editStickyX: number | undefined
     }
   >((s) => ({
     isMultiSelected: s.ui.multiSelected.has(selectionKey),
     isFolded: s.foldedNodes.has(node.id),
     editBlockIndex: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.blockIndex : null,
     editInitialCursorPos: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.initialCursorPos : undefined,
+    editStickyX: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.stickyX : undefined,
   }))
   const { isMultiSelected, isFolded } = nodeState
   const editBlockIndex = nodeState.editBlockIndex
@@ -630,6 +632,7 @@ function TreeNodeImpl({
                   onSplitAtBoundary={handleSplitAtBoundary}
                   onMergeBackward={handleMergeBackward}
                   initialCursorPos={nodeState.editInitialCursorPos}
+                  stickyX={nodeState.editStickyX}
                 />
               </Text>
             ) : isHR ? (
@@ -704,6 +707,7 @@ function TreeNodeImpl({
                   onCancel={handleInlineEditCancel}
                   onSave={(v) => handleBlockSave(child.id, v)}
                   initialCursorPos={nodeState.editInitialCursorPos}
+                  stickyX={nodeState.editStickyX}
                   onSplitAtBoundary={(offset) => {
                     try {
                       undoHandle.setCursor(displayNode.id)

@@ -91,7 +91,8 @@ export interface UIState {
   // Inline edit state - which block is being edited (null = not editing)
   // blockIndex 0 = title, 1+ = body children (1-indexed into extractBody result)
   // initialCursorPos: where to place cursor when entering edit mode via block navigation
-  inlineEditBlock: { nodeId: string; blockIndex: number; initialCursorPos?: "start" | "end" } | null
+  // stickyX: preferred cursor column preserved across block boundaries (visual column index)
+  inlineEditBlock: { nodeId: string; blockIndex: number; initialCursorPos?: "start" | "end"; stickyX?: number } | null
 
   // Date/recurrence prompt dialog
   datePrompt: {

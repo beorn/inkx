@@ -25,6 +25,8 @@ interface InlineEditFieldProps {
   onMergeBackward?: () => void
   /** Initial cursor position when entering edit mode via block navigation */
   initialCursorPos?: "start" | "end"
+  /** Preferred cursor column preserved across block boundaries */
+  stickyX?: number
 }
 
 export function InlineEditField({
@@ -35,6 +37,7 @@ export function InlineEditField({
   onSplitAtBoundary,
   onMergeBackward,
   initialCursorPos,
+  stickyX,
 }: InlineEditFieldProps): React.ReactElement {
   // Auto-detect width from nearest Box ancestor's content area.
   // This is the same width inkx's renderer uses for word wrapping,
@@ -50,6 +53,7 @@ export function InlineEditField({
     onMergeBackward,
     wrapWidth: width > 0 ? width : undefined,
     initialCursorPos,
+    stickyX,
   })
 
   // Cursor character: show inverse block at cursor position
