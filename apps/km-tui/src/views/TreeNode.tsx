@@ -15,7 +15,7 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
-import { extractTitleTaskMarker, isTask, isBlock, decomposeDatetime } from "@km/core"
+import { extractTitleTaskMarker, isTask, isBlock, stringifyTaskMetadata } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState, getParentContextEx as getParentContextExFromState } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
@@ -433,7 +433,7 @@ function TreeNodeImpl({
       if (result) {
         // Focus the survivor with cursor at the merge point
         setUI({ inlineEditBlock: { nodeId: result.survivorId, blockIndex: 0 } })
-        // TODO: set cursor offset to result.cursorOffset via BlockEditTarget after render
+        // TODO: set cursor offset to result.cursorOffset via activeEditTargetRef after render
       }
     } catch {
       undoHandle.endBatch()
@@ -841,43 +841,12 @@ function getDisplayContent(
 /**
  * When editing, show raw markdown content with metadata from node fields
  * that aren't already in the text (due dates, priority, recurrence, assigned_to).
- * Follows the same pattern as appendTaskMetadata in nodes2md.ts.
+ * Uses shared stringifyTaskMetadata from @km/core for DRY consistency
+ * with the markdown serializer.
  * On save, the parser re-extracts these back to fields — round-trip safe.
  */
 function composeRawEditContent(node: KNode): string {
-  let content = node.content ?? ""
-  const metadata: string[] = []
-
-  const dueParts = decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)
-  const startParts = decomposeDatetime(node.start_at) ?? (node.scheduled_date ? { date: node.scheduled_date, time: node.scheduled_time } : undefined)
-
-  if (dueParts?.date && !content.includes("📅") && !/\bdue:\d{4}-\d{2}-\d{2}\b/.test(content)) {
-    const dueSuffix = dueParts.time ? `T${dueParts.time}` : ""
-    metadata.push(`📅 ${dueParts.date}${dueSuffix}`)
-  }
-
-  if (startParts?.date && !content.includes("⏳") && !/\bstart:\d{4}-\d{2}-\d{2}\b/.test(content)) {
-    const schedSuffix = startParts.time ? `T${startParts.time}` : ""
-    metadata.push(`⏳ ${startParts.date}${schedSuffix}`)
-  }
-
-  if (node.priority && !content.match(/[⏫🔼🔽]/)) {
-    if (node.priority === 1) metadata.push("⏫")
-    else if (node.priority === 2) metadata.push("🔼")
-    else if (node.priority === 3) metadata.push("🔽")
-  }
-
-  const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
-  if (recurrence && !content.includes("🔁")) {
-    metadata.push(`🔁 ${recurrence}`)
-  }
-
-  if (node.assigned_to && !content.includes(`@${node.assigned_to}`)) {
-    metadata.push(`@${node.assigned_to}`)
-  }
-
-  if (metadata.length > 0 && content) content += " " + metadata.join(" ")
-  return content
+  return stringifyTaskMetadata(node.content ?? "", node, { includeAssignedTo: true })
 }
 
 // =============================================================================

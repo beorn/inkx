@@ -9,7 +9,7 @@
  * 2. board.screenshot() reflects the change (rendering layer)
  *
  * Readline shortcut details (Ctrl+W word delete, Ctrl+U/K line kill, etc.)
- * are tested at the hook level in use-line-edit.test.ts, not here.
+ * are tested at the hook level in useEditContext, not here.
  */
 
 import { describe, test, expect } from "vitest"
@@ -150,7 +150,7 @@ describe("Inline Editing", () => {
 
 describe("Inline Edit — Readline Integration", () => {
   // These verify that readline shortcuts work through the board's input layer stack.
-  // Exhaustive readline testing belongs at the useLineEdit hook level.
+  // Exhaustive readline testing belongs at the useEditContext hook level.
 
   test("Backspace and arrow keys work in edit mode", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("ab"))))
