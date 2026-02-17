@@ -20,6 +20,8 @@ interface InlineEditFieldProps {
   onSplitAtBoundary?: (offset: number) => void
   /** Called when Backspace at start needs a tree merge */
   onMergeBackward?: () => void
+  /** Available width for visual line wrapping (for cursor up/down) */
+  lineWidth?: number
 }
 
 export function InlineEditField({
@@ -29,6 +31,7 @@ export function InlineEditField({
   onSave,
   onSplitAtBoundary,
   onMergeBackward,
+  lineWidth,
 }: InlineEditFieldProps): React.ReactElement {
   const { beforeCursor, afterCursor } = useSlateEdit({
     initialValue,
@@ -37,6 +40,7 @@ export function InlineEditField({
     onSave,
     onSplitAtBoundary,
     onMergeBackward,
+    lineWidth,
   })
 
   // Cursor character: show inverse block at cursor position

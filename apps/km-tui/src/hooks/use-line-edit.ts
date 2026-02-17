@@ -147,6 +147,12 @@ export function useLineEdit({
       cursorEnd() {
         setState((s) => ({ ...s, cursor: s.value.length }))
       },
+      cursorUp() {
+        return false // single-line editor — always at boundary
+      },
+      cursorDown() {
+        return false // single-line editor — always at boundary
+      },
       deleteWord() {
         const { value, cursor } = stateRef.current
         if (cursor === 0) return

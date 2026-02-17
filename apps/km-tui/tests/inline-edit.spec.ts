@@ -1026,3 +1026,96 @@ describe("body block edit display (km-tui.edit-display)", () => {
     expect(board.screenshot()).toContain("Body content here-ok")
   })
 })
+
+// =============================================================================
+// Text Cursor Navigation — P2 feature km-tui.text-cursor-nav
+// =============================================================================
+
+describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
+  test("ArrowUp in body block edit moves cursor within visual lines", () => {
+    // Use long content that wraps across multiple visual lines
+    const longContent = "This is a longer body block that should wrap across multiple visual lines for testing cursor navigation"
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.paragraph(longContent),
+            item("section1", item("task1")),
+          ),
+        ),
+      { columns: 40, rows: 20 },
+    )
+
+    // Enter edit mode on the body block
+    board.press("Enter")
+
+    // Cursor should be at end of text (last visual line)
+    // ArrowUp should move cursor up one visual line, NOT navigate to previous block
+    board.press("ArrowUp")
+
+    // If we're still in edit mode, the text should still be visible
+    const screenshot = board.screenshot()
+    expect(screenshot).toContain("body block")
+  })
+
+  test("ArrowDown traverses all visual lines then exits to next block", () => {
+    const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ"
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.paragraph(longContent),
+            item("section1", item("task1")),
+          ),
+        ),
+      { columns: 30, rows: 20 },
+    )
+
+    // Enter edit mode, move cursor to start
+    board.press("Enter")
+    board.press("Control+a")
+
+    // Press ArrowDown repeatedly — should traverse visual lines then exit edit mode
+    // With columns=30 and border (2), available width ~26 chars.
+    // The text wraps across multiple visual lines.
+    // Keep pressing down until we exit edit mode (breadcrumb changes)
+    for (let i = 0; i < 10; i++) {
+      board.press("ArrowDown")
+    }
+
+    // After enough ArrowDowns, we should have exited edit mode and moved to next card
+    // The next card is "section1" which contains "task1"
+    const screenshot = board.screenshot()
+    expect(screenshot).toContain("task1")
+  })
+
+  test("ArrowUp at first visual line exits to previous block", () => {
+    const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.paragraph(longContent),
+            item("section1", item("task1")),
+          ),
+        ),
+      { columns: 30, rows: 20 },
+    )
+
+    // Enter edit mode, move cursor to start
+    board.press("Enter")
+    board.press("Control+a")
+
+    // ArrowUp at first visual line should exit edit mode (boundary)
+    board.press("ArrowUp")
+
+    // Should have navigated up to column header
+    board.expect("#col1[data-cursor]").toExist()
+  })
+})

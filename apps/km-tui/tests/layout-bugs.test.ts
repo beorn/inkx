@@ -251,7 +251,7 @@ describe("km-tui.collapsed-shift", () => {
 // =============================================================================
 
 describe("km-tui.card-border-missing", () => {
-  test("selected body card has border, unselected body cards are borderless", () => {
+  test("selected body card has yellow border, unselected body cards have dim border", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -264,11 +264,11 @@ describe("km-tui.card-border-missing", () => {
 
     // task1 is selected — should have border
     board.expectNodeBorder("task1")
-    // All other body cards are unselected — should be borderless
-    board.expectNodeNoBorder("task2")
-    board.expectNodeNoBorder("task3")
-    board.expectNodeNoBorder("task4")
-    board.expectNodeNoBorder("task5")
+    // All other body cards are unselected — should have dim border
+    board.expectNodeBorder("task2")
+    board.expectNodeBorder("task3")
+    board.expectNodeBorder("task4")
+    board.expectNodeBorder("task5")
   })
 
   test("selected body card has border in narrow terminal (40 cols)", () => {
@@ -319,7 +319,7 @@ describe("km-tui.card-border-missing", () => {
     board.expectNodeBorder("Section B")
   })
 
-  test("unselected body cards are borderless after cursor movement", () => {
+  test("unselected body cards have dim border after cursor movement", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -337,10 +337,10 @@ describe("km-tui.card-border-missing", () => {
 
     // Cursor should be on a2
     board.expect("#a2[data-cursor]").toExist()
-    // Unselected body cards should not have borders
-    board.expectNodeNoBorder("a1")
-    board.expectNodeNoBorder("b1")
-    board.expectNodeNoBorder("b2")
+    // Unselected body cards should have dim border
+    board.expectNodeBorder("a1")
+    board.expectNodeBorder("b1")
+    board.expectNodeBorder("b2")
   })
 
   test("cursor movement transfers selection between body cards", () => {
@@ -355,15 +355,15 @@ describe("km-tui.card-border-missing", () => {
 
     // First card is selected
     board.expect("#selected-task[data-cursor]").toExist()
-    // Other card is not selected — no border
-    board.expectNodeNoBorder("other-task")
+    // Other card is not selected — has dim border
+    board.expectNodeBorder("other-task")
 
     // Navigate to second card
     board.press("j")
     // Now other-task is selected
     board.expect("#other-task[data-cursor]").toExist()
-    // First card is now unselected — no border
-    board.expectNodeNoBorder("selected-task")
+    // First card is now unselected — has dim border
+    board.expectNodeBorder("selected-task")
   })
 })
 
@@ -596,10 +596,10 @@ describe("card border missing edge cases", () => {
     const freshBuffer = board._result.freshRender()
 
     // Check border-specific cells - compare just border-relevant rows.
-    // Body cards (li type) transition between bordered (selected, side-only borders)
-    // and borderless (unselected, padding only). Stale border chars from selection
-    // transitions are acceptable in incremental rendering — only check for MISSING
-    // borders (fresh has border but incremental doesn't).
+    // Body cards (li type) always have borders (dim gray unselected, yellow selected).
+    // Stale border color from selection transitions is acceptable in incremental
+    // rendering — only check for MISSING borders (fresh has border but incremental
+    // doesn't).
     const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
     for (let y = 0; y < incBuffer.height; y++) {
       for (let x = 0; x < incBuffer.width; x++) {

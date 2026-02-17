@@ -75,6 +75,14 @@ export interface TextCursorRightAction {
   type: "TEXT_CURSOR_RIGHT"
 }
 
+export interface TextCursorUpAction {
+  type: "TEXT_CURSOR_UP"
+}
+
+export interface TextCursorDownAction {
+  type: "TEXT_CURSOR_DOWN"
+}
+
 export interface TextCursorStartAction {
   type: "TEXT_CURSOR_START"
 }
@@ -113,6 +121,8 @@ export type TextEditAction =
   | TextDeleteForwardAction
   | TextCursorLeftAction
   | TextCursorRightAction
+  | TextCursorUpAction
+  | TextCursorDownAction
   | TextCursorStartAction
   | TextCursorEndAction
   | TextDeleteWordAction

@@ -7,7 +7,8 @@
  *
  * Two card styles:
  * - Structural cards (oi/sections): always have borders
- * - Virtual body cards (li/p/hr): borderless, colored gutter bar when selected
+ * - Virtual body cards (li/p/hr): always have borders (dim gray when unselected,
+ *   yellow when selected, cyan when editing)
  *
  * NOTE: board.screen.nodeBox("id") returns the TreeNode content area
  * INSIDE the Card's border. The Card border is 1 cell outside:
@@ -80,20 +81,28 @@ function findBorderCell(
 // ANSI color numbers used by inkx buffer
 const ANSI_BLACK = 0
 const ANSI_YELLOW = 3
+const ANSI_BRIGHT_BLACK = 8 // gray / dim
 
 /**
- * Assert that a virtual body card has NO border when unselected.
- * Body cards are borderless by default; borders appear only when selected/editing.
+ * Assert that a virtual body card has a dim gray border when unselected.
+ * Body cards always have borders — dim gray when unselected, yellow when selected.
  */
-function expectNoBorder(
+function expectDimBorder(
   board: ReturnType<typeof testEnv>["board"],
   nodeId: string,
 ) {
   const cell = findBorderCell(board, nodeId)
   expect(
     cell,
-    `node "${nodeId}" should NOT have a border (found '${cell?.char}' fg=${cell?.fg})`,
-  ).toBeNull()
+    `node "${nodeId}" should have a border`,
+  ).not.toBeNull()
+  if (cell) {
+    // Unselected body card border should be dim gray (bright black = 8, or black = 0)
+    expect(
+      cell.fg === ANSI_BLACK || cell.fg === ANSI_BRIGHT_BLACK || cell.fg === null,
+      `node "${nodeId}" border should be dim/gray, got fg=${cell.fg}`,
+    ).toBe(true)
+  }
 }
 
 // ─── Card Border: Structural Cards ───────────────────────────────────────────
@@ -136,14 +145,14 @@ describe("card border: structural cards (sections)", () => {
 // ─── Card Border: Virtual Body Cards ─────────────────────────────────────────
 
 describe("card border: virtual body cards", () => {
-  test("unselected body cards have no border", () => {
+  test("unselected body cards have dim gray border", () => {
     const { board } = testEnv(
       () => item("board", item("col", item("1a"), item("1b"), item("1c"))),
       { columns: 80, rows: 24 },
     )
-    // 1a is selected; 1b and 1c should be borderless
-    expectNoBorder(board, "1b")
-    expectNoBorder(board, "1c")
+    // 1a is selected; 1b and 1c should have dim gray border
+    expectDimBorder(board, "1b")
+    expectDimBorder(board, "1c")
   })
 
   test("selected body card gets yellow border", () => {
@@ -152,11 +161,11 @@ describe("card border: virtual body cards", () => {
       { columns: 80, rows: 24 },
     )
     board.press("j")
-    // 1b is now selected — should have a border
+    // 1b is now selected — should have a yellow border
     board.expectNodeBorder("1b")
-    // 1a and 1c should be borderless
-    board.expectNodeNoBorder("1a")
-    board.expectNodeNoBorder("1c")
+    // 1a and 1c should have dim gray border (unselected)
+    expectDimBorder(board, "1a")
+    expectDimBorder(board, "1c")
   })
 })
 

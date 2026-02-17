@@ -52,6 +52,20 @@ export const textEditingCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "TEXT_CURSOR_END" }),
   },
   {
+    id: "text.cursor_up",
+    name: "Cursor Up",
+    description: "Move cursor up one visual line, or navigate to previous block",
+    category: "TextEdit",
+    execute: (): CommandAction => ({ type: "TEXT_CURSOR_UP" }),
+  },
+  {
+    id: "text.cursor_down",
+    name: "Cursor Down",
+    description: "Move cursor down one visual line, or navigate to next block",
+    category: "TextEdit",
+    execute: (): CommandAction => ({ type: "TEXT_CURSOR_DOWN" }),
+  },
+  {
     id: "text.delete_word",
     name: "Delete Word",
     description: "Delete word backwards",

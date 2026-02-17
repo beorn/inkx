@@ -168,7 +168,7 @@ describe("alignment: 3 cards in single column 80x24", () => {
   })
 
   test("unselected body cards have consistent widths", () => {
-    // 1a is selected (has border), 1b and 1c are unselected (no border)
+    // 1a is selected (yellow border), 1b and 1c are unselected (dim gray border)
     const boxes = ["1b", "1c"].map((id) => board.screen.nodeBox(id))
     for (const box of boxes) expect(box).not.toBeNull()
     // Unselected body cards should have matching widths
@@ -230,15 +230,15 @@ describe("alignment: card vertical stacking", () => {
 // =============================================================================
 
 describe("alignment: selected vs unselected border", () => {
-  test("selected body card has border, unselected has none", () => {
+  test("selected body card has border, unselected has dim border", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("1a"), item("1b"))),
       { columns: 80, rows: 24 },
     )
     // 1a is selected — should have border
     board.expectNodeBorder("1a")
-    // 1b is unselected — should be borderless
-    board.expectNodeNoBorder("1b")
+    // 1b is unselected — should also have border (dim gray)
+    board.expectNodeBorder("1b")
   })
 })
 
@@ -374,7 +374,7 @@ describe("alignment: 2 columns WIDE with multiple cards", () => {
   })
 
   test("cards across different columns have consistent unselected card widths", () => {
-    // 1a is selected (bordered), 1b/2a/2b are unselected (paddingLeft only)
+    // 1a is selected (yellow border), 1b/2a/2b are unselected (dim gray border)
     const box1b = board.screen.nodeBox("1b")
     const box2b = board.screen.nodeBox("2b")
     expect(box1b).not.toBeNull()

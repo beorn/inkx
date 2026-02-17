@@ -3,8 +3,8 @@
  *
  * HR nodes (type: "hr" from markdown thematic breaks, or items with content
  * matching ---, ***, ___) render as centered content between horizontal line
- * padding, without a card border. They are dimmed when unselected, yellow when
- * selected, and show as a normal bordered card in edit mode.
+ * padding, with a dim gray card border when unselected, yellow border when
+ * selected, and cyan border in edit mode.
  */
 
 import { describe, test, expect } from "vitest"
@@ -38,23 +38,23 @@ function hrWithContent(id: string, content: string): KNode[] {
 // ---------------------------------------------------------------------------
 
 describe("HR borderless rendering", () => {
-  test("HR card renders without border", () => {
+  test("HR card renders with dim border when unselected", () => {
     const { board } = testEnv(() =>
       item("board", item("col", item("task1"), item.hr("my-hr"), item("task2")))
     )
 
-    // HR should not have card border chars (╭╮╰╯│)
-    board.expectNodeNoBorder("my-hr")
+    // HR should have a dim gray border when unselected (same as other body blocks)
+    board.expectNodeBorder("my-hr")
   })
 
-  test("selected body card has border, unselected neighbor has no border", () => {
+  test("selected body card has border, unselected neighbor has dim border", () => {
     const { board } = testEnv(() =>
       item("board", item("col", item("task1"), item.hr("my-hr"), item("task2")))
     )
     // task1 is selected — should have a border
     board.expectNodeBorder("task1")
-    // task2 is unselected — should be borderless
-    board.expectNodeNoBorder("task2")
+    // task2 is unselected — should have dim border
+    board.expectNodeBorder("task2")
   })
 
   test("HR renders centered content (---) within card width", () => {
@@ -123,25 +123,25 @@ describe("HR content-based detection", () => {
   const hrContents = ["---", "***", "___", "-----"] as const
 
   for (const content of hrContents) {
-    test(`HR content '${content}' renders as line, no border when unselected`, () => {
+    test(`HR content '${content}' renders as line with dim border when unselected`, () => {
       const { board } = testEnv(
         () => item("board", item("Col", hrWithContent("hr-node", content), item("other"))),
         { columns: 60, rows: 20 },
       )
       board.expectScreen("─")
       board.press("j")
-      board.expectNodeNoBorder("hr-node")
+      board.expectNodeBorder("hr-node")
     })
   }
 
-  test("standard HR (type=hr, no content) renders as line", () => {
+  test("standard HR (type=hr, no content) renders as line with dim border", () => {
     const { board } = testEnv(
       () => item("board", item("Col", item.hr("my-hr"), item("other"))),
       { columns: 60, rows: 20 },
     )
     board.expectScreen("─")
     board.press("j")
-    board.expectNodeNoBorder("my-hr")
+    board.expectNodeBorder("my-hr")
   })
 
   const nonHrContents = [
@@ -460,15 +460,15 @@ describe("HR editing", () => {
       { columns: 60, rows: 20 },
     )
 
-    // Move cursor away, then check HR is borderless when unselected
+    // Move cursor away, then check HR has dim border when unselected
     board.press("j")
-    board.expectNodeNoBorder("my-hr")
+    board.expectNodeBorder("my-hr")
 
     // Move back and enter edit mode
     board.press("k")
     board.press("Enter")
 
-    // During edit: HR should show as bordered card
+    // During edit: HR should show as bordered card (cyan border)
     board.expectNodeBorder("my-hr")
   })
 

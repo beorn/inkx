@@ -75,6 +75,8 @@ interface TreeNodeProps {
   dim?: boolean
   /** Collapse blank lines in content (used for compact body cards in cards view) */
   compactContent?: boolean
+  /** Available width for text cursor navigation (up/down within visual lines) */
+  editLineWidth?: number
 }
 
 /**
@@ -172,6 +174,7 @@ function TreeNodeImpl({
   extraExcludedSigils,
   dim = false,
   compactContent = false,
+  editLineWidth,
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId } = useTreeRenderContext()
@@ -616,6 +619,7 @@ function TreeNodeImpl({
                   onSave={handleTitleSave}
                   onSplitAtBoundary={handleSplitAtBoundary}
                   onMergeBackward={handleMergeBackward}
+                  lineWidth={editLineWidth}
                 />
               </Text>
             ) : isHR ? (
@@ -688,6 +692,7 @@ function TreeNodeImpl({
                   }}
                   onCancel={handleInlineEditCancel}
                   onSave={(v) => handleBlockSave(child.id, v)}
+                  lineWidth={editLineWidth}
                   onSplitAtBoundary={(offset) => {
                     try {
                       undoHandle.setCursor(displayNode.id)

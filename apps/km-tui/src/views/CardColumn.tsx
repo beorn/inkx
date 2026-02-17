@@ -242,6 +242,7 @@ const Card = React.memo(
             childCount={card.childCount}
             extraExcludedSigils={extraExcludedSigils}
             compactContent
+            editLineWidth={width - 4}
           />
         </Box>
       )
@@ -338,21 +339,20 @@ const Card = React.memo(
 // =============================================================================
 
 /** Shared layout props for body blocks (virtual cards and HRs).
- * Returns border props when focused, padding props otherwise. */
+ * Always uses border for consistent sizing — borderColor varies by state.
+ * Layout invariant: selecting/deselecting must NOT shift content. */
 function bodyBlockLayoutProps(
   showBorder: boolean,
   borderColor: string,
-  yieldTop: boolean,
-  isLastBodyBlock: boolean,
+  _yieldTop: boolean,
+  _isLastBodyBlock: boolean,
   isMultiSelected: boolean,
 ) {
   if (showBorder) return { borderStyle: "round" as const, borderColor }
   return {
-    paddingLeft: 1,
-    paddingRight: 1,
-    paddingTop: yieldTop ? 0 : 1,
-    paddingBottom: isLastBodyBlock ? 1 : 0,
-    ...(isMultiSelected ? { backgroundColor: "yellow" } : {}),
+    borderStyle: "round" as const,
+    borderColor: isMultiSelected ? "yellow" : "gray",
+    borderDimColor: !isMultiSelected,
   }
 }
 

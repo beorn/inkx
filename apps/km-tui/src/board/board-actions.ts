@@ -686,6 +686,18 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "TEXT_CURSOR_RIGHT":
       blockEditTargetRef.current?.cursorRight()
       return ok()
+    case "TEXT_CURSOR_UP":
+      // Try text cursor up within the block first; if at boundary, navigate to previous block
+      if (!blockEditTargetRef.current?.cursorUp()) {
+        return handleEditBlockNavigate(ctx, "up")
+      }
+      return ok()
+    case "TEXT_CURSOR_DOWN":
+      // Try text cursor down within the block first; if at boundary, navigate to next block
+      if (!blockEditTargetRef.current?.cursorDown()) {
+        return handleEditBlockNavigate(ctx, "down")
+      }
+      return ok()
     case "TEXT_CURSOR_START":
       blockEditTargetRef.current?.cursorStart()
       return ok()

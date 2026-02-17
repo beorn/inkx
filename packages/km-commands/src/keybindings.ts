@@ -299,10 +299,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "block-edit",
     bindings: [
-      // Up/Down navigate between blocks (title + body paragraphs)
-      // Must come before text editing bindings to intercept these keys
-      { key: "ArrowUp", commandId: "edit_block.navigate_up", when: isInlineEditing },
-      { key: "ArrowDown", commandId: "edit_block.navigate_down", when: isInlineEditing },
+      // Up/Down: move text cursor within visual lines, fall through to block navigation at boundaries
+      { key: "ArrowUp", commandId: "text.cursor_up", when: isInlineEditing },
+      { key: "ArrowDown", commandId: "text.cursor_down", when: isInlineEditing },
     ],
   },
 

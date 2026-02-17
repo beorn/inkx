@@ -19,6 +19,8 @@ export interface BlockEditTarget {
   cursorRight(): void
   cursorStart(): void
   cursorEnd(): void
+  cursorUp(): boolean
+  cursorDown(): boolean
   deleteWord(): void
   deleteToStart(): void
   deleteToEnd(): void
