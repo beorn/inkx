@@ -15,7 +15,7 @@
  * - Right border: box.x + box.width
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, beforeAll } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 // ─── Card Border Helpers ─────────────────────────────────────────────────────
@@ -188,12 +188,12 @@ describe("card border: scrolling", () => {
 // ─── Card Border: Terminal Widths ────────────────────────────────────────────
 
 describe("card border: terminal widths", () => {
-  test("narrow terminal (30 cols)", () => {
+  test.each([30, 200])("single column borders intact at %d cols", (cols) => {
     const { board } = testEnv(
       () => item("board", item("col1", item.section("1a", item("1a-child")))),
-      { columns: 30 },
+      { columns: cols },
     )
-    expectCardBorder(board, "1a", 30)
+    expectCardBorder(board, "1a", cols)
   })
 
   test("narrow terminal with two columns (80 cols)", () => {
@@ -209,14 +209,6 @@ describe("card border: terminal widths", () => {
     expectCardBorder(board, "1a", 80)
     board.press("l")
     expectCardBorder(board, "2a", 80)
-  })
-
-  test("wide terminal (200 cols)", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item.section("1a", item("1a-child")))),
-      { columns: 200 },
-    )
-    expectCardBorder(board, "1a", 200)
   })
 })
 
@@ -620,43 +612,56 @@ describe("card-overflow-dots", () => {
     expect(text).not.toContain("more")
   })
 
-  test("multiple headings with overflow show only one border indicator", () => {
-    // Create a card with two headings, each with many children
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
+  describe("multi-heading overflow (shared env)", () => {
+    let board: ReturnType<typeof testEnv>["board"]
+    beforeAll(() => {
+      const env = testEnv(
+        () =>
           item(
-            "col1",
+            "board",
             item(
-              "parent-card",
+              "col1",
               item(
-                "heading-A",
-                item("A1"),
-                item("A2"),
-                item("A3"),
-                item("A4"),
-                item("A5"),
-              ),
-              item(
-                "heading-B",
-                item("B1"),
-                item("B2"),
-                item("B3"),
-                item("B4"),
-                item("B5"),
+                "parent-card",
+                item(
+                  "heading-A",
+                  item("A1"),
+                  item("A2"),
+                  item("A3"),
+                  item("A4"),
+                  item("A5"),
+                ),
+                item(
+                  "heading-B",
+                  item("B1"),
+                  item("B2"),
+                  item("B3"),
+                  item("B4"),
+                  item("B5"),
+                ),
               ),
             ),
           ),
-        ),
-      { rows: 30, columns: 80, viewMode: "cards" },
-    )
+        { rows: 30, columns: 80, viewMode: "cards" },
+      )
+      board = env.board
+    })
 
-    const text = board.screenshot()
-    // Should show a single overflow border line (one per card, not per heading)
-    const overflowBorders = text.match(/\+\d+/g) ?? []
-    expect(overflowBorders).toHaveLength(1)
-    expect(text).not.toContain("more")
+    test("multiple headings with overflow show only one border indicator", () => {
+      const text = board.screenshot()
+      // Should show a single overflow border line (one per card, not per heading)
+      const overflowBorders = text.match(/\+\d+/g) ?? []
+      expect(overflowBorders).toHaveLength(1)
+      expect(text).not.toContain("more")
+    })
+
+    test("overflow count reflects hidden children across levels", () => {
+      // parent-card has 2 direct children (heading-A, heading-B) — fits in maxContentLines=3
+      // Each heading has 5 children but only 3 are shown (maxContentLines=3)
+      // Total hidden: 0 direct + 2 from heading-A + 2 from heading-B = 4
+      const text = board.screenshot()
+      expect(text).toMatch(/\+4/)
+    })
   })
 
   test("columns view does not show overflow border", () => {
@@ -699,31 +704,6 @@ describe("card-overflow-dots", () => {
     const text = board.screenshot()
     // Columns view should NOT show overflow border pattern (that's cards-only)
     expect(text).not.toMatch(/╰─+ \+\d+ ─+╯/)
-  })
-
-  test("overflow count reflects hidden children across levels", () => {
-    // parent-card has 2 direct children (heading-A, heading-B) — fits in maxContentLines=3
-    // Each heading has 5 children but only 3 are shown (maxContentLines=3)
-    // Total hidden: 0 direct + 2 from heading-A + 2 from heading-B = 4
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item(
-              "parent-card",
-              item("heading-A", item("A1"), item("A2"), item("A3"), item("A4"), item("A5")),
-              item("heading-B", item("B1"), item("B2"), item("B3"), item("B4"), item("B5")),
-            ),
-          ),
-        ),
-      { rows: 30, columns: 80, viewMode: "cards" },
-    )
-
-    const text = board.screenshot()
-    // Total hidden: 2 + 2 = 4
-    expect(text).toMatch(/\+4/)
   })
 })
 

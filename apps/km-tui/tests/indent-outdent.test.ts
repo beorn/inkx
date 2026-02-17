@@ -73,22 +73,13 @@ describe("Indent (Tab)", () => {
   })
 
   describe("boundary cases", () => {
-    test("indent first child bells (no previous sibling)", () => {
-      const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
-
-      // Cursor starts on A (first child) — Tab should bell
+    test.each([
+      { name: "first child (no previous sibling)", fixture: () => item("board", item("col1", item("A"), item("B"))), expected: ["A", "B"] },
+      { name: "single child", fixture: () => item("board", item("col1", item("only-child"))), expected: ["only-child"] },
+    ])("indent $name bells (no-op)", ({ fixture, expected }) => {
+      const { board, repo } = testEnv(fixture)
       board.press("Tab")
-
-      // A should still be a child of col1
-      expect(childIds(repo, "col1")).toEqual(["A", "B"])
-    })
-
-    test("indent single child bells", () => {
-      const { board, repo } = testEnv(() => item("board", item("col1", item("only-child"))))
-
-      board.press("Tab")
-
-      expect(childIds(repo, "col1")).toEqual(["only-child"])
+      expect(childIds(repo, "col1")).toEqual(expected)
     })
   })
 
@@ -371,14 +362,6 @@ describe("Different view modes", () => {
 })
 
 describe("Edge cases", () => {
-  test("indent only child of column bells", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("only"))))
-
-    board.press("Tab")
-
-    expect(childIds(repo, "col1")).toEqual(["only"])
-  })
-
   test("outdent from column to board level works", () => {
     // board → col1 → card1 — Shift+Tab makes card1 sibling of col1
     const { board, repo } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))))
@@ -430,29 +413,13 @@ describe("Edge cases", () => {
     expect(childIds(repo, "C")).toEqual(["D"])
   })
 
-  test("Tab and Shift+Tab are no-ops at board level", () => {
+  test.each([
+    { name: "board level", nav: ["k", "k"] },
+    { name: "column level", nav: ["k"] },
+  ])("Tab and Shift+Tab are no-ops at $name", ({ nav }) => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
-    // Navigate to board level (k from first card → column, k again → board)
-    board.press("k") // → col1 (column header)
-    board.press("k") // → board
-
-    const beforeBoard = childIds(repo, "board")
-    const beforeCol1 = childIds(repo, "col1")
-
-    board.press("Tab")
-    board.press("Shift+Tab")
-
-    // Structure unchanged
-    expect(childIds(repo, "board")).toEqual(beforeBoard)
-    expect(childIds(repo, "col1")).toEqual(beforeCol1)
-  })
-
-  test("Tab and Shift+Tab are no-ops at column level", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
-
-    // Navigate to column level
-    board.press("k") // → col1 (column header)
+    for (const k of nav) board.press(k)
 
     const beforeBoard = childIds(repo, "board")
     const beforeCol1 = childIds(repo, "col1")
@@ -546,45 +513,16 @@ describe("Multi-select outdent (atomic batch)", () => {
 // =============================================================================
 
 describe("Cursor follows node (invariant)", () => {
-  test("indent: cursor follows node to parent card", () => {
-    // col1: [A, B, C] — indent B under A → cursor follows B, resolves to card A
-    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
-
-    board.press("j") // → B (index 1)
-    board.press("Tab") // indent B under A → col1=[A, C]
-
-    // Cursor follows B → B is child of A → cursor resolves to card A
-    expect(board.q("[data-cursor]").textContent()).toContain("A")
-  })
-
-  test("indent: cursor follows node when only sibling left", () => {
-    // col1: [A, B] — indent B under A → col1=[A], cursor follows B → card A
-    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
-
-    board.press("j") // → B (index 1)
-    board.press("Tab") // indent B under A → col1=[A]
-
-    expect(board.q("[data-cursor]").textContent()).toContain("A")
-  })
-
-  test("outdent: cursor follows node to board level", () => {
-    // col1: [A, B, C] — outdent A → A moves to board level, cursor follows A
-    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
-
-    board.press("Shift+Tab") // outdent A
-
-    // Cursor follows A to board level (A becomes a column)
-    expect(board.q("[data-cursor]").textContent()).toContain("A")
-  })
-
-  test("outdent: cursor follows last card to board level", () => {
-    // col1: [A, B] — outdent B → B moves to board level, cursor follows B
-    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
-
-    board.press("j") // → B (index 1)
-    board.press("Shift+Tab") // outdent B → B moves to board level
-
-    expect(board.q("[data-cursor]").textContent()).toContain("B")
+  test.each([
+    { name: "indent: cursor follows to parent card", fixture: () => item("board", item("col1", item("A"), item("B"), item("C"))), nav: ["j"], key: "Tab", expected: "A" },
+    { name: "indent: cursor follows when only sibling left", fixture: () => item("board", item("col1", item("A"), item("B"))), nav: ["j"], key: "Tab", expected: "A" },
+    { name: "outdent: cursor follows to board level", fixture: () => item("board", item("col1", item("A"), item("B"), item("C"))), nav: [], key: "Shift+Tab", expected: "A" },
+    { name: "outdent: cursor follows last card to board level", fixture: () => item("board", item("col1", item("A"), item("B"))), nav: ["j"], key: "Shift+Tab", expected: "B" },
+  ])("$name", ({ fixture, nav, key, expected }) => {
+    const { board } = testEnv(fixture)
+    for (const k of nav) board.press(k)
+    board.press(key)
+    expect(board.q("[data-cursor]").textContent()).toContain(expected)
   })
 
   test("indent then navigate: can reach next sibling after indent", () => {

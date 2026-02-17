@@ -358,62 +358,20 @@ describe("Shift-J single press range (km-cnn5z)", () => {
 })
 
 describe("shift card boundary detection", () => {
-  test("shift up at top card returns boundary (bell)", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", item("a"), item("b"), item("c"))),
-      { columns: 60, rows: 20 },
-    )
-    // Cursor is on first card — shift up should hit boundary
-    board.press("Meta+k")
-    expect(board.bell).toBe(true)
-  })
+  const singleCol = () => item("board", item("Col", item("a"), item("b"), item("c")))
+  const twoCols = () => item("board", item("Col1", item("a")), item("Col2", item("b")))
 
-  test("shift down at bottom card returns boundary (bell)", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", item("a"), item("b"))),
-      { columns: 60, rows: 20 },
-    )
-    board.press("j") // move to last card
-    board.press("Meta+j") // shift down at bottom
-    expect(board.bell).toBe(true)
-  })
-
-  test("shift left at leftmost column returns boundary (bell)", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item("a")), item("Col2", item("b"))),
-      { columns: 80, rows: 20 },
-    )
-    // Cursor on Col1 card — shift left should hit boundary
-    board.press("Meta+h")
-    expect(board.bell).toBe(true)
-  })
-
-  test("shift right at rightmost column returns boundary (bell)", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item("a")), item("Col2", item("b"))),
-      { columns: 80, rows: 20 },
-    )
-    board.press("l") // move to Col2
-    board.press("Meta+l") // shift right at rightmost column
-    expect(board.bell).toBe(true)
-  })
-
-  test("shift down in middle succeeds (no bell)", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", item("a"), item("b"), item("c"))),
-      { columns: 60, rows: 20 },
-    )
-    board.press("Meta+j") // shift down from first card — should succeed
-    expect(board.bell).toBe(false)
-  })
-
-  test("shift up/down at column header returns boundary (bell)", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item("a")), item("Col2", item("b"))),
-      { columns: 80, rows: 20 },
-    )
-    board.press("k") // move to column header
-    board.press("Meta+k") // shift up at header — no card, should hit boundary
-    expect(board.bell).toBe(true)
+  test.each([
+    { name: "shift up at top card", fixture: singleCol, opts: { columns: 60, rows: 20 }, nav: [], key: "Meta+k", bell: true },
+    { name: "shift down at bottom card", fixture: () => item("board", item("Col", item("a"), item("b"))), opts: { columns: 60, rows: 20 }, nav: ["j"], key: "Meta+j", bell: true },
+    { name: "shift left at leftmost column", fixture: twoCols, opts: { columns: 80, rows: 20 }, nav: [], key: "Meta+h", bell: true },
+    { name: "shift right at rightmost column", fixture: twoCols, opts: { columns: 80, rows: 20 }, nav: ["l"], key: "Meta+l", bell: true },
+    { name: "shift down in middle succeeds (no bell)", fixture: singleCol, opts: { columns: 60, rows: 20 }, nav: [], key: "Meta+j", bell: false },
+    { name: "shift up at column header", fixture: twoCols, opts: { columns: 80, rows: 20 }, nav: ["k"], key: "Meta+k", bell: true },
+  ])("$name", ({ fixture, opts, nav, key, bell }) => {
+    const { board } = testEnv(fixture, opts)
+    for (const k of nav) board.press(k)
+    board.press(key)
+    expect(board.bell).toBe(bell)
   })
 })
