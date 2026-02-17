@@ -653,7 +653,8 @@ function TreeNodeImpl({
             )}
           </Box>
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
-          {dateBadge && (
+          {/* Hidden during inline editing — metadata is shown in the editable text */}
+          {dateBadge && !isInlineEditing && (
             <Box flexShrink={0}>
               <Text color={style.textColor} wrap="truncate">
                 {" "}{isHighlighted ? stripFgColor(dateBadge) : dateBadge}
