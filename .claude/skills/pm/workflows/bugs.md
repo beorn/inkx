@@ -105,6 +105,8 @@ Report to user. DO NOT guess at fixes.
 
 ## Step 3: Write Failing Test (MANDATORY — test-first)
 
+**Where to put the test:** Always add to an existing thematic test file that matches the bug's domain (e.g., fold bug → `fold.test.ts`, scroll bug → `scroll.test.ts`). See [test-first-protocol.md](../../tests/test-first-protocol.md#where-to-put-regression-tests) for the full domain→file mapping. Never create a per-bug test file.
+
 Follow the [test-first protocol](../../tests/test-first-protocol.md). The test **must fail before** you write any fix code.
 
 **Classify the bug** to choose the right test type:

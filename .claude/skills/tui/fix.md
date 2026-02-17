@@ -94,11 +94,12 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
 2. **Load real vault** if user mentions a path
 3. **Reproduce the bug** - if test fails, bug confirmed
 4. **Fix the code** - iterate on the fix
-5. **Promote to regression** - move to `apps/km-tui/tests/` when stable
+5. **Promote to existing thematic file** - move the test into the matching domain file in `apps/km-tui/tests/` (e.g., fold bug → `fold.test.ts`, scroll bug → `scroll.test.ts`). See [test-first-protocol.md](../tests/test-first-protocol.md#where-to-put-regression-tests) for the full domain→file mapping.
 6. **Clean up** - after the bug is fixed, the repro test MUST be either:
-   - **Promoted**: renamed from `*-repro.test.ts` to a descriptive regression test name
+   - **Promoted**: merged into the existing thematic test file for its domain
    - **Deleted**: if the bug is already covered by other tests
    Never leave `*-repro*`, `*-debug*`, or `*-profile*` test files in the repo.
+   Never create a new per-bug file (e.g., `fold-border-blank.test.ts`) — always merge into the domain file.
    Use `.scratch.ts` (not `.test.ts`) for temporary investigation files so they don't run in test suites.
 
 ## Buffer Assertion Toolbelt

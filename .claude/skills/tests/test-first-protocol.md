@@ -16,3 +16,37 @@ For rendering bugs, use **buffer assertions** (not just state assertions):
 - `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` — see [tui.md](tui.md#buffer-assertions)
 
 **Never**: theorize without a test, skip the failing-test step, guess at fixes, or close a bead without a test that specifically targets the issue.
+
+## Where to Put Regression Tests
+
+**Always add to an existing thematic test file first.** Only create a new file if no domain match exists AND the test would seed 5+ related cases.
+
+### Domain → File Mapping (km-tui)
+
+| Domain | File | What goes here |
+|--------|------|----------------|
+| Body navigation | `body-nav.test.ts` | j/k in body blocks, column-nav with body, body content rendering |
+| Fold/collapse | `fold.test.ts` | Fold toggle, fold counts, fold border, fold corruption |
+| HR rendering | `hr.test.ts` | HR display, HR editing, HR detection, borderless HR |
+| Sticky cursor | `sticky-cursor.test.ts` | StickyX, stickyY, sticky reset, cursor memory |
+| Dates | `date.test.ts` | Date badges, priority ordering, due date logic |
+| Zoom | `board-zoom.spec.ts` | Zoom in/out, zoom-exit-j, zoom view diff, body-only zoom |
+| Board navigation | `board-nav.spec.ts` | h/l column nav, board-level keyboard nav |
+| Collapse columns | `collapse.test.ts` | Column collapse, width, multi-column |
+| Embeds | `embed.test.ts` | Embed create, display, task status |
+| Layout bugs | `layout-bugs.test.ts` | Edge-case layout regressions |
+| Card rendering | `card-rendering.test.ts` | Borders, overflow dots, line truncation |
+| Cursor colors | `cursor-colors.test.ts` | Selected/cursor color, color overrides |
+| Cursor stability | `cursor-stability.spec.ts` | Cursor position after edits, border overflow, lost cursor |
+| Inline edit | `inline-edit.spec.ts` | Enter during edit, focus ring, edit mode |
+| Scroll | `scroll.test.ts` | Scroll follow, indicators, height equalization, shift-body |
+| Search | `search-dialog.test.ts` | Search open/close, scope, results |
+| Shift cursor | `shift-cursor.test.ts` | Shift+J/K, boundary, range |
+| Undo/redo | `undo-system.test.ts` | Undo cursor restore, duplicate, redo |
+| Crash regressions | `crash-regressions.test.ts` | Any crash-type bug (OOB, null ref, etc.) |
+| Board structure | `board.test.ts` | Board state, app mount |
+| Status bar | `status-bar.test.ts` | Bottom bar content |
+| Indent/outdent | `indent-outdent.test.ts` | Tab/Shift+Tab indentation |
+| Alignment | `alignment.test.ts` | Column alignment, body alignment |
+
+**If your bug doesn't fit any domain above**, check if it relates to an existing file's theme. If truly novel, create a new thematic file that can accumulate related tests over time.

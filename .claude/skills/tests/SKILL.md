@@ -123,6 +123,18 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 - **Bench** and **Storybook** are not "tests" - must qualify
 - See [testing.md#dynamic-testing-taxonomy](../../docs/dev/testing.md#dynamic-testing-taxonomy) for industry terminology
 
+### Test File Organization
+
+**Always add regression tests to existing thematic files.** The km-tui test suite is organized by domain (fold, zoom, scroll, etc.), not by bug ID. See [test-first-protocol.md](test-first-protocol.md#where-to-put-regression-tests) for the full domain→file mapping.
+
+**Rules:**
+1. Search for an existing file that matches your bug's domain before creating a new file
+2. Only create a new file if: no domain match exists AND the test seeds 5+ related cases
+3. Name new files by domain (`fold.test.ts`), not by bug (`fold-border-blank.test.ts`)
+4. Group related tests under `describe()` blocks within the file
+
+**Anti-pattern:** One file per bug (e.g., `fold-border-blank.test.ts`, `fold-border-regression.test.ts`). This causes test suite bloat — merge into `fold.test.ts` instead.
+
 ### Test File Suffixes
 
 | Suffix          | What It Tests                   |

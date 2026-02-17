@@ -220,6 +220,56 @@ find packages apps -name "*.test.ts" -exec wc -l {} \; 2>/dev/null | \
   awk '$1 > 500 {print}' | sort -rn
 ```
 
+## Phase 3.5: File Proliferation Check
+
+Detect one-file-per-bug proliferation that should be consolidated into thematic files.
+
+```bash
+# Count test files per directory
+echo "=== Test File Counts by Directory ==="
+for dir in apps/km-tui/tests packages/*/tests; do
+  [ -d "$dir" ] || continue
+  count=$(ls "$dir"/*.test.ts "$dir"/*.spec.ts 2>/dev/null | wc -l)
+  echo "  $count files: $dir"
+done | sort -rn
+
+# Detect files that look like per-bug regressions (bug-specific names)
+echo -e "\n=== Potential Per-Bug Files (should be in thematic files) ==="
+for f in apps/km-tui/tests/*.test.ts apps/km-tui/tests/*.spec.ts; do
+  [ -f "$f" ] || continue
+  base=$(basename "$f" | sed 's/\.\(test\|spec\)\.ts$//')
+  # Flag files with 3+ hyphen segments (likely bug-specific names)
+  segments=$(echo "$base" | tr '-' '\n' | wc -l)
+  [ "$segments" -ge 4 ] && echo "  $(basename "$f") ($segments segments)"
+done
+
+# Find small test files (<50 lines, likely single-bug regressions)
+echo -e "\n=== Small Test Files (<50 lines) ==="
+wc -l apps/km-tui/tests/*.test.ts apps/km-tui/tests/*.spec.ts 2>/dev/null | \
+  awk '$1 < 50 && $1 > 0 {print "  " $1 " lines: " $2}' | sort -n
+
+# Detect thematic overlap (files with similar prefixes)
+echo -e "\n=== Potential Thematic Overlaps ==="
+for prefix in fold zoom scroll cursor card body hr embed collapse date search edit undo shift sticky layout; do
+  files=$(ls apps/km-tui/tests/*${prefix}*.test.ts apps/km-tui/tests/*${prefix}*.spec.ts 2>/dev/null | wc -l)
+  [ "$files" -gt 1 ] && echo "  $files files for '$prefix': $(ls apps/km-tui/tests/*${prefix}*.test.ts apps/km-tui/tests/*${prefix}*.spec.ts 2>/dev/null | xargs -I{} basename {} | tr '\n' ' ')"
+done
+```
+
+**Red flags:**
+- **>60 test files in km-tui/tests/**: File proliferation in progress
+- **Files with 4+ hyphen segments**: Likely per-bug names (e.g., `fold-border-blank.test.ts`)
+- **Files <50 lines**: Likely single-test regression files that should be merged
+- **Multiple files sharing a prefix**: Should be one thematic file (e.g., all `fold-*` → `fold.test.ts`)
+
+**Resolution:**
+1. Identify the thematic domain for each per-bug file (fold, zoom, scroll, etc.)
+2. Merge into the canonical thematic file — see [test-first-protocol.md](test-first-protocol.md#where-to-put-regression-tests) for the domain→file mapping
+3. Combine imports, preserve describe blocks, delete source files
+4. Verify with `bun vitest run` after each merge
+
+**Target:** km-tui/tests/ should have ~50-65 thematic files, not 90+ per-bug files.
+
 ## Phase 4: Smell Detection
 
 Apply checklist from `docs/dev/test-review.md`:
