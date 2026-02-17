@@ -23,7 +23,7 @@ import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
 import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
 import { assertNever } from "../action-handlers.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
-import { activeEditTargetRef } from "inkx"
+import { activeEditTargetRef, activeEditContextRef } from "inkx"
 import { dialogTargetRef } from "../dialog-target.ts"
 import {
   extractBody,
@@ -770,10 +770,36 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       dialogTargetRef.current?.navDown()
       return ok()
     case "DIALOG_CONFIRM":
-      dialogTargetRef.current?.confirm()
+      if (dialogTargetRef.current) {
+        dialogTargetRef.current.confirm()
+      } else if (activeEditTargetRef.current) {
+        // Fallback: if dialogTargetRef wasn't registered yet but the edit context is active
+        // (e.g., DatePromptDialog's useEditContext fires before its dialogTargetRef layout effect),
+        // use the edit target's confirm method which triggers the same onConfirm callback.
+        log.warn?.("DIALOG_CONFIRM: dialogTargetRef null, falling back to activeEditTargetRef")
+        activeEditTargetRef.current.confirm()
+      } else {
+        // Both refs null — dialog component hasn't mounted yet. Force close any open dialog.
+        log.warn?.("DIALOG_CONFIRM: both refs null, force-closing dialogs")
+        if (ctx.ui.datePrompt) ctx.setUI({ datePrompt: null })
+        else if (ctx.ui.showSearchDialog) ctx.setUI({ showSearchDialog: false })
+        else if (ctx.ui.showNewItemDialog) ctx.setUI({ showNewItemDialog: false })
+        else if (ctx.ui.showProjectPicker) ctx.setUI({ showProjectPicker: false })
+      }
       return ok()
     case "DIALOG_CANCEL":
-      dialogTargetRef.current?.cancel()
+      if (dialogTargetRef.current) {
+        dialogTargetRef.current.cancel()
+      } else if (activeEditTargetRef.current) {
+        log.warn?.("DIALOG_CANCEL: dialogTargetRef null, falling back to activeEditTargetRef")
+        activeEditTargetRef.current.cancel()
+      } else {
+        log.warn?.("DIALOG_CANCEL: both refs null, force-closing dialogs")
+        if (ctx.ui.datePrompt) ctx.setUI({ datePrompt: null })
+        else if (ctx.ui.showSearchDialog) ctx.setUI({ showSearchDialog: false })
+        else if (ctx.ui.showNewItemDialog) ctx.setUI({ showNewItemDialog: false })
+        else if (ctx.ui.showProjectPicker) ctx.setUI({ showProjectPicker: false })
+      }
       return ok()
 
     case "TOGGLE_SEARCH_SCOPE":
@@ -846,6 +872,15 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
   const edit = ui.inlineEditBlock
   if (!edit) return ok()
 
+  // Capture the current cursor column before saving/unmounting the edit context.
+  // This preserves the preferred column (stickyX) across block boundaries.
+  // If the TermEditContext already has a stickyX (from prior vertical movement),
+  // use that; otherwise compute the current visual column.
+  const editCtx = activeEditContextRef.current
+  const stickyX = editCtx
+    ? (editCtx.stickyX ?? editCtx.getCursorRowCol().col)
+    : edit.stickyX
+
   const blockCount = 1 + extractBody(ctx.repo.getChildren(edit.nodeId)).body.length
   const nextIndex = edit.blockIndex + (direction === "down" ? 1 : -1)
 
@@ -857,6 +892,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
         ...edit,
         blockIndex: nextIndex,
         initialCursorPos: direction === "down" ? "start" : "end",
+        stickyX,
       },
     })
     return ok()
@@ -883,6 +919,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
         nodeId: adjacentCard.node.id,
         blockIndex: adjBlockIndex,
         initialCursorPos: direction === "down" ? "start" : "end",
+        stickyX,
       },
     })
     return ok()
