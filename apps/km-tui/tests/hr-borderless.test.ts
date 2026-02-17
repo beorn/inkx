@@ -10,20 +10,14 @@ test("HR card renders without border", () => {
   board.expectNodeNoBorder("my-hr")
 })
 
-test("neighboring cards still have borders", () => {
+test("selected body card has border, unselected neighbor has no border", () => {
   const { board } = testEnv(() =>
     item("board", item("col", item("task1"), item.hr("my-hr"), item("task2")))
   )
-  const task1Box = board.screen.nodeBox("task1")
-  expect(task1Box).not.toBeNull()
-  if (task1Box) {
-    // Round border: row above task1 content should have ╭
-    const topBorderRow = task1Box.y - 1
-    if (topBorderRow >= 0) {
-      const topLeftCell = board.screen.cell(task1Box.x - 1, topBorderRow)
-      expect("╭╮╰╯│┌┐└┘".includes(topLeftCell.char), `task1 top border: got "${topLeftCell.char}"`).toBe(true)
-    }
-  }
+  // task1 is selected — should have a border
+  board.expectNodeBorder("task1")
+  // task2 is unselected — should be borderless
+  board.expectNodeNoBorder("task2")
 })
 
 test("HR renders centered content (---) within card width", () => {

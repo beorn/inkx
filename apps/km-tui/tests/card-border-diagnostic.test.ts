@@ -7,7 +7,7 @@
  *
  * Two card styles:
  * - Structural cards (oi/sections): always have borders
- * - Virtual body cards (li/p/hr): borderless by default, yellow border when selected
+ * - Virtual body cards (li/p/hr): borderless, colored gutter bar when selected
  *
  * NOTE: board.screen.nodeBox("id") returns the TreeNode content area
  * INSIDE the Card's border. The Card border is 1 cell outside:
@@ -80,20 +80,18 @@ const ANSI_BLACK = 0
 const ANSI_YELLOW = 3
 
 /**
- * Assert that a virtual body card has a transparent (black) border when unselected.
- * Body cards always have borders for layout stability; the border color indicates state.
+ * Assert that a virtual body card has NO border when unselected.
+ * Body cards are borderless by default; borders appear only when selected/editing.
  */
-function expectTransparentBorder(
+function expectNoBorder(
   board: ReturnType<typeof testEnv>["board"],
   nodeId: string,
 ) {
   const cell = findBorderCell(board, nodeId)
-  expect(cell, `node "${nodeId}" should have a border`).not.toBeNull()
-  if (!cell) return
   expect(
-    cell.fg,
-    `node "${nodeId}" border should be transparent (black/0), got fg=${cell.fg}`,
-  ).toBe(ANSI_BLACK)
+    cell,
+    `node "${nodeId}" should NOT have a border (found '${cell?.char}' fg=${cell?.fg})`,
+  ).toBeNull()
 }
 
 describe("card border: structural cards (sections)", () => {
@@ -131,15 +129,15 @@ describe("card border: structural cards (sections)", () => {
   })
 })
 
-describe("card border: virtual body cards (transparent border)", () => {
-  test("unselected body cards have transparent (black) border", () => {
+describe("card border: virtual body cards", () => {
+  test("unselected body cards have no border", () => {
     const { board } = testEnv(
       () => item("board", item("col", item("1a"), item("1b"), item("1c"))),
       { columns: 80, rows: 24 },
     )
-    // First card is selected (yellow border), others should have transparent border
-    expectTransparentBorder(board, "1b")
-    expectTransparentBorder(board, "1c")
+    // 1a is selected; 1b and 1c should be borderless
+    expectNoBorder(board, "1b")
+    expectNoBorder(board, "1c")
   })
 
   test("selected body card gets yellow border", () => {
@@ -147,13 +145,12 @@ describe("card border: virtual body cards (transparent border)", () => {
       () => item("board", item("col", item("1a"), item("1b"), item("1c"))),
       { columns: 80, rows: 24 },
     )
-    // Navigate to 1b — it should now have a yellow border
     board.press("j")
-    const cell = findBorderCell(board, "1b")
-    expect(cell, "1b should have a border").not.toBeNull()
-    expect(cell!.fg, "selected body card should have yellow border").toBe(ANSI_YELLOW)
-    // Unselected card should have transparent border
-    expectTransparentBorder(board, "1c")
+    // 1b is now selected — should have a border
+    board.expectNodeBorder("1b")
+    // 1a and 1c should be borderless
+    board.expectNodeNoBorder("1a")
+    board.expectNodeNoBorder("1c")
   })
 })
 

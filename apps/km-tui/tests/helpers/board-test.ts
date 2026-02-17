@@ -789,6 +789,28 @@ export function testEnv(
     },
 
     /**
+     * Assert that a node has a colored gutter bar (background color) at its left edge.
+     * Body cards use a 1-char gutter bar instead of border chars.
+     * @param expectedBg - ANSI color index for the gutter (3=yellow, default)
+     */
+    expectNodeGutter(nodeId: string, expectedBg = 3) {
+      const loc = result.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return board
+      const gutterX = box.x - 1
+      if (gutterX >= 0) {
+        const gutterCell = result.term.cell(gutterX, box.y)
+        expect(
+          gutterCell.bg,
+          `node "${nodeId}" gutter at (${gutterX},${box.y}): expected bg=${expectedBg}, got bg=${gutterCell.bg}`,
+        ).toBe(expectedBg)
+      }
+      return board
+    },
+
+    /**
      * Debug helper: dump cell info at a position (char, fg, bg, attrs).
      * Returns the cell for further inspection. Not an assertion.
      */

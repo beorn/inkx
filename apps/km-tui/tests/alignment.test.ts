@@ -175,55 +175,34 @@ describe("alignment: card borders", () => {
     expect(boxes[1]!.x).toBe(boxes[2]!.x)
   })
 
-  test("all card right borders align (same width)", () => {
+  test("unselected body cards have consistent widths", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
       { columns: 80, rows: 24 },
     )
-    const boxes = ["1a", "1b", "1c"].map((id) => board.screen.nodeBox(id))
+    // 1a is selected (has border), 1b and 1c are unselected (no border)
+    const boxes = ["1b", "1c"].map((id) => board.screen.nodeBox(id))
     for (const box of boxes) expect(box).not.toBeNull()
-    // All widths should be equal (cards fill the column width)
+    // Unselected body cards should have matching widths
     expect(boxes[0]!.width).toBe(boxes[1]!.width)
-    expect(boxes[1]!.width).toBe(boxes[2]!.width)
-    // Right edges should all be at the same X
+    // Right edges should align
     const rightEdge0 = boxes[0]!.x + boxes[0]!.width
     const rightEdge1 = boxes[1]!.x + boxes[1]!.width
-    const rightEdge2 = boxes[2]!.x + boxes[2]!.width
     expect(rightEdge0).toBe(rightEdge1)
-    expect(rightEdge1).toBe(rightEdge2)
   })
 
-  test("card border characters are present (round style)", () => {
+  test("selected body card has border, unselected has none", () => {
     const { board } = testEnv(
-      () => item("board", item("col1", item("1a"))),
+      () => item("board", item("col1", item("1a"), item("1b"))),
       { columns: 80, rows: 24 },
     )
-    // nodeBox("1a") returns the TreeNode content area (inside the border).
-    // The Card wraps it in a Box with borderStyle="round", so border chars
-    // are 1 cell outside the nodeBox on each side.
-    const box = board.screen.nodeBox("1a")
-    expect(box).not.toBeNull()
-    // Check for border chars to the left (1 col before nodeBox x)
-    const borderX = box!.x - 1
-    if (borderX >= 0) {
-      const leftBorderCell = board.screen.cell(borderX, box!.y)
-      expect(
-        isBorderChar(leftBorderCell.char),
-        `Expected border char at (${borderX},${box!.y}), got "${leftBorderCell.char}"`,
-      ).toBe(true)
-    }
-    // Check for border chars to the right (1 col after nodeBox right edge)
-    const rightBorderX = box!.x + box!.width
-    if (rightBorderX < 80) {
-      const rightBorderCell = board.screen.cell(rightBorderX, box!.y)
-      expect(
-        isBorderChar(rightBorderCell.char),
-        `Expected border char at (${rightBorderX},${box!.y}), got "${rightBorderCell.char}"`,
-      ).toBe(true)
-    }
+    // 1a is selected — should have border
+    board.expectNodeBorder("1a")
+    // 1b is unselected — should be borderless
+    board.expectNodeNoBorder("1b")
   })
 
-  test("cards across different columns have consistent card widths relative to column", () => {
+  test("cards across different columns have consistent unselected card widths", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -233,21 +212,13 @@ describe("alignment: card borders", () => {
         ),
       WIDE,
     )
-    const box1a = board.screen.nodeBox("1a")
+    // 1a is selected (bordered), 1b/2a/2b are unselected (paddingLeft only)
     const box1b = board.screen.nodeBox("1b")
-    const box2a = board.screen.nodeBox("2a")
     const box2b = board.screen.nodeBox("2b")
-    expect(box1a).not.toBeNull()
     expect(box1b).not.toBeNull()
-    expect(box2a).not.toBeNull()
     expect(box2b).not.toBeNull()
-    // Cards within col1 have same width
-    expect(box1a!.width).toBe(box1b!.width)
-    // Cards within col2 have same width
-    expect(box2a!.width).toBe(box2b!.width)
-    // Column widths are equal (same number of cards), so card widths should match
-    // Allow 1 char difference due to remainder distribution
-    expect(Math.abs(box1a!.width - box2a!.width)).toBeLessThanOrEqual(1)
+    // Cross-column unselected cards should have similar widths (columns may differ slightly)
+    expect(Math.abs(box1b!.width - box2b!.width)).toBeLessThanOrEqual(1)
   })
 })
 

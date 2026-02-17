@@ -189,19 +189,22 @@ const Card = React.memo(
       )
     }
 
-    // Virtual body content always has a border to keep layout stable.
-    // Border color: cyan when editing, yellow when selected, transparent ("black") otherwise.
-    // Always rendering the border avoids size changes when cursor passes over.
+    // Body cards: full border when selected/editing, padding otherwise.
+    // paddingTop on unselected = 1 row of breathing room above content.
+    // borderTop replaces paddingTop when selected → content stays at same Y.
+    // borderBottom adds 1 row below (visual selection indicator).
+    // Gap between blocks = paddingTop of next block = exactly 1 line.
     if (isVirtualColumn || card.isVirtual) {
-      const virtualBorderColor = isEditing ? "cyan" : isSelected || isMultiSelected ? "yellow" : "black"
+      const showBorder = isSelected || isMultiSelected || isEditing
+      const bodyBorderColor = isEditing ? "cyan" : "yellow"
       return (
         <Box
           flexDirection="column"
           flexShrink={0}
           width={width}
-          borderStyle="round"
-          borderColor={virtualBorderColor}
-          minHeight={3}
+          {...(showBorder
+            ? { borderStyle: "round" as const, borderColor: bodyBorderColor }
+            : { paddingLeft: 1, paddingRight: 1, paddingTop: 1 })}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode

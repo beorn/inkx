@@ -183,10 +183,12 @@ describe("Edit Operations", () => {
     // Card should now be in col1, cursor follows
     board.expect("#2a[data-cursor]").toExist()
 
-    // 2a should now be horizontally aligned with col1 content
+    // 2a should now be in the same column as 1a (col1).
+    // Body cards: selected (2a) has side borders, unselected (1a) has paddingLeft,
+    // so nodeBox.x may differ by 1. Check they are in the same column region.
     const twoABox = board.q("#2a").boundingBox()
     const oneABox = board.q("#1a").boundingBox()
-    expect(twoABox!.x).toBe(oneABox!.x)
+    expect(Math.abs(twoABox!.x - oneABox!.x)).toBeLessThanOrEqual(1)
   })
 
   test("Meta+l at rightmost column does nothing", () => {
@@ -526,10 +528,12 @@ describe("Move Mode", () => {
 
     expect(board.screenshot()).not.toContain("[MOVE]")
 
-    // 1a should now be in col2 (alongside 2a)
+    // 1a should now be in col2 (alongside 2a).
+    // Body cards: selected (1a) has side borders, unselected (2a) has paddingLeft,
+    // so nodeBox.x may differ by 1. Check they are in the same column region.
     const oneABox = board.q("#1a").boundingBox()
     const twoABox = board.q("#2a").boundingBox()
-    expect(oneABox!.x).toBe(twoABox!.x)
+    expect(Math.abs(oneABox!.x - twoABox!.x)).toBeLessThanOrEqual(1)
   })
 
   test("move mode allows navigation to pick target", () => {

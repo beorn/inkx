@@ -247,7 +247,7 @@ describe("km-tui.collapsed-shift", () => {
 // =============================================================================
 
 describe("km-tui.card-border-missing", () => {
-  test("all cards have left and right border characters", () => {
+  test("selected body card has border, unselected body cards are borderless", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -258,13 +258,16 @@ describe("km-tui.card-border-missing", () => {
       { columns: 80, rows: 24 },
     )
 
-    // Check each card has left and right borders
-    for (const id of ["task1", "task2", "task3", "task4", "task5"]) {
-      board.expectNodeBorder(id)
-    }
+    // task1 is selected — should have border
+    board.expectNodeBorder("task1")
+    // All other body cards are unselected — should be borderless
+    board.expectNodeNoBorder("task2")
+    board.expectNodeNoBorder("task3")
+    board.expectNodeNoBorder("task4")
+    board.expectNodeNoBorder("task5")
   })
 
-  test("card right border visible in narrow terminal (40 cols)", () => {
+  test("selected body card has border in narrow terminal (40 cols)", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -274,10 +277,11 @@ describe("km-tui.card-border-missing", () => {
       { columns: 40, rows: 20 },
     )
 
+    // narrow-task is selected — should have border
     board.expectNodeBorder("narrow-task")
   })
 
-  test("card borders visible after scrolling through many cards", () => {
+  test("selected card visible after scrolling through many cards", () => {
     const items = Array.from({ length: 10 }, (_, i) => item(`card-${i}`))
     const { board } = testEnv(
       () => item("board", item("BigCol", ...items)),
@@ -287,33 +291,31 @@ describe("km-tui.card-border-missing", () => {
     // Navigate to a card near the middle
     for (let i = 0; i < 5; i++) board.press("j")
 
-    // Check visible cards have borders
-    // card-5 should be visible and have borders
-    board.expectNodeBorder("card-5")
+    // card-5 is now selected and should have [data-cursor]
+    board.expect("#card-5[data-cursor]").toExist()
+    board.expectScreen("card-5")
   })
 
-  test("card borders visible in two-column board with long content", () => {
+  test("structural cards always have borders regardless of selection", () => {
     const { board } = testEnv(
       () =>
         item(
           "board",
           item(
             "Work",
-            item("This is a task with a really long title that should be truncated"),
-            item("Short"),
+            item.section("Section A", item("task-a")),
+            item.section("Section B", item("task-b")),
           ),
-          item("Home", item("Another long task title for testing border rendering")),
         ),
       { columns: 80, rows: 20 },
     )
 
-    // Both columns' cards should have borders
-    board.expectNodeBorder("This is a task with a really long title that should be truncated")
-    board.expectNodeBorder("Short")
-    board.expectNodeBorder("Another long task title for testing border rendering")
+    // Structural cards (oi type, created with item.section()) always have borders
+    board.expectNodeBorder("Section A")
+    board.expectNodeBorder("Section B")
   })
 
-  test("card borders present after cursor movement between columns", () => {
+  test("unselected body cards are borderless after cursor movement", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -329,14 +331,15 @@ describe("km-tui.card-border-missing", () => {
     board.press("h")  // back to Col1
     board.press("j")  // down to a2
 
-    // All cards should still have borders
-    board.expectNodeBorder("a1")
-    board.expectNodeBorder("a2")
-    board.expectNodeBorder("b1")
-    board.expectNodeBorder("b2")
+    // Cursor should be on a2
+    board.expect("#a2[data-cursor]").toExist()
+    // Unselected body cards should not have borders
+    board.expectNodeNoBorder("a1")
+    board.expectNodeNoBorder("b1")
+    board.expectNodeNoBorder("b2")
   })
 
-  test("selected card has border (yellow)", () => {
+  test("cursor movement transfers selection between body cards", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -347,12 +350,15 @@ describe("km-tui.card-border-missing", () => {
     )
 
     // First card is selected
-    board.expectNodeBorder("selected-task")
+    board.expect("#selected-task[data-cursor]").toExist()
+    // Other card is not selected — no border
+    board.expectNodeNoBorder("other-task")
 
     // Navigate to second card
     board.press("j")
-    board.expectNodeBorder("other-task")
-    // First card still has border
-    board.expectNodeBorder("selected-task")
+    // Now other-task is selected
+    board.expect("#other-task[data-cursor]").toExist()
+    // First card is now unselected — no border
+    board.expectNodeNoBorder("selected-task")
   })
 })
