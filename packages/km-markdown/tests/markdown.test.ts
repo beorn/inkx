@@ -534,11 +534,10 @@ describe("Nodes to Markdown", () => {
       expect(nodesToMarkdown([makeTask("Done task", { status: "done", marker: "[x]" })])).toContain("- [x]")
     })
 
-    test("should serialize task with metadata using emoji format", () => {
+    test("should serialize task with metadata using text key:value format", () => {
       const md = nodesToMarkdown([makeTask("Important task", { dueDate: "2025-03-15", priority: 1 })])
-      // Implementation uses Obsidian Tasks emoji format
-      expect(md).toContain("📅 2025-03-15")
-      expect(md).toContain("⏫") // priority 1 = high
+      expect(md).toContain("due:2025-03-15")
+      expect(md).toContain("p:1")
     })
 
     test("should serialize section node as heading", () => {
@@ -571,7 +570,7 @@ describe("Nodes to Markdown", () => {
         due_time: "14:30",
       })
       const md = nodesToMarkdown([node])
-      expect(md).toContain("📅 2025-03-15T14:30")
+      expect(md).toContain("due:2025-03-15T14:30")
     })
 
     test("should serialize task with scheduled_time as T suffix", () => {
@@ -585,7 +584,7 @@ describe("Nodes to Markdown", () => {
         scheduled_time: "09:00",
       })
       const md = nodesToMarkdown([node])
-      expect(md).toContain("⏳ 2025-03-10T09:00")
+      expect(md).toContain("start:2025-03-10T09:00")
     })
 
     test("should serialize recurrence from top-level field", () => {
@@ -598,7 +597,7 @@ describe("Nodes to Markdown", () => {
         recurrence: "every day",
       })
       const md = nodesToMarkdown([node])
-      expect(md).toContain("🔁 every day")
+      expect(md).toContain("recur:every day")
     })
 
     test("should serialize recurrence from data.recurrence", () => {
@@ -611,7 +610,7 @@ describe("Nodes to Markdown", () => {
         data: { recurrence: "every week" },
       })
       const md = nodesToMarkdown([node])
-      expect(md).toContain("🔁 every week")
+      expect(md).toContain("recur:every week")
     })
 
     test("should not duplicate recurrence if already in content", () => {

@@ -7,7 +7,7 @@
 import { createLogger } from "@beorn/logger"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode, TaskStatus } from "@km/core"
-import { getMarkerForStatus, decomposeDatetime } from "@km/core"
+import { getMarkerForStatus, stringifyTaskMetadata } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 
 const log = createLogger("km:markdown:nodes2md")
@@ -398,38 +398,9 @@ function serializeLi(
   return md
 }
 
-/** Append task metadata emojis (due, scheduled, priority, recurrence) to content. */
+/** Append task metadata as text key:value tags (due:, start:, p:, recur:). */
 function appendTaskMetadata(node: KNode): string {
-  let content = node.content ?? ""
-  const metadata: string[] = []
-
-  // Use due_at/start_at (preferred) with fallback to legacy fields
-  const dueParts = decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)
-  const startParts = decomposeDatetime(node.start_at) ?? (node.scheduled_date ? { date: node.scheduled_date, time: node.scheduled_time } : undefined)
-
-  if (dueParts?.date && !content.includes("📅") && !/\bdue:\d{4}-\d{2}-\d{2}\b/.test(content)) {
-    const dueSuffix = dueParts.time ? `T${dueParts.time}` : ""
-    metadata.push(`📅 ${dueParts.date}${dueSuffix}`)
-  }
-
-  if (startParts?.date && !content.includes("⏳") && !/\bstart:\d{4}-\d{2}-\d{2}\b/.test(content)) {
-    const schedSuffix = startParts.time ? `T${startParts.time}` : ""
-    metadata.push(`⏳ ${startParts.date}${schedSuffix}`)
-  }
-
-  if (node.priority && !content.match(/[⏫🔼🔽]/)) {
-    if (node.priority === 1) metadata.push("⏫")
-    else if (node.priority === 2) metadata.push("🔼")
-    else if (node.priority === 3) metadata.push("🔽")
-  }
-
-  const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
-  if (recurrence && !content.includes("🔁")) {
-    metadata.push(`🔁 ${recurrence}`)
-  }
-
-  if (metadata.length > 0 && content) content += " " + metadata.join(" ")
-  return content
+  return stringifyTaskMetadata(node.content ?? "", node)
 }
 
 /**

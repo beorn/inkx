@@ -54,7 +54,8 @@ const DUE_EMOJI_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
 const DUE_INLINE_REGEX = /\bdue:(\d{4}-\d{2}-\d{2})\b/
 const SCHED_EMOJI_REGEX = /⏳\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
 const SCHED_INLINE_REGEX = /\bstart:(\d{4}-\d{2}-\d{2})\b/
-const RECURRENCE_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/
+const RECURRENCE_EMOJI_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳⏫🔼🔽]|$)/
+const RECURRENCE_INLINE_REGEX = /\brecur:(\S+)/
 const PRIORITY_INLINE_REGEX = /\bp:([1-9])\b/
 
 // Generic key=value regex for heading rules
@@ -286,10 +287,14 @@ export function parseTaskMetadata(text: string): {
     result.priority = parseInt(priorityInlineMatch[1], 10)
   }
 
-  // Recurrence: 🔁 every week
-  const recurrenceMatch = text.match(RECURRENCE_REGEX)
-  if (recurrenceMatch?.[1]) {
-    result.recurrence = recurrenceMatch[1].trim()
+  // Recurrence: 🔁 every week OR recur:FREQ=WEEKLY
+  const recurrenceEmojiMatch = text.match(RECURRENCE_EMOJI_REGEX)
+  if (recurrenceEmojiMatch?.[1]) {
+    result.recurrence = recurrenceEmojiMatch[1].trim()
+  }
+  const recurrenceInlineMatch = text.match(RECURRENCE_INLINE_REGEX)
+  if (recurrenceInlineMatch?.[1] && !result.recurrence) {
+    result.recurrence = recurrenceInlineMatch[1]
   }
 
   return result
