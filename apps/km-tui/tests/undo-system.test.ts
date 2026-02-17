@@ -9,7 +9,7 @@
  * - Stack behavior (redo truncation, max size)
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, it, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { createUndoStack } from "../src/undo-stack.ts"
@@ -504,5 +504,269 @@ describe("undo: delete with descendants", () => {
     expect(repo.getNode("child-a")).not.toBeNull()
     expect(repo.getNode("child-b")).not.toBeNull()
     expect(repo.getChildren("parent").length).toBe(2)
+  })
+})
+
+// =============================================================================
+// Undo Duplicate Node (from undo-duplicate.test.ts)
+// =============================================================================
+
+function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId: string): string[] {
+  return repo.getChildren(parentId).map((n) => n.id)
+}
+
+describe("Undo duplicate node", () => {
+  test("duplicate then undo removes the duplicate", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+
+    // Verify initial state
+    expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
+
+    // Press d to duplicate node A (cursor starts on first card)
+    board.press("d")
+
+    // Should now have 4 children — original A + duplicate + B + C
+    const afterDup = childIds(repo, "col1")
+    expect(afterDup).toHaveLength(4)
+    expect(afterDup[0]).toBe("A")
+    // The duplicate is between A and B
+    const dupId = afterDup[1]!
+    expect(afterDup[2]).toBe("B")
+    expect(afterDup[3]).toBe("C")
+
+    // Press Ctrl+Z to undo
+    board.press("Control+z")
+
+    // The duplicate should be removed
+    expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
+    // Verify the node is actually gone
+    expect(repo.getNode(dupId)).toBeNull()
+  })
+
+  test("undo with nothing to undo rings bell", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("A"))))
+
+    // Ctrl+Z with empty undo stack should ring bell
+    board.press("Control+z")
+    expect(board.bell).toBe(true)
+  })
+
+  test("multiple duplicates then multiple undos", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+
+    expect(childIds(repo, "col1")).toEqual(["A", "B"])
+
+    // Duplicate A
+    board.press("d")
+    expect(childIds(repo, "col1")).toHaveLength(3)
+
+    // Navigate to B (now at index 2) and duplicate it
+    board.press("j") // to dup of A
+    board.press("j") // to B
+    board.press("d")
+    expect(childIds(repo, "col1")).toHaveLength(4)
+
+    // Undo last duplicate (B's duplicate)
+    board.press("Control+z")
+    expect(childIds(repo, "col1")).toHaveLength(3)
+
+    // Undo first duplicate (A's duplicate)
+    board.press("Control+z")
+    expect(childIds(repo, "col1")).toEqual(["A", "B"])
+  })
+})
+
+describe("UndoStack unit tests", () => {
+  test("push and undo", () => {
+    const stack = createUndoStack()
+    let value = 0
+    stack.push({
+      label: "increment",
+      undo: () => {
+        value--
+      },
+      redo: () => {
+        value++
+      },
+    })
+    value++ // simulate the original action
+    expect(value).toBe(1)
+
+    stack.undo()
+    expect(value).toBe(0)
+  })
+
+  test("push, undo, redo", () => {
+    const stack = createUndoStack()
+    let value = 0
+    stack.push({
+      label: "increment",
+      undo: () => {
+        value--
+      },
+      redo: () => {
+        value++
+      },
+    })
+    value++
+
+    stack.undo()
+    expect(value).toBe(0)
+
+    stack.redo()
+    expect(value).toBe(1)
+  })
+
+  test("undo clears redo history when new entry pushed", () => {
+    const stack = createUndoStack()
+    let value = 0
+    stack.push({
+      label: "a",
+      undo: () => {
+        value--
+      },
+      redo: () => {
+        value++
+      },
+    })
+    value++
+    stack.push({
+      label: "b",
+      undo: () => {
+        value -= 10
+      },
+      redo: () => {
+        value += 10
+      },
+    })
+    value += 10
+
+    // Undo "b"
+    stack.undo()
+    expect(value).toBe(1)
+    expect(stack.canRedo()).toBe(true)
+
+    // Push new entry — should clear redo history
+    stack.push({
+      label: "c",
+      undo: () => {
+        value -= 100
+      },
+      redo: () => {
+        value += 100
+      },
+    })
+    value += 100
+    expect(stack.canRedo()).toBe(false)
+  })
+
+  test("canUndo and canRedo", () => {
+    const stack = createUndoStack()
+    expect(stack.canUndo()).toBe(false)
+    expect(stack.canRedo()).toBe(false)
+
+    stack.push({ label: "x", undo: () => {}, redo: () => {} })
+    expect(stack.canUndo()).toBe(true)
+    expect(stack.canRedo()).toBe(false)
+
+    stack.undo()
+    expect(stack.canUndo()).toBe(false)
+    expect(stack.canRedo()).toBe(true)
+  })
+
+  test("max size drops oldest entries", () => {
+    const stack = createUndoStack(3)
+    stack.push({ label: "1", undo: () => {}, redo: () => {} })
+    stack.push({ label: "2", undo: () => {}, redo: () => {} })
+    stack.push({ label: "3", undo: () => {}, redo: () => {} })
+    expect(stack.size).toBe(3)
+
+    stack.push({ label: "4", undo: () => {}, redo: () => {} })
+    expect(stack.size).toBe(3)
+    // Entry "1" should have been dropped
+    expect(stack.canUndo()).toBe(true)
+  })
+})
+
+// =============================================================================
+// Undo Cursor Restore (from undo-cursor-restore.test.ts)
+// =============================================================================
+
+describe("undo cursor restore", () => {
+  it("restores cursor to original card after duplicate + undo", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("task-a"), item("task-b"), item("task-c")))
+    )
+
+    // Cursor starts on task-a. Move to task-b.
+    board.press("j")
+    board.expect("#task-b[data-cursor]").toExist()
+
+    // Duplicate task-b (key: d)
+    board.press("d")
+    // After duplicate, cursor moves to the new duplicate (task-b copy)
+    // The original task-b should still be visible
+    board.expect("#task-b").toExist()
+
+    // Undo (ctrl+z)
+    board.press("ctrl+z")
+
+    // After undo, cursor should be back on task-b (not at root or lost)
+    board.expect("#task-b[data-cursor]").toExist()
+  })
+
+  it("restores cursor when undoing duplicate of first card", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("first"), item("second")))
+    )
+
+    // Cursor starts on first card
+    board.expect("#first[data-cursor]").toExist()
+
+    // Duplicate first card
+    board.press("d")
+
+    // Undo
+    board.press("ctrl+z")
+
+    // Cursor should be back on first card
+    board.expect("#first[data-cursor]").toExist()
+  })
+})
+
+// =============================================================================
+// Redo Duplicate Broken (from redo-duplicate-broken.test.ts)
+// =============================================================================
+
+describe("redo-duplicate-broken (km-wacsx)", () => {
+  test("redo after undo restores the duplicated node", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+
+    // Baseline: 2 children
+    expect(repo.getChildren("col1").map((n) => n.id)).toEqual(["A", "B"])
+
+    // Duplicate A -> 3 children
+    board.press("d")
+    expect(repo.getChildren("col1")).toHaveLength(3)
+
+    // Undo -> back to 2
+    board.press("Ctrl+Z")
+    expect(repo.getChildren("col1")).toHaveLength(2)
+
+    // Redo -> should be back to 3
+    board.press("Ctrl+Y")
+    expect(repo.getChildren("col1")).toHaveLength(3)
+  })
+
+  test("rapid undo/redo cycle preserves duplicate", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+
+    board.press("d") // dup -> 3
+    board.press("Ctrl+Z") // undo -> 2
+    board.press("Ctrl+Y") // redo -> 3
+    board.press("Ctrl+Z") // undo -> 2
+    board.press("Ctrl+Y") // redo -> 3
+
+    expect(repo.getChildren("col1")).toHaveLength(3)
   })
 })

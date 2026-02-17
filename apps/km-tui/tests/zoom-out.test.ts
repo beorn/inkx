@@ -1,16 +1,17 @@
 /**
  * Tests for `u` key — zoom out to parent.
  *
- * Bead: km-tui.u-zoom-out
+ * Bead: km-tui.u-zoom-out, km-tui.u-zoom-parent
  *
  * Behavior:
  * - Press u: board root moves to parent node (zoom out one level)
  * - Cursor stays on the previously-rooted node
  * - If already at repo root: cursor moves to parent (navigation, not zoom)
  * - Nav history saved before zooming so user can go back with [ (nav_back)
+ * - u navigates to tree PARENT (not previous sibling like k)
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, it, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { item, testEnv, testEnvWithRepo } from "./helpers/board-test.ts"
 
