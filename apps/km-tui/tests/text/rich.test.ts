@@ -175,54 +175,22 @@ describe("renderRich", () => {
   })
 
   describe("markdown formatting", () => {
-    it("renders **bold** text - markers stripped", () => {
-      const result = renderRich("This is **bold** text")
-      expect(stripAnsi(result)).toBe("This is bold text")
-      // Should not contain raw bold markers
-      expect(result).not.toContain("**")
-    })
+    const formats: Array<[string, string, string]> = [
+      ["**bold**", "This is **bold** text", "This is bold text"],
+      ["*italic*", "This is *italic* text", "This is italic text"],
+      ["_italic_", "This is _italic_ text", "This is italic text"],
+      ["`code`", "Use `code` here", "Use code here"],
+      ["~~strikethrough~~", "This is ~~deleted~~ text", "This is deleted text"],
+      ["mixed", "**bold** and *italic* and `code`", "bold and italic and code"],
+      ["mixed bold+italic", "**bold** text and _italic_ emphasis", "bold text and italic emphasis"],
+      ["**bold only**", "**bold text**", "bold text"],
+    ]
 
-    it("renders *italic* text - markers stripped", () => {
-      const result = renderRich("This is *italic* text")
-      expect(stripAnsi(result)).toBe("This is italic text")
-      // Should not contain raw italic marker (but could contain ** from other tests)
-      expect(stripAnsi(result)).not.toContain("*")
-    })
-
-    it("renders _italic_ text with underscores - markers stripped", () => {
-      const result = renderRich("This is _italic_ text")
-      expect(stripAnsi(result)).toBe("This is italic text")
-      // Should not contain raw underscore markers
-      expect(stripAnsi(result)).not.toContain("_")
-    })
-
-    it("handles mixed bold and underscore italic", () => {
-      const result = renderRich("**bold** text and _italic_ emphasis")
-      expect(stripAnsi(result)).toBe("bold text and italic emphasis")
-    })
-
-    it("renders `code` text - markers stripped", () => {
-      const result = renderRich("Use `code` here")
-      expect(stripAnsi(result)).toBe("Use code here")
-      // Should not contain raw backticks
-      expect(result).not.toContain("`")
-    })
-
-    it("renders ~~strikethrough~~ text", () => {
-      const result = renderRich("This is ~~deleted~~ text")
-      expect(stripAnsi(result)).toBe("This is deleted text")
-    })
-
-    it("handles mixed formatting", () => {
-      const result = renderRich("**bold** and *italic* and `code`")
-      expect(stripAnsi(result)).toBe("bold and italic and code")
-    })
-
-    it("does not confuse * in ** with italic", () => {
-      const result = renderRich("**bold text**")
-      expect(stripAnsi(result)).toBe("bold text")
-      // Should only have bold, not italic applied to the asterisks
-    })
+    for (const [label, input, expected] of formats) {
+      it(`renders ${label} — markers stripped`, () => {
+        expect(stripAnsi(renderRich(input))).toBe(expected)
+      })
+    }
   })
 
   describe("edge cases", () => {
@@ -251,49 +219,27 @@ describe("renderRich", () => {
 // ============================================================================
 
 describe("renderPlain", () => {
-  it("strips wiki link brackets but keeps text", () => {
-    expect(renderPlain("See [[note]]")).toBe("See note")
-  })
+  const cases: Array<[string, string, string]> = [
+    ["wiki link brackets", "See [[note]]", "See note"],
+    ["wiki link alias", "See [[path|alias]]", "See alias"],
+    ["inline fields", "Task [due:: 2024-01-15]", "Task"],
+    ["plain text", "hello world", "hello world"],
+    ["empty string", "", ""],
+    ["whitespace cleanup", "word   [field:: value]   word", "word word"],
+    ["markdown links", "Click [Google](https://google.com)", "Click Google"],
+    ["multiple markdown links", "[one](url1) and [two](url2)", "one and two"],
+    ["embed syntax", "![[Some File.pdf]]", "Some File.pdf"],
+    ["embed with alias", "![[path|My Alias]]", "My Alias"],
+  ]
 
-  it("uses alias from wiki links", () => {
-    expect(renderPlain("See [[path|alias]]")).toBe("See alias")
-  })
-
-  it("strips inline fields", () => {
-    expect(renderPlain("Task [due:: 2024-01-15]")).toBe("Task")
-  })
-
-  it("preserves plain text", () => {
-    expect(renderPlain("hello world")).toBe("hello world")
-  })
-
-  it("handles empty string", () => {
-    expect(renderPlain("")).toBe("")
-  })
-
-  it("cleans up whitespace", () => {
-    expect(renderPlain("word   [field:: value]   word")).toBe("word word")
-  })
+  for (const [label, input, expected] of cases) {
+    it(`${label}: '${input}' → '${expected}'`, () => {
+      expect(renderPlain(input)).toBe(expected)
+    })
+  }
 
   it("does not add ANSI codes", () => {
     const result = renderPlain("**bold** and [[link]]")
-    // Should not contain any ANSI escape codes
     expect(result).toBe(stripAnsi(result))
-  })
-
-  it("strips markdown links [text](url) → text", () => {
-    expect(renderPlain("Click [Google](https://google.com)")).toBe("Click Google")
-  })
-
-  it("handles multiple markdown links", () => {
-    expect(renderPlain("[one](url1) and [two](url2)")).toBe("one and two")
-  })
-
-  it("strips embed syntax ![[target]]", () => {
-    expect(renderPlain("![[Some File.pdf]]")).toBe("Some File.pdf")
-  })
-
-  it("strips embed syntax with alias ![[target|alias]]", () => {
-    expect(renderPlain("![[path|My Alias]]")).toBe("My Alias")
   })
 })

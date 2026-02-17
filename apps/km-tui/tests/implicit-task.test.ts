@@ -17,28 +17,22 @@ import type { KNode } from "@km/core"
 
 describe("hasTaskProperties", () => {
   it("returns false for node with no task properties", () => {
-    expect(hasTaskProperties({ } as KNode)).toBe(false)
+    expect(hasTaskProperties({} as KNode)).toBe(false)
   })
 
-  it("returns true for node with due_date", () => {
-    expect(hasTaskProperties({ due_date: "2026-02-20" } as KNode)).toBe(true)
-  })
+  const taskProps: Array<[string, Record<string, unknown>]> = [
+    ["due_date", { due_date: "2026-02-20" }],
+    ["priority", { priority: 2 }],
+    ["scheduled_date", { scheduled_date: "2026-02-20" }],
+    ["assigned_to", { assigned_to: "beorn" }],
+    ["recurrence", { recurrence: "FREQ=WEEKLY" }],
+  ]
 
-  it("returns true for node with priority", () => {
-    expect(hasTaskProperties({ priority: 2 } as KNode)).toBe(true)
-  })
-
-  it("returns true for node with scheduled_date", () => {
-    expect(hasTaskProperties({ scheduled_date: "2026-02-20" } as KNode)).toBe(true)
-  })
-
-  it("returns true for node with assigned_to", () => {
-    expect(hasTaskProperties({ assigned_to: "beorn" } as KNode)).toBe(true)
-  })
-
-  it("returns true for node with recurrence", () => {
-    expect(hasTaskProperties({ recurrence: "FREQ=WEEKLY" } as KNode)).toBe(true)
-  })
+  for (const [name, props] of taskProps) {
+    it(`returns true for node with ${name}`, () => {
+      expect(hasTaskProperties(props as KNode)).toBe(true)
+    })
+  }
 
   it("returns false for priority 0 (falsy but set)", () => {
     // priority 0 is not a valid priority (valid range is 1-4)

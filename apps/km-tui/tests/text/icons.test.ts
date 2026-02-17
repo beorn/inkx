@@ -6,98 +6,65 @@ import { describe, it, expect } from "vitest"
 import { getStatusIcon, getTypeIcon, type StatusIcon } from "../../src/index.ts"
 
 describe("getStatusIcon", () => {
-  // Actual statuses from km-core: todo, wip, blocked, done, dropped
-  // Uses width-1 Unicode icons for consistent terminal rendering
+  const knownStatuses: Array<[string, string, string]> = [
+    ["todo", "□", "white"],
+    ["wip", "□", "yellow"],
+    ["blocked", "✗", "red"],
+    ["done", "✓", "green"],
+    ["dropped", "✗", "gray"],
+  ]
 
-  it("returns white square for todo", () => {
-    const icon = getStatusIcon("todo")
-    expect(icon.char).toBe("□") // U+25A1 white square
-    expect(icon.color).toBe("white")
-  })
+  for (const [status, char, color] of knownStatuses) {
+    it(`returns ${char} (${color}) for ${status}`, () => {
+      const icon = getStatusIcon(status)
+      expect(icon.char).toBe(char)
+      expect(icon.color).toBe(color)
+    })
+  }
 
-  it("returns yellow square for wip", () => {
-    const icon = getStatusIcon("wip")
-    expect(icon.char).toBe("□") // U+25A1 white square
-    expect(icon.color).toBe("yellow")
-  })
+  for (const val of [null, undefined]) {
+    it(`returns red warning triangle for ${val} (missing status)`, () => {
+      const icon = getStatusIcon(val)
+      expect(icon.char).toBe("⚠")
+      expect(icon.color).toBe("red")
+      expect(icon.backgroundColor).toBeUndefined()
+    })
+  }
 
-  it("returns red ballot X for blocked", () => {
-    const icon = getStatusIcon("blocked")
-    expect(icon.char).toBe("✗") // U+2717 ballot X
-    expect(icon.color).toBe("red")
-  })
-
-  it("returns green check mark for done", () => {
-    const icon = getStatusIcon("done")
-    expect(icon.char).toBe("✓") // U+2713 check mark
-    expect(icon.color).toBe("green")
-  })
-
-  it("returns gray ballot X for dropped", () => {
-    const icon = getStatusIcon("dropped")
-    expect(icon.char).toBe("✗") // U+2717 ballot X
-    expect(icon.color).toBe("gray")
-  })
-
-  it("returns red warning triangle for null (missing status)", () => {
-    const icon = getStatusIcon(null)
-    expect(icon.char).toBe("⚠")
-    expect(icon.color).toBe("red")
-    expect(icon.backgroundColor).toBeUndefined()
-  })
-
-  it("returns red warning triangle for undefined (missing status)", () => {
-    const icon = getStatusIcon(undefined)
-    expect(icon.char).toBe("⚠")
-    expect(icon.color).toBe("red")
-    expect(icon.backgroundColor).toBeUndefined()
-  })
-
-  it("returns first char with inverted colors for unrecognized status", () => {
-    const icon = getStatusIcon("invalid")
-    expect(icon.char).toBe("i") // first char of "invalid"
-    expect(icon.color).toBe("black")
-    expect(icon.backgroundColor).toBe("white")
-  })
-
-  it("returns first char with inverted colors for custom status", () => {
-    const icon = getStatusIcon("x")
-    expect(icon.char).toBe("x")
-    expect(icon.color).toBe("black")
-    expect(icon.backgroundColor).toBe("white")
-  })
+  for (const status of ["invalid", "x"]) {
+    it(`returns first char with inverted colors for unrecognized '${status}'`, () => {
+      const icon = getStatusIcon(status)
+      expect(icon.char).toBe(status[0])
+      expect(icon.color).toBe("black")
+      expect(icon.backgroundColor).toBe("white")
+    })
+  }
 })
 
 describe("getTypeIcon", () => {
-  it("returns folder emoji for oi folder", () => {
-    expect(getTypeIcon("oi", "folder")).toBe("📁")
-  })
+  const oiTypes: Array<[string, string]> = [
+    ["folder", "📁"],
+    ["mdfile", "📄"],
+    ["mdsection", "#"],
+  ]
 
-  it("returns file emoji for oi mdfile", () => {
-    expect(getTypeIcon("oi", "mdfile")).toBe("📄")
-  })
+  for (const [fstype, icon] of oiTypes) {
+    it(`returns ${icon} for oi ${fstype}`, () => {
+      expect(getTypeIcon("oi", fstype)).toBe(icon)
+    })
+  }
 
-  it("returns hash for oi mdsection", () => {
-    expect(getTypeIcon("oi", "mdsection")).toBe("#")
-  })
+  const emptyTypes = ["p", "code", "quote"]
+  for (const type of emptyTypes) {
+    it(`returns empty string for ${type}`, () => {
+      expect(getTypeIcon(type)).toBe("")
+    })
+  }
 
-  it("returns empty string for p (paragraph)", () => {
-    expect(getTypeIcon("p")).toBe("")
-  })
-
-  it("returns empty for code (rich text handles it)", () => {
-    expect(getTypeIcon("code")).toBe("")
-  })
-
-  it("returns empty for quote (rich text handles it)", () => {
-    expect(getTypeIcon("quote")).toBe("")
-  })
-
-  it("returns middle dot for unknown types", () => {
-    expect(getTypeIcon("unknown")).toBe("·")
-  })
-
-  it("returns middle dot for list items", () => {
-    expect(getTypeIcon("list-item")).toBe("·")
-  })
+  const middleDotTypes = ["unknown", "list-item"]
+  for (const type of middleDotTypes) {
+    it(`returns middle dot for ${type}`, () => {
+      expect(getTypeIcon(type)).toBe("·")
+    })
+  }
 })
