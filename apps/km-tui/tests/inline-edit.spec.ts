@@ -2,7 +2,7 @@
  * Inline Edit Acceptance Tests
  *
  * Tests for inline node editing via Enter key.
- * Verifies the full flow: Enter → edit mode → type → Enter/Escape → confirm/cancel.
+ * Verifies the full flow: Enter → edit mode → type → Enter/Escape → save.
  *
  * Every test that edits content verifies BOTH:
  * 1. repo.getNode() returns updated content (data layer)
@@ -59,7 +59,7 @@ describe("Inline Editing", () => {
     expect(output).toContain("1b")
   })
 
-  test("Escape during inline edit cancels without saving", () => {
+  test("Escape during inline edit saves and exits", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect("#1a[data-cursor]").toExist()
@@ -70,15 +70,15 @@ describe("Inline Editing", () => {
     board.press("y")
     board.press("z")
 
-    // Cancel with Escape
+    // Escape saves and exits edit mode
     board.press("Escape")
 
-    // Repo should NOT be modified
-    expect(repo.getNode("1a")?.content).toBe("1a")
+    // Repo should be modified (Escape saves)
+    expect(repo.getNode("1a")?.content).toBe("1axyz")
 
-    // Original content should be preserved on screen
+    // Updated content should be on screen
     const output = board.screenshot()
-    expect(output).toContain("1a")
+    expect(output).toContain("1axyz")
 
     // Board should be back in normal mode — j should navigate
     board.press("j")
@@ -130,12 +130,12 @@ describe("Inline Editing", () => {
     board.expect("#1c[data-cursor]").toExist()
   })
 
-  test("close_or_quit (Escape) cancels inline edit before other actions", () => {
+  test("Escape exits inline edit before other close_or_quit actions", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter")
 
-    // First Escape should cancel inline edit (not quit)
+    // First Escape should exit inline edit (not quit the board)
     board.press("Escape")
 
     // Board should still be showing
@@ -290,17 +290,16 @@ describe("Inline Edit — Navigate Away Saves", () => {
     expect(board.screenshot()).toContain("orig")
   })
 
-  test("Escape during edit cancels without saving (no auto-save)", () => {
+  test("Escape during edit saves content (not cancel)", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter")
     for (const c of "-nope") board.press(c)
 
-    // Escape cancels — should NOT save
+    // Escape saves and exits
     board.press("Escape")
 
-    expect(repo.getNode("1a")?.content).toBe("1a")
-    expect(board.screenshot()).not.toContain("1a-nope")
+    expect(repo.getNode("1a")?.content).toBe("1a-nope")
   })
 })
 
@@ -479,28 +478,28 @@ describe("Outliner Enter — save + new sibling", () => {
     // User is now editing the new sibling — typing goes there
     board.press("H")
     board.press("i")
-    board.press("Escape") // cancel (discard typed content on new sibling)
+    board.press("Escape") // save and exit (Escape saves now)
 
     // DOM: 3 items in column
     board.expect(colItems("col1")).toHaveCount(3)
-    // Data: original content preserved
+    // Data: original content preserved, new sibling has typed content
     expect(repo.getNode("1a")?.content).toBe("1a")
   })
 
-  test("Escape exits edit without creating sibling", () => {
+  test("Escape saves and exits without creating sibling", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.expect(colItems("col1")).toHaveCount(2)
 
     board.press("Enter") // edit 1a
     board.press("X") // type
-    board.press("Escape") // cancel
+    board.press("Escape") // save and exit
 
-    // DOM: no new items
+    // DOM: no new items (Escape doesn't create siblings)
     board.expect(colItems("col1")).toHaveCount(2)
 
-    // Data: content unchanged (cancelled)
-    expect(repo.getNode("1a")?.content).toBe("1a")
+    // Data: content saved with typed characters
+    expect(repo.getNode("1a")?.content).toBe("1aX")
 
     // DOM: cursor navigates normally (back in normal mode)
     board.press("j")

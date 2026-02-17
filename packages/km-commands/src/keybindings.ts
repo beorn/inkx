@@ -249,7 +249,6 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Help overlay — dismiss with ?, Escape, q; absorb everything else
       { key: "?", commandId: "help.dismiss", when: helpOverlayOpen },
       { key: "Escape", commandId: "help.dismiss", when: helpOverlayOpen },
-      { key: "Escape", meta: true, commandId: "help.dismiss", when: helpOverlayOpen },
       { key: "q", commandId: "help.dismiss", when: helpOverlayOpen },
       { key: "*", wildcard: true, commandId: "noop", when: helpOverlayOpen },
 
@@ -259,14 +258,12 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Console — Escape/backtick close, q quits, absorb rest
       { key: "Escape", commandId: "console.close", when: consoleOpen },
-      { key: "Escape", meta: true, commandId: "console.close", when: consoleOpen },
       { key: "`", commandId: "console.close", when: consoleOpen },
       { key: "q", commandId: "quit", when: consoleOpen },
       { key: "*", wildcard: true, commandId: "noop", when: consoleOpen },
 
       // Toast dismiss (non-blocking — only intercepts Escape when toast active)
       { key: "Escape", commandId: "toast.dismiss", when: and(hasActiveToast, not(isInlineEditing)) },
-      { key: "Escape", meta: true, commandId: "toast.dismiss", when: and(hasActiveToast, not(isInlineEditing)) },
     ],
   },
 
@@ -283,9 +280,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "dialog",
     bindings: [
-      // Note: Escape sets meta=true in inkx (terminal emulation), so we need both variants
       { key: "Escape", commandId: "dialog.cancel", when: anyDialogOpen },
-      { key: "Escape", meta: true, commandId: "dialog.cancel", when: anyDialogOpen },
       { key: "Enter", commandId: "dialog.confirm", when: anyDialogOpen },
       { key: "ArrowUp", commandId: "dialog.nav_up", when: anyDialogOpen },
       { key: "ArrowDown", commandId: "dialog.nav_down", when: anyDialogOpen },
@@ -556,9 +551,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Contextual close/quit (Escape)
       // Closes dialogs, panes, modes, or quits if nothing to close
-      // Note: Allow Meta modifier (terminal emulation quirk — some terminals send Alt+Escape)
       { key: "Escape", commandId: "close_or_quit" },
-      { key: "Escape", meta: true, commandId: "close_or_quit" },
     ],
   },
 ]

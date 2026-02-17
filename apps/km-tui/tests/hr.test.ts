@@ -396,7 +396,7 @@ describe("HR editing", () => {
     expect(text).toContain("---")
   })
 
-  test("Escape after entering edit on HR cancels and returns to HR display", () => {
+  test("Escape after entering edit on HR saves and returns to HR display", () => {
     const { board, repo } = testEnv(
       () =>
         item(
@@ -415,15 +415,16 @@ describe("HR editing", () => {
     const editText = stripAnsi(board.screenshot())
     expect(editText).toContain("---")
 
-    // Escape cancels without saving
+    // Escape saves and exits (Escape = save, not cancel)
     board.press("Escape")
 
-    // Content should remain undefined (Escape cancels)
-    expect(repo.getNode("my-hr")?.content).toBeUndefined()
+    // Content should be saved as "---" (HR's display text)
+    expect(repo.getNode("my-hr")?.content).toBe("---")
 
-    // HR should render as line again (back to non-edit display)
+    // HR should still render correctly
     const text = stripAnsi(board.screenshot())
-    expect(text).toContain("─")
+    // After saving "---", the node has content so it renders as text, not HR line
+    expect(text).toContain("---")
   })
 
   test("j/k navigation still works after Enter then Escape on HR", () => {

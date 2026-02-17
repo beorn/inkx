@@ -737,16 +737,22 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       }
       return ok()
     }
-    case "TEXT_EXIT_EDIT":
+    case "TEXT_EXIT_EDIT": {
+      const _target = activeEditTargetRef.current
       if (ctx.ui.inlineEditBlock) {
-        // Inline edit mode: save current content and exit edit mode
-        activeEditTargetRef.current?.save()
+        // Escape saves and exits: save() persists content synchronously via
+        // handleTitleSave (repo.updateNode), then we exit edit mode.
+        // We use save() (not confirm()) because confirm → handleInlineEditConfirm
+        // goes through the async jobRunner path for renames, which doesn't
+        // complete before the React render cycle.
+        _target?.save()
         ctx.setUI({ inlineEditBlock: null })
       } else {
         // Dialog text input (date prompt, etc.): cancel the dialog
-        activeEditTargetRef.current?.cancel()
+        _target?.cancel()
       }
       return ok()
+    }
     case "TEXT_YANK":
       // Stub: yank (paste kill ring) — not yet implemented
       return unimplemented("text.yank")
@@ -948,9 +954,12 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     return ok()
   }
 
-  // Cancel inline edit (must call cancel() so auto-save on unmount is suppressed)
+  // Save + exit inline edit (Escape = save, not cancel)
+  // Note: normally Escape during editing routes to TEXT_EXIT_EDIT, not here.
+  // This is a safety fallback.
   if (ui.inlineEditBlock) {
-    activeEditTargetRef.current?.cancel()
+    activeEditTargetRef.current?.save()
+    ctx.setUI({ inlineEditBlock: null })
     return ok()
   }
 
