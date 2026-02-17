@@ -15,6 +15,7 @@ import { useRepo } from "../repo-context.tsx"
 import { renderPlain } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { useCursorPosition } from "../cursor-context.tsx"
+import { useUISelector } from "../ui-context.tsx"
 
 // Virtualization constants
 const OVERSCAN = 10
@@ -49,6 +50,9 @@ export function TabsView({
   const colIndex = cursorPos.colIndex
   const cardIndex = cursorPos.cardIndex
   const selectionLevel = cursorPos.selectionLevel
+
+  // Track editing state for dynamic item height (border adds 2 rows)
+  const editingNodeId = useUISelector((s) => s.inlineEditBlock?.nodeId ?? null)
 
   // Get current column
   const currentColumn = state.columns[colIndex]
@@ -135,7 +139,7 @@ export function TabsView({
             <VirtualList
               items={currentColumn.cards}
               height={height - 3}
-              itemHeight={1}
+              itemHeight={(card: CardState) => (card.node.id === editingNodeId ? 3 : 1)}
               scrollTo={cardIndex}
               overscan={OVERSCAN}
               maxRendered={MAX_RENDERED_ITEMS}

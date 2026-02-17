@@ -20,6 +20,7 @@ import { useRepo } from "../repo-context.tsx"
 import type { KNode } from "@km/core"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
 import { useCursorPosition } from "../cursor-context.tsx"
+import { useUISelector } from "../ui-context.tsx"
 
 // Virtualization constants
 const OVERSCAN = 10
@@ -74,6 +75,9 @@ export function ListView({
   const cardIndex = cursorPos.cardIndex
   const selectionLevel = cursorPos.selectionLevel
   const subIndex = subIndexProp
+
+  // Track editing state for dynamic item height (border adds 2 rows)
+  const editingNodeId = useUISelector((s) => s.inlineEditBlock?.nodeId ?? null)
 
   // Flatten all cards into a single list
   const flatItems = useMemo(() => {
@@ -206,7 +210,7 @@ export function ListView({
       <VirtualList
         items={flatItems}
         height={height - 1}
-        itemHeight={1}
+        itemHeight={(item: FlatItem) => (item.type === "card" && item.card.node.id === editingNodeId ? 3 : 1)}
         scrollTo={selectedFlatIndex}
         overscan={OVERSCAN}
         maxRendered={MAX_RENDERED_ITEMS}

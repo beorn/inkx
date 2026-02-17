@@ -1,18 +1,14 @@
 /**
  * Tests for body block spacing in columns view.
  *
- * Body blocks (paragraphs, code blocks, etc.) get extra spacing via marginBottom
- * in columns view, while structural items (sections) are rendered compactly.
- *
- * This was filed as km-flexx.scroll-height-equalization, but the root cause was
- * not a flexx bug — it was incorrect test fixtures using `li` nodes (which are
- * classified as body by extractBody) instead of `oi` nodes for structural items.
+ * Body blocks and structural items are rendered compactly (no blank lines)
+ * in columns view, matching tabs/lists view behavior.
  */
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("body block spacing in columns view", () => {
-  test("body blocks have extra spacing, structural items are compact", () => {
+  test("body blocks are compact like structural items", () => {
     // Body items (type "p") come before structural items (type "oi")
     // extractBody classifies children: non-oi before first oi = body, oi = structural
     const nodes = item(
@@ -38,17 +34,16 @@ describe("body block spacing in columns view", () => {
     expect(sectionAlphaBox).not.toBeNull()
     expect(sectionBetaBox).not.toBeNull()
 
-    // Body blocks have marginBottom=1 -> 2 row spacing
+    // Both body blocks and structural items: 1 row spacing (compact)
     const bodySpacing = bodyTwoBox!.y - bodyOneBox!.y
-    expect(bodySpacing).toBe(2)
+    expect(bodySpacing).toBe(1)
 
-    // Structural items have no margin -> 1 row spacing (compact)
     const structuralSpacing = sectionBetaBox!.y - sectionAlphaBox!.y
     expect(structuralSpacing).toBe(1)
   })
 
-  test("all-body column (no structural items) also works correctly", () => {
-    // When ALL children are body (no oi), all get marginBottom=1
+  test("all-body column (no structural items) also renders compactly", () => {
+    // When ALL children are body (no oi), all are compact
     const nodes = item(
       "board",
       item(
@@ -69,9 +64,9 @@ describe("body block spacing in columns view", () => {
     expect(paraTwoBox).not.toBeNull()
     expect(paraThreeBox).not.toBeNull()
 
-    // All body blocks have marginBottom=1 -> 2 row spacing
-    expect(paraTwoBox!.y - paraOneBox!.y).toBe(2)
-    expect(paraThreeBox!.y - paraTwoBox!.y).toBe(2)
+    // All body blocks: 1 row spacing (compact)
+    expect(paraTwoBox!.y - paraOneBox!.y).toBe(1)
+    expect(paraThreeBox!.y - paraTwoBox!.y).toBe(1)
   })
 
   test("all-structural column (no body) renders compactly", () => {
@@ -96,7 +91,7 @@ describe("body block spacing in columns view", () => {
     expect(secTwoBox).not.toBeNull()
     expect(secThreeBox).not.toBeNull()
 
-    // Structural items have no margin -> 1 row spacing (compact)
+    // Structural items: 1 row spacing (compact)
     expect(secTwoBox!.y - secOneBox!.y).toBe(1)
     expect(secThreeBox!.y - secTwoBox!.y).toBe(1)
   })

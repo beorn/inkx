@@ -81,7 +81,7 @@ export function handleDeleteNode(ctx: ActionCtx): void {
   const card = col?.cards[layout.cardIndex]
 
   if (!card && col) {
-    // Column-level delete — always requires confirmation
+    // Column-level delete — confirmation only if non-empty
     handleDeleteColumn(ctx, col)
     return
   }
@@ -130,7 +130,7 @@ export function handleDeleteNode(ctx: ActionCtx): void {
 }
 
 /**
- * Handle column deletion — always shows confirmation.
+ * Handle column deletion — skips confirmation if empty (no descendants, no backlinks).
  *
  * Counts all descendants recursively for the warning message.
  */
@@ -154,6 +154,12 @@ function handleDeleteColumn(
   countDescendants(nodeId)
 
   const impact = repo.getRenameImpact(nodeId)
+
+  if (totalDescendants === 0 && impact.backlinks.length === 0) {
+    // Empty column: delete immediately without confirmation
+    executeBatchDelete(ctx, [nodeId])
+    return
+  }
 
   ctx.setUI({
     deleteConfirm: {

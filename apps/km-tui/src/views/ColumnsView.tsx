@@ -16,7 +16,7 @@ const log = createLogger("km:tui:columns")
 import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
-import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
+import { useTreeRenderContext, deriveColumnExcludedSigils, useUISelector } from "../ui-context.tsx"
 import { getColumnHeaderIcon, isSigilName, renderPlain } from "../text/index.ts"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
@@ -76,6 +76,9 @@ const ColumnTree = React.memo(function ColumnTree({
   const isSelected = columnSelected.isSelected
   const selectionLevel = columnSelected.selectionLevel
 
+  // Track editing state for dynamic item height (border adds 2 rows)
+  const editingNodeId = useUISelector((s) => s.inlineEditBlock?.nodeId ?? null)
+
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = renderPlain(getNodeDisplayName(repo, column.node))
   const untitled = isNodeUntitled(repo, column.node)
@@ -101,10 +104,8 @@ const ColumnTree = React.memo(function ColumnTree({
   const renderCard = useCallback(
     (card: CardState, actualIndex: number) => {
       log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`)
-      // Body blocks (isVirtual) get extra spacing via marginBottom
-      const isBody = card.isVirtual
       return (
-        <Box key={card.node.id} paddingLeft={1} marginBottom={isBody ? 1 : 0}>
+        <Box key={card.node.id} paddingLeft={1}>
           <MemoizedTreeCard
             card={card}
             colIndex={colIndex}
@@ -181,7 +182,7 @@ const ColumnTree = React.memo(function ColumnTree({
           isSelected={isSelected}
           items={column.cards}
           height={height - 2}
-          itemHeight={(card) => (card.isVirtual ? 2 : 1)}
+          itemHeight={(card: CardState) => (card.node.id === editingNodeId ? 3 : 1)}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_ITEMS}
           keyExtractor={(card) => card.node.id}

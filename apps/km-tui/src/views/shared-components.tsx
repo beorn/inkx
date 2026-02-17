@@ -19,6 +19,7 @@ import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useTreeRenderContext } from "../ui-context.tsx"
 import { useIsCursorAtCard } from "../cursor-context.tsx"
+import { useUISelector } from "../ui-context.tsx"
 
 // =============================================================================
 // Memoized Tree Card Component
@@ -59,8 +60,9 @@ export const MemoizedTreeCard = React.memo(
     // Self-subscribe to CursorStore for selection state
     const cursorIsSelected = useIsCursorAtCard(colIndex, cardIndex)
     const isSelected = isSelectedProp ?? cursorIsSelected
+    const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === card.node.id)
 
-    return (
+    const content = (
       <CardLayoutTracker nodeId={card.node.id} colIndex={colIndex} cardIndex={cardIndex} isSelected={isSelected}>
         <TreeNode
           node={card.node}
@@ -76,6 +78,17 @@ export const MemoizedTreeCard = React.memo(
         />
       </CardLayoutTracker>
     )
+
+    // Show focus outline (border) when editing — layout shift is intentional
+    if (isEditing) {
+      return (
+        <Box borderStyle="round" borderColor="cyan">
+          {content}
+        </Box>
+      )
+    }
+
+    return content
   },
   (prev, next) => {
     // Props-based memo check — CursorStore triggers re-renders independently

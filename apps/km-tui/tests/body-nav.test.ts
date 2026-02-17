@@ -999,7 +999,7 @@ describe("Body block spacing", () => {
   })
 
   describe("columns view", () => {
-    test("body blocks have one blank line between them", () => {
+    test("body blocks have no blank line between them", () => {
       const { board } = testEnv(boardWithBodyContent, { viewMode: "columns" })
 
       const screenshot = board.screenshot()
@@ -1014,11 +1014,8 @@ describe("Body block spacing", () => {
       const paraOneIdx = contentLines.findIndex((l) => l.includes("body paragraph one"))
       const paraTwoIdx = contentLines.findIndex((l) => l.includes("body paragraph two"))
 
-      // There should be exactly one blank line between body blocks (index diff of 2)
-      expect(paraTwoIdx).toBe(paraOneIdx + 2)
-      // The line between them should be blank (empty or whitespace only)
-      const lineBetween = contentLines[paraOneIdx + 1]!
-      expect(lineBetween.trim()).toBe("")
+      // Body blocks are compact — no blank line between them (index diff of 1)
+      expect(paraTwoIdx).toBe(paraOneIdx + 1)
     })
 
     test("body blocks have no borders in columns view", () => {
@@ -1044,7 +1041,7 @@ describe("Body block spacing", () => {
       }
     })
 
-    test("body blocks have more spacing than structural items", () => {
+    test("body blocks have same spacing as structural items", () => {
       const { board } = testEnv(boardWithBodyContent, { viewMode: "columns" })
 
       const screenshot = board.screenshot()
@@ -1057,12 +1054,11 @@ describe("Body block spacing", () => {
       const taskAIdx = contentLines.findIndex((l) => l.includes("task-a"))
       const taskBIdx = contentLines.findIndex((l) => l.includes("task-b"))
 
-      // Body blocks: spacing of 2 (one blank line between them)
+      // Both body and structural items: spacing of 1 (compact, no blank lines)
       const bodySpacing = paraTwoIdx - paraOneIdx
-      // Structural items: spacing of 1 (no blank line between them)
       const structuralSpacing = taskBIdx - taskAIdx
 
-      expect(bodySpacing).toBe(2)
+      expect(bodySpacing).toBe(1)
       expect(structuralSpacing).toBe(1)
     })
   })
