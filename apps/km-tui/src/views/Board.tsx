@@ -422,7 +422,7 @@ export function BoardCore({
                 onConfirm={dialogHandlers.handleDatePromptConfirm}
                 onCancel={dialogHandlers.handleDatePromptCancel}
                 width={Math.min(60, Math.floor(termWidth / 2))}
-                height={10}
+                height={14}
               />
             </DialogBox>
           )}

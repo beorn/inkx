@@ -8,17 +8,24 @@
  */
 import { test, expect, describe } from "vitest"
 import { loadTestBoard, createTestBoard, check } from "@km/tui/test"
+import { testEnv, item } from "./helpers/board-test.ts"
 import { stripAnsi } from "inkx/testing"
 import { existsSync } from "fs"
 
 /**
- * Extract board content (everything except breadcrumb and status bar).
- * Breadcrumb is line 0, status bar is last line.
+ * Extract board content (everything except breadcrumb and status bar),
+ * with border characters replaced by spaces.
+ *
+ * Body cards use border when selected, padding otherwise — both occupy
+ * the same space so text positions are stable. Replacing borders with
+ * spaces lets us compare positional stability, not decoration.
  */
 function getBoardContent(text: string): string {
   const lines = stripAnsi(text).split("\n")
-  // Skip first line (breadcrumb) and last line (status bar)
-  return lines.slice(1, -1).join("\n")
+  return lines
+    .slice(1, -1)
+    .map((line) => line.replace(/[╭╮╰╯│─]/g, " ").trimEnd())
+    .join("\n")
 }
 
 /**

@@ -140,7 +140,7 @@ export function DatePromptDialog({
     <ModalDialog
       title={title}
       width={width}
-      height={Math.min(height, 12)}
+      height={height}
       footer="Enter confirm  Esc cancel"
     >
       {/* Input field */}
