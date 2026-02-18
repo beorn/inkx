@@ -20,11 +20,12 @@ const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
 import { CURSOR_SHOW, write } from "@beorn/inkx-ui/cli"
 import type { ImportData, ImportProject, FileMap } from "../import/types.ts"
-import type { AsanaProjectInfo, AsanaWorkspace } from "../import/adapters/asana-api.ts"
+import type { AsanaWorkspace } from "../import/adapters/asana-api.ts"
 import { convert, slugify } from "../import/convert.ts"
 import { writeFiles } from "../import/write.ts"
-import { loadConfig, saveConfig } from "../import/config.ts"
 import { getRootPath } from "../program.ts"
+import { ensureAsanaSetup, resetAsanaConfig } from "./import-auth.ts"
+import { printDiscovery } from "./import-discovery.ts"
 
 export const importCommand = new Command("import")
   .description("Import tasks from external tools (Asana, etc.)")
@@ -69,224 +70,13 @@ function newDownloadDir(artifactsDir: string, workspaceSlug?: string): string {
 }
 
 // ============================================================================
-// Auth setup
+// Logging helpers
 // ============================================================================
 
-/** Run interactive setup, returns token + workspace */
-async function ensureAsanaSetup(tokenOverride?: string): Promise<{ token: string; workspace?: string }> {
-  const config = loadConfig()
-
-  // If token override provided, use it directly
-  if (tokenOverride) {
-    return { token: tokenOverride, workspace: config.asana?.defaultWorkspace }
-  }
-
-  // If already configured, reuse
-  if (config.asana?.token) {
-    return { token: config.asana.token, workspace: config.asana.defaultWorkspace }
-  }
-
-  // First time — walk user through setup
-  const { withTextInput, withSelect } = await import("@beorn/inkx-ui/wrappers")
-
-  console.log(term.cyan("First-time Asana setup"))
-  console.log(term.dim("Get a Personal Access Token from: https://app.asana.com/0/developer-console"))
-  console.log()
-
-  const token = await withTextInput({
-    message: "Asana Personal Access Token:",
-    placeholder: "1/1234567890...",
-  })
-
-  if (!token?.trim()) {
-    console.error(term.red("No token provided"))
-    process.exit(1)
-  }
-
-  // Validate
-  console.log(term.dim("Validating token..."))
-  const { validateAsanaToken } = await import("../import/adapters/asana-api.ts")
-
-  let userInfo: { name: string; email: string; workspaces: Array<{ gid: string; name: string }> }
-  try {
-    userInfo = await validateAsanaToken(token.trim())
-  } catch (err) {
-    console.error(term.red((err as Error).message))
-    process.exit(1)
-  }
-
-  console.log(term.green("Authenticated as"), userInfo.name, term.dim(`(${userInfo.email})`))
-
-  // Select workspace
-  let defaultWorkspace: string | undefined
-  if (userInfo.workspaces.length > 1) {
-    defaultWorkspace = await withSelect({
-      message: "Default workspace:",
-      options: userInfo.workspaces.map((w) => ({ label: w.name, value: w.name })),
-    })
-  } else if (userInfo.workspaces.length === 1) {
-    defaultWorkspace = userInfo.workspaces[0]!.name
-    console.log(term.dim(`Workspace: ${defaultWorkspace}`))
-  }
-
-  // Save for next time
-  const newConfig = loadConfig()
-  newConfig.asana = {
-    token: token.trim(),
-    ...(defaultWorkspace && { defaultWorkspace }),
-  }
-  saveConfig(newConfig)
-  console.log(term.green("Config saved."))
-  console.log()
-
-  return { token: token.trim(), workspace: defaultWorkspace }
-}
-
-// ============================================================================
-// Discovery mode
-// ============================================================================
-
-/** Format a project line: "gid  Name  @owner @member ..." */
-function formatProjectMeta(proj: AsanaProjectInfo, maxGid: number): string {
-  const parts = [term.dim(proj.gid.padEnd(maxGid)), ` ${proj.name}`]
-
-  // Deduplicated list of people (owner first, then other members)
-  const people = new Set<string>()
-  if (proj.owner) people.add(proj.owner)
-  if (proj.members) for (const m of proj.members) people.add(m)
-
-  if (people.size > 0 && people.size <= 5) {
-    const names = [...people].map((n) => `@${n.replace(/\s+/g, "-").toLowerCase()}`)
-    parts.push(term.dim(` ${names.join(" ")}`))
-  } else if (people.size > 5) {
-    parts.push(term.dim(` ${people.size} members`))
-  }
-
-  return parts.join("")
-}
-
-/** Print help + account listing + download history + quickstart */
-async function printDiscovery(
-  cmd: Command,
-  artifactsDir: string,
-  authToken?: string,
-  workspaceFilter?: string,
-): Promise<void> {
-  cmd.outputHelp()
-  console.log()
-
-  const { token, workspace } = await ensureAsanaSetup(authToken)
-  const { listAsanaStructure } = await import("../import/adapters/asana-api.ts")
-  const structure = await listAsanaStructure(token, workspaceFilter ?? workspace)
-
-  // Account → Workspace → Team → Active/Archived
-  console.log(term.bold(`${structure.user.name}`), term.dim(`(${structure.user.email})`))
-  console.log()
-
-  for (const ws of structure.workspaces) {
-    const active = ws.projects.filter((p) => !p.archived)
-    const archived = ws.projects.filter((p) => p.archived)
-    const countText = archived.length > 0
-      ? `${active.length} active, ${archived.length} archived`
-      : `${active.length} projects`
-    const maxGid = Math.max(...ws.projects.map((p) => p.gid.length), 0)
-
-    console.log(`  ${term.cyan(ws.name)} ${term.dim(`(${ws.gid}) — ${countText}`)}`)
-
-    // Group by team, sort teams alphabetically
-    const byTeam = new Map<string, typeof ws.projects>()
-    for (const proj of ws.projects) {
-      const team = proj.team ?? "(no team)"
-      if (!byTeam.has(team)) byTeam.set(team, [])
-      byTeam.get(team)!.push(proj)
-    }
-    const teamNames = [...byTeam.keys()].sort((a, b) =>
-      a === "(no team)" ? 1 : b === "(no team)" ? -1 : a.localeCompare(b),
-    )
-    const hasTeams = byTeam.size > 1 || !byTeam.has("(no team)")
-
-    for (const team of teamNames) {
-      const projects = byTeam.get(team)!
-      const teamActive = projects.filter((p) => !p.archived).sort((a, b) => a.name.localeCompare(b.name))
-      const teamArchived = projects.filter((p) => p.archived).sort((a, b) => a.name.localeCompare(b.name))
-
-      if (hasTeams) {
-        console.log()
-        console.log(`    ${term.bold(team)}`)
-      }
-      const indent = hasTeams ? "      " : "    "
-
-      for (const proj of teamActive) {
-        const meta = formatProjectMeta(proj, maxGid)
-        console.log(`${indent}${meta}`)
-      }
-      if (teamArchived.length > 0) {
-        if (teamActive.length > 0) console.log()
-        console.log(`${indent}${term.dim("Archived:")}`)
-        for (const proj of teamArchived) {
-          const meta = formatProjectMeta(proj, maxGid)
-          console.log(`${indent}${meta}`)
-        }
-      }
-    }
-    if (ws.projects.length > 50) {
-      console.log()
-      console.log(term.dim(`  Use --project <gid> to fetch a specific project`))
-    }
-    console.log()
-  }
-
-  // Download history
-  if (existsSync(artifactsDir)) {
-    const downloads = readdirSync(artifactsDir)
-      .filter((f) => f.startsWith("asana-") && statSync(join(artifactsDir, f)).isDirectory())
-      .sort()
-      .reverse()
-    if (downloads.length > 0) {
-      console.log(term.bold("Downloads:"), term.dim(".km/imports/"))
-      console.log()
-      for (const dl of downloads.slice(0, 5)) {
-        const dirPath = join(artifactsDir, dl)
-        const projectFiles = readdirSync(dirPath)
-          .filter((f) => f.endsWith(".json") && !f.startsWith("_"))
-          .sort()
-        const tsMatch = dl.match(/asana-(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})/)
-        const ts = tsMatch
-          ? `${tsMatch[1]}-${tsMatch[2]}-${tsMatch[3]} ${tsMatch[4]}:${tsMatch[5]}:${tsMatch[6]}`
-          : dl
-        console.log(`  ${term.dim(ts)}  ${projectFiles.length} projects`)
-        for (const pf of projectFiles.slice(0, 8)) {
-          console.log(`    ${term.dim(pf.replace(/\.json$/, ""))}`)
-        }
-        if (projectFiles.length > 8) {
-          console.log(term.dim(`    ... and ${projectFiles.length - 8} more`))
-        }
-      }
-      if (downloads.length > 5) {
-        console.log(term.dim(`  ... and ${downloads.length - 5} older downloads`))
-      }
-      console.log()
-    }
-  }
-
-  // Quickstart
-  console.log(term.bold("Quickstart:"))
-  console.log()
-  console.log(term.dim("  Fetches everything: all projects, completed tasks, comments, attachments"))
-  console.log(term.dim("  Interrupted fetches auto-resume where they left off"))
-  console.log()
-  console.log(`  ${term.cyan("km import asana --project \"Name\"")}`)
-  console.log(term.dim("    Fetch + convert one project → imports/asana/name.md"))
-  console.log()
-  console.log(`  ${term.cyan("km import asana --fetch")}`)
-  console.log(term.dim("    Fetch all projects → .km/imports/asana-<ts>/"))
-  console.log()
-  console.log(`  ${term.cyan("km import asana --import")}`)
-  console.log(term.dim("    Convert most recent download → imports/asana/*.md"))
-  console.log()
-  console.log(`  ${term.cyan("km import asana data.json")}`)
-  console.log(term.dim("    Convert a specific file or directory → imports/asana/*.md"))
-  console.log()
+/** Log a consistent import success message: "Action N project(s) from source" */
+function logImportSuccess(action: string, count: number, source?: string): void {
+  const suffix = source ? ` from ${source}` : ""
+  console.log(term.green(action), `${count} project(s)${suffix}`)
 }
 
 // ============================================================================
@@ -340,7 +130,6 @@ Pipeline:
     .option("--auth", "Reconfigure saved token/workspace")
 
     // Advanced
-    .option("--no-record", "Skip saving raw API responses")
     .option("--include-comment-logs", "Include system/audit-log comments (moved, completed, etc.)")
 
     .action(async (root, options) => {
@@ -369,9 +158,7 @@ Pipeline:
 
       if (options.auth && !isAction) {
         // Just re-run auth setup, don't fetch
-        const config = loadConfig()
-        delete config.asana
-        saveConfig(config)
+        resetAsanaConfig()
         await ensureAsanaSetup(options.authToken)
         return
       }
@@ -389,7 +176,7 @@ Pipeline:
 
         if (statSync(filePath).isDirectory()) {
           importData = loadDownloadDir(filePath)
-          console.log(term.green("Loaded"), `${importData.projects.length} project(s) from ${options.from}/`)
+          logImportSuccess("Loaded", importData.projects.length, `${options.from}/`)
         } else {
           const json = readFileSync(filePath, "utf-8")
           const parsed = JSON.parse(json)
@@ -397,7 +184,7 @@ Pipeline:
           if (parsed.source && parsed.projects) {
             // Full ImportData (multi-project)
             importData = parsed as ImportData
-            console.log(term.green("Loaded"), `${importData.projects.length} project(s) from ${options.from}`)
+            logImportSuccess("Loaded", importData.projects.length, options.from)
           } else if (parsed.sourceId && parsed.title) {
             // Single ImportProject from download directory
             const project = parsed as ImportProject
@@ -413,7 +200,7 @@ Pipeline:
               parseExport: () => parseAsanaFile(json),
             }).run({ clear: true })
             importData = result.parseExport
-            console.log(term.green("Parsed"), `${importData.projects.length} project(s) from ${options.from}`)
+            logImportSuccess("Parsed", importData.projects.length, options.from)
           }
         }
       } else if (options.import) {
@@ -425,13 +212,11 @@ Pipeline:
         }
         const dirPath = join(artifactsDir, latest)
         importData = loadDownloadDir(dirPath)
-        console.log(term.green("Loaded"), `${importData.projects.length} project(s) from ${latest}/`)
+        logImportSuccess("Loaded", importData.projects.length, `${latest}/`)
       } else {
         // API mode — setup if needed, then fetch
         if (options.auth) {
-          const config = loadConfig()
-          delete config.asana
-          saveConfig(config)
+          resetAsanaConfig()
         }
 
         const { token, workspace: configWorkspace } = await ensureAsanaSetup(options.authToken)
@@ -461,16 +246,9 @@ Pipeline:
           workspace: resolved.name,
         }
 
-        // Always record API responses (unless --no-record)
-        const shouldRecord = options.record !== false
-
-        if (shouldRecord) {
-          const result = await fetchFromAsana({ ...fetchOpts, record: true })
-          importData = result.data
-        } else {
-          importData = await fetchFromAsana(fetchOpts)
-        }
-        console.log(term.green("Fetched"), `${importData.projects.length} project(s)`)
+        const result = await fetchFromAsana({ ...fetchOpts, record: true })
+        importData = result.data
+        logImportSuccess("Fetched", importData.projects.length)
         console.log(term.dim(`  Saved to ${basename(downloadDir)}/`))
 
         if (options.fetch) {
