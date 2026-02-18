@@ -12,7 +12,7 @@ import { ModalDialog } from "./shared-components.tsx"
 import { dialogTargetRef } from "../dialog-target.ts"
 
 export interface DatePromptDialogProps {
-  field: "due_date" | "scheduled_date" | "recurrence"
+  field: "due_at" | "start_at" | "recurrence"
   currentValue: string
   /** Callback when confirmed (dispatches DATE_PROMPT_CONFIRM) */
   onConfirm: () => void

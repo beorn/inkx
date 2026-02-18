@@ -484,6 +484,111 @@ describe("date prompt (td)", () => {
     const task = repo.getChildren(col.id)[0]!
     expect(task.due_at).toBeTruthy()
   })
+
+  test("Enter in date dialog does NOT start inline editing (km-qaco9)", () => {
+    // Regression: Enter while date dialog is open must NOT trigger
+    // enter_inline_edit on the background card.
+    const { board } = testEnv(() =>
+      item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))),
+    )
+
+    board.press("j") // Navigate to card level
+
+    // Record the cursor position node before opening dialog
+    const screenBefore = board.screenshot()
+
+    // Open date dialog
+    board.press("t")
+    board.press("d")
+    expect(board.screenshot()).toContain("Set Due Date")
+
+    // Press Enter with empty input — should close dialog, NOT enter inline edit
+    board.press("Enter")
+
+    // Dialog should be closed
+    const screenAfter = board.screenshot()
+    expect(screenAfter).not.toContain("Set Due Date")
+
+    // Should NOT be in inline edit mode — no cursor blinking indicator or edit border.
+    // The background card content should be unchanged.
+    expect(screenAfter).toContain("Buy groceries")
+    expect(screenAfter).toContain("Write report")
+    // No edit indicator ("> " prompt from inline edit) should appear
+    expect(screenAfter).not.toMatch(/> Buy groceries/)
+  })
+
+  test("Escape in date dialog does NOT affect background board state (km-qaco9)", () => {
+    // Regression: Escape while date dialog is open must NOT trigger
+    // close_or_quit or text.exit_edit on the background.
+    const { board } = testEnv(() =>
+      item("board",
+        item("col1", item.task("Task A")),
+        item("col2", item.task("Task B")),
+      ),
+    )
+
+    // Navigate into column 2
+    board.press("l")
+    board.press("j")
+
+    const screenBefore = board.screenshot()
+
+    // Open date dialog
+    board.press("t")
+    board.press("d")
+    expect(board.screenshot()).toContain("Set Due Date")
+
+    // Press Escape — should close dialog, NOT zoom out or navigate back
+    board.press("Escape")
+
+    // Dialog should be closed
+    const screenAfter = board.screenshot()
+    expect(screenAfter).not.toContain("Set Due Date")
+
+    // Board state should be unchanged — both columns still visible,
+    // cursor still on same node
+    expect(screenAfter).toContain("Task A")
+    expect(screenAfter).toContain("Task B")
+  })
+
+  test("multiple Enter/Escape cycles don't corrupt state (km-qaco9)", () => {
+    // Regression: repeated open/close cycles should not leak state
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item.task("My task"))),
+    )
+
+    board.press("j")
+
+    const col = repo.getChildren("board")[0]!
+    const nodesBefore = repo.getChildren(col.id).length
+
+    // Cycle 1: open, Escape
+    board.press("t").press("d")
+    expect(board.screenshot()).toContain("Set Due Date")
+    board.press("Escape")
+    expect(board.screenshot()).not.toContain("Set Due Date")
+
+    // Cycle 2: open, Enter (empty = clear)
+    board.press("t").press("d")
+    expect(board.screenshot()).toContain("Set Due Date")
+    board.press("Enter")
+    expect(board.screenshot()).not.toContain("Set Due Date")
+
+    // Cycle 3: open, type, Enter
+    board.press("t").press("d")
+    expect(board.screenshot()).toContain("Set Due Date")
+    for (const ch of "fri") board.press(ch)
+    board.press("Enter")
+    expect(board.screenshot()).not.toContain("Set Due Date")
+
+    // No extra nodes created
+    const nodesAfter = repo.getChildren(col.id).length
+    expect(nodesAfter).toBe(nodesBefore)
+
+    // The task should have a due_at set from the last cycle
+    const task = repo.getChildren(col.id)[0]!
+    expect(task.due_at).toBeTruthy()
+  })
 })
 
 // ---------------------------------------------------------------------------
