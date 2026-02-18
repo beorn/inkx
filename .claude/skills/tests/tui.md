@@ -10,32 +10,38 @@ Character-level terminal buffer testing via inkx.
 
 ---
 
-## Diagnostic Mode (START HERE)
+## FIRST CHECK: Is Incremental Rendering Verification ON?
 
-**When debugging TUI issues, run with `INKX_STRICT=1` first.** This catches most incremental rendering bugs before you need to investigate manually:
+**Before any other investigation**, verify `checkIncremental` is enabled. Since 2026-02-17, `testEnv()` and `testEnvWithRepo()` compare incremental vs fresh render **on every press()** by default. If your test has `checkIncremental: false`, fix that first.
+
+```typescript
+// GOOD: checkIncremental is ON by default — catches ghost pixels, stale regions
+const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+
+// BAD: opted out — won't catch rendering bugs
+const { board } = testEnv(() => ..., { checkIncremental: false })
+```
+
+**When writing new tests**: DO NOT add `checkIncremental: false` unless the test deliberately tests a known-broken incremental path.
+
+## Diagnostic Mode
+
+**For runtime debugging**, run with `INKX_STRICT=1` (catches bugs in the production `createApp` path that testEnv may not catch):
 
 ```bash
-# Enable all diagnostic checks
+# In the real app
+INKX_STRICT=1 bun km view /path/to/vault
+
+# In tests
 INKX_STRICT=1 bun vitest run apps/km-tui/tests/
 
-# Or use the dedicated script
-bun run test:strict
-
-# Test a real vault with diagnostics
+# Real vault with diagnostics
 INKX_STRICT=1 TEST_VAULT=/tmp/tst-vault bun vitest run apps/km-tui/tests/real-vault.test.ts
 ```
 
-**For test files**, enable incremental diagnostics with `testEnv()`:
-
-```typescript
-const { board } = testEnv(() =>
-  item("board", item("col1", item("1a"), item("1b"))),
-  { incremental: true }  // Enable incremental render checks
-)
-```
-
-**What INKX_STRICT catches:**
-- Incremental vs fresh render mismatches
+**What these checks catch:**
+- Incremental vs fresh render mismatches (ghost pixels from dialog/toast unmount)
+- Stale background colors from overlay components
 - Blank cards after fold/unfold
 - Buffer divergence after outline depth changes (`<` / `>`)
 

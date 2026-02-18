@@ -27,18 +27,38 @@ I see a visual glitch
 
 ## Diagnostic Steps
 
+### Step 0: Verify Incremental Checking is ON (MANDATORY FIRST CHECK)
+
+**Before ANY other investigation**, verify the test has `checkIncremental` enabled.
+
+Board tests using `testEnv()` or `testEnvWithRepo()` compare incremental vs fresh render **on every press()** by default. If a test was created with `checkIncremental: false`, it won't catch rendering bugs. Check:
+
+```typescript
+// GOOD: checkIncremental defaults to true — no opt-out needed
+const { board } = testEnv(() => item("board", ...))
+
+// BAD: test opted out of incremental checking
+const { board } = testEnv(() => item("board", ...), { checkIncremental: false })
+```
+
+For non-testEnv tests, use `withDiagnostics({ checkIncremental: true })` on the board driver.
+
+If a test exercises dialog open/close, toast show/hide, or any component mount/unmount and does NOT have incremental checking, **add it before investigating**.
+
 ### Step 1: INKX_STRICT
 
-Always start here. Catches any incremental vs fresh render divergence.
+Run with INKX_STRICT to catch incremental vs fresh render divergence at the runtime level.
 
 ```bash
-# In the app
+# In the app (catches production createApp path issues)
 INKX_STRICT=1 bun km view /path/to/vault
 
-# In tests (enabled by default)
+# In tests (testEnv checks incremental by default since 2026-02-17)
 bun vitest run vendor/beorn-inkx/tests/
 bun vitest run apps/km-tui/tests/
 ```
+
+**Note**: testEnv's `checkIncremental` catches bugs in the test renderer path. Some bugs (like ghost dialogs) only manifest in the production `createApp` path — use `INKX_STRICT=1` with the real app for those.
 
 If INKX_STRICT throws `IncrementalRenderMismatchError`, the error output includes:
 - **Cell values** (incremental vs fresh) — shows exactly what diverged

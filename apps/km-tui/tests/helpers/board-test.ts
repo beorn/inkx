@@ -56,7 +56,7 @@
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
-import { createRenderer, keyToAnsi, type App, type AutoLocator } from "inkx/testing"
+import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "inkx/testing"
 import { compareBuffers, formatMismatch } from "inkx/toolbelt"
 import { StoreContext } from "inkx/runtime"
 import { parseKey } from "inkx/runtime"
@@ -367,8 +367,10 @@ export function testEnv(
     columns?: number
     rows?: number
     viewMode?: "cards" | "columns" | "list" | "tabs"
-    /** Enable incremental rendering (buffer clone + subtree skip). Default: false */
+    /** Enable incremental rendering (buffer clone + subtree skip). Default: true */
     incremental?: boolean
+    /** Compare incremental vs fresh render after every press(). Default: true */
+    checkIncremental?: boolean
   },
 ) {
   const nodes = treeBuilder()
@@ -449,6 +451,7 @@ export function testEnv(
 
   // Override press to route through handleKey (same path as driver/production)
   const originalPress = result.press.bind(result)
+  const doCheckIncremental = options?.checkIncremental !== false
   const pressKey = (key: string) => {
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
@@ -468,6 +471,24 @@ export function testEnv(
     // pipeline iterations. This breaks the deferred resolve pattern (Phase 2.7
     // cursor Y-correction) which needs React to commit between iterations.
     void originalPress(key)
+
+    // Incremental rendering check: compare incremental buffer against fresh render.
+    // Catches ghost pixels, stale regions, and unmount rendering bugs.
+    if (doCheckIncremental) {
+      const incBuf = result.lastBuffer()
+      if (incBuf) {
+        const freshBuf = result.freshRender()
+        const mismatch = compareBuffers(incBuf, freshBuf)
+        if (mismatch) {
+          const msg = formatMismatch(mismatch, {
+            key,
+            incrementalText: bufferToText(incBuf),
+            freshText: bufferToText(freshBuf),
+          })
+          throw new Error(`Incremental rendering mismatch after press("${key}"):\n${msg}`)
+        }
+      }
+    }
   }
 
   // Create fluent API using App's auto-refreshing locators
@@ -1230,8 +1251,10 @@ export function testEnvWithRepo(
     columns?: number
     rows?: number
     viewMode?: "cards" | "columns" | "list" | "tabs"
-    /** Enable incremental rendering diagnostics. Default: false */
+    /** Enable incremental rendering diagnostics. Default: true */
     incremental?: boolean
+    /** Compare incremental vs fresh render after every press(). Default: true */
+    checkIncremental?: boolean
   },
 ) {
   // Build initial board state from repo
@@ -1305,6 +1328,7 @@ export function testEnvWithRepo(
 
   // Override press to route through handleKey (same path as driver/production)
   const originalPress = result.press.bind(result)
+  const doCheckIncremental = options?.checkIncremental !== false
   const pressKey = (key: string) => {
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
@@ -1324,6 +1348,24 @@ export function testEnvWithRepo(
     // pipeline iterations. This breaks the deferred resolve pattern (Phase 2.7
     // cursor Y-correction) which needs React to commit between iterations.
     void originalPress(key)
+
+    // Incremental rendering check: compare incremental buffer against fresh render.
+    // Catches ghost pixels, stale regions, and unmount rendering bugs.
+    if (doCheckIncremental) {
+      const incBuf = result.lastBuffer()
+      if (incBuf) {
+        const freshBuf = result.freshRender()
+        const mismatch = compareBuffers(incBuf, freshBuf)
+        if (mismatch) {
+          const msg = formatMismatch(mismatch, {
+            key,
+            incrementalText: bufferToText(incBuf),
+            freshText: bufferToText(freshBuf),
+          })
+          throw new Error(`Incremental rendering mismatch after press("${key}"):\n${msg}`)
+        }
+      }
+    }
   }
 
   // Create fluent API with disposable pattern
