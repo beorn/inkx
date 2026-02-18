@@ -147,6 +147,28 @@ export function stripInlineRefs(text: string): string {
     .trim()
 }
 
+/** Hardcoded person name → short name mapping. P4: replace with contact type system. */
+const PERSON_SHORT_NAMES: Record<string, string> = {
+  "bjørn-stabell": "BS",
+  "bjorn-stabell": "BS",
+  "michael-welch": "MW",
+  "shi-delei": "SD",
+}
+
+/** Replace known person @mentions with @ShortName, strip #tags and +projects.
+ * Unknown @mentions (sigils like @next, @urgent) are left untouched. */
+export function shortenInlineRefs(text: string): string {
+  return text
+    .replace(/@([\p{L}\p{N}][\p{L}\p{N}_-]*)/gu, (_match, name: string) => {
+      const short = PERSON_SHORT_NAMES[name.toLowerCase()]
+      if (short) return `@${short}`
+      return `@${name}`
+    })
+    .replace(/\s*#[\p{L}\p{N}][\p{L}\p{N}_-]*/gu, "")
+    .replace(/\s*\+[\p{L}\p{N}][\p{L}\p{N}_/.-]*/gu, "")
+    .trim()
+}
+
 /** Capitalize the first character of a string */
 export function capitalize(s: string): string {
   return (s[0] ?? "").toUpperCase() + s.slice(1)

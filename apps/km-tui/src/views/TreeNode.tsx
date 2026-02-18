@@ -57,7 +57,7 @@ import {
   type GetBoardPillsFn,
 } from "./tree-node-helpers.ts"
 import { useNavigator } from "../layout-context.tsx"
-import { stripInlineRefs } from "./detail-pane-helpers.ts"
+import { shortenInlineRefs } from "./detail-pane-helpers.ts"
 
 /** Regex to extract target name from ![[target]] or ![[target|alias]] embed syntax. */
 const EMBED_EXTRACT_RE = /^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/
@@ -320,7 +320,7 @@ function TreeNodeImpl({
   const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
   const cleanContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
   // Strip @mentions and +projects from card title display — the info suffix already shows short names
-  const displayContent = depth === 0 && isOneliner ? stripInlineRefs(cleanContent) : cleanContent
+  const displayContent = depth === 0 ? shortenInlineRefs(cleanContent) : cleanContent
 
   // Compute sigil for inline display: only if name is a sigil and differs from title
   // Skip sigils that are in the excluded list (e.g., @next on the @next board)
