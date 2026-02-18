@@ -124,7 +124,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
 
         {/* Footer: keybindings + debug info */}
         <Box flexGrow={1} />
-        <Box flexDirection="row" justifyContent="space-between" width={innerWidth}>
+        <Box flexDirection="row" justifyContent="space-between">
           <Text dimColor wrap="truncate">h/Esc:close Enter:open</Text>
           <Text dimColor wrap="truncate">{node.type} {node.id}</Text>
         </Box>
@@ -139,7 +139,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
 
 function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
-  const innerWidth = Math.max(10, width - 6) // Account for border + paddingX(1)
+  const innerWidth = Math.max(10, width - 6)
   const title = getNodeDisplayName(repo, node)
 
   const statusInfo = getStatusDisplay(node.task_status)
@@ -257,7 +257,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 
         {/* Footer: keybindings + debug info */}
         <Box flexGrow={1} />
-        <Box flexDirection="row" justifyContent="space-between" width={innerWidth}>
+        <Box flexDirection="row" justifyContent="space-between">
           <Text dimColor wrap="truncate">h/Esc:close Space:status</Text>
           <Text dimColor wrap="truncate">{node.type} {node.id}</Text>
         </Box>
