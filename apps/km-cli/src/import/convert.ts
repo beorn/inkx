@@ -6,7 +6,7 @@
  */
 
 import type { KNode, TaskMarker, TaskStatus } from "@km/core"
-import { getMarkerForStatus, stringifyMetadata, type MetadataEntries } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
 import { nodesToMarkdown } from "@km/markdown"
 import type { ImportData, ImportItem, ImportProject, ImportSection, FileMap } from "./types.ts"
 
@@ -36,11 +36,16 @@ function convertAsanaLinks(text: string): string {
 /** Map import status to km TaskStatus */
 function toTaskStatus(status?: string): TaskStatus {
   switch (status) {
-    case "done": return "done"
-    case "wip": return "doing"
-    case "blocked": return "blocked"
-    case "dropped": return "dropped"
-    default: return "todo"
+    case "done":
+      return "done"
+    case "wip":
+      return "doing"
+    case "blocked":
+      return "blocked"
+    case "dropped":
+      return "dropped"
+    default:
+      return "todo"
   }
 }
 
@@ -63,9 +68,7 @@ function mkNode(fields: Partial<KNode> & Pick<KNode, "id" | "type">): KNode {
 /**
  * Build the content string for a task node.
  * Title + @assignee + #tags + +projects are inline text.
- * created:: and completed:: use km's stringifyMetadata for canonical key:: value format.
- * Task metadata (due::, start::, p::) is NOT included — stringifyTaskMetadata
- * appends those from KNode fields during serialization.
+ * Metadata (created::, completed::) is set on data.metadata — the serializer handles formatting.
  */
 function buildTaskContent(item: ImportItem): string {
   const title = item.milestone ? `◆ ${item.title}` : item.title
@@ -75,12 +78,7 @@ function buildTaskContent(item: ImportItem): string {
   if (item.projects && item.projects.length > 1) {
     parts.push(...item.projects.map((p) => `+${slugify(p)}`))
   }
-
-  // Non-task metadata via km's stringifyMetadata (canonical key:: value format)
-  const entries: MetadataEntries = {}
-  if (item.createdAt) entries.created = item.createdAt.slice(0, 10)
-  if (item.completedAt) entries.completed = item.completedAt.slice(0, 10)
-  return stringifyMetadata(parts.join(" "), entries)
+  return parts.join(" ")
 }
 
 /** Build blockquote content for body, attachments, and comments */
@@ -130,19 +128,25 @@ function itemToNodes(
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
     const status = toTaskStatus(item.status)
     const marker = status === "done" ? "[x]" : "[ ]"
-    nodes.push(mkNode({
-      id: `ref-${item.sourceId}`,
-      type: "li",
-      parent_id: parentId,
-      task_marker: marker as TaskMarker,
-      task_status: status,
-      content: `${item.title} → [[^${item.sourceId}]]`,
-    }))
+    nodes.push(
+      mkNode({
+        id: `ref-${item.sourceId}`,
+        type: "li",
+        parent_id: parentId,
+        task_marker: marker as TaskMarker,
+        task_status: status,
+        content: `${item.title} → [[^${item.sourceId}]]`,
+      }),
+    )
     return
   }
   if (rendered && item.sourceId) rendered.add(item.sourceId)
 
   const status = toTaskStatus(item.status)
+
+  const metadata: Record<string, string> = {}
+  if (item.createdAt) metadata.created = item.createdAt.slice(0, 10)
+  if (item.completedAt) metadata.completed = item.completedAt.slice(0, 10)
 
   const taskNode = mkNode({
     id: item.sourceId,
@@ -158,18 +162,21 @@ function itemToNodes(
     priority: item.priority,
     created_at: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
     updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : Date.now(),
+    ...(Object.keys(metadata).length > 0 && { data: { metadata } }),
   })
   nodes.push(taskNode)
 
   // Body/attachments/comments as a blockquote child node
   const bqContent = buildBlockquoteContent(item)
   if (bqContent) {
-    nodes.push(mkNode({
-      id: `bq-${item.sourceId}`,
-      type: "quote",
-      parent_id: item.sourceId,
-      content: bqContent,
-    }))
+    nodes.push(
+      mkNode({
+        id: `bq-${item.sourceId}`,
+        type: "quote",
+        parent_id: item.sourceId,
+        content: bqContent,
+      }),
+    )
   }
 
   // Recursive children (subtasks)
@@ -189,15 +196,17 @@ function sectionToNodes(
   primaryMap?: Map<string, string>,
 ): void {
   const sectionId = `section-${section.sourceId}`
-  nodes.push(mkNode({
-    id: sectionId,
-    type: "oi",
-    parent_id: parentId,
-    fstype: "mdsection",
-    content: section.title,
-    title: section.title,
-    data: { depth: 2 },
-  }))
+  nodes.push(
+    mkNode({
+      id: sectionId,
+      type: "oi",
+      parent_id: parentId,
+      fstype: "mdsection",
+      content: section.title,
+      title: section.title,
+      data: { depth: 2 },
+    }),
+  )
 
   for (const item of section.items) {
     itemToNodes(item, sectionId, nodes, rendered, primaryMap)
@@ -228,13 +237,15 @@ function projectToNodes(
   if (project.createdAt) frontmatter.created_at = project.createdAt
   if (project.modifiedAt) frontmatter.modified_at = project.modifiedAt
 
-  nodes.push(mkNode({
-    id: fileId,
-    type: "oi",
-    fstype: "mdfile",
-    content: project.title,
-    data: frontmatter,
-  }))
+  nodes.push(
+    mkNode({
+      id: fileId,
+      type: "oi",
+      fstype: "mdfile",
+      content: project.title,
+      data: frontmatter,
+    }),
+  )
 
   // Sections
   if (project.sections?.length) {

@@ -21,7 +21,14 @@ import type { ImportData, ImportItem, ImportProject, ImportSection } from "../ty
 
 // Re-export everything from sub-modules so existing imports still work
 export { AsanaClient } from "./asana-client.ts"
-export type { RecordedCall, AsanaApiTask, FetchOptions, FetchResult, AsanaWorkspace, AsanaProjectInfo } from "./asana-types.ts"
+export type {
+  RecordedCall,
+  AsanaApiTask,
+  FetchOptions,
+  FetchResult,
+  AsanaWorkspace,
+  AsanaProjectInfo,
+} from "./asana-types.ts"
 export { resolveAsanaWorkspace, listAsanaStructure, validateAsanaToken } from "./asana-discovery.ts"
 export { isSystemAction, filterSystemComment, fetchComments } from "./comment-filter.ts"
 export { toImportItem, enrichItem, fetchSubtasks, fetchAttachments } from "./task-transform.ts"
@@ -139,7 +146,7 @@ async function fetchAndSaveTaskList(
   const tasks = await spec.fetchTasks()
   const sections = spec.fetchSections
     ? await spec.fetchSections()
-    : spec.sections ?? deriveSections(tasks, spec.projectGid)
+    : (spec.sections ?? deriveSections(tasks, spec.projectGid))
 
   const enrichedMap = await batchEnrich(
     client,
@@ -230,14 +237,18 @@ function partitionFiles(downloadDir: string): { projectFiles: string[]; userFile
 /** Fetch projects and tasks from Asana API */
 export async function fetchFromAsana(options: FetchOptions & { record: true }): Promise<FetchResult>
 export async function fetchFromAsana(options: FetchOptions): Promise<ImportData>
-export async function fetchFromAsana(options: FetchOptions & { _testMode?: boolean }): Promise<ImportData | FetchResult> {
+export async function fetchFromAsana(
+  options: FetchOptions & { _testMode?: boolean },
+): Promise<ImportData | FetchResult> {
   const client = new AsanaClient(options.token, options.record, options._testMode ? 0 : undefined)
 
   // Resolve workspace (re-does /users/me -- cheap, keeps fetchFromAsana self-contained for tests)
-  const me = await client.get<{ gid: string; name: string; email: string; workspaces: Array<{ gid: string; name: string }> }>(
-    "/users/me",
-    { opt_fields: "name,email,workspaces.name" },
-  )
+  const me = await client.get<{
+    gid: string
+    name: string
+    email: string
+    workspaces: Array<{ gid: string; name: string }>
+  }>("/users/me", { opt_fields: "name,email,workspaces.name" })
 
   const firstWorkspace = me.workspaces[0]
   if (!firstWorkspace) throw new Error("No workspaces found for user")
@@ -257,14 +268,14 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
   if (!existsSync(workspaceMetaPath)) {
     console.log(term.dim("  Fetching workspace metadata..."))
     const [teams, users] = await Promise.all([
-      client.get<Array<{ gid: string; name: string; description?: string }>>(
-        `/workspaces/${workspace.gid}/teams`,
-        { opt_fields: "name,description", limit: "100" },
-      ),
-      client.get<Array<{ gid: string; name: string; email?: string }>>(
-        `/workspaces/${workspace.gid}/users`,
-        { opt_fields: "name,email", limit: "100" },
-      ),
+      client.get<Array<{ gid: string; name: string; description?: string }>>(`/workspaces/${workspace.gid}/teams`, {
+        opt_fields: "name,description",
+        limit: "100",
+      }),
+      client.get<Array<{ gid: string; name: string; email?: string }>>(`/workspaces/${workspace.gid}/users`, {
+        opt_fields: "name,email",
+        limit: "100",
+      }),
     ])
     const workspaceMeta = {
       gid: workspace.gid,
@@ -300,20 +311,21 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
   // Fetch projects (with metadata for frontmatter)
   console.log(term.dim("  Fetching projects..."))
   const projects = await client.getAll<{
-    gid: string; name: string
-    created_at?: string; modified_at?: string
-    owner?: { name?: string }; team?: { name?: string }
-  }>(
-    `/projects`,
-    { workspace: workspace.gid, opt_fields: "name,created_at,modified_at,owner.name,team.name", limit: "100" },
-  )
+    gid: string
+    name: string
+    created_at?: string
+    modified_at?: string
+    owner?: { name?: string }
+    team?: { name?: string }
+  }>(`/projects`, {
+    workspace: workspace.gid,
+    opt_fields: "name,created_at,modified_at,owner.name,team.name",
+    limit: "100",
+  })
 
   const projectFilter = options.projectFilter
   const filteredProjects = projectFilter
-    ? projects.filter((p) =>
-        p.gid === projectFilter ||
-        p.name.toLowerCase().includes(projectFilter.toLowerCase()),
-      )
+    ? projects.filter((p) => p.gid === projectFilter || p.name.toLowerCase().includes(projectFilter.toLowerCase()))
     : projects
 
   console.log(`  Found ${filteredProjects.length} project(s)`)
@@ -366,22 +378,25 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
       taskParams.completed_since = "now"
     }
 
-    const { project: importProject, tasks } = await fetchAndSaveTaskList(client, {
-      sourceId: project.gid,
-      slug: `${project.gid}-${slugify(project.name)}`,
-      title: project.name,
-      fetchTasks: () => client.getAll<AsanaApiTask>(`/tasks`, taskParams),
-      fetchSections: () => client.get<Array<{ gid: string; name: string }>>(
-        `/projects/${project.gid}/sections`,
-        { opt_fields: "name" },
-      ),
-      workspace: workspace.name,
-      createdAt: project.created_at,
-      modifiedAt: project.modified_at,
-      owner: project.owner?.name,
-      team: project.team?.name,
-      projectGid: project.gid,
-    }, enrichOpts, downloadDir)
+    const { project: importProject, tasks } = await fetchAndSaveTaskList(
+      client,
+      {
+        sourceId: project.gid,
+        slug: `${project.gid}-${slugify(project.name)}`,
+        title: project.name,
+        fetchTasks: () => client.getAll<AsanaApiTask>(`/tasks`, taskParams),
+        fetchSections: () =>
+          client.get<Array<{ gid: string; name: string }>>(`/projects/${project.gid}/sections`, { opt_fields: "name" }),
+        workspace: workspace.name,
+        createdAt: project.created_at,
+        modifiedAt: project.modified_at,
+        owner: project.owner?.name,
+        team: project.team?.name,
+        projectGid: project.gid,
+      },
+      enrichOpts,
+      downloadDir,
+    )
 
     importData.projects.push(importProject)
     expectedTaskCounts.set(project.gid, tasks.length)
@@ -394,13 +409,15 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
   if (options.includeUserTaskLists) {
     let userList: Array<{ gid: string; name: string }>
     if (existsSync(workspaceMetaPath)) {
-      const wsMeta = JSON.parse(readFileSync(workspaceMetaPath, "utf-8")) as { users?: Array<{ gid: string; name: string }> }
+      const wsMeta = JSON.parse(readFileSync(workspaceMetaPath, "utf-8")) as {
+        users?: Array<{ gid: string; name: string }>
+      }
       userList = wsMeta.users ?? []
     } else {
-      userList = await client.get<Array<{ gid: string; name: string }>>(
-        `/workspaces/${workspace.gid}/users`,
-        { opt_fields: "name", limit: "100" },
-      )
+      userList = await client.get<Array<{ gid: string; name: string }>>(`/workspaces/${workspace.gid}/users`, {
+        opt_fields: "name",
+        limit: "100",
+      })
     }
 
     console.log(term.dim(`  Fetching My Tasks for ${userList.length} user(s)...`))
@@ -412,15 +429,20 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
         continue
       }
 
-      const taskList = await client.get<{ gid: string }>(
-        `/users/${user.gid}/user_task_list`,
-        { workspace: workspace.gid },
-      )
+      let taskList: { gid: string }
+      try {
+        taskList = await client.get<{ gid: string }>(`/users/${user.gid}/user_task_list`, {
+          workspace: workspace.gid,
+        })
+      } catch (err) {
+        console.log(term.dim(`  @${userSlug}: skipped (task list not accessible)`))
+        continue
+      }
 
-      const allUserTasks = await client.getAll<AsanaApiTask>(
-        `/user_task_lists/${taskList.gid}/tasks`,
-        { opt_fields: TASK_FIELDS, limit: "100" },
-      )
+      const allUserTasks = await client.getAll<AsanaApiTask>(`/user_task_lists/${taskList.gid}/tasks`, {
+        opt_fields: TASK_FIELDS,
+        limit: "100",
+      })
 
       const orphanTasks = allUserTasks.filter((t) => !capturedTaskGids.has(t.gid))
 
@@ -431,16 +453,21 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
 
       console.log(term.cyan(`  @${userSlug}: ${orphanTasks.length} orphan tasks (${allUserTasks.length} total)`))
 
-      const { project: userProject } = await fetchAndSaveTaskList(client, {
-        sourceId: `user-${user.gid}`,
-        slug: `@${userSlug}`,
-        title: `@${user.name}`,
-        fetchTasks: async () => orphanTasks,
-        // Sections derived from task memberships (API doesn't support /user_task_lists/sections)
-        projectGid: taskList.gid,
-        workspace: workspace.name,
-        owner: user.name,
-      }, enrichOpts, downloadDir)
+      const { project: userProject } = await fetchAndSaveTaskList(
+        client,
+        {
+          sourceId: `user-${user.gid}`,
+          slug: `@${userSlug}`,
+          title: `@${user.name}`,
+          fetchTasks: async () => orphanTasks,
+          // Sections derived from task memberships (API doesn't support /user_task_lists/sections)
+          projectGid: taskList.gid,
+          workspace: workspace.name,
+          owner: user.name,
+        },
+        enrichOpts,
+        downloadDir,
+      )
 
       importData.projects.push(userProject)
     }
@@ -448,10 +475,11 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
 
   // Fetch per-tag task lists
   if (options.includeTagTaskLists) {
-    const tags = await client.getAll<{ gid: string; name: string }>(
-      `/tags`,
-      { workspace: workspace.gid, opt_fields: "name", limit: "100" },
-    )
+    const tags = await client.getAll<{ gid: string; name: string }>(`/tags`, {
+      workspace: workspace.gid,
+      opt_fields: "name",
+      limit: "100",
+    })
 
     console.log(term.dim(`  Fetching tasks for ${tags.length} tag(s)...`))
 
@@ -462,10 +490,10 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
         continue
       }
 
-      const allTagTasks = await client.getAll<AsanaApiTask>(
-        `/tags/${tag.gid}/tasks`,
-        { opt_fields: TASK_FIELDS, limit: "100" },
-      )
+      const allTagTasks = await client.getAll<AsanaApiTask>(`/tags/${tag.gid}/tasks`, {
+        opt_fields: TASK_FIELDS,
+        limit: "100",
+      })
 
       const orphanTasks = allTagTasks.filter((t) => !capturedTaskGids.has(t.gid))
 
@@ -476,13 +504,18 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
 
       console.log(term.cyan(`  #${tagSlug}: ${orphanTasks.length} orphan tasks (${allTagTasks.length} total)`))
 
-      const { project: tagProject } = await fetchAndSaveTaskList(client, {
-        sourceId: `tag-${tag.gid}`,
-        slug: `#${tagSlug}`,
-        title: `#${tag.name}`,
-        fetchTasks: async () => orphanTasks,
-        workspace: workspace.name,
-      }, enrichOpts, downloadDir)
+      const { project: tagProject } = await fetchAndSaveTaskList(
+        client,
+        {
+          sourceId: `tag-${tag.gid}`,
+          slug: `#${tagSlug}`,
+          title: `#${tag.name}`,
+          fetchTasks: async () => orphanTasks,
+          workspace: workspace.name,
+        },
+        enrichOpts,
+        downloadDir,
+      )
 
       importData.projects.push(tagProject)
 
@@ -513,11 +546,7 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
 }
 
 /** Verify in-memory data matches disk */
-function verify(
-  importData: ImportData,
-  expectedTaskCounts: Map<string, number>,
-  downloadDir: string,
-): void {
+function verify(importData: ImportData, expectedTaskCounts: Map<string, number>, downloadDir: string): void {
   console.log()
   console.log(term.cyan("Verification:"))
 
@@ -570,7 +599,9 @@ function verify(
     `${projectFiles.length} project`,
     userFiles.length > 0 ? `${userFiles.length} user` : "",
     tagFiles.length > 0 ? `${tagFiles.length} tag` : "",
-  ].filter(Boolean).join(" + ")
+  ]
+    .filter(Boolean)
+    .join(" + ")
   console.log(`  Projects: ${importData.projects.length} in memory, ${diskProjects} on disk (${fileBreakdown} files)`)
   console.log(`  Tasks: ${memTasks} top-level, ${memSubtasks} subtasks (${memTasks + memSubtasks} total)`)
   console.log(`  Comments: ${memComments}, Attachments: ${memAttachments}`)

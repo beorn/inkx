@@ -7,7 +7,7 @@
 import { createLogger } from "@beorn/logger"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode, TaskStatus } from "@km/core"
-import { getMarkerForStatus, stringifyTaskMetadata } from "@km/core"
+import { getMarkerForStatus, stringifyMetadata, stringifyTaskMetadata } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 import { serializeRules } from "./parser.ts"
 
@@ -326,7 +326,11 @@ function findAncestorFilePath(node: KNode, ctx: SerializeContext): string | null
     if (!current.parent_id) return null
     const parent = ctx.nodeMap.get(current.parent_id)
     if (!parent) return null
-    if (parent.type === "oi" && (parent.fstype === "file" || parent.fstype === "mdfile" || parent.fstype === "txtfile") && parent.fs_path) {
+    if (
+      parent.type === "oi" &&
+      (parent.fstype === "file" || parent.fstype === "mdfile" || parent.fstype === "txtfile") &&
+      parent.fs_path
+    ) {
       const filename = parent.fs_path.split("/").pop() ?? ""
       return filename.replace(/\.md$/, "")
     }
@@ -412,9 +416,14 @@ function serializeLi(
   return md
 }
 
-/** Append task metadata as text key:value tags (due:, start:, p:, recur:). */
+/** Append task metadata as text key:value tags (due:, start:, p:, recur:, plus data.metadata entries). */
 function appendTaskMetadata(node: KNode): string {
-  return stringifyTaskMetadata(node.content ?? "", node)
+  let content = stringifyTaskMetadata(node.content ?? "", node)
+  const metadata = (node.data?.metadata as Record<string, string>) ?? {}
+  if (Object.keys(metadata).length > 0) {
+    content = stringifyMetadata(content, metadata)
+  }
+  return content
 }
 
 /**
