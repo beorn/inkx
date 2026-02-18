@@ -82,6 +82,8 @@ export async function downloadAttachments(
     relativePath?: string
     /** Dry run — don't actually download */
     dryRun?: boolean
+    /** Called on 403 to refresh an expired download URL. Returns fresh URL or null. */
+    refreshUrl?: (att: ImportAttachment) => Promise<string | null>
   },
 ): Promise<DownloadResult> {
   const attachments = collectAttachments(data)
@@ -122,7 +124,19 @@ export async function downloadAttachments(
         }
 
         try {
-          const res = await fetch(att.url)
+          let url = att.url
+          let res = await fetch(url)
+
+          // Retry once with a fresh URL on 403 (expired signed URLs)
+          if (res.status === 403 && opts.refreshUrl && att.sourceId) {
+            console.log(term.dim(`  Refreshing download URL for ${att.name}...`))
+            const freshUrl = await opts.refreshUrl(att)
+            if (freshUrl) {
+              url = freshUrl
+              res = await fetch(url)
+            }
+          }
+
           if (!res.ok) {
             console.log(term.yellow(`  Failed to download ${att.name}: HTTP ${res.status}`))
             result.failed++

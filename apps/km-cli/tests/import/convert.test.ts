@@ -664,3 +664,128 @@ describe("roundtrip: convert → parse", () => {
     expect(heading).toBeDefined()
   })
 })
+
+// ============================================================================
+// Within-file dedup (task in multiple sections of same project)
+// ============================================================================
+
+describe("Within-file dedup", () => {
+  test("task in multiple sections only rendered once, no within-file cross-ref", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-18T00:00:00Z",
+      projects: [
+        {
+          sourceId: "proj-dup",
+          title: "Wellness",
+          sections: [
+            {
+              sourceId: "sec-active",
+              title: "Active",
+              items: [{ sourceId: "task-1", title: "Exercise daily", status: "todo" }],
+            },
+            {
+              sourceId: "sec-habits",
+              title: "Habits",
+              items: [{ sourceId: "task-1", title: "Exercise daily", status: "todo" }],
+            },
+          ],
+        },
+      ],
+    }
+    const files = convert(data)
+    const md = files.get("proj-dup-wellness.md")!
+
+    // Task should appear exactly once as a full entry
+    const fullMatches = md.match(/- \[ \] Exercise daily/g)
+    expect(fullMatches).toHaveLength(1)
+
+    // No within-file cross-reference
+    expect(md).not.toContain("→ [[^task-1]]")
+  })
+
+  test("within-file dedup does not block cross-project refs", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-18T00:00:00Z",
+      projects: [
+        {
+          sourceId: "projA",
+          title: "Alpha",
+          sections: [
+            {
+              sourceId: "sec-a1",
+              title: "Section A1",
+              items: [{ sourceId: "shared-task", title: "Shared task", status: "todo", body: "Full body" }],
+            },
+            {
+              sourceId: "sec-a2",
+              title: "Section A2",
+              items: [{ sourceId: "shared-task", title: "Shared task", status: "todo", body: "Full body" }],
+            },
+          ],
+        },
+        {
+          sourceId: "projB",
+          title: "Beta",
+          items: [{ sourceId: "shared-task", title: "Shared task", status: "todo", body: "Full body" }],
+        },
+      ],
+    }
+    const files = convert(data)
+    const alpha = files.get("projA-alpha.md")!
+    const beta = files.get("projB-beta.md")!
+
+    // Alpha: full content once, no self-reference
+    const alphaFullMatches = alpha.match(/- \[ \] Shared task/g)
+    expect(alphaFullMatches).toHaveLength(1)
+    expect(alpha).not.toContain("→ [[^shared-task]]")
+
+    // Beta: cross-project reference (this is correct behavior)
+    expect(beta).toContain("→ [[^shared-task]]")
+    expect(beta).not.toContain("> Full body")
+  })
+})
+
+// ============================================================================
+// Tag file dedup (same task appearing twice in tag aggregation)
+// ============================================================================
+
+describe("Tag file dedup", () => {
+  test("task tagged in multiple sections does not duplicate in tag file", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-18T00:00:00Z",
+      projects: [
+        {
+          sourceId: "proj-tag",
+          title: "Tagged Project",
+          sections: [
+            {
+              sourceId: "sec-1",
+              title: "Section 1",
+              items: [{ sourceId: "tag-task-1", title: "Tagged task", status: "todo", tags: ["health"] }],
+            },
+            {
+              sourceId: "sec-2",
+              title: "Section 2",
+              items: [{ sourceId: "tag-task-1", title: "Tagged task", status: "todo", tags: ["health"] }],
+            },
+          ],
+        },
+        {
+          sourceId: "proj-tag2",
+          title: "Another Project",
+          items: [{ sourceId: "tag-task-2", title: "Another tagged", status: "done", tags: ["health"] }],
+        },
+      ],
+    }
+    const files = convert(data)
+    const tagFile = files.get("#health.md")!
+    expect(tagFile).toBeDefined()
+
+    // The task should appear only once in the tag file (as a cross-ref since it was rendered in project file)
+    const refMatches = tagFile.match(/Tagged task/g)
+    expect(refMatches).toHaveLength(1)
+  })
+})

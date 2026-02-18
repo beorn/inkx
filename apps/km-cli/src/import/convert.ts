@@ -150,8 +150,13 @@ function itemToNodes(
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
   currentProject?: string,
+  localRendered?: Set<string>,
 ): void {
-  // Multi-project dedup: if already rendered, emit compact reference
+  // Within-file dedup: skip entirely if already rendered in this project
+  if (localRendered && item.sourceId && localRendered.has(item.sourceId)) {
+    return
+  }
+  // Cross-project dedup: if already rendered in another project, emit compact reference
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
     const status = toTaskStatus(item.status)
     const marker = status === "done" ? "[x]" : "[ ]"
@@ -167,6 +172,7 @@ function itemToNodes(
     )
     return
   }
+  if (localRendered && item.sourceId) localRendered.add(item.sourceId)
   if (rendered && item.sourceId) rendered.add(item.sourceId)
 
   const status = toTaskStatus(item.status)
@@ -209,7 +215,7 @@ function itemToNodes(
   // Recursive children (subtasks)
   if (item.children?.length) {
     for (const child of item.children) {
-      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject)
+      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject, localRendered)
     }
   }
 }
@@ -223,6 +229,7 @@ function sectionToNodes(
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
   currentProject?: string,
+  localRendered?: Set<string>,
 ): void {
   const sectionId = `section-${section.sourceId}`
   nodes.push(
@@ -238,7 +245,7 @@ function sectionToNodes(
   )
 
   for (const item of section.items) {
-    itemToNodes(counter, item, sectionId, nodes, rendered, primaryMap, currentProject)
+    itemToNodes(counter, item, sectionId, nodes, rendered, primaryMap, currentProject, localRendered)
   }
 }
 
@@ -252,6 +259,8 @@ function projectToNodes(
 ): KNode[] {
   const counter: IdxCounter = { value: 0 }
   const nodes: KNode[] = []
+  // Track sourceIds within this project to skip within-file duplicates
+  const localRendered = new Set<string>()
 
   // File root node — data becomes frontmatter, content becomes H1
   const fileId = `file-${project.sourceId}`
@@ -279,14 +288,14 @@ function projectToNodes(
   // Sections
   if (project.sections?.length) {
     for (const section of project.sections) {
-      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title)
+      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title, localRendered)
     }
   }
 
   // Loose items
   if (project.items?.length) {
     for (const item of project.items) {
-      itemToNodes(counter, item, fileId, nodes, rendered, primaryMap, project.title)
+      itemToNodes(counter, item, fileId, nodes, rendered, primaryMap, project.title, localRendered)
     }
   }
 
@@ -392,8 +401,15 @@ function* generateTagFiles(
     for (const sec of proj.sections ?? []) collectByTag(sec.items)
   }
 
-  // Generate a file per tag (only for tags with 2+ items)
-  for (const [tag, items] of tagItems) {
+  // Generate a file per tag (only for tags with 2+ unique items)
+  for (const [tag, rawItems] of tagItems) {
+    // Deduplicate: same task may appear in multiple sections
+    const seen = new Set<string>()
+    const items = rawItems.filter((item) => {
+      if (seen.has(item.sourceId)) return false
+      seen.add(item.sourceId)
+      return true
+    })
     if (items.length < 2) continue
     const counter: IdxCounter = { value: 0 }
     const nodes: KNode[] = []

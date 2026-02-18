@@ -33,6 +33,7 @@ import {
   extractFrontmatter,
   extractTaskMark,
   nodeToText,
+  blockquoteToText,
   tableToMarkdown,
   listItemToText,
   slugify,
@@ -422,7 +423,7 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number, sour
 
     case "blockquote":
       type = "quote"
-      content = nodeToText(block)
+      content = blockquoteToText(block)
       break
 
     case "code":

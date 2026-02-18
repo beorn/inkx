@@ -257,7 +257,7 @@ const Card = React.memo(
             cardIndex={cardIndex}
             subIndex={0}
             dim={!isSelected}
-            dimInactiveChildren={true}
+            dimInactiveChildren={false}
             childCount={card.childCount}
             extraExcludedSigils={extraExcludedSigils}
             compactContent
@@ -291,7 +291,7 @@ const Card = React.memo(
               colIndex={colIndex}
               cardIndex={cardIndex}
               subIndex={0}
-              dimInactiveChildren={!isSelected && !isMultiSelected}
+              dimInactiveChildren={false}
               childCount={card.childCount}
               extraExcludedSigils={extraExcludedSigils}
               hideChildCount
@@ -318,7 +318,7 @@ const Card = React.memo(
           colIndex={colIndex}
           cardIndex={cardIndex}
           subIndex={0}
-          dimInactiveChildren={!isSelected && !isMultiSelected}
+          dimInactiveChildren={false}
           childCount={card.childCount}
           extraExcludedSigils={extraExcludedSigils}
           hideChildCount

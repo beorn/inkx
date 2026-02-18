@@ -85,8 +85,8 @@ export function getNodeStyle(
   node: KNode,
   isSelected: boolean,
   isMultiSelected: boolean,
-  dimInactiveChildren: boolean,
-  depth: number,
+  _dimInactiveChildren: boolean,
+  _depth: number,
   isInlineEditing = false,
 ): NodeStyleResult {
   const nodeIsTask = isTask(node)
@@ -116,8 +116,7 @@ export function getNodeStyle(
   // Dim state for done/dropped tasks (no strikethrough per design)
   // Only explicit task statuses trigger dimming — implicit tasks are never dimmed
   const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
-  const isInactiveChild = dimInactiveChildren && depth > 0
-  const shouldDim = isDoneOrDropped || isInactiveChild
+  const shouldDim = isDoneOrDropped
   const shouldStrikethrough = false // Disabled per design decision
 
   return {

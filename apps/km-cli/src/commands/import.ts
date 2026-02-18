@@ -168,6 +168,7 @@ Pipeline:
 
       const startTime = Date.now()
       let importData: ImportData
+      let asanaToken: string | undefined
 
       if (options.from) {
         // --from: load from a specific file or directory
@@ -223,6 +224,7 @@ Pipeline:
         }
 
         const { token, workspace: configWorkspace } = await ensureAsanaSetup(options.authToken)
+        asanaToken = token
         const { fetchFromAsana, resolveAsanaWorkspace } = await import("../import/adapters/asana-api.ts")
 
         console.log(term.cyan("Fetching from Asana API..."))
@@ -271,6 +273,22 @@ Pipeline:
         dir: attachDir,
         relativePath: attachRelative,
         dryRun: options.dryRun,
+        refreshUrl: asanaToken
+          ? async (att) => {
+              if (!att.sourceId) return null
+              try {
+                const res = await fetch(
+                  `https://app.asana.com/api/1.0/attachments/${att.sourceId}?opt_fields=download_url`,
+                  { headers: { Authorization: `Bearer ${asanaToken}` } },
+                )
+                if (!res.ok) return null
+                const json = (await res.json()) as { data?: { download_url?: string } }
+                return json.data?.download_url ?? null
+              } catch {
+                return null
+              }
+            }
+          : undefined,
       })
       if (dlResult.downloaded > 0 || dlResult.failed > 0) {
         console.log(

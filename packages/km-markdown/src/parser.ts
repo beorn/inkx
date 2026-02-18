@@ -457,6 +457,35 @@ export function nodeToText(node: RootContent | Root): string {
 }
 
 /**
+ * Convert a blockquote mdast node to text, preserving paragraph breaks and list structure.
+ * Block-level children (paragraphs, lists) are separated by blank lines.
+ */
+export function blockquoteToText(node: RootContent): string {
+  if (!("children" in node) || !Array.isArray(node.children)) {
+    return nodeToText(node)
+  }
+
+  return node.children
+    .map((child: RootContent) => {
+      if (child.type === "list") {
+        return listToText(child as RootContent & { children: RootContent[] })
+      }
+      return nodeToText(child)
+    })
+    .join("\n\n")
+}
+
+/** Convert an mdast list to text with bullet markers */
+function listToText(list: RootContent & { children: RootContent[] }): string {
+  return list.children
+    .map((item: RootContent) => {
+      const text = listItemToText(item)
+      return "* " + text
+    })
+    .join("\n")
+}
+
+/**
  * Extract text content from a list item, excluding nested lists.
  * Only extracts text from direct paragraph/text content, not from child lists.
  */

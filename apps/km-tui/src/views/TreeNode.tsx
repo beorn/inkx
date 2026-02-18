@@ -335,10 +335,12 @@ function TreeNodeImpl({
   // restores them as structured fields on the node.
   const handleTitleSave = useCallback(
     (newValue: string) => {
-      const originalContent = displayNode.content ?? ""
+      const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
       const { marker } = extractTitleTaskMarker(originalContent)
       const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
       const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
+      // No-op: value didn't change and no metadata to update
+      if (newContent === originalContent && Object.keys(metaFields).length === 0) return
       undoHandle.setCursor(displayNode.id)
       repo.updateNode(displayNode.id, { content: newContent, ...metaFields })
     },
@@ -350,7 +352,7 @@ function TreeNodeImpl({
   // restores them as structured fields on the node.
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
-      const originalContent = displayNode.content ?? ""
+      const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
       const { marker } = extractTitleTaskMarker(originalContent)
       const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
       const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
@@ -883,7 +885,10 @@ function getDisplayContent(
  * On save, the parser re-extracts these back to fields — round-trip safe.
  */
 function composeRawEditContent(node: KNode): string {
-  return stringifyTaskMetadata(node.content ?? "", node, { includeAssignedTo: true })
+  // Use content if available, falling back to data.name for folder-type nodes
+  // (oi nodes store their title in data.name, not content).
+  const baseContent = node.content ?? (node.data?.name as string) ?? ""
+  return stringifyTaskMetadata(baseContent, node, { includeAssignedTo: true })
 }
 
 // =============================================================================
