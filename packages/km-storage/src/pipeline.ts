@@ -35,6 +35,7 @@ import type { Emitter } from "./emitter.ts"
 import { emitNodeCreated, emitNodeUpdated } from "./emitter.ts"
 import { createLinkResolver } from "./link-resolver.ts"
 import { resolveWikilink, type WikilinkRef, type ResolvedLink } from "./markdown-processing.ts"
+import { INSERT_NODE_PLAIN_SQL } from "./db-insert.ts"
 
 const log = createLogger("km:storage:pipeline")
 
@@ -171,15 +172,7 @@ export async function* applyNodes(
 
   // Prepare statements
   const deleteStmt = db.prepare("DELETE FROM nodes WHERE id = ?")
-  const insertStmt = db.prepare(`
-    INSERT INTO nodes (
-      id, type, fstype, parent_id, link_to, link_alias, parent_idx,
-      fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
-      list_marker, task_marker, task_status, assigned_to, due_at, start_at, due_date, scheduled_date, priority,
-      content, content_hash, data,
-      created_at, updated_at, version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `)
+  const insertStmt = db.prepare(INSERT_NODE_PLAIN_SQL)
 
   const now = Date.now()
 
