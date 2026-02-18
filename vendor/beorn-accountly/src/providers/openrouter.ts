@@ -79,7 +79,7 @@ export function createOpenRouterProvider(): QuotaProvider {
         }
 
         // Total usage (when no limit, still show spend)
-        if (key.usage != null && key.usage > 0 && (key.limit === 0)) {
+        if (key.usage != null && key.usage > 0 && key.limit === 0) {
           windows.push({
             name: `Spent ${fmtDollars(key.usage)} total`,
             utilization: 0,

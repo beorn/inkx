@@ -127,9 +127,7 @@ program
   .command("auto")
   .description("Auto-switch to account with most remaining quota")
   .action(async () => {
-    const discovered = discoverAccounts().filter(
-      (d) => d.config.provider === "claude-oauth" && !d.config.disabled,
-    )
+    const discovered = discoverAccounts().filter((d) => d.config.provider === "claude-oauth" && !d.config.disabled)
     if (discovered.length === 0) {
       console.error(pc.red("No Claude OAuth accounts configured."))
       process.exit(1)
