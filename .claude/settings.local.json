@@ -70,5 +70,6 @@
     "ask": []
   },
   "outputStyle": "default",
-  "spinnerTipsEnabled": false
+  "spinnerTipsEnabled": false,
+  "prefersReducedMotion": true
 }
