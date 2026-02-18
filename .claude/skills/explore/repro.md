@@ -16,6 +16,25 @@ Someone may have already investigated this exact issue. Check for:
 - Known workarounds or limitations
 - Related architectural decisions
 
+## Failed Reproduction Protocol
+
+When you try to reproduce a bug and **fail** (can't trigger it):
+
+1. **Log what you tried** — append to the bead notes with exact key sequences, timing, and vault used:
+   ```bash
+   bd update <id> --append-notes "Repro attempt: td → typed 'today' → Enter. Dialog closed correctly. Used /tmp/vt vault, 80x24 terminal."
+   ```
+2. **Use DEBUG_LOG** — always run with `DEBUG='km:*' DEBUG_LOG=/tmp/tui-debug.log` so there's a trace even for "works for me" attempts
+3. **Check reproduction conditions** — many bugs only trigger when:
+   - Value actually changes (auto-save checks `value !== initialValue`)
+   - Component has fully mounted (press Enter too fast → hits old input layer)
+   - Real data is used (synthetic fixtures may skip edge cases)
+4. **Update the steering doc** — if you learn something about reproduction conditions (e.g., "must type text before confirming"), update this file or the relevant skill doc so the next session doesn't repeat the same failed approach
+
+**A failed reproduction with no notes is wasted work.** The next session will try the same thing and fail the same way.
+
+**P1 bugs: do NOT move on.** If you can't reproduce a P1 after 2 instrumented attempts, escalate to the user for pair debugging. Never leave a P1 as "could not reproduce" and pick up other work.
+
 ## Step 1: Run with Debug Logging
 
 Tell user to run:

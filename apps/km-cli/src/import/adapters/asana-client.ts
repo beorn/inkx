@@ -70,9 +70,14 @@ export class AsanaClient {
           // Only one request sets the gate; others wait on it
           if (!this.rateLimitGate) {
             const retryAfter = parseInt(res.headers.get("Retry-After") ?? "60", 10)
-            console.log(term.yellow(`  Rate limited, waiting ${retryAfter}s (slowing to ${(1000 / this.delayMs).toFixed(1)} req/s)...`))
+            console.log(
+              term.yellow(
+                `  Rate limited, waiting ${retryAfter}s (slowing to ${(1000 / this.delayMs).toFixed(1)} req/s)...`,
+              ),
+            )
             this.rateLimitGate = sleep(retryAfter * 1000).then(() => {
               this.rateLimitGate = null
+              return undefined
             })
           }
           await this.rateLimitGate
@@ -135,5 +140,7 @@ export class AsanaClient {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
 }
