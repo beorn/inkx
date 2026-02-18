@@ -445,6 +445,332 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
 })
 
 // =============================================================================
+// Fold border blank — buffer-level border assertions (km-tui.fold-border-blank)
+// =============================================================================
+
+describe("fold border blank — buffer-level assertions", () => {
+  /**
+   * Board with 4 cards in a single column — some with children, some without.
+   * Tests that folding (via < or zc) preserves bottom borders of folded cards
+   * AND top borders of cards directly below them.
+   */
+  function multiCardBoard(opts?: { columns?: number; rows?: number }) {
+    return testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("Parent-A", item("a-child1"), item("a-child2"), item("a-child3")),
+            item("Parent-B", item("b-child1"), item("b-child2")),
+            item("Leaf-C"),
+            item("Parent-D", item("d-child1")),
+          ),
+        ),
+      { columns: opts?.columns ?? 60, rows: opts?.rows ?? 30, incremental: true },
+    )
+  }
+
+  /**
+   * Find the Card border box for a node by scanning for its text in the rendered
+   * output, then searching upward/downward for top/bottom border characters.
+   *
+   * Returns the row indices of the card's top border (╭) and bottom border (╰).
+   */
+  function findCardBorderRows(
+    board: ReturnType<typeof testEnv>["board"],
+    nodeText: string,
+  ): { topRow: number; bottomRow: number } {
+    const rows = board.screenshot().split("\n")
+    // Find the text row INSIDE a card (must have │ on the left margin, skipping breadcrumb)
+    let textRow = -1
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]!
+      if (row.includes(nodeText) && row.trimStart().startsWith("\u2502")) {
+        textRow = i
+        break
+      }
+    }
+    expect(textRow, `"${nodeText}" should be inside a card (bordered row)`).toBeGreaterThanOrEqual(0)
+
+    // Search upward for top border (╭)
+    let topRow = -1
+    for (let y = textRow; y >= 0; y--) {
+      if (rows[y]!.includes("\u256d")) {
+        topRow = y
+        break
+      }
+    }
+
+    // Search downward for bottom border (╰)
+    let bottomRow = -1
+    for (let y = textRow; y < rows.length; y++) {
+      if (rows[y]!.includes("\u2570")) {
+        bottomRow = y
+        break
+      }
+    }
+
+    expect(topRow, `top border for "${nodeText}"`).toBeGreaterThanOrEqual(0)
+    expect(bottomRow, `bottom border for "${nodeText}"`).toBeGreaterThan(topRow)
+    return { topRow, bottomRow }
+  }
+
+  /**
+   * Assert that a card's bottom border row has continuous dashes between ╰ and ╯.
+   * This is the core assertion for the fold-border-blank bug: when folding shrinks
+   * a card, the bottom border should not be left blank or overwritten.
+   */
+  function expectBottomBorderIntact(board: ReturnType<typeof testEnv>["board"], nodeText: string) {
+    const { bottomRow } = findCardBorderRows(board, nodeText)
+    const rows = board.screenshot().split("\n")
+    const row = rows[bottomRow]!
+    const leftIdx = row.indexOf("\u2570")
+    const rightIdx = row.lastIndexOf("\u256f")
+    expect(leftIdx, `╰ in bottom border row for "${nodeText}"`).toBeGreaterThanOrEqual(0)
+    expect(rightIdx, `╯ in bottom border row for "${nodeText}"`).toBeGreaterThan(leftIdx)
+    const between = row.slice(leftIdx + 1, rightIdx)
+    // Allow overflow label pattern: dashes + " +N " + dashes
+    const isOverflow = /^\u2500*\s\+\d+\s\u2500*$/.test(between)
+    if (!isOverflow) {
+      for (let i = 0; i < between.length; i++) {
+        expect(
+          between[i],
+          `"${nodeText}" bottom border at col ${leftIdx + 1 + i} should be ─ but got "${between[i]}"`,
+        ).toBe("\u2500")
+      }
+    }
+  }
+
+  /**
+   * Assert that a card's top border row has continuous dashes between ╭ and ╮.
+   */
+  function expectTopBorderIntact(board: ReturnType<typeof testEnv>["board"], nodeText: string) {
+    const { topRow } = findCardBorderRows(board, nodeText)
+    const rows = board.screenshot().split("\n")
+    const row = rows[topRow]!
+    const leftIdx = row.indexOf("\u256d")
+    const rightIdx = row.lastIndexOf("\u256e")
+    expect(leftIdx, `╭ in top border row for "${nodeText}"`).toBeGreaterThanOrEqual(0)
+    expect(rightIdx, `╮ in top border row for "${nodeText}"`).toBeGreaterThan(leftIdx)
+    const between = row.slice(leftIdx + 1, rightIdx)
+    for (let i = 0; i < between.length; i++) {
+      expect(
+        between[i],
+        `"${nodeText}" top border at col ${leftIdx + 1 + i} should be ─ but got "${between[i]}"`,
+      ).toBe("\u2500")
+    }
+  }
+
+  /**
+   * Assert no stale content between two cards (no orphaned border chars or content
+   * between one card's bottom border and the next card's top border).
+   */
+  function expectNoStaleBetweenCards(
+    board: ReturnType<typeof testEnv>["board"],
+    upperNode: string,
+    lowerNode: string,
+  ) {
+    const { bottomRow: upperBottom } = findCardBorderRows(board, upperNode)
+    const { topRow: lowerTop } = findCardBorderRows(board, lowerNode)
+    const rows = board.screenshot().split("\n")
+    // Between upper card bottom and lower card top, there should be no stale border chars
+    for (let i = upperBottom + 1; i < lowerTop; i++) {
+      const row = rows[i] ?? ""
+      expect(row, `Row ${i} between "${upperNode}" and "${lowerNode}" should not have stale borders`).not.toMatch(
+        /[\u2500\u2502\u256d\u256e\u256f\u2570]/,
+      )
+    }
+  }
+
+  test("decrease outline depth (<) preserves bottom border of folded cards", () => {
+    const { board } = multiCardBoard()
+
+    // Decrease outline depth twice: hides all children
+    board.press("<").press("<")
+
+    // After folding: all cards should have intact bottom borders
+    expectBottomBorderIntact(board, "Parent-A")
+    expectBottomBorderIntact(board, "Parent-B")
+    expectTopBorderIntact(board, "Leaf-C")
+    expectBottomBorderIntact(board, "Leaf-C")
+  })
+
+  test("decrease outline depth preserves borders between adjacent cards", () => {
+    const { board } = multiCardBoard()
+
+    // Fold once
+    board.press("<")
+    expectBottomBorderIntact(board, "Parent-A")
+    expectTopBorderIntact(board, "Parent-B")
+
+    // Fold again
+    board.press("<")
+    expectBottomBorderIntact(board, "Parent-A")
+    expectTopBorderIntact(board, "Parent-B")
+    expectBottomBorderIntact(board, "Leaf-C")
+    expectNoStaleBetweenCards(board, "Parent-A", "Parent-B")
+    expectNoStaleBetweenCards(board, "Parent-B", "Leaf-C")
+  })
+
+  test("individual fold (zc) preserves border of card below", () => {
+    const { board } = multiCardBoard()
+
+    // Fold Parent-A via zc chord
+    board.press("z").press("c")
+
+    // Parent-A bottom border should be intact
+    expectBottomBorderIntact(board, "Parent-A")
+    // Parent-B top border should be intact (card below the folded one)
+    expectTopBorderIntact(board, "Parent-B")
+    // No stale content between Parent-A and Parent-B
+    expectNoStaleBetweenCards(board, "Parent-A", "Parent-B")
+  })
+
+  test("toggle fold (za) preserves borders of folded card and neighbors", () => {
+    const { board } = multiCardBoard()
+
+    // Navigate to Parent-B then toggle fold
+    board.press("j")
+    board.press("z").press("a")
+
+    // Parent-B bottom border should be intact
+    expectBottomBorderIntact(board, "Parent-B")
+    // Leaf-C borders should be intact (card below the folded one)
+    expectTopBorderIntact(board, "Leaf-C")
+    expectBottomBorderIntact(board, "Leaf-C")
+    // Parent-A borders should remain intact (card above)
+    expectBottomBorderIntact(board, "Parent-A")
+    // No stale content between cards
+    expectNoStaleBetweenCards(board, "Parent-B", "Leaf-C")
+  })
+
+  test("fold then unfold round-trip preserves all borders", () => {
+    const { board } = multiCardBoard()
+
+    // Fold all children via < < then restore via > >
+    board.press("<").press("<")
+    board.press(">").press(">")
+
+    // All cards should have intact borders after round-trip
+    expectBottomBorderIntact(board, "Parent-A")
+    expectBottomBorderIntact(board, "Parent-B")
+    expectBottomBorderIntact(board, "Leaf-C")
+    expectBottomBorderIntact(board, "Parent-D")
+    expectTopBorderIntact(board, "Parent-A")
+    expectTopBorderIntact(board, "Parent-B")
+    expectTopBorderIntact(board, "Leaf-C")
+    expectTopBorderIntact(board, "Parent-D")
+  })
+
+  test("fold with many cards and realistic viewport (5+ cards, constrained height)", () => {
+    // Smaller viewport forces scrolling and more border stress
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("Task-1", item("1a"), item("1b")),
+            item("Task-2", item("2a")),
+            item("Task-3", item("3a"), item("3b"), item("3c")),
+            item("Task-4"),
+            item("Task-5", item("5a")),
+            item("Task-6"),
+          ),
+        ),
+      { columns: 50, rows: 20, incremental: true },
+    )
+
+    // Fold twice to hide nested children
+    board.press("<").press("<")
+
+    const text = board.screenshot()
+    // Every bottom border line should have continuous dashes (no blanks)
+    const rows = text.split("\n")
+    for (const row of rows) {
+      const leftIdx = row.indexOf("\u2570")
+      const rightIdx = row.lastIndexOf("\u256f")
+      if (leftIdx >= 0 && rightIdx > leftIdx + 1) {
+        const between = row.slice(leftIdx + 1, rightIdx)
+        // Allow overflow label (+N)
+        const isOverflow = /^\u2500*\s\+\d+\s\u2500*$/.test(between)
+        if (!isOverflow) {
+          for (let i = 0; i < between.length; i++) {
+            expect(
+              between[i],
+              `bottom border dash at col ${leftIdx + 1 + i} should be \u2500 but got "${between[i]}"`,
+            ).toBe("\u2500")
+          }
+        }
+      }
+    }
+  })
+
+  test("multi-step fold sequence: navigate, fold, navigate, fold preserves borders", () => {
+    const { board } = multiCardBoard()
+
+    // Step 1: fold Parent-A
+    board.press("z").press("c")
+    expectBottomBorderIntact(board, "Parent-A")
+
+    // Step 2: move down to Parent-B, fold it
+    board.press("j")
+    board.press("z").press("c")
+    expectBottomBorderIntact(board, "Parent-B")
+
+    // Step 3: move down to Leaf-C — its borders should be intact
+    board.press("j")
+    expectTopBorderIntact(board, "Leaf-C")
+    expectBottomBorderIntact(board, "Leaf-C")
+
+    // Step 4: move down to Parent-D, fold it
+    board.press("j")
+    board.press("z").press("c")
+    expectBottomBorderIntact(board, "Parent-D")
+
+    // Step 5: unfold all (Z), verify everything is restored
+    board.press("Z")
+    expectBottomBorderIntact(board, "Parent-A")
+    expectBottomBorderIntact(board, "Parent-B")
+    expectBottomBorderIntact(board, "Parent-D")
+    // No stale between cards
+    expectNoStaleBetweenCards(board, "Parent-A", "Parent-B")
+    expectNoStaleBetweenCards(board, "Parent-B", "Leaf-C")
+    expectNoStaleBetweenCards(board, "Leaf-C", "Parent-D")
+  })
+
+  test("cell-level border check: bottom border cells are not blank after fold", () => {
+    const { board } = multiCardBoard()
+
+    // Fold via < <
+    board.press("<").press("<")
+
+    // Find each card's bottom border row and check cell-by-cell
+    for (const nodeText of ["Parent-A", "Parent-B", "Leaf-C", "Parent-D"]) {
+      const { bottomRow } = findCardBorderRows(board, nodeText)
+      // Check cells across the full width using the screen buffer (not text)
+      let foundCornerLeft = false
+      let foundCornerRight = false
+      for (let x = 0; x < board.screen.width; x++) {
+        const cell = board.screen.cell(x, bottomRow)
+        if (cell.char === "\u2570") foundCornerLeft = true
+        if (cell.char === "\u256f") foundCornerRight = true
+        // Between corners: should be ─, not space or other characters
+        if (foundCornerLeft && !foundCornerRight && cell.char !== "\u2570") {
+          expect(
+            cell.char,
+            `"${nodeText}" bottom border cell at (${x},${bottomRow}) should be ─ but got "${cell.char}"`,
+          ).toBe("\u2500")
+        }
+      }
+      expect(foundCornerLeft, `"${nodeText}" bottom border has ╰`).toBe(true)
+      expect(foundCornerRight, `"${nodeText}" bottom border has ╯`).toBe(true)
+    }
+  })
+})
+
+// =============================================================================
 // Fold border regression
 // =============================================================================
 
