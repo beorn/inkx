@@ -78,6 +78,14 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
 let chordTimer: ReturnType<typeof setTimeout> | null = null
 const CHORD_TIMEOUT_MS = 300
 
+// When the chord timeout fires and resolves the prefix as a standalone command
+// (e.g., 't' → set_due_date), the user's intended chord-completion key ('d')
+// may arrive shortly after. Without suppression, it leaks into the text input
+// of the just-opened dialog. This timestamp tracks when the timeout last fired
+// so handleKey can suppress keys arriving within a grace period.
+let chordTimeoutFiredAt = 0
+const CHORD_TIMEOUT_GRACE_MS = 150
+
 /**
  * Handle term:key event — the single entry point for all keyboard input.
  * All modals (help, deleteConfirm, console, toast) are routed through the
@@ -117,8 +125,57 @@ export function handleKey(
     chordTimer = null
   }
 
+  // Suppress keystrokes that arrive shortly after a chord timeout fired.
+  // When 't' starts a chord and times out (300ms), the standalone command
+  // executes (e.g., set_due_date opens dialog). If the user's 'd' arrives
+  // just after, it would leak into the dialog's text input. Swallow it.
+  if (chordTimeoutFiredAt > 0) {
+    const elapsed = now - chordTimeoutFiredAt
+    chordTimeoutFiredAt = 0
+    if (elapsed < CHORD_TIMEOUT_GRACE_MS && input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
+      return
+    }
+  }
+
   routeThroughCommandSystem(keySpan, input, key, get, exitApp)
   if (needsRenderFlush()) return "flush"
+}
+
+/** Fire the chord timeout: resolve the pending prefix as its standalone command. */
+function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
+  chordTimeoutFiredAt = performance.now()
+  const freshCtx = buildActionCtx(get, exitApp)
+  const timeoutResult = processChordTimeout(freshCtx)
+  if (timeoutResult?.actions) {
+    const actionList = Array.isArray(timeoutResult.actions) ? timeoutResult.actions : [timeoutResult.actions]
+    for (const action of actionList) {
+      const actionResult = handleCommandAction(freshCtx, action)
+      if (isErr(actionResult) && actionResult.error.type === "boundary") {
+        freshCtx.setUI({
+          bellState: actionResult.error.direction,
+          status: {
+            level: "warning",
+            message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
+          },
+        })
+        process.stdout.write("\x07")
+      }
+    }
+  }
+  // Clear chord status indicator
+  freshCtx.setUI({ status: null })
+}
+
+/**
+ * Test helper: manually trigger the chord timeout (bypasses real setTimeout).
+ * Call after pressing a chord prefix key to simulate the timeout firing.
+ */
+export function __triggerChordTimeout(get: () => BoardAppStore, exitApp: () => void = () => {}): void {
+  if (chordTimer !== null) {
+    clearTimeout(chordTimer)
+    chordTimer = null
+  }
+  fireChordTimeout(get, exitApp)
 }
 
 /**
@@ -152,26 +209,7 @@ function routeThroughCommandSystem(
     ctx.setUI({ status: { level: "info", message: `${result.pending}-` } })
     chordTimer = setTimeout(() => {
       chordTimer = null
-      const freshCtx = buildActionCtx(get, exitApp)
-      const timeoutResult = processChordTimeout(freshCtx)
-      if (timeoutResult?.actions) {
-        const actionList = Array.isArray(timeoutResult.actions) ? timeoutResult.actions : [timeoutResult.actions]
-        for (const action of actionList) {
-          const actionResult = handleCommandAction(freshCtx, action)
-          if (isErr(actionResult) && actionResult.error.type === "boundary") {
-            freshCtx.setUI({
-              bellState: actionResult.error.direction,
-              status: {
-                level: "warning",
-                message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
-              },
-            })
-            process.stdout.write("\x07")
-          }
-        }
-      }
-      // Clear chord status indicator
-      freshCtx.setUI({ status: null })
+      fireChordTimeout(get, exitApp)
     }, CHORD_TIMEOUT_MS)
     return
   }

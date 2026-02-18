@@ -14,6 +14,7 @@
 import { describe, test, it, expect } from "vitest"
 import { act } from "react"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { __triggerChordTimeout } from "../src/board-app.ts"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 import { formatDateBadge } from "../src/views/tree-node-helpers.ts"
@@ -322,6 +323,35 @@ describe("date prompt (td)", () => {
     expect(text).not.toMatch(/> d[^a-z]/)
     // Should show empty state hint
     expect(text).toContain("Empty = clear value")
+  })
+
+  test("td chord timeout does not leak 'd' into text input (km-tui.chord-leak)", () => {
+    // Regression: when 't' and 'd' are pressed with >300ms gap, the chord
+    // timeout fires first (resolving 't' standalone → set_due_date), then
+    // 'd' arrives with textInputFocused=true and leaks into the dialog.
+    // The grace period in handleKey should suppress this.
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+
+    board.press("j")
+    board.press("t")
+
+    // Manually trigger chord timeout (bypasses real setTimeout, which can't
+    // fire synchronously within testEnv's act()-based rendering model)
+    act(() => {
+      __triggerChordTimeout(store.getState)
+    })
+
+    // Verify store state: datePrompt should be set (dialog opened)
+    expect(store.getState().ui.datePrompt).toBeTruthy()
+
+    // Now press 'd' — the grace period should suppress it.
+    // This also triggers an inkx render, updating the screenshot.
+    board.press("d")
+
+    // The dialog should be visible and 'd' should NOT appear in the text input
+    const text = board.screenshot()
+    expect(text).toContain("Set Due Date")
+    expect(text).not.toMatch(/> [^\s]*d/)
   })
 
   test("ts chord opens start date dialog", () => {
