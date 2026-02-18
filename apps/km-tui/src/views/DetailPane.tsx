@@ -124,9 +124,9 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
 
         {/* Footer: keybindings + debug info */}
         <Box flexGrow={1} />
-        <Box justifyContent="space-between" width={innerWidth}>
-          <Text dimColor>h/Esc:close Enter:open</Text>
-          <Text dimColor>{node.type} {node.id}</Text>
+        <Box flexDirection="row" justifyContent="space-between" width={innerWidth}>
+          <Text dimColor wrap="truncate">h/Esc:close Enter:open</Text>
+          <Text dimColor wrap="truncate">{node.type} {node.id}</Text>
         </Box>
       </ErrorBoundary>
     </Box>
@@ -257,9 +257,9 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 
         {/* Footer: keybindings + debug info */}
         <Box flexGrow={1} />
-        <Box justifyContent="space-between" width={innerWidth}>
-          <Text dimColor>h/Esc:close Space:status</Text>
-          <Text dimColor>{node.type} {node.id}</Text>
+        <Box flexDirection="row" justifyContent="space-between" width={innerWidth}>
+          <Text dimColor wrap="truncate">h/Esc:close Space:status</Text>
+          <Text dimColor wrap="truncate">{node.type} {node.id}</Text>
         </Box>
       </ErrorBoundary>
     </Box>
@@ -269,6 +269,21 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 // =============================================================================
 // Metadata Table — aligned key:value display
 // =============================================================================
+
+/** Format a data field value for display — handles objects, arrays, and primitives readably */
+function formatDataValue(v: unknown): string {
+  if (v == null) return ""
+  if (typeof v === "string") return v
+  if (typeof v === "number" || typeof v === "boolean") return String(v)
+  if (Array.isArray(v)) return v.map((item) => formatDataValue(item)).join(", ")
+  if (typeof v === "object") {
+    // Flatten simple key-value objects into "key: value" pairs
+    const entries = Object.entries(v as Record<string, unknown>)
+    if (entries.length === 0) return "{}"
+    return entries.map(([k, val]) => `${k}: ${formatDataValue(val)}`).join(", ")
+  }
+  return String(v)
+}
 
 const KNOWN_DATA_KEYS = new Set([
   "tags",
@@ -313,6 +328,10 @@ function MetadataTable({
 }: MetadataTableProps): React.ReactElement | null {
   const rows: MetadataRow[] = []
 
+  // Node identity — always show ID, type, fstype for debugging
+  rows.push({ key: "ID", value: node.id, valueColor: "gray" })
+  rows.push({ key: "Type", value: node.fstype ? `${node.type} (${node.fstype})` : node.type, valueColor: "gray" })
+
   // Status
   if (node.task_status) {
     rows.push({ key: "Status", value: statusInfo.text, valueColor: statusInfo.color })
@@ -322,11 +341,6 @@ function MetadataTable({
   if (node.priority) {
     const pColors = ["red", "yellow", "yellowBright", "gray"]
     rows.push({ key: "Priority", value: `P${node.priority}`, valueColor: pColors[node.priority - 1] })
-  }
-
-  // Assigned
-  if (node.assigned_to) {
-    rows.push({ key: "Assigned", value: node.assigned_to })
   }
 
   // Due date
@@ -349,6 +363,17 @@ function MetadataTable({
   // Recurrence
   if (node.recurrence) {
     rows.push({ key: "Recurrence", value: node.recurrence })
+  }
+
+  // Date-related metadata (created, completed) — group with other dates
+  const data = node.data as Record<string, unknown> | undefined
+  const metadata = (data?.metadata ?? {}) as Record<string, unknown>
+  if (metadata.created) rows.push({ key: "Created", value: String(metadata.created) })
+  if (metadata.completed) rows.push({ key: "Completed", value: String(metadata.completed) })
+
+  // Assigned
+  if (node.assigned_to) {
+    rows.push({ key: "Assigned", value: node.assigned_to })
   }
 
   // Location — filesystem path (e.g., "board/col1"), shown separately from project tags
@@ -375,11 +400,11 @@ function MetadataTable({
     rows.push({ key: "Mentions", value: nonAssigneeMentions.map((m) => `@${m}`).join(", ") })
   }
 
-  // data.metadata entries (created, completed, etc.)
-  const data = node.data as Record<string, unknown> | undefined
+  // Remaining data.metadata entries (excluding created/completed already shown above)
   const usedKeys = new Set(rows.map((r) => r.key))
   if (data?.metadata && typeof data.metadata === "object") {
     for (const [k, v] of Object.entries(data.metadata as Record<string, unknown>)) {
+      if (k === "created" || k === "completed") continue
       const key = capitalize(k)
       if (usedKeys.has(key)) continue
       usedKeys.add(key)
@@ -404,7 +429,7 @@ function MetadataTable({
       const key = capitalize(k)
       if (usedKeys.has(key)) continue
       usedKeys.add(key)
-      rows.push({ key, value: typeof v === "object" ? JSON.stringify(v) : String(v) })
+      rows.push({ key, value: formatDataValue(v) })
     }
   }
 
