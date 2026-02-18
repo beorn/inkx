@@ -779,3 +779,253 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(edge).toContain("p:: 2")
   })
 })
+
+// ============================================================================
+// Roundtrip: Convert → Parse (verify parser handles import output)
+// ============================================================================
+
+import { parseMarkdown, extractFrontmatter, parseTaskMetadata, extractTags, extractMentions } from "@km/markdown"
+import type { List, ListItem, Heading } from "@km/markdown"
+
+/** Create minimal ImportData for roundtrip tests */
+function makeImportData(items: ImportItem[], title = "Test Project"): ImportData {
+  return {
+    source: "asana",
+    fetchedAt: "2026-01-01T00:00:00Z",
+    projects: [{
+      sourceId: "proj-rt",
+      title,
+      sections: [{ sourceId: "sec-rt", title: "Section", items }],
+    }],
+  }
+}
+
+describe("roundtrip: convert → parse", () => {
+  test("task hierarchy preserved through roundtrip", () => {
+    const data = makeImportData([{
+      sourceId: "parent-1",
+      title: "Parent task",
+      body: "Some body text about this task",
+      children: [
+        { sourceId: "sub-1", title: "Subtask one", status: "done" },
+        { sourceId: "sub-2", title: "Subtask two", status: "todo" },
+      ],
+    }])
+
+    const files = convert(data)
+    const md = files.get("proj-rt-test-project.md")!
+    const { body } = extractFrontmatter(md)
+    const tree = parseMarkdown(body)
+
+    // Find the top-level list under the H2 section
+    const list = tree.children.find((n): n is List => n.type === "list")!
+    expect(list).toBeDefined()
+    expect(list.type).toBe("list")
+
+    // The parent list item
+    const parentLi = list.children[0]! as ListItem
+    expect(parentLi.type).toBe("listItem")
+
+    // Parent should have: paragraph (task line), blockquote (body), and a nested list (subtasks)
+    const childTypes = parentLi.children.map((c) => c.type)
+    expect(childTypes).toContain("paragraph")
+    expect(childTypes).toContain("blockquote")
+    expect(childTypes).toContain("list")
+
+    // The nested list should have exactly 2 children (subtasks), not more
+    const subtaskList = parentLi.children.find((c): c is List => c.type === "list")!
+    expect(subtaskList.children).toHaveLength(2)
+
+    // Verify subtask checkbox states
+    expect(subtaskList.children[0]!.checked).toBe(true) // done
+    expect(subtaskList.children[1]!.checked).toBe(false) // todo
+  })
+
+  test("task with body bullets doesn't create extra children", () => {
+    const data = makeImportData([{
+      sourceId: "bullet-task",
+      title: "Task with bullets",
+      body: "Planning notes:\n\n*   First option\n*   Second option\n*   Third option\n\nAdditional context here.",
+    }])
+
+    const files = convert(data)
+    const md = files.get("proj-rt-test-project.md")!
+    const { body } = extractFrontmatter(md)
+    const tree = parseMarkdown(body)
+
+    const list = tree.children.find((n): n is List => n.type === "list")!
+    const taskLi = list.children[0]! as ListItem
+
+    // The body bullets are in a blockquote, NOT as sibling list items
+    const childTypes = taskLi.children.map((c) => c.type)
+    expect(childTypes).toContain("blockquote")
+    // No nested list — the bullets are inside the blockquote, not parsed as subtask list items
+    expect(childTypes).not.toContain("list")
+
+    // The top-level list should have exactly 1 item (the task itself)
+    expect(list.children).toHaveLength(1)
+  })
+
+  test("nested subtasks preserve depth", () => {
+    const data = makeImportData([{
+      sourceId: "lvl1",
+      title: "Level 1",
+      children: [{
+        sourceId: "lvl2",
+        title: "Level 2",
+        children: [{
+          sourceId: "lvl3",
+          title: "Level 3",
+          status: "done",
+        }],
+      }],
+    }])
+
+    const files = convert(data)
+    const md = files.get("proj-rt-test-project.md")!
+    const { body } = extractFrontmatter(md)
+    const tree = parseMarkdown(body)
+
+    // Navigate: root list > listItem > nested list > listItem > nested list > listItem
+    const rootList = tree.children.find((n): n is List => n.type === "list")!
+    expect(rootList.type).toBe("list")
+
+    const li1 = rootList.children[0]! as ListItem
+    expect(li1.type).toBe("listItem")
+
+    const nestedList1 = li1.children.find((c): c is List => c.type === "list")!
+    expect(nestedList1).toBeDefined()
+
+    const li2 = nestedList1.children[0]! as ListItem
+    expect(li2.type).toBe("listItem")
+
+    const nestedList2 = li2.children.find((c): c is List => c.type === "list")!
+    expect(nestedList2).toBeDefined()
+
+    const li3 = nestedList2.children[0]! as ListItem
+    expect(li3.type).toBe("listItem")
+    expect(li3.checked).toBe(true) // done
+  })
+
+  test("multi-project dedup references don't break hierarchy", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-01-01T00:00:00Z",
+      projects: [
+        {
+          sourceId: "projA",
+          title: "Project Alpha",
+          sections: [{ sourceId: "s1", title: "Work", items: [
+            { sourceId: "shared-rt", title: "Shared task", status: "todo", body: "Details" },
+          ] }],
+        },
+        {
+          sourceId: "projB",
+          title: "Project Beta",
+          sections: [{ sourceId: "s2", title: "Work", items: [
+            { sourceId: "shared-rt", title: "Shared task", status: "todo", body: "Details" },
+            { sourceId: "beta-only", title: "Beta only", status: "done" },
+          ] }],
+        },
+      ],
+    }
+
+    const files = convert(data)
+    const betaMd = files.get("projB-project-beta.md")!
+    const { body } = extractFrontmatter(betaMd)
+    const tree = parseMarkdown(body)
+
+    // The reference project's markdown should still parse into a valid list
+    const list = tree.children.find((n): n is List => n.type === "list")!
+    expect(list).toBeDefined()
+    // Should have 2 list items: the reference line and the beta-only task
+    expect(list.children).toHaveLength(2)
+
+    // The reference line (→ [[^shared-rt]]) parses as a regular list item
+    const refLi = list.children[0]! as ListItem
+    expect(refLi.type).toBe("listItem")
+
+    // The non-shared task parses normally
+    const betaLi = list.children[1]! as ListItem
+    expect(betaLi.type).toBe("listItem")
+    expect(betaLi.checked).toBe(true)
+  })
+
+  test("metadata fields roundtrip through parser", () => {
+    const data = makeImportData([{
+      sourceId: "meta-task",
+      title: "Metadata task",
+      dueAt: "2026-03-15",
+      startAt: "2026-03-01",
+      priority: 2,
+      assignee: "alice-smith",
+      tags: ["backend", "urgent"],
+      createdAt: "2026-02-01T09:00:00Z",
+    }])
+
+    const files = convert(data)
+    const md = files.get("proj-rt-test-project.md")!
+
+    // Find the task line in the markdown
+    const taskLine = md.split("\n").find((l) => l.includes("Metadata task"))!
+    expect(taskLine).toBeDefined()
+
+    // parseTaskMetadata extracts due, start, priority
+    const meta = parseTaskMetadata(taskLine)
+    expect(meta.dueDate).toBe("2026-03-15")
+    expect(meta.scheduledDate).toBe("2026-03-01")
+    expect(meta.priority).toBe(2)
+
+    // extractMentions for assignee
+    const mentions = extractMentions(taskLine)
+    expect(mentions).toContain("alice-smith")
+
+    // extractTags for tags
+    const tags = extractTags(taskLine)
+    expect(tags).toContain("backend")
+    expect(tags).toContain("urgent")
+
+    // Block ID present
+    expect(taskLine).toContain("^meta-task")
+  })
+
+  test("frontmatter roundtrip", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-01-15T10:30:00Z",
+      projects: [{
+        sourceId: "proj-fm",
+        title: "Frontmatter Test",
+        workspace: "My Workspace",
+        owner: "Bjorn",
+        team: "Engineering",
+        createdAt: "2025-12-01T00:00:00Z",
+        modifiedAt: "2026-01-10T12:00:00Z",
+        sections: [{ sourceId: "s1", title: "Tasks", items: [
+          { sourceId: "t1", title: "A task" },
+        ] }],
+      }],
+    }
+
+    const files = convert(data)
+    const md = files.get("proj-fm-frontmatter-test.md")!
+
+    const { frontmatter, body } = extractFrontmatter(md)
+    expect(frontmatter).not.toBeNull()
+
+    // Verify all frontmatter fields are preserved
+    expect(frontmatter).toContain("imported_from: asana")
+    expect(frontmatter).toContain('imported_at: "2026-01-15T10:30:00Z"')
+    expect(frontmatter).toContain('asana_project_id: "proj-fm"')
+    expect(frontmatter).toContain('workspace: "My Workspace"')
+    expect(frontmatter).toContain('owner: "Bjorn"')
+    expect(frontmatter).toContain('team: "Engineering"')
+    expect(frontmatter).toContain('created_at: "2025-12-01T00:00:00Z"')
+    expect(frontmatter).toContain('modified_at: "2026-01-10T12:00:00Z"')
+
+    // Body should still parse as valid markdown with heading + list
+    const tree = parseMarkdown(body)
+    const heading = tree.children.find((n): n is Heading => n.type === "heading" && n.depth === 1)
+    expect(heading).toBeDefined()
+  })
+})
