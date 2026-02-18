@@ -122,10 +122,11 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
           {hasMore && <Text dimColor> ...and more</Text>}
         </Box>
 
-        {/* Footer hint */}
+        {/* Footer: keybindings + debug info */}
         <Box flexGrow={1} />
-        <Box>
+        <Box justifyContent="space-between" width={innerWidth}>
           <Text dimColor>h/Esc:close Enter:open</Text>
+          <Text dimColor>{node.type} {node.id}</Text>
         </Box>
       </ErrorBoundary>
     </Box>
@@ -254,10 +255,11 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           </Box>
         )}
 
-        {/* Keybindings hint */}
+        {/* Footer: keybindings + debug info */}
         <Box flexGrow={1} />
-        <Box>
+        <Box justifyContent="space-between" width={innerWidth}>
           <Text dimColor>h/Esc:close Space:status</Text>
+          <Text dimColor>{node.type} {node.id}</Text>
         </Box>
       </ErrorBoundary>
     </Box>
