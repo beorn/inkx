@@ -479,7 +479,7 @@ export function minimalFixtures(): FakeAsanaOptions {
           },
         ],
       },
-      // Subtasks for task-full
+      // Subtasks for task-full (2+ levels deep: sub-full-1 has a child sub-full-1a)
       {
         path: "/tasks/task-full/subtasks",
         response: [
@@ -488,6 +488,26 @@ export function minimalFixtures(): FakeAsanaOptions {
             name: "Sub-step one",
             notes: "",
             completed: true,
+            due_on: null,
+            due_at: null,
+            start_on: null,
+            assignee: null,
+            tags: [],
+            custom_fields: [],
+            num_subtasks: 1,
+            memberships: [],
+          },
+        ],
+      },
+      // Nested subtask: sub-full-1 → sub-full-1a (depth 3)
+      {
+        path: "/tasks/sub-full-1/subtasks",
+        response: [
+          {
+            gid: "sub-full-1a",
+            name: "Deep subtask",
+            notes: "Nested detail",
+            completed: false,
             due_on: null,
             due_at: null,
             start_on: null,
@@ -546,6 +566,8 @@ export function minimalFixtures(): FakeAsanaOptions {
       { path: "/tasks/task-mlc/attachments", response: [] },
       { path: "/tasks/sub-full-1/stories", response: [] },
       { path: "/tasks/sub-full-1/attachments", response: [] },
+      { path: "/tasks/sub-full-1a/stories", response: [] },
+      { path: "/tasks/sub-full-1a/attachments", response: [] },
     ],
   }
 }
