@@ -23,12 +23,12 @@ Syncing .km/state.db with files (repo ...)
 ```console
 $ km list
 .../
-Test Board
-## Tasks
-[ ] Task A
-[ ] Task B
-[ ] Task C
-## Done
-[x] Task D
+  Test Board
+    ## Tasks
+      [ ] Task A
+      [ ] Task B
+      [ ] Task C
+    ## Done
+      [x] Task D
 8 node(s)
 ```

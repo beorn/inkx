@@ -5,6 +5,7 @@
  * Press 'v' to cycle between views interactively.
  */
 
+import { join } from "path"
 import { Command } from "@commander-js/extra-typings"
 import { createLogger } from "@km/core"
 import { enableConsoleDebug, setDebugRepoRoot } from "../debug-log.ts"
@@ -84,8 +85,9 @@ export const viewCommand = new Command("view")
       if (node?.type === "oi" && (node?.fstype === "file" || node?.fstype === "mdfile") && interactive) {
         const data = node.data as { _stub?: boolean } | undefined
         if (data?._stub && node.fs_path) {
-          debug.debug?.(`parsing stub file eagerly: ${node.fs_path}`)
-          storageModule.parseStubFile(createdRepo.database, node.id, node.fs_path)
+          const absPath = join(resolved.repoRoot, node.fs_path)
+          debug.debug?.(`parsing stub file eagerly: ${absPath}`)
+          storageModule.parseStubFile(createdRepo.database, node.id, absPath)
         }
       }
     } else {
