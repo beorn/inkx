@@ -411,8 +411,10 @@ describe("Search and Filter", () => {
 
   test("Enter on search result puts cursor on the selected item", () => {
     // Bug repro: search Enter on non-file items doesn't set cursor
-    // Vault > Notes > Doc1 > Section A
-    const { board } = testEnv(() => item("Vault", item("Notes", item("Doc1", item("Section A"), item("Section B")))))
+    // Vault > Notes > Doc1 > Section A, Section B
+    const { board, store } = testEnv(() =>
+      item("Vault", item("Notes", item("Doc1", item("Section A"), item("Section B")))),
+    )
 
     // Zoom out to vault level
     board.press("Escape")
@@ -422,25 +424,85 @@ describe("Search and Filter", () => {
     for (const c of "Section A") board.press(c)
     board.press("Enter")
 
-    // Cursor should be on Section A (or its parent card if section is content)
-    // At minimum, Section A should have [data-cursor] OR be a descendant of cursor
-    const cursorNode = board.q("[data-cursor]")
-    expect(cursorNode.count()).toBeGreaterThan(0)
+    // Zoom should navigate to Notes (grandparent) making Doc1 a column
+    // and Section A a card with the cursor on it
+    const state = store.getState()
+    expect(state.rootId).toBe("Notes")
+    expect(state.cursorNodeId).toBe("Section A")
 
-    // The cursor should be on or contain Section A
+    // Section A should be visible and have cursor
     const output = board.screenshot()
     expect(output).toContain("Section A")
+    expect(board.q('[id="Section A"][data-cursor]').count()).toBeGreaterThan(0)
+  })
 
-    // Verify cursor is actually on Section A or Doc1 (the card containing it)
-    const sectionACursor = board.q("#Section-A[data-cursor]").count()
-    const doc1Cursor = board.q("#Doc1[data-cursor]").count()
-    expect(sectionACursor + doc1Cursor).toBeGreaterThan(0)
+  test("search navigation: cursor lands on target, not parent (depth 3)", () => {
+    // Bug repro: km-tui.search-nav-v2
+    // Tree: board > col > card > leaf-target
+    // From board root, searching for leaf-target should zoom to col
+    // and place cursor on leaf-target itself (as a card under col)
+    const { board, store } = testEnv(() =>
+      item("board", item("col", item("card-parent", item("leaf-target"), item("other-leaf")))),
+    )
+
+    // Board root = "board", columns = [col], cards = [card-parent]
+    // leaf-target is a grandchild of col, not directly visible as a card
+    board.press("/")
+    for (const c of "leaf-target") board.press(c)
+    board.press("Enter")
+
+    // After navigation: root should be "col" (grandparent of leaf-target)
+    // making card-parent a column and leaf-target a card
+    const state = store.getState()
+    expect(state.rootId).toBe("col")
+    expect(state.cursorNodeId).toBe("leaf-target")
+
+    // Cursor should be on the target node itself
+    board.expect("#leaf-target[data-cursor]").toExist()
+  })
+
+  test("search navigation: depth-2 target selected in place (no zoom needed)", () => {
+    // Target is already a card in the current view (grandchild of root)
+    const { board, store } = testEnv(() =>
+      item("board", item("col", item("visible-card"), item("another-card"))),
+    )
+
+    board.press("/")
+    for (const c of "another-card") board.press(c)
+    board.press("Enter")
+
+    // Should NOT zoom — just select the card in place
+    const state = store.getState()
+    expect(state.rootId).toBe("board")
+    expect(state.cursorNodeId).toBe("another-card")
+    board.expect("#another-card[data-cursor]").toExist()
+  })
+
+  test("search navigation: depth-4 target becomes card after zoom", () => {
+    // Tree: root > A > B > C > target
+    // Target at depth 4 from root. Should zoom to C's grandparent (B)
+    // making C a column and target a card.
+    const { board, store } = testEnv(() =>
+      item("root", item("A", item("B", item("C", item("deep-target"))))),
+    )
+
+    board.press("/")
+    for (const c of "deep-target") board.press(c)
+    board.press("Enter")
+
+    // ancestors = [deep-target, C, B, A, root]
+    // grandparent = B → zoom to B, making C a column and deep-target a card
+    const state = store.getState()
+    expect(state.rootId).toBe("B")
+    expect(state.cursorNodeId).toBe("deep-target")
+    board.expect("#deep-target[data-cursor]").toExist()
   })
 
   test("Enter on paragraph search result navigates correctly", () => {
     // Bug repro: search Enter on paragraph/section types doesn't work
     // Use real node types: file > section > paragraph
-    const { board } = testEnv(() =>
+    // Tree: Vault > Notes > MyDoc > Intro > China..., Another...
+    const { board, store } = testEnv(() =>
       item.root(
         "Vault",
         item.folder(
@@ -465,22 +527,19 @@ describe("Search and Filter", () => {
     const output = board.screenshot()
     expect(output).not.toContain("Enter go") // Dialog closed
 
-    // We should have zoomed to show MyDoc (the file containing the paragraph).
-    // The paragraph itself may not be directly visible because card children
-    // (Intro section) are collapsed to single lines in cards view, but the
-    // section header "Intro" should be visible.
+    // Zoom should navigate to MyDoc (grandparent of target paragraph)
+    // making Intro a column and China... a card
+    const state = store.getState()
+    expect(state.rootId).toBe("MyDoc")
+    expect(state.cursorNodeId).toBe("China domicile information")
+
+    // The section header "Intro" should be visible (it's a column)
     expect(output).toContain("Intro")
-    expect(output).toContain("MyDoc")
 
-    // Cursor should be on or near the paragraph we searched for
-    // The cursor should be on China paragraph, Intro section, or MyDoc file
-    const chinaCursor = board.q("#China-domicile-information[data-cursor]").count()
-    const introCursor = board.q("#Intro[data-cursor]").count()
-    const myDocCursor = board.q("#MyDoc[data-cursor]").count()
-
+    // Cursor should be on the China paragraph
     expect(
-      chinaCursor + introCursor + myDocCursor,
-      "Cursor should be on the searched paragraph, its section, or its file",
+      board.q('[id="China domicile information"][data-cursor]').count(),
+      "Cursor should be on the searched paragraph",
     ).toBeGreaterThan(0)
   })
 })
