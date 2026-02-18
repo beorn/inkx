@@ -31,9 +31,14 @@ export function isExplicitPath(query: string): boolean {
 }
 
 /**
- * Find .km directory in path or ancestors
+ * Find .km directory in path or ancestors.
+ *
+ * @param startPath - Path to start searching from
+ * @param stopAt - Optional boundary directory. The walk will not search above this directory.
+ *                 Must be an ancestor of startPath. Used by tests to isolate from stray
+ *                 .km directories in /tmp or other shared locations.
  */
-export function findKmRootFromPath(startPath: string): string | null {
+export function findKmRootFromPath(startPath: string, stopAt?: string): string | null {
   // Resolve to absolute path first
   const absolutePath = resolve(startPath)
 
@@ -57,8 +62,14 @@ export function findKmRootFromPath(startPath: string): string | null {
   }
 
   const root = "/"
+  // Resolve stopAt boundary to absolute path if provided
+  const boundary = stopAt ? resolve(stopAt) : undefined
 
   while (current !== root) {
+    // If we've walked above the boundary, stop searching.
+    // A directory is "within" the boundary if it equals the boundary
+    // or starts with boundary + "/".
+    if (boundary && current !== boundary && !current.startsWith(boundary + "/")) break
     const kmPath = join(current, ".km")
     if (existsSync(kmPath) && statSync(kmPath).isDirectory()) {
       return kmPath
@@ -77,7 +88,7 @@ export function findKmRootFromPath(startPath: string): string | null {
  * Uses realpathSync to resolve symlinks (e.g., /tmp -> /private/tmp on macOS)
  * so that paths are consistent with database storage and smart resolver.
  */
-export function resolveFsPath(input: string): PathResolution {
+export function resolveFsPath(input: string, stopAt?: string): PathResolution {
   let absolutePath = resolve(input)
   let exists = false
   let isFile = false
@@ -101,7 +112,7 @@ export function resolveFsPath(input: string): PathResolution {
     // Path doesn't exist or can't be accessed
   }
 
-  const kmRoot = findKmRootFromPath(absolutePath)
+  const kmRoot = findKmRootFromPath(absolutePath, stopAt)
 
   return {
     absolutePath,
@@ -152,7 +163,7 @@ export interface ResolvedPathArg {
  * @param fallbackRoot - Fallback repo root if not determined from path
  * @returns Resolved repo root and node reference
  */
-export function resolvePathArg(arg: string | undefined, fallbackRoot?: string): ResolvedPathArg {
+export function resolvePathArg(arg: string | undefined, fallbackRoot?: string, stopAt?: string): ResolvedPathArg {
   // No argument - use fallback root, show all nodes
   if (!arg) {
     return {
@@ -164,7 +175,7 @@ export function resolvePathArg(arg: string | undefined, fallbackRoot?: string): 
 
   // Check if it's an explicit filesystem path
   if (isExplicitPath(arg)) {
-    const resolution = resolveFsPath(arg)
+    const resolution = resolveFsPath(arg, stopAt)
 
     if (resolution.exists && resolution.isDirectory) {
       // Directory path - check if it's within a repo (has .km ancestor)

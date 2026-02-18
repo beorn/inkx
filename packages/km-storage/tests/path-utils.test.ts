@@ -114,7 +114,9 @@ describe("findKmRootFromPath", () => {
     const testDir = createTestDir()
     mkdirSync(join(testDir, "no-repo/folder"), { recursive: true })
 
-    const result = findKmRootFromPath(join(testDir, "no-repo/folder"))
+    // Use stopAt to prevent walk from escaping test directory
+    // (e.g., /private/tmp may have a stray .km directory)
+    const result = findKmRootFromPath(join(testDir, "no-repo/folder"), testDir)
     expect(result).toBeNull()
   })
 })
@@ -160,7 +162,8 @@ describe("resolveFsPath", () => {
     const testDir = createTestDir()
     mkdirSync(join(testDir, "outside"), { recursive: true })
 
-    const result = resolveFsPath(join(testDir, "outside"))
+    // Use stopAt to prevent walk from escaping test directory
+    const result = resolveFsPath(join(testDir, "outside"), testDir)
     expect(result.exists).toBe(true)
     expect(result.kmRoot).toBeNull()
   })
@@ -182,7 +185,8 @@ describe("getEffectiveRoot", () => {
     mkdirSync(join(testDir, "no-repo"), { recursive: true })
     writeFileSync(join(testDir, "no-repo/file.md"), "# Test")
 
-    const resolution = resolveFsPath(join(testDir, "no-repo/file.md"))
+    // Use stopAt to prevent walk from escaping test directory
+    const resolution = resolveFsPath(join(testDir, "no-repo/file.md"), testDir)
     const root = getEffectiveRoot(resolution)
     expect(root).toBe(join(testDir, "no-repo"))
   })
@@ -191,7 +195,8 @@ describe("getEffectiveRoot", () => {
     const testDir = createTestDir()
     mkdirSync(join(testDir, "no-repo"), { recursive: true })
 
-    const resolution = resolveFsPath(join(testDir, "no-repo"))
+    // Use stopAt to prevent walk from escaping test directory
+    const resolution = resolveFsPath(join(testDir, "no-repo"), testDir)
     const root = getEffectiveRoot(resolution)
     expect(root).toBe(join(testDir, "no-repo"))
   })
@@ -245,7 +250,8 @@ describe("resolvePathArg", () => {
     mkdirSync(join(testDir, "standalone"), { recursive: true })
 
     const dirPath = join(testDir, "standalone")
-    const result = resolvePathArg(dirPath)
+    // Use stopAt to prevent walk from escaping test directory
+    const result = resolvePathArg(dirPath, undefined, testDir)
     expect(result.repoRoot).toBe(dirPath)
     expect(result.nodeRef).toBeNull()
     expect(result.wasExplicitPath).toBe(true)
