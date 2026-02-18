@@ -9,6 +9,7 @@ import type { KNode, TaskMarker, TaskStatus } from "@km/core"
 import { getMarkerForStatus } from "@km/core"
 import { nodesToMarkdown } from "@km/markdown"
 import type { ImportData, ImportItem, ImportProject, ImportSection, FileMap } from "./types.ts"
+import { filterSystemComment } from "./adapters/comment-filter.ts"
 
 /** Slugify a title for use as filename */
 export function slugify(title: string): string {
@@ -100,15 +101,20 @@ function buildBlockquoteContent(item: ImportItem): string | null {
   }
 
   if (item.comments?.length) {
-    if (lines.length) lines.push("")
-    lines.push("**Comments:**")
-    for (const c of item.comments) {
-      const date = c.createdAt.slice(0, 10)
-      const author = c.author ? `@${c.author}` : ""
-      const [firstLine, ...rest] = c.text.split("\n")
-      lines.push(`- ${date} ${author}: ${firstLine}`)
-      for (const line of rest) {
-        lines.push(`  ${line}`)
+    const filtered = item.comments
+      .map((c) => ({ ...c, text: filterSystemComment(c.text, c.createdAt) }))
+      .filter((c) => c.text.trim())
+    if (filtered.length) {
+      if (lines.length) lines.push("")
+      lines.push("**Comments:**")
+      for (const c of filtered) {
+        const date = c.createdAt.slice(0, 10)
+        const author = c.author ? `@${c.author}` : ""
+        const [firstLine, ...rest] = c.text.split("\n")
+        lines.push(`- ${date} ${author}: ${firstLine}`)
+        for (const line of rest) {
+          lines.push(`  ${line}`)
+        }
       }
     }
   }

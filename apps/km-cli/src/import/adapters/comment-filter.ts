@@ -12,8 +12,8 @@ const SYSTEM_ACTION_PATTERNS = [
   /^moved this (?:task|issue)/i,
   /^completed this task/i,
   /^marked this task/i,
-  /^marked today/i,
-  /^unmarked today/i,
+  /^marked (?:today|incomplete|complete)/i,
+  /^unmarked /i,
   /^changed the (?:name|due date|assignee|description)/i,
   /^added to /i,
   /^removed from /i,
@@ -34,7 +34,8 @@ const SYSTEM_ACTION_PATTERNS = [
 ]
 
 /** Matches consolidated comment block headers: "Name on Weekday Month DD, YYYY HH:MM AM/PM:" */
-const CONSOLIDATED_HEADER = /^.+ on (?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday) \w+ \d{1,2}, \d{4} \d{1,2}:\d{2} [AP]M:$/
+const CONSOLIDATED_HEADER =
+  /^.+ on (?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday) \w+ \d{1,2}, \d{4} \d{1,2}:\d{2} [AP]M:$/
 
 /** Cutoff: only apply pattern filtering to comments before 2020 */
 const SYSTEM_COMMENT_CUTOFF = "2020-01-01T00:00:00Z"
@@ -43,35 +44,74 @@ export function isSystemAction(actionText: string): boolean {
   return SYSTEM_ACTION_PATTERNS.some((p) => p.test(actionText))
 }
 
+/** Strip invisible chars (soft hyphen, zero-width, etc.) for content checks */
+function stripInvisible(text: string): string {
+  return text.replace(/[\u00AD\u200B\u200C\u200D\uFEFF]/g, "")
+}
+
+/**
+ * Check if a text block is a single consolidated system log entry.
+ * Format: "Name on Weekday Month DD, YYYY HH:MM AM/PM:\n action text"
+ */
+function isConsolidatedSystemBlock(text: string): boolean {
+  const lines = text.split("\n")
+  // Find the header line (may be preceded by empty/invisible-only lines)
+  let headerIdx = -1
+  for (let i = 0; i < lines.length; i++) {
+    if (CONSOLIDATED_HEADER.test((lines[i] ?? "").trim())) {
+      headerIdx = i
+      break
+    }
+  }
+  if (headerIdx === -1) return false
+  // Everything before the header must be empty/invisible
+  for (let i = 0; i < headerIdx; i++) {
+    if (stripInvisible(lines[i] ?? "").trim()) return false
+  }
+  const actionText = lines
+    .slice(headerIdx + 1)
+    .join("\n")
+    .trim()
+  return !actionText || isSystemAction(actionText)
+}
+
+/**
+ * Split a comment into blocks. Blocks can be separated by:
+ * 1. Dash separators (----------------------)
+ * 2. Soft hyphen (\u00AD) or other invisible chars on their own line
+ */
+function splitIntoBlocks(text: string): string[] {
+  // First try dash separators
+  if (text.includes("----------------------")) {
+    return text.split(/\s*-{20,}\s*/)
+  }
+  // Split on lines that are only invisible chars (soft hyphen, etc.)
+  // Actual Asana format: "\n\n\u00AD\n" (blank line, soft hyphen line, newline)
+  return text.split(/\n\s*[\u00AD\u200B\u200C\u200D\uFEFF]+\s*\n/)
+}
+
 /**
  * Filter system actions from a comment. Returns cleaned text or empty string if all system.
- * Handles both standalone and consolidated (dash-separated) formats.
+ * Handles both standalone and consolidated (dash-separated or invisible-char-separated) formats.
  */
 export function filterSystemComment(text: string, createdAt: string): string {
   if (createdAt >= SYSTEM_COMMENT_CUTOFF) return text
 
-  // Check if this is a consolidated comment (has dash separators)
-  if (text.includes("----------------------")) {
-    const blocks = text.split(/\s*-{20,}\s*/)
+  const blocks = splitIntoBlocks(text)
+  if (blocks.length > 1) {
     const kept: string[] = []
     for (const block of blocks) {
       const trimmed = block.trim()
-      if (!trimmed) continue
-      // Consolidated block: "Name on Day Month DD, YYYY HH:MM AM/PM:\n action"
-      const lines = trimmed.split("\n")
-      const firstLine = lines[0]!.trim()
-      if (CONSOLIDATED_HEADER.test(firstLine)) {
-        // Check the action text (lines after the header)
-        const actionText = lines.slice(1).join("\n").trim()
-        if (!actionText || isSystemAction(actionText)) continue
-      }
+      if (!trimmed || !stripInvisible(trimmed)) continue
+      if (isConsolidatedSystemBlock(trimmed)) continue
       kept.push(trimmed)
     }
     return kept.join("\n\n")
   }
 
-  // Standalone comment: check against patterns
-  if (isSystemAction(text)) return ""
+  // Single block: check consolidated format, then standalone
+  if (isConsolidatedSystemBlock(text)) return ""
+  if (isSystemAction(stripInvisible(text).trim())) return ""
   return text
 }
 
@@ -94,7 +134,8 @@ export async function fetchComments(
   const comments: ImportComment[] = []
   for (const s of stories) {
     if (s.type !== "comment" || !s.text?.trim()) continue
-    const text = opts?.includeLogs ? s.text!.trim() : filterSystemComment(s.text!.trim(), s.created_at)
+    const rawText = s.text.trim()
+    const text = opts?.includeLogs ? rawText : filterSystemComment(rawText, s.created_at)
     if (!text) continue
     comments.push({
       author: s.created_by?.name?.replace(/\s+/g, "-").toLowerCase(),
