@@ -14,6 +14,7 @@
 
 import { createTerm, type StyleChain } from "inkx"
 import type { TaskStatus } from "@km/core"
+import { stripForDisplay } from "@km/tree"
 import type { Repo } from "./repo-context.tsx"
 import type { TUIBoardState, CardState, RenderOptions } from "./types.ts"
 import { getNodeDisplayName } from "./state.ts"
@@ -155,7 +156,8 @@ export function renderCard(
 
   // Status icon and content - compact format: "○ Content"
   const statusIcon = renderStatusIcon(node.task_status)
-  const rawContent = (node.content || getNodeDisplayName(repo, node)).slice(0, width - 3)
+  const contentFirstLine = node.content?.split("\n")[0] ?? ""
+  const rawContent = (stripForDisplay(contentFirstLine) || getNodeDisplayName(repo, node)).slice(0, width - 3)
 
   // Apply markdown styling via renderRich, then dim+strikethrough for done/dropped
   const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"

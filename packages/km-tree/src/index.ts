@@ -38,6 +38,7 @@ export {
   collapseAncestorsWithTypes,
   getParentContext,
   getParentContextEx,
+  stripForDisplay,
   type ParentContextResult,
   type GetChildrenFn,
   type GetNodeFn,

@@ -10,10 +10,10 @@ import React from "react"
 import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { decomposeDatetime } from "@km/core"
+import { extractBody } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderRich, renderPlain, getNodeIcon } from "../text/index.ts"
-import { wrapText } from "../layout/index.ts"
 import { NodeLine } from "./shared-components.tsx"
 
 export interface DetailPaneProps {
@@ -134,8 +134,12 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 
   // Get fields — use due_at/start_at (preferred), fall back to legacy
   const statusInfo = getStatusDisplay(node.task_status)
-  const dueParts = decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)
-  const startParts = decomposeDatetime(node.start_at) ?? (node.scheduled_date ? { date: node.scheduled_date, time: node.scheduled_time } : undefined)
+  const isDone = node.task_status === "done" || node.task_status === "dropped"
+  const dueParts =
+    decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)
+  const startParts =
+    decomposeDatetime(node.start_at) ??
+    (node.scheduled_date ? { date: node.scheduled_date, time: node.scheduled_time } : undefined)
   const dueDate = formatDate(dueParts?.date)
   const assignedTo = node.assigned_to
 
@@ -163,9 +167,9 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
     }
   }
 
-  // Get subtasks (children that are tasks)
+  // Get children — split into body (content blocks) and structural (outline items)
   const children = repo.getChildren(node.id)
-  const subtasks = children.filter((c: KNode) => c.task_marker !== undefined)
+  const { body: bodyChildren, items: structuralChildren } = extractBody(children)
 
   // Get backlinks
   const backlinks = repo.getBacklinks(node.id)
@@ -177,29 +181,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
     }
   }
 
-  // Calculate available lines for content
-  // Reserve: title (2), separator (1), fields (~4), refs (~2), subtasks header+items, backlinks header+items
-  const estimatedHeaderLines = 10
-  const maxSubtasks = 5
   const maxBacklinks = 3
-  const contentLines = Math.max(
-    1,
-    height -
-      estimatedHeaderLines -
-      Math.min(subtasks.length, maxSubtasks) -
-      Math.min(backlinkNodes.length, maxBacklinks) -
-      4,
-  )
-
-  // Wrap content using shared utility
-  const fullContent = node.content || ""
-  const contentWidth = innerWidth - 2
-  // Render to styled text first, then wrap
-  const styledContent = renderRich(fullContent)
-  const wrappedContent = wrapText(styledContent, contentWidth)
-
-  const displayContent = wrappedContent.slice(0, contentLines)
-  const hasMoreContent = wrappedContent.length > contentLines
 
   // Check if we have any references to show
   const hasRefs =
@@ -238,14 +220,17 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
             <Text>
               <Text dimColor>Priority: </Text>
               <Text
+                dimColor={isDone}
                 color={
-                  node.priority === 1
-                    ? "red"
-                    : node.priority === 2
-                      ? "yellow"
-                      : node.priority === 3
-                        ? "yellowBright"
-                        : "gray"
+                  isDone
+                    ? undefined
+                    : node.priority === 1
+                      ? "red"
+                      : node.priority === 2
+                        ? "yellow"
+                        : node.priority === 3
+                          ? "yellowBright"
+                          : "gray"
                 }
               >
                 P{node.priority}
@@ -259,8 +244,21 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
             <Text>
               <Text dimColor>Due: </Text>
               <Text
-                color={dueDate.urgency === "overdue" ? "red" : dueDate.urgency === "urgent" ? "yellow" : undefined}
-                underline={dueDate.urgency === "overdue" || dueDate.urgency === "urgent" || dueDate.urgency === "soon"}
+                dimColor={isDone}
+                color={
+                  isDone
+                    ? undefined
+                    : dueDate.urgency === "overdue"
+                      ? "red"
+                      : dueDate.urgency === "urgent"
+                        ? "yellow"
+                        : undefined
+                }
+                underline={
+                  isDone
+                    ? false
+                    : dueDate.urgency === "overdue" || dueDate.urgency === "urgent" || dueDate.urgency === "soon"
+                }
               >
                 {dueDate.text}
               </Text>
@@ -273,7 +271,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           <Box>
             <Text>
               <Text dimColor>Start: </Text>
-              <Text>{formatDate(startParts.date).text}</Text>
+              <Text dimColor={isDone}>{formatDate(startParts.date).text}</Text>
               {startParts.time && <Text dimColor> {startParts.time}</Text>}
             </Text>
           </Box>
@@ -283,7 +281,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           <Box>
             <Text>
               <Text dimColor>Recurrence: </Text>
-              <Text>{node.recurrence}</Text>
+              <Text dimColor={isDone}>{node.recurrence}</Text>
             </Text>
           </Box>
         )}
@@ -292,7 +290,9 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           <Box flexDirection="row" gap={2}>
             <Text>
               <Text dimColor>Assigned: </Text>
-              <Text color="magenta">@{assignedTo}</Text>
+              <Text dimColor={isDone} color={isDone ? undefined : "magenta"}>
+                @{assignedTo}
+              </Text>
             </Text>
           </Box>
         )}
@@ -302,7 +302,9 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           <Box>
             <Text>
               <Text dimColor>Project: </Text>
-              <Text>{projectPath.map(renderPlain).join(" / ")}</Text>
+              <Text dimColor={isDone} color={isDone ? undefined : "green"}>
+                +{projectPath.map(renderPlain).join("/")}
+              </Text>
             </Text>
           </Box>
         )}
@@ -333,17 +335,75 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           </Box>
         )}
 
+        {/* Structured metadata (created::, completed::, etc.) */}
+        {(() => {
+          const metadata = (node.data?.metadata as Record<string, string>) ?? {}
+          const entries = Object.entries(metadata)
+          if (entries.length === 0) return null
+          return (
+            <>
+              {entries.map(([k, v]) => (
+                <Box key={k}>
+                  <Text>
+                    <Text dimColor>{(k[0] ?? "").toUpperCase() + k.slice(1)}: </Text>
+                    <Text>{v}</Text>
+                  </Text>
+                </Box>
+              ))}
+            </>
+          )
+        })()}
+
+        {/* Block ID */}
+        {node.block_id && (
+          <Box>
+            <Text>
+              <Text dimColor>ID: </Text>
+              <Text dimColor>^{node.block_id}</Text>
+            </Text>
+          </Box>
+        )}
+
+        {/* Inline properties (key:: value from markdown) */}
+        {(() => {
+          const propsRaw = (node.data?.propsRaw as Record<string, string>) ?? {}
+          const entries = Object.entries(propsRaw)
+          if (entries.length === 0) return null
+          return (
+            <>
+              {entries.map(([k, v]) => (
+                <Box key={`prop-${k}`}>
+                  <Text>
+                    <Text dimColor>{(k[0] ?? "").toUpperCase() + k.slice(1)}: </Text>
+                    <Text dimColor={isDone}>{v}</Text>
+                  </Text>
+                </Box>
+              ))}
+            </>
+          )
+        })()}
+
         {/* Extra data fields (key:value for anything not already rendered) */}
         {(() => {
-          const knownKeys = new Set(["tags", "mentions", "projects", "short_id", "props", "block_id"])
+          const knownKeys = new Set([
+            "tags",
+            "mentions",
+            "projects",
+            "short_id",
+            "props",
+            "propsRaw",
+            "block_id",
+            "metadata",
+            "name",
+            "title",
+            "recurrence",
+          ])
           const data = node.data as Record<string, unknown> | undefined
           if (!data) return null
-          const extras = Object.entries(data).filter(
-            ([k, v]) => !knownKeys.has(k) && v != null && v !== "",
-          )
+          const extras = Object.entries(data).filter(([k, v]) => !knownKeys.has(k) && v != null && v !== "")
           if (extras.length === 0) return null
           return (
-            <Box flexDirection="column" marginTop={1}>
+            <>
               {extras.map(([k, v]) => (
                 <Box key={k}>
                   <Text>
@@ -352,41 +412,31 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
                   </Text>
                 </Box>
               ))}
-            </Box>
+            </>
           )
         })()}
 
-        {/* Content section */}
-        {displayContent.length > 0 && (
-          <Box flexDirection="column" paddingX={1} marginTop={1} width={innerWidth}>
-            <Text bold dimColor>
-              Content
-            </Text>
-            {displayContent.map((line, i) => (
-              <Text key={i} wrap="truncate">
-                {line}
+        {/* Body content — paragraphs, code blocks, etc. */}
+        {bodyChildren.length > 0 && (
+          <Box flexDirection="column" marginTop={1} width={innerWidth}>
+            {bodyChildren.map((child) => (
+              <Text key={child.id} wrap="wrap">
+                {renderRich(child.content ?? "")}
               </Text>
             ))}
-            {hasMoreContent && <Text dimColor>...</Text>}
           </Box>
         )}
 
-        {/* Subtasks */}
-        {subtasks.length > 0 && (
-          <Box flexDirection="column" paddingX={1} marginTop={1} width={innerWidth}>
-            <Text bold dimColor>
-              Subtasks ({subtasks.length})
-            </Text>
-            {subtasks.slice(0, maxSubtasks).map((task) => (
-              <NodeLine key={task.id} node={task} title={task.content || getNodeDisplayName(repo, task)} />
-            ))}
-            {subtasks.length > maxSubtasks && <Text dimColor> +{subtasks.length - maxSubtasks} more</Text>}
+        {/* Structural children — outline items (tasks, sections) */}
+        {structuralChildren.length > 0 && (
+          <Box flexDirection="column" marginTop={bodyChildren.length > 0 ? 0 : 1} width={innerWidth}>
+            <OutlineItems repo={repo} items={structuralChildren} depth={0} />
           </Box>
         )}
 
         {/* Backlinks */}
         {backlinkNodes.length > 0 && (
-          <Box flexDirection="column" paddingX={1} marginTop={1} width={innerWidth}>
+          <Box flexDirection="column" marginTop={1} width={innerWidth}>
             <Text bold dimColor>
               Backlinks ({backlinkNodes.length})
             </Text>
@@ -404,6 +454,41 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
         </Box>
       </ErrorBoundary>
     </Box>
+  )
+}
+
+// =============================================================================
+// Node Outline — body content + structural children as unified tree
+// =============================================================================
+
+function OutlineItems({ repo, items, depth }: { repo: Repo; items: KNode[]; depth: number }): React.ReactElement {
+  return (
+    <>
+      {items.map((item) => {
+        const icon = getNodeIcon(item.task_status, undefined, item.task_marker !== undefined)
+        const indent = "  ".repeat(depth)
+        const isDone = item.task_status === "done" || item.task_status === "dropped"
+        const kids = depth < 2 ? repo.getChildren(item.id) : []
+        const { body: kidBody, items: kidItems } = extractBody(kids)
+        return (
+          <React.Fragment key={item.id}>
+            <Text wrap="truncate" dimColor={isDone}>
+              {indent}
+              <Text color={isDone ? undefined : icon.color}>{icon.char} </Text>
+              {getNodeDisplayName(repo, item)}
+            </Text>
+            {kidBody.map((b) => (
+              <Text key={b.id} wrap="wrap" dimColor>
+                {indent}
+                {"  "}
+                {renderRich(b.content ?? "")}
+              </Text>
+            ))}
+            {kidItems.length > 0 && <OutlineItems repo={repo} items={kidItems} depth={depth + 1} />}
+          </React.Fragment>
+        )
+      })}
+    </>
   )
 }
 
@@ -512,7 +597,10 @@ function getProjectPath(repo: Repo, node: KNode): string[] {
     if (!parent) break
 
     // Only include folders and files (not sections or the board root)
-    if (parent.type === "oi" && (parent.fstype === "folder" || parent.fstype === "file" || parent.fstype === "mdfile")) {
+    if (
+      parent.type === "oi" &&
+      (parent.fstype === "folder" || parent.fstype === "file" || parent.fstype === "mdfile")
+    ) {
       path.unshift(getNodeDisplayName(repo, parent))
     }
     currentId = parent.parent_id

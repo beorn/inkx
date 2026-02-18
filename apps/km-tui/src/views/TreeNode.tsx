@@ -17,8 +17,13 @@ import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
 import { extractTitleTaskMarker, isTask, isBlock, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
-import { getNodeDisplayName, isNodeUntitled, getParentContext as getParentContextFromState, getParentContextEx as getParentContextExFromState } from "../state.ts"
-import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
+import {
+  getNodeDisplayName,
+  isNodeUntitled,
+  getParentContext as getParentContextFromState,
+  getParentContextEx as getParentContextExFromState,
+} from "../state.ts"
+import { extractBody, splitNode, mergeWithPrevious, stripForDisplay } from "@km/tree"
 import {
   renderRich,
   getTypeBullet,
@@ -175,8 +180,7 @@ function TreeNodeImpl({
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId } = useTreeRenderContext()
-  const { maxOutlineDepth: maxDepth, maxContentLines, inOutlineMode, currentSubIndex, variant, iconStyle } =
-    treeConfig
+  const { maxOutlineDepth: maxDepth, maxContentLines, inOutlineMode, currentSubIndex, variant, iconStyle } = treeConfig
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
@@ -489,14 +493,7 @@ function TreeNodeImpl({
   // Use displayNode for metadata (assigned_to, board pills)
   const infoSuffix = useMemo(
     () => formatInfoSuffix(displayNode, !isOneliner, excludeBoardIds, getBoardPills),
-    [
-      displayNode.id,
-      displayNode.assigned_to,
-      displayNode.task_status,
-      isOneliner,
-      rootBoardId,
-      getBoardPills,
-    ],
+    [displayNode.id, displayNode.assigned_to, displayNode.task_status, isOneliner, rootBoardId, getBoardPills],
   )
 
   // Memoize date badge (priority, recurrence, scheduled, due) - shown right-aligned
@@ -580,7 +577,11 @@ function TreeNodeImpl({
   const suppressChildOverflow = !isOneliner
 
   return (
-    <Box flexDirection="column" height={isOneliner || isCardChild ? 1 : undefined} overflow={isOneliner || isCardChild ? "hidden" : undefined}>
+    <Box
+      flexDirection="column"
+      height={isOneliner || isCardChild ? 1 : undefined}
+      overflow={isOneliner || isCardChild ? "hidden" : undefined}
+    >
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
       {!isOneliner && isEmbedded && parentContext && (
@@ -658,7 +659,9 @@ function TreeNodeImpl({
                     <Text dimColor={!isHighlighted}>{sigilName}</Text>
                   </>
                 )}
-                {!childrenHidden && infoSuffix && <Text dimColor={!isHighlighted}>{isHighlighted ? stripFgColor(infoSuffix) : infoSuffix}</Text>}
+                {!childrenHidden && infoSuffix && (
+                  <Text dimColor={!isHighlighted}>{isHighlighted ? stripFgColor(infoSuffix) : infoSuffix}</Text>
+                )}
                 {!childrenHidden && showInlineContext && (
                   <Text dimColor={!isHighlighted} italic>
                     {contextSuffix}
@@ -672,7 +675,8 @@ function TreeNodeImpl({
           {dateBadge && !isInlineEditing && (
             <Box flexShrink={0}>
               <Text color={style.textColor} wrap="truncate">
-                {" "}{isHighlighted ? stripFgColor(dateBadge) : dateBadge}
+                {" "}
+                {isHighlighted ? stripFgColor(dateBadge) : dateBadge}
               </Text>
             </Box>
           )}
@@ -680,9 +684,7 @@ function TreeNodeImpl({
           {/* Never bold: bold gray renders as bright/white on terminals */}
           {hasChildren && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? style.textColor : "gray"}>
-                {` ${childCount}`}
-              </Text>
+              <Text color={isHighlighted ? style.textColor : "gray"}>{` ${childCount}`}</Text>
             </Box>
           )}
         </Box>
@@ -696,7 +698,9 @@ function TreeNodeImpl({
           const isActiveBlock = editBlockIndex === blockIndex
           return (
             <Box key={child.id} paddingLeft={depth + 1}>
-              <Text dimColor={!isActiveBlock} color="cyan">{"  "}</Text>
+              <Text dimColor={!isActiveBlock} color="cyan">
+                {"  "}
+              </Text>
               {isActiveBlock ? (
                 <InlineEditField
                   initialValue={child.content ?? ""}
@@ -746,7 +750,9 @@ function TreeNodeImpl({
                   }}
                 />
               ) : (
-                <Text color="cyan" dimColor>{renderRich(child.content ?? "")}</Text>
+                <Text color="cyan" dimColor>
+                  {renderRich(child.content ?? "")}
+                </Text>
               )}
             </Box>
           )
@@ -779,7 +785,6 @@ function TreeNodeImpl({
           />
         </ErrorBoundary>
       )}
-
     </Box>
   )
 }
@@ -818,6 +823,15 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
 // Display Content Helper
 // =============================================================================
 
+/** Strip metadata/block IDs from content, preserving multi-line structure. */
+function stripContentForDisplay(content: string | undefined): string {
+  if (!content) return ""
+  const nlIdx = content.indexOf("\n")
+  if (nlIdx === -1) return stripForDisplay(content)
+  // Only strip metadata from first line; keep rest intact
+  return stripForDisplay(content.slice(0, nlIdx)) + content.slice(nlIdx)
+}
+
 /** Resolve what text to display for a node, handling embeds and section types. */
 function getDisplayContent(
   repo: { getNode(id: string): KNode | undefined },
@@ -833,7 +847,7 @@ function getDisplayContent(
     if (resolvedNode.type === "oi" && resolvedNode.fstype === "mdsection") {
       return getNodeDisplayName(repo, resolvedNode)
     }
-    return resolvedNode.content || getNodeDisplayName(repo, resolvedNode)
+    return stripContentForDisplay(resolvedNode.content) || getNodeDisplayName(repo, resolvedNode)
   }
   if (isEmbedded) {
     // Unresolved embed — extract target name from ![[target]] syntax
@@ -848,7 +862,7 @@ function getDisplayContent(
   if (displayNode.type === "oi" && displayNode.fstype === "mdsection") {
     return getNodeDisplayName(repo, displayNode)
   }
-  return displayNode.content || getNodeDisplayName(repo, displayNode)
+  return stripContentForDisplay(displayNode.content) || getNodeDisplayName(repo, displayNode)
 }
 
 // =============================================================================

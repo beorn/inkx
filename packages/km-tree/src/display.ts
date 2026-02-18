@@ -6,7 +6,15 @@
  */
 
 import type { KNode } from "@km/core"
+import { extractMetadata } from "@km/core"
 import { PROP_REGEX } from "@km/markdown"
+
+/** Strip inline metadata (key:: value) and block IDs (^id) from display text */
+export function stripForDisplay(text: string): string {
+  const { clean } = extractMetadata(text)
+  // Also strip ^block-id at end of text
+  return clean.replace(/\s*\^[\w-]+$/, "")
+}
 
 /**
  * Lookup function types for dependency injection.
@@ -78,9 +86,9 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
     }
   }
 
-  // 4. Use node content (for tasks, etc.)
+  // 4. Use node content (for tasks, etc.) — strip inline metadata and block IDs
   if (node.content) {
-    return (node.content.split("\n")[0] ?? "").slice(0, 50)
+    return stripForDisplay(node.content.split("\n")[0] ?? "").slice(0, 50)
   }
 
   // 5. Use filename (strip .md extension)
