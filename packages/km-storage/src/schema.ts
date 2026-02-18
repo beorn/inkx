@@ -125,13 +125,13 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
 
   const columnNames = new Set(columns.map((c) => c.name))
 
-  // Add due_at and start_at columns (date-collapse migration)
-  if (!columnNames.has("due_at")) {
-    db.run("ALTER TABLE nodes ADD COLUMN due_at TEXT")
+  // Add missing columns (schema evolution)
+  const missing = (col: string, type = "TEXT") => {
+    if (!columnNames.has(col)) db.run(`ALTER TABLE nodes ADD COLUMN ${col} ${type}`)
   }
-  if (!columnNames.has("start_at")) {
-    db.run("ALTER TABLE nodes ADD COLUMN start_at TEXT")
-  }
+  missing("fstype")
+  missing("due_at")
+  missing("start_at")
 }
 
 /**
