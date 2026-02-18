@@ -2,14 +2,14 @@
  * Date Prompt Dialog Component
  *
  * Inline dialog for entering dates, start dates, or recurrence rules.
- * Uses useEditContext for text input and dialogTargetRef for Enter/Escape.
+ * Uses useDialogInput for text input + dialogTargetRef wiring.
  */
 import React from "react"
-import { Box, Text, useEditContext } from "inkx"
+import { Box, Text } from "inkx"
 import { resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import { ModalDialog } from "./shared-components.tsx"
-import { dialogTargetRef } from "../dialog-target.ts"
+import { useDialogInput } from "../hooks/use-dialog-input.ts"
 
 export interface DatePromptDialogProps {
   field: "due_at" | "start_at" | "recurrence"
@@ -62,44 +62,18 @@ export function DatePromptDialog({
   width,
   height,
 }: DatePromptDialogProps): React.ReactElement {
-  // EditContext-based text editing
-  const editCtx = useEditContext({
+  const editCtx = useDialogInput({
     initialValue: currentValue,
     onConfirm: () => onConfirm(),
     onCancel: () => onCancel(),
   })
-
-  // Register dialog target for Enter/Escape.
-  // IMPORTANT: Must go through editCtx.target.confirm/cancel to set cancelledRef,
-  // otherwise useEditContext's auto-save-on-unmount fires onConfirm again.
-  const { target: editTarget } = editCtx
-  React.useLayoutEffect(() => {
-    dialogTargetRef.current = {
-      navUp() {},
-      navDown() {},
-      confirm() {
-        editTarget.confirm()
-      },
-      cancel() {
-        editTarget.cancel()
-      },
-    }
-    return () => {
-      dialogTargetRef.current = null
-    }
-  }, [editTarget])
 
   const title = FIELD_TITLES[field] ?? "Set Value"
   const hint = FIELD_HINTS[field] ?? ""
   const preview = getPreview(field, editCtx.value)
 
   return (
-    <ModalDialog
-      title={title}
-      width={width}
-      height={height}
-      footer="Enter confirm  Esc cancel"
-    >
+    <ModalDialog title={title} width={width} height={height} footer="Enter confirm  Esc cancel">
       {/* Input field */}
       <Box borderStyle="round" borderColor="cyan" flexShrink={0}>
         <Text>

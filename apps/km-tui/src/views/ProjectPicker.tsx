@@ -5,13 +5,13 @@
  * Press 'p' on a task to open, search to filter, Enter to move.
  */
 import React from "react"
-import { Box, Text, useEditContext } from "inkx"
+import { Box, Text } from "inkx"
 import { isOutline, type KNode } from "@km/core"
 import { useRepo, type RepoContextValue } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, NodeLine } from "./shared-components.tsx"
 import { fuzzyScore, getParentName } from "./search-utils.ts"
-import { dialogTargetRef } from "../dialog-target.ts"
+import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { createSuspenseLoader, type SuspenseLoader } from "../hooks/use-suspense-loader.ts"
 
 /**
@@ -26,7 +26,10 @@ function getProjectPath(
   let current: KNode | null = node
 
   while (current) {
-    if (current.type === "oi" && (current.fstype === "folder" || current.fstype === "file" || current.fstype === "mdfile")) {
+    if (
+      current.type === "oi" &&
+      (current.fstype === "folder" || current.fstype === "file" || current.fstype === "mdfile")
+    ) {
       parts.unshift(getDisplayName(current))
     }
     current = current.parent_id ? (getNode(current.parent_id) ?? null) : null
@@ -87,7 +90,7 @@ function filterOptions(allOptions: ProjectOption[], query: string): (ProjectOpti
     })
   }
 
-  // Filter and score by query - match against title, parent, and full path
+  // Filter and score by query - match against title, parent context, and full path
   return allOptions
     .map((opt) => {
       // Score against title (primary), parent context, and full path
@@ -177,17 +180,37 @@ export function ProjectPicker({
   const repo = useRepo()
   const [selectedIndex, setSelectedIndex] = React.useState(0)
 
-  // EditContext-based text editing for query input
-  const editCtx = useEditContext({
-    initialValue: "",
-    onChange: () => setSelectedIndex(0),
-  })
+  // Refs for callbacks used in useDialogInput closures
+  const onCancelRef = React.useRef(onCancel)
+  onCancelRef.current = onCancel
+  const onSelectRef = React.useRef(onSelect)
+  onSelectRef.current = onSelect
+  const selectedIndexRef = React.useRef(selectedIndex)
+  selectedIndexRef.current = selectedIndex
 
   // Create loader on mount (loads in background via Suspense)
   const loaderRef = React.useRef<SuspenseLoader<ProjectOption[]> | null>(null)
   if (!loaderRef.current) {
     loaderRef.current = createSuspenseLoader(() => loadProjectOptions(repo, recentProjectIds))
   }
+
+  const editCtx = useDialogInput({
+    initialValue: "",
+    onChange: () => setSelectedIndex(0),
+    navUp: () => setSelectedIndex((i) => Math.max(0, i - 1)),
+    navDown: () => setSelectedIndex((i) => i + 1),
+    onConfirm: () => {
+      if (loaderRef.current?.status === "resolved") {
+        const allOptions = loaderRef.current.read()
+        const filtered = filterOptions(allOptions, editCtx.target.getContent())
+        const selected = filtered[selectedIndexRef.current]
+        if (selected) {
+          onSelectRef.current(selected.node)
+        }
+      }
+    },
+    onCancel: () => onCancelRef.current(),
+  })
 
   // Max visible items: height - borders(2) - paddingY(2) - title(1) - input(1) - spacer(1) - footer(1) = height - 8
   const maxVisible = Math.max(1, height - 8)
@@ -203,43 +226,6 @@ export function ProjectPicker({
       Math.min(selectedIndex - Math.floor(maxVisible / 2), Math.max(0, filteredCount - maxVisible)),
     )
   }
-
-  // Use refs to avoid stale closure issues with the handler
-  const selectedIndexRef = React.useRef(selectedIndex)
-  selectedIndexRef.current = selectedIndex
-  const onCancelRef = React.useRef(onCancel)
-  onCancelRef.current = onCancel
-  const onSelectRef = React.useRef(onSelect)
-  onSelectRef.current = onSelect
-
-  // Register dialog target for command system navigation
-  React.useLayoutEffect(() => {
-    dialogTargetRef.current = {
-      navUp() {
-        setSelectedIndex((i) => Math.max(0, i - 1))
-      },
-      navDown() {
-        setSelectedIndex((i) => i + 1) // Clamped by rendering
-      },
-      confirm() {
-        if (loaderRef.current?.status === "resolved") {
-          const allOptions = loaderRef.current.read()
-          const filtered = filterOptions(allOptions, editCtx.target.getContent())
-          const selected = filtered[selectedIndexRef.current]
-          if (selected) {
-            onSelectRef.current(selected.node)
-          }
-        }
-      },
-      cancel() {
-        onCancelRef.current()
-      },
-    }
-
-    return () => {
-      dialogTargetRef.current = null
-    }
-  }, [editCtx.target])
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">

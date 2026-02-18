@@ -5,14 +5,14 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React from "react"
-import { Box, Text, ErrorBoundary, useEditContext } from "inkx"
+import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
 import { getParentName, extractTags } from "./search-utils.ts"
-import { dialogTargetRef } from "../dialog-target.ts"
+import { useDialogInput } from "../hooks/use-dialog-input.ts"
 
 // Minimum query length before searching (prevents heavy queries on single chars)
 const MIN_QUERY_LENGTH = 2
@@ -143,10 +143,27 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
   const repo = useRepo()
   const [selectedIndex, setSelectedIndex] = React.useState(0)
 
-  // EditContext-based line editing for search input
-  const editCtx = useEditContext({
+  // Refs for callbacks used in useDialogInput closures
+  const selectedIndexRef = React.useRef(selectedIndex)
+  selectedIndexRef.current = selectedIndex
+  const onCancelRef = React.useRef(onCancel)
+  onCancelRef.current = onCancel
+  const onSelectRef = React.useRef(onSelect)
+  onSelectRef.current = onSelect
+  const resultsRef = React.useRef<SearchResult[]>([])
+
+  const editCtx = useDialogInput({
     initialValue: initialInput ?? "",
-    onChange: () => setSelectedIndex(0), // Reset selection when query changes
+    onChange: () => setSelectedIndex(0),
+    navUp: () => setSelectedIndex((i) => Math.max(0, i - 1)),
+    navDown: () => setSelectedIndex((i) => i + 1),
+    onConfirm: () => {
+      const selected = resultsRef.current[selectedIndexRef.current]
+      if (selected) {
+        onSelectRef.current(selected.node)
+      }
+    },
+    onCancel: () => onCancelRef.current(),
   })
 
   // Consume the initial input buffer after first render
@@ -170,6 +187,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
     () => (trimmedQuery.length >= MIN_QUERY_LENGTH ? searchNodes(repo, trimmedQuery, effectiveScopeNodeIds) : []),
     [repo, trimmedQuery, effectiveScopeNodeIds],
   )
+  resultsRef.current = results
 
   React.useImperativeHandle(ref, () => ({
     focusInput() {
@@ -185,40 +203,6 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
   // (No separate scope line — scope is shown as InputBox prompt prefix)
   const DIALOG_CHROME = 10
   const maxVisible = Math.max(1, maxHeight - DIALOG_CHROME)
-
-  // Register dialog target for command system navigation
-  // Use refs to avoid stale closure issues
-  const selectedIndexRef = React.useRef(selectedIndex)
-  selectedIndexRef.current = selectedIndex
-  const resultsRef = React.useRef(results)
-  resultsRef.current = results
-  const onCancelRef = React.useRef(onCancel)
-  onCancelRef.current = onCancel
-  const onSelectRef = React.useRef(onSelect)
-  onSelectRef.current = onSelect
-
-  React.useLayoutEffect(() => {
-    dialogTargetRef.current = {
-      navUp() {
-        setSelectedIndex((i) => Math.max(0, i - 1))
-      },
-      navDown() {
-        setSelectedIndex((i) => i + 1) // Clamped by rendering
-      },
-      confirm() {
-        const selected = resultsRef.current[selectedIndexRef.current]
-        if (selected) {
-          onSelectRef.current(selected.node)
-        }
-      },
-      cancel() {
-        onCancelRef.current()
-      },
-    }
-    return () => {
-      dialogTargetRef.current = null
-    }
-  }, [])
 
   // Calculate scroll offset and content-based height
   const resultCount = results.length
@@ -237,13 +221,13 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
   // Scope label: "All" or the scoped node's name (e.g., "in Inbox")
   const scopeNodeName = React.useMemo(() => {
     if (scope !== "selected" || !scopeNodeIds?.length) return null
-    const node = repo.getNode(scopeNodeIds[0]!)
+    const firstScopeId = scopeNodeIds[0]
+    const node = firstScopeId ? repo.getNode(firstScopeId) : null
     return node ? getNodeDisplayName(repo, node) : null
   }, [scope, scopeNodeIds, repo])
 
   // Scope prompt prefix for the InputBox (e.g., "[All] " or "[in Alpha] ")
-  const scopePrompt =
-    scope === "all" ? "All ▸ " : `in ${scopeNodeName ?? "selection"} ▸ `
+  const scopePrompt = scope === "all" ? "All ▸ " : `in ${scopeNodeName ?? "selection"} ▸ `
   const scopePromptColor = scope === "all" ? "white" : "cyan"
 
   const footerContent = (

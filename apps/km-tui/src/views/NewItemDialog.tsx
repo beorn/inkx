@@ -6,14 +6,14 @@
  */
 import React from "react"
 import { useApp as useAppStore } from "inkx/runtime"
-import { Box, Text, useEditContext } from "inkx"
+import { Box, Text } from "inkx"
 import { isOutline, type KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog } from "./shared-components.tsx"
-import { dialogTargetRef } from "../dialog-target.ts"
+import { useDialogInput } from "../hooks/use-dialog-input.ts"
 
 export interface NewItemDialogProps {
   /** The currently selected node (for context/defaults) */
@@ -108,21 +108,15 @@ export function NewItemDialog({
   // Determine if cursor is a task (new item will also be a task)
   const isTask = cursorNode?.task_marker != null || cursorNode === null
 
-  // EditContext-based text editing
-  const editCtx = useEditContext({
-    initialValue: "",
-  })
-
   // Use refs to avoid stale closure issues with the handler
   const onCancelRef = React.useRef(onCancel)
   onCancelRef.current = onCancel
   const onCreateRef = React.useRef(onCreate)
   onCreateRef.current = onCreate
 
-  // Register dialog target for command system navigation (Enter/Escape)
-  React.useLayoutEffect(() => {
-    const doCreate = () => {
-      const content = editCtx.target.getContent()
+  const editCtx = useDialogInput({
+    initialValue: "",
+    onConfirm: (content) => {
       if (!content.trim()) {
         onCancelRef.current()
         return
@@ -136,21 +130,9 @@ export function NewItemDialog({
         list_marker: isTask ? "-" : undefined,
       })
       onCreateRef.current(nodeId)
-    }
-
-    dialogTargetRef.current = {
-      navUp() {},
-      navDown() {},
-      confirm: doCreate,
-      cancel() {
-        onCancelRef.current()
-      },
-    }
-
-    return () => {
-      dialogTargetRef.current = null
-    }
-  }, [repo, parentId, isTask, editCtx.target])
+    },
+    onCancel: () => onCancelRef.current(),
+  })
 
   return (
     <ModalDialog
