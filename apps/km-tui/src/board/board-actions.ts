@@ -769,7 +769,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "DIALOG_NAV_DOWN":
       dialogTargetRef.current?.navDown()
       return ok()
-    case "DIALOG_CONFIRM":
+    case "DIALOG_CONFIRM": {
       if (dialogTargetRef.current) {
         dialogTargetRef.current.confirm()
       } else if (activeEditTargetRef.current) {
@@ -787,6 +787,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         else if (ctx.ui.showProjectPicker) ctx.setUI({ showProjectPicker: false })
       }
       return ok()
+    }
     case "DIALOG_CANCEL":
       if (dialogTargetRef.current) {
         dialogTargetRef.current.cancel()
@@ -1313,7 +1314,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
 
   if (useBatch) ctx.undoHandle.endBatch()
 
-  // Re-evaluate add= rules so @next Inbox picks up newly-dated tasks.
+  // Re-evaluate km.add:: rules so @next Inbox picks up newly-dated tasks.
   // onNodeChanged writes embeds directly to DB (bypassing repo mutation API),
   // so touch() is needed to clear stale children cache and notify subscribers.
   if (ctx.repo.database) {

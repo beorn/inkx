@@ -69,27 +69,25 @@ export function DatePromptDialog({
     onCancel: () => onCancel(),
   })
 
-  // Register dialog target for Enter/Escape
-  const onConfirmRef = React.useRef(onConfirm)
-  onConfirmRef.current = onConfirm
-  const onCancelRef = React.useRef(onCancel)
-  onCancelRef.current = onCancel
-
+  // Register dialog target for Enter/Escape.
+  // IMPORTANT: Must go through editCtx.target.confirm/cancel to set cancelledRef,
+  // otherwise useEditContext's auto-save-on-unmount fires onConfirm again.
+  const { target: editTarget } = editCtx
   React.useLayoutEffect(() => {
     dialogTargetRef.current = {
       navUp() {},
       navDown() {},
       confirm() {
-        onConfirmRef.current()
+        editTarget.confirm()
       },
       cancel() {
-        onCancelRef.current()
+        editTarget.cancel()
       },
     }
     return () => {
       dialogTargetRef.current = null
     }
-  }, [])
+  }, [editTarget])
 
   const title = FIELD_TITLES[field] ?? "Set Value"
   const hint = FIELD_HINTS[field] ?? ""
