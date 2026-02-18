@@ -227,21 +227,47 @@ Parsed into node data:
 
 ## Wikilinks
 
-### Parsing
+### Syntax
 
 ```markdown
-[[Page Name]]
-[[Page Name|Display Text]]
-[[Page Name#Section]]
-[[Page Name#^block-id]]
+[[Page Name]]                  Link to page
+[[Page Name|Display Text]]     Link with alias
+[[Page Name#Section]]          Link to section in page
+[[Page Name#^block-id]]        Link to block ID in another page
+[[#^block-id]]                 Link to block ID in same file (file-local)
+[[^block-id]]                  Link to globally unique block ID (any file)
+![[Page Name]]                 Embed (transclude) page
+![[Page Name#^block-id]]       Embed specific block
 ```
+
+### Block IDs
+
+Block IDs are 4-6 character alphanumeric identifiers appended to any block:
+
+```markdown
+- [ ] Buy groceries ^k7m2
+## Section Title ^abc1
+Paragraph content ^x9p3
+```
+
+Three reference scopes:
+- **`[[file.md#^id]]`** — block in a specific file
+- **`[[#^id]]`** — block in the current file (file-local)
+- **`[[^id]]`** — globally unique block (resolved across all files)
+
+Block IDs are generated on-demand during serialization when an embed references
+an inline node that doesn't yet have one. Stored in `node.block_id` (without `^`).
+
+### Parsed Representation
 
 ```typescript
 interface WikiLink {
-  target: string // "Page Name"
-  section?: string // "Section"
-  blockId?: string // "block-id"
-  alias?: string // "Display Text"
+  type: "wikiLink"
+  target: string      // "Page Name" (empty for file-local/global block refs)
+  section?: string    // "Section"
+  blockId?: string    // "block-id" (without ^)
+  alias?: string      // "Display Text"
+  embedded?: boolean  // true for ![[...]] embeds
 }
 ```
 
@@ -261,6 +287,9 @@ function resolveWikiLink(link: WikiLink, currentFile: Node): Node | null {
   if (target && link.section) {
     target = findChildBySlug(target, link.section)
   }
+  if (link.blockId) {
+    target = resolveBlockId(link.blockId)
+  }
 
   return target
 }
@@ -270,7 +299,8 @@ function resolveWikiLink(link: WikiLink, currentFile: Node): Node | null {
 
 ## Inline Properties
 
-Logseq-style inline properties for structured metadata.
+`key:: value` syntax for structured metadata inline with content. Compatible with
+Logseq, Obsidian Dataview, Tana, and Roam. Multiple properties per line supported.
 
 ### Syntax
 
@@ -401,12 +431,50 @@ function parseMarkdown(content: string): Root {
 
 ---
 
+## Prior Art
+
+### Block References
+
+| System | Syntax | Scope |
+|--------|--------|-------|
+| **km** | `[[^id]]` | Global (any file) |
+| **km** | `[[#^id]]` | File-local |
+| **km** | `[[file#^id]]` | Cross-file |
+| Obsidian | `[[file#^id]]`, `[[#^id]]` | File-scoped only (no global) |
+| Logseq | `((block-uuid))` | Global (opaque UUIDs) |
+| Pandoc | `{#id}` after heading | HTML anchor, same file |
+| kramdown | `{: #id}` after block | HTML anchor, same file |
+| PHP MD Extra | `{#id}` | HTML anchor |
+| GitHub | Auto-slug from heading text | Same file, `#heading-text` |
+| Org-mode | `#+NAME:`, `<<target>>`, `CUSTOM_ID` | Global via ID registry |
+
+km's `[[^id]]` is unique: a globally-scoped block ref without specifying the file.
+
+### Inline Metadata
+
+| System | Syntax | Notes |
+|--------|--------|-------|
+| **km** | `key:: value` | Multiple per line, compatible with all below |
+| Logseq | `key:: value` | Origin of double-colon syntax |
+| Dataview | `key:: value`, `[key:: val]`, `(key:: val)` | Obsidian plugin; brackets for inline, parens hide key |
+| Tana | `key:: value` | Backed by typed fields/supertags |
+| Roam | `attribute:: value` | Same family |
+| Obsidian native | YAML frontmatter only | No inline properties without Dataview |
+| Pandoc/kramdown | `{#id .class key=val}` | HTML rendering attrs, not semantic data |
+| Org-mode | `:PROPERTIES:` drawer | `:KEY: value` in block, not inline |
+
+The `key:: value` double-colon family is the de facto standard for inline semantic
+metadata across knowledge tools. km uses this syntax for cross-tool compatibility.
+
 ## References
 
 - [mdast](https://github.com/syntax-tree/mdast) — Markdown AST spec
 - [unified](https://unifiedjs.com/) — Text processing ecosystem
 - [remark](https://remark.js.org/) — Markdown processor
 - [Obsidian](https://help.obsidian.md/Editing+and+formatting/Basic+formatting+syntax) — Markdown extensions
+- [Pandoc headings](https://pandoc.org/demo/example33/8.3-headings.html) — `{#id}` attribute syntax
+- [kramdown IAL](https://kramdown.gettalong.org/syntax.html) — `{: #id .class}` inline attribute lists
+- [Logseq properties](https://discuss.logseq.com/t/syntax-for-inline-properties/10031) — `key:: value` origin
 
 ---
 

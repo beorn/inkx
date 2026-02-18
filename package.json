@@ -100,6 +100,7 @@
     "@types/node": "^25.2.2",
     "@types/react": "^19.2.13",
     "@types/sinonjs__fake-timers": "^15.0.1",
+    "@types/turndown": "^5.0.6",
     "chalkx": "workspace:*",
     "inkx": "workspace:*",
     "knip": "^5.83.1",
@@ -123,6 +124,7 @@
     "chrono-node": "^2.9.0",
     "debug": "^4.4.3",
     "rrule": "^2.8.1",
+    "turndown": "^7.2.2",
     "ulid": "^3.0.2"
   }
 }

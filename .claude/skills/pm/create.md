@@ -128,6 +128,16 @@ Exact match (open)?
 
 ## Phase 3: Bead Management
 
+### Pre-check for existing bead:
+
+Before creating, verify the intended ID doesn't already exist:
+
+```bash
+bd show <intended-id> 2>/dev/null || echo "ID available"
+```
+
+This prevents accidental duplicates when sessions crash mid-creation or multiple agents work concurrently.
+
 ### Generate ID:
 
 1. **Check database prefix first:**
