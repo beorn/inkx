@@ -90,7 +90,14 @@ export function displayLength(text: string): number {
  * Regex to match inline field attributes like [due:: 2024-01-15], [priority:: 1]
  * These are Dataview/Obsidian Tasks style inline fields.
  */
-const INLINE_FIELD_REGEX = /\[(\w+)::\s*([^\]]*)\]/g
+const INLINE_FIELD_BRACKET_REGEX = /\[(\w+)::\s*([^\]]*)\]/g
+
+/**
+ * Regex to match bare inline properties: key:: value
+ * Compatible with Logseq, Obsidian Dataview, Tana, Roam.
+ * Value runs until next property or end of string.
+ */
+const INLINE_PROP_REGEX = /([a-z][a-z0-9_-]*)::\s*(.+?)(?=\s+[a-z][a-z0-9_-]*::|$)/gi
 
 /**
  * Regex to match wiki links: [[note]] or [[path/to/note|alias]]
@@ -190,8 +197,24 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   // Create style once per call to avoid module-level state
   const style = createTermStyle()
 
-  // Strip inline fields and HTML tags first
-  let result = text.replace(INLINE_FIELD_REGEX, "")
+  // Style inline properties: key in dim cyan, :: in dim, value colored by type
+  const styleInlineProp = (_match: string, key: string, value: string) => {
+    const trimVal = value.trim()
+    const styledVal = WIKI_LINK_REGEX.test(trimVal)
+      ? trimVal // Links get styled in the wiki link pass below
+      : /^\d{4}-\d{2}-\d{2}/.test(trimVal)
+        ? style.green(trimVal) // Dates
+        : /^\d+(\.\d+)?$/.test(trimVal)
+          ? style.yellow(trimVal) // Numbers
+          : style.white(trimVal) // Text
+    return style.dim.cyan(key) + style.dim(":: ") + styledVal
+  }
+
+  // Style bracketed inline fields [key:: value] and bare key:: value
+  let result = text.replace(INLINE_FIELD_BRACKET_REGEX, (_m, k: string, v: string) =>
+    styleInlineProp(_m, k, v),
+  )
+  result = result.replace(INLINE_PROP_REGEX, styleInlineProp)
   result = result.replace(HTML_TAG_REGEX, "")
 
   // Style markdown links [text](url) → underlined text
@@ -285,8 +308,9 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
  * // Returns: "bold and italic text"
  */
 export function renderPlain(text: string): string {
-  // Strip inline fields and HTML tags
-  let result = text.replace(INLINE_FIELD_REGEX, "")
+  // Strip inline fields (bracketed and bare) and HTML tags
+  let result = text.replace(INLINE_FIELD_BRACKET_REGEX, "")
+  result = result.replace(INLINE_PROP_REGEX, "")
   result = result.replace(HTML_TAG_REGEX, "")
 
   // Strip markdown links [text](url) → text

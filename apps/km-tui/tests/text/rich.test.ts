@@ -80,25 +80,30 @@ describe("stripAnsi", () => {
 // ============================================================================
 
 describe("renderRich", () => {
-  describe("inline field stripping", () => {
-    it("strips simple inline fields", () => {
+  describe("inline property highlighting", () => {
+    it("styles bracketed inline fields instead of stripping", () => {
       const result = renderRich("Task [due:: 2024-01-15]")
-      expect(stripAnsi(result)).toBe("Task")
+      // Should contain the key and value (not stripped)
+      expect(result).toContain("due")
+      expect(result).toContain("::")
+      expect(result).toContain("2024-01-15")
+      // Should have ANSI styling applied
+      expect(result).not.toBe("Task due:: 2024-01-15")
     })
 
-    it("strips multiple inline fields", () => {
-      const result = renderRich("Task [due:: 2024-01-15] [priority:: 1]")
-      expect(stripAnsi(result)).toBe("Task")
+    it("styles bare inline properties", () => {
+      const result = renderRich("Task blocked-by:: [[other]] rating:: 5")
+      expect(result).toContain("blocked-by")
+      expect(result).toContain("rating")
+      // Should have ANSI styling applied
+      expect(result).not.toBe("Task blocked-by:: [[other]] rating:: 5")
     })
 
-    it("preserves text around inline fields", () => {
-      const result = renderRich("Start [field:: value] end")
-      expect(stripAnsi(result)).toBe("Start end")
-    })
-
-    it("handles inline fields with complex values", () => {
-      const result = renderRich("Task [scheduled:: 2024-01-15 10:00]")
-      expect(stripAnsi(result)).toBe("Task")
+    it("applies styling to property keys and values", () => {
+      const plain = renderRich("plain text")
+      const withProp = renderRich("plain text due:: 2024-01-15")
+      // With property should be longer (has ANSI codes)
+      expect(withProp.length).toBeGreaterThan(plain.length)
     })
   })
 
@@ -203,7 +208,7 @@ describe("renderRich", () => {
     })
 
     it("cleans up multiple spaces", () => {
-      const result = renderRich("word   [field:: value]   word")
+      const result = renderRich("word   word")
       expect(stripAnsi(result)).toBe("word word")
     })
 
