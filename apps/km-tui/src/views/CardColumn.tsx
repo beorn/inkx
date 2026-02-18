@@ -251,6 +251,7 @@ const Card = React.memo(
             childCount={card.childCount}
             extraExcludedSigils={extraExcludedSigils}
             compactContent
+            hideChildCount
           />
         </Box>
       )
@@ -282,6 +283,7 @@ const Card = React.memo(
               dimInactiveChildren={!isSelected && !isMultiSelected}
               childCount={card.childCount}
               extraExcludedSigils={extraExcludedSigils}
+              hideChildCount
             />
           </Box>
           <Box width={width} height={1} flexShrink={0}>
@@ -308,6 +310,7 @@ const Card = React.memo(
           dimInactiveChildren={!isSelected && !isMultiSelected}
           childCount={card.childCount}
           extraExcludedSigils={extraExcludedSigils}
+          hideChildCount
         />
       </Box>
     )

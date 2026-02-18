@@ -97,10 +97,10 @@ describe("getNodeDisplayName", () => {
       expect(getNodeDisplayName(node)).toBe("Done")
     })
 
-    it("truncates long titles to 50 chars", () => {
+    it("returns full title without truncation (flex layout handles truncation)", () => {
       const longTitle = "A".repeat(100)
       const node = createNode("abc123", { title: longTitle })
-      expect(getNodeDisplayName(node)).toHaveLength(50)
+      expect(getNodeDisplayName(node)).toHaveLength(100)
     })
 
     it("ignores stale data.title when node.title is empty string", () => {
@@ -191,10 +191,10 @@ describe("getNodeDisplayName", () => {
       expect(getNodeDisplayName(node)).toBe("Fix the bug")
     })
 
-    it("truncates long content to 50 chars", () => {
+    it("returns full content without truncation (flex layout handles truncation)", () => {
       const longContent = "B".repeat(100) + "\nSecond line"
       const node = createNode("task123", { content: longContent })
-      expect(getNodeDisplayName(node)).toHaveLength(50)
+      expect(getNodeDisplayName(node)).toHaveLength(100)
     })
   })
 

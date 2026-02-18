@@ -71,13 +71,18 @@ function mkNode(fields: Partial<KNode> & Pick<KNode, "id" | "type">): KNode {
  * Title + @assignee + #tags + +projects are inline text.
  * Metadata (created::, completed::) is set on data.metadata — the serializer handles formatting.
  */
-function buildTaskContent(item: ImportItem): string {
+function buildTaskContent(item: ImportItem, currentProject?: string): string {
   const title = item.milestone ? `◆ ${item.title}` : item.title
   const parts: string[] = [title]
   if (item.assignee) parts.push(`@${item.assignee}`)
   if (item.tags?.length) parts.push(...item.tags.map((t) => `#${t}`))
   if (item.projects && item.projects.length > 1) {
-    parts.push(...item.projects.map((p) => `+${slugify(p)}`))
+    const otherProjects = currentProject
+      ? item.projects.filter((p) => slugify(p) !== slugify(currentProject))
+      : item.projects
+    if (otherProjects.length > 0) {
+      parts.push(...otherProjects.map((p) => `+${slugify(p)}`))
+    }
   }
   return parts.join(" ")
 }
@@ -129,6 +134,7 @@ function itemToNodes(
   nodes: KNode[],
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
+  currentProject?: string,
 ): void {
   // Multi-project dedup: if already rendered, emit compact reference
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
@@ -160,7 +166,7 @@ function itemToNodes(
     parent_id: parentId,
     task_marker: getMarkerForStatus(status),
     task_status: status,
-    content: buildTaskContent(item),
+    content: buildTaskContent(item, currentProject),
     block_id: item.sourceId,
     assigned_to: item.assignee,
     due_at: item.dueAt?.slice(0, 10),
@@ -188,7 +194,7 @@ function itemToNodes(
   // Recursive children (subtasks)
   if (item.children?.length) {
     for (const child of item.children) {
-      itemToNodes(child, item.sourceId, nodes, rendered, primaryMap)
+      itemToNodes(child, item.sourceId, nodes, rendered, primaryMap, currentProject)
     }
   }
 }
@@ -200,6 +206,7 @@ function sectionToNodes(
   nodes: KNode[],
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
+  currentProject?: string,
 ): void {
   const sectionId = `section-${section.sourceId}`
   nodes.push(
@@ -215,7 +222,7 @@ function sectionToNodes(
   )
 
   for (const item of section.items) {
-    itemToNodes(item, sectionId, nodes, rendered, primaryMap)
+    itemToNodes(item, sectionId, nodes, rendered, primaryMap, currentProject)
   }
 }
 
@@ -256,14 +263,14 @@ function projectToNodes(
   // Sections
   if (project.sections?.length) {
     for (const section of project.sections) {
-      sectionToNodes(section, fileId, nodes, rendered, primaryMap)
+      sectionToNodes(section, fileId, nodes, rendered, primaryMap, project.title)
     }
   }
 
   // Loose items
   if (project.items?.length) {
     for (const item of project.items) {
-      itemToNodes(item, fileId, nodes, rendered, primaryMap)
+      itemToNodes(item, fileId, nodes, rendered, primaryMap, project.title)
     }
   }
 

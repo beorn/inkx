@@ -57,10 +57,10 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
   // data.title is from the DB data JSON blob and may be stale.
   // Only fall back to data.title when node.title is undefined (not just empty).
   if (node.title) {
-    return stripInlineRules(node.title).slice(0, 50)
+    return stripInlineRules(node.title)
   }
   if (node.title == null && node.data?.title) {
-    return stripInlineRules(node.data.title as string).slice(0, 50)
+    return stripInlineRules(node.data.title as string)
   }
 
   // 3. For file/mdfile nodes, use first section's title or content (H1 heading)
@@ -70,17 +70,17 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
     if (firstSection) {
       // Use pre-parsed title if available (node.title takes precedence over data.title)
       if (firstSection.title) {
-        return stripInlineRules(firstSection.title).slice(0, 50)
+        return stripInlineRules(firstSection.title)
       }
       if (firstSection.title == null && firstSection.data?.title) {
-        return stripInlineRules(firstSection.data.title as string).slice(0, 50)
+        return stripInlineRules(firstSection.data.title as string)
       }
       // Fallback: strip rules from content
       if (firstSection.content) {
         const heading = firstSection.content.split("\n")[0] ?? ""
         const cleanHeading = stripInlineRules(heading)
         if (cleanHeading) {
-          return cleanHeading.slice(0, 50)
+          return cleanHeading
         }
       }
     }
@@ -88,7 +88,7 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
 
   // 4. Use node content (for tasks, etc.) — strip inline metadata and block IDs
   if (node.content) {
-    return stripForDisplay(node.content.split("\n")[0] ?? "").slice(0, 50)
+    return stripForDisplay(node.content.split("\n")[0] ?? "")
   }
 
   // 5. Use filename (strip .md extension)

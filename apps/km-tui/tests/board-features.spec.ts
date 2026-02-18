@@ -98,15 +98,14 @@ describe("Folding", () => {
     board.expect("#child1").toExist()
     board.press("z").press("M")
     board.expect("#child1").not.toExist()
-    const output = board.screenshot()
-    expect(output).toContain(" 2")
+    // Children are hidden; child count is hidden in cards (overflow indicator shows it)
   })
 
-  test("folded card shows count indicator", () => {
+  test("folded card hides children", () => {
     const { board } = testEnv(() => item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
+    board.expect("#sub1").toExist()
     board.press("z").press("M")
-    const output = board.screenshot()
-    expect(output).toContain(" 3")
+    board.expect("#sub1").not.toExist()
   })
 })
 

@@ -450,10 +450,11 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("- [x] Write tests completed:: 2026-02-09")
   })
 
-  test("renders multi-project as +project tags", () => {
+  test("renders multi-project as +project tags (excluding current project)", () => {
     const files = convert(fixture)
     const md = files.get("p1-sprint-4.md")!
-    expect(md).toContain("+sprint-4")
+    // +sprint-4 is excluded because it's the current project
+    expect(md).not.toContain("+sprint-4")
     expect(md).toContain("+backlog")
   })
 
@@ -648,7 +649,8 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("p:: 2")
     expect(md).toContain("#backend")
     expect(md).toContain("#urgent")
-    expect(md).toContain("+test")
+    // +test excluded (current project), only other projects shown
+    expect(md).not.toContain("+test")
     expect(md).toContain("+other-project")
     expect(md).toContain("^tf1")
     expect(md).toContain("> Description with **bold** text.")

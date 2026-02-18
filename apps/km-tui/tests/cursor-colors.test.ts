@@ -394,60 +394,8 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
     expectCellRangeColor(board, nodeBox.y, aprIdx, 6, { fg: 0, bg: 3 }, "selected date badge")
   })
 
-  it("child count on selected card is black (fg=0) on yellow (bg=3)", () => {
-    // Use item() DSL to create a task with children properly
-    const nodes = item("board", item("col1", item("pt", item.task("c1"), item.task("c2"))))
-
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-
-    // pt should be selected (first card)
-    board.expect('[id="pt"][data-cursor]').toExist()
-
-    const nodeBox = board.screen.nodeBox("pt")
-    expect(nodeBox).not.toBeNull()
-    if (!nodeBox) return
-
-    // The child count "2" should be visible on the same row as the node title
-    const row = board.screen.row(nodeBox.y)
-    // Search for the count — look for " 2" pattern (space then digit)
-    const countMatch = row.match(/\s(\d+)[│\s]*$/)
-    const countIdx = countMatch ? row.indexOf(countMatch[1]!, row.length - 10) : -1
-    expect(countIdx, `child count should be visible in row: "${row}"`).toBeGreaterThan(-1)
-
-    const cell = board.screen.cell(countIdx, nodeBox.y)
-    expect(cell.fg, "child count fg should be black").toEqual(0)
-    expect(cell.bg, "child count bg should be yellow").toEqual(3)
-  })
-
-  it("folded child count on selected card is black (fg=0) on yellow (bg=3)", () => {
-    // When a node is folded, the child count shows bold (more prominent).
-    // It should still be black-on-yellow when selected, NOT cyan or white.
-    const nodes = item("board", item("col1", item("pt", item.task("c1"), item.task("c2"), item.task("c3"))))
-
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-
-    // pt should be selected
-    board.expect('[id="pt"][data-cursor]').toExist()
-
-    // Fold the node
-    board.press("z")
-
-    const nodeBox = board.screen.nodeBox("pt")
-    expect(nodeBox).not.toBeNull()
-    if (!nodeBox) return
-
-    const row = board.screen.row(nodeBox.y)
-    // Count may be followed by border char (│) or end of line
-    const countMatch = row.match(/\s(\d+)[│\s]*$/)
-    const countIdx = countMatch ? row.indexOf(countMatch[1]!, row.length - 10) : -1
-    expect(countIdx, `folded child count should be visible in row: "${row}"`).toBeGreaterThan(-1)
-
-    const cell = board.screen.cell(countIdx, nodeBox.y)
-    expect(cell.fg, "folded child count fg should be black").toEqual(0)
-    expect(cell.bg, "folded child count bg should be yellow").toEqual(3)
-    // Folded count should ideally be bold, but the key assertion is the color
-    // (bold may not propagate through all inkx render paths)
-  })
+  // Child count is hidden in cards (hideChildCount) — overflow indicator shows count instead.
+  // Color tests for child count only apply in outline/list mode.
 
   it("title text on selected card is black (fg=0) on yellow (bg=3)", () => {
     const nodes = item("board", item("col1", item.task("mySelectedTask")))
@@ -491,29 +439,8 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
   })
 })
 
-describe("km-tui.fold-count-color: fold count consistent on non-selected cards", () => {
-  it("child count on non-selected card has consistent color", () => {
-    const nodes = item("board", item("col1", item.task("ft"), item("ns", item.task("nc"))))
-
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
-
-    // ft is selected, ns is not
-    board.expect('[id="ft"][data-cursor]').toExist()
-
-    const nodeBox = board.screen.nodeBox("ns")
-    expect(nodeBox).not.toBeNull()
-    if (!nodeBox) return
-
-    const row = board.screen.row(nodeBox.y)
-    const countMatch = row.match(/\s(\d+)[│\s]*$/)
-    const countIdx = countMatch ? row.indexOf(countMatch[1]!, row.length - 10) : -1
-    expect(countIdx, `child count should be visible in row: "${row}"`).toBeGreaterThan(-1)
-
-    const cell = board.screen.cell(countIdx, nodeBox.y)
-    // Non-selected child count should NOT have yellow bg
-    expect(cell.bg, "non-selected child count should not have yellow bg").not.toEqual(3)
-  })
-})
+// Child count is hidden in cards (hideChildCount) — fold-count-color tests
+// only apply in outline/list mode where count is visible.
 
 describe("km-tui.date-range-color: date uses green/red when not selected", () => {
   it("overdue date on non-selected card shows red (fg=1)", () => {

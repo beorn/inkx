@@ -198,10 +198,10 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
       paddingX={1}
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>}>
-        {/* Title - rich rendered */}
+        {/* Title - rich rendered, stripped of refs shown separately below */}
         <Box width={innerWidth}>
           <Text bold wrap="wrap">
-            {renderRich(title)}
+            {renderRich(stripInlineRefs(title))}
           </Text>
         </Box>
 
@@ -472,10 +472,10 @@ function OutlineItems({ repo, items, depth }: { repo: Repo; items: KNode[]; dept
         const { body: kidBody, items: kidItems } = extractBody(kids)
         return (
           <React.Fragment key={item.id}>
-            <Text wrap="truncate" dimColor={isDone}>
+            <Text wrap="wrap" dimColor={isDone}>
               {indent}
               <Text color={isDone ? undefined : icon.color}>{icon.char} </Text>
-              {getNodeDisplayName(repo, item)}
+              {renderRich(stripInlineRefs(getNodeDisplayName(repo, item)))}
             </Text>
             {kidBody.map((b) => (
               <Text key={b.id} wrap="wrap" dimColor>
@@ -607,6 +607,15 @@ function getProjectPath(repo: Repo, node: KNode): string[] {
   }
 
   return path
+}
+
+/** Strip @mentions, #tags, +projects from text (they're shown separately in props) */
+function stripInlineRefs(text: string): string {
+  return text
+    .replace(/\s*@\w[\w-]*/g, "")
+    .replace(/\s*#\w[\w-]*/g, "")
+    .replace(/\s*\+\w[\w/.-]*/g, "")
+    .trim()
 }
 
 // Export for testing

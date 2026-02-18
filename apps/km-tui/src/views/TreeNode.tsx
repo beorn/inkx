@@ -80,6 +80,8 @@ interface TreeNodeProps {
   dim?: boolean
   /** Collapse blank lines in content (used for compact body cards in cards view) */
   compactContent?: boolean
+  /** Hide the right-aligned child count (cards view has overflow indicator instead) */
+  hideChildCount?: boolean
 }
 
 /**
@@ -177,6 +179,7 @@ function TreeNodeImpl({
   extraExcludedSigils,
   dim = false,
   compactContent = false,
+  hideChildCount = false,
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId } = useTreeRenderContext()
@@ -682,7 +685,8 @@ function TreeNodeImpl({
           )}
           {/* Right-aligned: child count — always gray (black when selected) */}
           {/* Never bold: bold gray renders as bright/white on terminals */}
-          {hasChildren && (
+          {/* Hidden in card views where overflow indicator shows the count */}
+          {hasChildren && !hideChildCount && (
             <Box flexShrink={0}>
               <Text color={isHighlighted ? style.textColor : "gray"}>{` ${childCount}`}</Text>
             </Box>
